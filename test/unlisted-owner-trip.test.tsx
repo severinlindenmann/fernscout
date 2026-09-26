@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { resolveServerTree } from "./support/serverTree";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -84,10 +85,10 @@ async function pageProps(owner: boolean) {
     signedInAs: async () => null,
   }));
   const { default: TripsPage } = await import("@/app/[user]/trips/page");
-  const element = (await TripsPage({
+  const element = (await resolveServerTree(await TripsPage({
     params: Promise.resolve({ user: "alex" }),
     searchParams: Promise.resolve({}),
-  } as never)) as { props: Record<string, unknown> };
+  } as never))) as { props: Record<string, unknown> };
   return element.props;
 }
 

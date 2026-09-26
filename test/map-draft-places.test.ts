@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { resolveServerTree } from "./support/serverTree";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
@@ -114,27 +115,27 @@ function signInOwner() {
  * reason this test needs jsdom. */
 async function journalMapPlaces(): Promise<unknown[]> {
   const { default: MapPage } = await import("@/app/[user]/(trip)/map/page");
-  const element = (await MapPage({
+  const element = (await resolveServerTree(await MapPage({
     params: Promise.resolve({ user: OWNER }),
-  } as never)) as { props: { children: { props: { places: unknown[] } } } } | null;
+  } as never))) as { props: { children: { props: { places: unknown[] } } } } | null;
   if (element === null) throw new Error("the journal map page rendered nothing");
   return element.props.children.props.places;
 }
 
 async function tripMapPlaces(): Promise<unknown[]> {
   const { default: TripMapPage } = await import("@/app/[user]/trips/[trip]/map/page");
-  const element = (await TripMapPage({
+  const element = (await resolveServerTree(await TripMapPage({
     params: Promise.resolve({ user: OWNER, trip: TRIP_ID }),
-  } as never)) as { props: { children: { props: { places: unknown[] } } } } | null;
+  } as never))) as { props: { children: { props: { places: unknown[] } } } } | null;
   if (element === null) throw new Error("the trip-scoped map page rendered nothing");
   return element.props.children.props.places;
 }
 
 async function lifetimeMapPlaceCount(): Promise<number> {
   const { default: TripsPage } = await import("@/app/[user]/trips/page");
-  const element = (await TripsPage({
+  const element = (await resolveServerTree(await TripsPage({
     params: Promise.resolve({ user: OWNER }),
-  } as never)) as { props: { routes: { points: unknown[] }[] } };
+  } as never))) as { props: { routes: { points: unknown[] }[] } };
   const route = element.props.routes[0];
   return route ? route.points.length : 0;
 }

@@ -18,6 +18,11 @@ const GIVE_UP_MS = 10_000;
  * sitting there with no sign the tap had been heard. In the iPhone app, where
  * there is no browser spinner either, that read as the app having frozen.
  *
+ * The heaviest reading pages (the story, a day, the maps, the trip list) also
+ * draw `components/RouteSkeleton.tsx` under their real header as soon as the
+ * first bytes of the answer arrive. This bar still answers the tap before
+ * that, and on every other page.
+ *
  * **Why a document listener and not `useLinkStatus`.** That hook answers
  * inside one `<Link>` only, and the phone menu unmounts its links the moment
  * one is tapped — the hint would vanish exactly when it was needed. One

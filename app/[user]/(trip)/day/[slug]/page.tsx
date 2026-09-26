@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { recordTripView } from "@/lib/analytics/record";
-import { getEntryBySlug } from "@/lib/entries";
+import { getEntryBySlug, type ReadOptions } from "@/lib/entries";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getUser } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
 import { DayStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellersOf } from "@/lib/site";
+import { siteSummary, travellersOf, type SiteSummary } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
+import RouteBoundary from "@/components/RouteBoundary";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
 import { dayTrack } from "@/lib/gps/track";
+import type { UserConfig } from "@/lib/config";
+import type { Entry, Trip } from "@/lib/types";
 
 /*
  * Per-day permalinks. Each entry gets a real, shareable, indexable URL that
@@ -101,24 +104,51 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
   // be partly a list of typos and probes.
   await recordTripView(current, "day", entry);
 
-  const { trip, index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
+  const userConfig = getUser(user);
+  if (!userConfig) notFound();
+
+  return (
+    <TripProvider trip={current} isCurrent canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
+      {/* The 404 for a draft or unknown slug is above this line, so it never
+          becomes a streamed 200. See components/RouteSkeleton.tsx. */}
+      <RouteBoundary shape="day">
+        <CurrentDayBody trip={current} entry={entry} read={read} site={site} userConfig={userConfig} />
+      </RouteBoundary>
+    </TripProvider>
+  );
+}
+
+/** The story opened at this day, below the boundary — see `TripDayBody` in
+ * app/[user]/trips/[trip]/day/[slug]/page.tsx, which this mirrors for the
+ * bare URL. */
+async function CurrentDayBody({
+  trip,
+  entry,
+  read,
+  site,
+  userConfig,
+}: {
+  trip: Trip;
+  entry: Entry;
+  read: ReadOptions;
+  site: SiteSummary;
+  userConfig: UserConfig;
+}) {
+  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
     openAt: entry.date,
-    showCosts: await mayViewCosts(current),
+    showCosts: await mayViewCosts(trip),
     ...read,
     // The window's prose is rendered here, in this reader's language — see
     // lib/prose.ts.
     locale: await requestLocale(),
   });
 
-  const userConfig = getUser(user);
-  if (!userConfig) notFound();
-
   // This day's own part of the recorded route — B2199. See the equivalent
   // call in the /trips/<id>/day/<slug> route for what `visibleDates` is.
-  const track = dayTrack(user, trip.id, new Set(index.map((d) => d.date)), entry.date);
+  const track = dayTrack(trip.username, trip.id, new Set(index.map((d) => d.date)), entry.date);
 
   return (
-    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
+    <>
       <DayStructuredData
         entry={entry}
         site={site}
@@ -135,6 +165,6 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
         locals={locals}
         dayTrack={track}
       />
-    </TripProvider>
+    </>
   );
 }
