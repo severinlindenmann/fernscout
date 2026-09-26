@@ -80,7 +80,7 @@ import {
   activateContactStatus,
   getContactByEmail,
 } from "../lib/contacts";
-import { claimTripPlace, approveTripPlaces } from "../lib/tripPeople";
+import { claimTripPlace, approveTripPlaces, isPersonOn } from "../lib/tripPeople";
 import { getDatabase } from "../lib/db";
 import { migrateToLatest } from "../lib/db/migrate";
 import { pickLocale } from "../lib/contacts/locale";
@@ -170,6 +170,14 @@ async function run(): Promise<void> {
           if (existing?.status === "blocked") {
             counts["skipped-blocked"] += 1;
             blocked.push(label);
+            continue;
+          }
+          // B2368 — a place a real run (or any other door) already granted
+          // is not a fresh grant dry-run would make; without this check
+          // every dry run reported "already granted 0" regardless of what
+          // had already happened.
+          if (await isPersonOn(trip, email)) {
+            counts["already-granted"] += 1;
             continue;
           }
           console.log(`[dry-run] would grant ${label}`);

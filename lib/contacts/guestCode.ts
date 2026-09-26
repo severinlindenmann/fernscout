@@ -20,6 +20,7 @@ import {
 } from "./index";
 import { pickLocale } from "./locale";
 import { sendCodeMail } from "./mail";
+import { maskEmail } from "./welcome";
 
 /**
  * A guest proves who they are with a code to their email **or** their mobile
@@ -127,7 +128,7 @@ export async function sendGuestCode(
     await revokeCodes(owner, subject, "guest").catch(() => {});
     return { ok: false, reason: "send_failed" };
   }
-  return { ok: true, channel, to: maskEmail(subject) };
+  return { ok: true, channel, to: maskEmail(subject) ?? subject };
 }
 
 /** Who may be texted at all: an active contact, or one the owner added. */
@@ -276,7 +277,7 @@ export async function sendEmailProof(
     await revokeCodes(owner, subject, "guest").catch(() => {});
     return { ok: false, reason: "send_failed" };
   }
-  return { ok: true, to: maskEmail(email) };
+  return { ok: true, to: maskEmail(email) ?? email };
 }
 
 /**
@@ -371,10 +372,4 @@ export async function verifyGuestCode(
     subject: result.email,
     contact: await getContactByEmail(owner, result.email),
   };
-}
-
-/** `l•••@example.org` — enough for a person to recognise their own address. */
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  return `${local.slice(0, 1)}•••@${domain}`;
 }

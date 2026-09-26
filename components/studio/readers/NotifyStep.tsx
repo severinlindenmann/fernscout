@@ -264,8 +264,12 @@ export default function NotifyStep({
         </p>
       )}
       {short && (
+        // B2368 — this is shown before anything is sent (the default
+        // selection can already cost more than the balance), so it must not
+        // borrow the post-attempt error's "Nothing was charged": nothing has
+        // been tried yet to charge in the first place.
         <p role="alert" className="mt-2 text-sm text-coral-600">
-          {t("notifyStep.error.noCredits", { balance: formatCredits(options.balance ?? 0) })}
+          {t("notifyStep.insufficientBalance", { balance: formatCredits(options.balance ?? 0) })}
         </p>
       )}
       {error && (

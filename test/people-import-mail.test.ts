@@ -186,3 +186,22 @@ describe("B2366 — a code mail's promise matches whether the owner already deci
     expect(mail.body).toContain(translateIn("en", "contact.mailCodeLinkBody"));
   });
 });
+
+describe("B2368 — the masked address is the same everywhere it is shown", () => {
+  test("sendGuestCode's masked reply matches the guide's own maskEmail, not a shorter reveal", async () => {
+    // B2368 — the /w/ guide's "to ag•••@…" comes from lib/contacts/welcome.ts's
+    // maskEmail (two letters); guestCode.ts kept its own private copy that
+    // revealed only one, so the address on screen changed between the guide
+    // and the "code sent" line for the same address.
+    const { addPersonByOwner } = await import("@/lib/contacts");
+    const { sendGuestCode } = await import("@/lib/contacts/guestCode");
+    const { maskEmail } = await import("@/lib/contacts/welcome");
+
+    const added = await addPersonByOwner(OWNER, { name: "Gia Guest", email: "giulia@example.test", locale: "en" });
+    if (!added.ok) throw new Error("addPersonByOwner failed in test setup");
+
+    const sent = await sendGuestCode(OWNER, added.contact.id, "email", { ip: "203.0.113.11" });
+    expect(sent.ok && sent.to).toBe(maskEmail("giulia@example.test"));
+    expect(sent.ok && sent.to).toBe("gi•••@example.test");
+  });
+});

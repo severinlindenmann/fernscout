@@ -193,10 +193,15 @@ export function viaLabel(
     (candidate) => candidate.id === createdVia.slice("invite:".length),
   );
   if (!invite) return t("contact.adminViaInvite");
-  const kind = t(INVITE_KIND_KEY[invite.kind]);
-  return invite.kind === "buddy" && invite.tripId
-    ? `${kind} · ${t("contact.adminInviteTrip", { trip: tripLabel(trips, invite.tripId) })}`
-    : kind;
+  // B2368 — the link's own name (typed on the door that made it, "Family
+  // chat") is part of "how somebody came to be on this list" too, not only
+  // its kind and, for a buddy link, its trip.
+  const parts = [t(INVITE_KIND_KEY[invite.kind])];
+  if (invite.kind === "buddy" && invite.tripId) {
+    parts.push(t("contact.adminInviteTrip", { trip: tripLabel(trips, invite.tripId) }));
+  }
+  if (invite.name) parts.push(t("contact.adminInviteNamed", { name: invite.name }));
+  return parts.join(" · ");
 }
 
 export type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
