@@ -5,3 +5,6 @@
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "Fernscout records where you go during a trip you turned recording on for, including while the app is in the background, so your journal gets a real map of the roads you took.";
 /* B2322 — speaking to the helper. */
 "NSMicrophoneUsageDescription" = "Fernscout uses the microphone only while you are recording, so you can tell the helper about your day instead of typing it.";
+/* B2118 — the base Info.plist's own English sentence, kept here so this
+   file is a real localisation rather than only the fallback. */
+"NSPhotoLibraryUsageDescription" = "Fernscout imports the photographs you choose into your travel journal and keeps the originals.";
