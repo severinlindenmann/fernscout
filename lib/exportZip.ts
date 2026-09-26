@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { buffer as streamToBuffer } from "node:stream/consumers";
 import { ZipArchive } from "archiver";
-import { isDraft, getAllEntries, AS_AUTHOR } from "./entries";
+import { getAllEntries, AS_AUTHOR } from "./entries";
 import { isOpenToLink } from "./access";
 import { userConfigPath } from "./config";
 import { mediaOriginalsRoot, tripOriginalsDir } from "./media";
@@ -91,7 +91,12 @@ function isDraftEntry(file: string): boolean {
   if (path.extname(file) !== ".json") return false;
   if (path.basename(path.dirname(file)) !== "entries") return false;
   try {
-    return isDraft(JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>);
+    const data = JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
+    // Not `isDraft()`: that only catches an explicit `"draft"`, so a day
+    // written with no `status` at all (dayFromJson's own default, and every
+    // reading path other than this one, treat that as a draft) would slip
+    // past it and into an anonymous, open-to-link export — B2347.
+    return data.status !== "published";
   } catch {
     // Unreadable or unparseable: not something to hand out either.
     return true;
