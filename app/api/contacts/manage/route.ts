@@ -6,6 +6,7 @@ import {
   updateContactSelf,
   type ContactRecord,
 } from "@/lib/contacts";
+import { EMPTY_ADDRESS, hasAnyDetail, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
 
@@ -92,6 +93,38 @@ export async function POST(request: Request) {
 
   if (action !== "update") {
     return Response.json({ error: "unknown_action" }, { status: 400 });
+  }
+
+  // Refuse rather than silently drop the tick — the same rule
+  // `app/api/contacts/admin/route.ts`'s `update` case makes for the owner's
+  // own form (B384): wanting a postcard with nowhere to send it is a typo,
+  // not a preference, and `updateContactSelf` used to zero it quietly while
+  // this route answered "Saved." — a reader told their save worked while the
+  // one thing they ticked did not take effect (B2107).
+  const current = await resolveManageToken(username, token);
+  if (!current) return Response.json({ error: "unknown_token" }, { status: 404 });
+
+  const currentAddress = current.postalAddress ?? EMPTY_ADDRESS;
+  const nextAddress =
+    body.address !== undefined && typeof body.address === "object" && body.address !== null
+      ? normaliseAddress(body.address as Record<string, unknown>)
+      : body.address === null
+        ? EMPTY_ADDRESS
+        : currentAddress;
+  const nextWantsPostcard =
+    typeof body.wantsPostcard === "boolean" ? body.wantsPostcard : current.wantsPostcard;
+  const addressChanged =
+    nextAddress.name !== currentAddress.name ||
+    nextAddress.line1 !== currentAddress.line1 ||
+    nextAddress.line2 !== currentAddress.line2 ||
+    nextAddress.postcode !== currentAddress.postcode ||
+    nextAddress.city !== currentAddress.city ||
+    nextAddress.country !== currentAddress.country;
+  const turningPostcardOn = nextWantsPostcard && !current.wantsPostcard;
+  const newAddressIsHalfWritten =
+    addressChanged && hasAnyDetail(nextAddress) && !isPostable(nextAddress);
+  if ((turningPostcardOn && !isPostable(nextAddress)) || newAddressIsHalfWritten) {
+    return Response.json({ error: "invalid_address" }, { status: 400 });
   }
 
   const contact = await updateContactSelf(username, token, {

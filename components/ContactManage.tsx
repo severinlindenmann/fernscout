@@ -68,6 +68,8 @@ export default function ContactManage({
   className = PAGE_CLASS,
   defaultCountryCode,
   addressLookupEnabled = false,
+  postcardsEnabled = false,
+  whatsappEnabled = false,
   smsEnabled = false,
   isOwner = false,
 }: {
@@ -91,6 +93,12 @@ export default function ContactManage({
   defaultCountryCode?: string;
   /** B399: `isEnabled("addressLookup", username)`, from the page. */
   addressLookupEnabled?: boolean;
+  /** B2356: `isEnabled("postcards", username)` — off means the tick is
+   * absent, not merely inert, the same rule every optional capability
+   * follows. */
+  postcardsEnabled?: boolean;
+  /** B2356: `isEnabled("whatsapp", username)`, same rule as above. */
+  whatsappEnabled?: boolean;
   /** B2292: `isEnabled("sms")` — offer new days by SMS as its own tick. */
   smsEnabled?: boolean;
   /**
@@ -167,8 +175,16 @@ export default function ContactManage({
       },
     ).catch(() => null);
     setBusy(false);
-    setNote(response?.ok ? done : "contact.error");
-    return Boolean(response?.ok);
+    if (response?.ok) {
+      setNote(done);
+      return true;
+    }
+    // A refusal names what's wrong (B2107) rather than a generic failure —
+    // "Saved." must never be the answer when a consent the reader just
+    // ticked did not actually take effect.
+    const failure = (await response?.json().catch(() => null)) as { error?: string } | null;
+    setNote(failure?.error === "invalid_address" ? "contact.needAddress" : "contact.error");
+    return false;
   }
 
   if (deleted) {
@@ -208,8 +224,8 @@ export default function ContactManage({
               // Rejoined here — see the note on `address` above.
               address: { ...address, tel: joinTel(cc, address.tel) },
               wantsEmailDigest: wantsDigest,
-              wantsPostcard,
-              wantsWhatsapp,
+              ...(postcardsEnabled ? { wantsPostcard } : {}),
+              ...(whatsappEnabled ? { wantsWhatsapp } : {}),
               ...(smsEnabled ? { wantsSms } : {}),
             },
             "contact.saved",
@@ -366,24 +382,28 @@ export default function ContactManage({
             />
             <span>{t("contact.wantsDigest")}</span>
           </label>
-          <label className="flex items-start gap-3 text-lg text-ink-strong">
-            <input
-              type="checkbox"
-              className="mt-1.5 size-5"
-              checked={wantsPostcard}
-              onChange={(e) => setWantsPostcard(e.target.checked)}
-            />
-            <span>{t("contact.wantsPostcard")}</span>
-          </label>
-          <label className="flex items-start gap-3 text-lg text-ink-strong">
-            <input
-              type="checkbox"
-              className="mt-1.5 size-5"
-              checked={wantsWhatsapp}
-              onChange={(e) => setWantsWhatsapp(e.target.checked)}
-            />
-            <span>{t("contact.wantsWhatsapp")}</span>
-          </label>
+          {postcardsEnabled && (
+            <label className="flex items-start gap-3 text-lg text-ink-strong">
+              <input
+                type="checkbox"
+                className="mt-1.5 size-5"
+                checked={wantsPostcard}
+                onChange={(e) => setWantsPostcard(e.target.checked)}
+              />
+              <span>{t("contact.wantsPostcard")}</span>
+            </label>
+          )}
+          {whatsappEnabled && (
+            <label className="flex items-start gap-3 text-lg text-ink-strong">
+              <input
+                type="checkbox"
+                className="mt-1.5 size-5"
+                checked={wantsWhatsapp}
+                onChange={(e) => setWantsWhatsapp(e.target.checked)}
+              />
+              <span>{t("contact.wantsWhatsapp")}</span>
+            </label>
+          )}
           {smsEnabled && (
             <label className="flex items-start gap-3 text-lg text-ink-strong">
               <input

@@ -72,6 +72,8 @@ export default function OwnDetails({
   dictionary,
   defaultCountryCode,
   addressLookupEnabled,
+  postcardsEnabled,
+  whatsappEnabled,
   own,
 }: {
   username: string;
@@ -79,6 +81,11 @@ export default function OwnDetails({
   dictionary: Record<string, string>;
   defaultCountryCode?: string;
   addressLookupEnabled: boolean;
+  /** B2356: `isEnabled("postcards", username)` — absent, not merely inert,
+   * when off. */
+  postcardsEnabled: boolean;
+  /** B2356: `isEnabled("whatsapp", username)`, same rule as above. */
+  whatsappEnabled: boolean;
   own?: { token: string; contact: ManageContact };
 }) {
   const t = (key: TranslationKey) => translate(dictionary, key);
@@ -101,6 +108,8 @@ export default function OwnDetails({
               contact={own.contact}
               defaultCountryCode={defaultCountryCode}
               addressLookupEnabled={addressLookupEnabled}
+              postcardsEnabled={postcardsEnabled}
+              whatsappEnabled={whatsappEnabled}
               isOwner
             />
           </div>

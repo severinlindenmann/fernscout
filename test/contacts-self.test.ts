@@ -197,4 +197,47 @@ describe("a bare people: name is not a traveller (D3, B2297)", () => {
     expect(contact?.postalAddress?.line1).toBe("1 Road");
     expect(contact?.wantsPostcard).toBe(true);
   });
+
+  /**
+   * B2107 — this door shares `requestContact`'s own silent drop
+   * (`lib/contacts/index.ts` ~:433 via `isPostable`): a country-less address
+   * plus `wantsPostcard: true` used to save with the tick quietly zeroed
+   * while the route still answered `{ ok: true }`. It now refuses instead,
+   * the same way `/api/contacts/manage` does.
+   */
+  test("refuses a postcard consent when the submitted address has no country", async () => {
+    const { requestContact, confirmContactByOwner, approveContact } = await import(
+      "@/lib/contacts"
+    );
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    const requested = await requestContact(OWNER, {
+      name: "Robin",
+      email: ROBIN,
+      locale: "en",
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      wantsWhatsapp: false,
+      createdVia: "owner-grant",
+    });
+    if (requested.contactId) {
+      await confirmContactByOwner(OWNER, requested.contactId);
+      await approveContact(OWNER, requested.contactId);
+      await claimTripPlace(OWNER, "asia-2025", requested.contactId, null);
+      await approveTripPlaces(OWNER, requested.contactId);
+    }
+
+    await signIn(ROBIN);
+    const result = await self({
+      name: "Robin",
+      address: { ...ADDRESS, country: "" },
+      wantsPostcard: true,
+    });
+
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe("invalid_address");
+
+    const { getContactByEmail } = await import("@/lib/contacts");
+    const contact = await getContactByEmail(OWNER, ROBIN);
+    expect(contact?.wantsPostcard).toBe(false);
+  });
 });

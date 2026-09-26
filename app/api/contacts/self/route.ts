@@ -1,6 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { confirmContactFromSession, requestContact } from "@/lib/contacts";
-import type { PostalAddress } from "@/lib/contacts/crypto";
+import { isPostable, normaliseAddress, type PostalAddress } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -96,13 +96,25 @@ export async function POST(request: Request) {
     user.defaultLocale,
   );
 
+  const address =
+    body.address === undefined ? undefined : (body.address as Partial<PostalAddress> | null);
+  const wantsPostcard = body.wantsPostcard === true;
+  // Refuse rather than let `requestContact` (~lib/contacts/index.ts:433)
+  // silently zero the tick — the same rule `/api/contacts/manage` makes for
+  // its own save (B2107): wanting a postcard with an address that was just
+  // submitted and isn't postable is a typo, not a preference, and this route
+  // must not answer success while quietly dropping it.
+  if (wantsPostcard && address !== undefined && !isPostable(normaliseAddress(address))) {
+    return Response.json({ error: "invalid_address" }, { status: 400 });
+  }
+
   const result = await requestContact(username, {
     name,
     email: reader.email,
     locale,
-    address: body.address === undefined ? undefined : (body.address as Partial<PostalAddress> | null),
+    address,
     wantsEmailDigest: body.wantsEmailDigest === true,
-    wantsPostcard: body.wantsPostcard === true,
+    wantsPostcard,
     wantsWhatsapp: body.wantsWhatsapp === true,
     // Only written on the insert — `requestContact`'s update branch leaves
     // `created_via` alone — so a row already carrying "self:traveller" from
