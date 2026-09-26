@@ -154,8 +154,8 @@ describe("the helper routes", () => {
   // journal. Same cookie, same owner check.
   // Forty-five since B1573 added `trip-files` — one named trip's own
   // photographs, on demand: the files pane's own trip picker calls it only
-  // once a trip is chosen, rather than `filesForRoom` preloading one trip's
-  // media on every page load. Same cookie, same owner check as the rest.
+  // once a trip is chosen, rather than loading every trip's media on every
+  // page load. Same cookie, same owner check as the rest.
   // `assemble-day` (SDD plan: inbox day-assembly Phase 3, Task
   // 2) — the confirm-side door `assemble_day`'s two proposal shapes both
   // point at: recording an answer to what a date folder was asked, and

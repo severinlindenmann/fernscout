@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { describeSelection, filesForRoom, tripFilesForRoom } from "@/lib/helper/server";
+import { describeSelection, tripFilesForRoom } from "@/lib/helper/server";
 import { moveInboxFileToDay, storeInboxFile } from "@/lib/inbox";
 import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
@@ -60,29 +60,9 @@ afterEach(() => {
   delete process.env.CONTENT_DIR;
 });
 
-test("the pane holds the inbox and lists every trip, without loading any trip's photographs", () => {
-  journal();
-  const stored = storeInboxFile("u", "files", "statement.csv", Buffer.from("date,amount\n"), {});
-
-  const files = filesForRoom("u");
-  // B1573 — `filesForRoom` lists every trip cheaply (id + title) and loads
-  // no trip's media; a picked trip's photographs are `tripFilesForRoom`'s
-  // own, separate, on-demand read, asserted below.
-  expect(files.trips).toEqual([{ id: "a-trip", title: "A Trip" }]);
-  expect(files.inbox.map((file) => file.name)).toEqual(["statement.csv"]);
-  expect(files.inbox[0].id).toBe(`inbox:${stored.entry.id}`);
-  // A *document* carries no thumbnail — a csv has no picture, and the pane
-  // draws its extension rather than an empty frame. An inbox photograph does
-  // carry one now (B1123, asserted below): it points at the owner-only
-  // thumbnail route, which is the only thing under `inbox/` reachable by URL
-  // and is owner-gated for it.
-  expect(files.inbox[0].src).toBeUndefined();
-});
-
 /**
  * B1573 — one trip's photographs, loaded only once asked for. This is what
- * `GET /api/helper/<user>/trip-files?trip=<id>` calls; the room's own page
- * load (`filesForRoom`, above) never touches a trip's media at all.
+ * `GET /api/helper/<user>/trip-files?trip=<id>` calls.
  */
 test("a named trip's own photographs, on demand", () => {
   journal();
@@ -145,20 +125,6 @@ test("a filename cannot break out of the line it is written into", () => {
  * for a fortnight while meaning only "a document carries none". A staged
  * photograph is the case that changed, and it is the one worth naming.
  */
-test("a staged photograph carries a thumbnail, and it is the owner-only route", async () => {
-  journal();
-  const { paintJpeg } = await import("./support/pictures");
-  const stored = storeInboxFile("u", "media", "hafen.jpg", await paintJpeg(40, 30, 1), {});
-
-  const files = filesForRoom("u");
-  const photo = files.inbox.find((file) => file.name === "hafen.jpg");
-  expect(photo?.src).toBe(`/api/helper/u/inbox/${stored.entry.id}/thumbnail`);
-  // Sorted newest first, and carrying what the pane groups by.
-  expect(photo?.kind).toBe("media");
-  expect(photo?.bytes).toBeGreaterThan(0);
-  expect(photo?.uploadedAt).toBeTruthy();
-});
-
 test("a location item stores its coordinate and place name, and a contact item stores as its own kind", () => {
   journal();
   const location = storeInboxFile(
@@ -182,27 +148,12 @@ test("a location item stores its coordinate and place name, and a contact item s
 });
 
 /**
- * Final-review fix: `describeSelection`, the discard route and the
- * thumbnail route all resolve an id through `findInboxFile`, which never
- * searches a day folder — so a dated photograph carrying a `src` that
- * points at the (flat-bucket-only) thumbnail route would be a link to a
- * 404, and a dated file included in a selection would silently vanish from
- * what the model is told. Both are asserted here, at the data layer full
- * interactivity for day-folder content is Phase 3's job; this fix is only
- * about not claiming more than the current action paths can back.
+ * Final-review fix: `describeSelection` and the discard route resolve an id
+ * through `findInboxFile`, which never searches a day folder — so a dated
+ * file included in a selection must silently vanish from what the model is
+ * told, rather than resolve to something the day-folder move has since
+ * moved out from under the flat-bucket lookup.
  */
-test("a photograph staged into a day folder carries no thumbnail src", async () => {
-  journal();
-  const { paintJpeg } = await import("./support/pictures");
-  const stored = storeInboxFile("u", "media", "hafen.jpg", await paintJpeg(40, 30, 1), {});
-  moveInboxFileToDay("u", stored.entry.id, "2026-05-04");
-
-  const files = filesForRoom("u");
-  const photo = files.inbox.find((file) => file.name === "hafen.jpg");
-  expect(photo?.date).toBe("2026-05-04");
-  expect(photo?.src).toBeUndefined();
-});
-
 test("a selection carrying a dated inbox id is silently dropped, same as an unknown id", () => {
   journal();
   const stored = storeInboxFile("u", "files", "notes.csv", Buffer.from("x\n"), {});

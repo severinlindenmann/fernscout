@@ -1,13 +1,10 @@
 import "server-only";
-import fs from "node:fs";
-import path from "node:path";
 import { resolveAccess } from "../auth/handshake";
 import { costForDay, costLocalForDay } from "../costs";
 import { AS_AUTHOR, getAllEntries, getAllMedia, getDays, getEntryBySlug } from "../entries";
 import { getTrip, getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
-import { findInboxFile, listDayInbox, listInbox, type InboxEntry, type InboxKind } from "../inbox";
-import { userDir } from "../users";
+import { findInboxFile, listInbox, type InboxKind } from "../inbox";
 import { resolveCookieCaller, trustedCaller } from "./caller";
 import { isWritten, type WizardDraft } from "./draft";
 
@@ -338,111 +335,13 @@ export type RoomFile = {
   date?: string;
 };
 
-/** One trip the pane can offer photographs from — cheap to list (`getTrips`
- *  already holds this), unlike loading any of its media. */
-type RoomTrip = { id: string; title: string };
-
-/** What the left-hand pane holds up front: what is waiting, and every trip a
- *  person could ask to see the photographs of. Loading one trip's actual
- *  photographs is a separate, on-demand read — `tripFilesForRoom` below —
- *  because there is no telling in advance which trip, if any, this visit is
- *  about, and every trip's media is not a "load once and forget" cost the
- *  way this list is. B1573. */
-export type RoomFiles = {
-  inbox: RoomFile[];
-  trips: RoomTrip[];
-};
-
 /** How many of a trip's photographs the pane offers. A trip of two thousand
  *  is not a picker; the newest are the ones a day being written needs. */
 const TRIP_TILES = 60;
 
-/** Newest first, by start date — the order a trip picker lists in, and the
- *  same order `filesForRoom` used to pick a single "the" trip from. */
+/** Newest first, by start date — the order a trip picker lists in. */
 function tripsNewestFirst(username: string) {
   return [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start));
-}
-
-/** One entry from either the flat bucket or a day folder, as a `RoomFile` —
- *  the two reads in `filesForRoom` below share this rather than each writing
- *  its own version of the same seven fields. `date` is the one thing that
- *  tells them apart downstream, in `InboxFileGroups`. */
-function toRoomFile(username: string, entry: InboxEntry, date?: string): RoomFile {
-  return {
-    id: `inbox:${entry.id}`,
-    name: entry.filename,
-    // Only a photograph has one, and only in the flat bucket: the thumbnail
-    // route (`app/api/helper/[user]/inbox/[id]/thumbnail`) resolves an id
-    // through `findInboxFile`, which never looks inside a day folder, so a
-    // `src` here for a dated entry would point at a 404 the moment a day
-    // folder holds a photograph rather than only the location pins it holds
-    // today. Full day-folder thumbnails are Phase 3's job; until then a
-    // dated row draws its kind icon like a document does.
-    src:
-      entry.kind === "media" && !date
-        ? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(entry.id)}/thumbnail`
-        : undefined,
-    detail: entry.description || entry.caption || undefined,
-    kind: entry.kind,
-    bytes: entry.bytes,
-    uploadedAt: entry.uploadedAt,
-    date,
-  };
-}
-
-/**
- * Every date folder with content — `content/<user>/inbox/days/<date>/`,
- * Phase 2's staging area (Task 3 files a WhatsApp pin straight in there).
- * `listInbox`'s flat-bucket read never sees these, so without this a person
- * watching the files pane after such a pin lands saw nothing move at all.
- * An unknown or missing `days/` folder reads as no dates, not as an error —
- * the ordinary case for a journal that has never staged anything by date.
- */
-function dayInboxRoomFiles(username: string): RoomFile[] {
-  const daysRoot = path.join(userDir(username), "inbox", "days");
-  let dates: string[];
-  try {
-    dates = fs
-      .readdirSync(daysRoot, { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
-  } catch {
-    return [];
-  }
-  return dates.flatMap((date) => {
-    const staged = listDayInbox(username, date);
-    return [...staged.media, ...staged.files, ...staged.location, ...staged.contact].map((entry) =>
-      toRoomFile(username, entry, date),
-    );
-  });
-}
-
-export function filesForRoom(username: string): RoomFiles {
-  const staged = listInbox(username);
-  /**
-   * `contact` and `location` belong here too — B1737.
-   *
-   * They were dropped, so a contact card shared on WhatsApp landed in
-   * `inbox/contact/` (`lib/whatsapp/dispatch.ts:handleContactCard`) and then
-   * appeared nowhere at all: not in this pane, and — since the pane is where
-   * a selection comes from — not on `describeSelection`'s line either. The
-   * dated read below has carried both since it was written; only the flat
-   * bucket forgot them.
-   */
-  const inbox: RoomFile[] = [...staged.media, ...staged.files, ...staged.location, ...staged.contact]
-    .map((entry) => toRoomFile(username, entry))
-    // Newest first — what somebody just put there is what they mean. Day
-    // folders sort after: a person reads the pane top to bottom and the
-    // flat bucket is what nothing has been decided about yet.
-    .sort((a, b) => (b.uploadedAt ?? "").localeCompare(a.uploadedAt ?? ""))
-    .concat(dayInboxRoomFiles(username));
-
-  const trips: RoomTrip[] = tripsNewestFirst(username).map((trip) => ({
-    id: trip.id,
-    title: trip.title,
-  }));
-
-  return { inbox, trips };
 }
 
 /** One named trip's own photographs, on demand — `GET
@@ -577,5 +476,5 @@ export function describeSelection(username: string, ids: string[]): string {
       ? `${photos.length} photograph(s) already on days: ${[...new Set(photos)].join(", ")}`
       : "",
   ].filter((part) => part !== "");
-  return `[they have selected, in the files pane beside this conversation: ${parts.join("; ")}. "these", "those" and "the selected ones" mean exactly this and nothing else. To put the waiting photographs on a day, call attach_files with those ids, comma-separated, exactly as spelled here. You cannot receive a file yourself: add_photos hands them the day's own page, which has the picker.]`;
+  return `[they have selected: ${parts.join("; ")}. "these", "those" and "the selected ones" mean exactly this and nothing else. To put the waiting photographs on a day, call attach_files with those ids, comma-separated, exactly as spelled here.]`;
 }

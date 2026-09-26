@@ -9,7 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { createJournal } from "@/lib/journals";
 import { storeInboxFile } from "@/lib/inbox";
 import { toVCard } from "@/lib/vcard";
-import { describeWaiting, filesForRoom } from "@/lib/helper/server";
+import { describeWaiting } from "@/lib/helper/server";
 import { runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
 import { writeTripFixture } from "./fixtures/content";
@@ -114,16 +114,6 @@ describe("the line that says what is waiting", () => {
     expect(line).toContain("1 photograph(s)");
     expect(line).toContain("1 location pin(s)");
     expect(line).not.toContain("a.jpg");
-  });
-});
-
-describe("the files pane", () => {
-  test("draws a staged contact card, which it used to drop on the floor", () => {
-    stageCard(OWNER, "Andreas Brunner", EMAIL);
-
-    const files = filesForRoom(OWNER).inbox;
-    expect(files.map((f) => f.kind)).toContain("contact");
-    expect(files.find((f) => f.kind === "contact")?.name).toBe("andreas-brunner.vcf");
   });
 });
 
