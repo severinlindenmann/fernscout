@@ -105,6 +105,8 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
             // B399: same server-ceiling-and-journal-opt-in check as
             // everywhere else this capability is read.
             addressLookupEnabled={isEnabled("addressLookup", username)}
+            postcardsEnabled={isEnabled("postcards", username)}
+            whatsappEnabled={isEnabled("whatsapp", username)}
             smsEnabled={isEnabled("sms")}
           />
         </main>

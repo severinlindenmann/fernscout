@@ -1376,6 +1376,108 @@ describe("the admin route's update validation", () => {
 });
 
 /**
+ * B2107 — a reader's own manage page (`/c/<token>`, `ContactManage.tsx`)
+ * ticking "send me a postcard" with an address that has everything but a
+ * country. `updateContactSelf` used to zero `wants_postcard` quietly
+ * (`lib/contacts/index.ts` ~:789 via `isPostable`) while this route still
+ * answered `{ ok: true }` — the page said "Saved." over a consent that had
+ * just been dropped. The route now refuses the same way
+ * `/api/contacts/admin`'s `update` case already does (B384).
+ */
+describe("the manage route refuses a postcard consent with nowhere to send it (B2107)", () => {
+  beforeEach(() => {
+    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "ana", "config.json"),
+      JSON.stringify({
+        title: "Ana's journal",
+        tagline: "t",
+        owner: { name: "Ana B", nickname: "Ana", email: "ana@example.test" },
+        startLocation: "X",
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+        displayCurrencies: ["CHF"],
+        units: "metric",
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: "ana" },
+        users: { reserved: [] },
+        features: { auth: { enabled: true }, contacts: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+  });
+
+  async function postManage(token: string, body: Record<string, unknown>) {
+    const { POST } = await import("@/app/api/contacts/manage/route");
+    return POST(
+      new Request("https://example.test/api/contacts/manage", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ user: "ana", token, ...body }),
+      }),
+    );
+  }
+
+  test("ticking the box with a full address but no country refuses, naming the problem, and never zeroes it silently", async () => {
+    const { contactId } = await requestContact("ana", {
+      name: "Reader", email: "reader@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "invite:x",
+    });
+    const token = manageTokenFor("ana", contactId!);
+
+    const response = await postManage(token, {
+      action: "update",
+      name: "Reader",
+      locale: "en",
+      wantsEmailDigest: false,
+      wantsPostcard: true,
+      wantsWhatsapp: false,
+      address: {
+        name: "Reader", line1: "Bahnhofstrasse 1", line2: "", postcode: "8001", city: "Zurich",
+        country: "", tel: "",
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
+    // The whole point: `wants_postcard` must not have been quietly set to 0
+    // over an address that just came in — the row must keep whatever it had.
+    expect((await getContact("ana", contactId!))?.wantsPostcard).toBe(false);
+  });
+
+  test("the same save with a country succeeds and actually turns the tick on", async () => {
+    const { contactId } = await requestContact("ana", {
+      name: "Reader", email: "reader2@example.test", locale: "en",
+      wantsEmailDigest: false, wantsPostcard: false, createdVia: "invite:x",
+    });
+    const token = manageTokenFor("ana", contactId!);
+
+    const response = await postManage(token, {
+      action: "update",
+      name: "Reader",
+      locale: "en",
+      wantsEmailDigest: false,
+      wantsPostcard: true,
+      wantsWhatsapp: false,
+      address: {
+        name: "Reader", line1: "Bahnhofstrasse 1", line2: "", postcode: "8001", city: "Zurich",
+        country: "Switzerland", tel: "",
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect((await getContact("ana", contactId!))?.wantsPostcard).toBe(true);
+  });
+});
+
+/**
  * Security review, F5 (D3/B2295) — an agent bearer token used to reach
  * `/api/contacts/admin` at all, because `guard` passed the whole `Request`
  * to `isOwner`, which accepts a bearer as well as a cookie (that acceptance

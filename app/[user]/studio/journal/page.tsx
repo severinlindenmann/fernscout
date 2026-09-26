@@ -92,6 +92,8 @@ export default async function StudioJournalPage({ params }: PageProps<"/[user]/s
           dictionary={dictionaryFor(pickLocale(locale), "ownDetails")}
           defaultCountryCode={whatsappCountryCode()}
           addressLookupEnabled={isEnabled("addressLookup", user)}
+          postcardsEnabled={isEnabled("postcards", user)}
+          whatsappEnabled={isEnabled("whatsapp", user)}
           own={
             ownRow
               ? {

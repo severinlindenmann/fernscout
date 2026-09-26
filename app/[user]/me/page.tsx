@@ -120,6 +120,9 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
         // B399: same server-ceiling-and-journal-opt-in check as everywhere
         // else this capability is read.
         addressLookupEnabled: isEnabled("addressLookup", user),
+        // B2356: absent, not merely inert, when the capability is off.
+        postcardsEnabled: isEnabled("postcards", user),
+        whatsappEnabled: isEnabled("whatsapp", user),
       };
     }
   }

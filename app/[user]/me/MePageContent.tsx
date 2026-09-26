@@ -137,6 +137,10 @@ export type ManagePanel = {
   /** B399: `isEnabled("addressLookup", username)`, resolved server-side for
    * the same reason. */
   addressLookupEnabled?: boolean;
+  /** B2356: `isEnabled("postcards", username)`, resolved server-side. */
+  postcardsEnabled?: boolean;
+  /** B2356: `isEnabled("whatsapp", username)`, resolved server-side. */
+  whatsappEnabled?: boolean;
 };
 
 /**
@@ -477,6 +481,8 @@ export default function MePageContent({
                   contact={manage.contact}
                   defaultCountryCode={manage.defaultCountryCode}
                   addressLookupEnabled={manage.addressLookupEnabled}
+                  postcardsEnabled={manage.postcardsEnabled}
+                  whatsappEnabled={manage.whatsappEnabled}
                   // B619. Their own row: the unsubscribe and delete buttons
                   // below the form promise things that are not true of the
                   // person whose journal it is — see the prop's own note.
