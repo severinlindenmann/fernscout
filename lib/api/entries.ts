@@ -14,7 +14,13 @@ import {
   getDays,
   getEntryBySlug,
 } from "../entries";
-import { dayFromJson, dayToJson, deriveCountryCode, type DayFile } from "./v2/documents";
+import {
+  dayFromJson,
+  dayToJson,
+  deriveCountryCode,
+  withoutDeclinedMedia,
+  type DayFile,
+} from "./v2/documents";
 import { countryCodeFor } from "../flags";
 import type { TranslationKey } from "../i18n";
 import { translateIn } from "../locales";
@@ -920,16 +926,11 @@ export function attachGallery(
 
   /**
    * A day that said it had no photographs, and now has some, no longer says
-   * it — B540/B1564, T6's retraction rule. `appendGallery` (lib/ingest/entry.ts)
-   * and v2's `attachDayMedia` (lib/api/v2/days.ts) already do this; this door
-   * missed it, which is how `unrecorded: [photos]` and a filled gallery ended
-   * up on the same live day.
+   * it — B540/B1564/B1688, T6's retraction rule, shared with `appendGallery`
+   * (lib/ingest/entry.ts) and v2's `attachDayMedia` (lib/api/v2/days.ts) so a
+   * fourth writer cannot miss it the way this door once did.
    */
-  let declined = day.declined;
-  if (declined?.media !== undefined) {
-    const { media: _media, ...rest } = declined;
-    declined = Object.keys(rest).length > 0 ? rest : undefined;
-  }
+  const declined = withoutDeclinedMedia(day.declined);
 
   const next: DayFile = { ...day, media, declined };
 

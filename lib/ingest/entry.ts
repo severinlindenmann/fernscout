@@ -21,7 +21,13 @@
  * that encoding any more.
  */
 import type { GalleryItem } from "../types.ts";
-import { dayFromJson, dayToJson, deriveCountryCode, type DayFile } from "../api/v2/documents.ts";
+import {
+  dayFromJson,
+  dayToJson,
+  deriveCountryCode,
+  withoutDeclinedMedia,
+  type DayFile,
+} from "../api/v2/documents.ts";
 
 /** A gallery item as ingest writes it. `poster` is extra: nothing renders it
  * yet, but a clip without one is a black rectangle in any future grid, and it
@@ -123,10 +129,7 @@ export function appendGallery(raw: string, items: IngestGalleryItem[], slug = ""
    * Here rather than only in `attachGallery` so that ingest gets it too: it
    * appends galleries through this same function, to days it wrote itself.
    */
-  if (day.declined?.media !== undefined) {
-    const { media: _media, ...rest } = day.declined;
-    day.declined = Object.keys(rest).length > 0 ? rest : undefined;
-  }
+  day.declined = withoutDeclinedMedia(day.declined);
 
   day.media = [...(day.media ?? []), ...items];
   return dayToJson(day);
