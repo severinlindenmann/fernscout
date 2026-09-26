@@ -9,7 +9,7 @@ import { DATE_RE } from "@/lib/tripWrite";
 import { slugify } from "@/lib/slug";
 import { listOrders } from "@paid/postcard/lib/postcard/orders";
 import { listPhotobookOrders } from "@paid/photobook/lib/photobook/orders";
-import type { DayFile } from "@/lib/api/v2/documents";
+import { withoutDeclinedMedia, type DayFile } from "@/lib/api/v2/documents";
 
 /**
  * "Something is filed wrong" — B1832, spec §7.1. Every write in this module
@@ -333,10 +333,18 @@ export function mergeDaysTransactional(username: string, tripId: string, slugA: 
   const survivorMedia = [...(survivor.media ?? []), ...movedLoserMedia];
   const mergedContent = [survivor.content, loser.content].filter((c) => c && c.trim()).join("\n\n");
 
+  // A merged day that ends up with photographs no longer says it has none —
+  // B1688/B540, the same T6 retraction every other media writer shares via
+  // `withoutDeclinedMedia`. A merge of two days that both declined stays
+  // declined; only landing on media at all retracts it.
+  const declined =
+    survivorMedia.length > 0 ? withoutDeclinedMedia(survivor.declined) : survivor.declined;
+
   writeDayFile(username, tripId, survivorStem, {
     ...survivor,
     content: mergedContent,
     media: survivorMedia,
+    declined,
   });
   deleteDayFile(username, tripId, loserStem);
 
