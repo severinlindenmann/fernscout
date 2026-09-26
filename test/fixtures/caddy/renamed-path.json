@@ -34,6 +34,7 @@
                             "/api/helper/*/day/media",
                             "/api/v2/*/import",
                             "/api/v2/*/trips/*/travellers/from-photo",
+                            "/api/web/*/figures/from-photo",
                             "/api/helper/*/extract/upload",
                             "/api/probe/upload"
                           ]
@@ -72,6 +73,7 @@
                                 "/api/helper/*/day/media",
                                 "/api/v2/*/import",
                                 "/api/v2/*/trips/*/travellers/from-photo",
+                                "/api/web/*/figures/from-photo",
                                 "/api/helper/*/extract/upload",
                                 "/api/probe/upload",
                                 "/api/helper/*/transcribe"
