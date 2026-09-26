@@ -7,9 +7,8 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 /**
  * `GET /api/helper/<user>/trip-files?trip=<id>` — B1573.
  *
- * The on-demand half of the split: `filesForRoom` lists every trip cheaply
- * and loads none of their photographs; this is the one call that fetches a
- * single named trip's, and only once the files pane's own picker asks.
+ * This is the one call that fetches a single named trip's photographs, and
+ * only once the files pane's own picker asks.
  */
 
 const OWNER_EMAIL = "alex@example.test";

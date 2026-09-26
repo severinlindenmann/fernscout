@@ -5,6 +5,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import ts from "typescript";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { TOOLS } from "@/lib/helper/tools";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -25,6 +26,7 @@ vi.mock("next/navigation", async (orig) => ({
 
 const ROOT = path.join(import.meta.dirname, "..");
 const STUDIO_DIRS = ["components/studio", "app/[user]/studio"];
+const APP_DIRS = ["app", "components"];
 const LOCALES = ["en", "de", "hu"] as const;
 
 function walk(dir: string): string[] {
@@ -38,6 +40,9 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
 const dictionary = (locale: string): Record<string, string> =>
   JSON.parse(read(`site/locales/${locale}.json`));
 const studioFiles = STUDIO_DIRS.flatMap(walk).filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"));
+// B2111 — the whole app, not only the studio: a count read through t()
+// loses its .one the same way anywhere a reader sees it.
+const appFiles = APP_DIRS.flatMap(walk).filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"));
 
 describe("counts read as counts (B2093)", () => {
   test('no locale string writes a plural as "(s)", "(en)" or "(n)"', () => {
@@ -51,7 +56,7 @@ describe("counts read as counts (B2093)", () => {
 
   test("a key with a .one sibling is never rendered through t(), which would ignore it", () => {
     const en = dictionary("en");
-    const hits = studioFiles.flatMap((f) =>
+    const hits = appFiles.flatMap((f) =>
       [...read(f).matchAll(/\bt\(\s*["'`]([\w.]+)["'`]/g)]
         .filter((m) => en[`${m[1]}.one`] !== undefined)
         .map((m) => `${f}: ${m[1]}`),
@@ -165,23 +170,25 @@ describe("the studio's own pages hold no English (B2093)", () => {
   });
 });
 
-describe("the studio's locale keys are all in use (B2093)", () => {
-  /** A report for the whole dictionary (printed), and a failure for the
-   *  `studio.*` namespace the rebuild owns: a key there that nothing
-   *  references is copy nobody can read. Read from the syntax tree of every
-   *  file in app/, components/, lib/ and scripts/ (a regex over the text is
-   *  thrown off by a backtick in a comment): a key is used when it, or its
-   *  plural base, is a string literal; when a template literal's fixed parts
-   *  match it (`studio.planReaders.${level}.description${suffix}`); or when a
-   *  literal ending in "." is a prefix of it (`"agent.tool." + name`). */
-  test("no studio.* key is orphaned", () => {
+describe("the studio's locale keys are all in use (B2093, B2112)", () => {
+  /** A failure for the whole dictionary — a key nothing references is copy
+   *  nobody can read. Read from the syntax tree of every file in app/,
+   *  components/, lib/ and scripts/ (a regex over the text is thrown off by
+   *  a backtick in a comment): a key is used when it, or its plural base, is
+   *  a string literal; when a template literal's fixed parts match it
+   *  (`studio.planReaders.${level}.description${suffix}`); or when a literal
+   *  ending in "." is a prefix of it (`"agent.tool." + name`). */
+  test("no locale key is orphaned", () => {
     const literals = new Set<string>();
     const templates: RegExp[] = [];
     const prefixes: string[] = [];
     const escape = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     for (const f of ["app", "components", "lib", "scripts", ...(fs.existsSync(path.join(process.cwd(), "paid")) ? ["paid"] : [])].flatMap(walk)) {
-      if (f === path.join("lib", "i18n.ts")) continue;
-      const sf = ts.createSourceFile(f, read(f), ts.ScriptTarget.Latest, true, f.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+      // Only the `TranslationKey` union itself ships nothing (B2112 —
+      // lib/i18n.ts also holds real helpers like `telHintKey` that map to
+      // real keys, so the whole file cannot be skipped, only that union).
+      const source = f === path.join("lib", "i18n.ts") ? read(f).replace(/export type TranslationKey =[\s\S]*?;\n/, "") : read(f);
+      const sf = ts.createSourceFile(f, source, ts.ScriptTarget.Latest, true, f.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
       const visit = (n: ts.Node) => {
         if (ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
           literals.add(n.text);
@@ -198,12 +205,24 @@ describe("the studio's locale keys are all in use (B2093)", () => {
       [k, k.replace(/\.one$/, "")].some(
         (x) => literals.has(x) || templates.some((r) => r.test(x)) || prefixes.some((p) => x.startsWith(p)),
       );
-    // Open core: without paid/, the studio.* keys paid code uses. Written by
-    // open-core/split/split.mjs from the paid/ it split off, never by hand.
-    const paidKeys: string[] = fs.existsSync(path.join(process.cwd(), "paid")) ? [] : ["studio.hub.item.postcard.title","studio.postcard.trip.heading","studio.postcard.photo.heading","studio.postcard.photo.pick","studio.postcard.photo.loading","studio.postcard.photo.none","studio.postcard.photo.changeTrip","studio.postcard.photo.showMore","studio.postcard.photo.confirm","studio.postcard.photo.resume","studio.postcard.photo.altFallback","studio.postcard.nobody.addPerson","studio.postcard.error.generic","studio.postcard.off.banner","studio.postcard.off.body","studio.hub.item.photobook.title","studio.hub.cannotRun.photobook","studio.photobook.pick.subtitle","studio.photobook.pick.current","studio.photobook.pick.dayCount","studio.photobook.pick.dayCount.one","studio.photobook.pick.empty","studio.hub.resume.import.cta","studio.unfinished.heading","studio.unfinished.postcardTo","studio.unfinished.postcard","studio.unfinished.photobook","studio.unfinished.detail","studio.unfinished.discard","studio.unfinished.postcard.question","studio.unfinished.postcard.confirm","studio.unfinished.photobook.question","studio.unfinished.photobook.confirm","studio.unfinished.busy","studio.unfinished.error","studio.unfinished.sentAlready","studio.orders.lede"];
-    const orphans = Object.keys(dictionary("en")).filter((k) => !used(k) && !paidKeys.includes(k));
-    if (orphans.length > 0) console.info(`B2093 report: ${orphans.length} locale keys look unreferenced:\n${orphans.join("\n")}`);
-    expect(orphans.filter((k) => k.startsWith("studio."))).toEqual([]);
+    // Open core: without paid/, every key only a paid area reads — computed
+    // by `npm run i18n:keys` (scripts/i18n-keys.mjs) from the one checkout
+    // that does have paid/, and committed so every other checkout can still
+    // tell "orphaned" from "paid uses this" — B2112.
+    const paidKeys: string[] = fs.existsSync(path.join(process.cwd(), "paid"))
+      ? []
+      : (JSON.parse(read(path.join("lib", "paidLocaleKeys.json"))) as string[]);
+    // `agent.slot.<name>` is the one dynamic prefix no static scan can chase:
+    // `test/helper-slot-locales.test.ts` already derives the live set (every
+    // write tool's own argument names) straight from `TOOLS` at run time —
+    // reused here rather than re-listed, so the two never drift apart.
+    const slotKeys = new Set(
+      TOOLS.filter((tool) => tool.kind === "write").flatMap((tool) => Object.keys(tool.properties)),
+    );
+    const orphans = Object.keys(dictionary("en")).filter(
+      (k) => !used(k) && !paidKeys.includes(k) && !(k.startsWith("agent.slot.") && slotKeys.has(k.slice("agent.slot.".length))),
+    );
+    expect(orphans).toEqual([]);
   });
 });
 

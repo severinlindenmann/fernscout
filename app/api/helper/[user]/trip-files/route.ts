@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
  * One named trip's own photographs, loaded only once a person actually asks
  * for them — B1573.
  *
- * The room's own page load already lists every trip cheaply
- * (`filesForRoom`'s `trips`, id and title only); this is the on-demand half,
- * so a journal with several trips does not pay for every trip's media on
- * every visit when at most one is ever picked. Cookie only, owner only,
+ * The room's own page load already lists every trip cheaply (id and title
+ * only); this is the on-demand half, so a journal with several trips does
+ * not pay for every trip's media on every visit when at most one is ever
+ * picked. Cookie only, owner only,
  * outside `/api/v1` and outside the published contract — the same shape
  * every other `app/api/helper/` route takes, for the reason
  * `../day/route.ts` gives at length: a browser page, not a second bearer-

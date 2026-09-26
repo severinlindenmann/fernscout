@@ -98,6 +98,13 @@ describe("the payment section", () => {
     expect(html).not.toContain(dictionaryFor("en")["me.paymentBalanceEmpty"]);
   });
 
+  test("B2111: a four-figure balance prints through formatCredits, not a raw number", () => {
+    const html = render({ payment: { ...payment, balance: 49950 } });
+    expect(html).toContain("49’950");
+    expect(html).not.toContain("49950");
+    expect(html).not.toContain("49,950");
+  });
+
   test("names what credits went on, and says which of it was a model — B860", () => {
     const html = render({
       payment: {
@@ -218,7 +225,7 @@ describe("the payment section", () => {
 
   test("offers a slider over the whole buyable range, and prices where it stands", () => {
     const html = render({ payment });
-    expect(html).toContain(dictionaryFor("en")["me.paymentBuyTitle"]);
+    expect(html).toContain(dictionaryFor("en")["me.buyDialogTitle"]);
     expect(html).not.toContain('disabled=""');
     // B854: the two fixed buttons became one `<input type="range">`. The
     // bounds are the module's, not literals — a slider that offers an amount

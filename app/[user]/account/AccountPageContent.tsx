@@ -10,7 +10,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useNativeShell } from "@/components/nativeShell";
 import { useSite } from "@/components/SiteProvider";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
-import { formatChf } from "@/lib/creditsFormat";
+import { formatChf, formatCredits } from "@/lib/creditsFormat";
 import { CREDIT_STEP, EXTRA_STORAGE_CREDITS, MAX_CREDITS, MIN_CREDITS, discountFor, discountLabel, priceRappen } from "@paid/credits/lib/credits/pricing";
 import type { TranslationKey } from "@/lib/i18n";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
@@ -162,9 +162,9 @@ function BuyStorageButton({ username }: { username: string }) {
   if (asking) {
     return (
       <ConfirmPanel
-        label={t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
+        label={t("me.storageBuy", { credits: formatCredits(EXTRA_STORAGE_CREDITS) })}
         question={t("me.storageBuyConfirm", {
-          credits: String(EXTRA_STORAGE_CREDITS),
+          credits: formatCredits(EXTRA_STORAGE_CREDITS),
         })}
         confirmLabel={t("me.storageBuyGo")}
         busyLabel={t("me.storageBuyBusy")}
@@ -186,7 +186,7 @@ function BuyStorageButton({ username }: { username: string }) {
         }}
         className="inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-base"
       >
-        {t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
+        {t("me.storageBuy", { credits: formatCredits(EXTRA_STORAGE_CREDITS) })}
       </button>
       {failed && (
         <span role="status" className="mt-1 block text-sm text-coral-600">
@@ -430,7 +430,7 @@ function BuyCreditsPanel({ username, cardTestMode }: { username: string; cardTes
       </p>
       <p className="mt-2 flex items-baseline justify-between gap-3">
         <span className="font-display text-2xl font-semibold tabular-nums text-ink-strong">
-          {credits} {tn("me.paymentUnit", credits)}
+          {formatCredits(credits)} {tn("me.paymentUnit", credits)}
         </span>
         <span className="font-display text-2xl font-semibold tabular-nums text-ink-strong">
           {formatChf(priceRappen(credits))}
@@ -447,7 +447,7 @@ function BuyCreditsPanel({ username, cardTestMode }: { username: string; cardTes
           onChange={(event) => setCredits(Number(event.target.value))}
           // What the platform cannot work out: a screen reader would
           // otherwise announce "120" with no unit and no price.
-          aria-valuetext={`${credits} ${tn("me.paymentUnit", credits)}, ${formatChf(
+          aria-valuetext={`${formatCredits(credits)} ${tn("me.paymentUnit", credits)}, ${formatChf(
             priceRappen(credits),
           )}`}
           className="h-11 w-full accent-yellow-400"
@@ -673,7 +673,7 @@ export default function AccountPageContent({
               <div className="mt-4 sm:flex sm:items-stretch sm:gap-4">
                 <div className="flex flex-col justify-center rounded-xl border border-line-quiet bg-surface-base px-5 py-4 sm:w-44 sm:shrink-0">
                   <span className="font-display text-4xl font-semibold tabular-nums tracking-tight text-ink-strong">
-                    {payment.balance.toLocaleString("de-CH")}
+                    {formatCredits(payment.balance)}
                   </span>
                   <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-ink-secondary">
                     {tn("me.paymentUnit", payment.balance)}
@@ -758,7 +758,7 @@ export default function AccountPageContent({
                   </ul>
                   <p className="flex items-baseline justify-between gap-3 py-2.5 text-base font-semibold text-ink-strong">
                     <span>{t("me.paymentDayTotal")}</span>
-                    <span className="tabular-nums">{dayCost}</span>
+                    <span className="tabular-nums">{formatCredits(dayCost)}</span>
                   </p>
                   <p className="mt-2.5 text-sm leading-6 text-ink-secondary">
                     {t("me.paymentPrices")}
@@ -766,7 +766,7 @@ export default function AccountPageContent({
                       <>
                         {" "}
                         {t("me.paymentPostcardPrice", {
-                          credits: String(payment.postcardCredits),
+                          credits: formatCredits(payment.postcardCredits),
                         })}
                       </>
                     )}
@@ -800,7 +800,7 @@ export default function AccountPageContent({
                           {t(`me.spentReason.${group}` as TranslationKey)}
                         </span>
                         <span className="shrink-0 tabular-nums text-ink-body">
-                          {credits} {tn("me.paymentUnit", credits)}
+                          {formatCredits(credits)} {tn("me.paymentUnit", credits)}
                         </span>
                       </li>
                     ))}
@@ -829,7 +829,7 @@ export default function AccountPageContent({
                       >
                         <div className="min-w-0">
                           <p className="text-base text-ink-strong">
-                            {tx.credits} {tn("me.paymentUnit", tx.credits)} ·{" "}
+                            {formatCredits(tx.credits)} {tn("me.paymentUnit", tx.credits)} ·{" "}
                             {tx.amount}
                           </p>
                           <p className="text-sm tabular-nums text-ink-secondary">

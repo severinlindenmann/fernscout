@@ -151,7 +151,6 @@ describe("range mode", () => {
 describe("every studio date field is this one", () => {
   const files: Record<string, string> = {
     "components/EditDay.tsx": "<DateField",
-    "components/DayCosts.tsx": "<DateField",
     "components/studio/trip/NewTripFlow.tsx": "<DateField",
     "components/studio/trip/TripEditFlow.tsx": "<DateField",
     "components/studio/day/ReshapeDayFlow.tsx": "<DateField",

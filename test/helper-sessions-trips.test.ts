@@ -15,7 +15,7 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
  *
  * `sessionsOf`/`liveSession` are mocked out: they need a real database, and
  * nothing about this split touches either of them — `trips`/`days` are read
- * straight off disk, same as `filesForRoom`'s own trip list.
+ * straight off disk.
  */
 
 const OWNER_EMAIL = "alex@example.test";
