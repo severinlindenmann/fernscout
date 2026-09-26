@@ -57,7 +57,7 @@ export default function BrandingHubPage() {
                   {bench.title}
                 </span>
                 <span className="mt-1 block text-sm text-ink-body">{bench.blurb}</span>
-                <span className="mt-2 block font-mono text-xs text-ink-muted">{bench.source}</span>
+                <span className="mt-2 block font-mono text-xs text-ink-secondary">{bench.source}</span>
               </span>
               <ArrowRight
                 className="mt-1 h-4 w-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5"

@@ -125,7 +125,7 @@ export default function HelperConsentList({
             <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
               <span className="text-sm text-ink-strong">
                 {t("me.sessionsShare")}
-                <span className="block text-xs text-ink-muted">
+                <span className="block text-xs text-ink-secondary">
                   {t("me.sessionsOffNote")}
                 </span>
               </span>
@@ -152,7 +152,7 @@ export default function HelperConsentList({
             >
               <span className="text-sm text-ink-strong">
                 {t(SCOPE_LABEL[row.scope])}
-                <span className="block text-xs text-ink-muted">
+                <span className="block text-xs text-ink-secondary">
                   {t("me.consentProvider", { provider: row.provider ?? "" })}
                 </span>
               </span>

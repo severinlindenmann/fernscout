@@ -512,7 +512,7 @@ function Slider({
         onChange={(e) => onChange(Number(e.target.value))}
         className="mt-2 w-full accent-yellow-400 disabled:opacity-50"
       />
-      <span className="block text-xs text-ink-muted">{hint ?? value.toLocaleString("en")}</span>
+      <span className="block text-xs text-ink-secondary">{hint ?? value.toLocaleString("en")}</span>
     </label>
   );
 }

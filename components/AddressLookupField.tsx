@@ -215,7 +215,7 @@ export default function AddressLookupField({
               what keeps it from being read as an option: nothing in here
               carries `role="option"` or an `aria-selected`, and `aria-controls`
               on the input still names only `listId`, the `<ul>` itself. */}
-          <p className="border-t border-line-faint px-4 py-1.5 text-xs text-ink-faint">{attribution}</p>
+          <p className="border-t border-line-faint px-4 py-1.5 text-xs text-ink-secondary">{attribution}</p>
         </div>
       )}
     </div>

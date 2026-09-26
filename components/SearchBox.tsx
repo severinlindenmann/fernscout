@@ -80,7 +80,7 @@ export default function SearchBox() {
           disabled={state === "error"}
           autoFocus
           autoComplete="off"
-          className="w-full rounded-full border border-line-quiet bg-surface-raised py-3 pr-4 pl-11 text-sm text-ink-strong placeholder:text-ink-muted focus:border-line-prominent focus:outline-none disabled:opacity-60"
+          className="w-full rounded-full border border-line-quiet bg-surface-raised py-3 pr-4 pl-11 text-sm text-ink-strong placeholder:text-ink-secondary focus:border-line-prominent focus:outline-none disabled:opacity-60"
         />
       </div>
 

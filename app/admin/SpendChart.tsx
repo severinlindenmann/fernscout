@@ -82,7 +82,7 @@ export default function SpendChart({
       </div>
 
       {total === 0 ? (
-        <p className="mt-2 text-sm text-ink-muted">
+        <p className="mt-2 text-sm text-ink-secondary">
           Nothing metered in these {span} days. Models and speech are the only things counted
           here — the fixed monthly lines are below.
         </p>
@@ -128,7 +128,7 @@ export default function SpendChart({
               </div>
             ))}
           </div>
-          <div className="mt-1 flex justify-between font-mono text-xs text-ink-muted">
+          <div className="mt-1 flex justify-between font-mono text-xs text-ink-secondary">
             <span>{shown[0]?.date}</span>
             <span>{shown[shown.length - 1]?.date}</span>
           </div>

@@ -410,7 +410,7 @@ export function DayCard({
             className="ml-auto block h-1 w-8 rounded-full bg-yellow-400"
             aria-hidden
           />
-          <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
+          <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-secondary">
             {t("day.label")} {dayIndex + 1}
           </span>
         </div>
@@ -446,7 +446,7 @@ export function DayCard({
                 {paidAndConverted.paid}
               </span>
               {paidAndConverted.converted && (
-                <span className="text-[11px] text-ink-muted">
+                <span className="text-[11px] text-ink-secondary">
                   {paidAndConverted.converted}
                 </span>
               )}
@@ -659,7 +659,7 @@ function UpdateBlock({
           and TestNotice this is a legacy-only path, not a caution, so it is
           a line rather than a banner. */}
       {fallbackNotice && (
-        <p className="mb-4 text-xs italic text-ink-muted">{t(fallbackNotice)}</p>
+        <p className="mb-4 text-xs italic text-ink-secondary">{t(fallbackNotice)}</p>
       )}
 
       {prose !== undefined ? <Prose tree={prose} /> : <EntryContent markdown={content} />}

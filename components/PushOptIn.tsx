@@ -345,7 +345,7 @@ export default function PushOptIn({
   ) {
     if (compact) return null;
     return inSection(
-      <p className="mt-3 max-w-md text-[11px] leading-relaxed text-ink-muted">
+      <p className="mt-3 max-w-md text-[11px] leading-relaxed text-ink-secondary">
         {t(
           state === "needs-install"
             ? "push.iosInstall"
@@ -373,7 +373,7 @@ export default function PushOptIn({
       );
     }
     return inSection(
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-secondary">
         <span className="inline-flex items-center gap-1.5 font-medium text-green-700">
           <BellRing className="h-3.5 w-3.5" aria-hidden />
           {t("push.enabled")}

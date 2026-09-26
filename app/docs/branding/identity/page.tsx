@@ -163,12 +163,12 @@ export default function IdentityBenchPage() {
                       <div className="h-10" style={{ background: value }} />
                       <div className="px-2 py-1.5">
                         <p className="truncate font-mono text-[10px] text-ink-strong">{token}</p>
-                        <p className="font-mono text-[10px] text-ink-muted">{value}</p>
+                        <p className="font-mono text-[10px] text-ink-secondary">{value}</p>
                       </div>
                     </li>
                   ))}
                 </ul>
-                <ul className="mt-4 space-y-1 font-mono text-[10px] text-ink-muted">
+                <ul className="mt-4 space-y-1 font-mono text-[10px] text-ink-secondary">
                   {["ink-strong", "ink-body", "ink-secondary"].flatMap((ink) =>
                     ["surface-base", "surface-raised", "surface-subtle"].map((surface) => {
                       const ratio = contrast(roleHex[ink], roleHex[surface]);

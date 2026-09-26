@@ -53,7 +53,7 @@ export function BarChart({ title, bars, empty }: { title: string; bars: Bar[]; e
     <section>
       <h2 className="font-display text-lg font-semibold text-ink-strong">{title}</h2>
       {shown.length === 0 ? (
-        <p className="mt-2 text-sm text-ink-muted">{empty}</p>
+        <p className="mt-2 text-sm text-ink-secondary">{empty}</p>
       ) : (
         <ul className="mt-3 space-y-3">
           {shown.map((row) => (
@@ -73,7 +73,7 @@ export function BarChart({ title, bars, empty }: { title: string; bars: Bar[]; e
                   style={{ width: `${Math.max((row.rappen / max) * 100, 2)}%` }}
                 />
               </div>
-              {row.note ? <p className="mt-1 text-xs text-ink-muted">{row.note}</p> : null}
+              {row.note ? <p className="mt-1 text-xs text-ink-secondary">{row.note}</p> : null}
             </li>
           ))}
         </ul>
@@ -186,7 +186,7 @@ export function CountBars({
         </span>
       </div>
       {total === 0 ? (
-        <p className="mt-1 text-sm text-ink-muted">{empty}</p>
+        <p className="mt-1 text-sm text-ink-secondary">{empty}</p>
       ) : (
         <>
           <div className="mt-2 flex h-14 items-end gap-0.5">
@@ -199,7 +199,7 @@ export function CountBars({
               />
             ))}
           </div>
-          <div className="mt-1 flex justify-between font-mono text-xs text-ink-muted">
+          <div className="mt-1 flex justify-between font-mono text-xs text-ink-secondary">
             <span>{weeks[0]?.week}</span>
             <span>this week</span>
           </div>
@@ -270,9 +270,9 @@ export function Breakdown({
                 </span>
               </summary>
               <div className="mt-2 border-l-2 border-line-quiet pl-3">
-                <p className="text-xs text-ink-muted">{group.note}</p>
+                <p className="text-xs text-ink-secondary">{group.note}</p>
                 {group.lines.length === 0 ? (
-                  <p className="mt-1 text-sm text-ink-muted">Nothing in this period.</p>
+                  <p className="mt-1 text-sm text-ink-secondary">Nothing in this period.</p>
                 ) : (
                   <ul className="mt-1 divide-y divide-line-quiet">
                     {group.lines.map((line) => (
@@ -289,7 +289,7 @@ export function Breakdown({
                             )}
                           </span>
                         </div>
-                        <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-ink-muted">
+                        <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-ink-secondary">
                           {line.detail}
                           {line.calls > 0
                             ? ` · ${line.calls} ${line.calls === 1 ? "call" : "calls"}`

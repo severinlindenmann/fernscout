@@ -296,44 +296,7 @@ describe("no role ink under 7:1 carries small text (B2063)", () => {
    * B2097 ("small text below 7:1 outside the studio"), which carries the
    * file:line snapshot; each count may only go down.
    */
-  const ALLOWED: Record<string, number> = {
-    "paid/photobook/routes/[user]/(trip)/photobook/BookOrderPanel.tsx": 1,
-    "paid/photobook/routes/[user]/(trip)/photobook/BookSettingsPanel.tsx": 2,
-    "paid/photobook/routes/[user]/(trip)/photobook/DayStopControls.tsx": 8,
-    "paid/photobook/routes/[user]/(trip)/photobook/GuidedPass.tsx": 3,
-    "paid/photobook/routes/[user]/(trip)/photobook/LeftOutSheet.tsx": 2,
-    "paid/photobook/routes/[user]/(trip)/photobook/PhotobookPageContent.tsx": 1,
-    "paid/photobook/routes/[user]/(trip)/photobook/stopControls.tsx": 5,
-    "app/[user]/account/AccountPageContent.tsx": 1,
-    "app/[user]/me/MePageContent.tsx": 1,
-    "paid/postcard/routes/[user]/postcards/[id]/PostcardBack.tsx": 2,
-    "paid/postcard/routes/[user]/postcards/[id]/PostcardSteps.tsx": 1,
-    "paid/postcard/routes/[user]/postcards/[id]/page.tsx": 1,
-    "app/admin/Charts.tsx": 7,
-    "app/admin/Invites.tsx": 2,
-    "app/admin/SpendChart.tsx": 2,
-    "app/docs/api/page.tsx": 6,
-    "app/docs/branding/identity/page.tsx": 2,
-    "app/docs/branding/page.tsx": 1,
-    "components/AddressLookupField.tsx": 1,
-    "components/ContactManage.tsx": 1,
-    "components/EditDay.tsx": 1,
-    "components/HelperConsentList.tsx": 2,
-    "components/PushInstallOnboarding.tsx": 1,
-    "components/PushOptIn.tsx": 2,
-    "components/PushPrompt.tsx": 1,
-    "components/SearchBox.tsx": 1,
-    "components/StoryPager.tsx": 3,
-    "components/TripMap.tsx": 2,
-    "components/branding/AnimationWorkbench.tsx": 1,
-    "paid/photobook/components/branding/DayBench.tsx": 1,
-    "paid/printOrder/components/branding/OrderBench.tsx": 1,
-    "paid/photobook/components/branding/PhotobookBench.tsx": 7,
-    "paid/postcard/components/branding/PostcardBench.tsx": 3,
-    "components/extract/CheckWording.tsx": 1,
-    "components/extract/ResumeScreen.tsx": 1,
-    "paid/printOrder/components/order/OrderDocket.tsx": 1,
-  };
+  const ALLOWED: Record<string, number> = {};
 
   function sources(dir: string): string[] {
     return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {

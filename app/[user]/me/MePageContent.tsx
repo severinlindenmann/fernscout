@@ -50,7 +50,7 @@ function TripRow({
               the rest of it; a row that only says "you can read this trip"
               would leave a reader thinking they are seeing all of it. */}
           {trip.partial && (
-            <span className="block text-xs text-ink-muted">
+            <span className="block text-xs text-ink-secondary">
               {t("me.tripPartial")}
             </span>
           )}

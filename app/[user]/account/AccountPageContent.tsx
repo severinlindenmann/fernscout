@@ -709,7 +709,7 @@ export default function AccountPageContent({
                                   />
                                   {t(labelKey)}
                                 </span>
-                                <span className="mt-0.5 block text-sm text-ink-muted">
+                                <span className="mt-0.5 block text-sm text-ink-secondary">
                                   {tn("me.paymentUpTo", recipients, {
                                     count: String(recipients),
                                   })}
