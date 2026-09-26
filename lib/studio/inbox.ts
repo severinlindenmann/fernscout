@@ -13,11 +13,17 @@ import {
 } from "@/lib/inbox";
 import { VIDEO_EXTENSIONS } from "@/lib/ingest/video";
 import { GPS_IMPORTERS } from "@/importers/gps";
-import { getTrips } from "@/lib/trips";
+import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
+import { attachGallery } from "@/lib/api/entries";
 import { earliestTodayISO } from "@/lib/tripTime";
 import { readVCard } from "@/lib/vcard";
 import { groupWaitingDays, type WaitingDays } from "@/lib/studio/dayCards";
+import { tripMediaDir } from "@/lib/media";
+import { mediaKey } from "@/lib/photos";
+import { frontmatterSrc } from "@/lib/ingest/paths";
+import { readTripSidecar } from "@/lib/sidecar";
+import type { GalleryItem } from "@/lib/types";
 
 /**
  * The studio's own inbox page — B1990. Every read a client component
@@ -76,6 +82,12 @@ export type InboxRow = {
    *  and never a single position from inside it. Absent for everything else,
    *  which previews as its size and type. */
   preview?: { kind: "table"; rows: string[][] } | { kind: "location"; format: string | null };
+  /** B2207 — set only for a photograph filed onto a trip with no day
+   *  (`storeTripPhoto`, `lib/api/v2/media.ts`, `day` declined): the trip it
+   *  is waiting in, so its own "waiting for a day in <trip>" section knows
+   *  which trip's days to move it onto. Absent for every other row — a day's
+   *  own trip is not ambiguous the way this one is. */
+  trip?: string;
 };
 
 /**
@@ -205,9 +217,151 @@ export type InboxHubModel = {
    *  (`/api/helper/<user>/day/attach`), and two trips on one date are asked
    *  between rather than guessed. */
   entriesByDate: Record<string, InboxDayEntry[]>;
+  /** B2207 — a photograph filed onto a trip with no day (`storeTripPhoto`,
+   *  `day` declined) is on disk under `trips/<id>/media/` but referenced by
+   *  no day and so invisible to `waiting`/`days` above, which only ever read
+   *  `content/<user>/inbox/`. One group per trip that has any, newest trip
+   *  first is not promised — order follows `getTrips`. Empty for a trip with
+   *  nothing waiting, and the array itself is empty on a journal with none. */
+  tripWaiting: TripWaitingGroup[];
 };
 
 export type InboxDayEntry = { tripId: string; tripTitle: string; slug: string; title: string; published: boolean };
+
+/** B2207 — one trip's own day-less photographs, plus the days they could be
+ *  moved onto (narrower than the studio's own "put it on" sheet: only *this*
+ *  trip's days, since the file already lives under this trip and nothing
+ *  here moves it to another one). */
+export type TripWaitingGroup = {
+  tripId: string;
+  tripTitle: string;
+  rows: InboxRow[];
+  /** Newest first. */
+  days: { slug: string; date: string; title: string }[];
+};
+
+/** Every media key (`<tripId>/<relPath>`, `mediaKey`'s own shape) a
+ *  published or draft day in this trip already names — a gallery item's
+ *  `src`, and a video's own `poster` beside it. A day-less trip photo whose
+ *  key is *not* in here is what "waiting" means for B2207. */
+function referencedTripMediaKeys(ref: string): Set<string> {
+  const keys = new Set<string>();
+  for (const entry of getAllEntries(ref, AS_AUTHOR)) {
+    for (const item of entry.gallery) {
+      keys.add(mediaKey(item.src));
+      if (item.poster) keys.add(mediaKey(item.poster));
+    }
+  }
+  return keys;
+}
+
+/** Only the two extensions `storeTripPhoto` (`lib/api/v2/media.ts`) ever
+ *  writes a derivative as, and never a video's own poster frame — that
+ *  belongs to the clip beside it, not a tile of its own. */
+function isTripMediaDerivative(name: string): boolean {
+  return /\.(?:jpg|mp4)$/i.test(name) && !/-poster\.jpg$/i.test(name);
+}
+
+/** One trip's own waiting rows — everything directly under its `media/`
+ *  root (a day's own photographs live one level deeper, in `media/<day>/`,
+ *  so a root file is a day-less one by construction) that no day's gallery
+ *  references yet. */
+function tripWaitingRows(trip: { id: string; ref: string }): InboxRow[] {
+  const dir = tripMediaDir(trip.ref);
+  if (!fs.existsSync(dir)) return [];
+  const referenced = referencedTripMediaKeys(trip.ref);
+  const rows: InboxRow[] = [];
+  for (const name of fs.readdirSync(dir)) {
+    if (!isTripMediaDerivative(name)) continue;
+    const full = path.join(dir, name);
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(full);
+    } catch {
+      continue; // gone between the readdir and the stat
+    }
+    if (!stat.isFile()) continue;
+    if (referenced.has(`${trip.id}/${name}`)) continue;
+    const isVideo = VIDEO_EXTENSIONS.has(path.extname(name).toLowerCase());
+    const sidecar = readTripSidecar(trip.ref, name);
+    rows.push({
+      id: name,
+      kind: "media",
+      day: null,
+      trip: trip.id,
+      name: sidecar?.filename ?? name,
+      bytes: stat.size,
+      type: isVideo ? "video" : "photo",
+      takenAt: sidecar?.takenAt,
+      uploadedAt: sidecar?.uploadedAt ?? stat.mtime.toISOString(),
+      dimensions: sidecar?.image ? { width: sidecar.image.width, height: sidecar.image.height } : undefined,
+    });
+  }
+  return rows.sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+}
+
+/** Every trip that has at least one day-less photograph waiting — B2207. */
+export function tripWaitingGroups(username: string): TripWaitingGroup[] {
+  return getTrips(username)
+    .map((trip) => ({
+      tripId: trip.id,
+      tripTitle: trip.title,
+      rows: tripWaitingRows(trip),
+      days: getAllEntries(trip.ref, AS_AUTHOR)
+        .map((entry) => ({ slug: entry.slug, date: entry.date, title: entry.title }))
+        .sort((a, b) => b.date.localeCompare(a.date)),
+    }))
+    .filter((group) => group.rows.length > 0);
+}
+
+/**
+ * File a day-less trip photograph onto one of that trip's own days —
+ * B2207. The bytes already live under `trips/<id>/media/`, addressed by the
+ * same hash `storeTripPhoto` gave them; nothing here re-uploads or moves
+ * them, it only writes the gallery reference `attachGallery` (lib/api/
+ * entries.ts) needs to stop treating the file as unreferenced.
+ */
+export function attachTripWaitingMedia(
+  username: string,
+  tripId: string,
+  filename: string,
+  slug: string,
+): { ok: true; attached: number } | { ok: false; error: string; bug?: boolean } {
+  const ref = tripRef(username, tripId);
+  if (!getTrip(ref)) return { ok: false, error: "unknown_trip" };
+
+  // `path.basename` first — the same traversal guard the flat inbox's own
+  // move/delete routes use before joining an id into a path.
+  const safeName = path.basename(filename);
+  const dir = tripMediaDir(ref);
+  const full = path.join(dir, safeName);
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(full);
+  } catch {
+    return { ok: false, error: "unknown_file" };
+  }
+  // Must actually sit in the trip's media root, not a day subfolder reached
+  // by naming one in `filename` — a file already filed has no business being
+  // attached a second time through this door.
+  if (!stat.isFile() || path.dirname(full) !== path.resolve(dir) || !isTripMediaDerivative(safeName)) {
+    return { ok: false, error: "unknown_file" };
+  }
+
+  if (referencedTripMediaKeys(ref).has(`${tripId}/${safeName}`)) {
+    return { ok: false, error: "already_attached" };
+  }
+
+  const isVideo = VIDEO_EXTENSIONS.has(path.extname(safeName).toLowerCase());
+  const sidecar = readTripSidecar(ref, safeName);
+  const item: GalleryItem = {
+    src: frontmatterSrc(tripId, safeName),
+    type: isVideo ? "video" : "image",
+    ...(sidecar?.caption ? { caption: sidecar.caption } : {}),
+    ...(sidecar?.image ? { width: sidecar.image.width, height: sidecar.image.height } : {}),
+  };
+  return attachGallery(ref, slug, [item]);
+}
 
 /** Everything the inbox page shows, grouped exactly as the ticket asks:
  *  "waiting for a day" first, then one group per day folder. */
@@ -255,6 +409,7 @@ export function buildInboxHubModel(username: string): InboxHubModel {
     dayBounds: { start, end: today },
     writtenDates: [...written].sort(),
     entriesByDate,
+    tripWaiting: tripWaitingGroups(username),
   };
 }
 
@@ -274,6 +429,14 @@ export function inboxSummary(username: string): { count: number; bytes: number }
       count += byKind[kind].length;
       for (const entry of byKind[kind]) bytes += entry.bytes;
     }
+  }
+  // B2207 — a day-less trip photo is waiting the same way anything above is,
+  // just in a different folder (`trips/<id>/media/`, not `inbox/`); the
+  // owner's own count promises "how much needs my attention", not "how much
+  // is in this one place".
+  for (const group of tripWaitingGroups(username)) {
+    count += group.rows.length;
+    for (const row of group.rows) bytes += row.bytes;
   }
   return { count, bytes };
 }

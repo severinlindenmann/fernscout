@@ -22,6 +22,20 @@ const inboxItem = z.strictObject({
   measuredFrom: z.enum(["exif", "probe"]).optional(),
 });
 
+/** B2207 — a photograph filed onto a trip with a declined day
+ * (`POST /{user}/media` with `intent.trip` set) sits under
+ * `trips/<id>/media/`, addressed by no day, and so it is a different kind of
+ * "waiting" than `inboxItem` above (which is always `content/<user>/inbox/`).
+ * `file` is the name this door needs back to attach it — the studio's own
+ * `POST /api/helper/{user}/trip/waiting/attach` body's `file`. */
+const tripWaitingItem = z.strictObject({
+  trip: z.string(),
+  file: z.string(),
+  bytes: z.number().int().nonnegative(),
+  stagedAt: z.string(),
+  takenAt: z.string().optional(),
+});
+
 export const inboxList = z.strictObject({
   counts: z.strictObject({
     media: z.number().int().nonnegative(),
@@ -31,6 +45,11 @@ export const inboxList = z.strictObject({
     media: z.array(inboxItem),
     files: z.array(inboxItem),
   }),
+  /** B2207 — every day-less trip photograph waiting across the journal,
+   * flat rather than grouped by trip: a caller wanting "how many, in
+   * total" reads `.length`; one wanting a specific trip's own filters on
+   * `.trip`. */
+  tripWaiting: z.array(tripWaitingItem),
 });
 
 export type InboxList = z.infer<typeof inboxList>;

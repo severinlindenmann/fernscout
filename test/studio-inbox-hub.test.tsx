@@ -37,6 +37,7 @@ const MODEL: InboxHubModel = {
   dayBounds: { start: "2026-09-01", end: "2026-09-23" },
   writtenDates: [],
   entriesByDate: {},
+  tripWaiting: [],
 };
 
 let root: Root | undefined;

@@ -8,6 +8,7 @@ import { useStudioBar } from "@/components/studio/StudioBar";
 import MonthGrid from "@/components/studio/day/MonthGrid";
 import DayStrip from "@/components/studio/day/DayStrip";
 import InboxTile, { formatBytes } from "@/components/studio/inbox/InboxTile";
+import TripWaitingSection from "@/components/studio/inbox/TripWaitingSection";
 import { weekdayIndex } from "@/lib/studio/dayStrip";
 import { weekdayNames } from "@/lib/i18n";
 import type { InboxDayEntry, InboxFileType, InboxHubModel, InboxRow } from "@/lib/studio/inbox";
@@ -610,6 +611,8 @@ export default function InboxHub({ username, model }: { username: string; model:
           onThumbError={(key) => setFailedThumbs((was) => new Set(was).add(key))}
         />
       )}
+
+      <TripWaitingSection username={username} groups={model.tripWaiting} />
 
       {days.map(([date, dayRows]) => (
         <Group

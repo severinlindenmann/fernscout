@@ -244,8 +244,13 @@ describe("the helper routes", () => {
   // Sixty-eight: `search` is gone (B2310) — the owner's word was "just
   // normal type search", and the agent fallback it powered went with the
   // button that asked for it.
-  test("there are sixty-four of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(64);
+  // Seventy: `trip/waiting/attach` (B2207) — files a day-less trip
+  // photograph (`storeTripPhoto`, `day` declined) onto one of that trip's
+  // own days, once the studio inbox page can show it at all. Same cookie,
+  // same owner check as the sixty-nine before it; nothing here re-uploads
+  // or moves bytes, only the gallery reference (`attachGallery`).
+  test("there are sixty-five of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(65);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

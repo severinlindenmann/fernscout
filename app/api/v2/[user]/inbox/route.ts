@@ -8,6 +8,7 @@ import { fail, ok } from "@/lib/api/v2/route";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { listInbox, type InboxEntry } from "@/lib/inbox";
+import { tripWaitingGroups } from "@/lib/studio/inbox";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +37,23 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
   if (!auth.ok) return auth.response;
 
   const items = listInbox(user);
+  // B2207 — flattened across every trip: this route counts "waiting" as one
+  // number, not one per trip, so a photograph filed with a trip and a
+  // declined day is exactly as visible here as one sitting in the flat
+  // bucket above.
+  const tripWaiting = tripWaitingGroups(user).flatMap((group) =>
+    group.rows.map((row) => ({
+      trip: group.tripId,
+      file: row.id,
+      bytes: row.bytes,
+      stagedAt: row.uploadedAt,
+      ...(row.takenAt ? { takenAt: row.takenAt } : {}),
+    })),
+  );
   const doc = inboxList.parse({
     counts: { media: items.media.length, files: items.files.length },
     items: { media: items.media.map(itemOf), files: items.files.map(itemOf) },
+    tripWaiting,
   });
   return ok(doc);
 }
