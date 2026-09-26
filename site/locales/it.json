@@ -594,6 +594,7 @@
   "contact.adminAddressHint": "solo se vuole ricevere una vera cartolina per posta",
   "contact.adminAddressHintNoPostcards": "conservato in archivio, che tu stampi mai una cartolina o no",
   "contact.adminApprove": "Approva",
+  "contact.adminApprovedGuestTrips": "Approvato — ora può leggere i viaggi di questo diario aperti agli ospiti.",
   "contact.adminApprovedNoTrip": "Approvato — questo apre solo il diario in sé; nessun viaggio è ancora aperto agli ospiti.",
   "contact.adminApprovedTrips": "Approvato — questo dà anche accesso in scrittura a {trips}.",
   "contact.adminBlockedContact": "A quell’indirizzo è stata chiusa la porta.",

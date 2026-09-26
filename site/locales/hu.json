@@ -594,6 +594,7 @@
   "contact.adminAddressHint": "csak ha szeretne igazi képeslapot kapni",
   "contact.adminAddressHintNoPostcards": "megmarad, akkor is, ha soha nem nyomtatunk képeslapot",
   "contact.adminApprove": "Jóváhagyás",
+  "contact.adminApprovedGuestTrips": "Jóváhagyva — mostantól olvashatja ennek a naplónak a vendégeknek megnyitott utazásait.",
   "contact.adminApprovedNoTrip": "Jóváhagyva — ez csak magát a naplót nyitja meg; egyetlen utazás sincs még megnyitva vendégeknek.",
   "contact.adminApprovedTrips": "Jóváhagyva — ez írási jogot is ad ehhez: {trips}.",
   "contact.adminBlockedContact": "Ezt a címet letiltottuk.",

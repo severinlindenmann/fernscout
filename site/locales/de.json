@@ -594,6 +594,7 @@
   "contact.adminAddressHint": "nur falls eine echte Postkarte ankommen soll",
   "contact.adminAddressHintNoPostcards": "wird gespeichert, auch ohne dass je eine Postkarte gedruckt wird",
   "contact.adminApprove": "Freigeben",
+  "contact.adminApprovedGuestTrips": "Genehmigt — sie können jetzt die Reisen dieses Journals lesen, die für Gäste offen sind.",
   "contact.adminApprovedNoTrip": "Genehmigt — das öffnet nur das Journal selbst; noch keine Reise ist für Gäste offen.",
   "contact.adminApprovedTrips": "Genehmigt — das gibt auch Schreibzugriff auf {trips}.",
   "contact.adminBlockedContact": "Diese Adresse wurde gesperrt.",

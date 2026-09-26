@@ -114,10 +114,15 @@ export default function ReadersAdmin({
         | null;
       if (response?.ok && body) {
         const trips = body.tripsOpened ?? [];
+        // tripsOpened only counts buddy write places; a plain read grant
+        // still opens every guest-visible trip in the journal (B2364) —
+        // that is `hasGuestTrip`, not whether a buddy place was named here.
         text = [
           trips.length
             ? t("contact.adminApprovedTrips", { trips: trips.join(", ") })
-            : t("contact.adminApprovedNoTrip"),
+            : hasGuestTrip
+              ? t("contact.adminApprovedGuestTrips")
+              : t("contact.adminApprovedNoTrip"),
           body.told ? t(body.told === "email" ? "readers.toldByEmail" : "readers.toldBySms", { name }) : "",
         ]
           .filter(Boolean)

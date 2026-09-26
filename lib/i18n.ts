@@ -719,6 +719,7 @@ export type TranslationKey =
   | "contact.adminApprove"
   | "contact.adminApproveConfirm"
   | "contact.adminApproveQuestion"
+  | "contact.adminApprovedGuestTrips"
   | "contact.adminApprovedNoTrip"
   | "contact.adminApprovedTrips"
   | "contact.adminBlockedContact"

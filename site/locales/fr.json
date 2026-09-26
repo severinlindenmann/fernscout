@@ -594,6 +594,7 @@
   "contact.adminAddressHint": "seulement si la personne veut recevoir une vraie carte postale",
   "contact.adminAddressHintNoPostcards": "conservée, que tu imprimes une carte postale un jour ou non",
   "contact.adminApprove": "Approuver",
+  "contact.adminApprovedGuestTrips": "Approuvé — elle peut désormais lire les voyages de ce journal ouverts aux invités.",
   "contact.adminApprovedNoTrip": "Approuvé — cela ouvre seulement le journal lui-même ; aucun voyage n’est encore ouvert aux invités.",
   "contact.adminApprovedTrips": "Approuvé — cela lui donne aussi le droit d’écrire dans {trips}.",
   "contact.adminBlockedContact": "Cette adresse a été mise à la porte.",

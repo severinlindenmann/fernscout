@@ -84,7 +84,12 @@ const link: AdminInvite = {
   live: true,
 };
 
-function render(contacts: AdminContact[], invites: AdminInvite[] = [], reply: Record<string, unknown> = { ok: true }) {
+function render(
+  contacts: AdminContact[],
+  invites: AdminInvite[] = [],
+  reply: Record<string, unknown> = { ok: true },
+  hasGuestTrip = true,
+) {
   const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, json: async () => reply }) as Response);
   vi.stubGlobal("fetch", fetchMock);
   container = document.createElement("div");
@@ -101,7 +106,7 @@ function render(contacts: AdminContact[], invites: AdminInvite[] = [], reply: Re
           contacts={contacts}
           invites={invites}
           trips={[{ id: "iceland", title: "Iceland 2026" }]}
-          hasGuestTrip
+          hasGuestTrip={hasGuestTrip}
         />
       </LocaleProvider>,
     );
@@ -193,8 +198,10 @@ describe("Let in and Decline ask first", () => {
     expect(sent(fetchMock, "POST")).toHaveLength(0);
   });
 
-  test("confirming posts to the letin door, then says what opened and how they were told", async () => {
-    const fetchMock = render([otto], [], { ok: true, tripsOpened: [], told: "email" });
+  test("confirming on a journal with a guest trip says they can read it, even when no buddy place opened", async () => {
+    // B2364 — tripsOpened only counts buddy write places; a plain read
+    // grant opens every guest trip in the journal regardless.
+    const fetchMock = render([otto], [], { ok: true, tripsOpened: [], told: "email" }, true);
     act(() => button(fill("readers.letIn", { name: "Otto" })).click());
     const panel = container!.querySelector('[role="dialog"]')!;
     const confirm = Array.from(panel.querySelectorAll("button")).find((b) => b.textContent === fill("readers.letIn", { name: "Otto" }))!;
@@ -203,6 +210,18 @@ describe("Let in and Decline ask first", () => {
     expect(posts).toHaveLength(1);
     expect(posts[0][0]).toBe("/api/web/alex/readers/letin");
     expect(JSON.parse(String((posts[0][1] as RequestInit).body))).toEqual({ contactId: "c-otto" });
+    expect(container!.querySelector('[role="status"]')?.textContent).toBe(
+      `${dict["contact.adminApprovedGuestTrips"]} ${fill("readers.toldByEmail", { name: "Otto Asks" })}`,
+    );
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  test("confirming on a journal with no guest trip at all still says nothing is open", async () => {
+    const fetchMock = render([otto], [], { ok: true, tripsOpened: [], told: "email" }, false);
+    act(() => button(fill("readers.letIn", { name: "Otto" })).click());
+    const panel = container!.querySelector('[role="dialog"]')!;
+    const confirm = Array.from(panel.querySelectorAll("button")).find((b) => b.textContent === fill("readers.letIn", { name: "Otto" }))!;
+    await act(async () => confirm.click());
     expect(container!.querySelector('[role="status"]')?.textContent).toBe(
       `${dict["contact.adminApprovedNoTrip"]} ${fill("readers.toldByEmail", { name: "Otto Asks" })}`,
     );
