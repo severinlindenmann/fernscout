@@ -21,11 +21,16 @@ import { useStudioOnline } from "@/components/studio/StudioBar";
  */
 export function useOnline(): boolean {
   const shared = useStudioOnline();
-  const [interfaceOnline, setInterfaceOnline] = useState(() =>
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  // B2372 — always "online" on first render, on both sides. Node 24 exposes a
+  // global `navigator` with `navigator.onLine` left `undefined`, so reading it
+  // in the initializer answered `false`-ish on the server while a real browser
+  // answered `true`, a hydration mismatch. The real value is read in the
+  // effect below instead, which only ever runs in the browser.
+  const [interfaceOnline, setInterfaceOnline] = useState(true);
   useEffect(() => {
     if (shared !== null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing the one browser-only value the initializer above deliberately avoided reading; runs once, client-side only, before the listeners below.
+    setInterfaceOnline(navigator.onLine);
     const onOnline = () => setInterfaceOnline(true);
     const onOffline = () => setInterfaceOnline(false);
     window.addEventListener("online", onOnline);
