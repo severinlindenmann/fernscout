@@ -59,6 +59,14 @@ function scopeOf(raw: unknown): HelperScope {
   return (HELPER_SCOPES as readonly string[]).includes(raw as string) ? (raw as HelperScope) : "words";
 }
 
+/** `null` when `raw` is not one of `HELPER_SCOPES` at all — distinct from
+ * `scopeOf`'s "default to words", which a withdrawal must never do (B2147):
+ * an empty or unreadable body must refuse, not guess which consent to take
+ * back. */
+function explicitScopeOf(raw: unknown): HelperScope | null {
+  return (HELPER_SCOPES as readonly string[]).includes(raw as string) ? (raw as HelperScope) : null;
+}
+
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/consent">) {
   const { user } = await params;
   const jsonBody = await readJsonBody(request);
@@ -89,12 +97,27 @@ export async function DELETE(
   const jsonBody = await readJsonBody(request);
   if (!jsonBody.ok) return jsonBody.response;
   const body = (jsonBody.value ?? {}) as Record<string, unknown>;
-  const scope = scopeOf(body.scope);
   // Gated on "any" rather than this scope's own capability: a permission
   // that could not be withdrawn because the switch happened to be off would
-  // not be a permission. The actual removal below is still scoped.
+  // not be a permission. The actual removal below is still scoped. Checked
+  // before the scope itself, so a bearer token (never the owner) still gets
+  // the auth refusal rather than a scope complaint about a body it can't send.
   const refused = await gate(request, user, "any");
   if (refused) return refused;
+  // An empty or unparseable body used to default to withdrawing `words` —
+  // `scopeOf`'s default, meant for POST's "no panel said otherwise". A
+  // withdrawal must never guess: it names the scope it takes back, or it
+  // changes nothing (B2147).
+  const scope = explicitScopeOf(body.scope);
+  if (!scope) {
+    return Response.json(
+      {
+        error: "scope_required",
+        message: `scope is required and must be one of ${HELPER_SCOPES.join(", ")} — which consent to withdraw.`,
+      },
+      { status: 400 },
+    );
+  }
   revokeHelperConsent(user, scope);
   return Response.json({ ok: true, consent: helperConsent(user) });
 }

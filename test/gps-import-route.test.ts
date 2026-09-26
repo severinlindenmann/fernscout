@@ -434,7 +434,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(fs.existsSync(path.join(tripPath(), "track.json"))).toBe(true);
     });
 
-    test("a trip with nothing in the store writes nothing and leaves any line alone", async () => {
+    test("a trip with nothing in the store writes nothing", async () => {
       const token = await tokenFor(OWNER_EMAIL);
       const empty = "winter-2029";
       writeTripFixture(OWNER, {
@@ -450,6 +450,48 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(status).toBe(200);
       expect(body.written).toBe(false);
       expect(fs.existsSync(path.join(dir, OWNER, "trips", empty, "track.json"))).toBe(false);
+    });
+
+    // B2353 — the message used to claim "any existing one was left alone" for
+    // an empty derivation, but `deriveTripTrack` (lib/gps/api.ts) deletes an
+    // existing `track.json` rather than leave a stale, published line — a
+    // fix trimmed away by a zone, a min-age window or a trim distance can
+    // empty out a trip that used to have a real line. The message must say
+    // what actually happened.
+    test("an empty re-derive removes a previously-written track and says so", async () => {
+      const token = await tokenFor(OWNER_EMAIL);
+      const shrinking = "shrinking-2026";
+      writeTripFixture(OWNER, {
+        id: shrinking,
+        title: "Shrinking",
+        start: "2026-06-22",
+        end: "2026-06-22",
+        status: "past",
+        visibility: "private",
+        intro: "x",
+      });
+      await importCall(token, { kind: "gps", text: fixesJsonl(60, "2026-06-22") });
+      const first = await deriveTrack(token, shrinking);
+      expect(first.body.written).toBe(true);
+      const trackFile = path.join(dir, OWNER, "trips", shrinking, "track.json");
+      expect(fs.existsSync(trackFile)).toBe(true);
+
+      // Exclude the whole fixed area, so the very next derive has nothing
+      // left to draw for a trip that previously had a real, written line.
+      fs.mkdirSync(path.join(dir, OWNER, "gps"), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, OWNER, "gps", "exclude.json"),
+        JSON.stringify([{ label: "everywhere", lat: 37.1, lon: -8.5, radiusM: 50000 }]),
+      );
+
+      const { status, body } = await deriveTrack(token, shrinking);
+      fs.rmSync(path.join(dir, OWNER, "gps", "exclude.json"));
+
+      expect(status).toBe(200);
+      expect(body.written).toBe(false);
+      expect(fs.existsSync(trackFile)).toBe(false);
+      expect(body.message).toMatch(/nothing left to draw/i);
+      expect(body.message).not.toMatch(/left alone/i);
     });
 
     test("an unknown trip is a 404", async () => {

@@ -316,6 +316,29 @@ describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
     expect(entries).not.toContain("2026-01-03-unpublished.json");
   });
 
+  /** B2347 — a day file with no `status` key at all (a hand-copied example,
+   * or any writer that omits the field) reads as a draft everywhere else in
+   * the app (`dayFromJson`'s own default). The export's own draft check used
+   * to call `isDraft()`, which only catches an explicit `"draft"` and let a
+   * status-less day slip into this exact anonymous, open-to-link export. */
+  test("leaves out a day file with no status field at all", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    write(
+      path.join(srcDir, "traveller", "trips", "open-2026", "entries", "2026-01-04-nostatus.json"),
+      JSON.stringify({
+        slug: "nostatus",
+        title: "No status",
+        date: "2026-01-04",
+        content: "Written with no status field.",
+      }),
+    );
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "nostatus");
+    const entries = fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries"));
+
+    expect(entries).not.toContain("2026-01-04-nostatus.json");
+  });
+
   /** The anonymous, open-to-link archive is a packaging of content an
    * unauthenticated visitor could already reach — a plain GET carries nothing
    * that says who is asking. The owner's consent record is not that. */

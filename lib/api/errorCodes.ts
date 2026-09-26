@@ -48,7 +48,7 @@ export const ERROR_CODES = {
   unknown_inbox_file:
     "One of the `inbox` ids names nothing staged in this journal — or names something that is not a photograph. Nothing was written and nothing was taken out of the inbox; GET the inbox and send the ids it lists.",
   unknown_trip: "No trip of that id in this journal — or none this token may write to. The two answer alike on purpose, so this cannot be used to ask which trips exist. GET the trips list first.",
-  unknown_day: "No day of that slug in this trip. The slug is made from the title and is in the answer to the call that wrote it; GET the days list to see them.",
+  unknown_day: "No day of that slug in this trip. The slug is not derived from anything — it is whatever the caller who created the day chose, forever; GET the days list to see them.",
   unknown_contact: "No contact of that id in this journal.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
   unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
@@ -65,7 +65,7 @@ export const ERROR_CODES = {
   // ── the body is wrong ──────────────────────────────────────────────────
   invalid_json: "The body did not parse as JSON. Check the content-type header and the quoting.",
   invalid_request: "The body is missing something this call needs, or a value is not usable. The `message` says which.",
-  stale_document: "The document you wrote against has moved on — either it changed since you last read it and your `If-Match` no longer covers the current version, or you PUT a client-chosen id that already exists with no `If-Match` at all (a client-chosen-id create refuses to silently overwrite what is already there). `details.current` is the document exactly as it stands now: read it, and send `If-Match` with its ETag if you still mean to write.",
+  stale_document: "The document you wrote against has moved on — either it changed since you last read it and your `If-Match` no longer covers the current version, or you PUT a client-chosen id that already exists with no `If-Match` at all (a client-chosen-id create refuses to silently overwrite what is already there). `details` is the document exactly as it stands now, not wrapped in another field: read it, and send `If-Match` with its ETag if you still mean to write.",
   bad_request: "The body is not usable. The `message` says why.",
   invalid_entry: "One or more fields of the day are wrong. `problems` lists every one at once — field, what arrived, what was expected — so fix them all and send once, rather than a round trip each.",
   invalid_trip: "One or more fields of the trip are wrong; `problems` lists them. A field name that is not a field is refused here rather than dropped, and the hint names the field you probably meant.",
@@ -80,16 +80,16 @@ export const ERROR_CODES = {
   invalid_title: "The title is not usable — it must be one line. A line break would end the frontmatter block early, so it is refused rather than folded; put the longer version in the prose.",
   invalid_date: "A date is not a real calendar date, or `end` is before `start`. Dates are `2026-09-01`.",
   invalid_tagline: "The subtitle is not usable — it must be one line, like the title. Send `\"\"` to remove it entirely.",
-  invalid_cover: "`cover` must be a `src` this trip's own gallery already carries — read GET .../trips/{trip}/media for the list. `null` on a PATCH clears it back to absent.",
+  invalid_cover: "`cover` must be a `src` already carried by one of this trip's own days — read GET .../trips/{trip}/days/{slug}/media for each day's list. `null` on a PATCH clears it back to absent.",
   invalid_plan: "`plan.private.stops` names a stop id that is not in `plan.route` — every key there must be a route stop's own `id`, hand-written or server-assigned.",
   invalid_accent: "`accent` must be one of the five named colours. `null` or `\"\"` clears it back to no preference.",
   invalid_intro: "`intro` must be text — the trip's own prose, not a frontmatter line.",
   invalid_trip_id: "The trip id must be lowercase letters, digits and single hyphens. It is the URL segment and the folder name.",
   invalid_visibility: "`visibility` must be `private`, `public` or `guest`. An unrecognised value is refused here rather than written, because on the way back in it would read as private and the caller would never know.",
   invalid_people: "An entry in `people` is not usable — each needs a name and an email, and there may be at most ten. They get write access to the trip, so this is refused rather than trimmed.",
-  invalid_rates: "A rate is not usable. The shape is `{\"EUR\": 0.94}` — units of the journal's base currency for one unit of the keyed one.",
+  invalid_rates: "A rate is not usable. This is the legacy, cookie-only trip-rates door's own convention — `{\"EUR\": 0.94}`, units of the journal's base currency for one unit of the keyed one. It is not `POST/PUT .../trips/{trip}`'s own `rates.manual`, which is a different, per-1-EUR convention (see /skill/add-a-trip.md) and refuses a bad value as `invalid_request` instead.",
   invalid_tracks: "A row in `tracks` is not one this server knows, or its value is not true or false. The rows are costs, coordinates and photos.",
-  invalid_translations: "A translation names a locale this journal does not declare, or its shape is wrong. Declare the locale first with PATCH .../config, or drop it.",
+  invalid_translations: "A translation names a locale this journal does not declare, or its shape is wrong. Declare the locale first with PATCH /api/v2/{user} (its `locales` field), or drop it.",
   invalid_declined: "`declined` names a key that is not one of v2's TRIP_DECLINABLES, or gives it a reason under ten characters. A decline is a message to the next reader, not a checkbox — say why, in a real sentence.",
   invalid_costs_budget: "`costsBudget` is not usable — it needs a positive `total`, and `currency` (if sent) must be a three-letter code. Send `\"none\"` instead to say a budget was not entered.",
   invalid_figures: "`figuresMode` is not `{\"mode\":\"off\"}`, `{\"mode\":\"journal\"}`, or `{\"mode\":\"custom\",\"figures\":[\"id\", …]}`.",
@@ -104,7 +104,7 @@ export const ERROR_CODES = {
   no_frontmatter: "The file has no frontmatter block, so nothing can be read out of it. This is a fault on disk rather than in your call.",
   invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET /api/v2/{user}/figures/presets for the vocabulary.",
   unsupported_field: "A field name this call does not take. The `message` lists the ones it does — send only those, and note that publishing is never a field.",
-  expected_urls: "The JSON form of this upload needs `urls`. To send bytes instead, use multipart/form-data.",
+  expected_urls: "The JSON form of this upload needs `url` (fetch a file from there) or `inbox` (a staged inbox file's id) — exactly one of the two. To send bytes instead, use multipart/form-data.",
   expected_src: "DELETE .../media needs `src` — one or more photographs, exactly as GET .../days/<slug> hands them back.",
   unknown_media: "One or more of `src` is not a photograph this day has. `problems` names each one; nothing was removed.",
   expected_multipart: "This content-type is not one this call takes: multipart/form-data for bytes, application/json for `urls`.",
@@ -124,7 +124,7 @@ export const ERROR_CODES = {
   conflict: "That id is already in use for something else — a different amount, or another journal's own purchase. Nothing was written. `details.current` carries the stored document when it is yours to see; pick a different id.",
 
   // ── the day is not wrong, it is incomplete ─────────────────────────────
-  incomplete_day: "The trip keeps track of something this day says nothing about. `missing` names each one, how to send it, **and how to decline it** — `\"costs\": false` means there was none. Ask the person; never invent a value to get past this.",
+  incomplete_day: "The trip keeps track of something this day says nothing about. `missing` names each one, how to send it, **and how to decline it** — `declined: { \"costs\": \"<reason>\" }` means there was none, with why. Ask the person; never invent a value to get past this.",
 
   // ── publishing, and things already done ────────────────────────────────
   already_published: "This day is already on the site. Nothing was changed.",

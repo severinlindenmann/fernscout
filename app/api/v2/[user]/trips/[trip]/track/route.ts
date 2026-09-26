@@ -45,9 +45,10 @@ export async function POST(
       ...result,
       trip: trip.id,
       message:
-        `Nothing in the store between ${trip.start} and ${trip.end}, so no line was ` +
-        "written and any existing one was left alone. Import the export covering those " +
-        `dates first: \`POST /api/v2/${user}/import\`.`,
+        `Nothing left to draw between ${trip.start} and ${trip.end} — the store has no fixes ` +
+        "for those dates, or every one was trimmed away — so no line was written, and any " +
+        "existing one for this trip was removed rather than left stale. Import the export " +
+        `covering those dates first: \`POST /api/v2/${user}/import\`.`,
     });
   }
 

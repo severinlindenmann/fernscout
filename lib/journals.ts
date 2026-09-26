@@ -168,6 +168,13 @@ export function journalsOwnedBy(email: string): string[] {
   return owned;
 }
 
+/** `defaultLocale` first, the rest of `locales` after it in the order given,
+ * de-duplicated — see the B2351 comment at its call site. */
+function orderedLocales(defaultLocale: string, locales: string[] | undefined): string[] {
+  const rest = (locales?.length ? locales : [defaultLocale]).filter((code) => code !== defaultLocale);
+  return [defaultLocale, ...rest];
+}
+
 export function createJournal(input: NewJournal): CreateJournalResult {
   const username = input.username.trim().toLowerCase();
   // Normalised once, here, so every later use of `input.visibility` in this
@@ -383,7 +390,11 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     ...(visibility === "guest" ? { visibility: "guest" } : {}),
     ...(input.startLocation?.trim() ? { startLocation: input.startLocation.trim() } : {}),
     defaultLocale: input.defaultLocale ?? "en",
-    locales: input.locales?.length ? input.locales : [input.defaultLocale ?? "en"],
+    // `defaultLocale` first, always — a later PATCH (setJournalV2Fields)
+    // derives `defaultLocale` from `locales[0]` because v2 has no field of
+    // its own for it, so a create that stored the default anywhere else in
+    // the list would have that PATCH silently flip it (B2351).
+    locales: orderedLocales(input.defaultLocale ?? "en", input.locales),
     baseCurrency: input.baseCurrency ?? "CHF",
     displayCurrencies: input.displayCurrencies?.length
       ? input.displayCurrencies
@@ -1353,7 +1364,11 @@ export function journalV2Fields(user: UserConfig): JournalV2Fields {
   return {
     title: user.title,
     owner: { name: user.owner.name, nickname: user.owner.nickname, email: user.owner.email ?? "" },
-    locales: user.locales,
+    // `defaultLocale` first, always (B2351) — a legacy v1 config whose
+    // `locales` was never ordered this way would otherwise hand a v2 caller
+    // a document that silently changes the default the moment it is PATCHed
+    // straight back (`setJournalV2Fields` reads `locales[0]` as the default).
+    locales: orderedLocales(user.defaultLocale, user.locales),
     baseCurrency: user.baseCurrency,
     displayCurrencies: user.displayCurrencies,
     units: user.units,
