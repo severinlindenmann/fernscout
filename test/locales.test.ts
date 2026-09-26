@@ -378,6 +378,53 @@ describe("the phone step names no operator's own facts (B2357)", () => {
 });
 
 /**
+ * B2357's other half: five photobook print-failure strings baked in
+ * `agent@fernscout.ch` directly rather than reading the operator's own
+ * configured address, so every fork greeted its readers with an address
+ * that was never theirs. Each is a `{email}` token now, filled from
+ * `loadServerConfig().site.operatorEmail` at its one call site
+ * (`paid/printOrder/lib/order/view.ts`, `paid/photobook/lib/photobook/
+ * receipt.ts`, `PhotobookPageContent.tsx`), with a sibling `*NoAddress` key
+ * for the instance that configures none.
+ */
+describe("the photobook print-failure strings name no operator's own address (B2357)", () => {
+  const en = dictionaryFor("en");
+  const KEYS = [
+    "photobook.context.buildFailed",
+    "photobook.print.refusedRefunded",
+    "photobook.printRefused",
+    "photobook.refused.next",
+    "photobook.refused.reference",
+  ] as const;
+
+  test("none of the five keys contain the literal fernscout.ch address", () => {
+    for (const key of KEYS) {
+      expect(en[key], key).not.toContain("agent@fernscout.ch");
+    }
+  });
+
+  test("filling {email} interpolates the operator's own address", () => {
+    const filled = translate(en, "photobook.printRefused" as never, { email: "help@example.test" });
+    expect(filled).toContain("help@example.test");
+    expect(filled).not.toContain("agent@fernscout.ch");
+  });
+
+  test("each key's *NoAddress sibling names no address at all", () => {
+    expect(translateIn("en", "photobook.context.buildFailedNoAddress" as never, { credits: "5" })).not.toMatch(
+      /@/,
+    );
+    expect(
+      translateIn("en", "photobook.print.refusedRefundedNoAddress" as never, { credits: "5" }),
+    ).not.toMatch(/@/);
+    expect(translateIn("en", "photobook.printRefusedNoAddress" as never)).not.toMatch(/@/);
+    expect(translateIn("en", "photobook.refused.nextNoAddress" as never)).not.toMatch(/@/);
+    expect(translateIn("en", "photobook.refused.referenceNoAddress" as never, { id: "x" })).not.toMatch(
+      /@/,
+    );
+  });
+});
+
+/**
  * B481: the same four sign-in-path keys addressed the reader as "Ön" (formal)
  * in Hungarian while the rest of the dictionary uses "te" (informal). Not a
  * blanket "no Ön" check — "Önmagában" ("by itself") contains the string "Ön"
