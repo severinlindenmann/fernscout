@@ -3,3 +3,5 @@
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "Fernscout zeichnet auf, wohin du während einer Reise gehst, für die du die Aufzeichnung eingeschaltet hast, auch während die App im Hintergrund läuft, damit dein Journal eine echte Karte der zurückgelegten Wege erhält.";
 /* B2322 — speaking to the helper. */
 "NSMicrophoneUsageDescription" = "Fernscout nutzt das Mikrofon nur, während du aufnimmst, damit du dem Helfer von deinem Tag erzählen kannst, statt zu tippen.";
+/* B2118 — unread by a German speaker yet. */
+"NSPhotoLibraryUsageDescription" = "Fernscout importiert die von dir ausgewählten Fotos in dein Reisetagebuch und behält die Originale.";

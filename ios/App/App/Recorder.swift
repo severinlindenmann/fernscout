@@ -858,9 +858,24 @@ extension Recorder: CLLocationManagerDelegate {
         case .authorizedWhenInUse where upgradeAfterWhenInUse:
             upgradeAfterWhenInUse = false
             askAlways()
+        case .denied, .restricted:
+            // B2363 — access revoked mid-trip. `armed` stays populated (the
+            // owner's own dates still hold), but iOS delivers no more fixes,
+            // so `status()` must not fall through to "recording": stop every
+            // location service and surface it as an error the studio can
+            // show a way out for, the same way `unauthorized` already does.
+            upgradeAfterWhenInUse = false
+            finishPermission()
+            if !armed.isEmpty {
+                endTracking()
+                lastError = "denied"
+            }
         default:
             upgradeAfterWhenInUse = false
             finishPermission()
+            // Access restored (Settings, after a revoke) — nothing else
+            // clears this one, unlike `unauthorized` (`clearAuthError()`).
+            if lastError == "denied" { lastError = nil }
         }
         // "Always" granted later, from Settings — the low-power services
         // could not run without it, so start them now.
