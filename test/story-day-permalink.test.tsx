@@ -50,6 +50,18 @@ describe("TripStory writes a real day permalink to the address bar", () => {
     const src = fs.readFileSync(path.join(process.cwd(), "app/TripStory.tsx"), "utf8");
     expect(src).toContain("window.location.hash.replace(/^#day-/, \"\")");
   });
+
+  /**
+   * B2334 — going back to the hero step used to write `window.location.pathname`
+   * unchanged, so a day's own permalink stayed in the address bar over the
+   * overview. The hero step is the trip's own path.
+   */
+  test("the hero step writes the trip's own path, not whatever pathname was already there", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "app/TripStory.tsx"), "utf8");
+    expect(src).toMatch(
+      /history\.replaceState\(\s*null,\s*"",\s*\(trip \? trip\.href\("\/"\) : window\.location\.pathname\) \+ window\.location\.search,?\s*\)/,
+    );
+  });
 });
 
 describe("trip.href builds the same path the day-permalink route answers", () => {
