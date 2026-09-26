@@ -79,8 +79,16 @@ const EXEMPT = new Set<string>([]);
  * address is fine on a domain that exists to be written down, and a Swiss
  * mobile is fine when it is the placeholder the rest of the repository uses.
  * Anything else is somebody's real contact details.
+ *
+ * `site/locales` joined this list for B2357: the UI strings a fresh clone
+ * ships are not `CODE_DIRS`'s "software vocabulary" either, and until this
+ * they were the one place `agent@fernscout.ch` was baked in as a literal
+ * rather than read from `site.config.json`'s `operatorEmail`. Same narrow
+ * check as the rest of this list — email/phone shape, never a name or the
+ * brand word "Fernscout" (`personalTerms()` and `CODE_DIRS` are a separate,
+ * unrelated scan; this one does not touch either).
  */
-const PROSE_DIRS = ["docs/tasks", ".claude/skills"];
+const PROSE_DIRS = ["docs/tasks", ".claude/skills", "site/locales"];
 
 /** Domains that exist precisely so they can appear in writing. `example.test`
  *  is RFC 2606; `fernscout.ch` is this software's own public face. */
