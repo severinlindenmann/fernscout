@@ -273,22 +273,48 @@ export default function RouteRecordSection({
         </div>
       )}
 
-      {status?.state === "error" && (
+      {/* B2302 — "While using" only still means the recorder is armed and
+          running (it just pauses once the app is closed), so it reads as an
+          amber notice with the Always steps and Settings, not the red error
+          box every other kind gets. */}
+      {status?.state === "error" && status.kind === "whenInUseOnly" && (
+        <div className="mt-3 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-3 text-sm text-ink-strong">
+          <p>{t("studio.record.error.whenInUseOnly")}</p>
+          <p className="mt-1 text-ink-secondary">{t("studio.record.error.whenInUseOnly.steps")}</p>
+          <button type="button" disabled={busy} onClick={() => void openAppSettings()} className={BUTTON}>
+            {t("studio.record.openSettings")}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void stop()}
+            className="mt-2 block min-h-11 text-sm font-semibold text-ink-secondary underline underline-offset-2 disabled:opacity-50"
+          >
+            {t("studio.record.stop")}
+          </button>
+        </div>
+      )}
+
+      {status?.state === "error" && status.kind !== "whenInUseOnly" && (
         <div className="mt-3 rounded-2xl border border-coral-300 bg-coral-100 px-4 py-3 text-sm text-ink-strong">
-          {status.kind === "whenInUseOnly" && (
+          {status.kind === "unauthorized" && <p>{t("studio.record.error.unauthorized")}</p>}
+          {status.kind === "storageFull" && <p>{t("studio.record.error.storageFull")}</p>}
+          {/* B2363 — location access was revoked (not merely downgraded to
+              "While using") while a trip was armed; recording has actually
+              stopped, so this needs its own truthful copy and a way back to
+              Settings, not the generic "uploading failed". */}
+          {status.kind === "denied" && (
             <p>
-              {t("studio.record.error.whenInUseOnly")}{" "}
-              <button type="button" onClick={() => setGuide(true)} className="font-semibold underline underline-offset-2">
-                {t("studio.record.access.fix")}
+              {t("studio.record.error.denied")}{" "}
+              <button type="button" onClick={() => void openAppSettings()} className="font-semibold underline underline-offset-2">
+                {t("studio.record.openSettings")}
               </button>
             </p>
           )}
-          {status.kind === "unauthorized" && <p>{t("studio.record.error.unauthorized")}</p>}
-          {status.kind === "storageFull" && <p>{t("studio.record.error.storageFull")}</p>}
           {/* Security review (2026-09-24) second round, finding 2 — a kind
               this page does not name specifically (a bare 403, 429, …)
               still reads in words rather than as an empty box. */}
-          {status.kind !== "whenInUseOnly" && status.kind !== "unauthorized" && status.kind !== "storageFull" && (
+          {status.kind !== "unauthorized" && status.kind !== "storageFull" && status.kind !== "denied" && (
             <p>{t("studio.record.error.generic", { code: status.kind })}</p>
           )}
           {/* Same finding — every error state needs a way out, not only

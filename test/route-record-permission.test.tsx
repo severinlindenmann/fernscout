@@ -129,3 +129,50 @@ describe("RouteRecordSection — the walk to \"Always\"", () => {
     expect(shell.openAppSettings).toHaveBeenCalledOnce();
   });
 });
+
+// B2302 — the owner's phone showed this state in the same red box every
+// other upload error gets, with only Stop, although recording is still
+// armed and just pauses while the app is closed.
+describe("RouteRecordSection — whenInUseOnly reads as a recording state, not a failure", () => {
+  test("shows an amber notice with the Always steps and Open Settings, no red box", async () => {
+    shell.permission = { status: "whenInUse", precise: true, canAskAlways: false };
+    shell.status = { state: "error", kind: "whenInUseOnly" };
+    await mount();
+
+    expect(container!.textContent).toContain("Recording pauses when the app is closed.");
+    expect(container!.textContent).toContain("Settings");
+    expect(container!.querySelector(".border-coral-300")).toBeNull();
+    expect(container!.querySelector(".border-amber-300")).not.toBeNull();
+
+    await click(button("Open Settings"));
+    expect(shell.openAppSettings).toHaveBeenCalledOnce();
+
+    await click(button("Stop"));
+  });
+
+  test("every other error kind still shows the red box", async () => {
+    shell.permission = { status: "always", precise: true, canAskAlways: false };
+    shell.status = { state: "error", kind: "unauthorized" };
+    await mount();
+
+    expect(container!.querySelector(".border-amber-300")).toBeNull();
+    expect(container!.querySelector(".border-coral-300")).not.toBeNull();
+  });
+});
+
+// B2363 — a revoked (not merely downgraded) location permission must not
+// keep reading as "recording"; native reports it as its own error kind.
+describe("RouteRecordSection — access revoked mid-trip", () => {
+  test("kind denied shows the red box with its own copy and Open Settings, not a generic message", async () => {
+    shell.permission = { status: "denied", precise: false, canAskAlways: false };
+    shell.status = { state: "error", kind: "denied" };
+    await mount();
+
+    expect(container!.textContent).toContain("Location access was turned off, so recording stopped.");
+    expect(container!.textContent).not.toContain("Uploading failed");
+    expect(container!.querySelector(".border-coral-300")).not.toBeNull();
+
+    await click(button("Open Settings"));
+    expect(shell.openAppSettings).toHaveBeenCalledOnce();
+  });
+});
