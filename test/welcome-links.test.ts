@@ -341,12 +341,17 @@ describe("the welcome link grants nothing", () => {
     // Rendering does not count as opening — a link preview renders it too.
     const { getContact } = await import("@/lib/contacts");
     expect((await getContact(OWNER, id))?.welcomeOpenedAt).toBeNull();
-    const { POST: opened } = await import("@/app/w/[code]/opened/route");
-    const res = await opened(new Request(`https://example.test/w/${code}/opened`, { method: "POST" }), {
-      params: Promise.resolve({ code }),
-    });
-    expect(res.status).toBe(204);
-    expect(res.headers.get("set-cookie")).toBeNull();
+    // Asking for the code is what counts (B2368).
+    const { POST: step } = await import("@/app/w/[code]/step/route");
+    const res = await step(
+      new Request(`https://example.test/w/${code}/step`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "send", channel: "email" }),
+      }),
+      { params: Promise.resolve({ code }) },
+    );
+    expect(res.status).toBe(200);
     expect(jar.cookies).toEqual({});
     expect((await getContact(OWNER, id))?.welcomeOpenedAt).not.toBeNull();
 

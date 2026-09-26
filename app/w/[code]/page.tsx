@@ -13,7 +13,6 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import WelcomeGuide, { type GuideDetails } from "./WelcomeGuide";
-import WelcomeOpened from "./WelcomeOpened";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +37,9 @@ const LOOKUPS = { max: 30, windowMs: 15 * 60 * 1000 };
  * Runs once: a person who finished it (`onboarded_at`) and is signed in goes
  * straight to the journal.
  *
- * The first open is recorded by the browser after the page has loaded
- * (`WelcomeOpened`), not by this render: a link preview or a mail scanner
- * fetches the page too.
+ * The first open is recorded when the person asks for their code (the
+ * `send` step), not by this render: a link preview or a mail scanner fetches
+ * the page too, and neither presses a button (B2368).
  */
 export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const { code } = await params;
@@ -119,7 +118,6 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         caps={caps}
         dictionary={dictionaryFor(locale, "guide")}
       />
-      <WelcomeOpened code={code} />
     </main>
   );
 }
