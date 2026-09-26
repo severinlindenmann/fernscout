@@ -53,6 +53,7 @@ function run(
     active = [] as string[],
     enabled = [] as string[],
     analyze = "" as string | null,
+    paidUnitRoot = undefined as string | undefined,
   } = {},
 ): Run {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "fs-units-bin-"));
@@ -96,6 +97,10 @@ function run(
       // its "no verifier here" branch — the machine, not the test, decides.
       SYSTEMD_ANALYZE: analyzePath,
       UNIT_SRC,
+      // Undefined leaves the script's own default (<repo>/paid), which does
+      // not exist in this open-edition checkout — the tests that care about
+      // paid units point this at a fixture tree instead.
+      ...(paidUnitRoot !== undefined ? { PAID_UNIT_ROOT: paidUnitRoot } : {}),
     },
   });
 
@@ -130,6 +135,38 @@ describe("install-units.sh", () => {
       );
     }
     expect(res.systemctl).toContain("daemon-reload");
+  });
+
+  /** B2349: the private features tree ships its units under its own area,
+   * e.g. `paid/photobook/deploy/fernscout-reconcile.service`, not a single
+   * shared `paid/deploy/`. The script used to install every changed unit
+   * from `"$UNIT_SRC/$name"` regardless of which source it actually came
+   * from, so a paid unit's basename resolved against the open-edition
+   * `deploy/` directory instead — a path that does not exist for a
+   * paid-only unit, which made the whole install fail outright. */
+  test("installs a paid unit from its own area's deploy/, not from UNIT_SRC", () => {
+    const dir = tempSystemdDir();
+    const paidRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fs-units-paid-"));
+    const areaDeploy = path.join(paidRoot, "photobook", "deploy");
+    fs.mkdirSync(areaDeploy, { recursive: true });
+    const unitName = "fernscout-reconcile.service";
+    const unitBody = [
+      "[Unit]",
+      "Description=Paid-tree fixture unit for B2349",
+      "[Service]",
+      "Type=oneshot",
+      "ExecStart=/bin/true",
+    ].join("\n");
+    fs.writeFileSync(path.join(areaDeploy, unitName), unitBody);
+
+    const res = run(dir, { paidUnitRoot: paidRoot });
+
+    expect(res.status).toBe(0);
+    expect(fs.readFileSync(path.join(dir, unitName), "utf8")).toBe(unitBody);
+    // The open-edition units still install too — the paid tree is additive.
+    for (const name of shippedUnits()) {
+      expect(fs.existsSync(path.join(dir, name))).toBe(true);
+    }
   });
 
   test("is a no-op, and reloads nothing, when the units are already current", () => {

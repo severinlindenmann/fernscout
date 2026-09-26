@@ -33,6 +33,10 @@
 #
 # Env:
 #   UNIT_SRC          where the units ship from. Default: <repo>/deploy
+#   PAID_UNIT_ROOT    the private features tree, each area shipping its own
+#                      units under <area>/deploy/ beneath it (e.g.
+#                      paid/photobook/deploy/fernscout-reconcile.service).
+#                      Default: <repo>/paid
 #   SYSTEMD_DIR       where they are installed. Default: /etc/systemd/system
 #   SYSTEMCTL         the systemctl to drive. Default: systemctl
 #   SYSTEMD_ANALYZE   the verifier. Default: systemd-analyze
@@ -48,8 +52,10 @@ APP_DIR="${APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 UNIT_SRC="${UNIT_SRC:-$APP_DIR/deploy}"
 # The open-core split's private features tree, when it ships any unit of its
 # own (B2247) — absent on every instance today and on any public-only one
-# forever, in which case this is a no-op glob below, not an error.
-PAID_UNIT_SRC="${PAID_UNIT_SRC:-$APP_DIR/paid/deploy}"
+# forever, in which case the glob below matches nothing, not an error. Each
+# area ships its units under its own deploy/ (paid/<area>/deploy/*), not a
+# single shared paid/deploy/ — B2349.
+PAID_UNIT_ROOT="${PAID_UNIT_ROOT:-$APP_DIR/paid}"
 SYSTEMD_DIR="${SYSTEMD_DIR:-/etc/systemd/system}"
 SYSTEMCTL="${SYSTEMCTL:-systemctl}"
 SYSTEMD_ANALYZE="${SYSTEMD_ANALYZE:-systemd-analyze}"
@@ -67,9 +73,22 @@ fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 # has not.
 shopt -s nullglob
 UNITS=("$UNIT_SRC"/*.service "$UNIT_SRC"/*.timer)
-[ -d "$PAID_UNIT_SRC" ] && UNITS+=("$PAID_UNIT_SRC"/*.service "$PAID_UNIT_SRC"/*.timer)
+UNITS+=("$PAID_UNIT_ROOT"/*/deploy/*.service "$PAID_UNIT_ROOT"/*/deploy/*.timer)
 shopt -u nullglob
 if [ "${#UNITS[@]}" -eq 0 ]; then fail "no .service or .timer files in $UNIT_SRC"; fi
+
+# The macOS /bin/bash this is tested under (3.2) has no associative arrays,
+# so "which full path did this basename come from" is a linear scan over
+# UNITS rather than a map — cheap enough for a handful of unit files. Two
+# units of different classes sharing a basename is not guarded against;
+# nothing ships that today, and installing whichever was seen last would be
+# no worse than any other approach.
+src_of() {
+  local want="$1" u
+  for u in "${UNITS[@]}"; do
+    [ "$(basename "$u")" = "$want" ] && { printf '%s' "$u"; return; }
+  done
+}
 
 changed=()
 for src in "${UNITS[@]}"; do
@@ -90,7 +109,7 @@ fi
 # Named before anything is attempted, so the list is in the log whether the
 # install then succeeds or fails. Being able to see *which* file drifted is
 # most of what B138 was missing.
-log "systemd units differing from ${UNIT_SRC#"$APP_DIR"/}: ${changed[*]}"
+log "systemd units differing from their source: ${changed[*]}"
 
 if [ ! -d "$SYSTEMD_DIR" ] || [ ! -w "$SYSTEMD_DIR" ]; then
   {
@@ -98,7 +117,7 @@ if [ ! -d "$SYSTEMD_DIR" ] || [ ! -w "$SYSTEMD_DIR" ]; then
     for name in "${changed[@]}"; do printf '  %s\n' "$name"; done
     printf '\nRun the deploy as root, or copy them by hand:\n'
     printf '  sudo cp'
-    for name in "${changed[@]}"; do printf ' %s/%s' "${UNIT_SRC#"$APP_DIR"/}" "$name"; done
+    for name in "${changed[@]}"; do full="$(src_of "$name")"; printf ' %s' "${full#"$APP_DIR"/}"; done
     printf ' %s/\n  sudo systemctl daemon-reload\n' "$SYSTEMD_DIR"
   } >&2
   exit 1
@@ -107,7 +126,7 @@ fi
 for name in "${changed[@]}"; do
   # `install` rather than `cp`: mode and ownership are stated rather than
   # inherited from whatever the repository checkout happens to carry.
-  install -m 0644 "$UNIT_SRC/$name" "$SYSTEMD_DIR/$name"
+  install -m 0644 "$(src_of "$name")" "$SYSTEMD_DIR/$name"
   log "installed $name"
 done
 
@@ -177,7 +196,7 @@ done
 for name in "${changed[@]}"; do
   # A template unit takes an instance and can never be enabled by bare name.
   case "$name" in *@.service) continue ;; esac
-  grep -q '^\[Install\]' "$UNIT_SRC/$name" || continue
+  grep -q '^\[Install\]' "$(src_of "$name")" || continue
   if ! "$SYSTEMCTL" is-enabled --quiet "$name" 2>/dev/null; then
     log "note: $name is installed but not enabled — 'systemctl enable --now $name' if it should run"
   fi

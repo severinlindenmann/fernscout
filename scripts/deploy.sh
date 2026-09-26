@@ -84,11 +84,13 @@ classify() {
       deploy/*.service | deploy/*.timer | deploy/*.socket | deploy/*.target)
         do_units=1 do_restart=1 ;;
       # The private features tree's own units, when the open-core split has
-      # landed and it ships any — see install-units.sh's PAID_UNIT_SRC. `paid/`
-      # itself is never pulled here (its own diff is classified separately,
-      # below), but a unit file arriving with it still needs install-units.sh
-      # run, or a changed timer is uninstalled the same silent way B138 was.
-      paid/deploy/*.service | paid/deploy/*.timer | paid/deploy/*.socket | paid/deploy/*.target)
+      # landed and it ships any — see install-units.sh's PAID_UNIT_ROOT. Each
+      # area ships its units under its own deploy/ (paid/<area>/deploy/*), not
+      # a single shared paid/deploy/ — B2349. `paid/` itself is never pulled
+      # here (its own diff is classified separately, below), but a unit file
+      # arriving with it still needs install-units.sh run, or a changed timer
+      # is uninstalled the same silent way B138 was.
+      paid/*/deploy/*.service | paid/*/deploy/*.timer | paid/*/deploy/*.socket | paid/*/deploy/*.target)
         do_units=1 do_restart=1 ;;
       deploy/*.caddy | deploy/Caddyfile)
         do_caddy=1 ;;
