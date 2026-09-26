@@ -54,6 +54,7 @@ function run(
     enabled = [] as string[],
     analyze = "" as string | null,
     paidUnitRoot = undefined as string | undefined,
+    unitSrc = UNIT_SRC,
   } = {},
 ): Run {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "fs-units-bin-"));
@@ -96,7 +97,7 @@ function run(
       // A path that does not exist when `analyze` is null, so the script takes
       // its "no verifier here" branch — the machine, not the test, decides.
       SYSTEMD_ANALYZE: analyzePath,
-      UNIT_SRC,
+      UNIT_SRC: unitSrc,
       // Undefined leaves the script's own default (<repo>/paid), which does
       // not exist in this open-edition checkout — the tests that care about
       // paid units point this at a fixture tree instead.
@@ -312,19 +313,28 @@ describe("install-units.sh", () => {
     expect(stopped.systemctl.join("\n")).not.toContain(`restart ${timer}`);
   });
 
+  /** B2348: this used to be proven against the real `fernscout-worker.service`
+   * (retired — it ran `npm run worker`, which never existed). A fixture unit
+   * makes the point the same way without depending on a real unit ever being
+   * shipped disabled: a script that enabled every newly installed unit would
+   * take away a decision that is the operator's, not the release's. */
   test("never enables, disables or starts a unit — it only says which are off", () => {
+    const src = fs.mkdtempSync(path.join(os.tmpdir(), "fs-units-src-"));
+    const fixture = "fernscout-fixture.service";
+    fs.writeFileSync(
+      path.join(src, fixture),
+      ["[Unit]", "Description=Fixture for B2348", "[Service]", "ExecStart=/bin/true", "[Install]", "WantedBy=multi-user.target"].join(
+        "\n",
+      ),
+    );
     const dir = tempSystemdDir();
-    const res = run(dir);
+    const res = run(dir, { unitSrc: src });
 
     const verbs = res.systemctl.filter((line) =>
       /^(enable|disable|start|stop|mask)\b/.test(line),
     );
     expect(verbs).toEqual([]);
-    // fernscout-worker.service is the reason. Its own header says to enable it
-    // "when there is something for it to do", and nothing enqueues work yet, so
-    // a deploy that enabled every newly added unit would start a worker against
-    // an empty queue. The operator is told instead.
-    expect(res.stdout).toMatch(/fernscout-worker\.service is installed but not enabled/);
+    expect(res.stdout).toMatch(new RegExp(`${fixture.replace(".", "\\.")} is installed but not enabled`));
   });
 
   test("says nothing about a unit that is already enabled", () => {

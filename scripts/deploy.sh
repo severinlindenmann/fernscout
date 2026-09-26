@@ -638,9 +638,6 @@ if [ "$do_restart" = 1 ]; then
   # Already stopped above when there was a build to swap in; `restart` starts
   # a stopped unit, so one line serves both.
   sudo systemctl restart "$SERVICE"
-  if systemctl is-enabled --quiet fernscout-worker 2>/dev/null; then
-    sudo systemctl restart fernscout-worker
-  fi
 else
   skip "restart" "the running build is still the right one"
 fi

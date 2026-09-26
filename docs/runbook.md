@@ -224,9 +224,10 @@ curl -s localhost:3000/api/health | head
 
 `install-units.sh` copies every `.service` and `.timer` in `deploy/` into
 `/etc/systemd/system` and reloads. It **does not enable anything** — that line
-above is yours, and stays yours, because `fernscout-worker.service` ships
-disabled on purpose. Every later deploy runs the same script, so from here on a
-unit change reaches the machine with the commit that made it (B138). It is not
+above is yours, and stays yours, because enabling a newly shipped unit is an
+operator decision the script cannot make for this machine. Every later deploy
+runs the same script, so from here on a unit change reaches the machine with
+the commit that made it (B138). It is not
 Caddy's config — Caddy has one file for the whole machine and a deploy has no
 business writing it. The proxy keeps up a different way, by importing a file
 inside the checkout; see §TLS, and

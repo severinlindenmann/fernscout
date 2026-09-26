@@ -18,11 +18,11 @@
 # operator owns what runs.**
 #
 # It therefore copies and reloads, and deliberately does not enable, disable or
-# start anything. `deploy/fernscout-worker.service` is why — its own header
-# says to enable it "when there is something for it to do", and a deploy that
-# enabled every newly added unit would start a worker against an empty queue.
-# Units that are installed but not enabled are named at the end instead, which
-# is the note an operator can act on and a script cannot.
+# start anything — a new unit shipped ready to run is not the same thing as an
+# operator having decided this machine should run it, and a deploy that
+# enabled every newly added unit would take that decision away. Units that are
+# installed but not enabled are named at the end instead, which is the note an
+# operator can act on and a script cannot.
 #
 # B203: it now also asks systemd whether it *understood* what was installed.
 # `OnFailure=` sat in `[Service]` in the backup unit for weeks — a `[Unit]`
@@ -187,11 +187,11 @@ for name in "${changed[@]}"; do
   esac
 done
 
-# Services are deliberately not restarted here. fernscout.service and
-# fernscout-worker.service are restarted by deploy.sh a few lines later;
-# fernscout-backup.service is a oneshot the timer drives, and
-# fernscout-alert@.service is a template started by OnFailure= — for both of
-# those, the reload above is the whole of what "take effect" means.
+# Services are deliberately not restarted here. fernscout.service is
+# restarted by deploy.sh a few lines later; fernscout-backup.service is a
+# oneshot the timer drives, and fernscout-alert@.service is a template
+# started by OnFailure= — for both of those, the reload above is the whole
+# of what "take effect" means.
 
 for name in "${changed[@]}"; do
   # A template unit takes an instance and can never be enabled by bare name.
