@@ -417,6 +417,22 @@ async function offlineSubresource(url: string, cached: Cached[]) {
   });
 }
 
+/**
+ * B2220 — a same-origin subresource that 307s (the trip layout's own
+ * redirect, `app/[user]/trips/[trip]/layout.tsx`) came back a plain
+ * "offline" 503 from `fetchOrKept` here (`.catch(() => fallback())`,
+ * ~line 510), traced to `net::ERR_SSL_PROTOCOL_ERROR`: `/sw.js`'s own
+ * response carried `Content-Security-Policy: … upgrade-insecure-requests`,
+ * and Chrome honours that for the worker's own `fetch()` the same way it
+ * would for a document — upgrading the redirect's relative `Location` to
+ * `https://` even when the origin only answers on plain http. This file's
+ * fake worker scope has no real network or CSP enforcement to reproduce
+ * that against, so the fix and its test live where the header is actually
+ * declared: `next.config.ts`'s `swCsp`, proven in
+ * `test/security-headers.test.ts` ("the worker's own policy (/sw.js) …").
+ * `fetchOrKept` itself needed no change — a same-origin redirect on the
+ * scheme the origin actually serves already follows and resolves 200.
+ */
 describe("what a failed subresource fetch is answered with", () => {
   const photo = "https://journal.test/alex/media/trip/day/01.jpg";
   const window_ = "https://journal.test/alex/story.json?from=0&to=2";
