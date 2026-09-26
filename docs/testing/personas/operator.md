@@ -14,7 +14,7 @@ minutes, sends, print orders — against the price list in `site/config.json`'s
 `costs` block, and every journal's credit balance and ledger. Also to vet
 fulfilment events crossing the operator-only capabilities: `logging`,
 `credits`, `photobook`, `postcards`, `helper`, `transcription`, `sms`,
-`smsInbound`, `fulfilmentRelay`, `fulfilmentAccept` (the whole of
+`smsInbound`, `fulfilmentAccept` (the whole of
 `OPERATOR_ONLY_FEATURES` in `lib/config.ts`) — capabilities no journal ever
 had a vote on.
 

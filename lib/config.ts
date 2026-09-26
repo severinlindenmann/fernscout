@@ -57,7 +57,6 @@ export const FEATURE_NAMES = [
   // quota — and a journal may want the helper without ever importing an old
   // trip.
   "extract",
-  "fulfilmentRelay",
   "fulfilmentAccept",
   // B2200. Offering a new day the place its own GPS history says it was —
   // the one door `lib/gps/api.ts`'s `placeForDay` opens onto `gps/`. Off by
@@ -130,13 +129,10 @@ export const OPERATOR_ONLY_FEATURES = [
   // the inbox is the operator's page — a journal has nothing to consent to.
   "sms",
   "smsInbound",
-  // B589. Both halves of the fulfilment relay (see
-  // docs/plans/2026-09-06-fulfilment-relay.md) spend something that belongs
-  // to the operator and not to a journal: `relay` names another instance to
-  // hand a job to, and `accept` spends this instance's own printer account
-  // and payment method on somebody else's order. Neither is a journal's to
-  // switch on.
-  "fulfilmentRelay",
+  // B589. Accepting a job from another instance spends this instance's own
+  // printer account and payment method on somebody else's order — not a
+  // journal's to switch on. (The relay side of B589 was deleted by B2414:
+  // nothing implemented it.)
   "fulfilmentAccept",
   // B1092. The opposite reason from the rest of this list, and worth reading
   // carefully because of it: `costs` spends nothing, reaches no supplier and
@@ -642,12 +638,6 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // B1751. Off by default like every optional capability, and off means the
   // guided camera-roll import route simply is not there.
   extract: { enabled: false },
-  // B589. Off by default like every optional capability. `url` names the
-  // fulfilment instance this one hands jobs to — read the same way
-  // `addressLookup.url` is, above — and there is no sensible default the way
-  // `photon` is one, since it names somebody else's server rather than a
-  // public API; off means no job ever leaves this instance.
-  fulfilmentRelay: { enabled: false, url: "" },
   // B589. Off by default. Needs no config value of its own: whether this
   // instance can actually fulfil a job is a question about `postcards` and
   // `photobook`'s own provider and about Stripe, both checked in

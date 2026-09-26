@@ -74,4 +74,4 @@ included in this build".
 | `whatsapp` | new-day messages and the guided helper on WhatsApp |
 | `whatsappInbound` | the guided helper reading WhatsApp messages |
 | `mapRelief` | the shaded relief layer on a photobook's route map (needs `photobook`) |
-| `fulfilmentRelay`, `fulfilmentAccept` | handing print orders between instances |
+| `fulfilmentAccept` | accepting a print order handed off from another instance |
