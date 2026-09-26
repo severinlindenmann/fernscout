@@ -62,6 +62,9 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
   switch (body.action) {
     case "send": {
       const sent = await sendGuestCode(owner, contact.id, channel, { ip, destination: `/w/${code}` });
+      // Asking for the code is the first thing only a person does here, so it
+      // is what counts as opening the link (B2368).
+      if (sent.ok) await markWelcomeOpened(owner, contact.id);
       return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, sent.reason === "rate_limited" ? 429 : 409);
     }
     case "verify": {
