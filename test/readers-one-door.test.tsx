@@ -211,7 +211,7 @@ describe("Let in and Decline ask first", () => {
     expect(posts[0][0]).toBe("/api/web/alex/readers/letin");
     expect(JSON.parse(String((posts[0][1] as RequestInit).body))).toEqual({ contactId: "c-otto" });
     expect(container!.querySelector('[role="status"]')?.textContent).toBe(
-      `${dict["contact.ownerApprovedGuestTrips"]} ${fill("readers.toldByEmail", { name: "Otto Asks" })}`,
+      `${fill("contact.ownerApprovedGuestTrips", { name: "Otto Asks" })} ${dict["readers.toldByEmail"]}`,
     );
     expect(refresh).toHaveBeenCalled();
   });
@@ -223,9 +223,48 @@ describe("Let in and Decline ask first", () => {
     const confirm = Array.from(panel.querySelectorAll("button")).find((b) => b.textContent === fill("readers.letIn", { name: "Otto" }))!;
     await act(async () => confirm.click());
     expect(container!.querySelector('[role="status"]')?.textContent).toBe(
-      `${dict["contact.ownerApprovedNoTrip"]} ${fill("readers.toldByEmail", { name: "Otto Asks" })}`,
+      `${fill("contact.ownerApprovedNoTrip", { name: "Otto Asks" })} ${dict["readers.toldByEmail"]}`,
     );
     expect(refresh).toHaveBeenCalled();
+  });
+
+  test("a request with a pending trip names it and offers write or read only (B2461)", () => {
+    const budo: AdminContact = { ...otto, id: "c-budo", name: "Budo Asks", pendingTrips: ["Iceland 2026"] };
+    render([budo]);
+    // No plain "Let in" here — the owner must pick.
+    expect(() => button(fill("readers.letIn", { name: "Budo" }))).toThrow();
+    act(() => button(dict["readers.letInWrite"]).click());
+    expect(container!.querySelector('[role="dialog"]')?.textContent).toContain("Iceland 2026");
+    expect(container!.querySelector('[role="dialog"]')?.textContent).toContain(fill("readers.letInWriteQuestion", { name: "Budo Asks", trip: "Iceland 2026" }));
+  });
+
+  test("Let read only posts places: onlyTrip null, and grants no trip place", async () => {
+    const budo: AdminContact = { ...otto, id: "c-budo", name: "Budo Asks", pendingTrips: ["Iceland 2026"] };
+    const fetchMock = render([budo], [], { ok: true, tripsOpened: [], told: "email" }, true);
+    act(() => button(dict["readers.letInReadOnly"]).click());
+    const panel = container!.querySelector('[role="dialog"]')!;
+    // The dialog for read only keeps the plain read question, never claiming
+    // a write place is being opened.
+    expect(panel.textContent).toContain(fill("readers.letInQuestion", { name: "Budo Asks" }));
+    const confirm = Array.from(panel.querySelectorAll("button")).find((b) => b.textContent === dict["readers.letInReadOnly"])!;
+    await act(async () => confirm.click());
+    const posts = sent(fetchMock, "POST");
+    expect(posts).toHaveLength(1);
+    expect(JSON.parse(String((posts[0][1] as RequestInit).body))).toEqual({
+      contactId: "c-budo",
+      places: { onlyTrip: null },
+    });
+  });
+
+  test("Let in and let write posts no places, opening every pending trip", async () => {
+    const budo: AdminContact = { ...otto, id: "c-budo", name: "Budo Asks", pendingTrips: ["Iceland 2026"] };
+    const fetchMock = render([budo], [], { ok: true, tripsOpened: ["Iceland 2026"], told: "email" }, true);
+    act(() => button(dict["readers.letInWrite"]).click());
+    const panel = container!.querySelector('[role="dialog"]')!;
+    const confirm = Array.from(panel.querySelectorAll("button")).find((b) => b.textContent === dict["readers.letInWrite"])!;
+    await act(async () => confirm.click());
+    const posts = sent(fetchMock, "POST");
+    expect(JSON.parse(String((posts[0][1] as RequestInit).body))).toEqual({ contactId: "c-budo" });
   });
 
   test("Decline is coral, and posts a revoke only once confirmed", async () => {

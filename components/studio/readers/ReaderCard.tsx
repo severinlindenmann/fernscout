@@ -43,8 +43,11 @@ export type CardEnv = {
   defaultCountryCode?: string;
   /** Remove — fire-and-forget through `/api/contacts/admin`. */
   act: (body: Record<string, unknown>) => void;
-  /** Let in, Decline and Take access away — each only after its ConfirmPanel. */
-  confirmed: (contact: AdminContact, action: "letin" | "revoke") => void;
+  /** Let in, Decline and Take access away — each only after its ConfirmPanel.
+   * `readOnly` (B2461) only matters for `"letin"` on a request that also
+   * asked to write to a trip: true opens the journal-wide read grant and
+   * leaves the trip place untouched. */
+  confirmed: (contact: AdminContact, action: "letin" | "revoke", readOnly?: boolean) => void;
   /** After NotifyStep sent or was put off: re-read the lists. */
   refresh: () => void;
   onEdit: (contact: AdminContact) => void;
@@ -87,6 +90,10 @@ type Asking = "letin" | "decline" | "revoke" | "delete" | "notify" | "menu" | nu
 function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardKind; env: CardEnv }) {
   const { t, busy, locale } = env;
   const [asking, setAsking] = useState<Asking>(null);
+  // B2461 — which button under "asking" opened the panel: full write, or
+  // read only. Only meaningful while asking === "letin" and the contact has
+  // a pending trip; the plain "Let in" path never sets it true.
+  const [letInReadOnly, setLetInReadOnly] = useState(false);
   const [copied, setCopied] = useState<"ok" | "failed" | null>(null);
   const hasEmail = contact.email.includes("@");
   const displayName = contact.name ?? (hasEmail ? contact.email : (contact.phone ?? ""));
@@ -221,9 +228,38 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
               <BusyButton busy={busy} type="button" className={GHOST} aria-expanded={asking === "decline"} onClick={() => setAsking("decline")}>
                 {t("readers.decline")}
               </BusyButton>
-              <BusyButton busy={busy} type="button" className={PRIMARY} aria-expanded={asking === "letin"} onClick={() => setAsking("letin")}>
-                {t("readers.letIn", { name: first })}
-              </BusyButton>
+              {contact.pendingTrips?.length ? (
+                <>
+                  <BusyButton
+                    busy={busy}
+                    type="button"
+                    className={PRIMARY}
+                    aria-expanded={asking === "letin" && !letInReadOnly}
+                    onClick={() => {
+                      setLetInReadOnly(false);
+                      setAsking("letin");
+                    }}
+                  >
+                    {t("readers.letInWrite")}
+                  </BusyButton>
+                  <BusyButton
+                    busy={busy}
+                    type="button"
+                    className={GHOST}
+                    aria-expanded={asking === "letin" && letInReadOnly}
+                    onClick={() => {
+                      setLetInReadOnly(true);
+                      setAsking("letin");
+                    }}
+                  >
+                    {t("readers.letInReadOnly")}
+                  </BusyButton>
+                </>
+              ) : (
+                <BusyButton busy={busy} type="button" className={PRIMARY} aria-expanded={asking === "letin"} onClick={() => setAsking("letin")}>
+                  {t("readers.letIn", { name: first })}
+                </BusyButton>
+              )}
             </>
           )}
           {kind === "invited" && contact.status === "active" && (
@@ -281,12 +317,22 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
         <div className="mt-3">
           <ConfirmPanel
             label={kind === "revoked" ? t("readers.letBackIn") : t("readers.letIn", { name: first })}
-            question={t("readers.letInQuestion", { name: displayName })}
-            confirmLabel={t("readers.letIn", { name: first })}
+            question={
+              contact.pendingTrips?.length && !letInReadOnly
+                ? t("readers.letInWriteQuestion", { name: displayName, trip: contact.pendingTrips.join(", ") })
+                : t("readers.letInQuestion", { name: displayName })
+            }
+            confirmLabel={
+              contact.pendingTrips?.length
+                ? letInReadOnly
+                  ? t("readers.letInReadOnly")
+                  : t("readers.letInWrite")
+                : t("readers.letIn", { name: first })
+            }
             busy={busy}
             onConfirm={() => {
               close();
-              env.confirmed(contact, "letin");
+              env.confirmed(contact, "letin", letInReadOnly);
             }}
             onCancel={close}
           />
