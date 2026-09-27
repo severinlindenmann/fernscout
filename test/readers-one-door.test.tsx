@@ -159,7 +159,21 @@ describe("the page: two doors, then the groups", () => {
   test("a request that proved a mobile number is the owner's to answer, not an unopened invite", () => {
     render([{ ...otto, id: "c-moe", name: "Moe Mobile", email: "", phone: "+41 78 123 45 67", confirmedAt: null, phoneProvenAt: "2026-09-25T06:00:00Z", createdVia: "invite:inv-1" }]);
     expect(groupOf("Moe Mobile")).toBe(dict["contact.ownerPending"]);
-    expect(container!.textContent).toContain(dict["readers.line.mobileConfirmed"]);
+    expect(container!.textContent).toContain(fill("readers.line.mobileConfirmed", { phone: "+41 78 123 45 67" }));
+  });
+
+  test("an asking card always shows the confirmed email, with the rest behind Details (B2459)", () => {
+    const otto2: AdminContact = {
+      ...otto,
+      postalAddress: { name: "Otto", line1: "Dintikerstrasse 4b", line2: "", postcode: "5604", city: "Hendschiken", country: "CH", tel: "" },
+    };
+    render([otto2]);
+    // The email is on the card itself, not behind a click.
+    expect(container!.textContent).toContain(fill("readers.line.emailConfirmed", { email: "otto@example.test" }));
+    expect(container!.textContent).not.toContain("Dintikerstrasse");
+    act(() => button(dict["readers.details.show"]).click());
+    expect(container!.textContent).toContain("Dintikerstrasse 4b");
+    expect(container!.textContent).toContain(dict["readers.details.confirmed"]);
   });
 
   test("somebody the owner added reads \"You added them\", not the owner's own label", () => {

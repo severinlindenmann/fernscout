@@ -94,6 +94,8 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
   // read only. Only meaningful while asking === "letin" and the contact has
   // a pending trip; the plain "Let in" path never sets it true.
   const [letInReadOnly, setLetInReadOnly] = useState(false);
+  // B2459 — "Details" beside the name, asking cards only: closed by default.
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [copied, setCopied] = useState<"ok" | "failed" | null>(null);
   const hasEmail = contact.email.includes("@");
   const displayName = contact.name ?? (hasEmail ? contact.email : (contact.phone ?? ""));
@@ -148,7 +150,14 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
   const line: string[] = [];
   if (kind === "asking") {
     if (via) line.push(via);
-    line.push(hasEmail && contact.confirmedAt ? t("readers.line.emailConfirmed") : t("readers.line.mobileConfirmed"));
+    // B2459 — the confirmed address itself, not just the words "confirmed":
+    // the owner cannot tell a real friend from someone using their name off
+    // a name alone.
+    line.push(
+      hasEmail && contact.confirmedAt
+        ? t("readers.line.emailConfirmed", { email: contact.email })
+        : t("readers.line.mobileConfirmed", { phone: phone ?? "" }),
+    );
   } else if (kind === "invited") {
     line.push(
       contact.invitedVia && contact.invitedAt
@@ -218,8 +227,58 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
               <span className="inline-block rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-ink-strong">
                 {role}
               </span>
+              {kind === "asking" && (
+                <button
+                  type="button"
+                  className="ml-2 min-h-11 align-middle text-xs font-semibold text-ink-strong underline underline-offset-2"
+                  aria-expanded={detailsOpen}
+                  onClick={() => setDetailsOpen((open) => !open)}
+                >
+                  {detailsOpen ? t("readers.details.hide") : t("readers.details.show")}
+                </button>
+              )}
             </p>
             <p className="mt-0.5 text-sm text-ink-secondary">{line.join(" · ")}</p>
+            {kind === "asking" && detailsOpen && (
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-ink-secondary">
+                {hasEmail && (
+                  <>
+                    <dt className="font-semibold text-ink-strong">{t("readers.details.email")}</dt>
+                    <dd>
+                      {contact.email}
+                      {contact.confirmedAt ? ` ${t("readers.details.confirmed")}` : ""}
+                    </dd>
+                  </>
+                )}
+                {phone && (
+                  <>
+                    <dt className="font-semibold text-ink-strong">{t("readers.details.mobile")}</dt>
+                    <dd>
+                      {phone}
+                      {contact.phoneProvenAt ? ` ${t("readers.details.confirmed")}` : ""}
+                    </dd>
+                  </>
+                )}
+                {contact.postalAddress?.line1 && (
+                  <>
+                    <dt className="font-semibold text-ink-strong">{t("readers.details.postal")}</dt>
+                    <dd>
+                      {[
+                        contact.postalAddress.line1,
+                        contact.postalAddress.line2,
+                        contact.postalAddress.postcode,
+                        contact.postalAddress.city,
+                        contact.postalAddress.country,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </dd>
+                  </>
+                )}
+                <dt className="font-semibold text-ink-strong">{t("readers.details.asked")}</dt>
+                <dd>{longDate(contact.createdAt, locale)}</dd>
+              </dl>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
