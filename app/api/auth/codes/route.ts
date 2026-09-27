@@ -12,7 +12,8 @@ import {
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { sendMail, sendTransactional } from "@/lib/mail";
-import { renderMail, type MailBlock } from "@/lib/mail/template";
+import { codeMail } from "@/lib/mail/codeMail";
+import type { MailBlock } from "@/lib/mail/template";
 import { sendSignupCode } from "@/lib/signupCode";
 import { phoneSubject, toE164 } from "@/lib/phone";
 import { whatsappCountryCode } from "@/lib/contactNumber";
@@ -227,28 +228,27 @@ async function handleIdentity(
   const site = serverSite();
   const vars = { site: site.name, code, minutes: CODE_TTL_MINUTES };
 
+  const purpose: MailBlock[] = [
+    { kind: "paragraph", text: translateIn(locale, "mail.identityWhat") },
+    { kind: "paragraph", text: translateIn(locale, "mail.identityLasts") },
+    ...(linkToken
+      ? ([{ kind: "paragraph", text: translateIn(locale, "mail.identityApp", vars) }] as const)
+      : []),
+  ];
+
   try {
     await sendMail(
-      renderMail(req.email, translateIn(locale, "mail.identitySubject", vars), {
+      codeMail({
         template: "code.identity.mail",
-        preheader: translateIn(locale, "mail.identityCode", vars),
+        to: req.email,
+        locale,
+        code,
+        place: site.name,
         title: translateIn(locale, "mail.identityTitle"),
-        blocks: [
-          { kind: "paragraph", text: translateIn(locale, "mail.identityCode", vars) },
-          ...(linkToken
-            ? ([
-                {
-                  kind: "button",
-                  text: translateIn(locale, "mail.identityButton"),
-                  href: identitySignInUrl(site.url, linkToken, locale),
-                },
-                { kind: "paragraph", text: translateIn(locale, "mail.identityApp", vars) },
-              ] as const)
-            : []),
-          { kind: "paragraph", text: translateIn(locale, "mail.identityWhat") },
-          { kind: "paragraph", text: translateIn(locale, "mail.identityLasts") },
-          { kind: "paragraph", text: translateIn(locale, "mail.identityIgnore") },
-        ],
+        purpose,
+        url: linkToken ? identitySignInUrl(site.url, linkToken, locale) : undefined,
+        buttonText: linkToken ? translateIn(locale, "mail.identityButton") : undefined,
+        ignoreText: translateIn(locale, "mail.identityIgnore"),
         why: translateIn(locale, "mail.identityFooter", vars),
       }),
     );
@@ -364,44 +364,40 @@ async function handleJournal(
     translateIn(locale, key, vars);
   const vars = { site: serverSite().name, title: user.title, code, minutes: CODE_TTL_MINUTES };
 
-  const guestBlocks: MailBlock[] = linkToken
-    ? [
-        { kind: "paragraph", text: t("mail.signinTap", vars) },
-        { kind: "button", text: t("mail.signinOpen", vars), href: signInUrl(base, username, linkToken, locale) },
-        { kind: "paragraph", text: t("mail.signinCode", vars) },
-      ]
-    : [
-        { kind: "paragraph", text: t("mail.identityCode", vars) },
-        { kind: "button", text: t("mail.signinOpen", vars), href: `${base}/${username}` },
-      ];
-
   const scopedTrip = req.for === "write" && tripId ? getTrip(tripRef(username, tripId)) : null;
-  const agentBlocks: MailBlock[] = [
-    { kind: "paragraph", text: t("mail.identityCode", vars) },
-    {
-      kind: "paragraph",
-      text: scopedTrip ? t("mail.agentScoped", { ...vars, trip: scopedTrip.title }) : t("mail.agentAll"),
-    },
-  ];
+
+  const purpose =
+    req.for === "write"
+      ? scopedTrip
+        ? t("mail.agentScoped", { ...vars, trip: scopedTrip.title })
+        : t("mail.agentAll")
+      : linkToken
+        ? t("mail.signinTap", vars)
+        : t("mail.identityCode", vars);
+  const url =
+    req.for === "write"
+      ? undefined
+      : linkToken
+        ? signInUrl(base, username, linkToken, locale)
+        : `${base}/${username}`;
 
   try {
     await sendTransactional(
-      renderMail(
-        req.email,
-        req.for === "write" ? t("mail.agentSubject", vars) : t("mail.signinSubject", vars),
-        {
-          template: "code.journal.mail",
-          preheader: t("mail.identityCode", vars),
-          title: req.for === "write" ? t("mail.agentTitle") : t("mail.signinSubject", vars),
-          blocks: [
-            ...(req.for === "write" ? agentBlocks : guestBlocks),
-            { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
-            { kind: "paragraph", text: t("mail.signinIgnore") },
-          ],
-          why: t("mail.identityFooter", vars),
-        },
+      codeMail({
+        template: "code.journal.mail",
+        to: req.email,
+        locale,
+        code,
+        place: user.title,
+        title: req.for === "write" ? t("mail.agentTitle") : t("mail.signinSubject", vars),
+        purpose,
+        url,
+        buttonText: url ? t("mail.signinOpen", vars) : undefined,
+        askedAt: t("mail.codeAsked", { when: requestedAt(locale) }),
+        ignoreText: t("mail.signinIgnore"),
+        why: t("mail.identityFooter", vars),
         username,
-      ),
+      }),
       "a one-time sign-in code the recipient just asked for",
     );
   } catch (err) {

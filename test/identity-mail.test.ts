@@ -128,7 +128,7 @@ describe("the language of the mail", () => {
       "utf8",
     );
     expect(src).toContain("requestLocale()");
-    expect(src).toContain('translateIn(locale, "mail.identitySubject"');
+    expect(src).toContain('translateIn(locale, "mail.identityTitle"');
     // The literals that used to be here.
     expect(src).not.toContain("Your code is");
     expect(src).not.toContain("It lasts a year");
@@ -137,9 +137,8 @@ describe("the language of the mail", () => {
   test("every language carries the whole mail", async () => {
     const { dictionaryFor } = await import("@/lib/locales");
     const keys = [
-      "mail.identitySubject",
+      "mail.codeSubject",
       "mail.identityTitle",
-      "mail.identityCode",
       "mail.identityButton",
       "mail.identityApp",
       "mail.identityWhat",

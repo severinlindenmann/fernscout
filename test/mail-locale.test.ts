@@ -130,13 +130,12 @@ describe("a journal that says it is Hungarian gets Hungarian mail", () => {
     expect(response.status).toBe(202);
     expect(sent).toHaveLength(1);
 
-    expect(sent[0].subject).toBe(`Bejelentkezés ide: ${TITLE}`);
-    expect(sent[0].text).toContain("Vagy jelentkezz be kézzel ezzel a kóddal:");
+    expect(sent[0].subject).toMatch(new RegExp(`^\\d{6} a kódod ehhez: ${TITLE}$`));
     expect(sent[0].text).toContain("Koppints a gombra");
     // Not a word of the English original survives, in either part.
-    expect(whole(sent[0])).not.toContain("Sign in to");
+    expect(whole(sent[0])).not.toContain("your code for");
     expect(whole(sent[0])).not.toContain("Tap the button");
-    expect(sent[0].html).toContain("Vagy jelentkezz be kézzel ezzel a kóddal:");
+    expect(sent[0].html).toContain("Koppints a gombra");
     // The date the mail was asked for is written in the reader's language too,
     // with no doubled full stop where Hungarian already ends the day with one.
     expect(sent[0].text).toMatch(/Kérve ekkor: \d{2}:\d{2} UTC, \S+ \d+\. Ha van/);
@@ -154,10 +153,10 @@ describe("a journal that says it is Hungarian gets Hungarian mail", () => {
     expect(response.status).toBe(202);
     expect(sent).toHaveLength(1);
 
-    expect(sent[0].subject).toBe("Az ügynökkódod ide: Testbed");
-    expect(sent[0].text).toContain("Ügynök-hozzáférési kód");
+    expect(sent[0].subject).toMatch(new RegExp(`^\\d{6} a kódod ehhez: ${TITLE}$`));
+    expect(sent[0].text).toContain("Add oda ezt a kódot");
     expect(whole(sent[0])).not.toContain("Your Fernscout agent code");
-    expect(whole(sent[0])).not.toContain("Agent access code");
+    expect(whole(sent[0])).not.toContain("Give this code to the agent");
   });
 
   test("the journal's own title is carried through, never translated", async () => {
@@ -182,7 +181,7 @@ describe("a journal that says it is Hungarian gets Hungarian mail", () => {
         "de-DE,de;q=0.9",
       ),
     );
-    expect(sent[0].subject).toBe(`Bejelentkezés ide: ${TITLE}`);
+    expect(sent[0].subject).toMatch(new RegExp(`^\\d{6} a kódod ehhez: ${TITLE}$`));
   });
 });
 
@@ -195,9 +194,9 @@ describe("before a journal exists, the request's own language decides", () => {
     expect(response.status).toBe(202);
     expect(sent).toHaveLength(1);
 
-    expect(sent[0].subject).toBe("Dein Code, um auf Testbed ein Reisetagebuch zu beginnen");
-    expect(sent[0].text).toContain("Dein Code lautet");
-    expect(whole(sent[0])).not.toContain("Your code");
+    expect(sent[0].subject).toMatch(/^\d{6} ist dein Code für Testbed$/);
+    expect(sent[0].text).toContain("Jemand — vermutlich ein Agent");
+    expect(whole(sent[0])).not.toContain("Somebody — probably an agent");
   });
 
   test("quality values are honoured, so hu;q=0.9 behind an unknown language still wins", async () => {
@@ -205,7 +204,7 @@ describe("before a journal exists, the request's own language decides", () => {
     await POST(
       post("https://example.test/api/auth/codes", { email: "uj@example.test", for: "signup" }, "sq,hu;q=0.9"),
     );
-    expect(sent[0].subject).toBe("A kódod, amellyel útinaplót indíthatsz itt: Testbed");
+    expect(sent[0].subject).toMatch(/^\d{6} a kódod ehhez: Testbed$/);
   });
 
   test("a language this instance does not speak falls back to English", async () => {
@@ -213,8 +212,8 @@ describe("before a journal exists, the request's own language decides", () => {
     await POST(
       post("https://example.test/api/auth/codes", { email: "someone@example.test", for: "signup" }, "sq-AL"),
     );
-    expect(sent[0].subject).toBe("Your code to start a journal on Testbed");
-    expect(sent[0].text).toMatch(/Your code is \d{6}\./);
+    expect(sent[0].subject).toMatch(/^\d{6} is your code for Testbed$/);
+    expect(sent[0].text).toMatch(/^\d{6}$/m);
   });
 
   // B1134: the body field an agent sends on somebody's behalf wins outright
@@ -229,12 +228,12 @@ describe("before a journal exists, the request's own language decides", () => {
         "de",
       ),
     );
-    expect(sent[0].subject).toBe("A kódod, amellyel útinaplót indíthatsz itt: Testbed");
+    expect(sent[0].subject).toMatch(/^\d{6} a kódod ehhez: Testbed$/);
   });
 
   test("no accept-language at all is English", async () => {
     const { POST } = await import("@/app/api/auth/codes/route");
     await POST(post("https://example.test/api/auth/codes", { email: "quiet@example.test", for: "signup" }));
-    expect(sent[0].subject).toBe("Your code to start a journal on Testbed");
+    expect(sent[0].subject).toMatch(/^\d{6} is your code for Testbed$/);
   });
 });

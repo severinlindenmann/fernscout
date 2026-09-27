@@ -2,8 +2,9 @@ import "server-only";
 import { CODE_TTL_MINUTES, NO_JOURNAL, issueCode, revokeCodes } from "./auth";
 import { translateIn } from "./locales";
 import { sendMail } from "./mail";
-import { renderMail } from "./mail/template";
+import { codeMail } from "./mail/codeMail";
 import { serverSite } from "./site";
+import type { Locale } from "./types";
 
 /**
  * The one-time code that proves somebody can read an address, on its way to
@@ -35,20 +36,20 @@ export async function sendSignupCode(email: string, locale: string): Promise<boo
 
   try {
     await sendMail(
-      renderMail(email, t("mail.signupSubject", vars), {
+      codeMail({
         template: "code.signup.mail",
-        preheader: t("mail.identityCode", vars),
+        to: email,
+        locale: locale as Locale,
+        code,
+        place: site.name,
         title: t("mail.signupTitle"),
-        blocks: [
-          { kind: "paragraph", text: t("mail.identityCode", vars) },
-          { kind: "paragraph", text: t("mail.signupWhat") },
-          // The timestamp is what makes two identical mails tellable apart.
-          // Asking again invalidates the earlier code and sends a mail that is
-          // word for word the same, so without a stamp the person reads out
-          // whichever is nearest and gets `invalid_code` for their trouble.
-          { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
-          { kind: "paragraph", text: t("mail.signupIgnore") },
-        ],
+        purpose: t("mail.signupWhat"),
+        // The timestamp is what makes two identical mails tellable apart.
+        // Asking again invalidates the earlier code and sends a mail that is
+        // word for word the same, so without a stamp the person reads out
+        // whichever is nearest and gets `invalid_code` for their trouble.
+        askedAt: t("mail.codeAsked", { when: requestedAt(locale) }),
+        ignoreText: t("mail.signupIgnore"),
         why: t("mail.identityFooter", vars),
       }),
     );

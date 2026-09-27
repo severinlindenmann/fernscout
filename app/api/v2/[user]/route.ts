@@ -21,7 +21,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { translateIn } from "@/lib/locales";
 import { sendTransactional } from "@/lib/mail";
-import { renderMail } from "@/lib/mail/template";
+import { codeMail } from "@/lib/mail/codeMail";
 import { rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 
@@ -338,22 +338,18 @@ async function startOwnerEmailVerification(
 
   try {
     await sendTransactional(
-      renderMail(
-        newEmail,
-        translateIn(locale, "mail.ownerEmailCodeSubject", vars),
-        {
-          template: "code.ownerEmail.mail",
-          preheader: translateIn(locale, "mail.identityCode", vars),
-          title: translateIn(locale, "mail.ownerEmailCodeTitle"),
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "mail.identityCode", vars) },
-            { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailCodeWhat", vars) },
-            { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailCodeIgnore") },
-          ],
-          why: translateIn(locale, "mail.identityFooter", vars),
-        },
-        user,
-      ),
+      codeMail({
+        template: "code.ownerEmail.mail",
+        to: newEmail,
+        locale,
+        code,
+        place: stored.title,
+        title: translateIn(locale, "mail.ownerEmailCodeTitle"),
+        purpose: translateIn(locale, "mail.ownerEmailCodeWhat", vars),
+        ignoreText: translateIn(locale, "mail.ownerEmailCodeIgnore"),
+        why: translateIn(locale, "mail.identityFooter", vars),
+        username: user,
+      }),
       "an owner-email verification code the recipient just asked for",
     );
   } catch (err) {
