@@ -5,7 +5,7 @@ import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { assertRepositoryNode } from "./runtime-preflight.mjs";
-import { harnessSkillsLinkTarget, lockfileHash, parseWorktreeList } from "./worktree-bootstrap-lib.mjs";
+import { harnessSkillsLinkTarget, lockfileHash, paidWorktreePlan, parseWorktreeList } from "./worktree-bootstrap-lib.mjs";
 
 const root = process.cwd();
 const modules = path.join(root, "node_modules");
@@ -33,6 +33,24 @@ const listed = run("git", ["worktree", "list", "--porcelain"]);
 if (listed.status !== 0) fail(listed.stderr || "Could not inspect git worktrees.");
 const main = parseWorktreeList(listed.stdout).find((entry) => entry.branch === "refs/heads/main");
 if (!main?.worktree) fail("Could not find the shared checkout on branch main.");
+
+function bootstrapPaidWorktree() {
+  const appBranch = run("git", ["rev-parse", "--abbrev-ref", "HEAD"]).stdout.trim();
+  const plan = paidWorktreePlan(main.worktree, root, appBranch, {
+    branchExists: (branch) =>
+      run("git", ["-C", path.join(main.worktree, "paid"), "rev-parse", "--verify", "--quiet", `refs/heads/${branch}`])
+        .status === 0,
+  });
+  if (plan.action === "none") {
+    console.log(`Paid worktree: ${plan.reason}.`);
+    return;
+  }
+  const added = run("git", ["-C", plan.mainPaid, ...plan.args]);
+  if (added.status !== 0) fail(added.stderr || added.stdout || "Could not add the paid worktree.");
+  console.log(`Added a paid worktree at ${plan.targetPaid} on branch ${plan.branch}.`);
+}
+
+bootstrapPaidWorktree();
 
 const source = path.join(main.worktree, "node_modules");
 if (!fs.existsSync(path.join(source, "next", "package.json"))) {
