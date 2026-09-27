@@ -835,6 +835,21 @@ type MessageLogTable = {
   created_at: string;
 };
 
+/**
+ * "News from Fernscout" consent — B2453. One row per address, instance-wide,
+ * never per journal — see `045-news-consent`'s own note for why. Presence of
+ * the row is the consent itself.
+ */
+type NewsConsentTable = {
+  /** Normalised the same way `contacts.email_key` is. */
+  email: string;
+  /** The exact copy shown when this was given — never rewritten by a later
+   * wording change, so an old consent stays provable as what it was. */
+  wording_key: string;
+  locale: string | null;
+  consented_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -866,6 +881,7 @@ export type Database = {
   photobook_drafts: PhotobookDraftsTable;
   app_waitlist: AppWaitlistTable;
   message_log: MessageLogTable;
+  news_consent: NewsConsentTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -901,4 +917,5 @@ export const TABLE_NAMES = [
   "photobook_drafts",
   "app_waitlist",
   "message_log",
+  "news_consent",
 ] as const satisfies readonly (keyof Database)[];

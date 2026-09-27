@@ -177,7 +177,16 @@ export function AddressFields({
   );
 }
 
-export type Tick = { key: string; label: string; hint: string; checked: boolean; disabled: boolean };
+export type Tick = {
+  key: string;
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled: boolean;
+  /** B2453/B2454: a small "recommended" pill beside the label — email, the
+   * free channel, carries one on the notify step and the reach step's tabs. */
+  badge?: string;
+};
 
 /** One tick per channel this server offers; a channel whose address is
  * missing is shown disabled, with the reason as its hint. */
