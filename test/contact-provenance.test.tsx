@@ -149,16 +149,16 @@ describe("how a contact row says somebody arrived", () => {
    */
   test("an invite that is no longer listed still reads as a sentence", () => {
     const html = render([contact({ createdVia: "invite:vanished" })], []);
-    expect(html).toContain(dict["contact.adminViaInvite"]);
+    expect(html).toContain(dict["contact.ownerViaInvite"]);
     expect(html).not.toContain("vanished");
   });
 
   test("the owner's own row, and a row from the guestbook B37 removed", () => {
     // Seen once, so "Reading along" rather than "Invited — not opened yet".
     expect(render([contact({ createdVia: "owner", welcomeOpenedAt: new Date().toISOString() })])).toContain(
-      dict["contact.adminViaOwner"],
+      dict["contact.ownerViaOwner"],
     );
-    expect(render([contact({ createdVia: "open" })])).toContain(dict["contact.adminViaOpen"]);
+    expect(render([contact({ createdVia: "open" })])).toContain(dict["contact.ownerViaOpen"]);
   });
 
   test("a row with no provenance says nothing about it, never a code", () => {

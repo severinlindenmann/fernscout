@@ -72,7 +72,7 @@ export default async function ContactsAdminPage({
         username={username}
         group="people"
         title={translateIn(locale, "err.notSignedInTitle")}
-        lede={translateIn(locale, "contact.adminSignIn")}
+        lede={translateIn(locale, "contact.ownerSignIn")}
         back={false}
       >
         <a className="mt-4 inline-block text-sm font-semibold text-ink-strong underline underline-offset-2" href={`/${username}`}>
@@ -85,8 +85,8 @@ export default async function ContactsAdminPage({
   const shell = {
     username,
     group: "people" as const,
-    title: translateIn(locale, "contact.adminTitle"),
-    lede: translateIn(locale, "contact.adminSubtitle"),
+    title: translateIn(locale, "contact.ownerTitle"),
+    lede: translateIn(locale, "contact.ownerSubtitle"),
   };
 
   // Switched off: the owner is told why (the studio's rule), never a 404 —

@@ -125,14 +125,14 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
     contact.locale ? (LOCALE_LABEL[contact.locale] ?? contact.locale) : null,
   ].filter((part) => part !== null);
   const hears = [
-    contact.wantsEmailDigest ? t("contact.adminChannelEmail") : null,
-    contact.wantsWhatsapp ? t("contact.adminChannelWhatsapp") : null,
-    contact.wantsPostcard ? t("contact.adminChannelPostcard") : null,
+    contact.wantsEmailDigest ? t("contact.ownerChannelEmail") : null,
+    contact.wantsWhatsapp ? t("contact.ownerChannelWhatsapp") : null,
+    contact.wantsPostcard ? t("contact.ownerChannelPostcard") : null,
     // B453 — a fact about their phones, not a consent; absent where this
     // journal has push off (`null`) and where nothing is subscribed.
     contact.pushDevices
       ? t("readers.line.push", {
-          devices: env.tn("contact.adminPushDevices", contact.pushDevices, { count: String(contact.pushDevices) }),
+          devices: env.tn("contact.ownerPushDevices", contact.pushDevices, { count: String(contact.pushDevices) }),
         })
       : null,
   ].filter((part) => part !== null);
@@ -156,7 +156,7 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
           : t("readers.line.neverProved"),
     );
   } else if (kind === "notInvited") {
-    line.push(via ?? t("contact.adminViaImport"));
+    line.push(via ?? t("contact.ownerViaImport"));
   } else {
     // How they came in, first (B321) — a buddy link is write access to a trip.
     if (via) line.push(via);
@@ -296,7 +296,7 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
         <div className="mt-3">
           <ConfirmPanel
             label={asking === "decline" ? t("readers.decline") : t("readers.menu.takeAway")}
-            question={t(asking === "decline" ? "readers.declineQuestion" : "contact.adminRevokeQuestion", { name: displayName })}
+            question={t(asking === "decline" ? "readers.declineQuestion" : "contact.ownerRevokeQuestion", { name: displayName })}
             confirmLabel={t(asking === "decline" ? "readers.declineConfirm" : "readers.takeAwayConfirm", { name: first })}
             tone="destructive"
             busy={busy}
@@ -312,8 +312,8 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
         <div className="mt-3">
           <ConfirmPanel
             label={t("readers.menu.remove")}
-            question={t("contact.adminDeleteQuestion", { name: displayName })}
-            confirmLabel={t("contact.adminDeleteConfirm", { name: displayName })}
+            question={t("contact.ownerDeleteQuestion", { name: displayName })}
+            confirmLabel={t("contact.ownerDeleteConfirm", { name: displayName })}
             tone="destructive"
             busy={busy}
             onConfirm={() => {

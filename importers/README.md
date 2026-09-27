@@ -10,16 +10,26 @@ without anybody having to read a licence first.
 ```
 importers/
   schema.ts       what every importer is, whatever it reads
-  gps/            positions — `{"kind": "gps"}`
+  gps/            positions
     schema.ts     ← start here: the row type, and the function that checks yours
     index.ts      the list the server bundles — add your file here too
     google-timeline.ts  google-records.ts  gpx.ts  fixes.ts
-  costs/          bank statements — `{"kind": "costs"}`
+  contacts/       an address book
+    schema.ts     the row type, and its own check
+    index.ts      vcard.ts
+  costs/          bank statements
     schema.ts     Payment, and its own check
-    index.ts      revolut.ts
+    index.ts      revolut.ts  revolut-account.ts  mapping.ts
 ```
 
-Both are read by the same call, `POST /api/v2/<user>/import`, keyed by kind.
+`gps` and `contacts` are the two kinds `POST /api/v2/<user>/import` reads,
+keyed by `{"kind": "gps" | "contacts"}` (`IMPORT_KINDS`, `lib/gps/api.ts`). A
+bank statement is not an import kind: it goes through its own pair of calls
+instead, `GET /api/v2/<user>/statements/<src>` and
+`POST /api/v2/<user>/trips/<trip>/costs/apply` — see `docs/statements.md`.
+`costs/` still lives here, MIT and structured the same way, because the
+parsing problem is the same one; only the door it is reached through
+differs.
 
 **`<kind>/schema.ts` is the whole contract for that kind.** Read it, produce
 the row it names, call the check it exports, and add your file to that kind's
@@ -86,12 +96,12 @@ reachable from in here.
 
 ## The contract
 
-`schema.ts` — both of them — is the authority, and between them they are under
-a hundred and fifty lines. In short:
+Each kind's own `schema.ts` is the authority for it — three of them today
+(`gps/`, `contacts/`, `costs/`), a few hundred lines between them. In short:
 
 | | |
 | --- | --- |
-| `id` | lowercase, dashes, unique within its kind. `--format <id>` is how somebody overrides detection |
+| `id` | lowercase, dashes, unique within its kind. Sending `"format": "<id>"` on the import call is how somebody overrides detection |
 | `label` | what a person calls this export |
 | `detect(head, filename)` | given the first 64 kB and the name — is this yours? |
 | `parse(text)` | every row, in any order |
@@ -105,8 +115,9 @@ its absence is what keeps every importer the same size.
 Three rules that are not obvious:
 
 - **Be strict in `detect`.** A loose one that says yes to somebody else's
-  export is worse than a tight one that says no to its own: `--format <id>`
-  always overrides, and a wrong parse is silent.
+  export is worse than a tight one that says no to its own: an explicit
+  `"format": "<id>"` on the call always overrides detection, and a wrong
+  parse is silent.
 - **Skip what does not parse; do not throw.** These exports are large and their
   vendors change them without notice. One unreadable segment must not cost the
   other ten months. Throw only when the file is not yours at all.
@@ -127,20 +138,27 @@ One fix per line, `t` as an ISO instant or epoch seconds or milliseconds. Send
 it as `{"kind": "gps", "format": "fixes", "text": …}`, or stage the file and
 name it by id.
 
-## Testing yours
+## Testing a gps or contacts importer
 
 ```http
 GET  /api/v2/<user>/import                          is it listed?
 POST /api/v2/<user>/import?dryRun=true  {"kind":"gps", "text": "…"}
 ```
 
-The dry run parses, runs `checkGpsImporter`, says how many fixes came out and
-over what span, and writes nothing. A count of zero, a span running to 1970, or
-a complaint about the Earth is the parse being wrong.
+The dry run parses, runs `checkGpsImporter` (or `checkContactsImporter`), says
+what came out and writes nothing. For `gps`: how many fixes and over what
+span — a count of zero, a span running to 1970, or a complaint about the
+Earth is the parse being wrong.
 
 There is no CLI. Everything here runs on the server, reached over the API —
 which is the point: the person with the export usually has no shell on the
 machine the journal lives on.
+
+**A costs importer is tested differently**, because `costs` is not an import
+kind — see `docs/statements.md`: stage the file with
+`POST /api/v2/<user>/media` and read it back with
+`GET /api/v2/<user>/statements/<src>`, which is itself already a read-only
+report and needs no separate dry run.
 
 ## What is here
 
@@ -153,16 +171,24 @@ machine the journal lives on.
 | `gpx.ts` | GPX — Garmin, Strava, GPSLogger, OsmAnd, anything with a track |
 | `fixes.ts` | the neutral JSON Lines format above |
 
+**`contacts/` — an address book.**
+
+| | |
+| --- | --- |
+| `vcard.ts` | a `.vcf` export, one or many contacts |
+
 **`costs/` — bank statements.**
 
 | | |
 | --- | --- |
 | `revolut.ts` | a Revolut consolidated statement, as the app exports it |
+| `revolut-account.ts` | the same account, read a different way |
+| `mapping.ts` | shared column mapping the two above use |
 
 One bank, and the shape of the next one is written down rather than guessed at:
 rows of `{date, amount, currency, description}` with the sign the statement
 wrote, and **no category** — what a payment was *for* is the owner's decision,
-which is why a `costs` import writes nothing by itself.
+which is why reading a statement writes nothing by itself.
 
 **Get `amount` and `charged` the right way round.** `amount` is what the
 merchant charged; `charged` is what left the account. A €50 debit for a $60

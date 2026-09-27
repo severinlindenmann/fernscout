@@ -69,7 +69,7 @@ function headingOver(html: string, name: string): string {
 describe("the two waiting groups split by whose turn it is", () => {
   test("a confirmed request is waiting for the owner's answer, with Let in", () => {
     const html = render();
-    expect(headingOver(html, "Asks Anna")).toBe(dict["contact.adminPending"]);
+    expect(headingOver(html, "Asks Anna")).toBe(dict["contact.ownerPending"]);
     const card = html.slice(html.indexOf("Asks Anna"), html.indexOf("Owes Otto"));
     expect(card).toContain(dict["readers.letIn"].replace("{name}", "Asks"));
   });
@@ -79,7 +79,7 @@ describe("the two waiting groups split by whose turn it is", () => {
   // on, unlike a row invited (any other `createdVia`) and still unconfirmed.
   test("an imported, unconfirmed row is not invited yet, with no Approve", () => {
     const html = render();
-    expect(headingOver(html, "Owes Otto")).toBe(dict["contact.adminNotInvited"]);
+    expect(headingOver(html, "Owes Otto")).toBe(dict["contact.ownerNotInvited"]);
     const start = html.indexOf("Owes Otto");
     const card = html.slice(start, html.indexOf("</li>", start));
     expect(card).not.toContain(dict["readers.letIn"].replace("{name}", "Owes"));
@@ -108,7 +108,7 @@ describe("the two waiting groups split by whose turn it is", () => {
   });
 
   test("the headings say whose turn it is", () => {
-    expect(dict["contact.adminPending"]).toBe("Waiting for your answer");
+    expect(dict["contact.ownerPending"]).toBe("Waiting for your answer");
     expect(dict["readers.group.invited"]).toBe("Invited — not opened yet");
   });
 });
@@ -120,8 +120,8 @@ describe("no stored code reaches the screen", () => {
 
   test("provenance and state are sentences", () => {
     const html = render();
-    expect(html).toContain(dict["contact.adminViaImport"]);
-    expect(html).toContain(dict["contact.adminViaGrant"]);
+    expect(html).toContain(dict["contact.ownerViaImport"]);
+    expect(html).toContain(dict["contact.ownerViaGrant"]);
     expect(html).not.toContain(dict["contact.statusPending"]);
     expect(html).not.toContain(">—<");
   });

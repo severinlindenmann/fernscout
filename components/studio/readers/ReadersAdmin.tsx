@@ -119,10 +119,10 @@ export default function ReadersAdmin({
         // that is `hasGuestTrip`, not whether a buddy place was named here.
         text = [
           trips.length
-            ? t("contact.adminApprovedTrips", { trips: trips.join(", ") })
+            ? t("contact.ownerApprovedTrips", { trips: trips.join(", ") })
             : hasGuestTrip
-              ? t("contact.adminApprovedGuestTrips")
-              : t("contact.adminApprovedNoTrip"),
+              ? t("contact.ownerApprovedGuestTrips")
+              : t("contact.ownerApprovedNoTrip"),
           body.told ? t(body.told === "email" ? "readers.toldByEmail" : "readers.toldBySms", { name }) : "",
         ]
           .filter(Boolean)
@@ -131,11 +131,11 @@ export default function ReadersAdmin({
       refresh();
     } else {
       const response = await act({ action: "revoke", id: contact.id });
-      if (response?.ok) text = t("contact.adminRevoked", { name });
+      if (response?.ok) text = t("contact.ownerRevoked", { name });
     }
     setNotes((previous) => ({
       ...previous,
-      [contact.id]: text ? { text } : { text: t("contact.adminActionFailed"), failed: true },
+      [contact.id]: text ? { text } : { text: t("contact.ownerActionFailed"), failed: true },
     }));
   }
 
@@ -197,9 +197,9 @@ export default function ReadersAdmin({
       </div>
       {preview.length > 0 && <ReaderPreview preview={preview} t={t} tn={tn} />}
 
-      <ReaderGroup title={t("contact.adminPending")} rows={split.waitingOnYou} kind="asking" env={env} />
+      <ReaderGroup title={t("contact.ownerPending")} rows={split.waitingOnYou} kind="asking" env={env} />
       <ReaderGroup title={t("readers.group.invited")} rows={invited} kind="invited" env={env} />
-      <ReaderGroup title={t("contact.adminNotInvited")} rows={split.notInvited} kind="notInvited" env={env} />
+      <ReaderGroup title={t("contact.ownerNotInvited")} rows={split.notInvited} kind="notInvited" env={env} />
       <ReaderGroup
         title={t("readers.group.reading")}
         rows={reading}

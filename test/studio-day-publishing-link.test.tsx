@@ -91,9 +91,9 @@ describe("the day-created screen", () => {
       await Promise.resolve();
     });
 
-    // D5 — "Share this day", a quiet link beside Done (B2188); "Open the day"
+    // D5 — "Publish this day", a quiet link beside Done (B2188); "Open the day"
     // and "Add another day" went with the what-next cards (no nudges).
-    const link = [...container!.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Share this day ›");
+    const link = [...container!.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Publish this day ›");
     expect(link, container!.innerHTML.slice(0, 400)).toBeTruthy();
     // The route answers with the dated v2 id; the publish page wants the bare slug.
     expect(link!.getAttribute("href")).toBe("/alex/studio/day/publish?day=a-day&trip=reise");

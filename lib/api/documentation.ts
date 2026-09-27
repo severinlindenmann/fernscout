@@ -36,12 +36,13 @@ function base(): string {
 }
 
 /**
- * Where an owner's content comes from, when the software has no editing
- * interface (decision 24). A separate repository of agent skills that run on
- * the owner's own machine — a photo library, a bank statement — and write
- * this project's content format. Named in both agent-facing documents,
- * because an agent handed a fresh journal and a person with a laptop full of
- * holiday photographs otherwise has to invent the pipeline.
+ * Where an owner's content comes from before it ever reaches the studio (the
+ * studio is the editing interface; ROADMAP decision 24, "no editing UI, ever",
+ * is superseded). A separate repository of agent skills that run on the
+ * owner's own machine — a photo library, a bank statement — and write this
+ * project's content format. Named in both agent-facing documents, because an
+ * agent handed a fresh journal and a person with a laptop full of holiday
+ * photographs otherwise has to invent the pipeline.
  */
 const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
 
@@ -79,7 +80,7 @@ export function instanceDocumentation(): string {
     "> the author owns. Reading happens in a browser, where its owner may also",
     "> write directly in their own studio. Otherwise, writing happens through an",
     "> agent holding a token — still no CMS, whether that agent is this",
-    "> instance's own helper, over WhatsApp where it offers one, or one you",
+    "> instance's own assistant, over WhatsApp where it offers one, or one you",
     "> bring yourself.",
     "",
     "## Ways in",
@@ -119,7 +120,7 @@ export function instanceDocumentation(): string {
     ...(helperOnWhatsapp
       ? wrap(
           `**A messenger, at ${whatsappNumberForDisplay()}.** ` +
-            "Text it and a model turn answers, on this instance's own model, " +
+            "Text it and a model turn answers, on this instance's own assistant, " +
             "spending the journal's credits — one message, one turn, never the " +
             "owner's own credits. It can start a journal from nothing or add to " +
             "one that already exists, and it writes through the same drafts-" +
@@ -180,15 +181,14 @@ export function instanceDocumentation(): string {
         "only their own browser session can open, no API key required, " +
         "where they write directly rather than through you." +
         (helperOnWhatsapp
-          ? ` Or, if they would rather not, this instance's own helper is ` +
+          ? ` Or, if they would rather not, this instance's own assistant is ` +
             `on WhatsApp${whatsappNumberForDisplay() ? `, at ${whatsappNumberForDisplay()}` : ""}.`
           : "") +
-        " There is still no upload interface for *you* to build, no web form, " +
-        "and no CMS behind your own calls — that absence is the software " +
-        "(ROADMAP decision 24), not a gap for you to route around. Do not " +
-        'offer a file the owner can "manually upload" — nothing here accepts ' +
-        "one — and do not hand the job back by telling the owner to follow " +
-        "this guide themselves; send them to their studio instead.",
+        " Their studio has an upload screen; nothing under `/api/v2` gives *you* an " +
+        "equivalent, and no header of your own choosing means no way to reach that API " +
+        "either. Do not invent an upload address for the owner to send a file to — you have " +
+        "none — and do not hand the job back by telling the owner to follow this guide " +
+        "themselves; send them to their studio instead.",
       78,
     ),
     "",
@@ -367,7 +367,7 @@ export function userDocumentation(username: string): string | null {
     `- [Trips](${base()}/api/v2/${username}/trips): every trip you may write to`,
     `- Days: PUT/GET/PATCH/DELETE ${base()}/api/v2/${username}/trips/<trip-id>/days/<slug> — see ${base()}/skill/add-a-day.md`,
     `- [Media](${base()}/api/v2/${username}/media): one door for photographs, video, documents and imports — see ${base()}/skill/ingest-photos.md`,
-    `- [Figures](${base()}/api/v2/${username}/figures/presets): the vocabulary a traveller is drawn in`,
+    `- [Figures](${base()}/api/v2/${username}/figures/presets): the vocabulary a person is drawn in`,
     `- Deleting: DELETE [a trip](${base()}/api/v2/${username}/trips/<trip-id>) or [the journal](${base()}/api/v2/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,

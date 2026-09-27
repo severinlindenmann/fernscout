@@ -23,10 +23,14 @@ describe("the meta title and description no longer claim only an agent writes th
     const description = dict["landing.metaDescription"];
     // Loosely: neither string may say "an agent" without also naming the
     // do-it-yourself half somewhere in the same sentence — checked by
-    // requiring the human word ("you"/"yourself"/"du"/"dir"/"magad"/"te")
-    // to appear at least once across the pair.
+    // requiring the human word ("you"/"yourself"/"du"/"dir"/"magad"/"te"/
+    // French "toi"/"tu"/Italian "tuo"/"te stesso") to appear at least once
+    // across the pair. French previously matched only by coincidence, via
+    // the unrelated word "Du" in "Du Markdown" — fixing that markdown-vs-JSON
+    // wording (B1384 decision 12) exposed the gap, so "toi"/"tu" join the
+    // list rather than the fix being reverted.
     const combined = `${title} ${description}`.toLowerCase();
-    const selfWords = ["yourself", "you", "dir", "du", "magad", "te ", "tiéd"];
+    const selfWords = ["yourself", "you", "dir", "du", "magad", "te ", "tiéd", "toi", "tu ", "tuo", "stesso"];
     expect(selfWords.some((w) => combined.includes(w))).toBe(true);
   });
 

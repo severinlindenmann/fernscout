@@ -7,7 +7,7 @@ import { dictionaryFor } from "@/lib/locales";
  * B2368 — the provenance label for somebody who came in through a link said
  * only what kind of link it was ("A link for someone to read"), ignoring the
  * link's own name ("Family chat") even when the owner had named it. A buddy
- * link's trip already got this treatment (`contact.adminInviteTrip`); a
+ * link's trip already got this treatment (`contact.ownerInviteTrip`); a
  * named guest or personal link did not.
  */
 
@@ -34,7 +34,7 @@ const link: AdminInvite = {
 describe("viaLabel names the link, not only its kind", () => {
   test("a named guest link says its own name", () => {
     const label = viaLabel("invite:inv-1", [link], [], t);
-    expect(label).toBe(`${dict["me.inviteGuestTitle"]} · ${fill("contact.adminInviteNamed", { name: "Family chat" })}`);
+    expect(label).toBe(`${dict["me.inviteGuestTitle"]} · ${fill("contact.ownerInviteNamed", { name: "Family chat" })}`);
   });
 
   test("an unnamed guest link stays just the kind", () => {
@@ -46,7 +46,7 @@ describe("viaLabel names the link, not only its kind", () => {
     const buddyLink: AdminInvite = { ...link, kind: "buddy", tripId: "iceland" };
     const label = viaLabel("invite:inv-1", [buddyLink], [{ id: "iceland", title: "Iceland 2026" }], t);
     expect(label).toBe(
-      `${dict["me.inviteBuddyTitle"]} · ${fill("contact.adminInviteTrip", { trip: "Iceland 2026" })} · ${fill("contact.adminInviteNamed", { name: "Family chat" })}`,
+      `${dict["me.inviteBuddyTitle"]} · ${fill("contact.ownerInviteTrip", { trip: "Iceland 2026" })} · ${fill("contact.ownerInviteNamed", { name: "Family chat" })}`,
     );
   });
 });

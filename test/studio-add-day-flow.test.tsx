@@ -361,7 +361,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await mount();
     await click("Save privately");
     expect(text()).toContain("Saved. Only you and Hans, Viki can see this day.");
-    const share = [...container.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Share this day ›");
+    const share = [...container.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Publish this day ›");
     expect(share?.getAttribute("href")).toBe("/alex/studio/day/publish?day=a-day&trip=reise");
   });
 

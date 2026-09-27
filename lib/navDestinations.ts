@@ -147,7 +147,7 @@ export const JOURNAL_DESTINATIONS: SearchDestination[] = [
   {
     destination: {
       path: "/studio/readers",
-      labelKey: "contact.adminTitle",
+      labelKey: "contact.ownerTitle",
       synonymsKey: "search.contactsTerms",
     },
     level: "owner",
