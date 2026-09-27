@@ -44,7 +44,7 @@ export function pickContinue(items: Owned[]): Owned | undefined {
 
 /** An ended trip with days in it — the one a book could be made of. A
  * `test: true` trip is a rehearsal nobody lived, never a book. */
-export function pickForPaper(items: Owned[]): Owned | undefined {
+function pickForPaper(items: Owned[]): Owned | undefined {
   return items
     .filter((i) => i.trip.status === "past" && (i.trip.days ?? 0) > 0 && !i.trip.test)
     .sort((a, b) => (b.trip.end ?? "").localeCompare(a.trip.end ?? ""))[0];
