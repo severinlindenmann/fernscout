@@ -1617,6 +1617,7 @@
       "visibility.journalNote",
       "visibility.private",
       "visibility.public",
+      "visibility.unlisted",
       "visitors.title",
       "weather.clear",
       "weather.cloudy",

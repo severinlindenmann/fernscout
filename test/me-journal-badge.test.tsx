@@ -105,7 +105,10 @@ describe("the journal badge inside the card's summary", () => {
     const dialog = document.querySelector('[role="dialog"]');
     expect(dialog).not.toBeNull();
     expect(dialog?.closest("details")).toBeNull();
-    expect(dialog?.textContent).toContain("Guests");
+    // The journal's own "guest" option reads "Unlisted" (decision 4, 2026-09-25
+    // docs audit): journal `guest` and trip `guest` are different populations
+    // and the badge word must not conflate them.
+    expect(dialog?.textContent).toContain("Unlisted");
   });
 
   test("Escape closes it, and still without touching the disclosure", () => {
