@@ -58,12 +58,12 @@ test("sms twilio is refused with no TWILIO_* keys set", () => {
   writeConfig({ sms: { enabled: true, backend: "twilio" } });
   const state = resolveCapabilities().sms;
   expect(state.enabled).toBe(false);
-  expect(state.reason).toMatch(/TWILIO_ACCOUNT_SID/);
+  expect(!state.enabled && state.reason).toMatch(/TWILIO_ACCOUNT_SID/);
 });
 
 test("whatsapp dry-run is on with no WHATSAPP_* keys, and says so", () => {
   writeConfig({ whatsapp: { enabled: true, backend: "dry-run", number: "+41 79 111 22 33" } });
   const state = resolveCapabilities().whatsapp;
   expect(state.enabled).toBe(true);
-  expect(state.note).toMatch(/features\.whatsapp\.backend is "dry-run"/);
+  expect(state.enabled && state.note).toMatch(/features\.whatsapp\.backend is "dry-run"/);
 });
