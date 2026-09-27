@@ -9,12 +9,13 @@ GeoNames
 --------
 Place-name data (the offline geocoder's `lib/ingest/data/places.bin.gz`,
 used by `lib/ingest/geo.ts`, and the worldwide named-peaks index
-`lib/mapdata/peaks.bin.gz`, built by `scripts/build-peaks.mjs` and read by
+`lib/mapdata/peaks.bin.gz`, built by `scripts/build-peaks.ts` and read by
 `lib/ingest/peaks.ts`) is derived from the GeoNames geographical database
 (https://www.geonames.org/), licensed under a Creative Commons Attribution
-4.0 licence (https://creativecommons.org/licenses/by/4.0/) — the codebase's
-own attribution string (`lib/photobook/strings.ts`): "Place names from
-GeoNames.org, under the Creative Commons Attribution 4.0 licence."
+4.0 licence (https://creativecommons.org/licenses/by/4.0/):
+
+  Place names from GeoNames.org, under the Creative Commons Attribution 4.0
+  licence.
 
 HydroSHEDS
 ----------
@@ -22,7 +23,7 @@ River and lake data (`lib/mapdata/hydro-world.json.gz`, built by
 `scripts/build-hydro.ts` from HydroSHEDS' HydroRIVERS and HydroLAKES
 products, read by `lib/basemap.ts`) is licensed under a Creative Commons
 Attribution 4.0 licence. The codebase's own attribution string
-(`scripts/build-hydro.ts`, `lib/photobook/strings.ts`), used verbatim here:
+(`scripts/build-hydro.ts`), used verbatim here:
 
   Rivers and lakes from HydroSHEDS (Lehner & Grill 2013; Messager et al.
   2016), hydrosheds.org, under the Creative Commons Attribution 4.0
@@ -35,11 +36,15 @@ The worldwide parks layer (`lib/mapdata/parks-world.json.gz`, built by
 read by `lib/basemap.ts`) contains information from OpenStreetMap, made
 available at openstreetmap.org under the Open Database License (ODbL) 1.0
 (https://opendatacommons.org/licenses/odbl/1.0/) — the codebase's own
-attribution string (`scripts/build-parks.ts`, `lib/photobook/strings.ts`).
-Because this file redistributes a static extract of the database rather
-than only querying it live, that file — `lib/mapdata/parks-world.json.gz`
-and any data drawn from it — is itself available under ODbL 1.0, not under
-the Apache-2.0 licence that covers the rest of this repository's source.
+attribution string (`scripts/build-parks.ts`). Because this file
+redistributes a static extract of the database rather than only querying it
+live, that file — `lib/mapdata/parks-world.json.gz` and any data drawn from
+it — is itself available under ODbL 1.0, not under the Apache-2.0 licence
+that covers the rest of this repository's source.
+
+The hosted edition's printed photobooks carry their own, longer versions of
+these three credits (`paid/photobook/lib/photobook/strings.ts`); that file
+is not part of this open repository.
 
 Natural Earth
 -------------

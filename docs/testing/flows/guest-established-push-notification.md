@@ -14,8 +14,8 @@ viewport).
 
 1. Local dev server running with `features.push` on and
    `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` set to a
-   generated pair (`npm run notify -- --generate-keys` — no paid account,
-   matching AGENTS.md's rule that no capability needs one to develop).
+   generated pair (`npm run notify -- --generate-keys` — `push` needs no
+   paid provider account to develop or test).
 2. A `test-guest-established` journal with the persona already approved on a
    `guest` trip carrying at least one published day.
 

@@ -41,7 +41,7 @@ Four things, and two of them are optional.
 | --- | --- | --- |
 | **Node** | The Next.js server — API routes, server rendering, the data layer | always |
 | **Caddy** | TLS and reverse proxy, automatic Let's Encrypt | always |
-| Postgres | Accounts, contacts, sessions, jobs | only once `auth`, `contacts` or `postcards` are on |
+| Postgres | Accounts, contacts, sessions, jobs | only once a capability with `db: true` is on — `auth`, `contacts`, `analytics`, `credits`, `smsInbound`, `photobook`, `postcards` and several more (see `docs/capabilities.md`); SQLite is also accepted, in production as much as locally |
 | Worker | Background jobs — digests, push, print rendering | only once something enqueues work |
 
 **The public site needs the first two.** That is the prototype tier
@@ -141,7 +141,7 @@ hand; the top row arrives with every `git pull` and needs nothing done to it:
 
 | | | |
 | --- | --- | --- |
-| **Shipped with the code** | `site/locales/`, `site/rates/`, `site/legal/`, `site/config.json` | belongs to the release, read straight out of the checkout — `site/legal/` is a **template** with placeholders (B2249), not this instance's real imprint |
+| **Shipped with the code** | `site/locales/`, `site/legal/`, `site/config.json` | belongs to the release, read straight out of the checkout — `site/legal/` is a **template** with placeholders (B2249), not this instance's real imprint |
 | **Owned by the operator** | `$DATA_DIR/config.json`, `$CONTENT_DIR/legal/` | belongs to this machine; no deploy ever touches it |
 | **Owned by a person** | `$CONTENT_DIR/<username>/` | their journal; no deploy ever touches it either |
 
@@ -440,9 +440,11 @@ Five things it does that are not obvious from the name:
   not from the pull.
 
 **Check the deploy left the journals alone**, rather than reading the log and
-believing it. There is nothing to copy any more — the dictionaries, the rates
-and the imprint are read out of `/srv/fernscout/site`, which `git pull`
-updated — so the only thing worth asserting is that `CONTENT_DIR` is
+believing it. There is nothing to copy any more — the dictionaries and the
+template imprint are read out of `/srv/fernscout/site`, which `git pull`
+updated (rates live under `$DATA_DIR/rates/`, refreshed nightly, and never in
+`site/` — see `docs/currencies.md`) — so the only thing worth asserting is
+that `CONTENT_DIR` is
 untouched:
 
 ```bash
@@ -523,9 +525,10 @@ Four more rules, each of which this box got wrong somewhere before B1702:
   costs a rebuild. Put it in `/srv/<thing>` on day one and the question never
   arises.
 - **Bind to `127.0.0.1` and let Caddy reach it.** ufw is default-deny with a
-  three-line allow list (22, 443, the mosh range) and a new workload is not a
-  reason to add a fourth. A site block of its own, or an `import` beside the
-  Fernscout one, is how it gets a hostname and TLS.
+  four-line allow list (22, 80, 443, the mosh range) — 80 stays open because
+  Caddy's own ACME HTTP-01 challenge needs it, above — and a new workload is
+  not a reason to add a fifth. A site block of its own, or an `import` beside
+  the Fernscout one, is how it gets a hostname and TLS.
 - **`enabled` is what survives a reboot.** Both of that second application's
   units were *running* and *disabled*, which reads as healthy in `systemctl status` and silently
   does not come back. After any reboot, compare
@@ -720,8 +723,11 @@ B197 removed. Absent says the question was not answered.
 
 ### Request logging
 
-Off by default. `features.logging.enabled: true` in `site/config.json`
-turns it on, the same shape as every other capability here:
+Off by default. `features.logging.enabled: true` in **the server config this
+deploy actually reads** — `/var/lib/fernscout/config.json` once
+`FERNSCOUT_CONFIG` points there (above), not the checkout's own
+`site/config.json`, which a running server ignores after that — turns it on,
+the same shape as every other capability here:
 
 ```json
 {

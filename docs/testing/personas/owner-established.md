@@ -11,8 +11,8 @@ a buddy or guest, order a postcard or photobook.
 
 **Knows:** the vocabulary (draft vs. published, guest vs. buddy vs. private)
 and where things live in the UI. A flow using this persona should exercise
-*existing* content — AGENTS.md's own point about B1090: "an existing day, an
-existing trip, a page nobody wrote for the test."
+*existing* content — an existing day, an existing trip, a page nobody wrote
+for the test.
 
 **Journal for this persona:** a `test-*` journal seeded with a real trip and
 at least two published days, provisioned once and reused across flows rather

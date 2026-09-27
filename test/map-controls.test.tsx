@@ -101,13 +101,15 @@ describe("MapControls", () => {
       onLayers: () => {},
       onFullscreen: () => {},
     });
-    expect(buttons().map((b) => b.getAttribute("aria-label"))).toEqual([
-      "Vergrößern",
-      "Verkleinern",
-      "Ansicht zurücksetzen",
-      "Ebenen",
-      "Vollbild",
-    ]);
+    // Read from de.json rather than spelt out here, so a spelling decision
+    // (B2153 went to Swiss ss, B2416 back to ß) cannot break this; it still
+    // fails on an English fallback.
+    const de = dictionaryFor("de");
+    const en = dictionaryFor("en");
+    const keys = ["map.zoomIn", "map.zoomOut", "map.reset", "map.layers", "map.fullscreen"] as const;
+    const labels = buttons().map((b) => b.getAttribute("aria-label"));
+    expect(labels).toEqual(keys.map((k) => de[k]));
+    for (const k of keys) expect(de[k]).not.toBe(en[k]);
   });
 });
 

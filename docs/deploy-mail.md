@@ -27,10 +27,12 @@ in this project requires a paid mailbox to build or test.
 send at all. It is off unless you set it, because it is the server that holds
 the credentials.
 
-`features.mail` in `content/<user>/config.json` is a different kind of switch,
-and the only capability in this project that works this way. Every other one is
-an **opt-in** — absent means the journal has not asked for the feature, so it is
-off. Mail is a **mute button**: a journal does not opt in to being able to send,
+`features.mail` in `content/<user>/config.json` is a different kind of switch.
+Every operator-only capability is decided once for the whole server with no
+journal vote at all, and every other per-journal capability is an **opt-in** —
+absent means the journal has not asked for the feature, so it is off. Mail
+(and, the same way, `whatsapp`/`whatsappInbound` — see `docs/capabilities.md`)
+is a **mute button** instead: a journal does not opt in to being able to send,
 it opts out of being written to on its behalf. So it has three states, not two:
 
 | In `content/<user>/config.json` | Means |
@@ -70,8 +72,9 @@ journal at all — it is addressed to somebody who does not own a name yet — s
 only the server switch applies to it.
 
 Note that switching mail *on* for a journal does not start anything: the digest
-and the contact letters have their own opt-in, `features.contacts`, which is an
-ordinary one and off unless asked for. Mail is the plumbing, not the tap.
+and the contact letters both also need `contacts`, which is operator-only
+(`OPERATOR_ONLY_FEATURES`) — a journal has no vote on it at all, only the
+server does. Mail is the plumbing, not the tap.
 
 `/api/health` says both halves. A journal that has narrowed mail off appears
 under `journals` as:
@@ -192,7 +195,7 @@ authorised, with a 5xx at `MAIL FROM` rather than a bounce later.
 
 ### The client
 
-`lib/mail/smtp.ts`, about two hundred lines, no dependency. It does exactly
+`lib/mail/smtp.ts`, about 345 lines, no dependency. It does exactly
 what submission needs: EHLO, STARTTLS, AUTH PLAIN or LOGIN, one recipient,
 DATA, QUIT. It is not an MX client — no DNS, no queue, no retry schedule — and
 the moment this journal needs those, it needs a real MTA rather than a longer

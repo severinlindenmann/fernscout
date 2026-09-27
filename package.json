@@ -53,6 +53,7 @@
     "credits": "tsx --conditions=react-server scripts/paid.mts credits/scripts/grant-credits.ts",
     "registry": "tsx --conditions=react-server scripts/registry.ts",
     "i18n:keys": "node scripts/i18n-keys.mjs",
+    "docs:capabilities": "tsx --conditions=react-server scripts/build-capabilities-doc.mts",
     "studio:check": "tsx scripts/studio-check.mts",
     "avatar": "node scripts/render-avatar.mjs",
     "travellers": "tsx scripts/travellers.ts",

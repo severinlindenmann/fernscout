@@ -1,12 +1,12 @@
-![Fernscout — travel mail: news from far away, arriving at home](docs/branding/readme-hero.svg)
+![Fernscout — a trail marking three stops: a voice note, the day written up, read at home](docs/branding/readme-hero.svg)
 
 # Fernscout
 
-**An open-source travel journal you host yourself.** Talk through your day
-with an AI agent, your own or the helper built into Fernscout, and it writes
-the day up: the place, the route, the photographs, what it cost. Your family
-and friends read it in a browser. Everything stays JSON and photographs in a
-folder you own.
+**An open-source travel journal you host yourself.** You write each day in
+your own studio: the place, the route, the photographs, what it cost. An
+agent of your own, or this instance's built-in assistant, is an optional
+second way in. Your family and friends read it in a browser. Everything
+stays JSON documents and photographs in a folder you own.
 
 [See a real journal](https://fernscout.ch/example) ·
 [Run your own](#run-it) ·
@@ -57,20 +57,22 @@ backups.
 
 ## How it works
 
-- **An agent writes, a browser reads.** There is no CMS. Days arrive over a REST
-  API from an agent holding a token: your own assistant, or the built-in helper
-  with your own model key. In the browser you read, and you can correct a day in
-  place.
+- **You write in your own studio.** There is no CMS. You compose a day on one
+  page, from your own words, facts measured from your photographs and real
+  lookups. An agent of your own, or this instance's built-in assistant (needs
+  its own model key), is an optional second way to get words onto the page —
+  you still review before it is kept.
 - **Every day starts as a draft.** Nothing goes public until you publish it.
-- **Nothing is invented.** An agent writes what it was told and leaves a field
-  empty rather than guessing. One made-up memory, shown to somebody's family as
-  fact, can't be taken back.
+- **Nothing is invented.** Whoever or whatever writes it writes what it was
+  told and leaves a field empty rather than guessing. One made-up memory,
+  shown to somebody's family as fact, can't be taken back.
 - **Your files, your folder.** A day is one JSON file and a photograph is a
   file. `npm run export -- <username>` hands a whole journal back as a zip.
 - **Closed by default.** Every optional capability is off until you switch it
   on, and switched off it is absent, not broken.
-- **No paid account needed to develop.** Mail writes `.eml` files to a folder,
-  and every provider has a dry-run mode.
+- **Mostly no paid account needed to develop.** Mail writes `.eml` files to a
+  folder and most providers have a dry-run mode; the built-in assistant needs
+  a real `ANTHROPIC_API_KEY` and has none.
 
 Not a blog you type into and not an app that keeps your photos: the journal is
 written from what you tell it, and it stays in files you can take anywhere.
@@ -104,9 +106,9 @@ One JSON file per day, in
 }
 ```
 
-Only `"status": "published"` puts a day on the site; anything else reads as a
-draft. A file that isn't valid JSON is skipped and logged, and the rest of the
-trip still shows. A trip's `trip.json` holds its title, dates, travellers,
+Only `"status": "published"` puts a day on the site; anything else, including
+no `status` at all, reads as a draft. A file that isn't valid JSON is skipped
+and logged, and the rest of the trip still shows. A trip's `trip.json` holds its title, dates, travellers,
 budget, planned route, exchange rates and visibility: `private`, `public` or
 `guest`. An unknown visibility reads as `private`, so a typo can't publish
 somebody's trip.
@@ -120,16 +122,20 @@ somebody's trip.
 | **Photographs** | galleries, a slideshow, and EXIF import that turns a card of photos into draft days |
 | **Costs** | what the trip cost, per day and in total, in any currency, converted with ECB rates |
 | **Readers** | reactions, guests and invite links, and new-day mail and web push, with no app to install |
-| **Helper** | a writing helper, dictation and photo descriptions, with your own Anthropic and Deepgram keys |
+| **Studio** | write, correct and publish a day on one page, in your own words |
+| **Helper** | an in-studio assistant for polishing text, describing photos and dictation, with your own Anthropic and Deepgram keys |
 | **Location** | importers for Google Timeline and GPX, and route recording from the iPhone app in `ios/` |
 | **API** | a versioned REST API with a generated OpenAPI document, and agent guides at `/documentation.txt` |
+
+Credits — a balance you spend on assistant calls — are open and included;
+only *buying* more of them costs money, and that part is hosted-only.
 
 > **fernscout.ch, the hosted edition.** Don't want to run a server?
 > [fernscout.ch](https://fernscout.ch) runs this code for you, free, one journal
 > per person, and adds a few things that need one operator behind them:
 > **printed photobooks**, **real postcards** to your readers' addresses,
-> **WhatsApp** (a guided helper for people without an agent, and new-day
-> messages), and **credits** to pay for what costs money to send. Those live in
+> **WhatsApp** (a guided assistant for people without an agent, and new-day
+> messages), and **buying credits** with Stripe. Those live in
 > a separate private repository. fernscout.ch is a hobby project run by one
 > person, with no uptime or support guarantee, and your journal stays plain
 > files you can export and move to your own instance at any time.
