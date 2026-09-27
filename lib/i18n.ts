@@ -1321,6 +1321,7 @@ export type TranslationKey =
   | "map.progress"
   | "map.readDay"
   | "map.reset"
+  | "map.sheet.peek"
   | "map.stillToCome"
   | "map.stops"
   | "map.stops.one"
