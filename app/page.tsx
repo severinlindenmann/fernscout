@@ -9,7 +9,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
 import { hasLegal } from "@/lib/legal";
-import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
+import { installedLocales, ogLocale, requestLocale, translateIn } from "@/lib/locales";
 import { bannerFor, serverSite } from "@/lib/site";
 
 /**
@@ -43,14 +43,14 @@ import { bannerFor, serverSite } from "@/lib/site";
  */
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await requestLocale();
+  const title = translateIn(locale, "landing.metaTitle", { name: serverSite().name });
+  const description = translateIn(locale, "landing.metaDescription");
   return {
-    title: {
-      absolute: translateIn(locale, "landing.metaTitle", {
-        name: serverSite().name,
-      }),
-    },
-    description: translateIn(locale, "landing.metaDescription"),
+    title: { absolute: title },
+    description,
     alternates: { canonical: "/" },
+    // B2479 — the card's image is still app/opengraph-image.tsx.
+    openGraph: { type: "website", url: "/", locale: ogLocale(locale), title, description },
   };
 }
 

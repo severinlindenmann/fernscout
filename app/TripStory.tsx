@@ -554,15 +554,13 @@ export default function TripStory({
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 py-4">
           {/*
             The document's h1. On the overview it is the hero's own visible
-            heading; on every other step the hero is not rendered at all, so a
-            reader arriving at /day/<slug> from an email got a page with no h1
-            and a heading outline that started at h2. This supplies one, and
-            deliberately supplies the *trip* rather than the day: it does not
-            change as the reader pages, and a heading that mutates under a
-            screen reader is worse than a heading that is merely general. The
-            day's own title stays the h2 beneath it.
+            heading, and on a day it is the day's own title — B2479: the day
+            is the page's subject and its <title>, so it is the h1 too
+            (DayCard's `titleIsPageHeading`). A travel leg has neither, so it
+            gets the trip's name, visually hidden, as it always did — a
+            reader arriving from an email must never get a page with no h1.
           */}
-          {!onOverview && trip && (
+          {step?.kind === "travel" && trip && (
             <h1 className="sr-only">{localizedTrip(trip.trip).title}</h1>
           )}
           <StoryPager

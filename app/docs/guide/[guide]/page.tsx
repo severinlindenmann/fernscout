@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import DocsNav from "@/components/DocsNav";
 import EntryContent from "@/components/EntryContent";
-import { GUIDES, docsNavEntries, isGuide, readGuide } from "@/lib/docs";
+import { GUIDES, docsMetadata, docsNavEntries, isGuide, readGuide } from "@/lib/docs";
 import { requestLocale, translateIn } from "@/lib/locales";
 
 /**
@@ -28,10 +28,7 @@ export async function generateMetadata({
   const { guide } = await params;
   if (!isGuide(guide)) return {};
   const locale = await requestLocale();
-  return {
-    title: translateIn(locale, `guides.${guide}.title`),
-    description: translateIn(locale, `guides.${guide}.lede`),
-  };
+  return docsMetadata(guide, locale);
 }
 
 export default async function GuidePage({ params }: PageProps<"/docs/guide/[guide]">) {

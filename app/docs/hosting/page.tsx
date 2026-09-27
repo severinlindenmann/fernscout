@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import DocsNav from "@/components/DocsNav";
 import EntryContent from "@/components/EntryContent";
-import { docsNavEntries, HOSTING_CAPABILITY_SECTIONS, sectionOrNull } from "@/lib/docs";
+import { docsNavEntries, HOSTING_CAPABILITY_SECTIONS, sectionOrNull, docsMetadata } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Hosting" };
+export const metadata: Metadata = docsMetadata("hosting");
 
 /**
  * Running your own copy — B470, redrawn with the docs hub.

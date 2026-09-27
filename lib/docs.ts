@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { Metadata } from "next";
 import type { TranslationKey } from "./i18n";
+import { ogLocale, translateIn } from "./locales";
 
 /**
  * The `/docs` page's content strategy, for the parts that can honestly be
@@ -171,6 +173,26 @@ export const DOCS_PAGES: readonly DocsPage[] = [
   { id: "helper", href: "/docs/helper", labelKey: "docs.helper.title", blurbKey: "docs.helper.blurb" },
   { id: "gps", href: "/docs/guide/gps", labelKey: "guides.gps.title", blurbKey: "guides.gps.lede" },
 ];
+
+/**
+ * One docs page's metadata — B2479. The title is the page's own label (the
+ * root layout's template adds the instance's name), the description is the
+ * blurb the hub already shows for it, and the canonical is its address. The
+ * English pages call it with the default locale; the translated ones pass
+ * the reader's.
+ */
+export function docsMetadata(id: DocsPageId | "hub", locale = "en"): Metadata {
+  const page = DOCS_PAGES.find((p) => p.id === id);
+  const href = page?.href ?? "/docs";
+  const title = translateIn(locale, page?.labelKey ?? "docs.title");
+  const description = translateIn(locale, page?.blurbKey ?? "docs.lede");
+  return {
+    title,
+    description,
+    alternates: { canonical: href },
+    openGraph: { type: "website", url: href, locale: ogLocale(locale), title, description },
+  };
+}
 
 /**
  * The same list, shaped for `DocsNav`.

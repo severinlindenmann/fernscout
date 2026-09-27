@@ -230,6 +230,7 @@ export default function StoryPager({
                 summary={index[step.dayIndex]}
                 dayIndex={step.dayIndex}
                 isNewestDay={step.dayIndex === index.length - 1}
+                titleIsPageHeading
               />
             ) : (
               <DayPlaceholder
@@ -298,7 +299,12 @@ export function DayCard({
   canPublish,
   tripTest,
   isNewestDay = false,
+  titleIsPageHeading = false,
 }: {
+  /** The story page's day card names the page — B2479: its first update's
+   *  title is the document's h1, the same thing the tab title says. The docs
+   *  bench leaves it out and keeps an h2 under its own heading. */
+  titleIsPageHeading?: boolean;
   /** With its prose already drawn on the server, on the story page — see
    *  `lib/prose.ts`. A bare `Day` still renders: its markdown is parsed
    *  here instead, at the cost of fetching the parser. */
@@ -469,6 +475,7 @@ export function DayCard({
             prose={day.prose?.[entry.slug]}
             branched={multi}
             first={i === 0}
+            heading={i === 0 && titleIsPageHeading ? "h1" : "h2"}
             last={i === day.entries.length - 1}
             onRemovePhoto={
               trip?.canPublish
@@ -581,9 +588,11 @@ function UpdateBlock({
   prose,
   branched,
   first,
+  heading: Heading,
   last,
   onRemovePhoto,
 }: {
+  heading: "h1" | "h2";
   entry: Entry;
   /** The prose, already rendered in this reader's language — see
    *  `lib/prose.ts`. Absent, the markdown is rendered here instead. */
@@ -644,10 +653,10 @@ function UpdateBlock({
           this update, attached to the update's name. The draft badge stays
           where it was: "unfinished" is a state of the whole thing and is
           meant to interrupt. */}
-      <h2 className="mb-4 mt-1 font-display text-2xl font-semibold tracking-tight text-ink-strong sm:text-3xl">
+      <Heading className="mb-4 mt-1 font-display text-2xl font-semibold tracking-tight text-ink-strong sm:text-3xl">
         {title}
         <EntryVisibility entry={entry} />
-      </h2>
+      </Heading>
 
       {/* B305 — a day carried over from before B294 that has no translation
           for this reader's language. Quiet on purpose: unlike DraftNotice

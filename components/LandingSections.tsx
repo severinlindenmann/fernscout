@@ -264,12 +264,15 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
           was whose: a first-time visitor read this card as the pitch. The
           label is the mono kicker voice (B733), not a second yellow edge. */}
       <Kicker>{t("home.inviteKicker")}</Kicker>
-      <h2
+      {/* A paragraph, not an h2 — B2479. This card sits above the hero, so
+          as a heading it was the page's first one, ahead of the h1. It still
+          names the section for a screen reader through aria-labelledby. */}
+      <p
         id="reader-invite"
         className="mt-2 font-display text-xl font-semibold leading-tight text-ink-strong sm:text-2xl"
       >
         {t("home.inviteTitle")}
-      </h2>
+      </p>
       <p className="mt-2 max-w-prose text-base leading-7 text-ink-strong sm:text-lg">
         {t("home.inviteBody")}
       </p>
