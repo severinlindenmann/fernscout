@@ -45,6 +45,7 @@ import * as appWaitlist from "./043-app-waitlist";
 import * as messageLog from "./044-message-log";
 import * as inviteSuppressions from "./045-invite-suppressions";
 import * as messageSwitches from "./046-message-switches";
+import * as instanceOwnerColumns from "./047-instance-owner-columns";
 
 /**
  * Every migration, listed by hand.
@@ -105,6 +106,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "044-message-log": messageLog,
   "045-invite-suppressions": inviteSuppressions,
   "046-message-switches": messageSwitches,
+  "047-instance-owner-columns": instanceOwnerColumns,
 };
 
 /**
