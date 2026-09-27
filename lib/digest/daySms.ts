@@ -2,7 +2,7 @@ import "server-only";
 import { isTestContent } from "../access";
 import { isEnabled } from "../capabilities";
 import { whatsappCountryCode } from "../contactNumber";
-import { listContacts } from "../contacts";
+import { listContacts, manageTokenFor, unsubscribeUrlFor } from "../contacts";
 import { pickLocale } from "../contacts/locale";
 import { capText } from "../contacts/welcome";
 import { balanceOf, refund, spend } from "../credits";
@@ -36,7 +36,7 @@ import { recordNotified } from "./dayNotify";
  *   `owner.tel` alone does not opt anybody into texts.
  */
 
-type SmsRecipient = { to: string; locale: string; free: boolean; reader: ReaderLevel };
+type SmsRecipient = { to: string; locale: string; free: boolean; reader: ReaderLevel; manageToken: string };
 
 async function recipientsFor(trip: Trip, entry: Entry | null): Promise<SmsRecipient[]> {
   const owner = trip.username;
@@ -66,6 +66,7 @@ async function recipientsFor(trip: Trip, entry: Entry | null): Promise<SmsRecipi
       locale: pickLocale(contact.locale),
       free: email !== "" && email === ownerEmail,
       reader,
+      manageToken: manageTokenFor(owner, contact.id),
     });
   }
   return out;
@@ -120,11 +121,13 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
   let owed = 0;
   for (const recipient of recipients) {
     // Capped (security review L2): one credit buys a text of a segment or
-    // two, whatever the titles are.
+    // two, whatever the titles are. `s=sms` (B2442) — never "reply STOP":
+    // an alphanumeric sender id cannot receive replies.
     const body = translateIn(recipient.locale, "daySms.body", {
       trip: capText(trip.title, 60),
       day: capText(entry.title, 60),
       url,
+      stop: unsubscribeUrlFor(serverSite().url, owner, recipient.manageToken, "sms"),
     });
     try {
       await sendSms({ to: recipient.to, body, template: "news.sms", owner: trip.username });

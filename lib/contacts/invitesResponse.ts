@@ -20,7 +20,7 @@ import {
   listInvites,
   revokeInvite,
 } from "@/lib/contacts/invites";
-import { mailFailedNote } from "@/lib/contacts/inviteMailNote";
+import { inviteSuppressedNote, mailFailedNote } from "@/lib/contacts/inviteMailNote";
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendInviteMail } from "@/lib/contacts/mail";
 import { serverSite } from "@/lib/site";
@@ -107,22 +107,32 @@ export async function invitePutResponse(user: string, id: string, request: Reque
 
   const url = inviteLinkUrl(serverSite().url, user, write.kind, created.token);
 
-  const sent = write.email
-    ? (await sendInviteMail(user, getUser(user)!, {
+  const mailResult = write.email
+    ? await sendInviteMail(user, getUser(user)!, {
         email: write.email,
         locale: pickLocale(stored.locale, getUser(user)!.defaultLocale),
         kind: write.kind,
         url,
         tripTitle,
-      })) !== null
+      })
     : null;
+  const sent = mailResult !== null && mailResult !== "suppressed";
 
   const doc = inviteToDoc(stored);
   return ok(
     {
       ...doc,
       url,
-      ...(write.email ? { note: sent ? undefined : mailFailedNote(write.email, user) } : {}),
+      ...(write.email
+        ? {
+            note:
+              mailResult === "suppressed"
+                ? inviteSuppressedNote(write.email)
+                : sent
+                  ? undefined
+                  : mailFailedNote(write.email, user),
+          }
+        : {}),
     },
     { status: 201 },
   );
