@@ -45,7 +45,17 @@ export default function MapPageContent({
   const { t, tn, formatShortDate, formatStay } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
   // current trip, `/example/trips/<id>/day/…` for any other.
+  const trip = useTrip()?.trip;
   const href = useTrip()?.href ?? ((p: string) => p);
+  // The trip's own colour on its own route (B2422) — undeclared reads as
+  // no-preference (`tripAccent`, lib/trips.ts), so this map falls back to
+  // navy the same way `WorldMap` itself does for a caller with no trip.
+  const accent = trip?.accent ?? "navy";
+  // The one yellow marker on this map, gated on the trip's own declared
+  // status — "current" is an editorial choice, not a date guess
+  // (`effectiveStatus`, lib/tripTime.ts), and this page already reads it
+  // to decide the tense above.
+  const live = trip?.status === "current";
   // Whether the draft stops below are this reader's own to publish — B327.
   const canPublish = useTrip()?.canPublish ?? false;
   const [showing, setShowing] = useState(false);
@@ -186,6 +196,8 @@ export default function MapPageContent({
               track={track}
               basemap={basemap}
               pastTense={pastTense}
+              accent={accent}
+              live={live}
             />
           ) : (
             // Not `story.empty`. "No entries yet" is true and is not the reason

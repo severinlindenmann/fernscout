@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
@@ -253,3 +254,110 @@ describe("a day with no coordinates", () => {
  * whole map). `MiniMap` was replaced by `components/TripMap.tsx` in B1911 and
  * those keepers moved with it, to `test/trip-map.test.tsx`.
  */
+
+/**
+ * B2422 (Phase 1, docs/plans/map-redesign.md): Paper on the map page — the
+ * shared marker/line primitives wired into `WorldMap` itself, a trip accent
+ * on the route instead of 13 transport colours, and the one yellow marker
+ * gated on the trip actually being live.
+ */
+function renderWith(props: Partial<ComponentProps<typeof WorldMap>>) {
+  return renderToStaticMarkup(
+    <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+      <WorldMap places={props.places ?? []} {...props} />
+    </LocaleProvider>,
+  );
+}
+
+function flightLeg(a: PlaceView, b: PlaceView, mode: "flight" | "car" = "flight"): PlaceView[] {
+  const arriving: PlaceView = {
+    ...b,
+    entries: [
+      { slug: b.key, date: "2023-01-09", transport: { mode, from: a.location, to: b.location } } as unknown as PlaceEntry,
+    ],
+  };
+  return [a, arriving];
+}
+
+describe("here now (B2422)", () => {
+  test("draws no here-now marker for a trip that isn't live", () => {
+    const html = renderWith({ places: alps, live: false });
+    expect(html).not.toContain("var(--map-here-now)");
+  });
+
+  test("draws the here-now marker, at the most recently written place, only for a live trip", () => {
+    const html = renderWith({ places: alps, live: true });
+    expect(html).toContain("var(--map-here-now)");
+    expect(html).toContain("var(--map-here-now-halo)");
+  });
+
+  test("draws nothing when a live trip has no located place yet", () => {
+    const html = renderWith({ places: [], live: true });
+    expect(html).not.toContain("var(--map-here-now)");
+  });
+});
+
+describe("selection and clusters are never yellow (B2422)", () => {
+  test("a selected stop cannot be reached through props, but the marker tokens are navy, not the here-now yellow", () => {
+    // StopMarker itself proves selected-vs-yellow (test/map-primitives.test.tsx);
+    // this only has to show WorldMap draws from the same tokens rather than a
+    // hex of its own.
+    const html = renderWith({ places: alps });
+    expect(html).not.toContain('fill="#ffd23f"');
+    expect(html).not.toContain('fill="#ffe08a"');
+  });
+
+  test("a cluster is the navy cluster-fill token, not the old blue", () => {
+    // Bangkok forces a continental frame, the same technique
+    // "still collapses stops that would overlap" above uses, so Shibuya and
+    // Shinjuku actually collapse into one marker rather than the frame
+    // simply zooming in on the pair of them.
+    const sameCity = [
+      stop("Shibuya", 35.6595, 139.7005),
+      stop("Shinjuku", 35.6896, 139.7006),
+      stop("Bangkok", 13.7563, 100.5018),
+    ];
+    const html = renderWith({ places: sameCity });
+    expect(html).toContain("var(--map-cluster-fill)");
+    expect(html).not.toContain('fill="#3b82f6"');
+  });
+});
+
+describe("a leg's shape and colour (B2422)", () => {
+  const zurich = stop("Zurich", 47.3769, 8.5417);
+  const bangkok = stop("Bangkok", 13.7563, 100.5018);
+
+  test("a flight arcs (one quadratic path)", () => {
+    const html = renderWith({ places: flightLeg(zurich, bangkok, "flight"), accent: "coral" });
+    expect(html).toMatch(/d="M[-\d.]+,[-\d.]+ Q[-\d.]+,[-\d.]+ [-\d.]+,[-\d.]+"/);
+  });
+
+  test("a drive is a straight line (no quadratic path)", () => {
+    const html = renderWith({ places: flightLeg(zurich, bangkok, "car"), accent: "coral" });
+    expect(html).not.toMatch(/d="M[-\d.]+,[-\d.]+ Q/);
+    expect(html).toMatch(/d="M[-\d.]+,[-\d.]+ L[-\d.]+,[-\d.]+"/);
+  });
+
+  test("the leg is drawn in the trip's accent, never a per-mode colour", () => {
+    const html = renderWith({ places: flightLeg(zurich, bangkok, "flight"), accent: "coral" });
+    expect(html).toContain("var(--map-accent-coral)");
+    // The old per-mode colours (lib/transport.ts) never appear as a line
+    // colour on this map any more.
+    expect(html).not.toContain('stroke="#3b82f6"'); // flight
+    expect(html).not.toContain('stroke="#f59e0b"'); // bus
+  });
+
+  test("a recorded track suppresses the reconstructed hop", () => {
+    const html = renderWith({
+      places: flightLeg(zurich, bangkok, "car"),
+      accent: "coral",
+      track: [[[47.3769, 8.5417], [13.7563, 100.5018]]],
+    });
+    // Both the track and a straight hop between the same two stops render as
+    // an identical "M… L…" path, so the shape alone can't tell them apart —
+    // what proves the hop was actually suppressed is that the accent colour
+    // (and its casing) appear exactly once, from the track, not twice.
+    expect([...html.matchAll(/var\(--map-accent-coral\)/g)]).toHaveLength(1);
+    expect([...html.matchAll(/var\(--map-route-casing\)/g)]).toHaveLength(1);
+  });
+});

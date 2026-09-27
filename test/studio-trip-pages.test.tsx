@@ -130,7 +130,7 @@ describe("What the audience does not see — B2130, B2132", () => {
   };
 
   test("the invite promise follows whether a guest sees any costs", () => {
-    expect(invite({ ...preview, costsVisible: false }).textContent).toContain("Costs are never shown to a guest");
+    expect(invite({ ...preview, costsVisible: false }).textContent).toContain("Costs are never shown to a reader");
     act(() => root?.unmount());
     container?.remove();
     const el = invite({ ...preview, costsVisible: true });

@@ -653,7 +653,7 @@ export default function TripMap({
               x={placeIn(frame, latest)[0]}
               y={placeIn(frame, latest)[1]}
               px={px}
-              label={t("tripMap.hereNow")}
+              label={t("map.hereNow")}
             />
           )}
 
