@@ -4,6 +4,7 @@ import { isEnabled } from "../capabilities";
 import { whatsappCountryCode } from "../contactNumber";
 import { listContacts, manageTokenFor, unsubscribeUrlFor } from "../contacts";
 import { smsStopUrl } from "../contacts/smsStop";
+import { isSwitchedOff } from "../messages/switches";
 import { pickLocale } from "../contacts/locale";
 import { capText } from "../contacts/welcome";
 import { balanceOf, refund, spend } from "../credits";
@@ -125,6 +126,10 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
   if (!isEnabled("sms")) return { ok: false, reason: "sms_off" };
   if (!isEnabled("contacts", owner)) return { ok: false, reason: "contacts_off" };
 
+  // The operator's switch, asked before anything is spent (wave 3 review):
+  // a switched-off announcement costs nothing and says so.
+  if (await isSwitchedOff("news.sms")) return { ok: false, reason: "switched_off" };
+
   const recipients = await recipientsFor(trip, entry);
   const needed = recipients.filter((r) => !r.free).length;
   const ledgerRef = `${ref}/${slug}`;
@@ -136,7 +141,7 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
   const sent: { to: string }[] = [];
   const failed: { to: string; error: string }[] = [];
   let owed = 0;
-  for (const recipient of recipients) {
+  for (const [index, recipient] of recipients.entries()) {
     // Capped (security review L2): one credit buys a text of a segment or
     // two, whatever the titles are. `s=sms` (B2442) — never "reply STOP":
     // an alphanumeric sender id cannot receive replies.
@@ -151,12 +156,17 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
       sent.push({ to: recipient.to });
     } catch (err) {
       if (err instanceof SmsSwitchedOffError) {
-        // The same template for everybody on this send, so the first throw
-        // speaks for the rest: give back the whole pre-spend rather than
-        // trickling refunds recipient by recipient, and never mark the day
-        // notified on a channel that sent nothing (M1).
-        if (needed > 0) await refund(owner, needed, ledgerRef);
-        return { ok: false, reason: "switched_off" };
+        // Switched off while this send was under way (review L3): the rest
+        // of the list shares the template, so nobody else goes out. Give
+        // back exactly what was not sent; if some texts already left, the
+        // day still counts as told on SMS, so a retry cannot text them twice.
+        const unsent = recipients.slice(index);
+        const unsentPaid = unsent.filter((r) => !r.free).length + owed;
+        if (unsentPaid > 0) await refund(owner, unsentPaid, ledgerRef);
+        if (sent.length === 0) return { ok: false, reason: "switched_off" };
+        for (const r of unsent) failed.push({ to: r.to, error: "switched_off" });
+        await recordNotified(owner, trip.id, slug, "sms");
+        return { ok: true, sent, failed };
       }
       failed.push({ to: recipient.to, error: err instanceof Error ? err.message : String(err) });
       if (!recipient.free) owed++;
