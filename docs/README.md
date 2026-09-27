@@ -9,6 +9,7 @@ in a checkout; this folder is the long form for a person.
 | [running-locally.md](running-locally.md) | production build on your machine; the agent API end to end |
 | [runbook.md](runbook.md) | deploying to a VPS, backups, the nightly timer |
 | [capabilities.md](capabilities.md) | every optional capability, what it needs, and what switching it off means |
+| [glossary.md](glossary.md) | one word per concept — the terms the studio, the API and these docs use, in English, German and Hungarian |
 | [disaster-recovery.md](disaster-recovery.md) | the machine is gone: what a snapshot holds, and how the journals come back |
 | [architecture.md](architecture.md) | where things live, and why they are shaped that way |
 | [ingest.md](ingest.md) | photographs, EXIF, geodata |
