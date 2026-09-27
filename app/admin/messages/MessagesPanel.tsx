@@ -392,7 +392,11 @@ function PersonTab({ initialQuery }: { initialQuery: string }) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/messages/person?query=${encodeURIComponent(q)}`);
+      const response = await fetch("/api/admin/messages/person", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ query: q }),
+      });
       const json = (await response.json().catch(() => ({}))) as { rows?: LogRow[] };
       setRows(json.rows ?? []);
     } finally {
