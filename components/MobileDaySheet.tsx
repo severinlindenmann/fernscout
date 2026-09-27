@@ -16,6 +16,7 @@ import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
 import { useMoney } from "./CurrencyProvider";
 import type { DaySummary } from "@/lib/types";
+import { followInPlace } from "@/lib/inPlaceLink";
 
 /** Sheet collapse duration, shared by the animation and the deferred scroll. */
 const CLOSE_MS = 220;
@@ -38,6 +39,7 @@ export default function MobileDaySheet({
   onOverviewActive,
   tripOver,
   nav,
+  hrefFor,
 }: {
   days: DaySummary[];
   currentIndex: number;
@@ -52,12 +54,14 @@ export default function MobileDaySheet({
    * button above the day list calls itself. */
   tripOver: boolean;
   nav: PagerNavState;
+  /** Each day's permalink, so the list is links — see GamePath. */
+  hrefFor: (day: DaySummary) => string;
 }) {
   const { t, formatShortDate } = useI18n();
   const { spend } = useMoney();
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
-  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const dragControls = useDragControls();
   const reducedMotion = useReducedMotion();
@@ -219,18 +223,22 @@ export default function MobileDaySheet({
                     const cost = day.cost;
                     return (
                       <li key={day.date}>
-                        <button
+                        <a
                           ref={isCurrent ? activeRef : undefined}
-                          onClick={() => {
-                            setOpen(false);
-                            // Scroll only once the sheet has finished collapsing:
-                            // the layout change during the exit animation cancels
-                            // an in-flight smooth scroll, leaving the page put.
-                            window.setTimeout(
-                              () => onSelect(day.date),
-                              CLOSE_MS + 40,
-                            );
-                          }}
+                          href={hrefFor(day)}
+                          data-in-place=""
+                          onClick={(e) =>
+                            followInPlace(e, () => {
+                              setOpen(false);
+                              // Scroll only once the sheet has finished collapsing:
+                              // the layout change during the exit animation cancels
+                              // an in-flight smooth scroll, leaving the page put.
+                              window.setTimeout(
+                                () => onSelect(day.date),
+                                CLOSE_MS + 40,
+                              );
+                            })
+                          }
                           aria-current={isCurrent ? "true" : undefined}
                           className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                             isCurrent
@@ -271,7 +279,7 @@ export default function MobileDaySheet({
                               aria-hidden
                             />
                           )}
-                        </button>
+                        </a>
                       </li>
                     );
                   })}

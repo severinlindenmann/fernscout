@@ -389,6 +389,16 @@ export default function TripStory({
         ? `→ ${index[step.dayIndex].location}`
         : `${t("day.label")} ${step.dayIndex + 1} ${t("day.of")} ${index.length}`;
 
+  /** The permalink a step lives at — the same address the effect above
+   * writes into the bar when the step is reached. B2477. */
+  const dayHref = (day: DaySummary) => (trip ? trip.href(`/day/${day.slug}`) : hashForDay(day));
+  const stepHref = (i: number) => {
+    const s = steps[i];
+    if (!s) return undefined;
+    if (s.kind === "hero") return trip ? trip.href("/") : undefined;
+    return dayHref(index[s.dayIndex]);
+  };
+
   const nav: PagerNavState = {
     stepIndex,
     stepCount: steps.length,
@@ -398,6 +408,8 @@ export default function TripStory({
     tripOver: over,
     onBack: () => goStep(-1),
     onNext: () => goStep(1),
+    backHref: stepHref(stepIndex - 1),
+    nextHref: stepHref(stepIndex + 1),
   };
 
   const stepDay = useCallback(
@@ -536,7 +548,7 @@ export default function TripStory({
             <LayoutDashboard className="h-4 w-4" />
             {t("nav.overview")}
           </button>
-          <GamePath days={index} currentIndex={activeIndex} onSelect={jumpToDay} />
+          <GamePath days={index} currentIndex={activeIndex} onSelect={jumpToDay} hrefFor={dayHref} />
         </aside>
 
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 py-4">
@@ -636,7 +648,8 @@ export default function TripStory({
         onOverviewActive={onOverview}
         showLatest={awayFromLanding}
         tripOver={over}
-        nav={{ ...nav, onEnd: goToOverview }}
+        nav={{ ...nav, onEnd: goToOverview, endHref: trip ? trip.href("/") : undefined }}
+        hrefFor={dayHref}
       />
     </div>
   );

@@ -17,6 +17,7 @@ import {
   Backpack,
 } from "lucide-react";
 import { flagFor } from "@/lib/flags";
+import { followInPlace } from "@/lib/inPlaceLink";
 import { useI18n } from "./LocaleProvider";
 import { useMoney } from "./CurrencyProvider";
 import type { DaySummary, TransportMode } from "@/lib/types";
@@ -87,14 +88,19 @@ export default function GamePath({
   days,
   currentIndex,
   onSelect,
+  hrefFor,
 }: {
   days: DaySummary[];
   currentIndex: number;
   onSelect?: (date: string) => void;
+  /** Each day's permalink — B2477. The nodes are links to it, so the raw
+   * HTML of a trip page links every day and a reader can open one in a new
+   * tab; a plain click still moves the story in place. */
+  hrefFor: (day: DaySummary) => string;
 }) {
   const { t, formatShortDate } = useI18n();
   const { spend } = useMoney();
-  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const NODE = 46;
@@ -194,6 +200,27 @@ export default function GamePath({
         />
       </svg>
 
+      {/*
+        The days outside the drawn band, as bare links in the slots their
+        nodes will fill — B2477. A crawler (and a keyboard) reaches every day,
+        at a fraction of a full node's markup, which is what OVERSCAN is for.
+      */}
+      {days.map((day, i) => {
+        if (i >= drawn[0] && i <= drawn[drawn.length - 1]) return null;
+        const { x, y } = points[i];
+        return (
+          <a
+            key={day.date}
+            href={hrefFor(day)}
+            data-in-place=""
+            onClick={(e) => followInPlace(e, () => onSelect?.(day.date))}
+            aria-label={`${t("day.label")} ${i + 1} · ${day.location}`}
+            className="absolute rounded-full"
+            style={{ left: x - NODE / 2, top: y - NODE / 2, width: NODE, height: NODE }}
+          />
+        );
+      })}
+
       {drawn.map((i) => {
         const day = days[i];
         const isCurrent = i === currentIndex;
@@ -204,10 +231,12 @@ export default function GamePath({
         const flag = flagFor(day.country, day.countryCode);
 
         return (
-          <motion.button
+          <motion.a
             key={day.date}
             ref={isCurrent ? activeRef : undefined}
-            onClick={() => onSelect?.(day.date)}
+            href={hrefFor(day)}
+            data-in-place=""
+            onClick={(e) => followInPlace(e, () => onSelect?.(day.date))}
             whileTap={{ scale: 0.92 }}
             aria-current={isCurrent ? "true" : undefined}
             title={`${day.location} — ${day.date}`}
@@ -261,7 +290,7 @@ export default function GamePath({
               {day.updates > 1 && ` · ${day.updates} ${t("day.updates")}`}
               {day.cost > 0 && ` · ${spend(day.cost, day.costLocal)}`}
             </span>
-          </motion.button>
+          </motion.a>
         );
       })}
     </div>
