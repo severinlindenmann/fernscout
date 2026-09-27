@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { cache } from "react";
+import type { UserConfig } from "@/lib/config";
+import { inviteMetadata, inviteSubject } from "@/lib/invitePreview";
 import { redirect } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
 import { guestLanding, isOpenToApprovedGuest } from "@/lib/access";
@@ -17,11 +20,29 @@ import WelcomeGuide, { type GuideDetails } from "./WelcomeGuide";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" };
-
 /** Per IP: a person opens their link a handful of times; a list of guesses is
  * something else. */
 const LOOKUPS = { max: 30, windowMs: 15 * 60 * 1000 };
+
+type Lookup = { found: Awaited<ReturnType<typeof resolveWelcomeCode>>; user: UserConfig | null };
+
+/** One rate-limited lookup per request, shared by the preview's metadata and
+ * the page. */
+const lookup = cache(async (code: string): Promise<Lookup> => {
+  const allowed = rateLimitFor("welcome-lookup", clientIp(await headers()), LOOKUPS).ok;
+  const found = allowed && isEnabled("contacts") ? await resolveWelcomeCode(code) : null;
+  // The journal's own contacts switch too, not only the server's (I3).
+  const user = found && isEnabled("contacts", found.owner) ? getUser(found.owner) : null;
+  return { found, user };
+});
+
+/** The link preview — B2502: an invitation to the journal, in its language.
+ * The journal's title only, never the name the owner typed for the person. */
+export async function generateMetadata({ params }: PageProps<"/w/[code]">): Promise<Metadata> {
+  const { code } = await params;
+  const { found, user } = await lookup(code);
+  return inviteMetadata(`/w/${code}`, found ? inviteSubject(user) : null);
+}
 
 /**
  * `/w/<code>` — somebody's welcome link: the six-screen guide (B2293; the
@@ -44,10 +65,7 @@ const LOOKUPS = { max: 30, windowMs: 15 * 60 * 1000 };
  */
 export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const { code } = await params;
-  const allowed = rateLimitFor("welcome-lookup", clientIp(await headers()), LOOKUPS).ok;
-  const found = allowed && isEnabled("contacts") ? await resolveWelcomeCode(code) : null;
-  // The journal's own contacts switch too, not only the server's (I3).
-  const user = found && isEnabled("contacts", found.owner) ? getUser(found.owner) : null;
+  const { found, user } = await lookup(code);
 
   if (!found || !user) {
     const locale = await requestLocale();

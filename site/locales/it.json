@@ -4340,5 +4340,10 @@
   "trips.map.subregion.polynesia": "Polinesia",
   "trips.map.subregion.sevenSeas": "Oceano aperto",
   "trips.map.all": "Tutti",
-  "trips.map.filteredBelow": "filtrato qui sotto"
+  "trips.map.filteredBelow": "filtrato qui sotto",
+  "invitePreview.title": "Invito a seguire {title}",
+  "invitePreview.description": "Segui il viaggio giorno per giorno, via e-mail o WhatsApp. Senza app.",
+  "invitePreview.kicker": "Un invito a seguire il viaggio",
+  "invitePreview.neutralTitle": "Invito",
+  "invitePreview.neutralDescription": "Un link a un diario di viaggio."
 }
