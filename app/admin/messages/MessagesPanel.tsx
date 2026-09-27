@@ -243,6 +243,7 @@ export default function MessagesPanel({
                 })}
               </tbody>
             </table>
+          </div>
 
           {/* B2482: a card per kind below tablet width — every channel of a
               kind reachable without the page scrolling sideways. */}
@@ -286,7 +287,6 @@ export default function MessagesPanel({
               ];
             })}
           </ul>
-          </div>
         </div>
       ) : null}
 
