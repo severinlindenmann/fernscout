@@ -76,3 +76,39 @@ export function languageAlternates(path: string, locales: readonly string[] = LA
   out["x-default"] = path;
   return out;
 }
+
+/**
+ * The pages with a Markdown version for agents — B2488: the landing, the
+ * plans, the orgs pages and their demos, the answer pages. Not the docs.
+ * Each has it at every language address it has: `/schools.md`,
+ * `/de/schools.md`, and `/index.md` / `/de/index.md` for the landing.
+ */
+export const MARKDOWN_PAGES: readonly string[] = [
+  "/",
+  "/prices",
+  "/schools",
+  "/schools/demo",
+  "/tour-operators",
+  "/tour-operators/demo",
+  ...GUIDE_PATHS,
+];
+
+/** The `.md` address of `path` in `locale` (null for English). */
+export function markdownHref(locale: string | null | undefined, path: string): string {
+  const href = languageHref(locale, path);
+  return href === "/" ? "/index.md" : isPathLocale(href.slice(1)) ? `${href}/index.md` : `${href}.md`;
+}
+
+/** `/de/schools.md` → `{ locale: "de", path: "/schools" }`, `/index.md` →
+ * `{ locale: null, path: "/" }`; null for anything that is not one. */
+export function splitMarkdownPath(pathname: string): { locale: PathLocale | null; path: string } | null {
+  if (!pathname.endsWith(".md")) return null;
+  const stem = pathname.slice(0, -3);
+  // One address each: the landing is `/index.md` and `/de/index.md`, never
+  // `/de.md`, and no other page has an `/index.md`.
+  const index = /^(\/(de|fr|it))?\/index$/.exec(stem);
+  const bare = index ? index[1] || "/" : stem;
+  if (!index && (bare === "/" || isPathLocale(bare.slice(1)) || bare.endsWith("/index"))) return null;
+  const found = splitLanguagePath(bare) ?? (isPathLocale(bare.slice(1)) ? null : { locale: null, path: bare });
+  return found && MARKDOWN_PAGES.includes(found.path) ? found : null;
+}

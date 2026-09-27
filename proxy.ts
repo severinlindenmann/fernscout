@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadServerConfig } from "@/lib/config";
-import { LANGUAGE_PAGES, isPathLocale, splitLanguagePath } from "@/lib/languagePaths";
+import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, splitLanguagePath, splitMarkdownPath } from "@/lib/languagePaths";
 import { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER } from "@/lib/requestKeys";
 import { formatRequestLine } from "@/lib/requestLog";
 import { journalTombstone, tripTombstone, type Tombstone } from "@/lib/tombstones";
@@ -160,6 +160,23 @@ function logRequest(request: NextRequest): void {
   console.log(formatRequestLine(request.method, request.nextUrl.pathname, request.headers.get("user-agent")));
 }
 
+/** Whether a client asked for Markdown ahead of HTML (an agent's fetch, not
+ * a browser, which lists text/html first). */
+function prefersMarkdown(request: NextRequest): boolean {
+  const accept = (request.headers.get("accept") ?? "").toLowerCase();
+  const md = accept.indexOf("text/markdown");
+  if (md < 0) return false;
+  const html = accept.indexOf("text/html");
+  return html < 0 || md < html;
+}
+
+/** The page at `pathname`, when it has a Markdown version. */
+function markdownPage(pathname: string): { locale: string | null; path: string } | null {
+  const language = splitLanguagePath(pathname);
+  if (language) return MARKDOWN_PAGES.includes(language.path) ? language : null;
+  return MARKDOWN_PAGES.includes(pathname) ? { locale: null, path: pathname } : null;
+}
+
 export default function proxy(request: NextRequest) {
   logRequest(request);
 
@@ -177,6 +194,20 @@ export default function proxy(request: NextRequest) {
   // Only this proxy says which language an address asked for — B2473.
   request.headers.delete(PATH_LOCALE_HEADER);
 
+  // B2488 — the Markdown version of a page, at `/schools.md` or asked for
+  // with `Accept: text/markdown` on the page's own address.
+  const markdown = splitMarkdownPath(pathname) ?? (prefersMarkdown(request) ? markdownPage(pathname) : null);
+  if (markdown) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/api/page-md";
+    url.search = "";
+    url.searchParams.set("path", markdown.path);
+    if (markdown.locale) url.searchParams.set("lang", markdown.locale);
+    const response = NextResponse.rewrite(url, { request });
+    response.headers.set("Vary", "Accept");
+    return response;
+  }
+
   // `/de/schools` is `/schools` in German: rewritten, with the language in a
   // header the locale resolver reads before any cookie. An address under
   // /de/ that is not a listed page falls through to the journal route and
@@ -187,7 +218,9 @@ export default function proxy(request: NextRequest) {
     request.headers.set(PATH_LOCALE_HEADER, language.locale);
     const url = request.nextUrl.clone();
     url.pathname = language.path;
-    return NextResponse.rewrite(url, { request });
+    const response = NextResponse.rewrite(url, { request });
+    if (MARKDOWN_PAGES.includes(language.path)) response.headers.set("Vary", "Accept");
+    return response;
   }
 
   const gone = goneFor(pathname);
@@ -215,7 +248,11 @@ export default function proxy(request: NextRequest) {
     const response = NextResponse.next({ request });
     // The root address of a page with language versions renders in the
     // reader's cookie or device language, so a cache must key on both.
-    if (LANGUAGE_PAGES[pathname]) response.headers.set("Vary", "Accept-Language, Cookie");
+    // A page with a Markdown version also answers `Accept: text/markdown`.
+    if (LANGUAGE_PAGES[pathname]) {
+      const accept = MARKDOWN_PAGES.includes(pathname) ? "Accept, " : "";
+      response.headers.set("Vary", `${accept}Accept-Language, Cookie`);
+    }
     return response;
   }
 
@@ -276,5 +313,7 @@ export const config = {
     "/:user/day/:slug([^/]+)\\.md",
     "/:user/trips/:trip/day/:slug.md",
     "/:user/trips/:trip/day/:slug([^/]+)\\.md",
+    // The pages' Markdown versions (B2488) — `.md` is excluded above.
+    "/((?:de/|fr/|it/)?(?:index|prices|schools|schools/demo|tour-operators|tour-operators/demo|guides/[a-z-]+)\\.md)",
   ],
 };

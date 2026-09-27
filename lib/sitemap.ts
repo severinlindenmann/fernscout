@@ -7,7 +7,7 @@ import { serverSite } from "./site";
 import { listedUsernames } from "./users";
 import { DOCS_PAGES } from "./docs";
 import { hasLegal, legalLocales } from "./legal";
-import { LANGUAGE_PAGES, languageAlternates } from "./languagePaths";
+import { LANGUAGE_PAGES, MARKDOWN_PAGES, languageAlternates, markdownHref } from "./languagePaths";
 import { GUIDE_PATHS } from "@paid/guides/lib/paths";
 import { SKILL_DOC_SLUGS, skillDocPath } from "./api/skillDocMeta";
 import { PAID_AREAS } from "@paid/manifest";
@@ -147,7 +147,20 @@ export function journalsSitemap(): SitemapEntry[] {
 }
 
 /**
- * What an agent reads: llms.txt, the task guides, the API. Not
+ * The pages whose Markdown version answers on this build — B2488: the
+ * orgs pages only with paid/, /prices only where this instance charges.
+ */
+export function markdownPages(): string[] {
+  return MARKDOWN_PAGES.filter((path) => {
+    if (path === "/prices") return isEnabled("credits");
+    if (path.startsWith("/schools") || path.startsWith("/tour-operators")) return PAID_AREAS.includes("orgs");
+    return true;
+  });
+}
+
+/**
+ * What an agent reads: llms.txt, the task guides, the API, and the pages'
+ * Markdown versions in every language they have (B2488). Not
  * `/documentation.txt` — it answers `X-Robots-Tag: noindex` on purpose, and a
  * sitemap entry for it would argue with that; llms.txt links it instead.
  */
@@ -157,6 +170,7 @@ export function agentsSitemap(): SitemapEntry[] {
     "/llms.txt",
     ...SKILL_DOC_SLUGS.map(skillDocPath),
     "/api/v2/openapi.json",
+    ...markdownPages().flatMap((path) => [null, ...(LANGUAGE_PAGES[path] ?? [])].map((l) => markdownHref(l, path))),
   ].map((path) => ({ url: `${base}${path}` }));
 }
 

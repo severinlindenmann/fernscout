@@ -117,6 +117,8 @@ describe("metadata", () => {
     const meta = await generateMetadata();
     expect(meta.alternates?.canonical).toBe("/de/schools");
     expect(meta.alternates?.languages).toEqual(languageAlternates("/schools"));
+    // B2488 — and links its Markdown version in the same language.
+    expect(meta.alternates?.types).toEqual({ "text/markdown": "/de/schools.md" });
     expect(String((meta.title as { absolute: string }).absolute)).toMatch(/Klassenlager|Schul/);
   });
 
