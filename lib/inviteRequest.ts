@@ -10,6 +10,8 @@ import { logMessage } from "./messages/log";
 import { renderMail, type MailBlock } from "./mail/template";
 import { translateIn } from "./locales";
 import type { TranslationKey } from "./i18n";
+import type { Composition } from "./messages/previews/types";
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 
 /**
  * A stranger, on an invite-only instance, asking to be let in — B2507.
@@ -99,23 +101,34 @@ export async function addInviteRequest(
   }
 
   const mailLocale = askedLocale ?? "en";
-  const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(mailLocale, key, vars);
-  const blocks: MailBlock[] = [{ kind: "paragraph", text: t("inviteRequest.mailBody") }];
+  const { subject, content } = composeInviteRequestMail(mailLocale);
   // After the response, for the same reason B159/B37 give in
   // lib/afterResponse.ts: a real send takes measurably longer than a
   // deduped skip, and the response must not let that difference leak.
   afterResponse("invite-request-mail", () => sendMail(
-    renderMail(normalized, t("inviteRequest.mailSubject"), {
+    renderMail(normalized, subject, content),
+  ).catch((err) => {
+    console.error(`[invite-request] confirmation mail could not be sent:`, err);
+  }));
+  return true;
+}
+
+/** `notice.inviteRequest`'s composition — the same one the preview in
+ *  /admin renders (B2493). */
+export function composeInviteRequestMail(locale: string): MailComposition {
+  const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(locale, key, vars);
+  const blocks: MailBlock[] = [{ kind: "paragraph", text: t("inviteRequest.mailBody") }];
+  return {
+    channel: "mail",
+    subject: t("inviteRequest.mailSubject"),
+    content: {
       template: "notice.inviteRequest",
       preheader: t("inviteRequest.mailSubject"),
       title: t("inviteRequest.mailSubject"),
       blocks,
       why: t("inviteRequest.mailFooter"),
-    }),
-  ).catch((err) => {
-    console.error(`[invite-request] confirmation mail could not be sent:`, err);
-  }));
-  return true;
+    },
+  };
 }
 
 /** Address validation at the boundary — the same `isEmail` every other
