@@ -33,6 +33,7 @@
 import webpush, { WebPushError } from "web-push";
 import { isOpenToLink, isTestContent } from "../lib/access";
 import { AS_AUTHOR, getAllEntries, getDefaultDay, getEntryBySlug } from "../lib/entries";
+import { logMessage } from "../lib/messages/log";
 import { isGoneSubscription, removeSubscriptions, subscribersFor } from "../lib/push";
 import { sendApnsNotification } from "../lib/push/apns";
 import { currentTripRef, getTrip, getTripIds } from "../lib/trips";
@@ -224,10 +225,19 @@ await Promise.all(
         const result = await sendApnsNotification({ token: sub.endpoint, ...notice });
         if (result.ok) {
           sent++;
+          await logMessage({ template: "news.push", channel: "push", to: sub.endpoint, owner: trip.username, status: "sent" });
         } else if (result.gone) {
           dead.push(sub.endpoint);
         } else {
           console.error(`    ! apns ${result.status} ${result.body.slice(0, 120)}`);
+          await logMessage({
+            template: "news.push",
+            channel: "push",
+            to: sub.endpoint,
+            owner: trip.username,
+            status: "failed",
+            reason: `apns ${result.status}`,
+          });
         }
       } catch (err) {
         console.error(`    ! apns ${(err as Error).message}`);
@@ -237,6 +247,7 @@ await Promise.all(
     try {
       await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
       sent++;
+      await logMessage({ template: "news.push", channel: "push", to: sub.endpoint, owner: trip.username, status: "sent" });
     } catch (err) {
       // 404/410 mean the subscription is gone for good — the PWA was deleted
       // or the browser rotated it. Anything else is worth seeing. Pruning it

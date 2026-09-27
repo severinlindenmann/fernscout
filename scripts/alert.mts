@@ -218,6 +218,7 @@ if (dryRun) {
   console.log(
     textOf(
       renderMail(target?.to ?? "nobody@invalid", subject, {
+        template: "op.alert",
         preheader: opening,
         title,
         blocks,
@@ -257,7 +258,7 @@ try {
     renderMail(
       target.to,
       subject,
-      { preheader: opening, title, blocks, footer },
+      { template: "op.alert", preheader: opening, title, blocks, footer },
       target.username,
     ),
     "an operator alert about the machine, not a letter from the journal",

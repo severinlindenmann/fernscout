@@ -94,6 +94,7 @@ export async function POST(request: Request) {
     to,
     subject,
     {
+      template: "notice.operatorMessage",
       preheader: text.slice(0, 90),
       title: subject,
       blocks: text.split(/\n{2,}/).map((paragraph) => ({ kind: "paragraph" as const, text: paragraph })),

@@ -27,7 +27,7 @@ const SENTENCES: Record<string, (code: string, site: string) => string> = {
 async function start(phone: string, locale: string): Promise<StartResult> {
   const { id, code } = await issuePhoneCode(phone);
   const sentence = SENTENCES[locale] ?? SENTENCES.en;
-  await sendSms({ to: phone, body: sentence(code, loadServerConfig().site.name) });
+  await sendSms({ to: phone, body: sentence(code, loadServerConfig().site.name), template: "code.sms" });
   return { id };
 }
 

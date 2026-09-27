@@ -368,6 +368,7 @@ async function renderDayLetter(
     recipient.email,
     translateIn(locale, "dayMail.subject", { title: user.title, day: title }),
     {
+      template: "news.mail",
       preheader: title,
       title,
       blocks,

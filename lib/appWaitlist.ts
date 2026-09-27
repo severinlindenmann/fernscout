@@ -107,6 +107,7 @@ export async function addToWaitlist(
   ];
   await sendMail(
     renderMail(normalized, t("appWaitlist.mailSubject"), {
+      template: "notice.waitlist",
       preheader: t("appWaitlist.mailSubject"),
       title: t("appWaitlist.mailSubject"),
       blocks,

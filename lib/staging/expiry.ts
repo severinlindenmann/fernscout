@@ -176,6 +176,7 @@ async function sendExpiryMail(username: string, user: UserConfig, run: RunManife
         user.owner.email,
         subject,
         {
+          template: "notice.expiryWarn",
           preheader: subject,
           title: subject,
           blocks,
@@ -216,6 +217,7 @@ async function sendFinalNoticeMail(username: string, user: UserConfig, run: RunM
         user.owner.email,
         subject,
         {
+          template: "notice.expiryFinal",
           preheader: subject,
           title: subject,
           blocks,

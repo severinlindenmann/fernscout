@@ -5,6 +5,8 @@ import path from "node:path";
 import { isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { dataDir } from "../dataDir";
+import { logMessage } from "../messages/log";
+import type { TemplateId } from "../messages/registry";
 import { maskNumber } from "../phone";
 import { recordSms } from "./store";
 
@@ -27,6 +29,11 @@ export type SmsMessage = {
   /** E.164 digits, no `+` — `toE164`'s shape, same as WhatsApp's `to`. */
   to: string;
   body: string;
+  /** The registry id this text is — see lib/messages/registry.ts. */
+  template: TemplateId;
+  /** The journal this is on behalf of, when there is one — written to
+   * `message_log`'s `owner_id`. */
+  owner?: string;
 };
 
 type SmsSendResult = { backend: string; reference: string | null };
@@ -151,7 +158,21 @@ export async function sendSms(message: SmsMessage): Promise<SmsSendResult> {
   const unreachable = smsUnreachable(message.to);
   if (unreachable) throw new SmsApiError(`This message cannot be delivered: ${unreachable}.`);
 
-  const result = await transportFor(backendName()).send(message);
+  let result: SmsSendResult;
+  try {
+    result = await transportFor(backendName()).send(message);
+  } catch (error) {
+    await logMessage({
+      template: message.template,
+      channel: "sms",
+      to: message.to,
+      owner: message.owner,
+      status: "failed",
+      reason: (error as Error).message,
+    });
+    throw error;
+  }
+  await logMessage({ template: message.template, channel: "sms", to: message.to, owner: message.owner, status: "sent" });
 
   try {
     const from = process.env.TWILIO_FROM_NUMBER ?? "";

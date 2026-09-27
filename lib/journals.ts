@@ -544,6 +544,7 @@ export async function sendWelcome(input: {
         input.email,
         t("welcome.subject", { title: input.title }),
         {
+          template: "notice.welcome",
           preheader: t("welcome.intro", {
             nickname: input.nickname,
             title: input.title,

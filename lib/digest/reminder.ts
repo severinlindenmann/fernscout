@@ -100,6 +100,7 @@ async function sendReminder(username: string, user: UserConfig, trip: Trip): Pro
         user.owner.email,
         translateIn(locale, "mail.reminderSubject", { trip: trip.title }),
         {
+          template: "nudge.evening",
           preheader: translateIn(locale, "mail.reminderBody", { trip: trip.title }),
           title: translateIn(locale, "mail.reminderTitle"),
           blocks: [

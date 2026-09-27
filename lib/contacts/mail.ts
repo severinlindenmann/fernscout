@@ -167,6 +167,7 @@ export async function sendCodeMail(
       to,
       translateIn(locale, "contact.mailCodeSubject", { title: user.title }),
       {
+        template: "code.mail",
         preheader: translateIn(locale, "contact.mailCodeBody", { code, minutes: CODE_TTL_MINUTES }),
         title: translateIn(locale, link ? "contact.mailCodeLinkTitle" : "contact.mailCodeTitle"),
         blocks: [
@@ -239,6 +240,7 @@ export async function sendInviteMail(
         input.email,
         translateIn(input.locale, buddy ? "contact.mailInviteBuddySubject" : "contact.mailInviteGuestSubject", vars),
         {
+          template: "invite.mail",
           preheader: translateIn(input.locale, buddy ? "contact.mailInviteBuddyBody" : "contact.mailInviteGuestBody", vars),
           title: translateIn(input.locale, "contact.mailInviteTitle"),
           blocks: [
@@ -273,6 +275,12 @@ export async function sendWelcomeMail(
   user: UserConfig,
   contact: ContactRecord,
   message: { locale: Locale; url: string; text: string; subject: string },
+  /** Which registry id this is — `invite.mail` when this is the owner
+   * handing somebody a link (Add a person), `invite.in.mail` when it is
+   * telling somebody already let in that they're in (`tellLetIn`). Both
+   * callers name it explicitly (B2438) since this one function serves both
+   * purposes. */
+  template: "invite.mail" | "invite.in.mail" = "invite.mail",
 ): Promise<SendResult | null> {
   if (!mayMailContact(contact, { allowUnconfirmed: true })) return null;
   const token = manageTokenFor(username, contact.id);
@@ -281,6 +289,7 @@ export async function sendWelcomeMail(
       contact.email,
       message.subject,
       {
+        template,
         preheader: message.text,
         title: message.subject,
         blocks: [
@@ -362,6 +371,7 @@ export async function notifyOwnerOfRequest(
         user.owner.email,
         translateIn(locale, subjectKey, { title: user.title, trip: trip?.title ?? "" }),
         {
+          template: "notice.request",
           preheader: translateIn(locale, bodyKey, bodyVars),
           title: translateIn(locale, "contact.mailRequestTitle"),
           blocks: [
@@ -478,6 +488,7 @@ export async function sendApprovedMail(
         contact.email,
         translateIn(locale, "contact.mailApprovedSubject", { title: user.title }),
         {
+          template: "invite.in.mail",
           preheader: translateIn(locale, bodyKey, bodyVars),
           title: translateIn(locale, "contact.mailApprovedTitle"),
           blocks: [

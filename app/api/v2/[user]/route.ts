@@ -342,6 +342,7 @@ async function startOwnerEmailVerification(
         newEmail,
         translateIn(locale, "mail.ownerEmailCodeSubject", vars),
         {
+          template: "code.ownerEmail.mail",
           preheader: translateIn(locale, "mail.identityCode", vars),
           title: translateIn(locale, "mail.ownerEmailCodeTitle"),
           blocks: [

@@ -230,6 +230,7 @@ async function handleIdentity(
   try {
     await sendMail(
       renderMail(req.email, translateIn(locale, "mail.identitySubject", vars), {
+        template: "code.identity.mail",
         preheader: translateIn(locale, "mail.identityCode", vars),
         title: translateIn(locale, "mail.identityTitle"),
         blocks: [
@@ -389,6 +390,7 @@ async function handleJournal(
         req.email,
         req.for === "write" ? t("mail.agentSubject", vars) : t("mail.signinSubject", vars),
         {
+          template: "code.journal.mail",
           preheader: t("mail.identityCode", vars),
           title: req.for === "write" ? t("mail.agentTitle") : t("mail.signinSubject", vars),
           blocks: [

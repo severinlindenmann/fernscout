@@ -541,12 +541,12 @@ async function deliver(
   if (channel === "email") {
     const user = getUser(owner);
     if (!user) return null;
-    const sent = await sendWelcomeMail(owner, user, contact, message);
+    const sent = await sendWelcomeMail(owner, user, contact, message, "invite.mail");
     return sent?.transport ?? null;
   }
   const to = smsDigits(contact);
   if (!to) return null;
-  return (await sendSms({ to, body: message.text })).backend;
+  return (await sendSms({ to, body: message.text, template: "invite.sms", owner })).backend;
 }
 
 async function recordInvited(owner: string, contactId: string, channel: InviteChannel): Promise<void> {
@@ -583,11 +583,11 @@ export async function tellLetIn(owner: string, contact: ContactRecord): Promise<
   try {
     if (contact.email.includes("@") && contact.confirmedAt && !mailDisabledReason(owner)) {
       const subject = translateIn(locale, "welcomeLink.letInSubject", vars);
-      if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject })) return "email";
+      if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject }, "invite.in.mail")) return "email";
     }
     const digits = contact.phoneProvenAt ? smsDigits(contact) : null;
     if (digits && isEnabled("sms") && !smsUnreachable(digits)) {
-      await sendSms({ to: digits, body: text });
+      await sendSms({ to: digits, body: text, template: "invite.in.sms", owner });
       return "sms";
     }
   } catch (err) {

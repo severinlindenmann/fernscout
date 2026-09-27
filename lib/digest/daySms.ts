@@ -127,7 +127,7 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
       url,
     });
     try {
-      await sendSms({ to: recipient.to, body });
+      await sendSms({ to: recipient.to, body, template: "news.sms", owner: trip.username });
       sent.push({ to: recipient.to });
     } catch (err) {
       failed.push({ to: recipient.to, error: err instanceof Error ? err.message : String(err) });

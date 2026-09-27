@@ -329,6 +329,7 @@ async function warnOwner(
       to,
       t(full ? "mail.storageFullSubject" : "mail.storageLowSubject", vars),
       {
+        template: "notice.storage",
         preheader: t("mail.storagePreheader", vars),
         title: t(full ? "mail.storageFullTitle" : "mail.storageLowTitle"),
         blocks: [

@@ -42,6 +42,7 @@ import * as welcomeLinks from "./040-welcome-links";
 import * as adminAckSnooze from "./041-admin-ack-snooze";
 import * as onboardingJoinCodes from "./042-onboarding-join-codes";
 import * as appWaitlist from "./043-app-waitlist";
+import * as messageLog from "./044-message-log";
 
 /**
  * Every migration, listed by hand.
@@ -99,6 +100,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "041-admin-ack-snooze": adminAckSnooze,
   "042-onboarding-join-codes": onboardingJoinCodes,
   "043-app-waitlist": appWaitlist,
+  "044-message-log": messageLog,
 };
 
 /**

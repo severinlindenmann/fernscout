@@ -58,6 +58,7 @@ export async function checkSpendAlert(input: { dryRun?: boolean; now?: Date } = 
   const site = serverSite();
   const result = await sendMail(
     renderMail(to, `${site.name}: metered spend ${formatChf(day.rappen)} on ${day.date}`, {
+      template: "op.spend",
       preheader: `Over your line of ${formatChf(line)} a day.`,
       title: `${formatChf(day.rappen)} metered on ${day.date}`,
       blocks: [

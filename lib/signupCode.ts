@@ -36,6 +36,7 @@ export async function sendSignupCode(email: string, locale: string): Promise<boo
   try {
     await sendMail(
       renderMail(email, t("mail.signupSubject", vars), {
+        template: "code.signup.mail",
         preheader: t("mail.identityCode", vars),
         title: t("mail.signupTitle"),
         blocks: [

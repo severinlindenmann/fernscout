@@ -74,6 +74,7 @@ afterEach(() => {
 });
 
 const SAMPLE = {
+  template: "news.mail" as const,
   preheader: "Three new days",
   title: "Three new days since you last looked",
   blocks: [

@@ -1,3 +1,4 @@
+import type { TemplateId } from "../messages/registry";
 import type { Mail, MailAttachment } from "./types";
 
 /**
@@ -45,6 +46,10 @@ export type MailBlock =
   | { kind: "table"; head: string[]; rows: { cells: string[]; note?: string }[] };
 
 export type MailContent = {
+  /** Which registry id this is — B2438. Required so every `renderMail` call
+   * names one; `test/message-registry.test.ts` is what catches an id that
+   * has drifted out of lib/messages/registry.ts. */
+  template: TemplateId;
   /** Shown in the inbox preview line, before anyone opens it. */
   preheader: string;
   title: string;
@@ -285,6 +290,7 @@ export function renderMail(
   return {
     to,
     subject,
+    template: content.template,
     html,
     text,
     headers,

@@ -153,6 +153,8 @@ async function textCode(
     await sendSms({
       to: digits,
       body: translateIn(locale, "contact.smsCodeBody", { code, title, minutes: CODE_TTL_MINUTES }),
+      template: "code.sms",
+      owner,
     });
     return true;
   } catch (err) {
