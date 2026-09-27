@@ -17,6 +17,7 @@ import {
   Backpack,
 } from "lucide-react";
 import { flagFor } from "@/lib/flags";
+import { followInPlace } from "@/lib/inPlaceLink";
 import { useI18n } from "./LocaleProvider";
 import { useMoney } from "./CurrencyProvider";
 import type { DaySummary, TransportMode } from "@/lib/types";
@@ -87,14 +88,19 @@ export default function GamePath({
   days,
   currentIndex,
   onSelect,
+  hrefFor,
 }: {
   days: DaySummary[];
   currentIndex: number;
   onSelect?: (date: string) => void;
+  /** Each day's permalink — B2477. The nodes are links to it, so the raw
+   * HTML of a trip page links every day and a reader can open one in a new
+   * tab; a plain click still moves the story in place. */
+  hrefFor: (day: DaySummary) => string;
 }) {
   const { t, formatShortDate } = useI18n();
   const { spend } = useMoney();
-  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   const NODE = 46;
@@ -194,6 +200,20 @@ export default function GamePath({
         />
       </svg>
 
+      {/*
+        The days outside the drawn band, as bare links — B2477. A crawler
+        reaches every day from the raw HTML; a person reaches them as nodes,
+        which are drawn as the sidebar is scrolled to them (OVERSCAN). Kept
+        to the href alone and out of the tab order and the accessibility
+        tree, because the drawn node is the control and this is only its
+        address: test/payload.test.tsx holds them to their own byte budget.
+      */}
+      {days.map((day, i) =>
+        i >= drawn[0] && i <= drawn[drawn.length - 1] ? null : (
+          <a key={day.date} href={hrefFor(day)} tabIndex={-1} aria-hidden />
+        ),
+      )}
+
       {drawn.map((i) => {
         const day = days[i];
         const isCurrent = i === currentIndex;
@@ -204,10 +224,12 @@ export default function GamePath({
         const flag = flagFor(day.country, day.countryCode);
 
         return (
-          <motion.button
+          <motion.a
             key={day.date}
             ref={isCurrent ? activeRef : undefined}
-            onClick={() => onSelect?.(day.date)}
+            href={hrefFor(day)}
+            data-in-place=""
+            onClick={(e) => followInPlace(e, () => onSelect?.(day.date))}
             whileTap={{ scale: 0.92 }}
             aria-current={isCurrent ? "true" : undefined}
             title={`${day.location} — ${day.date}`}
@@ -261,7 +283,7 @@ export default function GamePath({
               {day.updates > 1 && ` · ${day.updates} ${t("day.updates")}`}
               {day.cost > 0 && ` · ${spend(day.cost, day.costLocal)}`}
             </span>
-          </motion.button>
+          </motion.a>
         );
       })}
     </div>

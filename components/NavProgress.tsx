@@ -48,6 +48,8 @@ export default function NavProgress() {
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as Element | null)?.closest?.("a[href]");
       if (!(a instanceof HTMLAnchorElement)) return;
+      // A day link the story follows in place — lib/inPlaceLink.ts.
+      if (a.hasAttribute("data-in-place")) return;
       if (a.target && a.target !== "_self") return;
       if (a.hasAttribute("download")) return;
       const to = new URL(a.href, location.href);

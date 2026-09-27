@@ -142,6 +142,10 @@ const nextConfig: NextConfig = {
   // B1089: don't advertise the framework to every caller. One less free hint
   // for a scanner deciding which exploits to try; costs nothing.
   poweredByHeader: false,
+  // Compression is Caddy's (`encode zstd gzip` in deploy/fernscout.caddy) —
+  // B2480. Next gzipping first meant every page reached Caddy already
+  // encoded, so it passed gzip through even to a browser offering zstd.
+  compress: false,
   /**
    * How much of a request body Next buffers before a route ever sees it — B523.
    *

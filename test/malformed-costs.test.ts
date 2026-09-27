@@ -9,7 +9,7 @@ import { readCostsFile, hasCostsData, costsAvailable } from "@/lib/costs";
  * B236 guarded against for an entry and B313 for `plan.md`. Before B342
  * `readCostsFile` threw straight out of `matter()`, and it backs
  * `hasCostsData`, `costsAvailable`, `getPreparationCosts`, `getBudget`, the
- * trip page, both costs pages, the costs API route and `app/sitemap.ts` — so
+ * trip page, both costs pages, the costs API route and `lib/sitemap.ts` — so
  * a typo in an optional file took the nav's Costs tab, and the sitemap, down
  * with it for the whole journal. These pin the fix: a malformed `costs.md`
  * reads as "no costs.md" and logs a warning, same shape as

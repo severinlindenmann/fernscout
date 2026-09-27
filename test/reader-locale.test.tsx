@@ -177,7 +177,7 @@ describe("a German reader landing on an English-only journal", () => {
     instance();
     request.cookieLocale = "de";
     request.path = "/alex/gallery";
-    const meta = await galleryMetadata();
+    const meta = await galleryMetadata({ params: Promise.resolve({ user: "alex" }) } as never);
 
     expect(bodyLocale("alex")).toBe("en");
     expect(String(meta.title)).toBe(dictionaryFor("en")["gallery.title"]);
@@ -188,7 +188,7 @@ describe("a German reader landing on an English-only journal", () => {
     instance();
     request.cookieLocale = "de";
     request.path = "/mila/gallery";
-    const meta = await galleryMetadata();
+    const meta = await galleryMetadata({ params: Promise.resolve({ user: "mila" }) } as never);
 
     expect(bodyLocale("mila")).toBe("de");
     expect(String(meta.title)).toBe(dictionaryFor("de")["gallery.title"]);

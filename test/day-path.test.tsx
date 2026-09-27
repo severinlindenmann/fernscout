@@ -46,13 +46,15 @@ function days(): DaySummary[] {
   ];
 }
 
+const href = (d: { slug: string }) => `/alex/trips/usa/day/${d.slug}`;
+
 function render(index = 0) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <CurrencyProvider
         options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}
       >
-        <GamePath days={days()} currentIndex={index} />
+        <GamePath days={days()} currentIndex={index} hrefFor={href} />
       </CurrencyProvider>
     </LocaleProvider>,
   );
@@ -88,7 +90,7 @@ describe("the desktop day path", () => {
     const html = renderToStaticMarkup(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
         <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
-          <GamePath days={[{ ...days()[0], cost: 0 }]} currentIndex={0} />
+          <GamePath days={[{ ...days()[0], cost: 0 }]} currentIndex={0} hrefFor={href} />
         </CurrencyProvider>
       </LocaleProvider>,
     );
@@ -115,10 +117,35 @@ describe("the desktop day path", () => {
           <GamePath
             days={[{ ...days()[0], cost: 14, costLocal: { amount: 520, currency: "THB" } }]}
             currentIndex={0}
+            hrefFor={href}
           />
         </CurrencyProvider>
       </LocaleProvider>,
     );
     expect(html).toMatch(/THB\s*520[\s\S]*≈[\s\S]*CHF\s*14/);
+  });
+});
+
+/**
+ * B2477 — the path was buttons, so the raw HTML of a trip page linked no day
+ * at all. Every day is an anchor to its permalink now, including the days
+ * outside the band of fully drawn nodes.
+ */
+describe("the day path links every day", () => {
+  test("each day, drawn or not, is an <a href> to its permalink", () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      ...days()[0],
+      date: new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10),
+      slug: `day-${i}`,
+    }));
+    const html = renderToStaticMarkup(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
+          <GamePath days={many} currentIndex={0} hrefFor={href} />
+        </CurrencyProvider>
+      </LocaleProvider>,
+    );
+    for (const d of many) expect(html).toContain(`href="/alex/trips/usa/day/${d.slug}"`);
+    expect(html).not.toContain("<button");
   });
 });

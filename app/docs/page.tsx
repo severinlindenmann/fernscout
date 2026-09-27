@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Pricing from "@paid/credits/components/Pricing";
 import { isEnabled } from "@/lib/capabilities";
-import { DOCS_PAGES, type DocsPageId } from "@/lib/docs";
+import { DOCS_PAGES, docsMetadata, type DocsPageId } from "@/lib/docs";
 import type { TranslationKey } from "@/lib/i18n";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -36,10 +36,7 @@ import { serverSite } from "@/lib/site";
  */
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await requestLocale();
-  return {
-    title: { absolute: translateIn(locale, "docs.title") },
-    description: translateIn(locale, "docs.lede"),
-  };
+  return docsMetadata("hub", locale);
 }
 
 /**

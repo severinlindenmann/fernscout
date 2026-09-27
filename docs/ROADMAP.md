@@ -368,9 +368,10 @@ L1 (multi-tenant routing) is done — built as decision 23 rather than deferred 
 M4 search, M5 RSS, M6 export, M12 the config upgrade path and M13 the project
 scaffolding all shipped. **M7 locale URLs** was resolved differently from the
 plan: rather than a `/[locale]/…` segment on every route, language is a shareable
-`?lang=` parameter set by `proxy.ts` and advertised as `hreflang` from
-`app/sitemap.ts`, so translated pages are linkable and indexable without touching
-every route.
+`?lang=` parameter set by `proxy.ts`, so translated pages are linkable without
+touching every route. (It was also advertised as `hreflang` from the sitemap
+until B2486: a `?lang=` page canonicalises to the bare URL, so `lib/sitemap.ts`
+now lists no language alternates until languages have paths of their own.)
 
 | ID | Task | Effort |
 | --- | --- | --- |

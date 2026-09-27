@@ -2353,6 +2353,7 @@
   "story.caughtUp": "That's everything so far — more soon",
   "story.dayFailed": "This day couldn’t be loaded. Check your connection, then go back a day and forward again.",
   "story.dayLoading": "Fetching this day…",
+  "story.madeWith": "Made with {name}",
   "story.empty": "No days yet.",
   "story.emptyOwner.body": "This trip has no days yet. Start one in your studio — photographs, a few words, and it waits as a draft until you publish it.",
   "story.emptyOwner.cta": "Add your first day",

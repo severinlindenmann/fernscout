@@ -12,12 +12,12 @@ import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { BlogStructuredData } from "@/components/StructuredData";
 import { getUser } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary } from "@/lib/site";
+import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
-import { requestLocale } from "@/lib/locales";
+import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedTripTitle } from "@/lib/i18n";
 import type { UserConfig } from "@/lib/config";
 import type { Trip } from "@/lib/types";
@@ -191,8 +191,11 @@ async function TripStoryBody({
         entries={getAllEntries(trip.ref)}
         site={site}
         authors={travellersOf(userConfig, trip).map((p) => p.name)}
+        dayBase={`/${trip.username}/trips/${trip.id}`}
+        inLanguage={defaultLocaleFor(trip.username)}
       />
       <TripStory
+        madeWith={madeWithFor(userConfig, trip)}
         index={index}
         days={days}
         windowStart={windowStart}

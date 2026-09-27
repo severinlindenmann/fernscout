@@ -87,8 +87,8 @@ export async function generateMetadata({
   return {
     title: translateIn(reader, heading),
     description,
-    alternates: { canonical: "/[user]/map" },
-    openGraph: { type: "website", title: shared, description, url: "/map" },
+    alternates: { canonical: `/${user}/map` },
+    openGraph: { type: "website", title: shared, description, url: `/${user}/map` },
     twitter: { card: "summary_large_image", title: shared, description },
   };
 }

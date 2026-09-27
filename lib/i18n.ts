@@ -2566,6 +2566,7 @@ export type TranslationKey =
   | "story.empty"
   | "story.emptyOwner.body"
   | "story.emptyOwner.cta"
+  | "story.madeWith"
   | "story.tripEnd"
   | "studio.conflicts.body"
   | "studio.conflicts.heading"
