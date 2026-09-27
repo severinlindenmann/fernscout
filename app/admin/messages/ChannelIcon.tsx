@@ -11,7 +11,7 @@ import type { Channel } from "@/lib/messages/registry";
  * than copied wholesale — this codebase's Tailwind tokens carry the colour
  * instead of the draft's own CSS custom properties.
  */
-export const CHANNEL_ICON_PATHS: Record<Channel, string> = {
+const CHANNEL_ICON_PATHS: Record<Channel, string> = {
   mail: 'M2 3.5h12a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H2A1.5 1.5 0 0 1 .5 14V5A1.5 1.5 0 0 1 2 3.5zM1 4.5 8 9l7-4.5',
   sms: "M3 3h10a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 13 11H7l-3 2.5V11H3A1.5 1.5 0 0 1 1.5 9.5v-5A1.5 1.5 0 0 1 3 3z M5 7h.01 M8 7h.01 M11 7h.01",
   wa: "M8 1.8a6.2 6.2 0 0 0-5.4 9.3L1.8 14.2l3.2-.8A6.2 6.2 0 1 0 8 1.8z M5.8 5.2c.2-.3.6-.3.8 0l.6 1.2-.5.7c.4.8 1.1 1.5 1.9 1.9l.7-.5 1.2.6c.3.2.3.6 0 .8-.6.6-1.5.7-2.3.3A6 6 0 0 1 5.5 7.5c-.4-.8-.3-1.7.3-2.3z",
