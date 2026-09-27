@@ -87,6 +87,7 @@ export const TEMPLATES = {
 
   // -- sms (open core) ------------------------------------------------------
   "code.sms": { family: "code", channel: "sms", kind: "sign-in / phone-verify code", audience: "reader" },
+  "invite.share": { family: "invite", channel: "share", kind: "invite the owner shares", audience: "reader" },
   "invite.sms": { family: "invite", channel: "sms", kind: "invite to a reader", audience: "reader" },
   "invite.in.sms": { family: "invite", channel: "sms", kind: "you're in", audience: "reader" },
   "news.sms": { family: "news", channel: "sms", kind: "day published text", audience: "reader" },
