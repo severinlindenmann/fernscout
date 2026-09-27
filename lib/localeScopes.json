@@ -26,6 +26,11 @@
       "appWaitlist.sending",
       "appWaitlist.storeCta",
       "appWaitlist.submitCta",
+      "contact.addrCountry",
+      "contact.addrCountryNoMatches",
+      "contact.addrCountrySearchPlaceholder",
+      "contact.addressLookupAttribution",
+      "contact.addressLookupUnavailable",
       "contact.mailApprovedBody",
       "contact.mailApprovedBuddyBody",
       "contact.mailApprovedButton",
@@ -5359,6 +5364,11 @@
   "guide": {
     "paid": [],
     "keys": [
+      "contact.addrCountry",
+      "contact.addrCountryNoMatches",
+      "contact.addrCountrySearchPlaceholder",
+      "contact.addressLookupAttribution",
+      "contact.addressLookupUnavailable",
       "contact.ownerTelHint",
       "contact.ownerTelHintNone",
       "contact.ownerTelHintPostcardsOnly",

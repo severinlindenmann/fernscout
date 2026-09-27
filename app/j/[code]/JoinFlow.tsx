@@ -11,6 +11,7 @@ import {
   FIELD,
   Heading,
   LABEL,
+  PhoneArt,
   PostcardArt,
   PRIMARY,
   QUIET,
@@ -51,6 +52,8 @@ export default function JoinFlow({
   caps,
   dictionary,
   locale,
+  locales,
+  addressLookupEnabled,
 }: {
   code: string;
   owner: string;
@@ -63,6 +66,11 @@ export default function JoinFlow({
   caps: { mail: boolean; sms: boolean; whatsapp: boolean; postcards: boolean };
   dictionary: Record<string, string>;
   locale: string;
+  /** The journal's own languages — B2452, passed to `CountryField` for
+   * resolving a legacy stored country string. */
+  locales: string[];
+  /** `isEnabled("addressLookup", owner)`, from the page. */
+  addressLookupEnabled: boolean;
 }) {
   const t = (key: TranslationKey, vars?: Record<string, string>) => translate(dictionary, key, vars);
   const vars = { owner: ownerName, title, trip: tripTitle ?? "" };
@@ -284,7 +292,7 @@ export default function JoinFlow({
           </BusyButton>
         }
       >
-        <CodeArt />
+        {channel === "sms" ? <PhoneArt /> : <CodeArt />}
         <Heading id="join-code">{t(channel === "email" ? "join.code.inbox" : "join.code.phone")}</Heading>
         <p className="text-base text-ink-body">{t(channel === "email" ? "join.code.bodyEmail" : "join.code.bodySms", { to: sentTo })}</p>
         <CodeField id="join-code-input" label={t("guide.code.label")} value={typed} onChange={setTyped} />
@@ -323,7 +331,15 @@ export default function JoinFlow({
             postcode: t("guide.address.postcode"),
             city: t("guide.address.city"),
             country: t("guide.address.country"),
+            countrySearchPlaceholder: t("contact.addrCountrySearchPlaceholder"),
+            countryNoMatches: t("contact.addrCountryNoMatches"),
+            addressLookupAttribution: t("contact.addressLookupAttribution"),
+            addressLookupUnavailable: t("contact.addressLookupUnavailable"),
           }}
+          enabled={addressLookupEnabled}
+          username={owner}
+          locale={locale}
+          locales={locales}
         />
         <p className="text-sm text-ink-secondary">{t("guide.address.private", vars)}</p>
         <Alert text={error} />
