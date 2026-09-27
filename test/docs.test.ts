@@ -73,7 +73,7 @@ describe("/docs/hosting sources", () => {
   test("a missing file or heading is null, not a thrown page", async () => {
     const { sectionOrNull } = await import("@/lib/docs");
     const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(sectionOrNull("docs/no-such-file.md", "Anything")).toBeNull();
+    expect(sectionOrNull("nowhere/no-such-file.md", "Anything")).toBeNull();
     expect(sectionOrNull("README.md", "No such heading")).toBeNull();
     expect(sectionOrNull("README.md", "What a day looks like")).toContain("```json");
     quiet.mockRestore();
