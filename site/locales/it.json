@@ -1434,6 +1434,8 @@
   "map.subtitle": "Tocca una tappa per vedere quanto ci siamo fermati e cosa abbiamo fotografato.",
   "map.subtitlePlanned": "Il percorso che intendiamo fare e i posti dove intendiamo dormire.",
   "map.thisStop": "Questa tappa",
+  "map.timeline": "Cronologia",
+  "map.timelineValue": "{location}, {date}",
   "map.title": "Dove siamo stati",
   "map.titlePlanned": "Dove stiamo andando",
   "map.wholeTrip": "Tutto il viaggio",

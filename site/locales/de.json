@@ -1538,6 +1538,8 @@
   "map.subtitle": "Tippe auf einen Ort, um zu sehen, wie lange wir dort waren.",
   "map.subtitlePlanned": "Die Route, die wir vorhaben, und die Orte, an denen wir schlafen wollen.",
   "map.thisStop": "Dieser Ort",
+  "map.timeline": "Zeitleiste",
+  "map.timelineValue": "{location}, {date}",
   "map.title": "Wo wir waren",
   "map.titlePlanned": "Wohin wir wollen",
   "map.wholeTrip": "Ganze Reise",

@@ -1333,6 +1333,8 @@
   "map.subtitle": "Koppints egy helyre, hogy lásd, meddig maradtunk.",
   "map.subtitlePlanned": "A tervezett útvonal és a helyek, ahol megszállunk.",
   "map.thisStop": "Ez a helyszín",
+  "map.timeline": "Idővonal",
+  "map.timelineValue": "{location}, {date}",
   "map.title": "Merre jártunk",
   "map.titlePlanned": "Merre megyünk",
   "map.wholeTrip": "Az egész út",
