@@ -8,6 +8,7 @@ import {
   place as placeIn,
   type Frame,
 } from "@/lib/mapFrame";
+import { mediaLoader } from "./mediaLoader";
 import { MAP_VIEWBOX } from "@/lib/mapProjection";
 import {
   areaKey,
@@ -22,9 +23,11 @@ import { flagFor } from "@/lib/flags";
 import GoogleMark from "./GoogleMark";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
+import { useTrip } from "./TripProvider";
 import { useMapViewport } from "./map/useMapViewport";
 import StopMarker from "./map/StopMarker";
 import ClusterMarker from "./map/ClusterMarker";
+import PhotoMarker from "./map/PhotoMarker";
 import HereNow from "./map/HereNow";
 import RouteLine, { type RouteHop } from "./map/RouteLine";
 import LegChip from "./map/LegChip";
@@ -117,13 +120,79 @@ export default function TripMap({
    */
   onRequestFullscreen?: () => void;
 }) {
-  const { t, formatShortDate } = useI18n();
+  const { t, formatShortDate, locale } = useI18n();
   // The 1:110m coastline, fetched after the page is readable — all a checkout
   // that never ran `build:mapdata` has to draw land with. Better than an
   // all-water panel at continental width; at town scale it says nothing, and
   // the clean ground it leaves is the right answer there (lib/basemap.ts).
   const worldLand = useWorldLand();
-  const stops = useMemo(() => tripStops(days), [days]);
+  const baseStops = useMemo(() => tripStops(days), [days]);
+
+  /**
+   * Photos for stops — B2429's markers and carousel cards.
+   *
+   * Filled in client-side, after mount, from `/<user>/story.json` rather
+   * than carried on `days`/`StopSource` — see `TripStop.photo`'s own doc in
+   * lib/tripMap.ts for the byte budget that rules that out. `story.json` is
+   * the same reader-gated, `visible()`-filtered route the story page itself
+   * already lazily pages through (`app/TripStory.tsx`), so a photo that
+   * arrives here has already been refused for a draft day or a
+   * `private`-labelled photograph before this component ever sees it.
+   *
+   * `trip` is absent in every test here (no `TripProvider`) and on the
+   * countdown page before a trip has days — either way this simply never
+   * fetches, and every stop stays a plain numbered marker.
+   *
+   * ponytail: one request, the trip's first `PHOTO_WINDOW` stops only —
+   * `story.json` itself refuses more than 24 days in one call
+   * (`MAX_DAYS`, app/[user]/story.json/route.ts). A trip longer than that
+   * gets photos for its early stops and plain markers for the rest until
+   * this pages further the way `lib/dayLoader.ts`'s `WindowLedger` already
+   * does for full days.
+   */
+  const PHOTO_WINDOW = 24;
+  const trip = useTrip();
+  const [photoByDate, setPhotoByDate] = useState<
+    Record<string, { src: string; width?: number; height?: number }>
+  >({});
+  useEffect(() => {
+    if (!trip || baseStops.length === 0) return;
+    let cancelled = false;
+    const to = Math.min(baseStops.length, PHOTO_WINDOW);
+    const url = `${trip.userHref("/story.json")}?trip=${encodeURIComponent(trip.trip.ref)}&from=0&to=${to}&lang=${encodeURIComponent(locale)}`;
+    fetch(url)
+      .then((res) => (res.ok ? res.json() : null))
+      .then(
+        (
+          data: {
+            days?: {
+              date: string;
+              entries?: { gallery?: { src: string; type: string; width?: number; height?: number }[] }[];
+            }[];
+          } | null,
+        ) => {
+          if (cancelled || !data?.days) return;
+          const next: Record<string, { src: string; width?: number; height?: number }> = {};
+          for (const day of data.days) {
+            const photo = day.entries?.flatMap((e) => e.gallery ?? []).find((g) => g.type === "image");
+            if (photo) next[day.date] = { src: photo.src, width: photo.width, height: photo.height };
+          }
+          setPhotoByDate(next);
+        },
+      )
+      .catch(() => {
+        // A reader offline, or a route that answered oddly: plain markers
+        // rather than a broken page. Nothing here is essential reading.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [trip, baseStops.length, locale]);
+
+  const stops = useMemo(
+    () => baseStops.map((s) => (photoByDate[s.date] ? { ...s, photo: photoByDate[s.date] } : s)),
+    [baseStops, photoByDate],
+  );
   const orderOf = useMemo(() => new Map(stops.map((s, i) => [s.key, i + 1])), [stops]);
 
   // One stop is not an overview of anything: it opens where it is. Both
@@ -152,6 +221,16 @@ export default function TripMap({
     () => Math.min(64, Math.max(4, frameSpanKm(base) / 2)),
     [base],
   );
+
+  /**
+   * "Town zoom and closer" (Phase 2, item 5 of docs/plans/map-redesign.md):
+   * the same span `frameRoute`'s own `MIN_SPAN_KM` floor already gives one
+   * stop's "surroundings" frame (`local`, above) — not a new constant, so a
+   * marker switching to a photo agrees with what the "This stop" button
+   * already calls town scale. `local` is built from `selected` alone, so
+   * this is the same threshold whichever stop happens to be selected.
+   */
+  const townSpanKm = useMemo(() => frameSpanKm(local), [local]);
 
   /**
    * How large the map is actually being drawn, in CSS pixels.
@@ -225,6 +304,10 @@ export default function TripMap({
     viewport.syncFrame(frame);
   }, [viewport, frame]);
 
+  /** Whether the reader is zoomed at least to town scale right now — see
+   * `townSpanKm` above. */
+  const showPhotos = frameSpanKm(frame) <= townSpanKm;
+
   // Sizes in screen pixels, not viewBox units: a frame is 4 units across for
   // one trip and 900 for another, so a constant radius is a dot on one map
   // and larger than the other entirely. The lesson MiniMap and WorldMap both
@@ -245,12 +328,20 @@ export default function TripMap({
    * The selected stop is the last one by default, so on an eighteen-stop trip
    * the row that carries the place and its outbound link starts fourteen rows
    * below the fold — present in the markup and invisible to the reader. This
-   * brings it into the box on mount and after every step.
+   * brings it into the box on mount and after every step — a marker tap
+   * (`select`, above) included, since that sets `selectedKey` the same way.
    *
-   * The box's own `scrollTop`, deliberately, rather than `scrollIntoView`:
-   * that method walks up to every scrollable ancestor, so a card doing this on
-   * mount would scroll the page out from under somebody reading the day above
-   * it.
+   * The box's own `scrollTop`/`scrollLeft`, deliberately, rather than
+   * `scrollIntoView`: that method walks up to every scrollable ancestor, so a
+   * card doing this on mount would scroll the page out from under somebody
+   * reading the day above it.
+   *
+   * Both axes, not just `scrollTop` — B2429: this list is a horizontal,
+   * snapping row on a phone (`sm:block` switches it back to the original
+   * vertical column), and a stop's `offsetLeft`/`offsetTop` are both valid
+   * regardless of which way the box actually scrolls, so computing both
+   * costs nothing extra and keeps one effect for what was always one piece
+   * of behaviour: the selected stop stays in view.
    */
   const listRef = useRef<HTMLUListElement | null>(null);
   const selectedRow = useRef<HTMLLIElement | null>(null);
@@ -262,6 +353,11 @@ export default function TripMap({
     if (top < box.scrollTop) box.scrollTop = top;
     else if (top + row.offsetHeight > box.scrollTop + box.clientHeight) {
       box.scrollTop = top + row.offsetHeight - box.clientHeight;
+    }
+    const left = row.offsetLeft - box.offsetLeft;
+    if (left < box.scrollLeft) box.scrollLeft = left;
+    else if (left + row.offsetWidth > box.scrollLeft + box.clientWidth) {
+      box.scrollLeft = left + row.offsetWidth - box.clientWidth;
     }
   }, [selectedKey, index]);
 
@@ -593,6 +689,15 @@ export default function TripMap({
                 ? `${cluster.stops.length} ${t("map.places")}`
                 : `${stop.location}, ${stop.country}`;
               const onSelect = () => (many ? closer(cluster.x, cluster.y) : select(stop));
+              // A photo marker only once zoomed to town scale, only for a
+              // single stop (a merged cluster stays numbered dots — the
+              // photo names one place, not a group of them), and only when
+              // this reader-filtered stop actually carries a photo (privacy
+              // note above `StopSource.photo`/`DaySummary.photo`).
+              const photoSrc =
+                !many && showPhotos && stop.photo
+                  ? mediaLoader({ src: stop.photo.src, width: 160 })
+                  : null;
               return (
                 <g key={stop.key}>
                   {many ? (
@@ -600,6 +705,17 @@ export default function TripMap({
                       x={cluster.x}
                       y={cluster.y}
                       count={cluster.stops.length}
+                      ariaLabel={label}
+                      px={px}
+                      onSelect={onSelect}
+                    />
+                  ) : photoSrc ? (
+                    <PhotoMarker
+                      x={cluster.x}
+                      y={cluster.y}
+                      src={photoSrc}
+                      order={orderOf.get(stop.key) ?? 1}
+                      selected={isSelected}
                       ariaLabel={label}
                       px={px}
                       onSelect={onSelect}
@@ -715,36 +831,37 @@ export default function TripMap({
       {/* Every stop, reachable without a pointer on a map — and the readable
           alternative to the drawing for anyone who cannot see it.
 
-          A list rather than the chip run it replaces: eighteen stops were
-          3,011 px of horizontal scrolling in a 356 px window, a row can carry
-          the date a chip could not, and the selected one opens here rather
-          than in a second panel that named the same place again. B1944. */}
-      <ul
-        ref={listRef}
-        // Three rows and the open one, then it scrolls: a bounded height is
-        // what keeps an eighteen-day trip and a hundred-and-eighty-day trip
-        // the same size on the page. Rows stay 44 px — the touch minimum is
-        // not what gives way here.
-        className="max-h-44 list-none overflow-y-auto px-2 py-1 sm:max-h-80"
-        aria-label={t("tripMap.title")}
-      >
+          One list, not two: a phone gets a horizontal, snapping carousel
+          (board 01's D1) and `sm` up gets the original scrolling column —
+          the same rows, restyled by width alone, because rendering the whole
+          trip twice (a duplicate `<li>` per stop for a second surface) is
+          what `test/payload.test.tsx` measures and refuses, "found tight" by
+          B2421 already. B2429 adds each row's photo, when one has arrived
+          (`stop.photo` — see its own doc in lib/tripMap.ts for why that is
+          filled in lazily rather than carried from the server for every
+          day). B1944: a row can carry the date a chip could not, and the
+          selected one opens its detail here rather than in a second panel
+          that named the same place again. */}
+      <ul ref={listRef} className="fs-map-stops" aria-label={t("tripMap.title")}>
         {stops.map((stop, i) => {
           const isSelected = stop.key === selected.key;
           return (
-            <li key={stop.key} ref={isSelected ? selectedRow : undefined}>
-              <button
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => select(stop)}
-                className={`flex w-full min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-left text-sm transition-colors ${
-                  isSelected
-                    ? "bg-surface-selected font-semibold text-ink-strong"
-                    : "text-ink-body hover:text-ink-strong"
-                }`}
-              >
-                <span className="truncate">{stop.location}</span>
-                <span className="shrink-0 text-xs tabular-nums text-ink-secondary">
-                  {formatShortDate(stop.date)}
+            <li key={stop.key} ref={isSelected ? selectedRow : undefined} className="fs-map-stop">
+              <button type="button" aria-pressed={isSelected} onClick={() => select(stop)}>
+                {stop.photo && (
+                  // Lazily arrived (see the doc above), and lazily loaded —
+                  // `mediaLoader`'s own `?w=` at the smallest allowed width,
+                  // the same one PhotoMarker's marker asks for.
+                  <img src={mediaLoader({ src: stop.photo.src, width: 160 })} alt="" loading="lazy" />
+                )}
+                <span className="fs-map-stop-text">
+                  <span className="fs-map-stop-name">
+                    {orderOf.get(stop.key) ?? i + 1} · {stop.location}
+                  </span>
+                  <span className="fs-map-stop-meta">
+                    {formatShortDate(stop.date)}
+                    {stop.country ? ` · ${stop.country}` : ""}
+                  </span>
                 </span>
               </button>
               {isSelected && (
