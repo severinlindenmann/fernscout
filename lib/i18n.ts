@@ -998,6 +998,7 @@ export type TranslationKey =
   | "guide.what.readerLimits"
   | "guide.what.readerLimitsCostsVary"
   | "guide.what.readerTitle"
+  | "guide.what.recentTitle"
   | "guide.what.write"
   | "guide.what.writeBody"
   | "guides.gps.lede"

@@ -48,6 +48,8 @@ const base: GuideProps = {
   trip: null,
   hasGuestTrip: true,
   landing: "/ana/trips/iceland",
+  figures: [],
+  recent: [],
   signedIn: true,
   onboarded: false,
   joined: false,
@@ -277,5 +279,48 @@ describe("the guide never sends a guest to the bare journal address (B2458)", ()
     expect(src).not.toMatch(/`\/\$\{owner\}`/);
     const page = fs.readFileSync("app/w/[code]/page.tsx", "utf8");
     expect(page).toMatch(/redirect\(landing\)/);
+  });
+});
+
+describe("the welcome is personal (B2457)", () => {
+  test("recent trips show as plain covers with a title, never as links", () => {
+    mount(
+      <WelcomeGuide
+        {...base}
+        recent={[
+          { id: "algarve", title: "Algarve 2026", cover: null, year: "2026" },
+          { id: "davos", title: "Davos 2026", cover: null, year: "2026" },
+        ]}
+      />,
+    );
+    press(dict["guide.welcome.go"]);
+    expect(heading()).toBe(dict["guide.what.readerTitle"]);
+    const strip = container!.querySelector('section[aria-labelledby="guide-recent"]')!;
+    expect(strip.textContent).toContain("Algarve 2026");
+    expect(strip.textContent).toContain("Davos 2026");
+    expect(strip.querySelector("a")).toBeNull();
+  });
+
+  test("no recent trips, no strip", () => {
+    mount(<WelcomeGuide {...base} />);
+    press(dict["guide.welcome.go"]);
+    expect(container!.querySelector('section[aria-labelledby="guide-recent"]')).toBeNull();
+  });
+
+  test("the journal's figures replace the stock drawing when there are any", () => {
+    mount(<WelcomeGuide {...base} figures={[{}, {}]} />);
+    expect(container!.querySelector('[role="group"][aria-label="2 illustrated travellers"]')).not.toBeNull();
+  });
+
+  test("every tile's icon is readable on its own tone in dark mode", () => {
+    mount(<WelcomeGuide {...base} />);
+    press(dict["guide.welcome.go"]);
+    const tiles = Array.from(container!.querySelectorAll("ul li > span:first-child"));
+    expect(tiles.length).toBeGreaterThan(2);
+    for (const tile of tiles) {
+      const icon = tile.querySelector("svg")!.getAttribute("class") ?? "";
+      if (tile.className.includes("bg-cream-100")) expect(icon).toContain("text-navy-900");
+      else expect(icon).toContain("text-ink-strong");
+    }
   });
 });

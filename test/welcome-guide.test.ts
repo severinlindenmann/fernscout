@@ -473,3 +473,13 @@ describe("the welcome guide speaks the browser's language (B2456)", () => {
     expect(page).toContain('"lang":"en"');
   });
 });
+
+describe("the welcome shows no trips before the code (B2457)", () => {
+  test("a forwarded link carries no recent trips", async () => {
+    const id = await addedId({ name: "Walt Forward", email: "walt@example.test" });
+    const code = await welcomeCode(id);
+    jar.cookies = {};
+    const page = JSON.stringify(await guidePage(code));
+    expect(page).toContain('"recent":[]');
+  });
+});
