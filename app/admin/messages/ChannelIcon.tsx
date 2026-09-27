@@ -37,7 +37,7 @@ export const CHANNEL_LABEL: Record<Channel, string> = {
   share: "Owner shares",
 };
 
-function ChannelBadge({ channel, size = "sm" }: { channel: Channel; size?: "sm" | "lg" }) {
+export function ChannelBadge({ channel, size = "sm" }: { channel: Channel; size?: "sm" | "lg" }) {
   const box = size === "lg" ? "h-8 w-8 rounded-2xl" : "h-6 w-6 rounded-lg";
   const icon = size === "lg" ? 20 : 14;
   return (

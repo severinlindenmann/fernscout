@@ -171,7 +171,7 @@ export const FLOWS = [
     id: "newday",
     label: "A day is published",
     nodes: [
-      { id: "publish", type: "trigger", label: "Owner publishes a day", to: [{ id: "mail" }, { id: "sms" }, { id: "wa" }, { id: "push" }] },
+      { id: "publish", type: "trigger", label: "Owner publishes a day", to: [{ id: "mail", label: "Email" }, { id: "sms", label: "SMS" }, { id: "wa", label: "WhatsApp" }, { id: "push", label: "App push" }] },
       { id: "mail", type: "send", label: "Mail readers who chose email", template: "news.mail", to: [{ id: "stop" }] },
       { id: "sms", type: "send", label: "Text readers who chose SMS", template: "news.sms", to: [{ id: "stop" }] },
       { id: "wa", type: "send", label: "WhatsApp readers who chose it", template: "news.wa", to: [{ id: "stop" }] },
@@ -199,7 +199,7 @@ export const FLOWS = [
         id: "pushCheck",
         type: "check",
         label: "Owner's own device subscribed to push?",
-        to: [{ id: "push" }, { id: "wait3" }],
+        to: [{ id: "push", label: "Yes" }, { id: "wait3", label: "No" }],
       },
       { id: "push", type: "send", label: "Push the nudge", template: "nudge.first.push", to: [{ id: "wait5" }] },
       { id: "wait5", type: "wait", label: "Three more days go by with no trip", to: [{ id: "mailAfterPush" }] },
@@ -283,7 +283,7 @@ export const FLOWS = [
     id: "operator",
     label: "Operator watches the instance",
     nodes: [
-      { id: "nightly", type: "trigger", label: "Nightly backup/job runs", to: [{ id: "alert" }, { id: "spend" }] },
+      { id: "nightly", type: "trigger", label: "Nightly backup/job runs", to: [{ id: "alert", label: "A job failed" }, { id: "spend", label: "Spend over the line" }] },
       { id: "alert", type: "send", label: "Alert on failure", template: "op.alert", to: [{ id: "stop" }] },
       { id: "spend", type: "send", label: "Alert over the spend line", template: "op.spend", to: [{ id: "stop" }] },
       { id: "stop", type: "stop", label: "Operator informed", to: [] },
