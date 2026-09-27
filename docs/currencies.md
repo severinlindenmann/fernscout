@@ -31,9 +31,12 @@ overrides one it does. **Since B1606 `manual`'s convention changed**: it is
 units of the keyed currency per **1 EUR** — the ECB table's own direction —
 which is the opposite of the old (pre-B1606) `rates:` block's "units of the
 base currency per one unit of the keyed currency". `lib/trips.ts`'s
-`resolveTripRates` is what merges `manual` with the cached ECB history and
-cross-divides the result back into the base-currency-per-unit table the rest
-of the site computes with (see below).
+`resolveTripRates` is what merges `manual` with the cached ECB snapshot (its
+current rates, not a history) and cross-divides the result back into the
+base-currency-per-unit table the rest of the site computes with (see below).
+Unfrozen currencies — ones with no `manual` entry — therefore move whenever
+the cache refreshes, nightly on a deployed instance; only a currency named in
+`manual` is actually frozen.
 
 They live in `trip.json` rather than a separate file so a trip stays one
 document, and they live **per trip** because that is the whole point: a 2029
@@ -41,7 +44,8 @@ trip to the same country carries its own table and cannot restate what 2026
 cost. A cost with no `currency` is read as the base currency, so entries
 written before any of this existed read exactly as they did.
 
-**3. The reader picks a display currency** from `site.displayCurrencies`,
+**3. The reader picks a display currency** from the journal's own
+`displayCurrencies` (`content/<user>/config.json`, not the server config),
 through the chip in the header. The choice persists in `localStorage`, and
 every total, table row and chart axis follows it. Converted values are labelled
 `≈`, because a second hop through a current rate is an approximation and saying
@@ -71,16 +75,19 @@ committed copy, or a pre-B510 one under `CONTENT_DIR`, keeps reading it until
 its first refresh.
 
 Free, official, no API key, around 30 currencies. **The build never fetches
-anything**: it reads the committed cache off disk and succeeds with no network
-at all. Anything the ECB does not publish gets a rate in `config.json` under
-`site.manualRates`, in the ECB's own convention (units per one euro):
+anything**: it reads whatever cache is already on disk under `DATA_DIR` and
+succeeds with no network at all — the cache itself is not committed (see
+above). `site.manualRates` was retired with B1666; there is no server-wide
+override for a currency the ECB does not publish. A trip that needs one uses
+its own `rates.manual`, described above.
 
-```jsonc
-"manualRates": { "VND": 30000 }   // 1 EUR = 30 000 VND
-```
+A display currency with no rate is dropped from the switcher rather than
+offered and then quietly wrong.
 
-A display currency with no rate from either source is dropped from the switcher
-rather than offered and then quietly wrong.
+Only the *current* ECB snapshot is fetched and cached, not its published
+history — a trip whose dates fall outside the cache's own day is served the
+same current numbers as everything else, unless `rates.manual` names
+something better.
 
 ### Two tables, and — since B1606 — one convention
 
@@ -90,7 +97,7 @@ are stored the same way round: units of the **keyed currency** per **1 EUR**.
 | | Where | The number means | Example |
 | --- | --- | --- | --- |
 | a trip's `rates.manual` | `trip.json` | units of the **keyed currency** per **1 EUR** | `VND: 30500` — 1 EUR = 30 500 VND |
-| the ECB table | `<DATA_DIR>/rates/ecb.json`, and `site.manualRates` | units of the **keyed currency** per **1 EUR** | `CHF: 0.9364` — 1 EUR = 0.9364 CHF |
+| the ECB table | `<DATA_DIR>/rates/ecb.json` | units of the **keyed currency** per **1 EUR** | `CHF: 0.9364` — 1 EUR = 0.9364 CHF |
 
 Before B1606 these pointed opposite ways — a trip's own `rates:` block stored
 units of the *base* currency per one unit of the keyed currency, the ECB
@@ -99,31 +106,36 @@ orders of magnitude with no error anywhere. A `trip.json` migrated from the
 old shape needs its `manual` numbers re-derived, not copied straight across.
 
 What the site actually multiplies a cost by is a **third**, *derived* table:
-`resolveTripRates` (`lib/trips.ts`) merges the ECB history with `manual`,
-still in the EUR convention, then cross-divides the result into *units of the
-base currency per one unit of the keyed currency* — `lib/currency.ts`'s
-`RateTable`, unchanged by B1606 and stated on the type itself. That derived
-table, not the stored `manual` block, is what every reading page uses.
+`resolveTripRates` (`lib/trips.ts`) merges the cached ECB snapshot with
+`manual`, still in the EUR convention, then cross-divides the result into
+*units of the base currency per one unit of the keyed currency* —
+`lib/currency.ts`'s `RateTable`, unchanged by B1606 and stated on the type
+itself. That derived table, not the stored `manual` block, is what every
+reading page uses.
 
 ### Where a trip's number comes from
 
-Since B543, `fillTripRates` (`lib/api/tripRates.ts`) can produce it without
-anybody inventing anything: for each currency the trip's costs use that
-`rates.manual` does not cover, it asks the ECB's own 90-day history for a
+Since B543, `fillTripRates` (`lib/api/tripRates.ts`) can produce a `manual`
+entry without anybody inventing anything: for each currency the trip's costs
+use that `rates.manual` does not cover, it asks the ECB's own 90-day history
+(a separate, older archive from the current-rate snapshot above) for a
 *measurement*, cross-divided into the ECB's own units-per-EUR convention
 before it is written into `manual`, frozen at the date the currency first
 appears on (the nearest earlier publication day when the ECB did not publish
-on that exact date). `npm run rates:fill` runs the same lookup as a sweep, for
-a currency the archive's window has since moved past; the `/agent` helper's
-own rates tool (`app/api/helper/<user>/trip/rates/route.ts`) calls it too.
-Neither ever touches a rate already in `manual`, hand-typed or filled — a
-currency stays unrated rather than being guessed once the lookup refuses: the
+on that exact date). Nothing calls it automatically today: `npm run
+rates:fill` runs it as a manual sweep, and the assistant's own rates tool
+(`app/api/helper/<user>/trip/rates/route.ts`, a code name only — decision 2)
+writes a hand-typed number through `patchTripRates` instead of calling
+`fillTripRates` at all. A currency the trip's costs use is never filled on
+its own; somebody has to run the sweep or type a number. `fillTripRates`
+never touches a rate already in `manual`, hand-typed or filled — a currency
+stays unrated rather than being guessed once the lookup refuses: the
 capability is off, the date is outside the 90-day window, or the ECB does not
-publish that currency at all. **v2 has no home for a per-rate citation** —
-`ratesFrom:` was retired with the rest of v1's shape — so `lib/trips.ts`'s
-reader synthesises an equivalent label instead, from whether a code is in
-`manual` at all ("the trip's own rate") or came from the ECB's daily table
-("European Central Bank, <date>").
+publish that currency at all. **v2 has no home for a per-rate citation** — the
+old `ratesFrom:` field is gone — so `lib/trips.ts`'s reader synthesises an
+equivalent label instead, from whether a code is in `manual` at all ("the
+trip's own rate") or came from the ECB's daily table ("European Central Bank,
+<date>").
 
 A currency older than 90 days, or one the ECB never publishes, still has to be
 typed by hand into `rates.manual` — **in the EUR convention**, units of the
@@ -149,9 +161,9 @@ trip's table is frozen on purpose, and correcting it later restates what the
 trip cost.
 
 A cost in a currency the trip has no rate for is a supported state, not an
-error, so nothing fails the build over it. `test/example-content.test.ts`
-asserts that the demo journal has none, which is what keeps the demo coherent;
-your own content is checked by the page itself, which names what it left out.
+error, so nothing fails the build over it — `test/currency.test.ts` covers the
+unconverted case directly. Your own content is checked by the page itself,
+which names what it left out.
 
 ### When a rate is missing
 
@@ -176,7 +188,7 @@ alongside its `items` and `note`:
   "budget": {
     "total": 32000,     // whole trip, both of us, everything in
     "days": 165,        // how long it was drawn up for
-    "currency": "CHF"   // optional; without it, the site's baseCurrency
+    "currency": "CHF"   // optional; without it, the journal's baseCurrency
   }
 }
 ```

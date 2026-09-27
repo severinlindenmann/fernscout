@@ -88,16 +88,29 @@ entry is named in the run's log, one line each — **read that log when adding
 something new to the server**, because the allowlist's failure mode is a new
 thing silently excluded.
 
+**Not in it, and not on purpose: originals moved by `MEDIA_ORIGINALS_DIR`.**
+`content/` is what the allowlist stages, and setting `MEDIA_ORIGINALS_DIR`
+(`docs/ingest.md`) keeps a photograph's untouched original outside
+`content/` entirely. Nothing in `scripts/backup.sh` reaches that directory,
+so an instance using it is backing up every derivative and none of the print
+masters. Point `MEDIA_ORIGINALS_DIR` at storage with its own backup, or add
+it to the allowlist yourself, before relying on this procedure to bring
+originals back.
+
 ## Restoring onto a fresh machine
 
 ```bash
-# 0. Steps 1–5 of the runbook's "First deploy", then put RESTIC_REPOSITORY,
+# 0. Steps 1–5 AND 6–7 of the runbook's "First deploy" — user, Node, Caddy,
+#    the app checkout and environment, then the systemd units
+#    (`install-units.sh`) and the Caddyfile itself. Skipping 6–7 leaves
+#    nothing for `systemctl restart fernscout` below to restart and no TLS
+#    listener for step 8's curl to reach. Put RESTIC_REPOSITORY,
 #    RESTIC_PASSWORD and — where the repository is object storage —
 #    AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in /etc/fernscout/env by
-#    hand. They are all you need to read the repository; everything else
-#    arrives in step 5. Put those same four back afterwards: the restored env
-#    file does not carry them, and without them the new machine takes no
-#    backup.
+#    hand before any of this. They are all you need to read the repository;
+#    everything else arrives in step 5 below. Put those same four back
+#    afterwards: the restored env file does not carry them, and without them
+#    the new machine takes no backup.
 set -a; . /etc/fernscout/env; set +a
 
 # 1. Restore. -E carries the restic credentials across sudo.
@@ -109,11 +122,14 @@ STAGED=$(sudo find /restore -maxdepth 4 -type d -name 'fernscout-backup-staging'
 # 3. restic restores as root; the steps below run as fernscout.
 sudo chmod -R a+rX /restore
 
-# 4. Database. Skip if this deployment has none; for SQLite, the file is
-#    restored with DATA_DIR in step 6 and there is nothing to do here.
-sudo -u postgres createdb fernscout -O fernscout || true
+# 4. Database. For Postgres:
+sudo -u postgres createdb fernscout -O fernscout
 sudo -E -u fernscout pg_restore --dbname="$DATABASE_URL" --clean --if-exists \
   "$STAGED/db/postgres.dump"
+# For SQLite instead, copy the file (and its -wal/-shm, if present) into
+# place — step 6 restores content/config/state, but not this:
+sudo mkdir -p /var/lib/fernscout
+sudo cp "$STAGED"/db/fernscout.db* /var/lib/fernscout/
 
 # 5. The environment. This is the step that did not exist before B653, and
 #    without it the service will not start — see the trap below.

@@ -78,14 +78,19 @@ not help you in the moment.
 
 ### `SESSION_SECRET`, if anything is locked
 
-Needed as soon as `features.auth` is on, and for signup always — signup has no
-switch of its own (B1693), only `features.signup.inviteOnly`, so what decides
-whether it works is this variable and a database. Without it
-`lib/capabilities.ts` reports both capabilities off and `/api/auth/codes`
-answers 404. Nobody can prove an address, so nobody can
-be let into a closed trip. That is the designed behaviour — an optional
-capability is absent rather than half-working — rather than a crash, but you
-still cannot get in.
+A fresh clone's `site/config.json` leaves `features.auth` off, so a plain
+`npm start` with no `SESSION_SECRET` boots fine: `lib/capabilities.ts` reports
+`auth` and `signup` off, `/api/auth/codes` answers 404, and nobody can prove
+an address or be let into a closed trip — an optional capability absent
+rather than half-working.
+
+**Once `features.auth.enabled: true` is actually written into the config, the
+rule flips**: `assertCapabilities()` runs at boot (`instrumentation.ts`) and
+throws, refusing to start at all, for any capability that is switched on but
+missing what it needs — including `auth` with no `SESSION_SECRET`. That is
+also the designed behaviour, the other half of "a capability that is on but
+missing its credentials refuses to boot and says why" (`docs/capabilities.md`).
+Set it before you turn `auth` on, not after:
 
 ```bash
 SESSION_SECRET=$(openssl rand -hex 32) npm start
@@ -129,11 +134,17 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000 npm run dev
 
 ## Opening an owner-only page
 
-`/<user>/photobook`, `/<user>/contacts`, the postcard preview and the credits
-page all answer 404 to everybody but the journal's owner, and `isOwner` has no
-development shortcut on purpose — an environment variable that makes you an
-owner is a thing that eventually ships. So the way in locally is the way in
-everywhere: request a code, read it, redeem it.
+`/<user>/contacts` (a redirect to `/<user>/studio/readers`), the postcard
+preview and the credits page all answer 404, or refuse past sign-in, to
+everybody but the journal's owner, and `isOwner` has no development shortcut
+on purpose — an environment variable that makes you an owner is a thing that
+eventually ships. So the way in locally is the way in everywhere: request a
+code, read it, redeem it.
+
+**`photobook` and `postcards` are hosted edition only** (`PAID_FEATURES`,
+`lib/capabilities.ts`) — switching either on in this checkout refuses to boot
+rather than opening the page, so leave them off here and use `credits` and
+`contacts` to prove the sign-in flow instead.
 
 It works with no accounts. Mail written to a file is a real transport, and the
 one-time code is in the file.
@@ -141,14 +152,13 @@ one-time code is in the file.
 ```bash
 # 1. The capabilities the page needs, in site/config.json — the *server's*
 #    switches, and since B611 the only place either of these is asked: a
-#    journal has no vote on `photobook` or `postcards`, so nothing needs
+#    journal has no vote on `credits` or `contacts` either, so nothing needs
 #    adding to content/<user>/config.json.
 #    Leave `contacts` off unless you have set CONTACTS_ENCRYPTION_KEY: the boot
 #    refuses a capability it cannot honour, which is the point of it.
 #
 #      features.auth.enabled       true
 #      features.credits.enabled    true
-#      features.photobook.enabled  true
 #      features.mail               { enabled: true, transport: "file" }
 
 # 2. A database, and a secret to sign sessions with.
@@ -198,7 +208,15 @@ is still worth knowing about: nothing is issued, so `login_codes` stays empty
 and no `[mail]` line is printed even when the response looks like a refusal
 you can read past.
 
-To spend credits locally, grant some: `npm run credits -- grant example 500`.
+To spend credits locally, grant some. `npm run credits` is the hosted
+edition's own CLI (`paid/credits/scripts/grant-credits.ts`) and prints
+"not included in this build" and exits 0 here — `lib/credits.ts`'s own
+`grant(owner, n)` is the open function behind it:
+
+```bash
+npx tsx --conditions=react-server -e \
+  'import("./lib/credits.ts").then(m => m.grant("example", 500))'
+```
 
 ## Testing the agent surface
 
@@ -211,11 +229,14 @@ Do it against a copy, not your real content:
 
 ```bash
 cp -R content /tmp/fs-content
+mkdir -p /tmp/fs-site
+cp site/config.json /tmp/fs-site/config.json
 ```
 
-Then switch the three features on in **both** files — the server config is a
-ceiling and the journal's own config is the opt-in, so a feature that is on in
-only one of them stays off:
+**`auth` and `contacts` are operator-only** (`OPERATOR_ONLY_FEATURES`,
+`lib/config.ts`) — a journal's own `config.json` has no vote on either, so
+only the server config needs them. `mail` is the one of these three a journal
+can actually narrow, so it is worth setting in both to be sure:
 
 ```jsonc
 // /tmp/fs-site/config.json          → features
@@ -224,14 +245,16 @@ only one of them stays off:
 "contacts": { "enabled": true }
 
 // /tmp/fs-content/example/config.json  → features
-"auth":     { "enabled": true },
-"contacts": { "enabled": true },
 "mail":     { "enabled": true }
 ```
 
-And start it with the secrets those capabilities need:
+Then start it, **naming the edited server config explicitly** —
+`FERNSCOUT_CONFIG` is what `serverConfigPath()` checks first; without it a
+`CONTENT_DIR` with no `config.json` of its own falls back to the checkout's
+own `site/config.json`, silently ignoring the copy above:
 
 ```bash
+FERNSCOUT_CONFIG=/tmp/fs-site/config.json \
 CONTENT_DIR=/tmp/fs-content \
 DATA_DIR=/tmp/fs-data \
 SESSION_SECRET=$(openssl rand -hex 32) \
@@ -245,10 +268,11 @@ point: finding out at 3am that mail was enabled and `SMTP_HOST` was never set
 is the failure this project cannot afford.
 
 > `/api/health` is the other half of that. It reports every capability's
-> resolved state and, when one is off, why — per server *and* per journal,
-> since those are two different answers. A journal that never switched
-> `contacts` on shows `"not enabled by example"` there, which is what explains
-> an `/example/contacts` that 404s on a server where contacts are enabled.
+> resolved state and, when one is off, why. `contacts` is operator-only
+> (`OPERATOR_ONLY_FEATURES`) so it has only one answer, the server's; a
+> journal's own `config.json` never enters into it. `/<user>/contacts` is
+> always a redirect to `/<user>/studio/readers` regardless — it never 404s,
+> with or without the capability on.
 
 ### Getting an agent token
 

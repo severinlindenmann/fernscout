@@ -1,15 +1,12 @@
-# Roadmap — decisions and the open backlog
+# Roadmap — decisions, and what they became
 
-Two things: the **decision log**, which is the durable half, and what is
-**still open**. What has been built is not itemised here — `docs/plans/INDEX.md`
-is the record of that, one file per work package, W01 through W36.
-
-Researched and written in August 2026, before any of it existed, and cut back on
-2026-08-31 to what is still true. Roughly two thirds of the original task list
-has shipped, and the research feeding decisions already taken — domain
-availability, print pricing, object-storage comparisons — went with it. Where
-that detail still matters it now lives closer to the code: the print providers'
-docs with the paid features, `docs/runbook.md` for hosting, `docs/architecture.md` for shape.
+This file is the **decision log**: the calls made in August 2026, before any
+of it existed, each now marked **upheld**, **superseded** or **reversed**
+against what actually shipped. It is not the backlog — that is
+`npm run tasks` (`docs/tasks/`, in the harness this app is dispatched from),
+which is where anything still open belongs. The task tables that used to live
+here have been moved out or marked done; §15 keeps only what is still
+genuinely undecided.
 
 **Section numbers and task IDs are kept even where the work is done**, because
 source comments cite them (`ROADMAP §1.1`, `§2.2`, `§3.1`, `decision 24`). A
@@ -25,36 +22,36 @@ Effort: **XS** under two hours · **S** half a day · **M** one to three days ·
 Answered on **2026-08-30** unless noted. A decision log, not a list of forks;
 anything still open is in §15.
 
-| # | Question | Decision |
-| --- | --- | --- |
-| 1 | Departure | **~6 months out (≈ March 2027)** — but explicitly *not* treated as the main constraint; agentic development is fast enough that build time isn't the binding limit |
-| 2 | Data model | **Files canonical + Postgres index** |
-| 3 | Licence | **Apache-2.0 + separate trademark policy** since the open-core split (2026-09-25): hosted-only features live in a private repository instead of behind a licence clause. Was PolyForm Shield 1.0.0 before that, and AGPL-3.0 until B652 |
-| 4 | Name | **`Fernscout`, on `fernscout.ch`** (§11) |
-| 5 | Hosted product | **Deferred — keep the seams clean, decide after the trip** |
-| 6 | Audience | **~20–50 readers, most will never install anything → email is the product** |
-| 7 | Currency | **Local currency in, CHF out, per-trip rates, reader-selectable display currency** |
-| 8 | Photobook | **Script-first, for me — but must handle low volume (5–10 recipients), books *and* postcards** |
-| 9 | Feature model | **Every optional capability off by default; enabling one is the self-hoster's act and requires their own credentials. The hosted tier supplies those credentials** (§1.1, §2.1) |
-| 10 | Prototype scope | **`fernscout.ch` on the VPS, public site only, no Postgres** (§2.2) |
-| 11 | Costs visibility | **Per-trip: `public` or `guests`** — set on the trip document (`trip.md` until B1598; `trip.json`'s own field since) |
-| 12 | Trip visibility | **Per-trip: `public` / `unlisted` / `password`**. *Amended by B39 and W27: the password is gone — one shared secret was the wrong shape (`lib/access.ts`). It is `public` / `guest` / `private`, and `unlisted` became the separate `listed:` field, which may only narrow (B51).* |
-| 13 | Languages | **Two layers** — maintained UI locales (de/en/hu, English fallback) vs arbitrary content languages (§1.2). Implies `M7` locale URLs |
-| 14 | Domains | **`.ch` + `.com`** only |
-| 15 | Media | **VPS disk, behind a media interface**; off-VPS backups regardless |
-| 16 | Push | **Build it properly** (`D1` + `D7`), despite the audience estimate |
-| 17 | Mail | **Proton SMTP** (Business plan — also provides the `fernscout.ch` mailbox) |
-| 18 | Video | **Short clips only**, hard length cap, ffmpeg at ingest |
-| 19 | Re-sharing | **Links forward freely, but access needs your approval** — email on each request, plus a guest overview. *Amended by B37: the link has to have been issued by the owner. The open, tokenless one is gone — see §3 and `lib/contacts/invites.ts`.* |
-| 20 | Photo consent | **Publish, remove on request**, stated in writing |
-| 21 | Currencies | **Configurable list**, ECB reference rates fetched at build time |
-| 22 | Trademark | **Skipped for now** — personal site. Revisit on the triggers in §0.6 |
-| 23 | Multi-user | **Built in from the start**, not deferred: `content/<username>/…`, URLs at `/<username>/…`, server config separate from user config (§0.7, plan W22) |
-| 24 | Editing | **The frontend has no editing UI, ever.** An agent reads `/documentation.txt` + `/agent.md`, authenticates for a 7-day write token, and edits on the owner's behalf. Browsers get read-only guest sessions only (§0.8, plan W23). *Amended by B283: the browser still cannot write, and the second half is now narrower than it reads. The owner's own page issues a **20-minute `handover` credential** that can do exactly one thing — be exchanged, once, at `POST /api/auth/handover`, for an agent token of the agent's own. Read access and write access are still separate credentials that `resolveSession` refuses to swap; what changed is that the owner can hand over a pasteable prompt instead of reading six digits down a phone. The reason it is twenty minutes and not seven days is `SESSION_TTL_MS`: a guest cookie lasts a year, so printing the write token would have made the cookie the ceiling, and left a live week-long credential in a clipboard, a screenshot and a terminal scrollback.* *Amended again by B619: the owner's own page carries two forms — their own name, telephone and postal address (a contact row of their own, the same `ContactManage` every guest gets) and the journal's own `title` and `tagline`, through a cookie-only `PATCH /api/journal`. Neither is content: no day, no photograph, no trip, and still no write token in a browser. It is the same administration the contacts page has done since it approved its first guest. `owner.email` stays unwritable everywhere, because it is the address that decides who can obtain a token.* *Amended a third time by B681 and B682, against `docs/plans/2026-09-07-web-helper-agent.md`: a person with no agent of their own can now write, at `/agent`, through a guided web helper hosted by this instance. It is not the editing UI this decision ruled out — it holds none of a CMS's shape, because it writes through the same `PUT .../days/{slug}` an outside agent calls, fills in the wizard's fields from what a person describes rather than mapping form fields onto the day's own document, and still cannot publish: what it produces still arrives `status: draft`, and the owner still makes the separate, labelled tap that puts it on the site. The security property this decision was actually protecting is untouched — the browser still holds no agent token, `resolveSession()` still refuses to swap a cookie for one, and the helper's own routes under `/api/helper/` are cookie-only and refuse a bearer token outright, the same shape B434 already gave the postcard sender. The `helper` capability is off by default, so a self-hoster who still agrees with the sentence above keeps a site with no editor in it. B683–B689 build out the rest of the wizard; none of it moves where the write token lives.* |
-| 25 | Agent doc name | **`/documentation.txt`**, not `llms.txt` — named for the person handing over the link. `llms.txt` stays an off-by-default alias. Kept out of search with `X-Robots-Tag: noindex`, never a `robots.txt` rule (plan W23) |
-| 27 | No Docker | **Native install on the VPS** — Node, Caddy, systemd, and Postgres only when a feature needs it. The backend is Next.js route handlers plus a Node worker; **no second framework** (§2.3) |
-| 26 | Landing page | **A landing page at `/`** (or `/welcome` when a `defaultUser` owns the root): what this is, how to point an agent at it, and a link to the live `/example` user (plan W24) |
-| 28 | Publishing | **The agent is the editor: it writes, it publishes, it corrects.** Decision 24 said browsers never edit; this says who does. What an agent writes still arrives as a draft and `POST .../days` still cannot publish — the two calls exist so the owner can read a day back before anyone else — but putting it up is `POST .../days/<slug>/publish`, owner-only, and the agent's to make when asked. Supersedes the older rule that a person publishes by deleting `status: draft` from a file, which was advice with nowhere to go for the owner of a journal an agent created (B28, restated B223; B224 dropped the confirmation handshake, which never established consent because the agent held both calls) |
+| # | Question | Status | Decision |
+| --- | --- | --- | --- |
+| 1 | Departure | Upheld | **~6 months out (≈ March 2027)** — but explicitly *not* treated as the main constraint; agentic development is fast enough that build time isn't the binding limit |
+| 2 | Data model | Upheld | **Files canonical + Postgres index** |
+| 3 | Licence | Upheld (amended) | **Apache-2.0 + separate trademark policy** since the open-core split (2026-09-25): hosted-only features live in a private repository instead of behind a licence clause. Was PolyForm Shield 1.0.0 before that, and AGPL-3.0 until B652 |
+| 4 | Name | Upheld | **`Fernscout`, on `fernscout.ch`** (§11) |
+| 5 | Hosted product | **Superseded** | Was "deferred — keep the seams clean, decide after the trip." Replaced by the 2026-09-25 open-core split: the hosted product exists now, as `paid/` (photobook, postcards, WhatsApp, Stripe credits), reached through `@paid/*` — see §12 and `docs/capabilities.md` |
+| 6 | Audience | Upheld | **~20–50 readers, most will never install anything → email is the product** |
+| 7 | Currency | Upheld | **Local currency in, CHF out, per-trip rates, reader-selectable display currency** |
+| 8 | Photobook | Upheld | **Script-first, for me — but must handle low volume (5–10 recipients), books *and* postcards** |
+| 9 | Feature model | Upheld | **Every optional capability off by default; enabling one is the self-hoster's act and requires their own credentials. The hosted tier supplies those credentials** (§1.1) |
+| 10 | Prototype scope | Upheld | **`fernscout.ch` on the VPS, public site only, no Postgres** (§2.2) |
+| 11 | Costs visibility | Upheld | **Per-trip: `public` or `guests`** — set on the trip document (`trip.md` until B1598; `trip.json`'s own field since) |
+| 12 | Trip visibility | Upheld (amended) | **Per-trip: `public` / `unlisted` / `password`**. *Amended by B39 and W27: the password is gone — one shared secret was the wrong shape (`lib/access.ts`). It is `public` / `guest` / `private`, and `unlisted` became the separate `listed:` field, which may only narrow (B51).* |
+| 13 | Languages | Upheld | **Two layers** — maintained UI locales (de/en/hu/fr/it, English fallback) vs arbitrary content languages (§1.2). Implies `M7` locale URLs |
+| 14 | Domains | Upheld | **`.ch` + `.com`** only |
+| 15 | Media | Upheld | **VPS disk, behind a media interface**; off-VPS backups regardless |
+| 16 | Push | Upheld | **Build it properly** (`D1` + `D7`), despite the audience estimate |
+| 17 | Mail | Upheld | **Proton SMTP** (Business plan — also provides the `fernscout.ch` mailbox) |
+| 18 | Video | Upheld (amended) | **Short clips only**, hard length cap (5 minutes, raised from an earlier 30-second cap), ffmpeg at ingest |
+| 19 | Re-sharing | Upheld (amended) | **Links forward freely, but access needs your approval** — email on each request, plus a guest overview. *Amended by B37: the link has to have been issued by the owner. The open, tokenless one is gone — see §3 and `lib/contacts/invites.ts`.* |
+| 20 | Photo consent | Upheld | **Publish, remove on request**, stated in writing |
+| 21 | Currencies | **Superseded** | Was "configurable list, ECB reference rates fetched at build time." Replaced: the ECB snapshot is fetched at deploy time and refreshed nightly off the backup timer, not the build — see `docs/currencies.md` |
+| 22 | Trademark | Upheld | **Skipped for now** — personal site. Revisit on the triggers in §0.6 |
+| 23 | Multi-user | Upheld | **Built in from the start**, not deferred: `content/<username>/…`, URLs at `/<username>/…`, server config separate from user config (plan W22) |
+| 24 | Editing | **Superseded** | Was "the frontend has no editing UI, ever." Replaced by the studio (`/<user>/studio`): the owner writes in a browser now, with an agent or this instance's own assistant as an optional second way. The three amendments below are kept as history of how that happened. *Amended by B283: the browser still cannot write, and the second half is now narrower than it reads. The owner's own page issues a **20-minute `handover` credential** that can do exactly one thing — be exchanged, once, at `POST /api/auth/handover`, for an agent token of the agent's own.* *Amended again by B619: the owner's own page carries two forms — their own name, telephone and postal address, and the journal's own `title` and `tagline`, through a cookie-only write. Neither is content.* *Amended a third time by B681/B682: a web helper let somebody with no agent of their own write through the same v2 calls. That web room is itself now gone (B311); its job is the studio's own flows.* |
+| 25 | Agent doc name | Upheld | **`/documentation.txt`**, not `llms.txt` — named for the person handing over the link. `llms.txt` stays an off-by-default alias. Kept out of search with `X-Robots-Tag: noindex`, never a `robots.txt` rule (plan W23) |
+| 27 | No Docker | Upheld | **Native install on the VPS** — Node, Caddy, systemd, and Postgres only when a feature needs it. The backend is Next.js route handlers plus a Node worker; **no second framework** (§2.3) |
+| 26 | Landing page | Upheld | **A landing page at `/`** (or `/welcome` when a `defaultUser` owns the root): what this is, how to point an agent at it, and a link to the live `/example` user (plan W24) |
+| 28 | Publishing | Upheld (amended) | **Publish is a separate, explicit call.** Decision 24 said browsers never edit; this says who publishes. What is written still arrives as a draft and cannot publish itself — the two calls exist so the owner can read a day back before anyone else — but putting it up is `PUT .../days/{slug}` followed by its own publish call, owner-only. Supersedes the older rule that a person publishes by deleting `status: draft` from a file (B28, restated B223; B224 dropped a confirmation handshake that never established consent) |
 ### 0.5 What "clean seams" concretely means
 
 Cheap now, expensive to retrofit. This is the whole cost of keeping §12 alive:
@@ -164,7 +161,9 @@ hand, for nothing.
 | **M1** | **Backups you have restored from at least once.** The highest-value item in this document. `scripts/backup.sh` and the restore procedure in `docs/runbook.md` exist; performing the restore is the part that is not code. | **S** |
 | **M11** | **Storage budget math.** 5 months × ~30 photos/day at 4 MB ≈ 18 GB of originals. Decide what is kept, at what size and where — retrofitting is a migration over hostel wifi. | **XS** |
 | **B5** | **CDN / image resizing at the edge.** `/<user>/media/…` resizes on the VPS, which is fine for family traffic and not for a hosted product. Object storage (B4) is what makes this a config change. | **M** |
-| **B9** | **Privacy-friendly analytics**, self-hosted. Mainly to settle whether push is actually used rather than argue about it. | **S** |
+
+**B9 shipped** — the `analytics` feature (a database, no third party) answers
+"is push actually used", from the studio's own "Visitors" page.
 
 ---
 
@@ -225,23 +224,28 @@ E1–E3 and E7–E10 shipped in W15: `npm run ingest` reads EXIF, clusters a fol
 into candidate days, resizes, handles HEIC and short video, and refuses
 duplicates by hash.
 
+**E4 shipped** — `importers/gps/google-timeline.ts` and `google-records.ts`
+read a Google Timeline/Takeout export.
+
 | ID | Task | Effort |
 | --- | --- | --- |
-| **E4** | **Google Timeline importer** — backfill a route from Takeout when photos are sparse. | **M** |
-| **E6** | **Map the real route**, not straight lines between stops. Wants F3. | **M** |
+| **E6** | **Map the real route**, not straight lines between stops. Shipped for the derived line drawn from a phone's own GPS history (`docs/gps.md`); still open for a trip with no recorded history of its own. | **M** |
 
 ---
 
 ## 6. Live tracking on the phone
 
-Nothing here is built; W20 was never started.
+**Built, but not the way this section planned.** Rather than a generic
+`POST /api/track` any tracker app could post to, the shipped design is the
+iPhone shell's own native recorder (`ios/App/App/Recorder.swift`) writing
+into a journal's own GPS history, with route rendering, thinning and private
+zones all in `docs/gps.md`. A third-party app posting a payload
+(**F1**) is still not built and is no longer planned — the native recorder
+is the one path.
 
 | ID | Task | Effort |
 | --- | --- | --- |
-| **F1** | **`POST /api/track`** accepting the OwnTracks payload. | **M** |
 | **F2** | **Manual "check in here" button** — the low-tech version that works without a tracker app. | **S** |
-| **F3** | **Route rendering + simplification** from tracked points. | **M** |
-| **F4** | **Battery and privacy defaults** — coarse location, and a switch that stops it entirely. | **S** |
 
 ---
 
@@ -249,7 +253,7 @@ Nothing here is built; W20 was never started.
 
 ◆ **This is the part of the plan that isn't a worse Polarsteps.** Competitors own
 auto-tracking and travel books, and will not be out-featured on either. What they
-structurally cannot offer is: *your content is plain markdown and photos in a
+structurally cannot offer is: *your content is JSON documents and photos in a
 folder you own, and any agent can read and write it.* Lean all the way in.
 
 G1 (skills + `AGENTS.md`), G4 (REST), G5 (MCP), G6 (direct file access) and
@@ -275,10 +279,11 @@ confirmation handshake back off.
 
 ## 8–9. Print and presentation
 
-Both shipped. Postcards and photobooks are W13/W14 — renderer, PDF/X handling
-and a `dry-run` backend for every provider; the provider detail that used to sit
-lives with the paid features' own provider docs. Presentation mode, the narrated cut
-and the wake lock are W19.
+Both shipped. **Postcards and photobooks are hosted edition only** — the
+renderer, PDF/X handling and a `dry-run` backend for every provider (W13/W14)
+now live in the private `paid/` repository; the provider detail that used to
+sit here lives with their own provider docs. Presentation mode, the narrated
+cut and the wake lock are open and are W19.
 
 | ID | Task | Effort |
 | --- | --- | --- |
@@ -295,9 +300,12 @@ the dynamic import in `components/useWorldLand.ts`; TEST-1 is the suite under
 `test/`. That file was folded into this one on 2026-08-31; J7–J11 are what it
 measured and left behind.
 
+**J7 shipped** — `rfc822()` (`lib/feed.ts`) now reads a day's own `timezone`
+(or the journal's), through `zonedTimeToUtc`, rather than stamping
+`T00:00:00Z`.
+
 | ID | Task | Effort |
 | --- | --- | --- |
-| **J7** | **RSS `pubDate` treats the author's local date as UTC.** `rfc822()` in `lib/feed.ts` stamps `T00:00:00Z`, so an item can be up to ~14 hours out and some aggregators hide future-dated ones. `lib/tripTime.ts` already reasons about exactly this and the feed does not use it; the honest fix is a `timezone:` on the trip, which is a frontmatter change. Subsumes J6. | **S** |
 | **J8** | **The service worker's two remaining gaps**, both documented at `public/sw.js:31`. The runtime cache is trimmed by insertion order rather than use — right on a five-month trip, but a guess, and a real LRU needs timestamps the Cache API does not keep. And nothing is precached per journal: the worker installs from whichever page the reader opened and cannot know whose journal it is about to serve, so a trip's first day is always a cold fetch. | **M** |
 | **J9** | **Done — B770.** By 2026-09-07 the top bar had grown to four stacked rows on a phone (a back link, the title, three chips, seven nav icons — 121px of sticky header where 61px was meant), worse than the two rows this entry originally measured. Below `sm` it is now one row — back, the journal's title, the current section's own icon (the same `yellow-400` waymark the tab bar already used, so "where am I" survives the collapse), and a menu button — with the trip/currency/language chips and the seven destinations moved into a panel behind it (`components/SiteNav.tsx`'s new `list` variant, reused rather than redrawn). Measured at 390px on `/example`: header height 121px → 65px closed (a 46% cut), every control in the header and the panel ≥44px tall including the panel's own rows (48px). The panel sits in the flow rather than over it, the same call `ConfirmPanel` makes — Escape and a tap outside both close it, and focus moves into the panel on open and back to the button on every way it closes. `sm` and up are unchanged. See `components/PageHeader.tsx`. | **S** |
 | **J10** | **Swipe navigation on mobile.** The reading model is one screen at a time, which is exactly the model people swipe; on a phone the only way forward is still the button. `motion` is already a dependency — `drag="x"` on the `motion.div` in `components/StoryPager.tsx` plus a threshold, wired to the same `goStep` the buttons call. | **S** |
@@ -325,11 +333,15 @@ shipped in W01/W25 — see [`docs/branding/BRAND.md`](branding/BRAND.md) and the
 
 ## 12. The hosted product
 
-**Deferred** (decision 5) — nothing here is scheduled. It stays written down
-because §0.5's clean seams are what preserve the option, and because the
-positioning is worth having before it is needed.
+**Live** — decision 5 is superseded (above): the open-core split shipped this
+as the private `paid/` repository, reached from the app only through
+`@paid/*`. Signup (`features.signup`), credits and Stripe billing
+(`lib/credits.ts`, `@paid/credits`), storage quotas (`lib/storageQuota.ts`),
+and delete/export on request (`lib/contacts/index.ts`, `npm run export`) are
+all built — **L2** and **L5** below, done. What is still open is the
+positioning and go-to-market work, not the platform.
 
-> **The travel journal your AI can actually use.** Your trip is markdown and
+> **The travel journal your AI can actually use.** Your trip is JSON and
 > photos in a folder you own. Talk to it, write it by voice, export it, print
 > it, self-host it. No lock-in, no feed, no algorithm.
 
@@ -341,10 +353,8 @@ and "your data leaves as easily as it arrived."
 | --- | --- | --- |
 | **L10** | **Custom domains per customer** — Caddy on-demand TLS, gated by an authorisation endpoint so anyone pointing DNS at you cannot mint certificates. The single most visible thing the hosted tier sells. | **M** |
 | **L9** | **Managed credentials** — the hosted tier supplies what a self-hoster brings: SMTP, print keys, VAPID. `lib/capabilities.ts` resolves them from the platform instead of the environment; same code path, different source. | **M** |
-| **L2** | **Signup, plans, billing, quotas** — storage is the real cost driver. | **L** |
-| **L3** | **Onboarding that produces a first day within 5 minutes.** Upload ten photos, get a drafted day. Longer than that and nobody comes back. | **L** |
+| **L3** | **Onboarding that produces a first day within 5 minutes.** Upload ten photos, get a drafted day. Longer than that and nobody comes back. The studio's own guided photo import (`extract`) is the mechanism; whether it lands under 5 minutes for a new signup is unmeasured. | **L** |
 | **L4** | **Abuse & moderation.** Public pages mean spam, illegal content and DMCA. Have a takedown path before launch, not after. | **M** |
-| **L5** | **GDPR / Swiss DSG** — privacy policy, subprocessor DPAs, export and delete on request, and a real answer for "there are strangers' faces in these photos". `lib/contacts/index.ts` already implements deletion. | **M** |
 | **L6** | **Docs site + a 3-minute self-host video.** For an OSS project, docs *are* the marketing. | **M** |
 | **L7** | **Launch plan** — Show HN, r/selfhosted, Product Hunt, and the strongest one: a genuinely good write-up of a real 6-month trip as the reference instance. Ship the product by shipping the trip. | **M** |
 | **L8** | **Migration importers** from Polarsteps / FindPenguins exports. The cheapest acquisition channel and directly on-message about lock-in. | **M** |
@@ -402,7 +412,7 @@ guestbook — waits for a reason to exist.
 
 | | Trigger |
 | --- | --- |
-| **A journal-level authentication wall** | If somebody wants a journal a stranger with the URL cannot read *at all*. W38 gave a journal `visibility: private`, which means unlisted — off `/documentation.txt`, off the landing page, off the sitemap, `noindex`. Who may read a *journey* is still the trip's own gate, which already has approved guests of the journal and the trip's own `people:` list. A real wall above that touches every page, the feed, the search index, the export, the media route and the markdown twins, and needs an invite flow at journal level. Do not half-build it: a gate that looks stronger than it is, is worse than none |
+| **A journal-level authentication wall** | If somebody wants a journal a stranger with the URL cannot read *at all*. W38 gave a journal `visibility: "guest"` (the value is `guest`; `private` never shipped and is not in the schema), which means unlisted — off `/documentation.txt`, off the landing page, off the sitemap, `noindex`. Who may read a *journey* is still the trip's own gate, which already has approved readers of the journal and the trip's own `people:` list. A real wall above that touches every page, the feed, the search index, the export, the media route and the markdown twins, and needs an invite flow at journal level. Do not half-build it: a gate that looks stronger than it is, is worse than none |
 | **Trademark registration** | Any of the three triggers in §0.6 |
 | **Object storage** | When the VPS disk hurts. `lib/media.ts` is what makes it a config change |
 | **`.de` / `.at` domains** | If DACH readership grows beyond family, or someone else takes them |
