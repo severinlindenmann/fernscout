@@ -1,5 +1,6 @@
 import type { TransportMode, TripAccent } from "@/lib/types";
 import { mapAccent, mapStyle } from "@/lib/map/style";
+import { MAP_VIEWBOX } from "@/lib/mapProjection";
 import type { Px } from "./StopMarker";
 
 /**
@@ -14,12 +15,34 @@ export function isArcLeg(mode: TransportMode | undefined): boolean {
 }
 
 /** How far a flight's arc bows out, in screen pixels, capped so a very long
- * hop does not swing off the map — the same shape of cap `WorldMap` already
- * applies to its own mode-bowed legs, at a gentler fraction because this
- * line no longer needs to read as "which vehicle". */
+ * hop does not swing off the map — the same shape of cap `WorldMap` used to
+ * apply to its own mode-bowed legs, at a gentler fraction because this line
+ * no longer needs to read as "which vehicle". */
 function bow(x1: number, y1: number, x2: number, y2: number, px: Px): number {
   const len = Math.hypot(x2 - x1, y2 - y1) || 1;
   return Math.min(px(90), len * 0.16);
+}
+
+/**
+ * The one place a flight's arc decides which side it bows to — B2422 folding
+ * in what used to be two separate rules. `WorldMap` had its own bias toward
+ * the nearer pole (a Zurich–Bangkok flight bows north, the direction the
+ * real great circle actually runs, rather than sweeping south over Africa —
+ * B46's own note); this primitive's first cut bowed to one fixed side
+ * instead, which would have been wrong on exactly that flight once WorldMap
+ * restyled onto it. Phase 1 keeps the pole bias and moves it here, so every
+ * map that draws a flight through this component agrees, rather than each
+ * reimplementing "toward the nearer pole" on its own.
+ */
+function poleBiasSide(x1: number, y1: number, x2: number, y2: number): 1 | -1 {
+  const my = (y1 + y2) / 2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  // y grows southward, so "toward the pole" is negative in the north.
+  const northern = my < MAP_VIEWBOX.height / 2;
+  const toward = northern ? -1 : 1;
+  return Math.sign(dx / len) === toward || dx === 0 ? 1 : -1;
 }
 
 function hopPath(x1: number, y1: number, x2: number, y2: number, arc: boolean, px: Px): string {
@@ -30,12 +53,9 @@ function hopPath(x1: number, y1: number, x2: number, y2: number, arc: boolean, p
   const dy = y2 - y1;
   const len = Math.hypot(dx, dy) || 1;
   const b = bow(x1, y1, x2, y2, px);
-  // ponytail: bows to one fixed side rather than toward the nearer pole the
-  // way WorldMap's own great-circle bias does — a real regression there
-  // would look wrong on a specific long-haul flight, not here, where Phase 1
-  // restyles WorldMap itself onto whatever this primitive draws.
-  const cx = mx - (dy / len) * b;
-  const cy = my + (dx / len) * b;
+  const side = poleBiasSide(x1, y1, x2, y2);
+  const cx = mx - (dy / len) * b * side;
+  const cy = my + (dx / len) * b * side;
   return `M${x1},${y1} Q${cx},${cy} ${x2},${y2}`;
 }
 
