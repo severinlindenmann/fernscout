@@ -85,7 +85,7 @@ export default function MessageSwitch({
           }
           void apply(!off);
         }}
-        className={`relative h-5 w-9 rounded-full transition-colors disabled:opacity-50 ${off ? "bg-line-strong" : "bg-green-600"}`}
+        className={`relative h-5 w-9 rounded-full transition-colors disabled:opacity-50 ${off ? "bg-line-strong" : "bg-green-700"}`}
       >
         <span
           aria-hidden

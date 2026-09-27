@@ -138,6 +138,14 @@ export default function AppWaitlistDoor({
         {t("appWaitlist.submitCta")}
       </BusyButton>
       {wrong ? <p className="w-full text-sm text-coral-600">{wrong}</p> : null}
+      {/* The privacy page names consent as the basis for this list — the
+          form has to actually say what the address is for (B2472, C8). */}
+      <p className="w-full text-sm text-ink-body">
+        {t("appWaitlist.consent")}{" "}
+        <Link href="/legal#privacy" className="underline">
+          {t("appWaitlist.consentLink")}
+        </Link>
+      </p>
     </form>
   );
 }

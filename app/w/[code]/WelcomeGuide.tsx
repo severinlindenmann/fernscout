@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Camera, Heart, Mail, PenLine, Stamp, Users } from "lucide-react";
+import Image from "next/image";
 import BusyButton from "@/components/BusyButton";
+import { mediaLoader } from "@/components/mediaLoader";
+import Travelers from "@/components/Travelers";
+import type { Figure } from "@/lib/travellers/vocabulary";
 import {
   AddressFields,
   Alert,
@@ -13,6 +17,7 @@ import {
   FIELD,
   Heading,
   LABEL,
+  PhoneArt,
   PostcardArt,
   PRIMARY,
   QUIET,
@@ -62,8 +67,22 @@ export type GuideProps = {
   /** Masked, for "to le•••@gmail.com" — never the address itself. */
   prove: { email: string | null; mobile: string | null; preferred: "email" | "sms" };
   details: GuideDetails | null;
+  /** The journal's own traveller figures, drawn on the first screen (B2457). */
+  figures: Figure[];
+  /** Up to three recent trips this guest may read — empty until the person
+   *  proved their channel, so a forwarded link shows no trip titles (B2457). */
+  recent: { id: string; title: string; cover: string | null; year: string }[];
+  /** Where "Open the journal" goes — the newest trip this guest may read, or the trips list (B2458). */
+  landing: string;
   caps: { mail: boolean; sms: boolean; whatsapp: boolean; postcards: boolean };
   dictionary: Record<string, string>;
+  /** The page's own resolved locale — B2452, for `CountryField`'s display
+   * names and `AddressLookupField`'s Photon `lang`. */
+  locale: string;
+  /** The journal's own languages, for `CountryField`'s legacy resolution. */
+  locales: string[];
+  /** `isEnabled("addressLookup", owner)`, from the page. */
+  addressLookupEnabled: boolean;
 };
 
 const ERRORS: Record<string, TranslationKey> = {
@@ -159,7 +178,7 @@ export default function WelcomeGuide(props: GuideProps) {
   async function verify() {
     if (!(await call({ action: "verify", channel, code: typed }))) return;
     if (onboarded || steps.indexOf("code") === steps.length - 1) {
-      finish(`/${owner}`);
+      finish(props.landing);
       return;
     }
     router.refresh();
@@ -258,7 +277,9 @@ export default function WelcomeGuide(props: GuideProps) {
   const tile = (Icon: typeof Heart, title: string, body: string, tone: string) => (
     <li key={title} className="flex items-start gap-3 rounded-2xl border border-line-quiet bg-surface-raised p-3">
       <span className={`grid size-12 shrink-0 place-items-center rounded-xl ${tone}`}>
-        <Icon className="size-6 text-navy-900" aria-hidden />
+        {/* Cream stays light in dark mode; green-100 and surface-subtle turn
+            dark there, so their icon takes the theme's own ink (B2457). */}
+        <Icon className={`size-6 ${tone === "bg-cream-100" ? "text-navy-900" : "text-ink-strong"}`} aria-hidden />
       </span>
       <span>
         <span className="block font-semibold text-ink-strong">{title}</span>
@@ -278,7 +299,13 @@ export default function WelcomeGuide(props: GuideProps) {
           </button>
         }
       >
-        <WelcomeArt />
+        {props.figures.length > 0 ? (
+          <div className="flex justify-center rounded-3xl bg-surface-raised px-4 pb-4 pt-8">
+            <Travelers figures={props.figures} size={84} available={280} />
+          </div>
+        ) : (
+          <WelcomeArt />
+        )}
         <Heading id="guide-welcome" big>
           {kind === "buddy" ? t("guide.welcome.buddyTitle", vars) : t("guide.welcome.readerTitle", vars)}
         </Heading>
@@ -307,7 +334,7 @@ export default function WelcomeGuide(props: GuideProps) {
           )
         }
       >
-        <CodeArt />
+        {channel === "sms" ? <PhoneArt /> : <CodeArt />}
         <Heading id="guide-code">{sentTo ? t("guide.code.sentTitle") : t("guide.code.title")}</Heading>
         <p className="text-base text-ink-body">
           {to
@@ -338,7 +365,7 @@ export default function WelcomeGuide(props: GuideProps) {
         labelledBy="guide-what"
         dots={dots}
         footer={
-          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => (last ? done(`/${owner}`) : next())}>
+          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => (last ? done(props.landing) : next())}>
             {last ? t("guide.notify.open") : t("guide.what.go")}
           </BusyButton>
         }
@@ -359,6 +386,28 @@ export default function WelcomeGuide(props: GuideProps) {
                 ...(caps.postcards ? [tile(Stamp, t("guide.what.postcard"), t("guide.what.postcardBody"), "bg-cream-100")] : []),
               ]}
         </ul>
+        {props.recent.length > 0 && (
+          <section aria-labelledby="guide-recent" className="flex flex-col gap-2">
+            <h3 id="guide-recent" className="text-sm font-semibold text-ink-strong">
+              {t("guide.what.recentTitle")}
+            </h3>
+            <ul className="grid grid-cols-3 gap-2">
+              {props.recent.map((trip) => (
+                <li key={trip.id} className="overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
+                  <span className="relative block aspect-[4/3] w-full bg-surface-subtle">
+                    {trip.cover && (
+                      <Image src={trip.cover} loader={mediaLoader} alt="" fill sizes="120px" className="object-cover" />
+                    )}
+                  </span>
+                  <span className="block px-2 py-1.5">
+                    <span className="block truncate text-xs font-semibold text-ink-strong">{trip.title}</span>
+                    <span className="block text-xs text-ink-secondary">{trip.year}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <p className="text-sm text-ink-secondary">
           {kind === "buddy"
             ? t("guide.what.buddyLimits", vars)
@@ -494,7 +543,15 @@ export default function WelcomeGuide(props: GuideProps) {
             postcode: t("guide.address.postcode"),
             city: t("guide.address.city"),
             country: t("guide.address.country"),
+            countrySearchPlaceholder: t("contact.addrCountrySearchPlaceholder"),
+            countryNoMatches: t("contact.addrCountryNoMatches"),
+            addressLookupAttribution: t("contact.addressLookupAttribution"),
+            addressLookupUnavailable: t("contact.addressLookupUnavailable"),
           }}
+          enabled={props.addressLookupEnabled}
+          username={owner}
+          locale={props.locale}
+          locales={props.locales}
         />
         <p className="text-sm text-ink-secondary">{t("guide.address.private", vars)}</p>
         <Alert text={error} />
@@ -513,12 +570,12 @@ export default function WelcomeGuide(props: GuideProps) {
             <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(`/${owner}/trips/${trip.id}`)}>
               {t("guide.notify.openTrip", vars)}
             </BusyButton>
-            <BusyButton busy={busy} type="button" className={SECONDARY} onClick={() => done(`/${owner}`)}>
+            <BusyButton busy={busy} type="button" className={SECONDARY} onClick={() => done(props.landing)}>
               {t("guide.notify.justRead")}
             </BusyButton>
           </>
         ) : (
-          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(`/${owner}`)}>
+          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(props.landing)}>
             {t("guide.notify.open")}
           </BusyButton>
         )

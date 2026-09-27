@@ -25,7 +25,7 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
     async list(username): Promise<StoredSubscription[]> {
       const rows = await db
         .selectFrom("push_subscriptions")
-        .select(["endpoint", "p256dh", "auth", "user_agent", "created_at", "contact_id", "kind"])
+        .select(["endpoint", "p256dh", "auth", "user_agent", "created_at", "contact_id", "kind", "is_owner"])
         .where("owner_id", "=", username)
         .orderBy("created_at")
         .execute();
@@ -39,6 +39,7 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
         username,
         contactId: row.contact_id,
         kind: row.kind === "apns" ? "apns" : "web",
+        ...(row.is_owner === 1 ? { isOwner: true } : {}),
       }));
     },
 
@@ -46,6 +47,12 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
       const now = nowIso();
       const contactId = sub.contactId ?? null;
       const kind = sub.kind ?? "web";
+      // Written fresh from the caller every time, never sticky like
+      // `contactId` above — `isOwner` is re-decided from the owner-cookie
+      // check on every subscribe (`app/api/push/subscribe/route.ts`), so a
+      // stale `true` from a browser that has since signed out as the owner
+      // must not survive a resubscribe.
+      const isOwner = sub.isOwner ? 1 : 0;
       await db
         .insertInto("push_subscriptions")
         .values({
@@ -59,6 +66,7 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
           created_at: toTimestamp(sub.created),
           last_seen_at: now,
           kind,
+          is_owner: isOwner,
         })
         .onConflict((oc) =>
           oc.columns(["owner_id", "endpoint"]).doUpdateSet({
@@ -69,6 +77,7 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
             contact_id: contactId,
             last_seen_at: now,
             kind,
+            is_owner: isOwner,
           }),
         )
         .execute();

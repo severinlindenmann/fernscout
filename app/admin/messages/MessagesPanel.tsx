@@ -111,7 +111,7 @@ export default function MessagesPanel({
   return (
     <div className="mt-6 flex flex-col gap-4">
       {off.size > 0 ? (
-        <div className="rounded-2xl bg-coral-50 px-4 py-2 text-sm font-semibold text-coral-700">
+        <div className="rounded-2xl bg-coral-50 px-4 py-2 text-sm font-semibold text-coral-600">
           Off right now: {[...off].map(labelForSwitchKey).join(" · ")}
         </div>
       ) : null}

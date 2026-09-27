@@ -326,6 +326,12 @@ type PushSubscriptionsTable = {
   /** `"web"` | `"apns"` — added in 039-push-kind, defaulted to `"web"` for
    * every row that predates it. */
   kind: Generated<string>;
+  /** 0/1 — whether this subscription is the journal's own owner, decided
+   * once at subscribe time from the owner-cookie check (`isOwner`), never
+   * from the client's own request. Added in 049-push-owner-flag, defaulted
+   * to 0 for every row that predates it. See `StoredSubscription.isOwner`
+   * (lib/repos/types.ts) for what reads this. */
+  is_owner: Generated<number>;
 };
 
 type ReactionsTable = {
@@ -816,6 +822,8 @@ type PhotobookDraftsTable = {
 /** "Never invite this address again" — B2442. See
  * lib/contacts/suppressions.ts. */
 type InviteSuppressionsTable = {
+  /** Always NO_JOURNAL — instance state (047). */
+  owner_id: Generated<string>;
   hash: string;
   created_at: string;
 };
@@ -849,12 +857,31 @@ type MessageLogTable = {
  * disagree with it.
  */
 type MessageSwitchesTable = {
+  /** Always NO_JOURNAL — instance state (047). */
+  owner_id: Generated<string>;
   /** A `Flow['id']`, a `"<flowId>/<TemplateId>"` pair, or a bare `TemplateId`
    * — see `lib/messages/switches.ts` for how a caller reads one back. */
   key: string;
   /** The admin email that switched it off. */
   updated_by: string;
   updated_at: string;
+};
+
+/**
+ * "News from Fernscout" consent — B2453. One row per address, instance-wide,
+ * never per journal — see `047-news-consent`'s own note for why. Presence of
+ * the row is the consent itself.
+ */
+type NewsConsentTable = {
+  /** Normalised the same way `contacts.email_key` is. */
+  email: string;
+  /** Always `NO_JOURNAL` ("*") — instance state, see 048's note. */
+  owner_id: Generated<string>;
+  /** The exact copy shown when this was given — never rewritten by a later
+   * wording change, so an old consent stays provable as what it was. */
+  wording_key: string;
+  locale: string | null;
+  consented_at: string;
 };
 
 export type Database = {
@@ -890,6 +917,7 @@ export type Database = {
   message_log: MessageLogTable;
   invite_suppressions: InviteSuppressionsTable;
   message_switches: MessageSwitchesTable;
+  news_consent: NewsConsentTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -927,4 +955,5 @@ export const TABLE_NAMES = [
   "message_log",
   "invite_suppressions",
   "message_switches",
+  "news_consent",
 ] as const satisfies readonly (keyof Database)[];

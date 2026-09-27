@@ -1,7 +1,7 @@
 ---
 updated: 2026-09-25
 summary:
-  - A hobby project run by one person in [Country], not a company.
+  - Run by one person in [Country].
   - Everything lives on one server in [City, Country], with a second encrypted backup in [Country].
   - No tracking, no advertising, no third-party scripts. Cookies only to keep you signed in and remember your choices.
   - Outside services are used only for the feature that needs them, and only when somebody uses it.
@@ -21,13 +21,18 @@ summary:
 
 ## Who runs this {#operator}
 
-Fernscout™ is run as a **hobby project** by [Operator name], [Country].
-It is not a company, there is no support desk, and there is no service level
-agreement behind it.
+Fernscout™ is operated by [Operator name] ([legal form, e.g. sole proprietorship]).
 
 [Operator name], [Street and number], [Postcode and town], [Country]
 
 Contact: <[contact email]>
+
+The **controller** for personal data under the Swiss Federal Act on Data
+Protection (FADP) and the GDPR is [Operator name], reachable at the address
+above.
+
+Fernscout is run by one person. No particular availability is guaranteed;
+enquiries are usually answered within a few days.
 
 **Who is responsible for what.** [Operator name] is responsible for running
 this site: accounts and sign-in, the server and its logs, payments, and the
@@ -56,6 +61,7 @@ asks for the same information without them.
 | **Readers and contacts** — names, email addresses, phone numbers, postal addresses, and the owner's own notes on them | So an owner can send a day, a postcard or an invitation to the people they chose | The owner's legitimate interest | Until the owner removes them. Phone numbers and postal addresses are stored encrypted and are never shown to an agent |
 | **Reactions** — which emoji was left on a day, under a random code your browser keeps | So a reader can react once and take it back | Legitimate interest | As long as the journal |
 | **Conversations with the helper**, and messages, photographs, documents and voice-note transcripts sent by WhatsApp or text message | So an owner can carry on where they left off | Contract | Until the owner deletes them or the journal |
+| **Operator reading helper conversations** | To improve the helper | Legitimate interest; the owner can object at any time (switch it off on their page) | As long as the conversations exist |
 | **Location history** | So a trip's map shows the roads really travelled | Consent, per trip | Until the owner deletes it, by month or all at once |
 | **Page-open counts**, for journals whose author switched them on | So an author can tell whether their readers read | Legitimate interest | About ninety days |
 | **Request log** — the page asked for, the time, the browser's name; no IP address | To run and defend the server | Legitimate interest | 14 days |
@@ -67,7 +73,7 @@ asks for the same information without them.
 **Only the owner of a journal talks to the helper** — on the web because
 signing in requires it, and over WhatsApp because only a phone number the owner has already proven is ever bound to a journal. A
 message from any other number gets one fixed reply declining to help and a
-link to sign in, and never reaches the model. **We read helper conversations
+link to sign in, and never reaches the model. **The operator reads helper conversations
 to see what to improve, and an owner can turn that off** on their own page, at
 any time. Turning it off deletes nothing; it means nobody but them reads what
 is there or what comes next.
@@ -142,7 +148,7 @@ still has to say who it uses if it turns the same feature on.
 | **Apple** (push notifications) | United States | A device running the iPhone app asked to be notified | A device token, and the notification's title and link |
 | Your browser's push service (Google, Mozilla or Apple) | Depends on the browser | A browser asked to be notified | An encrypted message it cannot read, and a device address |
 | **Anthropic PBC** | United States | This instance's helper is on and the owner used it, after saying yes — see [AI and voice](#ai) | What the owner gave it for that one request |
-| **Deepgram Inc.** | United States | This instance's transcription is on and the owner spoke to the helper, or sent a voice note | The recording, and its language |
+| **Deepgram Inc.** | Processed in the EU (US company) | This instance's transcription is on and the owner spoke to the helper, or sent a voice note | The recording, and its language |
 | **Stripe** — hosted edition only | Ireland, and the United States | Somebody bought credits | The amount, the email address for the receipt, and the journal's name as a reference. Card details are typed on Stripe's own page, never on this one |
 | **[Postcard printer]** — hosted edition only | [Country] | Somebody sent a printed postcard | The postcard's picture and message, and the recipient's name and postal address |
 | **[Photobook printer]** — hosted edition only | [Country] | Somebody ordered a printed photobook | The book, and the recipient's name, postal address and email address |
@@ -156,7 +162,8 @@ own instance's actual providers and their locations: for a service outside
 Switzerland and the EU, name whether the transfer rests on an adequacy
 decision or on the provider's own standard data processing terms. For the
 built-in providers above that a self-hoster reaches without any operator
-choice — Anthropic (helper) and Deepgram (transcription), both United States —
+choice — Anthropic (helper, United States) and Deepgram (transcription, a US company
+whose EU endpoint `api.eu.deepgram.com` this software uses by default) —
 Anthropic's commercial terms carry a data processing agreement referencing the
 Swiss–US Data Privacy Framework; whether a data processing agreement is in
 place with Deepgram for this instance is something an operator using
@@ -247,8 +254,8 @@ You may ask what is stored about you, and have it corrected, deleted or handed
 to you in a format you can take elsewhere. You may object to anything done on
 the basis of legitimate interest, and withdraw a consent at any time without
 affecting what was done before. No decision about you is made automatically.
-Write to the address at the top of this page. There is one person reading it,
-so please be patient; you will get an answer within thirty days.
+Write to the address at the top of this page. You will get an answer within
+thirty days.
 
 You can also complain to the **Swiss Federal Data Protection and Information
 Commissioner** ([edoeb.admin.ch](https://www.edoeb.admin.ch)) or, in the EU,
@@ -281,20 +288,21 @@ typed in themselves carries no citation.
 
 ## What is not promised {#not-promised}
 
-This site is offered as it is, without warranty of any kind.
+Fernscout is offered without any guarantee of a particular availability.
 
-**No responsibility is accepted for lost data.** Journals are backed up, but a
-backup can fail and a restore can be incomplete. If a trip matters to you,
-keep your own copy — the owner's page has the download.
+**Keep your own copy.** Journals are backed up regularly, but a backup can
+fail and a restore can be incomplete. If a trip matters to you, download it
+from your own page.
 
-**No responsibility is accepted for a data breach.** The software is written
-with security taken seriously — credentials are hashed, tokens expire, private
-trips are refused rather than merely hidden, and the code is reviewed for it —
-but no system is proof against every attack. Do not put anything on this site
-whose disclosure you could not live with.
+**Security.** Personal data is protected with appropriate technical and
+organisational measures — credentials are hashed, tokens expire, private trips
+are refused rather than merely hidden, and the code is reviewed for it. If a
+data breach happens anyway, the competent authority and the people affected
+are informed as the law requires.
 
-**No liability is accepted for the content of other people's sites**, or for
-what happens to you on them, including any site a link here leads to.
+**Links.** The operators of other sites linked from here are responsible for
+their content.
 
-By using this site you accept that any liability, to the extent the law
-permits it, is excluded.
+**Liability.** Liability is excluded to the extent the law permits. This does
+not apply to damage caused intentionally or by gross negligence, or to
+mandatory claims under data protection and product liability law.

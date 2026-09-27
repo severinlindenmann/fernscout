@@ -26,6 +26,7 @@
     "status": "tsx --conditions=react-server scripts/status.mts",
     "notify": "tsx --conditions=react-server scripts/notify.mts",
     "reminders:send": "tsx --conditions=react-server scripts/reminders.mts",
+    "first-trip:send": "tsx --conditions=react-server scripts/first-trip.mts",
     "messages:sweep": "tsx --conditions=react-server scripts/messages-sweep.mts",
     "spend:alert": "tsx --conditions=react-server scripts/spend-alert.mts",
     "gap-nudges:send": "tsx --conditions=react-server scripts/paid.mts whatsapp/scripts/gap-nudges.mts",

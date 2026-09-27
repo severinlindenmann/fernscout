@@ -304,10 +304,12 @@ describe("who a stranger is told to ask", () => {
  * read as broken here rather than intentional.
  */
 /**
- * B621 moved the **owner's** copy of this to `/{user}/contacts`, the page
- * already about addresses and consents, so every case here reads with a guest
- * — which is who the panel was built for and who has no other page to edit
- * their own name on. `paid/test/owner-self-details.test.ts` owns the owner's side.
+ * B621 moved the owner's copy of this off to the studio; B2462 moved it back
+ * here, to the top of the same page, once both reasons for keeping it away
+ * turned out not to hold — journal settings has its own page regardless
+ * (`/studio/journal`), and an owner asking "what is my postcard address" is
+ * exactly the same question a guest asks here. `paid/test/owner-self-details.test.ts`
+ * still owns the owner-only backend door (`/api/contacts/admin` "self").
  */
 describe("the details panel, inline", () => {
   const reader: Viewer = { email: "peter@example.test", owner: false, guest: true, trips: [] };
@@ -367,12 +369,26 @@ describe("the details panel, inline", () => {
     expect(html).toContain('value="Fam. Peter"');
   });
 
-  test("and is not on the owner's copy of this page at all — B621", () => {
-    // Theirs is on `/{user}/contacts` now. Rendered with the same `manage`
-    // the guest gets, so what this pins is the branch and not a missing prop.
+  test("the owner gets the same panel too, with their own row's data — B2462", () => {
+    // Rendered with the same `manage` the guest gets, so what this pins is
+    // the branch rendering it at all rather than a missing prop.
     const html = render({ viewer: owner, contactsEnabled: true, manage });
-    expect(html).not.toContain('value="Fam. Peter"');
-    expect(html).not.toContain(dictionaryFor("en")["me.editDetails"]);
+    expect(html).toContain('value="Fam. Peter"');
+    expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
+    // The owner's own wording, not the guest's.
+    expect(html).toContain(dictionaryFor("en")["me.detailsBodyOwner"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.detailsBody"]);
+  });
+
+  test("an owner with no row yet gets the add-my-details button instead of the form", () => {
+    const html = render({ viewer: owner, contactsEnabled: true });
+    expect(html).toContain(dictionaryFor("en")["me.detailsAddSelf"]);
+    expect(html).not.toContain("<details");
+  });
+
+  test("nothing at all without contacts enabled, even for the owner", () => {
+    const html = render({ viewer: owner, contactsEnabled: false });
+    expect(html).not.toContain(dictionaryFor("en")["me.details"]);
   });
 });
 

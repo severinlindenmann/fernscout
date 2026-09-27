@@ -1422,6 +1422,31 @@ export async function revokeSessionsForAddress(owner: string, email: string): Pr
     .execute();
 }
 
+/**
+ * "Sign out everywhere" for one address: every live browser sign-in it holds
+ * on this instance — the instance-wide identity on each device, and each
+ * journal's own reader cookie — ended at once. Returns how many ended.
+ *
+ * Browser sessions only, deliberately. An agent key, a GPS token or a
+ * handover is a credential the person minted on purpose for a machine, each
+ * with its own revoke button where it was made; a button labelled "sign out"
+ * that also silently broke their agent would be doing something it does not
+ * say. `revokeSessionsForAddress` above is the per-journal sibling and ends
+ * every kind, because there the address stopped being the owner.
+ */
+export async function revokeBrowserSessions(email: string): Promise<number> {
+  const { db } = await getDatabase();
+  const address = normaliseEmail(email);
+  const result = await db
+    .updateTable("sessions")
+    .set({ revoked_at: nowIso() })
+    .where("revoked_at", "is", null)
+    .where("kind", "in", ["guest", "identity"])
+    .where("user_id", "in", db.selectFrom("users").select("id").where("email", "=", address))
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0);
+}
+
 /** Live sessions for an owner, for the admin surface. Never returns a token. */
 export async function listSessions(owner: string) {
   const { db } = await getDatabase();

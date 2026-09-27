@@ -74,6 +74,7 @@ export const TEMPLATES = {
   // -- mail: news / nudge (open core) --------------------------------------
   "news.mail": { family: "news", channel: "mail", kind: "day published", audience: "reader" },
   "nudge.evening": { family: "nudge", channel: "mail", kind: "evening reminder to write", audience: "owner" },
+  "nudge.first.mail": { family: "nudge", channel: "mail", kind: "first-trip nudge", audience: "owner" },
 
   // -- mail: operator (open core) ------------------------------------------
   "op.spend": { family: "operator", channel: "mail", kind: "nightly spend alert", audience: "operator" },
@@ -101,6 +102,7 @@ export const TEMPLATES = {
 
   // -- push (open core) -------------------------------------------------------
   "news.push": { family: "news", channel: "push", kind: "day published", audience: "reader" },
+  "nudge.first.push": { family: "nudge", channel: "push", kind: "first-trip nudge", audience: "owner" },
 } as const satisfies Record<string, TemplateDef>;
 
 export type TemplateId = keyof typeof TEMPLATES;
@@ -184,6 +186,27 @@ export const FLOWS = [
       { id: "check", type: "check", label: "A trip is running and today has nothing yet", to: [{ id: "send" }] },
       { id: "send", type: "send", label: "Remind the owner", template: "nudge.evening", to: [{ id: "stop" }] },
       { id: "stop", type: "stop", label: "Sent once a day at most", to: [] },
+    ],
+  },
+  {
+    id: "firsttrip",
+    label: "First-trip nudge",
+    nodes: [
+      { id: "created", type: "trigger", label: "A journal is created", to: [{ id: "tips" }] },
+      { id: "tips", type: "check", label: "Tips checked at signup?", to: [{ id: "wait2" }] },
+      { id: "wait2", type: "wait", label: "Two days go by with no trip", to: [{ id: "pushCheck" }] },
+      {
+        id: "pushCheck",
+        type: "check",
+        label: "Owner's own device subscribed to push?",
+        to: [{ id: "push" }, { id: "wait3" }],
+      },
+      { id: "push", type: "send", label: "Push the nudge", template: "nudge.first.push", to: [{ id: "wait5" }] },
+      { id: "wait5", type: "wait", label: "Three more days go by with no trip", to: [{ id: "mailAfterPush" }] },
+      { id: "mailAfterPush", type: "send", label: "Mail the nudge too", template: "nudge.first.mail", to: [{ id: "stop" }] },
+      { id: "wait3", type: "wait", label: "One more day goes by with no trip", to: [{ id: "mailOnly" }] },
+      { id: "mailOnly", type: "send", label: "Mail the nudge", template: "nudge.first.mail", to: [{ id: "stop" }] },
+      { id: "stop", type: "stop", label: "Sent once, ever, per account", to: [] },
     ],
   },
   {
