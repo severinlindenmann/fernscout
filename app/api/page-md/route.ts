@@ -4,6 +4,7 @@ import { orgsMarkdown } from "@paid/orgs/lib/markdown";
 import { isEnabled } from "@/lib/capabilities";
 import { landingMarkdown } from "@/lib/landingMarkdown";
 import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, languageHref } from "@/lib/languagePaths";
+import { PATH_HEADER, PATH_LOCALE_HEADER } from "@/lib/requestKeys";
 import { serverSite } from "@/lib/site";
 
 /**
@@ -25,9 +26,12 @@ function markdownFor(path: string, locale: string): string | null {
 }
 
 export function GET(request: Request): Response {
+  // The proxy's headers when it rewrote `/de/schools.md` here; the query
+  // when this address is asked directly.
   const params = new URL(request.url).searchParams;
-  const path = params.get("path") ?? "";
-  const lang = params.get("lang");
+  const fromProxy = request.headers.get(PATH_HEADER);
+  const path = (fromProxy ?? params.get("path")) || "";
+  const lang = fromProxy ? request.headers.get(PATH_LOCALE_HEADER) : params.get("lang");
   const offered = lang ? isPathLocale(lang) && LANGUAGE_PAGES[path]?.includes(lang) : true;
   const text = MARKDOWN_PAGES.includes(path) && offered ? markdownFor(path, lang ?? "en") : null;
   if (!text) {

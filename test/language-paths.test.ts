@@ -96,9 +96,6 @@ describe("the proxy", () => {
     }
   });
 
-  test("the root address says it varies by the reader's language", () => {
-    expect(get("/schools").res.headers.get("vary")).toContain("Accept-Language");
-  });
 });
 
 describe("metadata", () => {

@@ -203,6 +203,10 @@ export default function proxy(request: NextRequest) {
     url.search = "";
     url.searchParams.set("path", markdown.path);
     if (markdown.locale) url.searchParams.set("lang", markdown.locale);
+    // A route handler behind a rewrite sees the address it was asked on,
+    // not the rewritten query — so the page travels as headers too.
+    request.headers.set(PATH_HEADER, markdown.path);
+    if (markdown.locale) request.headers.set(PATH_LOCALE_HEADER, markdown.locale);
     const response = NextResponse.rewrite(url, { request });
     response.headers.set("Vary", "Accept");
     return response;
@@ -218,9 +222,7 @@ export default function proxy(request: NextRequest) {
     request.headers.set(PATH_LOCALE_HEADER, language.locale);
     const url = request.nextUrl.clone();
     url.pathname = language.path;
-    const response = NextResponse.rewrite(url, { request });
-    if (MARKDOWN_PAGES.includes(language.path)) response.headers.set("Vary", "Accept");
-    return response;
+    return NextResponse.rewrite(url, { request });
   }
 
   const gone = goneFor(pathname);
@@ -244,17 +246,11 @@ export default function proxy(request: NextRequest) {
     return response;
   }
 
-  if (!locale) {
-    const response = NextResponse.next({ request });
-    // The root address of a page with language versions renders in the
-    // reader's cookie or device language, so a cache must key on both.
-    // A page with a Markdown version also answers `Accept: text/markdown`.
-    if (LANGUAGE_PAGES[pathname]) {
-      const accept = MARKDOWN_PAGES.includes(pathname) ? "Accept, " : "";
-      response.headers.set("Vary", `${accept}Accept-Language, Cookie`);
-    }
-    return response;
-  }
+  // No `Vary` for the HTML of these pages: Next sets the header itself on
+  // every app page and overwrites one from here. It also serves them
+  // `private, no-store`, so no shared cache ever holds one to mix up by
+  // cookie, Accept-Language or Accept. The Markdown says `Vary: Accept`.
+  if (!locale) return NextResponse.next({ request });
 
   // Whether this journal actually offers the language is decided downstream,
   // where its config is readable; middleware only carries the request.

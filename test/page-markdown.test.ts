@@ -4,6 +4,7 @@ import { default as proxy } from "@/proxy";
 import { GET } from "@/app/api/page-md/route";
 import { markdownHref, splitMarkdownPath } from "@/lib/languagePaths";
 import { translateIn } from "@/lib/locales";
+import { PATH_HEADER, PATH_LOCALE_HEADER } from "@/lib/requestKeys";
 
 /**
  * B2488 — the landing (and, with paid/, the plans and the orgs pages) have a
@@ -43,12 +44,12 @@ describe("the addresses", () => {
     expect(res.headers.get("vary")).toContain("Accept");
   });
 
-  test("a browser still gets the page, and is told the answer varies by Accept", () => {
+  test("a browser still gets the page", () => {
     const browser = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
     expect(rewrite("/schools", browser)).toBeNull();
-    expect(viaProxy("/schools", browser).headers.get("vary")).toMatch(/^Accept, /);
-    expect(viaProxy("/de/schools", browser).headers.get("vary")).toBe("Accept");
+    expect(rewrite("/de/schools", browser)).toBe("https://example.test/schools");
   });
+
 });
 
 describe("the route", () => {
@@ -66,6 +67,15 @@ describe("the route", () => {
     for (const key of ["landing.howTitle", "landing.faqTitle", "landing.trustPrivateTitle", "landing.faqAppQ"] as const) {
       expect(text, key).toContain(translateIn("de", key));
     }
+  });
+
+  test("behind the proxy's rewrite it reads the page from the headers", async () => {
+    const res = await GET(
+      new Request("https://example.test/de/schools.md", {
+        headers: { [PATH_HEADER]: "/", [PATH_LOCALE_HEADER]: "fr" },
+      }),
+    );
+    expect(await res.text()).toContain(`# ${translateIn("fr", "landing.hero")}`);
   });
 
   test("English at the root, whatever else", async () => {
