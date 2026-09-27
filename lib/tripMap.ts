@@ -25,6 +25,10 @@ export type StopSource = {
    * transport chip on the leg leading into this stop; absent draws no
    * chip, never an invented mode. */
   transport?: { mode: TransportMode; from: string; to: string };
+  /** See `DaySummary.photo` — carried through so a stop can become a
+   * `PhotoMarker` and a carousel card, never re-derived from the raw
+   * entries. */
+  photo?: { src: string; width?: number; height?: number };
 };
 
 export type TripStop = StopSource & {

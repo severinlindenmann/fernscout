@@ -77,6 +77,13 @@ function summarise(
   costLocal?: DaySummary["costLocal"],
 ): DaySummary {
   const lead = day.lead;
+  // `day.entries` is already the reader-filtered set `getDays` builds from
+  // `getAllEntries` — each entry's own `gallery` has already had every photo
+  // the reader may not see removed. First image, in entry order; a video's
+  // poster is never used here, so a day with clips and no photos has none.
+  const photo = day.entries
+    .flatMap((entry) => entry.gallery)
+    .find((item) => item.type === "image");
   return {
     date: day.date,
     slug: lead.slug,
@@ -91,6 +98,7 @@ function summarise(
     cost,
     costLocal,
     population: populationAt(lead.lat, lead.lng),
+    photo: photo ? { src: photo.src, width: photo.width, height: photo.height } : undefined,
   };
 }
 

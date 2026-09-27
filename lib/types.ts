@@ -389,6 +389,17 @@ export type DaySummary = {
    * mid-ocean coordinates, and for a place the dump carries no figure for.
    */
   population?: number;
+  /**
+   * This day's first photograph the reader may already see — B2429's stop
+   * carousel card and the map's photo markers.
+   *
+   * Read off the already reader-filtered `Day` (`getAllEntries`'s `visible()`
+   * in lib/entries.ts, via `getDays`), so a draft day is never summarised at
+   * all and a `private`-labelled photo on a visible day is never this one —
+   * the same filtering every other reader-facing gallery already goes
+   * through, not reimplemented here. Absent for a day with no such photo.
+   */
+  photo?: { src: string; width?: number; height?: number };
 };
 
 /** A place worth seeing at a plan stop — public, unlike the stay (B2012). */

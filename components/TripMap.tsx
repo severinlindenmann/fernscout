@@ -8,6 +8,7 @@ import {
   place as placeIn,
   type Frame,
 } from "@/lib/mapFrame";
+import { mediaLoader } from "./mediaLoader";
 import { MAP_VIEWBOX } from "@/lib/mapProjection";
 import {
   areaKey,
@@ -25,6 +26,8 @@ import { useI18n } from "./LocaleProvider";
 import { useMapViewport } from "./map/useMapViewport";
 import StopMarker from "./map/StopMarker";
 import ClusterMarker from "./map/ClusterMarker";
+import PhotoMarker from "./map/PhotoMarker";
+import StopCarousel from "./map/StopCarousel";
 import HereNow from "./map/HereNow";
 import RouteLine, { type RouteHop } from "./map/RouteLine";
 import LegChip from "./map/LegChip";
@@ -154,6 +157,16 @@ export default function TripMap({
   );
 
   /**
+   * "Town zoom and closer" (Phase 2, item 5 of docs/plans/map-redesign.md):
+   * the same span `frameRoute`'s own `MIN_SPAN_KM` floor already gives one
+   * stop's "surroundings" frame (`local`, above) — not a new constant, so a
+   * marker switching to a photo agrees with what the "This stop" button
+   * already calls town scale. `local` is built from `selected` alone, so
+   * this is the same threshold whichever stop happens to be selected.
+   */
+  const townSpanKm = useMemo(() => frameSpanKm(local), [local]);
+
+  /**
    * How large the map is actually being drawn, in CSS pixels.
    *
    * Set after mount and never during the server render: the initial value has
@@ -224,6 +237,10 @@ export default function TripMap({
   useEffect(() => {
     viewport.syncFrame(frame);
   }, [viewport, frame]);
+
+  /** Whether the reader is zoomed at least to town scale right now — see
+   * `townSpanKm` above. */
+  const showPhotos = frameSpanKm(frame) <= townSpanKm;
 
   // Sizes in screen pixels, not viewBox units: a frame is 4 units across for
   // one trip and 900 for another, so a constant radius is a dot on one map
@@ -593,6 +610,15 @@ export default function TripMap({
                 ? `${cluster.stops.length} ${t("map.places")}`
                 : `${stop.location}, ${stop.country}`;
               const onSelect = () => (many ? closer(cluster.x, cluster.y) : select(stop));
+              // A photo marker only once zoomed to town scale, only for a
+              // single stop (a merged cluster stays numbered dots — the
+              // photo names one place, not a group of them), and only when
+              // this reader-filtered stop actually carries a photo (privacy
+              // note above `StopSource.photo`/`DaySummary.photo`).
+              const photoSrc =
+                !many && showPhotos && stop.photo
+                  ? mediaLoader({ src: stop.photo.src, width: 160 })
+                  : null;
               return (
                 <g key={stop.key}>
                   {many ? (
@@ -600,6 +626,17 @@ export default function TripMap({
                       x={cluster.x}
                       y={cluster.y}
                       count={cluster.stops.length}
+                      ariaLabel={label}
+                      px={px}
+                      onSelect={onSelect}
+                    />
+                  ) : photoSrc ? (
+                    <PhotoMarker
+                      x={cluster.x}
+                      y={cluster.y}
+                      src={photoSrc}
+                      order={orderOf.get(stop.key) ?? 1}
+                      selected={isSelected}
                       ariaLabel={label}
                       px={px}
                       onSelect={onSelect}
