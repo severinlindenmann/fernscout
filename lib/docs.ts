@@ -43,6 +43,25 @@ export function section(markdown: string, heading: string): string {
 }
 
 /**
+ * A section for a public page that must not fall over when its source moves —
+ * B2475. `/docs/hosting` answered 500 on fernscout.ch for weeks because
+ * `docs/capabilities.md` was rewritten and four headings it asked for were
+ * gone. The page now drops the block and logs instead; `test/docs.test.ts`
+ * still turns a missing heading into a red build, which is where it belongs.
+ */
+export function sectionOrNull(relativePath: string, heading: string): string | null {
+  try {
+    return section(readRepoFile(relativePath), heading);
+  } catch (error) {
+    console.error(`[docs] ${relativePath} → "${heading}": ${(error as Error).message}`);
+    return null;
+  }
+}
+
+/** The `docs/capabilities.md` sections `/docs/hosting` shows, in its order. */
+export const HOSTING_CAPABILITY_SECTIONS = ["What each one needs", "Hosted edition only"] as const;
+
+/**
  * The reader guides that remain — today one, `gps` (B2343).
  *
  * Prose for people rather than for agents: exactly what this software does

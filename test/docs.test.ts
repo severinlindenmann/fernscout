@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { readRepoFile, section } from "@/lib/docs";
 
 /**
@@ -51,5 +51,57 @@ describe("section()", () => {
 
   test("a heading that does not exist fails loudly rather than silently", () => {
     expect(() => section("## Real heading\nbody", "Nonexistent heading")).toThrow();
+  });
+});
+
+/**
+ * B2475 — `/docs/hosting` answered 500 in production because four headings it
+ * asked `docs/capabilities.md` for had been renamed away. The page now drops
+ * a missing block instead of throwing, and this is what keeps that from
+ * hiding a rename: every heading the page asks for has to exist.
+ */
+describe("/docs/hosting sources", () => {
+  test("every section the hosting page shows exists", async () => {
+    const { HOSTING_CAPABILITY_SECTIONS } = await import("@/lib/docs");
+    const capabilities = readRepoFile("docs/capabilities.md");
+    for (const heading of ["The rules", ...HOSTING_CAPABILITY_SECTIONS]) {
+      expect(() => section(capabilities, heading), heading).not.toThrow();
+    }
+    expect(() => section(readRepoFile("README.md"), "What a day looks like")).not.toThrow();
+  });
+
+  test("a missing file or heading is null, not a thrown page", async () => {
+    const { sectionOrNull } = await import("@/lib/docs");
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(sectionOrNull("docs/no-such-file.md", "Anything")).toBeNull();
+    expect(sectionOrNull("README.md", "No such heading")).toBeNull();
+    expect(sectionOrNull("README.md", "What a day looks like")).toContain("```json");
+    quiet.mockRestore();
+  });
+
+  test("the page renders when its source files are missing", async () => {
+    const fs = await import("node:fs");
+    const real = fs.default.readFileSync;
+    // Only the markdown sources vanish; config and locale files still load.
+    const read = vi.spyOn(fs.default, "readFileSync").mockImplementation(((file: fs.PathOrFileDescriptor, ...rest: unknown[]) => {
+      if (String(file).endsWith(".md")) throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+      return (real as (...a: unknown[]) => unknown)(file, ...rest);
+    }) as typeof real);
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.doMock("@/lib/locales", async (orig) => ({
+      ...(await orig<typeof import("@/lib/locales")>()),
+      requestLocale: async () => "en",
+    }));
+    try {
+      const { default: HostingPage } = await import("@/app/docs/hosting/page");
+      const { renderToStaticMarkup } = await import("react-dom/server");
+      const html = renderToStaticMarkup(await HostingPage());
+      expect(html).toContain("<h1");
+      expect(html).toContain("Run it locally");
+    } finally {
+      read.mockRestore();
+      quiet.mockRestore();
+      vi.doUnmock("@/lib/locales");
+    }
   });
 });

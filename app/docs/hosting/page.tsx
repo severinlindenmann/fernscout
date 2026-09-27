@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import DocsNav from "@/components/DocsNav";
 import EntryContent from "@/components/EntryContent";
-import { docsNavEntries, readRepoFile, section } from "@/lib/docs";
+import { docsNavEntries, HOSTING_CAPABILITY_SECTIONS, sectionOrNull } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
@@ -30,16 +30,6 @@ const SHOTS = [
   { file: "trip-map.jpg", alt: "The trip map: every stop joined by the route travelled" },
 ] as const;
 
-/** The `docs/capabilities.md` sections shown here, in its own order. "The
- * rules" goes first as prose; each of the rest is a table under its heading. */
-const CAPABILITY_TABLES = [
-  "Reading and writing",
-  "Telling readers",
-  "The helper",
-  "Location",
-  "Hosted edition only",
-] as const;
-
 const SECTIONS = [
   { id: "run", title: "Run it locally" },
   { id: "capabilities", title: "Optional capabilities" },
@@ -53,9 +43,12 @@ const LINK = "underline decoration-blue-500 decoration-2 underline-offset-2 hove
 export default async function HostingPage() {
   const locale = await requestLocale();
   const site = serverSite();
-  const readme = readRepoFile("README.md");
-  const capabilities = readRepoFile("docs/capabilities.md");
-  const dayEntry = section(readme, "What a day looks like");
+  const rules = sectionOrNull("docs/capabilities.md", "The rules");
+  const tables = HOSTING_CAPABILITY_SECTIONS.flatMap((heading) => {
+    const markdown = sectionOrNull("docs/capabilities.md", heading);
+    return markdown === null ? [] : [{ heading, markdown }];
+  });
+  const dayEntry = sectionOrNull("README.md", "What a day looks like");
   const repoFile = (file: string) => (site.repository ? `${site.repository}/blob/main/${file}` : null);
 
   return (
@@ -113,14 +106,16 @@ export default async function HostingPage() {
       <h2 id="capabilities" className={H2}>
         Optional capabilities
       </h2>
-      <div className="mt-2">
-        <EntryContent markdown={section(capabilities, "The rules")} />
-      </div>
-      {CAPABILITY_TABLES.map((heading) => (
+      {rules && (
+        <div className="mt-2">
+          <EntryContent markdown={rules} />
+        </div>
+      )}
+      {tables.map(({ heading, markdown }) => (
         <div key={heading} className="mt-6">
           <h3 className="font-display text-lg font-semibold text-ink-strong">{heading}</h3>
           <div className="mt-1">
-            <EntryContent markdown={section(capabilities, heading)} />
+            <EntryContent markdown={markdown} />
           </div>
         </div>
       ))}
@@ -128,12 +123,16 @@ export default async function HostingPage() {
         A running instance explains its own state at <code>/api/health</code>.
       </p>
 
-      <h2 id="day" className={H2}>
-        What a day looks like
-      </h2>
-      <div className="mt-2">
-        <EntryContent markdown={dayEntry} />
-      </div>
+      {dayEntry && (
+        <>
+          <h2 id="day" className={H2}>
+            What a day looks like
+          </h2>
+          <div className="mt-2">
+            <EntryContent markdown={dayEntry} />
+          </div>
+        </>
+      )}
 
       <h2 id="deploy" className={H2}>
         Deploying
