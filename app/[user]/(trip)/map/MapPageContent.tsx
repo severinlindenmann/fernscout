@@ -2,14 +2,17 @@
 
 import PageHeader from "@/components/PageHeader";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { Clapperboard } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
+import { isPlottable } from "@/lib/mapFrame";
 import type { Basemap } from "@/lib/basemap";
 import type { PlannedStop } from "@/lib/types";
+import MobileMapSheet from "@/components/map/MobileMapSheet";
+import TimeScrubber from "@/components/map/TimeScrubber";
 
 // Behind a button — nobody should pay to download the presentation bundle
 // (map projection data, motion) until they actually press it.
@@ -82,6 +85,18 @@ export default function MapPageContent({
   // and asked as `places.length > 0` in four separate places the first kind
   // rendered anyway — as four zeroes, an empty box, and no map at all.
   const hasPlaces = places.length > 0;
+  // The same coordinate-bearing, day-ordered subset `WorldMap` draws markers
+  // from (a day with no place is not a stop — B265) — shared here so the
+  // phone sheet's list, its own time-scrubber copy, and the map itself are
+  // never counting or ordering stops differently from one another.
+  const plottable = useMemo(() => places.filter(isPlottable), [places]);
+  // One selection for the whole map page (the review after B2427's first
+  // pass) — driven from the map's own marker taps and time scrubber, the
+  // sheet's stop list, and its own copy of the time scrubber, all landing on
+  // this same key. `WorldMap` still owns the camera: this is only ever
+  // handed to it as a nudge (`selectedKey`/`onSelect` below), which applies
+  // it through the exact same `selectPlace` a tap on the map itself calls.
+  const [selectedKey, setSelectedKey] = useState<string | null>(plottable[0]?.key ?? null);
   // The tense the heading speaks in — B1289. `hasPlaces` alone said a
   // finished trip with a published day and no coordinates was still "going",
   // because nothing had been drawn yet. `over` is the trip's own hero telling
@@ -129,7 +144,16 @@ export default function MapPageContent({
   return (
     <div className="min-h-screen">
       <PageHeader />
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* `pb-[...]` clears the phone sheet's peek height (B2427) plus its
+          safe-area padding, so the page's own content never sits behind it
+          at rest; unused past `lg`, where the sheet doesn't render. */}
+      <main
+        id="main"
+        tabIndex={-1}
+        // 176px matches `PEEK_PX` in MobileMapSheet.tsx — the sheet's own
+        // resting height — plus its safe-area padding.
+        className="mx-auto w-full max-w-5xl px-4 pt-8 pb-[calc(176px+env(safe-area-inset-bottom,0px)+1rem)] sm:px-6 lg:px-8 lg:pb-8"
+      >
         {/* Past tense is a claim, and on a trip that has not started it is a
             false one: "Wo wir waren" over eight places nobody has been to yet.
             The subtitle was worse — it invited the reader to tap stops that do
@@ -164,8 +188,10 @@ export default function MapPageContent({
             and putting it in this row would say it was. The size of the plan is
             already on this page twice — the `0/8` counter under the map, and
             the list of stops still to come. */}
+        {/* Hidden on phone — the same four counts open the mobile sheet's
+            peek snap (B2427), so this row would otherwise say them twice. */}
         {hasPlaces && (
-          <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <dl className="mt-5 hidden grid-cols-2 gap-3 sm:grid-cols-4 lg:grid">
             <Stat label={tn("map.days", stats.tripDays)} value={stats.tripDays} />
             <Stat label={tn("map.stops", stats.places)} value={stats.places} />
             <Stat label={tn("map.countries", stats.countries)} value={stats.countries} />
@@ -198,6 +224,9 @@ export default function MapPageContent({
               pastTense={pastTense}
               accent={accent}
               live={live}
+              selectedKey={selectedKey}
+              onSelect={(p) => setSelectedKey(p ? p.key : null)}
+              stopCardFromLg
             />
           ) : (
             // Not `story.empty`. "No entries yet" is true and is not the reason
@@ -276,8 +305,10 @@ export default function MapPageContent({
             over a blank bordered box says this trip had no stops, when what is
             true is that it has not started — and where it is going is the list
             immediately above. */}
+        {/* Hidden on phone — the sheet's full snap is this same list
+            (B2427), and the sheet's row is also a link to the day itself. */}
         {hasPlaces && (
-          <section className="mt-10">
+          <section className="mt-10 hidden lg:block">
             <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("map.everyStop")}
             </h2>
@@ -321,6 +352,31 @@ export default function MapPageContent({
           basemap={basemap}
         />
       )}
+
+      {/* Phone only (the component hides itself past `lg`) — the three-snap
+          bottom sheet, B2427. Desktop keeps the stacked layout above
+          unchanged. `plottable`, not `places`: the same stops the map itself
+          numbers and the scrubber below reads. */}
+      <MobileMapSheet
+        places={plottable}
+        stats={stats}
+        selectedKey={selectedKey}
+        onSelectKey={setSelectedKey}
+        hrefForDay={(slug) => href(`/day/${slug}`)}
+        scrubberSlot={
+          plottable.length > 0 && (
+            <TimeScrubber
+              stops={plottable.map((p) => ({ key: p.key, date: p.firstDate, location: p.location }))}
+              selectedIndex={Math.max(
+                0,
+                plottable.findIndex((p) => p.key === selectedKey),
+              )}
+              live={live}
+              onSelect={(i) => setSelectedKey(plottable[i].key)}
+            />
+          )
+        }
+      />
     </div>
   );
 }
