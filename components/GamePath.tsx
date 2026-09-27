@@ -201,25 +201,18 @@ export default function GamePath({
       </svg>
 
       {/*
-        The days outside the drawn band, as bare links in the slots their
-        nodes will fill — B2477. A crawler (and a keyboard) reaches every day,
-        at a fraction of a full node's markup, which is what OVERSCAN is for.
+        The days outside the drawn band, as bare links — B2477. A crawler
+        reaches every day from the raw HTML; a person reaches them as nodes,
+        which are drawn as the sidebar is scrolled to them (OVERSCAN). Kept
+        to the href alone and out of the tab order and the accessibility
+        tree, because the drawn node is the control and this is only its
+        address: test/payload.test.tsx holds them to their own byte budget.
       */}
-      {days.map((day, i) => {
-        if (i >= drawn[0] && i <= drawn[drawn.length - 1]) return null;
-        const { x, y } = points[i];
-        return (
-          <a
-            key={day.date}
-            href={hrefFor(day)}
-            data-in-place=""
-            onClick={(e) => followInPlace(e, () => onSelect?.(day.date))}
-            aria-label={`${t("day.label")} ${i + 1} · ${day.location}`}
-            className="absolute rounded-full"
-            style={{ left: x - NODE / 2, top: y - NODE / 2, width: NODE, height: NODE }}
-          />
-        );
-      })}
+      {days.map((day, i) =>
+        i >= drawn[0] && i <= drawn[drawn.length - 1] ? null : (
+          <a key={day.date} href={hrefFor(day)} tabIndex={-1} aria-hidden />
+        ),
+      )}
 
       {drawn.map((i) => {
         const day = days[i];
