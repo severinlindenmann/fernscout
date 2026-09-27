@@ -66,5 +66,5 @@ export const SKILL_DOC_SUMMARY: Record<SkillDocSlug, string> = {
   "ingest-photos": "Attach photographs and video to a day, or stage them before the days exist.",
   costs: "A trip's budget, what it actually cost, and the rates that convert it.",
   "send-postcards": "Propose a printed postcard from a day — a person still has to send it.",
-  "make-a-photobook": "A person builds and prints it themselves, on their own trip page — read where an order already made stands.",
+  "make-a-photobook": "Arrange a trip's photobook draft — size, cover, photographs. Ordering and paying stay the owner's own page.",
 };

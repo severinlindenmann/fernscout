@@ -443,7 +443,10 @@ describe("what the v2 guides have to tell an agent", () => {
   test("the add-a-day guide documents the weather field's two honest routes", () => {
     const guide = skillDoc("add-a-day");
     expect(guide).toMatch(/weather: true/);
-    expect(guide).toMatch(/weatherData/);
+    // The field is `weather`, never `weatherData` — 2026-09-25 docs audit,
+    // Part C. The other honest route is the same field carrying an object.
+    expect(guide).not.toMatch(/weatherData/);
+    expect(guide).toMatch(/weather.*(object|reading)/i);
     expect(guide).toMatch(/open-meteo/);
   });
 
@@ -511,9 +514,12 @@ describe("what the v2 guides have to tell an agent", () => {
     expect(guide).toMatch(/never a street/i);
   });
 
-  test("the make-a-photobook guide says there is nothing here to propose", () => {
+  test("the make-a-photobook guide says arranging is not ordering", () => {
+    // 2026-09-25 docs audit, Part C: PUT /photobooks/drafts/{trip} (B1981)
+    // is a real propose call now — the guide used to say there was none.
     const guide = skillDoc("make-a-photobook");
-    expect(guide).toMatch(/nothing here for you to propose/i);
+    expect(guide).toMatch(/photobooks\/drafts/i);
+    expect(guide).toMatch(/charges nothing, builds nothing and prints nothing/i);
   });
 
   test("the add-journal guide says features are instance-only, not a field on the journal", () => {
@@ -566,11 +572,13 @@ describe("the entry document tells an agent whether it can write here", () => {
   });
 
   test("forbids the two observed workarounds by name", () => {
+    // 2026-09-25 docs audit, Part C: the studio DOES have an upload screen,
+    // so this no longer claims a blanket "no upload interface" — it says
+    // there is none for *you*, the agent, to build or invent.
     const summary = instanceDocumentation().replace(/\s+/g, " ");
-    expect(summary).toMatch(/no upload interface/i);
-    expect(summary).toMatch(/no web form/i);
+    expect(summary).toMatch(/nothing under `\/api\/v2` gives \*you\* an equivalent/i);
     expect(summary).toMatch(/no CMS/i);
-    expect(summary).toMatch(/manually upload/i);
+    expect(summary).toMatch(/invent an upload address/i);
     expect(summary).toMatch(/follow this guide themselves/i);
   });
 
