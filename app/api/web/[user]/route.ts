@@ -36,6 +36,6 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user });
+  const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: Boolean(journal.owner.tips?.optIn) });
   return applyJournalPatch(user, stored, request);
 }

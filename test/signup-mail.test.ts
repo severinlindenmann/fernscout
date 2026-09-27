@@ -100,7 +100,9 @@ describe("POST /api/auth/codes (for: signup)", () => {
     const decoded = raw.replace(/(?:^[A-Za-z0-9+/=]{60,}$\n?)+/gm, (block) =>
       Buffer.from(block.replace(/\s+/g, ""), "base64").toString("utf8"),
     );
-    expect(decoded).toMatch(/Your code is \d{6}\./);
+    // One code layout for every door since B2440: the six digits stand in
+    // their own code block, not inside a sentence.
+    expect(decoded).toMatch(/(^|[^\d])\d{6}([^\d]|$)/m);
   });
 
   test("no journal directory is invented for it, under the content root or otherwise", async () => {
