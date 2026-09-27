@@ -50,7 +50,7 @@ async function mount(reminders: ReminderRow[] = []) {
     root!.render(
       <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
         <StudioBarProvider username="alex">
-          <JournalPageContent username="alex" journal={journal} knownCurrencies={["EUR", "GBP", "USD"]} reminders={reminders} />
+          <JournalPageContent username="alex" journal={journal} knownCurrencies={["EUR", "GBP", "USD"]} reminders={reminders} tipsOn={false} />
         </StudioBarProvider>
       </LocaleProvider>,
     ),
