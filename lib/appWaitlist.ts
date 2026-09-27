@@ -4,6 +4,7 @@ import { hasDatabase, isEnabled } from "./capabilities";
 import { loadServerConfig } from "./config";
 import { getDatabaseOrNull, nowIso } from "./db";
 import { MAINTAINED_LOCALES } from "./i18n";
+import { afterResponse } from "./afterResponse";
 import { sendMail } from "./mail";
 import { logMessage } from "./messages/log";
 import { renderMail, type MailBlock } from "./mail/template";
@@ -113,7 +114,10 @@ export async function addToWaitlist(
   const blocks: MailBlock[] = [
     { kind: "paragraph", text: t("appWaitlist.mailBody") },
   ];
-  await sendMail(
+  // After the response, so a new address and one already on the list answer
+  // in the same time — otherwise the delay of a real send tells a stranger
+  // who is listed.
+  afterResponse("app-waitlist-mail", () => sendMail(
     renderMail(normalized, t("appWaitlist.mailSubject"), {
       template: "notice.waitlist",
       preheader: t("appWaitlist.mailSubject"),
@@ -123,7 +127,7 @@ export async function addToWaitlist(
     }),
   ).catch((err) => {
     console.error(`[app-waitlist] confirmation mail to a waitlist entry could not be sent:`, err);
-  });
+  }));
   return true;
 }
 

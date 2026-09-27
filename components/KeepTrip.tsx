@@ -51,6 +51,46 @@ async function keptBytes(user: string, trip: string): Promise<number | null> {
   }
 }
 
+/**
+ * Which of these trips this browser already keeps, read the same way
+ * `keptBytes` reads one — B2463. `OfflineTrips` needs this before it decides
+ * what to show above "Show more": a trip somebody already saved must stay
+ * visible even if it would otherwise be one of the older ones folded away.
+ */
+export async function keptTripIds(user: string, ids: string[]): Promise<Set<string>> {
+  const known = new Set(ids);
+  const out = new Set<string>();
+  try {
+    for (const name of await caches.keys()) {
+      if (!name.startsWith("kept-")) continue;
+      const trip = ids.find((id) => name.endsWith(`-${user}-${id}`));
+      if (trip && known.has(trip)) out.add(trip);
+    }
+  } catch {
+    // No Cache API, or storage refused: nothing reads as kept.
+  }
+  return out;
+}
+
+/**
+ * Ask the worker to keep one trip, the same way a switch's own `keep()`
+ * does — B2463's "Save recent trips automatically" fires this for whichever
+ * trips `autoSaveTargets` names, for trips that may never mount a
+ * `TripSwitch` (folded behind "Show more"). The worker's own size refusal
+ * (`fernscout-kept` → `refused`) is exactly what a manual keep would hit
+ * too, so nothing here re-checks it.
+ */
+export async function requestKeep(user: string, trip: string): Promise<void> {
+  try {
+    if (navigator.storage?.persist && !(await navigator.storage.persisted())) {
+      await navigator.storage.persist();
+    }
+  } catch {
+    // Best effort; the trip is still asked for below.
+  }
+  navigator.serviceWorker.controller?.postMessage({ type: "fernscout-keep", user, trip });
+}
+
 /** Said on `window` when something other than the worker emptied the kept
  *  caches (`ThisPhone`'s *Clear cache*), so every switch reads them again. */
 export const KEPT_CHANGED = "fernscout-kept-changed";

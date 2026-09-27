@@ -42,6 +42,26 @@ export function useNativeShell(): boolean {
 }
 
 /**
+ * Whether this page is running as an installed home-screen app rather than
+ * an ordinary browser tab — the PWA case, distinct from `useNativeShell`'s
+ * Capacitor shell. Moved here from `components/studio/ThisPhone.tsx` (B2208)
+ * so `ConnectionInfo` (B2465) and `OfflineTrips` (B2463) can share the same
+ * check rather than each rolling their own `matchMedia` call. The server has
+ * no `navigator`/`matchMedia` at all, so its snapshot is always `false`; the
+ * client reads the real answer once mounted, same reasoning as
+ * `useNativeShell` above.
+ */
+export function useStandalone(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () =>
+      (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches,
+    () => false,
+  );
+}
+
+/**
  * A touch the page can feel — B2324. Only these five, the motion study's
  * whole table: a light tap for a primary press, medium for confirming
  * something destructive, a plain tick for a chip/toggle selection, and the
