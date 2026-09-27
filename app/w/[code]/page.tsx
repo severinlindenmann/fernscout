@@ -64,6 +64,7 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const signedIn = reader.contact?.id === contact.id;
   const trips = getTrips(owner);
   const landing = guestLanding(owner, trips);
+  const journalFigures = siteSummaryFor(user, false).travellerFigures;
   if (signedIn && contact.onboardedAt) redirect(landing);
 
   // B2456: the browser first, as on /j. The guide runs only until the person
@@ -114,7 +115,14 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         trip={trip}
         hasGuestTrip={trips.some(isOpenToApprovedGuest)}
         landing={landing}
-        figures={siteSummaryFor(user, false).travellerFigures}
+        figures={
+          // The journal's own party, else the party of its newest trip a
+          // guest may read (a journal like /severin draws its figures per
+          // trip) — never a private trip's (B2457).
+          journalFigures.length > 0
+            ? journalFigures
+            : (trips.find((t) => isOpenToApprovedGuest(t) && t.status !== "upcoming" && t.travellers.length > 0)?.travellers ?? [])
+        }
         recent={
           // B2457: only once this browser's session is this contact's — a
           // forwarded link must not show which trips a journal has.

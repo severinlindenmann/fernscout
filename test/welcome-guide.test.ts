@@ -483,3 +483,14 @@ describe("the welcome shows no trips before the code (B2457)", () => {
     expect(page).toContain('"recent":[]');
   });
 });
+
+describe("the welcome draws figures from a guest-readable trip when the journal has none (B2457)", () => {
+  test("a private trip's party is never drawn", async () => {
+    const id = await addedId({ name: "Pia Party", email: "pia@example.test" });
+    const code = await welcomeCode(id);
+    jar.cookies = {};
+    // Both fixture trips are private: no journal figures, no readable trip, no party.
+    const page = JSON.stringify(await guidePage(code));
+    expect(page).toContain('"figures":[]');
+  });
+});
