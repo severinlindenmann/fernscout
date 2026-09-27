@@ -1,4 +1,5 @@
 import { isPlottable, kmForUnits, type Frame, type Point } from "./mapFrame";
+import type { TransportMode } from "./types";
 
 /**
  * The stops a trip's overview map draws, and the pure parts of drawing them.
@@ -18,6 +19,12 @@ export type StopSource = {
   countryCode?: string;
   lat: number;
   lng: number;
+  /** The leg that arrived here — `DaySummary["transport"]`'s own shape,
+   * repeated rather than imported so this module stays free of the server's
+   * `Transport` type (not itself exported). B2421: this is what draws the
+   * transport chip on the leg leading into this stop; absent draws no
+   * chip, never an invented mode. */
+  transport?: { mode: TransportMode; from: string; to: string };
 };
 
 export type TripStop = StopSource & {

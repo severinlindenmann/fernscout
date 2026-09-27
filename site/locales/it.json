@@ -2325,14 +2325,13 @@
   "tripMap.googleMaps": "Apri in Google Maps",
   "tripMap.googleMapsHelp": "Apre questo luogo in Google Maps.",
   "tripMap.lastPlace": "Ultimo luogo documentato",
-  "tripMap.local": "Dintorni",
   "tripMap.mapsShort": "Maps",
   "tripMap.nextStop": "Tappa successiva",
   "tripMap.previousStop": "Tappa precedente",
+  "tripMap.recorded": "Percorso registrato",
   "tripMap.selectedPlace": "Luogo selezionato",
   "tripMap.stopOf": "Tappa {index} di {count}",
   "tripMap.title": "Il viaggio sulla mappa",
-  "tripMap.whole": "Tutto il viaggio",
   "trips.allTrips": "Tutti i viaggi",
   "trips.chip": "Viaggi",
   "trips.daysAway": "giorni mancanti",
@@ -4140,7 +4139,6 @@
   "join.error.expired": "Questo link non funziona più. Chiedi un nuovo link alla persona che te l’ha mandato.",
   "join.alreadyTitle": "Sei già dentro",
   "join.alreadyBody": "Niente da chiedere — puoi già leggere «{title}».",
-  "fallback.writtenIn.en": "Scritto in inglese — questo giorno non ha una versione italiana.",
   "agent.slot.accent": "Colore",
   "agent.slot.all": "Tutti i file in attesa",
   "agent.slot.amount": "Quanto",
@@ -4187,5 +4185,7 @@
   "agent.slot.message": "Messaggio",
   "agent.slot.photo": "Foto",
   "agent.slot.recipients": "Va a",
-  "agent.slot.size": "Formato"
+  "agent.slot.size": "Formato",
+  "tripMap.local": "Dintorni",
+  "fallback.writtenIn.en": "Scritto in inglese — questo giorno non ha una versione italiana."
 }
