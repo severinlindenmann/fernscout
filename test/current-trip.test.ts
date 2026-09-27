@@ -14,7 +14,7 @@ vi.mock("next/headers", () => ({
 }));
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { currentTripOrRedirect } from "@/lib/currentTrip";
+import { currentTripFor, currentTripOrRedirect } from "@/lib/currentTrip";
 import Home from "@/app/[user]/(trip)/page";
 import GalleryPage from "@/app/[user]/(trip)/gallery/page";
 import MapPage from "@/app/[user]/(trip)/map/page";
@@ -39,7 +39,7 @@ const USER_CFG =
   '{"title":"F","tagline":"t","owner":{"name":"A B","nickname":"A"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{"reactions":{"enabled":true},"costs":{"enabled":true}}}';
 
 /** A journal on disk with exactly the trips given, and nothing else. */
-function journal(trips: { id: string; status: string; start: string; end: string }[]): string {
+function journal(trips: { id: string; status: string; start: string; end: string; visibility?: "public" | "guest" | "private" }[]): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "current-trip-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
   fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
@@ -53,7 +53,7 @@ function journal(trips: { id: string; status: string; start: string; end: string
       title: t.id,
       start: t.start,
       end: t.end,
-      visibility: "public",
+      visibility: t.visibility ?? "public",
       intro: "Something.",
     });
     // A budget per trip: this file is about B73's redirect logic, not about
@@ -113,10 +113,10 @@ describe("a journal with no trips at all", () => {
     journal([]);
   });
 
-  test("the helper sends the reader to the trip list", () => {
-    expect(() => currentTripOrRedirect("alex")).toThrowError(/NEXT_REDIRECT/);
+  test("the helper sends the reader to the trip list", async () => {
+    await expect(currentTripOrRedirect("alex")).rejects.toThrowError(/NEXT_REDIRECT/);
     try {
-      currentTripOrRedirect("alex");
+      await currentTripOrRedirect("alex");
     } catch (err) {
       expect(digestOf(err)).toContain(";/alex/trips;");
     }
@@ -185,5 +185,31 @@ describe("a day permalink", () => {
       digest = digestOf(err);
     }
     expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+  });
+});
+
+describe("B2469 — the bare journal address shows a trip this viewer may read", () => {
+  test("a private newest trip is passed over for the newest one a stranger may read", async () => {
+    journal([
+      { id: "ungarn", status: "past", start: "2026-07-12", end: "2026-07-20", visibility: "private" },
+      { id: "algarve", status: "past", start: "2026-05-01", end: "2026-05-09", visibility: "public" },
+    ]);
+    expect((await currentTripFor("alex"))?.id).toBe("algarve");
+  });
+
+  test("with nothing readable, the newest trip still stands behind the gate", async () => {
+    journal([
+      { id: "ungarn", status: "past", start: "2026-07-12", end: "2026-07-20", visibility: "private" },
+      { id: "davos", status: "past", start: "2026-02-01", end: "2026-02-04", visibility: "private" },
+    ]);
+    expect((await currentTripFor("alex"))?.id).toBe("ungarn");
+  });
+
+  test("a readable newest trip is unchanged", async () => {
+    journal([
+      { id: "ungarn", status: "past", start: "2026-07-12", end: "2026-07-20", visibility: "public" },
+      { id: "algarve", status: "past", start: "2026-05-01", end: "2026-05-09", visibility: "public" },
+    ]);
+    expect((await currentTripFor("alex"))?.id).toBe("ungarn");
   });
 });

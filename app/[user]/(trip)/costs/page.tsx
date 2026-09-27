@@ -116,7 +116,7 @@ export default async function CostsPage({ params }: PageProps<"/[user]/costs">) 
    */
   if (!isEnabled("costs", user)) notFound();
   // No current trip is a normal state, not a missing page. See lib/currentTrip.ts.
-  const trip = currentTripOrRedirect(user);
+  const trip = await currentTripOrRedirect(user);
   const tripId = trip.ref;
   /**
    * `costs` is on by default at trip creation (lib/journals.ts), so the

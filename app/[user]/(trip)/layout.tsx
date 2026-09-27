@@ -3,7 +3,7 @@ import TripGate from "@/components/TripGate";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { awaitingApproval, guestBlockedByPrivateTrip, mayReadTrip, signedInAs } from "@/lib/tripGate";
-import { getCurrentTrip } from "@/lib/trips";
+import { currentTripFor } from "@/lib/currentTrip";
 import { getUser } from "@/lib/users";
 
 /**
@@ -24,7 +24,7 @@ export default async function TripPagesLayout({
   const { user: username } = await params;
   if (!getUser(username)) notFound();
 
-  const current = getCurrentTrip(username);
+  const current = await currentTripFor(username);
   if (current && !(await mayReadTrip(current))) {
     // Three reads about the reader in front of the gate, none depending on
     // another — asked together rather than in the order the props list them.
