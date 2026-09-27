@@ -168,14 +168,23 @@ describe("map detail (basemap per view)", () => {
     return render([ONE], { views });
   }
 
-  test("draws the 'all' view's basemap borders, lakes and rivers under the fill", () => {
+  /**
+   * Server-rendered HTML deliberately shows the plain world outline
+   * (`useWorldLand`), not the "all" view's own detailed basemap — the same
+   * starting state the Einstieg glides *from* (decision 5), which only a
+   * client effect ever advances past. `withMap`'s basemap fixture is real
+   * and reaches the DOM once that effect runs (covered by the
+   * jsdom-mounted tests in `test/lifetime-map.test.tsx`); a pure
+   * `renderToStaticMarkup` pass never runs an effect, so it never sees it.
+   */
+  test("without JavaScript, draws the plain world outline rather than the per-view basemap", () => {
     const views = [
       { id: "all", kind: "all", countryCodes: ["TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap },
     ];
     const html = withMap(views);
-    expect(html).toContain("M0,0 L1,1 Z");
-    expect(html).toContain("M2,2 L3,3 Z");
-    expect(html).toContain("M4,4 L5,5 Z");
+    expect(html).not.toContain("M0,0 L1,1 Z");
+    // The country fill itself is still there — B361's actual promise.
+    expect(html).toContain((countryColours as Record<string, string>).TH);
   });
 
   test("a journal with no basemap at all still renders, on the plain outline", () => {

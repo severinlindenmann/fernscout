@@ -140,20 +140,36 @@ export default function LifetimeMap({
   const [selectedId, setSelectedId] = useState<string>("all");
   const [hoverCode, setHoverCode] = useState<string | null>(null);
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
-  const [canHover, setCanHover] = useState(false);
+  // A lazy initializer, not an effect + setState: SSR has no `matchMedia`,
+  // so this reads `false` on the server and the one true client render that
+  // follows hydration — reactive to a *later* change of pointer/hover
+  // capability is not a case a browser gives a person on this page anyway.
+  const [canHover] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches,
+  );
   const [activeCode, setActiveCode] = useState<string | null>(null); // keyboard focus, for the visible caption
 
-  const [displayFrame, setDisplayFrame] = useState<Vec>(allView?.frame ?? WORLD_FRAME);
-  const [displayBasemap, setDisplayBasemap] = useState<Basemap | null>(allView?.basemap ?? null);
-  const [revealed, setRevealed] = useState(1); // Einstieg progress, 1 = nothing left to reveal.
+  // Also lazy: a remount after the Einstieg already played (a client-side
+  // route change back to this page) starts directly on the target view
+  // rather than the whole-world frame the effect below would otherwise
+  // have to `setState` its way out of on the very first render.
+  const [displayFrame, setDisplayFrame] = useState<Vec>(() =>
+    einstiegPlayed ? (allView?.frame ?? WORLD_FRAME) : WORLD_FRAME,
+  );
+  const [displayBasemap, setDisplayBasemap] = useState<Basemap | null>(() =>
+    einstiegPlayed ? (allView?.basemap ?? null) : null,
+  );
+  // Starts at 1 (fully revealed), not 0 — B361's "no JavaScript still gets
+  // fills" applies to the very first paint too, server-rendered or not, so
+  // every fill is visible before any client effect runs. The Einstieg effect
+  // below is what drops this to 0 and animates it back up, entirely inside
+  // the one client-only tween — a brief flash on a fresh load rather than a
+  // blank map for anyone without JavaScript at all.
+  const [revealed, setRevealed] = useState(1);
 
   const frameRef = useRef<Vec>(displayFrame);
   const rafRef = useRef<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setCanHover(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
-  }, []);
 
   function cancelAnimation() {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
@@ -217,15 +233,10 @@ export default function LifetimeMap({
   // later switch, and skipped outright under reduced motion (handled
   // inside `animateTo`).
   useEffect(() => {
-    if (!allView) return;
-    if (einstiegPlayed) {
-      frameRef.current = allView.frame;
-      setDisplayFrame(allView.frame);
-      setDisplayBasemap(allView.basemap);
-      return;
-    }
+    if (!allView || einstiegPlayed) return; // the lazy initializers above already reflect this state.
     einstiegPlayed = true;
     frameRef.current = WORLD_FRAME;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off a requestAnimationFrame tween is exactly the "external system" case the rule carves out; it is not a synchronous re-render loop.
     animateTo(allView.frame, allView.basemap, { duration: EINSTIEG_MS, einstieg: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, keyed on mount only.
   }, []);

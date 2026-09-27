@@ -161,7 +161,7 @@ export default function TripsIndexContent({
    * to the code-request form the empty state may offer. See `EmptyState`. */
   codeMinutes: string;
 }) {
-  const { t, tn, localizedTrip } = useI18n();
+  const { t, tn } = useI18n();
 
   /**
    * The pinned country — decision 7. Owned here, not inside `LifetimeMap`:

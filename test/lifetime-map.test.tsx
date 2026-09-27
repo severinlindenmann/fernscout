@@ -223,3 +223,31 @@ describe("fade outside the current selection (decision 6)", () => {
     expect(Number(chPath.getAttribute("opacity"))).toBe(1);
   });
 });
+
+describe("the Einstieg swaps in the 'all' view's own basemap once it runs (decision 5)", () => {
+  test("under reduced motion the swap is instant, on mount", () => {
+    // stubMatchMedia's beforeEach default is reduced-motion, so the
+    // Einstieg's `animateTo` call takes its synchronous branch and the
+    // basemap is already in place by the first paint after mount — no rAF
+    // or timer to advance.
+    const basemap = {
+      borders: ["M9,9 L8,8 Z"],
+      admin1: [],
+      relief: [],
+      glaciers: [],
+      parks: [],
+      railroads: [],
+      roads: [],
+      lakes: [],
+      rivers: [],
+      peaks: [],
+      towns: [],
+      attribution: "",
+    };
+    const views = [
+      { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap },
+    ];
+    const el = mount({ views });
+    expect(el.innerHTML).toContain("M9,9 L8,8 Z");
+  });
+});
