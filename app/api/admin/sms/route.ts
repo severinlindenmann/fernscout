@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await sendSms({ to, body: text });
+    const result = await sendSms({ to, body: text, template: "op.sms" });
     return Response.json({ ok: true, backend: result.backend, reference: result.reference });
   } catch (err) {
     // The provider's own words reach the operator — a refused send with a

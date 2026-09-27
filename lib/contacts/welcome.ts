@@ -322,7 +322,7 @@ type Message = {
 async function messageFor(owner: string, contact: ContactRecord, code: string): Promise<Message | null> {
   const user = getUser(owner);
   if (!user) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const locale = pickLocale(contact.locale);
   const trip = await buddyTripTitle(owner, contact.id);
   const url = welcomeUrl(code);
   const vars = {
@@ -543,12 +543,12 @@ async function deliver(
   if (channel === "email") {
     const user = getUser(owner);
     if (!user) return null;
-    const sent = await sendWelcomeMail(owner, user, contact, message);
+    const sent = await sendWelcomeMail(owner, user, contact, message, "invite.mail");
     return sent?.transport ?? null;
   }
   const to = smsDigits(contact);
   if (!to) return null;
-  return (await sendSms({ to, body: message.text })).backend;
+  return (await sendSms({ to, body: message.text, template: "invite.sms", owner })).backend;
 }
 
 async function recordInvited(owner: string, contactId: string, channel: InviteChannel): Promise<void> {
@@ -573,7 +573,7 @@ export async function tellLetIn(owner: string, contact: ContactRecord): Promise<
   const user = getUser(owner);
   const code = user ? await welcomeCodeFor(owner, contact.id) : null;
   if (!user || !code) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const locale = pickLocale(contact.locale);
   const url = welcomeUrl(code);
   const vars = {
     name: capText(firstName(contact.name), 40),
@@ -585,11 +585,11 @@ export async function tellLetIn(owner: string, contact: ContactRecord): Promise<
   try {
     if (contact.email.includes("@") && contact.confirmedAt && !mailDisabledReason(owner)) {
       const subject = translateIn(locale, "welcomeLink.letInSubject", vars);
-      if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject })) return "email";
+      if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject }, "invite.in.mail")) return "email";
     }
     const digits = contact.phoneProvenAt ? smsDigits(contact) : null;
     if (digits && isEnabled("sms") && !smsUnreachable(digits)) {
-      await sendSms({ to: digits, body: text });
+      await sendSms({ to: digits, body: text, template: "invite.in.sms", owner });
       return "sms";
     }
   } catch (err) {

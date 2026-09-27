@@ -496,6 +496,17 @@ else
   log "WARNING: the reminder sweep failed — tonight's backup is unaffected"
 fi
 
+# --- 0b1. The message_log sweep (B2438) -------------------------------------
+# Same reasoning again: retention (90 days) is enforced here rather than on a
+# second timer. Never fatal — a failed sweep leaves the log a little larger,
+# not wrong.
+log "sweeping the message log"
+if (cd "$APP_DIR" && npm run --silent messages:sweep); then
+  log "message log sweep done"
+else
+  log "WARNING: the message log sweep failed — tonight's backup is unaffected"
+fi
+
 # --- 0a1. The metered-spend alert ------------------------------------------
 # Same reasoning as the reminder sweep just above. Mails the operator at most
 # once, about yesterday, and only when `costs.alertDailyRappen` is set and the

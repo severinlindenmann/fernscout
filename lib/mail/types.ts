@@ -1,3 +1,5 @@
+import type { TemplateId } from "../messages/registry";
+
 /**
  * One file carried inline in the message, referenced from the HTML part by
  * `cid:<contentId>` — never a linked `<img src="https://…">`. A mail client
@@ -31,6 +33,10 @@ export type MailAttachment = {
 export type Mail = {
   to: string;
   subject: string;
+  /** The registry id this letter was rendered as — see
+   * lib/messages/registry.ts. Carried through so `deliver` (lib/mail/index.ts)
+   * can log the send without every transport needing to know the registry. */
+  template: TemplateId;
   html: string;
   /** Always required. A mail with no text alternative is a mail some readers
    * cannot read, and it also reads as spam to most filters. */

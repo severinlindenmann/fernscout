@@ -230,6 +230,7 @@ async function handleIdentity(
   try {
     await sendMail(
       renderMail(req.email, translateIn(locale, "mail.identitySubject", vars), {
+        template: "code.identity.mail",
         preheader: translateIn(locale, "mail.identityCode", vars),
         title: translateIn(locale, "mail.identityTitle"),
         blocks: [
@@ -248,7 +249,7 @@ async function handleIdentity(
           { kind: "paragraph", text: translateIn(locale, "mail.identityLasts") },
           { kind: "paragraph", text: translateIn(locale, "mail.identityIgnore") },
         ],
-        footer: translateIn(locale, "mail.identityFooter", vars),
+        why: translateIn(locale, "mail.identityFooter", vars),
       }),
     );
   } catch (err) {
@@ -389,6 +390,7 @@ async function handleJournal(
         req.email,
         req.for === "write" ? t("mail.agentSubject", vars) : t("mail.signinSubject", vars),
         {
+          template: "code.journal.mail",
           preheader: t("mail.identityCode", vars),
           title: req.for === "write" ? t("mail.agentTitle") : t("mail.signinSubject", vars),
           blocks: [
@@ -396,7 +398,7 @@ async function handleJournal(
             { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
             { kind: "paragraph", text: t("mail.signinIgnore") },
           ],
-          footer: t("mail.identityFooter", vars),
+          why: t("mail.identityFooter", vars),
         },
         username,
       ),
