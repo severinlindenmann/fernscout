@@ -101,6 +101,10 @@ suite alone: check it in a real browser at desktop and phone width against
 content that existed before your change, and check the console and request
 log, not just a fixture authored for the change.
 
+`main` is protected: every change arrives as a pull request, and it merges
+only once the `ci-ok` check is green (it waits for every CI job). Open one
+with `gh pr create --fill` and let it land with `gh pr merge --auto --merge`.
+
 A new UI string needs real English, German and Hungarian entries in
 `site/locales/`; run `npm run i18n:keys` after changing English. Translate it
 yourself rather than leaving a key that falls back to English.
