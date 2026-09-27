@@ -105,7 +105,7 @@ export default function ReadersAdmin({
 
   /** Let in (or back in) and Decline / Take access away — reached only from
    * the card's ConfirmPanel, then said back as a status line on that card. */
-  async function confirmed(contact: AdminContact, action: "letin" | "revoke") {
+  async function confirmed(contact: AdminContact, action: "letin" | "revoke", readOnly?: boolean) {
     const name = contact.name ?? contact.email;
     let text: string | null = null;
     if (action === "letin") {
@@ -113,7 +113,7 @@ export default function ReadersAdmin({
       const response = await fetch(`/api/web/${encodeURIComponent(username)}/readers/letin`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ contactId: contact.id }),
+        body: JSON.stringify({ contactId: contact.id, ...(readOnly ? { places: { onlyTrip: null } } : {}) }),
       }).catch(() => null);
       setBusy(false);
       const body = (await response?.json().catch(() => null)) as
@@ -126,11 +126,11 @@ export default function ReadersAdmin({
         // that is `hasGuestTrip`, not whether a buddy place was named here.
         text = [
           trips.length
-            ? t("contact.ownerApprovedTrips", { trips: trips.join(", ") })
+            ? t("contact.ownerApprovedTrips", { name, trips: trips.join(", ") })
             : hasGuestTrip
-              ? t("contact.ownerApprovedGuestTrips")
-              : t("contact.ownerApprovedNoTrip"),
-          body.told ? t(body.told === "email" ? "readers.toldByEmail" : "readers.toldBySms", { name }) : "",
+              ? t("contact.ownerApprovedGuestTrips", { name })
+              : t("contact.ownerApprovedNoTrip", { name }),
+          body.told ? t(body.told === "email" ? "readers.toldByEmail" : "readers.toldBySms") : "",
         ]
           .filter(Boolean)
           .join(" ");
@@ -172,7 +172,7 @@ export default function ReadersAdmin({
     username,
     defaultCountryCode,
     act: (body) => void act(body),
-    confirmed: (contact, action) => void confirmed(contact, action),
+    confirmed: (contact, action, readOnly) => void confirmed(contact, action, readOnly),
     refresh,
     onEdit: setEditing,
     via: (contact) => viaLabel(contact.createdVia, invites, trips, t),
@@ -253,13 +253,6 @@ export default function ReadersAdmin({
           <ReaderGroup title={t("readers.group.revokedTitle")} rows={split.revoked} kind="revoked" env={env} />
         </details>
       )}
-
-      <p className="mt-10 text-sm text-ink-secondary">
-        {t("readers.ownDetailsMoved")}{" "}
-        <a className="font-semibold text-ink-strong underline underline-offset-2" href={`/${username}/studio/journal#own-details`}>
-          {t("readers.ownDetailsLink")}
-        </a>
-      </p>
     </div>
   );
 }

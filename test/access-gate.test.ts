@@ -1086,3 +1086,38 @@ describe("somebody let onto one trip by a buddy link", () => {
     }
   });
 });
+
+/**
+ * B2461 — "Let read only" on a request that also asked to join a trip. The
+ * owner's confirm now says the click opens a write place too; this is the
+ * proof for the other button, the one that must not: `approveContact(...,
+ * { onlyTrip: null })` (what the letin route sends for "Let read only") has
+ * to write the journal-wide read grant and leave the trip place exactly
+ * where `claimTripPlace` left it — pending, never a place `isPersonOn` counts.
+ */
+describe("letting someone in read-only leaves their pending trip place untouched", () => {
+  const READONLY = "readonly@example.test";
+  let readonlyId: string;
+
+  beforeAll(async () => {
+    const { approveContact } = await import("@/lib/contacts");
+    const { claimTripPlace } = await import("@/lib/tripPeople");
+    await addContact(READONLY);
+    readonlyId = await contactIdFor(READONLY);
+    await claimTripPlace(OWNER, "secret-2026", readonlyId, null);
+    const approved = await approveContact(OWNER, readonlyId, { onlyTrip: null });
+    expect(approved?.tripsOpened).toEqual([]);
+    tokens.readonly = await signIn(READONLY);
+  });
+
+  test("reads the journal's guest trips but never the private one they asked to join", async () => {
+    const trips = await tripsByRef();
+    const { mayReadTrip } = await import("@/lib/tripGate");
+
+    as("readonly");
+    expect(await mayReadTrip(trips.get("invited-2026")!)).toBe(true);
+
+    as("readonly");
+    expect(await mayReadTrip(trips.get("secret-2026")!)).toBe(false);
+  });
+});
