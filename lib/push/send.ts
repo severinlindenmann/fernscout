@@ -7,6 +7,7 @@ import type { StoredSubscription } from "../repos/types";
 import { sendApnsNotification } from "./apns";
 import { logMessage } from "../messages/log";
 import type { TemplateId } from "../messages/registry";
+import { isSwitchedOff } from "../messages/switches";
 
 /**
  * The one place a push notification actually leaves the server — B2448.
@@ -88,6 +89,25 @@ export async function sendPush(params: {
 }): Promise<PushOutcome> {
   const subs = Array.isArray(params.subscriptions) ? params.subscriptions : [params.subscriptions];
   if (subs.length === 0) return { sent: 0, pruned: 0 };
+
+  // The operator's own per-message-kind switch (B2446) — never true for a
+  // required family. See lib/messages/switches.ts.
+  if (await isSwitchedOff(params.template)) {
+    await Promise.all(
+      subs.map((sub) =>
+        logMessage({
+          template: params.template,
+          channel: "push",
+          to: sub.endpoint,
+          owner: sub.username,
+          locale: params.locale,
+          status: "skipped",
+          reason: "switched_off:operator",
+        }),
+      ),
+    );
+    return { sent: 0, pruned: 0 };
+  }
 
   const notice = { title: params.title, body: params.body, url: params.url, tag: params.tag };
   const payload = JSON.stringify(notice);

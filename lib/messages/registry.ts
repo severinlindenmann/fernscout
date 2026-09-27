@@ -9,7 +9,7 @@
  * it.
  */
 
-const FAMILIES = {
+export const FAMILIES = {
   code: { class: "required" },
   invite: { class: "service" },
   news: { class: "optional" },
@@ -20,9 +20,9 @@ const FAMILIES = {
   chat: { class: "required" },
 } as const satisfies Record<string, { class: "required" | "service" | "optional" }>;
 
-type Family = keyof typeof FAMILIES;
+export type Family = keyof typeof FAMILIES;
 
-const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
+export const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
 export type Channel = (typeof CHANNELS)[number];
 
 type Audience = "owner" | "reader" | "stranger" | "operator";

@@ -139,7 +139,7 @@ export async function listMessages(
 
 /** Counts since a timestamp, grouped by template and status — the shape
  * admin's catalogue (a later ticket) wants for "how many of this went out". */
-async function countMessages(sinceIso: string): Promise<{ template: string; status: string; count: number }[]> {
+export async function countMessages(sinceIso: string): Promise<{ template: string; status: string; count: number }[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const rows = await handle.db
