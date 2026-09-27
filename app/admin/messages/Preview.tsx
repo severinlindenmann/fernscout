@@ -125,7 +125,11 @@ export default function Preview({ template }: { template: TemplateId }) {
             }
           >
             {preview.channel === "push" && preview.title ? <p className="font-semibold">{preview.title}</p> : null}
-            <p className="whitespace-pre-wrap text-sm">{preview.text}</p>
+            {preview.freeform ? (
+              <p className="text-sm italic">{preview.text}</p>
+            ) : (
+              <p className="whitespace-pre-wrap text-sm">{preview.text}</p>
+            )}
           </div>
         </div>
       )}
