@@ -206,7 +206,7 @@ async function main() {
     const row = rows.find((r) => r.cca2 === code);
     const neighbours = (row?.borders ?? [])
       .map((b) => cca3ToCca2.get(b))
-      .filter((c): c is string => Boolean(c) && codes.includes(c));
+      .filter((c): c is string => c !== undefined && codes.includes(c));
     adjacency[code] = [...new Set(neighbours)].sort();
   }
 
