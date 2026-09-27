@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { FAMILIES, FLOWS, TEMPLATES, templateDef, type Family, type Flow, type TemplateId } from "@/lib/messages/registry";
+import { CHANNELS, FAMILIES, FLOWS, TEMPLATES, templateDef, type Channel, type Family, type Flow, type TemplateId } from "@/lib/messages/registry";
 
 const ALL_FLOWS = FLOWS as readonly Flow[];
 import ChannelChip, { CHANNEL_LABEL } from "./ChannelIcon";
@@ -75,6 +75,30 @@ export default function MessagesPanel({
 
   const templateIds = useMemo(() => Object.keys(TEMPLATES) as TemplateId[], []);
 
+  // One row per message kind (B2441 rework) — a kind sent on several
+  // channels (the day-published letter/text/announcement/push, an invite by
+  // mail and SMS) used to print once per template; grouping by
+  // family+kind here, in the registry's own declaration order, is what
+  // collapses those back into the one row the owner approved. A kind that
+  // only ever has one channel still gets a row of its own, with one filled
+  // cell.
+  const kindGroups = useMemo(() => {
+    const map = new Map<string, { family: Family; kind: string; audience: string; byChannel: Partial<Record<Channel, TemplateId>> }>();
+    const order: string[] = [];
+    for (const id of templateIds) {
+      const def = templateDef(id);
+      const key = `${def.family}::${def.kind}`;
+      let group = map.get(key);
+      if (!group) {
+        group = { family: def.family, kind: def.kind, audience: def.audience, byChannel: {} };
+        map.set(key, group);
+        order.push(key);
+      }
+      group.byChannel[def.channel] = id;
+    }
+    return order.map((key) => map.get(key)!);
+  }, [templateIds]);
+
   function markOff(key: string, isOff: boolean) {
     setOff((prev) => {
       const next = new Set(prev);
@@ -142,55 +166,70 @@ export default function MessagesPanel({
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-ink-secondary">
                   <th className="border-b border-line-quiet px-2 py-2">Message</th>
-                  <th className="border-b border-line-quiet px-2 py-2">Channel</th>
+                  {CHANNELS.map((c) => (
+                    <th key={c} className="border-b border-line-quiet px-2 py-2 text-center">
+                      {CHANNEL_LABEL[c]}
+                    </th>
+                  ))}
                   <th className="border-b border-line-quiet px-2 py-2">Class</th>
                   <th className="border-b border-line-quiet px-2 py-2 text-right">Sent 7d</th>
                   <th className="border-b border-line-quiet px-2 py-2 text-right">Skipped 7d</th>
-                  <th className="border-b border-line-quiet px-2 py-2">Switch</th>
                 </tr>
               </thead>
               <tbody>
                 {FAMILY_ORDER.flatMap((fam) => {
-                  const ids = templateIds.filter((id) => TEMPLATES[id].family === fam);
-                  if (!ids.length) return [];
+                  const groups = kindGroups.filter((g) => g.family === fam);
+                  if (!groups.length) return [];
                   return [
                     <tr key={`grp-${fam}`}>
-                      <td colSpan={6} className="bg-surface-subtle px-2 py-1.5 text-xs font-bold uppercase tracking-wide text-ink-secondary">
+                      <td colSpan={2 + CHANNELS.length + 2} className="bg-surface-subtle px-2 py-1.5 text-xs font-bold uppercase tracking-wide text-ink-secondary">
                         {FAMILY_LABEL[fam]} · {CLASS_LABEL[FAMILIES[fam].class]}
                       </td>
                     </tr>,
-                    ...ids.map((id) => {
-                      const def = templateDef(id);
-                      const locked = FAMILIES[def.family].class === "required";
-                      const c = counts[id] ?? { sent: 0, skipped: 0 };
+                    ...groups.map((group) => {
+                      const locked = FAMILIES[group.family].class === "required";
+                      const rowIds = CHANNELS.map((c) => group.byChannel[c]).filter((id): id is TemplateId => Boolean(id));
+                      const sent = rowIds.reduce((sum, id) => sum + (counts[id]?.sent ?? 0), 0);
+                      const skipped = rowIds.reduce((sum, id) => sum + (counts[id]?.skipped ?? 0), 0);
                       return (
-                        <tr key={id} className="border-b border-line-faint">
+                        <tr key={`${fam}-${group.kind}`} className="border-b border-line-faint align-top">
                           <td className="px-2 py-2">
-                            <button type="button" className="text-left font-semibold text-ink-strong underline-offset-2 hover:underline" onClick={() => setPreviewId(id)}>
-                              {def.kind}
-                            </button>
-                            <div className="text-xs text-ink-secondary">{def.audience}</div>
+                            <div className="font-semibold text-ink-strong">{group.kind}</div>
+                            <div className="text-xs text-ink-secondary">{group.audience}</div>
                           </td>
-                          <td className="px-2 py-2">
-                            <ChannelChip channel={def.channel} label={false} />
-                          </td>
-                          <td className="px-2 py-2 text-xs">{CLASS_LABEL[FAMILIES[def.family].class]}</td>
-                          <td className="px-2 py-2 text-right tabular-nums">{c.sent}</td>
-                          <td className="px-2 py-2 text-right tabular-nums">{c.skipped}</td>
-                          <td className="px-2 py-2">
-                            <MessageSwitch
-                              messageKey={id}
-                              initialOff={off.has(id)}
-                              locked={locked}
-                              confirmQuestion={
-                                FAMILIES[def.family].class === "service"
-                                  ? `Turn off ${def.kind}? It stays off until you turn it back on.`
-                                  : undefined
-                              }
-                              confirmLabel={`Turn off ${def.kind}`}
-                              onChanged={(isOff) => markOff(id, isOff)}
-                            />
-                          </td>
+                          {CHANNELS.map((c) => {
+                            const id = group.byChannel[c];
+                            if (!id) return <td key={c} className="px-2 py-2" />;
+                            return (
+                              <td key={c} className="px-2 py-2">
+                                <div className="flex flex-col items-center gap-1">
+                                  <button
+                                    type="button"
+                                    aria-label={`Preview ${CHANNEL_LABEL[c]} — ${group.kind}`}
+                                    onClick={() => setPreviewId(id)}
+                                    className="rounded-lg hover:opacity-80"
+                                  >
+                                    <ChannelChip channel={c} label={false} />
+                                  </button>
+                                  <MessageSwitch
+                                    messageKey={id}
+                                    initialOff={off.has(id)}
+                                    locked={locked}
+                                    confirmQuestion={
+                                      FAMILIES[group.family].class === "service"
+                                        ? `Turn off ${group.kind} by ${CHANNEL_LABEL[c]}? It stays off until you turn it back on.`
+                                        : undefined
+                                    }
+                                    confirmLabel={`Turn off ${group.kind} by ${CHANNEL_LABEL[c]}`}
+                                    onChanged={(isOff) => markOff(id, isOff)}
+                                  />
+                                </div>
+                              </td>
+                            );
+                          })}
+                          <td className="px-2 py-2 text-xs">{CLASS_LABEL[FAMILIES[group.family].class]}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{sent}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{skipped}</td>
                         </tr>
                       );
                     }),

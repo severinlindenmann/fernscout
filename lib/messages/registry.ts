@@ -22,7 +22,7 @@ export const FAMILIES = {
 
 export type Family = keyof typeof FAMILIES;
 
-const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
+export const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
 export type Channel = (typeof CHANNELS)[number];
 
 type Audience = "owner" | "reader" | "stranger" | "operator";
@@ -72,7 +72,7 @@ export const TEMPLATES = {
   "notice.photobookRefused": { family: "notice", channel: "mail", kind: "photobook order refused", audience: "owner", paid: true },
 
   // -- mail: news / nudge (open core) --------------------------------------
-  "news.mail": { family: "news", channel: "mail", kind: "day published letter", audience: "reader" },
+  "news.mail": { family: "news", channel: "mail", kind: "day published", audience: "reader" },
   "nudge.evening": { family: "nudge", channel: "mail", kind: "evening reminder to write", audience: "owner" },
 
   // -- mail: operator (open core) ------------------------------------------
@@ -90,17 +90,17 @@ export const TEMPLATES = {
   "invite.share": { family: "invite", channel: "share", kind: "invite the owner shares", audience: "reader" },
   "invite.sms": { family: "invite", channel: "sms", kind: "invite to a reader", audience: "reader" },
   "invite.in.sms": { family: "invite", channel: "sms", kind: "you're in", audience: "reader" },
-  "news.sms": { family: "news", channel: "sms", kind: "day published text", audience: "reader" },
+  "news.sms": { family: "news", channel: "sms", kind: "day published", audience: "reader" },
   "op.sms": { family: "operator", channel: "sms", kind: "operator text to the owner", audience: "owner" },
 
   // -- whatsapp (paid) --------------------------------------------------------
-  "news.wa": { family: "news", channel: "wa", kind: "day published announcement", audience: "reader", paid: true },
+  "news.wa": { family: "news", channel: "wa", kind: "day published", audience: "reader", paid: true },
   "code.wa": { family: "code", channel: "wa", kind: "phone-verify code", audience: "owner", paid: true },
   "chat.wa": { family: "chat", channel: "wa", kind: "free-form reply", audience: "reader", paid: true },
   "nudge.gap.wa": { family: "nudge", channel: "wa", kind: "gap follow-up question", audience: "owner", paid: true },
 
   // -- push (open core) -------------------------------------------------------
-  "news.push": { family: "news", channel: "push", kind: "day published push", audience: "reader" },
+  "news.push": { family: "news", channel: "push", kind: "day published", audience: "reader" },
 } as const satisfies Record<string, TemplateDef>;
 
 export type TemplateId = keyof typeof TEMPLATES;
