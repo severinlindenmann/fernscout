@@ -2230,6 +2230,7 @@
   "push.install.step2": "Choose “Add to Home Screen”",
   "push.install.step3": "Open it from the Home Screen, then turn notifications on",
   "push.install.title": "Get notified about new days",
+  "push.newDay.body": "New day published: {day}",
   "push.iosInstall": "On an iPhone or iPad, add this page to your Home Screen first (Share → Add to Home Screen), then notifications can be switched on.",
   "push.prompt.body": "We can let you know on this device when a new day is published here. Nothing else, and only from this journal.",
   "push.prompt.never": "Don't ask me again",

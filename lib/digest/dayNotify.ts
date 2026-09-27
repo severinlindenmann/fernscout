@@ -2,8 +2,10 @@ import "server-only";
 import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { getDatabaseOrNull, newId, nowIso } from "../db";
 
-/** The channels a day can be announced on — B345, B365, and SMS since B2292. */
-export type NotifyChannel = "mail" | "whatsapp" | "sms";
+/** The channels a day can be announced on — B345, B365, SMS since B2292 and
+ * push since B2448. `channel` is a plain text column on both dialects
+ * (022-day-notifications), so widening this union needs no migration. */
+export type NotifyChannel = "mail" | "whatsapp" | "sms" | "push";
 
 /**
  * Record that this channel has told readers about this day — B633.
