@@ -1,7 +1,10 @@
 import "server-only";
+import type { Composition } from "../messages/previews/types";
 import type { Locale } from "../types";
 import { renderMail, type MailBlock } from "./template";
 import type { Mail } from "./types";
+
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 
 /**
  * The one builder behind both "you're in" mails — B2440 work item 3: the
@@ -25,16 +28,17 @@ export type LetInMailInput = {
   username?: string;
 };
 
-export function letInMail(input: LetInMailInput): Mail {
+/** The pure half — B2493. See `composeInviteMail`'s comment. */
+export function composeLetInMail(input: LetInMailInput): MailComposition {
   const blocks: MailBlock[] = [
     { kind: "paragraph", text: input.body },
     { kind: "button", text: input.buttonText, href: input.buttonUrl },
     ...(input.items ?? []).map((item) => ({ kind: "item" as const, ...item })),
   ];
-  return renderMail(
-    input.to,
-    input.subject,
-    {
+  return {
+    channel: "mail",
+    subject: input.subject,
+    content: {
       template: "invite.in.mail",
       preheader: input.body,
       title: input.title,
@@ -43,6 +47,10 @@ export function letInMail(input: LetInMailInput): Mail {
       manage: input.manage,
       locale: input.locale,
     },
-    input.username,
-  );
+  };
+}
+
+export function letInMail(input: LetInMailInput): Mail {
+  const { subject, content } = composeLetInMail(input);
+  return renderMail(input.to, subject, content, input.username);
 }
