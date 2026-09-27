@@ -195,6 +195,21 @@ export default function LifetimeMap({
   const rafRef = useRef<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /**
+   * The basemap a glide should end on — read at completion time rather
+   * than captured in `animateTo`'s own closure. Found live, on a real
+   * journal: a continent view starts its glide with no basemap yet (still
+   * being fetched), and if `/api/lifetime-map-view` resolved *faster* than
+   * the 700ms glide, the fetch's own `setDisplayBasemap` ran first and the
+   * glide's completion then overwrote it right back to the `null` it was
+   * called with — the ground never actually updated, every time the fetch
+   * happened to win the race, which on a local dev server is most of the
+   * time. Both the fetch and the glide's completion now write through
+   * this ref and read it back, so whichever finishes last is what shows,
+   * instead of whichever was captured first.
+   */
+  const targetBasemapRef = useRef<Basemap | null>(null);
+
   function cancelAnimation() {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
@@ -204,13 +219,14 @@ export default function LifetimeMap({
 
   function animateTo(target: Vec, targetBasemap: Basemap | null, opts: { duration: number; einstieg?: boolean }) {
     cancelAnimation();
+    targetBasemapRef.current = targetBasemap;
     const reduced =
       typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
       if (opts.einstieg) einstiegPlayed = true;
       setDisplayFrame(target);
       frameRef.current = target;
-      setDisplayBasemap(targetBasemap);
+      setDisplayBasemap(targetBasemapRef.current);
       setRevealed(1);
       return;
     }
@@ -247,7 +263,7 @@ export default function LifetimeMap({
       if (t < 1) {
         rafRef.current = requestAnimationFrame(step);
       } else {
-        setDisplayBasemap(targetBasemap);
+        setDisplayBasemap(targetBasemapRef.current);
         rafRef.current = null;
       }
     };
@@ -259,7 +275,7 @@ export default function LifetimeMap({
       if (opts.einstieg) einstiegPlayed = true;
       frameRef.current = target;
       setDisplayFrame(target);
-      setDisplayBasemap(targetBasemap);
+      setDisplayBasemap(targetBasemapRef.current);
       setRevealed(1);
       cancelAnimation();
     }, opts.duration + 300);
@@ -307,8 +323,14 @@ export default function LifetimeMap({
           fetchedBasemapsRef.current.set(id, data.basemap);
           // Swap in only if still on this view — a reader who has already
           // moved on by the time this resolves must not have their new
-          // view's ground pulled out from under them.
-          if (selectedIdRef.current === id) setDisplayBasemap(data.basemap);
+          // view's ground pulled out from under them. Also updates the
+          // ref a still-in-flight glide's own completion reads, so a fetch
+          // that resolves before the glide finishes is not overwritten
+          // back to null once it does.
+          if (selectedIdRef.current === id) {
+            targetBasemapRef.current = data.basemap;
+            setDisplayBasemap(data.basemap);
+          }
         })
         .catch(() => {
           // A failed fetch leaves the plain world outline drawn — the same

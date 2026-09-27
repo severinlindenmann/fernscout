@@ -286,4 +286,64 @@ describe("the Einstieg swaps in the 'all' view's own basemap once it runs (decis
     expect(el.innerHTML).not.toContain("M0.0,296.0");
     expect(el.innerHTML).toContain("M334.5,472.3");
   });
+
+  /**
+   * Found live, on a real journal: a continent view's glide starts with no
+   * basemap yet — it is still being fetched — and `animateTo`'s own
+   * completion used to unconditionally set the display basemap to whatever
+   * it was *called* with (`null`). On a local dev server the fetch nearly
+   * always resolves before the 700ms glide finishes, so the fetch's own
+   * `setDisplayBasemap` ran first and the glide's completion then
+   * overwrote it right back to `null` — the ground never updated, every
+   * time. `targetBasemapRef` is what both now read and write instead of a
+   * captured closure value.
+   */
+  test("a basemap fetch that resolves before the glide finishes is not overwritten back to null", async () => {
+    stubMatchMedia({ hover: false, reducedMotion: false }); // a real (short) glide, not the instant branch
+    const fetched = {
+      borders: ["M5,5 L6,6 Z"],
+      admin1: [],
+      relief: [],
+      glaciers: [],
+      parks: [],
+      railroads: [],
+      roads: [],
+      lakes: [],
+      rivers: [],
+      peaks: [],
+      towns: [],
+      attribution: "",
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({ ok: true, json: async () => ({ basemap: fetched }) } as Response);
+
+    const views = [
+      { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap: null },
+      { id: "Europe" as const, kind: "continent" as const, continent: "Europe", labelKey: "trips.map.continent.europe" as const, countryCodes: ["CH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+      { id: "Asia" as const, kind: "continent" as const, continent: "Asia", labelKey: "trips.map.continent.asia" as const, countryCodes: ["TH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+    ];
+    const continents = [
+      { continent: "Europe", labelKey: "trips.map.continent.europe" as const, count: 1, areas: [] },
+      { continent: "Asia", labelKey: "trips.map.continent.asia" as const, count: 1, areas: [] },
+    ];
+    const el = mount({ views, continents });
+    const button = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("Europe"));
+
+    await act(async () => {
+      button!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      // Let the mocked fetch's promise chain resolve — this is the "fetch
+      // wins the race" case the bug needed. jsdom never fires a real
+      // requestAnimationFrame, so the glide's own forced-timeout is what
+      // eventually settles it (real timers here, not fake ones, since the
+      // component reads `performance.now()`/`setTimeout` directly).
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 700 + 350)); // GLIDE_MS + the forced-timeout's own buffer
+    });
+
+    expect(el.innerHTML).toContain("M5,5 L6,6 Z");
+    fetchSpy.mockRestore();
+  });
 });
