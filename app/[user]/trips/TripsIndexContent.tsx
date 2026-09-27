@@ -275,7 +275,7 @@ export default function TripsIndexContent({
             {pinnedVisit && (
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <h2 className="font-display text-xl font-semibold text-ink-strong">
-                  {flagFromCode(pinnedVisit.code)} {pinnedVisit.name} ·{" "}
+                  {flagFromCode(pinnedVisit.code)} {pinnedVisit.name} · {pinnedVisit.trips.length}{" "}
                   {tn("trips.lifetimeTrips", pinnedVisit.trips.length)}
                 </h2>
                 <button

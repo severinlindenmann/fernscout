@@ -405,7 +405,7 @@ export default function LifetimeMap({
                     }
                   : {};
 
-                const ariaLabel = `${v.name} — ${tn("trips.lifetimeTrips", v.trips.length)}`;
+                const ariaLabel = `${v.name} — ${v.trips.length} ${tn("trips.lifetimeTrips", v.trips.length)}`;
                 const focusRing =
                   "outline-2 outline-offset-1 outline-transparent focus-visible:outline-[var(--map-stop-ring)]";
 
@@ -478,8 +478,8 @@ export default function LifetimeMap({
         <div className="min-h-0 px-4 pt-2 text-xs text-ink-body empty:hidden empty:p-0">
           {pinnedVisit ? (
             <span className="flex items-center gap-2" aria-live="polite">
-              {flagFromCode(pinnedVisit.code)} {pinnedVisit.name} · {tn("trips.lifetimeTrips", pinnedVisit.trips.length)}{" "}
-              · {t("trips.map.filteredBelow")}
+              {flagFromCode(pinnedVisit.code)} {pinnedVisit.name} · {pinnedVisit.trips.length}{" "}
+              {tn("trips.lifetimeTrips", pinnedVisit.trips.length)} · {t("trips.map.filteredBelow")}
               <button
                 type="button"
                 onClick={() => setPin(null)}

@@ -99,7 +99,7 @@ describe("countries visited (server render, no JS)", () => {
 
   test("every country is reachable and named for a keyboard user and a screen reader", () => {
     const html = render([ONE]);
-    expect(html).toMatch(/aria-label="Thailand — trip"/);
+    expect(html).toMatch(/aria-label="Thailand — 1 trip"/);
   });
 
   test("a journal with no country data renders the plain world, not an empty frame", () => {
