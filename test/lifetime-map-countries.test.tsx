@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import LifetimeMap, { type CountryVisit } from "@/components/LifetimeMap";
@@ -189,5 +191,23 @@ describe("map detail (basemap per view)", () => {
 
   test("a journal with no basemap at all still renders, on the plain outline", () => {
     expect(() => render([ONE])).not.toThrow();
+  });
+});
+
+/**
+ * Review finding: the container's sea background was a plain
+ * `bg-sky-300` Tailwind class — a fixed light cyan, copied from the
+ * clickable draft — rather than `var(--map-sea)`, so in dark mode the sea
+ * stayed bright while the land went dark. Every map colour here has to
+ * come from a `--map-*` token so it actually follows the theme; a country
+ * fill's own hex (from `lib/countryColours.json`, decision 1) is the one
+ * deliberate exception, and it never appears as a literal in this file —
+ * it is read from the imported JSON at runtime. Mirrors the same scan
+ * `test/map-primitives.test.tsx` runs over `components/map/*.tsx`.
+ */
+describe("no hex colour literal in components/LifetimeMap.tsx", () => {
+  test("holds no hex colour literal", () => {
+    const source = fs.readFileSync(path.join(process.cwd(), "components", "LifetimeMap.tsx"), "utf8");
+    expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 });

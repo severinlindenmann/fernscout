@@ -256,16 +256,21 @@ describe("the Einstieg swaps in the 'all' view's own basemap once it runs (decis
    * bundle (`lib/basemap.ts`) still has its own antimeridian-wrapped border
    * paths — the same jump-across-180° shape `scripts/build-world-countries.mts`
    * now guards against in `lib/worldCountries.json`, but in a different,
-   * pre-existing dataset this ticket does not regenerate. `notAntimeridianArtifact`
-   * is the narrow mitigation: drop a border whose own bounding box spans
-   * almost the whole 1000-unit world, which no real border ever does at any
-   * zoom this map draws.
+   * pre-existing dataset this ticket does not regenerate.
+   *
+   * Review found a first attempt (a whole-path bounding-box check) missed
+   * the real case on `/severin/trips` — a sea-coloured wedge from
+   * Kamchatka to the frame's corner, where only *one* edge inside an
+   * otherwise-local path jumped, so the path's overall bbox never got wide
+   * enough to trip that filter. `fixAntimeridian` checks every consecutive
+   * pair of points instead and splits at the jump, rather than judging the
+   * path as a whole.
    */
-  test("drops a border path that spans almost the whole world, keeps an ordinary one", () => {
+  test("splits a Fiji/Russia-style path that jumps the antimeridian along its whole length", () => {
     const basemap = {
       borders: [
-        "M0.0,296.0 L998.2,296.7 L996.5,297.3 Z", // the real Fiji/Russia shape found live
-        "M334.5,472.3 L333.7,473.7 L332.9,475.0 Z", // an ordinary short border
+        "M0.0,296.0 L998.2,296.7 L996.5,297.3 Z", // the real shape found live
+        "M334.5,472.3 L333.7,473.7 L332.9,475.0 Z", // an ordinary short border, untouched
       ],
       admin1: [],
       relief: [],
@@ -283,8 +288,42 @@ describe("the Einstieg swaps in the 'all' view's own basemap once it runs (decis
       { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap },
     ];
     const el = mount({ views });
-    expect(el.innerHTML).not.toContain("M0.0,296.0");
-    expect(el.innerHTML).toContain("M334.5,472.3");
+    // The two ends never draw joined by one long edge across the world.
+    expect(el.innerHTML).not.toContain("M0.0,296.0 L998.2,296.7");
+    expect(el.innerHTML).toContain("M334.5,472.3 L333.7,473.7 L332.9,475 Z"); // fixAntimeridian re-serializes via Number(), which drops a trailing .0
+  });
+
+  test("splits a synthetic wedge — one bad jump inside an otherwise-local path", () => {
+    // A shape that stays within a small area (Kamchatka-sized) except for
+    // two edges that shoot to the far side of the projection and back —
+    // the case a whole-path bounding-box check cannot see, because the
+    // *rest* of the path keeps the overall bbox small.
+    const wedge = "M900,50 L920,60 L5,55 L8,58 L910,52 L905,48 Z";
+    const basemap = {
+      borders: [wedge],
+      admin1: [],
+      relief: [],
+      glaciers: [],
+      parks: [],
+      railroads: [],
+      roads: [],
+      lakes: [],
+      rivers: [],
+      peaks: [],
+      towns: [],
+      attribution: "",
+    };
+    const views = [
+      { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap },
+    ];
+    const el = mount({ views });
+    // Never one path joining x=920 straight to x=5, or x=8 straight to x=910.
+    expect(el.innerHTML).not.toContain("L920,60 L5,55");
+    expect(el.innerHTML).not.toContain("L8,58 L910,52");
+    // All three local runs either side of a jump still draw, each its own subpath.
+    expect(el.innerHTML).toContain("M900,50 L920,60 Z");
+    expect(el.innerHTML).toContain("M5,55 L8,58 Z");
+    expect(el.innerHTML).toContain("M910,52 L905,48 Z");
   });
 
   /**

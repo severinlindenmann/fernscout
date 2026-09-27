@@ -8,23 +8,6 @@ import { mapStyle } from "@/lib/map/style";
 import type { Basemap } from "@/lib/basemap";
 import type { LifetimeView, ContinentButton } from "@/lib/lifetimeMapViews";
 import countryColours from "@/lib/countryColours.json";
-import type { TripAccent } from "@/lib/types";
-
-/**
- * The five palette hues from app/globals.css, as literals — used by the trip
- * cards' own accent dot (`app/[user]/trips/TripsIndexContent.tsx`). This map
- * no longer draws a route or a marker in any trip's accent (B2491, decision
- * 1) — see the file-level comment below — so this table exists purely for
- * that other, unrelated consumer; keeping it here is the smaller diff than
- * moving it, and `TripAccent` already lives beside it.
- */
-export const ACCENT_HEX: Record<TripAccent, string> = {
-  sky: "#3fa9c4",
-  yellow: "#d69b0a",
-  green: "#15803d",
-  coral: "#c2334a",
-  navy: "#3a4a63",
-};
 
 /** One country somebody has been to, and which trips took them there. */
 export type CountryVisit = {
@@ -89,24 +72,45 @@ function easeInOut(t: number): number {
 }
 
 /**
- * Found while browser-testing this ticket on a real journal: a handful of
- * paths in the *basemap bundle* (`lib/basemap.ts`'s `data.borders` —
- * separate from `lib/worldCountries.json`, which
- * `scripts/build-world-countries.mts` already guards against this in this
- * ticket) still jump across the antimeridian the same way Russia and Fiji
- * did there, and draw as a solid line across the whole frame once a
- * continent/area view zooms in enough for one to appear. Pre-existing —
- * every map that calls `basemapFor()` shares this bundle — and out of this
- * ticket's own "Where it lives" list, so the real fix (regenerating or
- * re-clipping that bundle) belongs in its own ticket. This is the narrowest
- * safe mitigation reachable from here: a border path whose own bounding
- * box spans almost the entire 1000-unit world is never a real border at any
- * zoom this map draws, so it is dropped rather than rendered.
+ * Review found the first attempt at this (a whole-path bounding-box
+ * check) missed a real case on `/severin/trips`: a sea-coloured wedge from
+ * Kamchatka/Chukotka to the frame's top-right corner. That path's overall
+ * bounding box was not wide enough to trip a >=700-unit filter — only
+ * *one* edge inside it actually jumped the antimeridian, cutting a wedge
+ * out of an otherwise-local shape, not drawing a line clear across the
+ * world. So this checks every consecutive pair of points instead of the
+ * path's extremes, and splits at each jump rather than dropping the whole
+ * path — the same guard `scripts/build-world-countries.mts`'s
+ * `splitAntimeridian` already bakes into `lib/worldCountries.json`, run
+ * here at render time for the basemap bundle (`lib/basemap.ts`'s
+ * `data.borders`/`lakes`/`rivers`), which is a separate, pre-existing
+ * dataset this ticket does not regenerate — every map that calls
+ * `basemapFor()` shares it, and the real fix (baking the split into that
+ * bundle directly) belongs in its own ticket.
  */
-function notAntimeridianArtifact(d: string): boolean {
-  const xs = d.match(/-?\d+(?:\.\d+)?(?=,)/g)?.map(Number);
-  if (!xs || xs.length === 0) return true;
-  return Math.max(...xs) - Math.min(...xs) < 700;
+const ANTIMERIDIAN_JUMP = 500; // half the 1000-unit world — a real border never spans more in one step.
+
+function fixAntimeridian(d: string): string {
+  return d
+    .split(/(?=M)/) // one or more "M…Z" subpaths concatenated in one `d`.
+    .map((sub) => {
+      const points = [...sub.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map(
+        (m) => [Number(m[1]), Number(m[2])] as const,
+      );
+      if (points.length < 2) return sub;
+      const runs: (readonly [number, number])[][] = [[points[0]]];
+      for (let i = 1; i < points.length; i++) {
+        const [x] = points[i];
+        const [prevX] = points[i - 1];
+        if (Math.abs(x - prevX) > ANTIMERIDIAN_JUMP) runs.push([]);
+        runs[runs.length - 1].push(points[i]);
+      }
+      return runs
+        .filter((run) => run.length >= 2)
+        .map((run) => `M${run.map(([x, y]) => `${x},${y}`).join(" L")} Z`)
+        .join(" ");
+    })
+    .join(" ");
 }
 
 /**
@@ -375,7 +379,10 @@ export default function LifetimeMap({
   const label = t("trips.mapLabel");
 
   return (
-    <figure className="overflow-hidden rounded-2xl border border-line-quiet bg-sky-300">
+    <figure
+      className="overflow-hidden rounded-2xl border border-line-quiet"
+      style={{ backgroundColor: mapStyle.sea }}
+    >
       {(continents.length >= 2 || (currentView?.kind === "continent" && (continents.find((c) => c.continent === currentView.continent)?.areas.length ?? 0) >= 2)) && (
         <div className="flex gap-2 overflow-x-auto border-b border-line-quiet bg-surface-raised px-4 py-2.5 text-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <ViewButton active={selectedId === "all"} onClick={() => selectView("all")}>
@@ -414,14 +421,14 @@ export default function LifetimeMap({
         <g transform={`scale(${displayFrame.lngScale} 1)`}>
           {displayBasemap ? (
             <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
-              {displayBasemap.borders.filter(notAntimeridianArtifact).map((d, i) => (
-                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+              {displayBasemap.borders.map((d, i) => (
+                <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
               ))}
             </g>
           ) : (
             <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
               {worldLand.map((d, i) => (
-                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
               ))}
             </g>
           )}
@@ -497,12 +504,12 @@ export default function LifetimeMap({
             <>
               <g fill="none" stroke={mapStyle.water} strokeWidth={0.5}>
                 {displayBasemap.rivers.map((d, i) => (
-                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
                 ))}
               </g>
               <g fill={mapStyle.water} stroke={mapStyle.border} strokeWidth={0.7}>
                 {displayBasemap.lakes.map((d, i) => (
-                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                  <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
                 ))}
               </g>
             </>

@@ -8,7 +8,7 @@ import { mediaLoader } from "@/components/mediaLoader";
 import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
 import PageHeader from "@/components/PageHeader";
-import LifetimeMap, { ACCENT_HEX, type CountryVisit } from "@/components/LifetimeMap";
+import LifetimeMap, { type CountryVisit } from "@/components/LifetimeMap";
 import type { LifetimeView, ContinentButton } from "@/lib/lifetimeMapViews";
 import { flagFromCode } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
@@ -16,7 +16,7 @@ import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { daysUntil } from "@/lib/tripTime";
 import type { MalformedTrip, MalformedTripReason } from "@/lib/trips";
-import type { TripAccent, TripStatus, TripTranslations } from "@/lib/types";
+import { ACCENT_HEX, type TripAccent, type TripStatus, type TripTranslations } from "@/lib/types";
 
 export type TripCardData = {
   id: string;
