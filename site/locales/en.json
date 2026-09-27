@@ -3965,6 +3965,8 @@
   "readers.link.copy": "Copy link",
   "readers.link.share": "Share…",
   "readers.link.show": "Show link",
+  "readers.share.editLabel": "Your message",
+  "readers.share.text": "Hi! I'm writing about {trip} on {site}. Read along here:",
   "readers.link.worksUntil": "Works until {date}",
   "readers.link.step1": "They open the link and see whose journal it is",
   "readers.link.step2": "Name, then email or mobile — and the code we send",

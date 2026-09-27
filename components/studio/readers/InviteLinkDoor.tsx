@@ -32,6 +32,8 @@ export default function InviteLinkDoor({
   t,
   tn,
   onCreated,
+  journalTitle = username,
+  siteName = "Fernscout",
 }: {
   username: string;
   locale: Locale;
@@ -39,6 +41,10 @@ export default function InviteLinkDoor({
   t: Translate;
   tn: Count;
   onCreated: () => void;
+  /** The journal's own title — the share text's "{trip}" for a guest link
+   *  (B2444); a buddy link uses the trip's own title instead. */
+  journalTitle?: string;
+  siteName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"guest" | "buddy">("guest");
@@ -211,7 +217,17 @@ export default function InviteLinkDoor({
               .filter(Boolean)
               .join(" · ")}
           </p>
-          <ShareLink url={created.url} t={t} big />
+          <ShareLink
+            username={username}
+            url={created.url}
+            title={created.kind === "buddy" ? (created.tripTitle ?? journalTitle) : journalTitle}
+            text={t("readers.share.text", {
+              trip: created.kind === "buddy" ? (created.tripTitle ?? journalTitle) : journalTitle,
+              site: siteName,
+            })}
+            t={t}
+            big
+          />
           {created.expiresAt && (
             <p className="text-sm text-ink-secondary">{t("readers.link.worksUntil", { date: until(created.expiresAt) ?? "" })}</p>
           )}

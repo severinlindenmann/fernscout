@@ -109,6 +109,15 @@ describe("app waitlist", () => {
     expect(entries.filter((e) => e.email === "again@example.com")).toHaveLength(1);
   });
 
+  test("B2445 — two submits of the same address send exactly one confirmation", async () => {
+    const before = mailsWritten().length;
+    await ask({ email: "twice@example.com" });
+    const res = await ask({ email: "twice@example.com" });
+    expect(res.status).toBe(200);
+    expect((await res.json()).ok).toBe(true);
+    expect(mailsWritten().length).toBe(before + 1);
+  });
+
   test("a malformed address is refused, distinguishably", async () => {
     const res = await ask({ email: "not-an-email" });
     expect(res.status).toBe(400);

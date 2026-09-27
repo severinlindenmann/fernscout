@@ -3966,6 +3966,8 @@
   "readers.link.copy": "Link másolása",
   "readers.link.share": "Megosztás…",
   "readers.link.show": "Link mutatása",
+  "readers.share.editLabel": "Az üzeneted",
+  "readers.share.text": "Szia! A {trip} útról írok a {site} oldalon. Itt tudsz olvasni:",
   "readers.link.worksUntil": "{date}-ig érvényes",
   "readers.link.step1": "Megnyitják a linket, és látják, kinek a naplója",
   "readers.link.step2": "Név, aztán e-mail vagy mobil — és a kód, amit küldünk",
