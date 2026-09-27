@@ -378,7 +378,7 @@ describe("AddDayFlow, one page — B2188", () => {
     );
     type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
     await flush();
-    await click("Make a second entry on this date");
+    await click("Make a second update on this date");
     expect(commitBody).toMatchObject({ confirmSecondEntry: true, time: "18:00" });
     expect(text()).toContain("Saved.");
   });
@@ -416,7 +416,7 @@ describe("AddDayFlow, one page — B2188", () => {
     type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
     await flush();
     expect(text()).toContain("This title is the same as the day above's.");
-    const confirm = button("Make a second entry on this date");
+    const confirm = button("Make a second update on this date");
     expect(confirm.disabled).toBe(true);
   });
 
@@ -429,7 +429,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await click("Save privately");
     type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
     await flush();
-    await click("Make a second entry on this date");
+    await click("Make a second update on this date");
     expect(text()).toContain("already has a day");
     expect(text()).not.toContain("Nothing at all was written");
   });

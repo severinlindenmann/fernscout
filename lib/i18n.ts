@@ -4136,6 +4136,7 @@ export type TranslationKey =
   | "visibility.public"
   | "visibility.teaser"
   | "visibility.teaserHint"
+  | "visibility.unlisted"
   | "visitors.byDay"
   | "visitors.byTrip"
   | "visitors.day"
