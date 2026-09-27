@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { posterSrc } from "./mediaLoader";
+import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import {
   BookOpen,
   ChevronDown,
@@ -872,7 +874,9 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
                 {journal.cover ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={journal.cover}
+                    // The sized variant, not the stored photograph — B2480:
+                    // a 112px-tall card was downloading a 172 KB original.
+                    src={posterSrc(journal.cover, POSTER_WIDTH.GRID)}
                     alt=""
                     loading="lazy"
                     className="h-28 w-full object-cover"
