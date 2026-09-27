@@ -22,12 +22,12 @@ rather than one.
   can build on the code freely; that doesn't hand you the right to call your
   fork or your hosted service Fernscout in a way that suggests it *is*
   Fernscout or is endorsed by this project.
-- **The logo:** covered by the Apache-2.0 copyright licence, and narrowed
-  inside it. The drawings ship with the code because an instance has to draw
-  itself, so running and modifying Fernscout carries them along and that is
-  intended. Using them as the identity of something else is not licensed —
-  see `BRAND-LICENSE`, which is the operative statement; this document is the
-  policy behind it.
+- **The logo:** outside the Apache-2.0 grant, under the separate, narrower
+  licence in `BRAND-LICENSE`. The drawings ship with the code because an
+  instance has to draw itself, so running and modifying Fernscout carries
+  them along and that is intended. Using them as the identity of something
+  else is not licensed — `BRAND-LICENSE` is the operative statement; this
+  document is the policy behind it.
 
 The distinction matters because the two rest on different rights. The name is
 protected by trademark, which here is unregistered and therefore thin. The
@@ -80,10 +80,9 @@ use**.
 
 So, for the record, because that is the fact such a claim turns on:
 
-> **First use: 31 August 2026**, in commit `8089d55d`, "Fernscout — a
-> self-hostable travel journal your agent writes", the first commit in this
-> repository. The name and the waymark have been in continuous public use
-> under it since.
+> **First use: 25 September 2026**, in commit `54ebfee`, "Fernscout open
+> edition", the first commit in this repository. The name and the waymark
+> have been in continuous public use under it since.
 
 Registration may happen later. Until it does, treat this policy as "please
 don't do this," backed by the more limited rights unregistered use actually

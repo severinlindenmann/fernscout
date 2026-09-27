@@ -16,24 +16,20 @@ import path from "node:path";
  */
 
 const ROOT = process.cwd();
-// C12 (spec §9, B1938) — AGENTS.md's own words are "source, fixtures, config
-// or task files", and until this widening the scan only ever walked source.
-// `test/fixtures` closes the "fixtures" gap and is clean (checked below).
+// C12 (spec §9, B1938) — AGENTS.md's own words are "never enter
+// site/config.json, source, fixtures or logs", and until this widening the
+// scan only ever walked source. `test/fixtures` closes the "fixtures" gap
+// and is clean (checked below).
 //
-// **`docs/tasks` is deliberately still not in this list.** Widening the scan
-// to it was tried on this branch: it immediately found the real thing C12
-// warns about — the owner's actual name, email and phone numbers, committed
-// across roughly fifteen already-completed task files going back a long way
-// (B1145, B1737, B1785, B272, B345, B390, B403, B461, B500, B614, B662,
-// B1057, B1067, B1316, B1317, B1362, B1471, B1527, B1705, B1791, B1860, among
-// them). That is a real, separate leak this ticket did not create and has no
-// business quietly redacting through a test-file diff — AGENTS.md's own rule
-// is that anything newly noticed goes to the backlog rather than being
-// absorbed into the current task, and a personal-data cleanup across a dozen
-// historical files is exactly that: a ticket of its own (filed as
-// B1940), not a side effect of widening a grep. So C12 stays null rather
-// than either a false pass (excluding the very directory the claim names) or
-// a red suite nobody asked this branch to turn red.
+// Task files (once real leaks were found across roughly fifteen
+// already-completed ones — B1145, B1737, B1785, B272, B345, B390, B403,
+// B461, B500, B614, B662, B1057, B1067, B1316, B1317, B1362, B1471, B1527,
+// B1705, B1791, B1860, among them, filed as its own cleanup, B1940) are the
+// harness's problem now, not this repository's: the open/private split
+// (B2251) moved `docs/tasks` out of the app entirely, onto the harness's own
+// `main`, where it has its own such rule. `PROSE_DIRS` no longer names it —
+// checking a directory that cannot exist here would be a no-op that reads
+// as coverage nobody actually has.
 const CODE_DIRS = ["lib", "app", "components", "scripts", "public", "test/fixtures"];
 
 /**
@@ -63,15 +59,17 @@ const EXEMPT = new Set<string>([]);
  * Where a person's contact details end up, as opposed to their name.
  *
  * `CODE_DIRS` above is about the *software* carrying this instance's own
- * vocabulary. This is a different question with a different answer: task
- * files and skills are prose, written fast, about real runs against real
- * addresses — and on 2026-09-20 they turned out to hold the owner's own mail
- * domain across twenty-odd tickets, a real handset number in a test fixture,
- * and a third party's Gmail address in three more. In a public repository.
+ * vocabulary. This is a different question with a different answer: skills
+ * are prose, written fast, about real runs against real addresses — task
+ * files were the other half of this, until the open/private split moved them
+ * to the harness — and on 2026-09-20 they turned out to hold the owner's own
+ * mail domain across twenty-odd tickets, a real handset number in a test
+ * fixture, and a third party's Gmail address in three more. In a public
+ * repository.
  *
  * It went unnoticed because the scan above never looked here, while
- * AGENTS.md's wording ("source, fixtures, config or task files") always said
- * it should.
+ * AGENTS.md's rule that nothing personal belongs in application code always
+ * said it should.
  *
  * **Structural, not a list.** This file cannot hold the domain or the number
  * it is guarding against without republishing them, which is the same joke
@@ -88,7 +86,7 @@ const EXEMPT = new Set<string>([]);
  * brand word "Fernscout" (`personalTerms()` and `CODE_DIRS` are a separate,
  * unrelated scan; this one does not touch either).
  */
-const PROSE_DIRS = ["docs/tasks", ".claude/skills", "site/locales"];
+const PROSE_DIRS = [".claude/skills", "site/locales"];
 
 /** Domains that exist precisely so they can appear in writing. `example.test`
  *  is RFC 2606; `fernscout.ch` is this software's own public face. */
@@ -589,7 +587,7 @@ describe("contact details stay out of the prose, not only out of the code", () =
  * without a hardcoded exception for either one.
  *
  * Run and read before writing this comment: across `CODE_DIRS`,
- * `site/config.json`, and `PROSE_DIRS` (docs/tasks, .claude/skills), this
+ * `site/config.json`, and `PROSE_DIRS` (.claude/skills, site/locales), this
  * produced ZERO hits. `.claude/skills/get-a-credential/SKILL.md` and
  * `.claude/skills/test-in-a-browser/SKILL.md` each show a documented
  * `sk-ant-…`/`SECRET=…` dummy for local dev — both are short, dash-joined,

@@ -14,8 +14,8 @@ type-ahead itself).
 ## Setup
 
 1. Local dev server running with `features.addressLookup` on,
-   `provider: "photon"` (the shipped default — no key, no signup, matching
-   AGENTS.md's rule).
+   `provider: "photon"` (the shipped default — no key, no signup needed for
+   this provider).
 2. `test-owner-established` journal with a postal-address form reachable —
    the contact/postcard-recipient address entry this route serves.
 

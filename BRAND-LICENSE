@@ -1,11 +1,11 @@
 BRAND ASSETS
 ------------
 
-This section is the licensor's statement of what is being made available. It
-carves the brand assets out of the Apache License 2.0 that otherwise covers
-this repository (see LICENSE) — the Apache text below the carve-out in
-`LICENSE` is unmodified; this is the separate, narrower statement about these
-files specifically.
+This is the licensor's statement of what is being made available. It carves
+the brand assets out of the Apache License 2.0 that otherwise covers this
+repository — `LICENSE` itself is the plain, unmodified Apache-2.0 text, with
+no carve-out inside it; this file is the separate, narrower statement about
+these files specifically.
 
 The brand assets are the Fernscout wordmark, the waymark logo and the icons
 drawn from it. In this repository they are:

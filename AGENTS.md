@@ -11,11 +11,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # Fernscout, for contributors and agents
 
 Fernscout is a self-hostable travel journal. A person's content is JSON
-documents and photographs in a folder they own. A day is composed on one
-page in the owner's own studio, from the owner's words, facts measured from
-their photographs and real lookups — nothing is composed for them. A person
-with no agent of their own reaches the same content model through a guided
-web/WhatsApp helper.
+documents and photographs in a folder they own. **You write in your own
+studio** — a day is composed on one page from your words, facts measured
+from your photographs and real lookups. An agent (yours, holding a key) or
+this instance's built-in **assistant** is an optional second way in, and
+either can hand back written prose for you to review before it is kept —
+nothing is composed without your review.
 
 ## Tell the truth about content and actions
 
@@ -30,26 +31,36 @@ actually did. `test: true` is the only exception for invented content, and a
 whole test journal is named `test-<something>` so the label survives
 exports and backups.
 
+Only `"status": "published"` puts a day on the site; a day with any other
+status, or none, reads as a draft (`dayFromJson` in
+`lib/api/v2/documents.ts`).
+
 ## GPS is the most sensitive data here
 
 GPS history under `content/<user>/gps/` is never exposed, never copied into
 content, and never read by a new route. The public map uses only a derived,
-clipped `trips/<trip>/track.json`. Any function that reads the raw store
-directly is a deliberate, narrow, documented exception, gated behind its own
-feature flag and reachable only from the owner's own browser cookie — never
-from a bearer token. See `docs/gps.md` before touching anything under
-`lib/gps/`.
+clipped `trips/<trip>/track.json`. `routeRecording` is the one flag that
+gates the recorder UI and two owner-cookie-only doors (a place-name
+suggestion for a new day, and the owner's own route on their own location
+page) — neither ever returns raw positions to a bearer token or a third
+party. Several other doors read the raw store directly and are **not**
+behind that flag or a cookie-only gate: `POST /api/v2/{user}/import` and
+`POST …/trips/{trip}/track` (owner cookie or a `write:gps` bearer token),
+and `GET /api/v2/{user}/gps` and `…/gps/zones` (owner cookie). See
+`docs/gps.md` before touching anything under `lib/gps/`.
 
 ## Authority boundaries
 
 Agent bearer tokens reach `/api/**`, never rendered owner pages. Owner pages
 use browser cookies. An identity cookie proves an email address and grants
 nothing by itself — use the established resolution functions rather than
-making credentials interchangeable for convenience. A link never carries
-access on its own, whether it came from an invite or anywhere else. A
-postcard or photobook API call creates a proposal, not a paid print; a
-delete API call creates a confirmation email and removes nothing. Report
-those states exactly.
+making credentials interchangeable for convenience. An invite link on its
+own grants nothing; an invite created with an email address is the
+exception — it pre-approves that address before anyone clicks anything. A
+postcard or photobook API call creates a proposal, not a paid print. Deleting
+a journal or a trip creates a confirmation email and removes nothing until
+it is clicked; smaller deletes (a draft day, a photo, an invite, a contact)
+remove immediately. Report those states exactly.
 
 ## Secrets and personal data
 
@@ -60,12 +71,20 @@ fixtures or logs. Nothing personal belongs in application code —
 ## Closed by default, portable by construction
 
 Every optional capability is off by default and must be absent, not broken,
-when disabled; `lib/capabilities.ts` decides and `/api/health` explains. No
-feature requires a paid provider account to develop or test — use this
-repo's dry-run, simulated-provider and local-mail paths. Local development
-is SQLite and production is Postgres; nothing outside `lib/db/` chooses the
-dialect. Do not use `window.confirm`, `alert` or `prompt` — confirmations use
+when disabled; `lib/capabilities.ts` decides and `/api/health` explains.
+`signup` is the one exception with no switch of its own — it is on wherever
+a database and `SESSION_SECRET` exist, and `inviteOnly` (on by default) is
+its real gate. Almost every other capability needs a real provider account
+to develop or test, and has a dry-run or simulated-provider path for it —
+except `helper` (and `extract`, which needs `helper`), which needs a real
+`ANTHROPIC_API_KEY` and has no dry-run backend. Local development is SQLite
+and production is Postgres; nothing outside `lib/db/` chooses the dialect.
+Do not use `window.confirm`, `alert` or `prompt` — confirmations use
 `components/ConfirmPanel.tsx` with an action-specific button.
+
+The open edition's own written-for-you path is the `helper` capability
+(polish text, describe photos, undo) in the studio. The web helper room
+(`/agent`) is retired; WhatsApp is hosted-only.
 
 ## Verification
 
@@ -74,7 +93,9 @@ npm run verify
 ```
 
 runs build, TypeScript, ESLint, Vitest and knip in the required order — the
-gate before any merge. Run a single file while iterating with
+gate before any merge. A caller with no terminal (an agent's own tool call)
+must set `VERIFY_WILL_WAIT=1` in the same call, or it refuses to run
+unattended. Run a single file while iterating with
 `npx vitest run test/thing.test.ts`. A visible change is not verified by the
 suite alone: check it in a real browser at desktop and phone width against
 content that existed before your change, and check the console and request
@@ -103,3 +124,10 @@ simply absent, per the closed-by-default rule above. Application code must
 never import a `paid/` path directly — always through `@paid/*` — so a plain
 clone of this repository, with nothing else installed, stays a complete,
 working travel journal.
+
+The open repository still carries a handful of intentional, undocumented-by-
+default shims for that private repository: `package.json` keeps scripts that
+run `scripts/paid.mts` and print "not included" with exit 0 when `paid/` is
+absent; `stripe` is a runtime dependency of the open package; and
+`vitest.config.mts` includes `paid/test/**`, which is simply empty in a plain
+clone.
