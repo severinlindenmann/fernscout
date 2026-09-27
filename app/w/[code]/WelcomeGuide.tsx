@@ -13,6 +13,7 @@ import {
   FIELD,
   Heading,
   LABEL,
+  PhoneArt,
   PostcardArt,
   PRIMARY,
   QUIET,
@@ -64,6 +65,13 @@ export type GuideProps = {
   details: GuideDetails | null;
   caps: { mail: boolean; sms: boolean; whatsapp: boolean; postcards: boolean };
   dictionary: Record<string, string>;
+  /** The page's own resolved locale — B2452, for `CountryField`'s display
+   * names and `AddressLookupField`'s Photon `lang`. */
+  locale: string;
+  /** The journal's own languages, for `CountryField`'s legacy resolution. */
+  locales: string[];
+  /** `isEnabled("addressLookup", owner)`, from the page. */
+  addressLookupEnabled: boolean;
 };
 
 const ERRORS: Record<string, TranslationKey> = {
@@ -307,7 +315,7 @@ export default function WelcomeGuide(props: GuideProps) {
           )
         }
       >
-        <CodeArt />
+        {channel === "sms" ? <PhoneArt /> : <CodeArt />}
         <Heading id="guide-code">{sentTo ? t("guide.code.sentTitle") : t("guide.code.title")}</Heading>
         <p className="text-base text-ink-body">
           {to
@@ -494,7 +502,15 @@ export default function WelcomeGuide(props: GuideProps) {
             postcode: t("guide.address.postcode"),
             city: t("guide.address.city"),
             country: t("guide.address.country"),
+            countrySearchPlaceholder: t("contact.addrCountrySearchPlaceholder"),
+            countryNoMatches: t("contact.addrCountryNoMatches"),
+            addressLookupAttribution: t("contact.addressLookupAttribution"),
+            addressLookupUnavailable: t("contact.addressLookupUnavailable"),
           }}
+          enabled={props.addressLookupEnabled}
+          username={owner}
+          locale={props.locale}
+          locales={props.locales}
         />
         <p className="text-sm text-ink-secondary">{t("guide.address.private", vars)}</p>
         <Alert text={error} />

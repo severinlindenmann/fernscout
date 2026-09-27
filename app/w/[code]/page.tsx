@@ -7,7 +7,7 @@ import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
 import { buddyTripOf, maskEmail, maskMobile, ownerShortName, resolveWelcomeCode } from "@/lib/contacts/welcome";
-import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
+import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrips } from "@/lib/trips";
@@ -117,6 +117,9 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         details={details}
         caps={caps}
         dictionary={dictionaryFor(locale, "guide")}
+        locale={locale}
+        locales={localesFor(owner)}
+        addressLookupEnabled={isEnabled("addressLookup", owner)}
       />
     </main>
   );
