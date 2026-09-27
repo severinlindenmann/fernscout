@@ -136,7 +136,7 @@ describe("/me, signed out", () => {
     act(() => root.render(page));
     await flush();
 
-    expect(host.textContent).toContain("Sign in with your email address to see which journals");
+    expect(host.textContent).toContain("Your account");
     expect(host.querySelector('input[type="email"]')).not.toBeNull();
     expect(host.textContent).not.toContain("Your devices");
   });

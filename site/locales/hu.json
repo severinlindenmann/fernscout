@@ -718,7 +718,6 @@
   "meAccount.operatorBody": "Te üzemelteted ezt a szervert.",
   "meAccount.roles": "Útinaplóid ezen a szerveren",
   "meAccount.rolesBody": "A sajátjaid, azok, amelyekben útitárs voltál, és azok, amelyeket valaki megosztott veled.",
-  "meAccount.signedOutBody": "Jelentkezz be az e-mail-címeddel, hogy lásd, mely útinaplókat nyithatod meg itt, és hol vagy bejelentkezve.",
   "meAccount.title": "Fiókod",
   "photobook.blank.binding": "A(z) {page}. oldal üres marad: a kötéshez páros oldalszám kell.",
   "photobook.blank.chapter": "A(z) {page}. oldal üres marad, hogy a következő fejezet jobb oldalon nyíljon.",

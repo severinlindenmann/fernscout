@@ -210,12 +210,12 @@ export default function AccountPage({
         )}
 
         {phase === "out" && (
-          <>
-            <p className="mt-3 text-base leading-7 text-ink-body">{t("meAccount.signedOutBody")}</p>
-            <div className="mt-6">
-              <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.reload()} />
-            </div>
-          </>
+          // The sign-in card says what signing in shows; a sentence above it
+          // saying the same thing again was the first thing a check at phone
+          // width caught.
+          <div className="mt-6">
+            <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.reload()} />
+          </div>
         )}
 
         {phase === "in" && home && (
