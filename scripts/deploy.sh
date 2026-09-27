@@ -595,7 +595,10 @@ fi
 # build-before-restart order exists for.
 if [ "$do_units" = 1 ]; then
   log "installing systemd units"
-  "$APP_DIR/scripts/install-units.sh"
+  # SERVICE is not exported above, so it is passed explicitly rather than
+  # relied on to leak through — install-units.sh has its own B1794 guard that
+  # refuses to touch /etc/systemd/system for anything but the prod service.
+  SERVICE="$SERVICE" "$APP_DIR/scripts/install-units.sh"
 else
   skip "units" "deploy/ unit files unchanged"
 fi

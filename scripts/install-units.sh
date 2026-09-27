@@ -40,6 +40,10 @@
 #   SYSTEMD_DIR       where they are installed. Default: /etc/systemd/system
 #   SYSTEMCTL         the systemctl to drive. Default: systemctl
 #   SYSTEMD_ANALYZE   the verifier. Default: systemd-analyze
+#   SERVICE           which instance this is. Default: fernscout (prod). B1794:
+#                      a second instance (fernscout-dev) never gets units
+#                      written for it by this script — see below.
+#   SKIP_UNITS        set to 1 to skip the whole step regardless of SERVICE.
 #
 # Exit 1 when a unit differs and cannot be written. That is the point of the
 # task: a deploy that could not install a changed unit must not report success.
@@ -50,6 +54,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 UNIT_SRC="${UNIT_SRC:-$APP_DIR/deploy}"
+SERVICE="${SERVICE:-fernscout}"
 # The open-core split's private features tree, when it ships any unit of its
 # own (B2247) — absent on every instance today and on any public-only one
 # forever, in which case the glob below matches nothing, not an error. Each
@@ -62,6 +67,23 @@ SYSTEMD_ANALYZE="${SYSTEMD_ANALYZE:-systemd-analyze}"
 
 log() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+# B1794: a second instance on the same box (dev, SERVICE=fernscout-dev) must
+# never write /etc/systemd/system, reload it, or re-arm a timer — only prod
+# owns that directory, because both instances share the one machine's systemd
+# and a dev deploy touching it would be indistinguishable from a prod one.
+# Units for a second instance are installed by hand, once, by whoever set it
+# up (docs/runbook.md), not by this script on every deploy. SKIP_UNITS=1 is
+# the explicit escape hatch for the same reason, on the one instance where it
+# does apply.
+if [ "${SKIP_UNITS:-0}" = 1 ]; then
+  log "SKIP_UNITS=1 — skipping; units for this instance are installed by hand"
+  exit 0
+fi
+if [ "$SERVICE" != "fernscout" ]; then
+  log "SERVICE=$SERVICE is not the prod service — skipping; units for a second instance are installed by hand"
+  exit 0
+fi
 
 [ -d "$UNIT_SRC" ] || fail "no unit source at $UNIT_SRC — is APP_DIR the repository?"
 
