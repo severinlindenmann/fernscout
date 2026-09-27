@@ -1,4 +1,5 @@
 import { pricesMarkdown } from "@paid/credits/lib/markdown";
+import { guideMarkdown } from "@paid/guides/lib/markdown";
 import { orgsMarkdown } from "@paid/orgs/lib/markdown";
 import { isEnabled } from "@/lib/capabilities";
 import { landingMarkdown } from "@/lib/landingMarkdown";
@@ -19,6 +20,7 @@ import { serverSite } from "@/lib/site";
 function markdownFor(path: string, locale: string): string | null {
   if (path === "/") return landingMarkdown(locale);
   if (path === "/prices") return isEnabled("credits") ? pricesMarkdown(locale) : null;
+  if (path.startsWith("/guides/")) return guideMarkdown(path, locale);
   return orgsMarkdown(path, locale);
 }
 

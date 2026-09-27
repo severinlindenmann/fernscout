@@ -18,6 +18,8 @@
 @source "../paid/orgs";
 /* The pricing section and /prices (B2506, B2509), same arrangement. */
 @source "../paid/credits";
+/* The answer pages (B2489), same arrangement. */
+@source "../paid/guides";
 @plugin "@tailwindcss/typography";
 
 :root {
