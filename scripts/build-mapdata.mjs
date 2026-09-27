@@ -141,17 +141,66 @@ async function fetchJson(url) {
 }
 
 /**
- * One ring of lng/lat pairs → an SVG path, and the box it occupies.
+ * One ring of lng/lat pairs → one or more `[minX, minY, maxX, maxY, d]`
+ * shapes.
  *
- * **Split at the antimeridian.** Russia, Fiji and Antarctica have rings whose
- * longitude steps from +179 to -179, which this projection turns into a jump
- * from x=997 to x=3 — a straight line drawn across the entire world. It showed
- * on the lifetime map as a stray horizontal rule through the Pacific. Any step
- * of more than half the world is therefore treated as a lift of the pen: the
- * ring becomes several subpaths in one `d`, which is also why an unclosed
- * `Z` is only appended per subpath rather than once at the end.
+ * **The antimeridian, done properly.** Russia, Fiji and Antarctica have
+ * rings whose longitude steps from +179 to -179, which this projection turns
+ * into a jump from x=997 to x=3 — a straight line drawn across the entire
+ * world. Naively cutting the ring into subpaths there (an earlier version of
+ * this function, and `scripts/build-world-countries.mts` still) fixes that
+ * line but leaves each fragment implicitly closed from its own last point
+ * back to its own first — an edge that is *itself* often a long, arbitrary
+ * chord (the ring's true start is rarely anywhere near where the cut fell).
+ * `lib/mapClip.ts`'s Sutherland–Hodgman clip then faithfully clips that
+ * chord too, and the result is a short diagonal line running to whichever
+ * frame corner the chord happened to cross near — found live, on
+ * `/severin/trips`, as lines from Kamchatka to a frame's corner that
+ * survived even after the naive subpath cut.
+ *
+ * The real fix is to never introduce that chord at all: **unwrap** the
+ * ring's longitude across the crossing (add or subtract 360° so the
+ * sequence stays continuous, the same idea `lib/mapFrame.ts`'s own `unwrap`
+ * uses for a route) rather than cutting it, so it projects as a single,
+ * ordinary, non-self-crossing polygon — just one whose x runs past 0 or
+ * 1000. A **second copy**, shifted by exactly one world-width (1000 units,
+ * i.e. 360° of longitude), is emitted alongside it so that whichever frame
+ * a reader is looking at — on this side of the seam or the other — finds a
+ * copy already sitting in its own bounding box; `lib/basemap.ts`'s existing
+ * per-shape bbox-overlap selection picks the right one with no changes of
+ * its own. Both copies clip correctly with the ordinary box clip, because
+ * neither one jumps.
+ *
+ * Only `close` (a filled polygon) needs any of this: an open line (a river,
+ * a road, an internal boundary) that happened to cross the antimeridian
+ * draws as two disconnected subpaths either way, with no closing edge to go
+ * wrong, so it keeps the simple cut.
  */
 function ringToShape(ring, close) {
+  if (close) {
+    const unwrapped = unwrapLngs(ring);
+    // A ring that circles a pole (found live: the "unnamed shape, probably
+    // Antarctica" the brief already named) crosses the antimeridian once
+    // while sweeping the *entire* longitude range, so its unwrapped ends sit
+    // a full 360° apart — a closing edge that is mathematically the ring's
+    // own true topology, but still a degenerate, world-spanning chord to
+    // draw. There is no seam fix for a ring that never stops circling, so
+    // this falls through to the plain cut below, same as before.
+    if (unwrapped) {
+      const fullyCircles = Math.abs(unwrapped[unwrapped.length - 1][0] - unwrapped[0][0]) >= 350;
+      // The old per-jump cut below closes each fragment with the same kind
+      // of arbitrary chord this whole function exists to avoid, so it is no
+      // fix for this case either — dropped instead, same as the brief's own
+      // "the draft simply dropped those subpaths" for this exact shape.
+      if (fullyCircles) return [];
+      return [
+        projectRing(unwrapped, true),
+        projectRing(shiftLng(unwrapped, 360), true),
+        projectRing(shiftLng(unwrapped, -360), true),
+      ].filter(Boolean);
+    }
+  }
+
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -174,15 +223,75 @@ function ringToShape(ring, close) {
     run.push(`${x.toFixed(DECIMALS)},${y.toFixed(DECIMALS)}`);
   }
   if (run.length > 1) runs.push(run);
-  if (runs.length === 0) return null;
+  if (runs.length === 0) return [];
 
   const d = runs.map((r) => `M${r.join(" L")}${close ? " Z" : ""}`).join(" ");
+  return [
+    [
+      Number(minX.toFixed(DECIMALS)),
+      Number(minY.toFixed(DECIMALS)),
+      Number(maxX.toFixed(DECIMALS)),
+      Number(maxY.toFixed(DECIMALS)),
+      d,
+    ],
+  ];
+}
+
+/**
+ * A ring's own longitudes, made continuous across an antimeridian crossing
+ * — or `null` when it never crosses one, so the caller's ordinary path
+ * stays exactly as it was.
+ */
+function unwrapLngs(ring) {
+  let offset = 0;
+  let prevLng = null;
+  let jumped = false;
+  const out = [];
+  for (const [lng, lat] of ring) {
+    if (prevLng !== null) {
+      const delta = lng - prevLng;
+      if (delta > 180) {
+        offset -= 360;
+        jumped = true;
+      } else if (delta < -180) {
+        offset += 360;
+        jumped = true;
+      }
+    }
+    prevLng = lng;
+    out.push([lng + offset, lat]);
+  }
+  return jumped ? out : null;
+}
+
+/** The same unwrapped ring, one world-width over — the "other side" copy. */
+function shiftLng(ring, degrees) {
+  return ring.map(([lng, lat]) => [lng + degrees, lat]);
+}
+
+/** One already-continuous ring, projected and closed — no antimeridian
+ * handling needed here, since `unwrapLngs`/`shiftLng` already did it. */
+function projectRing(ring, close) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  const points = [];
+  for (const [lng, lat] of ring) {
+    const [x, y] = project(lat, lng);
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+    points.push(`${x.toFixed(DECIMALS)},${y.toFixed(DECIMALS)}`);
+  }
+  if (points.length < 2) return null;
   return [
     Number(minX.toFixed(DECIMALS)),
     Number(minY.toFixed(DECIMALS)),
     Number(maxX.toFixed(DECIMALS)),
     Number(maxY.toFixed(DECIMALS)),
-    d,
+    `M${points.join(" L")}${close ? " Z" : ""}`,
   ];
 }
 
@@ -268,11 +377,11 @@ function collectionToShapes(collection, { close, keep, minSpanUnits = 0 }) {
             ? [geom.coordinates]
             : [];
     for (const ring of parts) {
-      const shape = ringToShape(ring, close);
-      if (!shape) continue;
-      const [minX, minY, maxX, maxY] = shape;
-      if (Math.max(maxX - minX, maxY - minY) < minSpanUnits) continue;
-      shapes.push(shape);
+      for (const shape of ringToShape(ring, close)) {
+        const [minX, minY, maxX, maxY] = shape;
+        if (Math.max(maxX - minX, maxY - minY) < minSpanUnits) continue;
+        shapes.push(shape);
+      }
     }
   }
   return shapes;

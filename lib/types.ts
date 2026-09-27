@@ -451,6 +451,22 @@ export type TripStatus = "past" | "current" | "upcoming";
 /** Hues from app/globals.css — a trip's colour on the lifetime map. */
 export type TripAccent = "sky" | "yellow" | "green" | "coral" | "navy";
 
+/**
+ * The five palette hues from app/globals.css, as literals — moved here
+ * (B2491 review) from `components/LifetimeMap.tsx`, which no longer draws
+ * a route or a marker in any trip's accent (decision 1) and so no longer
+ * has a reason to hold a hex literal at all; `app/[user]/trips/TripsIndexContent.tsx`'s
+ * own card accent dot is the only remaining consumer. Plain hex on purpose:
+ * this is an HTML `style` value, which a Tailwind class can't reach.
+ */
+export const ACCENT_HEX: Record<TripAccent, string> = {
+  sky: "#3fa9c4",
+  yellow: "#d69b0a",
+  green: "#15803d",
+  coral: "#c2334a",
+  navy: "#3a4a63",
+};
+
 /** See EntryTranslations — open by locale code, not a fixed union. */
 export type TripTranslations = Record<string, { title?: string; tagline?: string; intro?: string }>;
 

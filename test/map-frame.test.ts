@@ -260,3 +260,43 @@ describe("B500 / B570 — rounding absorbs cross-runtime float noise", () => {
     }
   });
 });
+
+/**
+ * B2491. `frameRoute` gained a `padFraction`/`minSpanDeg` override for the
+ * lifetime map's continent/area views (~10% padding, a 6° floor), and every
+ * *existing* caller — TripMap, WorldMap, MiniMap, and this file's own
+ * fixtures above — must keep getting exactly the old frame when it passes
+ * no options at all.
+ */
+describe("frameRoute's padding and min-span are opt-in overrides", () => {
+  test("omitting the options is byte-identical to the old, unparameterised call", () => {
+    for (const points of [alps, japan]) {
+      expect(frameRoute(points, {})).toEqual(frameRoute(points));
+    }
+  });
+
+  test("a tighter padFraction makes a real difference to the frame", () => {
+    const wide = frameRoute(alps);
+    const tight = frameRoute(alps, { padFraction: 0.1 });
+    expect(tight.w).toBeLessThan(wide.w);
+  });
+
+  test("minSpanDeg floors a single point's frame in degrees, not the km default", () => {
+    const oneStop = [{ lat: 47.37, lng: 8.54 }];
+    const withDegFloor = frameRoute(oneStop, { minSpanDeg: 6 });
+    // 6° is ~16.7 viewBox units (DEG_PER_UNIT = 360/1000 = 0.36) before the
+    // aspect-ratio grow (TARGET_ASPECT 1.6) widens a single point's square
+    // floor into a landscape frame.
+    expect(withDegFloor.h).toBeCloseTo(6 / 0.36, 1);
+    expect(withDegFloor.w).toBeCloseTo((6 / 0.36) * 1.6, 1);
+  });
+
+  test("a single visited country still gives a single-country frame, not a blur", () => {
+    // The floor keeps a small country's frame well short of a continent's —
+    // acceptance: "one with a single city shows a single-country frame".
+    const zurich = [{ lat: 47.3769, lng: 8.5417 }];
+    const frame = frameRoute(zurich, { padFraction: 0.1, minSpanDeg: 6 });
+    expect(frameSpanKm(frame)).toBeLessThan(2000); // nowhere near continent-wide
+    expect(frameSpanKm(frame)).toBeGreaterThan(300); // still a real frame, not a point
+  });
+});

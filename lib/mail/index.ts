@@ -413,6 +413,19 @@ export function transportName(): string {
   return typeof configured === "string" ? configured : "file";
 }
 
+/**
+ * `MAIL_SUBJECT_PREFIX` (B1794): prepended to every outgoing subject, right
+ * before a transport actually sends. One place, so every template — and the
+ * kept `.eml` copy, which is the same object — gets it with no per-template
+ * change. Unset means unchanged, which is the whole of production's
+ * behaviour today; a dev instance sets it to something like "TEST-" so a
+ * real inbox can tell a dev message from a prod one at a glance.
+ */
+function withSubjectPrefix(mail: Mail): Mail {
+  const prefix = process.env.MAIL_SUBJECT_PREFIX;
+  return prefix ? { ...mail, subject: `${prefix}${mail.subject}` } : mail;
+}
+
 function transportFor(name: string): MailTransport {
   switch (name) {
     case "file":
@@ -579,9 +592,10 @@ export async function sendTransactional(
 /** The part that is the same either way: pick the transport, send, keep a copy. */
 async function deliver(mail: Mail): Promise<SendResult> {
   const name = transportName();
+  const outgoing = withSubjectPrefix(mail);
   let result: SendResult;
   try {
-    result = await transportFor(name).send(mail);
+    result = await transportFor(name).send(outgoing);
   } catch (error) {
     await logMessage({
       template: mail.template,
@@ -599,8 +613,10 @@ async function deliver(mail: Mail): Promise<SendResult> {
 
   // Only after the send resolved. A `.eml` on disk for a message that never
   // left is a debugging aid that lies, and the person reading it is by
-  // definition already confused about what happened.
-  if (name !== "file" && keepsCopy()) keepCopyOf(mail);
+  // definition already confused about what happened. `outgoing` so the kept
+  // copy carries the same (possibly prefixed) subject as what was actually
+  // sent.
+  if (name !== "file" && keepsCopy()) keepCopyOf(outgoing);
 
   return result;
 }
@@ -645,5 +661,5 @@ function keepCopyOf(mail: Mail): void {
 
 /** For tests and scripts that want the file transport regardless of config. */
 export async function sendMailWith(name: string, mail: Mail): Promise<SendResult> {
-  return transportFor(name).send(mail);
+  return transportFor(name).send(withSubjectPrefix(mail));
 }
