@@ -39,6 +39,7 @@ function addDays(iso: string, delta: number): string {
 
 let dir: string;
 let data: string;
+let savedDatabaseUrl: string | undefined;
 
 function writeSiteConfig() {
   fs.writeFileSync(
@@ -74,6 +75,10 @@ beforeEach(() => {
   data = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-firsttrip-data-"));
   process.env.CONTENT_DIR = dir;
   process.env.DATA_DIR = data;
+  // Push subscriptions go to the database when DATABASE_URL is set (as CI
+  // sets it), shared across files; pin the per-test DATA_DIR file store.
+  savedDatabaseUrl = process.env.DATABASE_URL;
+  delete process.env.DATABASE_URL;
   writeSiteConfig();
   vi.spyOn(console, "log").mockImplementation(() => {});
   pushed.length = 0;
@@ -82,6 +87,7 @@ beforeEach(() => {
 afterEach(() => {
   delete process.env.CONTENT_DIR;
   delete process.env.DATA_DIR;
+  if (savedDatabaseUrl !== undefined) process.env.DATABASE_URL = savedDatabaseUrl;
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
