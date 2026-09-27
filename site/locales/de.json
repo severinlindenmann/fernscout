@@ -605,7 +605,6 @@
   "del.working": "Wird gelöscht …",
   "digest.footer": "Du bekommst das, weil du {site} um Neuigkeiten gebeten hast.",
   "digest.greeting": "Hallo {name},",
-  "digest.preferences": "Sprache ändern oder keine E-Mails mehr bekommen",
   "docs.agentsGroup": "Zum Lesen für Agenten",
   "docs.api.blurb": "Die v2-API, für deinen eigenen Agenten oder deine Skripte — jeder Endpunkt, erzeugt aus den Schemas, gegen die der Server prüft.",
   "docs.api.card": "Darauf aufbauen",
@@ -4188,5 +4187,14 @@
   "agent.slot.message": "Nachricht",
   "agent.slot.photo": "Foto",
   "agent.slot.recipients": "Geht an",
-  "agent.slot.size": "Größe"
+  "agent.slot.size": "Größe",
+  "op.spendSubject": "{site}: gemessene Ausgaben {amount} am {date}",
+  "op.spendPreheader": "Über deiner Grenze von {line} pro Tag.",
+  "op.spendTitle": "{amount} gemessen am {date}",
+  "op.spendBody": "Das liegt über der in costs.alertDailyRappen gesetzten Grenze von {line} pro Tag. Es ist ein Mindestwert: Alles, was die Preisliste nicht abdeckt, wird gezählt, aber nicht berechnet.",
+  "op.spendButton": "Betreiberseite öffnen",
+  "op.spendFooter": "Wird einmal pro Tag von der nächtlichen Prüfung gesendet. Setze costs.alertDailyRappen auf 0, um dies zu stoppen.",
+  "op.messageFooter": "Vom Betreiber von {site}, zu deinem Journal {user}. Antworte auf diese Mail, um zu antworten.",
+  "code.phoneVerify": "{code} ist dein Code für {site}. Er läuft in 30 Minuten ab.",
+  "mail.whyLabel": "Warum du das bekommst:"
 }

@@ -605,7 +605,6 @@
   "del.working": "Suppression…",
   "digest.footer": "Tu reçois ce message parce que tu as demandé à {site} de te tenir au courant.",
   "digest.greeting": "Bonjour {name},",
-  "digest.preferences": "Changer de langue ou arrêter ces e-mails",
   "docs.agentsGroup": "À lire par les agents",
   "docs.api.blurb": "L’API v2, pour ton propre agent ou tes scripts — chaque point de terminaison, généré à partir des schémas que le serveur vérifie.",
   "docs.api.card": "Construis avec",
@@ -4187,5 +4186,14 @@
   "agent.slot.recipients": "Destinataires",
   "agent.slot.size": "Taille",
   "tripMap.local": "Alentours",
-  "fallback.writtenIn.en": "Écrit en anglais — ce jour n’a pas de version française."
+  "fallback.writtenIn.en": "Écrit en anglais — ce jour n’a pas de version française.",
+  "op.spendSubject": "{site}: metered spend {amount} on {date}",
+  "op.spendPreheader": "Over your line of {line} a day.",
+  "op.spendTitle": "{amount} metered on {date}",
+  "op.spendBody": "That is over the alert line of {line} a day set in costs.alertDailyRappen. It is a floor: anything the price list does not cover is counted and not priced.",
+  "op.spendButton": "Open the operator page",
+  "op.spendFooter": "Sent once for the day, by the nightly check. Set costs.alertDailyRappen to 0 to stop these.",
+  "op.messageFooter": "From the operator of {site}, about your journal {user}. Reply to this mail to answer.",
+  "code.phoneVerify": "{code} is your {site} code. It expires in 30 minutes.",
+  "mail.whyLabel": "Why you got this:"
 }

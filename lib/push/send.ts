@@ -5,6 +5,8 @@ import { getContact } from "../contacts";
 import { isGoneSubscription, removeSubscriptions } from "../push";
 import type { StoredSubscription } from "../repos/types";
 import { sendApnsNotification } from "./apns";
+import { logMessage } from "../messages/log";
+import type { TemplateId } from "../messages/registry";
 
 /**
  * The one place a push notification actually leaves the server — B2448.
@@ -70,14 +72,13 @@ export type PushOutcome = { sent: number; pruned: number };
  * the same journal.
  *
  * `template` names the message-log template id this send belongs to (for
- * example `news.push`) — kept on the call so the caller does not have to
- * duplicate it at every log line once B2438's `logMessage` lands (see the
- * `TODO(B2438)` markers below). `locale` is likewise carried through only for
- * that log, since `title`/`body` are already rendered text by the time they
- * reach here.
+ * example `news.push`), so every outcome below writes one `message_log` row
+ * (B2438) without the caller repeating it. `locale` is carried through only
+ * for that log, since `title`/`body` are already rendered text by the time
+ * they reach here.
  */
 export async function sendPush(params: {
-  template: string;
+  template: TemplateId;
   subscriptions: StoredSubscription | StoredSubscription[];
   title: string;
   body: string;
@@ -101,16 +102,16 @@ export async function sendPush(params: {
           const result = await sendApnsNotification({ token: sub.endpoint, ...notice });
           if (result.ok) {
             sent++;
-            // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "sent" })
+            await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "sent" });
           } else if (result.gone) {
             dead.push(sub.endpoint);
-            // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "failed", reason: "gone" })
+            await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "failed", reason: "gone" });
           } else {
-            // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "failed", reason: String(result.status) })
+            await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "failed", reason: String(result.status) });
           }
         } catch {
           // Best-effort — nothing here can escalate an apns failure further.
-          // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "failed", reason: "error" })
+          await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "failed", reason: "error" });
         }
         return;
       }
@@ -119,15 +120,15 @@ export async function sendPush(params: {
       try {
         await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
         sent++;
-        // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "sent" })
+        await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "sent" });
       } catch (err) {
         if (isGoneSubscription(err)) {
           dead.push(sub.endpoint);
-          // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "failed", reason: "gone" })
+          await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "failed", reason: "gone" });
         } else {
           const reason = String(err instanceof WebPushError ? err.statusCode : "?");
           console.error(`[push] ${reason} sending to ${sub.endpoint}`);
-          // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "failed", reason })
+          await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "failed", reason: reason });
         }
       }
     }),

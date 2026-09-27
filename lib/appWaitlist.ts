@@ -5,6 +5,7 @@ import { loadServerConfig } from "./config";
 import { getDatabaseOrNull, nowIso } from "./db";
 import { MAINTAINED_LOCALES } from "./i18n";
 import { sendMail } from "./mail";
+import { logMessage } from "./messages/log";
 import { renderMail, type MailBlock } from "./mail/template";
 import { translateIn } from "./locales";
 import type { TranslationKey } from "./i18n";
@@ -102,7 +103,7 @@ export async function addToWaitlist(
     .executeTakeFirst();
   const inserted = Number(result.numInsertedOrUpdatedRows ?? 0) === 1;
   if (!inserted) {
-    // TODO(B2438): logMessage({ template: "appWaitlist.mail", channel: "mail", status: "skipped", reason: "deduped" })
+    await logMessage({ template: "notice.waitlist", channel: "mail", to: normalized, status: "skipped", reason: "deduped" });
     console.log(`[app-waitlist] skipped: deduped`);
     return true;
   }
@@ -114,10 +115,11 @@ export async function addToWaitlist(
   ];
   await sendMail(
     renderMail(normalized, t("appWaitlist.mailSubject"), {
+      template: "notice.waitlist",
       preheader: t("appWaitlist.mailSubject"),
       title: t("appWaitlist.mailSubject"),
       blocks,
-      footer: t("appWaitlist.mailFooter"),
+      why: t("appWaitlist.mailFooter"),
     }),
   ).catch((err) => {
     console.error(`[app-waitlist] confirmation mail to a waitlist entry could not be sent:`, err);

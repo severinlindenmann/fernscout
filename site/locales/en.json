@@ -605,7 +605,6 @@
   "del.working": "Deleting…",
   "digest.footer": "You are getting this because you asked {site} to keep you posted.",
   "digest.greeting": "Hello {name},",
-  "digest.preferences": "Change your language or stop these emails",
   "docs.agentsGroup": "For agents to read",
   "docs.api.blurb": "The v2 API, for your own agent or scripts — every endpoint, generated from the schemas the server checks against.",
   "docs.api.card": "Build on it",
@@ -4188,5 +4187,14 @@
   "agent.slot.message": "Message",
   "agent.slot.photo": "Photograph",
   "agent.slot.recipients": "Goes to",
-  "agent.slot.size": "Size"
+  "agent.slot.size": "Size",
+  "op.spendSubject": "{site}: metered spend {amount} on {date}",
+  "op.spendPreheader": "Over your line of {line} a day.",
+  "op.spendTitle": "{amount} metered on {date}",
+  "op.spendBody": "That is over the alert line of {line} a day set in costs.alertDailyRappen. It is a floor: anything the price list does not cover is counted and not priced.",
+  "op.spendButton": "Open the operator page",
+  "op.spendFooter": "Sent once for the day, by the nightly check. Set costs.alertDailyRappen to 0 to stop these.",
+  "op.messageFooter": "From the operator of {site}, about your journal {user}. Reply to this mail to answer.",
+  "code.phoneVerify": "{code} is your {site} code. It expires in 30 minutes.",
+  "mail.whyLabel": "Why you got this:"
 }

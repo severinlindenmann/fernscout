@@ -1,3 +1,5 @@
+import type { TemplateId } from "./messages/registry";
+
 /**
  * One WhatsApp message, independent of how it gets sent — the shape
  * `lib/mail/types.ts` has for a letter.
@@ -13,6 +15,9 @@
 export type WhatsappMessage = {
   /** E.164 digits, no `+`. See `toE164` — nothing else may build this. */
   to: string;
+  /** The `lib/messages/registry.ts` id this send is — distinct from
+   * `template` below, which is Meta's own approved template name. B2438. */
+  logTemplate: TemplateId;
   /** The template's name, as approved. Chosen per recipient locale. */
   template: string;
   /** The template's language code, e.g. `de`. Part of its identity to Meta. */

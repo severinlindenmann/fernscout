@@ -4,6 +4,7 @@ import { CODE_TTL_MINUTES, issueStandingLink, signInUrl } from "../auth";
 import { isEnabled } from "../capabilities";
 
 import { translateIn } from "../locales";
+import { ownerLocale } from "../messages/locale";
 import { sendMail, type SendResult } from "../mail";
 import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
@@ -167,6 +168,7 @@ export async function sendCodeMail(
       to,
       translateIn(locale, "contact.mailCodeSubject", { title: user.title }),
       {
+        template: "code.mail",
         preheader: translateIn(locale, "contact.mailCodeBody", { code, minutes: CODE_TTL_MINUTES }),
         title: translateIn(locale, link ? "contact.mailCodeLinkTitle" : "contact.mailCodeTitle"),
         blocks: [
@@ -189,7 +191,8 @@ export async function sendCodeMail(
           { kind: "paragraph", text: codeText },
           { kind: "paragraph", text: translateIn(locale, "contact.mailCodeIgnore") },
         ],
-        footer: footerFor(locale, user),
+        why: footerFor(locale, user),
+        locale,
       },
       username,
     ),
@@ -239,6 +242,7 @@ export async function sendInviteMail(
         input.email,
         translateIn(input.locale, buddy ? "contact.mailInviteBuddySubject" : "contact.mailInviteGuestSubject", vars),
         {
+          template: "invite.mail",
           preheader: translateIn(input.locale, buddy ? "contact.mailInviteBuddyBody" : "contact.mailInviteGuestBody", vars),
           title: translateIn(input.locale, "contact.mailInviteTitle"),
           blocks: [
@@ -248,7 +252,8 @@ export async function sendInviteMail(
             },
             { kind: "button", text: translateIn(input.locale, "contact.mailInviteButton"), href: input.url },
           ],
-          footer: footerFor(input.locale, user),
+          why: footerFor(input.locale, user),
+          locale: input.locale,
         },
         username,
       ),
@@ -273,6 +278,12 @@ export async function sendWelcomeMail(
   user: UserConfig,
   contact: ContactRecord,
   message: { locale: Locale; url: string; text: string; subject: string },
+  /** Which registry id this is — `invite.mail` when this is the owner
+   * handing somebody a link (Add a person), `invite.in.mail` when it is
+   * telling somebody already let in that they're in (`tellLetIn`). Both
+   * callers name it explicitly (B2438) since this one function serves both
+   * purposes. */
+  template: "invite.mail" | "invite.in.mail" = "invite.mail",
 ): Promise<SendResult | null> {
   if (!mayMailContact(contact, { allowUnconfirmed: true })) return null;
   const token = manageTokenFor(username, contact.id);
@@ -281,14 +292,19 @@ export async function sendWelcomeMail(
       contact.email,
       message.subject,
       {
+        template,
         preheader: message.text,
         title: message.subject,
         blocks: [
           { kind: "paragraph", text: message.text },
           { kind: "button", text: translateIn(message.locale, "welcomeLink.mailButton"), href: message.url },
         ],
-        footer: footerFor(message.locale, user),
-        unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
+        why: footerFor(message.locale, user),
+        manage: {
+          text: translateIn(message.locale, "contact.unsubscribe"),
+          href: unsubscribeUrlFor(baseUrl(), username, token),
+        },
+        locale: message.locale,
       },
       username,
     ),
@@ -330,7 +346,7 @@ export async function notifyOwnerOfRequest(
   // owner is not the contact confirming, so there is no `confirmed_at` on the
   // recipient to be asking about. A different question, not an exception.
   if (!user.owner.email) return false;
-  const locale = pickLocale(user.defaultLocale);
+  const locale = await ownerLocale(username, user.owner.email, user.defaultLocale);
   // B349 — a buddy link is asking for write access to a trip, not to
   // "follow along". Same two facts the contacts page already shows for this
   // row (`viaLabel()` in `ContactsAdmin.tsx`): which kind of link, and which
@@ -362,6 +378,7 @@ export async function notifyOwnerOfRequest(
         user.owner.email,
         translateIn(locale, subjectKey, { title: user.title, trip: trip?.title ?? "" }),
         {
+          template: "notice.request",
           preheader: translateIn(locale, bodyKey, bodyVars),
           title: translateIn(locale, "contact.mailRequestTitle"),
           blocks: [
@@ -385,7 +402,8 @@ export async function notifyOwnerOfRequest(
               href: `${baseUrl()}/${username}/studio/readers?contact=${encodeURIComponent(contact.id)}`,
             },
           ],
-          footer: footerFor(locale, user),
+          why: footerFor(locale, user),
+          locale,
         },
         username,
       ),
@@ -445,7 +463,7 @@ export async function sendApprovedMail(
   contact: ContactRecord,
 ): Promise<SendResult | null> {
   if (!mayMailContact(contact)) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const locale = pickLocale(contact.locale);
   try {
     // Recomputed rather than carried around: the manage token is derived from
     // the contact id, so a mail written months later still has the working
@@ -478,6 +496,7 @@ export async function sendApprovedMail(
         contact.email,
         translateIn(locale, "contact.mailApprovedSubject", { title: user.title }),
         {
+          template: "invite.in.mail",
           preheader: translateIn(locale, bodyKey, bodyVars),
           title: translateIn(locale, "contact.mailApprovedTitle"),
           blocks: [
@@ -506,8 +525,12 @@ export async function sendApprovedMail(
               href: manageUrl(baseUrl(), username, token),
             },
           ],
-          footer: footerFor(locale, user),
-          unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
+          why: footerFor(locale, user),
+          manage: {
+            text: translateIn(locale, "contact.unsubscribe"),
+            href: unsubscribeUrlFor(baseUrl(), username, token),
+          },
+          locale,
         },
         username,
       ),

@@ -14,6 +14,7 @@ import {
   getContactByEmail,
   markContactPhoneProven,
   normaliseEmail,
+  setContactLocaleIfEmpty,
   setProvenEmail,
   setProvenPhone,
   type ContactRecord,
@@ -97,7 +98,12 @@ export async function sendGuestCode(
   if (!user || !contact || contact.status === "blocked") return { ok: false, reason: "no_contact" };
   const subject = await guestSubject(owner, contact, channel);
   if (!subject) return { ok: false, reason: "no_channel" };
-  const locale = pickLocale(options.locale ?? contact.locale, user.defaultLocale);
+  // "Last used" (W44 D7): a code request is a moment this reader's language
+  // is actually known — persisted only when nothing was known before.
+  await setContactLocaleIfEmpty(owner, contactId, options.locale);
+  // Reader chain: the contact's own locale (freshly set above, when it was
+  // empty), else en — never the journal's default.
+  const locale = pickLocale(options.locale ?? contact.locale);
   const digits = subjectPhone(subject);
 
   if (digits) {
@@ -153,6 +159,8 @@ async function textCode(
     await sendSms({
       to: digits,
       body: translateIn(locale, "contact.smsCodeBody", { code, title, minutes: CODE_TTL_MINUTES }),
+      template: "code.sms",
+      owner,
     });
     return true;
   } catch (err) {
@@ -205,7 +213,7 @@ export async function sendPhoneProof(
   const number = textableNumber(phone);
   if (!("digits" in number)) return { ok: false, reason: number.reason };
   if (!smsCodeAllowed(number.digits, options.ip)) return { ok: false, reason: "rate_limited" };
-  const locale = pickLocale(options.locale ?? contact.locale, user.defaultLocale);
+  const locale = pickLocale(options.locale ?? contact.locale);
   const sent = await textCode(owner, user.title, number.digits, locale, null, proofSubject(contact.id, number.digits));
   if (!sent) return { ok: false, reason: "send_failed" };
   return { ok: true, to: maskNumber(number.digits) };
@@ -271,7 +279,7 @@ export async function sendEmailProof(
   const subject = emailProofSubject(contact.id, email);
   const { code } = await issueCode(owner, subject, "guest");
   try {
-    await sendCodeMail(owner, user, email, pickLocale(options.locale ?? contact.locale, user.defaultLocale), code, null);
+    await sendCodeMail(owner, user, email, pickLocale(options.locale ?? contact.locale), code, null);
   } catch (err) {
     console.error(`[contacts] email proof for ${owner} could not be sent:`, err);
     await revokeCodes(owner, subject, "guest").catch(() => {});

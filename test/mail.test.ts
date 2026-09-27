@@ -74,6 +74,7 @@ afterEach(() => {
 });
 
 const SAMPLE = {
+  template: "news.mail" as const,
   preheader: "Three new days",
   title: "Three new days since you last looked",
   blocks: [
@@ -81,8 +82,8 @@ const SAMPLE = {
     { kind: "item" as const, title: "Hoi An", meta: "26 August", href: "https://x.test/a" },
     { kind: "button" as const, text: "Read the trip", href: "https://x.test" },
   ],
-  footer: "You are getting this because you asked to follow the trip.",
-  unsubscribeUrl: "https://x.test/stop?t=abc",
+  why: "You asked to follow the trip.",
+  manage: { text: "Stop these emails", href: "https://x.test/stop?t=abc" },
 };
 
 /**
@@ -386,7 +387,7 @@ describe("the message format", () => {
   });
 
   test("omits those headers when there is nothing to unsubscribe from", () => {
-    const mail = renderMail("r@example.test", "S", { ...SAMPLE, unsubscribeUrl: undefined });
+    const mail = renderMail("r@example.test", "S", { ...SAMPLE, manage: undefined });
     expect(mail.headers?.["List-Unsubscribe"]).toBeUndefined();
   });
 });

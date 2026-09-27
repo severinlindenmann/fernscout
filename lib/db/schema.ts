@@ -806,6 +806,35 @@ type PhotobookDraftsTable = {
   updated_at: string;
 };
 
+/**
+ * Every message this instance has sent, on any channel — B2438. See
+ * `lib/messages/log.ts`, which is the only writer, and
+ * `lib/messages/registry.ts` for what `template` and `channel` may be.
+ * Never a body, never a raw address: `recipient_hash`/`recipient_mask` are
+ * the whole of what identifies who it went to.
+ */
+type MessageLogTable = {
+  id: string;
+  /** NO_JOURNAL ("*") for a message that belongs to no journal yet. */
+  owner_id: string;
+  /** A `TemplateId` from lib/messages/registry.ts. */
+  template: string;
+  /** A `Channel` from lib/messages/registry.ts: mail | sms | wa | push | share. */
+  channel: string;
+  /** A `Flow['id']` from lib/messages/registry.ts, or null outside one. */
+  flow: string | null;
+  /** HMAC-SHA256 (or plain SHA-256 with no `SESSION_SECRET`) of the
+   * normalised recipient — see `recipientHash`. */
+  recipient_hash: string;
+  /** `m•••@gmail.com` / `+41 79 ••• •• 12` — never the real address. */
+  recipient_mask: string;
+  locale: string | null;
+  /** sent | skipped | failed | held | test — closed list in lib/messages/log.ts. */
+  status: string;
+  reason: string | null;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -836,6 +865,7 @@ export type Database = {
   signup_invites: SignupInvitesTable;
   photobook_drafts: PhotobookDraftsTable;
   app_waitlist: AppWaitlistTable;
+  message_log: MessageLogTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -870,4 +900,5 @@ export const TABLE_NAMES = [
   "signup_invites",
   "photobook_drafts",
   "app_waitlist",
+  "message_log",
 ] as const satisfies readonly (keyof Database)[];

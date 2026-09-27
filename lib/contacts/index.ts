@@ -1601,6 +1601,24 @@ export async function setProvenEmail(owner: string, contactId: string, raw: stri
   return Number(result.numUpdatedRows ?? 0) === 1 || holder?.id === contactId;
 }
 
+/**
+ * "Last used" for a reader (W44 D7): the request's own locale, written only
+ * when the contact has none yet — a code request or a join is the moment a
+ * reader's language is first actually known, and a later request must not
+ * overwrite a preference the reader may since have changed on their own page.
+ */
+export async function setContactLocaleIfEmpty(owner: string, contactId: string, locale: string | null | undefined): Promise<void> {
+  if (!locale) return;
+  const { db } = await getDatabase();
+  await db
+    .updateTable("contacts")
+    .set({ locale, updated_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("id", "=", contactId)
+    .where("locale", "is", null)
+    .execute();
+}
+
 /** The `email_key` of a contact with no address: unique, and never equal to
  * a case-folded address, which always has an `@`. */
 function noEmailKey(id: string): string {

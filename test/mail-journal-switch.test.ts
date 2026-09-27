@@ -674,8 +674,9 @@ describe("/api/health agrees with what actually happens", () => {
 });
 
 const SAMPLE = {
+  template: "news.mail" as const,
   preheader: "Three new days",
   title: "Three new days since you last looked",
   blocks: [{ kind: "paragraph" as const, text: "Here is what happened." }],
-  footer: "You are getting this because you asked to follow the trip.",
+  why: "You asked to follow the trip.",
 };
