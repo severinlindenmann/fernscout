@@ -634,6 +634,18 @@ describe("where the sign-in link lands", () => {
     expect(safeDestination("ana", "/ana/day/2026-08-25-hanoi")).toBe("/ana/day/2026-08-25-hanoi");
   });
 
+  test("a group or welcome link's own page is a destination, and nothing below or beside it (B2503)", () => {
+    expect(safeDestination("ana", "/j/Ab3_x-9")).toBe("/j/Ab3_x-9");
+    expect(safeDestination("ana", "/w/Ab3_x-9")).toBe("/w/Ab3_x-9");
+    expect(safeDestination("ana", "/j/abc/step")).toBeNull();
+    expect(safeDestination("ana", "/j/")).toBeNull();
+    expect(safeDestination("ana", "/x/abc")).toBeNull();
+    expect(safeDestination("ana", "/j/../bob")).toBeNull();
+    expect(safeDestination("ana", "/j/%2e%2e")).toBeNull();
+    expect(safeDestination("ana", "//j/abc")).toBeNull();
+    expect(safeDestination("ana", "/j/abc?next=https://evil.test")).toBeNull();
+  });
+
   test("a query string or a fragment is dropped rather than followed", () => {
     // Nothing that sets a destination has one, and a redirect is not the place
     // to discover which parameters a page acts on.
