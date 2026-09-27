@@ -27,21 +27,18 @@ import { FAMILIES, templateDef, type Channel, type TemplateId } from "./registry
  * (W44's own build order), not this ticket.
  */
 
-export const SAMPLE = {
-  site: "Fernscout",
-  journal: "Balkan summer",
-  owner: "Mara",
-  name: "Jonas",
-  code: "482 913",
-  day: "Day 4 · Kotor",
-  trip: "Balkans 2026",
-} as const;
+export { SAMPLE } from "./previews/sample";
+import { SAMPLE } from "./previews/sample";
 
-export type PreviewLocale = "en" | "de" | "hu";
+export type { PreviewLocale } from "./previews/types";
+import type { Composition, PreviewLocale } from "./previews/types";
+import { accountPreviews } from "./previews/account";
+import { digestPreviews } from "./previews/digest";
+import { paidPreviews } from "@paid/messages/previews";
 export const PREVIEW_LOCALES: PreviewLocale[] = ["en", "de", "hu"];
 
 type MailPreview = { channel: "mail"; subject: string; html: string; text: string };
-type TextPreview = { channel: Exclude<Channel, "mail">; title?: string; text: string };
+type TextPreview = { channel: Exclude<Channel, "mail">; title?: string; text: string; freeform?: true };
 export type TemplatePreview = MailPreview | TextPreview;
 
 function fill(template: string): string {
@@ -51,12 +48,12 @@ function fill(template: string): string {
 /** The one call site allowed to differ from the generic fallback — see the
  * module comment. Mirrors `sendCodeMail` in lib/contacts/mail.ts exactly,
  * with `to`/`username` fixed to preview values. */
-function codeMailPreview(locale: PreviewLocale): MailPreview {
+function codeMailPreview(locale: PreviewLocale): Composition {
   const codeText = translateIn(locale, "contact.mailCodeBody", { code: SAMPLE.code, minutes: "15" });
-  const mail: Mail = renderMail(
-    "preview@example.invalid",
-    translateIn(locale, "contact.mailCodeSubject", { title: SAMPLE.journal }),
-    {
+  return {
+    channel: "mail",
+    subject: translateIn(locale, "contact.mailCodeSubject", { title: SAMPLE.journal }),
+    content: {
       template: "code.mail",
       preheader: codeText,
       title: translateIn(locale, "contact.mailCodeTitle"),
@@ -67,28 +64,25 @@ function codeMailPreview(locale: PreviewLocale): MailPreview {
       why: translateIn(locale, "mail.why.owner", { site: SAMPLE.journal }),
       locale,
     },
-  );
-  return { channel: "mail", subject: mail.subject, html: mail.html, text: mail.text };
+  };
 }
 
-function genericMailPreview(id: TemplateId, locale: PreviewLocale): MailPreview {
+function genericMailPreview(id: TemplateId, locale: PreviewLocale): Composition {
   const def = templateDef(id);
-  const mail: Mail = renderMail(
-    "preview@example.invalid",
-    def.kind,
-    {
+  const body = fill(translateIn(locale, "admin.messages.previewBody", { journal: SAMPLE.journal }));
+  return {
+    channel: "mail",
+    subject: def.kind,
+    content: {
       template: id,
-      preheader: fill(translateIn(locale, "admin.messages.previewBody", { journal: SAMPLE.journal })),
+      preheader: body,
       title: def.kind,
-      blocks: [
-        { kind: "paragraph", text: fill(translateIn(locale, "admin.messages.previewBody", { journal: SAMPLE.journal })) },
-      ],
+      blocks: [{ kind: "paragraph", text: body }],
       why: translateIn(locale, "admin.messages.previewWhy"),
       locale,
       journalTitle: def.audience === "reader" || def.audience === "owner" ? SAMPLE.journal : undefined,
     },
-  );
-  return { channel: "mail", subject: mail.subject, html: mail.html, text: mail.text };
+  };
 }
 
 /** One sample line per family, for SMS/WhatsApp/push previews — English
@@ -111,10 +105,23 @@ function textPreview(id: TemplateId): TextPreview {
   return { channel: def.channel as Exclude<Channel, "mail">, text };
 }
 
-export function buildPreview(id: TemplateId, locale: PreviewLocale = "en"): TemplatePreview {
+/** Every template's real composer, one file per group (B2493). */
+const PREVIEWS = { ...accountPreviews, ...digestPreviews, ...paidPreviews };
+
+/** The template's own composition with sample data — the same call its send
+ * site makes. Templates not yet moved over fall back to the generic body. */
+export async function composePreview(id: TemplateId, locale: PreviewLocale = "en"): Promise<Composition> {
+  const real = PREVIEWS[id];
+  if (real) return real(locale);
   const def = templateDef(id);
   if (def.channel !== "mail") return textPreview(id);
   if (id === "code.mail") return codeMailPreview(locale);
   return genericMailPreview(id, locale);
 }
 
+export async function buildPreview(id: TemplateId, locale: PreviewLocale = "en"): Promise<TemplatePreview> {
+  const c = await composePreview(id, locale);
+  if (c.channel !== "mail") return "freeform" in c ? { channel: c.channel, text: c.freeform, freeform: true } : c;
+  const mail: Mail = renderMail("preview@example.invalid", c.subject, c.content);
+  return { channel: "mail", subject: mail.subject, html: mail.html, text: mail.text };
+}
