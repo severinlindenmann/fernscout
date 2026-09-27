@@ -1061,6 +1061,8 @@ export type TranslationKey =
   | "join.done.title"
   | "join.error.expired"
   | "join.error.name"
+  | "join.notify.addEmail"
+  | "join.notify.addEmailHint"
   | "join.notify.addMobile"
   | "join.notify.addMobileHint"
   | "join.notify.body"

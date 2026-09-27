@@ -168,6 +168,21 @@ export default function JoinFlow({
   const [mobileSent, setMobileSent] = useState<string | null>(null);
   const [mobileCode, setMobileCode] = useState("");
   const [news, setNews] = useState(false);
+  // B2454: an email added after a mobile-only sign-up, proved by its own code.
+  const [addedEmail, setAddedEmail] = useState<string | null>(null);
+  const [emailValue, setEmailValue] = useState("");
+  const [emailSent, setEmailSent] = useState<string | null>(null);
+  const [emailCode, setEmailCode] = useState("");
+  async function sendEmailProof() {
+    const sent = await call({ action: "proof", kind: "email", value: emailValue });
+    if (sent) setEmailSent(String(sent.to ?? emailValue));
+  }
+  async function confirmEmailProof() {
+    if (await call({ action: "proof", kind: "email", value: emailValue, code: emailCode })) {
+      setAddedEmail(emailValue.trim());
+      setEmailSent(null);
+    }
+  }
   async function sendMobileProof() {
     const sent = await call({ action: "proof", kind: "sms", value: mobileValue });
     if (sent) setMobileSent(String(sent.to ?? mobileValue));
@@ -179,7 +194,7 @@ export default function JoinFlow({
     }
   }
 
-  const provedEmail = knownEmail ?? (channel === "email" ? sentTo : null);
+  const provedEmail = knownEmail ?? (channel === "email" ? sentTo : null) ?? addedEmail;
   const provedMobile = (channel === "sms" && !knownEmail ? sentTo : null) || addedMobile;
   const ticks: Tick[] = [
     caps.mail && {
@@ -383,6 +398,35 @@ export default function JoinFlow({
           <Ticks ticks={ticks} onChange={(key, checked) => setWants({ ...wants, [key]: checked })} />
         ) : (
           <p className="text-sm text-ink-secondary">{t("guide.notify.none")}</p>
+        )}
+        {caps.mail && !provedEmail && (
+          <div className="flex flex-col gap-2 rounded-2xl border-2 border-yellow-400 bg-surface-raised p-4">
+            <span className="font-semibold text-ink-strong">{t("join.notify.addEmail")}</span>
+            <span className="text-sm text-ink-secondary">{t("join.notify.addEmailHint")}</span>
+            <label className={LABEL}>
+              {t("join.reach.emailLabel")}
+              <input
+                className={FIELD}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={emailValue}
+                onChange={(e) => setEmailValue(e.target.value)}
+              />
+            </label>
+            {emailSent ? (
+              <>
+                <CodeField id="join-email-code" label={t("guide.code.label")} value={emailCode} onChange={setEmailCode} />
+                <BusyButton busy={busy} type="button" className={QUIET} disabled={emailCode.length !== 6} onClick={confirmEmailProof}>
+                  {t("guide.code.confirm")}
+                </BusyButton>
+              </>
+            ) : (
+              <BusyButton busy={busy} type="button" className={QUIET} disabled={!emailValue.trim()} onClick={sendEmailProof}>
+                {t("guide.check.sendProof")}
+              </BusyButton>
+            )}
+          </div>
         )}
         {(caps.sms || caps.whatsapp) && !provedMobile && status === "waiting" && (
           // A request nobody has let in yet is never texted (a code costs

@@ -429,3 +429,21 @@ describe("B2453 — a second channel and news consent on the join form", () => {
     expect(anonymous.status).toBe(401);
   });
 });
+
+describe("B2454 — somebody who joined by mobile can add an email on the notify step", () => {
+  test("the email is proved by its own code and becomes the contact's", async () => {
+    await signInOwner();
+    const code = await newLink({ kind: "guest", name: "Group" });
+    jar.cookies = {};
+    await joinStep(code, { action: "send", name: "Tomas Text", channel: "sms", value: "+41 79 555 77 66" });
+    const verified = await joinStep(code, { action: "verify", name: "Tomas Text", channel: "sms", value: "+41 79 555 77 66", code: codeTexted("+41795557766") });
+    expect(verified.status).toBe(200);
+    const sent = await joinStep(code, { action: "proof", kind: "email", value: "tomas@example.test" });
+    expect(sent.json).toMatchObject({ ok: true });
+    const proved = await joinStep(code, { action: "proof", kind: "email", value: "tomas@example.test", code: codeMailed("tomas@example.test") });
+    expect(proved.status).toBe(200);
+    const { getContactByEmail } = await import("@/lib/contacts");
+    const row = await getContactByEmail(OWNER, "tomas@example.test");
+    expect(row?.name).toBe("Tomas Text");
+  });
+});
