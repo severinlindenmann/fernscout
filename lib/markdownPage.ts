@@ -17,8 +17,3 @@ export function mdList(items: string[]): string {
 export function mdFaq(items: { q: string; a: string }[] | [string, string][]): string {
   return items.map((item) => (Array.isArray(item) ? item : [item.q, item.a])).map(([q, a]) => `### ${q}\n\n${a}`).join("\n\n");
 }
-
-export function mdTable(head: string[], rows: string[][]): string {
-  const cell = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
-  return [head, head.map(() => "---"), ...rows].map((r) => `| ${r.map(cell).join(" | ")} |`).join("\n");
-}
