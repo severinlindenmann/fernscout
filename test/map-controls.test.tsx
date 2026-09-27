@@ -102,7 +102,7 @@ describe("MapControls", () => {
       onFullscreen: () => {},
     });
     expect(buttons().map((b) => b.getAttribute("aria-label"))).toEqual([
-      "Vergrössern",
+      "Vergrößern",
       "Verkleinern",
       "Ansicht zurücksetzen",
       "Ebenen",
