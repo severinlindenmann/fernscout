@@ -162,7 +162,7 @@ describe("the home page, signed in", () => {
     await flush();
 
     const text = host.textContent ?? "";
-    expect(text).toContain("Your journals");
+    expect(text).toContain("Continue"); // B2508: the signed-in home, not the pitch
     expect(text).not.toContain("Your devices");
     const toMe = [...host.querySelectorAll('a[href="/me"]')].map((a) => a.textContent);
     // The chip (initial + word) and the sentence link under the list.

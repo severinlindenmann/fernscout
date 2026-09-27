@@ -1,11 +1,12 @@
 import "server-only";
 import { isOwner, journalReader } from "./contacts/session";
 import { getAllEntries } from "./entries";
+import { stripMarkdown } from "./markdownText";
 import type { ReaderLevel } from "./photos";
 import { isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import { getTrips } from "./trips";
 import { getUser } from "./users";
-import type { Trip, TripStatus } from "./types";
+import type { Entry, Trip, TripStatus } from "./types";
 
 /**
  * Who is asking, and what that entitles them to see.
@@ -53,7 +54,73 @@ export type ViewerTrip = {
    * like it is answering.
    */
   partial?: true;
+  /**
+   * What `/` shows about the trip — B2508. Only `journalsFor` asks for it
+   * (`tripsVisibleTo(..., { detail: true })`); every other caller gets the
+   * rows exactly as before. Each field is read at this reader's own level,
+   * so a photograph or day they may not see never names itself here, and
+   * each is absent rather than guessed when there is nothing to show.
+   */
+  start?: string;
+  /** The chosen cover, else the newest photograph this reader may see. */
+  cover?: string;
+  /** Distinct dates written about that this reader may read. */
+  days?: number;
+  /** The newest day this reader may read. */
+  latest?: HomeDay & { image?: string; excerpt?: string };
+  /** The owner's newest unpublished day — only on `through: "owner"`. */
+  draft?: HomeDay;
+  /** A `test: true` trip — nobody lived it, so `/` never offers it as a book. */
+  test?: true;
 };
+
+type HomeDay = { slug: string; title: string; date: string; href: string };
+
+/** How much of a day's text `/` quotes — a teaser, not the day. */
+const EXCERPT = 180;
+
+function newestFirst(entries: Entry[]): Entry[] {
+  return [...entries].sort((a, b) =>
+    `${b.date}${b.time ?? ""}`.localeCompare(`${a.date}${a.time ?? ""}`),
+  );
+}
+
+function detailFor(trip: Trip, through: ViewerTrip["through"], level: ReaderLevel) {
+  const read = newestFirst(getAllEntries(trip.ref, { reader: level }));
+  const day = (entry: Entry): HomeDay => ({
+    slug: entry.slug,
+    title: entry.title,
+    date: entry.date,
+    href: `/${trip.username}/trips/${trip.id}/day/${entry.slug}`,
+  });
+  const imageOf = (entry: Entry) => entry.gallery.find((item) => item.type === "image")?.src;
+  const cover = trip.cover ?? read.map(imageOf).find(Boolean);
+  const latest = read[0];
+  const text = latest ? stripMarkdown(latest.content) : "";
+  const image = latest && imageOf(latest);
+  // Drafts are the owner's alone — a traveller reads at `person` too, but
+  // publishing is not theirs, so an unpublished day is not named to them.
+  const draft =
+    through === "owner"
+      ? newestFirst(getAllEntries(trip.ref, { includeDrafts: true, reader: "person" })).find((e) => e.draft)
+      : undefined;
+  return {
+    start: trip.start,
+    ...(cover ? { cover } : {}),
+    days: new Set(read.map((e) => e.date)).size,
+    ...(latest
+      ? {
+          latest: {
+            ...day(latest),
+            ...(image ? { image } : {}),
+            ...(text ? { excerpt: text.length > EXCERPT ? `${text.slice(0, EXCERPT).trimEnd()}…` : text } : {}),
+          },
+        }
+      : {}),
+    ...(draft ? { draft: day(draft) } : {}),
+    ...(trip.test ? { test: true as const } : {}),
+  };
+}
 
 export type Viewer = {
   /** Null when nobody is signed in. */
@@ -73,6 +140,7 @@ function describe(
   through: ViewerTrip["through"],
   current: string | undefined,
   level: ReaderLevel,
+  detail = false,
 ): ViewerTrip {
   // `level` is the finer-grained answer `readerLevelFor` (lib/tripGate.ts)
   // would give for this exact trip and viewer — recomputed the cheap way
@@ -92,6 +160,7 @@ function describe(
     end: trip.end,
     through,
     ...(partial ? { partial: true as const } : {}),
+    ...(detail ? detailFor(trip, through, level) : {}),
   };
 }
 
@@ -124,6 +193,7 @@ export type Standing = {
 export async function tripsVisibleTo(
   username: string,
   { email, owner, guest }: Standing,
+  { detail = false }: { detail?: boolean } = {},
 ): Promise<ViewerTrip[]> {
   const trips = getTrips(username);
   const current = trips.find((t) => t.status === "current")?.id;
@@ -150,23 +220,23 @@ export async function tripsVisibleTo(
     // buddy link (B33) reads the same as somebody typed into `people:` — the
     // redeemed rows come from the one query above, not one per trip.
     if (owner) {
-      visible.push(describe(trip, "owner", current, "person"));
+      visible.push(describe(trip, "owner", current, "person", detail));
     } else if (isPersonOnWith(trip, email, redeemed)) {
-      visible.push(describe(trip, "traveller", current, "person"));
+      visible.push(describe(trip, "traveller", current, "person", detail));
     } else if (trip.visibility === "public" && trip.listed) {
       // A `public` trip is open whether or not this reader has proved
       // anything — but an approved guest of the journal reads its own
       // `guest`-labelled updates too (the same branch `readerLevelFor` takes
       // for a trip that is not `private`), so their actual level here is
       // `"guest"`, not `"public"`, whatever `through` says for the row.
-      visible.push(describe(trip, "public", current, guest ? "guest" : "public"));
+      visible.push(describe(trip, "public", current, guest ? "guest" : "public", detail));
     } else if (trip.visibility === "guest" && guest) {
       // A guest of the *journal*, and nothing narrower: this arm used to also
       // ask `grants?.has(trip.id)`, a per-trip grant nothing ever issued,
       // removed with the column in `007-journal-wide-grants`. A trip held back
       // from the people who are otherwise let in is `private`, and `private`
       // never reaches here.
-      visible.push(describe(trip, "guest", current, "guest"));
+      visible.push(describe(trip, "guest", current, "guest", detail));
     }
   }
   return visible;
