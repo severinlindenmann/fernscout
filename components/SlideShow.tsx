@@ -23,6 +23,7 @@ import {
   CarTaxiFront,
   Ship,
   Footprints,
+  Navigation,
   Sparkles,
   Film,
   Minus,
@@ -34,17 +35,20 @@ import {
   VolumeX,
 } from "lucide-react";
 import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
-import { isPlottable } from "@/lib/mapFrame";
+import { isPlottable, frameRoute, type Frame } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
-import { TRANSPORT_STYLE } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
 import { buildNarratedCut, slideNeedsTravelInterlude, type NarratedCutSlide } from "@/lib/narratedCut";
 import DualTime from "./DualTime";
 import { useWakeLock } from "./useWakeLock";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
+import { mapAccent, mapStyle } from "@/lib/map/style";
+import StopMarker from "./map/StopMarker";
+import RouteLine from "./map/RouteLine";
 import type { PlaceView } from "./WorldMap";
-import type { GalleryItem } from "@/lib/types";
+import type { Basemap } from "@/lib/basemap";
+import type { GalleryItem, TripAccent } from "@/lib/types";
 
 /** The trip's headline counts, for the end screen — computed once, the same
  * way for every caller (`lib/entries.ts`'s `getTripStats`), and handed in
@@ -159,6 +163,7 @@ export default function SlideShow({
   startPlaceKey,
   startDate,
   stats,
+  basemap = null,
 }: {
   places: PlaceView[];
   onClose: () => void;
@@ -168,9 +173,17 @@ export default function SlideShow({
   startDate?: string;
   /** The trip's real counts, for the end screen — see `SlideShowStats`. */
   stats: SlideShowStats;
+  /** Server-clipped to this trip's own frame (`lib/basemap.ts`) — the same
+   * prop the map page already computed for `WorldMap` (B2424). Threaded
+   * through rather than fetched again: nothing here asks the server for a
+   * second copy of a bundle already sitting in this page's own props. */
+  basemap?: Basemap | null;
 }) {
   const { t, formatShortDate, formatLongDate, locale } = useI18n();
   const href = useTrip()?.href ?? ((p: string) => p);
+  // The trip's own colour on its own route (B2422), the same fallback
+  // `WorldMap`/`MapPageContent` use for a caller with none to give.
+  const accent = useTrip()?.trip?.accent ?? "navy";
   const reducedMotion = useReducedMotion();
   const isPortraitFrame = useIsPortraitFrame();
 
@@ -660,6 +673,8 @@ export default function SlideShow({
                 places={places}
                 activeIndex={fullStep.placeIndex}
                 travelling={fullStep.kind === "travel" && fullStep.placeIndex > 0}
+                basemap={basemap}
+                accent={accent}
               />
             </div>
 
@@ -739,7 +754,13 @@ export default function SlideShow({
           // The travel interlude itself — the same map the full tour uses,
           // aimed at the destination place with the leg into it flying.
           <div className="absolute inset-0">
-            <SlideMap places={places} activeIndex={interlude.toPlaceIndex} travelling />
+            <SlideMap
+              places={places}
+              activeIndex={interlude.toPlaceIndex}
+              travelling
+              basemap={basemap}
+              accent={accent}
+            />
           </div>
         ) : (
           narratedStep && (
@@ -752,7 +773,7 @@ export default function SlideShow({
               reducedMotion={!!reducedMotion}
               cornerMap={
                 !isPortraitFrame && narratedPlaceIndexes[index] !== undefined
-                  ? { places, activeIndex: narratedPlaceIndexes[index]! }
+                  ? { places, activeIndex: narratedPlaceIndexes[index]!, basemap, accent }
                   : undefined
               }
             />
@@ -1184,7 +1205,7 @@ function NarratedSlide({
   reducedMotion: boolean;
   /** The widescreen-only route map in the corner — undefined hides it
    * (a portrait frame, or a day that couldn't be matched to a place). */
-  cornerMap?: { places: PlaceView[]; activeIndex: number };
+  cornerMap?: { places: PlaceView[]; activeIndex: number; basemap: Basemap | null; accent: TripAccent };
 }) {
   return (
     <div className="absolute inset-0">
@@ -1212,7 +1233,13 @@ function NarratedSlide({
             bottom: "calc(9rem + env(safe-area-inset-bottom, 0px))",
           }}
         >
-          <SlideMap places={cornerMap.places} activeIndex={cornerMap.activeIndex} travelling={false} />
+          <SlideMap
+            places={cornerMap.places}
+            activeIndex={cornerMap.activeIndex}
+            travelling={false}
+            basemap={cornerMap.basemap}
+            accent={cornerMap.accent}
+          />
         </div>
       )}
 
@@ -1326,153 +1353,354 @@ export function vehicleHeadingTransform(headingDeg: number): string {
 }
 
 /**
- * Where the camera looks when a place has no coordinates: it holds the last
- * located stop rather than jumping to `(NaN, NaN)`, and falls further back to
- * the next located one, or the world's centre, only if there is none behind
- * it.
+ * Which points the camera should frame right now: both ends of the leg while
+ * one is being flown, or just the one place being dwelled on. Unlocated
+ * points fall out in `frameRoute` itself (`isPlottable`), which is also
+ * where the last safety net lives — an empty list frames the whole world
+ * rather than going anywhere near `NaN` (see the class doc comment below).
  */
-function cameraTarget(
-  pts: readonly ([number, number] | null)[],
-  index: number,
-): [number, number] {
-  for (let i = index; i >= 0; i--) {
-    const p = pts[i];
-    if (p) return p;
-  }
-  for (let i = index + 1; i < pts.length; i++) {
-    const p = pts[i];
-    if (p) return p;
-  }
-  return [MAP_VIEWBOX.width / 2, MAP_VIEWBOX.height / 2];
+function activeLegPoints(places: PlaceView[], activeIndex: number, travelling: boolean): PlaceView[] {
+  if (travelling && activeIndex > 0) return [places[activeIndex - 1], places[activeIndex]];
+  return [places[activeIndex]];
 }
 
 /**
- * The map behind the show: same land data, camera pinned to the active stop,
- * and — while a leg is playing — the vehicle actually travelling along it.
+ * The fraction of the *actually visible* viewBox this map's own chrome
+ * permanently covers — the title block on the left, the thumbnail strip and
+ * transport controls at the bottom, the progress bar and settings/full
+ * -screen/close buttons at the top. Asymmetric on purpose: the right edge is
+ * the one side nothing ever sits on. Review of B2424's first cut found a leg
+ * framed against the *whole* viewBox routinely left one end under the title
+ * or the controls — fitting a fine, whole ellipse into a room says nothing
+ * about whether its corners are under the furniture.
+ */
+const SAFE_MARGIN = { left: 0.38, right: 0.06, top: 0.08, bottom: 0.22 } as const;
+
+/**
+ * The part of the fixed 1000×500 viewBox `preserveAspectRatio="xMidYMid
+ * slice"` actually shows for a container of the given CSS size — the whole
+ * viewBox only at exactly a 2:1 aspect; anything narrower (every real
+ * container this map draws in: the 16:9 desktop frame, a portrait phone
+ * full-bleed) crops symmetrically about the centre on the *width* axis,
+ * because `slice` scales by the *larger* of the two ratios to guarantee no
+ * letterboxing. `safeBox` must be measured against this, not the nominal
+ * 1000×500 — B2424 review found a first cut of the safe-box margins,
+ * measured against the full viewBox, landed a stop well outside the
+ * portrait phone's actual, much narrower, visible slice.
+ */
+export function visibleWindow(containerWidth: number, containerHeight: number) {
+  const scale = Math.max(containerWidth / MAP_VIEWBOX.width, containerHeight / MAP_VIEWBOX.height);
+  const width = containerWidth / scale;
+  const height = containerHeight / scale;
+  return { x0: (MAP_VIEWBOX.width - width) / 2, y0: (MAP_VIEWBOX.height - height) / 2, width, height };
+}
+
+/** The box a leg is actually framed into — `visible` minus `SAFE_MARGIN`. */
+export function safeBox(visible: { x0: number; y0: number; width: number; height: number }) {
+  const left = visible.x0 + visible.width * SAFE_MARGIN.left;
+  const right = visible.x0 + visible.width * (1 - SAFE_MARGIN.right);
+  const top = visible.y0 + visible.height * SAFE_MARGIN.top;
+  const bottom = visible.y0 + visible.height * (1 - SAFE_MARGIN.bottom);
+  return { left, right, top, bottom, width: right - left, height: bottom - top, cx: (left + right) / 2, cy: (top + bottom) / 2 };
+}
+
+/**
+ * The camera for one `Frame` (from `frameRoute`, reused for its sizing only
+ * — see the class doc comment): a zoom and a screen-space centre such that
+ * the frame's own box — already padded by `frameRoute`'s own
+ * `PAD_FRACTION` — lands entirely inside `safeBox(visibleWindow(...))`, not
+ * the whole viewBox. `targetX`/`targetY` are the frame's centre in this
+ * map's raw, uncorrected world (the `lngScale` correction undone, per the
+ * class doc comment); `cx`/`cy` are where that centre is drawn on screen —
+ * the safe box's own centre, not the viewBox's.
+ *
+ * A pure function of the frame and the container's own CSS size, so it can
+ * be tested without rendering anything: hand it a `Frame` and a size and
+ * check where a point projects.
+ */
+export function cameraFor(
+  frame: Frame,
+  containerWidth: number,
+  containerHeight: number,
+): { zoom: number; targetX: number; targetY: number; cx: number; cy: number } {
+  const safe = safeBox(visibleWindow(containerWidth, containerHeight));
+  const targetX = (frame.x + frame.w / 2) / frame.lngScale;
+  const targetY = frame.y + frame.h / 2;
+  const zoom = Math.min(safe.width / (frame.w / frame.lngScale), safe.height / frame.h);
+  return { zoom, targetX, targetY, cx: safe.cx, cy: safe.cy };
+}
+
+/** Where a raw (uncorrected) world point lands on screen for a given camera. */
+export function projectCamera(camera: { zoom: number; targetX: number; targetY: number; cx: number; cy: number }, x: number, y: number): [number, number] {
+  return [camera.cx + (x - camera.targetX) * camera.zoom, camera.cy + (y - camera.targetY) * camera.zoom];
+}
+
+/**
+ * The map behind the show: the trip's own basemap, a camera framed to
+ * whichever leg or stop is on screen, and — while a leg is playing — the
+ * vehicle actually travelling along it.
  *
  * Projects through `project()` directly rather than through a `lib/mapFrame`
- * `Frame`, and that is deliberate rather than the gap B265 left: this map's
- * viewBox is the whole, uncorrected world — the same coordinate space
- * `useWorldLand`'s baked paths are in — and the camera pans and zooms across
- * it with a `motion.g` transform instead of cropping to a bounding box.
- * `frameRoute`'s frame is a *different* space (cropped, latitude-corrected by
- * `lngScale`) built for a static viewBox; applying it here would misalign
- * every marker against the coastline it is meant to sit on. What was missing
- * was only the `isPlottable` guard, not the frame.
+ * `Frame`, and that is deliberate: this map's viewBox is the whole,
+ * uncorrected world — the same coordinate space `basemap`'s baked paths
+ * (and, before B2424, `useWorldLand`'s) are in — and the camera pans and
+ * zooms across it with a `motion.g` transform instead of cropping to a
+ * bounding box. A `Frame`'s own space is cropped and latitude-corrected by
+ * `lngScale` for a *static* viewBox; drawing straight into one here would
+ * misalign every marker against the ground it sits on.
+ *
+ * **Per-leg framing (B2424).** The camera's target zoom and centre are still
+ * chosen with `frameRoute` — reused for its sizing logic only, never for its
+ * coordinate space. `frameRoute(activeLegPoints(...))` frames both ends of
+ * the leg being flown, or the single place being dwelled on, and its
+ * `lngScale` correction is undone (divided back out of x) to land the answer
+ * back in this map's own raw, uniform-scale world before it is used —
+ * `frame.w`/`frame.h` become the zoom, `frame.x + frame.w/2` (undone) and
+ * `frame.y + frame.h/2` become the pan target (`cameraFor`). Before this a
+ * single `ZOOM = 3.4` constant framed every leg the same way regardless of
+ * size, so `alps-2024` — four passes inside 68 km — collapsed to a point at
+ * the same zoom a transcontinental flight used.
+ *
+ * **Framed into `safeBox()`, not the whole viewBox.** A first cut fit the
+ * frame into the full 1000×500 viewBox and review found a leg routinely
+ * left one end under the title block or the transport controls — the show's
+ * own chrome sits over a fixed fraction of every side but the right one, and
+ * fitting a frame into the whole room says nothing about which corner is
+ * under the furniture. `cameraFor` fits it into `safeBox()` instead — the
+ * viewBox minus `SAFE_MARGIN` — and centres it there rather than at the
+ * viewBox's own centre.
+ *
+ * Because the effective zoom now varies
+ * by orders of magnitude between legs, every size on this map is drawn in
+ * *screen* pixels via `px()` below rather than a raw map unit — a marker
+ * sized in raw units came out huge at a tight per-leg zoom, the bug this
+ * comment is here to keep from coming back (see the equivalent `px` in
+ * `WorldMap`/`TripMap`).
  */
 export function SlideMap({
   places,
   activeIndex,
   travelling,
+  basemap = null,
+  accent = "navy",
 }: {
   places: PlaceView[];
   activeIndex: number;
   travelling: boolean;
+  /** Server-clipped to this trip's own frame (`lib/basemap.ts`), the same
+   * prop `WorldMap` draws on this page — replaces the 1:110m coastline
+   * (B2424). Null (the bundle not built, or an empty route) falls back to
+   * `useWorldLand`'s coarse outline, exactly as before this ticket. */
+  basemap?: Basemap | null;
+  /** The trip's own accent (B2422) — undeclared reads as navy, the same
+   * fallback `WorldMap` uses for a caller with none to give. */
+  accent?: TripAccent;
 }) {
   const worldLand = useWorldLand();
   const pts = places.map((p) => (isPlottable(p) ? project(p.lat, p.lng) : null));
-  const active = cameraTarget(pts, activeIndex);
-  const ZOOM = 3.4;
-  const cx = MAP_VIEWBOX.width / 2;
-  const cy = MAP_VIEWBOX.height / 2;
+
+  // How big this map is actually drawn, in CSS pixels — needed to know how
+  // much of the fixed 1000×500 viewBox `preserveAspectRatio="xMidYMid
+  // slice"` is actually cropping away (`visibleWindow`, inside `cameraFor`).
+  // Same "measure after mount" shape `WorldMap`'s own `drawnWidth` uses, and
+  // for the same reason it needs no hydration-safe default here: `SlideShow`
+  // is `dynamic(..., { ssr: false })`, so there is no server-rendered value
+  // to disagree with.
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [containerSize, setContainerSize] = useState({ width: 1280, height: 720 });
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) setContainerSize({ width, height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const frame = useMemo(
+    () => frameRoute(activeLegPoints(places, activeIndex, travelling)),
+    [places, activeIndex, travelling],
+  );
+  // zoom, targetX/Y (the frame's centre, `lngScale` undone) and cx/cy (where
+  // that centre lands on screen — `safeBox()`'s own centre, not the
+  // viewBox's) — see `cameraFor`'s doc comment.
+  const { zoom, targetX, targetY, cx, cy } = cameraFor(frame, containerSize.width, containerSize.height);
+  // Only for the active stop's own label, below, to flip sides near the
+  // safe box's own right edge — the same "would this name run off the
+  // edge" question `TripMap`'s own `runsOff` asks, against this map's own
+  // safe box rather than its frame.
+  const safe = useMemo(
+    () => safeBox(visibleWindow(containerSize.width, containerSize.height)),
+    [containerSize.width, containerSize.height],
+  );
+
+  // Screen pixels, the same convention `px` in `WorldMap`/`TripMap` uses —
+  // simplified for this map's own fixed viewBox (see the class doc comment):
+  // one raw unit is always the same fraction of this container regardless of
+  // its CSS size, so only the camera's own zoom needs dividing out.
+  const px = useCallback((n: number) => n / zoom, [zoom]);
 
   return (
     <svg
+      ref={svgRef}
       viewBox={`0 0 ${MAP_VIEWBOX.width} ${MAP_VIEWBOX.height}`}
-      className="h-full w-full"
+      // Forces the dark `--map-*` tokens regardless of the reader's own
+      // theme (docs/plans/map-redesign.md §1, "Accent": "The slideshow uses
+      // the dark-theme token instead of a separate slideshow shade") — the
+      // override lives in app/globals.css next to `.fs-ask-dark`'s own
+      // single-card version of the same trick, scoped to every `--map-*`
+      // token instead of one background/colour pair.
+      className="fs-map-dark h-full w-full"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden
     >
-      <rect width={MAP_VIEWBOX.width} height={MAP_VIEWBOX.height} fill="#0f2b3d" />
+      <rect width={MAP_VIEWBOX.width} height={MAP_VIEWBOX.height} fill={mapStyle.sea} />
       <motion.g
         animate={{
-          x: cx - active[0] * ZOOM,
-          y: cy - active[1] * ZOOM,
-          scale: ZOOM,
+          x: cx - targetX * zoom,
+          y: cy - targetY * zoom,
+          scale: zoom,
         }}
         transition={{ duration: FULL_TRAVEL_MS / 1000, ease: [0.4, 0, 0.2, 1] }}
-        style={{ originX: 0, originY: 0 }}
+        // Motion's default `transform-box: fill-box` for an SVG element makes
+        // `originX`/`originY` relative to this group's own rendered content —
+        // its bounding box, not the SVG's origin (and Motion recomputes
+        // `transformOrigin` itself every render, so setting that CSS property
+        // literally is not enough; `transformBox` is the escape hatch, since
+        // Motion passes that one through untouched). At the old fixed
+        // `ZOOM = 3.4` the fill-box/view-box mismatch was a few hundred
+        // viewBox units, easy to miss; at a tight per-leg zoom (B2424, into
+        // the hundreds) it is thousands of units, and every marker lands off
+        // -screen. `view-box` makes `originX`/`originY: 0` mean the SVG's own
+        // (0,0), which is what `x`/`y` above are computed against.
+        style={{ transformBox: "view-box", originX: 0, originY: 0 }}
       >
-        <g fill="#1d4e5f" stroke="#2b6b7f" strokeWidth={0.5}>
-          {worldLand.map((d, i) => (
-            <path key={i} d={d} />
-          ))}
-        </g>
+        {/* Ground. Same convention `WorldMap` draws its own basemap with:
+            path data is baked in raw, uncorrected units, so a literal
+            `strokeWidth` plus `vectorEffect="non-scaling-stroke"` already
+            renders as a constant screen width at any zoom, without needing
+            `px()` — `px()` is for geometry (a marker's radius) that
+            `vector-effect` cannot help with. */}
+        {basemap ? (
+          <>
+            <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1.2}>
+              {basemap.borders.map((d, i) => (
+                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
+            <g fill={mapStyle.ice} stroke={mapStyle.ice} strokeWidth={0.6} opacity={0.9}>
+              {basemap.glaciers.map((d, i) => (
+                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
+            <g fill={mapStyle.water} stroke={mapStyle.water} strokeWidth={0.8}>
+              {basemap.lakes.map((d, i) => (
+                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
+            <g fill="none" stroke={mapStyle.water} strokeWidth={1.6} strokeLinecap="round">
+              {basemap.rivers.map((d, i) => (
+                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
+          </>
+        ) : (
+          <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={0.5}>
+            {worldLand.map((d, i) => (
+              <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+            ))}
+          </g>
+        )}
 
+        {/* The whole route, in the trip's own accent — the travelled part
+            opaque, what's ahead dimmed. Straight, except a flight's own arc
+            (`isArcLeg`, `RouteLine`'s rule since B2422/B2424, retiring the
+            13 mode-coloured lines `lib/transport.ts` used to draw here). */}
         {places.slice(1).map((p, i) => {
           const from = pts[i];
           const to = pts[i + 1];
           if (!from || !to) return null;
-          const [x1, y1] = from;
-          const [x2, y2] = to;
-          const mode = p.entries[0]?.transport?.mode;
-          const style = mode ? TRANSPORT_STYLE[mode] : null;
-          if (!style) return null;
           const done = i + 1 <= activeIndex;
-          const isCurrentLeg = travelling && i + 1 === activeIndex;
-          // Bowed by mode, exactly as the trip map draws it, so a flight
-          // arcs in both places. This map's viewBox is the whole world at
-          // roughly a unit per pixel, so the dash needs no scaling here.
-          const dx = x2 - x1;
-          const dy = y2 - y1;
-          const len = Math.hypot(dx, dy) || 1;
-          const bow = len * style.bow;
-          const bx = (x1 + x2) / 2 - (dy / len) * bow;
-          const by = (y1 + y2) / 2 + (dx / len) * bow;
+          const mode = p.entries[0]?.transport?.mode;
           return (
-            <motion.path
-              key={p.key}
-              d={`M${x1},${y1} Q${bx},${by} ${x2},${y2}`}
-              fill="none"
-              stroke={style.color}
-              strokeWidth={1.2}
-              strokeDasharray={style.dash ? style.dash.join(" ") : undefined}
-              strokeLinecap="round"
-              opacity={done ? 0.95 : 0.25}
-              initial={isCurrentLeg ? { pathLength: 0 } : false}
-              animate={isCurrentLeg ? { pathLength: 1 } : {}}
-              transition={{ duration: FULL_TRAVEL_MS / 1000, ease: [0.45, 0, 0.35, 1] }}
-            />
-          );
-        })}
-
-        {places.map((p, i) => {
-          const pt = pts[i];
-          if (!pt) return null;
-          const [x, y] = pt;
-          const isActive = i === activeIndex;
-          return (
-            <g key={p.key}>
-              {isActive && (
-                <motion.circle
-                  cx={x}
-                  cy={y}
-                  r={3}
-                  fill="#ffd23f"
-                  initial={{ scale: 1, opacity: 0.5 }}
-                  animate={{ scale: [1, 3.2], opacity: [0.5, 0] }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
-                  style={{ transformOrigin: `${x}px ${y}px` }}
-                />
-              )}
-              <circle
-                cx={x}
-                cy={y}
-                r={isActive ? 2.6 : 1.6}
-                fill={isActive ? "#ffd23f" : i < activeIndex ? "#ffffff" : "#7aa5b5"}
-                stroke="#0f2b3d"
-                strokeWidth={0.7}
+            <g key={p.key} opacity={done ? 0.95 : 0.25}>
+              <RouteLine
+                accent={accent}
+                px={px}
+                hops={[{ x1: from[0], y1: from[1], x2: to[0], y2: to[1], mode }]}
               />
             </g>
           );
         })}
 
-        {/* The leg being flown right now. */}
+        {/* Stops, in day order — never yellow: the current one is the
+            larger navy `StopMarker` "selected" shape, the same rule every
+            other Paper map follows (docs/plans/map-redesign.md §1). */}
+        {places.map((p, i) => {
+          const pt = pts[i];
+          if (!pt) return null;
+          const [x, y] = pt;
+          return (
+            <StopMarker
+              key={p.key}
+              x={x}
+              y={y}
+              order={i + 1}
+              selected={i === activeIndex}
+              ariaLabel={`${p.location}, ${p.country}`}
+              px={px}
+            />
+          );
+        })}
+
+        {/* The active stop's own name, the same halo technique `TripMap`
+            uses (labelStop/labelStopHalo) — B2424 review found a map of
+            unlabelled numbered dots read as an abstraction with the reader's
+            own theme's land/sea contrast doing all the work; the caption
+            outside the SVG already names the place, but the map itself
+            should too. Just the active stop, not all four — the others are
+            already fainter, and every name at once is the clutter the plan
+            doc's "quiet" label rule warns against. */}
+        {(() => {
+          const active = pts[activeIndex];
+          const place = places[activeIndex];
+          if (!active || !place) return null;
+          const [x, y] = active;
+          // Same threshold shape as `TripMap`'s own `runsOff`: roughly
+          // 0.55 em per character, checked against this map's own safe
+          // box rather than its frame — B2424 review found "Bangkok" run
+          // off a phone's own narrower safe box on a transcontinental leg.
+          const runsOff = x + px(16) + px(14) * 0.62 * place.location.length > safe.right;
+          return (
+            <text
+              x={x + (runsOff ? -px(16) : px(16))}
+              y={y + px(5)}
+              textAnchor={runsOff ? "end" : "start"}
+              fontSize={px(14)}
+              fontWeight={700}
+              fill={mapStyle.labelStop}
+              stroke={mapStyle.labelStopHalo}
+              strokeWidth={px(3)}
+              paintOrder="stroke"
+              pointerEvents="none"
+              className="font-display"
+            >
+              {place.location}
+            </text>
+          );
+        })()}
+
+        {/* The leg being flown right now — the vehicle itself, falling back
+            to a direction arrow when the day carries no transport mode
+            (B2424; before this it silently drew a plane for every unlabelled
+            leg). */}
         {travelling && activeIndex > 0 && pts[activeIndex - 1] && pts[activeIndex] && (() => {
           const from = pts[activeIndex - 1]!;
           const to = pts[activeIndex]!;
           const mode = places[activeIndex].entries[0]?.transport?.mode;
-          const Icon = mode ? (VEHICLE_ICON[mode] ?? Plane) : Plane;
+          const Icon = mode ? VEHICLE_ICON[mode] ?? Navigation : Navigation;
           // Point the icon along the direction of travel.
           const angle = (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI;
           return (
@@ -1483,9 +1711,9 @@ export function SlideMap({
               transition={{ duration: FULL_TRAVEL_MS / 1000, ease: [0.45, 0, 0.35, 1] }}
             >
               <g transform={vehicleHeadingTransform(angle)}>
-                <circle r={5.5} fill="#ffd23f" stroke="#0f2b3d" strokeWidth={1} />
-                <g transform="translate(-3.2, -3.2)">
-                  <Icon width={6.4} height={6.4} color="#0f2b3d" strokeWidth={2.6} />
+                <circle r={px(5.5)} fill={mapStyle.hereNow} stroke={mapStyle.hereNowHalo} strokeWidth={px(1)} />
+                <g transform={`translate(${px(-3.2)}, ${px(-3.2)})`}>
+                  <Icon width={px(6.4)} height={px(6.4)} color={mapStyle.hereNowHalo} strokeWidth={2.6} />
                 </g>
               </g>
             </motion.g>
