@@ -1,7 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import LocaleProvider from "@/components/LocaleProvider";
-import { YourDevices, YourJournals, type HomeDevice, type HomeJournal } from "@/components/HomeJournals";
+import { YourDevices, type HomeDevice, type HomeJournal, type HomeTrip } from "@/components/HomeJournals";
+import SignedInHome, { pickContinue } from "@/components/home/SignedInHome";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
@@ -40,70 +41,125 @@ function journal(over: Partial<HomeJournal> = {}): HomeJournal {
   };
 }
 
-describe("your journals", () => {
-  test("names the journal, its trips and the address that opened them", () => {
-    const html = render(<YourJournals email="ana@example.test" journals={[journal()]} />);
-    expect(html).toContain("Two Backpacks");
+function trip(over: Partial<HomeTrip> = {}): HomeTrip {
+  return { id: "alps", title: "Four days round the Alps", href: "/ana/trips/alps", through: "owner", ...over };
+}
+
+function home(journals: HomeJournal[], opts: { photobook?: boolean; signup?: boolean } = {}) {
+  return render(<SignedInHome journals={journals} photobookEnabled={opts.photobook} signupEnabled={opts.signup} />);
+}
+
+/**
+ * B2508 — the signed-in home is a way back into the trip, not a directory.
+ * What it must never do is say more than the payload does: a draft line with
+ * no draft, a count nobody measured, or "yours" about somebody else's journal.
+ */
+describe("the signed-in home", () => {
+  test("an owner gets Continue on their trip, with a link to it as readers see it", () => {
+    const html = home([journal()]);
+    expect(html).toContain("Continue");
     expect(html).toContain("Four days round the Alps");
-    expect(html).toContain("ana@example.test");
     expect(html).toContain('href="/ana/trips/alps"');
+    expect(html).toContain('href="/ana/studio/day/new?trip=alps"');
+    expect(html).toContain('href="/ana/studio"');
+  });
+
+  test("the draft line appears only when the payload names a draft", () => {
+    expect(home([journal()])).not.toContain("Draft");
+    const html = home([
+      journal({ trips: [trip({ draft: { slug: "d3", title: "A wrong turn", date: "2026-09-14", href: "/x" } })] }),
+    ]);
+    expect(html).toContain("Draft · only you can see it");
+    expect(html).toContain("A wrong turn");
+    expect(html).toContain('href="/ana/studio/day/edit?slug=d3"');
+  });
+
+  test("no figure is drawn that the payload did not carry", () => {
+    const bare = home([journal()]);
+    expect(bare).not.toMatch(/\d+ days?\b/);
+    expect(bare).not.toContain("Latest day");
+    const counted = home([journal({ trips: [trip({ days: 4, start: "2024-09-12", end: "2024-09-15" })] })]);
+    expect(counted).toContain("4 days");
+    expect(counted).toContain("2024");
+  });
+
+  test("the trip under way comes first, then the most recently written", () => {
+    const j = journal();
+    const old = { journal: j, trip: trip({ id: "old", start: "2024-01-01", status: "past" }) };
+    const fresh = { journal: j, trip: trip({ id: "fresh", start: "2023-01-01", status: "past", draft: { slug: "d", title: "d", date: "2025-05-01", href: "" } }) };
+    const now = { journal: j, trip: trip({ id: "now", start: "2020-01-01", status: "current" }) };
+    expect(pickContinue([old, fresh])?.trip.id).toBe("fresh");
+    expect(pickContinue([old, fresh, now])?.trip.id).toBe("now");
+  });
+
+  test("Ready for paper only for an ended trip with days, and only where books print", () => {
+    const ended = journal({ trips: [trip({ status: "past", days: 5, end: "2023-06-01" })] });
+    expect(home([ended])).not.toContain("Ready for paper");
+    expect(home([ended], { photobook: true })).toContain("Ready for paper");
+    expect(home([ended], { photobook: true })).toContain('href="/ana/trips/alps/photobook"');
+    const rehearsal = journal({ trips: [trip({ status: "past", days: 1, test: true })] });
+    expect(home([rehearsal], { photobook: true })).not.toContain("Ready for paper");
+    const empty = journal({ trips: [trip({ status: "past", days: 0 })] });
+    expect(home([empty], { photobook: true })).not.toContain("Ready for paper");
+  });
+
+  test("an owner with no trip yet is offered the first one", () => {
+    const html = home([journal({ trips: [] })]);
+    expect(html).toContain('href="/ana/studio/trip/new"');
+  });
+
+  /** Publishing and the studio are the owner's, and only the owner's — B28. */
+  test("somebody else's journal never gets a studio link or the owner's words", () => {
+    for (const role of ["guest", "traveller"] as const) {
+      const html = home([journal({ role, trips: [trip({ through: role })] })]);
+      expect(html).not.toContain('href="/ana/studio');
+      expect(html).not.toContain("Continue");
+      expect(html).not.toContain(">Yours<");
+      expect(html).toContain("Shared with you");
+    }
+  });
+
+  test("a reader gets the newest shared day first, large", () => {
+    const html = home([
+      journal({
+        role: "guest",
+        trips: [
+          trip({ id: "a", title: "Older trip", through: "guest", latest: { slug: "x", title: "Old day", date: "2024-01-01", href: "/ana/trips/a/day/x" } }),
+          trip({ id: "b", title: "Newer trip", through: "guest", latest: { slug: "y", title: "Over the Susten", date: "2025-09-01", href: "/ana/trips/b/day/y", excerpt: "We left late." } }),
+        ],
+      }),
+    ]);
+    expect(html.indexOf("Over the Susten")).toBeLessThan(html.indexOf("Older trip"));
+    expect(html).toContain("We left late.");
+    expect(html).toContain('href="/ana/trips/b/day/y"');
+    // The board's badge needs a last-visit record nobody keeps.
+    expect(html).not.toContain("New since");
+  });
+
+  test("the start-your-own card is for a reader only, and only where signup is on", () => {
+    const reader = [journal({ role: "guest", trips: [trip({ through: "guest" })] })];
+    expect(home(reader)).not.toContain("Travelling yourself soon?");
+    expect(home(reader, { signup: true })).toContain("Travelling yourself soon?");
+    expect(home(reader, { signup: true })).toContain('href="/welcome"');
+    expect(home([journal()], { signup: true })).not.toContain("Travelling yourself soon?");
+  });
+
+  test("a dismissed card stays dismissed", () => {
+    vi.stubGlobal("window", { localStorage: { getItem: () => "1", setItem: () => {} } });
+    try {
+      const reader = [journal({ role: "guest", trips: [trip({ through: "guest" })] })];
+      expect(home(reader, { signup: true })).not.toContain("Travelling yourself soon?");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   /**
-   * The three roles read differently, because the whole point of one list is
-   * that it mixes them. A guest journal labelled "Yours" is a page telling
-   * somebody they own something they do not.
-   */
-  test("each role gets its own words", () => {
-    const owner = render(<YourJournals email="a@e.test" journals={[journal({ role: "owner" })]} />);
-    const traveller = render(
-      <YourJournals email="a@e.test" journals={[journal({ role: "traveller" })]} />,
-    );
-    const guest = render(<YourJournals email="a@e.test" journals={[journal({ role: "guest" })]} />);
-
-    expect(owner).toContain("Yours");
-    expect(traveller).toContain("You travelled");
-    expect(guest).toContain("Shared with you");
-
-    // And the strong claim is not made about the weak cases.
-    expect(traveller).not.toContain(">Yours<");
-    expect(guest).not.toContain(">Yours<");
-  });
-
-  /** Publishing is the owner's, and only the owner's — B28. The hint that
-   * points at the agent instruction must not appear on somebody else's. */
-  test("only an owner is told the journal is theirs to publish", () => {
-    expect(render(<YourJournals email="a@e.test" journals={[journal({ role: "owner" })]} />)).toContain(
-      "Yours to publish",
-    );
-    expect(
-      render(<YourJournals email="a@e.test" journals={[journal({ role: "guest" })]} />),
-    ).not.toContain("Yours to publish");
-  });
-
-  /**
-   * B264 is the same shape one level down: a reader who may see nothing was
-   * told "there are no trips yet", which is a statement about the journal
-   * rather than about them. An empty heading with nothing under it would be
-   * this page's version.
+   * B264's shape one level down: somebody signed in with nothing is in a
+   * real, explicable state, and an empty heading would look broken.
    */
   test("nobody with no journals is left staring at an empty heading", () => {
-    const html = render(<YourJournals email="nils@example.test" journals={[]} />);
-    expect(html).toContain("Nothing yet");
-  });
-
-  test("a long trip list is cut short rather than becoming the page", () => {
-    const trips = Array.from({ length: 9 }, (_, i) => ({
-      id: `t${i}`,
-      title: `Trip ${i}`,
-      href: `/ana/trips/t${i}`,
-      through: "owner" as const,
-    }));
-    const html = render(<YourJournals email="a@e.test" journals={[journal({ trips })]} />);
-    expect(html).toContain("Trip 0");
-    expect(html).toContain("Trip 3");
-    expect(html).not.toContain("Trip 4");
-    expect(html).toContain("and 5 more");
+    expect(home([])).toContain("Nothing yet");
   });
 });
 
