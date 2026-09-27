@@ -343,6 +343,8 @@
   "approve.prompt": "Approve {credits} {unit} ({amount}) for {user}? Accepting adds the credits to their balance.",
   "approve.title": "Approve a credit purchase",
   "approve.working": "Approving…",
+  "appWaitlist.consent": "This address is used only to tell you once, when the app is out.",
+  "appWaitlist.consentLink": "Privacy notice",
   "appWaitlist.done": "You're on the list — check your inbox for a confirmation.",
   "appWaitlist.emailLabel": "Email address",
   "appWaitlist.error": "The request did not reach the server.",

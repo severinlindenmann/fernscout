@@ -32,11 +32,31 @@ import type { SpeechLanguage } from "./speech";
  *
  * The key is environment-only and never `site/config.json`, like every other
  * bearer credential that spends the operator's money.
+ *
+ * **Where the audio goes: Deepgram's EU endpoint by default** — B2472. Audio
+ * sent to `api.eu.deepgram.com` is processed in EU regions; the old
+ * `api.deepgram.com` host is the US. `DEEPGRAM_API_URL` overrides it for a
+ * self-hoster who wants the US or a dedicated endpoint; anything that is not
+ * an `https:` URL is ignored, so a typo can never send audio in the clear.
  */
 
 const DEEPGRAM_MODEL = "nova-3";
 
-const DEEPGRAM_URL = "https://api.deepgram.com/v1/listen";
+const DEEPGRAM_URL = "https://api.eu.deepgram.com/v1/listen";
+
+/** `DEEPGRAM_API_URL` when it is an `https:` URL, else the EU default. */
+function deepgramUrl(): URL {
+  const override = process.env.DEEPGRAM_API_URL?.trim();
+  if (override) {
+    try {
+      const url = new URL(override);
+      if (url.protocol === "https:") return url;
+    } catch {
+      // not a URL: fall through to the default
+    }
+  }
+  return new URL(DEEPGRAM_URL);
+}
 
 /** What `dry-run` says, in every language. Deliberately unmistakable: a
  *  transcript nobody spoke must not read like one somebody did. */
@@ -167,7 +187,7 @@ export async function transcribeAudio(
     };
   }
 
-  const url = new URL(DEEPGRAM_URL);
+  const url = deepgramUrl();
   url.searchParams.set("model", DEEPGRAM_MODEL);
   // Explicit, always. See ./speech.ts: `multi` covers ten languages and two of
   // the four this feature exists for are not among them.
