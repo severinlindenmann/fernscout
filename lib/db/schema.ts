@@ -783,6 +783,22 @@ type AppWaitlistTable = {
 };
 
 /**
+ * A stranger asking to be invited to an invite-only instance — B2507.
+ *
+ * Same shape and reasoning as `AppWaitlistTable` just above: instance state
+ * (`owner_id` is always `NO_JOURNAL`), one row per address so a repeat
+ * request is a no-op, read by `/admin`'s "Requests" list and turned into a
+ * real `signup_invites` row there, through the existing "Allow this
+ * address" button — this table grants nothing on its own.
+ */
+type InviteRequestsTable = {
+  owner_id: string;
+  email: string;
+  locale: string | null;
+  created_at: string;
+};
+
+/**
  * The arrangement of one photobook, for one journal and one trip — B1981.
  *
  * The composer used to keep this in `localStorage` alone, on the reasoning
@@ -914,6 +930,7 @@ export type Database = {
   signup_invites: SignupInvitesTable;
   photobook_drafts: PhotobookDraftsTable;
   app_waitlist: AppWaitlistTable;
+  invite_requests: InviteRequestsTable;
   message_log: MessageLogTable;
   invite_suppressions: InviteSuppressionsTable;
   message_switches: MessageSwitchesTable;
@@ -952,6 +969,7 @@ export const TABLE_NAMES = [
   "signup_invites",
   "photobook_drafts",
   "app_waitlist",
+  "invite_requests",
   "message_log",
   "invite_suppressions",
   "message_switches",
