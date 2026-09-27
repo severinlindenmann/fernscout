@@ -48,6 +48,10 @@ const ALWAYS_RESERVED = [
   "static",
   "media",
   "welcome",
+  // The instance-wide account page — one address across every journal, not
+  // any one journal's reader. A journal called `me` would take `/me` from it,
+  // and `/api/v2/me/*` already could never reach such a journal.
+  "me",
   // The agent guide and its sign-in page (B681) — a journal here would
   // collide with the network door every agent is told to use.
   "agent",
