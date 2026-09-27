@@ -598,7 +598,6 @@ export default function TripStory({
             loadFailed={loadFailed}
             steps={steps}
             stepIndex={stepIndex}
-            hasPlaces={stats.places > 0}
             motionKey={motionKey}
             onStepChange={(next) => {
               directionRef.current = next > stepIndex ? 1 : -1;

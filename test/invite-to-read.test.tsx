@@ -138,3 +138,11 @@ describe("the day card's owner-only block", () => {
     expect(html).not.toContain("Only you can see this");
   });
 });
+
+describe("the day card's Slideshow button — B2468", () => {
+  test("a day carries no Slideshow link of its own; that lives on the overview only", async () => {
+    const html = await renderDayCard(false);
+    expect(html).not.toContain("Slideshow");
+    expect(html).not.toMatch(/\/map\?show=/);
+  });
+});
