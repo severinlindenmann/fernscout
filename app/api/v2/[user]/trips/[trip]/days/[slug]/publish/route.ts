@@ -26,9 +26,9 @@ import { afterResponse } from "@/lib/afterResponse";
 import { isEnabled } from "@/lib/capabilities";
 import { balanceOf } from "@/lib/credits";
 import { formatCredits } from "@/lib/creditsFormat";
-import { translateIn } from "@/lib/locales";
 import { subscribersFor } from "@/lib/push";
 import { localeForSubscriber, sendPush } from "@/lib/push/send";
+import { composeDayPush } from "@/lib/digest/dayPush";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -309,17 +309,21 @@ export async function applyPublish(
       }
 
       await Promise.all(
-        [...byLocale].map(([locale, subs]) =>
-          sendPush({
+        [...byLocale].map(([locale, subs]) => {
+          const composed = composeDayPush(
+            { journalTitle: owner?.title ?? user, dayTitle: day.title },
+            locale as Parameters<typeof composeDayPush>[1],
+          );
+          return sendPush({
             template: "news.push",
             subscriptions: subs,
-            title: owner?.title ?? user,
-            body: translateIn(locale, "push.newDay.body", { day: day.title }),
+            title: "title" in composed ? composed.title ?? "" : "",
+            body: "text" in composed ? composed.text : "",
             url: pushUrl,
             tag: `day-${slug}`,
             locale,
-          }),
-        ),
+          });
+        }),
       );
     });
   } else {
