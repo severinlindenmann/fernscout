@@ -1,393 +1,587 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { frameRoute, isPlottable, place as placeIn, type Point } from "@/lib/mapFrame";
+import { useEffect, useRef, useState } from "react";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
 import { flagFromCode } from "@/lib/flags";
-import { mapAccent, mapStyle } from "@/lib/map/style";
-import RouteLine, { type RouteHop } from "./map/RouteLine";
-import type { Px } from "./map/StopMarker";
+import { mapStyle } from "@/lib/map/style";
 import type { Basemap } from "@/lib/basemap";
-import type { TripAccent } from "@/lib/types";
-
-export type TripRoute = {
-  id: string;
-  title: string;
-  accent: TripAccent;
-  points: { lat: number; lng: number; location: string }[];
-};
+import type { LifetimeView, ContinentButton } from "@/lib/lifetimeMapViews";
+import countryColours from "@/lib/countryColours.json";
 
 /** One country somebody has been to, and which trips took them there. */
 export type CountryVisit = {
   /** ISO 3166-1 alpha-2. */
   code: string;
-  /** The country's own name, for the hover/focus label. */
+  /** The country's own name, for the legend and the focus/hover label. */
   name: string;
   /**
-   * Its SVG outline, resolved from `lib/worldCountries.json` **on the server**
-   * — see `app/[user]/trips/page.tsx`.
-   *
-   * Carried here rather than looked up in the browser because the fill is the
-   * meaning of this map: loading the country shapes client-side left the
-   * server render with no countries in it at all, so a reader without
-   * JavaScript, and everyone's first paint, got an empty frame. Sending the
-   * handful actually visited is also far less than the 143 KB of all 177.
+   * Its SVG outline, resolved from `lib/worldCountries.json` **on the
+   * server** — see `app/[user]/trips/page.tsx`. Carried here rather than
+   * looked up in the browser because the fill is the meaning of this map:
+   * loading the country shapes client-side left the server render with no
+   * countries in it at all, so a reader without JavaScript, and everyone's
+   * first paint, got an empty frame. B361.
    */
   path: string;
   trips: { id: string; title: string }[];
+  /**
+   * The country's own label position on the fixed 1000-unit world
+   * (`lib/worldCountries.json`'s `x`), read for one thing only: the
+   * Einstieg's west-to-east colour-in order (decision 5). Not used for
+   * anything drawn — the fill's actual position always comes from `path`.
+   */
+  x: number;
 };
 
-/** The five palette hues from app/globals.css, as literals — this is an SVG
- * stroke, which Tailwind classes can't reach. Exported so the trip cards can
- * use the same colour for their accent dot. Kept as a plain hex table for
- * that HTML usage (`app/[user]/trips/TripsIndexContent.tsx`); this map's own
- * SVG reads `mapAccent()` (`lib/map/style.ts`) instead, so a trip's route and
- * marker follow the map-only accent step (B2423, docs/plans/map-redesign.md
- * §7 Q2), not this brand hex. */
-export const ACCENT_HEX: Record<TripAccent, string> = {
-  sky: "#3fa9c4",
-  yellow: "#d69b0a",
-  green: "#15803d",
-  coral: "#c2334a",
-  navy: "#3a4a63",
-};
+const WORLD_FRAME = { x: 0, y: 0, w: 1000, h: 500, lngScale: 1 };
+
+/** 700 ms — decision 5, "Gleiten". */
+const GLIDE_MS = 700;
+/** 1400 ms, once per page load — decision 5, "Einstieg". */
+const EINSTIEG_MS = 1400;
+/** ~28% — decision 6. */
+const FADE_OPACITY = 0.28;
 
 /**
- * Every trip's route on one map. Deliberately read-only: no clustering, no
- * zoom, no detail panel — that is what the per-trip WorldMap is for, and
- * this only has to answer "where have we been".
+ * "Once per page load", not once per mount: a client-side route change that
+ * remounts this component (leaving `/trips` and coming back without a full
+ * reload) must not replay the world-to-"Alle" glide a second time. Module
+ * state rather than a prop, since nothing upstream of this component has a
+ * reason to know whether the intro has already played.
+ */
+let einstiegPlayed = false;
+
+type Vec = { x: number; y: number; w: number; h: number; lngScale: number };
+
+function toRaw(f: Vec) {
+  const rawW = f.w / f.lngScale;
+  return { rawCx: f.x / f.lngScale + rawW / 2, rawW, cy: f.y + f.h / 2, h: f.h };
+}
+function latOfCy(cy: number): number {
+  return 90 - (cy / 500) * 180;
+}
+function kOf(lat: number): number {
+  return Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+}
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+function easeInOut(t: number): number {
+  return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2;
+}
+
+/**
+ * Review found the first attempt at this (a whole-path bounding-box
+ * check) missed a real case on `/severin/trips`: a sea-coloured wedge from
+ * Kamchatka/Chukotka to the frame's top-right corner. That path's overall
+ * bounding box was not wide enough to trip a >=700-unit filter — only
+ * *one* edge inside it actually jumped the antimeridian, cutting a wedge
+ * out of an otherwise-local shape, not drawing a line clear across the
+ * world. So this checks every consecutive pair of points instead of the
+ * path's extremes, and splits at each jump rather than dropping the whole
+ * path — the same guard `scripts/build-world-countries.mts`'s
+ * `splitAntimeridian` already bakes into `lib/worldCountries.json`, run
+ * here at render time for the basemap bundle (`lib/basemap.ts`'s
+ * `data.borders`/`lakes`/`rivers`), which is a separate, pre-existing
+ * dataset this ticket does not regenerate — every map that calls
+ * `basemapFor()` shares it, and the real fix (baking the split into that
+ * bundle directly) belongs in its own ticket.
+ */
+const ANTIMERIDIAN_JUMP = 500; // half the 1000-unit world — a real border never spans more in one step.
+
+function fixAntimeridian(d: string): string {
+  return d
+    .split(/(?=M)/) // one or more "M…Z" subpaths concatenated in one `d`.
+    .map((sub) => {
+      const points = [...sub.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map(
+        (m) => [Number(m[1]), Number(m[2])] as const,
+      );
+      if (points.length < 2) return sub;
+      const runs: (readonly [number, number])[][] = [[points[0]]];
+      for (let i = 1; i < points.length; i++) {
+        const [x] = points[i];
+        const [prevX] = points[i - 1];
+        if (Math.abs(x - prevX) > ANTIMERIDIAN_JUMP) runs.push([]);
+        runs[runs.length - 1].push(points[i]);
+      }
+      return runs
+        .filter((run) => run.length >= 2)
+        .map((run) => `M${run.map(([x, y]) => `${x},${y}`).join(" L")} Z`)
+        .join(" ");
+    })
+    .join(" ");
+}
+
+/**
+ * Every trip's route on one map — rewritten for B2491.
+ *
+ * Deliberately not what B2423 drew. That version filled every visited
+ * country in one neutral tint and added a route line and an unnumbered
+ * marker per trip; on a real journal of 31 trips it became unreadable (see
+ * "Why" in docs/plans/2026-09-27-reisen-continent-switch.md) — 25 markers
+ * piled into Europe, one flight leg drawn corner to corner across the whole
+ * world, and a legend of 31 trips plus 20 countries. This map answers the
+ * simpler question a lifetime map is actually for — *where* has this
+ * journal been — with one fixed colour per visited country and a continent
+ * switch to zoom in where it happened, and draws no route, no dot and no
+ * trip legend at all.
  */
 export default function LifetimeMap({
-  routes,
   visits = [],
-  framePoints = [],
-  userPath = "",
-  basemap = null,
+  views = [],
+  continents = [],
+  pinned,
+  onPinnedChange,
 }: {
-  routes: TripRoute[];
-  /**
-   * Countries visited, and by which trips. When this is non-empty the map
-   * fills countries with the one neutral "visited" tint (B2423) in addition
-   * to each trip's own route and marker below; when it is empty only the
-   * routes and markers are drawn.
-   *
-   * The fallback is not decoration. A journal whose days carry no `country:`
-   * resolves nothing here, and filling nothing would render an empty world —
-   * strictly worse than the plain routes it falls back to. `viki` is exactly
-   * that journal. B361.
-   */
+  /** Countries visited, and by which trips — for the fill, the legend and
+   * the focus/hover label. Empty falls back to nothing drawn but ground:
+   * a journal whose days carry no `country:` (`viki`) gets a plain world
+   * rather than an empty one. B361. */
   visits?: CountryVisit[];
-  /**
-   * Extra points the frame must contain, drawn from nothing — B600.
-   *
-   * A teasered trip contributes countries to `visits` and no route, so
-   * framing on `routes` alone put its fill on a whole-world map. The page
-   * sends the corners of the *country's own outline* rather than the trip's
-   * stops, so what widens the frame is country-level; see the note beside
-   * `countryCorners` in `app/[user]/trips/page.tsx`. Nothing here is
-   * rendered — the frame is the only thing they touch.
-   */
-  framePoints?: Point[];
-  /** `/<user>`, for linking a country to the trip that reached it. */
-  userPath?: string;
-  /** Clipped to every trip's combined frame on the server — lib/basemap.ts. */
-  basemap?: Basemap | null;
+  /** Every selectable view ("all", each qualifying continent, each
+   * qualifying area), pre-framed and pre-clipped on the server —
+   * `lib/lifetimeMapViews.ts`. Empty when there is nothing to frame at all
+   * (an upcoming-only journal), in which case the map draws the plain
+   * world with no fill. */
+  views?: LifetimeView[];
+  /** The continent (and, per continent, area) buttons to draw above the
+   * map — same source as `views`. */
+  continents?: ContinentButton[];
+  /** The pinned country's code, or `null` — owned by the parent
+   * (`TripsIndexContent`), which is also what filters the trip cards below
+   * the map to it (decision 7). Controlled rather than internal state: the
+   * cards' own "✕ All trips" button has to clear the same value the map's
+   * pulsing outline reads, and two copies of it would drift the moment
+   * either side clears without the other. */
+  pinned: string | null;
+  onPinnedChange: (code: string | null) => void;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const worldLand = useWorldLand();
   const filling = visits.length > 0;
+  const allView = views.find((v) => v.id === "all") ?? null;
 
-  // Which country, if any, is under the pointer or keyboard focus — the
-  // visible half of the focusable label below (B2423/B361). Native <title>
-  // hover text answers a mouse and nobody else: a screen reader gets it as
-  // the link/group's own accessible name regardless (via `aria-label` on
-  // each country below), but a sighted keyboard user tabbing through never
-  // saw a hover-only tooltip render. This state drives one small caption
-  // instead, updated by both focus and hover so a mouse user sees the same
-  // thing a keyboard user does.
-  const [active, setActive] = useState<CountryVisit | null>(null);
-
-  // Frame the visited area rather than the whole world — otherwise two European
-  // trips are two dots in an ocean of empty Pacific.
-  //
-  // This was the third copy of that arithmetic in the codebase, with a third
-  // set of constants: 60/40 units of padding here, 70/55 in WorldMap, 90/60 in
-  // MiniMap. B46 put it in one place, so all three now agree on what "framed"
-  // means and all three get the latitude correction that stops a north-south
-  // route being drawn stretched sideways.
-  const view = useMemo(
-    () => frameRoute([...routes.flatMap((r) => r.points), ...framePoints]),
-    [routes, framePoints],
-  );
-
-  /**
-   * `px` sizes a marker or a route in real screen pixels rather than in
-   * viewBox units — the same fix WorldMap's own `px` needed, and the same
-   * reason (see the block comment above `px` in `components/WorldMap.tsx`):
-   * a fixed *fraction of the viewBox* is a different number of actual
-   * pixels depending on both the container's rendered width and how large
-   * an area the frame covers. This map's frame swings from one country to
-   * the whole world, so a fraction-of-viewBox marker that looked right for
-   * a single trip's own frame came out the size of a small country here —
-   * B2423's own bug, caught in review. Measuring the SVG's own rendered
-   * width with a `ResizeObserver`, the way WorldMap already does, is what
-   * makes `px(8)` mean the same ~8 CSS pixels whether the frame is a single
-   * country or six continents, and whatever the viewport width.
-   *
-   * `drawnWidth` starts at a plausible desktop guess so the server render
-   * and the first client frame agree (no hydration mismatch); the observer
-   * corrects it once the browser has actually laid the figure out.
-   */
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [drawnWidth, setDrawnWidth] = useState(900);
+  const [selectedId, setSelectedId] = useState<string>("all");
+  const [hoverCode, setHoverCode] = useState<string | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
+  // Not a lazy initializer: `matchMedia` is browser-only, and reading it
+  // while rendering (even guarded) is exactly what B454's hydration-safety
+  // keeper (test/hydration-safety.test.ts) exists to catch — a component
+  // must produce the same tree on the server and on the browser's first
+  // pass. An effect is the accepted place for this (`components/CurrencyProvider.tsx`).
+  const [canHover, setCanHover] = useState(false);
   useEffect(() => {
-    const el = svgRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const w = entry.contentRect.width;
-      if (w > 0) setDrawnWidth(w);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- adopting a media-query capability on mount, the same pattern CurrencyProvider and nine other components in this codebase use.
+    setCanHover(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
   }, []);
-  const px: Px = (pixels) => (pixels * view.w) / drawnWidth;
+  const [activeCode, setActiveCode] = useState<string | null>(null); // keyboard focus, for the visible caption
+
+  // Also lazy: a remount after the Einstieg already played (a client-side
+  // route change back to this page) starts directly on the target view
+  // rather than the whole-world frame the effect below would otherwise
+  // have to `setState` its way out of on the very first render.
+  const [displayFrame, setDisplayFrame] = useState<Vec>(() =>
+    einstiegPlayed ? (allView?.frame ?? WORLD_FRAME) : WORLD_FRAME,
+  );
+  const [displayBasemap, setDisplayBasemap] = useState<Basemap | null>(() =>
+    einstiegPlayed ? (allView?.basemap ?? null) : null,
+  );
+  // Starts at 1 (fully revealed), not 0 — B361's "no JavaScript still gets
+  // fills" applies to the very first paint too, server-rendered or not, so
+  // every fill is visible before any client effect runs. The Einstieg effect
+  // below is what drops this to 0 and animates it back up, entirely inside
+  // the one client-only tween — a brief flash on a fresh load rather than a
+  // blank map for anyone without JavaScript at all.
+  const [revealed, setRevealed] = useState(1);
+
+  const frameRef = useRef<Vec>(displayFrame);
+  const rafRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
-   * Each trip's route (its own stops, in order) and one marker — an
-   * unnumbered dot in the trip's accent, not `StopMarker`'s numbered stop
-   * disc: a single "1" on every trip's only marker read as "stop 1", which
-   * misleads (B2423 review). Kept local rather than a new shared primitive,
-   * since nothing else needs an unnumbered dot yet.
-   *
-   * The marker sits at the trip's first plottable point, then a single
-   * decluttering pass nudges apart any two trips whose markers would
-   * otherwise overlap on screen — two trips can start a few hundred
-   * kilometres apart in the same country, which is nothing at world zoom.
-   * The route line itself is drawn from the *un-nudged* points: only the
-   * summary dot moves.
+   * The basemap a glide should end on — read at completion time rather
+   * than captured in `animateTo`'s own closure. Found live, on a real
+   * journal: a continent view starts its glide with no basemap yet (still
+   * being fetched), and if `/api/lifetime-map-view` resolved *faster* than
+   * the 700ms glide, the fetch's own `setDisplayBasemap` ran first and the
+   * glide's completion then overwrote it right back to the `null` it was
+   * called with — the ground never actually updated, every time the fetch
+   * happened to win the race, which on a local dev server is most of the
+   * time. Both the fetch and the glide's completion now write through
+   * this ref and read it back, so whichever finishes last is what shows,
+   * instead of whichever was captured first.
    */
-  const MARKER_RADIUS_PX = 8;
-  const tripDraws = useMemo(() => {
-    const unitsToPx = (u: number) => (u * drawnWidth) / view.w;
-    const pxToUnits = (p: number) => (p * view.w) / drawnWidth;
-    const list = routes
-      .map((route) => {
-        const pts = route.points.filter(isPlottable).map((p) => placeIn(view, p));
-        if (pts.length === 0) return null;
-        const hops: RouteHop[] = pts.slice(0, -1).map(([x1, y1], i) => {
-          const [x2, y2] = pts[i + 1];
-          return { x1, y1, x2, y2 };
-        });
-        return { route, hops, mx: pts[0][0], my: pts[0][1] };
-      })
-      .filter((d): d is { route: TripRoute; hops: RouteHop[]; mx: number; my: number } => d !== null);
+  const targetBasemapRef = useRef<Basemap | null>(null);
 
-    // ponytail: a single pass separates a directly-overlapping pair; three
-    // or more markers all mutually close (unseen in any real journal so
-    // far) may still overlap. A real force-directed declutter if that turns
-    // up.
-    const minGapPx = MARKER_RADIUS_PX * 2.4;
-    for (let i = 0; i < list.length; i++) {
-      for (let j = i + 1; j < list.length; j++) {
-        const a = list[i];
-        const b = list[j];
-        const dx = b.mx - a.mx;
-        const dy = b.my - a.my;
-        const distPx = unitsToPx(Math.hypot(dx, dy));
-        if (distPx >= minGapPx) continue;
-        const len = Math.hypot(dx, dy);
-        const [ux, uy] = len > 0 ? [dx / len, dy / len] : [1, 0];
-        const pushUnits = pxToUnits(minGapPx - distPx) / 2;
-        a.mx -= ux * pushUnits;
-        a.my -= uy * pushUnits;
-        b.mx += ux * pushUnits;
-        b.my += uy * pushUnits;
-      }
+  function cancelAnimation() {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
+    rafRef.current = null;
+    timeoutRef.current = null;
+  }
+
+  function animateTo(target: Vec, targetBasemap: Basemap | null, opts: { duration: number; einstieg?: boolean }) {
+    cancelAnimation();
+    targetBasemapRef.current = targetBasemap;
+    const reduced =
+      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      if (opts.einstieg) einstiegPlayed = true;
+      setDisplayFrame(target);
+      frameRef.current = target;
+      setDisplayBasemap(targetBasemapRef.current);
+      setRevealed(1);
+      return;
     }
-    return list;
-  }, [routes, view, drawnWidth]);
+    const from = frameRef.current;
+    const startRaw = toRaw(from);
+    const endRaw = toRaw(target);
+    const startTime = performance.now();
+    if (opts.einstieg) setRevealed(0);
 
-  const label =
-    routes.length > 0
-      ? `${t("trips.mapLabel")}: ${routes.map((r) => r.title).join(", ")}`
-      : t("trips.mapLabel");
+    const step = (now: number) => {
+      // Only marked "played" once a frame actually runs — not when the
+      // tween is merely requested. React's development StrictMode mounts
+      // an effect, immediately cleans it up, then mounts it again; the
+      // cleanup here (`cancelAnimation`, from the other effect below)
+      // cancels the *pending* rAF before the browser ever calls it, so if
+      // `einstiegPlayed` were set synchronously in the effect body, the
+      // second, surviving mount would see it already true and never
+      // restart what the first mount's cancellation just threw away. This
+      // way the flag is only true once the browser has actually painted a
+      // frame of it.
+      if (opts.einstieg) einstiegPlayed = true;
+      const t = Math.min(1, (now - startTime) / opts.duration);
+      const e = easeInOut(t);
+      const rawCx = lerp(startRaw.rawCx, endRaw.rawCx, e);
+      const rawW = Math.exp(lerp(Math.log(startRaw.rawW), Math.log(endRaw.rawW), e));
+      const cy = lerp(startRaw.cy, endRaw.cy, e);
+      const h = Math.exp(lerp(Math.log(startRaw.h), Math.log(endRaw.h), e));
+      const k = kOf(latOfCy(cy));
+      const w = rawW * k;
+      const next: Vec = { x: rawCx * k - w / 2, y: cy - h / 2, w, h, lngScale: k };
+      frameRef.current = next;
+      setDisplayFrame(next);
+      if (opts.einstieg) setRevealed(t);
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(step);
+      } else {
+        setDisplayBasemap(targetBasemapRef.current);
+        rafRef.current = null;
+      }
+    };
+    rafRef.current = requestAnimationFrame(step);
+    // A tab backgrounded mid-glide, or headless capture where rAF never
+    // fires, must not leave the map frozen half-way — the same guard the
+    // clickable draft gave every tween.
+    timeoutRef.current = setTimeout(() => {
+      if (opts.einstieg) einstiegPlayed = true;
+      frameRef.current = target;
+      setDisplayFrame(target);
+      setDisplayBasemap(targetBasemapRef.current);
+      setRevealed(1);
+      cancelAnimation();
+    }, opts.duration + 300);
+  }
+
+  // Einstieg: once per page load, the world glides into "Alle" while
+  // countries colour in west to east — decision 5. Never replayed on a
+  // later switch, and skipped outright under reduced motion (handled
+  // inside `animateTo`).
+  useEffect(() => {
+    if (!allView || einstiegPlayed) return; // the lazy initializers above already reflect this state.
+    frameRef.current = WORLD_FRAME;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off a requestAnimationFrame tween is exactly the "external system" case the rule carves out; it is not a synchronous re-render loop.
+    animateTo(allView.frame, allView.basemap, { duration: EINSTIEG_MS, einstieg: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, keyed on mount only.
+  }, []);
+
+  useEffect(() => () => cancelAnimation(), []);
+
+  /**
+   * Basemaps fetched on demand (`/api/lifetime-map-view`) for every view
+   * but "Alle" — measured at up to 1.7 MB inline for a real journal's ten
+   * views, so only the frame ships up front and this is filled in the
+   * first time each view is actually selected. A plain object, not state:
+   * nothing about *drawing* the map depends on this cache directly — only
+   * `displayBasemap` (below) does, and that is what a fetch's `then` sets.
+   */
+  const fetchedBasemapsRef = useRef<Map<string, Basemap>>(new Map());
+  const selectedIdRef = useRef(selectedId);
+
+  function selectView(id: string) {
+    if (id === selectedId) return;
+    const view = views.find((v) => v.id === id);
+    if (!view) return;
+    setSelectedId(id);
+    selectedIdRef.current = id;
+    const cached = view.basemap ?? fetchedBasemapsRef.current.get(id) ?? null;
+    animateTo(view.frame, cached, { duration: GLIDE_MS });
+    if (view.basemap === null && !fetchedBasemapsRef.current.has(id)) {
+      const { x, y, w, h, lngScale } = view.frame;
+      fetch(`/api/lifetime-map-view?x=${x}&y=${y}&w=${w}&h=${h}&lngScale=${lngScale}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { basemap: Basemap | null } | null) => {
+          if (!data?.basemap) return;
+          fetchedBasemapsRef.current.set(id, data.basemap);
+          // Swap in only if still on this view — a reader who has already
+          // moved on by the time this resolves must not have their new
+          // view's ground pulled out from under them. Also updates the
+          // ref a still-in-flight glide's own completion reads, so a fetch
+          // that resolves before the glide finishes is not overwritten
+          // back to null once it does.
+          if (selectedIdRef.current === id) {
+            targetBasemapRef.current = data.basemap;
+            setDisplayBasemap(data.basemap);
+          }
+        })
+        .catch(() => {
+          // A failed fetch leaves the plain world outline drawn — the same
+          // fallback a journal with no basemap bundle at all already gets.
+        });
+    }
+    if (pinned && !view.countryCodes.includes(pinned)) setPin(null);
+  }
+
+  function setPin(code: string | null) {
+    onPinnedChange(code);
+  }
+
+  function togglePin(code: string) {
+    setPin(pinned === code ? null : code);
+  }
+
+  useEffect(() => {
+    if (!pinned) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPin(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinned]);
+
+  const currentView = views.find((v) => v.id === selectedId);
+  const inView = new Set(currentView?.countryCodes ?? visits.map((v) => v.code));
+
+  const byCode = new Map(visits.map((v) => [v.code, v]));
+  const pinnedVisit = pinned ? byCode.get(pinned) : null;
+  const hoverVisit = hoverCode ? byCode.get(hoverCode) : null;
+
+  // Legend: countries only, sorted by trip count, following the current
+  // selection — decision 10.
+  const legend = visits
+    .filter((v) => inView.has(v.code))
+    .slice()
+    .sort((a, b) => b.trips.length - a.trips.length);
+
+  const label = t("trips.mapLabel");
 
   return (
-    <figure className="overflow-hidden rounded-2xl border border-line-quiet bg-sky-300">
+    <figure
+      className="overflow-hidden rounded-2xl border border-line-quiet"
+      style={{ backgroundColor: mapStyle.sea }}
+    >
+      {(continents.length >= 2 || (currentView?.kind === "continent" && (continents.find((c) => c.continent === currentView.continent)?.areas.length ?? 0) >= 2)) && (
+        <div className="flex gap-2 overflow-x-auto border-b border-line-quiet bg-surface-raised px-4 py-2.5 text-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <ViewButton active={selectedId === "all"} onClick={() => selectView("all")}>
+            {t("trips.map.all")}
+          </ViewButton>
+          {continents.length >= 2 &&
+            continents.map((c) => (
+              <ViewButton key={c.continent} active={selectedId === c.continent} onClick={() => selectView(c.continent)}>
+                {t(c.labelKey)} {c.count}
+              </ViewButton>
+            ))}
+          {currentView &&
+            (currentView.kind === "continent" || currentView.kind === "area") &&
+            continents
+              .find((c) => c.continent === currentView.continent)
+              ?.areas.map((a) => (
+                <ViewButton
+                  key={a.subregion}
+                  active={selectedId === `${currentView.continent}\u0000${a.subregion}`}
+                  onClick={() => selectView(`${currentView.continent}\u0000${a.subregion}`)}
+                >
+                  {t(a.labelKey)} {a.count}
+                </ViewButton>
+              ))}
+        </div>
+      )}
       <svg
-        ref={svgRef}
-        viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
-        // A map is the point of this figure, so it gets a floor to stand on:
-        // framed to a landscape shape it would otherwise be a 150-pixel band on
-        // a phone, which is a picture of nothing.
-        className="block h-auto min-h-[260px] w-full sm:min-h-0"
-        // `role="img"` promises there is nothing inside worth reaching, which
-        // is true until a country becomes a link or a focusable group — an
-        // image's children are not exposed, so they would exist for the mouse
-        // and for nobody else. B361.
+        viewBox={`${displayFrame.x} ${displayFrame.y} ${displayFrame.w} ${displayFrame.h}`}
+        className="block h-auto min-h-[260px] w-full sm:aspect-[2/1] sm:min-h-0 aspect-[1.08/1]"
         role={filling ? "group" : "img"}
         aria-label={label}
+        // No pinch or drag on the map itself (decision 9) — the page
+        // scrolls over it; the continent/area row above scrolls on its own.
+        style={{ touchAction: "pan-y" }}
       >
-        {/* Same fills as the per-trip WorldMap (components/WorldMap.tsx), so the
-            two read as the same map — including the basemap when it has been
-            built, which is what lets a Swiss trip show a border rather than an
-            empty green field. */}
-        <g transform={`scale(${view.lngScale} 1)`}>
-          {basemap ? (
+        <g transform={`scale(${displayFrame.lngScale} 1)`}>
+          {displayBasemap ? (
             <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
-              {basemap.borders.map((d, i) => (
-                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+              {displayBasemap.borders.map((d, i) => (
+                <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
               ))}
             </g>
           ) : (
             <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
               {worldLand.map((d, i) => (
-                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
               ))}
             </g>
           )}
-          {/*
-            One neutral "visited" tint for every country, whoever reached it and
-            however many trips did (B2423) — replacing the per-country flag
-            colours `lib/flagColours.ts` used to assign, which put Switzerland
-            in two trips and two unrelated coral trips in visibly different
-            colours for no reason a reader could learn. The fill still carries
-            the accessible name for a screen reader (`aria-label`); a sighted
-            keyboard user reads it from the caption below the map, since the
-            fill itself has nothing left to look different by.
-          */}
           {filling && (
             <g stroke={mapStyle.ice} strokeWidth={0.8}>
               {visits.map((v) => {
-                const shape = (
-                  <path
-                    d={v.path}
-                    fill={mapStyle.visited}
-                    vectorEffect="non-scaling-stroke"
-                    className="cursor-pointer transition-opacity duration-150 hover:opacity-70"
-                  />
-                );
-                const ariaLabel = `${v.name} — ${v.trips.map((tr) => tr.title).join(", ")}`;
-                const focus = {
-                  onMouseEnter: () => setActive(v),
-                  onMouseLeave: () => setActive(null),
-                  onFocus: () => setActive(v),
-                  onBlur: () => setActive(null),
-                };
-                // A focus-visible ring: the paper fill gives a focused country
-                // nothing else to look different by once colour stopped
-                // carrying identity.
+                const fill = (countryColours as Record<string, string>)[v.code] ?? mapStyle.visited;
+                // Einstieg reveal — west to east across the fixed 1000-unit
+                // world, independent of the current frame.
+                const normalizedX = v.x / 1000;
+                const revealOpacity = revealed >= normalizedX ? 1 : 0;
+                const faded = inView.has(v.code) ? 1 : FADE_OPACITY;
+                const opacity = Math.min(revealOpacity, faded);
+                const isPinned = pinned === v.code;
+
+                const focus = canHover
+                  ? {
+                      onMouseEnter: (e: React.MouseEvent) => {
+                        setHoverCode(v.code);
+                        setHoverPos({ x: e.clientX, y: e.clientY });
+                      },
+                      onMouseMove: (e: React.MouseEvent) => setHoverPos({ x: e.clientX, y: e.clientY }),
+                      onMouseLeave: () => setHoverCode(null),
+                    }
+                  : {};
+
+                const ariaLabel = `${v.name} — ${v.trips.length} ${tn("trips.lifetimeTrips", v.trips.length)}`;
                 const focusRing =
                   "outline-2 outline-offset-1 outline-transparent focus-visible:outline-[var(--map-stop-ring)]";
 
-                /* One trip is a destination; several are not. Sending the
-                   reader to the most recent silently is the same trap the
-                   fill-colour decision already turned down, so a country
-                   several trips reached names them and the cards below the
-                   map are where you choose. B361. */
-                return v.trips.length === 1 && userPath ? (
-                  <a
+                return (
+                  <g
                     key={v.code}
-                    href={`${userPath}/trips/${v.trips[0].id}`}
+                    tabIndex={0}
+                    role="button"
+                    aria-pressed={isPinned}
                     aria-label={ariaLabel}
                     className={focusRing}
+                    onFocus={() => setActiveCode(v.code)}
+                    onBlur={() => setActiveCode(null)}
+                    onClick={() => togglePin(v.code)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        togglePin(v.code);
+                      }
+                    }}
                     {...focus}
                   >
-                    {shape}
-                  </a>
-                ) : (
-                  <g key={v.code} tabIndex={0} aria-label={ariaLabel} className={focusRing} {...focus}>
-                    {shape}
+                    <path
+                      d={v.path}
+                      fill={fill}
+                      opacity={opacity}
+                      vectorEffect="non-scaling-stroke"
+                      className="cursor-pointer transition-opacity duration-150"
+                    />
+                    {isPinned && (
+                      <path
+                        d={v.path}
+                        fill="none"
+                        stroke={mapStyle.stopRing}
+                        strokeWidth={2.5}
+                        vectorEffect="non-scaling-stroke"
+                        className="lifetime-map-pin-pulse"
+                      />
+                    )}
                   </g>
                 );
               })}
             </g>
           )}
-          {/* Water last, so a river does not disappear under a country
-              somebody visited — a lake that vanishes exactly where the map
-              is most coloured in reads as a rendering fault. */}
-          {basemap && (
+          {displayBasemap && (
             <>
               <g fill="none" stroke={mapStyle.water} strokeWidth={0.5}>
-                {basemap.rivers.map((d, i) => (
-                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                {displayBasemap.rivers.map((d, i) => (
+                  <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
                 ))}
               </g>
               <g fill={mapStyle.water} stroke={mapStyle.border} strokeWidth={0.7}>
-                {basemap.lakes.map((d, i) => (
-                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                {displayBasemap.lakes.map((d, i) => (
+                  <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
                 ))}
               </g>
             </>
           )}
         </g>
-        {/*
-          Every trip is its own accent route plus one marker (B2423,
-          docs/plans/map-redesign.md §1 "Reisen" row) — drawn over the ground
-          and the visited tint alike, and independently of whether `visits`
-          filled anything. This supersedes B344's "no line" rule for this map:
-          that rule was about a line asserting a journey *between two separate
-          trips'* pins, which never happened here; a straight line through one
-          trip's own stops, in its own accent, is the same route `TripMap`
-          already draws for that trip, only smaller. `placeIn` already bakes
-          in `view.lngScale`, so these are sibling to the scaled `<g>` above,
-          not inside it — the same convention the pins this replaces used.
-        */}
-        {tripDraws.map(({ route, hops, mx, my }) => (
-          <g key={route.id}>
-            {hops.length > 0 && <RouteLine hops={hops} accent={route.accent} px={px} />}
-            {/* An unnumbered dot, not `StopMarker` — a "1" on every trip's
-                only marker reads as "stop 1" (B2423 review). */}
-            <g aria-label={route.title} role="img">
-              <circle
-                cx={mx}
-                cy={my}
-                r={px(MARKER_RADIUS_PX)}
-                fill={mapAccent(route.accent)}
-                stroke={mapStyle.stopRing}
-                strokeWidth={px(1.5)}
-              />
-            </g>
-          </g>
-        ))}
       </svg>
-      {/* The visible half of the focus/hover label above — a screen reader
-          already has the country's name on the shape itself (`aria-label`),
-          so this exists for a sighted keyboard user with no other way to see
-          what just gained focus. Empty and out of the way otherwise. */}
-      {filling && (
-        <div aria-live="polite" className="min-h-0 px-4 pt-2 text-xs text-ink-body empty:hidden empty:p-0">
-          {active && `${active.name} — ${active.trips.map((tr) => tr.title).join(", ")}`}
+      {canHover && hoverVisit && hoverPos && (
+        <div
+          className="pointer-events-none fixed z-10 -translate-x-1/2 -translate-y-full rounded-md bg-surface-raised px-2 py-1 text-xs shadow-md"
+          style={{ left: hoverPos.x, top: hoverPos.y - 8 }}
+        >
+          {flagFromCode(hoverVisit.code)} {hoverVisit.name} · {hoverVisit.trips.length}
         </div>
       )}
-      {/* The legend carries whatever the map just encoded, so colour is never
-          the only thing saying it. */}
+      {filling && (
+        <div className="min-h-0 px-4 pt-2 text-xs text-ink-body empty:hidden empty:p-0">
+          {pinnedVisit ? (
+            <span className="flex items-center gap-2" aria-live="polite">
+              {flagFromCode(pinnedVisit.code)} {pinnedVisit.name} · {pinnedVisit.trips.length}{" "}
+              {tn("trips.lifetimeTrips", pinnedVisit.trips.length)} · {t("trips.map.filteredBelow")}
+              <button
+                type="button"
+                onClick={() => setPin(null)}
+                className="min-h-6 rounded px-1.5 text-ink-secondary underline underline-offset-2 hover:text-ink-strong"
+              >
+                ✕ {t("trips.allTrips")}
+              </button>
+            </span>
+          ) : (
+            activeCode &&
+            byCode.get(activeCode) && (
+              <span aria-live="polite">
+                {byCode.get(activeCode)!.name} — {byCode.get(activeCode)!.trips.map((tr) => tr.title).join(", ")}
+              </span>
+            )
+          )}
+        </div>
+      )}
       <figcaption className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-line-quiet bg-surface-raised px-4 py-3 text-xs text-ink-body">
-        {routes.map((r) => (
-          <span key={r.id} className="flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: mapAccent(r.accent) }}
-            />
-            {r.title}
+        {legend.map((v) => (
+          <span key={v.code} className="flex items-center gap-1.5">
+            <span aria-hidden>{flagFromCode(v.code)}</span>
+            {v.name}
+            {v.trips.length > 1 && <span className="text-ink-secondary">×{v.trips.length}</span>}
           </span>
         ))}
-        {filling &&
-          visits.map((v) => (
-            <span key={v.code} className="flex items-center gap-1.5">
-              {/* The flag is decoration beside a name that already says the
-                  country — `aria-hidden`, or a screen reader reads the
-                  country twice, once as a flag emoji. */}
-              <span aria-hidden>{flagFromCode(v.code)}</span>
-              {v.name}
-              {v.trips.length > 1 && (
-                <span className="text-ink-secondary">×{v.trips.length}</span>
-              )}
-            </span>
-          ))}
       </figcaption>
     </figure>
+  );
+}
+
+function ViewButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`min-h-8 shrink-0 whitespace-nowrap rounded-full px-3 py-1 font-medium transition-colors ${
+        active
+          ? "bg-ink-strong text-on-action"
+          : "bg-surface-muted text-ink-secondary hover:bg-surface-subtle hover:text-ink-strong"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

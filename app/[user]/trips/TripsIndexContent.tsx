@@ -8,18 +8,15 @@ import { mediaLoader } from "@/components/mediaLoader";
 import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
 import PageHeader from "@/components/PageHeader";
-import LifetimeMap, {
-  ACCENT_HEX,
-  type CountryVisit,
-  type TripRoute,
-} from "@/components/LifetimeMap";
-import type { Basemap } from "@/lib/basemap";
+import LifetimeMap, { type CountryVisit } from "@/components/LifetimeMap";
+import type { LifetimeView, ContinentButton } from "@/lib/lifetimeMapViews";
+import { flagFromCode } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { daysUntil } from "@/lib/tripTime";
 import type { MalformedTrip, MalformedTripReason } from "@/lib/trips";
-import type { TripAccent, TripStatus, TripTranslations } from "@/lib/types";
+import { ACCENT_HEX, type TripAccent, type TripStatus, type TripTranslations } from "@/lib/types";
 
 export type TripCardData = {
   id: string;
@@ -96,14 +93,6 @@ export type LockedTripData = {
   translations?: TripTranslations;
 };
 
-export type RouteData = {
-  id: string;
-  title: string;
-  accent: TripAccent;
-  translations?: TripTranslations;
-  points: { lat: number; lng: number; location: string }[];
-};
-
 /**
  * What the notice needs from a `MalformedTrip`, and no more.
  *
@@ -144,12 +133,10 @@ const TRIPS_SHOWN = 6;
 export default function TripsIndexContent({
   trips,
   locked = [],
-  framePoints = [],
-  routes,
   visits = [],
-  userPath = "",
+  views = [],
+  continents = [],
   lifetime,
-  basemap = null,
   empty = null,
   malformed = [],
   codeMinutes,
@@ -157,18 +144,14 @@ export default function TripsIndexContent({
   trips: TripCardData[];
   /** Closed trips advertised as locked cards — see `LockedTripData`. */
   locked?: LockedTripData[];
-  /** Points the lifetime map's frame must contain but nothing draws — the
-   * outlines of a teasered trip's countries. See `LifetimeMap`. B600. */
-  framePoints?: { lat: number; lng: number }[];
-  routes: RouteData[];
   /** Countries visited and by which trips — see LifetimeMap. Empty for a
-   * journal whose days carry no `country:`, which falls back to pins. */
+   * journal whose days carry no `country:`, which falls back to no map. */
   visits?: CountryVisit[];
-  /** `/<user>`, so a country can link to the trip that reached it. */
-  userPath?: string;
+  /** Every selectable continent/area view, pre-framed and pre-clipped on
+   * the server — `lib/lifetimeMapViews.ts`. */
+  views?: LifetimeView[];
+  continents?: ContinentButton[];
   lifetime: { countries: number; days: number; photos: number; trips: number };
-  /** Clipped on the server to every route's combined frame — lib/basemap.ts. */
-  basemap?: Basemap | null;
   /** Set only when the journal has no trips whatsoever. See `EmptyJournal`. */
   empty?: EmptyJournal | null;
   /** Trips on disk but too broken to render. Owner-only; the server sends an
@@ -178,7 +161,18 @@ export default function TripsIndexContent({
    * to the code-request form the empty state may offer. See `EmptyState`. */
   codeMinutes: string;
 }) {
-  const { t, tn, localizedTrip } = useI18n();
+  const { t, tn } = useI18n();
+
+  /**
+   * The pinned country — decision 7. Owned here, not inside `LifetimeMap`:
+   * this is the one piece of the map's own state something *else* on the
+   * page (the trip cards below) has to read, so both the map's pulsing
+   * outline and the cards' own filter and "✕ All trips" button read and
+   * clear the same value rather than two copies that could drift.
+   */
+  const [pinned, setPinned] = useState<string | null>(null);
+  const pinnedVisit = pinned ? visits.find((v) => v.code === pinned) : null;
+  const pinnedTripIds = pinnedVisit ? new Set(pinnedVisit.trips.map((tr) => tr.id)) : null;
 
   /*
    * The cards start at the six newest — B1766. `trips` already arrives in the
@@ -189,37 +183,33 @@ export default function TripsIndexContent({
    * lifetime map missing two thirds of a lifetime is a different claim.
    */
   const [expanded, setExpanded] = useState(false);
-  const shown = expanded ? trips : trips.slice(0, TRIPS_SHOWN);
+  // Decision 7: a pinned country filters the cards to the trips that
+  // reached it — continent/area buttons never do (decision 13), which is
+  // exactly why that filter lives here on `trips` rather than inside
+  // `LifetimeMap`, which only ever narrows its own frame.
+  const visibleTrips = pinnedTripIds ? trips.filter((tr) => pinnedTripIds.has(tr.id)) : trips;
+  const shown = expanded ? visibleTrips : visibleTrips.slice(0, TRIPS_SHOWN);
   // The card drawn first, whichever group it lands in — its cover is the
   // largest picture near the top of the page, so it is fetched at once
   // rather than when the lazy loader gets round to it.
   const firstCard = GROUPS.map(({ status }) => shown.find((tr) => tr.status === status)).find(Boolean)?.id;
 
-  // The map and its legend want each route's title already resolved to the
-  // active locale — LifetimeMap itself just renders what it's handed.
-  const mapRoutes: TripRoute[] = routes.map((r) => ({
-    id: r.id,
-    title: localizedTrip(r).title,
-    accent: r.accent,
-    points: r.points,
-  }));
-
   /**
    * The map, in a variable because two branches below can need it.
    *
-   * Drawn for a country fill as well as for a route — a journal whose only
-   * trip is teasered has no routes at all and still has a filled country to
+   * Drawn whenever there is a country to fill — a journal whose only trip is
+   * teasered has no readable trip at all and still has a filled country to
    * show (B600), and that page renders none of the rest of the block.
    */
   const map =
-    mapRoutes.length > 0 || visits.length > 0 ? (
+    visits.length > 0 ? (
       <div className="mt-7">
         <LifetimeMap
-          routes={mapRoutes}
           visits={visits}
-          framePoints={framePoints}
-          userPath={userPath}
-          basemap={basemap}
+          views={views}
+          continents={continents}
+          pinned={pinned}
+          onPinnedChange={setPinned}
         />
       </div>
     ) : null;
@@ -274,6 +264,30 @@ export default function TripsIndexContent({
 
             {map}
 
+            {/* Decision 7: the pinned country's own heading, rephrased as
+                "{flag} {name} · N Reisen" rather than templated "N Reisen in
+                {country}" — a single "in {country}" template is wrong for
+                some countries in German ("in der Schweiz", "im Vereinigten
+                Königreich"), and there is no per-country grammar table in
+                this codebase to localise it correctly instead (see the
+                ticket). The map's own caption under the figure already uses
+                this same rephrased form for the identical reason. */}
+            {pinnedVisit && (
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <h2 className="font-display text-xl font-semibold text-ink-strong">
+                  {flagFromCode(pinnedVisit.code)} {pinnedVisit.name} · {pinnedVisit.trips.length}{" "}
+                  {tn("trips.lifetimeTrips", pinnedVisit.trips.length)}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setPinned(null)}
+                  className="min-h-8 rounded-full bg-surface-muted px-3 py-1 text-sm text-ink-secondary hover:bg-surface-subtle hover:text-ink-strong"
+                >
+                  ✕ {t("trips.allTrips")}
+                </button>
+              </div>
+            )}
+
             {GROUPS.map(({ status, key }) => {
               const group = shown.filter((tr) => tr.status === status);
               if (group.length === 0) return null;
@@ -288,7 +302,7 @@ export default function TripsIndexContent({
                 </section>
               );
             })}
-            {shown.length < trips.length && (
+            {shown.length < visibleTrips.length && (
               <button
                 type="button"
                 onClick={() => setExpanded(true)}

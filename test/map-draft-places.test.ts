@@ -43,6 +43,7 @@ const TRIP_ID = "ridge-2026";
 
 let dir: string;
 let ownerToken: string;
+let ownerFrameWidth: number;
 
 function writeConfigs() {
   fs.writeFileSync(
@@ -131,13 +132,23 @@ async function tripMapPlaces(): Promise<unknown[]> {
   return element.props.children.props.places;
 }
 
-async function lifetimeMapPlaceCount(): Promise<number> {
+/**
+ * The lifetime map (B2491) draws no route or point of its own any more — it
+ * fills the visited *country*, which stays "Switzerland" either way here
+ * (Chur and Basel are both `CH`), so a places *count* is no longer an
+ * observable this map produces. What still tells the two viewers apart is
+ * the "Alle" view's own frame width: one point (the published day alone)
+ * hits the frame's minimum-span floor, while two points 150 km apart (the
+ * owner's draft included) spread the frame wider than that floor — the same
+ * underlying fact the old `routes[0].points.length` assertion checked, read
+ * off the one thing that still varies with it.
+ */
+async function lifetimeMapFrameWidth(): Promise<number> {
   const { default: TripsPage } = await import("@/app/[user]/trips/page");
   const element = (await resolveServerTree(await TripsPage({
     params: Promise.resolve({ user: OWNER }),
-  } as never))) as { props: { routes: { points: unknown[] }[] } };
-  const route = element.props.routes[0];
-  return route ? route.points.length : 0;
+  } as never))) as { props: { views: { id: string; frame: { w: number } }[] } };
+  return element.props.views.find((v) => v.id === "all")!.frame.w;
 }
 
 beforeAll(async () => {
@@ -172,8 +183,9 @@ describe("the owner, reading their own trip", () => {
     expect(await tripMapPlaces()).toHaveLength(2);
   });
 
-  test("gets both places' worth of points on the lifetime map", async () => {
-    expect(await lifetimeMapPlaceCount()).toBe(2);
+  test("gets a frame wide enough for both places on the lifetime map", async () => {
+    ownerFrameWidth = await lifetimeMapFrameWidth();
+    expect(ownerFrameWidth).toBeGreaterThan(0);
   });
 });
 
@@ -190,7 +202,7 @@ describe("a signed-out reader", () => {
     expect(await tripMapPlaces()).toHaveLength(1);
   });
 
-  test("gets only the published place's point on the lifetime map", async () => {
-    expect(await lifetimeMapPlaceCount()).toBe(1);
+  test("gets a narrower lifetime-map frame — the draft's spread is gone", async () => {
+    expect(await lifetimeMapFrameWidth()).toBeLessThan(ownerFrameWidth);
   });
 });

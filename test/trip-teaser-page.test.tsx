@@ -110,11 +110,12 @@ describe("a reader who may not open a teasered trip", () => {
   });
 
   test("and is not told the journal is empty, because it is not", async () => {
-    const props = (await pageProps()) as { empty: unknown; routes: unknown[] };
+    const props = (await pageProps()) as { empty: unknown; trips: unknown[] };
     expect(props.empty).toBeNull();
-    // No route, no stops, no coordinates — B600 draws countries and nothing
-    // else, and the route list is where a stop would have travelled.
-    expect(props.routes).toEqual([]);
+    // No readable trip at all — B600/B2491's map draws only the country
+    // fill (from `visits`), never a stop or a route (the map draws neither
+    // any more, for anybody).
+    expect(props.trips).toEqual([]);
   });
 
   test("fills the countries its published days reached, and only those", async () => {
@@ -140,19 +141,19 @@ describe("a reader who may not open a teasered trip", () => {
     for (const secret of ["37.0194", "-7.9304", "Faro", "Lagos", "Spain"]) {
       expect(sent, `${secret} reached a reader who may not open the trip`).not.toContain(secret);
     }
-    // And the map is drawn all the same — the country fill needs a basemap.
-    expect((props as { basemap: unknown }).basemap).not.toBeNull();
+    // And the map is drawn all the same — the country fill needs a basemap,
+    // now computed per view (B2491) rather than as one prop.
+    const views = (props as { views: { id: string; basemap: unknown }[] }).views;
+    expect(views.find((v) => v.id === "all")?.basemap).not.toBeNull();
   });
 
   test("frames the map on the country rather than on the whole world", async () => {
-    const props = (await pageProps()) as { framePoints: { lat: number; lng: number }[] };
-    const { frameRoute } = await import("@/lib/mapFrame");
-    // Portugal's own outline, so the frame is a country wide — not the 1000×500
-    // whole world an empty point list would give, and not the few kilometres
-    // between Faro and Lagos.
-    expect(props.framePoints.length).toBeGreaterThan(0);
-    const frame = frameRoute(props.framePoints);
-    expect(frame.w).toBeLessThan(200);
-    expect(frame.w).toBeGreaterThan(5);
+    // Portugal's own main-landmass corners (B2491's `mainBBox`), so the
+    // frame is a country wide — not the 1000×500 whole world an empty point
+    // list would give, and not the few kilometres between Faro and Lagos.
+    const props = (await pageProps()) as { views: { id: string; frame: { w: number } }[] };
+    const all = props.views.find((v) => v.id === "all")!;
+    expect(all.frame.w).toBeLessThan(200);
+    expect(all.frame.w).toBeGreaterThan(5);
   });
 });
