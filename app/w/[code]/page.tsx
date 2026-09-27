@@ -11,6 +11,7 @@ import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/loc
 import { mailDisabledReason } from "@/lib/mail";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrips } from "@/lib/trips";
+import { siteSummaryFor } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import WelcomeGuide, { type GuideDetails } from "./WelcomeGuide";
 
@@ -113,6 +114,17 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         trip={trip}
         hasGuestTrip={trips.some(isOpenToApprovedGuest)}
         landing={landing}
+        figures={siteSummaryFor(user, false).travellerFigures}
+        recent={
+          // B2457: only once this browser's session is this contact's — a
+          // forwarded link must not show which trips a journal has.
+          signedIn
+            ? trips
+                .filter((t) => isOpenToApprovedGuest(t) && t.status !== "upcoming")
+                .slice(0, 3)
+                .map((t) => ({ id: t.id, title: t.title, cover: t.cover ?? null, year: t.start.slice(0, 4) }))
+            : []
+        }
         signedIn={signedIn}
         onboarded={Boolean(contact.onboardedAt)}
         joined={(contact.createdVia ?? "").startsWith("invite:")}
