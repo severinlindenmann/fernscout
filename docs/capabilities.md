@@ -54,7 +54,6 @@ what it would generate.
 | `costs` | server-wide | — |
 | `credits` | server-wide | — |
 | `extract` | per journal | — |
-| `fulfilmentAccept` | server-wide | — |
 | `helper` | server-wide | — |
 | `iosApp` | server-wide | — |
 | `logging` | server-wide | — |
@@ -149,15 +148,11 @@ this build".
 | `whatsapp` | new-day messages and the guided assistant on WhatsApp |
 | `whatsappInbound` | the guided assistant reading WhatsApp messages |
 
-Two more features build on those but are not themselves refused in the open
-edition, because they behave differently when the feature they depend on is
+One more feature builds on those but is not itself refused in the open
+edition, because it behaves differently when the feature it depends on is
 absent:
 
 - `mapRelief` — the shaded relief layer on a photobook's route map. It needs
   `photobook` to be enabled (`REQUIREMENTS` in `lib/capabilities.ts`), so with
   no `photobook` in this build it is simply never reachable; switching it on
   by itself boots fine and does nothing.
-- `fulfilmentAccept` — accepting a print order handed off from another
-  instance. It needs a real `postcards` or `photobook` provider and a payment
-  method, not the paid-only refusal above; `/api/health` names whichever of
-  the two is missing.
