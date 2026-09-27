@@ -11,13 +11,15 @@ export const dynamic = "force-dynamic";
  * — only `recipient_mask` (already masked before it was written) comes
  * back, exactly as `message_log` itself never stores more.
  */
-export async function GET(request: Request) {
+/** POST, not GET (review L5): the address the operator types goes in the
+ * body, so no proxy access log or browser history ever keeps it. */
+export async function POST(request: Request) {
   if (!(await isInstanceAdmin())) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  const url = new URL(request.url);
-  const query = (url.searchParams.get("query") ?? "").trim();
+  const body = (await request.json().catch(() => null)) as { query?: unknown } | null;
+  const query = (typeof body?.query === "string" ? body.query : "").trim().slice(0, 320);
   if (!query) return Response.json({ rows: [] });
 
   const hash = recipientHash(query);

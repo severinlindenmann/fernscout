@@ -1,6 +1,6 @@
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
-import { SmsApiError, sendSms } from "@/lib/sms";
+import { SmsApiError, SmsSwitchedOffError, sendSms } from "@/lib/sms";
 import { toE164 } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +47,9 @@ export async function POST(request: Request) {
     const result = await sendSms({ to, body: text, template: "op.sms" });
     return Response.json({ ok: true, backend: result.backend, reference: result.reference });
   } catch (err) {
+    if (err instanceof SmsSwitchedOffError) {
+      return Response.json({ error: "switched_off", message: err.message }, { status: 409 });
+    }
     // The provider's own words reach the operator — a refused send with a
     // reason beats a generic failure on the one page built for this person.
     const message = err instanceof SmsApiError ? err.message : "The message could not be sent.";

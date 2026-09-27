@@ -51,6 +51,24 @@ export class SmsApiError extends Error {
   }
 }
 
+/**
+ * Thrown by `sendSms` when the operator's own switch (B2446) is off —
+ * security review M1. `sendSms` used to answer `{ backend: "switched-off" }`
+ * for this, a truthy, non-throwing result indistinguishable from a real
+ * send: `lib/digest/daySms.ts` counted the reader as sent and spent the
+ * credit, and `lib/contacts/welcome.ts` kept the credit and answered
+ * `ok:true`. Throwing routes a switched-off send through the same
+ * catch/refund path a real transport failure already takes, and lets a
+ * caller tell the two apart with `instanceof` where it needs to say which
+ * one happened.
+ */
+export class SmsSwitchedOffError extends Error {
+  constructor() {
+    super("This message kind is switched off by the operator.");
+    this.name = "SmsSwitchedOffError";
+  }
+}
+
 /** Writes the payload it would have sent, and sends nothing. Under
  * `dataDir()` beside the dry-run phone codes, never under the content root:
  * an SMS belongs to the instance, not to any journal. */
@@ -170,7 +188,7 @@ export async function sendSms(message: SmsMessage): Promise<SmsSendResult> {
       status: "skipped",
       reason: "switched_off:operator",
     });
-    return { backend: "switched-off", reference: null };
+    throw new SmsSwitchedOffError();
   }
 
   let result: SmsSendResult;

@@ -3,6 +3,7 @@ import { isTestContent } from "../access";
 import { isEnabled } from "../capabilities";
 import { whatsappCountryCode } from "../contactNumber";
 import { listContacts, manageTokenFor, unsubscribeUrlFor } from "../contacts";
+import { smsStopUrl } from "../contacts/smsStop";
 import { pickLocale } from "../contacts/locale";
 import { capText } from "../contacts/welcome";
 import { balanceOf, refund, spend } from "../credits";
@@ -12,7 +13,7 @@ import { translateIn } from "../locales";
 import { maskNumber, toE164 } from "../phone";
 import { maySeePhoto, type ReaderLevel } from "../photos";
 import { serverSite } from "../site";
-import { sendSms, smsUnreachable } from "../sms";
+import { sendSms, smsUnreachable, SmsSwitchedOffError } from "../sms";
 import { peopleOf } from "../tripPeople";
 import { getTrip } from "../trips";
 import type { Entry, Trip } from "../types";
@@ -36,7 +37,7 @@ import { recordNotified } from "./dayNotify";
  *   `owner.tel` alone does not opt anybody into texts.
  */
 
-type SmsRecipient = { to: string; locale: string; free: boolean; reader: ReaderLevel; manageToken: string };
+type SmsRecipient = { to: string; locale: string; free: boolean; reader: ReaderLevel; stop: string };
 
 async function recipientsFor(trip: Trip, entry: Entry | null): Promise<SmsRecipient[]> {
   const owner = trip.username;
@@ -66,7 +67,11 @@ async function recipientsFor(trip: Trip, entry: Entry | null): Promise<SmsRecipi
       locale: pickLocale(contact.locale),
       free: email !== "" && email === ownerEmail,
       reader,
-      manageToken: manageTokenFor(owner, contact.id),
+      // A stop-only link (review L2), never the manage token: an SMS body
+      // lives in provider logs and forwarded texts.
+      stop:
+        smsStopUrl(serverSite().url, owner, contact.id) ??
+        unsubscribeUrlFor(serverSite().url, owner, manageTokenFor(owner, contact.id), "sms"),
     });
   }
   return out;
@@ -92,7 +97,19 @@ export type DaySmsOutcome =
   | { ok: true; sent: { to: string }[]; failed: { to: string; error: string }[] }
   | {
       ok: false;
-      reason: "unknown_trip" | "unknown_day" | "not_published" | "test_content" | "sms_off" | "contacts_off" | "no_credits";
+      reason:
+        | "unknown_trip"
+        | "unknown_day"
+        | "not_published"
+        | "test_content"
+        | "sms_off"
+        | "contacts_off"
+        | "no_credits"
+        // The operator switched news.sms off (M1) — every recipient shares
+        // one template, so the first send to throw SmsSwitchedOffError
+        // speaks for all of them: nothing sent, nothing charged, no day
+        // marked notified on this channel.
+        | "switched_off";
       needed?: number;
       balance?: number;
     };
@@ -127,12 +144,20 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
       trip: capText(trip.title, 60),
       day: capText(entry.title, 60),
       url,
-      stop: unsubscribeUrlFor(serverSite().url, owner, recipient.manageToken, "sms"),
+      stop: recipient.stop,
     });
     try {
       await sendSms({ to: recipient.to, body, template: "news.sms", owner: trip.username });
       sent.push({ to: recipient.to });
     } catch (err) {
+      if (err instanceof SmsSwitchedOffError) {
+        // The same template for everybody on this send, so the first throw
+        // speaks for the rest: give back the whole pre-spend rather than
+        // trickling refunds recipient by recipient, and never mark the day
+        // notified on a channel that sent nothing (M1).
+        if (needed > 0) await refund(owner, needed, ledgerRef);
+        return { ok: false, reason: "switched_off" };
+      }
       failed.push({ to: recipient.to, error: err instanceof Error ? err.message : String(err) });
       if (!recipient.free) owed++;
     }

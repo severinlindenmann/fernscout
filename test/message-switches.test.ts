@@ -134,3 +134,26 @@ describe("message switches", () => {
     expect(result.sent).toBe(1);
   });
 });
+
+describe("flow and node switches reach a send that names only its template (review L4)", () => {
+  test("switching the evening flow off stops nudge.evening; back on, it goes again", async () => {
+    const { isSwitchedOff, setSwitch } = await import("@/lib/messages/switches");
+    expect(await isSwitchedOff("nudge.evening")).toBe(false);
+    await setSwitch("evening", true, "admin@example.test");
+    expect(await isSwitchedOff("nudge.evening")).toBe(true);
+    await setSwitch("evening", false, "admin@example.test");
+    expect(await isSwitchedOff("nudge.evening")).toBe(false);
+  });
+
+  test("switching the node off stops it too", async () => {
+    const { isSwitchedOff, setSwitch } = await import("@/lib/messages/switches");
+    await setSwitch("evening/nudge.evening", true, "admin@example.test");
+    expect(await isSwitchedOff("nudge.evening")).toBe(true);
+  });
+
+  test("a required template stays on whatever its flow says", async () => {
+    const { isSwitchedOff, setSwitch } = await import("@/lib/messages/switches");
+    await setSwitch("signin", true, "admin@example.test");
+    expect(await isSwitchedOff("code.mail")).toBe(false);
+  });
+});
