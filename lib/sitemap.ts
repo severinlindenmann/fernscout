@@ -132,6 +132,7 @@ export function journalsSitemap(): SitemapEntry[] {
 export function agentsSitemap(): SitemapEntry[] {
   const base = serverSite().url;
   return [
+    "/llms.txt",
     "/documentation.txt",
     ...SKILL_DOC_SLUGS.map(skillDocPath),
     "/api/v2/openapi.json",
