@@ -285,6 +285,15 @@ export type SiteSummary = {
    * already guard against. Journal-wide and viewer-independent.
    */
   extractEnabled: boolean;
+  /**
+   * On the operator's own showcase list (`site.showcase`) — B1724 and,
+   * since B2464, the same reason `NextDayPrompt` (in `StoryPager.tsx`) reads
+   * it too: a reader here is deciding whether to start their own journal, not
+   * whether they want the next day of somebody else's, so a card asking that
+   * is exactly the second thing `ShowcaseBar` was written to keep off this
+   * page. Journal-wide and viewer-independent, like `canSignIn` above.
+   */
+  isShowcase: boolean;
 };
 
 /**
@@ -334,6 +343,7 @@ export function siteSummaryFor(
     analyticsEnabled: analyticsAvailable(user.username),
     helperEnabled: isEnabled("helper", user.username),
     extractEnabled: isEnabled("extract", user.username),
+    isShowcase: loadServerConfig().site.showcase.includes(user.username),
   };
 }
 

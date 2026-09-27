@@ -13,6 +13,9 @@
 @import "tailwindcss" source(none);
 @source "../app";
 @source "../components";
+/* The schools and tour-operator pages (B2450) live only in the private
+   paid/ checkout; without it this path does not exist and adds nothing. */
+@source "../paid/orgs";
 @plugin "@tailwindcss/typography";
 
 :root {
@@ -426,9 +429,11 @@ html {
   /* line-strong (above) is already this theme's "more visible than the
      ordinary line" step — the same job a dashed internal border needs. */
   --map-border-internal: #60708c;
-  /* Snow/ice still reads as the odd pale patch on an otherwise dark map,
-     without the glare of pure white. */
-  --map-ice: #e8ecf2;
+  /* Snow/ice as a step lighter than land, not a pale patch that swamps the
+     whole map — B2424 review found the near-white first cut of this token
+     dominated every dark map wherever a glacier or icefield covered any
+     real area, drowning the route and markers under it. */
+  --map-ice: #2a3a52;
   --map-road: #2b3750;
   --map-road-casing: #242e40;
   --map-stop-fill: #1f2736;
@@ -514,7 +519,7 @@ html {
     --map-water: #16324a;
     --map-border: #3d4d66;
     --map-border-internal: #60708c;
-    --map-ice: #e8ecf2;
+    --map-ice: #2a3a52;
     --map-road: #2b3750;
     --map-road-casing: #242e40;
     --map-stop-fill: #1f2736;
@@ -553,6 +558,50 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* The slideshow's own map is always dark, regardless of the reader's theme
+   (B2424, docs/plans/map-redesign.md §1 "Accent") — forces every `--map-*`
+   token to its dark value on `SlideMap`'s own subtree. Same override shape
+   `.fs-ask-dark` above uses for one background/colour pair, scoped instead
+   to the whole map token set (values copied from `:root[data-theme="dark"]`
+   above, kept in sync by `test/map-tokens.test.ts`). */
+.fs-map-dark {
+  --map-land: #1b2635;
+  --map-sea: #0e2231;
+  --map-water: #16324a;
+  --map-border: #3d4d66;
+  --map-border-internal: #60708c;
+  --map-ice: #2a3a52;
+  --map-road: #2b3750;
+  --map-road-casing: #242e40;
+  --map-stop-fill: #1f2736;
+  --map-stop-ring: #f2ecdd;
+  --map-stop-number: #f2ecdd;
+  --map-selected-fill: #f2ecdd;
+  --map-selected-number: #1e293b;
+  --map-here-now: #ffd23f;
+  --map-here-now-halo: #4a3300;
+  --map-cluster-fill: #f2ecdd;
+  --map-cluster-text: #1e293b;
+  --map-route-casing: #1f2736;
+  --map-planned-leg: #f2ecdd;
+  --map-leg-chip-fill: #1f2736;
+  --map-leg-chip-border: #33405a;
+  --map-leg-chip-icon: #f2ecdd;
+  --map-label-stop: #f2ecdd;
+  --map-label-stop-halo: #1b2635;
+  --map-label-town: #c9c8c0;
+  --map-label-peak: #b9bbc0;
+  --map-control-fill: #1f2736;
+  --map-control-icon: #f2ecdd;
+  --map-control-shadow: #080b11;
+  --map-visited: #29354a;
+  --map-accent-sky: #5ec8dc;
+  --map-accent-yellow: #ffd23f;
+  --map-accent-green: #22c55e;
+  --map-accent-coral: #f38ba6;
+  --map-accent-navy: #aeb7c5;
 }
 
 /* Faint paper-grain texture so flat panels don't read as plain CSS. */
@@ -1505,72 +1554,6 @@ select:disabled {
   }
 }
 
-/*
- * B2326 — the reader's push. Overview to a day slides the day in from the
- * right over the overview, which drifts 28% left under a 14% shade; back is
- * the same run reversed. `moveTo` in app/TripStory.tsx starts the view
- * transition and says which way on <html data-page-nav>. Only the story
- * column moves; the header and sidebar crossfade with the root as usual.
- * A browser without view transitions never gets here and keeps the cut.
- */
-.fs-story-page {
-  view-transition-name: story-page;
-}
-::view-transition-image-pair(story-page) {
-  overflow: clip;
-}
-@media (prefers-reduced-motion: no-preference) {
-  :root[data-page-nav]::view-transition-group(story-page),
-  :root[data-page-nav]::view-transition-old(story-page),
-  :root[data-page-nav]::view-transition-new(story-page) {
-    animation-duration: 380ms;
-    animation-timing-function: var(--ease-ios, cubic-bezier(0.32, 0.72, 0, 1));
-    mix-blend-mode: normal;
-  }
-  :root[data-page-nav="forward"]::view-transition-old(story-page) {
-    animation-name: fs-push-under;
-  }
-  :root[data-page-nav="forward"]::view-transition-new(story-page) {
-    animation-name: fs-push-in;
-  }
-  /* Back has its own keyframes rather than `animation-direction: reverse`,
-     which would flip the curve too and make the pop start slowly. */
-  :root[data-page-nav="back"]::view-transition-old(story-page) {
-    animation-name: fs-pop-out;
-    z-index: 1;
-  }
-  :root[data-page-nav="back"]::view-transition-new(story-page) {
-    animation-name: fs-pop-under;
-  }
-  /* The header and sidebar change as they always did, at once: the scroll
-     jump back to the top would otherwise ghost them in a crossfade. */
-  :root[data-page-nav]::view-transition-old(root),
-  :root[data-page-nav]::view-transition-new(root) {
-    animation: none;
-  }
-}
-@keyframes fs-push-in {
-  from {
-    transform: translateX(100%);
-  }
-}
-@keyframes fs-push-under {
-  to {
-    transform: translateX(-28%);
-    filter: brightness(0.86);
-  }
-}
-@keyframes fs-pop-out {
-  to {
-    transform: translateX(100%);
-  }
-}
-@keyframes fs-pop-under {
-  from {
-    transform: translateX(-28%);
-    filter: brightness(0.86);
-  }
-}
 /*
  * Calm arrivals — photographs, menus, and a page that is on its way.
  *

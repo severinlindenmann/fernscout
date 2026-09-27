@@ -6,13 +6,15 @@ import {
   verifyCode,
 } from "@/lib/auth";
 import { setGuestSessionCookies, setIdentityCookie } from "@/lib/auth/identityCookie";
-import { markContactPhoneProven } from "@/lib/contacts";
+import { getContactByEmail, markContactPhoneProven, setContactLocaleIfEmpty } from "@/lib/contacts";
 import { whatsappCountryCode } from "@/lib/contactNumber";
 import { phoneSubject, subjectPhone, toE164 } from "@/lib/phone";
 import { isEnabled } from "@/lib/capabilities";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
+import { fromAcceptLanguage, parseLocale } from "@/lib/contacts/locale";
+import { LOCALE_COOKIE } from "@/lib/requestKeys";
 import { getTrip, tripRef } from "@/lib/trips";
 import { MAX_JOURNALS_PER_EMAIL, journalsOwnedBy } from "@/lib/journals";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -117,7 +119,14 @@ export async function POST(request: Request) {
   }
 
   const userAgent = req.for === "identity" ? request.headers.get("user-agent") : undefined;
-  const result = await verifyCode(owner, email, req.code, kind, scope, userAgent);
+  // "Last used" (W44 D7) — the request's own locale at the moment of a
+  // successful sign-in, written to `users.locale`. Read straight off this
+  // plain `Request` — the `fs.locale` cookie a sign-in link's `?lang=` sets,
+  // else `Accept-Language` — rather than `lib/locales.ts`'s `requestLocale()`,
+  // which needs `next/headers`' request-scoped `cookies()` and throws when
+  // this route is called directly (as every test here does).
+  const locale = cookieLocale(request) ?? fromAcceptLanguage(request.headers.get("accept-language"));
+  const result = await verifyCode(owner, email, req.code, kind, scope, userAgent, locale);
   if (!result.ok) {
     // One answer for every failure — wrong, expired, burned, wrong `for`, or a
     // `scope.trip` that does not match the bound code.
@@ -129,6 +138,10 @@ export async function POST(request: Request) {
     // address or number — B410. A proved number is stamped on its contact.
     const digits = subjectPhone(email);
     if (digits) await markContactPhoneProven(owner, digits);
+    // "Last used" (W44 D7) for the reader chain — only now the code proved
+    // who this is, and only when the contact has no language yet.
+    const contact = await getContactByEmail(owner, email);
+    if (contact) await setContactLocaleIfEmpty(owner, contact.id, locale);
     await setGuestSessionCookies(result.token, email, request.headers.get("user-agent"));
     return ok({ ok: true, expires: result.expiresAt, scope: "read" as const });
   }
@@ -209,4 +222,22 @@ async function agentScope(
   const trip = getTrip(tripRef(username, requestedTrip));
   if (!trip) return { ok: false, why: "the owner asked to narrow to a trip that does not exist" };
   return { ok: true, scope: tripWriteScope(trip.id) };
+}
+
+/** The `fs.locale` cookie, off a plain `Request` — same cookie
+ * `lib/locales.ts`'s `requestLocale()` reads through `next/headers`, parsed
+ * by hand so this route needs no request-scoped API. */
+function cookieLocale(request: Request): string | null {
+  const header = request.headers.get("cookie");
+  if (!header) return null;
+  for (const part of header.split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key !== LOCALE_COOKIE) continue;
+    try {
+      return parseLocale(decodeURIComponent(rest.join("=")));
+    } catch {
+      return null; // a malformed cookie is no language, not a failed sign-in
+    }
+  }
+  return null;
 }

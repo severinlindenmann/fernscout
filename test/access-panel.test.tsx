@@ -56,7 +56,7 @@ const owner: Viewer = { email: "owner@example.test", owner: true, guest: false, 
 const ownerWithTrips: Viewer = {
   ...owner,
   trips: [
-    { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "owner" },
+    { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "owner", status: "past", end: "2025-01-01" },
   ],
 };
 
@@ -154,7 +154,7 @@ describe("the reason beside each trip", () => {
       email: "reader@example.test",
       owner,
       guest: false,
-      trips: [{ id: "t", title: "A trip", href: "/alex/trips/t", through }],
+      trips: [{ id: "t", title: "A trip", href: "/alex/trips/t", through, status: "past", end: "2025-01-01" }],
     };
     return render({ viewer });
   }
@@ -228,7 +228,7 @@ describe("the way to the people, no longer offered on /me — B2017", () => {
         owner: false,
         guest: false,
         trips: [
-          { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "traveller" },
+          { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "traveller", status: "past", end: "2025-01-01" },
         ],
       },
     ];
@@ -304,10 +304,12 @@ describe("who a stranger is told to ask", () => {
  * read as broken here rather than intentional.
  */
 /**
- * B621 moved the **owner's** copy of this to `/{user}/contacts`, the page
- * already about addresses and consents, so every case here reads with a guest
- * — which is who the panel was built for and who has no other page to edit
- * their own name on. `paid/test/owner-self-details.test.ts` owns the owner's side.
+ * B621 moved the owner's copy of this off to the studio; B2462 moved it back
+ * here, to the top of the same page, once both reasons for keeping it away
+ * turned out not to hold — journal settings has its own page regardless
+ * (`/studio/journal`), and an owner asking "what is my postcard address" is
+ * exactly the same question a guest asks here. `paid/test/owner-self-details.test.ts`
+ * still owns the owner-only backend door (`/api/contacts/admin` "self").
  */
 describe("the details panel, inline", () => {
   const reader: Viewer = { email: "peter@example.test", owner: false, guest: true, trips: [] };
@@ -367,12 +369,26 @@ describe("the details panel, inline", () => {
     expect(html).toContain('value="Fam. Peter"');
   });
 
-  test("and is not on the owner's copy of this page at all — B621", () => {
-    // Theirs is on `/{user}/contacts` now. Rendered with the same `manage`
-    // the guest gets, so what this pins is the branch and not a missing prop.
+  test("the owner gets the same panel too, with their own row's data — B2462", () => {
+    // Rendered with the same `manage` the guest gets, so what this pins is
+    // the branch rendering it at all rather than a missing prop.
     const html = render({ viewer: owner, contactsEnabled: true, manage });
-    expect(html).not.toContain('value="Fam. Peter"');
-    expect(html).not.toContain(dictionaryFor("en")["me.editDetails"]);
+    expect(html).toContain('value="Fam. Peter"');
+    expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
+    // The owner's own wording, not the guest's.
+    expect(html).toContain(dictionaryFor("en")["me.detailsBodyOwner"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.detailsBody"]);
+  });
+
+  test("an owner with no row yet gets the add-my-details button instead of the form", () => {
+    const html = render({ viewer: owner, contactsEnabled: true });
+    expect(html).toContain(dictionaryFor("en")["me.detailsAddSelf"]);
+    expect(html).not.toContain("<details");
+  });
+
+  test("nothing at all without contacts enabled, even for the owner", () => {
+    const html = render({ viewer: owner, contactsEnabled: false });
+    expect(html).not.toContain(dictionaryFor("en")["me.details"]);
   });
 });
 
@@ -399,10 +415,10 @@ describe("what somebody on a trip is told they can write", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller" },
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller", status: "past", end: "2025-01-01" },
       // Readable, not writable — a public trip they were not on. It must not
       // acquire a prompt merely by being in the list.
-      { id: "open-road", title: "Open road", href: "/alex/trips/open-road", through: "public" },
+      { id: "open-road", title: "Open road", href: "/alex/trips/open-road", through: "public", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -411,7 +427,7 @@ describe("what somebody on a trip is told they can write", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest" },
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -569,7 +585,7 @@ describe("the sessions-consent block — B1385", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller" },
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -578,7 +594,7 @@ describe("the sessions-consent block — B1385", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest" },
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest", status: "past", end: "2025-01-01" },
     ],
   };
 

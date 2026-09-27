@@ -14,11 +14,12 @@ import {
   getContactByEmail,
   markContactPhoneProven,
   normaliseEmail,
+  setContactLocaleIfEmpty,
   setProvenEmail,
   setProvenPhone,
   type ContactRecord,
 } from "./index";
-import { pickLocale } from "./locale";
+import { pickLocale, fromAcceptLanguage } from "./locale";
 import { sendCodeMail } from "./mail";
 import { maskEmail } from "./welcome";
 
@@ -97,7 +98,10 @@ export async function sendGuestCode(
   if (!user || !contact || contact.status === "blocked") return { ok: false, reason: "no_contact" };
   const subject = await guestSubject(owner, contact, channel);
   if (!subject) return { ok: false, reason: "no_channel" };
-  const locale = pickLocale(options.locale ?? contact.locale, user.defaultLocale);
+  // Reader chain: the language asked for now, else the contact's own, else
+  // en — never the journal's default. Nothing is persisted here: a code
+  // request proves nothing, so "last used" is written on redeem instead.
+  const locale = pickLocale(options.locale ?? contact.locale);
   const digits = subjectPhone(subject);
 
   if (digits) {
@@ -153,6 +157,8 @@ async function textCode(
     await sendSms({
       to: digits,
       body: translateIn(locale, "contact.smsCodeBody", { code, title, minutes: CODE_TTL_MINUTES }),
+      template: "code.sms",
+      owner,
     });
     return true;
   } catch (err) {
@@ -205,7 +211,7 @@ export async function sendPhoneProof(
   const number = textableNumber(phone);
   if (!("digits" in number)) return { ok: false, reason: number.reason };
   if (!smsCodeAllowed(number.digits, options.ip)) return { ok: false, reason: "rate_limited" };
-  const locale = pickLocale(options.locale ?? contact.locale, user.defaultLocale);
+  const locale = pickLocale(options.locale ?? contact.locale);
   const sent = await textCode(owner, user.title, number.digits, locale, null, proofSubject(contact.id, number.digits));
   if (!sent) return { ok: false, reason: "send_failed" };
   return { ok: true, to: maskNumber(number.digits) };
@@ -271,7 +277,7 @@ export async function sendEmailProof(
   const subject = emailProofSubject(contact.id, email);
   const { code } = await issueCode(owner, subject, "guest");
   try {
-    await sendCodeMail(owner, user, email, pickLocale(options.locale ?? contact.locale, user.defaultLocale), code, null);
+    await sendCodeMail(owner, user, email, pickLocale(options.locale ?? contact.locale), code, null);
   } catch (err) {
     console.error(`[contacts] email proof for ${owner} could not be sent:`, err);
     await revokeCodes(owner, subject, "guest").catch(() => {});
@@ -361,15 +367,21 @@ export async function verifyGuestCode(
   owner: string,
   subject: string,
   code: string,
+  /** The redeeming request's Accept-Language — "last used" (W44 D7), written
+   * only now that the code proved this is the contact, and only when the
+   * contact has no language yet. */
+  acceptLanguage?: string | null,
 ): Promise<GuestSession | null> {
   const result = await verifyCode(owner, subject, code, "guest");
   if (!result.ok) return null;
   const digits = subjectPhone(result.email);
   if (digits) await markContactPhoneProven(owner, digits);
+  const contact = await getContactByEmail(owner, result.email);
+  if (contact && acceptLanguage) await setContactLocaleIfEmpty(owner, contact.id, fromAcceptLanguage(acceptLanguage));
   return {
     token: result.token,
     expiresAt: result.expiresAt,
     subject: result.email,
-    contact: await getContactByEmail(owner, result.email),
+    contact,
   };
 }

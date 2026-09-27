@@ -126,9 +126,13 @@ export function SiteHeader({
   helperEnabled = false,
   onSignIn,
   account,
+  orgsLinks,
 }: {
   siteName: string;
   locales?: string[];
+  /** "Schools · Operators", rendered by the page from `paid/orgs` and handed
+   * over like `Landing`'s `pricing` — B2450. Absent in a public build. */
+  orgsLinks?: React.ReactNode;
   /**
    * The signed-in address, once `/api/v2/me/home` has said there is one —
    * the chip to `/me`. Undefined on the server pass and for a stranger, for
@@ -185,6 +189,7 @@ export function SiteHeader({
         <Kicker>{siteName}</Kicker>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-1">
+        {orgsLinks}
         {admin && (
           // Drawn as LocaleSwitcher's `subtle` chip is, down to the hit area:
           // two controls side by side in the same corner have to read as one
@@ -843,7 +848,8 @@ export function DocsLink() {
 export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
   const { t, tn } = useI18n();
   return (
-    <section className="mt-12">
+    // `id` is a target: /tour-operators links "Read a real trip" here (B2450).
+    <section id="journals" className="mt-12 scroll-mt-4">
       <SectionHeading>{t("landing.publicTitle")}</SectionHeading>
 
       {journals.length === 0 ? (

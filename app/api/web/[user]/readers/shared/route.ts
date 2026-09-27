@@ -1,4 +1,6 @@
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { getContact } from "@/lib/contacts";
+import { logMessage } from "@/lib/messages/log";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
 
 export const dynamic = "force-dynamic";
@@ -26,12 +28,17 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   const body = jsonBody.value as Record<string, unknown> | null;
   const contactId = typeof body?.contactId === "string" ? body.contactId : null;
 
-  // TODO(B2438): logMessage({ owner: user, template: "invite.share", channel: "share", status: "sent", recipient: contactId })
-  // — the foundation branch (lib/messages/log.ts) is not on this branch yet;
-  // wire this once it merges. `contactId` names the contact whose address
-  // becomes the recipient hash; a group link (no contactId) logs a
-  // placeholder hash instead, per W44's model.
-  void contactId;
+  // The owner's own phone sent it, so nothing left Fernscout: the row only
+  // makes the person's timeline complete. A group link names nobody, so it
+  // is hashed as the link rather than as a person.
+  const contact = contactId ? await getContact(user, contactId) : null;
+  await logMessage({
+    template: "invite.share",
+    channel: "share",
+    to: contact?.email || contact?.postalAddress?.tel || `link:${user}`,
+    owner: user,
+    status: "sent",
+  });
 
   return new Response(null, { status: 204, headers: PRIVATE });
 }

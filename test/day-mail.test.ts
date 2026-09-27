@@ -712,6 +712,28 @@ describe("the two triggers, and what only the owner may pull", () => {
     expect(mailFiles().length).toBe(firstCount * 2);
   });
 
+  test("publish claims the mail channel once — a retried publish request finds it already spoken for", async () => {
+    // B2443 — mail on `/publish` had no claim at all, unlike WhatsApp and
+    // push beside it, so a retried request (the client's own timeout, not
+    // an owner asking to resend) could mail the whole readership twice. The
+    // same shape `test/publish-push.test.ts`'s "resending the same day does
+    // not push a second time" already pins for push: publishing again is
+    // refused by `already_published` long before this route re-reaches its
+    // own send code, so the claim itself — not the route around it — is
+    // exercised directly, keyed the same way the route claims it.
+    writeTrip("claimed", { visibility: "public" });
+    writeEntry("claimed", { date: "2026-09-08", slug: "claimed-day", draft: true });
+
+    const token = await agentToken();
+    const result = await publish(token, "claimed", "claimed-day", { send_mail: true });
+    expect((result.body.mail as Record<string, unknown>)?.attempted).toBe(true);
+    expect(mailFiles().length).toBeGreaterThan(0);
+
+    const { claimChannel } = await import("@/lib/digest/dayNotify");
+    const claimedAgain = await claimChannel(OWNER, "claimed", "claimed-day", "mail");
+    expect(claimedAgain).toBe(false);
+  });
+
   test("resending a draft is refused — nothing to send a letter about yet", async () => {
     writeTrip("early", { visibility: "public" });
     writeEntry("early", { date: "2026-09-08", slug: "still-a-draft", draft: true });

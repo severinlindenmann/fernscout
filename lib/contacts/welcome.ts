@@ -8,6 +8,7 @@ import { creditsInRappen } from "@paid/credits/lib/credits/pricing";
 import { getDatabase, getDatabaseOrNull, newId, nowIso } from "../db";
 import { translateIn } from "../locales";
 import { mailDisabledReason } from "../mail";
+import { logMessage } from "../messages/log";
 import { toE164 } from "../phone";
 import { rateLimitFor } from "../rateLimit";
 import { serverSite } from "../site";
@@ -20,6 +21,7 @@ import { decryptString, encryptString, hasContactsKey } from "./crypto";
 import { approveContact, confirmContactByOwner, getContact, type ContactRecord } from "./index";
 import { parseLocale, pickLocale } from "./locale";
 import { sendWelcomeMail } from "./mail";
+import { isInviteSuppressed } from "./suppressions";
 
 /**
  * The welcome link and the four ways an owner tells somebody about it — B2292
@@ -268,7 +270,9 @@ type ChannelBlock =
   /** The link was shown once and this server kept only its hash (no
    * contacts key): there is nothing to send or copy, and it is not quietly
    * replaced (L3). */
-  | "link_lost";
+  | "link_lost"
+  /** B2442 — this address (or number) asked never to be invited again. */
+  | "suppressed";
 
 /** The trip a buddy was added to — the newest place they hold or asked for. */
 export async function buddyTripOf(owner: string, contactId: string): Promise<{ id: string; title: string } | null> {
@@ -322,7 +326,7 @@ type Message = {
 async function messageFor(owner: string, contact: ContactRecord, code: string): Promise<Message | null> {
   const user = getUser(owner);
   if (!user) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const locale = pickLocale(contact.locale);
   const trip = await buddyTripTitle(owner, contact.id);
   const url = welcomeUrl(code);
   const vars = {
@@ -343,16 +347,20 @@ function smsDigits(contact: ContactRecord): string | null {
   return contact.phone ? toE164(contact.phone, whatsappCountryCode()) : null;
 }
 
-function blockFor(owner: string, contact: ContactRecord, channel: InviteChannel): ChannelBlock | null {
+/** B2442 — checked before any Fernscout-sent invite, mail or SMS: `self`
+ * sends nothing, so it is never suppressed. */
+async function blockFor(owner: string, contact: ContactRecord, channel: InviteChannel): Promise<ChannelBlock | null> {
   if (channel === "self") return null;
   if (channel === "email") {
     if (!contact.email.includes("@")) return "no_email";
-    return mailDisabledReason(owner) ? "mail_off" : null;
+    if (mailDisabledReason(owner)) return "mail_off";
+    return (await isInviteSuppressed(contact.email)) ? "suppressed" : null;
   }
   const digits = smsDigits(contact);
   if (!isEnabled("sms")) return "sms_off";
   if (!digits) return "no_mobile";
-  return smsUnreachable(digits) ? "unreachable" : null;
+  if (smsUnreachable(digits)) return "unreachable";
+  return (await isInviteSuppressed(digits)) ? "suppressed" : null;
 }
 
 /** What one message on this channel costs — 1 credit for SMS where this
@@ -406,12 +414,14 @@ export async function inviteOptions(owner: string, contactId: string): Promise<I
     name: contact.name,
     url: message?.url ?? null,
     to: { email: maskEmail(contact.email), mobile: maskMobile(contact.phone) },
-    channels: INVITE_CHANNELS.map((channel) => ({
-      channel,
-      cost: costOf(channel),
-      blocked: message ? blockFor(owner, contact, channel) : "link_lost",
-      preview: !message ? "" : channel === "self" ? message.url : message.text,
-    })),
+    channels: await Promise.all(
+      INVITE_CHANNELS.map(async (channel) => ({
+        channel,
+        cost: costOf(channel),
+        blocked: message ? await blockFor(owner, contact, channel) : "link_lost",
+        preview: !message ? "" : channel === "self" ? message.url : message.text,
+      })),
+    ),
     balance: await balanceOf(owner),
     creditPrice: creditsInRappen(1) > 0 ? formatChf(creditsInRappen(1)) : null,
     opened: contact.welcomeOpenedAt !== null,
@@ -478,7 +488,17 @@ export async function sendInvite(
     return { ok: true, channel, url: message.url, backend: null, charged: 0, balance: await balanceOf(owner) };
   }
   if (contact.welcomeOpenedAt) return { ok: false, reason: "already_opened" };
-  const blocked = blockFor(owner, contact, channel);
+  const blocked = await blockFor(owner, contact, channel);
+  if (blocked === "suppressed") {
+    await logMessage({
+      template: channel === "email" ? "invite.mail" : "invite.sms",
+      channel: channel === "email" ? "mail" : "sms",
+      to: channel === "email" ? contact.email : (smsDigits(contact) ?? contact.email),
+      owner,
+      status: "skipped",
+      reason: "suppressed",
+    });
+  }
   if (blocked) return { ok: false, reason: blocked };
   if (!rateLimitFor("invite-send", `${owner}:${contactId}`, SEND_LIMIT).ok) {
     return { ok: false, reason: "rate_limited" };
@@ -543,12 +563,12 @@ async function deliver(
   if (channel === "email") {
     const user = getUser(owner);
     if (!user) return null;
-    const sent = await sendWelcomeMail(owner, user, contact, message);
+    const sent = await sendWelcomeMail(owner, user, contact, message, "invite.mail");
     return sent?.transport ?? null;
   }
   const to = smsDigits(contact);
   if (!to) return null;
-  return (await sendSms({ to, body: message.text })).backend;
+  return (await sendSms({ to, body: message.text, template: "invite.sms", owner })).backend;
 }
 
 async function recordInvited(owner: string, contactId: string, channel: InviteChannel): Promise<void> {
@@ -573,7 +593,7 @@ export async function tellLetIn(owner: string, contact: ContactRecord): Promise<
   const user = getUser(owner);
   const code = user ? await welcomeCodeFor(owner, contact.id) : null;
   if (!user || !code) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const locale = pickLocale(contact.locale);
   const url = welcomeUrl(code);
   const vars = {
     name: capText(firstName(contact.name), 40),
@@ -585,11 +605,11 @@ export async function tellLetIn(owner: string, contact: ContactRecord): Promise<
   try {
     if (contact.email.includes("@") && contact.confirmedAt && !mailDisabledReason(owner)) {
       const subject = translateIn(locale, "welcomeLink.letInSubject", vars);
-      if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject })) return "email";
+      if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject }, "invite.in.mail")) return "email";
     }
     const digits = contact.phoneProvenAt ? smsDigits(contact) : null;
     if (digits && isEnabled("sms") && !smsUnreachable(digits)) {
-      await sendSms({ to: digits, body: text });
+      await sendSms({ to: digits, body: text, template: "invite.in.sms", owner });
       return "sms";
     }
   } catch (err) {

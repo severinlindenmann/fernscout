@@ -6,11 +6,11 @@ import { isOpenToLink, isTestContent } from "../access";
 import {
   listContacts,
   manageTokenFor,
-  manageUrl,
   unsubscribeUrlFor,
 } from "../contacts";
 import { mayMailContact } from "../contacts/mail";
 import { pickLocale } from "../contacts/locale";
+import { ownerLocale } from "../messages/locale";
 import type { UserConfig } from "../config";
 import { conversionFor, costForDay } from "../costs";
 import { formatMoney } from "../currency";
@@ -153,7 +153,9 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
     out.push({
       email: user.owner.email,
       name: user.owner.nickname || user.owner.name,
-      locale: pickLocale(user.defaultLocale),
+      // Owner chain (W44 D7): the address's own `users.locale`, then the
+      // journal's default, then en.
+      locale: await ownerLocale(owner, user.owner.email, user.defaultLocale),
       showCosts: true,
       reader: "person",
       manageToken: null,
@@ -182,7 +184,9 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
     out.push({
       email: contact.email,
       name: contact.name,
-      locale: pickLocale(contact.locale, user.defaultLocale),
+      // Reader chain (W44 D7): the contact's own locale, else en — never the
+      // journal's default, which is a guess about somebody else.
+      locale: pickLocale(contact.locale),
       showCosts: mayMailCosts(trip, isTraveller, isGrantHolder),
       reader: isTraveller ? "person" : "guest",
       manageToken: manageTokenFor(owner, contact.id),
@@ -349,18 +353,20 @@ async function renderDayLetter(
 
   blocks.push({ kind: "button", text: translateIn(locale, "dayMail.button"), href: url });
 
-  const manage = recipient.manageToken
-    ? manageUrl(base, trip.username, recipient.manageToken)
-    : undefined;
+  // One manage line now, not two (B2440): the one-click stop link, which is
+  // also what `List-Unsubscribe` points at — the preferences page a reader
+  // could also reach from their own manage token is one press further on
+  // from there, not a second line here.
+  // `s=mail` — B2442: this stream only, not every channel the reader chose.
   const unsubscribe = recipient.manageToken
-    ? unsubscribeUrlFor(base, trip.username, recipient.manageToken)
+    ? unsubscribeUrlFor(base, trip.username, recipient.manageToken, "mail")
     : undefined;
 
   // The owner has no manage token — there is no preference to change and
   // nothing to unsubscribe from one's own journal — and their copy is a
   // receipt, not a subscription they asked for. B1133: the contact footer
   // ("you asked to be kept posted") is false for them, so they get their own.
-  const footer = recipient.manageToken
+  const why = recipient.manageToken
     ? translateIn(locale, "digest.footer", { site: user.title })
     : translateIn(locale, "dayMail.ownerFooter", { site: user.title });
 
@@ -368,15 +374,16 @@ async function renderDayLetter(
     recipient.email,
     translateIn(locale, "dayMail.subject", { title: user.title, day: title }),
     {
+      template: "news.mail",
       preheader: title,
       title,
       blocks,
-      footer,
-      ...(manage
-        ? { manageLink: { text: translateIn(locale, "digest.preferences"), href: manage } }
+      why,
+      ...(unsubscribe
+        ? { manage: { text: translateIn(locale, "contact.unsubscribe"), href: unsubscribe } }
         : {}),
-      unsubscribeUrl: unsubscribe,
-      unsubscribeLabel: translateIn(locale, "contact.unsubscribe"),
+      locale,
+      journalTitle: user.title,
       ...(photo ? { attachments: [photo.attachment] } : {}),
     },
     trip.username,

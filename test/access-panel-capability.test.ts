@@ -82,6 +82,15 @@ vi.mock("next/navigation", () => ({
     throw new Error("notFound");
   },
 }));
+// B2462 — an owner now reaches the `manage` panel's own `requestLocale()`
+// call too (the branch used to be guest/traveller-only), which reads the
+// request's cookies and headers; this file calls the page function directly,
+// with no real request around it, so those need a mock like every other
+// caller of `requestLocale` in a test has.
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+  headers: async () => ({ get: () => null }),
+}));
 
 /**
  * `searchParams` is passed because Next always passes it, and since B142 the

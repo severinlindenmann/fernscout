@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
 import AgentKeys from "@/components/AgentKeys";
 import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentList";
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
 import OfflineTrips from "@/components/OfflineTrips";
+import NeverAskNextDay from "@/components/NeverAskNextDay";
 import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import ThisPhone from "@/components/studio/ThisPhone";
@@ -123,6 +126,56 @@ function ReadableTrips({
         </button>
       )}
     </>
+  );
+}
+
+/**
+ * The button that gives the owner a contact row of their own — B619, moved
+ * here from `components/studio/readers/OwnDetails.tsx` by B2462 along with
+ * the rest of "your own details", which now lives at the top of this page
+ * for owner and guest alike rather than behind a Settings signpost.
+ *
+ * One button rather than a form: the row is made empty and the form that
+ * appears in its place is the one everybody else already gets (the `manage`
+ * panel below, once `page.tsx`'s next read finds the row this just wrote).
+ * Nothing is mailed and nothing has to be confirmed, because the session
+ * that pressed this is already signed in as the address the row is for.
+ */
+function AddOwnDetails({ username, t }: { username: string; t: (key: TranslationKey) => string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function add() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch("/api/contacts/admin", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user: username, action: "self" }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      setFailed(true);
+      return;
+    }
+    // The row now exists, so the server renders the edit form in this
+    // section's place.
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-3">
+      <BusyButton
+        busy={busy}
+        type="button"
+        onClick={add}
+        className="inline-flex min-h-11 w-fit items-center rounded-full border border-line-ink px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle disabled:opacity-50"
+      >
+        {t("me.detailsAddSelf")}
+      </BusyButton>
+      {failed && <p role="alert" className="mt-2 text-sm text-coral-600">{t("me.journalFailed")}</p>}
+    </div>
   );
 }
 
@@ -288,6 +341,78 @@ export default function MePageContent({
           {t("me.title")}
         </h1>
 
+        {/*
+          Your own details, first — B2462. Used to sit at the very bottom,
+          the owner's copy behind a Settings signpost and hidden here
+          entirely (`!viewer.owner`); the same one form now opens right under
+          the title for owner and guest alike, since it is the same question
+          for both: what a postcard or a message to *you* is addressed to.
+        */}
+        {contactsEnabled && (manage || viewer.owner) && (
+          <section className="mt-6">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
+              {t("me.details")}
+            </h2>
+            {/*
+              Three readers, because the shortest sentence is false to two of
+              them — B320, then B619 widened it to three. "Nothing else on
+              this site can be edited here — the journal is written by an
+              agent" is exactly right for a guest; said to somebody on a
+              trip it reads as a closed door they in fact hold a key to; said
+              to the owner both halves are false, so theirs says what the
+              details are actually good for — a card in their own letterbox,
+              a message on their own telephone.
+            */}
+            <p className="mt-2 text-lg leading-8 text-ink-body">
+              {t(
+                viewer.owner
+                  ? "me.detailsBodyOwner"
+                  : writableTrips.length > 0
+                    ? "me.detailsBodyTraveller"
+                    : "me.detailsBody",
+              )}
+            </p>
+            {viewer.owner && (!manage || manage.token === "") ? (
+              // No row yet — the owner's own equivalent of the traveller's
+              // self-managed form below, but through the owner-only door
+              // (`/api/contacts/admin` action "self"): `/api/contacts/self`
+              // refuses anybody who is not a traveller, the owner included.
+              <AddOwnDetails username={username} t={t} />
+            ) : (
+              manage && (
+                /* A native `<details>` rather than a link to `/c/<token>`:
+                   the same form, opened in place instead of on a second page
+                   — see `ManagePanel` above for why the data now travels down
+                   instead of a URL. */
+                <details className="mt-3">
+                  <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-line-ink px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle [&::-webkit-details-marker]:hidden">
+                    {t("me.editDetails")}
+                  </summary>
+                  <div className="mt-4 rounded-2xl border border-line-quiet bg-surface-raised">
+                    <ContactManage
+                      className="px-5 py-6 sm:px-6"
+                      locales={manage.locales}
+                      dictionary={manage.dictionary}
+                      username={username}
+                      token={manage.token}
+                      contact={manage.contact}
+                      defaultCountryCode={manage.defaultCountryCode}
+                      addressLookupEnabled={manage.addressLookupEnabled}
+                      postcardsEnabled={manage.postcardsEnabled}
+                      whatsappEnabled={manage.whatsappEnabled}
+                      // B619. Their own row: the unsubscribe and delete
+                      // buttons below the form promise things that are not
+                      // true of the person whose journal it is — see the
+                      // prop's own note.
+                      isOwner={viewer.owner}
+                    />
+                  </div>
+                </details>
+              )
+            )}
+          </section>
+        )}
+
         {/* B10 — the door to "who is behind this journal", drawn only when
             there is somewhere for it to lead (see `hasAbout` above). */}
         {hasAbout && (
@@ -424,74 +549,6 @@ export default function MePageContent({
           </section>
         )}
 
-        {/*
-          Not the owner's — B621 moved theirs to `/{user}/contacts`, the page
-          that is already about addresses, consents and who gets a postcard,
-          where their own row is one more entry in the book rather than an
-          aside on the access page. A guest has no such page and keeps it
-          here, which is what it was built for.
-        */}
-        {manage && !viewer.owner && (
-          <section className="mt-6">
-            <h2 className="font-display text-xl font-semibold text-ink-strong">
-              {t("me.details")}
-            </h2>
-            {/*
-              Two sentences, because the shorter one is false to half its
-              readers — B320.
-
-              "Nothing else on this site can be edited here — the journal is
-              written by an agent" is exactly right for a guest. Said to
-              somebody on a trip it reads as a closed door, and they are one of
-              the people that agent writes for; it was the only thing on the
-              page that addressed their write access at all, and it denied it.
-              The traveller's version keeps the true half — there is still no
-              form, and it is still an agent that writes — and points at the
-              block that tells them how.
-            */}
-            <p className="mt-2 text-lg leading-8 text-ink-body">
-              {/* A third reader for a paragraph that had two — B619. To the
-                  owner both existing sentences are false: "the journal is
-                  written by an agent" is true and is not what this section is
-                  for, and the traveller's version points at a block they do
-                  not have. Theirs says what the details are actually good
-                  for, which is a card in their own letterbox and a message on
-                  their own telephone. */}
-              {t(
-                writableTrips.length > 0
-                  ? "me.detailsBodyTraveller"
-                  : "me.detailsBody",
-              )}
-            </p>
-            {/* A native `<details>` rather than a link to `/c/<token>`: the
-                same form, opened in place instead of on a second page — see
-                `ManagePanel` above for why the data now travels down instead
-                of a URL. */}
-            <details className="mt-3">
-              <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-line-ink px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle [&::-webkit-details-marker]:hidden">
-                {t("me.editDetails")}
-              </summary>
-              <div className="mt-4 rounded-2xl border border-line-quiet bg-surface-raised">
-                <ContactManage
-                  className="px-5 py-6 sm:px-6"
-                  locales={manage.locales}
-                  dictionary={manage.dictionary}
-                  username={username}
-                  token={manage.token}
-                  contact={manage.contact}
-                  defaultCountryCode={manage.defaultCountryCode}
-                  addressLookupEnabled={manage.addressLookupEnabled}
-                  postcardsEnabled={manage.postcardsEnabled}
-                  whatsappEnabled={manage.whatsappEnabled}
-                  // B619. Their own row: the unsubscribe and delete buttons
-                  // below the form promise things that are not true of the
-                  // person whose journal it is — see the prop's own note.
-                  isOwner={viewer.owner}
-                />
-              </div>
-            </details>
-          </section>
-        )}
 
         {/*
           The buddy's half of the page — B320. Same place as the owner block
@@ -558,7 +615,10 @@ export default function MePageContent({
           laptop and sat among the ways into the reading. Every trip this
           reader may open, owner or not; absent without a service worker.
         */}
-        <OfflineTrips username={username} trips={viewer.trips.map(({ id, title }) => ({ id, title }))} />
+        <OfflineTrips
+          username={username}
+          trips={viewer.trips.map(({ id, title, status, end }) => ({ id, title, status, end }))}
+        />
 
         {/*
           Where notifications are switched on, for a reader who is not standing
@@ -584,6 +644,9 @@ export default function MePageContent({
           journal={username}
           heading={{ title: t("me.notifyTitle"), lede: t("me.notifyLede") }}
         />
+        {/* B2464 — the day-end "Get the next day?" card's own permanent,
+            reversible off switch, beside the journal-specific one above. */}
+        <NeverAskNextDay />
 
         {/*
           What this journal sends a model or the operator, and what to do

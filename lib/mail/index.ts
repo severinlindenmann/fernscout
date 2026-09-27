@@ -5,6 +5,8 @@ import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { contentRoot } from "../contentRoot";
 import { dataDir } from "../dataDir";
+import { logMessage } from "../messages/log";
+import { isSwitchedOff } from "../messages/switches";
 import { buildMessage } from "./rfc822";
 import { sendSmtp } from "./smtp";
 import type { Mail, MailTransport, SendResult } from "./types";
@@ -402,7 +404,11 @@ function hostOf(url: string): string {
   }
 }
 
-function transportName(): string {
+/** Which transport `sendMail`/`deliver` would use — for `POST
+ * /api/admin/messages/test` (B2441), which sends through the same
+ * transport but logs its own `status: "test"` row rather than the ordinary
+ * `"sent"` one. */
+export function transportName(): string {
   const configured = loadServerConfig().features.mail.transport;
   return typeof configured === "string" ? configured : "file";
 }
@@ -453,8 +459,42 @@ function transportFor(name: string): MailTransport {
  * unconfigured has already failed the boot.
  */
 export async function sendMail(mail: Mail): Promise<SendResult | null> {
-  if (!isEnabled("mail")) return null;
-  if (mail.username && hasSwitchedOff("mail", mail.username)) return null;
+  if (!isEnabled("mail")) {
+    await logMessage({
+      template: mail.template,
+      channel: "mail",
+      to: mail.to,
+      owner: mail.username,
+      status: "skipped",
+      reason: "switched_off:server",
+    });
+    return null;
+  }
+  if (mail.username && hasSwitchedOff("mail", mail.username)) {
+    await logMessage({
+      template: mail.template,
+      channel: "mail",
+      to: mail.to,
+      owner: mail.username,
+      status: "skipped",
+      reason: "switched_off:journal",
+    });
+    return null;
+  }
+  // The operator's own per-message-kind switch (B2446) — never true for a
+  // required family, so a sign-in code or a receipt is never at risk of
+  // this check. See lib/messages/switches.ts.
+  if (await isSwitchedOff(mail.template)) {
+    await logMessage({
+      template: mail.template,
+      channel: "mail",
+      to: mail.to,
+      owner: mail.username,
+      status: "skipped",
+      reason: "switched_off:operator",
+    });
+    return null;
+  }
   return deliver(mail);
 }
 
@@ -508,7 +548,17 @@ export async function sendTransactional(
   mail: Mail,
   reason: string,
 ): Promise<SendResult | null> {
-  if (!isEnabled("mail")) return null;
+  if (!isEnabled("mail")) {
+    await logMessage({
+      template: mail.template,
+      channel: "mail",
+      to: mail.to,
+      owner: mail.username,
+      status: "skipped",
+      reason: "switched_off:server",
+    });
+    return null;
+  }
 
   // Only when the exemption is actually doing something. An operator who
   // switched mail off for a journal and then watched a sign-in code arrive
@@ -525,7 +575,22 @@ export async function sendTransactional(
 /** The part that is the same either way: pick the transport, send, keep a copy. */
 async function deliver(mail: Mail): Promise<SendResult> {
   const name = transportName();
-  const result = await transportFor(name).send(mail);
+  let result: SendResult;
+  try {
+    result = await transportFor(name).send(mail);
+  } catch (error) {
+    await logMessage({
+      template: mail.template,
+      channel: "mail",
+      to: mail.to,
+      owner: mail.username,
+      status: "failed",
+      reason: (error as Error).message,
+    });
+    throw error;
+  }
+
+  await logMessage({ template: mail.template, channel: "mail", to: mail.to, owner: mail.username, status: "sent" });
 
   // Only after the send resolved. A `.eml` on disk for a message that never
   // left is a debugging aid that lies, and the person reading it is by

@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { AS_AUTHOR, getDays } from "../entries";
 import { translateIn } from "../locales";
-import { pickLocale } from "../contacts/locale";
+import { ownerLocale } from "../messages/locale";
 import { sendMail } from "../mail";
 import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
@@ -91,15 +91,17 @@ type ReminderOutcome =
 async function sendReminder(username: string, user: UserConfig, trip: Trip): Promise<ReminderOutcome> {
   const channel = trip.reminder?.channel;
   if (!channel) return { sent: false, reason: "not_enabled" };
-  const locale = pickLocale(user.defaultLocale);
-
   if (!user.owner.email) return { sent: false, reason: "no_owner_email" };
+  // Owner chain (W44 D7): the address's own `users.locale` — set on a
+  // successful sign-in — then the journal's default, then en.
+  const locale = await ownerLocale(username, user.owner.email, user.defaultLocale);
   try {
     const result = await sendMail(
       renderMail(
         user.owner.email,
         translateIn(locale, "mail.reminderSubject", { trip: trip.title }),
         {
+          template: "nudge.evening",
           preheader: translateIn(locale, "mail.reminderBody", { trip: trip.title }),
           title: translateIn(locale, "mail.reminderTitle"),
           blocks: [
@@ -110,7 +112,7 @@ async function sendReminder(username: string, user: UserConfig, trip: Trip): Pro
               href: `${serverSite().url}/${encodeURIComponent(username)}/studio/day/new`,
             },
           ],
-          footer: translateIn(locale, "contact.mailFooter", { site: user.title }),
+          why: translateIn(locale, "contact.mailFooter", { site: user.title }),
         },
         username,
       ),

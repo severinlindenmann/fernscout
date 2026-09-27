@@ -805,14 +805,36 @@ export async function updateContactSelf(
   return resolveManageToken(owner, token);
 }
 
-/** "Stop these emails" — one click from a mail footer, no login (C13). */
-export async function unsubscribeContact(owner: string, token: string): Promise<boolean> {
+/** The three streams a one-click unsubscribe can be scoped to — B2442. */
+export type UnsubscribeStream = "mail" | "sms" | "wa";
+
+/**
+ * "Stop these emails" — one click from a mail footer, no login (C13).
+ *
+ * `stream`, when given, turns off only that channel's own `wants_*` — B2442:
+ * a link with `?s=mail`/`?s=sms`/`?s=wa` stops one stream, so stopping the
+ * day letter no longer silently turns off WhatsApp too. No `stream` keeps
+ * the old stop-everything behaviour, for a link minted before this existed.
+ */
+export async function unsubscribeContact(
+  owner: string,
+  token: string,
+  stream?: UnsubscribeStream,
+): Promise<boolean> {
   const current = await resolveManageToken(owner, token);
   if (!current) return false;
   const { db } = await getDatabase();
+  const patch =
+    stream === "mail"
+      ? { wants_email_digest: 0 }
+      : stream === "sms"
+        ? { wants_sms: 0 }
+        : stream === "wa"
+          ? { wants_whatsapp: 0 }
+          : { wants_email_digest: 0, wants_postcard: 0, wants_whatsapp: 0, wants_sms: 0 };
   await db
     .updateTable("contacts")
-    .set({ wants_email_digest: 0, wants_postcard: 0, wants_whatsapp: 0, wants_sms: 0, updated_at: nowIso() })
+    .set({ ...patch, updated_at: nowIso() })
     .where("id", "=", current.id)
     .execute();
   return true;
@@ -1601,6 +1623,24 @@ export async function setProvenEmail(owner: string, contactId: string, raw: stri
   return Number(result.numUpdatedRows ?? 0) === 1 || holder?.id === contactId;
 }
 
+/**
+ * "Last used" for a reader (W44 D7): the request's own locale, written only
+ * when the contact has none yet — a code request or a join is the moment a
+ * reader's language is first actually known, and a later request must not
+ * overwrite a preference the reader may since have changed on their own page.
+ */
+export async function setContactLocaleIfEmpty(owner: string, contactId: string, locale: string | null | undefined): Promise<void> {
+  if (!locale) return;
+  const { db } = await getDatabase();
+  await db
+    .updateTable("contacts")
+    .set({ locale, updated_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("id", "=", contactId)
+    .where("locale", "is", null)
+    .execute();
+}
+
 /** The `email_key` of a contact with no address: unique, and never equal to
  * a case-folded address, which always has an `@`. */
 function noEmailKey(id: string): string {
@@ -1633,9 +1673,11 @@ export async function markContactPhoneProven(owner: string, digits: string): Pro
     .execute();
 }
 
-/** The self-serve page: change anything, or leave. */
-export function manageUrl(base: string, username: string, token: string): string {
-  return `${base}/${username}/c/${token}`;
+/** The self-serve page: change anything, or leave. `stream`, when given,
+ * asks the page to open scrolled to and highlighting that channel — B2442,
+ * the `?s=` this and `unsubscribeUrlFor` share. */
+export function manageUrl(base: string, username: string, token: string, stream?: UnsubscribeStream): string {
+  return `${base}/${username}/c/${token}${stream ? `?s=${stream}` : ""}`;
 }
 
 /**
@@ -1645,7 +1687,13 @@ export function manageUrl(base: string, username: string, token: string): string
  * see `app/[user]/u/[token]/route.ts`. A mail client's own unsubscribe button
  * stops everything at once; a person following the footer link lands on their
  * details page instead of being unsubscribed by a link scanner.
+ *
+ * `stream` (B2442) scopes the POST to one channel — `?s=mail` on a day
+ * letter's `List-Unsubscribe`, `?s=sms` on the SMS stop link — so a reader
+ * who follows it, or a mail client that presses its own one-click button,
+ * stops only that stream. Absent for a link that means "stop everything"
+ * (the manage page's own button still offers that).
  */
-export function unsubscribeUrlFor(base: string, username: string, token: string): string {
-  return `${base}/${username}/u/${token}`;
+export function unsubscribeUrlFor(base: string, username: string, token: string, stream?: UnsubscribeStream): string {
+  return `${base}/${username}/u/${token}${stream ? `?s=${stream}` : ""}`;
 }

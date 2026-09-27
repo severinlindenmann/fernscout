@@ -87,12 +87,24 @@ describe("what a no means", () => {
     expect(denials.length).toBeGreaterThanOrEqual(2);
   });
 
-  /** Closing a card is not saying never. Treating it as never would be putting
-   * words in the reader's mouth. */
-  test("the dismiss cross snoozes rather than silencing for good", () => {
+  /** "Not now" is the only dismiss on the card itself since B2464 — "Don't
+   * ask again" moved to `/me` (`NeverAskNextDay.tsx`), a settings switch
+   * rather than a button on a card the reader may only ever see once. It
+   * still only snoozes, never silences for good. */
+  test("the card's only dismiss snoozes rather than silencing for good", () => {
     const src = read("components/PushPrompt.tsx");
-    const cross = src.slice(src.indexOf("aria-label={t(\"push.prompt.notNow\")}") - 300);
-    expect(cross.slice(0, 400)).toContain("onClick={notNow}");
+    expect(src).not.toContain('t("push.prompt.never")');
+    const i = src.indexOf('t("push.prompt.notNow")');
+    const around = src.slice(Math.max(0, i - 300), i + 100);
+    expect(around).toContain("onClick={notNow}");
+  });
+
+  test("'Don't ask again' lives on /me, beside the push switch, as a reversible toggle", () => {
+    const toggle = read("components/NeverAskNextDay.tsx");
+    expect(toggle).toContain("NEVER_KEY");
+    expect(toggle).toContain('t("push.prompt.never")');
+    const me = read("app/[user]/me/MePageContent.tsx");
+    expect(me).toMatch(/<PushOptIn[\s\S]{0,400}<NeverAskNextDay/);
   });
 });
 
@@ -115,17 +127,50 @@ describe("when and where it appears", () => {
     expect(read("components/PushPrompt.tsx")).toContain("needsHomeScreenInstall()");
   });
 
-  /** The hero renders on the story's landing step alone, so mounting there
-   * would ask only the readers who have not started reading — the opposite of
-   * the chosen timing. */
-  test("it is mounted for the whole journal, not one page of it", () => {
-    expect(read("app/[user]/layout.tsx")).toContain("<PushPrompt username={username} />");
+  /**
+   * B2464 — the card used to hang after every page's content in the layout,
+   * disconnected from anything the reader had just done, and repeated the
+   * notification section `/me` already has. It now renders once, inside the
+   * day it makes sense on.
+   */
+  test("it is gone from the layout", () => {
+    expect(read("app/[user]/layout.tsx")).not.toContain("<PushPrompt");
+  });
+
+  test("it renders inside the day reader, gated on the newest day of a trip still going", () => {
+    const src = read("components/StoryPager.tsx");
+    expect(src).toContain("<PushPrompt");
+    expect(src).toContain("isNewestDay");
+    // "Still going" — a finished trip has no next day to want.
+    expect(src).toMatch(/trip\.trip\.status\s*!==\s*"past"/);
+    // Not on a draft: a reader is never the newest *published* day's audience
+    // if the last thing written is not published yet.
+    expect(src).toMatch(/!lead\.draft/);
+    // Never on the operator's own showcase journal — B1724's guarantee that a
+    // showcase reader is asked one thing, not two, still holds here.
+    expect(src).toMatch(/!site\??\.isShowcase|!isShowcase/);
+  });
+
+  test("StoryPager is the only place that renders it — not /me, not the trips list, not the overview step", () => {
+    function files(dir: string): string[] {
+      return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) return files(full);
+        return /\.tsx?$/.test(e.name) ? [full] : [];
+      });
+    }
+    const root = process.cwd();
+    const candidates = [...files(path.join(root, "app")), ...files(path.join(root, "components"))];
+    const renderers = candidates.filter(
+      (f) => f !== path.join(root, "components/PushPrompt.tsx") && /<PushPrompt\b/.test(fs.readFileSync(f, "utf8")),
+    );
+    expect(renderers.map((f) => path.relative(root, f))).toEqual(["components/StoryPager.tsx"]);
   });
 
   test("every language carries its words", async () => {
     const { dictionaryFor } = await import("@/lib/locales");
     for (const locale of ["en", "de", "hu"]) {
-      for (const key of ["title", "body", "yes", "notNow", "never"]) {
+      for (const key of ["title", "body", "yes", "notNow", "never", "wantDay"]) {
         expect(dictionaryFor(locale)[`push.prompt.${key}`], `${locale} ${key}`).toBeTruthy();
       }
     }

@@ -4,7 +4,9 @@ import { hasDatabase, isEnabled } from "./capabilities";
 import { loadServerConfig } from "./config";
 import { getDatabaseOrNull, nowIso } from "./db";
 import { MAINTAINED_LOCALES } from "./i18n";
+import { afterResponse } from "./afterResponse";
 import { sendMail } from "./mail";
+import { logMessage } from "./messages/log";
 import { renderMail, type MailBlock } from "./mail/template";
 import { translateIn } from "./locales";
 import type { TranslationKey } from "./i18n";
@@ -102,7 +104,7 @@ export async function addToWaitlist(
     .executeTakeFirst();
   const inserted = Number(result.numInsertedOrUpdatedRows ?? 0) === 1;
   if (!inserted) {
-    // TODO(B2438): logMessage({ template: "appWaitlist.mail", channel: "mail", status: "skipped", reason: "deduped" })
+    await logMessage({ template: "notice.waitlist", channel: "mail", to: normalized, status: "skipped", reason: "deduped" });
     console.log(`[app-waitlist] skipped: deduped`);
     return true;
   }
@@ -112,16 +114,20 @@ export async function addToWaitlist(
   const blocks: MailBlock[] = [
     { kind: "paragraph", text: t("appWaitlist.mailBody") },
   ];
-  await sendMail(
+  // After the response, so a new address and one already on the list answer
+  // in the same time — otherwise the delay of a real send tells a stranger
+  // who is listed.
+  afterResponse("app-waitlist-mail", () => sendMail(
     renderMail(normalized, t("appWaitlist.mailSubject"), {
+      template: "notice.waitlist",
       preheader: t("appWaitlist.mailSubject"),
       title: t("appWaitlist.mailSubject"),
       blocks,
-      footer: t("appWaitlist.mailFooter"),
+      why: t("appWaitlist.mailFooter"),
     }),
   ).catch((err) => {
     console.error(`[app-waitlist] confirmation mail to a waitlist entry could not be sent:`, err);
-  });
+  }));
   return true;
 }
 

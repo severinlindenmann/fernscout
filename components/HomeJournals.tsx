@@ -290,17 +290,22 @@ export function YourDevices({
   async function revoke(id: string) {
     setBusy(id);
     try {
-      const res = await fetch(`/api/v2/me/devices/${id}`, { method: "DELETE" });
-      if (!res.ok) return;
-      const { current } = (await res.json()) as { current?: boolean };
-      if (current) {
-        // Signing *this* device out is a sign-out, and has to be treated as
-        // one: drop the worker's cached copy and reload, rather than leaving
-        // the page listing journals the credential behind it no longer opens.
+      const isThisDevice = devices.find((d) => d.id === id)?.current === true;
+      if (isThisDevice) {
+        // B2451: this row's DELETE only revokes the instance-wide identity
+        // and deliberately leaves cookies in place (see the route's own
+        // comment) — a browser holding a journal session too would still
+        // resolve as signed in after reload. Signing out THIS device is a
+        // sign-out, so it takes the same call the journal's own sign-out
+        // button makes: both cookies, both sessions.
+        const res = await fetch("/api/auth/logout", { method: "POST" });
+        if (!res.ok) return;
         tellWorkerSignedOut();
         window.location.reload();
         return;
       }
+      const res = await fetch(`/api/v2/me/devices/${id}`, { method: "DELETE" });
+      if (!res.ok) return;
       onRevoke(id);
     } finally {
       setBusy(null);

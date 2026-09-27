@@ -90,6 +90,9 @@ export const SCOPES = {
   legal: { files: ["app/legal/page.tsx"] },
   // `/<user>/c/<token>` in the contact's own language rather than the reader's.
   contactPage: { files: ["app/[user]/c/[token]/page.tsx"] },
+  // `/x/<token>` — "never invite this address again" (B2442). No journal, no
+  // login: the request's own language.
+  neverInvitePage: { files: ["app/x/[token]/page.tsx"] },
   // The welcome guide and the join flow — B2293: the first page a stranger
   // holding a link loads, on a phone, so a few dozen strings.
   guide: {
@@ -99,7 +102,6 @@ export const SCOPES = {
   // Components that translate from a `dictionary`/`dictionaries` prop.
   contactManage: { files: ["components/ContactManage.tsx"], at: ["app/[user]/me/page.tsx"] },
   readersAdmin: { files: ["components/studio/readers/ReadersAdmin.tsx"], at: ["app/[user]/studio/readers/page.tsx"] },
-  ownDetails: { files: ["components/studio/readers/OwnDetails.tsx"], at: ["app/[user]/studio/journal/page.tsx"] },
 };
 
 /** The files Next renders for a route segment — never a `route.ts`, which
