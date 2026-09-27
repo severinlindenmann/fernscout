@@ -12,6 +12,13 @@ import { frameRoute, place as placeIn } from "@/lib/mapFrame";
  * another session, so the guard against drawing one of those places as a
  * point on the lifetime map has to live here instead — this is the only
  * component between the raw list and the SVG.
+ *
+ * B2423 replaced the old "one pin per stop, no line between them" drawing
+ * with "each trip is its own accent route plus one marker"
+ * (docs/plans/map-redesign.md §1 "Reisen" row) — the pin-specific tests this
+ * file used to hold (a pin's tip on the coordinate, one pin per stop, no
+ * connecting line) no longer describe anything that exists; they are
+ * replaced below by the route+marker equivalents.
  */
 
 const alps: TripRoute["points"] = [
@@ -40,28 +47,16 @@ function viewBox(html: string): number[] {
   return match![1].split(" ").map(Number);
 }
 
-/** Every pin is a `<g translate(x y)>` holding a stem `<line>` from its local
- * origin (the coordinate) and a `<circle>` head above it — the origin is the
- * tip, translated onto the map. */
-function pins(html: string): { x: number; y: number; headRadius: number }[] {
+/** Every trip marker is a `StopMarker` `<g aria-label="…">` holding a
+ * `<circle>` head — one per trip, never one per stop. */
+function markerRadii(html: string, ariaLabel: string): number[] {
+  const escaped = ariaLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return [
-    ...html.matchAll(
-      /<g transform="translate\(([-\d.]+) ([-\d.]+)\)"><line x1="0" y1="0"[^>]*>(?:<\/line>)?<circle[^>]*r="([\d.]+)"/g,
-    ),
-  ].map((m) => ({ x: Number(m[1]), y: Number(m[2]), headRadius: Number(m[3]) }));
+    ...html.matchAll(new RegExp(`<g aria-label="${escaped}"[^>]*><circle[^>]*r="([\\d.]+)"`, "g")),
+  ].map((m) => Number(m[1]));
 }
 
-/** Each pin head's `cy`, in its own local space — negative is up the stem. */
-function headOffsets(html: string): number[] {
-  return [...html.matchAll(/<circle cx="0" cy="([-\d.]+)"/g)].map((m) => Number(m[1]));
-}
-
-/**
- * B88. A dot is centred on the coordinate and covers it; a pin's tip is the
- * coordinate and its body sits above the ground, so the map underneath the
- * point stays visible.
- */
-describe("stops drawn as pins, not dots", () => {
+describe("a trip is its own route plus one marker (B2423)", () => {
   const route: TripRoute = {
     id: "alps-2024",
     title: "Alps 2024",
@@ -72,37 +67,26 @@ describe("stops drawn as pins, not dots", () => {
     ],
   };
 
-  /**
-   * Anchored on the projection rather than on a polyline (B344 removed the
-   * line, and with it the oracle this used to read the expected positions
-   * from). The property is unchanged and is still B88's: the `<g>` a pin hangs
-   * from is translated to the *coordinate*, and the head is drawn above that
-   * origin — so the ground being marked stays visible under the tip.
-   */
-  test("a pin's tip sits on the coordinate, with its head above", () => {
+  test("draws exactly one marker for a multi-stop trip", () => {
     const html = render([route]);
-    const found = pins(html);
-    expect(found).toHaveLength(route.points.length);
+    expect(markerRadii(html, "Alps 2024")).toHaveLength(1);
+  });
 
+  test("the marker sits on the trip's first plottable point", () => {
+    const html = render([route]);
     const frame = frameRoute(route.points);
-    for (const [i, pin] of found.entries()) {
-      const [x, y] = placeIn(frame, route.points[i]);
-      expect(pin.x).toBeCloseTo(x, 6);
-      expect(pin.y).toBeCloseTo(y, 6);
-    }
-
-    // The head is offset up the stem, not centred on the origin — a `cy` of 0
-    // is the dot B88 replaced.
-    for (const cy of headOffsets(html)) expect(cy).toBeLessThan(0);
+    const [x, y] = placeIn(frame, route.points[0]);
+    expect(html).toMatch(new RegExp(`<circle cx="${x}" cy="${y}"`));
   });
 
-  test("no line is drawn between the stops", () => {
-    // B344. This map is everywhere somebody has been, not a journey in order:
-    // a line between two stops asserts a route that was never travelled.
-    expect(render([route])).not.toContain("<polyline");
+  test("draws a route line between the trip's own stops", () => {
+    // Superseding B344's "no line" rule, which was about a line asserting a
+    // journey between *separate trips'* pins — never the case for a single
+    // trip's own stops, which RouteLine now draws the same way TripMap does.
+    expect(render([route])).toMatch(/<path d="M[\d.,]+ L[\d.,]+"/);
   });
 
-  test("a pin is the same size on screen for a one-city journal and a two-continent one", () => {
+  test("a marker is the same size on screen for a one-city journal and a two-continent one", () => {
     const oneCity = render([route]);
     const twoContinents = render([{ ...route, points: continental }]);
     const cityBox = viewBox(oneCity);
@@ -110,22 +94,21 @@ describe("stops drawn as pins, not dots", () => {
     // The radius is a viewBox-unit constant; what makes it the same *on
     // screen* is that it stays the same fraction of a viewBox rendered at a
     // fixed width — not that the raw units match.
-    const cityFraction = pins(oneCity)[0].headRadius / cityBox[2];
-    const worldFraction = pins(twoContinents)[0].headRadius / worldBox[2];
+    const cityFraction = markerRadii(oneCity, "Alps 2024")[0] / cityBox[2];
+    const worldFraction = markerRadii(twoContinents, "Alps 2024")[0] / worldBox[2];
     expect(worldFraction).toBeCloseTo(cityFraction, 6);
   });
 
-  test("the legend still pairs each trip's colour with its title", () => {
+  test("the legend still pairs each trip's accent with its title", () => {
     const html = render([route]);
     expect(html).toContain("Alps 2024");
-    expect(html).toContain("#3fa9c4"); // ACCENT_HEX.sky
+    expect(html).toContain("var(--map-accent-sky)"); // mapAccent("sky")
   });
 
-  test("keeps its role=img and aria-label rather than becoming markers a screen reader enumerates", () => {
+  test("keeps its role=img and aria-label when nothing is filled", () => {
     const html = render([route]);
     expect(html).toContain('role="img"');
     expect(html).toMatch(/aria-label="[^"]*Alps 2024[^"]*"/);
-    expect(html).not.toContain("role=\"button\"");
   });
 });
 
@@ -141,13 +124,38 @@ describe("a trip with a day that has no coordinates", () => {
     expect(render([route])).not.toContain("NaN");
   });
 
-  test("a route with nothing plottable still renders the whole world, not NaN", () => {
+  test("a route with nothing plottable still renders the whole world, not NaN, and draws no marker", () => {
     const empty: TripRoute = {
       id: "planned-only",
       title: "Planned only",
       accent: "coral",
       points: [{ lat: undefined as unknown as number, lng: undefined as unknown as number, location: "Nowhere yet" }],
     };
-    expect(render([route, empty])).not.toContain("NaN");
+    const html = render([route, empty]);
+    expect(html).not.toContain("NaN");
+    expect(markerRadii(html, "Planned only")).toHaveLength(0);
+  });
+});
+
+/**
+ * The component draws exactly what it is handed — the actual filtering of a
+ * private or unlisted trip happens upstream, in `listableTrips`
+ * (`app/[user]/trips/page.tsx`), before a route or a visit ever reaches this
+ * component's props. This is the contract that upstream filtering relies on:
+ * a trip never passed here contributes nothing — no route, no marker, no
+ * tint — to what a reader sees.
+ */
+describe("a trip never handed to the map contributes nothing (B2423)", () => {
+  const visible: TripRoute = {
+    id: "alps-2024",
+    title: "Alps 2024",
+    accent: "sky",
+    points: alps,
+  };
+
+  test("a route this reader may not see, never passed in, draws no route, marker or mention", () => {
+    const html = render([visible]);
+    expect(html).not.toContain("Secret Trip");
+    expect(markerRadii(html, "Secret Trip")).toHaveLength(0);
   });
 });

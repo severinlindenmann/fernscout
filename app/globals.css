@@ -227,6 +227,13 @@
   --map-control-fill: #ffffff;
   --map-control-icon: #1e293b;
   --map-control-shadow: #1e293b;
+  /* One neutral tint for every visited country on the lifetime map (B2423,
+     docs/plans/map-redesign.md §1 "Reisen" row) — replacing the per-country
+     flag colours `lib/flagColours.ts` used to assign, which is what made
+     Switzerland in two trips clash with two coral trips. A step darker than
+     `--map-land`, not any trip's accent hue, so "visited" reads as one fact
+     independent of which or how many trips reached it. */
+  --map-visited: #ded1a8;
 
   /*
     Map-only accent steps — 2026-09-27 decision Q2 in docs/plans/map-redesign.md
@@ -445,6 +452,9 @@ html {
   --map-control-fill: #1f2736;
   --map-control-icon: #f2ecdd;
   --map-control-shadow: #080b11;
+  /* Dark half of the visited tint above — a step lighter than --map-land,
+     the same relationship as the light pair. */
+  --map-visited: #29354a;
 
   /* Map-only accent steps, dark half — the existing B1798 text-safe step for
      each hue (a brighter tone already in its own family), the same method
@@ -528,6 +538,8 @@ html {
     --map-control-fill: #1f2736;
     --map-control-icon: #f2ecdd;
     --map-control-shadow: #080b11;
+    /* Same value as :root[data-theme="dark"]'s --map-visited above. */
+    --map-visited: #29354a;
     --map-accent-sky: #5ec8dc;
     --map-accent-yellow: #ffd23f;
     --map-accent-green: #22c55e;
