@@ -20,7 +20,10 @@ import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
  * The sharing card follows the *journal*, because the people who see one are
  * not this reader and their language is not knowable from this request.
  */
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<"/[user]/gallery">): Promise<Metadata> {
+  const { user } = await params;
   const reader = await requestLocale();
   const journal = localeForPath((await headers()).get(PATH_HEADER));
   const description = translateIn(journal, "gallery.description");
@@ -28,8 +31,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: translateIn(reader, "gallery.title"),
     description,
-    alternates: { canonical: "/[user]/gallery" },
-    openGraph: { type: "website", title: shared, description, url: "/gallery" },
+    alternates: { canonical: `/${user}/gallery` },
+    openGraph: { type: "website", title: shared, description, url: `/${user}/gallery` },
     twitter: { card: "summary_large_image", title: shared, description },
   };
 }
