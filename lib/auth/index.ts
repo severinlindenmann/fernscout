@@ -382,7 +382,9 @@ const NOWHERE = "https://fernscout.invalid";
  *    nowhere, and the result must still be on that base: a `..` segment, or
  *    the `%2e%2e` the URL parser also treats as one, can otherwise climb out
  *    of the journal after every string check has passed.
- * 2. **Is it inside this journal?** `/<username>` exactly, or `/<username>/…`.
+ * 2. **Is it inside this journal?** `/<username>` exactly, or `/<username>/…`
+ *    — or the one public page a guest code is sent from, `/j/<code>` or
+ *    `/w/<code>`, a single segment and nothing below it.
  *    A username is a directory name and therefore a boundary, so one reader's
  *    sign-in cannot land inside somebody else's journal — the account taking
  *    a username being the way that would be arranged.
@@ -416,6 +418,11 @@ export function safeDestination(username: string, value: unknown): string | null
   if (url.origin !== NOWHERE) return null;
 
   const path = url.pathname;
+  // B2503: a group link (`/j/<code>`) or a welcome link (`/w/<code>`) sends
+  // its code mail from outside the journal, and the confirm button has to
+  // bring the reader back there to finish — the page is public, and a code
+  // that belongs to another journal only shows that journal's own join form.
+  if (/^\/[jw]\/[A-Za-z0-9_-]{1,64}$/.test(path)) return path;
   const prefix = `/${username}`;
   if (path !== prefix && !path.startsWith(`${prefix}/`)) return null;
   return path;

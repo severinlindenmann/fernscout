@@ -3,6 +3,10 @@ import { recordFirstTripNudge } from "../journals";
 import { ownerLocale } from "../messages/locale";
 import { sendMail } from "../mail";
 import { renderMail } from "../mail/template";
+import type { Composition, PreviewLocale } from "../messages/previews/types";
+
+/** `nudge.first.mail` is always mail — see `dayLetter.ts`'s `MailComposition`. */
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { translateIn } from "../locales";
 import { listSubscriptions, type StoredSubscription } from "../push";
 import { sendPush } from "../push/send";
@@ -86,13 +90,61 @@ function decideNudge(candidate: Pick<FirstTripCandidate, "tips" | "ageDays">, ha
   return ageDays >= MAIL_AFTER_DAYS ? { kind: "mail" } : { kind: "none" };
 }
 
+/**
+ * The first-trip push's composition — pure, B2493. `username` only decides
+ * the "add a trip" link, never a fact stated about anybody.
+ */
+export function composeFirstTripPush(
+  input: { username: string; journalTitle: string },
+  locale: PreviewLocale,
+): Composition {
+  return {
+    channel: "push",
+    title: translateIn(locale, "push.firstTrip.title", { journal: input.journalTitle }),
+    text: translateIn(locale, "push.firstTrip.body", { journal: input.journalTitle }),
+  };
+}
+
+/** The first-trip mail's composition — pure, same reasoning. */
+export function composeFirstTripMail(
+  input: { username: string; journalTitle: string },
+  locale: PreviewLocale,
+): MailComposition {
+  const subject = translateIn(locale, "mail.firstTripSubject", { journal: input.journalTitle });
+  return {
+    channel: "mail",
+    subject,
+    content: {
+      template: "nudge.first.mail",
+      preheader: subject,
+      title: subject,
+      blocks: [
+        { kind: "paragraph", text: translateIn(locale, "mail.firstTripBody1", { journal: input.journalTitle }) },
+        { kind: "paragraph", text: translateIn(locale, "mail.firstTripBody2") },
+        {
+          kind: "button",
+          text: translateIn(locale, "mail.firstTripButton"),
+          href: `${serverSite().url}/${encodeURIComponent(input.username)}/studio/trip/new`,
+        },
+      ],
+      why: translateIn(locale, "mail.firstTripWhy", { journal: input.journalTitle }),
+      manage: {
+        text: translateIn(locale, "mail.firstTripManage"),
+        href: `${serverSite().url}/${encodeURIComponent(input.username)}/studio/journal`,
+      },
+      locale,
+    },
+  };
+}
+
 async function sendFirstTripPush(username: string, journal: string, subs: StoredSubscription[], locale: string): Promise<boolean> {
   const url = `${serverSite().url}/${encodeURIComponent(username)}/studio/trip/new`;
+  const composed = composeFirstTripPush({ username, journalTitle: journal }, locale as PreviewLocale);
   const outcome = await sendPush({
     template: "nudge.first.push",
     subscriptions: subs,
-    title: translateIn(locale, "push.firstTrip.title", { journal }),
-    body: translateIn(locale, "push.firstTrip.body", { journal }),
+    title: "title" in composed ? composed.title ?? "" : "",
+    body: "text" in composed ? composed.text : "",
     url,
     tag: "first-trip",
     locale,
@@ -102,34 +154,9 @@ async function sendFirstTripPush(username: string, journal: string, subs: Stored
 
 async function sendFirstTripMail(username: string, user: UserConfig, locale: string): Promise<boolean> {
   if (!user.owner.email) return false;
-  const subject = translateIn(locale, "mail.firstTripSubject", { journal: user.title });
+  const composed = composeFirstTripMail({ username, journalTitle: user.title }, locale as PreviewLocale);
   try {
-    const result = await sendMail(
-      renderMail(
-        user.owner.email,
-        subject,
-        {
-          template: "nudge.first.mail",
-          preheader: subject,
-          title: subject,
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "mail.firstTripBody1", { journal: user.title }) },
-            { kind: "paragraph", text: translateIn(locale, "mail.firstTripBody2") },
-            {
-              kind: "button",
-              text: translateIn(locale, "mail.firstTripButton"),
-              href: `${serverSite().url}/${encodeURIComponent(username)}/studio/trip/new`,
-            },
-          ],
-          why: translateIn(locale, "mail.firstTripWhy", { journal: user.title }),
-          manage: {
-            text: translateIn(locale, "mail.firstTripManage"),
-            href: `${serverSite().url}/${encodeURIComponent(username)}/studio/journal`,
-          },
-        },
-        username,
-      ),
-    );
+    const result = await sendMail(renderMail(user.owner.email, composed.subject, composed.content, username));
     return Boolean(result);
   } catch (err) {
     console.error(`[first-trip] could not mail ${username}:`, err);

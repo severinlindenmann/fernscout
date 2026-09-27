@@ -2,9 +2,34 @@ import "server-only";
 import { CODE_TTL_MINUTES, NO_JOURNAL, issueCode, revokeCodes } from "./auth";
 import { translateIn } from "./locales";
 import { sendMail } from "./mail";
-import { codeMail } from "./mail/codeMail";
+import { composeCodeMailContent } from "./mail/codeMail";
+import { renderMail } from "./mail/template";
+import type { Composition } from "./messages/previews/types";
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { serverSite } from "./site";
 import type { Locale } from "./types";
+
+/**
+ * `code.signup.mail`'s composition — B2493. `code` and `askedAt` are already
+ * resolved by the caller (`issueCode`, `requestedAt`) — pure otherwise.
+ */
+export function composeSignupCodeMail(params: { locale: Locale; code: string; askedAt: string }): MailComposition {
+  const { locale, code, askedAt } = params;
+  const site = serverSite();
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) => translateIn(locale, key, vars);
+  const vars = { site: site.name, code, minutes: CODE_TTL_MINUTES };
+  return composeCodeMailContent({
+    template: "code.signup.mail",
+    locale,
+    code,
+    place: site.name,
+    title: t("mail.signupTitle"),
+    purpose: t("mail.signupWhat"),
+    askedAt: t("mail.codeAsked", { when: askedAt }),
+    ignoreText: t("mail.signupIgnore"),
+    why: t("mail.identityFooter", vars),
+  });
+}
 
 /**
  * The one-time code that proves somebody can read an address, on its way to
@@ -29,30 +54,18 @@ import type { Locale } from "./types";
 export async function sendSignupCode(email: string, locale: string): Promise<boolean> {
   const { code } = await issueCode(NO_JOURNAL, email, "signup");
 
-  const site = serverSite();
-  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
-    translateIn(locale as Parameters<typeof translateIn>[0], key, vars);
-  const vars = { site: site.name, code, minutes: CODE_TTL_MINUTES };
+  // The timestamp is what makes two identical mails tellable apart. Asking
+  // again invalidates the earlier code and sends a mail that is word for
+  // word the same, so without a stamp the person reads out whichever is
+  // nearest and gets `invalid_code` for their trouble.
+  const { subject, content } = composeSignupCodeMail({
+    locale: locale as Locale,
+    code,
+    askedAt: requestedAt(locale),
+  });
 
   try {
-    await sendMail(
-      codeMail({
-        template: "code.signup.mail",
-        to: email,
-        locale: locale as Locale,
-        code,
-        place: site.name,
-        title: t("mail.signupTitle"),
-        purpose: t("mail.signupWhat"),
-        // The timestamp is what makes two identical mails tellable apart.
-        // Asking again invalidates the earlier code and sends a mail that is
-        // word for word the same, so without a stamp the person reads out
-        // whichever is nearest and gets `invalid_code` for their trouble.
-        askedAt: t("mail.codeAsked", { when: requestedAt(locale) }),
-        ignoreText: t("mail.signupIgnore"),
-        why: t("mail.identityFooter", vars),
-      }),
-    );
+    await sendMail(renderMail(email, subject, content));
   } catch (err) {
     console.error("[auth] signup code could not be sent:", err);
     await revokeCodes(NO_JOURNAL, email, "signup").catch(() => {});
@@ -64,8 +77,9 @@ export async function sendSignupCode(email: string, locale: string): Promise<boo
 /** `14:32 UTC, 1 September` — enough to tell two identical mails apart,
  * without pretending to know the reader's timezone. The month is written in
  * the reader's own language (B857); the comma stands in for the English "on"
- * so no word of glue has to be translated. */
-function requestedAt(locale: string): string {
+ * so no word of glue has to be translated. Exported for the preview, which
+ * needs the identical "asked at" stamp a real send would carry right now. */
+export function requestedAt(locale: string): string {
   const now = new Date();
   const time = now.toISOString().slice(11, 16);
   const day = now

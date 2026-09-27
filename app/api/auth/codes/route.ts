@@ -1,6 +1,5 @@
 import { isEnabled } from "@/lib/capabilities";
 import {
-  CODE_TTL_MINUTES,
   NO_JOURNAL,
   isEmail,
   issueCode,
@@ -10,11 +9,11 @@ import {
   identitySignInUrl,
 } from "@/lib/auth";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { requestLocale } from "@/lib/locales";
 import { sendMail, sendTransactional } from "@/lib/mail";
-import { codeMail } from "@/lib/mail/codeMail";
-import type { MailBlock } from "@/lib/mail/template";
-import { sendSignupCode } from "@/lib/signupCode";
+import { composeIdentityCodeMail, composeJournalCodeMail } from "@/lib/mail/accountCodeCompositions";
+import { renderMail } from "@/lib/mail/template";
+import { sendSignupCode, requestedAt } from "@/lib/signupCode";
 import { phoneSubject, toE164 } from "@/lib/phone";
 import { whatsappCountryCode } from "@/lib/contactNumber";
 import { smsUnreachable } from "@/lib/sms";
@@ -226,32 +225,11 @@ async function handleIdentity(
   const { code, linkToken } = await issueCode(NO_JOURNAL, req.email, "identity");
   const locale = pickLocale(req.locale ?? null, await requestLocale());
   const site = serverSite();
-  const vars = { site: site.name, code, minutes: CODE_TTL_MINUTES };
-
-  const purpose: MailBlock[] = [
-    { kind: "paragraph", text: translateIn(locale, "mail.identityWhat") },
-    { kind: "paragraph", text: translateIn(locale, "mail.identityLasts") },
-    ...(linkToken
-      ? ([{ kind: "paragraph", text: translateIn(locale, "mail.identityApp", vars) }] as const)
-      : []),
-  ];
+  const link = linkToken ? identitySignInUrl(site.url, linkToken, locale) : null;
 
   try {
-    await sendMail(
-      codeMail({
-        template: "code.identity.mail",
-        to: req.email,
-        locale,
-        code,
-        place: site.name,
-        title: translateIn(locale, "mail.identityTitle"),
-        purpose,
-        url: linkToken ? identitySignInUrl(site.url, linkToken, locale) : undefined,
-        buttonText: linkToken ? translateIn(locale, "mail.identityButton") : undefined,
-        ignoreText: translateIn(locale, "mail.identityIgnore"),
-        why: translateIn(locale, "mail.identityFooter", vars),
-      }),
-    );
+    const { subject, content } = composeIdentityCodeMail({ locale, code, site: site.name, link });
+    await sendMail(renderMail(req.email, subject, content));
   } catch (err) {
     console.error("[auth] identity code could not be sent:", err);
     await revokeCodes(NO_JOURNAL, req.email, "identity").catch(() => {});
@@ -360,46 +338,23 @@ async function handleJournal(
     user.defaultLocale,
     fromAcceptLanguage(request.headers.get("accept-language")),
   );
-  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
-    translateIn(locale, key, vars);
-  const vars = { site: serverSite().name, title: user.title, code, minutes: CODE_TTL_MINUTES };
 
   const scopedTrip = req.for === "write" && tripId ? getTrip(tripRef(username, tripId)) : null;
-
-  const purpose =
-    req.for === "write"
-      ? scopedTrip
-        ? t("mail.agentScoped", { ...vars, trip: scopedTrip.title })
-        : t("mail.agentAll")
-      : linkToken
-        ? t("mail.signinTap", vars)
-        : t("mail.identityCode", vars);
-  const url =
-    req.for === "write"
-      ? undefined
-      : linkToken
-        ? signInUrl(base, username, linkToken, locale)
-        : `${base}/${username}`;
+  const link =
+    req.for === "write" ? null : linkToken ? signInUrl(base, username, linkToken, locale) : `${base}/${username}`;
 
   try {
-    await sendTransactional(
-      codeMail({
-        template: "code.journal.mail",
-        to: req.email,
-        locale,
-        code,
-        place: user.title,
-        title: req.for === "write" ? t("mail.agentTitle") : t("mail.signinSubject", vars),
-        purpose,
-        url,
-        buttonText: url ? t("mail.signinOpen", vars) : undefined,
-        askedAt: t("mail.codeAsked", { when: requestedAt(locale) }),
-        ignoreText: t("mail.signinIgnore"),
-        why: t("mail.identityFooter", vars),
-        username,
-      }),
-      "a one-time sign-in code the recipient just asked for",
-    );
+    const { subject, content } = composeJournalCodeMail({
+      locale,
+      code,
+      siteName: serverSite().name,
+      title: user.title,
+      for: req.for === "write" ? "write" : "read",
+      link,
+      scopedTripTitle: scopedTrip?.title,
+      askedAt: requestedAt(locale),
+    });
+    await sendTransactional(renderMail(req.email, subject, content, username), "a one-time sign-in code the recipient just asked for");
   } catch (err) {
     console.error(`[auth] ${req.for} code for ${username} could not be sent:`, err);
     await revokeCodes(username, req.email, req.for === "write" ? "agent" : "guest").catch(() => {});
@@ -417,20 +372,6 @@ async function handleJournal(
   return accepted();
 }
 
-/** `14:32 UTC, 1 September` — enough to tell two identical mails apart,
- * without pretending to know the reader's timezone. */
-function requestedAt(locale: string): string {
-  const now = new Date();
-  const time = now.toISOString().slice(11, 16);
-  const day = now
-    .toLocaleDateString(locale === "en" ? "en-GB" : locale, {
-      day: "numeric",
-      month: "long",
-      timeZone: "UTC",
-    })
-    .replace(/\.$/, "");
-  return `${time} UTC, ${day}`;
-}
 
 /**
  * Whether this address may be sent a write code for this journal — the

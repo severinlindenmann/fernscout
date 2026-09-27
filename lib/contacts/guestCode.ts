@@ -3,6 +3,7 @@ import { CODE_TTL_MINUTES, isEmail, issueCode, revokeCodes, spendCode, verifyCod
 import { isEnabled } from "../capabilities";
 import { whatsappCountryCode } from "../contactNumber";
 import { translateIn } from "../locales";
+import type { Composition, PreviewLocale } from "../messages/previews/types";
 import { maskNumber, phoneSubject, subjectPhone, toE164 } from "../phone";
 import { emailCodeAllowed, firstPhoneCodeAllowed, smsCodeAllowed } from "../rateLimit";
 import { sendSms, smsUnreachable } from "../sms";
@@ -141,6 +142,27 @@ function textable(contact: ContactRecord): boolean {
 }
 
 /**
+ * `code.sms`'s composition — pure, B2493. The reader sign-in text: a guest
+ * proving who they are with a code texted to their own number. Divergent
+ * from `lib/phoneVerify/sms.ts`'s own text (`code.phoneVerify`, a different
+ * key with a different body) — that is the *owner's* phone-verify code, a
+ * separate flow this composer does not speak for.
+ */
+export function composeGuestCodeSms(
+  input: { code: string; journalTitle: string },
+  locale: PreviewLocale,
+): Composition {
+  return {
+    channel: "sms",
+    text: translateIn(locale, "contact.smsCodeBody", {
+      code: input.code,
+      title: input.journalTitle,
+      minutes: CODE_TTL_MINUTES,
+    }),
+  };
+}
+
+/**
  * Issue a guest code for `+<digits>` and text it. Every refusal has been
  * decided by the caller; a failed send takes the code back.
  */
@@ -153,10 +175,11 @@ async function textCode(
   subject: string = phoneSubject(digits),
 ): Promise<boolean> {
   const { code } = await issueCode(owner, subject, "guest", { destination: destination ?? null });
+  const composed = composeGuestCodeSms({ code, journalTitle: title }, locale as PreviewLocale);
   try {
     await sendSms({
       to: digits,
-      body: translateIn(locale, "contact.smsCodeBody", { code, title, minutes: CODE_TTL_MINUTES }),
+      body: "text" in composed ? composed.text : "",
       template: "code.sms",
       owner,
     });

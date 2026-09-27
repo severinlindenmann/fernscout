@@ -9,6 +9,7 @@ import { iosAppStoreUrl, iosAppWaitlistAvailable } from "@/lib/appWaitlist";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { demoDay } from "@/lib/demoDay";
+import { inviteRequestAvailable } from "@/lib/inviteRequest";
 import { publicJournals } from "@/lib/home";
 import { hasLegal } from "@/lib/legal";
 import { installedLocales, ogLocale, requestLocale, translateIn } from "@/lib/locales";
@@ -88,10 +89,9 @@ export default async function Root() {
   // bug B225 fixed, one element higher.
   const locale = await requestLocale();
   const banner = bannerFor(locale);
-  // B2506. The hero's and the pricing's primary door. "welcome" is today's
-  // /welcome; "request" is the invite-request page B2507 adds.
-  // B2507 wires inviteRequestAvailable() here
-  const inviteCta: "request" | "welcome" = "welcome";
+  // B2506. The hero's and the pricing's primary door: B2507's /invite while
+  // signup is invite-only and that page can work, otherwise /welcome.
+  const inviteCta = inviteRequestAvailable() ? "request" : "welcome";
   // Prices and plans only where this instance charges — B840's gate, kept.
   const credits = isEnabled("credits");
 
@@ -159,6 +159,7 @@ export default async function Root() {
         // rather than flashed in and removed.
         postcardsEnabled={isEnabled("postcards")}
         photobookEnabled={isEnabled("photobook")}
+        signupEnabled={isEnabled("signup")}
         // Rendered here and handed over, because `Landing` is a client
         // component and `Pricing` is a server one: it reads a price from the
         // `server-only` module that charges it rather than having a dozen

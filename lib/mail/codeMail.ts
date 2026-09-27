@@ -2,9 +2,14 @@ import "server-only";
 import { CODE_TTL_MINUTES } from "../auth";
 import { translateIn } from "../locales";
 import type { TemplateId } from "../messages/registry";
+import type { Composition } from "../messages/previews/types";
 import type { Locale } from "../types";
-import { renderMail, type MailBlock } from "./template";
-import type { Mail } from "./types";
+import type { MailBlock } from "./template";
+
+/** Composition's mail branch, narrowed so a composer's own return type
+ * carries `subject`/`content` without a runtime `channel` check every
+ * caller would otherwise need — B2493. */
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 
 /**
  * The one builder behind every sign-in code mail — B2440 work item 3.
@@ -22,7 +27,6 @@ import type { Mail } from "./types";
  */
 export type CodeMailInput = {
   template: TemplateId;
-  to: string;
   locale: Locale;
   code: string;
   /** What this journal or site is called — the subject's "{place}". */
@@ -46,10 +50,17 @@ export type CodeMailInput = {
   minutes?: number;
   /** Already localized — differs by recipient kind (site vs journal). */
   why: string;
-  username?: string;
 };
 
-export function codeMail(input: CodeMailInput): Mail {
+/**
+ * Every `code.*` mail's shared composition — subject and `MailContent`, with
+ * no `to` and no `renderMail` call — B2493. Each send site (or, for a route
+ * handler, `lib/mail/accountCodeCompositions.ts`) builds its own
+ * `CodeMailInput` and reduces it through this exact function for both the
+ * real send and the preview, so a preview can never drift from what a code
+ * mail actually says.
+ */
+export function composeCodeMailContent(input: CodeMailInput): MailComposition {
   const minutes = input.minutes ?? CODE_TTL_MINUTES;
   const purposeBlocks: MailBlock[] =
     typeof input.purpose === "string" ? [{ kind: "paragraph", text: input.purpose }] : input.purpose;
@@ -63,17 +74,17 @@ export function codeMail(input: CodeMailInput): Mail {
     { kind: "paragraph", text: input.ignoreText },
   ];
   const vars = { code: input.code, place: input.place, minutes: String(minutes) };
-  return renderMail(
-    input.to,
-    translateIn(input.locale, "mail.codeSubject", vars),
-    {
+  const subject = translateIn(input.locale, "mail.codeSubject", vars);
+  return {
+    channel: "mail",
+    subject,
+    content: {
       template: input.template,
-      preheader: translateIn(input.locale, "mail.codeSubject", vars),
+      preheader: subject,
       title: input.title,
       blocks,
       why: input.why,
       locale: input.locale,
     },
-    input.username,
-  );
+  };
 }

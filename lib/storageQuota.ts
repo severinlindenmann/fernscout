@@ -10,6 +10,8 @@ import { getTrips, tripDir } from "./trips";
 import { EXTRA_STORAGE_BYTES } from "@paid/credits/lib/credits/pricing";
 import { sendTransactional } from "./mail";
 import { renderMail } from "./mail/template";
+import type { Composition } from "./messages/previews/types";
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { ownerLocale } from "./messages/locale";
 import { translateIn } from "./locales";
 import { rateLimitFor } from "./rateLimit";
@@ -301,6 +303,46 @@ export async function storageRefusal(
  * duplicate mail rather than a silence — and a table for it can come the day
  * somebody complains.
  */
+/**
+ * `notice.storage`'s composition — B2493. `full` (the journal is out of
+ * room) is the main path this composes; `low` (a warning ahead of that)
+ * swaps in `mail.storageLow*` keys for the same shape — see the report.
+ */
+export function composeStorageMail(params: {
+  username: string;
+  locale: string;
+  usedBytes: number;
+  limitBytes: number | null;
+  full: boolean;
+}): MailComposition {
+  const { username, locale, usedBytes, limitBytes, full } = params;
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) => translateIn(locale, key, vars);
+  const limit = limitBytes === null ? "" : formatBytes(limitBytes);
+  const vars = { user: username, used: formatBytes(usedBytes), limit };
+  return {
+    channel: "mail",
+    subject: t(full ? "mail.storageFullSubject" : "mail.storageLowSubject", vars),
+    content: {
+      template: "notice.storage",
+      preheader: t("mail.storagePreheader", vars),
+      title: t(full ? "mail.storageFullTitle" : "mail.storageLowTitle"),
+      blocks: [
+        {
+          kind: "paragraph",
+          text: t(full ? "mail.storageFullBody" : "mail.storageLowBody", vars),
+        },
+        { kind: "paragraph", text: t("mail.storageAdvice") },
+        {
+          kind: "button",
+          text: t("mail.storageOpen"),
+          href: `${serverSite().url}/${username}/studio/account`,
+        },
+      ],
+      why: t("mail.storageFooter", vars),
+    },
+  };
+}
+
 async function warnOwner(
   username: string,
   usage: StorageUsage,
@@ -316,37 +358,13 @@ async function warnOwner(
   // Owner chain (W44 D7): the address's own `users.locale`, then the
   // journal's `defaultLocale`, then en.
   const locale = await ownerLocale(username, to, journal.defaultLocale);
-  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
-    translateIn(locale, key, vars);
+  const { subject, content } = composeStorageMail({
+    username,
+    locale,
+    usedBytes: usage.usedBytes,
+    limitBytes: usage.limitBytes,
+    full: level === "full",
+  });
 
-  const limit = usage.limitBytes === null ? "" : formatBytes(usage.limitBytes);
-  const full = level === "full";
-  const vars = { user: username, used: formatBytes(usage.usedBytes), limit };
-
-  await sendTransactional(
-    renderMail(
-      to,
-      t(full ? "mail.storageFullSubject" : "mail.storageLowSubject", vars),
-      {
-        template: "notice.storage",
-        preheader: t("mail.storagePreheader", vars),
-        title: t(full ? "mail.storageFullTitle" : "mail.storageLowTitle"),
-        blocks: [
-          {
-            kind: "paragraph",
-            text: t(full ? "mail.storageFullBody" : "mail.storageLowBody", vars),
-          },
-          { kind: "paragraph", text: t("mail.storageAdvice") },
-          {
-            kind: "button",
-            text: t("mail.storageOpen"),
-            href: `${serverSite().url}/${username}/studio/account`,
-          },
-        ],
-        why: t("mail.storageFooter", vars),
-      },
-      username,
-    ),
-    `storage ${level}`,
-  );
+  await sendTransactional(renderMail(to, subject, content, username), `storage ${level}`);
 }

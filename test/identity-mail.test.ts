@@ -123,15 +123,25 @@ describe("the language of the mail", () => {
    * back the next time somebody adds a paragraph in a hurry.
    */
   test("the route translates rather than hardcoding English", () => {
-    const src = fs.readFileSync(
+    const routeSrc = fs.readFileSync(
       path.join(process.cwd(), "app/api/auth/codes/route.ts"),
       "utf8",
     );
-    expect(src).toContain("requestLocale()");
-    expect(src).toContain('translateIn(locale, "mail.identityTitle"');
+    expect(routeSrc).toContain("requestLocale()");
+    // B2493 — the identity mail's own composition (subject, title, body)
+    // moved into `composeIdentityCodeMail`, a pure function the route calls
+    // and the admin preview panel calls with sample data; the route itself
+    // now only resolves the locale and the link.
+    const composerSrc = fs.readFileSync(
+      path.join(process.cwd(), "lib/mail/accountCodeCompositions.ts"),
+      "utf8",
+    );
+    expect(composerSrc).toContain('t("mail.identityTitle"');
     // The literals that used to be here.
-    expect(src).not.toContain("Your code is");
-    expect(src).not.toContain("It lasts a year");
+    expect(routeSrc).not.toContain("Your code is");
+    expect(routeSrc).not.toContain("It lasts a year");
+    expect(composerSrc).not.toContain("Your code is");
+    expect(composerSrc).not.toContain("It lasts a year");
   });
 
   test("every language carries the whole mail", async () => {

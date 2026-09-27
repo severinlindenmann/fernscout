@@ -6,6 +6,11 @@ import { formatChf } from "./creditsFormat";
 import { dailyCosts } from "./instanceCosts";
 import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
+import type { Composition } from "./messages/previews/types";
+
+/** `op.spend` is always mail — see `lib/digest/dayLetter.ts`'s
+ * `MailComposition`. */
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { translateIn } from "./locales";
 import { OPERATION_LABEL } from "./operations";
 import { serverSite } from "./site";
@@ -38,6 +43,51 @@ export type SpendAlertResult =
   | { sent: false; reason: string; date?: string; rappen?: number }
   | { sent: true; dryRun: boolean; date: string; rappen: number; to: string };
 
+/**
+ * The nightly spend alert's composition — pure, B2493. English only
+ * (`OPERATOR_LOCALE`): no per-operator locale exists to resolve, and this
+ * composer does not invent one.
+ */
+export function composeSpendAlert(input: {
+  siteName: string;
+  amountRappen: number;
+  date: string;
+  lineRappen: number;
+  siteUrl: string;
+  parts: { operation: string; rappen: number }[];
+}): MailComposition {
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(OPERATOR_LOCALE, key, vars);
+  const vars = {
+    site: input.siteName,
+    amount: formatChf(input.amountRappen),
+    date: input.date,
+    line: formatChf(input.lineRappen),
+  };
+  return {
+    channel: "mail",
+    subject: t("op.spendSubject", vars),
+    content: {
+      template: "op.spend",
+      preheader: t("op.spendPreheader", vars),
+      title: t("op.spendTitle", vars),
+      blocks: [
+        { kind: "paragraph", text: t("op.spendBody", vars) },
+        {
+          kind: "table",
+          head: ["What", "Spent"],
+          rows: input.parts.map((part) => ({
+            cells: [OPERATION_LABEL[part.operation] ?? part.operation, formatChf(part.rappen)],
+          })),
+        },
+        { kind: "button", text: t("op.spendButton"), href: `${input.siteUrl.replace(/\/$/, "")}/admin` },
+      ],
+      why: t("op.spendFooter"),
+      locale: OPERATOR_LOCALE,
+    },
+  };
+}
+
 export async function checkSpendAlert(input: { dryRun?: boolean; now?: Date } = {}): Promise<SpendAlertResult> {
   const now = input.now ?? new Date();
   if (!isEnabled("costs")) return { sent: false, reason: "costs are switched off on this instance" };
@@ -63,28 +113,15 @@ export async function checkSpendAlert(input: { dryRun?: boolean; now?: Date } = 
   if (input.dryRun) return { sent: true, dryRun: true, date: day.date, rappen: day.rappen, to };
 
   const site = serverSite();
-  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
-    translateIn(OPERATOR_LOCALE, key, vars);
-  const vars = { site: site.name, amount: formatChf(day.rappen), date: day.date, line: formatChf(line) };
-  const result = await sendMail(
-    renderMail(to, t("op.spendSubject", vars), {
-      template: "op.spend",
-      preheader: t("op.spendPreheader", vars),
-      title: t("op.spendTitle", vars),
-      blocks: [
-        { kind: "paragraph", text: t("op.spendBody", vars) },
-        {
-          kind: "table",
-          head: ["What", "Spent"],
-          rows: day.parts.map((part) => ({
-            cells: [OPERATION_LABEL[part.operation] ?? part.operation, formatChf(part.rappen)],
-          })),
-        },
-        { kind: "button", text: t("op.spendButton"), href: `${site.url.replace(/\/$/, "")}/admin` },
-      ],
-      why: t("op.spendFooter"),
-    }),
-  );
+  const composed = composeSpendAlert({
+    siteName: site.name,
+    amountRappen: day.rappen,
+    date: day.date,
+    lineRappen: line,
+    siteUrl: site.url,
+    parts: day.parts,
+  });
+  const result = await sendMail(renderMail(to, composed.subject, composed.content));
   if (!result) return { sent: false, reason: "mail is switched off on this instance", date: day.date, rappen: day.rappen };
   return { sent: true, dryRun: false, date: day.date, rappen: day.rappen, to };
 }

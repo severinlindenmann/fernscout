@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AckButton, SnoozeButton, UnhideButton } from "./Acks";
 import AppWaitlist from "./AppWaitlist";
+import InviteRequests from "./InviteRequests";
 import Invites from "./Invites";
 import AdminGrant from "@paid/credits/routes/admin/AdminGrant";
 import AdminRefund from "@paid/credits/routes/admin/AdminRefund";
@@ -17,6 +18,7 @@ import { activityFeed, type FeedEntry } from "@/lib/adminActivity";
 import { applyAcks, listAcks, sweepAcks, type Ack } from "@/lib/adminAcks";
 import { inviteOnly, listInvites } from "@/lib/inviteList";
 import { listAppWaitlist } from "@/lib/appWaitlist";
+import { listInviteRequests } from "@/lib/inviteRequest";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { readBackupHistory, readBackupRuns, type BackupNight, type NightOutcome } from "@/lib/backupStatus";
 import { isEnabled } from "@/lib/capabilities";
@@ -165,6 +167,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     arrivals,
     invites,
     appWaitlist,
+    inviteRequests,
   ] = await Promise.all([
     dashboard(from),
     dailyCosts(ago(chartDays), chartDays),
@@ -182,6 +185,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     signupDates(),
     listInvites(),
     listAppWaitlist(),
+    listInviteRequests(),
   ]);
 
   const metered = creditsEnabled();
@@ -424,6 +428,12 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <div className={CARD}>
             <Invites inviteOnly={inviteOnly()} initial={invites} />
+          </div>
+          <div className={CARD}>
+            <InviteRequests
+              entries={inviteRequests}
+              already={invites.map((invite) => invite.email)}
+            />
           </div>
           <div className={CARD}>
             <Funnel steps={steps} signups={signups} />

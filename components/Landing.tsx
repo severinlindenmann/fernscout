@@ -11,7 +11,7 @@ import {
 } from "@/components/LandingSections";
 import SignedOut, { ReaderStrip, type InviteCta, type NavLink } from "@/components/landing/SignedOut";
 import type { DemoDay } from "@/lib/demoDay";
-import { YourJournals } from "@/components/HomeJournals";
+import SignedInHome from "@/components/home/SignedInHome";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import ServerChoice from "@/components/ServerChoice";
 import { useI18n } from "@/components/LocaleProvider";
@@ -62,6 +62,7 @@ export default function Landing({
   appWaitlistAvailable = false,
   postcardsEnabled = false,
   photobookEnabled = false,
+  signupEnabled = false,
   pricing,
   orgsLinks,
   demo,
@@ -111,6 +112,9 @@ export default function Landing({
    */
   postcardsEnabled?: boolean;
   photobookEnabled?: boolean;
+  /** Whether anybody may start a journal here (`isEnabled("signup")`) —
+   * B2508's "Travelling yourself soon?" card links to `/welcome` only then. */
+  signupEnabled?: boolean;
   /** The pricing table, rendered by the page and handed over — B840. A server
    * component (`paid/credits/components/Pricing.tsx`) because every price it prints is
    * read from the `server-only` module that charges it, which is why it
@@ -227,7 +231,7 @@ export default function Landing({
       account={phase === "in" && home ? home.email : undefined}
       // Suppressed once signed in — B1905. `SiteHeader`'s chip opens
       // sign-in, which has nothing to offer a reader who already has a
-      // session; `YourJournals` below is that reader's own way in now.
+      // session; `SignedInHome` below is that reader's own way in now.
       helperEnabled={helperEnabled && phase !== "in"}
       onSignIn={() => setSigningIn(true)}
       orgsLinks={orgsLinks}
@@ -238,14 +242,17 @@ export default function Landing({
 
   if (phase === "in" && home) {
     return (
-      // Full-bleed paper ground — B733. `cream-100` here, `cream-50` on
-      // every panel inside, so a card reads as a thing sitting on the page
-      // rather than a border on a document. Scoped to this page: nothing
-      // outside `/` and `/agent` changes ground.
-      <div className="min-h-full bg-surface-subtle">
-        <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
+      // B2508: a wide page on the cream ground, the boards' own — the
+      // continue card and the trip grid need the width a 672px column
+      // denied them.
+      <div className="min-h-full bg-surface-base">
+        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-16">
           {header}
-          <YourJournals email={home.email} journals={home.journals} />
+          <SignedInHome
+            journals={home.journals}
+            photobookEnabled={photobookEnabled}
+            signupEnabled={signupEnabled}
+          />
           {publicList}
           {/*
             B797: the write call to action, its paragraph, the agent
