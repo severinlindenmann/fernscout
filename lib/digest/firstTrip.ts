@@ -77,7 +77,7 @@ type NudgeAction = { kind: "push" } | { kind: "mail" } | { kind: "none" };
 
 /** What today's sweep does for one candidate — pulled out so the decision
  *  itself needs no journal on disk to test. */
-export function decideNudge(candidate: Pick<FirstTripCandidate, "tips" | "ageDays">, hasPush: boolean): NudgeAction {
+function decideNudge(candidate: Pick<FirstTripCandidate, "tips" | "ageDays">, hasPush: boolean): NudgeAction {
   const { tips, ageDays } = candidate;
   if (hasPush) {
     if (!tips.pushedAt) return ageDays >= PUSH_AFTER_DAYS ? { kind: "push" } : { kind: "none" };

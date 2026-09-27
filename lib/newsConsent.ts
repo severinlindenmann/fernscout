@@ -12,7 +12,7 @@ import { normaliseEmail } from "./contacts";
  * matters for an audit — a version an old row still names honestly, never
  * rewritten under it.
  */
-export const NEWS_CONSENT_WORDING_KEY = "guide.notify.news.v1";
+const NEWS_CONSENT_WORDING_KEY = "guide.notify.news.v1";
 
 /** Record consent — an upsert, so ticking it twice (or on two different
  * journals) is the same row, re-timestamped. */
