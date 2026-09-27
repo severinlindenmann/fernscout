@@ -148,8 +148,10 @@ describe("an upcoming trip: a plan and no days", () => {
 
   test("draws every planned stop, on a dashed run", () => {
     const html = render({ plan: planned });
-    // The hollow markers of WorldMap's planned run, one per stop.
-    expect([...html.matchAll(/fill="#fffaf0"/g)]).toHaveLength(planned.length);
+    // The hollow markers of WorldMap's planned run, one per stop — B2422
+    // moved the fill from a literal hex to the shared `--map-stop-fill`
+    // token, the same paper-white every stop marker now draws from.
+    expect([...html.matchAll(/fill="var\(--map-stop-fill\)"/g)]).toHaveLength(planned.length);
     expect(html).toContain("stroke-dasharray");
   });
 

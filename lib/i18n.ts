@@ -1216,6 +1216,7 @@ export type TranslationKey =
   | "map.emptyNoPlace"
   | "map.everyStop"
   | "map.fullscreen"
+  | "map.hereNow"
   | "map.layers"
   | "map.media"
   | "map.nextUp"
