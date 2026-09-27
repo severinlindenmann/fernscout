@@ -81,6 +81,30 @@ describe("buildLifetimeViews", () => {
     expect(views.some((v) => v.kind === "area" && v.subregion === "Southern Europe")).toBe(true);
   });
 
+  test("only 'Alle' carries its basemap inline — every other view fetches on demand", () => {
+    // B2491: measured at 1.7 MB inline for a real 30-trip journal's ten
+    // views (one alone, 428 KB) — past the ~300 KB the ticket set as the
+    // line for inlining every view. `/api/lifetime-map-view` (a plain
+    // frame in, a basemap out) is what LifetimeMap.tsx fetches instead, the
+    // first time a reader actually selects that view.
+    const visited: VisitedCountry[] = [
+      { code: "CH", continent: "Europe", subregion: "Western Europe" },
+      { code: "PT", continent: "Europe", subregion: "Southern Europe" },
+      { code: "TH", continent: "Asia", subregion: "South-Eastern Asia" },
+    ];
+    const points = new Map([
+      ["CH", [ZURICH]],
+      ["PT", [LISBON]],
+      ["TH", [BANGKOK]],
+    ]);
+    const { views } = buildLifetimeViews(visited, points, new Map());
+    const all = views.find((v) => v.id === "all")!;
+    const rest = views.filter((v) => v.id !== "all");
+    expect(all.basemap).not.toBeNull();
+    expect(rest.length).toBeGreaterThan(0);
+    for (const v of rest) expect(v.basemap, v.id).toBeNull();
+  });
+
   test("a teaser-only country (no real stops) falls back to its corner points", () => {
     const visited: VisitedCountry[] = [
       { code: "CH", continent: "Europe", subregion: "Western Europe" },

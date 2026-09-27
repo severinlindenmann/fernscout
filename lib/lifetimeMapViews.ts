@@ -159,6 +159,16 @@ export function buildLifetimeViews(
   // Sorted by country count, most-visited first — decision 3.
   continents.sort((a, b) => b.count - a.count);
 
-  const basemapped = views.map((v) => ({ ...v, basemap: basemapFor(v.frame) }));
+  /**
+   * Only "Alle" carries its basemap inline. Measured on a real 30-trip
+   * journal, all ten views' basemaps inline came to 1.7 MB (one view alone
+   * — Northern Europe — was 428 KB), far past the ~300 KB the brief set as
+   * the line for inlining every view. Every other view's `frame` still ships
+   * (five numbers; the continent/area buttons and the client-side glide need
+   * it before anything is fetched) — only its basemap is `null` until
+   * `LifetimeMap.tsx` fetches it from `/api/lifetime-map-view` the first
+   * time that view is selected, swapping it in at the end of the glide.
+   */
+  const basemapped = views.map((v) => ({ ...v, basemap: v.id === "all" ? basemapFor(v.frame) : null }));
   return { views: basemapped, continents };
 }

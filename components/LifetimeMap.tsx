@@ -246,12 +246,42 @@ export default function LifetimeMap({
 
   useEffect(() => () => cancelAnimation(), []);
 
+  /**
+   * Basemaps fetched on demand (`/api/lifetime-map-view`) for every view
+   * but "Alle" — measured at up to 1.7 MB inline for a real journal's ten
+   * views, so only the frame ships up front and this is filled in the
+   * first time each view is actually selected. A plain object, not state:
+   * nothing about *drawing* the map depends on this cache directly — only
+   * `displayBasemap` (below) does, and that is what a fetch's `then` sets.
+   */
+  const fetchedBasemapsRef = useRef<Map<string, Basemap>>(new Map());
+  const selectedIdRef = useRef(selectedId);
+
   function selectView(id: string) {
     if (id === selectedId) return;
     const view = views.find((v) => v.id === id);
     if (!view) return;
     setSelectedId(id);
-    animateTo(view.frame, view.basemap, { duration: GLIDE_MS });
+    selectedIdRef.current = id;
+    const cached = view.basemap ?? fetchedBasemapsRef.current.get(id) ?? null;
+    animateTo(view.frame, cached, { duration: GLIDE_MS });
+    if (view.basemap === null && !fetchedBasemapsRef.current.has(id)) {
+      const { x, y, w, h, lngScale } = view.frame;
+      fetch(`/api/lifetime-map-view?x=${x}&y=${y}&w=${w}&h=${h}&lngScale=${lngScale}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { basemap: Basemap | null } | null) => {
+          if (!data?.basemap) return;
+          fetchedBasemapsRef.current.set(id, data.basemap);
+          // Swap in only if still on this view — a reader who has already
+          // moved on by the time this resolves must not have their new
+          // view's ground pulled out from under them.
+          if (selectedIdRef.current === id) setDisplayBasemap(data.basemap);
+        })
+        .catch(() => {
+          // A failed fetch leaves the plain world outline drawn — the same
+          // fallback a journal with no basemap bundle at all already gets.
+        });
+    }
     if (pinned && !view.countryCodes.includes(pinned)) setPin(null);
   }
 
