@@ -75,8 +75,7 @@
 export const VISIBILITY_MEANING =
   "public is listed on this server's own index and on its landing page; guest is not " +
   "listed anywhere, and search engines are asked not to index it — anyone sent the " +
-  "address can still open it. It is also this journal's own answer for a new trip's " +
-  "default, unless the create call says otherwise.";
+  "address can still open it.";
 
 /**
  * The half of it that gets misread, and the reason it must travel with the
@@ -93,15 +92,18 @@ export const VISIBILITY_MEANING =
  * words on.
  *
  * The final clause used to say a new trip is `private` whichever kind of
- * journal it is in — true before B306, and no longer: a new trip's default
- * now follows the journal's own answer, `public` in a `public` journal and
- * `guest` in a `guest` one, unless the create call says otherwise.
+ * journal it is in, and later that it defaulted to the journal's own answer
+ * — both wrong for v2, whose `POST /api/v2/{user}/trips/{trip}` requires
+ * `visibility` outright (`lib/api/v2/schemas/trip.ts`, no `.optional()`):
+ * there is no default to fall back to, so the sentence now says only what is
+ * still true of both versions — that it is not the same question as the
+ * journal's own visibility.
  */
 export const VISIBILITY_NOT_A_LOCK =
   "Neither decides who may read a particular journey: that is the trip's own `visibility` " +
   "— `guest` means the people the owner has let into this journal, `private` means only " +
-  "the people who were there, `public` means anyone — and a new trip's default follows " +
-  "the journal's own answer, unless the call that creates it says otherwise.";
+  "the people who were there, `public` means anyone — and it is asked explicitly every time " +
+  "a trip is created, never guessed from the journal's own answer.";
 
 /**
  * What a second reader language actually costs — B855.
@@ -547,13 +549,13 @@ export function handoverPrompt(input: {
   return [
     `You are writing for a Fernscout travel journal that already exists: ${siteUrl}/${username}`,
     "",
-    `1. Exchange this key for your own 7-day token. It works once, for ${minutes} minutes:`,
+    `1. Exchange this handover code for your own 7-day token. It works once, for ${minutes} minutes:`,
     "",
     `   curl -X POST ${siteUrl}/api/auth/handover \\`,
     `     -H "Authorization: Bearer ${handover}"`,
     "",
     "2. Then, before anything else, read where the journal stands. The token",
-    "   from step 1 goes in the header, the same way the key did:",
+    "   from step 1 goes in the header, the same way the code did:",
     "",
     `   curl ${siteUrl}/api/v2/${username}/status \\`,
     '     -H "Authorization: Bearer <the token step 1 gave you>"',
@@ -584,9 +586,10 @@ export function handoverPrompt(input: {
  * party in a position to say so before the trip is created.
  */
 export const PRIVATE_SHUTS_OUT_GUESTS =
-  "A `private` trip stays shut to approved guests too — approving somebody into the journal " +
+  "A `private` trip stays shut to approved readers too — approving somebody into the journal " +
   "does not open it, and the owner has no way to grant it per person. If the plan is to " +
-  "share with family, `guest` is the value, and approving them is the other half of it.";
+  "share with family, `guest` is the trip's own value, and approving the reader is the other " +
+  "half of it.";
 
 /**
  * Shell-safe single quoting, for the JSON bodies in the prompt below.

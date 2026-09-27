@@ -277,4 +277,38 @@ describe("the nine v2 task guides (B311, step 6 of the v2 migration)", () => {
   // (track, deletions/{token}) all moved into /api/v2/openapi.json, which
   // `test/openapi-v2-contract.test.ts` already checks route-for-route. There
   // is no v1 document left for a canary test here to watch.
+
+  // 2026-09-25 docs audit, Part C: the add-a-day worked example used to fail
+  // for real — a missing `status`, a `lat` key the schema has never had, and
+  // a `weatherData` field name that does not exist (the field is `weather`).
+  // Nobody would have caught the next drift either, since nothing parsed the
+  // example against the schema it claims to demonstrate. This does, so a
+  // future edit to the example (or to `dayWrite`) that breaks the pairing
+  // fails here rather than in an agent's first real call.
+  test("add-a-day.md's worked example actually validates against dayWrite", async () => {
+    const { dayWrite } = await import("@/lib/api/v2/schemas");
+    const { deriveCountryCode } = await import("@/lib/api/v2/documents");
+    const { exemptSingleLocaleTranslations } = await import("@/lib/api/v2/write");
+
+    const rendered = skillDoc("add-a-day");
+    const match = rendered.match(/```json\n([\s\S]*?)\n```/);
+    expect(match, "add-a-day.md should carry one fenced json example").toBeTruthy();
+
+    const raw = JSON.parse(match![1]) as Record<string, unknown>;
+    // The pre-processing the real PUT route applies to the raw body before
+    // it ever reaches `dayWrite.safeParse` — the URL's own slug (the body
+    // never carries one; the worked example is the body alone) and two
+    // mutations in place — replicated here so this proves the example the
+    // way an agent would actually experience it: as a call against a real,
+    // single-locale journal.
+    raw.slug = "2026-08-26-lanterns-of-hoi-an";
+    deriveCountryCode(raw);
+    exemptSingleLocaleTranslations(raw, ["en"]);
+
+    const result = dayWrite.safeParse(raw);
+    expect(
+      result.success,
+      result.success ? "" : JSON.stringify(result.error.issues, null, 2),
+    ).toBe(true);
+  });
 });
