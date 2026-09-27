@@ -62,9 +62,7 @@ backups.
   lookups. An agent of your own, or this instance's built-in assistant (needs
   its own model key), is an optional second way to get words onto the page —
   you still review before it is kept.
-- **Every day starts as a draft.** Nothing goes public until you publish it;
-  set `status: "draft"` explicitly, since a day with no `status` field reads
-  as published.
+- **Every day starts as a draft.** Nothing goes public until you publish it.
 - **Nothing is invented.** Whoever or whatever writes it writes what it was
   told and leaves a field empty rather than guessing. One made-up memory,
   shown to somebody's family as fact, can't be taken back.
@@ -108,10 +106,9 @@ One JSON file per day, in
 }
 ```
 
-Only the literal `"status": "draft"` holds a day back — anything else,
-including no `status` at all, reads as published, so set it explicitly on
-anything you don't mean to publish yet. A file that isn't valid JSON is
-skipped and logged, and the rest of the trip still shows. A trip's `trip.json` holds its title, dates, travellers,
+Only `"status": "published"` puts a day on the site; anything else, including
+no `status` at all, reads as a draft. A file that isn't valid JSON is skipped
+and logged, and the rest of the trip still shows. A trip's `trip.json` holds its title, dates, travellers,
 budget, planned route, exchange rates and visibility: `private`, `public` or
 `guest`. An unknown visibility reads as `private`, so a typo can't publish
 somebody's trip.
