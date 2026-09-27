@@ -27,7 +27,6 @@ import { FAMILIES, templateDef, type Channel, type TemplateId } from "./registry
  * (W44's own build order), not this ticket.
  */
 
-export { SAMPLE } from "./previews/sample";
 import { SAMPLE } from "./previews/sample";
 
 export type { PreviewLocale } from "./previews/types";

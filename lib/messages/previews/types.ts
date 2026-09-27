@@ -16,5 +16,5 @@ export type Composition =
    * says so instead of inventing an example. */
   | { channel: Exclude<Channel, "mail">; freeform: string };
 
-export type PreviewBuilder = (locale: PreviewLocale) => Composition | Promise<Composition>;
+type PreviewBuilder = (locale: PreviewLocale) => Composition | Promise<Composition>;
 export type PreviewMap = Partial<Record<TemplateId, PreviewBuilder>>;
