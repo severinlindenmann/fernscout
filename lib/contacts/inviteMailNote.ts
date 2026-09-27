@@ -29,3 +29,13 @@ export function mailFailedNote(rawEmail: string, username: string): string {
   }
   return `Could not send to ${rawEmail} — the mail failed to send. ${suffix}`;
 }
+
+/** B2442 — the studio's note when an invite was refused, not merely
+ * failed: this person asked, on the public `/x/<token>` page, never to be
+ * invited again. Nothing was sent. */
+export function inviteSuppressedNote(rawEmail: string): string {
+  return (
+    `Could not send to ${rawEmail} — this person asked not to be invited. The link above still ` +
+    "works and that address is still pre-approved; send it another way only if you know them personally."
+  );
+}

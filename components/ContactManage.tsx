@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import AddressLookupField from "./AddressLookupField";
 import CountryField from "./CountryField";
@@ -72,6 +72,7 @@ export default function ContactManage({
   whatsappEnabled = false,
   smsEnabled = false,
   isOwner = false,
+  highlight,
 }: {
   username: string;
   /** The languages this journal offers, from its config. */
@@ -117,6 +118,9 @@ export default function ContactManage({
    * needs that the form above does not already give them.
    */
   isOwner?: boolean;
+  /** Which channel a stream-scoped `?s=` unsubscribe link asked to open
+   * scrolled to and highlighting — B2442. Absent for the plain link. */
+  highlight?: "mail" | "sms" | "wa";
   /**
    * The outer element's spacing and width. Defaults to a page's own centred
    * column — the standalone `/c/<token>` page every mail footer points at.
@@ -152,6 +156,14 @@ export default function ContactManage({
   const [wantsWhatsapp, setWantsWhatsapp] = useState(contact.wantsWhatsapp);
   const [wantsSms, setWantsSms] = useState(contact.wantsSms ?? false);
   const [note, setNote] = useState<TranslationKey | null>(null);
+  const highlightRef = useRef<HTMLLabelElement>(null);
+  // B2442 — a `?s=` link scrolls to and briefly rings the one channel it
+  // named, so a reader following the SMS stop link (or a day letter's
+  // `List-Unsubscribe`) lands on the tick that stopped, not the top of a
+  // form with four others still on.
+  useEffect(() => {
+    if (highlight) highlightRef.current?.scrollIntoView({ block: "center" });
+  }, [highlight]);
   const [busy, setBusy] = useState(false);
   const [deleted, setDeleted] = useState(false);
 
@@ -373,7 +385,12 @@ export default function ContactManage({
         </fieldset>
 
         <div className="mt-8 space-y-4">
-          <label className="flex items-start gap-3 text-lg text-ink-strong">
+          <label
+            ref={highlight === "mail" ? highlightRef : undefined}
+            className={`flex items-start gap-3 text-lg text-ink-strong ${
+              highlight === "mail" ? "rounded-xl ring-2 ring-action-strong ring-offset-2" : ""
+            }`}
+          >
             <input
               type="checkbox"
               className="mt-1.5 size-5"
@@ -394,7 +411,12 @@ export default function ContactManage({
             </label>
           )}
           {whatsappEnabled && (
-            <label className="flex items-start gap-3 text-lg text-ink-strong">
+            <label
+              ref={highlight === "wa" ? highlightRef : undefined}
+              className={`flex items-start gap-3 text-lg text-ink-strong ${
+                highlight === "wa" ? "rounded-xl ring-2 ring-action-strong ring-offset-2" : ""
+              }`}
+            >
               <input
                 type="checkbox"
                 className="mt-1.5 size-5"
@@ -405,7 +427,12 @@ export default function ContactManage({
             </label>
           )}
           {smsEnabled && (
-            <label className="flex items-start gap-3 text-lg text-ink-strong">
+            <label
+              ref={highlight === "sms" ? highlightRef : undefined}
+              className={`flex items-start gap-3 text-lg text-ink-strong ${
+                highlight === "sms" ? "rounded-xl ring-2 ring-action-strong ring-offset-2" : ""
+              }`}
+            >
               <input
                 type="checkbox"
                 className="mt-1.5 size-5"

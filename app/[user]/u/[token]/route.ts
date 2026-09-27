@@ -1,8 +1,16 @@
 import { isEnabled } from "@/lib/capabilities";
-import { manageUrl, unsubscribeContact } from "@/lib/contacts";
+import { manageUrl, unsubscribeContact, type UnsubscribeStream } from "@/lib/contacts";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
+
+/** `?s=mail|sms|wa`, or `null` for the old stop-everything shape — B2442.
+ * Anything else is ignored rather than refused: a scanner appending its own
+ * junk query string must not turn a working unsubscribe link into a 400. */
+function streamParam(request: Request): UnsubscribeStream | undefined {
+  const raw = new URL(request.url).searchParams.get("s");
+  return raw === "mail" || raw === "sms" || raw === "wa" ? raw : undefined;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -41,15 +49,17 @@ export async function POST(request: Request, context: RouteContext<"/[user]/u/[t
     );
   }
 
-  const done = await unsubscribeContact(username, token);
+  const done = await unsubscribeContact(username, token, streamParam(request));
   if (!done) return Response.json({ error: "unknown_token" }, { status: 404 });
   return Response.json({ ok: true });
 }
 
-export async function GET(_request: Request, context: RouteContext<"/[user]/u/[token]">) {
+export async function GET(request: Request, context: RouteContext<"/[user]/u/[token]">) {
   const { user: username, token } = await context.params;
   if (!getUser(username) || !isEnabled("contacts", username)) {
     return new Response("Not found", { status: 404 });
   }
-  return Response.redirect(manageUrl(serverSite().url, username, token), 302);
+  // Never unsubscribes on GET (the comment above says why) — only carries
+  // which channel to open the manage page scrolled to.
+  return Response.redirect(manageUrl(serverSite().url, username, token, streamParam(request)), 302);
 }

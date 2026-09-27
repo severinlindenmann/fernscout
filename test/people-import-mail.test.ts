@@ -147,8 +147,9 @@ describe("the sign-in path", () => {
     const [file] = mailsTo("dora@example.test");
     expect(file).toBeTruthy();
     const mail = decodeMail(fs.readFileSync(path.join(dir, "mail", OWNER, file), "utf8"));
-    expect(mail.subject).toBe(`Your code for ${TITLE}`);
-    expect(mail.body).toContain("Your code is 424242");
+    // B2440 — one subject pattern for every sign-in code mail.
+    expect(mail.subject).toBe(`424242 is your code for ${TITLE}`);
+    expect(mail.body).toContain("424242");
   });
 });
 
