@@ -543,37 +543,21 @@ describe("what the deepgram backend asks for", () => {
 });
 
 describe("which Deepgram host the audio goes to — B2472", () => {
-  async function real() {
-    vi.doUnmock("@/lib/helper/transcribe");
-    vi.resetModules();
-    return vi.importActual<typeof import("@/lib/helper/transcribe")>("@/lib/helper/transcribe");
-  }
   const saved = process.env.DEEPGRAM_API_URL;
   afterEach(() => {
     if (saved === undefined) delete process.env.DEEPGRAM_API_URL;
     else process.env.DEEPGRAM_API_URL = saved;
   });
 
-  test("the EU endpoint by default", async () => {
-    delete process.env.DEEPGRAM_API_URL;
-    expect((await real()).deepgramUrl().toString()).toBe("https://api.eu.deepgram.com/v1/listen");
-  });
-
-  test("an https override is used", async () => {
-    process.env.DEEPGRAM_API_URL = "https://api.deepgram.com/v1/listen";
-    expect((await real()).deepgramUrl().host).toBe("api.deepgram.com");
-  });
-
-  test("a non-https or broken override is ignored", async () => {
-    for (const bad of ["http://api.deepgram.com/v1/listen", "not a url"]) {
-      process.env.DEEPGRAM_API_URL = bad;
-      expect((await real()).deepgramUrl().host).toBe("api.eu.deepgram.com");
-    }
-  });
-
-  test("the request itself goes to the EU host", async () => {
-    delete process.env.DEEPGRAM_API_URL;
-    const mod = await real();
+  /** Sends one stubbed request with `override` set and says which host it went to. */
+  async function hostCalled(override?: string): Promise<string> {
+    if (override === undefined) delete process.env.DEEPGRAM_API_URL;
+    else process.env.DEEPGRAM_API_URL = override;
+    vi.doUnmock("@/lib/helper/transcribe");
+    vi.resetModules();
+    const real = await vi.importActual<typeof import("@/lib/helper/transcribe")>(
+      "@/lib/helper/transcribe",
+    );
     process.env.DEEPGRAM_API_KEY = "dummy-key";
     writeServerConfig({
       auth: { enabled: true },
@@ -590,11 +574,24 @@ describe("which Deepgram host the audio goes to — B2472", () => {
       ),
     );
     try {
-      await mod.transcribeAudio(Buffer.from("bytes"), "audio/webm", "en");
-      expect(new URL(String(fetchSpy.mock.calls[0][0])).host).toBe("api.eu.deepgram.com");
+      await real.transcribeAudio(Buffer.from("bytes"), "audio/webm", "en");
+      return new URL(String(fetchSpy.mock.calls[0][0])).host;
     } finally {
       fetchSpy.mockRestore();
     }
+  }
+
+  test("the EU endpoint by default", async () => {
+    expect(await hostCalled()).toBe("api.eu.deepgram.com");
+  });
+
+  test("an https override is used", async () => {
+    expect(await hostCalled("https://api.deepgram.com/v1/listen")).toBe("api.deepgram.com");
+  });
+
+  test("a non-https or broken override is ignored", async () => {
+    expect(await hostCalled("http://api.deepgram.com/v1/listen")).toBe("api.eu.deepgram.com");
+    expect(await hostCalled("not a url")).toBe("api.eu.deepgram.com");
   });
 });
 

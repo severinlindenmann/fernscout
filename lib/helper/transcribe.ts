@@ -45,7 +45,7 @@ const DEEPGRAM_MODEL = "nova-3";
 const DEEPGRAM_URL = "https://api.eu.deepgram.com/v1/listen";
 
 /** `DEEPGRAM_API_URL` when it is an `https:` URL, else the EU default. */
-export function deepgramUrl(): URL {
+function deepgramUrl(): URL {
   const override = process.env.DEEPGRAM_API_URL?.trim();
   if (override) {
     try {
