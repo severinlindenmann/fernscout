@@ -13,6 +13,9 @@
 @import "tailwindcss" source(none);
 @source "../app";
 @source "../components";
+/* The schools and tour-operator pages (B2450) live only in the private
+   paid/ checkout; without it this path does not exist and adds nothing. */
+@source "../paid/orgs";
 @plugin "@tailwindcss/typography";
 
 :root {
