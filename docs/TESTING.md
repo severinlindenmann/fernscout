@@ -11,10 +11,9 @@ empty"** and that is enough for me to find it.
 **Legend:** ✅ what should happen · ⚠️ known limitation, not a bug ·
 🔑 needs an environment variable
 
-This is the walkthrough a person follows by hand. `docs/qa/SCENARIOS.md` is the
-wider catalogue an agent runs end to end — API, auth, mail and two journals on
-one instance — and `docs/qa/BLACKBOX.md` is the pass run by testers who have
-never seen the source.
+This is the walkthrough a person follows by hand. [docs/testing/](testing/)
+is the machine-checked coverage matrix of persona flows across interfaces —
+see the `test-a-feature` and `test-the-live-site` skills for running those.
 
 ---
 
@@ -35,7 +34,9 @@ Nothing else matters until this passes.
 
 ## B — Reading a journal
 
-The core. No configuration, no accounts.
+The core: no accounts. `costs` and `reactions` both ship on by default, but
+both are operator-only — a journal cannot switch either off for itself, only
+the operator can, in `site/config.json`.
 
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
@@ -45,12 +46,12 @@ The core. No configuration, no accounts.
 | **B4** | Copy a `#day-…` URL, open it in a new tab | Opens on that day, not the top |
 | **B5** | Click the trip name in the header | The trip switcher lists all five journeys, grouped **now / upcoming / past** |
 | **B6** | Open **Four days round the Alps** | A short past trip, four days |
-| **B7** | Open **Five months east** | A long past trip, five days spread over five months |
+| **B7** | Open **Five months east** | A long past trip: 12 entries on 10 dates, spread over five months |
 | **B8** | Open **Eighteen days, eleven parks** | A past road trip: 18 days, 18 different places, one night each |
 | **B9** | On that trip's overview | The heading is the **trip's** name, and the badge reads "The last stop was Denver" — past tense, no pulsing dot |
 | **B10** | Press **Continue** twenty times on it | Every day loads. Nothing sticks on "Fetching this day…" |
-| **B11** | `/example/trips` | All **five** trips, grouped current / upcoming / past. The four that have happened each show a cover photo and a day, country and photo count that are **not 0** |
-| **B12** | The lifetime map on that page | Four drawn routes, each a different colour in the legend |
+| **B11** | `/example/trips` | Every trip on the journal, grouped current / upcoming / past. The ones that have happened each show a cover photo and a day, country and photo count that are **not 0** |
+| **B12** | The lifetime map on that page | One drawn route per past trip, each a different colour in the legend |
 | **B13** | Try a URL that does not exist, e.g. `/example/day/nonsense` | A real "not found" page in the site's design, not a stack trace |
 | **B14** | Try `/nobody` | "There is no journal at this address" |
 | **B15** | Open **Japan, end to end** | A trip that has not happened: a days-away countdown, the planned route on a map, the planned budget — and "no days written yet". No story, no gallery |
@@ -103,7 +104,7 @@ The five trips deliberately spend in **CHF, EUR, THB, VND, USD and JPY**.
 | **E3** | Open `/example?lang=hu` in a **private window** | Hungarian **on the first load**, no English flash |
 | **E4** | Click through to another page, no `?lang=` | Still Hungarian |
 | **E5** | On the Asia trip, days **First morning in Bangkok** and **Two days on the Mekong** in German | The diary text itself is German, not just the menus |
-| **E6** | The same days in Hungarian | Bangkok is Hungarian; ⚠️ the others fall back to English text — only some days are translated, on purpose |
+| **E6** | The same days in Hungarian | Both are Hungarian; ⚠️ other days on the same trip fall back to English text — only some days are translated, on purpose |
 | **E7** | `/example?lang=englishplease` | Ignored, falls back to the journal's own language |
 | **E8** | `/sitemap.xml`, search for `hreflang` | Every page listed in each language |
 
@@ -127,11 +128,9 @@ effect on the next request with no restart and no rebuild.
 
 🔑 F4 onwards need sign-in: the `DATABASE_URL`, `SESSION_SECRET` and
 `AUTH_DEV_CODE` block in **G**, `npm run db:migrate`, and
-`features.auth.enabled: true` in **both** `site/config.json` *and*
-`content/example/config.json` — a journal opts in to sign-in separately, and
-without the journal's own flag the gate offers no form at all, only "ask
-whoever writes this journal". (The API does not ask that second question, which
-is B252.)
+`features.auth.enabled: true` in `site/config.json`. `auth` is operator-only —
+a journal's own `content/example/config.json` has no say over it, so setting
+it there does nothing.
 
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
@@ -155,7 +154,8 @@ is B252.)
 
 ## G — Writing through an agent
 
-The headline feature: **there is no editing UI.** 🔑 Needs:
+Studio has its own workflow (see the `test-in-a-browser` skill); this section
+is the other way in — an agent holding a key, over the API. 🔑 Needs:
 
 ```bash
 export DATABASE_URL="sqlite:$PWD/.data/test.db"
@@ -174,8 +174,8 @@ and in `site/config.json` set `features.auth.enabled` and
 | **G4** | Open `/example/day/denver-and-a-truck.md` | The **markdown twin** of that day, not the rendered page |
 | **G5** | `curl -X POST localhost:3000/api/auth/codes -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","for":"write"}'` | `202`, and an `.eml` file appears in `<DATA_DIR>/mail/example/` |
 | **G6** | `curl -X POST localhost:3000/api/auth/codes/redeem -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","for":"write"}'` | A token starting `fs_agent_` |
-| **G7** | Same request with a **different** email | `202` but **no** mail written — only the owner can get a write token |
-| **G8** | `curl localhost:3000/api/v2/example/trips -H "authorization: Bearer <token>"` | All four trips as JSON |
+| **G7** | Same request with a **different** email | `403` and **no** mail written — only the owner can get a write token |
+| **G8** | `curl localhost:3000/api/v2/example/trips -H "authorization: Bearer <token>"` | Every trip on the journal, as JSON |
 | **G9** | `PUT` a new day at a client-chosen slug (the exact call is in `/skill/add-a-day.md`) | `201`, and it says **draft** |
 | **G10** | Look for that day on the site | **Not there.** Drafts are invisible until published |
 | **G11** | `curl "localhost:3000/api/v2/example/trips/<trip>/days" -H "authorization: Bearer <token>"` | Every day in that trip, including your draft — there is no separate drafts endpoint; `GET /api/v2/example/status` gives only the count |
@@ -195,19 +195,20 @@ files you can open — no mail account needed.
 
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
+There is no weekly batch any more — a **day letter** goes out the moment a
+day is published, to whoever the trip lets read it, and that is the only
+mail this section tests.
+
+| # | Do this | ✅ Expect |
+| --- | --- | --- |
 | **H1** | Set `features.contacts.enabled: true` and 🔑 `CONTACTS_ENCRYPTION_KEY=$(openssl rand -hex 32)`. Rebuild | — |
 | **H2** | Open `/example/studio/readers` as owner — the only place an invite is made (B2295) — share a link, open it in another session | A short guest/buddy redemption flow: name, email or mobile, a code |
 | **H3** | Fill it in and submit | A code arrives as an `.eml`; entering it confirms you |
 | **H4** | Check `<DATA_DIR>/mail/example/` | A "someone wants to follow" mail addressed to the owner |
-| **H5** | Open `/example/contacts` (as owner) | The pending request, with an approve button |
-| **H6** | `npm run digest -- --user example --dry-run` | Lists who would get what, sends nothing |
-| **H7** | `npm run digest -- --user example` | A digest `.eml` per approved contact |
-| **H8** | Open one in a mail client | Readable, large type, links work, has an unsubscribe link |
-| **H9** | Add a contact with German as their language, run the digest again | Their mail is in German |
-| **H10** | Run the digest twice in a row | The second run sends **nothing** |
-| **H11** | `npm run digest -- --user example --dry-run --include-test --force --since 2020-01-01` against a journal whose only trip is `test: true` | Lines appear, every one of them marked `[TEST CONTENT INCLUDED]`. This is the only way to drive the digest over content an agent is allowed to write (B184) |
-| **H12** | The same command without `--dry-run` | Refused, and nothing is sent. The two flags cannot be separated |
-| **H13** | `npm run digest -- --user example --dry-run --force --since 2020-01-01` on that same journal | `all-test` rather than `nothing-new` — a suppressed journal is distinguishable from a quiet one |
+| **H5** | Open `/example/studio/readers` (as owner) — `/example/contacts` now redirects here | The pending request, with an approve button |
+| **H6** | Approve that contact, then publish a day the address can read | A day letter `.eml` arrives for that contact, in their own language |
+| **H7** | Publish a second day right after | A second, separate letter — there is no batching or once-a-day limit any more |
+| **H8** | Open a letter in a mail client | Readable, large type, links work, has an unsubscribe link |
 
 ---
 
@@ -225,8 +226,8 @@ Hosted-only features are tested in the private features repository.
 | **I6** | `exiftool` a resized photo it produced | **No GPS.** Coordinates go in the text, not the file |
 | **I7** | The whole site on a phone (or a 390px window) | Nothing scrolls sideways; buttons are thumb-sized |
 | **I8** | Tab through a page with the keyboard | A visible focus ring everywhere |
-| **I9** | `/welcome` | Redirects to `/` — the landing page moved to the root |
-| **I10** | The landing page with `?lang=de` and `?lang=hu` | Fully translated, including "Entdecke öffentliche Reisen unserer Mitglieder" |
+| **I9** | `/welcome` | The signup page — making a journal from nothing (not a redirect) |
+| **I10** | The landing page with `?lang=de` and `?lang=hu` | Fully translated menus and copy, in German and Hungarian |
 
 ---
 
@@ -236,9 +237,11 @@ Hosted-only features are tested in the private features repository.
 - **The service worker does not run under `npm run dev`**, by design — it
   would serve the previous build's assets to a dev server that has since
   recompiled. Offline behaviour is tested against `npm run build && npm start`.
-- **SMTP** is not implemented. Mail only writes files, by design.
+- **SMTP is implemented** (`lib/mail/smtp.ts`) but not configured for local
+  testing; mail writes `.eml` files locally, by design.
 - **No restore drill has been run** on the native (non-Docker) deployment.
-- **Nothing is deployed.** No domain, no server.
+- **fernscout.ch is deployed** and live; this walkthrough is for a local
+  checkout, and does not touch it.
 
 ---
 

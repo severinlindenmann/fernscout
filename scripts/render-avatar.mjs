@@ -61,16 +61,15 @@ if (!svg.includes(NAVY)) {
  * belongs under `scripts/` (test/depersonalised.test.ts), and an instance
  * that regenerates this with its own mark should be stamping its own name on
  * it rather than somebody else's. Keep the wording in step with the SVG
- * comments and the BRAND ASSETS section of LICENSE. */
+ * comments and BRAND-LICENSE. */
 const { site } = JSON.parse(fs.readFileSync(path.join(root, "site/config.json"), "utf8"));
 const holder = site?.credit?.name;
 const NOTICE = {
-  Copyright: holder ? `Copyright ${YEAR} ${holder}` : `Copyright ${YEAR} — see LICENSE`,
+  Copyright: holder ? `Copyright ${YEAR} ${holder}` : `Copyright ${YEAR} — see BRAND-LICENSE`,
   ...(holder ? { Author: holder } : {}),
   Disclaimer:
     `The ${site?.name ?? "Fernscout"} wordmark and waymark are not licensed for use as the ` +
-    "identity of another project or product. See TRADEMARK.md and the BRAND " +
-    "ASSETS section of LICENSE.",
+    "identity of another project or product. See TRADEMARK.md and BRAND-LICENSE.",
 };
 
 /** One PNG `tEXt` chunk: length, type, keyword\0text, CRC of type+data.

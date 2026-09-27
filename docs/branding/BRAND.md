@@ -14,8 +14,9 @@ everything else is a variant of it.
 The old name, Reisepost, described mail **arriving**: news from far away,
 landing at home. Fernscout describes the opposite direction of travel. A scout
 goes out **ahead** of you, covers ground you have not covered, and reports
-back. That is what the product actually is now: an agent that walks the trip
-with you, keeps the record, and hands it back written.
+back. That is what the product actually is now: you write the trip in your
+own studio, and an agent of your own, or this instance's built-in assistant,
+is an optional second way to get words onto the page.
 
 Say it as one word. Never *FernScout*, *Fern Scout*, or *fern-scout*, and
 never split the halves across two colours or two weights — the name is one
@@ -162,10 +163,11 @@ So later icons look related rather than merely adjacent:
 
 ## 7. Motion
 
-`path-pulse` in `app/globals.css` is the house animation: the leading dot
-breathing on the trail. It is the one piece of ambient motion — the scout is
-alive and ahead of you. Everything else animates on interaction only, and all
-of it respects `prefers-reduced-motion`.
+`path-pulse` in `app/globals.css` is defined but not wired to anything yet —
+its glow is yellow (`rgba(255, 210, 63, …)`), not the green the leading dot
+is supposed to breathe in. Fix the colour before using it anywhere. Until
+then, everything animates on interaction only, and all of it respects
+`prefers-reduced-motion`.
 
 ## 8. Voice
 

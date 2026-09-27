@@ -22,8 +22,8 @@ row actually exists after the owner approves).
 ## Steps
 
 1. Open the guest-invite link as the `guest-invited` persona. Confirm the
-   sign-in gate names the journal only — never the trip
-   (AGENTS.md: "a closed trip does not name itself").
+   sign-in gate names the journal only — never the trip: a closed trip does
+   not name itself, in the heading, the tagline or the page `<title>`.
 2. Complete the identity/code flow. Confirm the persona lands in a
    pending-approval state, not on the trip itself.
 3. As the owner-established persona (a second browser session), approve the

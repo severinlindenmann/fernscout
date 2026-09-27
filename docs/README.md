@@ -34,17 +34,21 @@ reversed, or commands that have since changed shape. If you rely on something
 here, check it against the code first, and fix the document while you are
 there. The code is the authority.
 
-The **paths** these documents mention are checked: `test/docs-links.test.ts`
-fails the build when a cited file does not exist. The **claims** are not
-checked the same way. `architecture.md` is the strongest of them; its account
-of the module layout, `proxy.ts`, the built-in world map and the paged reading
-model has been spot-checked against the code.
+The **paths** these documents mention are checked, but only partly:
+`test/docs-links.test.ts` is a Vitest test, not part of the build. It checks
+markdown-link syntax inside `docs/`, a backtick-quoted path in a top-level
+`docs/*.md` file, and a `docs/…` citation in `lib/`, `app/`, `components/`,
+`scripts/`, `test/`, `proxy.ts`, `instrumentation.ts` and `next.config.ts` —
+but a backtick path *inside* `docs/testing/` or `docs/guides/` is still not
+checked. The **claims** are not checked either way; check them against the
+code before relying on one.
 
-`ROADMAP.md` is half history: the decision log at the top is durable and cited
-by number from the code ("ROADMAP decision 24"); the backlog below it is out of
-date. `TESTING.md` is accurate as far as anyone has walked it, which is not
-recently.
+`ROADMAP.md` is half history: the decision log at the top is cited by number
+from the code ("ROADMAP decision 24"), but a decision can be superseded or
+reversed by a later one in the same log — read forward to the end before
+trusting an early one. The backlog below the log is out of date.
 
-Hosted-only features (photobooks, postcards, WhatsApp, buying credits) are not
-documented here; they live, with their documentation, in the private
-repository behind fernscout.ch.
+Hosted-only features (photobooks, postcards, WhatsApp, buying credits) are
+marked "hosted edition only" wherever they come up in this folder. Their own
+walkthroughs and testing flows live in the private repository behind
+fernscout.ch, not here.

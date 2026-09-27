@@ -25,8 +25,8 @@ export default function AppleIcon() {
               .claude/skills/apply-the-brand. If the mark changes, this changes
               with it.
 
-              Copyright: see LICENSE, BRAND ASSETS. Not licensed as the
-              identity of another project — LICENSE, BRAND ASSETS. */}
+              Copyright: see BRAND-LICENSE. Not licensed as the
+              identity of another project. */}
           <path
             d="M6 25 L11.3 20.7 L15.7 19 L21 12.3 L26 8"
             fill="none"

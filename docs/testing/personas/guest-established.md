@@ -1,8 +1,8 @@
 # Persona: guest-established
 
 **Role-lifecycle axis.** An approved guest, holding either a session cookie
-or a year-long identity cookie (AGENTS.md: `fs_identity`). Reads the
-journal's `guest` trips; never writes.
+or a year-long identity cookie (`fs_identity`). Reads the journal's `guest`
+trips; never writes.
 
 **Wants:** to check for a new update — a fresh day, a new photograph — and
 to read it in their own language if the journal ships one. Good persona for
