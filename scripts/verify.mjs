@@ -25,8 +25,10 @@
 // body of an ordinary component does not invalidate `.next/types`; adding
 // `app/foo/page.tsx` does, so quick mode rebuilds before typechecking.
 
+import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { inspectRouteTypesStamp } from "./route-types-stamp.mjs";
 import { assertRepositoryNode } from "./runtime-preflight.mjs";
@@ -157,7 +159,7 @@ const steps = [
  * read. B713: `npm run verify` used to end in only a count and this banner,
  * which turned a one-minute diagnosis into three full suite re-runs.
  */
-function runCapturing(command, args) {
+function runCapturing(command, args, env) {
   return new Promise((resolve) => {
     const lines = [];
     let carry = "";
@@ -171,6 +173,7 @@ function runCapturing(command, args) {
     const child = spawn(command, args, {
       stdio: ["inherit", "pipe", "pipe"],
       shell: process.platform === "win32",
+      env: env ?? process.env,
     });
     child.stdout.on("data", onChunk(process.stdout));
     child.stderr.on("data", onChunk(process.stderr));
@@ -186,10 +189,30 @@ function runCapturing(command, args) {
 // machine; the third one now waits here instead (B2144).
 await acquireSlot("heavy", `verify ${path.basename(process.cwd())}`);
 
+// CI's `test` job never runs with DATABASE_URL unset — its three legs are
+// file, sqlite and postgres, all named — so local verify's own unset case
+// (falling back to the file stores) was the one arrangement CI never
+// checked, and a test that only leaks with a real database (B2495, 27 Sep)
+// stayed green here and red there. Point the tests step at a throwaway
+// sqlite file instead, matching CI's sqlite leg, whenever nobody already
+// chose a database; only that one step's child env changes, so build/tsc/
+// eslint/knip still see whatever DATABASE_URL (if any) the caller set.
+let testsDbFile = null;
+if (!process.env.DATABASE_URL) {
+  testsDbFile = path.join(os.tmpdir(), `fernscout-verify-${randomBytes(6).toString("hex")}.db`);
+  console.log(`No DATABASE_URL set — running the suite against a temporary sqlite db (${testsDbFile}), matching CI's sqlite leg.`);
+}
+
 const started = Date.now();
 for (const [name, [command, args], what] of steps) {
   console.log(`\n─── ${name}: ${command} ${args.join(" ")}\n`);
-  const { status, lines } = await runCapturing(command, args);
+  const env = name === "tests" && testsDbFile ? { ...process.env, DATABASE_URL: `sqlite:${testsDbFile}` } : process.env;
+  const { status, lines } = await runCapturing(command, args, env);
+  if (name === "tests" && testsDbFile) {
+    for (const suffix of ["", "-shm", "-wal"]) {
+      fs.rmSync(`${testsDbFile}${suffix}`, { force: true });
+    }
+  }
   if (status !== 0) {
     if (name === "tests") {
       const failing = lines.filter((l) => /(FAIL|✗|✕)/.test(l));

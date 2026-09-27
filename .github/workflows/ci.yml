@@ -75,11 +75,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # `lib/db/`: SQLite in dev, Postgres in prod, chosen by DATABASE_URL.
-        # Both dialects run the same suite here so a test that only passes
-        # against one of them fails CI, not a reader's production deploy. The
-        # postgres leg gets a real service container.
+        # `lib/db/`: SQLite in dev, Postgres in prod, chosen by DATABASE_URL —
+        # and no database at all (the file stores under DATA_DIR) is a third,
+        # supported way to run (ROADMAP §2.2), the self-host default. All
+        # three run the same suite here so a test that only passes against
+        # one of them fails CI, not a reader's deploy. `database_url: ""` is
+        # not a typo for unset: `lib/db/url.ts`'s `parseDatabaseUrl` treats an
+        # empty string exactly like an absent variable, returning `null`
+        # (B2495) — so the file leg needs no separate conditional-env step.
+        # The postgres leg gets a real service container.
         include:
+          - dialect: file
+            database_url: ""
+            postgres_test_url: ""
           - dialect: sqlite
             database_url: "sqlite:./test.db"
             postgres_test_url: ""
