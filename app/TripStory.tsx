@@ -644,12 +644,12 @@ export default function TripStory({
       {/* B2485 — the way from somebody's shared trip to what made it. */}
       {madeWith && (
         <footer className="mx-auto w-full max-w-5xl px-4 pt-6 text-center text-xs text-ink-secondary sm:px-6 lg:px-8">
-          <a
+          <Link
             href="/"
             className="inline-flex min-h-11 items-center underline decoration-line-quiet underline-offset-2 hover:text-ink-strong"
           >
             {t("story.madeWith", { name: madeWith })}
-          </a>
+          </Link>
         </footer>
       )}
 
