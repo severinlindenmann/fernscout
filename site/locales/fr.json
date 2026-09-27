@@ -2325,10 +2325,10 @@
   "tripMap.googleMaps": "Ouvrir dans Google Maps",
   "tripMap.googleMapsHelp": "Ouvre ce lieu dans Google Maps.",
   "tripMap.lastPlace": "Dernier lieu documenté",
-  "tripMap.local": "Alentours",
   "tripMap.mapsShort": "Maps",
   "tripMap.nextStop": "Étape suivante",
   "tripMap.previousStop": "Étape précédente",
+  "tripMap.recorded": "Itinéraire enregistré",
   "tripMap.selectedPlace": "Lieu sélectionné",
   "tripMap.stopOf": "Étape {index} sur {count}",
   "tripMap.title": "Le voyage sur la carte",
@@ -4139,7 +4139,6 @@
   "join.error.expired": "Ce lien ne fonctionne plus. Demande un nouveau lien à la personne qui te l’a envoyé.",
   "join.alreadyTitle": "Tu es déjà entré·e",
   "join.alreadyBody": "Rien à demander — tu peux déjà lire « {title} ».",
-  "fallback.writtenIn.en": "Écrit en anglais — ce jour n’a pas de version française.",
   "agent.slot.accent": "Couleur",
   "agent.slot.all": "Tous les fichiers en attente",
   "agent.slot.amount": "Combien",
@@ -4186,5 +4185,7 @@
   "agent.slot.message": "Message",
   "agent.slot.photo": "Photo",
   "agent.slot.recipients": "Destinataires",
-  "agent.slot.size": "Taille"
+  "agent.slot.size": "Taille",
+  "tripMap.local": "Alentours",
+  "fallback.writtenIn.en": "Écrit en anglais — ce jour n’a pas de version française."
 }
