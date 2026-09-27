@@ -3,7 +3,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import ShareLink from "@/components/studio/readers/ShareLink";
-import { translate } from "@/lib/i18n";
+import { translate, type TranslationKey } from "@/lib/i18n";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
@@ -17,7 +17,7 @@ import { dictionaryFor } from "@/lib/locales";
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 const dict = dictionaryFor("en");
-const t = (key: string, vars?: Record<string, string>) => translate(dict, key, vars);
+const t = (key: TranslationKey, vars?: Record<string, string>) => translate(dict, key, vars);
 
 afterEach(() => {
   vi.unstubAllGlobals();
