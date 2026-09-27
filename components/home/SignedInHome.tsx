@@ -70,7 +70,7 @@ const CARD = "rounded-3xl border border-surface-muted bg-surface-raised";
 
 function Kicker({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={`font-mono text-xs uppercase tracking-[0.08em] text-ink-muted ${className}`}>{children}</p>
+    <p className={`font-mono text-xs uppercase tracking-[0.08em] text-ink-secondary ${className}`}>{children}</p>
   );
 }
 
@@ -260,7 +260,7 @@ function ReadyForPaper({ item }: { item: Owned }) {
         <Cover src={trip.cover} sizes="160px" className="h-24 w-full" />
       </span>
       <div className="flex flex-col gap-1.5 md:col-span-7">
-        <Kicker className="text-yellow-400">{t("home.paper.kicker")}</Kicker>
+        <Kicker className="text-on-deep">{t("home.paper.kicker")}</Kicker>
         <h2 id="home-paper" className="font-display text-2xl font-semibold break-words text-on-deep">
           {t("home.paper.title", { trip: trip.title })}
         </h2>
