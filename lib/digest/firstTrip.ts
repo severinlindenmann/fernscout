@@ -86,13 +86,13 @@ export function decideNudge(candidate: Pick<FirstTripCandidate, "tips" | "ageDay
   return ageDays >= MAIL_AFTER_DAYS ? { kind: "mail" } : { kind: "none" };
 }
 
-async function sendFirstTripPush(username: string, subs: StoredSubscription[], locale: string): Promise<boolean> {
+async function sendFirstTripPush(username: string, journal: string, subs: StoredSubscription[], locale: string): Promise<boolean> {
   const url = `${serverSite().url}/${encodeURIComponent(username)}/studio/trip/new`;
   const outcome = await sendPush({
     template: "nudge.first.push",
     subscriptions: subs,
-    title: translateIn(locale, "push.firstTrip.title"),
-    body: translateIn(locale, "push.firstTrip.body"),
+    title: translateIn(locale, "push.firstTrip.title", { journal }),
+    body: translateIn(locale, "push.firstTrip.body", { journal }),
     url,
     tag: "first-trip",
     locale,
@@ -161,8 +161,8 @@ export async function sweepFirstTrip({ dryRun }: { dryRun: boolean }): Promise<F
   for (const candidate of firstTripCandidates(today)) {
     result.checked++;
     const { username, user } = candidate;
-    const sub = ownerPushSubscription(username);
-    const action = decideNudge(candidate, sub !== null);
+    const subs = await ownerPushSubscription(username);
+    const action = decideNudge(candidate, subs.length > 0);
     if (action.kind === "none") continue;
 
     const locale = await ownerLocale(username, user.owner.email ?? "", user.defaultLocale);
@@ -172,8 +172,8 @@ export async function sweepFirstTrip({ dryRun }: { dryRun: boolean }): Promise<F
       continue;
     }
 
-    if (action.kind === "push" && sub) {
-      const sent = await sendFirstTripPush(username, sub, locale);
+    if (action.kind === "push" && subs.length > 0) {
+      const sent = await sendFirstTripPush(username, user.title, subs, locale);
       if (sent) {
         recordFirstTripNudge(username, "pushed");
         result.pushed++;

@@ -7,14 +7,26 @@ import { clearUserCache } from "@/lib/users";
 import { earliestTodayISO } from "@/lib/tripTime";
 import { writeTripFixture } from "./fixtures/content";
 import { firstTripCandidates, sweepFirstTrip } from "@/lib/digest/firstTrip";
+import { saveSubscription } from "@/lib/push";
+
+// The push transport itself is B2448's (test/push-send.test.ts); here only
+// who is pushed, and when, is the question.
+const pushed = vi.hoisted(() => [] as Array<{ template: string; endpoints: string[] }>);
+vi.mock("@/lib/push/send", async (original) => ({
+  ...(await original<typeof import("@/lib/push/send")>()),
+  sendPush: vi.fn(async (params: { template: string; subscriptions: unknown }) => {
+    const subs = (Array.isArray(params.subscriptions) ? params.subscriptions : [params.subscriptions]) as Array<{ endpoint: string }>;
+    pushed.push({ template: params.template, endpoints: subs.map((x) => x.endpoint) });
+    return { sent: subs.length, pruned: 0 };
+  }),
+}));
 
 /**
  * B2447 (W44 D5) — the first-trip nudge: a journal that opted into
  * getting-started tips at signup and never adds a trip hears about it once,
- * ever. B2448 item 4's push branch is covered by
- * `test/message-registry.test.ts` (the id has a real call site) — it never
- * actually fires today, since an owner's own push subscription cannot yet be
- * told apart from a reader's (see `ownerPushSubscription`'s own comment).
+ * ever. B2448 item 4: when the owner's own device is subscribed, a push
+ * comes first (day 2) and the mail only after (day 5); a reader's
+ * subscription never counts as the owner's.
  */
 
 const TODAY = earliestTodayISO();
@@ -64,6 +76,7 @@ beforeEach(() => {
   process.env.DATA_DIR = data;
   writeSiteConfig();
   vi.spyOn(console, "log").mockImplementation(() => {});
+  pushed.length = 0;
 });
 
 afterEach(() => {
@@ -158,5 +171,50 @@ describe("the nightly sweep (sweepFirstTrip)", () => {
       .join("\n");
     expect(text).toContain("https://example.test/ana/studio/journal");
     expect(text).toContain("https://example.test/ana/studio/trip/new");
+  });
+});
+
+describe("the owner's own device first (B2448 item 4)", () => {
+  function subscribe(username: string, endpoint: string, isOwner: boolean) {
+    return saveSubscription({
+      username,
+      endpoint,
+      keys: { p256dh: "p", auth: "a" },
+      created: new Date().toISOString(),
+      contactId: null,
+      kind: "web",
+      isOwner,
+    });
+  }
+
+  test("an owner-subscribed journal is pushed at day 2 and mailed at day 5, once each", async () => {
+    writeJournal("ana", { optIn: true, at: addDays(TODAY, -2) });
+    await subscribe("ana", "https://push.example.test/owner", true);
+
+    const dayTwo = await sweepFirstTrip({ dryRun: false });
+    expect(dayTwo.acted).toEqual([["ana", "push"]]);
+    expect(pushed).toEqual([{ template: "nudge.first.push", endpoints: ["https://push.example.test/owner"] }]);
+    expect(fs.existsSync(path.join(data, "mail", "ana"))).toBe(false);
+
+    // Three days later, still no trip: the mail, then never again.
+    const config = JSON.parse(fs.readFileSync(path.join(dir, "ana", "config.json"), "utf8"));
+    config.owner.tips.at = addDays(TODAY, -5);
+    fs.writeFileSync(path.join(dir, "ana", "config.json"), JSON.stringify(config));
+    clearConfigCache();
+    clearUserCache();
+    const dayFive = await sweepFirstTrip({ dryRun: false });
+    expect(dayFive.acted).toEqual([["ana", "mail"]]);
+    expect(pushed).toHaveLength(1);
+    const again = await sweepFirstTrip({ dryRun: false });
+    expect(again.acted).toEqual([]);
+  });
+
+  test("a reader's subscription never counts as the owner's", async () => {
+    writeJournal("ana", { optIn: true, at: addDays(TODAY, -3) });
+    await subscribe("ana", "https://push.example.test/reader", false);
+
+    const result = await sweepFirstTrip({ dryRun: false });
+    expect(pushed).toEqual([]);
+    expect(result.acted).toEqual([["ana", "mail"]]);
   });
 });

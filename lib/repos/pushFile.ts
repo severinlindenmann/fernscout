@@ -31,7 +31,7 @@ export function filePushRepo(): PushRepo {
       // file's own test in test/db-repos.test.ts.
       return Object.values(await readSubscriptions())
         .filter((s) => s.username === username)
-        .map((s) => ({ ...s, kind: s.kind ?? "web", isOwner: Boolean(s.isOwner) }));
+        .map(({ isOwner, ...s }) => ({ ...s, kind: s.kind ?? "web", ...(isOwner ? { isOwner: true } : {}) }));
     },
 
     async save(sub) {
@@ -54,7 +54,7 @@ export function filePushRepo(): PushRepo {
             // `true` from a browser that has since signed out as the owner
             // must not survive a resubscribe. See lib/repos/pushDb.ts's
             // matching comment.
-            isOwner: Boolean(sub.isOwner),
+            ...(sub.isOwner ? { isOwner: true } : {}),
           },
         };
       });

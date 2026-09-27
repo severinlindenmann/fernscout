@@ -39,7 +39,7 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
         username,
         contactId: row.contact_id,
         kind: row.kind === "apns" ? "apns" : "web",
-        isOwner: row.is_owner === 1,
+        ...(row.is_owner === 1 ? { isOwner: true } : {}),
       }));
     },
 
