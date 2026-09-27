@@ -559,7 +559,10 @@ export default function MePageContent({
           laptop and sat among the ways into the reading. Every trip this
           reader may open, owner or not; absent without a service worker.
         */}
-        <OfflineTrips username={username} trips={viewer.trips.map(({ id, title }) => ({ id, title }))} />
+        <OfflineTrips
+          username={username}
+          trips={viewer.trips.map(({ id, title, status, end }) => ({ id, title, status, end }))}
+        />
 
         {/*
           Where notifications are switched on, for a reader who is not standing

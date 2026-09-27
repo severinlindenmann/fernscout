@@ -56,7 +56,7 @@ const owner: Viewer = { email: "owner@example.test", owner: true, guest: false, 
 const ownerWithTrips: Viewer = {
   ...owner,
   trips: [
-    { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "owner" },
+    { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "owner", status: "past", end: "2025-01-01" },
   ],
 };
 
@@ -154,7 +154,7 @@ describe("the reason beside each trip", () => {
       email: "reader@example.test",
       owner,
       guest: false,
-      trips: [{ id: "t", title: "A trip", href: "/alex/trips/t", through }],
+      trips: [{ id: "t", title: "A trip", href: "/alex/trips/t", through, status: "past", end: "2025-01-01" }],
     };
     return render({ viewer });
   }
@@ -228,7 +228,7 @@ describe("the way to the people, no longer offered on /me — B2017", () => {
         owner: false,
         guest: false,
         trips: [
-          { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "traveller" },
+          { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "traveller", status: "past", end: "2025-01-01" },
         ],
       },
     ];
@@ -399,10 +399,10 @@ describe("what somebody on a trip is told they can write", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller" },
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller", status: "past", end: "2025-01-01" },
       // Readable, not writable — a public trip they were not on. It must not
       // acquire a prompt merely by being in the list.
-      { id: "open-road", title: "Open road", href: "/alex/trips/open-road", through: "public" },
+      { id: "open-road", title: "Open road", href: "/alex/trips/open-road", through: "public", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -411,7 +411,7 @@ describe("what somebody on a trip is told they can write", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest" },
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -569,7 +569,7 @@ describe("the sessions-consent block — B1385", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller" },
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -578,7 +578,7 @@ describe("the sessions-consent block — B1385", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest" },
+      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest", status: "past", end: "2025-01-01" },
     ],
   };
 

@@ -8,7 +8,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { clearUserCache } from "@/lib/users";
 import { sendMail, sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
-import { listMessages, recipientHash } from "@/lib/messages/log";
+import { listMessages, logMessage, recipientHash } from "@/lib/messages/log";
 
 /**
  * B2438 — the send log, exercised directly against `sendMail`/`sendTransactional`
@@ -143,5 +143,33 @@ describe("message_log", () => {
 
     // Restore for afterEach's own teardown.
     process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
+  });
+});
+
+describe("what a row may hold (wave 1 security review)", () => {
+  test("a provider error that quotes the recipient is scrubbed before it is stored", async () => {
+    await logMessage({
+      template: "code.mail",
+      channel: "mail",
+      to: "mara@example.test",
+      status: "failed",
+      reason: "RCPT TO failed: 550 5.1.1 <mara@example.test>: Recipient address rejected, other <x@y.test>, call +41 76 000 00 00",
+    });
+    const [row] = await listMessages({ limit: 1 });
+    expect(row.reason).not.toContain("mara@example.test");
+    expect(row.reason).not.toContain("x@y.test");
+    expect(row.reason).not.toContain("76 000");
+    expect(row.reason).toContain("550");
+  });
+
+  test("a push endpoint and a group link are opaque recipients, not phone numbers", async () => {
+    await logMessage({ template: "news.push", channel: "push", to: "https://push.example.test/abc123/456", status: "sent" });
+    await logMessage({ template: "invite.share", channel: "share", to: "link:alps", status: "sent" });
+    await logMessage({ template: "invite.share", channel: "share", to: "link:dolomites", status: "sent" });
+    const rows = await listMessages({ limit: 3 });
+    expect(rows.map((r) => r.recipientMask).sort()).toEqual(["device", "group link", "group link"]);
+    const links = rows.filter((r) => r.recipientMask === "group link").map((r) => r.recipientHash);
+    expect(new Set(links).size).toBe(2);
+    expect(JSON.stringify(rows)).not.toContain("push.example.test");
   });
 });

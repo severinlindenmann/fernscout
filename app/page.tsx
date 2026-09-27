@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Landing from "@/components/Landing";
 import Pricing from "@paid/credits/components/Pricing";
+import HeaderLinks from "@paid/orgs/components/HeaderLinks";
+import LandingBand from "@paid/orgs/components/LandingBand";
 import { iosAppStoreUrl, iosAppWaitlistAvailable } from "@/lib/appWaitlist";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
@@ -147,6 +149,11 @@ export default async function Root() {
         // numbers drilled through as props. Absent — not empty — on an
         // instance that charges nothing at all. B840.
         pricing={isEnabled("credits") ? <Pricing locale={locale} /> : null}
+        // The schools and tour-operator offer — B2450. No capability: like
+        // /map-credits, whether paid/ is present decides, and the public
+        // stubs render nothing.
+        orgsBand={<LandingBand locale={locale} name={site.name} />}
+        orgsLinks={<HeaderLinks locale={locale} />}
       />
     </>
   );

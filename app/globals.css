@@ -13,6 +13,9 @@
 @import "tailwindcss" source(none);
 @source "../app";
 @source "../components";
+/* The schools and tour-operator pages (B2450) live only in the private
+   paid/ checkout; without it this path does not exist and adds nothing. */
+@source "../paid/orgs";
 @plugin "@tailwindcss/typography";
 
 :root {
@@ -426,9 +429,11 @@ html {
   /* line-strong (above) is already this theme's "more visible than the
      ordinary line" step — the same job a dashed internal border needs. */
   --map-border-internal: #60708c;
-  /* Snow/ice still reads as the odd pale patch on an otherwise dark map,
-     without the glare of pure white. */
-  --map-ice: #e8ecf2;
+  /* Snow/ice as a step lighter than land, not a pale patch that swamps the
+     whole map — B2424 review found the near-white first cut of this token
+     dominated every dark map wherever a glacier or icefield covered any
+     real area, drowning the route and markers under it. */
+  --map-ice: #2a3a52;
   --map-road: #2b3750;
   --map-road-casing: #242e40;
   --map-stop-fill: #1f2736;
@@ -514,7 +519,7 @@ html {
     --map-water: #16324a;
     --map-border: #3d4d66;
     --map-border-internal: #60708c;
-    --map-ice: #e8ecf2;
+    --map-ice: #2a3a52;
     --map-road: #2b3750;
     --map-road-casing: #242e40;
     --map-stop-fill: #1f2736;
@@ -553,6 +558,50 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* The slideshow's own map is always dark, regardless of the reader's theme
+   (B2424, docs/plans/map-redesign.md §1 "Accent") — forces every `--map-*`
+   token to its dark value on `SlideMap`'s own subtree. Same override shape
+   `.fs-ask-dark` above uses for one background/colour pair, scoped instead
+   to the whole map token set (values copied from `:root[data-theme="dark"]`
+   above, kept in sync by `test/map-tokens.test.ts`). */
+.fs-map-dark {
+  --map-land: #1b2635;
+  --map-sea: #0e2231;
+  --map-water: #16324a;
+  --map-border: #3d4d66;
+  --map-border-internal: #60708c;
+  --map-ice: #2a3a52;
+  --map-road: #2b3750;
+  --map-road-casing: #242e40;
+  --map-stop-fill: #1f2736;
+  --map-stop-ring: #f2ecdd;
+  --map-stop-number: #f2ecdd;
+  --map-selected-fill: #f2ecdd;
+  --map-selected-number: #1e293b;
+  --map-here-now: #ffd23f;
+  --map-here-now-halo: #4a3300;
+  --map-cluster-fill: #f2ecdd;
+  --map-cluster-text: #1e293b;
+  --map-route-casing: #1f2736;
+  --map-planned-leg: #f2ecdd;
+  --map-leg-chip-fill: #1f2736;
+  --map-leg-chip-border: #33405a;
+  --map-leg-chip-icon: #f2ecdd;
+  --map-label-stop: #f2ecdd;
+  --map-label-stop-halo: #1b2635;
+  --map-label-town: #c9c8c0;
+  --map-label-peak: #b9bbc0;
+  --map-control-fill: #1f2736;
+  --map-control-icon: #f2ecdd;
+  --map-control-shadow: #080b11;
+  --map-visited: #29354a;
+  --map-accent-sky: #5ec8dc;
+  --map-accent-yellow: #ffd23f;
+  --map-accent-green: #22c55e;
+  --map-accent-coral: #f38ba6;
+  --map-accent-navy: #aeb7c5;
 }
 
 /* Faint paper-grain texture so flat panels don't read as plain CSS. */

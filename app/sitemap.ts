@@ -7,6 +7,7 @@ import { serverSite } from "@/lib/site";
 import { listedUsernames } from "@/lib/users";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
 import { DOCS_PAGES } from "@/lib/docs";
+import { PAID_AREAS } from "@paid/manifest";
 
 /**
  * Per request, for the same reason as feed.xml and search-index.json: a
@@ -60,6 +61,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.7,
     });
+  }
+
+  // The schools and tour-operator pages exist only where paid/ does — B2450.
+  if (PAID_AREAS.includes("orgs")) {
+    for (const page of ["/schools", "/schools/demo", "/tour-operators", "/tour-operators/demo"]) {
+      out.push({ url: `${base}${page}`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 });
+    }
   }
 
   // Per user, and only their public trips. Building this from getAllTrips()
