@@ -527,7 +527,7 @@ function ViewButton({
       aria-pressed={active}
       className={`min-h-8 shrink-0 whitespace-nowrap rounded-full px-3 py-1 font-medium transition-colors ${
         active
-          ? "bg-ink-strong text-on-bright"
+          ? "bg-ink-strong text-on-action"
           : "bg-surface-muted text-ink-secondary hover:bg-surface-subtle hover:text-ink-strong"
       }`}
     >
