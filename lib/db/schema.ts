@@ -326,6 +326,12 @@ type PushSubscriptionsTable = {
   /** `"web"` | `"apns"` — added in 039-push-kind, defaulted to `"web"` for
    * every row that predates it. */
   kind: Generated<string>;
+  /** 0/1 — whether this subscription is the journal's own owner, decided
+   * once at subscribe time from the owner-cookie check (`isOwner`), never
+   * from the client's own request. Added in 048-push-owner-flag, defaulted
+   * to 0 for every row that predates it. See `StoredSubscription.isOwner`
+   * (lib/repos/types.ts) for what reads this. */
+  is_owner: Generated<number>;
 };
 
 type ReactionsTable = {

@@ -46,6 +46,7 @@ import * as messageLog from "./044-message-log";
 import * as inviteSuppressions from "./045-invite-suppressions";
 import * as messageSwitches from "./046-message-switches";
 import * as instanceOwnerColumns from "./047-instance-owner-columns";
+import * as pushOwnerFlag from "./048-push-owner-flag";
 
 /**
  * Every migration, listed by hand.
@@ -107,6 +108,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "045-invite-suppressions": inviteSuppressions,
   "046-message-switches": messageSwitches,
   "047-instance-owner-columns": instanceOwnerColumns,
+  "048-push-owner-flag": pushOwnerFlag,
 };
 
 /**

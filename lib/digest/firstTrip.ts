@@ -4,7 +4,7 @@ import { ownerLocale } from "../messages/locale";
 import { sendMail } from "../mail";
 import { renderMail } from "../mail/template";
 import { translateIn } from "../locales";
-import type { StoredSubscription } from "../push";
+import { listSubscriptions, type StoredSubscription } from "../push";
 import { sendPush } from "../push/send";
 import { serverSite } from "../site";
 import { earliestTodayISO } from "../tripTime";
@@ -39,26 +39,22 @@ function daysSince(iso: string, today: string): number {
 }
 
 /**
- * Whether the owner's own device is subscribed to push — the check
- * `nudge.first.push` needs before it can ever fire.
+ * The owner's own live push subscription(s) — the check `nudge.first.push`
+ * needs before it can ever fire, newest first.
  *
- * ponytail: not yet answerable, so this always answers `null` and the flow
- * below always takes the mail-only path. `StoredSubscription`
- * (lib/repos/types.ts) ties a subscription to a *reader* contact
- * (`contactId`, set by `findActiveContactId` in
- * app/api/push/subscribe/route.ts, which matches an *active contact* row) —
- * an owner is not a contact of their own journal, so a subscription made
- * from the owner's own browser (`/<user>/me`'s `PushOptIn`) is stored with
- * `contactId: null`, identical to a stranger's anonymous subscription to
- * the same public trip. There is nothing on `StoredSubscription` that means
- * "this browser is the owner's". Upgrade path: teach `saveSubscription` to
- * record that (a boolean, set from `resolveAccess`'s own owner check) and
- * read it here — until then this deliberately returns `null` rather than
- * guessing from the journal's subscriber list, which would otherwise risk
- * pushing an owner-only nudge to every reader who ever subscribed.
+ * `StoredSubscription.isOwner` (lib/repos/types.ts) is what makes this
+ * answerable at all — B2448 item 4's follow-up. It is set once, at subscribe
+ * time (`app/api/push/subscribe/route.ts`), from the same owner-cookie check
+ * every other owner-only door uses, and re-decided fresh on every resubscribe
+ * rather than trusted from a stale row, so a device that stops being the
+ * owner's (a different browser, signed out) is not still counted here.
+ * Never derived from the journal's whole subscriber list undifferentiated —
+ * that would risk sending an owner-only nudge to every reader who ever
+ * subscribed to a trip.
  */
-function ownerPushSubscription(_username: string): StoredSubscription | null {
-  return null;
+async function ownerPushSubscription(username: string): Promise<StoredSubscription[]> {
+  const subs = await listSubscriptions(username);
+  return subs.filter((sub) => sub.isOwner).sort((a, b) => (a.created < b.created ? 1 : -1));
 }
 
 export type FirstTripCandidate = { username: string; user: UserConfig; tips: OwnerTips; ageDays: number };
@@ -90,11 +86,11 @@ export function decideNudge(candidate: Pick<FirstTripCandidate, "tips" | "ageDay
   return ageDays >= MAIL_AFTER_DAYS ? { kind: "mail" } : { kind: "none" };
 }
 
-async function sendFirstTripPush(username: string, sub: StoredSubscription, locale: string): Promise<boolean> {
+async function sendFirstTripPush(username: string, subs: StoredSubscription[], locale: string): Promise<boolean> {
   const url = `${serverSite().url}/${encodeURIComponent(username)}/studio/trip/new`;
   const outcome = await sendPush({
     template: "nudge.first.push",
-    subscriptions: sub,
+    subscriptions: subs,
     title: translateIn(locale, "push.firstTrip.title"),
     body: translateIn(locale, "push.firstTrip.body"),
     url,

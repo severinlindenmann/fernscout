@@ -31,7 +31,7 @@ export function filePushRepo(): PushRepo {
       // file's own test in test/db-repos.test.ts.
       return Object.values(await readSubscriptions())
         .filter((s) => s.username === username)
-        .map((s) => ({ ...s, kind: s.kind ?? "web" }));
+        .map((s) => ({ ...s, kind: s.kind ?? "web", isOwner: Boolean(s.isOwner) }));
     },
 
     async save(sub) {
@@ -49,6 +49,12 @@ export function filePushRepo(): PushRepo {
             // A resubscribe that can't identify a contact (no guest session
             // this time) shouldn't erase one that was found before.
             contactId: sub.contactId !== undefined ? sub.contactId : (existing?.contactId ?? null),
+            // Never sticky, unlike contactId above — isOwner is re-decided
+            // from the owner-cookie check on every subscribe, so a stale
+            // `true` from a browser that has since signed out as the owner
+            // must not survive a resubscribe. See lib/repos/pushDb.ts's
+            // matching comment.
+            isOwner: Boolean(sub.isOwner),
           },
         };
       });
