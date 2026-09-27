@@ -1,9 +1,56 @@
-import { describe, expect, test } from "vitest";
+// @vitest-environment jsdom
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import LifetimeMap, { type TripRoute } from "@/components/LifetimeMap";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import { frameRoute, place as placeIn } from "@/lib/mapFrame";
+
+// jsdom has no ResizeObserver, and the map measures its own rendered width
+// with one to size markers and routes in real screen pixels rather than a
+// fraction of the viewBox — the same reason `test/trip-map.test.tsx` stubs
+// one. This one is controllable (`fire`), so the "screen pixels" tests below
+// can simulate the SVG actually being laid out at a chosen width.
+let resizeCallback: ((entries: { contentRect: { width: number } }[]) => void) | null = null;
+class ControllableResizeObserver {
+  constructor(cb: (entries: { contentRect: { width: number } }[]) => void) {
+    resizeCallback = cb;
+  }
+  observe() {}
+  disconnect() {
+    resizeCallback = null;
+  }
+}
+function fireResize(width: number) {
+  act(() => resizeCallback?.([{ contentRect: { width } }]));
+}
+globalThis.ResizeObserver ??= ControllableResizeObserver as unknown as typeof ResizeObserver;
+
+let root: Root | undefined;
+let container: HTMLDivElement | undefined;
+
+afterEach(() => {
+  act(() => root?.unmount());
+  container?.remove();
+  root = undefined;
+  container = undefined;
+});
+
+function mount(routes: TripRoute[]) {
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  act(() => {
+    root!.render(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <LifetimeMap routes={routes} />
+      </LocaleProvider>,
+    );
+  });
+  return container;
+}
 
 /**
  * B265. `app/[user]/trips/page.tsx` builds each route's `points` straight
@@ -54,6 +101,17 @@ function markerRadii(html: string, ariaLabel: string): number[] {
   return [
     ...html.matchAll(new RegExp(`<g aria-label="${escaped}"[^>]*><circle[^>]*r="([\\d.]+)"`, "g")),
   ].map((m) => Number(m[1]));
+}
+
+/** A marker's own centre, in viewBox units — for checking two trips'
+ * markers actually sit apart on screen. */
+function markerCentres(html: string, ariaLabel: string): { x: number; y: number }[] {
+  const escaped = ariaLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return [
+    ...html.matchAll(
+      new RegExp(`<g aria-label="${escaped}"[^>]*><circle cx="([-\\d.]+)" cy="([-\\d.]+)"`, "g"),
+    ),
+  ].map((m) => ({ x: Number(m[1]), y: Number(m[2]) }));
 }
 
 describe("a trip is its own route plus one marker (B2423)", () => {
@@ -157,5 +215,127 @@ describe("a trip never handed to the map contributes nothing (B2423)", () => {
     const html = render([visible]);
     expect(html).not.toContain("Secret Trip");
     expect(markerRadii(html, "Secret Trip")).toHaveLength(0);
+  });
+});
+
+/**
+ * B2423 review. The first version reused the fraction-of-viewBox `size()`
+ * this file's own pin tests already relied on — correct for those tiny pin
+ * units, but wrong once applied to a normal-sized marker and a 4px route:
+ * a lifetime map's frame swings from one country to six continents, so a
+ * fraction of *that* viewBox is a wildly different number of real pixels
+ * trip to trip, and at world scale the marker came out the size of a small
+ * country. The fix measures the SVG's own rendered width with a
+ * `ResizeObserver` (`components/WorldMap.tsx`'s own `px`, same reasoning),
+ * so a marker or a route stroke is a constant number of *actual* screen
+ * pixels — independent of how large an area the frame covers.
+ */
+describe("markers and routes are sized in real screen pixels, not a fraction of the viewBox (B2423 review)", () => {
+  const compact: TripRoute = {
+    id: "compact",
+    title: "Compact trip",
+    accent: "sky",
+    points: [
+      { lat: 46.1161, lng: 8.2939, location: "Domodossola" },
+      { lat: 46.5614, lng: 8.3372, location: "Grimsel" },
+    ],
+  };
+
+  test("a marker's radius and a route's stroke width follow the measured render width", () => {
+    // The map's ground (`worldLand`) is drawn with a fixed `strokeWidth={1}`
+    // on its wrapping `<g>` — the one `stroke-width` in this markup that is
+    // *not* sized through `px()` — so it is dropped (`slice(1)`) before
+    // checking that everything else (the route's casing, its accent stroke,
+    // the marker's own ring) scales with the measured width.
+    function strokes(html: string): number[] {
+      return [...html.matchAll(/stroke-width="([\d.]+)"/g)].map((m) => Number(m[1])).slice(1);
+    }
+
+    const el = mount([compact]);
+    fireResize(900);
+    const wideRadius = markerRadii(el.innerHTML, "Compact trip")[0];
+    const wideStrokes = strokes(el.innerHTML);
+
+    fireResize(450);
+    const narrowRadius = markerRadii(el.innerHTML, "Compact trip")[0];
+    const narrowStrokes = strokes(el.innerHTML);
+
+    // Halving the measured width means each viewBox unit now covers *fewer*
+    // real pixels, so it takes *twice* the viewBox-unit size to draw the
+    // same real screen pixels — the old `/140` constant never looked at the
+    // measured width at all, so it could not do this.
+    expect(narrowRadius).toBeCloseTo(wideRadius * 2, 5);
+    expect(narrowStrokes.length).toBeGreaterThan(0);
+    expect(narrowStrokes.length).toBe(wideStrokes.length);
+    for (let i = 0; i < narrowStrokes.length; i++) {
+      expect(narrowStrokes[i]).toBeCloseTo(wideStrokes[i] * 2, 5);
+    }
+  });
+
+  test("two trips with wildly different geographic extents draw the same size marker at the same measured width", () => {
+    // Two continents apart vs a few kilometres apart — the frame (`view.w`)
+    // is wildly different between these two, so the raw viewBox-unit radius
+    // attribute is expected to differ too (bigger frame, bigger raw unit).
+    // What must not differ is the *real* screen pixel size that raw radius
+    // and the measured width imply together — `raw * drawnWidth / view.w`.
+    function screenRadiusAt(route: TripRoute): number {
+      const el = mount([route]);
+      fireResize(900);
+      const html = el.innerHTML;
+      const raw = markerRadii(html, route.title)[0];
+      const vw = viewBox(html)[2];
+      act(() => root?.unmount());
+      container?.remove();
+      root = undefined;
+      container = undefined;
+      return (raw * 900) / vw;
+    }
+
+    const smallScreenRadius = screenRadiusAt(compact);
+    const worldScreenRadius = screenRadiusAt({
+      id: "worldwide",
+      title: "Worldwide trip",
+      accent: "coral",
+      points: continental,
+    });
+    expect(worldScreenRadius).toBeCloseTo(smallScreenRadius, 5);
+  });
+
+  test("two trips whose markers would otherwise overlap are nudged apart", () => {
+    // The trip that made the case for this fix: two US trips whose real
+    // starting points are a few hundred kilometres apart, on a frame that
+    // also has to reach across the Pacific to Southeast Asia — nothing at
+    // that zoom. Reproduced here as a Zurich trip and a second trip that
+    // starts a short drive from Zurich, framed alongside a trip to Bangkok.
+    const zurich: TripRoute = {
+      id: "zurich",
+      title: "Zurich trip",
+      accent: "sky",
+      points: continental, // Zurich, Bangkok
+    };
+    const near: TripRoute = {
+      id: "near",
+      title: "Near trip",
+      accent: "coral",
+      points: [{ lat: 47.05, lng: 8.3, location: "Near Zurich" }],
+    };
+    const el = mount([zurich, near]);
+    fireResize(900);
+    const html = el.innerHTML;
+
+    // Without decluttering, the two would be much closer than the minimum
+    // gap this pass enforces — otherwise this test would prove nothing.
+    const vw = viewBox(html)[2];
+    const frame = frameRoute([...zurich.points, ...near.points]);
+    const [rawX1, rawY1] = placeIn(frame, zurich.points[0]);
+    const [rawX2, rawY2] = placeIn(frame, near.points[0]);
+    const rawDistancePx = (Math.hypot(rawX2 - rawX1, rawY2 - rawY1) * 900) / vw;
+    const minGapPx = 8 * 2.4; // MARKER_RADIUS_PX * the component's own factor
+    expect(rawDistancePx).toBeLessThan(minGapPx);
+
+    const zurichPos = markerCentres(html, "Zurich trip")[0];
+    const nearPos = markerCentres(html, "Near trip")[0];
+    const distancePx = (Math.hypot(zurichPos.x - nearPos.x, zurichPos.y - nearPos.y) * 900) / vw;
+    expect(distancePx).toBeGreaterThanOrEqual(minGapPx - 0.01);
   });
 });

@@ -126,11 +126,9 @@ describe("countries visited", () => {
 
   test("no country names are written across the map — the legend does this job", () => {
     // B370: they landed in the sea, named the wrong country, and only 5 of 23
-    // fitted. The only `<text>` left is each trip marker's own day-order
-    // number (always "1" here — one marker per trip, B2423), never a name.
-    const texts = [...render([ONE, TWO]).matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
-    expect(texts.length).toBeGreaterThan(0);
-    for (const text of texts) expect(text).toMatch(/^\d+$/);
+    // fitted. Trip markers are unnumbered dots (B2423 review), so there is no
+    // `<text>` anywhere on this map at all any more.
+    expect(render([ONE, TWO])).not.toContain("<text");
   });
 
   /**
@@ -199,7 +197,6 @@ describe("map detail", () => {
   });
 
   test("no country names are written across the map", () => {
-    const texts = [...withMap({ basemap }).matchAll(/<text[^>]*>([^<]*)<\/text>/g)].map((m) => m[1]);
-    for (const text of texts) expect(text).toMatch(/^\d+$/);
+    expect(withMap({ basemap })).not.toContain("<text");
   });
 });

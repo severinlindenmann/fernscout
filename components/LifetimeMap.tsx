@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { frameRoute, isPlottable, place as placeIn, type Point } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
 import { flagFromCode } from "@/lib/flags";
 import { mapAccent, mapStyle } from "@/lib/map/style";
 import RouteLine, { type RouteHop } from "./map/RouteLine";
-import StopMarker from "./map/StopMarker";
+import type { Px } from "./map/StopMarker";
 import type { Basemap } from "@/lib/basemap";
 import type { TripAccent } from "@/lib/types";
 
@@ -121,12 +121,92 @@ export default function LifetimeMap({
     [routes, framePoints],
   );
 
-  // Route strokes and dots keep their size on screen rather than being viewBox
-  // constants — the same fix WorldMap needed, for the same reason: a journal
-  // whose trips are all in one country now gets a small frame, and a
-  // radius-2.2 dot on a 5-unit map is most of the map. 140 is the frame width
-  // these numbers were originally chosen against.
-  const size = (units: number) => (units * view.w) / 140;
+  /**
+   * `px` sizes a marker or a route in real screen pixels rather than in
+   * viewBox units — the same fix WorldMap's own `px` needed, and the same
+   * reason (see the block comment above `px` in `components/WorldMap.tsx`):
+   * a fixed *fraction of the viewBox* is a different number of actual
+   * pixels depending on both the container's rendered width and how large
+   * an area the frame covers. This map's frame swings from one country to
+   * the whole world, so a fraction-of-viewBox marker that looked right for
+   * a single trip's own frame came out the size of a small country here —
+   * B2423's own bug, caught in review. Measuring the SVG's own rendered
+   * width with a `ResizeObserver`, the way WorldMap already does, is what
+   * makes `px(8)` mean the same ~8 CSS pixels whether the frame is a single
+   * country or six continents, and whatever the viewport width.
+   *
+   * `drawnWidth` starts at a plausible desktop guess so the server render
+   * and the first client frame agree (no hydration mismatch); the observer
+   * corrects it once the browser has actually laid the figure out.
+   */
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [drawnWidth, setDrawnWidth] = useState(900);
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      if (w > 0) setDrawnWidth(w);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const px: Px = (pixels) => (pixels * view.w) / drawnWidth;
+
+  /**
+   * Each trip's route (its own stops, in order) and one marker — an
+   * unnumbered dot in the trip's accent, not `StopMarker`'s numbered stop
+   * disc: a single "1" on every trip's only marker read as "stop 1", which
+   * misleads (B2423 review). Kept local rather than a new shared primitive,
+   * since nothing else needs an unnumbered dot yet.
+   *
+   * The marker sits at the trip's first plottable point, then a single
+   * decluttering pass nudges apart any two trips whose markers would
+   * otherwise overlap on screen — two trips can start a few hundred
+   * kilometres apart in the same country, which is nothing at world zoom.
+   * The route line itself is drawn from the *un-nudged* points: only the
+   * summary dot moves.
+   */
+  const MARKER_RADIUS_PX = 8;
+  const tripDraws = useMemo(() => {
+    const unitsToPx = (u: number) => (u * drawnWidth) / view.w;
+    const pxToUnits = (p: number) => (p * view.w) / drawnWidth;
+    const list = routes
+      .map((route) => {
+        const pts = route.points.filter(isPlottable).map((p) => placeIn(view, p));
+        if (pts.length === 0) return null;
+        const hops: RouteHop[] = pts.slice(0, -1).map(([x1, y1], i) => {
+          const [x2, y2] = pts[i + 1];
+          return { x1, y1, x2, y2 };
+        });
+        return { route, hops, mx: pts[0][0], my: pts[0][1] };
+      })
+      .filter((d): d is { route: TripRoute; hops: RouteHop[]; mx: number; my: number } => d !== null);
+
+    // ponytail: a single pass separates a directly-overlapping pair; three
+    // or more markers all mutually close (unseen in any real journal so
+    // far) may still overlap. A real force-directed declutter if that turns
+    // up.
+    const minGapPx = MARKER_RADIUS_PX * 2.4;
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i];
+        const b = list[j];
+        const dx = b.mx - a.mx;
+        const dy = b.my - a.my;
+        const distPx = unitsToPx(Math.hypot(dx, dy));
+        if (distPx >= minGapPx) continue;
+        const len = Math.hypot(dx, dy);
+        const [ux, uy] = len > 0 ? [dx / len, dy / len] : [1, 0];
+        const pushUnits = pxToUnits(minGapPx - distPx) / 2;
+        a.mx -= ux * pushUnits;
+        a.my -= uy * pushUnits;
+        b.mx += ux * pushUnits;
+        b.my += uy * pushUnits;
+      }
+    }
+    return list;
+  }, [routes, view, drawnWidth]);
 
   const label =
     routes.length > 0
@@ -136,6 +216,7 @@ export default function LifetimeMap({
   return (
     <figure className="overflow-hidden rounded-2xl border border-line-quiet bg-sky-300">
       <svg
+        ref={svgRef}
         viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
         // A map is the point of this figure, so it gets a floor to stand on:
         // framed to a landscape shape it would otherwise be a 150-pixel band on
@@ -253,21 +334,23 @@ export default function LifetimeMap({
           in `view.lngScale`, so these are sibling to the scaled `<g>` above,
           not inside it — the same convention the pins this replaces used.
         */}
-        {routes.map((route) => {
-          const pts = route.points.filter(isPlottable).map((p) => placeIn(view, p));
-          if (pts.length === 0) return null;
-          const hops: RouteHop[] = pts.slice(0, -1).map(([x1, y1], i) => {
-            const [x2, y2] = pts[i + 1];
-            return { x1, y1, x2, y2 };
-          });
-          const [mx, my] = pts[0];
-          return (
-            <g key={route.id}>
-              {hops.length > 0 && <RouteLine hops={hops} accent={route.accent} px={size} />}
-              <StopMarker x={mx} y={my} order={1} ariaLabel={route.title} px={size} />
+        {tripDraws.map(({ route, hops, mx, my }) => (
+          <g key={route.id}>
+            {hops.length > 0 && <RouteLine hops={hops} accent={route.accent} px={px} />}
+            {/* An unnumbered dot, not `StopMarker` — a "1" on every trip's
+                only marker reads as "stop 1" (B2423 review). */}
+            <g aria-label={route.title} role="img">
+              <circle
+                cx={mx}
+                cy={my}
+                r={px(MARKER_RADIUS_PX)}
+                fill={mapAccent(route.accent)}
+                stroke={mapStyle.stopRing}
+                strokeWidth={px(1.5)}
+              />
             </g>
-          );
-        })}
+          </g>
+        ))}
       </svg>
       {/* The visible half of the focus/hover label above — a screen reader
           already has the country's name on the shape itself (`aria-label`),
