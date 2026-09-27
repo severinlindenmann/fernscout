@@ -87,6 +87,8 @@ export default function WorldMap({
   pastTense = places.length > 0,
   accent = "navy",
   live = false,
+  selectedKey: selectedKeyProp,
+  onSelect: onSelectProp,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -121,13 +123,27 @@ export default function WorldMap({
    * never to raw GPS (AGENTS.md). Defaults to false: a caller that forgets
    * this draws no here-now dot, which is the honest default. */
   live?: boolean;
+  /**
+   * An outside instruction to select this stop — the map page's mobile
+   * sheet (B2427) driving the same selection a marker tap would. `undefined`
+   * (the countdown, the studio's recorded-trips preview) means nobody else
+   * is driving it; this map owns its own selection exactly as before. `null`
+   * clears it. Applied through `selectPlace`, so a nudge from outside gets
+   * the identical scope-aware camera behaviour a tap on the map itself does
+   * — one camera model, not two.
+   */
+  selectedKey?: string | null;
+  /** Fired whenever the selection changes, for any reason (a tap, the time
+   * scrubber, or `selectedKey` above) — so a caller driving `selectedKey`
+   * can mirror the same key back into its own UI. */
+  onSelect?: (place: PlaceView | null) => void;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
   // and, off the current trip, the trip too.
   const href = useTrip()?.href ?? ((p: string) => p);
   const worldLand = useWorldLand();
-  const [selected, setSelected] = useState<PlaceView | null>(null);
+  const [selected, setSelectedState] = useState<PlaceView | null>(null);
   const [scope, setScope] = useState<StopScope>("trip");
 
   const planAhead = useMemo(() => {
@@ -295,10 +311,33 @@ export default function WorldMap({
     [base, focus, maxZoom, setZoom, setPan],
   );
 
-  const selectPlace = useCallback((place: PlaceView) => {
-    setSelected(place);
-    setScope("trip");
-  }, []);
+  const selectPlace = useCallback(
+    (place: PlaceView) => {
+      setSelectedState(place);
+      setScope("trip");
+      onSelectProp?.(place);
+    },
+    [onSelectProp],
+  );
+
+  // An outside nudge (B2427's mobile sheet, tapping a stop in its own list,
+  // or its own copy of the time scrubber) — applied through `selectPlace`
+  // so it gets the exact same scope-aware camera behaviour a tap on the map
+  // itself does. `lastExternalKey` stops the `onSelect` this schedules from
+  // re-entering this same effect once the caller mirrors the key straight
+  // back as `selectedKey` (a stable no-op loop rather than a live one).
+  const lastExternalKey = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (selectedKeyProp === undefined || selectedKeyProp === lastExternalKey.current) return;
+    lastExternalKey.current = selectedKeyProp;
+    if (selectedKeyProp === null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedState(null);
+      return;
+    }
+    const place = places.find((p) => p.key === selectedKeyProp);
+    if (place) selectPlace(place);
+  }, [selectedKeyProp, places, selectPlace]);
 
   // Track is the real route; hops are a straight-line reconstruction of one.
   // Never both — a recorded line is what actually happened, and drawing a
@@ -631,7 +670,10 @@ export default function WorldMap({
               className="absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm"
             >
               <button
-                onClick={() => setSelected(null)}
+                onClick={() => {
+                  setSelectedState(null);
+                  onSelectProp?.(null);
+                }}
                 aria-label="Close"
                 className="absolute right-2 top-2 rounded-full p-1 text-ink-secondary hover:bg-surface-selected/60 hover:text-ink-strong"
               >
@@ -697,18 +739,24 @@ export default function WorldMap({
           "Time", Phase 2 item 3). Defaults to the most recent stop when
           nothing is selected yet, the same "here now" instinct `hereNow`
           draws on the map itself. Reuses `selectPlace`/`focusOnStop` rather
-          than holding a second notion of what is selected. */}
+          than holding a second notion of what is selected.
+
+          Desktop only (`hidden lg:block`) — B2427's mobile sheet puts its
+          own copy of this same component in its peek snap on a phone, so a
+          second one here would be drawn twice on the same screen. */}
       {plottable.length > 0 && (
-        <TimeScrubber
-          stops={plottable.map((p) => ({ key: p.key, date: p.firstDate, location: p.location }))}
-          selectedIndex={selected ? (orderByKey.get(selected.key) ?? 1) - 1 : plottable.length - 1}
-          live={live}
-          onSelect={(i) => {
-            const place = plottable[i];
-            selectPlace(place);
-            if (scope === "stop") focusOnStop(place);
-          }}
-        />
+        <div className="hidden lg:block">
+          <TimeScrubber
+            stops={plottable.map((p) => ({ key: p.key, date: p.firstDate, location: p.location }))}
+            selectedIndex={selected ? (orderByKey.get(selected.key) ?? 1) - 1 : plottable.length - 1}
+            live={live}
+            onSelect={(i) => {
+              const place = plottable[i];
+              selectPlace(place);
+              if (scope === "stop") focusOnStop(place);
+            }}
+          />
+        </div>
       )}
     </div>
   );

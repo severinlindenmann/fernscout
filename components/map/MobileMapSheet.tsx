@@ -46,21 +46,29 @@ export default function MobileMapSheet({
   stats,
   scrubberSlot,
   hrefForDay,
+  selectedKey,
+  onSelectKey,
 }: {
   places: PlaceView[];
   stats: { tripDays: number; places: number; countries: number; totalMedia: number };
-  /** Where B2428's time scrubber will sit, at peek — left empty until it
-   * lands (docs/plans/map-redesign.md §3 Phase 2 item 3). Nothing here
-   * imports `TimeScrubber` yet. */
+  /** Where B2428's time scrubber sits, at peek — the map page's own copy of
+   * it (`WorldMap`'s is desktop-only, `hidden lg:block`), reading and
+   * writing the same `selectedKey`/`onSelectKey` this sheet does. */
   scrubberSlot?: ReactNode;
   hrefForDay: (slug: string) => string;
+  /** The map page's one selection (lifted to `MapPageContent`, reviewed
+   * after B2427's first pass) — a marker tap, the scrubber, or a stop here
+   * all land on this same key, and `WorldMap` applies it through its own
+   * `selectPlace`, so the camera follows exactly as a tap on the map itself
+   * would. */
+  selectedKey: string | null;
+  onSelectKey: (key: string) => void;
 }) {
   const { t, tn, locale, formatShortDate, formatStay } = useI18n();
   const reducedMotion = useReducedMotion();
   const vh = useViewportHeight();
 
   const [snap, setSnap] = useState(PEEK);
-  const [selectedKey, setSelectedKey] = useState<string | null>(places[0]?.key ?? null);
 
   const heights = useMemo(
     () => [PEEK_PX, Math.round(vh * HALF_MAX_VH), Math.round(vh * FULL_MAX_VH)],
@@ -91,6 +99,19 @@ export default function MobileMapSheet({
   const dragMoved = useRef(false);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
 
+  // A new selection — a marker tapped on the map, the scrubber dragged (from
+  // either copy of it), or a stop picked here — opens the sheet to Half, so
+  // whichever surface drove it, the result is the same stop in view. Not on
+  // the very first render (the page's own default selection shouldn't pop
+  // the sheet open by itself), and not on a selection *clearing* (`null`
+  // only ever comes from the map's own close button, which shouldn't reopen
+  // a sheet that was closed).
+  const lastKey = useRef(selectedKey);
+  useEffect(() => {
+    if (selectedKey && selectedKey !== lastKey.current) setSnap(HALF);
+    lastKey.current = selectedKey;
+  }, [selectedKey]);
+
   if (places.length === 0) return null;
 
   const selectedIndex = Math.max(
@@ -99,10 +120,7 @@ export default function MobileMapSheet({
   );
   const selected = places[selectedIndex];
 
-  const goToStop = (place: PlaceView, nextSnap: number = HALF) => {
-    setSelectedKey(place.key);
-    setSnap(nextSnap);
-  };
+  const goToStop = (place: PlaceView) => onSelectKey(place.key);
 
   const cycleLabel =
     snap === PEEK ? t("map.thisStop") : snap === HALF ? t("map.everyStop") : t("map.sheet.peek");
@@ -262,7 +280,15 @@ export default function MobileMapSheet({
                 <li key={place.key}>
                   <button
                     type="button"
-                    onClick={() => goToStop(place, HALF)}
+                    onClick={() => {
+                      // Explicit, not only the generic "a new selection opens
+                      // Half" effect below: re-tapping the stop already
+                      // selected changes no key, so that effect wouldn't
+                      // fire, and tapping a row in Full should always jump to
+                      // Half.
+                      goToStop(place);
+                      setSnap(HALF);
+                    }}
                     className="flex w-full items-center justify-between gap-3 py-3 text-left"
                   >
                     <span className="min-w-0">
