@@ -47,6 +47,7 @@ const base: GuideProps = {
   kind: "reader",
   trip: null,
   hasGuestTrip: true,
+  landing: "/ana/trips/iceland",
   signedIn: true,
   onboarded: false,
   joined: false,
@@ -266,5 +267,15 @@ describe("the join flow", () => {
     // Signed in already: no email or code screen to reach at all.
     expect(container!.textContent).toContain(fill("join.who.signedIn", { email: "an•••@example.test" }));
     expect(container!.querySelector('[role="tab"]')).toBeNull();
+  });
+});
+
+describe("the guide never sends a guest to the bare journal address (B2458)", () => {
+  test("every exit goes to the page's landing, not /<owner>", async () => {
+    const fs = await import("node:fs");
+    const src = fs.readFileSync("app/w/[code]/WelcomeGuide.tsx", "utf8");
+    expect(src).not.toMatch(/`\/\$\{owner\}`/);
+    const page = fs.readFileSync("app/w/[code]/page.tsx", "utf8");
+    expect(page).toMatch(/redirect\(landing\)/);
   });
 });

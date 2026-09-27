@@ -4,7 +4,7 @@ import { normaliseEmail } from "./contacts";
 
 /**
  * "News from Fernscout" — one instance-wide tick on the notify step (B2453),
- * never a per-journal preference. See `045-news-consent`'s own note for why
+ * never a per-journal preference. See `048-news-consent`'s own note for why
  * it is its own table rather than a `contacts` column, and for why presence
  * of the row is the whole of the consent.
  *

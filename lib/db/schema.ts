@@ -816,6 +816,8 @@ type PhotobookDraftsTable = {
 /** "Never invite this address again" — B2442. See
  * lib/contacts/suppressions.ts. */
 type InviteSuppressionsTable = {
+  /** Always NO_JOURNAL — instance state (047). */
+  owner_id: Generated<string>;
   hash: string;
   created_at: string;
 };
@@ -849,6 +851,8 @@ type MessageLogTable = {
  * disagree with it.
  */
 type MessageSwitchesTable = {
+  /** Always NO_JOURNAL — instance state (047). */
+  owner_id: Generated<string>;
   /** A `Flow['id']`, a `"<flowId>/<TemplateId>"` pair, or a bare `TemplateId`
    * — see `lib/messages/switches.ts` for how a caller reads one back. */
   key: string;
@@ -865,6 +869,8 @@ type MessageSwitchesTable = {
 type NewsConsentTable = {
   /** Normalised the same way `contacts.email_key` is. */
   email: string;
+  /** Always `NO_JOURNAL` ("*") — instance state, see 048's note. */
+  owner_id: Generated<string>;
   /** The exact copy shown when this was given — never rewritten by a later
    * wording change, so an old consent stays provable as what it was. */
   wording_key: string;

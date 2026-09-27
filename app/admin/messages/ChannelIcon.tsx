@@ -23,8 +23,8 @@ export const CHANNEL_ICON_PATHS: Record<Channel, string> = {
  * badge's colour is a single class name rather than an inline style. */
 const BADGE: Record<Channel, string> = {
   mail: "bg-ink-strong",
-  sms: "bg-sky-600",
-  wa: "bg-green-600",
+  sms: "bg-sky-500",
+  wa: "bg-green-700",
   push: "bg-yellow-600",
   share: "bg-coral-600",
 };

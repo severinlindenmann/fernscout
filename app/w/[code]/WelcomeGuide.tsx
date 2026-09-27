@@ -63,6 +63,8 @@ export type GuideProps = {
   /** Masked, for "to le•••@gmail.com" — never the address itself. */
   prove: { email: string | null; mobile: string | null; preferred: "email" | "sms" };
   details: GuideDetails | null;
+  /** Where "Open the journal" goes — the newest trip this guest may read, or the trips list (B2458). */
+  landing: string;
   caps: { mail: boolean; sms: boolean; whatsapp: boolean; postcards: boolean };
   dictionary: Record<string, string>;
   /** The page's own resolved locale — B2452, for `CountryField`'s display
@@ -167,7 +169,7 @@ export default function WelcomeGuide(props: GuideProps) {
   async function verify() {
     if (!(await call({ action: "verify", channel, code: typed }))) return;
     if (onboarded || steps.indexOf("code") === steps.length - 1) {
-      finish(`/${owner}`);
+      finish(props.landing);
       return;
     }
     router.refresh();
@@ -346,7 +348,7 @@ export default function WelcomeGuide(props: GuideProps) {
         labelledBy="guide-what"
         dots={dots}
         footer={
-          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => (last ? done(`/${owner}`) : next())}>
+          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => (last ? done(props.landing) : next())}>
             {last ? t("guide.notify.open") : t("guide.what.go")}
           </BusyButton>
         }
@@ -529,12 +531,12 @@ export default function WelcomeGuide(props: GuideProps) {
             <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(`/${owner}/trips/${trip.id}`)}>
               {t("guide.notify.openTrip", vars)}
             </BusyButton>
-            <BusyButton busy={busy} type="button" className={SECONDARY} onClick={() => done(`/${owner}`)}>
+            <BusyButton busy={busy} type="button" className={SECONDARY} onClick={() => done(props.landing)}>
               {t("guide.notify.justRead")}
             </BusyButton>
           </>
         ) : (
-          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(`/${owner}`)}>
+          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(props.landing)}>
             {t("guide.notify.open")}
           </BusyButton>
         )

@@ -17,11 +17,16 @@ import type { MigrationDb } from "./types";
  * are what was actually shown when it was given, so an audit answers with
  * more than "yes" — a wording change never rewrites what an old consent
  * proves.
+ *
+ * `owner_id` is always `NO_JOURNAL` ("*"), as in 045–047: every table carries
+ * one so a journal deletion can sweep by it, and this one holds no journal's
+ * rows — a reader's wish to hear from Fernscout is theirs, not the journal's.
  */
 export async function up(db: MigrationDb): Promise<void> {
   await db.schema
     .createTable("news_consent")
     .addColumn("email", "text", (c) => c.primaryKey().notNull())
+    .addColumn("owner_id", "text", (c) => c.notNull().defaultTo("*"))
     .addColumn("wording_key", "text", (c) => c.notNull())
     .addColumn("locale", "text")
     .addColumn("consented_at", "text", (c) => c.notNull())
