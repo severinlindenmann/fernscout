@@ -20,7 +20,7 @@ import type { Entry } from "./types";
  * block (a book cover and a postcard), so both drawings show that journal's
  * real pictures rather than a stock image.
  */
-export type DemoPhoto = { src: string; alt: string };
+type DemoPhoto = { src: string; alt: string };
 
 export type DemoDay = {
   journalHref: string;
