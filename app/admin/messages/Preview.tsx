@@ -98,7 +98,7 @@ export default function Preview({ template }: { template: TemplateId }) {
         <p className="text-sm text-ink-secondary">Rendering…</p>
       ) : "freeform" in preview && preview.channel === "mail" ? (
         <p className="rounded-2xl border border-line-quiet bg-surface-subtle p-4 text-sm italic text-ink-secondary">{preview.text}</p>
-      ) : preview.channel === "mail" ? (
+      ) : "html" in preview ? (
         <div className="rounded-2xl border border-line-quiet bg-surface-subtle p-3">
           <p className="mb-2 text-xs text-ink-secondary">
             Subject: <b className="text-ink-strong">{preview.subject}</b>
