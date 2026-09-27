@@ -1,7 +1,7 @@
 import "server-only";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { LANGUAGE_PAGES, MARKDOWN_PAGES, languageAlternates, languageHref, markdownHref } from "./languagePaths";
+import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, languageAlternates, languageHref, markdownHref } from "./languagePaths";
 import { PATH_LOCALE_HEADER } from "./requestKeys";
 
 /**
@@ -9,7 +9,8 @@ import { PATH_LOCALE_HEADER } from "./requestKeys";
  * null at the root — B2473. Set by the proxy only.
  */
 export async function requestPathLocale(): Promise<string | null> {
-  return (await headers()).get(PATH_LOCALE_HEADER);
+  const locale = (await headers()).get(PATH_LOCALE_HEADER) ?? undefined;
+  return isPathLocale(locale) ? locale : null;
 }
 
 /**

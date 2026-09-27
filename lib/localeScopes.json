@@ -2,6 +2,7 @@
   "root": {
     "paid": [
       "credits",
+      "guides",
       "orgs",
       "photobook"
     ],
