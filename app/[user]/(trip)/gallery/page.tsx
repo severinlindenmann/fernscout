@@ -39,7 +39,7 @@ export default async function GalleryPage({
 }: PageProps<"/[user]/gallery">) {
   const { user } = await params;
   // No current trip is a normal state, not a missing page. See lib/currentTrip.ts.
-  const trip = currentTripOrRedirect(user);
+  const trip = await currentTripOrRedirect(user);
   const tripId = trip.ref;
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC

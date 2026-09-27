@@ -20,7 +20,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   if (!site) notFound();
   // No current trip is a normal state, not a missing journal — the four
   // pages `SiteNav` offers all resolve it the same way. See lib/currentTrip.ts.
-  const current = currentTripOrRedirect(user);
+  const current = await currentTripOrRedirect(user);
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.

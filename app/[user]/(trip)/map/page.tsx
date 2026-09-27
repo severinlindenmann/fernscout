@@ -96,7 +96,7 @@ export async function generateMetadata({
 export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   const { user } = await params;
   // No current trip is a normal state, not a missing page. See lib/currentTrip.ts.
-  const trip = currentTripOrRedirect(user);
+  const trip = await currentTripOrRedirect(user);
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.

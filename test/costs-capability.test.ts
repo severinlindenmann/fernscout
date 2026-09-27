@@ -63,7 +63,7 @@ vi.mock("@/lib/trips", () => ({
   getCurrentTrip: () => ({ ...trip, id: "now-2027" }),
   tripRef: (user: string, id: string) => `${user}/${id}`,
 }));
-vi.mock("@/lib/currentTrip", () => ({ currentTripOrRedirect: () => trip }));
+vi.mock("@/lib/currentTrip", () => ({ currentTripOrRedirect: async () => trip }));
 vi.mock("@/lib/users", () => ({
   getUser: () => ({ username: "alex", title: "Alex's journal", baseCurrency: "CHF" }),
   getUsernames: () => ["alex", "robin"],

@@ -37,7 +37,7 @@ export async function generateMetadata({
 export default async function AnalyticsPage({ params }: PageProps<"/[user]/analytics">) {
   const { user } = await params;
   // No current trip is a normal state, not a missing page. See lib/currentTrip.ts.
-  const trip = currentTripOrRedirect(user);
+  const trip = await currentTripOrRedirect(user);
 
   /**
    * Who may see this trip's unpublished days is the *trip's* question, not
