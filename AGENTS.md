@@ -74,9 +74,9 @@ Every optional capability is off by default and must be absent, not broken,
 when disabled; `lib/capabilities.ts` decides and `/api/health` explains.
 `signup` is the one exception with no switch of its own — it is on wherever
 a database and `SESSION_SECRET` exist, and `inviteOnly` (on by default) is
-its real gate. Almost every other capability needs a real provider account
-to develop or test, and has a dry-run or simulated-provider path for it —
-except `helper` (and `extract`, which needs `helper`), which needs a real
+its real gate. No capability needs a paid provider account to develop or
+test — each has a dry-run, simulated-provider or local-mail path — except
+`helper` (and `extract`, which needs `helper`), which needs a real
 `ANTHROPIC_API_KEY` and has no dry-run backend. Local development is SQLite
 and production is Postgres; nothing outside `lib/db/` chooses the dialect.
 Do not use `window.confirm`, `alert` or `prompt` — confirmations use
@@ -125,8 +125,7 @@ never import a `paid/` path directly — always through `@paid/*` — so a plain
 clone of this repository, with nothing else installed, stays a complete,
 working travel journal.
 
-The open repository still carries a handful of intentional, undocumented-by-
-default shims for that private repository: `package.json` keeps scripts that
+The open repository still carries a handful of intentional shims for that private repository: `package.json` keeps scripts that
 run `scripts/paid.mts` and print "not included" with exit 0 when `paid/` is
 absent; `stripe` is a runtime dependency of the open package; and
 `vitest.config.mts` includes `paid/test/**`, which is simply empty in a plain
