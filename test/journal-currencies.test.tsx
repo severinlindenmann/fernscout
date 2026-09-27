@@ -115,7 +115,7 @@ describe("the journal settings' currency picker", () => {
     [...container!.querySelectorAll("[data-currency-picker] label")].map((l) => l.textContent!.replace("✓", ""));
 
   test("offers only known codes, base pinned first and not removable, no free text", async () => {
-    await mount(<JournalPageContent username="alex" journal={journal} knownCurrencies={["EUR", "GBP", "USD"]} reminders={[]} />);
+    await mount(<JournalPageContent username="alex" journal={journal} knownCurrencies={["EUR", "GBP", "USD"]} reminders={[]} tipsOn={false} />);
     expect(chips()).toEqual(["CHF", "EUR", "GBP", "USD"]);
     const base = container!.querySelector("[data-currency-picker] input[type=checkbox]") as HTMLInputElement;
     expect(base.checked).toBe(true);
@@ -124,7 +124,7 @@ describe("the journal settings' currency picker", () => {
   });
 
   test("search narrows the chips but keeps the base", async () => {
-    await mount(<JournalPageContent username="alex" journal={journal} knownCurrencies={["EUR", "GBP", "USD"]} reminders={[]} />);
+    await mount(<JournalPageContent username="alex" journal={journal} knownCurrencies={["EUR", "GBP", "USD"]} reminders={[]} tipsOn={false} />);
     const search = container!.querySelector('[data-currency-picker] input[type="search"]') as HTMLInputElement;
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(search, "pound");

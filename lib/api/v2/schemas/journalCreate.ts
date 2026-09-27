@@ -41,6 +41,12 @@ const base = z.strictObject({
   baseCurrency: z.string().optional(),
   displayCurrencies: z.array(z.string()).optional(),
   units: z.enum(["metric", "imperial"]).optional(),
+  /** The getting-started tips checkbox — B2447 (W44 D5). Unticked (absent
+   * or `false`) by default, on every journal: a pre-ticked box is not valid
+   * consent under the GDPR (CJEU Planet49). `true` opts into the first-trip
+   * nudge (`docs/plans/W44-messages.md`); an owner turns it off again from
+   * the studio journal settings, never here. */
+  tips: z.boolean().optional(),
 });
 
 export const journalCreate = base.superRefine((doc, ctx) => {

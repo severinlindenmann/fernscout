@@ -70,6 +70,7 @@ export default async function StudioJournalPage({ params }: PageProps<"/[user]/s
         journal={journalPanel}
         knownCurrencies={knownCurrencies()}
         reminders={reminders}
+        tipsOn={journal.owner.tips?.optIn ?? false}
         tellBy={isEnabled("transcription", user) ? { current: readTellBy(user) } : undefined}
       />
     </StudioPage>

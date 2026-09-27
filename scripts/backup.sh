@@ -496,6 +496,17 @@ else
   log "WARNING: the reminder sweep failed — tonight's backup is unaffected"
 fi
 
+# --- 0b0. The first-trip nudge sweep (B2447, W44 D5) ------------------------
+# Same reasoning as the evening reminder just above. Sends at most one nudge
+# per journal, ever, only for a journal that opted into getting-started tips
+# at signup and still has no trip. Never fatal.
+log "checking for first-trip nudges due tonight"
+if (cd "$APP_DIR" && npm run --silent first-trip:send); then
+  log "first-trip sweep done"
+else
+  log "WARNING: the first-trip sweep failed — tonight's backup is unaffected"
+fi
+
 # --- 0b1. The message_log sweep (B2438) -------------------------------------
 # Same reasoning again: retention (90 days) is enforced here rather than on a
 # second timer. Never fatal — a failed sweep leaves the log a little larger,

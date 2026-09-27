@@ -63,6 +63,19 @@ export type StoredSubscription = {
    * database (migration backfills the column) and in the file store (never
    * written, so a reader who finds it absent means `"web"`). */
   kind?: SubscriptionKind;
+  /**
+   * Whether this browser belongs to the journal's own owner — B2447/B2448
+   * item 4's push branch. Decided once, at subscribe time
+   * (`app/api/push/subscribe/route.ts`), from the same owner-cookie check
+   * every other owner-only door uses (`isOwner`, lib/contacts/session.ts) —
+   * **never** trusted from anything the client's own request body claims,
+   * and never decided from a bearer token either (an agent is not "the
+   * owner's own device"). Absent or `false` for every subscription written
+   * before this field existed, and for any reader's. See
+   * `ownerPushSubscription` in lib/digest/firstTrip.ts for the one place
+   * this actually gets read.
+   */
+  isOwner?: boolean;
 };
 
 export type PushRepo = {
