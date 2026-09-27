@@ -140,13 +140,16 @@ export default function LifetimeMap({
   const [selectedId, setSelectedId] = useState<string>("all");
   const [hoverCode, setHoverCode] = useState<string | null>(null);
   const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
-  // A lazy initializer, not an effect + setState: SSR has no `matchMedia`,
-  // so this reads `false` on the server and the one true client render that
-  // follows hydration — reactive to a *later* change of pointer/hover
-  // capability is not a case a browser gives a person on this page anyway.
-  const [canHover] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches,
-  );
+  // Not a lazy initializer: `matchMedia` is browser-only, and reading it
+  // while rendering (even guarded) is exactly what B454's hydration-safety
+  // keeper (test/hydration-safety.test.ts) exists to catch — a component
+  // must produce the same tree on the server and on the browser's first
+  // pass. An effect is the accepted place for this (`components/CurrencyProvider.tsx`).
+  const [canHover, setCanHover] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- adopting a media-query capability on mount, the same pattern CurrencyProvider and nine other components in this codebase use.
+    setCanHover(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+  }, []);
   const [activeCode, setActiveCode] = useState<string | null>(null); // keyboard focus, for the visible caption
 
   // Also lazy: a remount after the Einstieg already played (a client-side
