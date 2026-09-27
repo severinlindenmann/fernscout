@@ -32,7 +32,8 @@ import { journalReader } from "@/lib/contacts/session";
 import { resolveJoinCode, type JoinInvite } from "@/lib/contacts/welcome";
 import { mailDisabledReason } from "@/lib/mail";
 import { setNewsConsent } from "@/lib/newsConsent";
-import { subjectPhone } from "@/lib/phone";
+import { whatsappCountryCode } from "@/lib/contactNumber";
+import { isMessageable, subjectPhone } from "@/lib/phone";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { claimTripPlace, isPersonOn } from "@/lib/tripPeople";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -174,6 +175,26 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
           postcode: field("postcode"),
           city: field("city"),
           country: field("country"),
+        };
+      }
+      // B2505: a mobile for WhatsApp postcards, given while the request
+      // waits. Stored on the address like the one /me takes, unproved and
+      // never a sign-in number; WhatsApp reaches only an active contact, so
+      // nothing is sent to it before the owner lets this person in.
+      if (typeof body.tel === "string" && body.tel.trim()) {
+        const tel = body.tel.trim().slice(0, 40);
+        if (!isMessageable(tel, whatsappCountryCode())) return answer({ error: "invalid_phone" }, 400);
+        const on = self.postalAddress;
+        patch.address = {
+          ...(patch.address ?? {
+            name: on?.name ?? self.name ?? "",
+            line1: on?.line1 ?? "",
+            line2: on?.line2 ?? "",
+            postcode: on?.postcode ?? "",
+            city: on?.city ?? "",
+            country: on?.country ?? "",
+          }),
+          tel,
         };
       }
       for (const key of ["wantsEmailDigest", "wantsWhatsapp", "wantsSms", "wantsPostcard"] as const) {
