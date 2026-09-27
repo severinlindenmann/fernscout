@@ -186,6 +186,66 @@
   --dur-press-in: 70ms;
   --dur-press-out: 220ms;
   --dur-move: 380ms;
+
+  /*
+    Map tokens — B2417 (Phase 0 of docs/plans/map-redesign.md, the "Paper"
+    style). Every colour an SVG map ever draws, so `lib/map/style.ts` can hand
+    a component a `var(--map-…)` reference and never a hex. No component
+    reads these yet (Phase 1, B2418+, restyles TripMap/WorldMap/LifetimeMap/
+    SlideMap onto them) — this block only has to exist in all three theme
+    places and stay internally consistent.
+  */
+  --map-land: #f7f0de;
+  --map-sea: #cdebf2;
+  --map-water: #bfe6f0;
+  --map-border: #b7a584;
+  --map-border-internal: #dccfb2;
+  --map-ice: #ffffff;
+  --map-road: #ffffff;
+  /* "Sand casing" — the internal-border tone doubles as the road's edge,
+     since both are a paper shade darker than the land it sits on. */
+  --map-road-casing: #dccfb2;
+  --map-stop-fill: #ffffff;
+  --map-stop-ring: #1e293b;
+  --map-stop-number: #1e293b;
+  --map-selected-fill: #1e293b;
+  --map-selected-number: #ffffff;
+  --map-here-now: #ffd23f;
+  --map-here-now-halo: #ffe08a;
+  --map-cluster-fill: #1e293b;
+  --map-cluster-text: #ffffff;
+  --map-route-casing: #ffffff;
+  --map-planned-leg: #1e293b;
+  --map-leg-chip-fill: #ffffff;
+  --map-leg-chip-border: #d8dee8;
+  --map-leg-chip-icon: #1e293b;
+  --map-label-stop: #1e293b;
+  /* A paper-coloured halo behind stop labels, not a text-shadow grey. */
+  --map-label-stop-halo: #f7f0de;
+  --map-label-town: #5a6a80;
+  --map-label-peak: #43536b;
+  --map-control-fill: #ffffff;
+  --map-control-icon: #1e293b;
+  --map-control-shadow: #1e293b;
+
+  /*
+    Map-only accent steps — 2026-09-27 decision Q2 in docs/plans/map-redesign.md
+    §7. `lib/types.ts`'s ACCENT_HEX (`#3fa9c4` sky, `#d69b0a` yellow) are the
+    brand hexes and stay as they are everywhere else; on the map they sit
+    directly on `--map-land` (`#f7f0de`) as a route or a marker fill, where
+    they measure 2.40:1 and 2.16:1 — under the 3:1 non-text floor. These two
+    are one step darker in the same hue, which clears it (3.05:1 and 3.01:1):
+      sky    #3795ac
+      yellow #b48208
+    Green (`#15803d`, green-700) and coral (`#c2334a`, coral-600) already
+    clear 3:1 on `--map-land` and are unchanged. Navy is the accent's own
+    `#3a4a63` (navy-700, not the navy-900 used for rings/selection above).
+  */
+  --map-accent-sky: #3795ac;
+  --map-accent-yellow: #b48208;
+  --map-accent-green: #15803d;
+  --map-accent-coral: #c2334a;
+  --map-accent-navy: #3a4a63;
 }
 
 @theme inline {
@@ -346,6 +406,55 @@ html {
   --overlay-strong: #10151f;
   --overlay-ink: #ffffff;
   --shadow-color: #080b11;
+
+  /* Map tokens, dark half of B2417. Land/sea/border are the plan's own
+     values; everything else is a sensible counterpart in the same family,
+     reusing this theme's own surface/ink tokens where one already fits
+     rather than inventing new ones. */
+  --map-land: #1b2635;
+  --map-sea: #0e2231;
+  /* One step paler than sea, the same relationship as the light pair. */
+  --map-water: #16324a;
+  --map-border: #3d4d66;
+  /* line-strong (above) is already this theme's "more visible than the
+     ordinary line" step — the same job a dashed internal border needs. */
+  --map-border-internal: #60708c;
+  /* Snow/ice still reads as the odd pale patch on an otherwise dark map,
+     without the glare of pure white. */
+  --map-ice: #e8ecf2;
+  --map-road: #2b3750;
+  --map-road-casing: #242e40;
+  --map-stop-fill: #1f2736;
+  --map-stop-ring: #f2ecdd;
+  --map-stop-number: #f2ecdd;
+  --map-selected-fill: #f2ecdd;
+  --map-selected-number: #1e293b;
+  --map-here-now: #ffd23f;
+  --map-here-now-halo: #4a3300;
+  --map-cluster-fill: #f2ecdd;
+  --map-cluster-text: #1e293b;
+  --map-route-casing: #1f2736;
+  --map-planned-leg: #f2ecdd;
+  --map-leg-chip-fill: #1f2736;
+  --map-leg-chip-border: #33405a;
+  --map-leg-chip-icon: #f2ecdd;
+  --map-label-stop: #f2ecdd;
+  --map-label-stop-halo: #1b2635;
+  --map-label-town: #c9c8c0;
+  --map-label-peak: #b9bbc0;
+  --map-control-fill: #1f2736;
+  --map-control-icon: #f2ecdd;
+  --map-control-shadow: #080b11;
+
+  /* Map-only accent steps, dark half — the existing B1798 text-safe step for
+     each hue (a brighter tone already in its own family), the same method
+     that chose green-700/coral-600's dark values above. Sky and yellow get
+     one here for the first time; green, coral and navy already had one. */
+  --map-accent-sky: #5ec8dc;
+  --map-accent-yellow: #ffd23f;
+  --map-accent-green: #22c55e;
+  --map-accent-coral: #f38ba6;
+  --map-accent-navy: #aeb7c5;
   color-scheme: dark;
 }
 
@@ -388,6 +497,42 @@ html {
     --overlay-strong: #10151f;
     --overlay-ink: #ffffff;
     --shadow-color: #080b11;
+
+    /* Same values as :root[data-theme="dark"]'s map tokens above. */
+    --map-land: #1b2635;
+    --map-sea: #0e2231;
+    --map-water: #16324a;
+    --map-border: #3d4d66;
+    --map-border-internal: #60708c;
+    --map-ice: #e8ecf2;
+    --map-road: #2b3750;
+    --map-road-casing: #242e40;
+    --map-stop-fill: #1f2736;
+    --map-stop-ring: #f2ecdd;
+    --map-stop-number: #f2ecdd;
+    --map-selected-fill: #f2ecdd;
+    --map-selected-number: #1e293b;
+    --map-here-now: #ffd23f;
+    --map-here-now-halo: #4a3300;
+    --map-cluster-fill: #f2ecdd;
+    --map-cluster-text: #1e293b;
+    --map-route-casing: #1f2736;
+    --map-planned-leg: #f2ecdd;
+    --map-leg-chip-fill: #1f2736;
+    --map-leg-chip-border: #33405a;
+    --map-leg-chip-icon: #f2ecdd;
+    --map-label-stop: #f2ecdd;
+    --map-label-stop-halo: #1b2635;
+    --map-label-town: #c9c8c0;
+    --map-label-peak: #b9bbc0;
+    --map-control-fill: #1f2736;
+    --map-control-icon: #f2ecdd;
+    --map-control-shadow: #080b11;
+    --map-accent-sky: #5ec8dc;
+    --map-accent-yellow: #ffd23f;
+    --map-accent-green: #22c55e;
+    --map-accent-coral: #f38ba6;
+    --map-accent-navy: #aeb7c5;
     color-scheme: dark;
   }
 }
