@@ -97,8 +97,6 @@ function gonePage(stone: Tombstone): NextResponse {
   });
 }
 
-/** The tombstone covering this path, if there is one. Only the two shapes a
- * link in somebody's address book actually has: the journal, and a trip. */
 /**
  * Top-level pages the app owns that a journal could once have been named
  * before the name was reserved. `lib/users.ts`'s reserved list is the rule;
@@ -109,6 +107,8 @@ function gonePage(stone: Tombstone): NextResponse {
  */
 const APP_OWNED_ROOTS = new Set(["me"]);
 
+/** The tombstone covering this path, if there is one. Only the two shapes a
+ * link in somebody's address book actually has: the journal, and a trip. */
 function goneFor(pathname: string): NextResponse | null {
   const segments = pathname.split("/").filter(Boolean);
   const username = segments[0];
