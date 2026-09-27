@@ -178,6 +178,17 @@ describe("the trip page's hero", () => {
   });
 });
 
+describe("the trip page's hero — button row", () => {
+  /** B2466 — three or four secondary buttons (plus the push bell) are wider
+   * than the half-width text column and ran under the cover photo because the
+   * row never wrapped. */
+  test("the secondary button row wraps instead of overflowing", () => {
+    buildTrip({ lastDayHasPhotos: true });
+    const html = renderStory();
+    expect(html).toContain("flex w-full flex-wrap items-stretch gap-2 sm:w-auto");
+  });
+});
+
 describe("the trips index card", () => {
   /** The card resolves `trip.cover ?? <the trip's last picture>`, and the
    * second half is this ordering: `getAllMedia` is newest first, so the

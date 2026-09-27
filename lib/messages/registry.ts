@@ -22,10 +22,10 @@ export const FAMILIES = {
 
 export type Family = keyof typeof FAMILIES;
 
-export const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
+const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
 export type Channel = (typeof CHANNELS)[number];
 
-export type Audience = "owner" | "reader" | "stranger" | "operator";
+type Audience = "owner" | "reader" | "stranger" | "operator";
 
 export type TemplateDef = {
   family: Family;
@@ -112,7 +112,7 @@ export function templateDef(id: TemplateId): TemplateDef {
 /** A flow's own node shape — drawn by admin (a later ticket), checked here by
  * the registry test only for internal consistency (every `to` id exists,
  * every `send` node names a real template). */
-export type FlowNode = {
+type FlowNode = {
   id: string;
   type: "trigger" | "check" | "wait" | "send" | "stop";
   label: string;

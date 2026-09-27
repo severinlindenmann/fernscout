@@ -79,7 +79,15 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     // longer has a real case to cover; see `app/api/contacts/self/route.ts`
     // for the fuller account and why it is kept rather than removed.
     const isTraveller = viewer.trips.some((trip) => trip.through === "traveller");
-    if (contact || isTraveller) {
+    // B2462 — the owner's own row moves here too: `contact` is already found
+    // by email above whether or not this viewer is the owner, so the only
+    // change is including `viewer.owner` in what earns a panel at all. An
+    // owner with no row yet gets the empty fallback below like a traveller
+    // does; `MePageContent` renders the owner's "add my details" button
+    // instead of this self-managed form for that one case (posting to
+    // `/api/contacts/self` would refuse an owner outright — that route is
+    // gated on trip write access, not on being the owner).
+    if (contact || isTraveller || viewer.owner) {
       // The reader's own UI language, not the one on the contact record —
       // the record's `locale` is a separate question ("write to me in"),
       // still asked inside the form's own dropdown. Rendering the form's

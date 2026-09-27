@@ -19,7 +19,7 @@ import {
   setProvenPhone,
   type ContactRecord,
 } from "./index";
-import { pickLocale } from "./locale";
+import { pickLocale, fromAcceptLanguage } from "./locale";
 import { sendCodeMail } from "./mail";
 import { maskEmail } from "./welcome";
 
@@ -98,11 +98,9 @@ export async function sendGuestCode(
   if (!user || !contact || contact.status === "blocked") return { ok: false, reason: "no_contact" };
   const subject = await guestSubject(owner, contact, channel);
   if (!subject) return { ok: false, reason: "no_channel" };
-  // "Last used" (W44 D7): a code request is a moment this reader's language
-  // is actually known — persisted only when nothing was known before.
-  await setContactLocaleIfEmpty(owner, contactId, options.locale);
-  // Reader chain: the contact's own locale (freshly set above, when it was
-  // empty), else en — never the journal's default.
+  // Reader chain: the language asked for now, else the contact's own, else
+  // en — never the journal's default. Nothing is persisted here: a code
+  // request proves nothing, so "last used" is written on redeem instead.
   const locale = pickLocale(options.locale ?? contact.locale);
   const digits = subjectPhone(subject);
 
@@ -369,15 +367,21 @@ export async function verifyGuestCode(
   owner: string,
   subject: string,
   code: string,
+  /** The redeeming request's Accept-Language — "last used" (W44 D7), written
+   * only now that the code proved this is the contact, and only when the
+   * contact has no language yet. */
+  acceptLanguage?: string | null,
 ): Promise<GuestSession | null> {
   const result = await verifyCode(owner, subject, code, "guest");
   if (!result.ok) return null;
   const digits = subjectPhone(result.email);
   if (digits) await markContactPhoneProven(owner, digits);
+  const contact = await getContactByEmail(owner, result.email);
+  if (contact && acceptLanguage) await setContactLocaleIfEmpty(owner, contact.id, fromAcceptLanguage(acceptLanguage));
   return {
     token: result.token,
     expiresAt: result.expiresAt,
     subject: result.email,
-    contact: await getContactByEmail(owner, result.email),
+    contact,
   };
 }

@@ -18,8 +18,10 @@ import {
 } from "@paid/whatsapp/lib/digest/dayWhatsapp";
 import { sendDaySms, smsSummary, smsWouldCost, smsWouldReach } from "@/lib/digest/daySms";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
+import { logMessage } from "@/lib/messages/log";
 import { getTrip, tripRef } from "@/lib/trips";
 import type { Trip } from "@/lib/types";
+import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -236,7 +238,20 @@ export async function POST(
    */
   const result: Record<string, unknown> = {};
   for (const { channel } of status.pending) {
-    if (!(await claimChannel(user, status.trip.id, slug, channel))) continue;
+    if (!(await claimChannel(user, status.trip.id, slug, channel))) {
+      // Another request (or the automatic publish-time send) already won
+      // this channel's claim — nothing to send, nothing to report.
+      await logMessage({
+        template: channel === "mail" ? "news.mail" : channel === "sms" ? "news.sms" : "news.wa",
+        flow: "newday",
+        channel: channel === "whatsapp" ? "wa" : channel,
+        to: getUser(user)?.owner.email ?? user,
+        owner: user,
+        status: "skipped",
+        reason: "deduped",
+      });
+      continue;
+    }
 
     if (channel === "mail") {
       const outcome = await sendDayLetter(user, status.ref, slug);

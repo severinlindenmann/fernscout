@@ -70,7 +70,7 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
     case "verify": {
       const digits = contact.phone ? toE164(contact.phone, whatsappCountryCode()) : null;
       const subject = channel === "sms" ? (digits ? phoneSubject(digits) : null) : contact.email.includes("@") ? contact.email : null;
-      const session = subject ? await verifyGuestCode(owner, subject, text("code")) : null;
+      const session = subject ? await verifyGuestCode(owner, subject, text("code"), request.headers.get("accept-language")) : null;
       // The code must have been for *this* contact: a session for anybody
       // else (another contact's number, say) is not this guide's to open.
       if (!session || session.contact?.id !== contact.id) return answer({ error: "invalid_code" }, 401);

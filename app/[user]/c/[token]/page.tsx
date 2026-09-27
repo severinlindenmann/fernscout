@@ -30,8 +30,14 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * somebody who asked to be written to in Hungarian gets a Hungarian page from
  * whatever device they opened the mail on.
  */
-export default async function ManagePage({ params }: PageProps<"/[user]/c/[token]">) {
+export default async function ManagePage({ params, searchParams }: PageProps<"/[user]/c/[token]">) {
   const { user: username, token } = await params;
+  // B2442 — which channel a stream-scoped `?s=` link asked to open scrolled
+  // to and highlighting. Anything else is ignored, same as the unsubscribe
+  // route's own parsing.
+  const rawStream = (await searchParams).s;
+  const highlight =
+    rawStream === "mail" || rawStream === "sms" || rawStream === "wa" ? rawStream : undefined;
   const user = getUser(username);
   if (!user || !isEnabled("contacts", username)) notFound();
 
@@ -108,6 +114,7 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
             postcardsEnabled={isEnabled("postcards", username)}
             whatsappEnabled={isEnabled("whatsapp", username)}
             smsEnabled={isEnabled("sms")}
+            highlight={highlight}
           />
         </main>
       </div>

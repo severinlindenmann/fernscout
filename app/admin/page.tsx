@@ -7,6 +7,7 @@ import AdminGrant from "@paid/credits/routes/admin/AdminGrant";
 import AdminRefund from "@paid/credits/routes/admin/AdminRefund";
 import Journals from "./Journals";
 import MessageOwner from "./MessageOwner";
+import MessagesPanel from "./messages/MessagesPanel";
 import ReleaseName from "./ReleaseName";
 import Shell, { type Section } from "./Shell";
 import SmsThreads from "./SmsThreads";
@@ -19,6 +20,8 @@ import { listAppWaitlist } from "@/lib/appWaitlist";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { readBackupHistory, readBackupRuns, type BackupNight, type NightOutcome } from "@/lib/backupStatus";
 import { isEnabled } from "@/lib/capabilities";
+import { countMessages } from "@/lib/messages/log";
+import { listSwitches } from "@/lib/messages/switches";
 import { listSms } from "@/lib/sms/store";
 import { creditsEnabled } from "@/lib/credits";
 import { formatCredits } from "@/lib/creditsFormat";
@@ -188,6 +191,16 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   const smsOn = isEnabled("sms");
   const smsInboundOn = isEnabled("smsInbound");
   const smsMessages = smsOn || smsInboundOn ? await listSms() : [];
+  // B2441/B2446 — the catalogue's own 7-day counts and the operator's
+  // currently-off switches, both cheap enough to read on every load.
+  const messageCounts = await countMessages(ago(7));
+  const catalogueCounts: Record<string, { sent: number; skipped: number }> = {};
+  for (const row of messageCounts) {
+    const bucket = (catalogueCounts[row.template] ??= { sent: 0, skipped: 0 });
+    if (row.status === "sent") bucket.sent += row.count;
+    else if (row.status === "skipped") bucket.skipped += row.count;
+  }
+  const messageSwitches = await listSwitches();
   const money = takingsBreakdown(data.paid, data.awaiting);
   const stones = allTombstones();
   const byName = new Map(report.journals.map((row) => [row.username, row]));
@@ -430,32 +443,38 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       id: "messages",
       label: "Messages",
       icon: "messages",
-      lede: "What arrived at the instance's SMS number, and what was sent from it.",
+      lede: "Every message this instance sends: the catalogue, the flows, previews, who got what, and the log.",
       badge: smsIn,
       badgeTone: "count",
       panel: (
-        <div className="mt-6">
-          {!smsInboundOn ? (
-            <p className="mb-3 text-sm text-ink-body">
-              Receiving is switched off (features.smsInbound) — /api/health says what it needs.
-              Nothing arriving at the number lands here until it is on and the Twilio webhook points
-              at /api/webhooks/twilio.
-            </p>
-          ) : null}
-          <SmsThreads
-            rows={smsMessages.map((sms) => ({
-              id: sms.id,
-              direction: sms.direction,
-              from: sms.from,
-              to: sms.to,
-              body: sms.body,
-              dryRun: sms.direction === "out" && !sms.providerSid,
-              createdAt: sms.createdAt,
-            }))}
-            canSend={smsOn}
-            sendNote="Sending is switched off (features.sms) — /api/health says what it needs."
-          />
-        </div>
+        <MessagesPanel
+          counts={catalogueCounts}
+          initialOff={messageSwitches}
+          smsThreads={
+            <>
+              {!smsInboundOn ? (
+                <p className="mb-3 text-sm text-ink-body">
+                  Receiving is switched off (features.smsInbound) — /api/health says what it needs.
+                  Nothing arriving at the number lands here until it is on and the Twilio webhook points
+                  at /api/webhooks/twilio.
+                </p>
+              ) : null}
+              <SmsThreads
+                rows={smsMessages.map((sms) => ({
+                  id: sms.id,
+                  direction: sms.direction,
+                  from: sms.from,
+                  to: sms.to,
+                  body: sms.body,
+                  dryRun: sms.direction === "out" && !sms.providerSid,
+                  createdAt: sms.createdAt,
+                }))}
+                canSend={smsOn}
+                sendNote="Sending is switched off (features.sms) — /api/health says what it needs."
+              />
+            </>
+          }
+        />
       ),
     },
     {

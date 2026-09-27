@@ -43,7 +43,9 @@ import * as adminAckSnooze from "./041-admin-ack-snooze";
 import * as onboardingJoinCodes from "./042-onboarding-join-codes";
 import * as appWaitlist from "./043-app-waitlist";
 import * as messageLog from "./044-message-log";
-import * as newsConsent from "./045-news-consent";
+import * as inviteSuppressions from "./045-invite-suppressions";
+import * as messageSwitches from "./046-message-switches";
+import * as newsConsent from "./047-news-consent";
 
 /**
  * Every migration, listed by hand.
@@ -102,7 +104,9 @@ export const MIGRATIONS: Record<string, Migration> = {
   "042-onboarding-join-codes": onboardingJoinCodes,
   "043-app-waitlist": appWaitlist,
   "044-message-log": messageLog,
-  "045-news-consent": newsConsent,
+  "045-invite-suppressions": inviteSuppressions,
+  "046-message-switches": messageSwitches,
+  "047-news-consent": newsConsent,
 };
 
 /**

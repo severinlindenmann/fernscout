@@ -343,7 +343,7 @@ export default function TripHero({
               {/* The other ways into the reading, as one row of equal
                   buttons. They used to be three underlined links and one
                   capsule — four looks for the same kind of thing. */}
-              <div className="flex w-full items-stretch gap-2 sm:w-auto">
+              <div className="flex w-full flex-wrap items-stretch gap-2 sm:w-auto">
                 <button onClick={onStart} className={SECONDARY}>
                   <ArrowDown className="h-4 w-4 shrink-0" aria-hidden />
                   {t("hero.startReading")}

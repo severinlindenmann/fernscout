@@ -813,6 +813,13 @@ type PhotobookDraftsTable = {
  * Never a body, never a raw address: `recipient_hash`/`recipient_mask` are
  * the whole of what identifies who it went to.
  */
+/** "Never invite this address again" — B2442. See
+ * lib/contacts/suppressions.ts. */
+type InviteSuppressionsTable = {
+  hash: string;
+  created_at: string;
+};
+
 type MessageLogTable = {
   id: string;
   /** NO_JOURNAL ("*") for a message that belongs to no journal yet. */
@@ -836,8 +843,23 @@ type MessageLogTable = {
 };
 
 /**
+ * The operator's per-message-kind kill switches — B2446. See
+ * `lib/messages/switches.ts`, the only reader and writer: a row's presence
+ * is the whole state (present = off), so there is no boolean column to
+ * disagree with it.
+ */
+type MessageSwitchesTable = {
+  /** A `Flow['id']`, a `"<flowId>/<TemplateId>"` pair, or a bare `TemplateId`
+   * — see `lib/messages/switches.ts` for how a caller reads one back. */
+  key: string;
+  /** The admin email that switched it off. */
+  updated_by: string;
+  updated_at: string;
+};
+
+/**
  * "News from Fernscout" consent — B2453. One row per address, instance-wide,
- * never per journal — see `045-news-consent`'s own note for why. Presence of
+ * never per journal — see `047-news-consent`'s own note for why. Presence of
  * the row is the consent itself.
  */
 type NewsConsentTable = {
@@ -881,6 +903,8 @@ export type Database = {
   photobook_drafts: PhotobookDraftsTable;
   app_waitlist: AppWaitlistTable;
   message_log: MessageLogTable;
+  invite_suppressions: InviteSuppressionsTable;
+  message_switches: MessageSwitchesTable;
   news_consent: NewsConsentTable;
 };
 
@@ -917,5 +941,7 @@ export const TABLE_NAMES = [
   "photobook_drafts",
   "app_waitlist",
   "message_log",
+  "invite_suppressions",
+  "message_switches",
   "news_consent",
 ] as const satisfies readonly (keyof Database)[];

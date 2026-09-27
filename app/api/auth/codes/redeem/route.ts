@@ -6,7 +6,7 @@ import {
   verifyCode,
 } from "@/lib/auth";
 import { setGuestSessionCookies, setIdentityCookie } from "@/lib/auth/identityCookie";
-import { markContactPhoneProven } from "@/lib/contacts";
+import { getContactByEmail, markContactPhoneProven, setContactLocaleIfEmpty } from "@/lib/contacts";
 import { whatsappCountryCode } from "@/lib/contactNumber";
 import { phoneSubject, subjectPhone, toE164 } from "@/lib/phone";
 import { isEnabled } from "@/lib/capabilities";
@@ -138,6 +138,10 @@ export async function POST(request: Request) {
     // address or number — B410. A proved number is stamped on its contact.
     const digits = subjectPhone(email);
     if (digits) await markContactPhoneProven(owner, digits);
+    // "Last used" (W44 D7) for the reader chain — only now the code proved
+    // who this is, and only when the contact has no language yet.
+    const contact = await getContactByEmail(owner, email);
+    if (contact) await setContactLocaleIfEmpty(owner, contact.id, locale);
     await setGuestSessionCookies(result.token, email, request.headers.get("user-agent"));
     return ok({ ok: true, expires: result.expiresAt, scope: "read" as const });
   }
@@ -228,7 +232,12 @@ function cookieLocale(request: Request): string | null {
   if (!header) return null;
   for (const part of header.split(";")) {
     const [key, ...rest] = part.trim().split("=");
-    if (key === LOCALE_COOKIE) return parseLocale(decodeURIComponent(rest.join("=")));
+    if (key !== LOCALE_COOKIE) continue;
+    try {
+      return parseLocale(decodeURIComponent(rest.join("=")));
+    } catch {
+      return null; // a malformed cookie is no language, not a failed sign-in
+    }
   }
   return null;
 }

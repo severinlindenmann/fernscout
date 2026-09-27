@@ -7,6 +7,7 @@ import { loadServerConfig } from "../config";
 import { dataDir } from "../dataDir";
 import { logMessage } from "../messages/log";
 import type { TemplateId } from "../messages/registry";
+import { isSwitchedOff } from "../messages/switches";
 import { maskNumber } from "../phone";
 import { recordSms } from "./store";
 
@@ -157,6 +158,20 @@ export async function sendSms(message: SmsMessage): Promise<SmsSendResult> {
   if (!isEnabled("sms")) throw new SmsApiError("SMS is not enabled on this server.");
   const unreachable = smsUnreachable(message.to);
   if (unreachable) throw new SmsApiError(`This message cannot be delivered: ${unreachable}.`);
+
+  // The operator's own per-message-kind switch (B2446) — never true for a
+  // required family. See lib/messages/switches.ts.
+  if (await isSwitchedOff(message.template)) {
+    await logMessage({
+      template: message.template,
+      channel: "sms",
+      to: message.to,
+      owner: message.owner,
+      status: "skipped",
+      reason: "switched_off:operator",
+    });
+    return { backend: "switched-off", reference: null };
+  }
 
   let result: SmsSendResult;
   try {

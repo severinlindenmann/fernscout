@@ -25,18 +25,27 @@ export function recipientHash(to: string): string {
   const normalised = normaliseRecipient(to);
   const secret = process.env.SESSION_SECRET;
   return secret
-    ? createHmac("sha256", secret).update(normalised).digest("hex")
+    ? createHmac("sha256", secret).update(`msglog:${normalised}`).digest("hex")
     : createHash("sha256").update(normalised).digest("hex");
 }
 
+/** A push endpoint or a group link is neither an address nor a number: it
+ * is hashed whole, so one device (or one journal's link) stays one
+ * recipient instead of collapsing into the digits of a URL. */
+function isOpaque(to: string): boolean {
+  return !to.includes("@") && /[:/]/.test(to);
+}
+
 function normaliseRecipient(to: string): string {
+  if (isOpaque(to)) return to.trim();
   return to.includes("@") ? to.trim().toLowerCase() : to.replace(/\D/g, "");
 }
 
 /** `m•••@gmail.com` for an address, or a masked form of the documentation
  * number (test/depersonalised.test.ts) for a phone number — never the real
  * value. */
-export function recipientMask(to: string): string {
+function recipientMask(to: string): string {
+  if (isOpaque(to)) return to.startsWith("link:") ? "group link" : "device";
   if (to.includes("@")) {
     const [local, domain] = to.trim().toLowerCase().split("@");
     return `${(local ?? "").slice(0, 1)}•••@${domain ?? "?"}`;
@@ -44,6 +53,21 @@ export function recipientMask(to: string): string {
   const digits = to.replace(/\D/g, "");
   if (digits.length <= 4) return "•".repeat(digits.length);
   return `+${digits.slice(0, 2)} ${"•".repeat(Math.max(1, digits.length - 4))} ${digits.slice(-2)}`;
+}
+
+/**
+ * A provider's error text can quote the recipient (an SMTP `550 <mara@…>:
+ * Recipient address rejected`, a Twilio invalid-number message). The row
+ * promises a hash and a mask only, so the reason is scrubbed of the
+ * recipient, of anything address-shaped and of long digit runs, and capped.
+ */
+function redactReason(reason: string, to: string): string {
+  let out = reason;
+  if (to) out = out.split(to).join("<recipient>");
+  out = out.replace(/[^\s<>"'(),;:]+@[^\s<>"'(),;:]+/g, "<address>");
+  out = out.replace(/\+?\d[\d\s-]{6,}\d/g, "<number>");
+  out = out.replace(/https?:\/\/\S+/g, "<url>");
+  return out.slice(0, 200);
 }
 
 export type LogMessageInput = {
@@ -86,7 +110,7 @@ export async function logMessage(input: LogMessageInput): Promise<void> {
         recipient_mask: recipientMask(input.to),
         locale: input.locale ?? null,
         status: input.status,
-        reason: input.reason ?? null,
+        reason: input.reason ? redactReason(input.reason, input.to) : null,
         created_at: nowIso(),
       })
       .execute();
