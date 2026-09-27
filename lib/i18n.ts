@@ -4063,7 +4063,6 @@ export type TranslationKey =
   | "tripMap.connections"
   | "tripMap.googleMaps"
   | "tripMap.googleMapsHelp"
-  | "tripMap.hereNow"
   | "tripMap.lastPlace"
   | "tripMap.mapsShort"
   | "tripMap.nextStop"
