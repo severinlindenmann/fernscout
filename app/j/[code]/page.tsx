@@ -5,7 +5,7 @@ import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { isJournalGuest, isOwner, journalReader } from "@/lib/contacts/session";
 import { maskEmail, ownerShortName, resolveJoinCode } from "@/lib/contacts/welcome";
-import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
+import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
 import { subjectPhone } from "@/lib/phone";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -87,6 +87,8 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
         }}
         dictionary={dictionaryFor(locale, "guide")}
         locale={locale}
+        locales={localesFor(owner)}
+        addressLookupEnabled={isEnabled("addressLookup", owner)}
       />
     </main>
   );

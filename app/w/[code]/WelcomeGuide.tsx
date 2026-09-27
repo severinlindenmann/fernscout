@@ -13,6 +13,7 @@ import {
   FIELD,
   Heading,
   LABEL,
+  PhoneArt,
   PostcardArt,
   PRIMARY,
   QUIET,
@@ -62,8 +63,17 @@ export type GuideProps = {
   /** Masked, for "to le•••@gmail.com" — never the address itself. */
   prove: { email: string | null; mobile: string | null; preferred: "email" | "sms" };
   details: GuideDetails | null;
+  /** Where "Open the journal" goes — the newest trip this guest may read, or the trips list (B2458). */
+  landing: string;
   caps: { mail: boolean; sms: boolean; whatsapp: boolean; postcards: boolean };
   dictionary: Record<string, string>;
+  /** The page's own resolved locale — B2452, for `CountryField`'s display
+   * names and `AddressLookupField`'s Photon `lang`. */
+  locale: string;
+  /** The journal's own languages, for `CountryField`'s legacy resolution. */
+  locales: string[];
+  /** `isEnabled("addressLookup", owner)`, from the page. */
+  addressLookupEnabled: boolean;
 };
 
 const ERRORS: Record<string, TranslationKey> = {
@@ -159,7 +169,7 @@ export default function WelcomeGuide(props: GuideProps) {
   async function verify() {
     if (!(await call({ action: "verify", channel, code: typed }))) return;
     if (onboarded || steps.indexOf("code") === steps.length - 1) {
-      finish(`/${owner}`);
+      finish(props.landing);
       return;
     }
     router.refresh();
@@ -307,7 +317,7 @@ export default function WelcomeGuide(props: GuideProps) {
           )
         }
       >
-        <CodeArt />
+        {channel === "sms" ? <PhoneArt /> : <CodeArt />}
         <Heading id="guide-code">{sentTo ? t("guide.code.sentTitle") : t("guide.code.title")}</Heading>
         <p className="text-base text-ink-body">
           {to
@@ -338,7 +348,7 @@ export default function WelcomeGuide(props: GuideProps) {
         labelledBy="guide-what"
         dots={dots}
         footer={
-          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => (last ? done(`/${owner}`) : next())}>
+          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => (last ? done(props.landing) : next())}>
             {last ? t("guide.notify.open") : t("guide.what.go")}
           </BusyButton>
         }
@@ -494,7 +504,15 @@ export default function WelcomeGuide(props: GuideProps) {
             postcode: t("guide.address.postcode"),
             city: t("guide.address.city"),
             country: t("guide.address.country"),
+            countrySearchPlaceholder: t("contact.addrCountrySearchPlaceholder"),
+            countryNoMatches: t("contact.addrCountryNoMatches"),
+            addressLookupAttribution: t("contact.addressLookupAttribution"),
+            addressLookupUnavailable: t("contact.addressLookupUnavailable"),
           }}
+          enabled={props.addressLookupEnabled}
+          username={owner}
+          locale={props.locale}
+          locales={props.locales}
         />
         <p className="text-sm text-ink-secondary">{t("guide.address.private", vars)}</p>
         <Alert text={error} />
@@ -513,12 +531,12 @@ export default function WelcomeGuide(props: GuideProps) {
             <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(`/${owner}/trips/${trip.id}`)}>
               {t("guide.notify.openTrip", vars)}
             </BusyButton>
-            <BusyButton busy={busy} type="button" className={SECONDARY} onClick={() => done(`/${owner}`)}>
+            <BusyButton busy={busy} type="button" className={SECONDARY} onClick={() => done(props.landing)}>
               {t("guide.notify.justRead")}
             </BusyButton>
           </>
         ) : (
-          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(`/${owner}`)}>
+          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(props.landing)}>
             {t("guide.notify.open")}
           </BusyButton>
         )

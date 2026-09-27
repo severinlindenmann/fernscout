@@ -47,6 +47,7 @@ const base: GuideProps = {
   kind: "reader",
   trip: null,
   hasGuestTrip: true,
+  landing: "/ana/trips/iceland",
   signedIn: true,
   onboarded: false,
   joined: false,
@@ -65,6 +66,9 @@ const base: GuideProps = {
   },
   caps: { mail: true, sms: true, whatsapp: false, postcards: true },
   dictionary: dict,
+  locale: "en",
+  locales: ["en"],
+  addressLookupEnabled: false,
 };
 
 describe("the reader's guide", () => {
@@ -135,6 +139,30 @@ describe("the reader's guide", () => {
     press(dict["guide.welcome.go"]);
     expect(container!.textContent).toContain(dict["guide.what.readerLimits"]);
   });
+
+  test("B2452 — the address step offers a country combobox, and the street field only suggests with addressLookup on", () => {
+    mount(<WelcomeGuide {...base} addressLookupEnabled />);
+    press(dict["guide.welcome.go"]);
+    expect(heading()).toBe(dict["guide.what.readerTitle"]);
+    press(dict["guide.what.go"]);
+    press(dict["guide.check.next"]);
+    expect(heading()).toBe(dict["guide.address.title"]);
+    const country = container!.querySelector('[aria-label="Country"]');
+    expect(country?.getAttribute("role")).toBe("combobox");
+    const street = container!.querySelector("#guide-address-line1");
+    expect(street?.getAttribute("role")).toBe("combobox");
+  });
+
+  test("B2452 — with addressLookup off, the street field is a plain input, not broken", () => {
+    mount(<WelcomeGuide {...base} addressLookupEnabled={false} />);
+    press(dict["guide.welcome.go"]);
+    press(dict["guide.what.go"]);
+    press(dict["guide.check.next"]);
+    const street = container!.querySelector("#guide-address-line1");
+    expect(street?.getAttribute("role")).toBeNull();
+    // The country picker still runs unconditionally, same as on /me.
+    expect(container!.querySelector('[aria-label="Country"]')?.getAttribute("role")).toBe("combobox");
+  });
 });
 
 describe("the join flow", () => {
@@ -151,6 +179,8 @@ describe("the join flow", () => {
         caps={{ mail: true, sms: true, whatsapp: false, postcards: true }}
         dictionary={dict}
         locale="en"
+        locales={["en"]}
+        addressLookupEnabled={false}
       />,
     );
     expect(heading()).toBe(dict["join.who.title"]);
@@ -169,6 +199,54 @@ describe("the join flow", () => {
     expect(tabs).toEqual([dict["join.reach.email"], dict["join.reach.mobile"]]);
   });
 
+  test("B2455 — the code screen draws a phone for SMS, an envelope for email", async () => {
+    const fetchMock = vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({ to: "+41791234567" }),
+    } as Response);
+    mount(
+      <JoinFlow
+        code="2345678923"
+        owner="ana"
+        title="Two Backpacks"
+        ownerName="Ana"
+        kind="guest"
+        tripTitle={null}
+        knownEmail={null}
+        caps={{ mail: true, sms: true, whatsapp: false, postcards: false }}
+        dictionary={dict}
+        locale="en"
+        locales={["en"]}
+        addressLookupEnabled={false}
+      />,
+    );
+    press(dict["join.who.go"]);
+    const nameInput = container!.querySelector("input")!;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    act(() => {
+      setter.call(nameInput, "Anna");
+      nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    press(dict["join.who.go"]);
+    // Mobile tab: sending a code shows the phone drawing, not the envelope.
+    press(dict["join.reach.mobile"]);
+    const mobileInput = container!.querySelector("input")!;
+    act(() => {
+      setter.call(mobileInput, "+41791234567");
+      mobileInput.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const sendButton = Array.from(container!.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === dict["join.reach.send"],
+    )!;
+    await act(async () => {
+      sendButton.click();
+      await Promise.resolve();
+    });
+    expect(container!.querySelector('[data-testid="code-art-phone"]')).not.toBeNull();
+    expect(container!.querySelector('[data-testid="code-art-envelope"]')).toBeNull();
+    fetchMock.mockRestore();
+  });
+
   test("with SMS off there is no mobile tab", () => {
     mount(
       <JoinFlow
@@ -182,10 +260,22 @@ describe("the join flow", () => {
         caps={{ mail: true, sms: false, whatsapp: false, postcards: false }}
         dictionary={dict}
         locale="en"
+        locales={["en"]}
+        addressLookupEnabled={false}
       />,
     );
     // Signed in already: no email or code screen to reach at all.
     expect(container!.textContent).toContain(fill("join.who.signedIn", { email: "an•••@example.test" }));
     expect(container!.querySelector('[role="tab"]')).toBeNull();
+  });
+});
+
+describe("the guide never sends a guest to the bare journal address (B2458)", () => {
+  test("every exit goes to the page's landing, not /<owner>", async () => {
+    const fs = await import("node:fs");
+    const src = fs.readFileSync("app/w/[code]/WelcomeGuide.tsx", "utf8");
+    expect(src).not.toMatch(/`\/\$\{owner\}`/);
+    const page = fs.readFileSync("app/w/[code]/page.tsx", "utf8");
+    expect(page).toMatch(/redirect\(landing\)/);
   });
 });
