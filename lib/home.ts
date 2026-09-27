@@ -140,7 +140,10 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
       );
     }
 
-    const trips = await tripsVisibleTo(username, { email, owner, guest });
+    // The detail `/` draws (B2508) only for a journal that is really theirs:
+    // the operator's rows show a title and a count, so somebody else's draft
+    // titles and photographs are not shipped to them for nothing.
+    const trips = await tripsVisibleTo(username, { email, owner, guest }, { detail: !admin });
 
     // The journal-level reason, strongest first. `traveller` is read off the
     // trips rather than asked separately: being on a trip *is* what makes

@@ -56,17 +56,18 @@ describe("the root page's way in", () => {
   });
 
   /**
-   * B427: it is a card above the fold addressed to the reader, not a word in
-   * the corner beside the language switcher. The person it is for does not
-   * know they are looking for "sign in" — they know somebody shared a journal
-   * with them — so the heading has to say that back to them.
+   * B427: addressed to the reader, not a word in the corner beside the
+   * language switcher. The person it is for does not know they are looking
+   * for "sign in" — they know somebody shared a journal with them — so the
+   * strip says that back to them. B2506 slimmed the card to a strip across
+   * the very top; it still comes before the pitch.
    */
   test("names the reader before it names the action", () => {
     const html = render(landing);
-    expect(html).toContain("Has someone shared a travel journal with you?");
+    expect(html).toContain("Someone shared a journal with you?");
     // Above the hero, which is the pitch for the other audience entirely.
-    expect(html.indexOf("Has someone shared")).toBeLessThan(
-      html.indexOf("A travel journal you can write yourself — or hand to an agent."),
+    expect(html.indexOf("Someone shared a journal")).toBeLessThan(
+      html.indexOf("Your trip, told to the people at home."),
     );
   });
 
@@ -81,7 +82,8 @@ describe("the root page's way in", () => {
 
   test("still leads with the pitch, which is what a stranger came for", () => {
     const html = render(landing);
-    expect(html).toContain("A travel journal you can write yourself — or hand to an agent.");
+    expect(html).toContain("Your trip, told to the people at home.");
+    // Helper off (the default): the agent instruction is still the way in.
     expect(html).toContain("Hand this to your agent");
   });
 });

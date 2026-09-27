@@ -21,6 +21,7 @@ import PlannedLine from "./map/PlannedLine";
 import LegChip from "./map/LegChip";
 import MapControls from "./map/MapControls";
 import StopScopeSwitch, { type StopScope } from "./map/StopScopeSwitch";
+import TimeScrubber from "./map/TimeScrubber";
 import type { Basemap } from "@/lib/basemap";
 import type { PlaceEntry, PlannedStop, TransportMode, TripAccent } from "@/lib/types";
 
@@ -690,6 +691,25 @@ export default function WorldMap({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Proportional to dates, not to stop order — a five-month trip and a
+          five-day one both read correctly (docs/plans/map-redesign.md §1
+          "Time", Phase 2 item 3). Defaults to the most recent stop when
+          nothing is selected yet, the same "here now" instinct `hereNow`
+          draws on the map itself. Reuses `selectPlace`/`focusOnStop` rather
+          than holding a second notion of what is selected. */}
+      {plottable.length > 0 && (
+        <TimeScrubber
+          stops={plottable.map((p) => ({ key: p.key, date: p.firstDate, location: p.location }))}
+          selectedIndex={selected ? (orderByKey.get(selected.key) ?? 1) - 1 : plottable.length - 1}
+          live={live}
+          onSelect={(i) => {
+            const place = plottable[i];
+            selectPlace(place);
+            if (scope === "stop") focusOnStop(place);
+          }}
+        />
+      )}
     </div>
   );
 }

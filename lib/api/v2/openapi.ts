@@ -513,13 +513,35 @@ const homeDevice = z.strictObject({
   userAgent: z.string().nullable(),
   current: z.boolean(),
 });
+// B2508: the trip row was an open record; `/` now draws from it, so every
+// field it carries is named. Each is read at this address's own level, and the
+// optional ones are absent rather than guessed when there is nothing to show.
+const homeDay = z.strictObject({ slug: z.string(), title: z.string(), date: z.string(), href: z.string() });
+const homeTrip = z.strictObject({
+  id: z.string(),
+  title: z.string(),
+  href: z.string(),
+  status: z.enum(["past", "current", "upcoming"]),
+  end: z.string(),
+  through: z.enum(["public", "owner", "traveller", "guest"]),
+  partial: z.literal(true).optional().describe("some of this trip's days are held back from this address"),
+  start: z.string().optional(),
+  cover: z.string().optional().describe("the chosen cover, else the newest photograph this address may see"),
+  days: z.number().int().nonnegative().optional().describe("distinct dates written about that this address may read"),
+  latest: homeDay
+    .extend({ image: z.string().optional(), excerpt: z.string().optional() })
+    .optional()
+    .describe("the newest day this address may read"),
+  draft: homeDay.optional().describe("the owner's newest unpublished day; only when `through` is `owner`"),
+  test: z.literal(true).optional().describe("a `test: true` trip — content nobody lived"),
+});
 const homeJournal = z.strictObject({
   username: z.string(),
   title: z.string(),
   tagline: z.string(),
   href: z.string(),
   role: z.enum(["admin", "owner", "traveller", "guest"]),
-  trips: z.array(z.record(z.string(), z.unknown())),
+  trips: z.array(homeTrip).describe("no start/cover/days/latest/draft on an `admin` journal"),
 });
 const homeDoc = z.strictObject({
   id: z.string().nullable(),

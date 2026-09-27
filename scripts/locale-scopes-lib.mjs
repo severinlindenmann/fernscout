@@ -75,6 +75,9 @@ export const SCOPES = {
   // vocabulary; nowhere else under the root needs it.
   admin: { layout: "app/admin/layout.tsx" },
   welcome: { layout: "app/welcome/layout.tsx" },
+  // `/invite` — a stranger asking to be let in, under its own provider so
+  // the root layout does not carry its strings everywhere else (B2507).
+  invite: { layout: "app/invite/layout.tsx" },
   // `/me` — the person across every journal: roles, devices, sign-out.
   account: { layout: "app/me/layout.tsx" },
   // A reader's journal: the story, trips, the gallery, the map.
