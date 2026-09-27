@@ -173,7 +173,7 @@ export const ERROR_CODES = {
 
   contact_exists: "This address is already a contact of this journal — or it is blocked, and re-adding it that way is refused. GET the contacts list to see the existing row.",
   not_confirmed: "This address has not proved it can be read yet, so approving it would let somebody in nobody has confirmed. It has to redeem its own invite or ask itself first.",
-  self_authored: "This row was written by its own address, through the traveller self-registration door, and the owner cannot rewrite it — only revoke or delete it.",
+  self_authored: "This row was written by its own address, through the reader self-registration door, and the owner cannot rewrite it — only revoke or delete it.",
   capability_unavailable: "This server does not offer that capability, so a journal cannot switch it on. /api/health says what is missing; switching it off is always allowed.",
 
   // ── v2 only ─────────────────────────────────────────────────────────────

@@ -136,13 +136,14 @@ function newAccount(): string {
       '{"email": "them@example.com", "for": "signup"}\n```',
     "`for` is one of `signup` (a new journal), `write` (an agent token on a journal that " +
       "exists — send `user` too), `read` (a guest cookie, browser-only) or `identity` (proves " +
-      "an address, authorises nothing). The answer is always `202 {\"status\": \"accepted\"}` " +
-      "whatever the address — a mail either lands or it does not, and the response cannot say " +
-      "which without letting a caller enumerate addresses. One exception, and it is about the " +
-      "instance rather than the address: an invite-only instance answers `403 " +
-      "signup_not_invited` to `for: \"signup\"` from an address its operator has not named, " +
-      "because leaving somebody waiting for a mail that is never coming is worse than saying " +
-      "so.",
+      "an address, authorises nothing). The answer is `202 {\"status\": \"accepted\"}` " +
+      "for almost every address — a mail either lands or it does not, and the response cannot say " +
+      "which without letting a caller enumerate addresses. Two exceptions actually answer " +
+      "differently: an invite-only instance answers `403 signup_not_invited` to `for: " +
+      "\"signup\"` from an address its operator has not named, and `for: \"write\"` to an " +
+      "address that neither owns the journal nor is named on any of its trips answers `403 " +
+      "not_authorised` — naming a `scope: {\"trip\": \"<trip-id>\"}` the address actually " +
+      "belongs to is the fix, not a retry.",
     "```http\nPOST /api/auth/codes/redeem\nContent-Type: application/json\n\n" +
       '{"email": "them@example.com", "code": "123456", "for": "signup"}\n```',
     "`for: \"write\"`/`\"signup\"` answer with the token itself, in the body — never a cookie, " +
@@ -163,12 +164,17 @@ function newAccount(): string {
         baseCurrency: "**permanent** — every cost in the journal is added up in it",
       }) +
       "\n```",
+    "**A `400 phone_required` here means the signup token has no proven phone number yet.** " +
+      "This server also asks for one before it will create a journal — `message` names the " +
+      "mode (`sms` or `whatsapp-inbound`). Prove it with `POST /api/auth/signup/phone` (the " +
+      "signup token, and the number) and `POST /api/auth/signup/phone/redeem` (the code), then " +
+      "retry this same call.",
     "The reply carries the journal's own agent token — no second code — plus a one-time " +
       "sign-in link for the person, never for you.",
-    "## If you were handed a key instead",
-    "An owner can copy a handover credential out of their own journal's access page: twenty " +
-      "minutes, single use, spent for a seven-day token of your own.",
-    "```http\nPOST /api/auth/{user}/handover   (owner's cookie, mints the credential)\n" +
+    "## If you were handed a handover code instead",
+    "An owner can copy one out of their own journal's access page: twenty minutes, single use, " +
+      "spent for a seven-day token of your own.",
+    "```http\nPOST /api/auth/{user}/handover   (owner's cookie, mints the code)\n" +
       "POST /api/auth/handover                (you spend it)\nAuthorization: Bearer fs_handover_…\n```",
     "## First, get your bearings",
     "Before anything else, two free reads:",
@@ -205,8 +211,11 @@ function addJournal(): string {
         declined: "which of `tagline`/`figures` were consciously left out, and why (10+ characters)",
       }) +
       "\n```",
-    "**`owner.email` is refused on every write.** It is the address that decides who can get a " +
-      "token for this journal, so a token cannot move it.",
+    "**`owner.email` never moves on the spot.** It is the address that decides who can get a " +
+      "token for this journal, so sending a changed one here does not write it: the answer is " +
+      "`202`, a code goes to the *new* address, and only `POST /api/v2/{user}/owner/email/redeem`" +
+      " with that code actually moves it. Nothing else in this PATCH takes effect until that " +
+      "happens — send the rest of the change again afterwards if it did not also go through.",
     "**A journal's `features` are not a field here at all.** Whether mail, auth, contacts, " +
       "postcards and so on are configured is the operator's own fact, read from " +
       "`GET /api/v2/status`'s `capabilities` block — a journal cannot switch one on or off, " +
@@ -238,7 +247,7 @@ function addATrip(): string {
         rates: '`{currencies: ["JPY"], manual?: {"JPY": 148.2}}` — manual rates are units per 1 EUR — or decline it',
         costs: "a budget and preparation spend, or decline it (see /skill/costs.md)",
         plan: "an upcoming trip's intended route, or decline it",
-        days: "a trip's days — leave empty and write each day through its own door instead",
+        days: "a trip's days, or decline it — a fresh trip sends an empty list and writes each day through its own door instead",
         translations: "the trip's title/tagline/intro in the journal's other languages, or decline it",
         accent: "the trip's colour, or decline it",
         figures: 'how the party is drawn: `{"mode":"off"}`, `{"mode":"journal"}` or `{"mode":"custom","figures":[ids]}`, or decline it',
@@ -301,6 +310,13 @@ function addATrip(): string {
       "a previously declined section clears the decline\nDELETE /api/v2/{user}/trips/{trip}       " +
       "— owner only. Answers 202 and deletes nothing: a mail goes to the owner, and only its " +
       "button deletes\n```",
+    "**A PATCH does not ask anything new, but the merged document is re-validated in full** — " +
+      "the same asked-or-declined check a create runs, against the trip as it stands after your " +
+      "patch is laid over it. A section already answered or declined stays satisfied without " +
+      "you resending it; `cover` is the one exception, since it only becomes a real question " +
+      "once the trip holds media — a first photograph landing on the trip does not retroactively " +
+      "refuse an old PATCH, but a later one that would leave the trip without an answer for it " +
+      "does.",
     "`PATCH` refuses `days` outright — a day changes through its own route " +
       "(`/skill/add-a-day.md`), never as a side effect of shortening a list here. Concurrent " +
       "edits use `If-Match: <etag>` from the last `GET`; a stale or missing one on a create " +
@@ -319,7 +335,7 @@ function addATrip(): string {
       "a trip:",
     "```http\nGET  /api/v2/{user}/figures/presets           — the whole vocabulary, and starting points\n" +
       "GET  /api/v2/{user}/figures/preview?figure={…}  — draw one figure as an SVG before it is written\n" +
-      "PUT  /api/v2/{user}/figures/{id}                — create or replace a figure at a client-chosen id\n```",
+      "PUT  /api/v2/{user}/figures/{id}                — create at a client-chosen id, or replace with `If-Match: <etag>` from the last GET\n```",
     "Ask how somebody wants to be drawn — never infer it from a name, a country or a " +
       "photograph — and show them the preview before it is written. A trip then names which " +
       "figures walk it (`figures.mode`); it never repeats their description.",
@@ -359,13 +375,19 @@ function addADay(): string {
       "failure, and nothing on this server comes back for it — send `weather: true` again " +
       "later and it asks the archive again. A reading already on the day is never overwritten " +
       "by asking. " +
-      "`weatherData` is a reading somebody actually took: it must name a `source` and a " +
-      "`recordedAt`, and `open-meteo` is refused as a source because that name means the " +
-      "server looked it up.",
+      "The other route is the same `weather` field carrying an object instead of `true` — a " +
+      "reading somebody actually took, naming a `source` and a `recordedAt`; `open-meteo` is " +
+      "refused as that source because that name means the server looked it up.",
     "**It always arrives as a draft.** `status` accepts only `\"draft\"` — publishing is a " +
       "separate call, below, and it is never a side effect of writing or correcting a day.",
-    "```json\n{\"title\": \"Lanterns of Hoi An\", \"date\": \"2026-08-26\", \"lat\": ..., " +
-      "\"content\": \"…\", \"declined\": {\"costs\": \"cash, nobody kept the receipts\"}}\n```",
+    "```json\n{\"title\": \"Lanterns of Hoi An\", \"date\": \"2026-08-26\", \"content\": \"…\", " +
+      "\"status\": \"draft\", \"coordinates\": {\"lat\": 16.0471, \"lng\": 108.245}, " +
+      "\"location\": \"Hoi An Ancient Town\", \"country\": \"Vietnam\", \"time\": \"19:30\", " +
+      "\"timezone\": \"Asia/Ho_Chi_Minh\", \"transportMode\": \"walk\", \"tags\": [\"lanterns\"], " +
+      "\"weather\": true, \"declined\": {\"media\": \"no photographs uploaded for this day yet\", " +
+      "\"costs\": \"cash, nobody kept the receipts\", \"countryCode\": \"left for the server to " +
+      "place\", \"translations\": \"single-language journal\", \"visibility\": \"shown to " +
+      "everyone the trip lets in\"}}\n```",
     "## Correcting a day",
     "```http\nPATCH " + path + "\n```",
     "A merge-patch: send only what changed. Nothing is required — attaching one photograph " +
@@ -391,7 +413,7 @@ function addADay(): string {
       "hand over a `PUT /api/v2/{user}/purchases/{id}` link rather than retrying. A " +
       "`409 stale_document` means the day changed while the publish was checked; nothing was " +
       "published or sent — read it again and ask before publishing what is there now.",
-    "`POST " + path + "/unpublish` takes it back off the site — reversible, nothing deleted. " +
+    "`POST " + path + "/unpublish` takes the day down — reversible, nothing deleted. " +
       "`POST " + path + "/send` sends (or resends) a published day on named `channels` " +
       "(`[\"mail\"]`, `[\"whatsapp\"]`, or both) — never idempotent, so ask again in words " +
       "before calling it twice.",
@@ -413,7 +435,7 @@ function ingestPhotos(): string {
   return doc("ingest-photos", [
     "## One door for every kind of bytes",
     "```http\nPOST " + path + "\nContent-Type: multipart/form-data\nAuthorization: Bearer fs_agent_…\n\n" +
-      "file=@DSC_4471.HEIC\nintent={\"kind\": \"photo\", \"trip\": \"japan-2027\", \"day\": \"lanterns-of-hoi-an\", \"caption\": \"…\"}\n```",
+      "file=@DSC_4471.HEIC\nintent={\"kind\": \"photo\", \"trip\": \"japan-2027\", \"day\": \"2026-08-26-lanterns-of-hoi-an\", \"caption\": \"…\"}\n```",
     "One photograph (or clip, or document, or export) per call. `intent.kind` is one of " +
       `\`${["photo", "bank_export", "gps_history", "document"].join("`, `")}\`, and it decides ` +
       "which questions the intent is asked — a bank statement has no caption, a photograph is " +
@@ -438,8 +460,12 @@ function ingestPhotos(): string {
     "Or hand over URLs instead of bytes: `{\"intent\": {...}, \"url\": \"https://…\"}` — https " +
       "and public hosts only; anything resolving to a private, loopback or link-local address " +
       "is refused, including after a redirect.",
-    "**Nothing here reads a photograph's EXIF.** A picture carrying GPS and a timestamp adds no " +
-      "`lat`, `lng` or `time` to the day — send those yourself through the day's own `PUT`/`PATCH`.",
+    "**This door reads a photograph's own EXIF, but only onto itself.** `GET " + path + "` answers " +
+      "a photograph carrying GPS and a timestamp with its own `takenAt`, `lat` and `lon`, each " +
+      "marked `measuredFrom: \"exif\"` so it reads as measured rather than told. None of that " +
+      "reaches the day: a day's own `coordinates` and `time` are separate fields, never filled " +
+      "in from a photograph's metadata — send those yourself through the day's `PUT`/`PATCH` if " +
+      "the day itself should carry them.",
     "**`intent.caption` is what you say at this door, and only lasts until a day names the " +
       "photograph.** Once a day's own `media[].caption` exists for it (set here at upload, or " +
       "later through the day's `PUT`/`PATCH`), `GET " + path + "` answers with that — this door's " +
@@ -492,8 +518,11 @@ function costs(): string {
       "on this trip\"}` — and a trip that says nothing about either is refused with " +
       "`422 incomplete`.",
     "## What the trip actually cost, from a bank statement",
-    "```http\nPOST /api/v2/{user}/media\n{\"intent\": {\"kind\": \"bank_export\", \"trip\": \"japan-2027\"}, …}\n" +
+    "```http\nPOST /api/v2/{user}/media\n{\"intent\": {\"kind\": \"bank_export\", \"trip\": \"japan-2027\", " +
+      "\"declined\": {\"format\": \"let the server detect it\"}}, …}\n" +
       "GET  /api/v2/{user}/statements/{src}\n```",
+    "`intent.format` is asked or declined like everything else at this door (see /skill/ingest-photos.md) " +
+      "— name which importer reads the export, or decline it and let the server try to detect one.",
     "Staging a statement through the media door answers with its `src`; " +
       "`GET .../statements/{src}` reads it as a report — merchants, payments and the rate each " +
       "foreign currency actually cost, taken from the money the bank moved. **It writes " +
@@ -503,7 +532,8 @@ function costs(): string {
       "{\"rows\": [{\"date\": \"2026-06-22\", \"label\": \"Padaria Central\", \"amount\": 11.65, " +
       "\"currency\": \"CHF\", \"category\": \"food\"}]}\n```",
     "Writes the agreed rows onto the days they belong to. A date whose day nobody has written " +
-      "yet is refused rather than silently attached to a neighbour.",
+      "yet is never silently attached to a neighbour: its rows are filed onto the trip's own " +
+      "`costs.items` instead, and the answer names how many dates that happened for.",
     `The same bounds hold here: a \`label\` longer than ${COST_LABEL_MAX_CHARS} characters is cut ` +
       `to that length, and rows that would put more than ${COST_LINES_MAX} cost lines on one day ` +
       "(or on the trip's own `items`) are refused with `400 invalid_costs`. Nothing is written, " +
@@ -544,16 +574,19 @@ function sendPostcards(): string {
 
 function makeAPhotobook(): string {
   return doc("make-a-photobook", [
-    "## There is nothing here for you to propose",
-    "Choosing the book, pricing it, paying for it and sending it to the printer is one page " +
-      "and one press — owner-only, in the browser, outside `/api/v2` entirely. Point the owner " +
-      "at their own trip's photobook page rather than looking for a build or a propose call, " +
-      "because there is not one.",
-    "Once a book has been ordered, this is the one thing you can do:",
+    "## Arranging a book, not ordering one",
+    "```http\nPUT /api/v2/{user}/photobooks/drafts/{trip}\nContent-Type: application/json\nAuthorization: Bearer fs_agent_…\n```",
+    "Writes the trip's own draft arrangement — size, cover, which photographs, per-day layout " +
+      "and the rest of a photobook's own options — the same row the owner's browser reads and " +
+      "writes from their trip's own page. **This charges nothing, builds nothing and prints " +
+      "nothing.** Choosing the book, paying for it and sending it to the printer stays one page " +
+      "and one press, owner-only, outside `/api/v2` entirely — there is deliberately no call " +
+      "here that does any of those three. `GET` at the same address reads the draft back.",
+    "Once a book has actually been ordered, this is the one thing you can do:",
     "```http\nGET /api/v2/{user}/photobooks/orders/{id}\nAuthorization: Bearer fs_agent_…\n```",
     "Reads its size, cover, cost, and — once it has gone to the printer — who it went to, by " +
       "`contactId` and never a street address. Say what this call reports; do not say a book " +
-      "has been printed or is on its way because you asked for one, only when this call says so.",
+      "has been printed or is on its way because you arranged one, only when this call says so.",
   ]);
 }
 
