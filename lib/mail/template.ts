@@ -84,8 +84,19 @@ export type MailContent = {
    * what puts a `List-Unsubscribe` header on the message: the two travel
    * together, since a mail with a visible stop line the header disagrees
    * with is the one-click compliance gap the header exists to close.
+   *
+   * `href` is the visible footer link — a page a person reads before doing
+   * anything. `unsubscribeHref` (security review M2), when different, is
+   * what the `List-Unsubscribe` header and its One-Click POST actually hit;
+   * it defaults to `href` when absent. The two differ for `invite.mail`:
+   * its footer points at `/x/<token>` (`app/x/[token]/page.tsx`, GET only —
+   * a page describing what pressing the button does), and only
+   * `/x/<token>/confirm` (its own segment; Next refuses a route and a page
+   * sharing one) answers the POST a mail client's own one-click button
+   * sends. Pointing `List-Unsubscribe` at the page meant that POST landed on
+   * a route with no handler for it and suppressed nothing.
    */
-  manage?: { text: string; href: string };
+  manage?: { text: string; href: string; unsubscribeHref?: string };
   /** Backing bytes for every `{ kind: "image" }` block above — see
    * `lib/mail/types.ts`. Absent for every letter but the day-published one. */
   attachments?: MailAttachment[];
@@ -309,8 +320,9 @@ export function renderMail(
   if (manage) {
     // One-click unsubscribe. Required for bulk mail to stay out of spam, and
     // it is the honest thing to offer anyway — never for code mail (gated
-    // above, with `manage`).
-    headers["List-Unsubscribe"] = `<${manage.href}>`;
+    // above, with `manage`). The POST target (M2): `unsubscribeHref` when
+    // the caller named one, since a page-only footer link cannot answer it.
+    headers["List-Unsubscribe"] = `<${manage.unsubscribeHref ?? manage.href}>`;
     headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
   }
 

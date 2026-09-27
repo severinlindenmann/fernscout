@@ -22,8 +22,10 @@ export type InviteMailInput = {
   buttonUrl: string;
   why: string;
   /** The never-invite suppression link (B2442) — this family's manage
-   * line, and the address `List-Unsubscribe` on this mail points at. */
-  manage?: { text: string; href: string };
+   * line. `href` is the page; `unsubscribeHref` (M2), the confirm route a
+   * mail client's own One-Click POST actually needs, is what
+   * `List-Unsubscribe` points at. */
+  manage?: { text: string; href: string; unsubscribeHref?: string };
   username?: string;
 };
 

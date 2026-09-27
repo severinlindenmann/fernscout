@@ -390,6 +390,21 @@ describe("the message format", () => {
     const mail = renderMail("r@example.test", "S", { ...SAMPLE, manage: undefined });
     expect(mail.headers?.["List-Unsubscribe"]).toBeUndefined();
   });
+
+  // Security review M2 — invite.mail's manage link is a page
+  // (`app/x/[token]/page.tsx`, GET only); List-Unsubscribe must not point a
+  // mail client's own one-click POST at a route that cannot answer it.
+  test("List-Unsubscribe uses a separate unsubscribeHref when the visible link is a page, not a POST target", () => {
+    const mail = renderMail("r@example.test", "S", {
+      ...SAMPLE,
+      manage: { text: "Never invite this address", href: "https://x.test/x/tok", unsubscribeHref: "https://x.test/x/tok/confirm" },
+    });
+    expect(mail.headers?.["List-Unsubscribe"]).toBe("<https://x.test/x/tok/confirm>");
+    // The footer link stays the readable page — a scanner following the
+    // header must not itself land on a page describing the button.
+    expect(mail.html).toContain("https://x.test/x/tok\"");
+    expect(mail.html).not.toContain("https://x.test/x/tok/confirm");
+  });
 });
 
 describe("the text alternative", () => {

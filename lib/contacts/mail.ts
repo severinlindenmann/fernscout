@@ -29,6 +29,14 @@ function neverInviteUrl(base: string, addressOrNumber: string): string {
   return `${base.replace(/\/$/, "")}/x/${neverInviteToken(addressOrNumber)}`;
 }
 
+/** The page's own POST route — its own segment, since Next refuses a
+ * `route.ts` and a `page.tsx` sharing one (`app/x/[token]/confirm/route.ts`).
+ * `List-Unsubscribe`'s actual target (M2): the page above answers no POST at
+ * all, so a mail client's own one-click button needs this address instead. */
+function neverInviteConfirmUrl(base: string, addressOrNumber: string): string {
+  return `${neverInviteUrl(base, addressOrNumber)}/confirm`;
+}
+
 /**
  * The one gate every contact-addressed send must pass through — B334.
  *
@@ -253,6 +261,7 @@ export async function sendInviteMail(
         manage: {
           text: translateIn(input.locale, "contact.neverInvite"),
           href: neverInviteUrl(baseUrl(), input.email),
+          unsubscribeHref: neverInviteConfirmUrl(baseUrl(), input.email),
         },
         username,
       }),
@@ -306,6 +315,7 @@ export async function sendWelcomeMail(
         manage: {
           text: translateIn(message.locale, "contact.neverInvite"),
           href: neverInviteUrl(baseUrl(), contact.email),
+          unsubscribeHref: neverInviteConfirmUrl(baseUrl(), contact.email),
         },
         username,
       }),
