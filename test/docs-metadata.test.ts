@@ -54,3 +54,21 @@ describe("metadata follows the language of the page", () => {
     );
   });
 });
+
+/** B2479 — every docs page has a canonical, a description and a title. */
+describe("docs pages describe themselves", () => {
+  test("docsMetadata gives each page its own canonical and a description", async () => {
+    const { DOCS_PAGES, docsMetadata } = await import("@/lib/docs");
+    for (const id of ["hub" as const, ...DOCS_PAGES.map((p) => p.id)]) {
+      const meta = docsMetadata(id);
+      const href = id === "hub" ? "/docs" : DOCS_PAGES.find((p) => p.id === id)!.href;
+      expect(meta.alternates?.canonical, id).toBe(href);
+      expect(String(meta.description ?? ""), id).not.toBe("");
+      expect(String(meta.title ?? ""), id).not.toBe("");
+    }
+  });
+
+  test.each([...TRANSLATED_PAGES, ...ENGLISH_PAGES, "app/docs/helper/page.tsx"])("%s uses docsMetadata", (file) => {
+    expect(read(file)).toContain("docsMetadata(");
+  });
+});

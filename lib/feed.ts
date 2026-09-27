@@ -16,7 +16,7 @@ import { titleWithLocation } from "./i18n";
  * The highest-risk surface in this package: a feed is the easiest place to
  * leak content the HTML pages correctly hide, because it is built by walking
  * every trip rather than rendering the one page a visitor asked for. The
- * discipline is the same as `app/sitemap.ts` — filter with `isIndexable`,
+ * discipline is the same as `lib/sitemap.ts` — filter with `isIndexable`,
  * which is exactly `trip.visibility === "public"` (see lib/access.ts) — so
  * this file and the sitemap cannot silently drift apart on what "public"
  * means. `unlisted` is deliberately excluded too: it promises "reachable by

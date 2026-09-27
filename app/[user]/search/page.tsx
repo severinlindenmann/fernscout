@@ -15,7 +15,10 @@ import { getUser } from "@/lib/users";
  * The sharing card follows the *journal*, because the people who see one are
  * not this reader and their language is not knowable from this request.
  */
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<"/[user]/search">): Promise<Metadata> {
+  const { user } = await params;
   const reader = await requestLocale();
   const journal = localeForPath((await headers()).get(PATH_HEADER));
   const description = translateIn(journal, "search.subtitle");
@@ -23,9 +26,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: translateIn(reader, "search.title"),
     description,
-    alternates: { canonical: "/search" },
+    alternates: { canonical: `/${user}/search` },
     robots: { index: false, follow: true },
-    openGraph: { type: "website", title: shared, description, url: "/search" },
+    openGraph: { type: "website", title: shared, description, url: `/${user}/search` },
     twitter: { card: "summary", title: shared, description },
   };
 }

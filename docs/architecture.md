@@ -125,8 +125,9 @@ browser and caused a hydration mismatch.
 
 *Trade-off:* the locale is a cookie plus an optional `?lang=` (set in
 `proxy.ts`), not a path segment, so all five languages share one set of URLs.
-`app/sitemap.ts` emits `hreflang` so a crawler still learns they are
-translations rather than duplicates.
+Because a `?lang=` page canonicalises to the bare URL, the sitemap
+(`lib/sitemap.ts`) lists no language alternates for journals; they arrive
+with language paths of their own (B2473).
 
 ## Reading model: paged, not scrolled
 

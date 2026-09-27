@@ -56,6 +56,7 @@ export default function TripStory({
   photobook,
   travellerNames,
   dayTrack,
+  madeWith,
 }: {
   /** Every day of the trip, cheaply. */
   index: DaySummary[];
@@ -93,6 +94,9 @@ export default function TripStory({
    * what it draws.
    */
   dayTrack?: [number, number][][];
+  /** The instance's name for the "Made with" line — `madeWithFor` in
+   *  lib/site.ts; absent on a page that is not public (B2485). */
+  madeWith?: string;
 }) {
   const { t, formatLongDate, localizedTrip, locale } = useI18n();
   // TripStory is always rendered inside TripProvider (both the current-trip
@@ -389,6 +393,23 @@ export default function TripStory({
         ? `→ ${index[step.dayIndex].location}`
         : `${t("day.label")} ${step.dayIndex + 1} ${t("day.of")} ${index.length}`;
 
+  /** The permalink a step lives at — the same address the effect above
+   * writes into the bar when the step is reached. B2477. */
+  const dayHref = (day: DaySummary) => (trip ? trip.href(`/day/${day.slug}`) : hashForDay(day));
+  /** Where Back or Continue lands, as a page: the nearest day (or the
+   *  overview) that way. A travel leg has no address of its own — it shows
+   *  the day it arrives at — so it is stepped over; otherwise Back from a day
+   *  would link to the page it is on. */
+  const pagerHref = (delta: -1 | 1) => {
+    for (let i = stepIndex + delta; i >= 0 && i < steps.length; i += delta) {
+      const s = steps[i];
+      if (s.kind === "travel") continue;
+      if (s.kind === "hero") return trip ? trip.href("/") : undefined;
+      return dayHref(index[s.dayIndex]);
+    }
+    return undefined;
+  };
+
   const nav: PagerNavState = {
     stepIndex,
     stepCount: steps.length,
@@ -398,6 +419,8 @@ export default function TripStory({
     tripOver: over,
     onBack: () => goStep(-1),
     onNext: () => goStep(1),
+    backHref: pagerHref(-1),
+    nextHref: pagerHref(1),
   };
 
   const stepDay = useCallback(
@@ -536,21 +559,19 @@ export default function TripStory({
             <LayoutDashboard className="h-4 w-4" />
             {t("nav.overview")}
           </button>
-          <GamePath days={index} currentIndex={activeIndex} onSelect={jumpToDay} />
+          <GamePath days={index} currentIndex={activeIndex} onSelect={jumpToDay} hrefFor={dayHref} />
         </aside>
 
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 py-4">
           {/*
             The document's h1. On the overview it is the hero's own visible
-            heading; on every other step the hero is not rendered at all, so a
-            reader arriving at /day/<slug> from an email got a page with no h1
-            and a heading outline that started at h2. This supplies one, and
-            deliberately supplies the *trip* rather than the day: it does not
-            change as the reader pages, and a heading that mutates under a
-            screen reader is worse than a heading that is merely general. The
-            day's own title stays the h2 beneath it.
+            heading, and on a day it is the day's own title — B2479: the day
+            is the page's subject and its <title>, so it is the h1 too
+            (DayCard's `titleIsPageHeading`). A travel leg has neither, so it
+            gets the trip's name, visually hidden, as it always did — a
+            reader arriving from an email must never get a page with no h1.
           */}
-          {!onOverview && trip && (
+          {step?.kind === "travel" && trip && (
             <h1 className="sr-only">{localizedTrip(trip.trip).title}</h1>
           )}
           <StoryPager
@@ -627,6 +648,18 @@ export default function TripStory({
         </main>
       </div>
 
+      {/* B2485 — the way from somebody's shared trip to what made it. */}
+      {madeWith && (
+        <footer className="mx-auto w-full max-w-5xl px-4 pt-6 text-center text-xs text-ink-secondary sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="inline-flex min-h-11 items-center underline decoration-line-quiet underline-offset-2 hover:text-ink-strong"
+          >
+            {t("story.madeWith", { name: madeWith })}
+          </Link>
+        </footer>
+      )}
+
       <MobileDaySheet
         days={index}
         currentIndex={activeIndex}
@@ -636,7 +669,8 @@ export default function TripStory({
         onOverviewActive={onOverview}
         showLatest={awayFromLanding}
         tripOver={over}
-        nav={{ ...nav, onEnd: goToOverview }}
+        nav={{ ...nav, onEnd: goToOverview, endHref: trip ? trip.href("/") : undefined }}
+        hrefFor={dayHref}
       />
     </div>
   );

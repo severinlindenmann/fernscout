@@ -319,8 +319,8 @@ describe("the surfaces that walk every entry", () => {
   });
 
   test("the sitemap does not link the held-back updates", async () => {
-    const sitemapModule = await import("@/app/sitemap");
-    const entries = sitemapModule.default();
+    const { journalsSitemap } = await import("@/lib/sitemap");
+    const entries = journalsSitemap();
     const urls = entries.map((e) => e.url);
     expect(urls.some((u) => u.endsWith("/day/arrival"))).toBe(true);
     expect(urls.some((u) => u.endsWith("/day/arrival-guest-note"))).toBe(false);

@@ -125,6 +125,16 @@ export function ownerShortName(user: UserConfig): string | undefined {
   return first || undefined;
 }
 
+/**
+ * The instance's name for the "Made with" line under a journal page, or
+ * undefined where the line does not belong — B2485. Only on a trip anybody
+ * holding the link may open, in a journal that is not guest-only: a page a
+ * guest was let into is somebody's private place, not a shop window.
+ */
+export function madeWithFor(user: UserConfig, trip: Trip): string | undefined {
+  return user.visibility !== "guest" && trip.visibility === "public" ? serverSite().name : undefined;
+}
+
 /** Short forms joined with "+", as a journal refers to the people on a trip. */
 export function travellerNamesOf(user: UserConfig, trip: Trip): string {
   return travellersOf(user, trip)

@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import DocsNav from "@/components/DocsNav";
 import { openApiDocumentV2 } from "@/lib/api/v2/openapi";
 import EntryContent from "@/components/EntryContent";
-import { docsNavEntries } from "@/lib/docs";
+import { docsNavEntries, docsMetadata } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
 
-export const metadata: Metadata = { title: "API" };
+export const metadata: Metadata = docsMetadata("api");
 
 /** Badge classes per verb — all pairs already used elsewhere in the codebase, so none of them are a new contrast bet. */
 const METHOD_STYLE: Record<string, string> = {

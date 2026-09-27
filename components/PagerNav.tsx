@@ -1,6 +1,8 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Check, SkipForward } from "lucide-react";
+import type { ReactNode } from "react";
+import { followInPlace } from "@/lib/inPlaceLink";
 import { useI18n } from "./LocaleProvider";
 
 export type PagerNavState = {
@@ -22,7 +24,44 @@ export type PagerNavState = {
   /** Where the last day's "Done" goes on a phone — the trip's overview.
    *  Absent on desktop, whose nav says "caught up" instead (B2161). */
   onEnd?: () => void;
+  /** The permalinks Back, Continue and Done lead to — B2477. With them the
+   * controls are real links (a crawler follows them, a reader can open one in
+   * a new tab); a plain click still pages in place. */
+  backHref?: string;
+  nextHref?: string;
+  endHref?: string;
 };
+
+/** An anchor when there is somewhere to go, a button when there is not (a
+ * disabled Back on the first step has no page behind it). */
+function Step({
+  href,
+  onGo,
+  disabled = false,
+  className,
+  label,
+  children,
+}: {
+  href?: string;
+  onGo: () => void;
+  disabled?: boolean;
+  className: string;
+  label?: string;
+  children: ReactNode;
+}) {
+  if (href && !disabled) {
+    return (
+      <a href={href} data-in-place="" onClick={(e) => followInPlace(e, onGo)} aria-label={label} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <button onClick={onGo} disabled={disabled} aria-label={label} className={className}>
+      {children}
+    </button>
+  );
+}
 
 /** Back / position / Continue. Rendered on its own below the content on
  * desktop, and folded into the day bar on mobile so there aren't two stacked
@@ -35,7 +74,8 @@ export default function PagerNav({
   compact?: boolean;
 }) {
   const { t } = useI18n();
-  const { stepIndex, stepCount, isTravel, legDone, label, tripOver, onBack, onNext, onEnd } = state;
+  const { stepIndex, stepCount, isTravel, legDone, label, tripOver, onBack, onNext, onEnd, backHref, nextHref, endHref } =
+    state;
 
   const atStart = stepIndex === 0;
   const atEnd = stepIndex === stepCount - 1;
@@ -45,30 +85,33 @@ export default function PagerNav({
   if (compact) {
     return (
       <div className="flex shrink-0 items-center gap-1.5">
-        <button
-          onClick={onBack}
+        <Step
+          href={backHref}
+          onGo={onBack}
           disabled={atStart}
-          aria-label={t("pager.back")}
+          label={t("pager.back")}
           className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet bg-surface-raised text-ink-body transition-colors disabled:opacity-35"
         >
           <ArrowLeft className="h-4 w-4" />
-        </button>
+        </Step>
         {/* The last day used to keep a Continue at 35% opacity, which read as
             clipped rather than finished (B2161). It is now a full-strength
             Done that goes to the overview — an end, said as one. */}
         {atEnd && onEnd ? (
-          <button
-            onClick={onEnd}
+          <Step
+            href={endHref}
+            onGo={onEnd}
             className="flex min-h-11 items-center gap-1 rounded-full bg-yellow-400 px-3.5 text-sm font-semibold text-yellow-950 transition-colors"
           >
             {t("pager.done")}
             <Check className="h-3.5 w-3.5" />
-          </button>
+          </Step>
         ) : (
-          <button
-            onClick={onNext}
+          <Step
+            href={nextHref}
+            onGo={onNext}
             disabled={atEnd}
-            aria-label={nextLabel}
+            label={nextLabel}
             className={`flex min-h-11 items-center gap-1 rounded-full px-3.5 text-sm font-semibold transition-colors disabled:opacity-35 ${
               skipping
                 ? "border border-line-quiet bg-surface-raised text-ink-body"
@@ -77,7 +120,7 @@ export default function PagerNav({
           >
             {nextLabel}
             {skipping ? <SkipForward className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
-          </button>
+          </Step>
         )}
       </div>
     );
@@ -85,14 +128,15 @@ export default function PagerNav({
 
   return (
     <nav className="mt-6 flex items-center justify-between gap-3 border-t border-line-quiet py-4">
-      <button
-        onClick={onBack}
+      <Step
+        href={backHref}
+        onGo={onBack}
         disabled={atStart}
         className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-base font-semibold text-ink-body transition-colors hover:border-line-prominent disabled:opacity-40"
       >
         <ArrowLeft className="h-4 w-4" />
         {t("pager.back")}
-      </button>
+      </Step>
 
       <span className="truncate px-2 text-[11px] text-ink-secondary">{label}</span>
 
@@ -103,8 +147,9 @@ export default function PagerNav({
           {tripOver ? t("story.tripEnd") : `${t("story.caughtUp")} 🎒`}
         </span>
       ) : (
-        <button
-          onClick={onNext}
+        <Step
+          href={nextHref}
+          onGo={onNext}
           className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-base font-semibold transition-colors ${
             skipping
               ? "border border-line-quiet bg-surface-raised text-ink-body hover:border-line-prominent"
@@ -113,7 +158,7 @@ export default function PagerNav({
         >
           {nextLabel}
           {skipping ? <SkipForward className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
-        </button>
+        </Step>
       )}
     </nav>
   );

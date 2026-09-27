@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { posterSrc } from "./mediaLoader";
 import {
   BookOpen,
   ChevronDown,
@@ -274,12 +275,15 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
           was whose: a first-time visitor read this card as the pitch. The
           label is the mono kicker voice (B733), not a second yellow edge. */}
       <Kicker>{t("home.inviteKicker")}</Kicker>
-      <h2
+      {/* A paragraph, not an h2 — B2479. This card sits above the hero, so
+          as a heading it was the page's first one, ahead of the h1. It still
+          names the section for a screen reader through aria-labelledby. */}
+      <p
         id="reader-invite"
         className="mt-2 font-display text-xl font-semibold leading-tight text-ink-strong sm:text-2xl"
       >
         {t("home.inviteTitle")}
-      </h2>
+      </p>
       <p className="mt-2 max-w-prose text-base leading-7 text-ink-strong sm:text-lg">
         {t("home.inviteBody")}
       </p>
@@ -924,7 +928,11 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
                 {journal.cover ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={journal.cover}
+                    // The sized variant, not the stored photograph — B2480:
+                    // a 112px-tall card was downloading a 172 KB original.
+                    // 480 (one of WARM_WIDTHS, so already made) is ~22 KB and
+                    // still denser than a phone-wide card at 1x.
+                    src={posterSrc(journal.cover, 480)}
                     alt=""
                     loading="lazy"
                     className="h-28 w-full object-cover"

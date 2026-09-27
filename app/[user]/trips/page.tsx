@@ -23,7 +23,10 @@ import RouteBoundary from "@/components/RouteBoundary";
  * The sharing card follows the *journal*, because the people who see one are
  * not this reader and their language is not knowable from this request.
  */
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<"/[user]/trips">): Promise<Metadata> {
+  const { user } = await params;
   const reader = await requestLocale();
   const journal = localeForPath((await headers()).get(PATH_HEADER));
   const description = translateIn(journal, "trips.subtitle");
@@ -31,8 +34,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: translateIn(reader, "trips.title"),
     description,
-    alternates: { canonical: "/trips" },
-    openGraph: { type: "website", title: shared, description, url: "/trips" },
+    alternates: { canonical: `/${user}/trips` },
+    openGraph: { type: "website", title: shared, description, url: `/${user}/trips` },
     twitter: { card: "summary_large_image", title: shared, description },
   };
 }

@@ -2311,6 +2311,7 @@
   "story.caughtUp": "Per ora è tutto — presto altro",
   "story.dayFailed": "Non è stato possibile caricare questo giorno. Controlla la connessione, poi torna indietro di un giorno e vai di nuovo avanti.",
   "story.dayLoading": "Carico questo giorno…",
+  "story.madeWith": "Realizzato con {name}",
   "story.empty": "Ancora nessun giorno.",
   "story.emptyOwner.body": "Questo viaggio non ha ancora giorni. Iniziane uno nel tuo studio — foto, qualche parola, e resta come bozza finché non lo pubblichi.",
   "story.emptyOwner.cta": "Aggiungi il tuo primo giorno",

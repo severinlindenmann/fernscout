@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import DocsNav from "@/components/DocsNav";
 import EntryContent from "@/components/EntryContent";
-import { docsNavEntries, readRepoFile, section } from "@/lib/docs";
+import { docsNavEntries, readRepoFile, section, docsMetadata } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Your own agent" };
+export const metadata: Metadata = docsMetadata("helper");
 
 const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
 

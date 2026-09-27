@@ -26,7 +26,12 @@
 # deploy/Caddyfile.
 
 {$CADDY_DOMAIN} {
-	encode gzip zstd
+	# zstd first — B2480. With both offered at equal weight (every browser
+	# sends "gzip, deflate, br, zstd") Caddy takes the first one listed here,
+	# which used to be gzip. br is not in Caddy's standard build. Next's own
+	# gzip is off (`compress: false` in next.config.ts), or every page would
+	# arrive here already encoded and this line would never apply to it.
+	encode zstd gzip
 
 	# Next.js sets its own cache headers per-route (see next.config.ts and
 	# the API routes' `cache-control: no-store`); Caddy just proxies. The app

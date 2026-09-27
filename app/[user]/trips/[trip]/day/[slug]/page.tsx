@@ -8,7 +8,7 @@ import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { DayStructuredData } from "@/components/StructuredData";
 import { getUser } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellersOf, type SiteSummary } from "@/lib/site";
+import { siteSummary, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
@@ -153,8 +153,12 @@ async function TripDayBody({
         entry={entry}
         site={site}
         authors={travellersOf(userConfig, trip).map((p) => p.name)}
+        url={`/${trip.username}/trips/${trip.id}/day/${entry.slug}`}
+        trip={{ title: trip.title, path: `/${trip.username}/trips/${trip.id}` }}
+        inLanguage={defaultLocaleFor(trip.username)}
       />
       <TripStory
+        madeWith={madeWithFor(userConfig, trip)}
         index={index}
         days={days}
         windowStart={windowStart}
