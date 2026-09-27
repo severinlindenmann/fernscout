@@ -1459,7 +1459,6 @@
   "mail.firstTripSubject": "{journal} hat noch keine Reise",
   "mail.firstTripWhy": "Du hast Tipps für den Einstieg für {journal} aktiviert.",
   "mail.reminderTitle": "Ein abendlicher Gruß",
-  "mail.signinCode": "Oder melde dich von Hand mit diesem Code an: {code}",
   "mail.signinIgnore": "Wenn du das nicht angefordert hast, ignoriere diese E-Mail — es hat sich nichts geändert.",
   "mail.signinOpen": "{title} öffnen",
   "mail.signinSubject": "Anmelden bei {title}",

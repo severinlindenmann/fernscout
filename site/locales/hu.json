@@ -1254,7 +1254,6 @@
   "mail.firstTripSubject": "A(z) {journal} naplóhoz még nincs úti cél",
   "mail.firstTripWhy": "Bekapcsoltad a kezdő tippeket a(z) {journal} naplóhoz.",
   "mail.reminderTitle": "Esti bejelentkezés",
-  "mail.signinCode": "Vagy jelentkezz be kézzel ezzel a kóddal: {code}",
   "mail.signinIgnore": "Ha nem te kérted, hagyd figyelmen kívül — semmi nem változott.",
   "mail.signinOpen": "Megnyitás: {title}",
   "mail.signinSubject": "Bejelentkezés ide: {title}",

@@ -1421,7 +1421,6 @@
   "mail.reminderButton": "Aggiungi la giornata di oggi",
   "mail.reminderSubject": "Ancora niente di scritto per {trip}",
   "mail.reminderTitle": "Un saluto serale",
-  "mail.signinCode": "Oppure accedi a mano con questo codice: {code}",
   "mail.signinIgnore": "Se non l’hai richiesto tu, ignora questa email: non è cambiato nulla.",
   "mail.signinOpen": "Apri {title}",
   "mail.signinSubject": "Accedi a {title}",

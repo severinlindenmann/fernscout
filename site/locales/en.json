@@ -1459,7 +1459,6 @@
   "mail.firstTripSubject": "{journal} has no trip yet",
   "mail.firstTripWhy": "You turned on getting-started tips for {journal}.",
   "mail.reminderTitle": "An evening check-in",
-  "mail.signinCode": "Or sign in by hand with this code: {code}",
   "mail.signinIgnore": "If you did not ask for this, ignore it — nothing has changed.",
   "mail.signinOpen": "Open {title}",
   "mail.signinSubject": "Sign in to {title}",

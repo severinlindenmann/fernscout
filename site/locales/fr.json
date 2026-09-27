@@ -1421,7 +1421,6 @@
   "mail.reminderButton": "Ajouter la journée d’aujourd’hui",
   "mail.reminderSubject": "Rien d’écrit pour l’instant pour {trip}",
   "mail.reminderTitle": "Un petit mot du soir",
-  "mail.signinCode": "Ou connecte-toi manuellement avec ce code : {code}",
   "mail.signinIgnore": "Si tu n’as rien demandé, ignore cet e-mail — rien n’a changé.",
   "mail.signinOpen": "Ouvrir {title}",
   "mail.signinSubject": "Connexion à {title}",

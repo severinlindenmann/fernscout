@@ -1217,7 +1217,6 @@ export type TranslationKey =
   | "mail.reminderButton"
   | "mail.reminderSubject"
   | "mail.reminderTitle"
-  | "mail.signinCode"
   | "mail.signinIgnore"
   | "mail.signinOpen"
   | "mail.signinSubject"
