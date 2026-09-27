@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
-import { isOpenToApprovedGuest } from "@/lib/access";
+import { guestLanding, isOpenToApprovedGuest } from "@/lib/access";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
@@ -61,7 +61,9 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const { owner, contact } = found;
   const reader = await journalReader(owner);
   const signedIn = reader.contact?.id === contact.id;
-  if (signedIn && contact.onboardedAt) redirect(`/${owner}`);
+  const trips = getTrips(owner);
+  const landing = guestLanding(owner, trips);
+  if (signedIn && contact.onboardedAt) redirect(landing);
 
   const locale = pickLocale(contact.locale, user.defaultLocale);
   const trip = await buddyTripOf(owner, contact.id);
@@ -105,7 +107,8 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         firstName={(contact.name ?? "").trim().split(/\s+/)[0] ?? ""}
         kind={trip ? "buddy" : "reader"}
         trip={trip}
-        hasGuestTrip={getTrips(owner).some(isOpenToApprovedGuest)}
+        hasGuestTrip={trips.some(isOpenToApprovedGuest)}
+        landing={landing}
         signedIn={signedIn}
         onboarded={Boolean(contact.onboardedAt)}
         joined={(contact.createdVia ?? "").startsWith("invite:")}
