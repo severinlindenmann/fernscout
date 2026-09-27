@@ -553,7 +553,6 @@ export type TranslationKey =
   | "contact.mailApprovedTitle"
   | "contact.mailCodeBody"
   | "contact.mailCodeButton"
-  | "contact.mailCodeFallback"
   | "contact.mailCodeIgnore"
   | "contact.mailCodeLinkBody"
   | "contact.mailCodeLinkBodyPreapproved"

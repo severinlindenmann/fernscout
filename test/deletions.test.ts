@@ -566,7 +566,9 @@ describe("deleting a journal", () => {
         // `id` always, whatever the introspection says: SQLite reports a text
         // primary key as nullable, and a users row with a null id fails every
         // foreign key pointing at it.
-        if (column.name !== "id" && (column.isNullable || column.hasDefaultValue)) continue;
+        // `owner_id` always too: an instance table (047) defaults it to "*",
+        // and a row seeded as "*" would not be the journal's to delete.
+        if (column.name !== "id" && column.name !== "owner_id" && (column.isNullable || column.hasDefaultValue)) continue;
         columns.push(column.name);
         if (column.name === "owner_id") values.push(username);
         else if (column.name === "id") values.push(seeded[name]);
