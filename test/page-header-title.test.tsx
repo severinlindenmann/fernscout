@@ -60,6 +60,7 @@ const site: SiteSummary = {
   helperEnabled: false,
   isOwner: false,
   extractEnabled: false,
+  isShowcase: false,
 };
 
 function markup(): string {

@@ -4,8 +4,12 @@ import { CODE_TTL_MINUTES, issueStandingLink, signInUrl } from "../auth";
 import { isEnabled } from "../capabilities";
 
 import { translateIn } from "../locales";
+import { logMessage } from "../messages/log";
 import { ownerLocale } from "../messages/locale";
 import { sendMail, type SendResult } from "../mail";
+import { codeMail } from "../mail/codeMail";
+import { inviteMail } from "../mail/inviteMail";
+import { letInMail } from "../mail/letInMail";
 import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
 import { getTrip, tripRef } from "../trips";
@@ -18,6 +22,12 @@ import {
 } from "./index";
 import { listInvites, type InviteKind } from "./invites";
 import { pickLocale } from "./locale";
+import { isInviteSuppressed, neverInviteToken } from "./suppressions";
+
+/** The public "never invite this address" page — B2442. */
+function neverInviteUrl(base: string, addressOrNumber: string): string {
+  return `${base.replace(/\/$/, "")}/x/${neverInviteToken(addressOrNumber)}`;
+}
 
 /**
  * The one gate every contact-addressed send must pass through — B334.
@@ -158,44 +168,23 @@ export async function sendCodeMail(
   const link = linkToken && isEnabled("auth", username)
     ? signInUrl(baseUrl(), username, linkToken, locale)
     : null;
-  const codeText = translateIn(
-    locale,
-    link ? "contact.mailCodeFallback" : "contact.mailCodeBody",
-    { code, minutes: CODE_TTL_MINUTES },
-  );
   return sendMail(
-    renderMail(
+    codeMail({
+      template: "code.mail",
       to,
-      translateIn(locale, "contact.mailCodeSubject", { title: user.title }),
-      {
-        template: "code.mail",
-        preheader: translateIn(locale, "contact.mailCodeBody", { code, minutes: CODE_TTL_MINUTES }),
-        title: translateIn(locale, link ? "contact.mailCodeLinkTitle" : "contact.mailCodeTitle"),
-        blocks: [
-          ...(link
-            ? [
-                {
-                  kind: "paragraph" as const,
-                  text: translateIn(
-                    locale,
-                    preapproved ? "contact.mailCodeLinkBodyPreapproved" : "contact.mailCodeLinkBody",
-                  ),
-                },
-                {
-                  kind: "button" as const,
-                  text: translateIn(locale, "contact.mailCodeButton"),
-                  href: link,
-                },
-              ]
-            : []),
-          { kind: "paragraph", text: codeText },
-          { kind: "paragraph", text: translateIn(locale, "contact.mailCodeIgnore") },
-        ],
-        why: footerFor(locale, user),
-        locale,
-      },
+      locale,
+      code,
+      place: user.title,
+      title: translateIn(locale, link ? "contact.mailCodeLinkTitle" : "contact.mailCodeTitle"),
+      purpose: link
+        ? translateIn(locale, preapproved ? "contact.mailCodeLinkBodyPreapproved" : "contact.mailCodeLinkBody")
+        : translateIn(locale, "contact.mailCodePurpose"),
+      url: link ?? undefined,
+      buttonText: link ? translateIn(locale, "contact.mailCodeButton") : undefined,
+      ignoreText: translateIn(locale, "contact.mailCodeIgnore"),
+      why: footerFor(locale, user),
       username,
-    ),
+    }),
   );
 }
 
@@ -226,10 +215,24 @@ export async function sendInviteMail(
      * for every other kind. */
     tripTitle?: string | null;
   },
-): Promise<SendResult | null> {
+  /** B2442 — the address asked never to be invited again. Reports why the
+   * studio saw nothing sent, distinct from mail simply failing. */
+): Promise<SendResult | "suppressed" | null> {
   // The other named exception (B334): this is the owner directly handing
   // somebody a link, before that address has proved anything at all.
   mayMailContact({ email: input.email, confirmedAt: null }, { allowUnconfirmed: true });
+  if (await isInviteSuppressed(input.email)) {
+    await logMessage({
+      template: "invite.mail",
+      channel: "mail",
+      to: input.email,
+      owner: username,
+      locale: input.locale,
+      status: "skipped",
+      reason: "suppressed",
+    });
+    return "suppressed";
+  }
   const buddy = input.kind === "buddy";
   const vars = {
     title: user.title,
@@ -238,25 +241,21 @@ export async function sendInviteMail(
   };
   try {
     return await sendMail(
-      renderMail(
-        input.email,
-        translateIn(input.locale, buddy ? "contact.mailInviteBuddySubject" : "contact.mailInviteGuestSubject", vars),
-        {
-          template: "invite.mail",
-          preheader: translateIn(input.locale, buddy ? "contact.mailInviteBuddyBody" : "contact.mailInviteGuestBody", vars),
-          title: translateIn(input.locale, "contact.mailInviteTitle"),
-          blocks: [
-            {
-              kind: "paragraph",
-              text: translateIn(input.locale, buddy ? "contact.mailInviteBuddyBody" : "contact.mailInviteGuestBody", vars),
-            },
-            { kind: "button", text: translateIn(input.locale, "contact.mailInviteButton"), href: input.url },
-          ],
-          why: footerFor(input.locale, user),
-          locale: input.locale,
+      inviteMail({
+        to: input.email,
+        locale: input.locale,
+        subject: translateIn(input.locale, buddy ? "contact.mailInviteBuddySubject" : "contact.mailInviteGuestSubject", vars),
+        title: translateIn(input.locale, "contact.mailInviteTitle"),
+        body: translateIn(input.locale, buddy ? "contact.mailInviteBuddyBody" : "contact.mailInviteGuestBody", vars),
+        buttonText: translateIn(input.locale, "contact.mailInviteButton"),
+        buttonUrl: input.url,
+        why: footerFor(input.locale, user),
+        manage: {
+          text: translateIn(input.locale, "contact.neverInvite"),
+          href: neverInviteUrl(baseUrl(), input.email),
         },
         username,
-      ),
+      }),
     );
   } catch (err) {
     console.error(`[contacts] invite mail to ${input.email} failed:`, err);
@@ -287,27 +286,47 @@ export async function sendWelcomeMail(
 ): Promise<SendResult | null> {
   if (!mayMailContact(contact, { allowUnconfirmed: true })) return null;
   const token = manageTokenFor(username, contact.id);
-  return sendMail(
-    renderMail(
-      contact.email,
-      message.subject,
-      {
-        template,
-        preheader: message.text,
-        title: message.subject,
-        blocks: [
-          { kind: "paragraph", text: message.text },
-          { kind: "button", text: translateIn(message.locale, "welcomeLink.mailButton"), href: message.url },
-        ],
-        why: footerFor(message.locale, user),
-        manage: {
-          text: translateIn(message.locale, "contact.unsubscribe"),
-          href: unsubscribeUrlFor(baseUrl(), username, token),
-        },
+  const buttonText = translateIn(message.locale, "welcomeLink.mailButton");
+  const why = footerFor(message.locale, user);
+  if (template === "invite.mail") {
+    // B2442 — this is the one still asking somebody in, so the manage line
+    // is "never invite this address again", not "stop these emails": a
+    // suppression check already ran, in `sendInvite` (welcome.ts), before
+    // this was ever called.
+    return sendMail(
+      inviteMail({
+        to: contact.email,
         locale: message.locale,
+        subject: message.subject,
+        title: message.subject,
+        body: message.text,
+        buttonText,
+        buttonUrl: message.url,
+        why,
+        manage: {
+          text: translateIn(message.locale, "contact.neverInvite"),
+          href: neverInviteUrl(baseUrl(), contact.email),
+        },
+        username,
+      }),
+    );
+  }
+  return sendMail(
+    letInMail({
+      to: contact.email,
+      locale: message.locale,
+      subject: message.subject,
+      title: message.subject,
+      body: message.text,
+      buttonText,
+      buttonUrl: message.url,
+      why,
+      manage: {
+        text: translateIn(message.locale, "contact.unsubscribe"),
+        href: unsubscribeUrlFor(baseUrl(), username, token),
       },
       username,
-    ),
+    }),
   );
 }
 
@@ -492,48 +511,36 @@ export async function sendApprovedMail(
     const bodyKey = trip ? "contact.mailApprovedBuddyBody" : "contact.mailApprovedBody";
     const bodyVars = { title: user.title, trip: trip?.title ?? "" };
     return await sendMail(
-      renderMail(
-        contact.email,
-        translateIn(locale, "contact.mailApprovedSubject", { title: user.title }),
-        {
-          template: "invite.in.mail",
-          preheader: translateIn(locale, bodyKey, bodyVars),
-          title: translateIn(locale, "contact.mailApprovedTitle"),
-          blocks: [
-            {
-              kind: "paragraph",
-              text: translateIn(locale, bodyKey, bodyVars),
-            },
-            {
-              kind: "button",
-              text: translateIn(locale, "contact.mailApprovedButton", { title: user.title }),
-              href: openUrl,
-            },
-            ...(trip
-              ? [
-                  {
-                    kind: "item" as const,
-                    title: translateIn(locale, "contact.mailApprovedMeLink"),
-                    href: `${baseUrl()}/${username}/me`,
-                  },
-                ]
-              : []),
-            {
-              kind: "item",
-              title: translateIn(locale, "contact.mailManageButton"),
-              meta: translateIn(locale, "contact.mailManageCaption"),
-              href: manageUrl(baseUrl(), username, token),
-            },
-          ],
-          why: footerFor(locale, user),
-          manage: {
-            text: translateIn(locale, "contact.unsubscribe"),
-            href: unsubscribeUrlFor(baseUrl(), username, token),
+      letInMail({
+        to: contact.email,
+        locale,
+        subject: translateIn(locale, "contact.mailApprovedSubject", { title: user.title }),
+        title: translateIn(locale, "contact.mailApprovedTitle"),
+        body: translateIn(locale, bodyKey, bodyVars),
+        buttonText: translateIn(locale, "contact.mailApprovedButton", { title: user.title }),
+        buttonUrl: openUrl,
+        items: [
+          ...(trip
+            ? [
+                {
+                  title: translateIn(locale, "contact.mailApprovedMeLink"),
+                  href: `${baseUrl()}/${username}/me`,
+                },
+              ]
+            : []),
+          {
+            title: translateIn(locale, "contact.mailManageButton"),
+            meta: translateIn(locale, "contact.mailManageCaption"),
+            href: manageUrl(baseUrl(), username, token),
           },
-          locale,
+        ],
+        why: footerFor(locale, user),
+        manage: {
+          text: translateIn(locale, "contact.unsubscribe"),
+          href: unsubscribeUrlFor(baseUrl(), username, token),
         },
         username,
-      ),
+      }),
     );
   } catch (err) {
     console.error(`[contacts] approval mail to ${contact.email} failed:`, err);

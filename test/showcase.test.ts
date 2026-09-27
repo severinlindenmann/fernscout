@@ -71,21 +71,34 @@ describe("a showcase journal asks one thing, not two", () => {
    * B1724. `/example` offered "Get the next day?" to a reader who is not
    * following Alex Berger's trip — they are deciding whether to make a
    * journal of their own — and it landed on top of the bar that answers that
-   * question. The layout picks one, so each journal carries exactly one of
-   * the two in its document.
+   * question.
+   *
+   * B2464 moved the day-end ask out of the layout (where the showcase bar
+   * still lives, unconditionally) and into the day reader itself, so the
+   * "never both" guarantee moved with it: `SiteSummary.isShowcase` (the same
+   * `site.showcase.includes(username)` check the layout used to make) is
+   * threaded to the client and read where the card decides whether to
+   * appear, rather than compared against `<ShowcaseBar>` in one server file.
    */
-  test("the layout renders the bar or the prompt, never both", () => {
+  test("the layout still shows the bar to a showcase journal's readers", () => {
     const layout = fs.readFileSync(
       path.join(process.cwd(), "app/[user]/layout.tsx"),
       "utf8",
     );
-    // A ternary on the showcase list, not two independent conditions that
-    // could both be true.
-    expect(layout).toMatch(
-      /site\.showcase\.includes\(username\)\s*\?[\s\S]{0,200}<ShowcaseBar[\s\S]{0,200}<PushPrompt/,
-    );
-    expect(layout.match(/<PushPrompt/g)).toHaveLength(1);
+    expect(layout).toMatch(/site\.showcase\.includes\(username\)/);
     expect(layout.match(/<ShowcaseBar/g)).toHaveLength(1);
+    // The prompt is gone from here entirely — see push-prompt.test.tsx.
+    expect(layout).not.toContain("<PushPrompt");
+  });
+
+  test("the day-end card reads the same showcase list before it ever shows", () => {
+    const site = fs.readFileSync(path.join(process.cwd(), "lib/site.ts"), "utf8");
+    expect(site).toMatch(/isShowcase:\s*loadServerConfig\(\)\.site\.showcase\.includes/);
+    const pager = fs.readFileSync(
+      path.join(process.cwd(), "components/StoryPager.tsx"),
+      "utf8",
+    );
+    expect(pager).toMatch(/!site\??\.isShowcase|!isShowcase/);
   });
 
   test("and the prompt no longer carries an offset it can never need", () => {
