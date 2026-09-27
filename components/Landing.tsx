@@ -93,6 +93,8 @@ export default function Landing({
   postcardsEnabled = false,
   photobookEnabled = false,
   pricing,
+  orgsBand,
+  orgsLinks,
 }: {
   siteName: string;
   docUrl: string;
@@ -146,6 +148,11 @@ export default function Landing({
    * arrives as an element rather than as data. `null` on an instance with
    * credits switched off, where nothing costs anything. */
   pricing?: ReactNode;
+  /** The schools and tour-operator offer — B2450. Both rendered by the page
+   * from `paid/orgs` and handed over like `pricing`; `null` in a public
+   * build. The band sits above the colophon, the links in the header. */
+  orgsBand?: ReactNode;
+  orgsLinks?: ReactNode;
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("unknown");
@@ -264,6 +271,7 @@ export default function Landing({
       // session; `YourJournals` below is that reader's own way in now.
       helperEnabled={helperEnabled && phase !== "in"}
       onSignIn={() => setSigningIn(true)}
+      orgsLinks={orgsLinks}
     />
   );
   const publicList = <PublicJournals journals={journals} />;
@@ -386,6 +394,7 @@ export default function Landing({
         )}
         {publicList}
         <DocsLink />
+        {orgsBand}
         {colophon}
         {/* Inside the iPhone app only, and only once we know nobody is
             signed in: point the app at the reader's own server. */}

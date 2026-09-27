@@ -213,6 +213,19 @@ describe("tell_readers", () => {
     const body = (await answered.json()) as { channel: string; sent: number };
     expect(body.channel).toBe("mail");
     expect(body.sent).toBe(1);
+
+    // B2443 — a second press (the model reading the tool twice, or a retried
+    // request) must not mail the same readership again. `tell_readers` is
+    // not v2's `…/send`, which is a documented, tested explicit resend; this
+    // is the same one-shot door the notify button on the day itself already
+    // claims through.
+    const pressedAgain = await post(
+      tellReadersRoute,
+      "https://t.test/api/helper/alex/day/tell-readers",
+      pressed(ran.proposal!),
+    );
+    expect(pressedAgain.status).toBe(409);
+    expect(((await pressedAgain.json()) as { error: string }).error).toBe("already_sent");
   });
 
   test("asking for whatsapp names its own reach and cost, separately from mail's", async () => {

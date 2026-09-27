@@ -313,7 +313,13 @@ export default function MapPageContent({
       </main>
 
       {showing && (
-        <SlideShow places={places} onClose={closeSlideshow} stats={stats} startDate={startDate} />
+        <SlideShow
+          places={places}
+          onClose={closeSlideshow}
+          stats={stats}
+          startDate={startDate}
+          basemap={basemap}
+        />
       )}
     </div>
   );

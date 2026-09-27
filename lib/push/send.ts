@@ -147,7 +147,7 @@ export async function sendPush(params: {
           await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "failed", reason: "gone" });
         } else {
           const reason = String(err instanceof WebPushError ? err.statusCode : "?");
-          console.error(`[push] ${reason} sending to ${sub.endpoint}`);
+          console.error(`[push] ${reason} sending a ${params.template} notification`);
           await logMessage({ template: params.template, channel: "push", to: sub.endpoint, owner: sub.username, locale: params.locale, status: "failed", reason: reason });
         }
       }

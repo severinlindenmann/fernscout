@@ -813,6 +813,13 @@ type PhotobookDraftsTable = {
  * Never a body, never a raw address: `recipient_hash`/`recipient_mask` are
  * the whole of what identifies who it went to.
  */
+/** "Never invite this address again" — B2442. See
+ * lib/contacts/suppressions.ts. */
+type InviteSuppressionsTable = {
+  hash: string;
+  created_at: string;
+};
+
 type MessageLogTable = {
   id: string;
   /** NO_JOURNAL ("*") for a message that belongs to no journal yet. */
@@ -881,6 +888,7 @@ export type Database = {
   photobook_drafts: PhotobookDraftsTable;
   app_waitlist: AppWaitlistTable;
   message_log: MessageLogTable;
+  invite_suppressions: InviteSuppressionsTable;
   message_switches: MessageSwitchesTable;
 };
 
@@ -917,5 +925,6 @@ export const TABLE_NAMES = [
   "photobook_drafts",
   "app_waitlist",
   "message_log",
+  "invite_suppressions",
   "message_switches",
 ] as const satisfies readonly (keyof Database)[];

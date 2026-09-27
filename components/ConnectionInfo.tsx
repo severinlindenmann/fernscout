@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { useI18n } from "@/components/LocaleProvider";
-import { nativeAppVersion, useNativeShell } from "@/components/nativeShell";
+import { nativeAppVersion, useNativeShell, useStandalone } from "@/components/nativeShell";
 
 /** What the server that rendered this page was built from. */
 export type BuildInfo = { version: string; commit?: string };
@@ -43,6 +43,7 @@ export default function ConnectionInfo({
 }) {
   const { t, locale } = useI18n();
   const native = useNativeShell();
+  const standalone = useStandalone();
   const app = native ? nativeAppVersion() : undefined;
   // Serialised as one string so the snapshot is stable between reads.
   const reachedKey = useSyncExternalStore(
@@ -61,11 +62,18 @@ export default function ConnectionInfo({
     const described = hosting && reached.host.toLowerCase() === hosting.host;
     server =
       described && reached.secure
-        ? t("me.connectionOfficial", { host: reached.host, where: whereIn(hosting, locale) })
+        ? t("me.connectionOfficial", { where: whereIn(hosting, locale) })
         : t(reached.secure ? "me.connectionSelfHosted" : "me.connectionSelfHostedPlain", {
             host: reached.host,
           });
   }
+
+  // B2465 — a home-screen install (the PWA case) is neither the shell (which
+  // gets its own row above, `app`) nor an ordinary tab; label the one row
+  // every non-native visit shows accordingly. `useStandalone` never fires
+  // inside the shell (Capacitor's WebView is not `display-mode: standalone`),
+  // but `!native` keeps the two mutually exclusive even if that ever changed.
+  const webLabel = standalone && !native ? "me.connectionInstalled" : "me.connectionWeb";
 
   return (
     <section aria-labelledby="connection-title" className="mt-8 border-t border-line-quiet pt-6">
@@ -81,7 +89,7 @@ export default function ConnectionInfo({
             </dd>
           </>
         )}
-        <dt className="text-ink-secondary">{t("me.connectionWeb")}</dt>
+        <dt className="text-ink-secondary">{t(webLabel)}</dt>
         <dd className="text-ink-body tabular-nums">{web}</dd>
       </dl>
       {server && <p className="mt-3 text-base leading-7 text-ink-body">{server}</p>}
