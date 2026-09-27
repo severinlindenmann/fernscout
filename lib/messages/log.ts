@@ -10,7 +10,7 @@ import type { Channel, Flow, TemplateId } from "./registry";
  * address: only a hash and a mask ever reach the row.
  */
 
-export const MESSAGE_STATUSES = ["sent", "skipped", "failed", "held", "test"] as const;
+const MESSAGE_STATUSES = ["sent", "skipped", "failed", "held", "test"] as const;
 export type MessageStatus = (typeof MESSAGE_STATUSES)[number];
 
 /**
@@ -36,7 +36,7 @@ function normaliseRecipient(to: string): string {
 /** `m•••@gmail.com` for an address, or a masked form of the documentation
  * number (test/depersonalised.test.ts) for a phone number — never the real
  * value. */
-export function recipientMask(to: string): string {
+function recipientMask(to: string): string {
   if (to.includes("@")) {
     const [local, domain] = to.trim().toLowerCase().split("@");
     return `${(local ?? "").slice(0, 1)}•••@${domain ?? "?"}`;
@@ -139,7 +139,7 @@ export async function listMessages(
 
 /** Counts since a timestamp, grouped by template and status — the shape
  * admin's catalogue (a later ticket) wants for "how many of this went out". */
-export async function countMessages(sinceIso: string): Promise<{ template: string; status: string; count: number }[]> {
+async function countMessages(sinceIso: string): Promise<{ template: string; status: string; count: number }[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const rows = await handle.db
