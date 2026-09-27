@@ -22,7 +22,7 @@ export const FAMILIES = {
 
 export type Family = keyof typeof FAMILIES;
 
-export const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
+const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
 export type Channel = (typeof CHANNELS)[number];
 
 type Audience = "owner" | "reader" | "stranger" | "operator";

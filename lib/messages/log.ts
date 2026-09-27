@@ -10,7 +10,7 @@ import type { Channel, Flow, TemplateId } from "./registry";
  * address: only a hash and a mask ever reach the row.
  */
 
-const MESSAGE_STATUSES = ["sent", "skipped", "failed", "held", "test"] as const;
+export const MESSAGE_STATUSES = ["sent", "skipped", "failed", "held", "test"] as const;
 export type MessageStatus = (typeof MESSAGE_STATUSES)[number];
 
 /**

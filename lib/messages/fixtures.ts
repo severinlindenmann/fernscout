@@ -2,7 +2,7 @@ import "server-only";
 import { translateIn } from "../locales";
 import { renderMail } from "../mail/template";
 import type { Mail } from "../mail/types";
-import { FAMILIES, TEMPLATES, templateDef, type Channel, type TemplateId } from "./registry";
+import { FAMILIES, templateDef, type Channel, type TemplateId } from "./registry";
 
 /**
  * Preview data for admin's Messages panel (B2441) — every template rendered
@@ -40,8 +40,8 @@ export const SAMPLE = {
 export type PreviewLocale = "en" | "de" | "hu";
 export const PREVIEW_LOCALES: PreviewLocale[] = ["en", "de", "hu"];
 
-export type MailPreview = { channel: "mail"; subject: string; html: string; text: string };
-export type TextPreview = { channel: Exclude<Channel, "mail">; title?: string; text: string };
+type MailPreview = { channel: "mail"; subject: string; html: string; text: string };
+type TextPreview = { channel: Exclude<Channel, "mail">; title?: string; text: string };
 export type TemplatePreview = MailPreview | TextPreview;
 
 function fill(template: string): string {
@@ -118,10 +118,3 @@ export function buildPreview(id: TemplateId, locale: PreviewLocale = "en"): Temp
   return genericMailPreview(id, locale);
 }
 
-/** Which templates get the real production rendering rather than the
- * generic fallback — for the report, not for any runtime decision. */
-export const REAL_RENDERED_TEMPLATES: TemplateId[] = ["code.mail"];
-
-export function catalogueOrder(): TemplateId[] {
-  return Object.keys(TEMPLATES) as TemplateId[];
-}
