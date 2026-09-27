@@ -13,6 +13,7 @@ import {
   LABEL,
   PhoneArt,
   PostcardArt,
+  PostcardIcon,
   PRIMARY,
   QUIET,
   Screen,
@@ -170,6 +171,10 @@ export default function JoinFlow({
   // B2504: ticked from the start, the owner's decision (27 Sep); unticking
   // records nothing, and "Stop news" on /me turns it off again.
   const [news, setNews] = useState(true);
+  // B2505: a mobile for WhatsApp postcards, typed while the request waits.
+  // Kept unproved and never texted: nothing goes to it until the owner lets
+  // this person in, and it is never a sign-in number.
+  const [waMobile, setWaMobile] = useState("");
   // B2454: an email added after a mobile-only sign-up, proved by its own code.
   const [addedEmail, setAddedEmail] = useState<string | null>(null);
   const [emailValue, setEmailValue] = useState("");
@@ -198,7 +203,7 @@ export default function JoinFlow({
 
   const provedEmail = knownEmail ?? (channel === "email" ? sentTo : null) ?? addedEmail;
   const provedMobile = (channel === "sms" && !knownEmail ? sentTo : null) || addedMobile;
-  const ticks: Tick[] = [
+  const ticks: Tick[] = ([
     caps.mail && {
       key: "wantsEmailDigest",
       label: t("guide.notify.email"),
@@ -211,9 +216,10 @@ export default function JoinFlow({
     caps.whatsapp && {
       key: "wantsWhatsapp",
       label: t("guide.notify.whatsapp"),
-      hint: provedMobile || t("guide.notify.needsMobile"),
+      hint: provedMobile || (status === "waiting" ? t("join.notify.whatsappHint", vars) : t("guide.notify.needsMobile")),
       checked: wants.wantsWhatsapp ?? false,
-      disabled: !provedMobile,
+      disabled: !provedMobile && status !== "waiting",
+      icon: <PostcardIcon />,
     },
     caps.sms && {
       key: "wantsSms",
@@ -229,11 +235,16 @@ export default function JoinFlow({
       checked: wants.wantsPostcard ?? hasAddress,
       disabled: !hasAddress,
     },
-  ].filter((tick): tick is Tick => Boolean(tick));
+  ] as (Tick | false)[]).filter((tick): tick is Tick => Boolean(tick));
 
+  const typesMobile = caps.whatsapp && !provedMobile && status === "waiting" && Boolean(wants.wantsWhatsapp);
   async function saveTicks() {
     const choices = Object.fromEntries(ticks.map((tick) => [tick.key, tick.checked && !tick.disabled]));
-    if (await call({ action: "save", ...choices, wantsNews: news && Boolean(provedEmail) })) next();
+    if (typesMobile && !waMobile.trim()) {
+      setError(t("guide.error.phone"));
+      return;
+    }
+    if (await call({ action: "save", ...choices, ...(typesMobile ? { tel: waMobile.trim() } : {}), wantsNews: news && Boolean(provedEmail) })) next();
   }
 
   if (step === "who") {
@@ -430,7 +441,21 @@ export default function JoinFlow({
             )}
           </div>
         )}
-        {(caps.sms || caps.whatsapp) && !provedMobile && status === "waiting" && (
+        {typesMobile && (
+          <label className={LABEL}>
+            {t("join.notify.whatsappMobile")}
+            <input
+              className={FIELD}
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={waMobile}
+              onChange={(e) => setWaMobile(e.target.value)}
+            />
+            <span className="text-sm font-normal text-ink-secondary">{t("join.notify.whatsappLater", vars)}</span>
+          </label>
+        )}
+        {caps.sms && !provedMobile && status === "waiting" && (
           // A request nobody has let in yet is never texted (a code costs
           // money, and a stranger must not be able to spend it) — say when.
           <p className="text-sm text-ink-secondary">{t("join.notify.mobileLater", vars)}</p>

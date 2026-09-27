@@ -292,6 +292,63 @@ describe("the join flow", () => {
     fetchMock.mockRestore();
   });
 
+  test("B2505 — a waiting reader ticks WhatsApp postcards, types a mobile, and it is saved with the request", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock = vi.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return { ok: true, json: async () => ({ ok: true, status: "waiting" }) } as Response;
+    });
+    mount(
+      <JoinFlow
+        code="2345678923"
+        owner="ana"
+        title="Two Backpacks"
+        ownerName="Ana"
+        kind="guest"
+        tripTitle={null}
+        knownEmail="an•••@example.test"
+        caps={{ mail: true, sms: false, whatsapp: true, postcards: false }}
+        dictionary={dict}
+        locale="en"
+        locales={["en"]}
+        addressLookupEnabled={false}
+      />,
+    );
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    const type = (input: HTMLInputElement, value: string) =>
+      act(() => {
+        setter.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    type(container!.querySelector("input")!, "Anna");
+    await act(async () => {
+      press(dict["join.who.go"]);
+      await Promise.resolve();
+    });
+    const row = Array.from(container!.querySelectorAll("label")).find((l) => l.textContent?.includes(dict["guide.notify.whatsapp"]))!;
+    expect(row.querySelector('[data-testid="postcard-icon"]')).not.toBeNull();
+    const box = row.querySelector("input")!;
+    expect(box.disabled).toBe(false);
+    expect(container!.querySelector('input[type="tel"]')).toBeNull();
+    act(() => box.click());
+    const tel = container!.querySelector<HTMLInputElement>('input[type="tel"]')!;
+    expect(tel).not.toBeNull();
+    // Ticked with no number: said, and nothing posted.
+    const sent = bodies.length;
+    await act(async () => {
+      press(dict["join.notify.send"]);
+      await Promise.resolve();
+    });
+    expect(bodies.length).toBe(sent);
+    type(tel, "+41 79 555 88 11");
+    await act(async () => {
+      press(dict["join.notify.send"]);
+      await Promise.resolve();
+    });
+    expect(bodies.at(-1)).toMatchObject({ action: "save", wantsWhatsapp: true, tel: "+41 79 555 88 11" });
+    fetchMock.mockRestore();
+  });
+
   test("with SMS off there is no mobile tab", () => {
     mount(
       <JoinFlow
