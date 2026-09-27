@@ -412,16 +412,21 @@ export async function POST(request: Request) {
       const tripTitle = invite.tripId
         ? (getTrip(tripRef(username, invite.tripId))?.title ?? null)
         : null;
-      const sent =
-        (await sendInviteMail(username, user, {
-          email: contact.email,
-          // Reader chain (W44 D7): the contact's own locale, else en.
-          locale: pickLocale(contact.locale),
-          kind: invite.kind,
-          url: invite.url,
-          tripTitle,
-        })) !== null;
-      return Response.json({ ok: true, sent });
+      const result = await sendInviteMail(username, user, {
+        email: contact.email,
+        // Reader chain (W44 D7): the contact's own locale, else en.
+        locale: pickLocale(contact.locale),
+        kind: invite.kind,
+        url: invite.url,
+        tripTitle,
+      });
+      const sent = result !== null && result !== "suppressed";
+      return Response.json({
+        ok: true,
+        sent,
+        // B2442 — the studio says why, distinct from a plain send failure.
+        ...(result === "suppressed" ? { reason: "suppressed" } : {}),
+      });
     }
     case "update": {
       // `create` runs the address through `isEmail`; `update` did not, and

@@ -357,8 +357,9 @@ async function renderDayLetter(
   // also what `List-Unsubscribe` points at — the preferences page a reader
   // could also reach from their own manage token is one press further on
   // from there, not a second line here.
+  // `s=mail` — B2442: this stream only, not every channel the reader chose.
   const unsubscribe = recipient.manageToken
-    ? unsubscribeUrlFor(base, trip.username, recipient.manageToken)
+    ? unsubscribeUrlFor(base, trip.username, recipient.manageToken, "mail")
     : undefined;
 
   // The owner has no manage token — there is no preference to change and
