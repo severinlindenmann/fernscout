@@ -16,6 +16,7 @@
     "db:import": "tsx --conditions=react-server scripts/db.mts import",
     "build:worldmap": "node scripts/build-world-map.mjs",
     "build:worldcountries": "tsx scripts/build-world-countries.mts",
+    "build:countrycolours": "tsx scripts/build-country-colours.mts",
     "build:mapdata": "node scripts/build-mapdata.mjs",
     "build:geodata": "node scripts/build-geodata.ts",
     "build:peaks": "node scripts/build-peaks.ts",
