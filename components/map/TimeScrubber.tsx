@@ -42,7 +42,7 @@ export default function TimeScrubber({
   selectedIndex,
   onSelect,
   live = false,
-  chips = stops.length <= 7,
+  chips,
 }: {
   stops: ScrubberStop[];
   /** Clamped internally — pass whatever the map currently has selected, or
@@ -51,23 +51,26 @@ export default function TimeScrubber({
   onSelect: (index: number) => void;
   /** Right edge is "today" instead of the last stop's date. */
   live?: boolean;
-  /** Day chips under the track — omitted past 7 stops, where they'd wrap
-   * into a second row nobody asked for. */
+  /** Day chips under the track. By default only when the trip spans 7 days
+   * or fewer (docs/plans/map-redesign.md §1 "Time"), counted from the dates
+   * rather than the stops: a live 83-day trip with three stops is not a
+   * short trip. */
   chips?: boolean;
 }) {
   const { t, formatShortDate } = useI18n();
   const trackRef = useRef<HTMLDivElement | null>(null);
   const index = Math.min(Math.max(selectedIndex, 0), Math.max(0, stops.length - 1));
 
-  const positions = useMemo(() => {
-    if (stops.length === 0) return [] as number[];
+  const { positions, spanDays } = useMemo(() => {
+    if (stops.length === 0) return { positions: [] as number[], spanDays: 0 };
     const days = stops.map((s) => dayNumber(s.date));
     const start = Math.min(...days);
     const rawEnd = Math.max(...days);
     const end = live ? Math.max(rawEnd, dayNumber(earliestTodayISO())) : rawEnd;
     const span = Math.max(1, end - start);
-    return days.map((d) => (d - start) / span);
+    return { positions: days.map((d) => (d - start) / span), spanDays: end - start + 1 };
   }, [stops, live]);
+  const showChips = chips ?? spanDays <= 7;
 
   const nearestIndex = useCallback(
     (fraction: number) => {
@@ -179,7 +182,7 @@ export default function TimeScrubber({
         />
       </div>
 
-      {chips && (
+      {showChips && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {stops.map((stop, i) => (
             <button

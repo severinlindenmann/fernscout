@@ -119,24 +119,27 @@ describe("accessibility", () => {
 });
 
 describe("day chips", () => {
-  test("shown for a trip of 7 stops or fewer", () => {
-    render(fiveMonths);
-    const chip = Array.from(container!.querySelectorAll("button")).find(
-      (b) => b.textContent && b.getAttribute("aria-pressed") !== null,
-    );
-    expect(chip).toBeDefined();
+  const chipsShown = () =>
+    Array.from(container!.querySelectorAll("button")).some((b) => b.getAttribute("aria-pressed") !== null);
+  const days = (dates: string[]): ScrubberStop[] => dates.map((date, i) => ({ key: String(i), date, location: `Stop ${i}` }));
+
+  test("shown when the trip spans 7 days or fewer", () => {
+    render(days(["2024-09-12", "2024-09-13", "2024-09-14", "2024-09-15"]));
+    expect(chipsShown()).toBe(true);
   });
 
-  test("hidden past 7 stops", () => {
-    const eight: ScrubberStop[] = Array.from({ length: 8 }, (_, i) => ({
-      key: String(i),
-      date: `2024-01-${String(i + 1).padStart(2, "0")}`,
-      location: `Stop ${i}`,
-    }));
-    render(eight);
-    const chip = Array.from(container!.querySelectorAll("button")).find(
-      (b) => b.getAttribute("aria-pressed") !== null,
-    );
-    expect(chip).toBeUndefined();
+  test("hidden when the trip spans more than 7 days, even with only a few stops", () => {
+    render(days(["2026-06-01", "2026-06-19", "2026-08-24"]));
+    expect(chipsShown()).toBe(false);
+  });
+
+  test("hidden for eight consecutive days", () => {
+    render(days(Array.from({ length: 8 }, (_, i) => `2024-01-${String(i + 1).padStart(2, "0")}`)));
+    expect(chipsShown()).toBe(false);
+  });
+
+  test("hidden for a five-month trip", () => {
+    render(fiveMonths);
+    expect(chipsShown()).toBe(false);
   });
 });
