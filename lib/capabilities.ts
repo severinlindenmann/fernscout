@@ -362,6 +362,22 @@ function applePushNote(name: FeatureName, feature: Record<string, unknown>): str
     : "features.applePush.backend is \"apns\" — notifications are sent to Apple for real";
 }
 
+/**
+ * B1794. Same shape as `applePushNote`, one capability over each: `enabled:
+ * true` alone does not say whether a send actually reaches a phone or a
+ * provider, and `/api/health` is where an operator (or a dev instance with
+ * no test account yet) finds out rather than discovering it the first time
+ * a message never arrives.
+ */
+function backendDryRunNote(name: FeatureName, feature: Record<string, unknown>): string | undefined {
+  if (name !== "sms" && name !== "whatsapp") return undefined;
+  const backend = optionOf(feature, "backend") ?? "dry-run";
+  if (backend !== "dry-run") return undefined;
+  return name === "sms"
+    ? 'features.sms.backend is "dry-run" — the message is written under <dataDir>/sms/ and nothing reaches a phone'
+    : 'features.whatsapp.backend is "dry-run" — the message is written to disk and nothing reaches WhatsApp';
+}
+
 function addressLookupNote(name: FeatureName): string | undefined {
   if (name !== "addressLookup") return undefined;
   return `reverse lookups are sent to ${addressLookupEndpoints().reverseUrl}`;
@@ -652,6 +668,7 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
   const note =
     dryRunNote(name, feature) ??
     applePushNote(name, feature) ??
+    backendDryRunNote(name, feature) ??
     addressLookupNote(name) ??
     paymentProviderNote(name) ??
     signupNote(name, feature) ??

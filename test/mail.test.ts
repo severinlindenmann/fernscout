@@ -520,6 +520,36 @@ describe("transports", () => {
     expect(result!.reference).toContain(path.join("mail", "ana"));
   });
 
+  /** B1794: a dev instance sets MAIL_SUBJECT_PREFIX so every message it sends
+   * is unmistakable from prod's in a real inbox. */
+  describe("MAIL_SUBJECT_PREFIX", () => {
+    afterEach(() => {
+      delete process.env.MAIL_SUBJECT_PREFIX;
+    });
+
+    test("is prepended to what actually goes out", async () => {
+      process.env.MAIL_SUBJECT_PREFIX = "TEST-";
+      writeConfig({ enabled: true, transport: "file" });
+      const result = await sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana"));
+      const written = fs.readFileSync(result!.reference, "utf8");
+      expect(written).toContain("Subject: TEST-Hello");
+    });
+
+    test("unset leaves the subject unchanged", async () => {
+      writeConfig({ enabled: true, transport: "file" });
+      const result = await sendMail(renderMail("reader@example.test", "Hello", SAMPLE, "ana"));
+      const written = fs.readFileSync(result!.reference, "utf8");
+      expect(written).toContain("Subject: Hello");
+    });
+
+    test("also applies through sendMailWith, used by the admin test-mail send", async () => {
+      process.env.MAIL_SUBJECT_PREFIX = "TEST-";
+      const sent = await sendMailWith("file", renderMail("reader@example.test", "S", SAMPLE, "ana"));
+      const written = fs.readFileSync(sent.reference, "utf8");
+      expect(written).toContain("Subject: TEST-S");
+    });
+  });
+
   /**
    * B111 — the fallback used to be `process.cwd()`.
    *
