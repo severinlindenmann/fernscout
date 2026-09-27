@@ -12,7 +12,7 @@ import { translateIn } from "../locales";
 import { maskNumber, toE164 } from "../phone";
 import { maySeePhoto, type ReaderLevel } from "../photos";
 import { serverSite } from "../site";
-import { sendSms, smsUnreachable } from "../sms";
+import { sendSms, smsUnreachable, SmsSwitchedOffError } from "../sms";
 import { peopleOf } from "../tripPeople";
 import { getTrip } from "../trips";
 import type { Entry, Trip } from "../types";
@@ -92,7 +92,19 @@ export type DaySmsOutcome =
   | { ok: true; sent: { to: string }[]; failed: { to: string; error: string }[] }
   | {
       ok: false;
-      reason: "unknown_trip" | "unknown_day" | "not_published" | "test_content" | "sms_off" | "contacts_off" | "no_credits";
+      reason:
+        | "unknown_trip"
+        | "unknown_day"
+        | "not_published"
+        | "test_content"
+        | "sms_off"
+        | "contacts_off"
+        | "no_credits"
+        // The operator switched news.sms off (M1) — every recipient shares
+        // one template, so the first send to throw SmsSwitchedOffError
+        // speaks for all of them: nothing sent, nothing charged, no day
+        // marked notified on this channel.
+        | "switched_off";
       needed?: number;
       balance?: number;
     };
@@ -133,6 +145,14 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
       await sendSms({ to: recipient.to, body, template: "news.sms", owner: trip.username });
       sent.push({ to: recipient.to });
     } catch (err) {
+      if (err instanceof SmsSwitchedOffError) {
+        // The same template for everybody on this send, so the first throw
+        // speaks for the rest: give back the whole pre-spend rather than
+        // trickling refunds recipient by recipient, and never mark the day
+        // notified on a channel that sent nothing (M1).
+        if (needed > 0) await refund(owner, needed, ledgerRef);
+        return { ok: false, reason: "switched_off" };
+      }
       failed.push({ to: recipient.to, error: err instanceof Error ? err.message : String(err) });
       if (!recipient.free) owed++;
     }

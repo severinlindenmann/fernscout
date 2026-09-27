@@ -12,7 +12,7 @@ import { logMessage } from "../messages/log";
 import { toE164 } from "../phone";
 import { rateLimitFor } from "../rateLimit";
 import { serverSite } from "../site";
-import { sendSms, smsUnreachable } from "../sms";
+import { sendSms, smsUnreachable, SmsSwitchedOffError } from "../sms";
 import { getTrip, tripRef } from "../trips";
 import type { Locale } from "../types";
 import { getUser } from "../users";
@@ -456,6 +456,9 @@ export type InviteSendResult =
         | "daily_limit"
         | "no_credits"
         | "send_failed"
+        // The operator switched invite.sms off (M1) — distinguished from a
+        // real send failure so the studio can say what actually happened.
+        | "switched_off"
         | ChannelBlock;
       balance?: number | null;
     };
@@ -515,6 +518,13 @@ export async function sendInvite(
   try {
     backend = await deliver(owner, contact, channel, message);
   } catch (err) {
+    if (err instanceof SmsSwitchedOffError) {
+      // Distinguishable from a transport failure (M1): nothing went out
+      // because the operator turned this kind off, not because the send
+      // itself failed. Whatever it cost still comes back either way.
+      if (cost > 0) await refund(owner, cost, ref);
+      return { ok: false, reason: "switched_off", balance: await balanceOf(owner) };
+    }
     console.error(`[invite] ${channel} to contact ${contactId} failed:`, err instanceof Error ? err.message : err);
   }
   if (backend === null) {
