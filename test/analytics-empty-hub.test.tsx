@@ -50,6 +50,7 @@ const site: SiteSummary = {
   helperEnabled: false,
   isOwner: false,
   extractEnabled: false,
+  isShowcase: false,
 };
 
 function markup(props: React.ComponentProps<typeof AnalyticsHubContent>, locale = "en"): string {

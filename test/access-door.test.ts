@@ -97,6 +97,10 @@ describe("what the header is told about signing in", () => {
       // B821. Viewer-derived, like `signedIn` and `hasIdentity` above: it is
       // whether this reader is the owner, not a fact the trip gate filtered.
       "isOwner",
+      // B1724, and since B2464 also read by `NextDayPrompt` — whether this
+      // username is on the operator's own showcase list. Journal-wide and
+      // viewer-independent, exactly like `helperEnabled` above.
+      "isShowcase",
       "locales",
       // B1728. The instance's own name, from config — journal-wide and
       // viewer-independent like `analyticsEnabled`. The breadcrumb's crumb

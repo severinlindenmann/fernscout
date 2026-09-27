@@ -9,7 +9,6 @@ import { isIndexable } from "@/lib/access";
 import { siteSummaryFor } from "@/lib/site";
 import { loadServerConfig } from "@/lib/config";
 import IdentityUpgrade from "@/components/IdentityUpgrade";
-import PushPrompt from "@/components/PushPrompt";
 import ShowcaseBar from "@/components/ShowcaseBar";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { isOwner as resolveIsOwner } from "@/lib/contacts/session";
@@ -169,35 +168,23 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
         <CurrencyProvider options={currencyOptions(username)}>
         {children}
         {/*
-          One question at the foot of the page, and which one depends on whose
-          journal this is — B1724.
-
-          **A journal somebody follows** gets the notification offer: shown once
-          the reader has read something (B440), at the layout rather than inside
-          `TripHero`, because `TripStory` renders the hero on the story's
-          landing step alone and the reader most worth asking is the one who has
-          paged into a day — exactly the reader the hero has scrolled away from
-          (B439). Rendered here, after `children`, so it sits in flow above the
-          footer rather than pinned over whatever the page is showing — B1992.
-          `PushPrompt` itself refuses to appear under `/<user>/studio`, the one
-          tree in this journal an owner scrolls to the very bottom of.
-
-          **A journal the operator put on show** gets the way out instead. Its
-          reader is not following Alex Berger's trip across the western United
-          States; they are deciding whether to make a journal of their own, and
-          a browser permission they cannot easily undo is not what they came
-          for. B1718 put the bar there for that reader at that moment, and two
-          cards asking at once is one too many.
+          A journal the operator put on show gets a way out at the foot of
+          every page — B1718, B1724. Its reader is not following Alex
+          Berger's trip across the western United States; they are deciding
+          whether to make a journal of their own.
 
           `site.showcase` is the operator's list and only theirs, resolved on
-          the server, so each journal has exactly one of these in its document
-          rather than one hidden with CSS.
+          the server.
+
+          The notification offer this used to sit beside (`PushPrompt`) moved
+          off the layout entirely in B2464: it now renders inside the day
+          reader itself, at the end of the newest published day of a trip
+          still going, rather than after every page's content regardless of
+          what the reader was looking at. `SiteSummary.isShowcase` carries
+          this same list to where that card decides whether to appear, so a
+          showcase journal still never gets both asks at once.
         */}
-        {loadServerConfig().site.showcase.includes(username) ? (
-          <ShowcaseBar />
-        ) : (
-          <PushPrompt username={username} />
-        )}
+        {loadServerConfig().site.showcase.includes(username) && <ShowcaseBar />}
         </CurrencyProvider>
       </TripListProvider>
       </LocaleProvider>

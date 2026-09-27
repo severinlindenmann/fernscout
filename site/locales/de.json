@@ -2235,6 +2235,7 @@
   "push.prompt.never": "Nicht mehr fragen",
   "push.prompt.notNow": "Jetzt nicht",
   "push.prompt.title": "Den nächsten Tag bekommen?",
+  "push.prompt.wantDay": "Tag {n}, sobald er da ist?",
   "push.prompt.yes": "Ja, benachrichtigt mich",
   "push.turnOff": "Ausschalten",
   "push.unavailable": "In diesem Browser ist der Push-Dienst ausgeschaltet, deshalb lassen sich hier keine Benachrichtigungen einrichten. In Brave: Einstellungen → Datenschutz und Sicherheit → „Google-Dienste für Push-Nachrichten verwenden“, danach den Browser neu starten.",

@@ -3,10 +3,12 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useTrip } from "@/components/TripProvider";
+import { useOptionalSite } from "@/components/SiteProvider";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import DayReactions from "./DayReactions";
+import PushPrompt from "./PushPrompt";
 import DualTime from "./DualTime";
 import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
@@ -227,6 +229,7 @@ export default function StoryPager({
                 day={dayAt(step.dayIndex)!}
                 summary={index[step.dayIndex]}
                 dayIndex={step.dayIndex}
+                isNewestDay={step.dayIndex === index.length - 1}
               />
             ) : (
               <DayPlaceholder
@@ -294,6 +297,7 @@ export function DayCard({
   dayIndex,
   canPublish,
   tripTest,
+  isNewestDay = false,
 }: {
   /** With its prose already drawn on the server, on the story page — see
    *  `lib/prose.ts`. A bare `Day` still renders: its markdown is parsed
@@ -310,10 +314,18 @@ export function DayCard({
    *  context answers instead; the helper room's preview pane has no
    *  provider to read, so it passes the trip's own flag through. */
   tripTest?: boolean;
+  /** True for the last position in the pager's own day index — B2464. Only
+   * `StoryPager` passes it (`step.dayIndex === index.length - 1`); the docs
+   * bench and any other direct caller leave it out and simply get no card.
+   * `NextDayPrompt` itself still gates on the trip being current/upcoming
+   * and this day being published, so a caller passing `true` by mistake
+   * cannot make the card appear on a finished trip or under a draft. */
+  isNewestDay?: boolean;
 }) {
   // Trip-relative: URLs carry a username now, so a bare "/costs" would send a
   // reader to somebody else's site — or to nothing at all.
   const trip = useTrip();
+  const site = useOptionalSite();
   const { t, formatLongDate } = useI18n();
   const { spendParts } = useMoney();
   const [editing, setEditing] = useState(false);
@@ -473,6 +485,22 @@ export function DayCard({
         <div className="mt-10 border-t border-line-quiet pt-4">
           <DayReactions daySlug={lead.slug} />
         </div>
+
+        {/*
+          "Get the next day?" — B2464. Used to hang after every page's
+          content in the layout; now it renders here, the one place asking
+          it makes sense: the end of the newest published day of a trip
+          that is still going. `PushPrompt` itself still gates on
+          eligibility and engagement (browser support, dwell time) before it
+          shows anything.
+        */}
+        {isNewestDay &&
+          trip &&
+          trip.trip.status !== "past" &&
+          !lead.draft &&
+          !site?.isShowcase && (
+            <PushPrompt username={trip.trip.username} nextDayNumber={dayIndex + 2} />
+          )}
       </div>
     </article>
   );

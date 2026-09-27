@@ -8,6 +8,7 @@ import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
 import OfflineTrips from "@/components/OfflineTrips";
+import NeverAskNextDay from "@/components/NeverAskNextDay";
 import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import ThisPhone from "@/components/studio/ThisPhone";
@@ -584,6 +585,9 @@ export default function MePageContent({
           journal={username}
           heading={{ title: t("me.notifyTitle"), lede: t("me.notifyLede") }}
         />
+        {/* B2464 — the day-end "Get the next day?" card's own permanent,
+            reversible off switch, beside the journal-specific one above. */}
+        <NeverAskNextDay />
 
         {/*
           What this journal sends a model or the operator, and what to do

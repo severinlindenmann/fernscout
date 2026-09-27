@@ -2030,6 +2030,7 @@
   "push.prompt.never": "Ne kérdezzétek többet",
   "push.prompt.notNow": "Most nem",
   "push.prompt.title": "Megkapod a következő napot?",
+  "push.prompt.wantDay": "Szeretnéd a(z) {n}. napot, amint megjelenik?",
   "push.prompt.yes": "Igen, értesítsetek",
   "push.turnOff": "Kikapcsolás",
   "push.unavailable": "Ebben a böngészőben ki van kapcsolva a push-szolgáltatás, így itt nem lehet értesítéseket beállítani. Brave-ben: Beállítások → Adatvédelem és biztonság → „Google-szolgáltatások használata push-üzenetekhez”, majd indítsd újra a böngészőt.",

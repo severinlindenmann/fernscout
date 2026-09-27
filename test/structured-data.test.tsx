@@ -30,6 +30,7 @@ const site: SiteSummary = {
   helperEnabled: false,
   isOwner: false,
   extractEnabled: false,
+  isShowcase: false,
 };
 
 const authors = ["Alex Berger", "Robin Berger"];
