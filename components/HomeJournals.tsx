@@ -187,10 +187,10 @@ function AdminJournals({ journals }: { journals: HomeJournal[] }) {
         id="admin-journals"
         className="font-display text-lg font-semibold text-ink-strong"
       >
-        {t("home.adminSection")}
+        {t("home.ownerSection")}
       </h2>
       <p className="mt-1 text-xs leading-5 text-ink-secondary">
-        {t("home.adminSectionBody")}
+        {t("home.ownerSectionBody")}
       </p>
 
       <ul className="mt-3 divide-y divide-line-quiet border-y border-line-quiet">

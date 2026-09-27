@@ -167,8 +167,8 @@ describe("the contacts admin page's own language", () => {
     const html = await render();
     // German cookie, English-default journal: the page's own chrome must be
     // German. Before the fix this rendered "Readers" (the English string).
-    expect(html).toContain(dictionaryFor("de")["contact.adminTitle"]);
-    expect(html).not.toContain(dictionaryFor("en")["contact.adminTitle"]);
+    expect(html).toContain(dictionaryFor("de")["contact.ownerTitle"]);
+    expect(html).not.toContain(dictionaryFor("en")["contact.ownerTitle"]);
   });
 
   test("a contact's own locale is untouched by the reader's choice", async () => {

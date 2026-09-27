@@ -32,9 +32,9 @@ describe("the owner's address fieldset survives postcards being off", () => {
     expect(html).toContain('id="guest-addr-line1"');
     expect(html).toContain('id="guest-addr-city"');
     // No id on the checkbox itself — its label text is the only marker.
-    expect(html).not.toContain(en["contact.adminWantsPostcard"]);
+    expect(html).not.toContain(en["contact.ownerWantsPostcard"]);
     // The hint must not promise a postcard this server cannot send.
-    expect(html).toContain(en["contact.adminAddressHintNoPostcards"]);
+    expect(html).toContain(en["contact.ownerAddressHintNoPostcards"]);
     // Server-rendered HTML entity-escapes the apostrophe in the other hint,
     // so this checks the un-escaped part of the sentence is absent.
     expect(html).not.toContain("real postcard in the mail");
@@ -55,8 +55,8 @@ describe("the owner's address fieldset survives postcards being off", () => {
       />,
     );
     expect(html).toContain('id="guest-addr-line1"');
-    expect(html).toContain(en["contact.adminWantsPostcard"]);
+    expect(html).toContain(en["contact.ownerWantsPostcard"]);
     // Server-rendered HTML entity-escapes the apostrophe in the hint text.
-    expect(html).not.toContain(en["contact.adminAddressHintNoPostcards"]);
+    expect(html).not.toContain(en["contact.ownerAddressHintNoPostcards"]);
   });
 });

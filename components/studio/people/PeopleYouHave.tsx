@@ -12,7 +12,7 @@ export type KnownPerson = { id: string; name: string | null; email: string; trip
 
 const ERROR_KEY: Record<string, TranslationKey> = {
   invalid_email: "contact.needEmail",
-  email_taken: "contact.adminEmailTaken",
+  email_taken: "contact.ownerEmailTaken",
   self_authored: "studio.people.have.selfAuthored",
 };
 
@@ -108,7 +108,7 @@ export default function PeopleYouHave({ username, people }: { username: string; 
                         {t("contact.save")}
                       </BusyButton>
                       <button type="button" onClick={() => setEditing(null)} className={LINK}>
-                        {t("contact.adminGuestCancel")}
+                        {t("contact.ownerGuestCancel")}
                       </button>
                     </div>
                   </div>
@@ -133,7 +133,7 @@ export default function PeopleYouHave({ username, people }: { username: string; 
                         }}
                         className={LINK}
                       >
-                        {t("contact.adminEdit")}
+                        {t("contact.ownerEdit")}
                       </button>
                       <button type="button" onClick={() => setAsking(row.id)} className={LINK}>
                         {t("studio.people.typeIn.remove")}
@@ -146,7 +146,7 @@ export default function PeopleYouHave({ username, people }: { username: string; 
                     <ConfirmPanel
                       label={t("studio.people.typeIn.remove")}
                       question={t("studio.people.have.removeQuestion", { name: shown })}
-                      confirmLabel={t("contact.adminDeleteConfirm", { name: shown })}
+                      confirmLabel={t("contact.ownerDeleteConfirm", { name: shown })}
                       tone="destructive"
                       busy={busy}
                       onConfirm={() => void remove(row.id)}

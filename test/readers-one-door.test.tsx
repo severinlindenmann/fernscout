@@ -144,9 +144,9 @@ describe("the page: two doors, then the groups", () => {
 
   test("everybody sits in the group whose turn it is", () => {
     render([ida, bea, otto, nina, imp, gone], [link]);
-    expect(groupOf("Otto Asks")).toBe(dict["contact.adminPending"]);
+    expect(groupOf("Otto Asks")).toBe(dict["contact.ownerPending"]);
     expect(groupOf("Nina New")).toBe(dict["readers.group.invited"]);
-    expect(groupOf("Imre Imported")).toBe(dict["contact.adminNotInvited"]);
+    expect(groupOf("Imre Imported")).toBe(dict["contact.ownerNotInvited"]);
     expect(groupOf("Ida Reader")).toBe(dict["readers.group.reading"]);
     expect(groupOf("Bea Buddy")).toBe(dict["readers.group.reading"]);
     expect(groupOf("Family chat")).toBe(dict["readers.group.links"]);
@@ -158,12 +158,12 @@ describe("the page: two doors, then the groups", () => {
 
   test("a request that proved a mobile number is the owner's to answer, not an unopened invite", () => {
     render([{ ...otto, id: "c-moe", name: "Moe Mobile", email: "", phone: "+41 78 123 45 67", confirmedAt: null, phoneProvenAt: "2026-09-25T06:00:00Z", createdVia: "invite:inv-1" }]);
-    expect(groupOf("Moe Mobile")).toBe(dict["contact.adminPending"]);
+    expect(groupOf("Moe Mobile")).toBe(dict["contact.ownerPending"]);
     expect(container!.textContent).toContain(dict["readers.line.mobileConfirmed"]);
   });
 
   test("somebody the owner added reads \"You added them\", not the owner's own label", () => {
-    expect(dict["contact.adminViaOwner"]).toBe("You added them");
+    expect(dict["contact.ownerViaOwner"]).toBe("You added them");
     render([{ ...nina, welcomeOpenedAt: "2026-09-25T07:00:00Z" }]);
     expect(groupOf("Nina New")).toBe(dict["readers.group.reading"]);
     expect(container!.textContent).toContain("You added them");
@@ -211,7 +211,7 @@ describe("Let in and Decline ask first", () => {
     expect(posts[0][0]).toBe("/api/web/alex/readers/letin");
     expect(JSON.parse(String((posts[0][1] as RequestInit).body))).toEqual({ contactId: "c-otto" });
     expect(container!.querySelector('[role="status"]')?.textContent).toBe(
-      `${dict["contact.adminApprovedGuestTrips"]} ${fill("readers.toldByEmail", { name: "Otto Asks" })}`,
+      `${dict["contact.ownerApprovedGuestTrips"]} ${fill("readers.toldByEmail", { name: "Otto Asks" })}`,
     );
     expect(refresh).toHaveBeenCalled();
   });
@@ -223,7 +223,7 @@ describe("Let in and Decline ask first", () => {
     const confirm = Array.from(panel.querySelectorAll("button")).find((b) => b.textContent === fill("readers.letIn", { name: "Otto" }))!;
     await act(async () => confirm.click());
     expect(container!.querySelector('[role="status"]')?.textContent).toBe(
-      `${dict["contact.adminApprovedNoTrip"]} ${fill("readers.toldByEmail", { name: "Otto Asks" })}`,
+      `${dict["contact.ownerApprovedNoTrip"]} ${fill("readers.toldByEmail", { name: "Otto Asks" })}`,
     );
     expect(refresh).toHaveBeenCalled();
   });
@@ -255,7 +255,7 @@ describe("the ••• menu on a reader", () => {
       action: "revoke",
       id: "c-ida",
     });
-    expect(container!.querySelector('[role="status"]')?.textContent).toBe(fill("contact.adminRevoked", { name: "Ida Reader" }));
+    expect(container!.querySelector('[role="status"]')?.textContent).toBe(fill("contact.ownerRevoked", { name: "Ida Reader" }));
   });
 
   test("Remove asks, and cancel leaves them alone", async () => {
@@ -266,7 +266,7 @@ describe("the ••• menu on a reader", () => {
     expect(sent(fetchMock, "POST")).toHaveLength(0);
     act(() => menuFor("Ida Reader").click());
     act(() => button(dict["readers.menu.remove"]).click());
-    await act(async () => button(fill("contact.adminDeleteConfirm", { name: "Ida Reader" })).click());
+    await act(async () => button(fill("contact.ownerDeleteConfirm", { name: "Ida Reader" })).click());
     expect(JSON.parse(String((sent(fetchMock, "POST")[0][1] as RequestInit).body))).toEqual({
       user: "alex",
       action: "delete",

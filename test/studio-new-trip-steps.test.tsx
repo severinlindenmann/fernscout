@@ -128,7 +128,7 @@ describe("NewTripFlow — one screen, B2187", () => {
     expect(container.querySelector("[data-decide-row]")).toBeNull();
     expect(text).toContain("What's the trip called?");
     expect(container.querySelector("[data-who-can-read] summary")?.textContent).toContain("Only you");
-    expect(text).toContain("Nothing is shared until you share a day yourself.");
+    expect(text).toContain("Nothing is published until you publish a day yourself.");
     expect(more()).not.toBeNull();
     expect(more().open).toBe(false);
     expect(button("Create trip").disabled).toBe(true);

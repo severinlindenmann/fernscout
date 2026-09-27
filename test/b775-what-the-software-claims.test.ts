@@ -210,7 +210,7 @@ describe("B775 — what publishing a day actually did", () => {
   test("a German journal's note is German, including the word for who can read it", () => {
     const notice = publishNotice({ ...day, visibility: "guest", listed: false, locale: "de" });
     expect(notice).toContain("nur für Gäste");
-    expect(notice).toContain("die du in dieses Journal aufgenommen hast");
+    expect(notice).toContain("die du in dieses Tagebuch aufgenommen hast");
     // No English left in it at all — not the vocabulary word, not the tail.
     expect(notice).not.toMatch(/\bguest\b|\bpublic\b|\bprivate\b/i);
     expect(notice).not.toMatch(/can be read by|Taking it down/);
