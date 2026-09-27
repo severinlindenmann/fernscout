@@ -151,6 +151,7 @@ export default async function Root() {
         // rather than flashed in and removed.
         postcardsEnabled={isEnabled("postcards")}
         photobookEnabled={isEnabled("photobook")}
+        signupEnabled={isEnabled("signup")}
         // Rendered here and handed over, because `Landing` is a client
         // component and `Pricing` is a server one: it reads a price from the
         // `server-only` module that charges it rather than having a dozen

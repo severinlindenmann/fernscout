@@ -16,11 +16,25 @@ import { tellWorkerSignedOut } from "@/lib/signedOut";
  * separately and never serve one reader's list to the next.
  */
 
-type HomeTrip = {
+type HomeDay = { slug: string; title: string; date: string; href: string };
+
+/** One trip as `/api/v2/me/home` describes it — `ViewerTrip` in lib/viewer.ts.
+ * Everything after `through` is B2508's, read at this address's own level
+ * and absent rather than guessed when there is nothing to show. */
+export type HomeTrip = {
   id: string;
   title: string;
   href: string;
   through: "public" | "owner" | "traveller" | "guest";
+  status?: "past" | "current" | "upcoming";
+  end?: string;
+  partial?: true;
+  start?: string;
+  cover?: string;
+  days?: number;
+  latest?: HomeDay & { image?: string; excerpt?: string };
+  draft?: HomeDay;
+  test?: true;
 };
 
 export type HomeJournal = {
@@ -52,10 +66,6 @@ export type HomeDevice = {
   current: boolean;
 };
 
-/** How many trips a journal card lists before it stops and counts the rest.
- * Four fits a phone without the card becoming the page. */
-const TRIPS_SHOWN = 4;
-
 /**
  * The badge beside a journal's name.
  *
@@ -85,84 +95,6 @@ export function RoleBadge({ role }: { role: MineJournal["role"] }) {
   );
 }
 
-function JournalCard({ journal }: { journal: MineJournal }) {
-  const { t, tn } = useI18n();
-  const shown = journal.trips.slice(0, TRIPS_SHOWN);
-  const rest = journal.trips.length - shown.length;
-
-  return (
-    <li className="rounded-xl border border-line-quiet bg-surface-raised p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <Link
-            href={journal.href}
-            className="font-display text-base font-semibold break-words text-ink-strong
-                       underline decoration-blue-500 decoration-2 underline-offset-4
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            {journal.title}
-          </Link>
-          <p className="mt-1 line-clamp-2 break-words text-sm leading-5 text-ink-secondary">
-            {journal.tagline}
-          </p>
-        </div>
-        <RoleBadge role={journal.role} />
-      </div>
-
-      {/* B493. A title is somebody else's `trip.md` and can be three hundred
-          characters with no space in it — which `flex-wrap` cannot break, so
-          the card grew to the width of the word and took the document's
-          horizontal scrollbar with it. `max-w-full` caps the row against the
-          card and `truncate` ends it in an ellipsis; the trip's own page still
-          shows the title whole. `min-w-0` on the `li` is what lets a flex item
-          shrink below its content at all. */}
-      <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
-        {shown.map((trip) => (
-          <li key={trip.id} className="min-w-0 max-w-full">
-            <Link
-              href={trip.href}
-              title={trip.title}
-              className="block max-w-full truncate text-sm leading-6 text-ink-body
-                         underline decoration-line-quiet underline-offset-4
-                         hover:decoration-blue-500
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              {trip.title}
-            </Link>
-          </li>
-        ))}
-        {rest > 0 && (
-          <li className="font-mono text-xs leading-6 text-ink-secondary">
-            {tn("home.moreTrips", rest, { count: String(rest) })}
-          </li>
-        )}
-      </ul>
-
-      <p className="mt-2 font-mono text-xs text-ink-secondary">
-        /{journal.username} ·{" "}
-        {tn("landing.trips", journal.trips.length, {
-          count: String(journal.trips.length),
-        })}
-      </p>
-
-      {journal.role === "owner" && (
-        <p className="mt-2 text-xs leading-5 text-ink-secondary">
-          {t("home.ownerHint.pre")}
-          <Link
-            href={`/${journal.username}/studio`}
-            className="text-ink-body underline decoration-line-quiet underline-offset-4
-                       hover:decoration-blue-500
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            {t("home.ownerHint.link")}
-          </Link>
-          {t("home.ownerHint.post")}
-        </p>
-      )}
-    </li>
-  );
-}
-
 /**
  * Every journal the operator reaches because they run the server — B494.
  *
@@ -177,7 +109,7 @@ function JournalCard({ journal }: { journal: MineJournal }) {
  * Deliberately uncapped as well — an operator scanning for one journal wants
  * to find it, not to be told there are eleven more.
  */
-function AdminJournals({ journals }: { journals: HomeJournal[] }) {
+export function AdminJournals({ journals }: { journals: HomeJournal[] }) {
   const { t, tn } = useI18n();
   if (journals.length === 0) return null;
 
@@ -217,51 +149,6 @@ function AdminJournals({ journals }: { journals: HomeJournal[] }) {
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-export function YourJournals({
-  email,
-  journals,
-}: {
-  email: string;
-  journals: HomeJournal[];
-}) {
-  const { t } = useI18n();
-  // Two lists, one query: a journal this address holds a real role in is a
-  // card, and one it merely runs the server for is a row below (B494).
-  const mine = journals.filter(isMine);
-  const admin = journals.filter((j) => j.role === "admin");
-  return (
-    <section aria-labelledby="your-journals" className="mt-6">
-      <h1
-        id="your-journals"
-        className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-[1.15] text-ink-strong"
-      >
-        {t("home.title")}
-      </h1>
-      <p className="mt-2 font-mono text-xs text-ink-secondary">
-        {t("home.signedInAs", { email })}
-      </p>
-
-      {mine.length === 0 && admin.length > 0 ? null : mine.length === 0 ? (
-        /* Not an empty heading with nothing under it. Somebody signed in with
-           no journals is in a real and explicable state — nobody has approved
-           them yet, or they have not started their own — and saying so is the
-           difference between a working page and a broken-looking one. */
-        <p className="mt-4 text-base leading-6 text-ink-body">
-          {t("home.none")}
-        </p>
-      ) : (
-        <ul className="mt-5 grid gap-4">
-          {mine.map((journal) => (
-            <JournalCard key={journal.username} journal={journal} />
-          ))}
-        </ul>
-      )}
-
-      <AdminJournals journals={admin} />
     </section>
   );
 }
