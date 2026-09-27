@@ -13,6 +13,7 @@ import { TRANSPORT_STYLE, dashFor } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
+import { useMapViewport } from "./map/useMapViewport";
 import type { Basemap } from "@/lib/basemap";
 import type { PlaceEntry, PlannedStop, TransportMode } from "@/lib/types";
 
@@ -105,9 +106,6 @@ export default function WorldMap({
   const href = useTrip()?.href ?? ((p: string) => p);
   const worldLand = useWorldLand();
   const [selected, setSelected] = useState<PlaceView | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const dragState = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   const planAhead = useMemo(() => {
     if (plan.length === 0) return [];
@@ -172,18 +170,6 @@ export default function WorldMap({
     [base],
   );
 
-  const view = useMemo(() => {
-    const w = base.w / zoom;
-    const h = base.h / zoom;
-    const baseCx = base.x + base.w / 2;
-    const baseCy = base.y + base.h / 2;
-    // 0 at zoom 1, approaching 1 as you zoom in.
-    const drift = focus ? Math.min(1, (zoom - 1) / 2) : 0;
-    const cx = (focus ? baseCx + (focus.x - baseCx) * drift : baseCx) + pan.x;
-    const cy = (focus ? baseCy + (focus.y - baseCy) * drift : baseCy) + pan.y;
-    return { x: cx - w / 2, y: cy - h / 2, w, h };
-  }, [base, zoom, pan, focus]);
-
   /**
    * How wide this map is actually being drawn, in CSS pixels.
    *
@@ -204,6 +190,30 @@ export default function WorldMap({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // Pan/zoom state and gesture handling — pinch, wheel, double-tap, keyboard
+  // — shared with `TripMap` (B2419). Not cooperative: this is the map page
+  // itself (and its full-screen overlay), so every finger belongs to it.
+  const viewport = useMapViewport({ svgRef, maxZoom });
+  const { zoom, pan, setZoom, setPan } = viewport;
+
+  const view = useMemo(() => {
+    const w = base.w / zoom;
+    const h = base.h / zoom;
+    const baseCx = base.x + base.w / 2;
+    const baseCy = base.y + base.h / 2;
+    // 0 at zoom 1, approaching 1 as you zoom in.
+    const drift = focus ? Math.min(1, (zoom - 1) / 2) : 0;
+    const cx = (focus ? baseCx + (focus.x - baseCx) * drift : baseCx) + pan.x;
+    const cy = (focus ? baseCy + (focus.y - baseCy) * drift : baseCy) + pan.y;
+    return { x: cx - w / 2, y: cy - h / 2, w, h };
+  }, [base, zoom, pan, focus]);
+  // Kept for gesture handlers that fire between renders (a pinch, a wheel
+  // tick) — an effect, not a call in the render body, so nothing here ever
+  // mutates a ref while rendering.
+  useEffect(() => {
+    viewport.syncFrame(view);
+  }, [viewport, view]);
 
   /**
    * A length in screen pixels, expressed in the units this frame is drawn in.
@@ -234,28 +244,7 @@ export default function WorldMap({
   // rule is "these two would overlap" rather than a distance guessed up front.
   const clusters = useMemo(() => clusterPlaces(plottable, px(13), base), [plottable, px, base]);
 
-  const reset = useCallback(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  }, []);
-
-  const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    dragState.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-  };
-  const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
-    const d = dragState.current;
-    if (!d) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const scale = view.w / rect.width;
-    setPan({
-      x: d.panX - (e.clientX - d.x) * scale,
-      y: d.panY - (e.clientY - d.y) * scale,
-    });
-  };
-  const endDrag = () => {
-    dragState.current = null;
-  };
+  const reset = viewport.reset;
 
   return (
     <div>
@@ -271,17 +260,14 @@ export default function WorldMap({
           // page, where the map is the entire point of the screen. The pan and
           // zoom controls also need somewhere to be that is not on top of the
           // route.
-          className="block h-auto min-h-[340px] w-full cursor-grab touch-none active:cursor-grabbing sm:min-h-0"
+          className="block h-auto min-h-[340px] w-full cursor-grab touch-none outline-none active:cursor-grabbing sm:min-h-0"
           role="group"
           // The same question the heading above it asks (B54). A map showing
           // only a planned route must not announce itself as "where we've
           // been" — the sighted reader had that corrected in the h1, and this
           // is the only name a screen reader gets.
           aria-label={t(pastTense ? "map.title" : "map.titlePlanned")}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={endDrag}
-          onPointerLeave={endDrag}
+          {...viewport.bind}
         >
           {/* Ground.
 
