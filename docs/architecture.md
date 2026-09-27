@@ -12,9 +12,11 @@ longer exist as separate files, since B1598/B1606), `entries/*.json` and
 `media/`. That is the source of truth; nothing is authoritative in the
 database.
 
-**The database is an index and a session store** — accounts, contacts, guest
-grants, push subscriptions, reactions, jobs. SQLite locally, Postgres in
-production, and nothing outside `lib/db/` and `lib/repos/` knows which.
+**The database is an index and a session store** — accounts, contacts, reader
+grants, push subscriptions, reactions, jobs. Credits, the credit ledger,
+analytics and contacts have no file form at all; they live only in the
+database. SQLite locally, Postgres in production, and nothing outside
+`lib/db/` and `lib/repos/` knows which.
 
 A trip is addressed as a **ref**, `<username>/<trip-id>`; ids are unique per
 user, not per instance. Use `tripRef()` / `parseTripRef()` in `lib/trips.ts`
@@ -34,14 +36,14 @@ serves any trip at the explicit one. Both render the same components.
 | `/<user>/analytics` · `/costs` · `/weather` | what the trip adds up to — a hub and one page per analysis (B557) |
 | `/<user>/trips` | every trip, with the lifetime map |
 | `/<user>/search` | across the whole journal, not one trip |
-| `/<user>/me` · `/contacts` | the reader's own access, and the owner's list of readers |
+| `/<user>/me` · `/<user>/contacts` | the reader's own access, and a permanent redirect to `/<user>/studio/readers` for the owner |
 | `/<user>/studio` | the owner's control room — journal settings, agent keys, export, delete, and every trip's own edit page (`/studio/trip?trip=<id>`); credits and storage (`/studio/account`) and visitor analytics (`/studio/visitors`) moved in whole from `/account` and `/me/analytics`, which are now permanent redirects (B2016–B2019) |
-| `/invite/guest/<token>` · `/invite/buddy/<token>` · `/c/<token>` · `/u/<token>` | guest and buddy invites; confirm; unsubscribe. A guest link leads to reading every `guest` trip in the journal once approved; a buddy link names one trip and leads to write access to it, plus the same read access a guest gets. `/<user>/studio/readers` is the only place either kind is made, approved or revoked (B2295) — `/<user>/i/<token>` and `/<user>/join` are gone |
-| `/<user>/feed.xml` · `/search-index.json` · `/story.json` · `/export.zip` | generated |
+| `/<user>/invite/guest/<token>` · `/<user>/invite/buddy/<token>` · `/<user>/c/<token>` · `/<user>/u/<token>` | reader and buddy invites; confirm; unsubscribe. A reader link leads to reading every `guest`-visibility trip in the journal once approved; a buddy link names one trip and leads to write access to it, plus the same read access a reader gets. `/<user>/studio/readers` is the only place either kind is made, approved or revoked (B2295) |
+| `/<user>/feed.xml` · `/<user>/search-index.json` · `/<user>/story.json` · `/<user>/export.zip` | generated |
 | `/<user>/media/<path>` | media, resized on demand (the grid widths ahead of time, after an upload) and cached |
-| `/<user>/postcards/<id>` | a proposed printed postcard, for the owner to look at and send |
-| `/agent` | a guided web helper — a face on an agent, not a second way in: it writes through the same `/api/v2/…` calls the `/skill/*.md` guides describe, for somebody with no agent of their own (B681/B682) |
-| `/admin` | what the instance costs to run. Owner-of-the-instance only, gated on `FERNSCOUT_ADMIN_EMAIL`, cookie session only — see "Three credentials", below |
+| `/<user>/postcards/<id>` | a proposed printed postcard, for the owner to look at and send. Hosted edition only |
+| `/documentation.txt` · `/<user>/documentation.txt` · `/skill/<name>.md` | the agent-facing guides — plain text an external agent reads instead of a person reading a page. There is no web helper room any more: `/agent.md` is a 301 to `/documentation.txt` (B311), and the studio's own `/<user>/studio/agent` is the handover page for a person's own agent, not a face on this instance's assistant |
+| `/admin` | what this server costs to run, for its operator. Gated on `FERNSCOUT_ADMIN_EMAIL`, cookie session only — see "Four credentials", below |
 
 ## Server-side modules
 
@@ -52,32 +54,32 @@ serves any trip at the explicit one. Both render the same components.
 | `lib/access.ts` · `lib/viewer.ts` · `lib/tripGate.ts` | who may see a trip, and what a given viewer is allowed |
 | `lib/auth/` | email OTP, sessions, and agent tokens — two classes that are never interchangeable |
 | `lib/db/` · `lib/repos/` | the dialect split, migrations, and one repo per stored thing |
-| `lib/api/v2/` | the REST surface under `/api/v2` — trips, days, media, statements and the rest, generated into `/api/v2/openapi.json` from the Zod schemas in `lib/api/v2/schemas/` |
-| `lib/api/` (outside `v2/`) | the surviving `/api/v1` routes — drawing a trip's GPS track — and `/api/auth` |
+| `lib/api/v2/` | the whole REST surface under `/api/v2` — trips, days, media, statements and the rest, generated into `/api/v2/openapi.json` from the Zod schemas in `lib/api/v2/schemas/`. v1 is gone |
+| `lib/api/` (outside `v2/`) | `/api/auth` and the agent-facing text (`documentation.ts`, `skillDocs.ts`, `errorCodes.ts`) |
 | `lib/validate/` | what an agent may write, and why a rejection says what it says |
 | `lib/media.ts` · `lib/mediaSizes.ts` · `lib/mediaLimits.ts` | derivatives, quotas and upload ceilings |
-| `lib/ingest/` | a folder of camera files → EXIF, clustering, resizing, entry markdown |
+| `lib/ingest/` | a folder of camera files → EXIF, clustering, resizing, entry JSON |
 | `lib/mail/` · `lib/digest/` · `lib/push.ts` | reaching readers: `.eml` files or SMTP, the nightly digest, web push |
-| `lib/contacts/` | one contact record behind invites, digests and postal addresses — personal, guest and buddy links alike |
-| `lib/photobook/` · `lib/postcard/` | PDF generation, with a `dry-run` backend for every provider |
+| `lib/contacts/` | one contact record behind invites, digests and postal addresses — reader and buddy links alike |
+| `lib/paid-stubs/` | the public stand-ins for `@paid/*` — photobook and postcard PDF generation, the credits ledger's Stripe half and WhatsApp live only in the private repository; a plain clone builds and runs with each one simply absent |
 | `lib/capabilities.ts` | which optional features are on, and why one is off — see `/api/health` |
-| `lib/helper/` | the model behind `/agent`: `model.ts` holds the net that checks what it *said* against what the turn actually *did* (AGENTS.md, "Part of that rule is now machinery"), `tools/` are the calls it may make, `consent.ts` and `undo.ts` guard publish and delete |
-| `lib/admin.ts` · `lib/credits.ts` · `lib/stripe.ts` | the one address that sees instance-wide cost and balance (`FERNSCOUT_ADMIN_EMAIL`), the ledger behind it, and the one caller (Stripe's webhook) allowed to raise a balance |
-| `lib/contentModel/` | `content-model.json`, the file shape a journal must have — published so `fernscout-helper` and anything else written against this instance stops copying it by hand |
-| `importers/` · `lib/gps/` · `lib/inbox.ts` | MIT-licensed parsers turning somebody's location/cost export into plain rows; the position-history store itself (reachable from nothing under `app/` — see `docs/gps.md`); and files waiting on a day to attach to |
+| `lib/helper/` | the model behind the studio's assistant: `model.ts` holds the net that checks what it *said* against what the turn actually *did*, `tools/` are the calls it may make, `consent.ts` and `undo.ts` guard publish and delete |
+| `lib/admin.ts` · `lib/credits.ts` | the one address that sees instance-wide cost and balance (`FERNSCOUT_ADMIN_EMAIL`), and the credit ledger — buying credits with Stripe is `@paid/credits`, hosted edition only |
+| `app/content-model.json` | the file shape a journal must have — published so `fernscout-helper` and anything else written against this instance stops copying it by hand |
+| `importers/` · `lib/gps/` · `lib/inbox.ts` | MIT-licensed parsers turning somebody's location/cost export into plain rows; the GPS history store itself, reachable from three doors under `app/` and no others — see `docs/gps.md`; and files waiting on a day to attach to |
 
 Money and locale each split into a **pure half a client component may import**
 and a **server-only half that reads files**: `lib/costFormat.ts` / `lib/costs.ts`,
 `lib/currency.ts` / `lib/rates.ts`, `lib/reactionSet.ts` / `lib/reactions.ts`.
 
-## Three credentials, not one
+## Four credentials, not one
 
-An agent token (`Authorization: Bearer`) and a guest session (cookie) were
+An agent token (`Authorization: Bearer`) and a reader session (cookie) were
 never interchangeable — `resolveSession()` refuses a row whose `kind` does
-not match what the caller asked for, which is decision 24: reading the site
-on a phone must not put a credential that can rewrite it in your pocket. A
-third, the **identity cookie** (B410), proves an address to the whole
-instance and authorises nothing by itself — `resolveAccess()` in
+not match what the caller asked for: reading the site on a phone must not put
+a credential that can rewrite it in your pocket. A third, the **identity
+cookie** (B410), proves an address to the whole instance and authorises
+nothing by itself — `resolveAccess()` in
 `lib/auth/handshake.ts` is the only place that turns "this address" into an
 answer about one particular journal, by asking the same `hasReadGrant` /
 `owner.email` / `people:` checks every other gate already asks. A fourth
@@ -97,7 +99,7 @@ phone (B283).
   between-days animation. Skylines are drawn procedurally, seeded from the
   location name, so each city looks its own but stays consistent.
 - `components/GamePath.tsx` — the winding day path, with country flags.
-- `components/WorldMap.tsx` · `MiniMap.tsx` · `SlideShow.tsx` ·
+- `components/WorldMap.tsx` · `TripMap.tsx` · `SlideShow.tsx` ·
   `charts/Charts.tsx` — the map, the hero's "we are here", the fullscreen
   slideshow, and the `/costs` chart primitives.
 - `public/sw.js` — service worker: offline shell plus push handling.
@@ -122,7 +124,7 @@ Dates are formatted from per-locale month/weekday tables rather than
 browser and caused a hydration mismatch.
 
 *Trade-off:* the locale is a cookie plus an optional `?lang=` (set in
-`proxy.ts`), not a path segment, so all three languages share one set of URLs.
+`proxy.ts`), not a path segment, so all five languages share one set of URLs.
 `app/sitemap.ts` emits `hreflang` so a crawler still learns they are
 translations rather than duplicates.
 

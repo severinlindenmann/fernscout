@@ -26,14 +26,18 @@ GET /api/v2/<user>/statements/<src>
 ```
 
 Read it back as a report, against the `src` the upload answered with. **This
-writes nothing.** It answers with:
+writes nothing.** It answers with (`statementRead`,
+`lib/api/v2/schemas/statement.ts`):
 
 | | |
 | --- | --- |
-| `spending.days` | grouped by day, in what the account was charged |
-| `spending.merchants` | biggest first — the list to agree categories against |
+| `dateRange` | the earliest and latest date on the statement |
+| `merchants` | biggest first — the list to agree categories against |
+| `payments` | every row, one per payment |
 | `rates` | what a unit of each foreign currency **actually cost**, from the money the bank moved |
-| `skipped` | transfers and money coming in, counted rather than hidden |
+
+There is no `spending.days` grouping and no `skipped` field — transfers and
+incoming money are not reported back separately today.
 
 Then a person decides two things nobody else can, and only then:
 
@@ -95,6 +99,14 @@ where that differs, which is where a real exchange rate comes from) and
 `checkCostsImporter` is the function to run against your own. There is no
 `dryRun` flag on this route — the whole call is read-only, so every request
 already is one. Send the file and read what comes back.
+
+## The studio path
+
+`/<user>/studio/statement` walks an owner through the same three calls from
+the browser: upload, read the report, agree categories merchant by merchant,
+apply. It sends the header plus five sample rows from the statement to the
+assistant so it can suggest a category per merchant — the owner still decides
+and sends the agreed rows themselves.
 
 ## Where this came from
 

@@ -45,7 +45,7 @@ work.
 | `--max-edge <px>` | 2000 | Longest edge of a served image. |
 | `--format <jpeg\|webp>` | jpeg | Derivative format. |
 | `--quality <n>` | 82 / 80 | Encoder quality. |
-| `--max-video-seconds <n>` | 30 | Hard cap on clip length. |
+| `--max-video-seconds <n>` | 300 | Hard cap on clip length. |
 | `--tags a,b,c` | | Tags added to every entry created. |
 | `--tools` | | Report which optional tools are available, and exit. |
 
@@ -69,15 +69,18 @@ wide-gamut photo into a lurid one and a colour profile identifies nobody.
 `test/ingest-media.test.ts` fails the build if GPS ever survives into an
 output file.
 
-Set `MEDIA_ORIGINALS_DIR` to keep the untouched originals — GPS and all —
-somewhere outside `content/`, where no route can reach them:
+**Ingest always keeps the untouched original**, GPS and all, as the
+photograph's print master — it copies your source files into
+`content/<user>/trips/<trip>/originals/` rather than leaving them where they
+were. `MEDIA_ORIGINALS_DIR` moves that copy outside `content/` instead:
 
 ```
 MEDIA_ORIGINALS_DIR=/srv/fernscout-originals
 ```
 
-Leave it unset and the originals stay wherever you already keep them; only
-derivatives are written.
+Either way, the owner's own export and the sync path include the originals —
+"no route can reach them" is true only of the public, reader-facing routes.
+No route serves an original directly to a reader.
 
 ## Duplicates
 
@@ -210,7 +213,7 @@ location blank, and it tells you how to build it.
 
 Every entry ingest writes carries `status: draft`, which keeps it off the site
 — out of the story, the feed, the sitemap and the search index — until a
-separate publish call moves it (see AGENTS.md, "What an agent writes arrives
-as a draft"). The body it leaves behind is a placeholder (*"Write the day
-here"*), and publishing that automatically is how somebody's family reads a
-stub. Write the words, then publish.
+separate, owner-only publish call moves it (AGENTS.md: "New days are
+drafts. Publishing is a separate owner-only call"). The body it leaves behind
+is a placeholder (*"Write the day here"*), and publishing that automatically
+is how somebody's family reads a stub. Write the words, then publish.

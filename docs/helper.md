@@ -1,38 +1,44 @@
 # Fernscout Helper
 
+This page is about the separate, MIT-licensed tool **Fernscout Helper**,
+which runs on your own machine. It is not this instance's built-in
+**assistant** — see "Three doors", below, for how the names differ and where
+each one actually lives.
+
 **A journal is JSON documents and photographs in a folder you own, and a day
 is composed on one page from the owner's own words, facts measured from their
-photographs, and real lookups — nothing is composed for them (ROADMAP
-decision 24, as amended 2026-09-24). A person may correct a day they already
-have, in place, but nothing writes a new one on their behalf.** That is a
-clean answer to "who owns this content" and an unhelpful one to "I have ten
-days of holiday photos on my laptop and no idea where to start" — unless the
-instance you are on has the studio, at `/<user>/studio`, which walks the same
-person through turning a photo library into days without either of you
-inventing a word of what happened.
+photographs, and real lookups — nothing is composed for them.** (ROADMAP
+decision 24, "no editing UI, ever", is superseded by the studio — see
+`docs/ROADMAP.md`.) A person may correct a day they already have, in place,
+but nothing writes a new one on their behalf without a further, explicit
+call. That is a clean answer to "who owns this content" and an unhelpful one
+to "I have ten days of holiday photos on my laptop and no idea where to
+start" — unless the instance you are on has the studio, at `/<user>/studio`,
+which walks the same person through turning a photo library into days
+without either of you inventing a word of what happened.
 
-## The helper is WhatsApp
+## Three doors
 
-The conversational room this section used to describe as "on a retirement
-path" is gone. Everything that room did is a flow in the studio now: adding a
-day, making a trip, inviting somebody, bringing in a bank statement, ordering
-a postcard, each a short guided sequence with a beginning, visible steps, a
-preview, and one final button named after what it does. Publishing a draft is
-still the owner's own decision, made in words — that button is
-`/<user>/studio/day/publish`, not a room.
+The conversational web room this section used to describe is gone; everything
+it did is a flow in the studio now: adding a day, making a trip, inviting
+somebody, bringing in a bank statement, ordering a postcard, each a short
+guided sequence with a beginning, visible steps, a preview, and one final
+button named after what it does. Publishing a draft is still the owner's own
+decision, made in words.
 
-**This instance's own helper**, where the operator turns it on, is reached
-over WhatsApp rather than a browser tab: text it and a model turn writes the
-same drafts a flow would, still nothing published without the owner saying so.
-
-**Bringing your own agent** is unaffected by any of this — it always spoke to
-the v2 API and the schemas below, never to the room, and that stays
-door two exactly as this file already describes it.
-
-**Fernscout Helper** is the answer for anybody who would rather run their own:
-a separate tool an agent runs on your own machine, which extracts what you
-already have, asks for what only you know, and writes it out in this
-project's own content format.
+- **This instance's own assistant** is the `helper` feature
+  (`ANTHROPIC_API_KEY`, see `docs/capabilities.md`) — an operator turns it on
+  and every studio flow above can call it, from a browser, in the open
+  edition. **Hosted edition only:** the same assistant is also reachable over
+  WhatsApp, where `whatsapp`/`whatsappInbound` are enabled. `/api/helper/**`
+  is the code name for this door's own routes; it is not a second product.
+- **Bringing your own agent** is a v2 bearer token talking to
+  `/api/v2/**` and the `/skill/*.md` guides — unaffected by either of the
+  above, and the only door "agent" names correctly (decision 2).
+- **Fernscout Helper**, this page's own tool, is the answer for anybody who
+  would rather run one locally: a separate tool an agent runs on your own
+  machine, which extracts what you already have, asks for what only you
+  know, and writes it out in this project's own content format.
 
 It is not part of this software and it is not required to use it. Nothing it
 produces depends on it afterwards — the output is `trip.json` and
@@ -66,7 +72,7 @@ programs, and each one checks and asks before anything is installed.
 **It is built and tested with Claude Code on macOS.** Claude Code reads
 `.claude/skills/` without being configured, and a Mac is where the photo tools
 can reach a Photos library directly. The cost tools care about neither: a bank
-statement is a CSV and a journal is markdown on any operating system.
+statement is a CSV and a journal is JSON on any operating system.
 
 ## Extracting photographs
 
@@ -173,12 +179,14 @@ this whole tool) is the registry of small parsers behind these: Google
 Timeline, Google Takeout, GPX and a neutral JSON Lines format on the GPS side;
 a bank statement's own CSV shape under `importers/costs/`.
 
-There is no equivalent import kind for photographs yet. `content/<user>/inbox/media/`
+There is no `/api/v2/<user>/import` kind for photographs. `content/<user>/inbox/media/`
 (B663) is where a file can land before it belongs to a day — named by a hash
-of its own bytes, so uploading the same picture twice is a no-op — but
-turning a folder of camera files into entries is still either this
-repository's own interview, locally, or — for an owner self-hosting with a
-shell on their own checkout — `npm run ingest` against a folder of camera
+of its own bytes, so uploading the same picture twice is a no-op. Turning a
+folder of camera files into entries has three paths today: this repository's
+own interview locally; the studio's own guided import
+(`/<user>/studio/photos`, the `extract` feature — see `docs/capabilities.md`),
+a journal must switch on for itself; or, for an owner self-hosting with a
+shell on their own checkout, `npm run ingest` against a folder of camera
 files directly.
 
 ## What comes out

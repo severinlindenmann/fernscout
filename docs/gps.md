@@ -57,11 +57,15 @@ the inbox), then named by id. Multipart `file` is the one-shot; `text` takes a
 few lines inline to the `/api/v2/<user>/import` call itself.
 
 The format is detected from the file's own contents; `format` overrides.
-`"dryRun": true` parses, runs the kind's own contract check, reports what it
-found and writes nothing — which is how somebody tests an importer they wrote.
+`?dryRun=true` (a query parameter, not a body field) parses, runs the kind's
+own contract check, reports what it found and writes nothing — which is how
+somebody tests an importer they wrote.
 
-Owner only. A trip-scoped token is refused: the history covers every day of
-somebody's life, not the days its holder was there.
+The owner's own journal-wide token, or the narrow `write:gps` token (B2204,
+below), for a real, non-dry-run `kind: "gps"` import only — every other kind,
+and every dry run, is owner only. A trip-scoped token is refused outright:
+the history covers every day of somebody's life, not the days its holder was
+there.
 
 **Thinning: a fix is kept if it is five minutes after the last kept one, or
 250 metres from it.** Time alone logs a phone fidgeting on a bedside table all
@@ -75,14 +79,16 @@ merged set, and one second holds one position.
 ### Adding a format
 
 `importers/gps/` is where a position format lives, and `importers/` is
-**MIT-licensed**, unlike the rest of this repository. The folder is its own
-registry: drop a file in and it works, with no list to edit.
+**MIT-licensed**, unlike the rest of this repository. Add the file, then list
+it in `GPS_IMPORTERS` (`importers/gps/index.ts`) — that one array is what
+`GET /api/v2/<user>/import` reports and what detection walks.
 
 `importers/gps/schema.ts` is the whole contract — the row type, and
-`checkGpsImporter`, which `--dry-run` runs against your export and which names
-what is wrong in words. The kind of data is the folder, so a bank export into a
-trip's costs would be `importers/costs/` with its own `schema.ts` and its own
-command, not a file beside `gpx.ts`. See `importers/README.md`.
+`checkGpsImporter`, which checks an importer's output against it and names
+what is wrong in words. There is no CLI: the `?dryRun=true` API call above is
+how somebody tests an importer they wrote. The kind of data is the folder, so
+a bank export into a trip's costs would be `importers/costs/` with its own
+`schema.ts`, not a file beside `gpx.ts`. See `importers/README.md`.
 
 If your tool is not TypeScript, do not write an importer — have it print JSON
 Lines and use the `fixes` format that is already there.
@@ -90,7 +96,7 @@ Lines and use the `fixes` format that is already there.
 ## Deriving a trip's line
 
 ```http
-POST /api/v1/<user>/trips/<trip>/track
+POST /api/v2/<user>/trips/<trip>/track
 ```
 
 Separate from the import because it is a separate decision — and one that can
@@ -192,10 +198,14 @@ not "what may a reader see" but "what did my phone actually record".
 [{ "label": "home", "lat": 47.38564, "lon": 8.21819, "radiusM": 500 }]
 ```
 
-**Deliberately not in the journal's `config.json`**, which goes into every
-export, including the one an anonymous visitor can download. A home address
-written there to keep it off the map would have been published by the very act
-of hiding it.
+**Deliberately not in the journal's `config.json`**, which goes into the
+owner's own export. An anonymous visitor cannot download an export at all
+since B1086 — `"open-to-link"`, the scope that once let one, is served by no
+HTTP route and exists only as a library function used from the CLI and from
+the deletion mail's own trip-scoped archive. A home address written into
+`config.json` to keep it off the map would still leave with the owner's own
+export, so the zone list stays a separate file for exactly the reason above:
+it never leaves at all.
 
 An unreadable list is refused rather than ignored: failing open here puts
 somebody's front door on a public map.
