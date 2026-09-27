@@ -1,6 +1,6 @@
 import "server-only";
 import { getDatabase, getDatabaseOrNull, nowIso } from "../db";
-import { FAMILIES, TEMPLATES, type Flow, type TemplateId } from "./registry";
+import { FAMILIES, FLOWS, TEMPLATES, type Flow, type TemplateId } from "./registry";
 
 /**
  * The operator's per-message-kind kill switches — B2446
@@ -37,10 +37,18 @@ export async function isSwitchedOff(template: TemplateId, flow?: Flow["id"]): Pr
   if (isRequired(template)) return false;
   const handle = await getDatabaseOrNull();
   if (!handle) return false;
-  const keys = flow ? [`${flow}/${template}`, template, flow] : [template];
   try {
-    const rows = await handle.db.selectFrom("message_switches").select("key").where("key", "in", keys).execute();
-    return rows.length > 0;
+    const off = new Set(
+      (await handle.db.selectFrom("message_switches").select("key").execute()).map((r) => r.key),
+    );
+    if (off.has(template)) return true;
+    const flowOff = (id: string) => off.has(id) || off.has(`${id}/${template}`);
+    if (flow) return flowOff(flow);
+    // A send names only its template (review L4): a flow or node switch
+    // stops it when every flow that sends this template is switched off
+    // there. A template two flows share keeps going while one still wants it.
+    const flows = FLOWS.filter((f) => f.nodes.some((n) => "template" in n && n.template === template));
+    return flows.length > 0 && flows.every((f) => flowOff(f.id));
   } catch (err) {
     console.warn("[messages] could not read switches:", err);
     return false;
