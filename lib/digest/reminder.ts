@@ -6,6 +6,10 @@ import { translateIn } from "../locales";
 import { ownerLocale } from "../messages/locale";
 import { sendMail } from "../mail";
 import { renderMail } from "../mail/template";
+import type { Composition, PreviewLocale } from "../messages/previews/types";
+
+/** `nudge.evening` is always mail — see `dayLetter.ts`'s `MailComposition`. */
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { serverSite } from "../site";
 import { earliestTodayISO } from "../tripTime";
 import { getTrips, type TripRef } from "../trips";
@@ -84,6 +88,35 @@ type ReminderOutcome =
   | { sent: true; channel: ReminderChannel }
   | { sent: false; reason: string };
 
+/**
+ * The evening nudge's composition — pure, B2493. `username` only decides the
+ * "write today" button's link, never a fact the mail states about anybody.
+ */
+export function composeEveningNudge(
+  input: { username: string; journalTitle: string; tripTitle: string },
+  locale: PreviewLocale,
+): MailComposition {
+  return {
+    channel: "mail",
+    subject: translateIn(locale, "mail.reminderSubject", { trip: input.tripTitle }),
+    content: {
+      template: "nudge.evening",
+      preheader: translateIn(locale, "mail.reminderBody", { trip: input.tripTitle }),
+      title: translateIn(locale, "mail.reminderTitle"),
+      blocks: [
+        { kind: "paragraph", text: translateIn(locale, "mail.reminderBody", { trip: input.tripTitle }) },
+        {
+          kind: "button",
+          text: translateIn(locale, "mail.reminderButton"),
+          href: `${serverSite().url}/${encodeURIComponent(input.username)}/studio/day/new`,
+        },
+      ],
+      why: translateIn(locale, "mail.why.reminder", { site: input.journalTitle }),
+      locale,
+    },
+  };
+}
+
 /** Send tonight's one nudge for this trip, on the channel its own `trip.md`
  *  names — mail only, since B2339 retired WhatsApp as a reminder channel.
  *  Never throws: a reminder that fails must not take the rest of the
@@ -95,28 +128,12 @@ async function sendReminder(username: string, user: UserConfig, trip: Trip): Pro
   // Owner chain (W44 D7): the address's own `users.locale` — set on a
   // successful sign-in — then the journal's default, then en.
   const locale = await ownerLocale(username, user.owner.email, user.defaultLocale);
+  const composed = composeEveningNudge(
+    { username, journalTitle: user.title, tripTitle: trip.title },
+    locale as PreviewLocale,
+  );
   try {
-    const result = await sendMail(
-      renderMail(
-        user.owner.email,
-        translateIn(locale, "mail.reminderSubject", { trip: trip.title }),
-        {
-          template: "nudge.evening",
-          preheader: translateIn(locale, "mail.reminderBody", { trip: trip.title }),
-          title: translateIn(locale, "mail.reminderTitle"),
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "mail.reminderBody", { trip: trip.title }) },
-            {
-              kind: "button",
-              text: translateIn(locale, "mail.reminderButton"),
-              href: `${serverSite().url}/${encodeURIComponent(username)}/studio/day/new`,
-            },
-          ],
-          why: translateIn(locale, "mail.why.reminder", { site: user.title }),
-        },
-        username,
-      ),
-    );
+    const result = await sendMail(renderMail(user.owner.email, composed.subject, composed.content, username));
     return result ? { sent: true, channel: "mail" } : { sent: false, reason: "mail_off" };
   } catch (err) {
     console.error(`[reminders] could not mail ${username} about ${trip.ref}:`, err);

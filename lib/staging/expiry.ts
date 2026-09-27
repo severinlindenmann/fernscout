@@ -5,6 +5,8 @@ import { ownerLocale } from "../messages/locale";
 import { sendMail } from "../mail";
 import { renderMail } from "../mail/template";
 import type { MailBlock } from "../mail/template";
+import type { Composition } from "../messages/previews/types";
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { getUser, getUsernames } from "../users";
 import type { UserConfig } from "../config";
 import { listRuns, writeManifest, type RunManifest } from "./manifest";
@@ -145,6 +147,47 @@ export function unusedPhotoCount(run: RunManifest): number {
   }).length;
 }
 
+/** `notice.expiryWarn`'s composition — B2493. `spentCredits` is already
+ * read from the ledger (`spentOnRun`) — pure otherwise. */
+export function composeExpiryWarnMail(params: {
+  locale: string;
+  siteTitle: string;
+  photoCount: number;
+  started: string;
+  daysLeft: number;
+  spentCredits: number;
+}): MailComposition {
+  const { locale, siteTitle, photoCount, started, daysLeft, spentCredits } = params;
+  const blocks: MailBlock[] = [
+    {
+      kind: "paragraph",
+      text: translateIn(locale, "studio.photos.expiry.warn.body", {
+        count: String(photoCount),
+        started,
+        days: String(daysLeft),
+      }),
+    },
+  ];
+  if (spentCredits > 0) {
+    blocks.push({
+      kind: "paragraph",
+      text: translateIn(locale, "studio.photos.expiry.spent", { credits: formatCredits(spentCredits) }),
+    });
+  }
+  const subject = translateIn(locale, "studio.photos.expiry.warn.subject");
+  return {
+    channel: "mail",
+    subject,
+    content: {
+      template: "notice.expiryWarn",
+      preheader: subject,
+      title: subject,
+      blocks,
+      why: translateIn(locale, "mail.why.owner", { site: siteTitle }),
+    },
+  };
+}
+
 /** Never throws — one bad send must not take the rest of the night's sweep
  *  down with it, the same discipline `sendReminder` (`lib/digest/reminder.ts`)
  *  follows for the evening nudge. */
@@ -152,39 +195,17 @@ async function sendExpiryMail(username: string, user: UserConfig, run: RunManife
   if (!user.owner.email) return false;
   const locale = await ownerLocale(username, user.owner.email!, user.defaultLocale);
   const daysLeft = daysLeftToTell(run);
-  const blocks: MailBlock[] = [
-    {
-      kind: "paragraph",
-      text: translateIn(locale, "studio.photos.expiry.warn.body", {
-        count: String(run.photos.length),
-        started: run.createdAt.slice(0, 10),
-        days: String(daysLeft),
-      }),
-    },
-  ];
   const spent = await spentOnRun(run.owner, run.runId);
-  if (spent > 0) {
-    blocks.push({
-      kind: "paragraph",
-      text: translateIn(locale, "studio.photos.expiry.spent", { credits: formatCredits(spent) }),
-    });
-  }
   try {
-    const subject = translateIn(locale, "studio.photos.expiry.warn.subject");
-    const result = await sendMail(
-      renderMail(
-        user.owner.email,
-        subject,
-        {
-          template: "notice.expiryWarn",
-          preheader: subject,
-          title: subject,
-          blocks,
-          why: translateIn(locale, "mail.why.owner", { site: user.title }),
-        },
-        username,
-      ),
-    );
+    const { subject, content } = composeExpiryWarnMail({
+      locale,
+      siteTitle: user.title,
+      photoCount: run.photos.length,
+      started: run.createdAt.slice(0, 10),
+      daysLeft,
+      spentCredits: spent,
+    });
+    const result = await sendMail(renderMail(user.owner.email, subject, content, username));
     return result !== null;
   } catch (err) {
     console.error(`[extract-remind] could not mail ${username} about run ${run.runId}:`, err);
@@ -192,40 +213,55 @@ async function sendExpiryMail(username: string, user: UserConfig, run: RunManife
   }
 }
 
+/** `notice.expiryFinal`'s composition — B2493. Same shape as
+ * {@link composeExpiryWarnMail}. */
+export function composeExpiryFinalMail(params: {
+  locale: string;
+  siteTitle: string;
+  unusedPhotoCount: number;
+  spentCredits: number;
+}): MailComposition {
+  const { locale, siteTitle, unusedPhotoCount: count, spentCredits } = params;
+  const blocks: MailBlock[] = [
+    {
+      kind: "paragraph",
+      text: translateIn(locale, "studio.photos.expiry.final.body", { count: String(count) }),
+    },
+  ];
+  if (spentCredits > 0) {
+    blocks.push({
+      kind: "paragraph",
+      text: translateIn(locale, "studio.photos.expiry.spent", { credits: formatCredits(spentCredits) }),
+    });
+  }
+  const subject = translateIn(locale, "studio.photos.expiry.final.subject");
+  return {
+    channel: "mail",
+    subject,
+    content: {
+      template: "notice.expiryFinal",
+      preheader: subject,
+      title: subject,
+      blocks,
+      why: translateIn(locale, "mail.why.owner", { site: siteTitle }),
+    },
+  };
+}
+
 /** Same shape as {@link sendExpiryMail}, for the one notice that follows an
  *  extension. */
 async function sendFinalNoticeMail(username: string, user: UserConfig, run: RunManifest): Promise<boolean> {
   if (!user.owner.email) return false;
   const locale = await ownerLocale(username, user.owner.email!, user.defaultLocale);
-  const blocks: MailBlock[] = [
-    {
-      kind: "paragraph",
-      text: translateIn(locale, "studio.photos.expiry.final.body", { count: String(unusedPhotoCount(run)) }),
-    },
-  ];
   const spent = await spentOnRun(run.owner, run.runId);
-  if (spent > 0) {
-    blocks.push({
-      kind: "paragraph",
-      text: translateIn(locale, "studio.photos.expiry.spent", { credits: formatCredits(spent) }),
-    });
-  }
   try {
-    const subject = translateIn(locale, "studio.photos.expiry.final.subject");
-    const result = await sendMail(
-      renderMail(
-        user.owner.email,
-        subject,
-        {
-          template: "notice.expiryFinal",
-          preheader: subject,
-          title: subject,
-          blocks,
-          why: translateIn(locale, "mail.why.owner", { site: user.title }),
-        },
-        username,
-      ),
-    );
+    const { subject, content } = composeExpiryFinalMail({
+      locale,
+      siteTitle: user.title,
+      unusedPhotoCount: unusedPhotoCount(run),
+      spentCredits: spent,
+    });
+    const result = await sendMail(renderMail(user.owner.email, subject, content, username));
     return result !== null;
   } catch (err) {
     console.error(`[extract-remind] could not mail ${username} about run ${run.runId}:`, err);

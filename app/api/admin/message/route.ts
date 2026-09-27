@@ -1,8 +1,8 @@
 import { adminEmail } from "@/lib/admin";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { loadUserConfig } from "@/lib/config";
-import { translateIn } from "@/lib/locales";
 import { mailDisabledReason, sendMail } from "@/lib/mail";
+import { composeOperatorMessageMail } from "@/lib/mail/operatorMessage";
 import { renderMail } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
@@ -91,22 +91,12 @@ export async function POST(request: Request) {
 
   const site = serverSite();
   const replyTo = adminEmail();
-  const mail = renderMail(
-    to,
-    subject,
-    {
-      template: "notice.operatorMessage",
-      preheader: text.slice(0, 90),
-      title: subject,
-      blocks: text.split(/\n{2,}/).map((paragraph) => ({ kind: "paragraph" as const, text: paragraph })),
-      // The owner reads whatever language they chose for the journal — this
-      // is the operator writing to them, and there is no operator-locale
-      // setting to resolve, so it stays English (W44 D7 covers owner/reader/
-      // stranger only). Still a real key, not a literal.
-      why: translateIn("en", "op.messageFooter", { site: site.name, user: username }),
-    },
-    username,
-  );
+  // The owner reads whatever language they chose for the journal — this
+  // is the operator writing to them, and there is no operator-locale
+  // setting to resolve, so it stays English (W44 D7 covers owner/reader/
+  // stranger only).
+  const { content } = composeOperatorMessageMail({ subject, text, siteName: site.name, username });
+  const mail = renderMail(to, subject, content, username);
   const result = await sendMail({ ...mail, headers: { ...mail.headers, ...(replyTo ? { "Reply-To": replyTo } : {}) } });
   if (!result) {
     return Response.json({ error: "mail_off", message: "Mail did not go out. Nothing was sent." }, { status: 409 });

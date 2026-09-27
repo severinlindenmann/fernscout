@@ -15,13 +15,13 @@ import { journalV2Fields, setJournalV2Fields, type JournalV2Fields } from "@/lib
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { journalTombstone } from "@/lib/tombstones";
 import { getUser } from "@/lib/users";
-import { CODE_TTL_MINUTES, isEmail } from "@/lib/auth";
+import { isEmail } from "@/lib/auth";
 import { issueOwnerEmailCode } from "@/lib/ownerEmailChange";
 import { isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
-import { translateIn } from "@/lib/locales";
 import { sendTransactional } from "@/lib/mail";
-import { codeMail } from "@/lib/mail/codeMail";
+import { composeOwnerEmailCodeMail } from "@/lib/mail/accountCodeCompositions";
+import { renderMail } from "@/lib/mail/template";
 import { rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 
@@ -342,22 +342,16 @@ async function startOwnerEmailVerification(
   const locale = pickLocale(stored.locales[0], fromAcceptLanguage(request.headers.get("accept-language")));
   const site = serverSite();
   const { id, code } = await issueOwnerEmailCode(user, newEmail);
-  const vars = { site: site.name, title: stored.title, code, minutes: CODE_TTL_MINUTES };
 
   try {
+    const { subject, content } = composeOwnerEmailCodeMail({
+      locale,
+      code,
+      siteName: site.name,
+      title: stored.title,
+    });
     await sendTransactional(
-      codeMail({
-        template: "code.ownerEmail.mail",
-        to: newEmail,
-        locale,
-        code,
-        place: stored.title,
-        title: translateIn(locale, "mail.ownerEmailCodeTitle"),
-        purpose: translateIn(locale, "mail.ownerEmailCodeWhat", vars),
-        ignoreText: translateIn(locale, "mail.ownerEmailCodeIgnore"),
-        why: translateIn(locale, "mail.identityFooter", vars),
-        username: user,
-      }),
+      renderMail(newEmail, subject, content, user),
       "an owner-email verification code the recipient just asked for",
     );
   } catch (err) {

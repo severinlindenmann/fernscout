@@ -8,6 +8,8 @@ import { afterResponse } from "./afterResponse";
 import { sendMail } from "./mail";
 import { logMessage } from "./messages/log";
 import { renderMail, type MailBlock } from "./mail/template";
+import type { Composition } from "./messages/previews/types";
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { translateIn } from "./locales";
 import type { TranslationKey } from "./i18n";
 
@@ -110,25 +112,33 @@ export async function addToWaitlist(
   }
 
   const mailLocale = askedLocale ?? "en";
-  const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(mailLocale, key, vars);
-  const blocks: MailBlock[] = [
-    { kind: "paragraph", text: t("appWaitlist.mailBody") },
-  ];
+  const { subject, content } = composeWaitlistMail(mailLocale);
   // After the response, so a new address and one already on the list answer
   // in the same time — otherwise the delay of a real send tells a stranger
   // who is listed.
   afterResponse("app-waitlist-mail", () => sendMail(
-    renderMail(normalized, t("appWaitlist.mailSubject"), {
+    renderMail(normalized, subject, content),
+  ).catch((err) => {
+    console.error(`[app-waitlist] confirmation mail to a waitlist entry could not be sent:`, err);
+  }));
+  return true;
+}
+
+/** `notice.waitlist`'s composition — B2493. */
+export function composeWaitlistMail(locale: string): MailComposition {
+  const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(locale, key, vars);
+  const blocks: MailBlock[] = [{ kind: "paragraph", text: t("appWaitlist.mailBody") }];
+  return {
+    channel: "mail",
+    subject: t("appWaitlist.mailSubject"),
+    content: {
       template: "notice.waitlist",
       preheader: t("appWaitlist.mailSubject"),
       title: t("appWaitlist.mailSubject"),
       blocks,
       why: t("appWaitlist.mailFooter"),
-    }),
-  ).catch((err) => {
-    console.error(`[app-waitlist] confirmation mail to a waitlist entry could not be sent:`, err);
-  }));
-  return true;
+    },
+  };
 }
 
 /** Address validation at the boundary — the same `isEmail` every other
