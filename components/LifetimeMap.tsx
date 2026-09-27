@@ -89,6 +89,27 @@ function easeInOut(t: number): number {
 }
 
 /**
+ * Found while browser-testing this ticket on a real journal: a handful of
+ * paths in the *basemap bundle* (`lib/basemap.ts`'s `data.borders` —
+ * separate from `lib/worldCountries.json`, which
+ * `scripts/build-world-countries.mts` already guards against this in this
+ * ticket) still jump across the antimeridian the same way Russia and Fiji
+ * did there, and draw as a solid line across the whole frame once a
+ * continent/area view zooms in enough for one to appear. Pre-existing —
+ * every map that calls `basemapFor()` shares this bundle — and out of this
+ * ticket's own "Where it lives" list, so the real fix (regenerating or
+ * re-clipping that bundle) belongs in its own ticket. This is the narrowest
+ * safe mitigation reachable from here: a border path whose own bounding
+ * box spans almost the entire 1000-unit world is never a real border at any
+ * zoom this map draws, so it is dropped rather than rendered.
+ */
+function notAntimeridianArtifact(d: string): boolean {
+  const xs = d.match(/-?\d+(?:\.\d+)?(?=,)/g)?.map(Number);
+  if (!xs || xs.length === 0) return true;
+  return Math.max(...xs) - Math.min(...xs) < 700;
+}
+
+/**
  * Every trip's route on one map — rewritten for B2491.
  *
  * Deliberately not what B2423 drew. That version filled every visited
@@ -371,7 +392,7 @@ export default function LifetimeMap({
         <g transform={`scale(${displayFrame.lngScale} 1)`}>
           {displayBasemap ? (
             <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
-              {displayBasemap.borders.map((d, i) => (
+              {displayBasemap.borders.filter(notAntimeridianArtifact).map((d, i) => (
                 <path key={i} d={d} vectorEffect="non-scaling-stroke" />
               ))}
             </g>

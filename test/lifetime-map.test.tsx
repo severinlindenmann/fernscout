@@ -250,4 +250,40 @@ describe("the Einstieg swaps in the 'all' view's own basemap once it runs (decis
     const el = mount({ views });
     expect(el.innerHTML).toContain("M9,9 L8,8 Z");
   });
+
+  /**
+   * Found while browser-testing this ticket on a real journal: the basemap
+   * bundle (`lib/basemap.ts`) still has its own antimeridian-wrapped border
+   * paths — the same jump-across-180° shape `scripts/build-world-countries.mts`
+   * now guards against in `lib/worldCountries.json`, but in a different,
+   * pre-existing dataset this ticket does not regenerate. `notAntimeridianArtifact`
+   * is the narrow mitigation: drop a border whose own bounding box spans
+   * almost the whole 1000-unit world, which no real border ever does at any
+   * zoom this map draws.
+   */
+  test("drops a border path that spans almost the whole world, keeps an ordinary one", () => {
+    const basemap = {
+      borders: [
+        "M0.0,296.0 L998.2,296.7 L996.5,297.3 Z", // the real Fiji/Russia shape found live
+        "M334.5,472.3 L333.7,473.7 L332.9,475.0 Z", // an ordinary short border
+      ],
+      admin1: [],
+      relief: [],
+      glaciers: [],
+      parks: [],
+      railroads: [],
+      roads: [],
+      lakes: [],
+      rivers: [],
+      peaks: [],
+      towns: [],
+      attribution: "",
+    };
+    const views = [
+      { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap },
+    ];
+    const el = mount({ views });
+    expect(el.innerHTML).not.toContain("M0.0,296.0");
+    expect(el.innerHTML).toContain("M334.5,472.3");
+  });
 });
