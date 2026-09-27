@@ -226,6 +226,7 @@ export default function MapPageContent({
               live={live}
               selectedKey={selectedKey}
               onSelect={(p) => setSelectedKey(p ? p.key : null)}
+              stopCardFromLg
             />
           ) : (
             // Not `story.empty`. "No entries yet" is true and is not the reason

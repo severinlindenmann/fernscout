@@ -89,6 +89,7 @@ export default function WorldMap({
   live = false,
   selectedKey: selectedKeyProp,
   onSelect: onSelectProp,
+  stopCardFromLg = false,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -137,6 +138,10 @@ export default function WorldMap({
    * scrubber, or `selectedKey` above) — so a caller driving `selectedKey`
    * can mirror the same key back into its own UI. */
   onSelect?: (place: PlaceView | null) => void;
+  /** The map page on a phone shows the selected stop in its own sheet
+   * (B2427), so the card over the map would repeat it and cover the map.
+   * When set, that card appears from `lg` up only. */
+  stopCardFromLg?: boolean;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -667,7 +672,7 @@ export default function WorldMap({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
               transition={{ duration: 0.2 }}
-              className="absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm"
+              className={`absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm${stopCardFromLg ? " hidden lg:block" : ""}`}
             >
               <button
                 onClick={() => {
