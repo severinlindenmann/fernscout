@@ -4,7 +4,7 @@ import type { Entry } from "@/lib/types";
 /** Emits a JSON-LD block. The payload is our own data, never user input from
  * the network, so serialising it into the script tag is safe — we still
  * escape `<` so a stray character in an entry can't close the tag early. */
-export function JsonLd({ data }: { data: Record<string, unknown> }) {
+function JsonLd({ data }: { data: Record<string, unknown> }) {
   return (
     <script
       type="application/ld+json"

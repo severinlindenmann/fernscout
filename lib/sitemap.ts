@@ -47,7 +47,6 @@ export type SitemapEntry = {
 };
 
 export const SITEMAPS = ["pages", "journals", "agents"] as const;
-export type SitemapName = (typeof SITEMAPS)[number];
 
 function instancePage(base: string, path: string): SitemapEntry {
   return { url: `${base}${path}` };
