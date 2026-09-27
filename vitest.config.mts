@@ -19,7 +19,7 @@ export default defineConfig({
     include: ["test/**/*.test.ts", "test/**/*.test.tsx", "paid/test/**/*.test.ts", "paid/test/**/*.test.tsx"],
     // Only does anything when FERNSCOUT_TEST_CLOCK_OFFSET_DAYS is set — see
     // test/support/future-clock.ts and `npm run test:future-clock` (B1947).
-    setupFiles: ["test/support/future-clock.ts"],
+    setupFiles: ["test/support/future-clock.ts", "test/support/per-file-database.ts"],
     // SQLite runs in memory, one database per handle, so files can't collide.
     // Postgres can't: every file that opts into POSTGRES_TEST_URL points at the
     // same database and each of them drops the schema on the way in. Serialise
