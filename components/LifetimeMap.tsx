@@ -186,6 +186,7 @@ export default function LifetimeMap({
     const reduced =
       typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
+      if (opts.einstieg) einstiegPlayed = true;
       setDisplayFrame(target);
       frameRef.current = target;
       setDisplayBasemap(targetBasemap);
@@ -199,6 +200,17 @@ export default function LifetimeMap({
     if (opts.einstieg) setRevealed(0);
 
     const step = (now: number) => {
+      // Only marked "played" once a frame actually runs — not when the
+      // tween is merely requested. React's development StrictMode mounts
+      // an effect, immediately cleans it up, then mounts it again; the
+      // cleanup here (`cancelAnimation`, from the other effect below)
+      // cancels the *pending* rAF before the browser ever calls it, so if
+      // `einstiegPlayed` were set synchronously in the effect body, the
+      // second, surviving mount would see it already true and never
+      // restart what the first mount's cancellation just threw away. This
+      // way the flag is only true once the browser has actually painted a
+      // frame of it.
+      if (opts.einstieg) einstiegPlayed = true;
       const t = Math.min(1, (now - startTime) / opts.duration);
       const e = easeInOut(t);
       const rawCx = lerp(startRaw.rawCx, endRaw.rawCx, e);
@@ -223,6 +235,7 @@ export default function LifetimeMap({
     // fires, must not leave the map frozen half-way — the same guard the
     // clickable draft gave every tween.
     timeoutRef.current = setTimeout(() => {
+      if (opts.einstieg) einstiegPlayed = true;
       frameRef.current = target;
       setDisplayFrame(target);
       setDisplayBasemap(targetBasemap);
@@ -237,7 +250,6 @@ export default function LifetimeMap({
   // inside `animateTo`).
   useEffect(() => {
     if (!allView || einstiegPlayed) return; // the lazy initializers above already reflect this state.
-    einstiegPlayed = true;
     frameRef.current = WORLD_FRAME;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- kicking off a requestAnimationFrame tween is exactly the "external system" case the rule carves out; it is not a synchronous re-render loop.
     animateTo(allView.frame, allView.basemap, { duration: EINSTIEG_MS, einstieg: true });
