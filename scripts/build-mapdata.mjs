@@ -186,6 +186,72 @@ function ringToShape(ring, close) {
   ];
 }
 
+/** A feature's bounding box in raw lng/lat, or null for an empty geometry. */
+function geometryBBox(geom) {
+  if (!geom) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  const parts =
+    geom.type === "Polygon" || geom.type === "MultiLineString"
+      ? geom.coordinates
+      : geom.type === "MultiPolygon"
+        ? geom.coordinates.flat()
+        : geom.type === "LineString"
+          ? [geom.coordinates]
+          : [];
+  for (const ring of parts) {
+    for (const [x, y] of ring) {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+  return minX === Infinity ? null : [minX, minY, maxX, maxY];
+}
+
+function bboxesOverlap(a, b) {
+  return a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+}
+
+/**
+ * Drops features from a supplementary layer that the main layer already
+ * carries.
+ *
+ * Natural Earth's regional "Europe" extras (`ne_10m_lakes_europe`,
+ * `ne_10m_rivers_europe`) exist to add water the *worldwide* file leaves out
+ * at 1:10m — Thunersee, Brienzersee, Vierwaldstättersee, the Aare, the Reuss
+ * — but they are not exclusively additions: measured against the committed
+ * main layers, some large lakes (Lago di Como) and long rivers (the Elbe, the
+ * Oder, the Volga) are named in both files, and a big river is often split
+ * into several named segments in each. `ne_id` never matches between the two
+ * files, so identity has to be inferred: a feature is a duplicate only when
+ * its name matches a main-layer feature of the same name *and* their boxes
+ * overlap — the same name alone would drop distinct segments of one river
+ * (e.g. two different stretches both called "Oka") that both files happen to
+ * carry.
+ */
+function dropAlreadyPresent(mainFeatures, extraFeatures) {
+  const mainBoxesByName = new Map();
+  for (const feat of mainFeatures) {
+    const name = feat.properties?.name;
+    const box = name ? geometryBBox(feat.geometry) : null;
+    if (!name || !box) continue;
+    const list = mainBoxesByName.get(name);
+    if (list) list.push(box);
+    else mainBoxesByName.set(name, [box]);
+  }
+  return extraFeatures.filter((feat) => {
+    const name = feat.properties?.name;
+    const boxes = name ? mainBoxesByName.get(name) : undefined;
+    if (!boxes) return true;
+    const box = geometryBBox(feat.geometry);
+    return !box || !boxes.some((b) => bboxesOverlap(b, box));
+  });
+}
+
 /** Every ring of every feature in a GeoJSON collection, as shapes. */
 function collectionToShapes(collection, { close, keep, minSpanUnits = 0 }) {
   const shapes = [];
@@ -247,8 +313,29 @@ async function main() {
   const bordersMid = feature(mid, mid.objects.countries);
   console.log(`  countries-50m … ok (${bordersMid.features.length} countries)`);
 
-  const lakes = await fetchJson(`${NE}/ne_10m_lakes.geojson`);
-  const rivers = await fetchJson(`${NE}/ne_10m_rivers_lake_centerlines.geojson`);
+  const lakesWorld = await fetchJson(`${NE}/ne_10m_lakes.geojson`);
+  const riversWorld = await fetchJson(`${NE}/ne_10m_rivers_lake_centerlines.geojson`);
+  // B2425: Natural Earth's regional "Europe" supplements — smaller water this
+  // 1:10m worldwide file leaves out entirely, including Thunersee,
+  // Brienzersee, Vierwaldstättersee, the Aare and the Reuss (checked while
+  // making the map-redesign mockups: none of the five are in the worldwide
+  // file at any resolution). Public domain, same as every other Natural
+  // Earth layer here. Merged into the one `lakes`/`rivers` layer rather than
+  // kept separate, unlike HydroSHEDS below (`build-hydro.ts`): both come
+  // from Natural Earth under the same licence, and neither needs a slow
+  // rebuild or a capability flag — a public page should always draw them.
+  const lakesEurope = await fetchJson(`${NE}/ne_10m_lakes_europe.geojson`);
+  const riversEurope = await fetchJson(`${NE}/ne_10m_rivers_europe.geojson`);
+  const lakesEuropeNew = dropAlreadyPresent(lakesWorld.features, lakesEurope.features);
+  const riversEuropeNew = dropAlreadyPresent(riversWorld.features, riversEurope.features);
+  console.log(
+    `  merged lakes: ${lakesWorld.features.length} world + ${lakesEuropeNew.length} europe` +
+      ` (${lakesEurope.features.length - lakesEuropeNew.length} already present)`,
+  );
+  console.log(
+    `  merged rivers: ${riversWorld.features.length} world + ${riversEuropeNew.length} europe` +
+      ` (${riversEurope.features.length - riversEuropeNew.length} already present)`,
+  );
   const peaks = await fetchJson(`${NE}/ne_10m_geography_regions_elevation_points.geojson`);
   const regions = await fetchJson(`${NE}/ne_10m_geography_regions_polys.geojson`);
   const admin1 = await fetchJson(`${NE}/ne_10m_admin_1_states_provinces_lines.geojson`);
@@ -270,14 +357,34 @@ async function main() {
     borders: collectionToShapes(borders, { close: true, minSpanUnits: unitsForKm(2) }),
     bordersMid: collectionToShapes(bordersMid, { close: true, minSpanUnits: unitsForKm(8) }),
     bordersCoarse: collectionToShapes(bordersCoarse, { close: true }),
-    lakes: collectionToShapes(lakes, {
-      close: true,
-      minSpanUnits: MIN_LAKE_KM / 111.32 / (360 / 1000),
-    }),
-    rivers: collectionToShapes(rivers, {
-      close: false,
-      keep: (p) => (p.scalerank ?? 99) <= RIVER_SCALERANK_MAX,
-    }),
+    // Lake size is filtered the same way regardless of source: `MIN_LAKE_KM`
+    // is about the shape's own size, not the source file's notion of scale, so
+    // the worldwide and Europe layers merge on equal terms.
+    lakes: [
+      ...collectionToShapes(lakesWorld, {
+        close: true,
+        minSpanUnits: MIN_LAKE_KM / 111.32 / (360 / 1000),
+      }),
+      ...collectionToShapes(
+        { type: "FeatureCollection", features: lakesEuropeNew },
+        { close: true, minSpanUnits: MIN_LAKE_KM / 111.32 / (360 / 1000) },
+      ),
+    ],
+    // `RIVER_SCALERANK_MAX` is tuned to the *worldwide* file's own 0-10 scale
+    // ("Amazon" to "stream nobody's heard of") and only applies to it. The
+    // Europe supplement is a different, smaller file with its own scale
+    // (measured: every feature in it is scalerank 10-12) — it exists
+    // precisely to add the rivers the worldwide layer's own ranking calls too
+    // minor to draw, the Aare and the Reuss among them, so filtering it by
+    // the same absolute number would keep none of it and defeat the point of
+    // adding it at all.
+    rivers: [
+      ...collectionToShapes(riversWorld, {
+        close: false,
+        keep: (p) => (p.scalerank ?? 99) <= RIVER_SCALERANK_MAX,
+      }),
+      ...collectionToShapes({ type: "FeatureCollection", features: riversEuropeNew }, { close: false }),
+    ],
     // High ground, as far as a vector basemap can express it.
     //
     // Natural Earth has no contours and no elevation raster in this pipeline,
