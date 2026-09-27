@@ -236,6 +236,7 @@ export async function POST(
    */
   const result: Record<string, unknown> = {};
   for (const { channel } of status.pending) {
+    // TODO(B2438): logMessage({ owner: user, channel, status: "skipped", reason: "deduped" })
     if (!(await claimChannel(user, status.trip.id, slug, channel))) continue;
 
     if (channel === "mail") {

@@ -214,7 +214,23 @@ export async function applyPublish(
   // shape a v2-native day currently gets from their v1 reader — B1598).
   let mail: Record<string, unknown> | undefined;
   if (sendMailRequested) {
-    mail = mailSummary(await sendDayLetter(user, ref, v1Slug(slug)));
+    /**
+     * The same double-press guard the WhatsApp branch below already has —
+     * B2443. Mail was the one send on this route with no claim at all, so a
+     * publish followed by a retried publish (or a resend button pressed
+     * while the first request was still in flight) mailed the whole
+     * readership twice. Claiming "mail" first means only the request that
+     * wins the claim ever calls `sendDayLetter`.
+     */
+    if (await claimChannel(user, tripId, v1Slug(slug), "mail")) {
+      const outcome = await sendDayLetter(user, ref, v1Slug(slug));
+      if (!outcome.ok) await releaseChannelClaim(user, tripId, v1Slug(slug), "mail");
+      mail = mailSummary(outcome);
+    }
+    // A lost claim reports nothing rather than inventing an outcome for a
+    // send this call never made — the same silence the WhatsApp branch below
+    // gives for a channel already spoken for.
+    // TODO(B2438): logMessage({ owner: user, template: "day.mail", channel: "mail", status: "skipped", reason: "deduped" })
   }
   let whatsapp: Record<string, unknown> | undefined;
   if (sendWhatsappRequested) {
@@ -238,6 +254,7 @@ export async function applyPublish(
     // A lost claim reports nothing rather than inventing an outcome for a
     // send this call never made — the same silence `notify/route.ts` gives
     // for a channel already spoken for.
+    // TODO(B2438): logMessage({ owner: user, template: "day.whatsapp", channel: "whatsapp", status: "skipped", reason: "deduped" })
   }
 
   /**
@@ -289,6 +306,7 @@ export async function applyPublish(
   // A lost claim (an already-announced day, or a retried request) sends
   // nothing a second time — the same silence the WhatsApp branch above gives
   // for its own channel.
+  // TODO(B2438): logMessage({ owner: user, template: "news.push", channel: "push", status: "skipped", reason: "deduped" })
 
   const test = isTestContent(tripLike(user, tripId, trip.people), day) || trip.test === true || day.test === true;
   // Instance-level, like every capability in v2 (decision 5): whether this

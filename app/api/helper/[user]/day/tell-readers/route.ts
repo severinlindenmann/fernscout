@@ -2,6 +2,7 @@ import { isTestContent } from "@/lib/access";
 import { mailSummary } from "@/lib/api/dayMail";
 import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { isEnabled } from "@/lib/capabilities";
+import { claimChannel, releaseChannelClaim } from "@/lib/digest/dayNotify";
 import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp } from "@paid/whatsapp/lib/digest/dayWhatsapp";
 import { sendDaySms, smsSummary } from "@/lib/digest/daySms";
@@ -82,14 +83,38 @@ export async function POST(
     );
   }
 
+  // The double-press guard — B2443. This is not the v2 `…/send` door, which
+  // is documented and tested as an explicit resend (`openapi.ts`: "send (or
+  // resend) a published day"); `tell_readers` is a person saying "tell them"
+  // once, from a conversation, the same as the notify button on the day
+  // itself. Claiming the channel first means a repeated press (a retried
+  // request, or the model reading the tool twice) finds the channel already
+  // spoken for and sends nothing a second time, instead of mailing or
+  // messaging the whole readership twice. `{ resend: true }` is gone from
+  // the calls below along with it — this route no longer asks for an
+  // unconditional resend, so the outcome's own `resend` field is honestly
+  // `false`.
+  const already = (): Response => {
+    refused(user, "tell_readers", "already_sent");
+    return Response.json(
+      { error: "already_sent", message: `"${slug}" has already been told about on ${channel}.` },
+      { status: 409 },
+    );
+  };
+
   // Branched fully in each arm, not merged into one `outcome` variable: the
   // two outcome types share no `sent`/`failed` shape (an email versus a
   // masked phone number), so a shared variable would only be reunited by a
   // cast — and a cast here is exactly the kind of "trust me" this file's
   // whole point is to avoid.
   if (channel === "whatsapp") {
-    const outcome = await sendDayWhatsapp(user, ref, slug, { resend: true });
+    if (!(await claimChannel(user, trip.id, slug, "whatsapp"))) {
+      // TODO(B2438): logMessage({ owner: user, template: "day.whatsapp", flow: "tell_readers", channel: "whatsapp", status: "skipped", reason: "deduped" })
+      return already();
+    }
+    const outcome = await sendDayWhatsapp(user, ref, slug);
     if (!outcome.ok) {
+      await releaseChannelClaim(user, trip.id, slug, "whatsapp");
       refused(user, "tell_readers", outcome.reason);
       return Response.json(
         { error: outcome.reason },
@@ -103,8 +128,13 @@ export async function POST(
 
   if (channel === "sms") {
     // B2292 — the same shape as WhatsApp above, one credit per paying reader.
+    if (!(await claimChannel(user, trip.id, slug, "sms"))) {
+      // TODO(B2438): logMessage({ owner: user, template: "day.sms", flow: "tell_readers", channel: "sms", status: "skipped", reason: "deduped" })
+      return already();
+    }
     const outcome = await sendDaySms(user, ref, slug);
     if (!outcome.ok) {
+      await releaseChannelClaim(user, trip.id, slug, "sms");
       refused(user, "tell_readers", outcome.reason);
       return Response.json(
         { error: outcome.reason },
@@ -116,8 +146,13 @@ export async function POST(
     return Response.json({ ok: true, slug, channel, ...summary });
   }
 
-  const outcome = await sendDayLetter(user, ref, slug, { resend: true });
+  if (!(await claimChannel(user, trip.id, slug, "mail"))) {
+    // TODO(B2438): logMessage({ owner: user, template: "day.mail", flow: "tell_readers", channel: "mail", status: "skipped", reason: "deduped" })
+    return already();
+  }
+  const outcome = await sendDayLetter(user, ref, slug);
   if (!outcome.ok) {
+    await releaseChannelClaim(user, trip.id, slug, "mail");
     refused(user, "tell_readers", outcome.reason);
     return Response.json({ error: outcome.reason }, { status: 400 });
   }
