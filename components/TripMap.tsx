@@ -842,41 +842,26 @@ export default function TripMap({
           day). B1944: a row can carry the date a chip could not, and the
           selected one opens its detail here rather than in a second panel
           that named the same place again. */}
-      <ul
-        ref={listRef}
-        className="flex list-none gap-2 overflow-x-auto snap-x px-2 py-1 sm:block sm:max-h-80 sm:overflow-y-auto"
-        aria-label={t("tripMap.title")}
-      >
+      <ul ref={listRef} className="fs-map-stops" aria-label={t("tripMap.title")}>
         {stops.map((stop, i) => {
           const isSelected = stop.key === selected.key;
           return (
-            <li key={stop.key} ref={isSelected ? selectedRow : undefined} className="shrink-0">
-              <button
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => select(stop)}
-                className={`flex w-full min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-left text-sm transition-colors ${
-                  isSelected
-                    ? "bg-surface-selected font-semibold text-ink-strong"
-                    : "text-ink-body hover:text-ink-strong"
-                }`}
-              >
+            <li key={stop.key} ref={isSelected ? selectedRow : undefined} className="fs-map-stop">
+              <button type="button" aria-pressed={isSelected} onClick={() => select(stop)}>
                 {stop.photo && (
                   // Lazily arrived (see the doc above), and lazily loaded —
                   // `mediaLoader`'s own `?w=` at the smallest allowed width,
                   // the same one PhotoMarker's marker asks for.
-                  <img
-                    src={mediaLoader({ src: stop.photo.src, width: 160 })}
-                    alt=""
-                    loading="lazy"
-                    className="h-7 w-7 shrink-0 rounded object-cover"
-                  />
+                  <img src={mediaLoader({ src: stop.photo.src, width: 160 })} alt="" loading="lazy" />
                 )}
-                <span className="truncate">
-                  {orderOf.get(stop.key) ?? i + 1} · {stop.location}
-                </span>
-                <span className="shrink-0 text-xs tabular-nums text-ink-secondary">
-                  {formatShortDate(stop.date)}
+                <span className="fs-map-stop-text">
+                  <span className="fs-map-stop-name">
+                    {orderOf.get(stop.key) ?? i + 1} · {stop.location}
+                  </span>
+                  <span className="fs-map-stop-meta">
+                    {formatShortDate(stop.date)}
+                    {stop.country ? ` · ${stop.country}` : ""}
+                  </span>
                 </span>
               </button>
               {isSelected && (

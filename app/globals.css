@@ -1184,36 +1184,103 @@ select:disabled {
   .fs-pulse { animation: none; }
 }
 
-/* The trip map's stop names and its markers — B1911.
+/* The trip map's stop row — B1911, redrawn as a phone carousel and a
+   desktop column, the same rows restyled by width alone (B2429).
 
-   Utilities everywhere else, and a class here for one measured reason: a
-   two-hundred-day trip draws one of these buttons per stop, and a dozen
-   Tailwind class names repeated two hundred times is forty kilobytes of
-   markup that `test/payload.test.tsx` counts against what a day costs the
-   page. The colours are the same tokens the utilities would have used. */
-.fs-map-stops > button {
-  min-height: 2.75rem;
+   Semantic classes rather than Tailwind utilities, and for the measured
+   reason `.fs-map-pin` below already states: a two-hundred-day trip draws
+   one of these per stop, and a dozen utility class names repeated two
+   hundred times over is kilobytes of markup *and* of the serialised
+   hydration props `test/payload.test.tsx` also counts — B2429 found that
+   budget has almost no headroom left. The colours are the same tokens the
+   utilities would have used. This replaces an earlier, unused version of
+   this same rule (the chip run B1944's list itself replaced) rather than
+   sitting beside it. */
+.fs-map-stops {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  list-style: none;
+  padding: 0.25rem 0.5rem;
+}
+.fs-map-stop {
   flex-shrink: 0;
+  width: 220px;
+  scroll-snap-align: center;
+}
+.fs-map-stop > button {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  min-height: 2.75rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--line-quiet);
-  background: var(--surface-base);
+  padding: 0.375rem 0.625rem;
+  text-align: left;
   color: var(--ink-body);
-  padding: 0 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  white-space: nowrap;
+  background: transparent;
   transition: color 150ms, background-color 150ms;
 }
-.fs-map-stops > button[aria-pressed="true"] {
-  border-color: var(--action-strong);
+.fs-map-stop > button[aria-pressed="true"] {
   background: var(--action-strong);
   color: var(--on-action);
 }
-.fs-map-stops > button:hover {
+.fs-map-stop > button:hover {
   color: var(--ink-strong);
 }
-.fs-map-stops > button[aria-pressed="true"]:hover {
+.fs-map-stop > button[aria-pressed="true"]:hover {
   color: var(--on-action);
+}
+.fs-map-stop img {
+  flex-shrink: 0;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+.fs-map-stop-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.fs-map-stop-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.fs-map-stop-meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-secondary);
+}
+.fs-map-stop > button[aria-pressed="true"] .fs-map-stop-meta {
+  color: var(--on-action);
+  opacity: 0.85;
+}
+@media (min-width: 640px) {
+  .fs-map-stops {
+    display: block;
+    overflow: visible;
+    max-height: 20rem;
+    overflow-y: auto;
+    scroll-snap-type: none;
+  }
+  .fs-map-stop {
+    width: auto;
+  }
+  .fs-map-stop img {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.25rem;
+  }
 }
 
 /* And the markers, for the same reason and with the focus ring the SVG
