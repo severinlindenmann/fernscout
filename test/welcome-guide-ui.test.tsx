@@ -249,6 +249,49 @@ describe("the join flow", () => {
     fetchMock.mockRestore();
   });
 
+  test("B2504 — News from Fernscout starts ticked, and is sent as consent unless unticked", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock = vi.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return { ok: true, json: async () => ({ ok: true, status: "waiting" }) } as Response;
+    });
+    mount(
+      <JoinFlow
+        code="2345678923"
+        owner="ana"
+        title="Two Backpacks"
+        ownerName="Ana"
+        kind="guest"
+        tripTitle={null}
+        knownEmail="an•••@example.test"
+        caps={{ mail: true, sms: false, whatsapp: false, postcards: false }}
+        dictionary={dict}
+        locale="en"
+        locales={["en"]}
+        addressLookupEnabled={false}
+      />,
+    );
+    const input = container!.querySelector("input")!;
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    act(() => {
+      setter.call(input, "Anna");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await act(async () => {
+      press(dict["join.who.go"]);
+      await Promise.resolve();
+    });
+    const news = Array.from(container!.querySelectorAll("label")).find((l) => l.textContent?.includes(dict["join.notify.news"]));
+    expect(news?.querySelector("input")?.checked).toBe(true);
+    const save = Array.from(container!.querySelectorAll("button")).find((b) => b.textContent?.trim() === dict["join.notify.send"]);
+    await act(async () => {
+      save!.click();
+      await Promise.resolve();
+    });
+    expect(bodies.at(-1)).toMatchObject({ action: "save", wantsNews: true });
+    fetchMock.mockRestore();
+  });
+
   test("with SMS off there is no mobile tab", () => {
     mount(
       <JoinFlow

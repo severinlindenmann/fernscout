@@ -167,7 +167,9 @@ export default function JoinFlow({
   const [mobileValue, setMobileValue] = useState("");
   const [mobileSent, setMobileSent] = useState<string | null>(null);
   const [mobileCode, setMobileCode] = useState("");
-  const [news, setNews] = useState(false);
+  // B2504: ticked from the start, the owner's decision (27 Sep); unticking
+  // records nothing, and "Stop news" on /me turns it off again.
+  const [news, setNews] = useState(true);
   // B2454: an email added after a mobile-only sign-up, proved by its own code.
   const [addedEmail, setAddedEmail] = useState<string | null>(null);
   const [emailValue, setEmailValue] = useState("");
@@ -468,7 +470,6 @@ export default function JoinFlow({
                 key: "wantsNews",
                 label: t("join.notify.news"),
                 hint: t("join.notify.newsHint", vars),
-                // Never ticked for them: consent is asked, not assumed (B2453).
                 checked: news,
                 disabled: false,
               },
