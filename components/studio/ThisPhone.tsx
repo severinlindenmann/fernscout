@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
-import { connectShareInbox, disconnectShareInbox, useNativeShell } from "@/components/nativeShell";
+import { connectShareInbox, disconnectShareInbox, useNativeShell, useStandalone } from "@/components/nativeShell";
 import { useShareInboxAutoConnect } from "@/components/studio/ShareInboxConnect";
 import { KEPT_CHANGED } from "@/components/KeepTrip";
 
@@ -19,16 +19,6 @@ import { KEPT_CHANGED } from "@/components/KeepTrip";
  * service worker keeps for offline reading, kept trips included, and is
  * never a sign-out: the personal cache and the cookie stay.
  */
-function useStandalone(): boolean {
-  return useSyncExternalStore(
-    () => () => {},
-    () =>
-      (navigator as Navigator & { standalone?: boolean }).standalone === true ||
-      window.matchMedia("(display-mode: standalone)").matches,
-    () => false,
-  );
-}
-
 function mb(bytes: number): string {
   return `${Math.round(bytes / 1e6)} MB`;
 }

@@ -1273,6 +1273,7 @@ export type TranslationKey =
   | "me.canRead"
   | "me.cancel"
   | "me.connectionApp"
+  | "me.connectionInstalled"
   | "me.connectionOfficial"
   | "me.connectionSelfHosted"
   | "me.connectionSelfHostedPlain"
