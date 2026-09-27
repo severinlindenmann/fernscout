@@ -1,5 +1,5 @@
 import "server-only";
-import { getDatabase, nowIso } from "./db";
+import { getDatabase, getDatabaseOrNull, nowIso } from "./db";
 import { normaliseEmail } from "./contacts";
 
 /**
@@ -42,7 +42,11 @@ export async function clearNewsConsent(email: string): Promise<void> {
 export async function hasNewsConsent(email: string): Promise<boolean> {
   const key = normaliseEmail(email);
   if (!key) return false;
-  const { db } = await getDatabase();
+  // Asked on every /me render: an instance with no database has nobody on
+  // the list, and must answer that rather than throw (absent, not broken).
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const { db } = handle;
   const row = await db.selectFrom("news_consent").select("email").where("email", "=", key).executeTakeFirst();
   return Boolean(row);
 }
