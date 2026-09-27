@@ -127,12 +127,15 @@ export function journalsSitemap(): SitemapEntry[] {
   return out;
 }
 
-/** What an agent reads: the instance guide, the task guides, the API. */
+/**
+ * What an agent reads: llms.txt, the task guides, the API. Not
+ * `/documentation.txt` — it answers `X-Robots-Tag: noindex` on purpose, and a
+ * sitemap entry for it would argue with that; llms.txt links it instead.
+ */
 export function agentsSitemap(): SitemapEntry[] {
   const base = serverSite().url;
   return [
     "/llms.txt",
-    "/documentation.txt",
     ...SKILL_DOC_SLUGS.map(skillDocPath),
     "/api/v2/openapi.json",
   ].map((path) => ({ url: `${base}${path}` }));

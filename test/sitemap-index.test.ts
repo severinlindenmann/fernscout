@@ -62,6 +62,12 @@ describe("what the children list", () => {
     expect(pages.every((p) => p.lastmod === undefined)).toBe(true);
   });
 
+  test("the agents sitemap leaves out the noindex /documentation.txt", () => {
+    const urls = agentsSitemap().map((e) => e.url);
+    expect(urls).not.toContain(`${base}/documentation.txt`);
+    expect(urls).toContain(`${base}/llms.txt`);
+  });
+
   test("every agent document listed has a route behind it", () => {
     for (const { url } of agentsSitemap()) {
       const route = url.slice(base.length);
