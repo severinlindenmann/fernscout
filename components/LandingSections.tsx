@@ -10,6 +10,7 @@ import {
   Mail,
   Mic,
 } from "lucide-react";
+import AccountChip from "@/components/AccountChip";
 import AppWaitlistDoor from "@/components/AppWaitlistDoor";
 import ChatVignette from "@/components/ChatVignette";
 import CopyLine from "@/components/CopyLine";
@@ -124,9 +125,16 @@ export function SiteHeader({
   admin,
   helperEnabled = false,
   onSignIn,
+  account,
 }: {
   siteName: string;
   locales?: string[];
+  /**
+   * The signed-in address, once `/api/v2/me/home` has said there is one —
+   * the chip to `/me`. Undefined on the server pass and for a stranger, for
+   * the same cacheability reason as `admin` below.
+   */
+  account?: string;
   /**
    * Whether this reader runs the instance — B746, placed here by B758.
    *
@@ -169,11 +177,14 @@ export function SiteHeader({
 }) {
   const { t } = useI18n();
   return (
-    <div className="flex items-start justify-between gap-4">
+    // Wraps rather than squeezes: operator word, account chip, theme and
+    // language do not all fit beside the site name at 360px, and a chip
+    // pushed off the edge is a door nobody finds.
+    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
       <div className="pt-3">
         <Kicker>{siteName}</Kicker>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center justify-end gap-1">
         {admin && (
           // Drawn as LocaleSwitcher's `subtle` chip is, down to the hit area:
           // two controls side by side in the same corner have to read as one
@@ -208,6 +219,7 @@ export function SiteHeader({
         )}
         <ThemeSwitcher subtle />
         <LocaleSwitcher locales={locales} subtle />
+        {account && <AccountChip email={account} />}
       </div>
     </div>
   );

@@ -57,6 +57,9 @@ export const ERROR_CODES = {
     "Not a number of credits this server sells — out of range, not a whole number, or off the " +
     "step. The refusal names the three bounds.",
   no_such_device: "No device of that id on this account.",
+  foreign_origin:
+    "This request's Origin is not this site. A cookie-only door that ends sessions answers only " +
+    "the site's own pages; retry from the site itself.",
   not_found: "Nothing at this address.",
   gone: "This journal or trip was deleted. Its name stays reserved and its old URLs answer 410 rather than 404, so this is not a typo — it is a thing that used to be here.",
   deletion_link_used: "This deletion link has already been used. It cannot be used again; the confirmation page names what actually happened.",

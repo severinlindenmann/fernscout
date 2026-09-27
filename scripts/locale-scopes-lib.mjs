@@ -75,6 +75,8 @@ export const SCOPES = {
   // vocabulary; nowhere else under the root needs it.
   admin: { layout: "app/admin/layout.tsx" },
   welcome: { layout: "app/welcome/layout.tsx" },
+  // `/me` — the person across every journal: roles, devices, sign-out.
+  account: { layout: "app/me/layout.tsx" },
   // A reader's journal: the story, trips, the gallery, the map.
   journal: { layout: "app/[user]/layout.tsx" },
   // The reader's own page and the owner's studio — the two places inside a

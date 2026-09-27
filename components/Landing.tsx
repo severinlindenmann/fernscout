@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import {
   AgentBlock,
   AgentDisclosure,
@@ -14,15 +15,11 @@ import {
   SiteHeader,
   type PublicJournal,
 } from "@/components/LandingSections";
-import {
-  YourDevices,
-  YourJournals,
-  type HomeDevice,
-  type HomeJournal,
-} from "@/components/HomeJournals";
+import { YourJournals } from "@/components/HomeJournals";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import ServerChoice from "@/components/ServerChoice";
 import { useI18n } from "@/components/LocaleProvider";
+import { SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
 
 export type { PublicJournal };
 
@@ -51,28 +48,6 @@ export type { PublicJournal };
  * away from being served to the next person on a shared phone.
  */
 
-type Home = {
-  /** The reader's opaque identity id, or `null` for nobody — see the route. */
-  id: string | null;
-  email: string;
-  journals: HomeJournal[];
-  devices: HomeDevice[];
-  /** True when this address runs the instance — B746. Decides whether the
-   *  operator link below is offered, and nothing else: `/admin` asks
-   *  `isInstanceAdmin()` for itself, so a forged `true` reaches a 404. */
-  admin?: boolean;
-};
-
-/**
- * Whether this browser was signed in last time it looked.
- *
- * Not a credential and not trusted as one — the server decides, every time,
- * and the worst a forged value can do is show a skeleton to a stranger for one
- * network round trip. What it buys is the absence of a flash: without it, a
- * signed-in reader sees the marketing hero and then watches it be replaced by
- * their own journals, every single load.
- */
-const SEEN_KEY = "fs-home-signed-in";
 
 type Phase = "unknown" | "out" | "in";
 
@@ -149,7 +124,7 @@ export default function Landing({
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("unknown");
-  const [home, setHome] = useState<Home | null>(null);
+  const [home, setHome] = useState<HomePayload | null>(null);
   /**
    * Read *after* the first render, not during it — B454.
    *
@@ -195,29 +170,9 @@ export default function Landing({
 
   useEffect(() => {
     let live = true;
-    const fetchHome = () =>
-      fetch("/api/v2/me/home", { headers: { accept: "application/json" } }).then(
-        async (res) => (res.ok ? ((await res.json()) as Home) : null),
-      );
-    fetchHome()
-      .then(async (data) => {
-        // `id: null` from a stranger, a switched-off `auth`, or an identity
-        // that was actually revoked stays `id: null` below. But it is also
-        // what a reader signed into a journal before B410 sees: they hold
-        // `fs_session` and no `fs_identity`, and `/me/home` answers from the
-        // identity alone (`lib/auth/handshake.ts`'s own reasoning — a journal
-        // cookie must not answer an instance-wide question by itself). B1493
-        // — the fix already built for a journal's own page (B459's
-        // `IdentityUpgrade`) is the same one this probe needs: mint the
-        // identity a live journal session already earns, once, and re-ask
-        // before concluding nobody is signed in.
-        if (!live || data?.id) return data;
-        const upgraded = await fetch("/api/auth/identity/upgrade", { method: "POST" })
-          .then((res) => (res.ok ? (res.json() as Promise<{ issued?: boolean }>) : null))
-          .catch(() => null);
-        if (!live || !upgraded?.issued) return data;
-        return fetchHome().catch(() => data);
-      })
+    // The journal-session upgrade (B1493) lives in `probeHome`, shared with
+    // `/me`, which asks the same question.
+    probeHome(() => live)
       .then((data) => {
         if (!live) return;
         if (!data?.id) {
@@ -259,6 +214,7 @@ export default function Landing({
       siteName={siteName}
       locales={locales}
       admin={home?.admin}
+      account={phase === "in" && home ? home.email : undefined}
       // Suppressed once signed in — B1905. `SiteHeader`'s chip opens
       // sign-in, which has nothing to offer a reader who already has a
       // session; `YourJournals` below is that reader's own way in now.
@@ -297,14 +253,19 @@ export default function Landing({
               <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
             </div>
           )}
-          <YourDevices
-            devices={home.devices}
-            onRevoke={(id) =>
-              setHome((prev) =>
-                prev ? { ...prev, devices: prev.devices.filter((d) => d.id !== id) } : prev,
-              )
-            }
-          />
+          {/* Devices, sign-out and everything else about the person rather
+              than a journal live on `/me` now — reached from the header's
+              account chip, and from here in words for anybody who does not
+              read a chip as a door. */}
+          <p className="mt-12 border-t border-line-quiet pt-8 text-sm leading-6 text-ink-body">
+            <Link
+              href="/me"
+              className="font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-4
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            >
+              {t("home.accountLink")}
+            </Link>
+          </p>
           {colophon}
           {/* Inside the iPhone app only: which server it is talking to. */}
           <ServerChoice signedIn />
