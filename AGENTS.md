@@ -31,9 +31,9 @@ actually did. `test: true` is the only exception for invented content, and a
 whole test journal is named `test-<something>` so the label survives
 exports and backups.
 
-A day with no `status` field reads as published, not as a draft — only the
-literal `"draft"` holds a day back. Set `status` explicitly on anything you
-do not mean to publish yet.
+Only `"status": "published"` puts a day on the site; a day with any other
+status, or none, reads as a draft (`dayFromJson` in
+`lib/api/v2/documents.ts`).
 
 ## GPS is the most sensitive data here
 
