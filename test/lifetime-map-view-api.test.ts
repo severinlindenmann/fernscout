@@ -20,6 +20,13 @@ describe("GET /api/lifetime-map-view", () => {
     expect(res.status).toBe(400);
   });
 
+  test("refuses a frame larger than the world or far outside it", async () => {
+    for (const q of ["x=0&y=0&w=5000&h=40&lngScale=1", "x=-9000&y=0&w=60&h=40&lngScale=1", "x=0&y=0&w=60&h=40&lngScale=3"]) {
+      const res = await GET(new Request(`https://x.test/api/lifetime-map-view?${q}`));
+      expect(res.status).toBe(400);
+    }
+  });
+
   test("refuses a zero-width or negative frame", async () => {
     const res = await GET(
       new Request("https://x.test/api/lifetime-map-view?x=0&y=0&w=0&h=40&lngScale=1"),

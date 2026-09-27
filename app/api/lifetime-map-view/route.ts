@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { basemapFor } from "@/lib/basemap";
 import type { Frame } from "@/lib/mapFrame";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { MAP_VIEWBOX } from "@/lib/mapProjection";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,14 @@ export async function GET(request: Request) {
     lngScale: num("lngScale"),
   };
 
-  if (!Object.values(frame).every(Number.isFinite) || frame.w <= 0 || frame.h <= 0) {
+  // No frame this map computes is more than twice the world's viewBox or
+  // reaches further than one world off its edge, so nothing larger is
+  // clipped for whoever asks.
+  const { width: W, height: H } = MAP_VIEWBOX;
+  const inWorld =
+    frame.w <= 2 * W && frame.h <= 2 * H && frame.x >= -W && frame.x <= 2 * W && frame.y >= -H && frame.y <= 2 * H &&
+    frame.lngScale > 0 && frame.lngScale <= 1;
+  if (!Object.values(frame).every(Number.isFinite) || frame.w <= 0 || frame.h <= 0 || !inWorld) {
     return NextResponse.json({ error: "invalid_frame" }, { status: 400 });
   }
 
