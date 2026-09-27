@@ -447,3 +447,26 @@ describe("B2454 — somebody who joined by mobile can add an email on the notify
     expect(row?.name).toBe("Tomas Text");
   });
 });
+
+describe("B2503 — the confirm button in a join code mail carries on in the join guide", () => {
+  test("pressing it lands back on /j/<code>, and the guide then files the request", async () => {
+    await signInOwner();
+    const code = await newLink({ kind: "guest", name: "Group" });
+    jar.cookies = {};
+    const email = "linky@example.test";
+    await joinStep(code, { action: "send", name: "Lina Link", channel: "email", value: email });
+    const token = mails(email).at(-1)?.match(/\/ana\/s\/([A-Za-z0-9_-]+)/)?.[1];
+    expect(token).toBeTruthy();
+
+    const { POST } = await import("@/app/api/auth/links/redeem/route");
+    const res = await POST(post("/api/auth/links/redeem", { user: OWNER, token, for: "read" }));
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { next?: string }).next).toBe(`/j/${code}`);
+
+    const { getContactByEmail } = await import("@/lib/contacts");
+    expect(await getContactByEmail(OWNER, email)).toBeNull();
+    const joined = await joinStep(code, { action: "join", name: "Lina Link" });
+    expect(joined.status).toBe(200);
+    expect((await getContactByEmail(OWNER, email))?.status).toBe("pending");
+  });
+});
