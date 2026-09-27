@@ -96,6 +96,7 @@ export default function JournalPageContent({
   journal,
   knownCurrencies,
   reminders,
+  tipsOn,
   tellBy,
 }: {
   username: string;
@@ -104,6 +105,10 @@ export default function JournalPageContent({
    *  table prices. The picker offers these and nothing typed (B2143). */
   knownCurrencies: string[];
   reminders: ReminderRow[];
+  /** The getting-started tips checkbox's current answer — B2447. `false`
+   *  for a journal that never turned it on, exactly like the signup box it
+   *  mirrors. */
+  tipsOn: boolean;
   /** B2194 — "How you tell a day", only when transcription is on; absent
    *  (undefined) otherwise. `tellBy: null` is "never asked". */
   tellBy?: { current: TellBy | null };
@@ -122,6 +127,7 @@ export default function JournalPageContent({
   const [currencyList, setCurrencyList] = useState(journal.displayCurrencies);
   const [currencySearch, setCurrencySearch] = useState("");
   const [listed, setListed] = useState(journal.visibility === "public");
+  const [tips, setTips] = useState(tipsOn);
   const [reminderOn, setReminderOn] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(reminders.map((row) => [row.id, row.on])),
   );
@@ -154,7 +160,8 @@ export default function JournalPageContent({
   if (listed !== (journal.visibility === "public")) patch.visibility = listed ? "public" : "guest";
   const reminderMoves = reminders.filter((row) => reminderOn[row.id] !== row.on);
   const tellByMoved = !!tellBy && tellByChoice !== null && tellByChoice !== tellBy.current;
-  const count = Object.keys(patch).length + reminderMoves.length + (tellByMoved ? 1 : 0);
+  const tipsMoved = tips !== tipsOn;
+  const count = Object.keys(patch).length + reminderMoves.length + (tellByMoved ? 1 : 0) + (tipsMoved ? 1 : 0);
   // A title cannot be cleared — `setJournalProfile` refuses it.
   const titleMissing = title.trim() === "";
 
@@ -176,6 +183,7 @@ export default function JournalPageContent({
         body: { enabled: reminderOn[row.id] },
       })),
       ...(tellByMoved ? [{ url: `/api/web/${encodeURIComponent(username)}/studio/tell-by`, body: { tellBy: tellByChoice } }] : []),
+      ...(tipsMoved ? [{ url: `/api/web/${encodeURIComponent(username)}/studio/tips`, body: { optIn: tips } }] : []),
     ];
     for (const write of writes) {
       const response = await fetch(write.url, {
@@ -366,6 +374,31 @@ export default function JournalPageContent({
             <span
               aria-hidden="true"
               className={`absolute top-1 size-5 rounded-full bg-surface-raised transition-all ${listed ? "left-6" : "left-1"}`}
+            />
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className={EYEBROW} id={`${username}-journal-tips-label`}>
+          {t("me.journalTips")}
+        </p>
+        <div className="mt-1.5 flex items-center gap-3 rounded-2xl border border-line-strong bg-surface-raised px-4 py-3">
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-semibold text-ink-strong">{t("me.journalTips")}</span>
+            <span className="mt-0.5 block text-sm leading-6 text-ink-secondary">{t("me.journalTipsHint")}</span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={tips}
+            aria-labelledby={`${username}-journal-tips-label`}
+            onClick={() => setTips((on) => !on)}
+            className={`relative h-7 w-12 flex-none rounded-full transition-colors ${tips ? "bg-action-strong" : "bg-line-prominent"}`}
+          >
+            <span
+              aria-hidden="true"
+              className={`absolute top-1 size-5 rounded-full bg-surface-raised transition-all ${tips ? "left-6" : "left-1"}`}
             />
           </button>
         </div>

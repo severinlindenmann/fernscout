@@ -223,6 +223,30 @@ type Owner = {
    * hand, per B1064's decision that a number change is done by the
    * operator, by hand, until there is a self-serve path. */
   telProvenMethod?: "sms" | "operator" | "whatsapp-inbound";
+  /**
+   * The getting-started tips opt-in — W44 D5, B2447. Unticked by default
+   * (a pre-ticked box is not valid consent under the GDPR — CJEU Planet49),
+   * asked once at signup and turned off again from the studio journal
+   * settings (`setOwnerTips` in lib/journals.ts). `at` is also the anchor
+   * `lib/digest/firstTrip.ts` ages the journal against — tips can only be
+   * turned *on* at signup, so it is the journal's own creation moment, not
+   * a second field this file would otherwise need.
+   */
+  tips?: OwnerTips;
+};
+
+export type OwnerTips = {
+  optIn: boolean;
+  /** When `optIn` last became true. ISO timestamp. */
+  at: string;
+  /** When the flow's push step (`nudge.first.push`) actually sent — never
+   * set today (see `ownerPushSubscription` in lib/digest/firstTrip.ts), kept
+   * here for forward compatibility. */
+  pushedAt?: string;
+  /** When the flow's terminal mail (`nudge.first.mail`) sent — present means
+   * "done, forever", the config.json half of B2447's once-per-account rule
+   * for a no-database instance. */
+  sentAt?: string;
 };
 
 /**
@@ -812,6 +836,24 @@ function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
       problems.push("owner.email must be an email address, or absent");
     } else {
       owner.email = raw.email.trim().toLowerCase();
+    }
+  }
+  if (raw.tips !== undefined) {
+    const tips = raw.tips;
+    if (
+      !isRecord(tips) ||
+      typeof tips.optIn !== "boolean" ||
+      typeof tips.at !== "string" ||
+      Number.isNaN(Date.parse(tips.at))
+    ) {
+      problems.push('owner.tips must be { "optIn": boolean, "at": ISO timestamp }, or absent');
+    } else {
+      owner.tips = {
+        optIn: tips.optIn,
+        at: tips.at,
+        ...(typeof tips.pushedAt === "string" ? { pushedAt: tips.pushedAt } : {}),
+        ...(typeof tips.sentAt === "string" ? { sentAt: tips.sentAt } : {}),
+      };
     }
   }
   return owner;

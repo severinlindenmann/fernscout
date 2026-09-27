@@ -117,6 +117,11 @@ export type NewJournal = {
    * business (`lib/registry.ts:reconcile`). */
   ownerTelProvenAt?: string;
   ownerTelProvenMethod?: "sms" | "operator" | "whatsapp-inbound";
+  /** The getting-started tips checkbox, unticked by default — B2447 (W44
+   * D5). `true` writes `owner.tips: { optIn: true, at: <now> }`; anything
+   * else writes nothing, which is the same "never asked" state a journal
+   * created before this field existed is in. */
+  tips?: boolean;
 };
 
 export type CreateJournalResult =
@@ -380,6 +385,7 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       ...(input.ownerTel ? { tel: input.ownerTel } : {}),
       ...(input.ownerTel && input.ownerTelProvenAt ? { telProvenAt: input.ownerTelProvenAt } : {}),
       ...(input.ownerTel && input.ownerTelProvenMethod ? { telProvenMethod: input.ownerTelProvenMethod } : {}),
+      ...(input.tips ? { tips: { optIn: true, at: new Date().toISOString() } } : {}),
     },
     // Written only when it is `guest`, and never as the old word `private`
     // even when that is what the caller sent — see `normalizeJournalVisibility`.
@@ -857,6 +863,67 @@ export function setJournalFeatures(
 
   const now = getUser(username) ?? user;
   return { ok: true, username, features: journalFeatures(now), changed };
+}
+
+export type SetOwnerTipsResult =
+  | { ok: true }
+  | { ok: false; error: string; message: string };
+
+/**
+ * Turn the getting-started tips flag on or off — B2447 (W44 D5). The
+ * studio journal settings page's own door (`/api/web/{user}/studio/tips`),
+ * not the v2 journal write contract: this is a UI-only preference with
+ * nothing for an agent to ask about, the same reasoning `writeTellBy`
+ * (lib/studio/tellBy.ts) follows one page over — except this one field
+ * belongs in `config.json`'s `owner.tips`, per the ticket, because
+ * `lib/digest/firstTrip.ts` ages the nudge off `tips.at` rather than a
+ * second "journal created" field this file would otherwise need.
+ *
+ * Turning it on sets `at` to now only the first time — a journal that
+ * turns tips off and back on does not get a second, later-dated first-trip
+ * nudge window, since B2447's flow can fire at most once per account
+ * regardless (`recordFirstTripNudge`'s `sentAt`).
+ */
+export function setOwnerTips(username: string, optIn: boolean): SetOwnerTipsResult {
+  const user = getUser(username);
+  if (!user) {
+    return {
+      ok: false,
+      error: "no_such_journal",
+      message: `There is no journal "${username}" on this server, or its config.json cannot be read.`,
+    };
+  }
+  const written = editUserConfigFile(username, (raw) => {
+    const owner = (raw.owner ?? {}) as Record<string, unknown>;
+    const existing =
+      typeof owner.tips === "object" && owner.tips !== null && !Array.isArray(owner.tips)
+        ? { ...(owner.tips as Record<string, unknown>) }
+        : {};
+    if (existing.optIn === optIn) return null;
+    const tips = { ...existing, optIn, at: typeof existing.at === "string" ? existing.at : new Date().toISOString() };
+    return { ...raw, owner: { ...owner, tips } };
+  });
+  if (!written.ok) return written;
+  return { ok: true };
+}
+
+/**
+ * Record that the first-trip flow's push or terminal mail step actually
+ * sent — the `config.json` half of B2447's "sent once, never repeat" rule,
+ * for an instance with no database to hold `message_log`'s own row. Called
+ * only by `lib/digest/firstTrip.ts`.
+ */
+export function recordFirstTripNudge(username: string, stage: "pushed" | "sent"): void {
+  const field = stage === "pushed" ? "pushedAt" : "sentAt";
+  editUserConfigFile(username, (raw) => {
+    const owner = (raw.owner ?? {}) as Record<string, unknown>;
+    const tips =
+      typeof owner.tips === "object" && owner.tips !== null && !Array.isArray(owner.tips)
+        ? { ...(owner.tips as Record<string, unknown>) }
+        : {};
+    if (tips[field]) return null;
+    return { ...raw, owner: { ...owner, tips: { ...tips, [field]: new Date().toISOString() } } };
+  });
 }
 
 /**
