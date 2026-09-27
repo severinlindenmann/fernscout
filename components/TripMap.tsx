@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, ExternalLink, Minus, Plus, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import {
   frameRoute,
   frameSpanKm,
@@ -23,7 +23,16 @@ import GoogleMark from "./GoogleMark";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
 import { useMapViewport } from "./map/useMapViewport";
+import StopMarker from "./map/StopMarker";
+import ClusterMarker from "./map/ClusterMarker";
+import HereNow from "./map/HereNow";
+import RouteLine, { type RouteHop } from "./map/RouteLine";
+import LegChip from "./map/LegChip";
+import MapControls from "./map/MapControls";
+import StopScopeSwitch from "./map/StopScopeSwitch";
+import { mapStyle, mapAccent } from "@/lib/map/style";
 import type { Basemap } from "@/lib/basemap";
+import type { TripAccent } from "@/lib/types";
 
 /**
  * The trip's map, under the hero: where this was, at the scale it needs.
@@ -39,15 +48,24 @@ import type { Basemap } from "@/lib/basemap";
  * scale. Selection survives the switch, and the Google Maps link follows the
  * selected stop rather than whatever the viewport happens to be centred on.
  *
- * What it deliberately does not do: pulse (a documented stop is not a live
- * fix), claim a route (the dashes join stops, they do not trace a road), or
- * capture the page's scrolling on a phone.
+ * Restyled onto the Paper primitives for B2421 (Phase 1 item 1 of
+ * docs/plans/map-redesign.md): numbered `StopMarker`/`ClusterMarker` discs,
+ * a straight `RouteLine` in the trip's own accent, a `LegChip` per leg with
+ * a known transport mode, and `HereNow` — yellow, and yellow alone — drawn
+ * only when the caller says the trip is live. What it deliberately still
+ * does not do: pulse (a documented stop is not a live fix — `HereNow` itself
+ * carries no animation either), claim a route where none was recorded (a
+ * straight or flight-arc hop is a connection, not a road), or capture the
+ * page's scrolling on a phone.
  */
 export default function TripMap({
   days,
   basemap = null,
   locals,
   track = [],
+  tripTrack = [],
+  accent = "navy",
+  live = false,
   onRequestFullscreen,
 }: {
   /** The reader-filtered day summaries — see `tripStops`. */
@@ -66,11 +84,32 @@ export default function TripMap({
    * The recorded route for one day — B2199. `readerTrack`'s segments for the
    * day this permalink names, already filtered server-side to what this
    * reader may see. Drawn the same weight `WorldMap` draws the trip's own
-   * line (navy-500, 70% opacity, 2.2px, `docs/gps.md`), and never used to
-   * size the frame: the frame stays `frameRoute(stops)` so a day trip nobody
+   * line (navy, 70% opacity, 2.2px, `docs/gps.md`), and never used to size
+   * the frame: the frame stays `frameRoute(stops)` so a day trip nobody
    * wrote up cannot zoom the whole map out to fit itself.
    */
   track?: [number, number][][];
+  /**
+   * The whole trip's own recorded line — `readerTrack`'s segments across
+   * every date this reader may see (the same shape `WorldMap`'s own `track`
+   * prop already takes). B2421: when present, this is drawn in the trip's
+   * accent with the route's white casing and the stop-to-stop hops are not
+   * drawn at all — a recorded line is a truer route than a straight guess
+   * between two stops. Absent (no example journal has one yet) keeps the
+   * hop connections below.
+   */
+  tripTrack?: [number, number][][];
+  /** The colour the owner chose for this trip — `Trip["accent"]`, read by
+   * the caller from `useTrip()`. Defaults to navy, the same "no preference"
+   * fallback the map's own controls and selection already draw in — a
+   * `TripMap` rendered without a `TripProvider` (every test here) still has
+   * an accent to draw the route in. */
+  accent?: TripAccent;
+  /** Whether this trip is currently happening — `!over` in `TripHero`. Turns
+   * on `HereNow`, and only `HereNow`: a selection is never this colour,
+   * whatever it is. Defaults to false, so a caller that forgets it draws no
+   * claim about right now rather than a wrong one. */
+  live?: boolean;
   /**
    * What a single tap on this map does — nothing yet opens a full-screen
    * view (that is Phase 2, docs/plans/map-redesign.md), so this is absent
@@ -85,6 +124,7 @@ export default function TripMap({
   // the clean ground it leaves is the right answer there (lib/basemap.ts).
   const worldLand = useWorldLand();
   const stops = useMemo(() => tripStops(days), [days]);
+  const orderOf = useMemo(() => new Map(stops.map((s, i) => [s.key, i + 1])), [stops]);
 
   // One stop is not an overview of anything: it opens where it is. Both
   // controls stay, and whole-trip bounds are then the same town-scale frame.
@@ -315,36 +355,117 @@ export default function TripMap({
   const href = googleMapsHref(selected);
   const status = t(chosen ? "tripMap.selectedPlace" : "tripMap.lastPlace");
 
+  /**
+   * The stop-to-stop hops, one per leg between two distinct *clusters* —
+   * the trip's accent route when there is no recorded track.json. Built
+   * from `clusters`, not from every raw stop, and de-duplicated by the pair
+   * of positions it connects: a trip that returns to the same town on day
+   * 50 that it left on day 9 draws that one connection once, the same way
+   * `clusters` itself already draws the town once rather than once per
+   * visit (`test/payload.test.tsx` — the reason the marker count is bounded
+   * is exactly the reason this has to be too, or a two-hundred-day loop
+   * turns two hundred hops and two hundred `LegChip`s back into what
+   * clustering was built to avoid). A hop within one cluster (nothing moved
+   * on screen) is dropped rather than drawn as a zero-length line.
+   *
+   * The leg's mode is the *arriving* stop's own `transport` (B2199's
+   * `dayTrack` doc explains the same "arriving leg" convention
+   * `DaySummary.transport` already carries), which is what turns a flight
+   * leg into `RouteLine`'s one arced exception (Q1,
+   * docs/plans/map-redesign.md §7) — every other leg stays straight.
+   *
+   * ponytail: the dedupe key is the position pair alone, not the mode, so a
+   * connection travelled by different transport on different visits keeps
+   * whichever mode it first carried rather than growing a second chip on
+   * the same line — the same bound `test/payload.test.tsx` already holds
+   * the marker count to, applied to the one other thing that was scaling
+   * with visits rather than with places.
+   */
+  const clusterPos = new Map<string, [number, number]>();
+  for (const cluster of clusters) {
+    for (const stop of cluster.stops) clusterPos.set(stop.key, [cluster.x, cluster.y]);
+  }
+  const seenHops = new Set<string>();
+  const hops: RouteHop[] = [];
+  const legChips: { hop: RouteHop; mode: NonNullable<TripStop["transport"]>["mode"] }[] = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const from = clusterPos.get(stops[i].key);
+    const to = clusterPos.get(stops[i + 1].key);
+    if (!from || !to) continue;
+    const [x1, y1] = from;
+    const [x2, y2] = to;
+    if (x1 === x2 && y1 === y2) continue; // nothing moved on screen
+    const key = `${x1},${y1}-${x2},${y2}`;
+    if (seenHops.has(key)) continue;
+    seenHops.add(key);
+    const mode = stops[i + 1].transport?.mode;
+    const hop: RouteHop = { x1, y1, x2, y2, mode };
+    hops.push(hop);
+    // A leg's own transport chip, at the midpoint of the *straight*
+    // stop-to-stop connection regardless of whether the line drawn
+    // underneath is a hop or the real track — the chip names one leg's
+    // transport, a fact about the days on either side of it, not about
+    // which line happens to be on screen.
+    //
+    // ponytail: the flight-arc leg's chip still sits on the straight
+    // midpoint rather than the arc's own peak — a cosmetic gap on the one
+    // mode that arcs, not a wrong fact; move it onto `RouteLine`'s own
+    // midpoint if that ever reads as wrong in a screenshot.
+    if (mode) legChips.push({ hop, mode });
+  }
+
+  /**
+   * The whole trip's recorded line, broken into the same straight
+   * `RouteHop` shape `RouteLine` already draws stop-to-stop hops with — a
+   * real GPS track is never arced, so every point pair here is a plain
+   * hop. Segments are drawn independently: nothing joins the end of one
+   * segment to the start of the next, the same gap `WorldMap` leaves for a
+   * day nobody recorded between two recorded ones.
+   */
+  const trackHops: RouteHop[] = tripTrack.flatMap((segment) =>
+    segment.slice(0, -1).map(([lat1, lng1], i) => {
+      const [lat2, lng2] = segment[i + 1];
+      const [x1, y1] = placeIn(frame, { lat: lat1, lng: lng1 });
+      const [x2, y2] = placeIn(frame, { lat: lat2, lng: lng2 });
+      return { x1, y1, x2, y2 };
+    }),
+  );
+  const hasTrack = trackHops.length > 0;
+
+  /** The very latest stop — "where the trip got to", independent of
+   * whatever is currently selected. `HereNow` marks *this* one and only
+   * this one: selecting an earlier stop must not move the live claim onto
+   * it. */
+  const latest = stops[stops.length - 1];
+
   return (
     <section className="overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-sm">
-      {/* One row, always. Wrapped, the title and these two buttons cost 104 px
-          of a 390 px phone; the title gives way instead, because the card it
+      {/* One row, always. Wrapped, the title and the switch cost 104 px of a
+          390 px phone; the title gives way instead, because the card it
           names is directly underneath it. B1944. */}
       <div className="flex items-center justify-between gap-3 px-4 py-1.5">
         {/* Truncated to "The trip on th…" at 390 px, which is worse than not
-            being there — the two buttons and the map underneath say what this
+            being there — the switch and the map underneath say what this
             is. Kept for anyone reading the page rather than looking at it. */}
         <h2 className="sr-only font-display text-base font-semibold text-ink-strong sm:not-sr-only">
           {t("tripMap.title")}
         </h2>
-        <div className="ml-auto flex gap-2 sm:ml-0">
-          <ViewButton active={view === "whole"} onClick={() => show("whole")}>
-            {t("tripMap.whole")}
-          </ViewButton>
-          <ViewButton active={view === "local"} onClick={() => show("local")}>
-            {t("tripMap.local")}
-          </ViewButton>
+        <div className="ml-auto sm:ml-0">
+          <StopScopeSwitch
+            scope={view === "whole" ? "trip" : "stop"}
+            onChange={(next) => show(next === "trip" ? "whole" : "local")}
+          />
         </div>
       </div>
 
-      <div className="relative aspect-[5/4] w-full border-y border-line-quiet bg-sky-300 sm:aspect-[2/1]">
+      <div className="relative aspect-[5/4] w-full border-y border-line-quiet bg-surface-raised sm:aspect-[2/1]">
         {/* role="group", not "img": the markers below are focusable, and an
             img makes every descendant presentational. */}
         <svg
           ref={svgRef}
           viewBox={`${frame.x} ${frame.y} ${frame.w} ${frame.h}`}
           className="block h-full w-full outline-none"
-          style={{ touchAction: viewport.touchAction }}
+          style={{ touchAction: viewport.touchAction, backgroundColor: mapStyle.sea }}
           role="group"
           aria-label={`${t("tripMap.title")} — ${selected.location}, ${selected.country}`}
           {...viewport.bind}
@@ -353,34 +474,33 @@ export default function TripMap({
             <g key={offset} transform={`translate(${offset} 0) scale(${base.lngScale} 1)`}>
               {ground ? (
                 <>
-                  <g fill="#fdf3e0" stroke="#c9b48c" strokeWidth={1}>
+                  {/* Relief shading was Option B, "Relief" (docs/plans/map-
+                      redesign.md's intro) — considered for the whole
+                      redesign and not the one taken, so it is not drawn
+                      here either. */}
+                  <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
                     {ground.borders.map((d, i) => (
                       <path key={i} d={d} vectorEffect="non-scaling-stroke" />
                     ))}
                   </g>
-                  <g fill="#e8dcc0" opacity={0.45} stroke="none">
-                    {ground.relief.map((d, i) => (
-                      <path key={i} d={d} />
-                    ))}
-                  </g>
-                  <g fill="none" stroke="#dbc9a4" strokeWidth={0.8} strokeDasharray="3 3">
+                  <g fill="none" stroke={mapStyle.borderInternal} strokeWidth={0.8} strokeDasharray="3 3">
                     {ground.admin1.map((d, i) => (
                       <path key={i} d={d} vectorEffect="non-scaling-stroke" />
                     ))}
                   </g>
-                  <g fill="#8fe0ef" stroke="#6fcfe0" strokeWidth={0.8}>
+                  <g fill={mapStyle.water} stroke="none">
                     {ground.lakes.map((d, i) => (
-                      <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                      <path key={i} d={d} />
                     ))}
                   </g>
-                  <g fill="none" stroke="#8fe0ef" strokeWidth={1.4} strokeLinecap="round">
+                  <g fill="none" stroke={mapStyle.water} strokeWidth={1.4} strokeLinecap="round">
                     {ground.rivers.map((d, i) => (
                       <path key={i} d={d} vectorEffect="non-scaling-stroke" />
                     ))}
                   </g>
                 </>
               ) : (
-                <g fill="#fdf3e0" stroke="#c9b48c" strokeWidth={1}>
+                <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
                   {worldLand.map((d, i) => (
                     <path key={i} d={d} vectorEffect="non-scaling-stroke" />
                   ))}
@@ -389,9 +509,9 @@ export default function TripMap({
             </g>
           ))}
 
-          {/* Context names: countries at range, towns and water regionally.
-              Quiet on purpose — they orient the reader behind the trip rather
-              than competing with the places somebody actually wrote about. */}
+          {/* Context names: countries at range, towns regionally. Quiet on
+              purpose — they orient the reader behind the trip rather than
+              competing with the places somebody actually wrote about. */}
           {ground && (
             <g pointerEvents="none">
               {/* A town whose name would be cut by the edge is left unnamed.
@@ -403,12 +523,12 @@ export default function TripMap({
                 .filter((town) => !runsOff(town.x, town.name))
                 .map((town) => (
                 <g key={`town-${town.name}-${town.x}`}>
-                  <circle cx={town.x} cy={town.y} r={px(2.5)} fill="#a89878" />
+                  <circle cx={town.x} cy={town.y} r={px(2.5)} fill={mapStyle.border} />
                   <text
                     x={town.x + px(5)}
                     y={town.y + px(4)}
                     fontSize={px(11)}
-                    fill="#6b6152"
+                    fill={mapStyle.labelTown}
                     className="font-display"
                   >
                     {town.name}
@@ -418,11 +538,11 @@ export default function TripMap({
             </g>
           )}
 
-          {/* The ground actually covered that day — B2199. Under the dashed
-              connection and the markers, same as `WorldMap` draws the whole
-              trip's line under its own markers. */}
+          {/* The ground actually covered that day — B2199. Under the route
+              and the markers, same as `WorldMap` draws the whole trip's
+              line under its own markers. */}
           {track.length > 0 && (
-            <g pointerEvents="none" fill="none" stroke="#5a6a80" opacity={0.7}>
+            <g pointerEvents="none" fill="none" stroke={mapStyle.plannedLeg} opacity={0.7}>
               {track.map((segment, i) => (
                 <path
                   key={i}
@@ -440,17 +560,28 @@ export default function TripMap({
             </g>
           )}
 
-          {points.length > 1 && (
-            <polyline
-              points={points.map(([x, y]) => `${x},${y}`).join(" ")}
-              fill="none"
-              stroke="#1e293b"
-              strokeOpacity={0.35}
-              strokeWidth={px(2)}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray={`${px(6)} ${px(6)}`}
-            />
+          {/* The trip's own route: the recorded line when there is one —
+              hops are not drawn alongside it — otherwise a straight (or,
+              for a flight, gently arced) connection between stops. B2421,
+              Q1/§1 of docs/plans/map-redesign.md. */}
+          {hasTrack ? (
+            <RouteLine hops={trackHops} accent={accent} px={px} />
+          ) : (
+            points.length > 1 && <RouteLine hops={hops} accent={accent} px={px} />
+          )}
+
+          {legChips.length > 0 && (
+            <g className="fs-map-pin">
+              {legChips.map(({ hop, mode }, i) => (
+                <LegChip
+                  key={i}
+                  x={(hop.x1 + hop.x2) / 2}
+                  y={(hop.y1 + hop.y2) / 2}
+                  mode={mode}
+                  px={px}
+                />
+              ))}
+            </g>
           )}
 
           <g className="fs-map-pin">
@@ -458,93 +589,87 @@ export default function TripMap({
               const stop = cluster.stops[0];
               const many = cluster.stops.length > 1;
               const isSelected = !many && stop.key === selected.key;
+              const label = many
+                ? `${cluster.stops.length} ${t("map.places")}`
+                : `${stop.location}, ${stop.country}`;
+              const onSelect = () => (many ? closer(cluster.x, cluster.y) : select(stop));
               return (
-                <g
-                  key={stop.key}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={
-                    many
-                      ? `${cluster.stops.length} ${t("map.places")}`
-                      : `${stop.location}, ${stop.country}`
-                  }
-                  aria-pressed={many ? undefined : isSelected}
-                  onClick={() => (many ? closer(cluster.x, cluster.y) : select(stop))}
-                  onKeyDown={(e) => {
-                    if (e.key !== "Enter" && e.key !== " ") return;
-                    e.preventDefault();
-                    if (many) closer(cluster.x, cluster.y);
-                    else select(stop);
-                  }}
-                >
-                  <circle
-                    cx={cluster.x}
-                    cy={cluster.y}
-                    r={px(many ? 11 : isSelected ? 9 : 7)}
-                    fill={many ? "#fff3dc" : isSelected ? "#ffd23f" : "#fffaf0"}
-                    stroke="#1e293b"
-                    strokeWidth={px(2.5)}
-                  />
+                <g key={stop.key}>
                   {many ? (
-                    <text
+                    <ClusterMarker
                       x={cluster.x}
                       y={cluster.y}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fontSize={px(11)}
-                      fontWeight={700}
-                      fill="#1e293b"
-                      pointerEvents="none"
-                    >
-                      {cluster.stops.length}
-                    </text>
+                      count={cluster.stops.length}
+                      ariaLabel={label}
+                      px={px}
+                      onSelect={onSelect}
+                    />
                   ) : (
-                    labelled.has(stop.key) && (
-                      <text
-                        // A name is drawn to the right of its marker, and a
-                        // marker in the last eighth of the frame would run it
-                        // off the edge — so that one is drawn to the left
-                        // instead. `basemapFor` insets its own labels for the
-                        // same reason; a stop cannot be dropped the way a town
-                        // can, so it turns round instead.
-                        x={cluster.x + (runsOff(cluster.x, stop.location) ? -px(13) : px(13))}
-                        textAnchor={runsOff(cluster.x, stop.location) ? "end" : "start"}
-                        y={cluster.y + px(5)}
-                        fontSize={px(isSelected ? 14 : 12)}
-                        fontWeight={isSelected ? 700 : 600}
-                        fill="#1e293b"
-                        pointerEvents="none"
-                        className="font-display"
-                        // The halo, so a name stays readable over water, relief
-                        // or a dashed connection without a box behind it.
-                        stroke="#fffaf0"
-                        strokeWidth={px(3)}
-                        paintOrder="stroke"
-                      >
-                        {stop.location}
-                      </text>
-                    )
+                    <StopMarker
+                      x={cluster.x}
+                      y={cluster.y}
+                      order={orderOf.get(stop.key) ?? 1}
+                      selected={isSelected}
+                      ariaLabel={label}
+                      px={px}
+                      onSelect={onSelect}
+                    />
                   )}
-                  {/* A thumb is not nine pixels wide. */}
-                  <circle cx={cluster.x} cy={cluster.y} r={px(22)} fill="transparent" />
+                  {!many && labelled.has(stop.key) && (
+                    <text
+                      // A name is drawn to the right of its marker, and a
+                      // marker in the last eighth of the frame would run it
+                      // off the edge — so that one is drawn to the left
+                      // instead. `basemapFor` insets its own labels for the
+                      // same reason; a stop cannot be dropped the way a town
+                      // can, so it turns round instead.
+                      x={cluster.x + (runsOff(cluster.x, stop.location) ? -px(16) : px(16))}
+                      textAnchor={runsOff(cluster.x, stop.location) ? "end" : "start"}
+                      y={cluster.y + px(5)}
+                      fontSize={px(isSelected ? 14 : 12)}
+                      fontWeight={isSelected ? 700 : 600}
+                      fill={mapStyle.labelStop}
+                      pointerEvents="none"
+                      className="font-display"
+                      // The halo, so a name stays readable over water or the
+                      // route without a box behind it.
+                      stroke={mapStyle.labelStopHalo}
+                      strokeWidth={px(3)}
+                      paintOrder="stroke"
+                    >
+                      {stop.location}
+                    </text>
+                  )}
                 </g>
               );
             })}
           </g>
 
+          {/* Yellow means "a trip is live" and nothing else on this map —
+              never drawn for a finished trip, and never at wherever the
+              reader happens to have selected. */}
+          {live && latest && (
+            <HereNow
+              x={placeIn(frame, latest)[0]}
+              y={placeIn(frame, latest)[1]}
+              px={px}
+              label={t("tripMap.hereNow")}
+            />
+          )}
+
           {/* Scale bar: how far across the *viewport* is, which is not how far
               anybody travelled.
 
               Top left, which is the one corner nothing else wants: the caption
-              holds the bottom left, and the zoom controls hold the top right
-              on a desktop and the bottom right on a phone. B1944. */}
+              holds the bottom left, and `MapControls` holds the top right.
+              B1944. */}
           <g pointerEvents="none" transform={`translate(${frame.x + frame.w * 0.04 + bar.units} ${frame.y + frame.h * 0.12})`}>
             <line
               x1={-bar.units}
               y1={0}
               x2={0}
               y2={0}
-              stroke="#1e293b"
+              stroke={mapStyle.labelStop}
               strokeWidth={px(2)}
               strokeLinecap="round"
             />
@@ -552,10 +677,10 @@ export default function TripMap({
               x={-bar.units / 2}
               y={-px(6)}
               fontSize={px(11)}
-              fill="#1e293b"
+              fill={mapStyle.labelStop}
               textAnchor="middle"
               className="font-display"
-              stroke="#fffaf0"
+              stroke={mapStyle.labelStopHalo}
               strokeWidth={px(3)}
               paintOrder="stroke"
             >
@@ -564,36 +689,26 @@ export default function TripMap({
           </g>
         </svg>
 
-        {/* Down the right-hand side there was 144 px of button over a 237 px
-            map — 61% of its height, on the side the route runs through. A row
-            in the corner costs the corner. B1944. */}
-        <div className="absolute bottom-2 right-2 flex flex-row-reverse gap-1.5 sm:bottom-auto sm:top-2 sm:flex-col">
-          <MapButton
-            label={t("map.zoomIn")}
-            onClick={() => viewport.setZoom((z) => Math.min(maxZoom, z * 1.6))}
-          >
-            <Plus className="h-4 w-4" />
-          </MapButton>
-          <MapButton
-            label={t("map.zoomOut")}
-            onClick={() => viewport.setZoom((z) => Math.max(1, z / 1.6))}
-          >
-            <Minus className="h-4 w-4" />
-          </MapButton>
-          {/* Absent until there is something to reset — a control for a state
-              nobody is in is furniture. */}
-          {moved && (
-            <MapButton label={t("map.reset")} onClick={refit}>
-              <RotateCcw className="h-4 w-4" />
-            </MapButton>
-          )}
+        {/* Zoom, fit and full screen — the one control column every map
+            surface draws from (`MapControls`, Phase 0). Top right on every
+            width: `MapControls` is 44 px round buttons in one fixed column,
+            and the caption below holds the one corner it does not. */}
+        <div className="absolute right-2 top-2">
+          <MapControls
+            onZoomIn={() => viewport.setZoom((z) => Math.min(maxZoom, z * 1.6))}
+            onZoomOut={() => viewport.setZoom((z) => Math.max(1, z / 1.6))}
+            // Absent until there is something to reset — a control for a
+            // state nobody is in is furniture.
+            onFit={moved ? refit : undefined}
+            onFullscreen={onRequestFullscreen}
+          />
         </div>
 
         {/* On the map rather than under it, and on its own quiet ground: the
-            sentence has to be next to the dashes it is about, and cream text
+            sentence has to be next to the line it is about, and cream text
             laid straight onto a cream basemap is not readable. */}
         <p className="pointer-events-none absolute bottom-2 left-2 max-w-[65%] rounded-md bg-cream-50/85 px-1.5 py-0.5 text-[11px] leading-tight text-navy-900">
-          {t("tripMap.connections")}
+          {t(hasTrack ? "tripMap.recorded" : "tripMap.connections")}
         </p>
       </div>
 
@@ -670,7 +785,7 @@ export default function TripMap({
           outbound button were fighting over the same 40 px. */}
       <div className="flex items-center justify-between gap-3 border-t border-line-quiet px-4 py-1.5">
         <span className="min-w-0 truncate text-xs text-ink-secondary">
-          {t(chosen ? "tripMap.selectedPlace" : "tripMap.lastPlace")} ·{" "}
+          {status} ·{" "}
           {t("tripMap.stopOf", {
             index: String(index + 1),
             count: String(stops.length),
@@ -694,31 +809,6 @@ export default function TripMap({
         </div>
       </div>
     </section>
-  );
-}
-
-function ViewButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`min-h-11 whitespace-nowrap rounded-lg border px-3 text-sm font-semibold transition-colors ${
-        active
-          ? "border-action-strong bg-action-strong text-on-action"
-          : "border-line-quiet bg-surface-base text-ink-body hover:text-ink-strong"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 

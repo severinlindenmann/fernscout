@@ -437,7 +437,14 @@ export default function TripHero({
       {/* Where we are — absent, not a map of the whole world with no marker
           on it, until some day has a coordinate. B1260. */}
       {hasRoute && (
-        <TripMap days={route} basemap={basemap} locals={locals} track={track} />
+        <TripMap
+          days={route}
+          basemap={basemap}
+          locals={locals}
+          track={track}
+          accent={active.trip.accent}
+          live={live}
+        />
       )}
 
       {/* Numbers. A <dl> because Stat renders dt/dd — as a plain <section>

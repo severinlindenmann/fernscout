@@ -7,6 +7,7 @@ import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import { frameRoute, kmForUnits, place } from "@/lib/mapFrame";
 import { areaKey, googleMapsHref, tripStops, type StopSource } from "@/lib/tripMap";
+import { mapAccent, mapStyle } from "@/lib/map/style";
 
 /**
  * The trip's overview map — B1911.
@@ -55,14 +56,17 @@ afterEach(() => {
   container = undefined;
 });
 
-function render(days: StopSource[]) {
+function render(
+  days: StopSource[],
+  extra?: { live?: boolean; tripTrack?: [number, number][][] },
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
     root!.render(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-        <TripMap days={days} />
+        <TripMap days={days} {...extra} />
       </LocaleProvider>,
     );
   });
@@ -82,7 +86,7 @@ function stopButtons(): HTMLButtonElement[] {
   // The name row under the map: every stop, reachable without a pointer on an
   // SVG. The view controls carry `aria-pressed` too, so they are excluded by
   // their own text rather than by position.
-  const views = ["Whole trip", "Surroundings"];
+  const views = ["Whole trip", "This stop"];
   return Array.from(container!.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")).filter(
     (b) => !views.includes(b.textContent ?? ""),
   );
@@ -147,7 +151,7 @@ describe("the frame it opens in", () => {
     render([alps[0]]);
     expect(
       container!.querySelector('button[aria-pressed="true"]')!.textContent,
-    ).toBe("Surroundings");
+    ).toBe("This stop");
     // The 8 km floor in `mapFrame` is what stops a single coordinate framing
     // a doorway. Widened to the panel's shape, so it is the height that
     // carries the floor.
@@ -207,7 +211,7 @@ describe("selection, and where it sends the reader", () => {
     const chosen = link().getAttribute("href");
     click(
       Array.from(container!.querySelectorAll("button")).find(
-        (b) => b.textContent === "Surroundings",
+        (b) => b.textContent === "This stop",
       )!,
     );
     expect(link().getAttribute("href")).toBe(chosen);
@@ -318,3 +322,70 @@ describe("stepping through the stops", () => {
     expect(rows[0].textContent).toMatch(/\d/);
   });
 });
+
+describe("Paper: selection, here-now and the route (B2421)", () => {
+  /**
+   * docs/plans/map-redesign.md §1: "Selected stop — a larger navy disc with
+   * a white number. Not yellow." — and yellow is `HereNow`'s alone. A live
+   * trip with an *earlier* stop selected is the one case that could confuse
+   * the two, since both markers are then on screen together.
+   */
+  test("the selected stop is never drawn in the here-now yellow", () => {
+    render(alps, { live: true });
+    click(stopButtons()[0]); // Grimsel — not the latest stop, so HereNow
+    // stays on Luzern while the selection moves to Grimsel.
+    expect(html()).toContain(`fill="${mapStyle.selectedFill}"`);
+    expect(mapStyle.selectedFill).not.toBe(mapStyle.hereNow);
+    // Exactly one marker uses the here-now yellow: `HereNow`'s own dot, not
+    // the selected disc.
+    const hereNowFills = html().match(new RegExp(`fill="${escapeRegex(mapStyle.hereNow)}"`, "g")) ?? [];
+    expect(hereNowFills).toHaveLength(1);
+  });
+
+  test("here-now is drawn only for a live trip", () => {
+    render(alps, { live: false });
+    expect(html()).not.toContain(mapStyle.hereNow);
+    render(alps, { live: true });
+    expect(html()).toContain(`fill="${mapStyle.hereNow}"`);
+  });
+
+  test("the route is the stop-to-stop hops when there is no recorded track", () => {
+    render(alps);
+    // One accent-coloured path per hop — three hops across four stops — and
+    // no dashed grey connection (TripMap's own, removed by B2421).
+    const accentPaths = html().match(
+      new RegExp(`stroke="${escapeRegex(mapAccent("navy"))}"`, "g"),
+    );
+    expect(accentPaths).toHaveLength(alps.length - 1);
+    expect(html()).not.toContain("stroke-dasharray");
+    expect(container!.textContent).toContain(
+      "Connection between stops, not a recorded route",
+    );
+  });
+
+  test("the recorded track replaces the hops when the trip has one", () => {
+    const trackedTrip: [number, number][][] = [
+      [
+        [46.5606, 8.3428],
+        [46.56, 8.35],
+        [46.5713, 8.4113],
+      ],
+    ];
+    render(alps, { tripTrack: trackedTrip });
+    // Two hops for the track's three points, and none for the four stops'
+    // own three — the hop connection is not drawn alongside the track.
+    const accentPaths = html().match(
+      new RegExp(`stroke="${escapeRegex(mapAccent("navy"))}"`, "g"),
+    );
+    expect(accentPaths).toHaveLength(trackedTrip[0].length - 1);
+    // The caption follows the line actually drawn.
+    expect(container!.textContent).toContain("Recorded route");
+    expect(container!.textContent).not.toContain(
+      "Connection between stops, not a recorded route",
+    );
+  });
+});
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
