@@ -504,6 +504,8 @@ export type TranslationKey =
   | "analytics.subtitle"
   | "analytics.title"
   | "analytics.weatherBlurb"
+  | "appWaitlist.consent"
+  | "appWaitlist.consentLink"
   | "appWaitlist.done"
   | "appWaitlist.emailLabel"
   | "appWaitlist.error"

@@ -1,7 +1,7 @@
 ---
 updated: 2026-09-25
 summary:
-  - Ein Hobbyprojekt einer einzelnen Person in [Land], keine Firma.
+  - Betrieben von einer Einzelperson in [Land].
   - Alles liegt auf einem Server in [Stadt, Land], mit einem zweiten verschlüsselten Backup in [Land].
   - Kein Tracking, keine Werbung, keine Skripte von Dritten. Cookies nur, damit du angemeldet bleibst und deine Einstellungen behältst.
   - Externe Dienste werden nur für die Funktion genutzt, die sie braucht, und nur, wenn jemand sie nutzt.
@@ -21,12 +21,19 @@ summary:
 
 ## Wer das hier betreibt {#operator}
 
-Fernscout™ ist ein **Hobbyprojekt** von [Name des Betreibers], [Land]. Es ist
-keine Firma, es gibt keinen Support und keine zugesicherte Verfügbarkeit.
+Fernscout™ wird von [Name des Betreibers] ([Rechtsform, z. B. Einzelunternehmen]) betrieben.
 
 [Name des Betreibers], [Strasse und Hausnummer], [PLZ und Ort], [Land]
 
 Kontakt: <[Kontakt-E-Mail]>
+
+**Verantwortlich** für die Bearbeitung von Personendaten im Sinne des
+Schweizer Datenschutzgesetzes (DSG) und der Datenschutz-Grundverordnung
+(DSGVO) ist [Name des Betreibers], erreichbar unter der Adresse oben.
+
+Fernscout wird von einer einzelnen Person betrieben. Eine bestimmte
+Verfügbarkeit wird nicht zugesichert. Anfragen werden in der Regel innerhalb
+weniger Tage beantwortet.
 
 **Wer wofür verantwortlich ist.** [Name des Betreibers] ist für den Betrieb
 dieser Seite verantwortlich: Konten und Anmeldung, den Server und seine Logs,
@@ -57,6 +64,7 @@ Schweizer Recht verlangt dieselben Angaben ohne sie.
 | **Lesende und Kontakte** — Namen, E-Mail-Adressen, Telefonnummern, Postadressen und die eigenen Notizen des Besitzers dazu | Damit ein Besitzer einen Tag, eine Postkarte oder eine Einladung an die Leute schicken kann, die er ausgewählt hat | Berechtigtes Interesse des Besitzers | Bis der Besitzer sie entfernt. Telefonnummern und Postadressen werden verschlüsselt gespeichert und nie einem Agenten gezeigt |
 | **Reaktionen** — welches Emoji an einem Tag hinterlassen wurde, unter einem Zufallscode, den dein Browser behält | Damit du einmal reagieren und es zurücknehmen kannst | Berechtigtes Interesse | Solange das Journal besteht |
 | **Gespräche mit dem Helfer**, dazu Nachrichten, Fotos, Dokumente und Abschriften von Sprachnachrichten per WhatsApp oder SMS | Damit ein Besitzer dort weitermachen kann, wo er aufgehört hat | Vertrag | Bis der Besitzer sie oder das Journal löscht |
+| **Einsicht in Helfer-Gespräche** durch den Betreiber | Den Helfer verbessern | Berechtigtes Interesse; der Besitzer kann jederzeit widersprechen (abschalten auf seiner Seite) | Solange die Gespräche bestehen |
 | **Standortverlauf** | Damit die Karte einer Reise die wirklich gefahrenen Strassen zeigt | Einwilligung, pro Reise | Bis der Besitzer ihn löscht, monatsweise oder ganz |
 | **Seitenaufrufe**, bei Journalen, deren Autor die Zählung eingeschaltet hat | Damit ein Autor sieht, ob seine Leute lesen | Berechtigtes Interesse | Etwa neunzig Tage |
 | **Anfrage-Log** — die aufgerufene Seite, die Zeit, der Name des Browsers; keine IP-Adresse | Um den Server zu betreiben und zu schützen | Berechtigtes Interesse | 14 Tage |
@@ -69,8 +77,8 @@ Schweizer Recht verlangt dieselben Angaben ohne sie.
 eine Anmeldung nötig ist, und über WhatsApp, weil nur eine Telefonnummer, die
 der Besitzer bereits bestätigt hat, je an ein Journal gebunden wird. Eine
 Nachricht von einer anderen Nummer bekommt eine feste Antwort, die höflich
-ablehnt und auf die Anmeldung verweist, und erreicht das Modell nie. **Wir
-lesen Helfer-Gespräche, um zu sehen, was besser werden kann, und ein Besitzer
+ablehnt und auf die Anmeldung verweist, und erreicht das Modell nie. **Der
+Betreiber liest Helfer-Gespräche, um zu sehen, was besser werden kann, und ein Besitzer
 kann das abschalten** — auf seiner eigenen Seite, jederzeit. Abschalten löscht
 nichts; es heisst nur, dass niemand ausser ihm liest, was da ist und was noch
 kommt.
@@ -150,7 +158,7 @@ muss, wen er nutzt, falls er dieselbe Funktion einschaltet.
 | **Apple** (Push-Benachrichtigungen) | USA | Ein Gerät mit der iPhone-App will benachrichtigt werden | Ein Geräte-Token sowie Titel und Link der Benachrichtigung |
 | Der Push-Dienst deines Browsers (Google, Mozilla oder Apple) | Je nach Browser | Ein Browser will benachrichtigt werden | Eine verschlüsselte Nachricht, die er nicht lesen kann, und eine Geräteadresse |
 | **Anthropic PBC** | USA | Der Helfer dieser Instanz ist eingeschaltet und der Besitzer hat ihn genutzt, nachdem er zugestimmt hat — siehe [KI und Stimme](#ai) | Was der Besitzer ihm für diese eine Anfrage gegeben hat |
-| **Deepgram Inc.** | USA | Die Transkription dieser Instanz ist eingeschaltet und der Besitzer hat mit dem Helfer gesprochen oder eine Sprachnachricht geschickt | Die Aufnahme und ihre Sprache |
+| **Deepgram Inc.** | Verarbeitung in der EU (Unternehmen in den USA) | Die Transkription dieser Instanz ist eingeschaltet und der Besitzer hat mit dem Helfer gesprochen oder eine Sprachnachricht geschickt | Die Aufnahme und ihre Sprache |
 | **Stripe** — nur gehostete Ausgabe | Irland und USA | Jemand hat Credits gekauft | Den Betrag, die E-Mail-Adresse für die Quittung und den Namen des Journals als Referenz. Kartendaten gibst du auf Stripes eigener Seite ein, nie auf dieser |
 | **[Postkarten-Drucker]** — nur gehostete Ausgabe | [Land] | Jemand hat eine gedruckte Postkarte verschickt | Bild und Text der Postkarte sowie Name und Postadresse der Empfängerin oder des Empfängers |
 | **[Fotobuch-Drucker]** — nur gehostete Ausgabe | [Land] | Jemand hat ein gedrucktes Fotobuch bestellt | Das Buch sowie Name, Postadresse und E-Mail-Adresse der Empfängerin oder des Empfängers |
@@ -164,8 +172,9 @@ tatsächlichen Anbieter und Standorte deiner eigenen Instanz ein: Für einen
 Dienst ausserhalb der Schweiz und der EU nenne, ob sich die Übermittlung auf
 einen Angemessenheitsbeschluss oder auf die Standard-Datenverarbeitungs­
 bedingungen des Anbieters stützt. Für die eingebauten Anbieter oben, die eine
-selbst gehostete Instanz ohne eigene Wahl erreicht — Anthropic (Helfer) und
-Deepgram (Transkription), beide USA —: Anthropics Commercial Terms enthalten
+selbst gehostete Instanz ohne eigene Wahl erreicht — Anthropic (Helfer, USA) und
+Deepgram (Transkription, ein US-Unternehmen, dessen EU-Endpunkt
+`api.eu.deepgram.com` diese Software standardmässig nutzt) —: Anthropics Commercial Terms enthalten
 eine Auftragsverarbeitungsvereinbarung unter Bezug auf das Swiss-US Data
 Privacy Framework; ob für diese Instanz eine Vereinbarung mit Deepgram
 besteht, sollte ein Betreiber, der die Transkription nutzt, prüfen und hier
@@ -262,8 +271,8 @@ oder dir in einem Format herausgeben lassen, das du anderswo nutzen kannst. Du
 kannst allem widersprechen, was auf berechtigtem Interesse beruht, und eine
 Einwilligung jederzeit zurücknehmen, ohne dass das rückwirkend etwas ändert.
 Es werden keine automatisierten Entscheidungen über dich getroffen. Schreib an
-die Adresse oben auf dieser Seite. Es liest sie eine einzige Person, also hab
-bitte etwas Geduld; du bekommst innerhalb von dreissig Tagen eine Antwort.
+die Adresse oben auf dieser Seite. Du bekommst innerhalb von dreissig Tagen eine
+Antwort.
 
 Du kannst dich auch beim **Eidgenössischen Datenschutz- und
 Öffentlichkeitsbeauftragten** ([edoeb.admin.ch](https://www.edoeb.admin.ch))
@@ -297,22 +306,22 @@ Summen. Ein Kurs, den jemand selbst eingetragen hat, trägt keine Quelle.
 
 ## Was nicht versprochen wird {#not-promised}
 
-Diese Seite wird so angeboten, wie sie ist — ohne Gewährleistung.
+Fernscout wird ohne Zusicherung einer bestimmten Verfügbarkeit angeboten.
 
-**Für Datenverlust wird keine Haftung übernommen.** Es gibt Backups, aber ein
+**Sichere eigene Kopien.** Journale werden regelmässig gesichert, aber ein
 Backup kann fehlschlagen und eine Wiederherstellung unvollständig sein. Wenn
-dir eine Reise wichtig ist, behalte eine eigene Kopie — der Download ist auf
-der Seite des Besitzers.
+dir eine Reise wichtig ist, lade sie auf deiner eigenen Seite herunter.
 
-**Für einen Datenabfluss wird keine Haftung übernommen.** Die Software ist mit
-Sorgfalt gebaut — Zugangsdaten werden gehasht, Tokens laufen ab, private
-Reisen werden abgewiesen statt nur versteckt, und der Code wird darauf geprüft
-— aber kein System ist gegen jeden Angriff sicher. Stelle hier nichts ein,
-dessen Offenlegung du nicht verkraften würdest.
+**Sicherheit.** Personendaten werden mit angemessenen technischen und
+organisatorischen Massnahmen geschützt — Zugangsdaten werden gehasht, Tokens
+laufen ab, private Reisen werden abgewiesen statt nur versteckt, und der Code
+wird darauf geprüft. Kommt es trotzdem zu einer Verletzung der
+Datensicherheit, werden die zuständige Behörde und die Betroffenen
+informiert, wie es das Gesetz verlangt.
 
-**Für die Inhalte fremder Seiten wird keine Haftung übernommen**, auch nicht
-dafür, was dir dort passiert — das gilt für jede Seite, zu der ein Link von
-hier führt.
+**Links.** Für die Inhalte fremder Seiten, auf die hier verlinkt wird, sind
+deren Betreiber verantwortlich.
 
-Mit der Nutzung dieser Seite akzeptierst du, dass jede Haftung im gesetzlich
-zulässigen Rahmen ausgeschlossen ist.
+**Haftung.** Die Haftung ist ausgeschlossen, soweit das Gesetz es zulässt.
+Ausgenommen sind Schäden aus Vorsatz oder grober Fahrlässigkeit sowie
+zwingende Ansprüche nach Datenschutz- und Produkthaftpflichtrecht.
