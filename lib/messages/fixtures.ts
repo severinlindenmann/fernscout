@@ -64,7 +64,7 @@ function codeMailPreview(locale: PreviewLocale): MailPreview {
         { kind: "paragraph", text: codeText },
         { kind: "paragraph", text: translateIn(locale, "contact.mailCodeIgnore") },
       ],
-      why: translateIn(locale, "contact.mailFooter", { site: SAMPLE.journal }),
+      why: translateIn(locale, "mail.why.owner", { site: SAMPLE.journal }),
       locale,
     },
   );

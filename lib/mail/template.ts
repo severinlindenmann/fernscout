@@ -330,6 +330,7 @@ export function renderMail(
     to,
     subject,
     template: content.template,
+    ...(content.locale ? { locale: content.locale } : {}),
     html,
     text,
     headers,

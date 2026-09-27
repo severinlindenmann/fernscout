@@ -462,6 +462,7 @@ export async function sendMail(mail: Mail): Promise<SendResult | null> {
   if (!isEnabled("mail")) {
     await logMessage({
       template: mail.template,
+      locale: mail.locale,
       channel: "mail",
       to: mail.to,
       owner: mail.username,
@@ -473,6 +474,7 @@ export async function sendMail(mail: Mail): Promise<SendResult | null> {
   if (mail.username && hasSwitchedOff("mail", mail.username)) {
     await logMessage({
       template: mail.template,
+      locale: mail.locale,
       channel: "mail",
       to: mail.to,
       owner: mail.username,
@@ -487,6 +489,7 @@ export async function sendMail(mail: Mail): Promise<SendResult | null> {
   if (await isSwitchedOff(mail.template)) {
     await logMessage({
       template: mail.template,
+      locale: mail.locale,
       channel: "mail",
       to: mail.to,
       owner: mail.username,
@@ -551,6 +554,7 @@ export async function sendTransactional(
   if (!isEnabled("mail")) {
     await logMessage({
       template: mail.template,
+      locale: mail.locale,
       channel: "mail",
       to: mail.to,
       owner: mail.username,
@@ -581,6 +585,7 @@ async function deliver(mail: Mail): Promise<SendResult> {
   } catch (error) {
     await logMessage({
       template: mail.template,
+      locale: mail.locale,
       channel: "mail",
       to: mail.to,
       owner: mail.username,

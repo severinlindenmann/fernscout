@@ -443,7 +443,6 @@
   "contact.mailCodePurpose": "Type this code into the page you came from to confirm your email address.",
   "contact.smsCodeBody": "{code} is your code for {title}. It works for {minutes} minutes.",
   "contact.mailCodeTitle": "One code, and you're done",
-  "contact.mailFooter": "Sent by {site}.",
   "contact.mailInviteBuddyBody": "{nickname} would like you to help write {trip}, part of {title}. Press the button below to say yes — you will be asked to confirm your email address once, and that is all.",
   "contact.mailInviteBuddySubject": "{nickname} invited you to help write {trip}",
   "contact.mailInviteButton": "Say yes",
@@ -1436,7 +1435,7 @@
   "mail.identityApp": "If you added {site} to your home screen, open it there and type the code in — the button opens your browser, which signs you in there instead.",
   "mail.identityButton": "Sign in",
   "mail.identityCode": "Your code is {code}. It works for {minutes} minutes.",
-  "mail.identityFooter": "Sent by {site}.",
+  "mail.identityFooter": "Someone asked {site} for a sign-in code for this address.",
   "mail.identityIgnore": "If you did not ask for this, ignore it — nothing has been opened.",
   "mail.identityLasts": "It lasts a year, on this device. You can end it any time from the page it signs you in to.",
   "mail.identityTitle": "Sign in",
@@ -2033,7 +2032,7 @@
   "photobook.receipt.credits": "{credits} credits",
   "photobook.receipt.creditsNegative": "−{credits} credits",
   "photobook.receipt.download": "Download",
-  "photobook.receipt.footer": "Fernscout",
+  "photobook.receipt.footer": "Sent because a photobook was ordered from your journal. Receipts are always sent.",
   "photobook.receipt.line": "Photobook, printed and posted",
   "photobook.receipt.meta": "Ordered {date} · Reference {id}",
   "photobook.receipt.missing": "Photographs that could not be read and will print as gaps: {count}.",
@@ -4272,5 +4271,10 @@
   "smsStop.working": "Saving…",
   "smsStop.error": "That did not work. Try again in a moment.",
   "smsStop.cancel": "Keep them",
-  "smsStop.done": "Done. No more SMS from {journal}."
+  "smsStop.done": "Done. No more SMS from {journal}.",
+  "mail.why.codeJournal": "Someone asked for a code to read {site} with this address.",
+  "mail.why.invite": "Someone who writes {site} entered this address to invite you. This is the only invite you'll get.",
+  "mail.why.reader": "You asked to follow {site}.",
+  "mail.why.owner": "You own {site}. Mail about your own journal is always sent.",
+  "mail.why.reminder": "You turned on the evening reminder for a trip in {site}. Turn it off in the trip's settings."
 }
