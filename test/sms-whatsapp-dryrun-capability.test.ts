@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { clearConfigCache } from "@/lib/config";
 import { resolveCapabilities } from "@/lib/capabilities";
+import { hasPaid } from "./support/openCore";
 
 /**
  * B1794 — a dev instance needs `features.sms.backend: "dry-run"` and
@@ -61,7 +62,8 @@ test("sms twilio is refused with no TWILIO_* keys set", () => {
   expect(!state.enabled && state.reason).toMatch(/TWILIO_ACCOUNT_SID/);
 });
 
-test("whatsapp dry-run is on with no WHATSAPP_* keys, and says so", () => {
+// WhatsApp is a paid area: without paid/ it is absent by design, whatever its backend.
+test.runIf(hasPaid())("whatsapp dry-run is on with no WHATSAPP_* keys, and says so", () => {
   writeConfig({ whatsapp: { enabled: true, backend: "dry-run", number: "+41 79 111 22 33" } });
   const state = resolveCapabilities().whatsapp;
   expect(state.enabled).toBe(true);
