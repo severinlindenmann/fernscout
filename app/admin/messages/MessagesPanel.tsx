@@ -5,7 +5,7 @@ import { CHANNELS, FAMILIES, FLOWS, TEMPLATES, templateDef, type Channel, type F
 
 const ALL_FLOWS = FLOWS as readonly Flow[];
 import ChannelChip, { CHANNEL_LABEL } from "./ChannelIcon";
-import FlowGraph from "./FlowGraph";
+import FlowStory, { flowTotals, isFlowNodeOff } from "./FlowStory";
 import MessageSwitch from "./Switch";
 import Preview from "./Preview";
 
@@ -68,10 +68,8 @@ export default function MessagesPanel({
   const [previewId, setPreviewId] = useState<TemplateId | null>(null);
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [flowId, setFlowId] = useState<string>(ALL_FLOWS[0]?.id ?? "");
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   const flow = ALL_FLOWS.find((f) => f.id === flowId) ?? ALL_FLOWS[0];
-  const selected = flow?.nodes.find((n) => n.id === selectedNode) ?? null;
 
   const templateIds = useMemo(() => Object.keys(TEMPLATES) as TemplateId[], []);
 
@@ -148,6 +146,7 @@ export default function MessagesPanel({
           <button
             key={t.id}
             type="button"
+            data-tab={t.id}
             onClick={() => setTab(t.id)}
             className={`border-b-[3px] px-3 py-2 text-sm font-semibold ${
               tab === t.id ? "border-yellow-400 text-ink-strong" : "border-transparent text-ink-secondary"
@@ -337,62 +336,35 @@ export default function MessagesPanel({
       ) : null}
 
       {tab === "flows" ? (
-        <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_360px]">
-          <nav className={`${CARD} flex flex-col gap-1`} aria-label="Flows">
-            {ALL_FLOWS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => {
-                  setFlowId(f.id);
-                  setSelectedNode(null);
-                }}
-                className={`rounded-xl px-2 py-1.5 text-left text-sm ${flowId === f.id ? "bg-surface-subtle font-semibold text-ink-strong" : "text-ink-body hover:bg-surface-subtle"} ${off.has(f.id) ? "opacity-50 line-through" : ""}`}
-              >
-                {f.label}
-              </button>
-            ))}
+        <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <nav className={`${CARD} flex flex-col gap-1 p-2 lg:p-2`} aria-label="Flows">
+            {ALL_FLOWS.map((f) => {
+              const totals = flowTotals(f, counts);
+              const nOff = totals.templates.filter((t) => isFlowNodeOff(f, t, off)).length;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  aria-current={flowId === f.id}
+                  onClick={() => setFlowId(f.id)}
+                  className={`grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-1 rounded-xl px-3 py-2 text-left ${flowId === f.id ? "bg-surface-subtle shadow-[inset_3px_0_0_var(--color-yellow-400)]" : "hover:bg-surface-subtle"}`}
+                >
+                  <span className={`text-sm font-semibold text-ink-strong ${off.has(f.id) ? "line-through opacity-60" : ""}`}>{f.label}</span>
+                  <span className="text-sm tabular-nums text-ink-secondary">{totals.sent}</span>
+                  <span className="col-span-2 flex flex-wrap items-center gap-1 text-xs text-ink-secondary">
+                    {[...new Set(totals.templates.map((t) => templateDef(t).channel))].map((c) => (
+                      <ChannelChip key={c} channel={c} label={false} />
+                    ))}
+                    <span className="ml-1">
+                      {totals.templates.length} message{totals.templates.length === 1 ? "" : "s"}
+                    </span>
+                    {nOff ? <span className="ml-1 font-bold text-coral-600">{nOff} off</span> : null}
+                  </span>
+                </button>
+              );
+            })}
           </nav>
-          <section className={`${CARD} overflow-x-auto`}>
-            {flow ? (
-              <>
-                <h2 className="font-display text-lg text-ink-strong">{flow.label}</h2>
-                <div className="mt-3">
-                  <FlowGraph flow={flow} offKeys={off} selected={selectedNode} onSelect={setSelectedNode} />
-                </div>
-              </>
-            ) : null}
-          </section>
-          <aside className={`${CARD} flex flex-col gap-3`}>
-            {!selected ? (
-              <p className="text-sm text-ink-secondary">Click a node. A node with a coloured badge sends something and opens a preview.</p>
-            ) : (
-              <>
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-ink-secondary">{selected.type}</div>
-                  <h3 className="font-display text-base text-ink-strong">
-                    {selected.template ? templateDef(selected.template).kind : selected.label}
-                  </h3>
-                </div>
-                {selected.template && FAMILIES[TEMPLATES[selected.template].family].class !== "required" ? (
-                  <MessageSwitch
-                    messageKey={`${flow.id}/${selected.template}`}
-                    initialOff={off.has(`${flow.id}/${selected.template}`) || off.has(selected.template)}
-                    confirmQuestion={
-                      FAMILIES[TEMPLATES[selected.template].family].class === "service"
-                        ? `Turn off ${templateDef(selected.template).kind} in “${flow.label}”? It stays off until you turn it back on.`
-                        : undefined
-                    }
-                    confirmLabel={`Turn off ${templateDef(selected.template).kind}`}
-                    onChanged={(isOff) => markOff(`${flow.id}/${selected.template}`, isOff)}
-                  />
-                ) : selected.template ? (
-                  <p className="text-xs text-ink-secondary">Locked on — required, cannot be switched off.</p>
-                ) : null}
-                {selected.template ? <Preview template={selected.template} /> : null}
-              </>
-            )}
-          </aside>
+          <section className={CARD}>{flow ? <FlowStory key={flow.id} flow={flow} counts={counts} off={off} markOff={markOff} /> : null}</section>
         </div>
       ) : null}
 
