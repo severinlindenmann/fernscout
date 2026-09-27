@@ -13,6 +13,7 @@ export const mapStyle = {
   border: "var(--map-border)",
   borderInternal: "var(--map-border-internal)",
   ice: "var(--map-ice)",
+  visited: "var(--map-visited)",
   road: "var(--map-road)",
   roadCasing: "var(--map-road-casing)",
   stopFill: "var(--map-stop-fill)",

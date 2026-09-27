@@ -131,7 +131,7 @@ describe("the day page, since the ask row went — B2309", () => {
   test("a draft day still offers the publish row, into the studio's publish page with this day chosen", async () => {
     const host = await dayPage(true, true);
     const link = [...host.querySelectorAll("a")].find((anchor) =>
-      anchor.textContent?.includes("Share this day"),
+      anchor.textContent?.includes("Publish this day"),
     ) as HTMLAnchorElement;
     // B2169 — the studio page (B2140), not the retired room.
     expect(link.getAttribute("href")).toBe("/alex/studio/day/publish?day=bellinzona&trip=reise-2026");
@@ -140,7 +140,7 @@ describe("the day page, since the ask row went — B2309", () => {
 
   test("a day already on the site does not offer the publish row", async () => {
     const host = await dayPage(true);
-    expect(host.textContent).not.toContain("Share this day");
+    expect(host.textContent).not.toContain("Publish this day");
   });
 
   /** B2309 — Edit used to be published-only ("Correct or take down"); it is

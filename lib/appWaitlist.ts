@@ -65,16 +65,17 @@ export async function listAppWaitlist(): Promise<WaitlistEntry[]> {
 }
 
 /**
- * Add an address to the waitlist and mail a confirmation.
+ * Add an address to the waitlist and mail a confirmation — once.
  *
  * Idempotent on the row (`onConflict … doNothing`, like `addInvite`) so a
  * second submission from the same address is a no-op rather than a second
  * row or a thrown error — which is also what keeps the route's response
  * from ever telling a caller whether the address was already on the list.
- * The confirmation mail still goes out every time: it is harmless (nobody
- * new is told an address is "already known" by a *different* letter arriving
- * or not) and simpler than adding a second no-enumeration surface in the
- * mail itself.
+ * The insert result says whether this address was actually new
+ * (`numInsertedOrUpdatedRows`, the same field `dayNotify.ts` and
+ * `sms/store.ts` read for the same question): the confirmation goes out only
+ * then, B2445 — a repeat submit of an address already on the list is a
+ * silent no-op rather than another letter.
  *
  * Returns false only when nothing could be done at all — no database, so
  * there is nowhere to keep the row. The caller still answers the same
@@ -89,7 +90,7 @@ export async function addToWaitlist(
   const normalized = normalize(email);
   const askedLocale =
     locale && (MAINTAINED_LOCALES as readonly string[]).includes(locale) ? locale : undefined;
-  await handle.db
+  const result = await handle.db
     .insertInto("app_waitlist")
     .values({
       owner_id: NO_JOURNAL,
@@ -98,7 +99,13 @@ export async function addToWaitlist(
       created_at: nowIso(),
     })
     .onConflict((c) => c.column("email").doNothing())
-    .execute();
+    .executeTakeFirst();
+  const inserted = Number(result.numInsertedOrUpdatedRows ?? 0) === 1;
+  if (!inserted) {
+    // TODO(B2438): logMessage({ template: "appWaitlist.mail", channel: "mail", status: "skipped", reason: "deduped" })
+    console.log(`[app-waitlist] skipped: deduped`);
+    return true;
+  }
 
   const mailLocale = askedLocale ?? "en";
   const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(mailLocale, key, vars);

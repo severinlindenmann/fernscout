@@ -2,7 +2,7 @@
 updated: 2026-09-25
 summary:
   - A hobby project run by one person in [Country], not a company.
-  - Everything lives on one server in Helsinki, Finland, with a second encrypted backup in Germany.
+  - Everything lives on one server in [City, Country], with a second encrypted backup in [Country].
   - No tracking, no advertising, no third-party scripts. Cookies only to keep you signed in and remember your choices.
   - Outside services are used only for the feature that needs them, and only when somebody uses it.
   - The AI helper sees only what you choose to give it, and only after you said yes.
@@ -121,53 +121,46 @@ recorded, because it would show where a private link had been passed around.
 
 ## Where the data goes {#recipients}
 
-Everything is on one virtual server rented from **Hetzner Online GmbH**, in
-its data centre in **Helsinki, Finland**. Encrypted backups are kept on that
-server and in **Hetzner Object Storage in Falkenstein, Germany**. There is no
-CDN and no third-party database.
+Everything is on one virtual server rented from **[Hosting provider]**, in
+its data centre in **[City, Country]**. Encrypted backups are kept on that
+server and, as a second copy, in **[City, Country]**. There is no CDN and no
+third-party database.
 
-The services below are used only for what the row says, and only when
-somebody uses that feature. Nothing is passed to any of them for analysis,
-advertising or profiling.
+The services below are only reached by the software itself, when the matching
+feature is switched on and used — never by your browser directly. Nothing is
+passed to any of them for analysis, advertising or profiling. A row marked
+**(hosted edition only)** is never reached at all on a plain, self-hosted
+clone of this software; it names the provider fernscout.ch's own hosted
+edition uses for that feature, listed here because a fork of this template
+still has to say who it uses if it turns the same feature on.
 
 | Service | Where | Used when | What it receives |
 | --- | --- | --- | --- |
-| **Proton AG** | Switzerland | Sign-in codes, invitations, notifications by email | The recipient's address and the message |
-| **Twilio Inc.** | United States | Somebody chose to get a code or a notification by text message, or texted the journal | The phone number and the text of the message |
-| **Meta Platforms Ireland** (WhatsApp) | Ireland, and the United States | A reader asked to hear about new days by WhatsApp, or an owner's own proven number messages the journal | The phone number and the message, photograph, document or voice note |
+| **[Mail provider]** | [Country] | This instance sends real mail — sign-in codes, invitations, notifications by email (`features.mail`) | The recipient's address and the message |
+| **[SMS provider]** | [Country] | This instance sends or receives text messages (`features.sms`/`smsInbound`) | The phone number and the text of the message |
+| **Meta Platforms Ireland** (WhatsApp) — hosted edition only | Ireland, and the United States | A reader asked to hear about new days by WhatsApp, or an owner's own proven number messages the journal | The phone number and the message, photograph, document or voice note |
 | **Apple** (push notifications) | United States | A device running the iPhone app asked to be notified | A device token, and the notification's title and link |
 | Your browser's push service (Google, Mozilla or Apple) | Depends on the browser | A browser asked to be notified | An encrypted message it cannot read, and a device address |
-| **Anthropic PBC** | United States | The owner used the helper, after saying yes to it — see [AI and voice](#ai) | What the owner gave it for that one request |
-| **Deepgram Inc.** | United States | The owner spoke to the helper, or sent a voice note | The recording, and its language |
-| **Stripe** | Ireland, and the United States | Somebody bought credits | The amount, the email address for the receipt, and the journal's name as a reference. Card or TWINT details are typed on Stripe's own page, never on this one |
-| **Stannp Ltd** | United Kingdom | Somebody sent a printed postcard | The postcard's picture and message, and the recipient's name and postal address |
-| **Gelato ASA** | Norway | Somebody ordered a printed photobook | The book, and the recipient's name, postal address and email address |
-| **Amazon Web Services** (open elevation data) | United States | A photobook with a relief map was made | Which map tiles are needed, which shows roughly where the trip went — nothing about a person |
-| **Komoot GmbH** (Photon place search) | Germany | Somebody typed an address or a place to look up, or shared a location | The words typed, or the coordinates. The request comes from this server, not your browser |
-| **Open-Meteo** | Germany | A journal asked what the weather was on a day | The coordinates and date of that day. From this server |
+| **Anthropic PBC** | United States | This instance's helper is on and the owner used it, after saying yes — see [AI and voice](#ai) | What the owner gave it for that one request |
+| **Deepgram Inc.** | United States | This instance's transcription is on and the owner spoke to the helper, or sent a voice note | The recording, and its language |
+| **Stripe** — hosted edition only | Ireland, and the United States | Somebody bought credits | The amount, the email address for the receipt, and the journal's name as a reference. Card details are typed on Stripe's own page, never on this one |
+| **[Postcard printer]** — hosted edition only | [Country] | Somebody sent a printed postcard | The postcard's picture and message, and the recipient's name and postal address |
+| **[Photobook printer]** — hosted edition only | [Country] | Somebody ordered a printed photobook | The book, and the recipient's name, postal address and email address |
+| **Amazon Web Services** (open elevation data) — hosted edition only | United States | A photobook with a relief map was made | Which map tiles are needed, which shows roughly where the trip went — nothing about a person |
+| **Komoot GmbH** (Photon place search) | Germany | This instance's address lookup is on, in its default configuration, and somebody typed an address or a place to look up, or shared a location | The words typed, or the coordinates. The request comes from this server, not your browser |
+| **Open-Meteo** | Germany | This instance's weather lookup is on and a journal asked what the weather was on a day | The coordinates and date of that day. From this server |
 | **European Central Bank** | Germany | A trip needed an exchange rate | Nothing: the request is for a whole published document |
 
-**Transfers outside Switzerland and the EU.** Finland, Germany, Ireland and
-Norway are covered by the EU's data protection rules, and the United Kingdom
-by an adequacy decision. For the services in the United States, the transfer
-rests on each provider's standard data processing terms, accepted when the
-account was set up rather than negotiated: for Meta and Anthropic the
-**Swiss–US Data Privacy Framework**; for Meta also its **Business Data
-Processing Terms** and **Business Data Transfer Addendum**; for Anthropic its
-**commercial terms**, which carry a data processing agreement. Deepgram's data
-processing terms are not click-through in the same way, and whether one is in
-place for this instance is stated honestly: it is not, pending a request
-already sent to Deepgram's own privacy contact.
-
-**Meta plays two roles.** For the message content you send, Meta acts on this
-journal's instructions and states that those messages are not used to target
-advertising. Separately, and on its own account, Meta keeps WhatsApp account
-data for platform safety and fraud detection; that is Meta's relationship with
-you as a WhatsApp user, described in
-[WhatsApp's own privacy policy](https://www.whatsapp.com/legal/privacy-policy).
-
-**What Stripe does with payment data** is covered by
-[Stripe's privacy policy](https://stripe.com/privacy).
+**Transfers outside Switzerland and the EU.** Fill in this paragraph for your
+own instance's actual providers and their locations: for a service outside
+Switzerland and the EU, name whether the transfer rests on an adequacy
+decision or on the provider's own standard data processing terms. For the
+built-in providers above that a self-hoster reaches without any operator
+choice — Anthropic (helper) and Deepgram (transcription), both United States —
+Anthropic's commercial terms carry a data processing agreement referencing the
+Swiss–US Data Privacy Framework; whether a data processing agreement is in
+place with Deepgram for this instance is something an operator using
+transcription should confirm and state honestly here, not assume.
 
 **A link out is not a service on that list.** Under a trip's map, and in some
 emails, there is "Open in Google Maps". It is an ordinary link carrying the
@@ -239,7 +232,8 @@ expire within 14 days.
 **Payment records are kept.** Swiss bookkeeping rules require them for ten
 years: what was bought, for how much, when, and the payment provider's
 reference. Names, email and postal addresses are removed from them when the
-journal is deleted. Stripe keeps its own record of the payment.
+journal is deleted. The payment provider (hosted edition: Stripe) keeps its
+own record of the payment.
 
 **An owner can download everything** as a zip of the journal's files and
 photographs from their own page, at any time.

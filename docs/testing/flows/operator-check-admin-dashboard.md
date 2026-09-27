@@ -13,9 +13,9 @@ itself).
 ## Setup
 
 1. Local dev server with `FERNSCOUT_ADMIN_EMAIL` set to a test address, and
-   an identity cookie for that same address (`POST /api/auth/identity/request`
-   + `/verify`, per AGENTS.md — never the six-digit agent-token flow, and
-   never a bearer token).
+   an identity cookie for that same address (`POST /api/auth/codes` +
+   `/api/auth/codes/redeem` with `"for": "identity"` — never the six-digit
+   agent-token flow, and never a bearer token).
 2. `features.logging` on (server-only, one stdout line per request — method,
    path, user agent, never an IP or a query string) and `features.analytics`
    on for at least one journal, with `DATABASE_URL` set (`analytics` needs a
@@ -42,7 +42,7 @@ itself).
    only the identity cookie proven for the exact configured address opens it.
 4. Attempt to reach `/admin` with a bearer (agent) token instead of any
    cookie. Confirm it is refused — the page takes a cookie and never a
-   bearer token, per AGENTS.md.
+   bearer token (`lib/adminGate.ts`).
 5. Unset `FERNSCOUT_ADMIN_EMAIL` and reload. Confirm `/admin` answers `404`
    for everybody, including the identity cookie from step 1 — the same
    behaviour every other instance has with no operator configured.

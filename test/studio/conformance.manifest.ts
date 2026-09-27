@@ -242,7 +242,7 @@ export const manifest: ManifestItem[] = [
       kind: "capture",
       path: "test/fixtures/studio-proofs/day-new-collision-after-1280.png",
       observed:
-        "Driven live against content/example/'s real 'Across and back' trip at 1280px, light theme: picking the existing published day's own date (2026-06-03) in Add a day surfaces 'Denver, and a truck · published' with 'Change that day instead' and 'Pick another date' beside a TIME field and a 'Make a second entry on this date' button — a confirm screen offering both paths, not a refusal blocking the second entry.",
+        "Driven live against content/example/'s real 'Across and back' trip at 1280px, light theme: picking the existing published day's own date (2026-06-03) in Add a day surfaces 'Denver, and a truck · published' with 'Change that day instead' and 'Pick another date' beside a TIME field and a 'Make a second update on this date' button — a confirm screen offering both paths, not a refusal blocking the second update.",
     },
   },
   {

@@ -5,6 +5,7 @@ import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { formatCredits } from "@/lib/creditsFormat";
+import ShareLink from "./ShareLink";
 
 type Channel = "email" | "sms" | "self";
 type Block = "no_email" | "no_mobile" | "mail_off" | "sms_off" | "unreachable" | "link_lost";
@@ -72,11 +73,16 @@ export default function NotifyStep({
   username,
   contactId,
   onLater,
+  journalTitle = username,
+  siteName = "Fernscout",
 }: {
   username: string;
   contactId: string;
   /** "Not now — decide later", and "Done" after sending. */
   onLater?: () => void;
+  /** The journal's own title — B2444's share text's "{trip}". */
+  journalTitle?: string;
+  siteName?: string;
 }) {
   const { t, tn } = useI18n();
   const url = `/api/web/${encodeURIComponent(username)}/readers/notify`;
@@ -95,7 +101,11 @@ export default function NotifyStep({
       .then((data) => {
         if (cancelled) return;
         setOptions(data);
-        const first = data.opened ? undefined : data.channels.find((c) => !c.blocked && c.channel !== "self");
+        // B2444 (D4) — sharing it yourself is the preferred invite, so the
+        // first unblocked channel wins the default; `self` is never blocked
+        // and sorts first in `INVITE_CHANNELS`, so it is the default unless
+        // the link was already opened (nothing left to send at all then).
+        const first = data.opened ? undefined : data.channels.find((c) => !c.blocked);
         setChoice(first?.channel ?? "self");
       })
       .catch(() => !cancelled && setLoadFailed(true));
@@ -143,21 +153,36 @@ export default function NotifyStep({
               })}`}
           </p>
         )}
-        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-          {t("notifyStep.linkLabel", { name })}
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          <code className="min-w-0 flex-1 break-all rounded-lg border border-line-strong bg-surface-base px-3 py-2 text-sm text-ink-strong">
-            {sent.url}
-          </code>
-          <button
-            type="button"
-            onClick={() => copy(sent.url)}
-            className="min-h-11 rounded-xl border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
-          >
-            {copied ? t("notifyStep.copied") : t("notifyStep.copy")}
-          </button>
-        </div>
+        {sent.channel === "self" ? (
+          <div className="mt-4">
+            <ShareLink
+              username={username}
+              contactId={contactId}
+              url={sent.url}
+              title={journalTitle}
+              text={t("readers.share.text", { trip: journalTitle, site: siteName })}
+              t={t}
+            />
+          </div>
+        ) : (
+          <>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink-secondary">
+              {t("notifyStep.linkLabel", { name })}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-lg border border-line-strong bg-surface-base px-3 py-2 text-sm text-ink-strong">
+                {sent.url}
+              </code>
+              <button
+                type="button"
+                onClick={() => copy(sent.url)}
+                className="min-h-11 rounded-xl border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
+              >
+                {copied ? t("notifyStep.copied") : t("notifyStep.copy")}
+              </button>
+            </div>
+          </>
+        )}
         <p className="mt-3 text-sm text-ink-body">{t("notifyStep.next", { name })}</p>
         {onLater && (
           <button

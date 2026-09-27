@@ -2,7 +2,7 @@
 updated: 2026-09-25
 summary:
   - Ein Hobbyprojekt einer einzelnen Person in [Land], keine Firma.
-  - Alles liegt auf einem Server in Helsinki, Finnland, mit einem zweiten verschlüsselten Backup in Deutschland.
+  - Alles liegt auf einem Server in [Stadt, Land], mit einem zweiten verschlüsselten Backup in [Land].
   - Kein Tracking, keine Werbung, keine Skripte von Dritten. Cookies nur, damit du angemeldet bleibst und deine Einstellungen behältst.
   - Externe Dienste werden nur für die Funktion genutzt, die sie braucht, und nur, wenn jemand sie nutzt.
   - Der KI-Helfer sieht nur, was du ihm gibst, und erst, nachdem du zugestimmt hast.
@@ -128,55 +128,48 @@ privater Link herumgereicht wurde.
 
 ## Wohin die Daten gehen {#recipients}
 
-Alles liegt auf einem virtuellen Server der **Hetzner Online GmbH** in deren
-Rechenzentrum in **Helsinki, Finnland**. Verschlüsselte Backups liegen auf
-diesem Server und im **Hetzner Object Storage in Falkenstein, Deutschland**.
-Es gibt kein CDN und keine Drittanbieter-Datenbank.
+Alles liegt auf einem virtuellen Server bei **[Hosting-Anbieter]** in deren
+Rechenzentrum in **[Stadt, Land]**. Verschlüsselte Backups liegen auf diesem
+Server und, als zweite Kopie, in **[Stadt, Land]**. Es gibt kein CDN und
+keine Drittanbieter-Datenbank.
 
-Die Dienste unten werden nur für das genutzt, was in der Zeile steht, und nur,
-wenn jemand diese Funktion nutzt. Keinem wird etwas zur Analyse, für Werbung
-oder zur Profilbildung übergeben.
+Die Dienste unten werden nur von der Software selbst erreicht, wenn die
+jeweilige Funktion eingeschaltet und genutzt wird — nie direkt von deinem
+Browser. Keinem wird etwas zur Analyse, für Werbung oder zur Profilbildung
+übergeben. Eine mit **(nur gehostete Ausgabe)** markierte Zeile wird von
+einer einfachen, selbst gehosteten Installation dieser Software nie erreicht;
+sie nennt den Anbieter, den die gehostete Ausgabe von fernscout.ch für diese
+Funktion nutzt, aufgeführt hier, weil ein Fork dieser Vorlage ebenfalls sagen
+muss, wen er nutzt, falls er dieselbe Funktion einschaltet.
 
 | Dienst | Wo | Genutzt, wenn | Was er bekommt |
 | --- | --- | --- | --- |
-| **Proton AG** | Schweiz | Anmeldecodes, Einladungen, Benachrichtigungen per E-Mail | Die Adresse und die Nachricht |
-| **Twilio Inc.** | USA | Jemand wollte einen Code oder eine Benachrichtigung per SMS oder hat dem Journal eine SMS geschickt | Die Telefonnummer und den Text der Nachricht |
-| **Meta Platforms Ireland** (WhatsApp) | Irland und USA | Jemand will per WhatsApp von neuen Tagen erfahren, oder die bestätigte Nummer eines Besitzers schreibt dem Journal | Die Telefonnummer und die Nachricht, das Foto, das Dokument oder die Sprachnachricht |
+| **[E-Mail-Anbieter]** | [Land] | Diese Instanz verschickt echte E-Mails — Anmeldecodes, Einladungen, Benachrichtigungen (`features.mail`) | Die Adresse und die Nachricht |
+| **[SMS-Anbieter]** | [Land] | Diese Instanz verschickt oder empfängt SMS (`features.sms`/`smsInbound`) | Die Telefonnummer und den Text der Nachricht |
+| **Meta Platforms Ireland** (WhatsApp) — nur gehostete Ausgabe | Irland und USA | Jemand will per WhatsApp von neuen Tagen erfahren, oder die bestätigte Nummer eines Besitzers schreibt dem Journal | Die Telefonnummer und die Nachricht, das Foto, das Dokument oder die Sprachnachricht |
 | **Apple** (Push-Benachrichtigungen) | USA | Ein Gerät mit der iPhone-App will benachrichtigt werden | Ein Geräte-Token sowie Titel und Link der Benachrichtigung |
 | Der Push-Dienst deines Browsers (Google, Mozilla oder Apple) | Je nach Browser | Ein Browser will benachrichtigt werden | Eine verschlüsselte Nachricht, die er nicht lesen kann, und eine Geräteadresse |
-| **Anthropic PBC** | USA | Der Besitzer hat den Helfer genutzt, nachdem er zugestimmt hat — siehe [KI und Stimme](#ai) | Was der Besitzer ihm für diese eine Anfrage gegeben hat |
-| **Deepgram Inc.** | USA | Der Besitzer hat mit dem Helfer gesprochen oder eine Sprachnachricht geschickt | Die Aufnahme und ihre Sprache |
-| **Stripe** | Irland und USA | Jemand hat Credits gekauft | Den Betrag, die E-Mail-Adresse für die Quittung und den Namen des Journals als Referenz. Karten- oder TWINT-Daten gibst du auf Stripes eigener Seite ein, nie auf dieser |
-| **Stannp Ltd** | Vereinigtes Königreich | Jemand hat eine gedruckte Postkarte verschickt | Bild und Text der Postkarte sowie Name und Postadresse der Empfängerin oder des Empfängers |
-| **Gelato ASA** | Norwegen | Jemand hat ein gedrucktes Fotobuch bestellt | Das Buch sowie Name, Postadresse und E-Mail-Adresse der Empfängerin oder des Empfängers |
-| **Amazon Web Services** (offene Höhendaten) | USA | Ein Fotobuch mit Reliefkarte wurde erstellt | Welche Kartenkacheln gebraucht werden — daraus lässt sich ungefähr ablesen, wo die Reise war, aber nichts über eine Person |
-| **Komoot GmbH** (Ortssuche Photon) | Deutschland | Jemand hat eine Adresse oder einen Ort gesucht oder einen Standort geteilt | Die eingetippten Wörter oder die Koordinaten. Die Anfrage kommt von diesem Server, nicht von deinem Browser |
-| **Open-Meteo** | Deutschland | Ein Journal wollte wissen, wie das Wetter an einem Tag war | Koordinaten und Datum dieses Tages. Von diesem Server |
+| **Anthropic PBC** | USA | Der Helfer dieser Instanz ist eingeschaltet und der Besitzer hat ihn genutzt, nachdem er zugestimmt hat — siehe [KI und Stimme](#ai) | Was der Besitzer ihm für diese eine Anfrage gegeben hat |
+| **Deepgram Inc.** | USA | Die Transkription dieser Instanz ist eingeschaltet und der Besitzer hat mit dem Helfer gesprochen oder eine Sprachnachricht geschickt | Die Aufnahme und ihre Sprache |
+| **Stripe** — nur gehostete Ausgabe | Irland und USA | Jemand hat Credits gekauft | Den Betrag, die E-Mail-Adresse für die Quittung und den Namen des Journals als Referenz. Kartendaten gibst du auf Stripes eigener Seite ein, nie auf dieser |
+| **[Postkarten-Drucker]** — nur gehostete Ausgabe | [Land] | Jemand hat eine gedruckte Postkarte verschickt | Bild und Text der Postkarte sowie Name und Postadresse der Empfängerin oder des Empfängers |
+| **[Fotobuch-Drucker]** — nur gehostete Ausgabe | [Land] | Jemand hat ein gedrucktes Fotobuch bestellt | Das Buch sowie Name, Postadresse und E-Mail-Adresse der Empfängerin oder des Empfängers |
+| **Amazon Web Services** (offene Höhendaten) — nur gehostete Ausgabe | USA | Ein Fotobuch mit Reliefkarte wurde erstellt | Welche Kartenkacheln gebraucht werden — daraus lässt sich ungefähr ablesen, wo die Reise war, aber nichts über eine Person |
+| **Komoot GmbH** (Ortssuche Photon) | Deutschland | Die Adresssuche dieser Instanz ist in ihrer Standardeinstellung eingeschaltet, und jemand hat eine Adresse oder einen Ort gesucht oder einen Standort geteilt | Die eingetippten Wörter oder die Koordinaten. Die Anfrage kommt von diesem Server, nicht von deinem Browser |
+| **Open-Meteo** | Deutschland | Die Wetterabfrage dieser Instanz ist eingeschaltet und ein Journal wollte wissen, wie das Wetter an einem Tag war | Koordinaten und Datum dieses Tages. Von diesem Server |
 | **Europäische Zentralbank** | Deutschland | Eine Reise brauchte einen Wechselkurs | Nichts: Abgefragt wird ein ganzes veröffentlichtes Dokument |
 
-**Übermittlungen ausserhalb der Schweiz und der EU.** Finnland, Deutschland,
-Irland und Norwegen fallen unter die Datenschutzregeln der EU, das Vereinigte
-Königreich unter einen Angemessenheitsbeschluss. Für die Dienste in den USA
-stützt sich die Übermittlung auf die Standard-Datenverarbeitungsbedingungen des
-jeweiligen Anbieters, die bei der Einrichtung des Kontos akzeptiert und nicht
-verhandelt wurden: bei Meta und Anthropic auf das **Swiss-US Data Privacy
-Framework**; bei Meta zusätzlich auf die **Business Data Processing Terms** und
-das **Business Data Transfer Addendum**; bei Anthropic auf die **Commercial
-Terms**, die eine Auftragsverarbeitungsvereinbarung enthalten. Die
-Datenverarbeitungsbedingungen von Deepgram werden nicht auf dieselbe Weise per
-Klick akzeptiert, und ob für diese Instanz eine vorliegt, wird ehrlich gesagt:
-nein, eine Anfrage an die Datenschutzstelle von Deepgram ist gestellt und
-noch offen.
-
-**Meta hat zwei Rollen.** Für die Inhalte deiner Nachrichten handelt Meta im
-Auftrag dieses Journals und erklärt, sie nicht für gezielte Werbung zu nutzen.
-Getrennt davon, und auf eigene Rechnung, hält Meta WhatsApp-Kontodaten für
-Plattformsicherheit und Betrugserkennung; das ist Metas Beziehung zu dir als
-WhatsApp-Nutzerin oder -Nutzer, beschrieben in
-[WhatsApps eigener Datenschutzerklärung](https://www.whatsapp.com/legal/privacy-policy).
-
-**Was Stripe mit Zahlungsdaten macht**, regelt
-[Stripes Datenschutzerklärung](https://stripe.com/privacy).
+**Übermittlungen ausserhalb der Schweiz und der EU.** Trage hier die
+tatsächlichen Anbieter und Standorte deiner eigenen Instanz ein: Für einen
+Dienst ausserhalb der Schweiz und der EU nenne, ob sich die Übermittlung auf
+einen Angemessenheitsbeschluss oder auf die Standard-Datenverarbeitungs­
+bedingungen des Anbieters stützt. Für die eingebauten Anbieter oben, die eine
+selbst gehostete Instanz ohne eigene Wahl erreicht — Anthropic (Helfer) und
+Deepgram (Transkription), beide USA —: Anthropics Commercial Terms enthalten
+eine Auftragsverarbeitungsvereinbarung unter Bezug auf das Swiss-US Data
+Privacy Framework; ob für diese Instanz eine Vereinbarung mit Deepgram
+besteht, sollte ein Betreiber, der die Transkription nutzt, prüfen und hier
+ehrlich angeben, statt es anzunehmen.
 
 **Ein Link nach draussen ist kein Dienst in dieser Liste.** Unter der Karte
 einer Reise, und in manchen E-Mails, steht «In Google Maps öffnen». Das ist ein
@@ -253,7 +246,8 @@ existiert. Kopien in den Backups laufen innerhalb von 14 Tagen ab.
 **Zahlungsbelege bleiben.** Die Schweizer Buchführungspflicht verlangt sie
 zehn Jahre lang: was gekauft wurde, zu welchem Preis, wann, und die Referenz
 des Zahlungsanbieters. Namen, E-Mail- und Postadressen werden beim Löschen des
-Journals daraus entfernt. Stripe behält seinen eigenen Beleg der Zahlung.
+Journals daraus entfernt. Der Zahlungsanbieter (gehostete Ausgabe: Stripe)
+behält seinen eigenen Beleg der Zahlung.
 
 **Ein Besitzer kann jederzeit alles herunterladen**, als Zip-Datei mit den
 Dateien und Fotos des Journals, auf seiner eigenen Seite.

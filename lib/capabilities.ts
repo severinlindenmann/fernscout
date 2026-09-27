@@ -8,7 +8,7 @@ import { PAID_AREAS } from "@paid/manifest";
 /** Capabilities whose implementation lives in paid/ (open core). Their
  *  switches stay in config for compatibility; a build without paid/ refuses
  *  them rather than pretending. */
-const PAID_FEATURES: readonly string[] = ["photobook", "postcards", "whatsapp", "whatsappInbound"];
+export const PAID_FEATURES: readonly string[] = ["photobook", "postcards", "whatsapp", "whatsappInbound"];
 
 /**
  * What a capability needs before it can honestly claim to be on.

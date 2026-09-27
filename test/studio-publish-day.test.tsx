@@ -16,8 +16,8 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B2140 — "Publish a day". The list is drafts only, nothing is written
- * before the confirm, the confirm says "Share this day" (D5, B2192 — it said
- * "Publish this day"), and the done screen names the day.
+ * before the confirm, the confirm says "Publish this day" (B1384 decision 8
+ * — it said "Share this day"), and the done screen names the day.
  *
  * B2192 — the confirm names the blanks the tap records as left blank, and the
  * readers by name.
@@ -130,18 +130,18 @@ describe("PublishDayFlow", () => {
     });
   }
 
-  test("the list links each draft to its own choice, a direct Share…, and preview", async () => {
+  test("the list links each draft to its own choice, a direct Publish…, and preview", async () => {
     await mount(null);
     const row = container!.querySelector("[data-publish-row]")!;
     const links = [...row.querySelectorAll("a")].map((a) => a.getAttribute("href"));
-    // The row's title, "Share…" and "Preview" all point at the row — Share
-    // and the title open the confirm step directly (B2237).
+    // The row's title, "Publish…" and "Preview" all point at the row —
+    // Publish and the title open the confirm step directly (B2237).
     expect(links).toEqual([
       "/alex/studio/day/publish?day=open&trip=alps",
       "/alex/studio/day/publish?day=open&trip=alps",
       "/alex/trips/alps/day/open",
     ]);
-    const shareLink = [...row.querySelectorAll("a")].find((a) => a.textContent === "Share…");
+    const shareLink = [...row.querySelectorAll("a")].find((a) => a.textContent === "Publish…");
     expect(shareLink, row.innerHTML).toBeTruthy();
   });
 
@@ -152,7 +152,7 @@ describe("PublishDayFlow", () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(container!.querySelector("[data-audience]")!.getAttribute("data-audience")).toBe("guest");
-    const confirm = [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Share this day");
+    const confirm = [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day");
     expect(confirm, container!.innerHTML.slice(0, 600)).toBeTruthy();
     expect(confirm!.className).toContain("bg-yellow-400");
 
@@ -162,7 +162,7 @@ describe("PublishDayFlow", () => {
       "/api/web/alex/trips/alps/days/open/publish",
       expect.objectContaining({ method: "POST", body: "{}" }),
     ]);
-    expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is shared.");
+    expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is published.");
   });
 
   test("B2192: the confirm names the blanks and the readers, and the tap sends exactly those blanks", async () => {
@@ -172,16 +172,16 @@ describe("PublishDayFlow", () => {
 
     expect(container!.querySelector("[data-readers]")!.textContent).toBe("By name: Hans, Viki, and 2 others.");
     const dialog = container!.querySelector('[role="dialog"]')!;
-    expect(dialog.textContent).toContain("Not filled in: time, costs, and how you travelled. Sharing records them as left blank.");
+    expect(dialog.textContent).toContain("Not filled in: time, costs, and how you travelled. Publishing records them as left blank.");
     // Only what "Change a day" can actually fill is linked there — since
     // B2233 that includes costs and how you travelled.
     const fill = [...dialog.querySelectorAll("a")];
     expect(fill.map((a) => a.getAttribute("href"))).toEqual(Array(3).fill("/alex/studio/day/edit?slug=open"));
     expect(fill.every((a) => a.textContent === "Fill in now")).toBe(true);
     expect(fill.map((a) => a.closest("[data-blank-field]")!.getAttribute("data-blank-field")).sort()).toEqual(["costs", "time", "transportMode"]);
-    expect([...dialog.querySelectorAll("button")].map((b) => b.textContent?.trim())).toEqual(["Share this day", "Not yet"]);
+    expect([...dialog.querySelectorAll("button")].map((b) => b.textContent?.trim())).toEqual(["Publish this day", "Not yet"]);
 
-    const confirm = [...dialog.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Share this day")!;
+    const confirm = [...dialog.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day")!;
     await act(async () => confirm.click());
     expect(fetchMock.mock.calls[0]).toEqual([
       "/api/web/alex/trips/alps/days/open/publish",
@@ -197,7 +197,7 @@ describe("PublishDayFlow", () => {
 
     const dialog = container!.querySelector('[role="dialog"]')!;
     expect(dialog.querySelector("[data-blank] > p")!.textContent).toBe(
-      "Not filled in: photographs, place, time, costs, how you travelled, and 3 more details. Sharing records them as left blank.",
+      "Not filled in: photographs, place, time, costs, how you travelled, and 3 more details. Publishing records them as left blank.",
     );
     const listed = [...dialog.querySelectorAll("details [data-blank-field]")];
     expect(listed.map((li) => li.getAttribute("data-blank-field"))).toEqual(all);
@@ -205,7 +205,7 @@ describe("PublishDayFlow", () => {
     // An untitled day is called by its long date, never an ISO string.
     expect(container!.querySelector("h2")!.textContent).toBe("Thursday, 2 January");
 
-    const confirm = [...dialog.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Share this day")!;
+    const confirm = [...dialog.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day")!;
     await act(async () => confirm.click());
     expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)).toEqual({ declineOpen: all });
   });

@@ -1,10 +1,10 @@
 import type { FeatureName } from "@/lib/config";
 
 /**
- * Which door a flow drives through — see AGENTS.md's own table of "You are /
- * Use". `admin` is the operator's own page, kept separate from `ui` because
- * it authenticates differently (identity cookie vs. owner cookie) —
- * docs/testing/personas/operator.md is the one persona that plays it.
+ * Which door a flow drives through. `admin` is the operator's own page, kept
+ * separate from `ui` because it authenticates differently (identity cookie
+ * vs. owner cookie) — docs/testing/personas/operator.md is the one persona
+ * that plays it.
  */
 type Interface = "agent" | "whatsapp" | "api" | "ui" | "admin";
 
@@ -13,8 +13,7 @@ type Interface = "agent" | "whatsapp" | "api" | "ui" | "admin";
  * explicit reason it has none yet. Never both, never neither —
  * test/coverage-contract.test.ts fails on the third case. `todo` exists so
  * that adding a capability with no test yet is a visible, searchable
- * decision rather than a silently missing row (see docs/superpowers/specs/
- * 2026-09-11-managed-instance-testing-framework-design.md, "no silent caps").
+ * decision rather than a silently missing row.
  */
 export type CoverageEntry =
   | { flows: readonly string[]; interfaces: readonly Interface[] }
@@ -96,8 +95,11 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
     interfaces: ["api"],
   },
   analytics: {
+    // Its own UI is the studio's "Visitors" page (`app/[user]/studio/visitors`),
+    // not `/admin` — this flow's step 6 checks the capability off there, from
+    // an operator session, so both interfaces are real for it.
     flows: ["operator-check-admin-dashboard"],
-    interfaces: ["admin"],
+    interfaces: ["admin", "ui"],
   },
   transcription: {
     flows: ["owner-established-use-agent-helper"],

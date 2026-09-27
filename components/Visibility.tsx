@@ -80,14 +80,20 @@ function VisibilityBadge({
   audience,
   inherited,
   variant = "inline",
+  journal = false,
 }: {
   audience: Audience;
   /** True when nothing at this level was set and the word comes from above. */
   inherited?: "trip" | "day" | false;
   variant?: "inline" | "overlay";
+  /** Journal `guest` is a narrower population than trip `guest` (decision 4,
+   *  2026-09-25 docs audit) — the badge says "Unlisted" here rather than
+   *  reusing the trip/day word for a different population. */
+  journal?: boolean;
 }) {
   const { t } = useI18n();
   const Icon = ICON[audience];
+  const word = journal && audience === "guest" ? t("visibility.unlisted") : t(WORD[audience]);
   const note = inherited
     ? t(inherited === "trip" ? "visibility.inheritedTrip" : "visibility.inheritedDay")
     : undefined;
@@ -111,7 +117,7 @@ function VisibilityBadge({
         title={note}
       >
         <Icon className="h-3 w-3" aria-hidden />
-        {t(WORD[audience])}
+        {word}
         {note && <span className="sr-only"> — {note}</span>}
       </span>
     );
@@ -128,7 +134,7 @@ function VisibilityBadge({
       title={note}
     >
       <Icon className="h-3 w-3" aria-hidden />
-      {t(WORD[audience])}
+      {word}
       {note && <span className="sr-only"> — {note}</span>}
     </span>
   );
@@ -302,7 +308,7 @@ function VisibilityControl({
               : "hover:shadow-[0_0_0_3px_rgba(30,41,59,0.07)]"
           }`}
         >
-          <VisibilityBadge audience={audience} inherited={inherited} />
+          <VisibilityBadge audience={audience} inherited={inherited} journal={journal} />
         </span>
       </button>
       {/* Beside the badge, at every level — the question "what does Guests
@@ -344,7 +350,7 @@ function VisibilityControl({
                 <span className="min-w-0">
                   <span className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-ink-strong">
                     {option.badge ? (
-                      <VisibilityBadge audience={option.badge} />
+                      <VisibilityBadge audience={option.badge} journal={journal} />
                     ) : (
                       option.label
                     )}

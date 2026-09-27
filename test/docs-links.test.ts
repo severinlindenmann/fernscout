@@ -141,6 +141,56 @@ describe("relative links in markdown resolve", () => {
   });
 });
 
+describe("backtick paths in docs/*.md resolve", () => {
+  /**
+   * The direct children of `docs/` only (not `docs/testing/`, `docs/guides/`,
+   * …) — the top-level prose files, which is what "docs/*.md" names. A
+   * backtick path here was never checked at all before this test existed:
+   * `test/docs-links.test.ts` only ever read `[text](target)` syntax, so a
+   * path quoted as `` `some/path.ts` `` could go stale forever with the
+   * suite green. This is deliberately stricter than the harness-dir
+   * exemption below the markdown-link check: no absent-harness-dir amnesty,
+   * because this check is new and has never let anything pass yet.
+   */
+  const files = fs
+    .readdirSync(path.join(ROOT, "docs"), { withFileTypes: true })
+    .filter((e) => e.isFile() && e.name.endsWith(".md"))
+    .map((e) => path.join("docs", e.name));
+
+  /**
+   * A source directory this repository actually has — the only prefixes
+   * worth resolving. `site/`, `content/`, `deploy/` and `.data/`-style
+   * backtick paths are excluded on purpose: those directories are full of
+   * illustrative examples (`content/config.json`, `.data/mail/`, an example
+   * exported file) that were never meant to name a file actually committed
+   * here, and flagging every one would make this check noise rather than
+   * signal. `lib/`, `app/`, `components/`, `scripts/` and `test/` paths are
+   * always meant literally.
+   */
+  const REAL_PREFIXES = ["lib/", "app/", "components/", "scripts/", "test/", "docs/"];
+
+  /** A backtick-quoted path under one of `REAL_PREFIXES`, ending in a real
+   * source extension — excludes a placeholder segment like `<trip>` or
+   * `YYYY-MM-DD-slug` that a route pattern or example uses on purpose. */
+  const BACKTICK_PATH = /`((?:lib|app|components|scripts|test|docs)\/[A-Za-z0-9._/-]+\.[A-Za-z0-9]+)`/g;
+  const PLACEHOLDER = /[A-Z]{2,}|[<>]|YYYY/;
+
+  test.each(files)("%s", (file) => {
+    const text = fs.readFileSync(path.join(ROOT, file), "utf8");
+    const broken: string[] = [];
+
+    for (const match of text.matchAll(BACKTICK_PATH)) {
+      const target = match[1];
+      if (!REAL_PREFIXES.some((p) => target.startsWith(p))) continue;
+      if (PLACEHOLDER.test(target)) continue;
+      const resolved = path.resolve(ROOT, target);
+      if (!fs.existsSync(resolved) && !pointsIntoAbsentHarnessDir(target)) broken.push(target);
+    }
+
+    expect(broken, `${file} quotes paths in backticks that do not exist`).toEqual([]);
+  });
+});
+
 describe("every docs/ path cited from code, skills or the README exists", () => {
   function filesUnder(dir: string): string[] {
     const out: string[] = [];
@@ -164,19 +214,28 @@ describe("every docs/ path cited from code, skills or the README exists", () => 
    * Where a citation is worth something. `docs/` itself is not scanned: a plan
    * is the record of intent as written before the work and is deliberately not
    * updated, so a path inside one is history rather than a promise.
+   *
+   * `components/`, `proxy.ts`, `instrumentation.ts` and `next.config.ts` were
+   * added by B2415 (the docs audit's Part E) — components carry the same
+   * kind of doc-citing comments as `lib/` and `app/` and were simply never
+   * scanned.
    */
   const SOURCES = [
     "README.md",
     "AGENTS.md",
     "CONTRIBUTING.md",
+    "proxy.ts",
+    "instrumentation.ts",
+    "next.config.ts",
     ...markdownFilesUnder(".claude/skills"),
     ...filesUnder("lib"),
     ...filesUnder("app"),
+    ...filesUnder("components"),
     ...filesUnder("scripts"),
     ...filesUnder("test"),
     ...filesUnder("deploy"),
     ...filesUnder(".github"),
-  ];
+  ].filter((f) => fs.existsSync(path.join(ROOT, f)));
 
   /**
    * A `docs/…` path in prose or a comment. Trailing punctuation is trimmed —

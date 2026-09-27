@@ -18,6 +18,7 @@ import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/loc
 import { readersModel } from "@/lib/readers/model";
 import { previewJournal } from "@/lib/studio/audiencePreview";
 import { pendingTripRequestsFor, peopleOf } from "@/lib/tripPeople";
+import { serverSite } from "@/lib/site";
 import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/contactNumber";
@@ -72,7 +73,7 @@ export default async function ContactsAdminPage({
         username={username}
         group="people"
         title={translateIn(locale, "err.notSignedInTitle")}
-        lede={translateIn(locale, "contact.adminSignIn")}
+        lede={translateIn(locale, "contact.ownerSignIn")}
         back={false}
       >
         <a className="mt-4 inline-block text-sm font-semibold text-ink-strong underline underline-offset-2" href={`/${username}`}>
@@ -85,8 +86,8 @@ export default async function ContactsAdminPage({
   const shell = {
     username,
     group: "people" as const,
-    title: translateIn(locale, "contact.adminTitle"),
-    lede: translateIn(locale, "contact.adminSubtitle"),
+    title: translateIn(locale, "contact.ownerTitle"),
+    lede: translateIn(locale, "contact.ownerSubtitle"),
   };
 
   // Switched off: the owner is told why (the studio's rule), never a 404 —
@@ -206,6 +207,8 @@ export default async function ContactsAdminPage({
         addressLookupEnabled={isEnabled("addressLookup", username)}
         ownEmail={ownEmail}
         preview={previewJournal(username, "guest")}
+        journalTitle={user.title}
+        siteName={serverSite().name}
       />
     </StudioPage>
   );

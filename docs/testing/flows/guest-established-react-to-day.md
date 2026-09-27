@@ -13,8 +13,8 @@ control on a published day, before and after the tap).
 
 1. Local dev server running with `features.reactions` on for a
    `test-guest-established` journal (`reactions: { enabled: true }` is
-   already the shipped default — AGENTS.md — so this only needs *not* turning
-   it off).
+   already the shipped default (`lib/config.ts`'s `DEFAULT_FEATURES`) — so this
+   only needs *not* turning it off).
 2. A `guest` trip in that journal with at least one published day, and the
    `guest-established` persona already approved as a contact (`guest` trips
    are the ones this persona is let into — its own persona file).
@@ -33,9 +33,9 @@ control on a published day, before and after the tap).
    cookie), request `GET /api/reactions?trip=<the same private-adjacent
    trip>` for a trip this persona cannot read. Confirm it answers
    `400 unknown_trip` — the same body a trip that does not exist would give
-   (AGENTS.md/B117's own rule about a closed trip not naming itself, applied
-   here to the reactions endpoint specifically, per the route's own module
-   comment about "an existence oracle").
+   (the same rule as a closed trip not naming itself, applied here to the
+   reactions endpoint specifically, per the route's own module comment about
+   "an existence oracle").
 
 ## Done when
 

@@ -100,7 +100,7 @@ describe("ReadyScreen", () => {
     expect(container!.textContent).toContain("2");
     expect(container!.textContent).toContain("Held back");
     expect(container!.textContent).toContain("1 private");
-    expect(container!.textContent).toContain("Credits spent");
+    expect(container!.textContent).toContain("Credits used");
     expect(container!.textContent).toContain("12");
   });
 

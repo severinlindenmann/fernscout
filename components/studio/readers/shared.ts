@@ -118,7 +118,7 @@ export type AdminInvite = {
  * sent it.
  */
 const INVITE_KIND_KEY: Record<AdminInvite["kind"], TranslationKey> = {
-  personal: "contact.adminInvitePersonalTitle",
+  personal: "contact.ownerInvitePersonalTitle",
   guest: "me.inviteGuestTitle",
   buddy: "me.inviteBuddyTitle",
 };
@@ -168,39 +168,39 @@ export function viaLabel(
   t: Translate,
 ): string | null {
   if (!createdVia) return null;
-  if (createdVia === "owner") return t("contact.adminViaOwner");
+  if (createdVia === "owner") return t("contact.ownerViaOwner");
   // B621 — the owner's own row, made by the button on this page. It is
   // filtered out of the lists below, so this only shows on a row written
   // before that filter or read some other way; a raw `owner-self` on screen
   // would be a code where a sentence belongs.
-  if (createdVia === "owner-self") return t("contact.adminViaSelf");
+  if (createdVia === "owner-self") return t("contact.ownerViaSelf");
   // B37 removed the open guestbook. Rows written before it still say this, and
   // will forever.
-  if (createdVia === "open") return t("contact.adminViaOpen");
+  if (createdVia === "open") return t("contact.ownerViaOpen");
   // B601 — they were already signed in, met a trip they may not read, and
   // pressed the button on the gate. Not an invite this owner ever issued,
   // which is exactly what the row has to say.
-  if (createdVia === "asked") return t("contact.adminViaAsked");
+  if (createdVia === "asked") return t("contact.ownerViaAsked");
   // B2092 — the rest of the vocabulary `created_via` holds, each as the
   // sentence the owner would say; anything newer than this list is left
   // unsaid rather than printed as the code it is.
-  if (createdVia === "owner-import") return t("contact.adminViaImport");
-  if (createdVia === "owner-grant") return t("contact.adminViaGrant");
-  if (createdVia === "self:traveller") return t("contact.adminViaTraveller");
+  if (createdVia === "owner-import") return t("contact.ownerViaImport");
+  if (createdVia === "owner-grant") return t("contact.ownerViaGrant");
+  if (createdVia === "self:traveller") return t("contact.ownerViaTraveller");
   if (!createdVia.startsWith("invite:")) return null;
 
   const invite = invites.find(
     (candidate) => candidate.id === createdVia.slice("invite:".length),
   );
-  if (!invite) return t("contact.adminViaInvite");
+  if (!invite) return t("contact.ownerViaInvite");
   // B2368 — the link's own name (typed on the door that made it, "Family
   // chat") is part of "how somebody came to be on this list" too, not only
   // its kind and, for a buddy link, its trip.
   const parts = [t(INVITE_KIND_KEY[invite.kind])];
   if (invite.kind === "buddy" && invite.tripId) {
-    parts.push(t("contact.adminInviteTrip", { trip: tripLabel(trips, invite.tripId) }));
+    parts.push(t("contact.ownerInviteTrip", { trip: tripLabel(trips, invite.tripId) }));
   }
-  if (invite.name) parts.push(t("contact.adminInviteNamed", { name: invite.name }));
+  if (invite.name) parts.push(t("contact.ownerInviteNamed", { name: invite.name }));
   return parts.join(" · ");
 }
 

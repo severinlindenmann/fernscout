@@ -22,9 +22,13 @@ import { resolveBearer, ownsUser } from "@/lib/api/v2/auth";
 import { mayActAsOwner, mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { publishNotice } from "@/lib/api/entries";
 import { isTestContent } from "@/lib/access";
+import { afterResponse } from "@/lib/afterResponse";
 import { isEnabled } from "@/lib/capabilities";
 import { balanceOf } from "@/lib/credits";
 import { formatCredits } from "@/lib/creditsFormat";
+import { translateIn } from "@/lib/locales";
+import { subscribersFor } from "@/lib/push";
+import { localeForSubscriber, sendPush } from "@/lib/push/send";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -36,6 +40,7 @@ import { claimChannel, releaseChannelClaim } from "@/lib/digest/dayNotify";
 import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@paid/whatsapp/lib/digest/dayWhatsapp";
 import type { Trip } from "@/lib/types";
+import type { StoredSubscription } from "@/lib/repos/types";
 
 export const dynamic = "force-dynamic";
 
@@ -234,6 +239,56 @@ export async function applyPublish(
     // send this call never made — the same silence `notify/route.ts` gives
     // for a channel already spoken for.
   }
+
+  /**
+   * Push, automatically — B2448. Unlike mail/WhatsApp above, nobody asks for
+   * this: it goes out to every subscriber `subscribersFor` (`lib/push.ts`)
+   * says may see this day, the same audience `scripts/notify.mts` used to
+   * need a person to run by hand for. `claimChannel(..., "push")` is the same
+   * double-send guard `whatsapp` uses just above (B2443's pattern), so a
+   * retried request that lands after the first already claimed the channel
+   * sends nothing a second time. `afterResponse` keeps the fan-out off the
+   * response's critical path — a publish must not get slower as a journal
+   * gains subscribers — and `sendPush` (lib/push/send.ts) is itself a silent
+   * no-op with no VAPID environment or the `push` capability off, so an
+   * instance that has never turned push on pays nothing for this and never
+   * throws.
+   */
+  if (await claimChannel(user, tripId, v1Slug(slug), "push")) {
+    const pushTrip = { username: user, visibility: trip.visibility, test: trip.test } as unknown as Trip;
+    const pushEntry = { test: day.test, visibility: day.visibility };
+    const pushUrl = `${serverSite().url}/${user}/trips/${tripId}/day/${slug}`;
+    const owner = getUser(user);
+    afterResponse("publish-push", async () => {
+      const recipients = await subscribersFor(pushTrip, pushEntry);
+      if (recipients.length === 0) return;
+
+      const byLocale = new Map<string, StoredSubscription[]>();
+      for (const sub of recipients) {
+        const locale = await localeForSubscriber(user, sub);
+        const group = byLocale.get(locale);
+        if (group) group.push(sub);
+        else byLocale.set(locale, [sub]);
+      }
+
+      await Promise.all(
+        [...byLocale].map(([locale, subs]) =>
+          sendPush({
+            template: "news.push",
+            subscriptions: subs,
+            title: owner?.title ?? user,
+            body: translateIn(locale, "push.newDay.body", { day: day.title }),
+            url: pushUrl,
+            tag: `day-${slug}`,
+            locale,
+          }),
+        ),
+      );
+    });
+  }
+  // A lost claim (an already-announced day, or a retried request) sends
+  // nothing a second time — the same silence the WhatsApp branch above gives
+  // for its own channel.
 
   const test = isTestContent(tripLike(user, tripId, trip.people), day) || trip.test === true || day.test === true;
   // Instance-level, like every capability in v2 (decision 5): whether this

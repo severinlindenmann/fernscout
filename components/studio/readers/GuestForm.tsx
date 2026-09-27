@@ -26,12 +26,12 @@ const LABEL = "block text-base font-medium text-ink-body";
  * `contact_exists` (`create` refusing to rewrite somebody already on the
  * list). */
 const ERROR_KEY: Record<string, TranslationKey> = {
-  invalid_name: "contact.adminNeedName",
+  invalid_name: "contact.ownerNeedName",
   invalid_email: "contact.needEmail",
   invalid_address: "contact.needAddress",
-  blocked_contact: "contact.adminBlockedContact",
-  email_taken: "contact.adminEmailTaken",
-  contact_exists: "contact.adminContactExists",
+  blocked_contact: "contact.ownerBlockedContact",
+  email_taken: "contact.ownerEmailTaken",
+  contact_exists: "contact.ownerContactExists",
 };
 
 /** The fields the owner's own guest form holds — name, contact details, an
@@ -102,7 +102,7 @@ function fieldsFor(
  * first-person, written for the guest filling in their own form, and reads as
  * asking the owner for their *own* details when it is the owner typing on
  * somebody else's behalf (B1281) — so those three, and the two consent
- * checkboxes and the address hint, get their own `contact.admin*` keys
+ * checkboxes and the address hint, get their own `contact.owner*` keys
  * instead of reuse.
  *
  * One instance of this form exists on the page at a time — opened either by
@@ -241,12 +241,12 @@ export function GuestForm({
       className="mt-4 rounded-2xl border border-line-quiet bg-surface-subtle p-5"
     >
       <p className="font-display text-xl text-ink-strong">
-        {t(editingId ? "contact.adminEditGuest" : "contact.adminAddGuest")}
+        {t(editingId ? "contact.ownerEditGuest" : "contact.ownerAddGuest")}
       </p>
 
       <div className="mt-4">
         <label className={LABEL} htmlFor="guest-name">
-          {t("contact.adminGuestName")}
+          {t("contact.ownerGuestName")}
         </label>
         <input
           id="guest-name"
@@ -259,7 +259,7 @@ export function GuestForm({
 
       <div className="mt-4">
         <label className={LABEL} htmlFor="guest-email">
-          {t("contact.adminGuestEmail")}
+          {t("contact.ownerGuestEmail")}
         </label>
         <input
           id="guest-email"
@@ -271,14 +271,14 @@ export function GuestForm({
         />
         {emailChanged && (
           <p role="alert" className="mt-2 text-base text-coral-600">
-            {t("contact.adminEmailChangeWarning")}
+            {t("contact.ownerEmailChangeWarning")}
           </p>
         )}
       </div>
 
       <div className="mt-4">
         <label className={LABEL} htmlFor="guest-locale">
-          {t("contact.adminGuestLanguage")}
+          {t("contact.ownerGuestLanguage")}
         </label>
         <select
           id="guest-locale"
@@ -328,8 +328,8 @@ export function GuestForm({
         <p className="text-base text-ink-body">
           {t(
             postcardsEnabled
-              ? "contact.adminAddressHint"
-              : "contact.adminAddressHintNoPostcards",
+              ? "contact.ownerAddressHint"
+              : "contact.ownerAddressHintNoPostcards",
           )}
         </p>
 
@@ -430,7 +430,7 @@ export function GuestForm({
             checked={form.wantsEmailDigest}
             onChange={(e) => field("wantsEmailDigest", e.target.checked)}
           />
-          <span>{t("contact.adminWantsDigest")}</span>
+          <span>{t("contact.ownerWantsDigest")}</span>
         </label>
         {postcardsEnabled && (
           <label className="flex items-start gap-3 text-base text-ink-strong">
@@ -440,7 +440,7 @@ export function GuestForm({
               checked={form.wantsPostcard}
               onChange={(e) => field("wantsPostcard", e.target.checked)}
             />
-            <span>{t("contact.adminWantsPostcard")}</span>
+            <span>{t("contact.ownerWantsPostcard")}</span>
           </label>
         )}
         {whatsappEnabled && (
@@ -451,7 +451,7 @@ export function GuestForm({
               checked={form.wantsWhatsapp}
               onChange={(e) => field("wantsWhatsapp", e.target.checked)}
             />
-            <span>{t("contact.adminWantsWhatsapp")}</span>
+            <span>{t("contact.ownerWantsWhatsapp")}</span>
           </label>
         )}
         {/*
@@ -469,9 +469,9 @@ export function GuestForm({
         {pushEnabled && (
           <p className="rounded-xl bg-surface-subtle px-4 py-3 text-sm text-ink-body">
             <span className="font-medium text-ink-strong">
-              {t("contact.adminPush")}
+              {t("contact.ownerPush")}
             </span>{" "}
-            {t("contact.adminPushHint")}
+            {t("contact.ownerPushHint")}
           </p>
         )}
       </div>
@@ -496,7 +496,7 @@ export function GuestForm({
           onClick={onClose}
           className="rounded-xl border border-line-quiet px-4 py-3 text-base text-ink-body disabled:opacity-50"
         >
-          {t("contact.adminGuestCancel")}
+          {t("contact.ownerGuestCancel")}
         </BusyButton>
       </div>
     </form>

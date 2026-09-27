@@ -45,6 +45,8 @@ export default function ReadersAdmin({
   addressLookupEnabled = false,
   ownEmail = null,
   preview = [],
+  journalTitle,
+  siteName = "Fernscout",
 }: {
   username: string;
   locale: Locale;
@@ -68,6 +70,11 @@ export default function ReadersAdmin({
   ownEmail?: string | null;
   /** What a reader would see (B2130/B2132): `previewJournal(username, "guest")`. */
   preview?: TripPreview[];
+  /** The journal's own title — B2444's share text's "{trip}" for a guest
+   *  link or a self-sent invite. Falls back to `username` for a caller
+   *  (a test) that has no title to hand. */
+  journalTitle?: string;
+  siteName?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -119,10 +126,10 @@ export default function ReadersAdmin({
         // that is `hasGuestTrip`, not whether a buddy place was named here.
         text = [
           trips.length
-            ? t("contact.adminApprovedTrips", { trips: trips.join(", ") })
+            ? t("contact.ownerApprovedTrips", { trips: trips.join(", ") })
             : hasGuestTrip
-              ? t("contact.adminApprovedGuestTrips")
-              : t("contact.adminApprovedNoTrip"),
+              ? t("contact.ownerApprovedGuestTrips")
+              : t("contact.ownerApprovedNoTrip"),
           body.told ? t(body.told === "email" ? "readers.toldByEmail" : "readers.toldBySms", { name }) : "",
         ]
           .filter(Boolean)
@@ -131,11 +138,11 @@ export default function ReadersAdmin({
       refresh();
     } else {
       const response = await act({ action: "revoke", id: contact.id });
-      if (response?.ok) text = t("contact.adminRevoked", { name });
+      if (response?.ok) text = t("contact.ownerRevoked", { name });
     }
     setNotes((previous) => ({
       ...previous,
-      [contact.id]: text ? { text } : { text: t("contact.adminActionFailed"), failed: true },
+      [contact.id]: text ? { text } : { text: t("contact.ownerActionFailed"), failed: true },
     }));
   }
 
@@ -192,14 +199,32 @@ export default function ReadersAdmin({
       )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <AddPersonDoor username={username} locale={locale} locales={locales} trips={trips} t={t} onDone={refresh} />
-        <InviteLinkDoor username={username} locale={locale} trips={trips} t={t} tn={tn} onCreated={refresh} />
+        <AddPersonDoor
+          username={username}
+          locale={locale}
+          locales={locales}
+          trips={trips}
+          t={t}
+          onDone={refresh}
+          journalTitle={journalTitle ?? username}
+          siteName={siteName}
+        />
+        <InviteLinkDoor
+          username={username}
+          locale={locale}
+          trips={trips}
+          t={t}
+          tn={tn}
+          onCreated={refresh}
+          journalTitle={journalTitle ?? username}
+          siteName={siteName}
+        />
       </div>
       {preview.length > 0 && <ReaderPreview preview={preview} t={t} tn={tn} />}
 
-      <ReaderGroup title={t("contact.adminPending")} rows={split.waitingOnYou} kind="asking" env={env} />
+      <ReaderGroup title={t("contact.ownerPending")} rows={split.waitingOnYou} kind="asking" env={env} />
       <ReaderGroup title={t("readers.group.invited")} rows={invited} kind="invited" env={env} />
-      <ReaderGroup title={t("contact.adminNotInvited")} rows={split.notInvited} kind="notInvited" env={env} />
+      <ReaderGroup title={t("contact.ownerNotInvited")} rows={split.notInvited} kind="notInvited" env={env} />
       <ReaderGroup
         title={t("readers.group.reading")}
         rows={reading}
@@ -208,7 +233,17 @@ export default function ReadersAdmin({
         empty={t("readers.group.readingEmpty")}
       />
 
-      <LinksList username={username} locale={locale} invites={invites} trips={trips} t={t} tn={tn} onStopped={refresh} />
+      <LinksList
+        username={username}
+        locale={locale}
+        invites={invites}
+        trips={trips}
+        t={t}
+        tn={tn}
+        onStopped={refresh}
+        journalTitle={journalTitle ?? username}
+        siteName={siteName}
+      />
 
       {split.revoked.length > 0 && (
         <details className="mt-10">

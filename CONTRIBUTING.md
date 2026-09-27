@@ -1,7 +1,7 @@
 # Contributing to Fernscout
 
-Fernscout is a self-hostable travel journal: markdown entries and media as
-the source of truth, a Next.js app on top. Contributions are welcome —
+Fernscout is a self-hostable travel journal: JSON documents and photographs
+as the source of truth, a Next.js app on top. Contributions are welcome —
 this file covers the practical parts.
 
 ## Getting started
@@ -25,32 +25,23 @@ elsewhere it uses `npm ci --prefer-offline`. If its lockfile later changes,
 rerun it with `-- --refresh`.
 
 The repo ships with a demo journal at `/example`, committed under
-`content/example/`, so the app works end to end with no real trip data. Real configuration lives in
-`site/config.json`, read by `lib/config.ts` — don't put personal data or
-secrets in code; see `docs/plans/INDEX.md` for the ground rules the codebase
-follows (feature flags default off, secrets stay in the environment, and so
-on).
+`content/example/`, so the app works end to end with no real trip data. Real
+configuration lives in `site/config.json`, read by `lib/config.ts` — don't
+put personal data or secrets in code; see [AGENTS.md](AGENTS.md) for the
+ground rules the codebase follows (feature flags default off, secrets stay
+in the environment, and so on).
 
 ## Working with an agent
 
 Start the agent in this checkout. [AGENTS.md](AGENTS.md) is the shared
-instruction file; [CLAUDE.md](CLAUDE.md) imports it for Claude Code. The
-startup section tells agents to read the complete file from disk, since it
-is longer than some harnesses include automatically.
+instruction file; [CLAUDE.md](CLAUDE.md) imports it for Claude Code. Read the
+complete file from disk — it is short by design, but still worth reading in
+full rather than trusting an automatic summary.
 
-Skills are maintained once in `.claude/skills/`. Individual relative links
-under `.agents/skills/` expose the same instructions and helper files to
-Codex and compatible agents. Keep Git symlinks enabled when cloning; if your
-platform checks them out as text files, open the original skills directly.
 No global install, Claude account, or personal plugin configuration is needed
-to read and follow them. See the Skills catalog in AGENTS.md.
-
-In a new session, ask the agent to name the shared instruction file and the
-skill relevant to your task, then read that skill. If automatic discovery
-misses it, ask it to read `AGENTS.md` and the matching
-`.claude/skills/<name>/SKILL.md` explicitly; restart the agent if its skill
-menu remains stale. Other harnesses can use that same explicit startup
-instruction, even without native support for either filename.
+to follow it. If your agent supports repository skills and one seems to
+apply to your task, use it; a fresh clone of this repository alone has no
+skills of its own to discover.
 
 Codex's [skill discovery documentation](https://learn.chatgpt.com/docs/build-skills)
 describes `.agents/skills/` and symlink support; its
@@ -60,7 +51,8 @@ available each session; they cannot force a harness to load or obey them.
 
 ## Before you open a PR
 
-Run all of these — CI runs the same checks (`npm run verify` runs them in this
+Run all of these — CI runs the same five checks, as separate parallel jobs
+rather than one sequential gate (`npm run verify` runs them locally in this
 order and stops at the first failure, and is the easier way to run them):
 
 ```bash
@@ -99,7 +91,7 @@ question, a security report), open a blank issue and explain.
 **Security issues:** please don't open a public issue for a vulnerability.
 Use GitHub's private advisory form, linked from the "New issue" page.
 
-## License and copyright
+## Licence and copyright
 
 **You keep the copyright to your own contribution.** You are not signing it
 away and not transferring it. Opening a pull request against this repository
@@ -118,16 +110,16 @@ to grant around.
 `importers/` contributions are MIT, matching that directory's own carve-out
 (`importers/LICENSE`).
 
-### License header policy
+### Licence header policy
 
 Individual source files in this repository **do not** carry a per-file
-license header — the `LICENSE` file at the repository root covers the
+licence header — the `LICENSE` file at the repository root covers the
 whole codebase, and that's the single source of truth. Don't add SPDX
 headers to files you touch; it just creates diff noise a root `LICENSE` file
 already makes redundant.
 
 The one exception: if you bring in a file (or a substantial part of one)
-from somewhere else under a *different* license, keep that file's original
+from somewhere else under a *different* licence, keep that file's original
 header intact and say so in the PR description. Don't silently relicense
 someone else's code by dropping it into this repository.
 

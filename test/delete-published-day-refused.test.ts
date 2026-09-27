@@ -179,6 +179,10 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  // Publish now queues a push after the response (B2448); let it finish
+  // before the database it reads is closed.
+  const { flushAfterResponse } = await import("@/lib/afterResponse");
+  await flushAfterResponse();
   await closeDatabase();
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;

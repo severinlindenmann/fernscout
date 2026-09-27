@@ -1,7 +1,7 @@
 # Flow: owner-established-add-cost-line
 
 **Persona:** `owner-established` (docs/testing/personas/owner-established.md)
-**Interface:** agent (`/api/v2`)
+**Interface:** `api` (`/api/v2`)
 **Capabilities exercised:** `costs`
 **Device/locale:** run once; the trip's `costs` section has no viewport of its
 own until it is read back on the trip's budget page, so run the graphical
@@ -12,7 +12,7 @@ half at the requested viewport only for that read-back.
 ## Setup
 
 1. Local dev server running with `features.costs` on — `costs: { enabled:
-   true }` is the shipped default (AGENTS.md, `lib/config.ts`), and `costs`
+   true }` is the shipped default (`lib/config.ts`'s `DEFAULT_FEATURES`), and `costs`
    is the one operator-only capability that spends nothing and reaches no
    supplier (`OPERATOR_ONLY_FEATURES`'s own comment in `lib/config.ts`), so
    there is no per-journal opt-in question to check either.
@@ -28,9 +28,9 @@ half at the requested viewport only for that read-back.
 2. `PATCH /api/v2/test-owner-established/trips/<trip>` with a `costs` object
    carrying the existing `budget` (if any) plus `items` with one new
    preparation cost line appended (`{"label": …, "amount": …, "category":
-   …}`), describing only a cost the persona actually incurred (AGENTS.md:
-   "write what you were told" applies to money the same way it applies to
-   weather and meals — no invented merchant, no invented amount). **Send the
+   …}`), describing only a cost the persona actually incurred — write only
+   what you were told, the same rule that applies to weather and meals: no
+   invented merchant, no invented amount. **Send the
    whole `costs` object, not only the new line**: the trip route merges a
    `PATCH` by top-level key, so a `costs` object naming only the new item
    would replace the stored budget and every earlier item rather than adding
