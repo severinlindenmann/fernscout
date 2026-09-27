@@ -1329,6 +1329,8 @@ export type TranslationKey =
   | "map.subtitle"
   | "map.subtitlePlanned"
   | "map.thisStop"
+  | "map.timeline"
+  | "map.timelineValue"
   | "map.title"
   | "map.titlePlanned"
   | "map.wholeTrip"

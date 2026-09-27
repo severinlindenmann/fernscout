@@ -1537,6 +1537,8 @@
   "map.subtitle": "Tap any stop to see how long we stayed and what we shot there.",
   "map.subtitlePlanned": "The route we mean to take, and the places we mean to sleep.",
   "map.thisStop": "This stop",
+  "map.timeline": "Timeline",
+  "map.timelineValue": "{location}, {date}",
   "map.title": "Where we've been",
   "map.titlePlanned": "Where we're going",
   "map.wholeTrip": "Whole trip",

@@ -1433,6 +1433,8 @@
   "map.subtitle": "Touche une étape pour voir combien de temps nous y sommes restés et ce que nous y avons photographié.",
   "map.subtitlePlanned": "L’itinéraire que nous comptons suivre, et les endroits où nous comptons dormir.",
   "map.thisStop": "Cette étape",
+  "map.timeline": "Chronologie",
+  "map.timelineValue": "{location}, {date}",
   "map.title": "Là où nous sommes allés",
   "map.titlePlanned": "Là où nous allons",
   "map.wholeTrip": "Tout le voyage",
