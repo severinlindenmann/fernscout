@@ -125,8 +125,9 @@ export async function sendPush(params: {
           dead.push(sub.endpoint);
           // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "failed", reason: "gone" })
         } else {
-          const statusCode = err instanceof WebPushError ? err.statusCode : "?";
-          // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "failed", reason: String(statusCode) })
+          const reason = String(err instanceof WebPushError ? err.statusCode : "?");
+          console.error(`[push] ${reason} sending to ${sub.endpoint}`);
+          // TODO(B2438): logMessage({ template: params.template, channel: "push", owner: sub.username, recipient: sub.contactId ?? sub.endpoint, locale: params.locale, status: "failed", reason })
         }
       }
     }),
