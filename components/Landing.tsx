@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
+  AgenticTeaser,
   AgentBlock,
   AgentDisclosure,
   Colophon,
@@ -350,6 +351,10 @@ export default function Landing({
                 they go looking at other people's holidays. Inside this
                 branch rather than beside it, so it is not sitting under the
                 skeleton while a signed-in reader's own page loads. B840. */}
+            {/* For the reader who arrived with an agent of their own, or who
+                would rather run this themselves — `/agentic`. After the
+                material that addresses everybody, before what it costs. */}
+            <AgenticTeaser />
             {pricing}
           </>
         )}

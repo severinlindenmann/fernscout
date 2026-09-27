@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Mail,
   Mic,
+  Terminal,
 } from "lucide-react";
 import AccountChip from "@/components/AccountChip";
 import AppWaitlistDoor from "@/components/AppWaitlistDoor";
@@ -201,6 +202,15 @@ export function SiteHeader({
             {t("home.operator")}
           </Link>
         )}
+        {/* The page for self-hosters and people who bring their own agent.
+            Quiet, like the operator word: a door for a smaller audience, in
+            the corner where the page already keeps those. */}
+        <Link
+          href="/agentic"
+          className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink-strong"
+        >
+          {t("home.agenticLink")}
+        </Link>
         {helperEnabled && (
           // Filled, unlike the operator chip beside it — B836. It was drawn
           // quiet to stay out of the hero's way and read as a label rather
@@ -821,6 +831,51 @@ export function LandingSteps({
         {t(helperEnabled ? "landing.noEditor" : "landing.noEditorNoHelper")}
       </p>
     </>
+  );
+}
+
+/**
+ * The teaser for `/agentic` — the page for self-hosters and people who bring
+ * their own agent. A dark, terminal-shaped card on purpose: it is the one
+ * block on this page addressed to somebody who already has a terminal open,
+ * and it should look like the thing it is about. `navy-950` and `cream-50`
+ * are palette tokens with the same value in both themes, so it stays dark
+ * in either. Makes no claim that depends on a capability — voice and print
+ * are named on `/agentic` itself, where they are gated.
+ */
+export function AgenticTeaser() {
+  const { t } = useI18n();
+  return (
+    <section
+      aria-labelledby="agentic-teaser"
+      className="mt-12 overflow-hidden rounded-2xl border border-navy-800 bg-navy-950 px-5 py-6 sm:px-6"
+    >
+      <p className="border-l-2 border-yellow-400 pl-2 font-mono text-[11px] uppercase tracking-[0.14em] text-cream-200">
+        {t("landing.agenticKicker")}
+      </p>
+      <h2
+        id="agentic-teaser"
+        className="mt-2 font-display text-xl font-semibold text-cream-50"
+      >
+        {t("landing.agenticTitle")}
+      </h2>
+      <p className="mt-2 text-base leading-7 text-cream-200">
+        {t("landing.agenticBody")}
+      </p>
+      <p className="mt-4 rounded-lg border border-navy-800 px-3 py-2 font-mono text-[13px] text-cream-200 [overflow-wrap:anywhere]">
+        <span aria-hidden className="mr-2 font-bold text-cream-50">$</span>
+        git clone …/fernscout-helper &amp;&amp; claude
+      </p>
+      <Link
+        href="/agentic"
+        className="mt-4 inline-flex min-h-11 items-center gap-2 text-base font-semibold text-cream-50
+                   underline decoration-yellow-400 decoration-2 underline-offset-4
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
+      >
+        <Terminal className="h-4 w-4" aria-hidden />
+        {t("landing.agenticCta")}
+      </Link>
+    </section>
   );
 }
 

@@ -54,6 +54,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
    */
   out.push({ url: base, lastModified: new Date(), changeFrequency: "weekly", priority: 1 });
   out.push({ url: `${base}/docs`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 });
+  out.push({ url: `${base}/agentic`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 });
   for (const page of DOCS_PAGES) {
     out.push({
       url: `${base}${page.href}`,
