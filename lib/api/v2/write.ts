@@ -310,6 +310,15 @@ export const JOURNAL_IMMUTABLE_FIELDS: readonly Immutable[] = [
     // regardless of matching. See the `remove` field's own comment.
     remove: true,
   },
+  {
+    path: ["tips"],
+    refusal:
+      "tips is read-only here: it is what the owner chose at signup, and only the owner turns it off, " +
+      "in the studio's journal settings.",
+    // Server-owned like `username`: not in the write schema, so a byte-
+    // identical echo is removed before the strict parse (B2447).
+    remove: true,
+  },
 ];
 
 /**

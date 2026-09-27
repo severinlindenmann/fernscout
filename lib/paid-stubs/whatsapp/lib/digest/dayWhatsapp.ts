@@ -7,6 +7,7 @@ type DayWhatsappSkipReason =
   | "not_published"
   | "test_content"
   | "whatsapp_off"
+  | "switched_off"
   | "contacts_off"
   | "no_template"
   | "no_credits";

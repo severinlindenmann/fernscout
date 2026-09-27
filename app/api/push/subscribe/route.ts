@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
-import { isOwner as ownsJournal } from "@/lib/contacts/session";
 import { findActiveContactId, removeSubscription, saveSubscription } from "@/lib/push";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
@@ -109,19 +108,15 @@ export async function POST(request: Request) {
   const { email } = await resolveAccess(username);
   const contactId = email ? await findActiveContactId(username, email) : null;
 
-  // Whether *this* browser is the journal's own owner — B2447/B2448 item 4's
-  // push branch needs to tell that apart from a reader's subscription to the
-  // same journal, and a reader is not it just because they hold *some*
-  // approved contact record. `ownsJournal` (`isOwner`, lib/contacts/session.ts)
-  // is the same cookie-only check every other owner-only door in this app
-  // uses — deliberately called with no `request` argument, so it can never
-  // fall through to a bearer token: an agent's key proves it may write to the
-  // journal, not that it is sitting in the owner's own browser. Never read
-  // from `body` either — a client claiming `isOwner: true` in its own POST
-  // is not in this route's type at all, so there is nothing here to trust or
-  // distrust; the server decides this alone, the same way `contactId` above
-  // is never something the client hands over.
-  const owner = await ownsJournal(username);
+  // Whether *this* browser is the journal's own owner (B2448 item 4): the
+  // first-trip push goes only to such a device. Decided here by the server
+  // alone, never from the body: the cookie-proven address `resolveAccess`
+  // gave above (no request passed, so a bearer token never reaches it),
+  // compared with the journal's own owner address exactly — not `isOwner`,
+  // which also answers yes for the instance operator on every journal
+  // (B480; wave 3 review, L1).
+  const ownerEmail = getUser(username)?.owner.email?.trim().toLowerCase();
+  const owner = Boolean(email && ownerEmail && email.trim().toLowerCase() === ownerEmail);
 
   await saveSubscription({
     username,

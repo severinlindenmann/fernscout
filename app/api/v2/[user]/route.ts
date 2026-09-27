@@ -29,12 +29,19 @@ export const dynamic = "force-dynamic";
 
 const DECLINABLE_FIELDS = JOURNAL_DECLINABLES.map((d) => d.field);
 
+/** Whether the owner asked for getting-started tips (B2447) — read back
+ * here because signup accepts it; changed from the studio journal settings,
+ * not through this document. */
+function tipsOf(user: string): boolean {
+  return Boolean(getUser(user)?.owner.tips?.optIn);
+}
+
 /** The stored document, as `journalDoc` — never thrown, since this file only
  * ever builds it from a `UserConfig` it already knows is on disk. */
 function currentDoc(user: string) {
   const journal = getUser(user);
   if (!journal) return null;
-  return journalDoc.parse({ ...journalV2Fields(journal), username: user });
+  return journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: tipsOf(user) });
 }
 
 export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
@@ -172,6 +179,7 @@ export async function applyJournalPatch(
   // accepting a document that was never actually complete.
   const storedWritable: Record<string, unknown> = { ...(stored as Record<string, unknown>) };
   delete storedWritable.username;
+  delete storedWritable.tips;
 
   // T6 — decline retraction, once, here: supplying a field the STORED
   // document had declined clears that stored decline. A patch that ALSO
@@ -226,7 +234,7 @@ export async function applyJournalPatch(
   const toWrite = finalParsed.data as JournalV2Fields;
 
   if (dryRun) {
-    const preview = journalDoc.parse({ ...toWrite, username: user });
+    const preview = journalDoc.parse({ ...toWrite, username: user, tips: tipsOf(user) });
     return ok(preview, { etag: etagFor(preview) });
   }
 
@@ -234,7 +242,7 @@ export async function applyJournalPatch(
   if (!written.ok) {
     return fail("invalid_request", written.message, undefined, 400);
   }
-  const echo = journalDoc.parse({ ...written.journal, username: user });
+  const echo = journalDoc.parse({ ...written.journal, username: user, tips: tipsOf(user) });
   return ok(echo, { etag: etagFor(echo) });
 }
 

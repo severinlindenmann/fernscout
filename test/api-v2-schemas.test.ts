@@ -512,7 +512,7 @@ describe("journal", () => {
     expect(journalWrite.safeParse({ ...fullJournal, media: { perUserBytes: 1 } }).success).toBe(false);
     expect(journalWrite.safeParse({ ...fullJournal, storageBytes: 1 }).success).toBe(false);
     // The read shape carries the server-owned identity…
-    expect(journalDoc.safeParse({ ...fullJournal, username: "example" }).success).toBe(true);
+    expect(journalDoc.safeParse({ ...fullJournal, username: "example", tips: false }).success).toBe(true);
     // …which the write shape refuses; the live numbers live on /status.
     expect(journalWrite.safeParse({ ...fullJournal, username: "example" }).success).toBe(false);
   });

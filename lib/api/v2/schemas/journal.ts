@@ -87,6 +87,10 @@ export const journalDoc = z.object({
   ...base.def.shape,
   // ── server-owned ──
   username: z.string(),
+  /** Whether the owner asked for getting-started tips at signup (B2447,
+   * `tips` on POST /journals). Read-only here: the owner turns it off in the
+   * studio journal settings. */
+  tips: z.boolean(),
 });
 
 export type JournalDoc = z.infer<typeof journalDoc>;
