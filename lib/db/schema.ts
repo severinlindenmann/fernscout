@@ -842,6 +842,21 @@ type MessageLogTable = {
   created_at: string;
 };
 
+/**
+ * The operator's per-message-kind kill switches — B2446. See
+ * `lib/messages/switches.ts`, the only reader and writer: a row's presence
+ * is the whole state (present = off), so there is no boolean column to
+ * disagree with it.
+ */
+type MessageSwitchesTable = {
+  /** A `Flow['id']`, a `"<flowId>/<TemplateId>"` pair, or a bare `TemplateId`
+   * — see `lib/messages/switches.ts` for how a caller reads one back. */
+  key: string;
+  /** The admin email that switched it off. */
+  updated_by: string;
+  updated_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -874,6 +889,7 @@ export type Database = {
   app_waitlist: AppWaitlistTable;
   message_log: MessageLogTable;
   invite_suppressions: InviteSuppressionsTable;
+  message_switches: MessageSwitchesTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -910,4 +926,5 @@ export const TABLE_NAMES = [
   "app_waitlist",
   "message_log",
   "invite_suppressions",
+  "message_switches",
 ] as const satisfies readonly (keyof Database)[];
