@@ -343,6 +343,8 @@
   "approve.prompt": "{credits} {unit} ({amount}) für {user} freigeben? Beim Annehmen werden die Credits dem Guthaben hinzugefügt.",
   "approve.title": "Einen Credit-Kauf freigeben",
   "approve.working": "Wird freigegeben…",
+  "appWaitlist.consent": "Diese Adresse wird nur genutzt, um dir einmal zu schreiben, sobald die App da ist.",
+  "appWaitlist.consentLink": "Datenschutzerklärung",
   "appWaitlist.done": "Du stehst auf der Liste — schau in dein Postfach für die Bestätigung.",
   "appWaitlist.emailLabel": "E-Mail-Adresse",
   "appWaitlist.error": "Die Anfrage hat den Server nicht erreicht.",

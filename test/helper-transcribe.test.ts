@@ -542,6 +542,62 @@ describe("what the deepgram backend asks for", () => {
   });
 });
 
+describe("which Deepgram host the audio goes to — B2472", () => {
+  async function real() {
+    vi.doUnmock("@/lib/helper/transcribe");
+    vi.resetModules();
+    return vi.importActual<typeof import("@/lib/helper/transcribe")>("@/lib/helper/transcribe");
+  }
+  const saved = process.env.DEEPGRAM_API_URL;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.DEEPGRAM_API_URL;
+    else process.env.DEEPGRAM_API_URL = saved;
+  });
+
+  test("the EU endpoint by default", async () => {
+    delete process.env.DEEPGRAM_API_URL;
+    expect((await real()).deepgramUrl().toString()).toBe("https://api.eu.deepgram.com/v1/listen");
+  });
+
+  test("an https override is used", async () => {
+    process.env.DEEPGRAM_API_URL = "https://api.deepgram.com/v1/listen";
+    expect((await real()).deepgramUrl().host).toBe("api.deepgram.com");
+  });
+
+  test("a non-https or broken override is ignored", async () => {
+    for (const bad of ["http://api.deepgram.com/v1/listen", "not a url"]) {
+      process.env.DEEPGRAM_API_URL = bad;
+      expect((await real()).deepgramUrl().host).toBe("api.eu.deepgram.com");
+    }
+  });
+
+  test("the request itself goes to the EU host", async () => {
+    delete process.env.DEEPGRAM_API_URL;
+    const mod = await real();
+    process.env.DEEPGRAM_API_KEY = "dummy-key";
+    writeServerConfig({
+      auth: { enabled: true },
+      credits: { enabled: true },
+      transcription: { enabled: true, backend: "deepgram" },
+    });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          metadata: { duration: 3 },
+          results: { channels: [{ alternatives: [{ transcript: "hi" }] }] },
+        }),
+        { status: 200 },
+      ),
+    );
+    try {
+      await mod.transcribeAudio(Buffer.from("bytes"), "audio/webm", "en");
+      expect(new URL(String(fetchSpy.mock.calls[0][0])).host).toBe("api.eu.deepgram.com");
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+});
+
 describe("with the capability off", () => {
   test("the route answers 404 rather than failing", async () => {
     writeServerConfig({ auth: { enabled: true }, credits: { enabled: true } });

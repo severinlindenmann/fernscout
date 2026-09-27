@@ -343,6 +343,8 @@
   "approve.prompt": "Jóváhagyod {credits} {unit} ({amount}) összeget {user} részére? Az elfogadás hozzáadja a krediteket az egyenlegéhez.",
   "approve.title": "Kredit vásárlás jóváhagyása",
   "approve.working": "Jóváhagyás…",
+  "appWaitlist.consent": "Ezt a címet csak arra használjuk, hogy egyszer szóljunk, amikor megjelenik az alkalmazás.",
+  "appWaitlist.consentLink": "Adatvédelmi tájékoztató",
   "appWaitlist.done": "Felkerültél a listára — nézd meg a postaládád a megerősítésért.",
   "appWaitlist.emailLabel": "E-mail cím",
   "appWaitlist.error": "A kérés nem jutott el a szerverhez.",
