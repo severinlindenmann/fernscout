@@ -27,5 +27,5 @@ export async function GET(request: Request) {
     return Response.json({ error: "invalid_request", message: "locale must be en, de or hu." }, { status: 400 });
   }
 
-  return Response.json({ preview: buildPreview(template, locale) });
+  return Response.json({ preview: await buildPreview(template, locale) });
 }

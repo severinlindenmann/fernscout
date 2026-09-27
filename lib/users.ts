@@ -71,6 +71,8 @@ const ALWAYS_RESERVED = [
   "llms.txt",
   "openapi.json",
   "sitemap.xml",
+  // The sitemap index's children, /sitemap/<name>.xml — B2486.
+  "sitemap",
   "robots.txt",
   "manifest.webmanifest",
   "favicon.ico",

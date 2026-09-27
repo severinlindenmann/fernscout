@@ -532,3 +532,13 @@ export async function journalLocale(journal: { locales: string[]; defaultLocale:
   const acceptLanguage = (await headers()).get("accept-language");
   return readerLocale(chosen, journal.locales, journal.defaultLocale, acceptLanguage);
 }
+
+/**
+ * `og:locale` for a two-letter locale — B2479. Open Graph wants
+ * language_TERRITORY; the territory is the language's own home, which is a
+ * convention rather than a claim about the reader.
+ */
+const OG_TERRITORY: Record<string, string> = { en: "en_US", de: "de_DE", fr: "fr_FR", it: "it_IT", hu: "hu_HU" };
+export function ogLocale(locale: string): string {
+  return OG_TERRITORY[locale] ?? locale;
+}

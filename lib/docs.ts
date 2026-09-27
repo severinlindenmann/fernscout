@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import type { Metadata } from "next";
 import type { TranslationKey } from "./i18n";
+import { ogLocale, translateIn } from "./locales";
 
 /**
  * The `/docs` page's content strategy, for the parts that can honestly be
@@ -41,6 +43,25 @@ export function section(markdown: string, heading: string): string {
   const end = rest.findIndex((line) => /^#{1,2}\s/.test(line));
   return rest.slice(0, end === -1 ? undefined : end).join("\n").trim();
 }
+
+/**
+ * A section for a public page that must not fall over when its source moves —
+ * B2475. `/docs/hosting` answered 500 on fernscout.ch for weeks because
+ * `docs/capabilities.md` was rewritten and four headings it asked for were
+ * gone. The page now drops the block and logs instead; `test/docs.test.ts`
+ * still turns a missing heading into a red build, which is where it belongs.
+ */
+export function sectionOrNull(relativePath: string, heading: string): string | null {
+  try {
+    return section(readRepoFile(relativePath), heading);
+  } catch (error) {
+    console.error(`[docs] ${relativePath} → "${heading}": ${(error as Error).message}`);
+    return null;
+  }
+}
+
+/** The `docs/capabilities.md` sections `/docs/hosting` shows, in its order. */
+export const HOSTING_CAPABILITY_SECTIONS = ["What each one needs", "Hosted edition only"] as const;
 
 /**
  * The reader guides that remain — today one, `gps` (B2343).
@@ -152,6 +173,26 @@ export const DOCS_PAGES: readonly DocsPage[] = [
   { id: "helper", href: "/docs/helper", labelKey: "docs.helper.title", blurbKey: "docs.helper.blurb" },
   { id: "gps", href: "/docs/guide/gps", labelKey: "guides.gps.title", blurbKey: "guides.gps.lede" },
 ];
+
+/**
+ * One docs page's metadata — B2479. The title is the page's own label (the
+ * root layout's template adds the instance's name), the description is the
+ * blurb the hub already shows for it, and the canonical is its address. The
+ * English pages call it with the default locale; the translated ones pass
+ * the reader's.
+ */
+export function docsMetadata(id: DocsPageId | "hub", locale = "en"): Metadata {
+  const page = DOCS_PAGES.find((p) => p.id === id);
+  const href = page?.href ?? "/docs";
+  const title = translateIn(locale, page?.labelKey ?? "docs.title");
+  const description = translateIn(locale, page?.blurbKey ?? "docs.lede");
+  return {
+    title,
+    description,
+    alternates: { canonical: href },
+    openGraph: { type: "website", url: href, locale: ogLocale(locale), title, description },
+  };
+}
 
 /**
  * The same list, shaped for `DocsNav`.

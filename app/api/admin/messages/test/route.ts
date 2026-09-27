@@ -3,7 +3,7 @@ import { isInstanceAdmin } from "@/lib/adminGate";
 import { sendMailWith, transportName } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { logMessage } from "@/lib/messages/log";
-import { buildPreview, PREVIEW_LOCALES, type PreviewLocale, SAMPLE } from "@/lib/messages/fixtures";
+import { composePreview, PREVIEW_LOCALES, type PreviewLocale } from "@/lib/messages/fixtures";
 import { TEMPLATES, templateDef, type TemplateId } from "@/lib/messages/registry";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
@@ -48,19 +48,13 @@ export async function POST(request: Request) {
     );
   }
   const useLocale = PREVIEW_LOCALES.includes(locale) ? locale : "en";
-  const preview = buildPreview(template, useLocale);
-  if (preview.channel !== "mail") {
+  // The template's own composition (B2493), so the test is the real letter
+  // with sample data; only the subject says it is a test.
+  const composed = await composePreview(template, useLocale);
+  if (composed.channel !== "mail") {
     return Response.json({ error: "invalid_request", message: "Not a mail template." }, { status: 400 });
   }
-
-  const mail = renderMail(to, preview.subject, {
-    template,
-    preheader: preview.subject,
-    title: templateDef(template).kind,
-    blocks: [{ kind: "paragraph", text: `Test send from the operator console — sample data (${SAMPLE.journal}).` }],
-    why: "This is a test send you asked for from /admin.",
-    locale: useLocale,
-  });
+  const mail = renderMail(to, `[Test] ${composed.subject}`, composed.content);
 
   const result = await sendMailWith(transportName(), mail);
   await logMessage({ template, channel: "mail", to, status: "test" });

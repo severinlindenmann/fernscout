@@ -182,7 +182,17 @@ describe("story payload", () => {
     use("long");
     const long = render("traveller/scale");
 
-    const perDay = (long.bytes - short.bytes) / (LONG - SHORT);
+    // B2477 — every day not drawn as a node is a bare link to its permalink,
+    // so the raw HTML links every day. Those are one href per day by
+    // decision, so they are measured on their own budget below and left out
+    // of this one, which still guards against content creeping back in.
+    const LINK = /<a href="[^"]*" tabindex="-1" aria-hidden="true"><\/a>/g;
+    const linkBytes = (m: string) => (m.match(LINK) ?? []).reduce((n, a) => n + Buffer.byteLength(a), 0);
+    const perDay =
+      (long.bytes - linkBytes(long.markup) - (short.bytes - linkBytes(short.markup))) / (LONG - SHORT);
+    const linksPerDay = (linkBytes(long.markup) - linkBytes(short.markup)) / (LONG - SHORT);
+    expect(linksPerDay).toBeGreaterThan(0);
+    expect(linksPerDay).toBeLessThan(90);
 
     // Measured before the fix: ~11'400 bytes per day. The remainder is the
     // day index itself — a list of days is irreducibly one entry per day —

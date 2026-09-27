@@ -115,15 +115,21 @@ export default function Preview({ template }: { template: TemplateId }) {
           </div>
           <div
             className={
+              // A phone's own bubble, not this page's surface: fixed colours
+              // in both themes, or dark mode's light ink lands on white (B2492).
               preview.channel === "wa"
-                ? "max-w-sm rounded-xl bg-white p-3 shadow-sm"
+                ? "max-w-sm rounded-xl bg-[#d9fdd3] p-3 text-[#111b21] shadow-sm"
                 : preview.channel === "push"
-                  ? "max-w-sm rounded-2xl bg-white p-3 shadow-md"
-                  : "max-w-sm rounded-2xl bg-surface-raised p-3"
+                  ? "max-w-sm rounded-2xl bg-white p-3 text-[#111b21] shadow-md"
+                  : "max-w-sm rounded-2xl bg-[#e9e9eb] p-3 text-[#111b21]"
             }
           >
             {preview.channel === "push" && preview.title ? <p className="font-semibold">{preview.title}</p> : null}
-            <p className="whitespace-pre-wrap text-sm">{preview.text}</p>
+            {preview.freeform ? (
+              <p className="text-sm italic">{preview.text}</p>
+            ) : (
+              <p className="whitespace-pre-wrap text-sm">{preview.text}</p>
+            )}
           </div>
         </div>
       )}

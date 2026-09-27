@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Landing from "@/components/Landing";
+import { LandingStructuredData } from "@/components/StructuredData";
 import Pricing from "@paid/credits/components/Pricing";
 import HeaderLinks from "@paid/orgs/components/HeaderLinks";
 import LandingBand from "@paid/orgs/components/LandingBand";
@@ -8,7 +9,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
 import { hasLegal } from "@/lib/legal";
-import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
+import { installedLocales, ogLocale, requestLocale, translateIn } from "@/lib/locales";
 import { bannerFor, serverSite } from "@/lib/site";
 
 /**
@@ -42,14 +43,14 @@ import { bannerFor, serverSite } from "@/lib/site";
  */
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await requestLocale();
+  const title = translateIn(locale, "landing.metaTitle", { name: serverSite().name });
+  const description = translateIn(locale, "landing.metaDescription");
   return {
-    title: {
-      absolute: translateIn(locale, "landing.metaTitle", {
-        name: serverSite().name,
-      }),
-    },
-    description: translateIn(locale, "landing.metaDescription"),
+    title: { absolute: title },
+    description,
     alternates: { canonical: "/" },
+    // B2479 — the card's image is still app/opengraph-image.tsx.
+    openGraph: { type: "website", url: "/", locale: ogLocale(locale), title, description },
   };
 }
 
@@ -88,6 +89,13 @@ export default async function Root() {
 
   return (
     <>
+      <LandingStructuredData
+        name={site.name}
+        url={site.url}
+        description={translateIn(locale, "landing.metaDescription")}
+        repository={site.repository}
+        languages={installedLocales()}
+      />
       {/*
         The operator's own notice, when there is one — site.banner in the
         server config. Coral and not yellow, like every other notice here:

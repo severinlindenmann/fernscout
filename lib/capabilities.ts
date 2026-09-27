@@ -154,10 +154,6 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
       helper: "the questions this asks are helper turns",
     },
   },
-  // B589. Nothing here fits `needs` — that only asks whether a dependency is
-  // `.enabled`, and this depends on postcards/photobook being enabled *with a
-  // real provider*, and on a payment method. See fulfilmentAcceptProblem().
-  fulfilmentAccept: { env: [], db: false },
   // B2200. Needs nothing of its own: `placeForDay` reads the offline place
   // index already shipped in the repo (lib/ingest/geo.ts) and the journal's
   // own `gps/` folder on disk — no key, no database row, no third party.
@@ -568,37 +564,6 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
   return { env: [] };
 }
 
-/**
- * `fulfilmentAccept` needs two things `Requirement.needs` cannot express,
- * because `needs` only asks whether a dependency resolves `.enabled` — B589.
- *
- * Accepting a job from another instance means actually printing it and
- * getting paid for it here, so this instance needs `postcards` or
- * `photobook` enabled with a **real** provider — not `dry-run`, which
- * relays nothing that was not already possible locally, exactly the claim
- * `dryRunNote()` makes for a self-hoster's own orders — plus a configured
- * payment method, read from `stripeMode()` the same way `paymentProviderNote`
- * does.
- */
-function fulfilmentAcceptProblem(): string | undefined {
-  const hasRealPrinter = (name: "postcards" | "photobook"): boolean => {
-    const state = resolveOne(name);
-    if (!state.enabled) return false;
-    const provider = optionOf(loadServerConfig().features[name], "provider") ?? "dry-run";
-    return provider !== "dry-run";
-  };
-  if (!hasRealPrinter("postcards") && !hasRealPrinter("photobook")) {
-    return (
-      "features.fulfilmentAccept is enabled but neither features.postcards nor features.photobook " +
-      "is enabled with a real provider (both are off or still on dry-run) — there is nothing here to fulfil a job with"
-    );
-  }
-  if (!stripeMode()) {
-    return `features.fulfilmentAccept is enabled but no payment method is configured (${stripeProblem()})`;
-  }
-  return undefined;
-}
-
 /** Exported for lib/appWaitlist.ts, which needs the same env-presence
  *  answer this file's own `resolveOne` uses — checking a *real* connection
  *  would mean opening one just to decide whether a button renders. */
@@ -667,11 +632,6 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
 
   const extra = configuredEnv(name, feature);
   if (extra.problem) return { name, enabled: false, reason: extra.problem };
-
-  if (name === "fulfilmentAccept") {
-    const problem = fulfilmentAcceptProblem();
-    if (problem) return { name, enabled: false, reason: problem };
-  }
 
   if (base.db && !hasDatabase()) {
     return {

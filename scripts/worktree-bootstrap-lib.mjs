@@ -34,3 +34,35 @@ export function parseWorktreeList(text) {
 export function lockfileHash(file) {
   return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 }
+
+/**
+ * Decide whether this worktree needs a `paid` worktree of its own (see
+ * B2498: without one, `npx vitest run paid/` finds nothing and a builder's
+ * verify silently skips every paid test), and what git command would add
+ * it. Pure — takes the existence and branch checks as injectable functions
+ * so it is testable without running git.
+ */
+/**
+ * @param {string} mainWorktree
+ * @param {string} worktreeRoot
+ * @param {string} appBranch
+ * @param {{ exists?: (p: string) => boolean, branchExists?: (branch: string) => boolean }} [deps]
+ */
+export function paidWorktreePlan(mainWorktree, worktreeRoot, appBranch, deps = {}) {
+  const exists = deps.exists ?? ((p) => fs.existsSync(p));
+  const branchExists = deps.branchExists ?? (() => false);
+  const mainPaid = path.join(mainWorktree, "paid");
+  const targetPaid = path.join(worktreeRoot, "paid");
+  if (!exists(mainPaid)) return { action: "none", reason: "the main checkout has no paid/ repo" };
+  if (exists(targetPaid)) return { action: "none", reason: "this worktree already has its own paid/ worktree" };
+  const reuseBranch = branchExists(appBranch);
+  return {
+    action: "add",
+    mainPaid,
+    targetPaid,
+    branch: appBranch,
+    args: reuseBranch
+      ? ["worktree", "add", targetPaid, appBranch]
+      : ["worktree", "add", "-b", appBranch, targetPaid, "main"],
+  };
+}

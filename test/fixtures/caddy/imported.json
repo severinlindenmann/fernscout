@@ -92,8 +92,8 @@
                           },
                           "handler": "encode",
                           "prefer": [
-                            "gzip",
-                            "zstd"
+                            "zstd",
+                            "gzip"
                           ]
                         }
                       ]

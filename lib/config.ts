@@ -57,7 +57,6 @@ export const FEATURE_NAMES = [
   // quota — and a journal may want the helper without ever importing an old
   // trip.
   "extract",
-  "fulfilmentAccept",
   // B2200. Offering a new day the place its own GPS history says it was —
   // the one door `lib/gps/api.ts`'s `placeForDay` opens onto `gps/`. Off by
   // default like every optional capability; the phone-side recording
@@ -129,11 +128,6 @@ export const OPERATOR_ONLY_FEATURES = [
   // the inbox is the operator's page — a journal has nothing to consent to.
   "sms",
   "smsInbound",
-  // B589. Accepting a job from another instance spends this instance's own
-  // printer account and payment method on somebody else's order — not a
-  // journal's to switch on. (The relay side of B589 was deleted by B2414:
-  // nothing implemented it.)
-  "fulfilmentAccept",
   // B1092. The opposite reason from the rest of this list, and worth reading
   // carefully because of it: `costs` spends nothing, reaches no supplier and
   // reveals nothing to anybody a trip does not already admit, so there is no
@@ -662,11 +656,6 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // B1751. Off by default like every optional capability, and off means the
   // guided camera-roll import route simply is not there.
   extract: { enabled: false },
-  // B589. Off by default. Needs no config value of its own: whether this
-  // instance can actually fulfil a job is a question about `postcards` and
-  // `photobook`'s own provider and about Stripe, both checked in
-  // lib/capabilities.ts, not a separate setting here.
-  fulfilmentAccept: { enabled: false },
   // B2200. Off by default like every optional capability, and off means the
   // studio's new-day flow never calls `placeForDay` at all — no suggestion,
   // no read of `gps/`. A journal opts in for itself, the same shape as
