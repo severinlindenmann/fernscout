@@ -290,7 +290,8 @@ export async function applyPublish(
    * instance that has never turned push on pays nothing for this and never
    * throws.
    */
-  if (await claimChannel(user, tripId, v1Slug(slug), "push")) {
+  // Push switched off: no claim burned and no deferred work queued at all.
+  if (isEnabled("push") && (await claimChannel(user, tripId, v1Slug(slug), "push"))) {
     const pushTrip = { username: user, visibility: trip.visibility, test: trip.test } as unknown as Trip;
     const pushEntry = { test: day.test, visibility: day.visibility };
     const pushUrl = `${serverSite().url}/${user}/trips/${tripId}/day/${slug}`;

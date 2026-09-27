@@ -5,7 +5,7 @@ import type { ReaderLevel } from "./photos";
 import { isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import { getTrips } from "./trips";
 import { getUser } from "./users";
-import type { Trip } from "./types";
+import type { Trip, TripStatus } from "./types";
 
 /**
  * Who is asking, and what that entitles them to see.
@@ -25,6 +25,11 @@ export type ViewerTrip = {
   id: string;
   title: string;
   href: string;
+  /** past/current/upcoming, and when a past trip ended — B2463's
+   *  `OfflineTrips` needs both to pick which trips "Save recent trips
+   *  automatically" keeps, without a second trip lookup. */
+  status: TripStatus;
+  end: string;
   /**
    * Why they can see it — what the panel says beside each one.
    *
@@ -83,6 +88,8 @@ function describe(
     id: trip.id,
     title: trip.title,
     href: trip.id === current ? `/${trip.username}` : `/${trip.username}/trips/${trip.id}`,
+    status: trip.status,
+    end: trip.end,
     through,
     ...(partial ? { partial: true as const } : {}),
   };

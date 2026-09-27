@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
-import { connectShareInbox, disconnectShareInbox, useNativeShell } from "@/components/nativeShell";
+import { connectShareInbox, disconnectShareInbox, useNativeShell, useStandalone } from "@/components/nativeShell";
 import { useShareInboxAutoConnect } from "@/components/studio/ShareInboxConnect";
 import { KEPT_CHANGED } from "@/components/KeepTrip";
+import { clearKeptCaches } from "@/lib/keepCache";
 
 /**
  * The phone's own switches, in one place on the owner's /me — B2208.
@@ -19,16 +20,6 @@ import { KEPT_CHANGED } from "@/components/KeepTrip";
  * service worker keeps for offline reading, kept trips included, and is
  * never a sign-out: the personal cache and the cookie stay.
  */
-function useStandalone(): boolean {
-  return useSyncExternalStore(
-    () => () => {},
-    () =>
-      (navigator as Navigator & { standalone?: boolean }).standalone === true ||
-      window.matchMedia("(display-mode: standalone)").matches,
-    () => false,
-  );
-}
-
 function mb(bytes: number): string {
   return `${Math.round(bytes / 1e6)} MB`;
 }
@@ -99,18 +90,7 @@ export default function ThisPhone({ username }: { username: string }) {
 
   async function clearCache() {
     setClear({ state: "busy" });
-    let freed = 0;
-    try {
-      const before = (await navigator.storage?.estimate?.())?.usage ?? 0;
-      const names = (await caches.keys()).filter((n) => /^(shell|runtime|kept)-/.test(n));
-      await Promise.all(names.map((n) => caches.delete(n)));
-      // Re-run the worker's install so the offline page is precached again.
-      void navigator.serviceWorker?.getRegistration().then((r) => r?.update()).catch(() => undefined);
-      const after = (await navigator.storage?.estimate?.())?.usage ?? 0;
-      freed = Math.max(0, before - after);
-    } catch {
-      freed = 0;
-    }
+    const { freed } = await clearKeptCaches();
     // `OfflineTrips` reads its switches from the same caches; tell it.
     window.dispatchEvent(new Event(KEPT_CHANGED));
     setClear({ state: "done", freed });
