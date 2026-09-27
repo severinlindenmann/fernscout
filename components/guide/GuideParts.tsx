@@ -208,7 +208,12 @@ export function Ticks({ ticks, onChange }: { ticks: Tick[]; onChange: (key: stri
             onChange={(e) => onChange(tick.key, e.target.checked)}
           />
           <span>
-            <span className="block font-semibold text-ink-strong">{tick.label}</span>
+            <span className="flex flex-wrap items-center gap-2 font-semibold text-ink-strong">
+              {tick.label}
+              {tick.badge && (
+                <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-950">{tick.badge}</span>
+              )}
+            </span>
             <span className="block text-sm text-ink-secondary">{tick.hint}</span>
           </span>
         </label>

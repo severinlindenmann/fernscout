@@ -348,3 +348,84 @@ describe("the admin list names a mobile-only buddy's trip too", () => {
     expect(body.contacts.find((c) => c.id === id)?.relationship.buddyOf.map((t) => t.id)).toEqual([TRIP]);
   });
 });
+
+describe("B2453 — a second channel and news consent on the join form", () => {
+  async function joinedByEmail(name: string, email: string, preapproved = false) {
+    await signInOwner();
+    let code: string;
+    if (preapproved) {
+      const { createInvite } = await import("@/lib/contacts/invites");
+      const { joinCodeFor } = await import("@/lib/contacts/welcome");
+      const created = await createInvite(OWNER, { kind: "guest", email, expiresAt: null });
+      code = (await joinCodeFor(OWNER, created.id))!;
+    } else {
+      code = await newLink({ kind: "guest", name: "Group" });
+    }
+    jar.cookies = {};
+    await joinStep(code, { action: "send", name, channel: "email", value: email });
+    const verified = await joinStep(code, { action: "verify", name, channel: "email", value: email, code: codeMailed(email) });
+    expect(verified.status).toBe(200);
+    const { getContactByEmail } = await import("@/lib/contacts");
+    return { code, id: (await getContactByEmail(OWNER, email))!.id };
+  }
+
+  test("somebody who joined by email proves a mobile on the notify step and can tick SMS", async () => {
+    const { code, id } = await joinedByEmail("Mira Mobile", "mira@example.test", true);
+    const sent = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 12 34" });
+    expect(sent.json).toMatchObject({ ok: true });
+    const proved = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 12 34", code: codeTexted("+41795551234") });
+    expect(proved.status).toBe(200);
+    expect((await contact(id)).phoneProvenAt).not.toBeNull();
+    const saved = await joinStep(code, { action: "save", wantsSms: true });
+    expect(saved.status).toBe(200);
+    expect((await contact(id)).wantsSms).toBe(true);
+  });
+
+  test("a wrong code proves nothing", async () => {
+    const { code, id } = await joinedByEmail("Wanda Wrong", "wanda@example.test", true);
+    await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 99 88" });
+    const wrong = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 99 88", code: "000000" });
+    expect(wrong.status).toBe(401);
+    expect((await contact(id)).phoneProvenAt ?? null).toBeNull();
+  });
+
+  test("a request nobody has let in yet is never texted", async () => {
+    const { code } = await joinedByEmail("Stan Stranger", "stan@example.test");
+    const before = texts().length;
+    const refused = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 44 33" });
+    expect(refused.status).toBe(409);
+    expect(texts().length).toBe(before);
+  });
+
+  test("no session, no proof — the contact comes from the browser, never the body", async () => {
+    const code = await newLink({ kind: "guest", name: "Group" });
+    jar.cookies = {};
+    const refused = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 00 11" });
+    expect(refused.status).toBe(401);
+  });
+
+  test("news from Fernscout is recorded only when ticked", async () => {
+    const { hasNewsConsent } = await import("@/lib/newsConsent");
+    const quiet = await joinedByEmail("Quinn Quiet", "quinn@example.test");
+    await joinStep(quiet.code, { action: "save", wantsEmailDigest: true });
+    expect(await hasNewsConsent("quinn@example.test")).toBe(false);
+    const keen = await joinedByEmail("Kira Keen", "kira@example.test");
+    await joinStep(keen.code, { action: "save", wantsEmailDigest: true, wantsNews: true });
+    expect(await hasNewsConsent("KIRA@example.test")).toBe(true);
+  });
+
+  test("/me withdraws it for the signed-in address only", async () => {
+    const { hasNewsConsent, setNewsConsent } = await import("@/lib/newsConsent");
+    await setNewsConsent("other@example.test", "en");
+    const keen = await joinedByEmail("Nina News", "nina@example.test");
+    await joinStep(keen.code, { action: "save", wantsNews: true });
+    const { POST } = await import("@/app/[user]/me/news/route");
+    const res = await POST(post(`/${OWNER}/me/news`, { email: "other@example.test" }), { params: Promise.resolve({ user: OWNER }) } as never);
+    expect(res.status).toBe(200);
+    expect(await hasNewsConsent("nina@example.test")).toBe(false);
+    expect(await hasNewsConsent("other@example.test")).toBe(true);
+    jar.cookies = {};
+    const anonymous = await POST(post(`/${OWNER}/me/news`, {}), { params: Promise.resolve({ user: OWNER }) } as never);
+    expect(anonymous.status).toBe(401);
+  });
+});

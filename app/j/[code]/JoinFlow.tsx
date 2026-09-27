@@ -162,8 +162,25 @@ export default function JoinFlow({
     if (await call({ action: "save", address })) next();
   }
 
+  // B2453: a mobile added on the notify step itself, proved by its own code.
+  const [addedMobile, setAddedMobile] = useState<string | null>(null);
+  const [mobileValue, setMobileValue] = useState("");
+  const [mobileSent, setMobileSent] = useState<string | null>(null);
+  const [mobileCode, setMobileCode] = useState("");
+  const [news, setNews] = useState(false);
+  async function sendMobileProof() {
+    const sent = await call({ action: "proof", kind: "sms", value: mobileValue });
+    if (sent) setMobileSent(String(sent.to ?? mobileValue));
+  }
+  async function confirmMobileProof() {
+    if (await call({ action: "proof", kind: "sms", value: mobileValue, code: mobileCode })) {
+      setAddedMobile(mobileSent ?? mobileValue);
+      setMobileSent(null);
+    }
+  }
+
   const provedEmail = knownEmail ?? (channel === "email" ? sentTo : null);
-  const provedMobile = channel === "sms" && !knownEmail ? sentTo : null;
+  const provedMobile = (channel === "sms" && !knownEmail ? sentTo : null) || addedMobile;
   const ticks: Tick[] = [
     caps.mail && {
       key: "wantsEmailDigest",
@@ -171,6 +188,8 @@ export default function JoinFlow({
       hint: provedEmail || t("guide.notify.needsEmail"),
       checked: wants.wantsEmailDigest ?? Boolean(provedEmail),
       disabled: !provedEmail,
+      // Email is free to send and carries the photos; SMS costs per message.
+      badge: t("join.notify.recommended"),
     },
     caps.whatsapp && {
       key: "wantsWhatsapp",
@@ -197,7 +216,7 @@ export default function JoinFlow({
 
   async function saveTicks() {
     const choices = Object.fromEntries(ticks.map((tick) => [tick.key, tick.checked && !tick.disabled]));
-    if (await call({ action: "save", ...choices })) next();
+    if (await call({ action: "save", ...choices, wantsNews: news && Boolean(provedEmail) })) next();
   }
 
   if (step === "who") {
@@ -364,6 +383,54 @@ export default function JoinFlow({
           <Ticks ticks={ticks} onChange={(key, checked) => setWants({ ...wants, [key]: checked })} />
         ) : (
           <p className="text-sm text-ink-secondary">{t("guide.notify.none")}</p>
+        )}
+        {(caps.sms || caps.whatsapp) && !provedMobile && status === "waiting" && (
+          // A request nobody has let in yet is never texted (a code costs
+          // money, and a stranger must not be able to spend it) — say when.
+          <p className="text-sm text-ink-secondary">{t("join.notify.mobileLater", vars)}</p>
+        )}
+        {(caps.sms || caps.whatsapp) && !provedMobile && status === "in" && (
+          <div className="flex flex-col gap-2 rounded-2xl border-2 border-yellow-400 bg-surface-raised p-4">
+            <label className={LABEL}>
+              {t("join.notify.addMobile")}
+              <input
+                className={FIELD}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={mobileValue}
+                onChange={(e) => setMobileValue(e.target.value)}
+              />
+            </label>
+            <span className="text-sm text-ink-secondary">{t("join.notify.addMobileHint")}</span>
+            {mobileSent ? (
+              <>
+                <CodeField id="join-mobile-code" label={t("guide.code.label")} value={mobileCode} onChange={setMobileCode} />
+                <BusyButton busy={busy} type="button" className={QUIET} disabled={mobileCode.length !== 6} onClick={confirmMobileProof}>
+                  {t("guide.code.confirm")}
+                </BusyButton>
+              </>
+            ) : (
+              <BusyButton busy={busy} type="button" className={QUIET} disabled={!mobileValue.trim()} onClick={sendMobileProof}>
+                {t("guide.check.sendProof")}
+              </BusyButton>
+            )}
+          </div>
+        )}
+        {provedEmail && (
+          <Ticks
+            ticks={[
+              {
+                key: "wantsNews",
+                label: t("join.notify.news"),
+                hint: t("join.notify.newsHint", vars),
+                // Never ticked for them: consent is asked, not assumed (B2453).
+                checked: news,
+                disabled: false,
+              },
+            ]}
+            onChange={(_, checked) => setNews(checked)}
+          />
         )}
         <Alert text={error} />
       </Screen>

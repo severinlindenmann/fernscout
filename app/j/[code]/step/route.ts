@@ -15,7 +15,15 @@ import {
   type ContactRecord,
   type SelfUpdate,
 } from "@/lib/contacts";
-import { proveFirstPhone, sendFirstPhoneCode, verifyGuestCode } from "@/lib/contacts/guestCode";
+import {
+  confirmEmailProof,
+  confirmPhoneProof,
+  proveFirstPhone,
+  sendEmailProof,
+  sendFirstPhoneCode,
+  sendPhoneProof,
+  verifyGuestCode,
+} from "@/lib/contacts/guestCode";
 import { countInviteUse } from "@/lib/contacts/invites";
 import { parseLocale, pickLocale } from "@/lib/contacts/locale";
 import { notifyOwnerOfRequest, sendCodeMail } from "@/lib/contacts/mail";
@@ -23,6 +31,7 @@ import type { Locale } from "@/lib/types";
 import { journalReader } from "@/lib/contacts/session";
 import { resolveJoinCode, type JoinInvite } from "@/lib/contacts/welcome";
 import { mailDisabledReason } from "@/lib/mail";
+import { setNewsConsent } from "@/lib/newsConsent";
 import { subjectPhone } from "@/lib/phone";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { claimTripPlace, isPersonOn } from "@/lib/tripPeople";
@@ -121,15 +130,37 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       if (!name && !reader.contact?.name) return answer({ error: "invalid_name" }, 400);
       return answer({ ok: true, ...(await joinProved(invite, reader.email, { name, locale })) });
     }
+    case "proof": {
+      // B2453/B2454: a second channel for the person this link just filed —
+      // a mobile after an email sign-up, or an email after a mobile one. The
+      // same door the welcome guide's "Is this right?" uses (/w step): the
+      // contact comes from this browser's session, never the body, and a
+      // number is proved by its own code, never made a sign-in number.
+      const reader = await journalReader(owner);
+      const self = reader.contact;
+      if (!self || self.status === "blocked") return answer({ error: "not_signed_in" }, 401);
+      if (!filedByThisLink(self, invite)) return answer({ error: "already_known" }, 409);
+      const given = text("code");
+      if (body.kind === "sms") {
+        if (!given) {
+          const sent = await sendPhoneProof(owner, self.id, value, { ip, locale });
+          return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, 409);
+        }
+        return (await confirmPhoneProof(owner, self.id, value, given)) ? answer({ ok: true }) : answer({ error: "invalid_code" }, 401);
+      }
+      if (!given) {
+        const sent = await sendEmailProof(owner, self.id, value, { locale });
+        return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, 409);
+      }
+      return (await confirmEmailProof(owner, self.id, value, given)) ? answer({ ok: true }) : answer({ error: "invalid_code" }, 401);
+    }
     case "save": {
       const reader = await journalReader(owner);
       const self = reader.contact;
       if (!self || self.status === "blocked") return answer({ error: "not_signed_in" }, 401);
-      // Only a request this very link filed, still waiting: somebody already
-      // on the page keeps what is stored — a join form never rewrites it (F1).
-      if (self.status !== "pending" || self.createdVia !== `invite:${invite.id}`) {
-        return answer({ error: "already_known" }, 409);
-      }
+      // Only a person this very link filed: somebody already on the page
+      // keeps what is stored — a join form never rewrites it (F1).
+      if (!filedByThisLink(self, invite)) return answer({ error: "already_known" }, 409);
       const patch: SelfUpdate = {};
       const address = body.address as Record<string, unknown> | undefined;
       if (address && typeof address === "object") {
@@ -148,12 +179,26 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       for (const key of ["wantsEmailDigest", "wantsWhatsapp", "wantsSms", "wantsPostcard"] as const) {
         if (typeof body[key] === "boolean") patch[key] = body[key] as boolean;
       }
+      // B2453: news from Fernscout is only ever asked, never assumed — a tick
+      // records it; an unticked box writes nothing (an earlier consent given
+      // elsewhere is not withdrawn by a join form, only on /me).
+      if (body.wantsNews === true && self.email.includes("@")) await setNewsConsent(self.email, locale);
       const saved = await updateContactSelf(owner, manageTokenFor(owner, self.id), patch);
       return saved ? answer({ ok: true }) : answer({ error: "not_saved" }, 409);
     }
     default:
       return answer({ error: "invalid_request" }, 400);
   }
+}
+
+/**
+ * The row this very link created, still waiting or let in by it — a
+ * pre-approved address (B319) is active by the time it reaches the notify
+ * step, and is no more "already on the page" than a waiting one. Anybody the
+ * link merely found keeps what is stored (F1).
+ */
+function filedByThisLink(self: ContactRecord, invite: JoinInvite): boolean {
+  return self.createdVia === `invite:${invite.id}` && (self.status === "pending" || self.status === "active");
 }
 
 type Settled = { status: "in" | "waiting"; known: boolean };
