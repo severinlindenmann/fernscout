@@ -8,7 +8,7 @@ import { getUser } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
 import { DayStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellersOf, type SiteSummary } from "@/lib/site";
+import { siteSummary, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
@@ -158,6 +158,7 @@ async function CurrentDayBody({
         inLanguage={defaultLocaleFor(site.username)}
       />
       <TripStory
+        madeWith={madeWithFor(userConfig, trip)}
         index={index}
         days={days}
         windowStart={windowStart}

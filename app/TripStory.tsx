@@ -56,6 +56,7 @@ export default function TripStory({
   photobook,
   travellerNames,
   dayTrack,
+  madeWith,
 }: {
   /** Every day of the trip, cheaply. */
   index: DaySummary[];
@@ -93,6 +94,9 @@ export default function TripStory({
    * what it draws.
    */
   dayTrack?: [number, number][][];
+  /** The instance's name for the "Made with" line — `madeWithFor` in
+   *  lib/site.ts; absent on a page that is not public (B2485). */
+  madeWith?: string;
 }) {
   const { t, formatLongDate, localizedTrip, locale } = useI18n();
   // TripStory is always rendered inside TripProvider (both the current-trip
@@ -636,6 +640,18 @@ export default function TripStory({
           </div>
         </main>
       </div>
+
+      {/* B2485 — the way from somebody's shared trip to what made it. */}
+      {madeWith && (
+        <footer className="mx-auto w-full max-w-5xl px-4 pt-6 text-center text-xs text-ink-secondary sm:px-6 lg:px-8">
+          <a
+            href="/"
+            className="inline-flex min-h-11 items-center underline decoration-line-quiet underline-offset-2 hover:text-ink-strong"
+          >
+            {t("story.madeWith", { name: madeWith })}
+          </a>
+        </footer>
+      )}
 
       <MobileDaySheet
         days={index}

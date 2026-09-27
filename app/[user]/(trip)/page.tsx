@@ -7,7 +7,7 @@ import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { buildStoryProps } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary } from "@/lib/site";
+import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
 import { getDefaultUsername, getUser } from "@/lib/users";
 import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
@@ -90,6 +90,7 @@ async function CurrentStoryBody({
         inLanguage={defaultLocaleFor(site.username)}
       />
       <TripStory
+        madeWith={madeWithFor(userConfig, trip)}
         index={index}
         days={days}
         windowStart={windowStart}

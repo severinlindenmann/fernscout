@@ -12,7 +12,7 @@ import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { BlogStructuredData } from "@/components/StructuredData";
 import { getUser } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary } from "@/lib/site";
+import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
@@ -195,6 +195,7 @@ async function TripStoryBody({
         inLanguage={defaultLocaleFor(trip.username)}
       />
       <TripStory
+        madeWith={madeWithFor(userConfig, trip)}
         index={index}
         days={days}
         windowStart={windowStart}

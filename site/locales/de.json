@@ -2353,6 +2353,7 @@
   "story.caughtUp": "Das ist alles bisher — bald mehr",
   "story.dayFailed": "Dieser Tag konnte nicht geladen werden. Prüfe die Verbindung, geh einen Tag zurück und wieder vor.",
   "story.dayLoading": "Dieser Tag wird geladen…",
+  "story.madeWith": "Erstellt mit {name}",
   "story.empty": "Noch keine Tage.",
   "story.emptyOwner.body": "Diese Reise hat noch keine Tage. Beginne einen in deinem Studio – Fotos, ein paar Worte, und er wartet als Entwurf, bis du ihn veröffentlichst.",
   "story.emptyOwner.cta": "Ersten Tag hinzufügen",
