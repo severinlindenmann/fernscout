@@ -17,7 +17,12 @@ describe("admin message previews (B2493)", () => {
 describe("every template has its own composer (B2493)", () => {
   it("leaves no template to a generic stand-in", async () => {
     const { PREVIEWS } = await import("@/lib/messages/fixtures");
-    const missing = (Object.keys(TEMPLATES) as TemplateId[]).filter((id) => !(id in PREVIEWS));
+    // Without paid/ (a plain clone, public CI) the paid templates have no
+    // sender and no composer by design; with it, they must have one.
+    const paidHere = (await import("node:fs")).existsSync("paid");
+    const missing = (Object.keys(TEMPLATES) as TemplateId[]).filter(
+      (id) => !(id in PREVIEWS) && (paidHere || !("paid" in TEMPLATES[id])),
+    );
     expect(missing).toEqual([]);
   });
 

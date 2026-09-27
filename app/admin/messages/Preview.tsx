@@ -82,7 +82,7 @@ export default function Preview({ template }: { template: TemplateId }) {
             </button>
           ))}
         </div>
-        {preview?.channel === "mail" ? (
+        {preview?.channel === "mail" && !("freeform" in preview) ? (
           <button
             type="button"
             onClick={() => void sendTest()}
@@ -96,6 +96,8 @@ export default function Preview({ template }: { template: TemplateId }) {
 
       {loading || !preview ? (
         <p className="text-sm text-ink-secondary">Rendering…</p>
+      ) : "freeform" in preview && preview.channel === "mail" ? (
+        <p className="rounded-2xl border border-line-quiet bg-surface-subtle p-4 text-sm italic text-ink-secondary">{preview.text}</p>
       ) : preview.channel === "mail" ? (
         <div className="rounded-2xl border border-line-quiet bg-surface-subtle p-3">
           <p className="mb-2 text-xs text-ink-secondary">
@@ -124,8 +126,8 @@ export default function Preview({ template }: { template: TemplateId }) {
                   : "max-w-sm rounded-2xl bg-[#e9e9eb] p-3 text-[#111b21]"
             }
           >
-            {preview.channel === "push" && preview.title ? <p className="font-semibold">{preview.title}</p> : null}
-            {preview.freeform ? (
+            {preview.channel === "push" && "title" in preview && preview.title ? <p className="font-semibold">{preview.title}</p> : null}
+            {"freeform" in preview ? (
               <p className="text-sm italic">{preview.text}</p>
             ) : (
               <p className="whitespace-pre-wrap text-sm">{preview.text}</p>
