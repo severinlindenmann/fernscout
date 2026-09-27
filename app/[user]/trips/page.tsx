@@ -6,7 +6,6 @@ import { basemapFor } from "@/lib/basemap";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { getAllMedia, getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
-import { assignFlagColours, FLAG_FALLBACK } from "@/lib/flagColours";
 import { accentsFor, getMalformedTrips, getTrips } from "@/lib/trips";
 import { listableTrips, readFor, signedInAs } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
@@ -286,13 +285,11 @@ async function TripsIndexBody({ user }: { user: string }) {
   }
 
   /**
-   * Flag colours, assigned over a stable order — B370. Sorted by code rather
-   * than taken from the Map's insertion order, which follows whatever order
-   * the trips happened to be read in: the same journal has to colour the same
-   * way on every render.
+   * Every visited country gets the map's own single "visited" tint now
+   * (B2423) — LifetimeMap reads it from `--map-visited`, so no per-country
+   * colour is resolved here any more. `lib/flagColours.ts` (B370, B375) is
+   * retired along with it.
    */
-  const flagColours = assignFlagColours([...visitsByCode.keys()].sort());
-
   const visits = [...visitsByCode]
     .map(([code, trips]) => {
       const shape = worldCountries.find((c) => c.code === code);
@@ -307,7 +304,6 @@ async function TripsIndexBody({ user }: { user: string }) {
             // of America" and it does not fit anywhere. B370.
             name: countryNames.get(code) ?? shape.name,
             path: shape.path,
-            colour: flagColours.get(code) ?? FLAG_FALLBACK,
             trips,
           }
         : null;

@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { frameRoute, isPlottable, place as placeIn, type Point } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
 import { flagFromCode } from "@/lib/flags";
+import { mapAccent, mapStyle } from "@/lib/map/style";
+import RouteLine, { type RouteHop } from "./map/RouteLine";
+import type { Px } from "./map/StopMarker";
 import type { Basemap } from "@/lib/basemap";
 import type { TripAccent } from "@/lib/types";
 
@@ -19,7 +22,7 @@ export type TripRoute = {
 export type CountryVisit = {
   /** ISO 3166-1 alpha-2. */
   code: string;
-  /** The country's own name, for the hover text. */
+  /** The country's own name, for the hover/focus label. */
   name: string;
   /**
    * Its SVG outline, resolved from `lib/worldCountries.json` **on the server**
@@ -32,15 +35,16 @@ export type CountryVisit = {
    * handful actually visited is also far less than the 143 KB of all 177.
    */
   path: string;
-  /** The colour this country is filled in — its flag's, resolved on the
-   * server so collisions between neighbours can be avoided. B370. */
-  colour: string;
   trips: { id: string; title: string }[];
 };
 
 /** The five palette hues from app/globals.css, as literals — this is an SVG
  * stroke, which Tailwind classes can't reach. Exported so the trip cards can
- * use the same colour for their accent dot. */
+ * use the same colour for their accent dot. Kept as a plain hex table for
+ * that HTML usage (`app/[user]/trips/TripsIndexContent.tsx`); this map's own
+ * SVG reads `mapAccent()` (`lib/map/style.ts`) instead, so a trip's route and
+ * marker follow the map-only accent step (B2423, docs/plans/map-redesign.md
+ * §7 Q2), not this brand hex. */
 export const ACCENT_HEX: Record<TripAccent, string> = {
   sky: "#3fa9c4",
   yellow: "#d69b0a",
@@ -48,28 +52,6 @@ export const ACCENT_HEX: Record<TripAccent, string> = {
   coral: "#c2334a",
   navy: "#3a4a63",
 };
-
-/**
- * A stop is a thin stem rising from the coordinate to a small ringed head —
- * a pin drawn as a flag rather than a teardrop. The first version here was a
- * solid teardrop (a circular head fused straight onto its own tail), which
- * looked right in isolation but not in a cluster: two or three stops within
- * a few screen pixels of each other — the ordinary case for a multi-stop
- * trip on a world-scale map — fused their solid heads and thick cream
- * outlines into a single illegible blob with no way to tell how many stops
- * were under it. A thin stem and a small head shrink each marker's own
- * footprint, so the same cluster reads as a few separate, thin lines
- * converging on nearby points rather than one shape.
- *
- * `headR` is the head's radius and `stemLen` the tip-to-head-centre
- * distance, both already in on-screen units (the caller passes them through
- * `size()`) — there is no local coordinate space to build a path in, unlike
- * the teardrop this replaces.
- */
-const PIN_HEAD_R = 1.3;
-const PIN_STEM_LEN = 4;
-const PIN_STEM_WIDTH = 0.55;
-const PIN_RING_WIDTH = 0.55;
 
 /**
  * Every trip's route on one map. Deliberately read-only: no clustering, no
@@ -86,13 +68,14 @@ export default function LifetimeMap({
   routes: TripRoute[];
   /**
    * Countries visited, and by which trips. When this is non-empty the map
-   * fills countries instead of drawing a pin per stop; when it is empty it
-   * falls back to the pins below.
+   * fills countries with the one neutral "visited" tint (B2423) in addition
+   * to each trip's own route and marker below; when it is empty only the
+   * routes and markers are drawn.
    *
    * The fallback is not decoration. A journal whose days carry no `country:`
    * resolves nothing here, and filling nothing would render an empty world —
-   * strictly worse than the pins it replaced. `viki` is exactly that journal.
-   * B361.
+   * strictly worse than the plain routes it falls back to. `viki` is exactly
+   * that journal. B361.
    */
   visits?: CountryVisit[];
   /**
@@ -115,6 +98,16 @@ export default function LifetimeMap({
   const worldLand = useWorldLand();
   const filling = visits.length > 0;
 
+  // Which country, if any, is under the pointer or keyboard focus — the
+  // visible half of the focusable label below (B2423/B361). Native <title>
+  // hover text answers a mouse and nobody else: a screen reader gets it as
+  // the link/group's own accessible name regardless (via `aria-label` on
+  // each country below), but a sighted keyboard user tabbing through never
+  // saw a hover-only tooltip render. This state drives one small caption
+  // instead, updated by both focus and hover so a mouse user sees the same
+  // thing a keyboard user does.
+  const [active, setActive] = useState<CountryVisit | null>(null);
+
   // Frame the visited area rather than the whole world — otherwise two European
   // trips are two dots in an ocean of empty Pacific.
   //
@@ -128,12 +121,92 @@ export default function LifetimeMap({
     [routes, framePoints],
   );
 
-  // Route strokes and dots keep their size on screen rather than being viewBox
-  // constants — the same fix WorldMap needed, for the same reason: a journal
-  // whose trips are all in one country now gets a small frame, and a
-  // radius-2.2 dot on a 5-unit map is most of the map. 140 is the frame width
-  // these numbers were originally chosen against.
-  const size = (units: number) => (units * view.w) / 140;
+  /**
+   * `px` sizes a marker or a route in real screen pixels rather than in
+   * viewBox units — the same fix WorldMap's own `px` needed, and the same
+   * reason (see the block comment above `px` in `components/WorldMap.tsx`):
+   * a fixed *fraction of the viewBox* is a different number of actual
+   * pixels depending on both the container's rendered width and how large
+   * an area the frame covers. This map's frame swings from one country to
+   * the whole world, so a fraction-of-viewBox marker that looked right for
+   * a single trip's own frame came out the size of a small country here —
+   * B2423's own bug, caught in review. Measuring the SVG's own rendered
+   * width with a `ResizeObserver`, the way WorldMap already does, is what
+   * makes `px(8)` mean the same ~8 CSS pixels whether the frame is a single
+   * country or six continents, and whatever the viewport width.
+   *
+   * `drawnWidth` starts at a plausible desktop guess so the server render
+   * and the first client frame agree (no hydration mismatch); the observer
+   * corrects it once the browser has actually laid the figure out.
+   */
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [drawnWidth, setDrawnWidth] = useState(900);
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      if (w > 0) setDrawnWidth(w);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const px: Px = (pixels) => (pixels * view.w) / drawnWidth;
+
+  /**
+   * Each trip's route (its own stops, in order) and one marker — an
+   * unnumbered dot in the trip's accent, not `StopMarker`'s numbered stop
+   * disc: a single "1" on every trip's only marker read as "stop 1", which
+   * misleads (B2423 review). Kept local rather than a new shared primitive,
+   * since nothing else needs an unnumbered dot yet.
+   *
+   * The marker sits at the trip's first plottable point, then a single
+   * decluttering pass nudges apart any two trips whose markers would
+   * otherwise overlap on screen — two trips can start a few hundred
+   * kilometres apart in the same country, which is nothing at world zoom.
+   * The route line itself is drawn from the *un-nudged* points: only the
+   * summary dot moves.
+   */
+  const MARKER_RADIUS_PX = 8;
+  const tripDraws = useMemo(() => {
+    const unitsToPx = (u: number) => (u * drawnWidth) / view.w;
+    const pxToUnits = (p: number) => (p * view.w) / drawnWidth;
+    const list = routes
+      .map((route) => {
+        const pts = route.points.filter(isPlottable).map((p) => placeIn(view, p));
+        if (pts.length === 0) return null;
+        const hops: RouteHop[] = pts.slice(0, -1).map(([x1, y1], i) => {
+          const [x2, y2] = pts[i + 1];
+          return { x1, y1, x2, y2 };
+        });
+        return { route, hops, mx: pts[0][0], my: pts[0][1] };
+      })
+      .filter((d): d is { route: TripRoute; hops: RouteHop[]; mx: number; my: number } => d !== null);
+
+    // ponytail: a single pass separates a directly-overlapping pair; three
+    // or more markers all mutually close (unseen in any real journal so
+    // far) may still overlap. A real force-directed declutter if that turns
+    // up.
+    const minGapPx = MARKER_RADIUS_PX * 2.4;
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i];
+        const b = list[j];
+        const dx = b.mx - a.mx;
+        const dy = b.my - a.my;
+        const distPx = unitsToPx(Math.hypot(dx, dy));
+        if (distPx >= minGapPx) continue;
+        const len = Math.hypot(dx, dy);
+        const [ux, uy] = len > 0 ? [dx / len, dy / len] : [1, 0];
+        const pushUnits = pxToUnits(minGapPx - distPx) / 2;
+        a.mx -= ux * pushUnits;
+        a.my -= uy * pushUnits;
+        b.mx += ux * pushUnits;
+        b.my += uy * pushUnits;
+      }
+    }
+    return list;
+  }, [routes, view, drawnWidth]);
 
   const label =
     routes.length > 0
@@ -143,15 +216,16 @@ export default function LifetimeMap({
   return (
     <figure className="overflow-hidden rounded-2xl border border-line-quiet bg-sky-300">
       <svg
+        ref={svgRef}
         viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
         // A map is the point of this figure, so it gets a floor to stand on:
         // framed to a landscape shape it would otherwise be a 150-pixel band on
         // a phone, which is a picture of nothing.
         className="block h-auto min-h-[260px] w-full sm:min-h-0"
         // `role="img"` promises there is nothing inside worth reaching, which
-        // is true of the pins and false the moment a country becomes a link —
-        // an image's children are not exposed, so the links would exist for
-        // the mouse and for nobody else. B361.
+        // is true until a country becomes a link or a focusable group — an
+        // image's children are not exposed, so they would exist for the mouse
+        // and for nobody else. B361.
         role={filling ? "group" : "img"}
         aria-label={label}
       >
@@ -160,181 +234,159 @@ export default function LifetimeMap({
             built, which is what lets a Swiss trip show a border rather than an
             empty green field. */}
         <g transform={`scale(${view.lngScale} 1)`}>
-          {filling ? (
-            <>
-              {/* The ground, and then the country lines over it.
-                  `basemap.borders` is the same clipped Natural Earth the
-                  branch below draws — B364, because this branch was putting
-                  the fills on a bare coastline and throwing away the borders,
-                  lakes and rivers already computed for it on the server. The
-                  outline is the fallback for a frame with no basemap built. */}
-              {basemap ? (
-                <g fill="#dff3e0" stroke="#94c9a0" strokeWidth={1}>
-                  {basemap.borders.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-              ) : (
-                <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={1}>
-                  {worldLand.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-              )}
-              <g stroke="#fffaf0" strokeWidth={0.8}>
-                {visits.map((v) => {
-                  const shape = (
-                    <path
-                      d={v.path}
-                      fill={v.colour}
-                      vectorEffect="non-scaling-stroke"
-                      className="cursor-pointer transition-opacity duration-150 hover:opacity-70"
-                    >
-                      {/* Native SVG tooltip: hover text with no state, no
-                          portal and no positioning arithmetic, and it doubles
-                          as the link's accessible name. */}
-                      <title>{`${v.name} — ${v.trips.map((tr) => tr.title).join(", ")}`}</title>
-                    </path>
-                  );
-
-                  /* One trip is a destination; several are not. Sending the
-                     reader to the most recent silently is the same trap the
-                     fill-colour decision already turned down, so a country
-                     several trips reached names them and the cards below the
-                     map are where you choose. B361. */
-                  return v.trips.length === 1 && userPath ? (
-                    <a key={v.code} href={`${userPath}/trips/${v.trips[0].id}`}>
-                      {shape}
-                    </a>
-                  ) : (
-                    <g key={v.code}>{shape}</g>
-                  );
-                })}
-              </g>
-              {/* Water last, so a river does not disappear under a country
-                  somebody visited — a lake that vanishes exactly where the map
-                  is most coloured in reads as a rendering fault. */}
-              {basemap && (
-                <>
-                  <g fill="none" stroke="#6fcfe0" strokeWidth={0.5}>
-                    {basemap.rivers.map((d, i) => (
-                      <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                    ))}
-                  </g>
-                  <g fill="#8fe0ef" stroke="#6fcfe0" strokeWidth={0.7}>
-                    {basemap.lakes.map((d, i) => (
-                      <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                    ))}
-                  </g>
-                </>
-              )}
-            </>
-          ) : basemap ? (
-            <>
-              <g fill="#dff3e0" stroke="#94c9a0" strokeWidth={1}>
-                {basemap.borders.map((d, i) => (
-                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                ))}
-              </g>
-              <g fill="#8fe0ef" stroke="#6fcfe0" strokeWidth={0.7}>
-                {basemap.lakes.map((d, i) => (
-                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                ))}
-              </g>
-            </>
+          {basemap ? (
+            <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
+              {basemap.borders.map((d, i) => (
+                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
           ) : (
-            <g fill="#dff3e0" stroke="#bfe3c4" strokeWidth={1}>
+            <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
               {worldLand.map((d, i) => (
                 <path key={i} d={d} vectorEffect="non-scaling-stroke" />
               ))}
             </g>
           )}
-        </g>
-        {/* The pins are the fallback, not a layer over the fill: drawing both
-            would put fifteen Thai stems back on top of a filled Thailand,
-            which is the smear this replaced. */}
-        {!filling && routes.map((route) => {
-          // A coordinate-less day (B265) is filtered here rather than drawn:
-          // an undefined lat/lng is not a point, and a polyline through one
-          // would be a line to nowhere the reader has no way to read as a gap.
-          const pts = route.points.filter(isPlottable).map((p) => placeIn(view, p));
-          const colour = ACCENT_HEX[route.accent];
-          return (
-            <g key={route.id}>
-              {/* No line between the stops, deliberately (B344). The per-trip
-                  map draws one because that page *is* one journey in order and
-                  the line is the journey. This map answers a different
-                  question — everywhere we have been — over trips that have
-                  nothing to do with each other, and a line between two of them
-                  asserts a sequence and a path nobody travelled: two stops
-                  joined across an ocean read as a crossing when they were two
-                  separate holidays. The pins carry position, and the legend
-                  ties each colour back to a trip by name, which is the whole
-                  of what an overview owes the reader. */}
-              {/* A pin, tip on the coordinate, rather than a dot centred on
-                  it (B88): a dot both covers the ground it marks — worse the
-                  wider the frame, since size() grows it with the map — and
-                  merges into its neighbours as soon as two are close, where a
-                  thin stem and a small head can overlap and still leave both
-                  tips readable. */}
-              {pts.map(([x, y], i) => (
-                <g key={i} transform={`translate(${x} ${y})`}>
-                  <line
-                    x1={0}
-                    y1={0}
-                    x2={0}
-                    y2={-size(PIN_STEM_LEN)}
-                    stroke={colour}
-                    strokeWidth={size(PIN_STEM_WIDTH)}
-                    strokeLinecap="round"
+          {/*
+            One neutral "visited" tint for every country, whoever reached it and
+            however many trips did (B2423) — replacing the per-country flag
+            colours `lib/flagColours.ts` used to assign, which put Switzerland
+            in two trips and two unrelated coral trips in visibly different
+            colours for no reason a reader could learn. The fill still carries
+            the accessible name for a screen reader (`aria-label`); a sighted
+            keyboard user reads it from the caption below the map, since the
+            fill itself has nothing left to look different by.
+          */}
+          {filling && (
+            <g stroke={mapStyle.ice} strokeWidth={0.8}>
+              {visits.map((v) => {
+                const shape = (
+                  <path
+                    d={v.path}
+                    fill={mapStyle.visited}
+                    vectorEffect="non-scaling-stroke"
+                    className="cursor-pointer transition-opacity duration-150 hover:opacity-70"
                   />
-                  <circle
-                    cx={0}
-                    cy={-size(PIN_STEM_LEN)}
-                    r={size(PIN_HEAD_R)}
-                    fill={colour}
-                    stroke="#fffaf0"
-                    strokeWidth={size(PIN_RING_WIDTH)}
-                  />
-                </g>
-              ))}
+                );
+                const ariaLabel = `${v.name} — ${v.trips.map((tr) => tr.title).join(", ")}`;
+                const focus = {
+                  onMouseEnter: () => setActive(v),
+                  onMouseLeave: () => setActive(null),
+                  onFocus: () => setActive(v),
+                  onBlur: () => setActive(null),
+                };
+                // A focus-visible ring: the paper fill gives a focused country
+                // nothing else to look different by once colour stopped
+                // carrying identity.
+                const focusRing =
+                  "outline-2 outline-offset-1 outline-transparent focus-visible:outline-[var(--map-stop-ring)]";
+
+                /* One trip is a destination; several are not. Sending the
+                   reader to the most recent silently is the same trap the
+                   fill-colour decision already turned down, so a country
+                   several trips reached names them and the cards below the
+                   map are where you choose. B361. */
+                return v.trips.length === 1 && userPath ? (
+                  <a
+                    key={v.code}
+                    href={`${userPath}/trips/${v.trips[0].id}`}
+                    aria-label={ariaLabel}
+                    className={focusRing}
+                    {...focus}
+                  >
+                    {shape}
+                  </a>
+                ) : (
+                  <g key={v.code} tabIndex={0} aria-label={ariaLabel} className={focusRing} {...focus}>
+                    {shape}
+                  </g>
+                );
+              })}
             </g>
-          );
-        })}
+          )}
+          {/* Water last, so a river does not disappear under a country
+              somebody visited — a lake that vanishes exactly where the map
+              is most coloured in reads as a rendering fault. */}
+          {basemap && (
+            <>
+              <g fill="none" stroke={mapStyle.water} strokeWidth={0.5}>
+                {basemap.rivers.map((d, i) => (
+                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                ))}
+              </g>
+              <g fill={mapStyle.water} stroke={mapStyle.border} strokeWidth={0.7}>
+                {basemap.lakes.map((d, i) => (
+                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                ))}
+              </g>
+            </>
+          )}
+        </g>
+        {/*
+          Every trip is its own accent route plus one marker (B2423,
+          docs/plans/map-redesign.md §1 "Reisen" row) — drawn over the ground
+          and the visited tint alike, and independently of whether `visits`
+          filled anything. This supersedes B344's "no line" rule for this map:
+          that rule was about a line asserting a journey *between two separate
+          trips'* pins, which never happened here; a straight line through one
+          trip's own stops, in its own accent, is the same route `TripMap`
+          already draws for that trip, only smaller. `placeIn` already bakes
+          in `view.lngScale`, so these are sibling to the scaled `<g>` above,
+          not inside it — the same convention the pins this replaces used.
+        */}
+        {tripDraws.map(({ route, hops, mx, my }) => (
+          <g key={route.id}>
+            {hops.length > 0 && <RouteLine hops={hops} accent={route.accent} px={px} />}
+            {/* An unnumbered dot, not `StopMarker` — a "1" on every trip's
+                only marker reads as "stop 1" (B2423 review). */}
+            <g aria-label={route.title} role="img">
+              <circle
+                cx={mx}
+                cy={my}
+                r={px(MARKER_RADIUS_PX)}
+                fill={mapAccent(route.accent)}
+                stroke={mapStyle.stopRing}
+                strokeWidth={px(1.5)}
+              />
+            </g>
+          </g>
+        ))}
       </svg>
+      {/* The visible half of the focus/hover label above — a screen reader
+          already has the country's name on the shape itself (`aria-label`),
+          so this exists for a sighted keyboard user with no other way to see
+          what just gained focus. Empty and out of the way otherwise. */}
+      {filling && (
+        <div aria-live="polite" className="min-h-0 px-4 pt-2 text-xs text-ink-body empty:hidden empty:p-0">
+          {active && `${active.name} — ${active.trips.map((tr) => tr.title).join(", ")}`}
+        </div>
+      )}
       {/* The legend carries whatever the map just encoded, so colour is never
-          the only thing saying it. Filling countries by visit count and
-          labelling them by trip would be a legend for a map that is not
-          there. */}
+          the only thing saying it. */}
       <figcaption className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-line-quiet bg-surface-raised px-4 py-3 text-xs text-ink-body">
-        {filling
-          ? visits.map((v) => (
-              <span key={v.code} className="flex items-center gap-1.5">
-                <span
-                  aria-hidden
-                  className="inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: v.colour }}
-                />
-                {/* The flag is decoration beside a name that already says the
-                    country — `aria-hidden`, or a screen reader reads the
-                    country twice, once as a flag emoji. */}
-                <span aria-hidden>{flagFromCode(v.code)}</span>
-                {v.name}
-                {v.trips.length > 1 && (
-                  <span className="text-ink-secondary">×{v.trips.length}</span>
-                )}
-              </span>
-            ))
-          : routes.map((r) => (
-              <span key={r.id} className="flex items-center gap-1.5">
-                <span
-                  aria-hidden
-                  className="inline-block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: ACCENT_HEX[r.accent] }}
-                />
-                {r.title}
-              </span>
-            ))}
+        {routes.map((r) => (
+          <span key={r.id} className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className="inline-block h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: mapAccent(r.accent) }}
+            />
+            {r.title}
+          </span>
+        ))}
+        {filling &&
+          visits.map((v) => (
+            <span key={v.code} className="flex items-center gap-1.5">
+              {/* The flag is decoration beside a name that already says the
+                  country — `aria-hidden`, or a screen reader reads the
+                  country twice, once as a flag emoji. */}
+              <span aria-hidden>{flagFromCode(v.code)}</span>
+              {v.name}
+              {v.trips.length > 1 && (
+                <span className="text-ink-secondary">×{v.trips.length}</span>
+              )}
+            </span>
+          ))}
       </figcaption>
     </figure>
   );

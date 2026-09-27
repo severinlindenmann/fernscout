@@ -4,13 +4,17 @@ import LifetimeMap, { type CountryVisit, type TripRoute } from "@/components/Lif
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import countries from "@/lib/worldCountries.json";
-import { FLAG_COLOURS, FLAG_FALLBACK, assignFlagColours } from "@/lib/flagColours";
 
 /**
  * B361. The lifetime map answers "everywhere we have been", and at world scale
  * the honest unit of "where" is a country: fifteen pins in Thailand and one pin
  * in Thailand say the same thing to a reader, and drawing fifteen is what made
  * it an unreadable smear.
+ *
+ * B2423 replaced the per-country flag colour (`lib/flagColours.ts`, B370,
+ * B375 — both retired with it) with one neutral "visited" tint, since two
+ * trips through Switzerland and two unrelated coral trips clashed for no
+ * reason a reader could learn. `CountryVisit` no longer carries a `colour`.
  */
 
 const route: TripRoute = {
@@ -32,20 +36,12 @@ function render(visits: CountryVisit[]) {
 }
 
 /** Real outlines from the baked data, so the test exercises what ships. */
-/** Every country the colour table knows, for the sweeps below. */
-const EVERY_CODE = Object.keys(FLAG_COLOURS);
-
-function rgb(hex: string): [number, number, number] {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
 function shapeOf(code: string) {
   const c = (countries as { code: string | null; name: string; path: string }[]).find(
     (x) => x.code === code,
   );
   if (!c) throw new Error(`no ${code} in lib/worldCountries.json`);
-  return { code, name: c.name, path: c.path, colour: FLAG_COLOURS[code]?.[0] ?? FLAG_FALLBACK };
+  return { code, name: c.name, path: c.path };
 }
 
 const ONE: CountryVisit = { ...shapeOf("TH"), trips: [{ id: "t1", title: "Trip one" }] };
@@ -92,11 +88,16 @@ describe("countries visited", () => {
   });
 
   /**
-   * B370 replaced the visit-depth ramp with each country's own flag colour,
-   * and moved the count into the legend where it is actually read.
+   * B2423. Every visited country is the same fill — `--map-visited`, read
+   * through `lib/map/style.ts`'s `mapStyle.visited` — whether one trip
+   * reached it or five. Replaces the old "filled in its flag's colour" test,
+   * whose whole premise (a colour per country) B2423 removed.
    */
-  test("a country is filled in its flag's colour", () => {
-    expect(render([ONE])).toContain(FLAG_COLOURS.TH[0]);
+  test("one visited tint regardless of trip count", () => {
+    const html = render([ONE, TWO]);
+    const fills = [...html.matchAll(/fill="(var\(--map-visited\))"/g)].map((m) => m[1]);
+    expect(fills).toHaveLength(2);
+    expect(new Set(fills).size).toBe(1);
   });
 
   test("the legend names the countries and counts repeat visits", () => {
@@ -107,64 +108,38 @@ describe("countries visited", () => {
   });
 
   /**
-   * B375. The test this replaces asserted `new Set(...).size`, which is string
-   * identity — France `#0055A4`, Czechia `#11457E`, Estonia `#0072CE`, Finland
-   * `#003580`, Sweden `#006AA7` and the USA `#3C3B6E` are six distinct strings
-   * and one colour to the eye. It passed while the map was unreadable.
+   * B2423/B361. A country's hover text used to be a native SVG `<title>`,
+   * which a mouse gets and a keyboard user tabbing through never sees. Every
+   * country is now reachable by keyboard (an `<a>` is already tabbable; a
+   * multi-trip country's `<g>` gets its own `tabIndex={0}`) and carries its
+   * name as an `aria-label` a screen reader reads regardless of hover state.
    */
-  test("countries whose flags share a hue are still told apart", () => {
-    const codes = ["FR", "CZ", "EE", "FI", "SE", "US", "NL", "NO"];
-    const got = [...assignFlagColours(codes).values()].map(rgb);
-
-    for (let i = 0; i < got.length; i++) {
-      for (let j = i + 1; j < got.length; j++) {
-        // Manhattan distance in RGB — crude, but it catches what string
-        // inequality cannot: two blues four units apart.
-        const apart =
-          Math.abs(got[i][0] - got[j][0]) +
-          Math.abs(got[i][1] - got[j][1]) +
-          Math.abs(got[i][2] - got[j][2]);
-        expect(apart).toBeGreaterThan(40);
-      }
-    }
+  test("a single-trip country is a focusable link, not just a hover target", () => {
+    const html = render([ONE]);
+    expect(html).toMatch(/<a[^>]*href="\/u\/trips\/t1"[^>]*aria-label="Thailand — Trip one"/);
   });
 
-  test("no country is filled near-black, near-white or grey", () => {
-    // A white country is a hole in the map and a black one reads as a fault.
-    for (const [r, g, b] of [...assignFlagColours(EVERY_CODE).values()].map(rgb)) {
-      const light = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255;
-      const chroma = (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
-      expect(light).toBeGreaterThan(0.2);
-      expect(light).toBeLessThan(0.9);
-      expect(chroma).toBeGreaterThan(0.15);
-    }
+  test("a multi-trip country is keyboard-focusable even though it is not a link", () => {
+    const html = render([TWO]);
+    expect(html).toMatch(/<g tabindex="0"[^>]*aria-label="United States of America — Trip one, Trip two"/);
   });
 
-  test("a flag with no usable hue falls back rather than painting black", () => {
-    // Germany's black band has no hue; it must come out red, not #111111.
-    expect(assignFlagColours(["DE"]).get("DE")).not.toBe("#111111");
-  });
-
-  test("the same journal colours the same way twice", () => {
-    const a = assignFlagColours(["IT", "JP", "TH"]);
-    const b = assignFlagColours(["IT", "JP", "TH"]);
-    expect([...a]).toEqual([...b]);
-  });
-
-  test("no pins are drawn over the fill", () => {
-    // The stems are what made the smear; drawing both would reinstate it.
-    expect(render([ONE])).not.toContain('<line x1="0" y1="0"');
+  test("no country names are written across the map — the legend does this job", () => {
+    // B370: they landed in the sea, named the wrong country, and only 5 of 23
+    // fitted. Trip markers are unnumbered dots (B2423 review), so there is no
+    // `<text>` anywhere on this map at all any more.
+    expect(render([ONE, TWO])).not.toContain("<text");
   });
 
   /**
    * A journal whose days carry no `country:` resolves no visits — `viki` is
    * exactly that. Filling nothing would render an empty world, which is worse
-   * than the pins this replaced.
+   * than the plain route this falls back to.
    */
-  test("a journal with no country data still gets its pins", () => {
+  test("a journal with no country data still gets its trip's route and marker", () => {
     const html = render([]);
-    expect(html).toContain('<line x1="0" y1="0"');
     expect(html).toContain("Trip one");
+    expect(html).not.toContain("var(--map-visited)");
   });
 
   test("the svg stops calling itself an image once it contains links", () => {
@@ -222,8 +197,6 @@ describe("map detail", () => {
   });
 
   test("no country names are written across the map", () => {
-    // B370: they landed in the sea, named the wrong country, and only 5 of 23
-    // fitted. The legend does this job.
     expect(withMap({ basemap })).not.toContain("<text");
   });
 });
