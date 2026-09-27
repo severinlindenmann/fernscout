@@ -75,7 +75,7 @@ export async function POST(
   }
 
   const now = getUser(user)!;
-  const echo = journalDoc.parse({ ...journalV2Fields(now), username: user });
+  const echo = journalDoc.parse({ ...journalV2Fields(now), username: user, tips: Boolean(now.owner.tips?.optIn) });
   return ok(echo, { etag: etagFor(echo) });
 }
 

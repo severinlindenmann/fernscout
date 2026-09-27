@@ -47,7 +47,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
     return Response.json({ error: "unsupported_field" }, { status: 400 });
   }
 
-  const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user });
+  const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: Boolean(journal.owner.tips?.optIn) });
   // "sections" (B2022, the same mode `applyTripPatch` got in B2011): this
   // door only ever answers the figures question, and must not be refused
   // because a DIFFERENT section — a journal signed up before v2 with no

@@ -1173,7 +1173,7 @@ describe("PATCH /api/web/{user}/figures/set — the journal's own default figure
     const { getUser } = await import("@/lib/users");
     const journal = getUser(NO_TAGLINE);
     if (!journal) throw new Error("fixture journal missing");
-    const stored = journalDoc.parse({ ...journalV2Fields(journal), username: NO_TAGLINE });
+    const stored = journalDoc.parse({ ...journalV2Fields(journal), username: NO_TAGLINE, tips: false });
     const wholeResponse = await applyJournalPatch(
       NO_TAGLINE,
       stored,
