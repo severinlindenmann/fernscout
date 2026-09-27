@@ -4,7 +4,9 @@ import type { ReactElement } from "react";
 import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Navigation, Plane } from "lucide-react";
-import { SlideMap } from "@/components/SlideShow";
+import { SlideMap, safeBox, visibleWindow, cameraFor, projectCamera } from "@/components/SlideShow";
+import { frameRoute } from "@/lib/mapFrame";
+import { project } from "@/lib/mapProjection";
 import type { PlaceView as SlideMapPlace } from "@/components/WorldMap";
 import type { PlaceEntry, TransportMode } from "@/lib/types";
 
@@ -127,6 +129,51 @@ describe("per-leg framing (B2424)", () => {
     const html = render(alps, 1, false);
     expect(html).not.toContain("NaN");
     expect(selectedRadius(html)).toBeGreaterThan(0);
+  });
+
+  /**
+   * Review of the first cut: fitting a leg into the *whole* viewBox left a
+   * stop under the title block or the transport controls, because the
+   * show's own chrome permanently covers a fixed fraction of every side but
+   * the right one. `cameraFor` fits the frame into `safeBox()` instead —
+   * checked here on the maths directly (`cameraFor`/`projectCamera`), which
+   * is what the render actually uses, rather than parsing rendered
+   * coordinates back out of an SVG whose camera transform doesn't even
+   * appear in server-rendered markup (`motion.g`'s `animate` never does).
+   *
+   * Checked at both a desktop and a phone container size — a second review
+   * round found a first cut of `safeBox` measured against the nominal
+   * 1000×500 viewBox rather than what `preserveAspectRatio="xMidYMid
+   * slice"` actually shows for a narrow container, which crops the width
+   * axis down hard on a portrait phone and put a stop's own label off the
+   * edge of what was actually visible even though the maths said it was
+   * inside the (wrong) box.
+   */
+  test.each([
+    ["a 16:9 desktop frame", 1280, 720],
+    ["a portrait phone", 390, 844],
+  ])("both ends of a leg land inside the safe box on %s", (_label, width, height) => {
+    const legs = [
+      // A short leg, at alps-2024's own scale.
+      [{ lat: 46.5614, lng: 8.3372 }, { lat: 46.7297, lng: 8.4444 }],
+      // A long, transcontinental leg.
+      [{ lat: 47.3769, lng: 8.5417 }, { lat: 13.7563, lng: 100.5018 }],
+      // Standing still — a single-point "leg".
+      [{ lat: 46.5614, lng: 8.3372 }],
+    ];
+    for (const points of legs) {
+      const frame = frameRoute(points);
+      const camera = cameraFor(frame, width, height);
+      const safe = safeBox(visibleWindow(width, height));
+      for (const p of points) {
+        const [px, py] = project(p.lat, p.lng);
+        const [x, y] = projectCamera(camera, px, py);
+        expect(x).toBeGreaterThanOrEqual(safe.left);
+        expect(x).toBeLessThanOrEqual(safe.right);
+        expect(y).toBeGreaterThanOrEqual(safe.top);
+        expect(y).toBeLessThanOrEqual(safe.bottom);
+      }
+    }
   });
 });
 

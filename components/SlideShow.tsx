@@ -35,7 +35,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
-import { isPlottable, frameRoute } from "@/lib/mapFrame";
+import { isPlottable, frameRoute, type Frame } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { flagFor } from "@/lib/flags";
 import { buildNarratedCut, slideNeedsTravelInterlude, type NarratedCutSlide } from "@/lib/narratedCut";
@@ -1365,6 +1365,77 @@ function activeLegPoints(places: PlaceView[], activeIndex: number, travelling: b
 }
 
 /**
+ * The fraction of the *actually visible* viewBox this map's own chrome
+ * permanently covers — the title block on the left, the thumbnail strip and
+ * transport controls at the bottom, the progress bar and settings/full
+ * -screen/close buttons at the top. Asymmetric on purpose: the right edge is
+ * the one side nothing ever sits on. Review of B2424's first cut found a leg
+ * framed against the *whole* viewBox routinely left one end under the title
+ * or the controls — fitting a fine, whole ellipse into a room says nothing
+ * about whether its corners are under the furniture.
+ */
+const SAFE_MARGIN = { left: 0.38, right: 0.06, top: 0.08, bottom: 0.22 } as const;
+
+/**
+ * The part of the fixed 1000×500 viewBox `preserveAspectRatio="xMidYMid
+ * slice"` actually shows for a container of the given CSS size — the whole
+ * viewBox only at exactly a 2:1 aspect; anything narrower (every real
+ * container this map draws in: the 16:9 desktop frame, a portrait phone
+ * full-bleed) crops symmetrically about the centre on the *width* axis,
+ * because `slice` scales by the *larger* of the two ratios to guarantee no
+ * letterboxing. `safeBox` must be measured against this, not the nominal
+ * 1000×500 — B2424 review found a first cut of the safe-box margins,
+ * measured against the full viewBox, landed a stop well outside the
+ * portrait phone's actual, much narrower, visible slice.
+ */
+export function visibleWindow(containerWidth: number, containerHeight: number) {
+  const scale = Math.max(containerWidth / MAP_VIEWBOX.width, containerHeight / MAP_VIEWBOX.height);
+  const width = containerWidth / scale;
+  const height = containerHeight / scale;
+  return { x0: (MAP_VIEWBOX.width - width) / 2, y0: (MAP_VIEWBOX.height - height) / 2, width, height };
+}
+
+/** The box a leg is actually framed into — `visible` minus `SAFE_MARGIN`. */
+export function safeBox(visible: { x0: number; y0: number; width: number; height: number }) {
+  const left = visible.x0 + visible.width * SAFE_MARGIN.left;
+  const right = visible.x0 + visible.width * (1 - SAFE_MARGIN.right);
+  const top = visible.y0 + visible.height * SAFE_MARGIN.top;
+  const bottom = visible.y0 + visible.height * (1 - SAFE_MARGIN.bottom);
+  return { left, right, top, bottom, width: right - left, height: bottom - top, cx: (left + right) / 2, cy: (top + bottom) / 2 };
+}
+
+/**
+ * The camera for one `Frame` (from `frameRoute`, reused for its sizing only
+ * — see the class doc comment): a zoom and a screen-space centre such that
+ * the frame's own box — already padded by `frameRoute`'s own
+ * `PAD_FRACTION` — lands entirely inside `safeBox(visibleWindow(...))`, not
+ * the whole viewBox. `targetX`/`targetY` are the frame's centre in this
+ * map's raw, uncorrected world (the `lngScale` correction undone, per the
+ * class doc comment); `cx`/`cy` are where that centre is drawn on screen —
+ * the safe box's own centre, not the viewBox's.
+ *
+ * A pure function of the frame and the container's own CSS size, so it can
+ * be tested without rendering anything: hand it a `Frame` and a size and
+ * check where a point projects.
+ */
+export function cameraFor(
+  frame: Frame,
+  containerWidth: number,
+  containerHeight: number,
+): { zoom: number; targetX: number; targetY: number; cx: number; cy: number } {
+  const safe = safeBox(visibleWindow(containerWidth, containerHeight));
+  const targetX = (frame.x + frame.w / 2) / frame.lngScale;
+  const targetY = frame.y + frame.h / 2;
+  const zoom = Math.min(safe.width / (frame.w / frame.lngScale), safe.height / frame.h);
+  return { zoom, targetX, targetY, cx: safe.cx, cy: safe.cy };
+}
+
+/** Where a raw (uncorrected) world point lands on screen for a given camera. */
+export function projectCamera(camera: { zoom: number; targetX: number; targetY: number; cx: number; cy: number }, x: number, y: number): [number, number] {
+  return [camera.cx + (x - camera.targetX) * camera.zoom, camera.cy + (y - camera.targetY) * camera.zoom];
+}
+
+/**
  * The map behind the show: the trip's own basemap, a camera framed to
  * whichever leg or stop is on screen, and — while a leg is playing — the
  * vehicle actually travelling along it.
@@ -1385,10 +1456,21 @@ function activeLegPoints(places: PlaceView[], activeIndex: number, travelling: b
  * `lngScale` correction is undone (divided back out of x) to land the answer
  * back in this map's own raw, uniform-scale world before it is used —
  * `frame.w`/`frame.h` become the zoom, `frame.x + frame.w/2` (undone) and
- * `frame.y + frame.h/2` become the pan target. Before this a single
- * `ZOOM = 3.4` constant framed every leg the same way regardless of size, so
- * `alps-2024` — four passes inside 68 km — collapsed to a point at the same
- * zoom a transcontinental flight used. Because the effective zoom now varies
+ * `frame.y + frame.h/2` become the pan target (`cameraFor`). Before this a
+ * single `ZOOM = 3.4` constant framed every leg the same way regardless of
+ * size, so `alps-2024` — four passes inside 68 km — collapsed to a point at
+ * the same zoom a transcontinental flight used.
+ *
+ * **Framed into `safeBox()`, not the whole viewBox.** A first cut fit the
+ * frame into the full 1000×500 viewBox and review found a leg routinely
+ * left one end under the title block or the transport controls — the show's
+ * own chrome sits over a fixed fraction of every side but the right one, and
+ * fitting a frame into the whole room says nothing about which corner is
+ * under the furniture. `cameraFor` fits it into `safeBox()` instead — the
+ * viewBox minus `SAFE_MARGIN` — and centres it there rather than at the
+ * viewBox's own centre.
+ *
+ * Because the effective zoom now varies
  * by orders of magnitude between legs, every size on this map is drawn in
  * *screen* pixels via `px()` below rather than a raw map unit — a marker
  * sized in raw units came out huge at a tight per-leg zoom, the bug this
@@ -1417,15 +1499,42 @@ export function SlideMap({
   const worldLand = useWorldLand();
   const pts = places.map((p) => (isPlottable(p) ? project(p.lat, p.lng) : null));
 
+  // How big this map is actually drawn, in CSS pixels — needed to know how
+  // much of the fixed 1000×500 viewBox `preserveAspectRatio="xMidYMid
+  // slice"` is actually cropping away (`visibleWindow`, inside `cameraFor`).
+  // Same "measure after mount" shape `WorldMap`'s own `drawnWidth` uses, and
+  // for the same reason it needs no hydration-safe default here: `SlideShow`
+  // is `dynamic(..., { ssr: false })`, so there is no server-rendered value
+  // to disagree with.
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [containerSize, setContainerSize] = useState({ width: 1280, height: 720 });
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) setContainerSize({ width, height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const frame = useMemo(
     () => frameRoute(activeLegPoints(places, activeIndex, travelling)),
     [places, activeIndex, travelling],
   );
-  // Undoing the frame's own longitude correction — see the class doc comment
-  // above for why this camera's coordinate space is not a `Frame`'s.
-  const targetX = (frame.x + frame.w / 2) / frame.lngScale;
-  const targetY = frame.y + frame.h / 2;
-  const zoom = Math.min(MAP_VIEWBOX.width / (frame.w / frame.lngScale), MAP_VIEWBOX.height / frame.h);
+  // zoom, targetX/Y (the frame's centre, `lngScale` undone) and cx/cy (where
+  // that centre lands on screen — `safeBox()`'s own centre, not the
+  // viewBox's) — see `cameraFor`'s doc comment.
+  const { zoom, targetX, targetY, cx, cy } = cameraFor(frame, containerSize.width, containerSize.height);
+  // Only for the active stop's own label, below, to flip sides near the
+  // safe box's own right edge — the same "would this name run off the
+  // edge" question `TripMap`'s own `runsOff` asks, against this map's own
+  // safe box rather than its frame.
+  const safe = useMemo(
+    () => safeBox(visibleWindow(containerSize.width, containerSize.height)),
+    [containerSize.width, containerSize.height],
+  );
 
   // Screen pixels, the same convention `px` in `WorldMap`/`TripMap` uses —
   // simplified for this map's own fixed viewBox (see the class doc comment):
@@ -1433,11 +1542,9 @@ export function SlideMap({
   // its CSS size, so only the camera's own zoom needs dividing out.
   const px = useCallback((n: number) => n / zoom, [zoom]);
 
-  const cx = MAP_VIEWBOX.width / 2;
-  const cy = MAP_VIEWBOX.height / 2;
-
   return (
     <svg
+      ref={svgRef}
       viewBox={`0 0 ${MAP_VIEWBOX.width} ${MAP_VIEWBOX.height}`}
       // Forces the dark `--map-*` tokens regardless of the reader's own
       // theme (docs/plans/map-redesign.md §1, "Accent": "The slideshow uses
@@ -1547,6 +1654,43 @@ export function SlideMap({
             />
           );
         })}
+
+        {/* The active stop's own name, the same halo technique `TripMap`
+            uses (labelStop/labelStopHalo) — B2424 review found a map of
+            unlabelled numbered dots read as an abstraction with the reader's
+            own theme's land/sea contrast doing all the work; the caption
+            outside the SVG already names the place, but the map itself
+            should too. Just the active stop, not all four — the others are
+            already fainter, and every name at once is the clutter the plan
+            doc's "quiet" label rule warns against. */}
+        {(() => {
+          const active = pts[activeIndex];
+          const place = places[activeIndex];
+          if (!active || !place) return null;
+          const [x, y] = active;
+          // Same threshold shape as `TripMap`'s own `runsOff`: roughly
+          // 0.55 em per character, checked against this map's own safe
+          // box rather than its frame — B2424 review found "Bangkok" run
+          // off a phone's own narrower safe box on a transcontinental leg.
+          const runsOff = x + px(16) + px(14) * 0.62 * place.location.length > safe.right;
+          return (
+            <text
+              x={x + (runsOff ? -px(16) : px(16))}
+              y={y + px(5)}
+              textAnchor={runsOff ? "end" : "start"}
+              fontSize={px(14)}
+              fontWeight={700}
+              fill={mapStyle.labelStop}
+              stroke={mapStyle.labelStopHalo}
+              strokeWidth={px(3)}
+              paintOrder="stroke"
+              pointerEvents="none"
+              className="font-display"
+            >
+              {place.location}
+            </text>
+          );
+        })()}
 
         {/* The leg being flown right now — the vehicle itself, falling back
             to a direction arrow when the day carries no transport mode
