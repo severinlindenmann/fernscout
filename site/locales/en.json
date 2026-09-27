@@ -3982,8 +3982,6 @@
   "readers.group.links": "Links you’ve shared",
   "readers.group.revoked": "Access taken away ({count})",
   "readers.group.revokedTitle": "Access taken away",
-  "readers.ownDetailsMoved": "Your own name, phone and address are now under Settings.",
-  "readers.ownDetailsLink": "Open Settings",
   "readers.role.reader": "Reader",
   "readers.role.buddyOf": "Buddy · {trip}",
   "readers.role.wantsToRead": "wants to read",

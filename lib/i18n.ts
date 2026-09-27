@@ -2406,8 +2406,6 @@ export type TranslationKey =
   | "readers.menu.takeAway"
   | "readers.more"
   | "readers.noGuestTrip"
-  | "readers.ownDetailsLink"
-  | "readers.ownDetailsMoved"
   | "readers.reach.email"
   | "readers.reach.postal"
   | "readers.role.buddyOf"

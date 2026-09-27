@@ -3982,8 +3982,6 @@
   "readers.group.links": "Geteilte Links",
   "readers.group.revoked": "Zugang entzogen ({count})",
   "readers.group.revokedTitle": "Zugang entzogen",
-  "readers.ownDetailsMoved": "Dein eigener Name, Telefon und Adresse sind jetzt in den Einstellungen.",
-  "readers.ownDetailsLink": "Einstellungen öffnen",
   "readers.role.reader": "Leser",
   "readers.role.buddyOf": "Reisegefährte · {trip}",
   "readers.role.wantsToRead": "möchte mitlesen",

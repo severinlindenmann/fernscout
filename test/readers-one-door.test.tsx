@@ -197,10 +197,9 @@ describe("the page: two doors, then the groups", () => {
     button(dict["readers.sendAgain"]);
   });
 
-  test("the owner's own details are pointed to under Settings, not shown", () => {
+  test("no signpost to a Settings page — B2462 moved the owner's own details to /me itself", () => {
     render([]);
-    const link = Array.from(container!.querySelectorAll("a")).find((a) => a.textContent === dict["readers.ownDetailsLink"]);
-    expect(link?.getAttribute("href")).toBe("/alex/studio/journal#own-details");
+    expect(Array.from(container!.querySelectorAll("a")).some((a) => a.getAttribute("href")?.includes("own-details"))).toBe(false);
   });
 });
 

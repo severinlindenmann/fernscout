@@ -3983,8 +3983,6 @@
   "readers.group.links": "Megosztott linkek",
   "readers.group.revoked": "Megvont hozzáférés ({count})",
   "readers.group.revokedTitle": "Megvont hozzáférés",
-  "readers.ownDetailsMoved": "A saját neved, telefonszámod és címed mostantól a Beállításokban van.",
-  "readers.ownDetailsLink": "Beállítások megnyitása",
   "readers.role.reader": "Olvasó",
   "readers.role.buddyOf": "Útitárs · {trip}",
   "readers.role.wantsToRead": "olvasni szeretne",

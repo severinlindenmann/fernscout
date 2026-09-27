@@ -253,13 +253,6 @@ export default function ReadersAdmin({
           <ReaderGroup title={t("readers.group.revokedTitle")} rows={split.revoked} kind="revoked" env={env} />
         </details>
       )}
-
-      <p className="mt-10 text-sm text-ink-secondary">
-        {t("readers.ownDetailsMoved")}{" "}
-        <a className="font-semibold text-ink-strong underline underline-offset-2" href={`/${username}/studio/journal#own-details`}>
-          {t("readers.ownDetailsLink")}
-        </a>
-      </p>
     </div>
   );
 }

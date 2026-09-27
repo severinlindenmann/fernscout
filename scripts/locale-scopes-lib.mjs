@@ -97,7 +97,6 @@ export const SCOPES = {
   // Components that translate from a `dictionary`/`dictionaries` prop.
   contactManage: { files: ["components/ContactManage.tsx"], at: ["app/[user]/me/page.tsx"] },
   readersAdmin: { files: ["components/studio/readers/ReadersAdmin.tsx"], at: ["app/[user]/studio/readers/page.tsx"] },
-  ownDetails: { files: ["components/studio/readers/OwnDetails.tsx"], at: ["app/[user]/studio/journal/page.tsx"] },
 };
 
 /** The files Next renders for a route segment — never a `route.ts`, which
