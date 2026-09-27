@@ -21,6 +21,12 @@ import { translateIn } from "../locales";
 import { sendMail } from "../mail";
 import { renderMail, type MailBlock } from "../mail/template";
 import type { Mail, MailAttachment } from "../mail/types";
+import type { Composition } from "../messages/previews/types";
+
+/** `news.mail` is always mail — the narrower slice of `Composition` this
+ * module hands back so a caller may read `.content` without a channel
+ * check it already knows the answer to. */
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { contentTypeFor, resolveMediaFile, resizedCopy } from "../media";
 import { serverSite } from "../site";
 import { peopleOf } from "../tripPeople";
@@ -303,6 +309,77 @@ async function photoAttachment(
   };
 }
 
+/**
+ * The day letter's composition — pure, B2493. Everything a real send has
+ * already resolved (the localised title/lead, the meta line, whether a
+ * manage link exists) comes in as a param; nothing here reads a file, a
+ * grant or a session, so `lib/messages/previews/digest.ts` can call it with
+ * `SAMPLE` values and get the exact wording `sendDayLetter` would mail. The
+ * one thing a preview cannot show is the inline photograph — that needs a
+ * real file on disk (`photoAttachment`) — so a preview simply has no
+ * `photoBlock`, which is a real day letter with no picture, not a made-up
+ * one.
+ */
+export function composeDayLetter(input: {
+  locale: Locale;
+  journalTitle: string;
+  dayTitle: string;
+  lead: string;
+  metaParts: string[];
+  mapUrl: string | null;
+  dayUrl: string;
+  recipientName: string | null;
+  /** Undefined for the owner's own copy — there is nothing to unsubscribe
+   * from one's own journal. */
+  unsubscribeUrl: string | undefined;
+  photoBlock?: Extract<MailBlock, { kind: "image" }>;
+}): MailComposition {
+  const { locale } = input;
+  const blocks: MailBlock[] = [];
+  if (input.recipientName) {
+    blocks.push({
+      kind: "paragraph",
+      text: translateIn(locale, "digest.greeting", { name: input.recipientName }),
+    });
+  }
+
+  if (input.photoBlock) blocks.push(input.photoBlock);
+
+  blocks.push({ kind: "meta", text: input.metaParts.join(" · ") });
+  blocks.push({ kind: "paragraph", text: input.lead });
+
+  if (input.mapUrl) {
+    blocks.push({ kind: "item", title: translateIn(locale, "dayMail.map"), href: input.mapUrl });
+  }
+
+  blocks.push({ kind: "button", text: translateIn(locale, "dayMail.button"), href: input.dayUrl });
+
+  // The owner has no manage token — there is no preference to change and
+  // nothing to unsubscribe from one's own journal — and their copy is a
+  // receipt, not a subscription they asked for. B1133: the contact footer
+  // ("you asked to be kept posted") is false for them, so they get their own.
+  const why = input.unsubscribeUrl
+    ? translateIn(locale, "digest.footer", { site: input.journalTitle })
+    : translateIn(locale, "dayMail.ownerFooter", { site: input.journalTitle });
+
+  return {
+    channel: "mail",
+    subject: translateIn(locale, "dayMail.subject", { title: input.journalTitle, day: input.dayTitle }),
+    content: {
+      template: "news.mail",
+      preheader: input.dayTitle,
+      title: input.dayTitle,
+      blocks,
+      why,
+      ...(input.unsubscribeUrl
+        ? { manage: { text: translateIn(locale, "contact.unsubscribe"), href: input.unsubscribeUrl } }
+        : {}),
+      locale,
+      journalTitle: input.journalTitle,
+    },
+  };
+}
+
 async function renderDayLetter(
   trip: Trip,
   entry: Entry,
@@ -332,26 +409,9 @@ async function renderDayLetter(
     if (amount > 0) metaParts.push(formatMoney(amount, currency));
   }
 
-  const blocks: MailBlock[] = [];
-  if (recipient.name) {
-    blocks.push({
-      kind: "paragraph",
-      text: translateIn(locale, "digest.greeting", { name: recipient.name }),
-    });
-  }
-
   const photo = await photoAttachment(trip, entry, title, recipient.reader);
-  if (photo) blocks.push(photo.block);
-
-  blocks.push({ kind: "meta", text: metaParts.join(" · ") });
-  blocks.push({ kind: "paragraph", text: lead });
 
   const mapUrl = mapUrlFor(entry.lat, entry.lng);
-  if (mapUrl) {
-    blocks.push({ kind: "item", title: translateIn(locale, "dayMail.map"), href: mapUrl });
-  }
-
-  blocks.push({ kind: "button", text: translateIn(locale, "dayMail.button"), href: url });
 
   // One manage line now, not two (B2440): the one-click stop link, which is
   // also what `List-Unsubscribe` points at — the preferences page a reader
@@ -362,28 +422,25 @@ async function renderDayLetter(
     ? unsubscribeUrlFor(base, trip.username, recipient.manageToken, "mail")
     : undefined;
 
-  // The owner has no manage token — there is no preference to change and
-  // nothing to unsubscribe from one's own journal — and their copy is a
-  // receipt, not a subscription they asked for. B1133: the contact footer
-  // ("you asked to be kept posted") is false for them, so they get their own.
-  const why = recipient.manageToken
-    ? translateIn(locale, "digest.footer", { site: user.title })
-    : translateIn(locale, "dayMail.ownerFooter", { site: user.title });
+  const composed = composeDayLetter({
+    locale,
+    journalTitle: user.title,
+    dayTitle: title,
+    lead,
+    metaParts,
+    mapUrl,
+    dayUrl: url,
+    recipientName: recipient.name,
+    unsubscribeUrl: unsubscribe,
+    photoBlock: photo?.block,
+  });
+  const content = composed.content;
 
   return renderMail(
     recipient.email,
-    translateIn(locale, "dayMail.subject", { title: user.title, day: title }),
+    composed.subject,
     {
-      template: "news.mail",
-      preheader: title,
-      title,
-      blocks,
-      why,
-      ...(unsubscribe
-        ? { manage: { text: translateIn(locale, "contact.unsubscribe"), href: unsubscribe } }
-        : {}),
-      locale,
-      journalTitle: user.title,
+      ...content,
       ...(photo ? { attachments: [photo.attachment] } : {}),
     },
     trip.username,

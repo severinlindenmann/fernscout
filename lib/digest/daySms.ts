@@ -11,6 +11,7 @@ import { balanceOf, refund, spend } from "../credits";
 import { AS_AUTHOR, getEntryBySlug } from "../entries";
 import { contactsWithReadGrant } from "../grants";
 import { translateIn } from "../locales";
+import type { Composition, PreviewLocale } from "../messages/previews/types";
 import { maskNumber, toE164 } from "../phone";
 import { maySeePhoto, type ReaderLevel } from "../photos";
 import { serverSite } from "../site";
@@ -115,6 +116,22 @@ export type DaySmsOutcome =
       balance?: number;
     };
 
+/** `news.sms`'s composition — pure, B2493. */
+export function composeDaySms(
+  input: { tripTitle: string; dayTitle: string; url: string; stopUrl: string },
+  locale: PreviewLocale,
+): Composition {
+  return {
+    channel: "sms",
+    text: translateIn(locale, "daySms.body", {
+      trip: capText(input.tripTitle, 60),
+      day: capText(input.dayTitle, 60),
+      url: input.url,
+      stop: input.stopUrl,
+    }),
+  };
+}
+
 export async function sendDaySms(owner: string, ref: string, slug: string): Promise<DaySmsOutcome> {
   const user = getUser(owner);
   const trip = getTrip(ref);
@@ -145,12 +162,11 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
     // Capped (security review L2): one credit buys a text of a segment or
     // two, whatever the titles are. `s=sms` (B2442) — never "reply STOP":
     // an alphanumeric sender id cannot receive replies.
-    const body = translateIn(recipient.locale, "daySms.body", {
-      trip: capText(trip.title, 60),
-      day: capText(entry.title, 60),
-      url,
-      stop: recipient.stop,
-    });
+    const composed = composeDaySms(
+      { tripTitle: trip.title, dayTitle: entry.title, url, stopUrl: recipient.stop },
+      recipient.locale as PreviewLocale,
+    );
+    const body = "text" in composed ? composed.text : "";
     try {
       await sendSms({ to: recipient.to, body, template: "news.sms", owner: trip.username });
       sent.push({ to: recipient.to });

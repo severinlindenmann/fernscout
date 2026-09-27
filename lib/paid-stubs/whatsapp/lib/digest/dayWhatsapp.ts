@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars -- a stub keeps the real signature and ignores its arguments */
 // Public stub: WhatsApp is not included in this build, so a day is never
 // announced over it — the same outcome the real sender gives with it off.
+import type { Composition } from "@/lib/messages/previews/types";
 type DayWhatsappSkipReason =
   | "unknown_trip"
   | "unknown_day"
@@ -29,4 +30,24 @@ export async function sendDayWhatsapp(
   _options: { resend?: boolean } = {},
 ): Promise<DayWhatsappOutcome> {
   return { ok: false, reason: "whatsapp_off" };
+}
+
+export function dayWhatsappParams(_input: {
+  recipientName: string;
+  tripTitle: string;
+  tripId: string;
+  dayTitle: string;
+  dayDate: string;
+  manageUrl: string;
+  manageLink: boolean;
+}): string[] {
+  return [];
+}
+
+export function composeDayWhatsappPreview(
+  _input: { recipientName: string; tripTitle: string; tripId: string; dayTitle: string; dayDate: string; manageUrl: string },
+  _locale: string,
+  _fallbackLocale?: string,
+): Composition {
+  return { channel: "wa", text: "WhatsApp is not included in this build — nothing would be sent." };
 }
