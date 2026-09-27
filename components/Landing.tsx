@@ -4,17 +4,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   AgentBlock,
-  AgentDisclosure,
   Colophon,
-  DocsLink,
-  LandingHero,
-  LandingPitch,
-  LandingSteps,
   PublicJournals,
-  ReaderInvite,
   SiteHeader,
   type PublicJournal,
 } from "@/components/LandingSections";
+import SignedOut, { ReaderStrip, type InviteCta, type NavLink } from "@/components/landing/SignedOut";
+import type { DemoDay } from "@/lib/demoDay";
 import SignedInHome from "@/components/home/SignedInHome";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import ServerChoice from "@/components/ServerChoice";
@@ -62,15 +58,19 @@ export default function Landing({
   legal,
   codeMinutes,
   helperEnabled = false,
-  whatsappNumber,
   appStoreUrl,
   appWaitlistAvailable = false,
   postcardsEnabled = false,
   photobookEnabled = false,
   signupEnabled = false,
   pricing,
-  orgsBand,
   orgsLinks,
+  demo,
+  inviteCta = "welcome",
+  planPoint,
+  planFaq,
+  printPrices,
+  orgs,
 }: {
   siteName: string;
   docUrl: string;
@@ -98,12 +98,6 @@ export default function Landing({
    * bring-your-own instruction box, further down either way. Defaults to
    * off, which is every instance's answer today. */
   helperEnabled?: boolean;
-  /**
-   * This instance's own `wa.me` number, resolved server-side —
-   * `whatsappDisplayNumber()`, B1310. Absent means the whole instance has
-   * none configured, and `LandingHero` renders nothing for it.
-   */
-  whatsappNumber?: string;
   /** B2341. Both resolved server-side in `app/page.tsx` and handed straight
    *  to `LandingHero`'s own `AppWaitlistDoor`. */
   appStoreUrl?: string;
@@ -127,11 +121,20 @@ export default function Landing({
    * arrives as an element rather than as data. `null` on an instance with
    * credits switched off, where nothing costs anything. */
   pricing?: ReactNode;
-  /** The schools and tour-operator offer — B2450. Both rendered by the page
-   * from `paid/orgs` and handed over like `pricing`; `null` in a public
-   * build. The band sits above the colophon, the links in the header. */
-  orgsBand?: ReactNode;
+  /** "Schools · Operators" for the signed-in header — B2450. */
   orgsLinks?: ReactNode;
+  /** The same two doors as data, for the signed-out nav and footer — B2506.
+   * Empty in a public build. */
+  orgs?: NavLink[];
+  /** A real published day for the hero — `lib/demoDay.ts`, B2506. */
+  demo?: DemoDay | null;
+  /** Which door the primary button opens — see `SignedOut`. */
+  inviteCta?: InviteCta;
+  /** Plan facts and today's print prices, as data from `paid/credits` —
+   * absent in a public build or with credits off. B2506. */
+  planPoint?: string | null;
+  planFaq?: { q: string; a: string }[];
+  printPrices?: { label: string; price: string }[];
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("unknown");
@@ -290,84 +293,52 @@ export default function Landing({
   }
 
   return (
-    <div className="min-h-full bg-surface-subtle">
-      <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
-        {header}
-        {/*
-          The reader's half of the page, and it comes first — B427.
-
-          Two people arrive at the bare domain and only one of them was ever
-          addressed here. The card names the other one in their own words
-          ("a guest, or you were on the trip yourself") so they can recognise
-          themselves without knowing what a journal, a trip or a grant is, and
-          the form replaces it in place rather than moving them to another page:
-          somebody who has already lost one link should not be asked to follow
-          another.
-        */}
-        {signingIn ? (
-          <IdentitySignIn
-            codeMinutes={codeMinutes}
-            // The cookie is set by the server and this page renders from it, so
-            // a reload rather than a state flip — the same reason `GuestSignIn`
-            // reloads. What comes back is the signed-in order of this page.
-            onDone={() => window.location.reload()}
-          />
-        ) : (
-          offerSignIn && <ReaderInvite onSignIn={() => setSigningIn(true)} />
-        )}
-        {phase === "unknown" && expected ? (
-          /* A browser that was signed in a moment ago, waiting on the fetch.
-             Two grey blocks rather than the hero: showing the pitch here and
-             swapping it out is the flash this exists to prevent. Cream-200
-             against a cream-100 ground, not cream-100 against itself. */
-          <div aria-hidden className="mt-6 animate-pulse space-y-4">
-            <div className="h-9 w-2/3 rounded bg-surface-muted" />
-            <div className="h-24 rounded-xl bg-surface-muted" />
-            <div className="h-24 rounded-xl bg-surface-muted" />
-          </div>
-        ) : (
-          <>
-            <LandingHero
-              helperEnabled={helperEnabled}
-              whatsappNumber={whatsappNumber}
-              appStoreUrl={appStoreUrl}
-              appWaitlistAvailable={appWaitlistAvailable}
-            />
-            {/* Directly under the hero — B1711. The hero says a day goes in;
-                this says what comes out of it, which is the half of the
-                product the page never mentioned. Signed-out only: somebody
-                who already owns a journal here is not being sold one. */}
-            <LandingPitch postcards={postcardsEnabled} photobook={photobookEnabled} />
-            {/* Only when the helper is on — with it off there is no other
-                door, so this material stays where it is, open, on the first
-                screen (B732). */}
-            {helperEnabled ? (
-              <AgentDisclosure docUrl={docUrl} agentUrl={agentUrl} />
-            ) : (
-              // B751: belongs here unconditionally. With the helper off there
-              // is no other door on this instance at all — this block *is*
-              // the way in, not a second offer beside one.
-              <>
-                <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
-                <LandingSteps />
-              </>
-            )}
-            {/* Below the pitch and above the journals: what it costs is the
-                second question somebody asks, and the answer belongs before
-                they go looking at other people's holidays. Inside this
-                branch rather than beside it, so it is not sitting under the
-                skeleton while a signed-in reader's own page loads. B840. */}
-            {pricing}
-          </>
-        )}
-        {publicList}
-        <DocsLink />
-        {orgsBand}
-        {colophon}
-        {/* Inside the iPhone app only, and only once we know nobody is
-            signed in: point the app at the reader's own server. */}
-        {phase === "out" && <ServerChoice signedIn={false} />}
-      </main>
-    </div>
+    <>
+      <SignedOut
+        siteName={siteName}
+        locales={locales}
+        // The reader's way in, first and slim — B427's fork, redrawn by
+        // B2506. The form replaces the strip in place rather than moving
+        // them to another page.
+        top={
+          signingIn ? (
+            <div className="mx-auto max-w-2xl px-4 py-6">
+              <IdentitySignIn
+                codeMinutes={codeMinutes}
+                // The cookie is set by the server and this page renders from
+                // it, so a reload rather than a state flip.
+                onDone={() => window.location.reload()}
+              />
+            </div>
+          ) : (
+            offerSignIn && <ReaderStrip onSignIn={() => setSigningIn(true)} />
+          )
+        }
+        // A browser that was signed in a moment ago, waiting on the fetch:
+        // grey blocks rather than the pitch, which would flash and vanish.
+        skeleton={phase === "unknown" && expected}
+        onSignIn={() => setSigningIn(true)}
+        helperEnabled={helperEnabled}
+        docUrl={docUrl}
+        agentUrl={agentUrl}
+        appStoreUrl={appStoreUrl}
+        appWaitlistAvailable={appWaitlistAvailable}
+        postcards={postcardsEnabled}
+        photobook={photobookEnabled}
+        demo={demo}
+        inviteCta={inviteCta}
+        planPoint={planPoint}
+        planFaq={planFaq}
+        printPrices={printPrices}
+        pricing={pricing}
+        orgs={orgs}
+        repository={repository}
+        credit={credit}
+        legal={legal}
+      />
+      {/* Inside the iPhone app only, and only once we know nobody is
+          signed in: point the app at the reader's own server. */}
+      {phase === "out" && <ServerChoice signedIn={false} />}
+    </>
   );
 }

@@ -16,6 +16,8 @@
 /* The schools and tour-operator pages (B2450) live only in the private
    paid/ checkout; without it this path does not exist and adds nothing. */
 @source "../paid/orgs";
+/* The pricing section and /prices (B2506, B2509), same arrangement. */
+@source "../paid/credits";
 @plugin "@tailwindcss/typography";
 
 :root {
