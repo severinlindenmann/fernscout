@@ -396,11 +396,18 @@ export default function TripStory({
   /** The permalink a step lives at — the same address the effect above
    * writes into the bar when the step is reached. B2477. */
   const dayHref = (day: DaySummary) => (trip ? trip.href(`/day/${day.slug}`) : hashForDay(day));
-  const stepHref = (i: number) => {
-    const s = steps[i];
-    if (!s) return undefined;
-    if (s.kind === "hero") return trip ? trip.href("/") : undefined;
-    return dayHref(index[s.dayIndex]);
+  /** Where Back or Continue lands, as a page: the nearest day (or the
+   *  overview) that way. A travel leg has no address of its own — it shows
+   *  the day it arrives at — so it is stepped over; otherwise Back from a day
+   *  would link to the page it is on. */
+  const pagerHref = (delta: -1 | 1) => {
+    for (let i = stepIndex + delta; i >= 0 && i < steps.length; i += delta) {
+      const s = steps[i];
+      if (s.kind === "travel") continue;
+      if (s.kind === "hero") return trip ? trip.href("/") : undefined;
+      return dayHref(index[s.dayIndex]);
+    }
+    return undefined;
   };
 
   const nav: PagerNavState = {
@@ -412,8 +419,8 @@ export default function TripStory({
     tripOver: over,
     onBack: () => goStep(-1),
     onNext: () => goStep(1),
-    backHref: stepHref(stepIndex - 1),
-    nextHref: stepHref(stepIndex + 1),
+    backHref: pagerHref(-1),
+    nextHref: pagerHref(1),
   };
 
   const stepDay = useCallback(

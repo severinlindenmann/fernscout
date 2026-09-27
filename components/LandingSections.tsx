@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { posterSrc } from "./mediaLoader";
-import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import {
   BookOpen,
   ChevronDown,
@@ -876,7 +875,9 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
                   <img
                     // The sized variant, not the stored photograph — B2480:
                     // a 112px-tall card was downloading a 172 KB original.
-                    src={posterSrc(journal.cover, POSTER_WIDTH.GRID)}
+                    // 480 (one of WARM_WIDTHS, so already made) is ~22 KB and
+                    // still denser than a phone-wide card at 1x.
+                    src={posterSrc(journal.cover, 480)}
                     alt=""
                     loading="lazy"
                     className="h-28 w-full object-cover"
