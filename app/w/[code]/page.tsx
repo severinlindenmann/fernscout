@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
 import { guestLanding, isOpenToApprovedGuest } from "@/lib/access";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
-import { pickLocale } from "@/lib/contacts/locale";
+import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
 import { buddyTripOf, maskEmail, maskMobile, ownerShortName, resolveWelcomeCode } from "@/lib/contacts/welcome";
 import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
@@ -65,7 +65,11 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const landing = guestLanding(owner, trips);
   if (signedIn && contact.onboardedAt) redirect(landing);
 
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  // B2456: the browser first, as on /j. The guide runs only until the person
+  // is onboarded (then it redirects), so this never overrides a language they
+  // later set on their own page; the stored locale is only a guess before then
+  // (an owner's default, or whatever an earlier code request carried).
+  const locale = pickLocale(fromAcceptLanguage((await headers()).get("accept-language")), contact.locale, user.defaultLocale);
   const trip = await buddyTripOf(owner, contact.id);
   const hasEmail = contact.email.includes("@");
   const caps = {
