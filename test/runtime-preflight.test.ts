@@ -2,7 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { harnessSkillsLinkTarget, lockfileHash, parseWorktreeList } from "../scripts/worktree-bootstrap-lib.mjs";
+import {
+  harnessSkillsLinkTarget,
+  lockfileHash,
+  paidWorktreePlan,
+  parseWorktreeList,
+} from "../scripts/worktree-bootstrap-lib.mjs";
 import { repositoryNodeError, requiredNodeVersion } from "../scripts/runtime-preflight.mjs";
 
 const roots: string[] = [];
@@ -73,5 +78,46 @@ describe("harnessSkillsLinkTarget", () => {
   it("does nothing when the worktree already tracks or links its own .claude/skills", () => {
     const present = new Set(["/harness/.claude/skills", "/harness/app/.claude/worktrees/wt/.claude/skills"]);
     expect(harnessSkillsLinkTarget("/harness/app", "/harness/app/.claude/worktrees/wt", (p) => present.has(p))).toBeNull();
+  });
+});
+
+describe("paidWorktreePlan", () => {
+  it("does nothing when the main checkout has no paid/ repo", () => {
+    const plan = paidWorktreePlan("/repo", "/repo/.claude/worktrees/wt", "wt", { exists: () => false });
+    expect(plan).toEqual({ action: "none", reason: "the main checkout has no paid/ repo" });
+  });
+
+  it("does nothing when this worktree already has its own paid/ worktree", () => {
+    const present = new Set(["/repo/paid", "/repo/.claude/worktrees/wt/paid"]);
+    const plan = paidWorktreePlan("/repo", "/repo/.claude/worktrees/wt", "wt", { exists: (p) => present.has(p) });
+    expect(plan).toEqual({ action: "none", reason: "this worktree already has its own paid/ worktree" });
+  });
+
+  it("adds a new branch off main when the paid repo has none of this name yet", () => {
+    const plan = paidWorktreePlan("/repo", "/repo/.claude/worktrees/wt", "wt", {
+      exists: (p) => p === "/repo/paid",
+      branchExists: () => false,
+    });
+    expect(plan).toEqual({
+      action: "add",
+      mainPaid: "/repo/paid",
+      targetPaid: "/repo/.claude/worktrees/wt/paid",
+      branch: "wt",
+      args: ["worktree", "add", "-b", "wt", "/repo/.claude/worktrees/wt/paid", "main"],
+    });
+  });
+
+  it("reuses an existing branch of the same name in the paid repo", () => {
+    const plan = paidWorktreePlan("/repo", "/repo/.claude/worktrees/wt", "wt", {
+      exists: (p) => p === "/repo/paid",
+      branchExists: () => true,
+    });
+    expect(plan).toEqual({
+      action: "add",
+      mainPaid: "/repo/paid",
+      targetPaid: "/repo/.claude/worktrees/wt/paid",
+      branch: "wt",
+      args: ["worktree", "add", "/repo/.claude/worktrees/wt/paid", "wt"],
+    });
   });
 });
