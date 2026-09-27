@@ -982,6 +982,8 @@
       "agent.chatOwn1",
       "agent.chatOwn2",
       "agent.why",
+      "appWaitlist.consent",
+      "appWaitlist.consentLink",
       "appWaitlist.done",
       "appWaitlist.emailLabel",
       "appWaitlist.error",
