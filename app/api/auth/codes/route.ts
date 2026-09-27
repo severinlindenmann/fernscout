@@ -249,7 +249,7 @@ async function handleIdentity(
           { kind: "paragraph", text: translateIn(locale, "mail.identityLasts") },
           { kind: "paragraph", text: translateIn(locale, "mail.identityIgnore") },
         ],
-        footer: translateIn(locale, "mail.identityFooter", vars),
+        why: translateIn(locale, "mail.identityFooter", vars),
       }),
     );
   } catch (err) {
@@ -398,7 +398,7 @@ async function handleJournal(
             { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
             { kind: "paragraph", text: t("mail.signinIgnore") },
           ],
-          footer: t("mail.identityFooter", vars),
+          why: t("mail.identityFooter", vars),
         },
         username,
       ),

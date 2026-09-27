@@ -454,7 +454,7 @@ async function sendDeletionMail(input: {
         preheader: t(isJournal ? "del.journalIntro" : "del.tripIntro", counts),
         title: t(isJournal ? "del.journalTitle" : "del.tripTitle"),
         blocks,
-        footer: t("del.footer", counts),
+        why: t("del.footer", counts),
       },
       summary.username,
     ),
@@ -596,7 +596,7 @@ async function sendExportMail(input: {
     renderMail(
       input.email,
       t("exp.subject", vars),
-      { template: "notice.export", preheader: t("exp.intro", vars), title: t("exp.title"), blocks, footer: t("exp.footer", vars) },
+      { template: "notice.export", preheader: t("exp.intro", vars), title: t("exp.title"), blocks, why: t("exp.footer", vars) },
       input.username,
     ),
     "an export link the owner has already asked for",

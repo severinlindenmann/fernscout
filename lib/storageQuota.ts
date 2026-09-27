@@ -343,7 +343,7 @@ async function warnOwner(
             href: `${serverSite().url}/${username}/studio/account`,
           },
         ],
-        footer: t("mail.storageFooter", vars),
+        why: t("mail.storageFooter", vars),
       },
       username,
     ),

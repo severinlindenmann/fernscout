@@ -605,7 +605,6 @@
   "del.working": "Wird gelöscht …",
   "digest.footer": "Du bekommst das, weil du {site} um Neuigkeiten gebeten hast.",
   "digest.greeting": "Hallo {name},",
-  "digest.preferences": "Sprache ändern oder keine E-Mails mehr bekommen",
   "docs.agentsGroup": "Zum Lesen für Agenten",
   "docs.api.blurb": "Die v2-API, für deinen eigenen Agenten oder deine Skripte — jeder Endpunkt, erzeugt aus den Schemas, gegen die der Server prüft.",
   "docs.api.card": "Darauf aufbauen",
@@ -4193,5 +4192,6 @@
   "op.spendButton": "Betreiberseite öffnen",
   "op.spendFooter": "Wird einmal pro Tag von der nächtlichen Prüfung gesendet. Setze costs.alertDailyRappen auf 0, um dies zu stoppen.",
   "op.messageFooter": "Vom Betreiber von {site}, zu deinem Journal {user}. Antworte auf diese Mail, um zu antworten.",
-  "code.phoneVerify": "{code} ist dein Code für {site}. Er läuft in 30 Minuten ab."
+  "code.phoneVerify": "{code} ist dein Code für {site}. Er läuft in 30 Minuten ab.",
+  "mail.whyLabel": "Warum du das bekommst:"
 }

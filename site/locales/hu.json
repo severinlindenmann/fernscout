@@ -605,7 +605,6 @@
   "del.working": "Törlés…",
   "digest.footer": "Azért kapod ezt, mert kérted, hogy {site} tájékoztasson.",
   "digest.greeting": "Szia {name}!",
-  "digest.preferences": "Nyelv módosítása vagy leiratkozás",
   "docs.agentsGroup": "Ügynököknek olvasásra",
   "docs.api.blurb": "A v2 API a saját ügynöködnek vagy szkriptjeidnek — minden végpont abból a sémából generálva, amely alapján a szerver ellenőriz.",
   "docs.api.card": "Építs rá",
@@ -4194,5 +4193,6 @@
   "op.spendButton": "Uzemeltetoi oldal megnyitasa",
   "op.spendFooter": "Naponta egyszer kuldve, az ejszakai ellenorzes altal. Allitsd a costs.alertDailyRappen erteket 0-ra a leallitashoz.",
   "op.messageFooter": "A(z) {site} uzemeltetojetol, a(z) {user} journalodrol. Valaszolj erre a levelre.",
-  "code.phoneVerify": "{code} a(z) {site} kodod. 30 percen belul lejar."
+  "code.phoneVerify": "{code} a(z) {site} kodod. 30 percen belul lejar.",
+  "mail.whyLabel": "Miért kaptad ezt:"
 }

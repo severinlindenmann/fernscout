@@ -350,7 +350,7 @@ async function startOwnerEmailVerification(
             { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailCodeWhat", vars) },
             { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailCodeIgnore") },
           ],
-          footer: translateIn(locale, "mail.identityFooter", vars),
+          why: translateIn(locale, "mail.identityFooter", vars),
         },
         user,
       ),

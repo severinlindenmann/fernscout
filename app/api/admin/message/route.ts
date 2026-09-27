@@ -103,7 +103,7 @@ export async function POST(request: Request) {
       // is the operator writing to them, and there is no operator-locale
       // setting to resolve, so it stays English (W44 D7 covers owner/reader/
       // stranger only). Still a real key, not a literal.
-      footer: translateIn("en", "op.messageFooter", { site: site.name, user: username }),
+      why: translateIn("en", "op.messageFooter", { site: site.name, user: username }),
     },
     username,
   );

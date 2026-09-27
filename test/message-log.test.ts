@@ -78,7 +78,7 @@ const CONTENT = {
   preheader: "your code",
   title: "your code",
   blocks: [{ kind: "paragraph" as const, text: "123456" }],
-  footer: "footer",
+  why: "why",
 };
 
 describe("message_log", () => {

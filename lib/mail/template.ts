@@ -1,4 +1,7 @@
-import type { TemplateId } from "../messages/registry";
+import "server-only";
+import { translateIn } from "../locales";
+import { templateDef, type TemplateId } from "../messages/registry";
+import { serverSite } from "../site";
 import type { Mail, MailAttachment } from "./types";
 
 /**
@@ -54,28 +57,35 @@ export type MailContent = {
   preheader: string;
   title: string;
   blocks: MailBlock[];
-  /** Small print under the rule: who this is from, how to stop it. */
-  footer: string;
-  unsubscribeUrl?: string;
   /**
-   * The unsubscribe link's label, in the recipient's language.
-   *
-   * Defaults to English because the transactional letters (a one-time code, a
-   * "you're in") are short and their footer is the only line in them a reader
-   * skims. The digest passes its own: it is written entirely in the reader's
-   * language, and an English "Stop these emails" at the bottom of a Hungarian
-   * mail is exactly the seam that makes somebody reach for the spam button
-   * instead of the link.
+   * The recipient's language — B2440. Used for exactly one thing this module
+   * decides on its own: the "Why you got this:" label ahead of `why`. Every
+   * other word in the letter is already in this language by the time it
+   * reaches here; a caller that resolved no locale at all gets English.
    */
-  unsubscribeLabel?: string;
+  locale?: string;
   /**
-   * The preferences page (ROADMAP D6), linked from every footer.
-   *
-   * Separate from `unsubscribeUrl` on purpose — see `unsubscribeUrlFor`. This
-   * one takes the reader to their details, where they can change their language
-   * or their address instead of leaving altogether.
+   * The journal this letter is about, for the header's right-hand word —
+   * reader mail (an invite, a day letter) names the journal; account mail
+   * (a sign-in code, a receipt) names the site instead, so this is left out
+   * for those.
    */
-  manageLink?: { text: string; href: string };
+  journalTitle?: string;
+  /**
+   * One sentence answering "why did I get this" — required, and rendered as
+   * **"Why you got this:"** (localized) followed by this text. Was `footer`
+   * before B2440; the wording at most call sites needed no change; only the
+   * label ahead of it and its family-gated presence did.
+   */
+  why: string;
+  /**
+   * The line under `why` for changing or stopping this stream — absent for
+   * `code` family mail, which never carries one (W44's letter table). Also
+   * what puts a `List-Unsubscribe` header on the message: the two travel
+   * together, since a mail with a visible stop line the header disagrees
+   * with is the one-click compliance gap the header exists to close.
+   */
+  manage?: { text: string; href: string };
   /** Backing bytes for every `{ kind: "image" }` block above — see
    * `lib/mail/types.ts`. Absent for every letter but the day-published one. */
   attachments?: MailAttachment[];
@@ -90,6 +100,8 @@ const RULE = "#e2e8f0";
 const MUTED = "#475569";
 const ACCENT = "#0369a1";
 const PAPER = "#fffaf0";
+/** The header's dot — the brand yellow, W44 D8. */
+const ACCENT_YELLOW = "#ffd23f";
 
 function escapeHtml(text: string): string {
   return text
@@ -240,6 +252,16 @@ export function renderMail(
   content: MailContent,
   username?: string,
 ): Mail {
+  const locale = content.locale ?? "en";
+  const site = serverSite();
+  // Code mail never carries a manage link or a List-Unsubscribe header — a
+  // family rule enforced here rather than trusted from every call site (W44
+  // "The letter"): a code mail whose recipient has not confirmed anything
+  // yet has nothing to be unsubscribed from.
+  const family = templateDef(content.template).family;
+  const manage = family === "code" ? undefined : content.manage;
+  const whyLabel = translateIn(locale, "mail.whyLabel");
+
   const html = [
     `<!doctype html><html><head><meta charset="utf-8">`,
     `<meta name="viewport" content="width=device-width,initial-scale=1"></head>`,
@@ -250,16 +272,23 @@ export function renderMail(
     `<tr><td align="center" style="padding:24px 16px">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;text-align:left;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">`,
     `<tr><td>`,
+    // The header — text wordmark and a yellow dot, drawn in HTML (a `<span>`
+    // with a background colour and border-radius). No `<img>`, no SVG:
+    // images are blocked by default in Outlook and neither client renders an
+    // inline SVG (W44 D8). On the right, the journal this letter is about,
+    // or the site itself for account mail with no journal to name.
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px">` +
+      `<tr><td style="font-size:14px;font-weight:700;color:${INK}">` +
+      `<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${ACCENT_YELLOW};` +
+      `margin-right:8px;vertical-align:middle"></span>${escapeHtml(site.name)}</td>` +
+      `<td align="right" style="font-size:13px;color:${MUTED}">${escapeHtml(content.journalTitle ?? site.name)}</td>` +
+      `</tr></table>`,
     `<h1 style="margin:0 0 20px;font-size:24px;line-height:1.25;color:${INK};font-weight:700">${escapeHtml(content.title)}</h1>`,
     ...content.blocks.map(blockHtml),
     `<hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0 16px">`,
-    `<p style="margin:0;font-size:14px;line-height:1.5;color:${MUTED}">${escapeHtml(content.footer)}`,
-    content.manageLink
-      ? `<br><a href="${escapeHtml(content.manageLink.href)}" style="color:${MUTED}">${escapeHtml(content.manageLink.text)}</a>`
-      : "",
-    content.unsubscribeUrl
-      ? `<br><a href="${escapeHtml(content.unsubscribeUrl)}" style="color:${MUTED}">${escapeHtml(content.unsubscribeLabel ?? "Stop these emails")}</a>`
-      : "",
+    `<p style="margin:0;font-size:14px;line-height:1.5;color:${MUTED}">` +
+      `<strong>${escapeHtml(whyLabel)}</strong> ${escapeHtml(content.why)}`,
+    manage ? `<br><a href="${escapeHtml(manage.href)}" style="color:${MUTED}">${escapeHtml(manage.text)}</a>` : "",
     `</p></td></tr></table></td></tr></table></body></html>`,
   ].join("");
 
@@ -270,20 +299,18 @@ export function renderMail(
     ...content.blocks.map(blockText),
     "",
     "--",
-    content.footer,
-    content.manageLink ? `${content.manageLink.text}: ${content.manageLink.href}` : "",
-    content.unsubscribeUrl
-      ? `${content.unsubscribeLabel ?? "Stop these emails"}: ${content.unsubscribeUrl}`
-      : "",
+    `${whyLabel} ${content.why}`,
+    manage ? `${manage.text}: ${manage.href}` : "",
   ]
     .filter((line) => line !== "")
     .join("\n");
 
   const headers: Record<string, string> = {};
-  if (content.unsubscribeUrl) {
+  if (manage) {
     // One-click unsubscribe. Required for bulk mail to stay out of spam, and
-    // it is the honest thing to offer anyway.
-    headers["List-Unsubscribe"] = `<${content.unsubscribeUrl}>`;
+    // it is the honest thing to offer anyway — never for code mail (gated
+    // above, with `manage`).
+    headers["List-Unsubscribe"] = `<${manage.href}>`;
     headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
   }
 

@@ -82,7 +82,7 @@ export async function checkSpendAlert(input: { dryRun?: boolean; now?: Date } = 
         },
         { kind: "button", text: t("op.spendButton"), href: `${site.url.replace(/\/$/, "")}/admin` },
       ],
-      footer: t("op.spendFooter"),
+      why: t("op.spendFooter"),
     }),
   );
   if (!result) return { sent: false, reason: "mail is switched off on this instance", date: day.date, rappen: day.rappen };

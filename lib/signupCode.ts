@@ -49,7 +49,7 @@ export async function sendSignupCode(email: string, locale: string): Promise<boo
           { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
           { kind: "paragraph", text: t("mail.signupIgnore") },
         ],
-        footer: t("mail.identityFooter", vars),
+        why: t("mail.identityFooter", vars),
       }),
     );
   } catch (err) {

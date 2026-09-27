@@ -111,7 +111,7 @@ export async function addToWaitlist(
       preheader: t("appWaitlist.mailSubject"),
       title: t("appWaitlist.mailSubject"),
       blocks,
-      footer: t("appWaitlist.mailFooter"),
+      why: t("appWaitlist.mailFooter"),
     }),
   ).catch((err) => {
     console.error(`[app-waitlist] confirmation mail to a waitlist entry could not be sent:`, err);

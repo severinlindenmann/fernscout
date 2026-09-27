@@ -108,7 +108,7 @@ async function notifyOldOwnerAddress(
             { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailMovedWhat", vars) },
             { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailMovedRevoked", vars) },
           ],
-          footer: translateIn(locale, "mail.identityFooter", vars),
+          why: translateIn(locale, "mail.identityFooter", vars),
         },
         user,
       ),

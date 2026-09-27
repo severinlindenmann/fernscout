@@ -591,7 +591,7 @@ export async function sendWelcome(input: {
           // The footer follows the body. An English "Sent by …" under a
           // Hungarian letter is the seam that sends somebody to the spam
           // button — the digest already learned this.
-          footer: t("welcome.footer", { site: site.name }),
+          why: t("welcome.footer", { site: site.name }),
         },
         input.username,
       ),

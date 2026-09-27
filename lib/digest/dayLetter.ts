@@ -6,7 +6,6 @@ import { isOpenToLink, isTestContent } from "../access";
 import {
   listContacts,
   manageTokenFor,
-  manageUrl,
   unsubscribeUrlFor,
 } from "../contacts";
 import { mayMailContact } from "../contacts/mail";
@@ -354,9 +353,10 @@ async function renderDayLetter(
 
   blocks.push({ kind: "button", text: translateIn(locale, "dayMail.button"), href: url });
 
-  const manage = recipient.manageToken
-    ? manageUrl(base, trip.username, recipient.manageToken)
-    : undefined;
+  // One manage line now, not two (B2440): the one-click stop link, which is
+  // also what `List-Unsubscribe` points at — the preferences page a reader
+  // could also reach from their own manage token is one press further on
+  // from there, not a second line here.
   const unsubscribe = recipient.manageToken
     ? unsubscribeUrlFor(base, trip.username, recipient.manageToken)
     : undefined;
@@ -365,7 +365,7 @@ async function renderDayLetter(
   // nothing to unsubscribe from one's own journal — and their copy is a
   // receipt, not a subscription they asked for. B1133: the contact footer
   // ("you asked to be kept posted") is false for them, so they get their own.
-  const footer = recipient.manageToken
+  const why = recipient.manageToken
     ? translateIn(locale, "digest.footer", { site: user.title })
     : translateIn(locale, "dayMail.ownerFooter", { site: user.title });
 
@@ -377,12 +377,12 @@ async function renderDayLetter(
       preheader: title,
       title,
       blocks,
-      footer,
-      ...(manage
-        ? { manageLink: { text: translateIn(locale, "digest.preferences"), href: manage } }
+      why,
+      ...(unsubscribe
+        ? { manage: { text: translateIn(locale, "contact.unsubscribe"), href: unsubscribe } }
         : {}),
-      unsubscribeUrl: unsubscribe,
-      unsubscribeLabel: translateIn(locale, "contact.unsubscribe"),
+      locale,
+      journalTitle: user.title,
       ...(photo ? { attachments: [photo.attachment] } : {}),
     },
     trip.username,

@@ -203,7 +203,7 @@ if (site.url) {
   });
 }
 
-const footer = `Sent by scripts/alert.sh, from the unit's ${succeeded ? "OnSuccess=" : "OnFailure="}.`;
+const why = `Sent by scripts/alert.sh, from the unit's ${succeeded ? "OnSuccess=" : "OnFailure="}.`;
 
 /** The plain-text part, which is also what `--dry-run` prints and what lands in
  * a terminal mail client. `renderMail` builds it from the same blocks, so there
@@ -222,7 +222,7 @@ if (dryRun) {
         preheader: opening,
         title,
         blocks,
-        footer,
+        why,
       }),
     ),
   );
@@ -258,7 +258,7 @@ try {
     renderMail(
       target.to,
       subject,
-      { template: "op.alert", preheader: opening, title, blocks, footer },
+      { template: "op.alert", preheader: opening, title, blocks, why },
       target.username,
     ),
     "an operator alert about the machine, not a letter from the journal",
