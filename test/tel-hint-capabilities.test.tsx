@@ -18,22 +18,22 @@ const en = dictionaryFor("en");
 describe("telHintKey", () => {
   test("names both when both capabilities are on", () => {
     expect(telHintKey("reader", true, true)).toBe("contact.telHint");
-    expect(telHintKey("admin", true, true)).toBe("contact.adminTelHint");
+    expect(telHintKey("admin", true, true)).toBe("contact.ownerTelHint");
   });
 
   test("names only postcards when WhatsApp is off", () => {
     expect(telHintKey("reader", true, false)).toBe("contact.telHintPostcardsOnly");
-    expect(telHintKey("admin", true, false)).toBe("contact.adminTelHintPostcardsOnly");
+    expect(telHintKey("admin", true, false)).toBe("contact.ownerTelHintPostcardsOnly");
   });
 
   test("names only WhatsApp when postcards is off", () => {
     expect(telHintKey("reader", false, true)).toBe("contact.telHintWhatsappOnly");
-    expect(telHintKey("admin", false, true)).toBe("contact.adminTelHintWhatsappOnly");
+    expect(telHintKey("admin", false, true)).toBe("contact.ownerTelHintWhatsappOnly");
   });
 
   test("falls back to B303's wording when neither is on", () => {
     expect(telHintKey("reader", false, false)).toBe("contact.telHintNone");
-    expect(telHintKey("admin", false, false)).toBe("contact.adminTelHintNone");
+    expect(telHintKey("admin", false, false)).toBe("contact.ownerTelHintNone");
   });
 });
 
@@ -57,11 +57,11 @@ describe("the phone hint on the owner's add-a-guest form (GuestForm)", () => {
 
   test("the phone hint does not mention postcards with postcards off", () => {
     const html = render(false, true);
-    expect(html).toContain(en["contact.adminTelHintWhatsappOnly"]);
+    expect(html).toContain(en["contact.ownerTelHintWhatsappOnly"]);
     // B383: the address fieldset's own hint legitimately still says
     // "postcard" here — it explains that the address is kept regardless —
     // so this checks the *phone* hint specifically, not the whole page.
-    expect(html).not.toContain(en["contact.adminTelHint"]);
-    expect(html).not.toContain(en["contact.adminTelHintPostcardsOnly"]);
+    expect(html).not.toContain(en["contact.ownerTelHint"]);
+    expect(html).not.toContain(en["contact.ownerTelHintPostcardsOnly"]);
   });
 });

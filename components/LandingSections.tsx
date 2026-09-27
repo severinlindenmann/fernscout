@@ -989,7 +989,7 @@ export function Colophon({
             reassurance for somebody who thought to ask, not a selling point.
           */}
           <p className="mt-2 text-xs leading-5 text-ink-secondary">
-            {t("landing.hostedIn")} · {t("landing.noTracking")}
+            {t("landing.noTracking")}
             {legal && (
               <>
                 {" · "}

@@ -14,7 +14,7 @@ import { dictionaryFor } from "@/lib/locales";
  * alone.
  *
  * The owner's form is talking about somebody else, not itself, so it gets
- * its own key — `contact.adminTelHint` — the same split `adminAddressHint`
+ * its own key — `contact.ownerTelHint` — the same split `adminAddressHint`
  * already has for the address fieldset.
  */
 
@@ -66,10 +66,10 @@ describe("the phone field says what it is for, everywhere it is asked", () => {
       />,
     );
     expect(html).toContain('id="guest-tel"');
-    expect(html).toContain(en["contact.adminTelHint"]);
+    expect(html).toContain(en["contact.ownerTelHint"]);
     // Reuses telHint's own wording nowhere near as literally as it first
     // looks: the two keys carry different strings, and this proves the
     // owner-facing one is the one actually rendered here, not a fallback.
-    expect(en["contact.adminTelHint"]).not.toBe(en["contact.telHint"]);
+    expect(en["contact.ownerTelHint"]).not.toBe(en["contact.telHint"]);
   });
 });

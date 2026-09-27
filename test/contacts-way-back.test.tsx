@@ -139,6 +139,6 @@ describe("the owner's contacts page", () => {
 
   test("still renders the contacts admin itself", async () => {
     const html = await render();
-    expect(html).toContain(dictionaryFor("en")["contact.adminTitle"]);
+    expect(html).toContain(dictionaryFor("en")["contact.ownerTitle"]);
   });
 });

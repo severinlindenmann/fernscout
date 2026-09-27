@@ -334,7 +334,7 @@ describe("German address is consistently informal (B432)", () => {
 
 /**
  * B2153 introduced a blanket Swiss-ss rewrite before the owner's decision 19
- * (docs/audits/2026-09-25-docs-audit.md) was known: de.json uses ß, not
+ * (the harness's docs audit, decision 19) was known: de.json uses ß, not
  * Swiss ss. B2416 reverted it. A blanket regex for "ss" would false-positive
  * on every word that legitimately keeps it (dass, muss, Schluss, …); the
  * only thing worth pinning is that the specific words standard German

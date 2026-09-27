@@ -157,7 +157,7 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
   // ordinary card, same as every other not-yet-built flow.
   test("location carries no reason — it is an ordinary card, not a known-bug one", () => {
     const el = render(FULL_BASE);
-    expect(el.textContent).toContain("Your route");
+    expect(el.textContent).toContain("Your GPS history");
     expect(el.textContent).not.toContain("our bug");
     expect(el.textContent).not.toMatch(/Android/i);
   });
@@ -613,7 +613,7 @@ describe("B2304 — during a trip, at most three rows", () => {
       },
     });
     const rows = el.querySelectorAll("[data-during-trip-rows] a");
-    // Waiting + Share a day + A postcard (FULL_BASE has postcards on).
+    // Waiting + Publish + A postcard (FULL_BASE has postcards on).
     expect(rows).toHaveLength(3);
     expect(rows[0].textContent).toContain("Photos waiting for words");
     expect(rows[0].textContent).toContain("2 days");
@@ -632,7 +632,7 @@ describe("B2304 — during a trip, at most three rows", () => {
     expect(rows.length).toBe(3);
     expect(rows.map((r) => r.textContent?.split("\n")[0])).toEqual([
       expect.stringContaining("Photos waiting for words"),
-      expect.stringContaining("Share a day"),
+      expect.stringContaining("Publish"),
       expect.stringContaining("A postcard"),
     ]);
     expect(el.querySelector("[data-during-trip-rows] [data-fact]")?.textContent).toBe("2 drafts");

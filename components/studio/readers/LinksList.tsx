@@ -127,7 +127,7 @@ export default function LinksList({
               )}
               {failed === invite.id && (
                 <p role="alert" className="mt-2 text-sm text-coral-600">
-                  {t("contact.adminActionFailed")}
+                  {t("contact.ownerActionFailed")}
                 </p>
               )}
             </li>
