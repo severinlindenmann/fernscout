@@ -83,7 +83,7 @@ describe("/docs/hosting sources", () => {
     const fs = await import("node:fs");
     const real = fs.default.readFileSync;
     // Only the markdown sources vanish; config and locale files still load.
-    const read = vi.spyOn(fs.default, "readFileSync").mockImplementation(((file: fs.PathOrFileDescriptor, ...rest: unknown[]) => {
+    const read = vi.spyOn(fs.default, "readFileSync").mockImplementation(((file: unknown, ...rest: unknown[]) => {
       if (String(file).endsWith(".md")) throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
       return (real as (...a: unknown[]) => unknown)(file, ...rest);
     }) as typeof real);

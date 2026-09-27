@@ -17,7 +17,7 @@ import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
-import { requestLocale } from "@/lib/locales";
+import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedTripTitle } from "@/lib/i18n";
 import type { UserConfig } from "@/lib/config";
 import type { Trip } from "@/lib/types";
@@ -191,6 +191,8 @@ async function TripStoryBody({
         entries={getAllEntries(trip.ref)}
         site={site}
         authors={travellersOf(userConfig, trip).map((p) => p.name)}
+        dayBase={`/${trip.username}/trips/${trip.id}`}
+        inLanguage={defaultLocaleFor(trip.username)}
       />
       <TripStory
         index={index}

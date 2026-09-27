@@ -3,7 +3,7 @@ import { recordTripView } from "@/lib/analytics/record";
 import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
-import { requestLocale } from "@/lib/locales";
+import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { buildStoryProps } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
@@ -86,6 +86,8 @@ async function CurrentStoryBody({
         entries={getAllEntries(tripId)}
         site={site}
         authors={travellersOf(userConfig, trip).map((p) => p.name)}
+        dayBase={site.base}
+        inLanguage={defaultLocaleFor(site.username)}
       />
       <TripStory
         index={index}

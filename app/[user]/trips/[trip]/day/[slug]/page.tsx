@@ -153,6 +153,9 @@ async function TripDayBody({
         entry={entry}
         site={site}
         authors={travellersOf(userConfig, trip).map((p) => p.name)}
+        url={`/${trip.username}/trips/${trip.id}/day/${entry.slug}`}
+        trip={{ title: trip.title, path: `/${trip.username}/trips/${trip.id}` }}
+        inLanguage={defaultLocaleFor(trip.username)}
       />
       <TripStory
         index={index}

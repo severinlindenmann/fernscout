@@ -153,6 +153,9 @@ async function CurrentDayBody({
         entry={entry}
         site={site}
         authors={travellersOf(userConfig, trip).map((p) => p.name)}
+        url={`${site.base}/day/${entry.slug}`}
+        trip={{ title: trip.title, path: site.base }}
+        inLanguage={defaultLocaleFor(site.username)}
       />
       <TripStory
         index={index}

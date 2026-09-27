@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Landing from "@/components/Landing";
+import { LandingStructuredData } from "@/components/StructuredData";
 import Pricing from "@paid/credits/components/Pricing";
 import HeaderLinks from "@paid/orgs/components/HeaderLinks";
 import LandingBand from "@paid/orgs/components/LandingBand";
@@ -88,6 +89,13 @@ export default async function Root() {
 
   return (
     <>
+      <LandingStructuredData
+        name={site.name}
+        url={site.url}
+        description={translateIn(locale, "landing.metaDescription")}
+        repository={site.repository}
+        languages={installedLocales()}
+      />
       {/*
         The operator's own notice, when there is one — site.banner in the
         server config. Coral and not yellow, like every other notice here:
