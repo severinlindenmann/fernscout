@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadServerConfig } from "@/lib/config";
-import { LOCALE_COOKIE, PATH_HEADER } from "@/lib/requestKeys";
+import { LANGUAGE_PAGES, isPathLocale, splitLanguagePath } from "@/lib/languagePaths";
+import { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER } from "@/lib/requestKeys";
 import { formatRequestLine } from "@/lib/requestLog";
 import { journalTombstone, tripTombstone, type Tombstone } from "@/lib/tombstones";
 
@@ -173,6 +174,22 @@ export default function proxy(request: NextRequest) {
   // on the hot path this ticket was explicitly told not to slow down.
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
+  // Only this proxy says which language an address asked for — B2473.
+  request.headers.delete(PATH_LOCALE_HEADER);
+
+  // `/de/schools` is `/schools` in German: rewritten, with the language in a
+  // header the locale resolver reads before any cookie. An address under
+  // /de/ that is not a listed page falls through to the journal route and
+  // 404s — `de`, `fr` and `it` are reserved usernames.
+  const language = splitLanguagePath(pathname);
+  if (language) {
+    request.headers.set(PATH_HEADER, language.path);
+    request.headers.set(PATH_LOCALE_HEADER, language.locale);
+    const url = request.nextUrl.clone();
+    url.pathname = language.path;
+    return NextResponse.rewrite(url, { request });
+  }
+
   const gone = goneFor(pathname);
   if (gone) return gone;
 
@@ -182,7 +199,25 @@ export default function proxy(request: NextRequest) {
   const tag = asked?.trim().toLowerCase();
   const locale = tag && LANGUAGE_TAG.test(tag) ? tag.slice(0, 2) : null;
 
-  if (!locale) return NextResponse.next({ request });
+  // A page with its own address in the asked language: send the link there,
+  // once and for good, so `?lang=de` is not a second URL for /de/schools. The
+  // cookie still goes with it, as it always did.
+  if (locale && isPathLocale(locale) && LANGUAGE_PAGES[pathname]?.includes(locale)) {
+    const url = request.nextUrl.clone();
+    url.searchParams.delete("lang");
+    url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+    const response = NextResponse.redirect(url, 301);
+    response.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+    return response;
+  }
+
+  if (!locale) {
+    const response = NextResponse.next({ request });
+    // The root address of a page with language versions renders in the
+    // reader's cookie or device language, so a cache must key on both.
+    if (LANGUAGE_PAGES[pathname]) response.headers.set("Vary", "Accept-Language, Cookie");
+    return response;
+  }
 
   // Whether this journal actually offers the language is decided downstream,
   // where its config is readable; middleware only carries the request.

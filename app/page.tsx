@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageAlternates } from "@/lib/pageLanguage";
 import Landing from "@/components/Landing";
 import { LandingStructuredData } from "@/components/StructuredData";
 import Pricing from "@paid/credits/components/Pricing";
@@ -48,12 +49,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await requestLocale();
   const title = translateIn(locale, "landing.metaTitle", { name: serverSite().name });
   const description = translateIn(locale, "landing.metaDescription");
+  const alternates = await pageAlternates("/");
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: "/" },
+    alternates,
     // B2479 — the card's image is still app/opengraph-image.tsx.
-    openGraph: { type: "website", url: "/", locale: ogLocale(locale), title, description },
+    openGraph: { type: "website", url: alternates.canonical, locale: ogLocale(locale), title, description },
   };
 }
 

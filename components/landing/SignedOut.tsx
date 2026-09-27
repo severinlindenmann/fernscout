@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/LanguageLink";
 import type { ReactNode } from "react";
 import { Menu } from "lucide-react";
 import AppWaitlistDoor from "@/components/AppWaitlistDoor";
