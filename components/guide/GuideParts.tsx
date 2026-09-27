@@ -186,6 +186,8 @@ export type Tick = {
   /** B2453/B2454: a small "recommended" pill beside the label — email, the
    * free channel, carries one on the notify step and the reach step's tabs. */
   badge?: string;
+  /** B2505: a small drawing before the label, as the incentive on a channel. */
+  icon?: ReactNode;
 };
 
 /** One tick per channel this server offers; a channel whose address is
@@ -209,6 +211,7 @@ export function Ticks({ ticks, onChange }: { ticks: Tick[]; onChange: (key: stri
           />
           <span>
             <span className="flex flex-wrap items-center gap-2 font-semibold text-ink-strong">
+              {tick.icon}
               {tick.label}
               {tick.badge && (
                 <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-950">{tick.badge}</span>
@@ -278,6 +281,18 @@ export function PhoneArt() {
       <circle cx="179" cy="62" r="2.5" className="fill-ink-strong" />
       <circle cx="244" cy="28" r="18" className="fill-yellow-400 stroke-ink-strong" strokeWidth="2.5" />
       <path d="M236 28h16" className="stroke-navy-900" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** B2505: a stamped card, the size of a line of text — beside "WhatsApp ·
+ * digital postcards" on the notify step. */
+export function PostcardIcon() {
+  return (
+    <svg viewBox="0 0 24 18" className="h-4 w-5 shrink-0" aria-hidden data-testid="postcard-icon">
+      <rect x="1" y="1" width="22" height="16" rx="2.5" className="fill-none stroke-current" strokeWidth="1.6" />
+      <rect x="15.5" y="3.5" width="5" height="5.5" rx="0.8" className="fill-yellow-400" />
+      <path d="M4 13.5l3.5-4 2.5 2.5 2-2 3 3.5" className="fill-none stroke-current" strokeWidth="1.4" strokeLinejoin="round" />
     </svg>
   );
 }

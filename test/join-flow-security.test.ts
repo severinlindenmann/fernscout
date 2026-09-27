@@ -447,3 +447,70 @@ describe("B2454 — somebody who joined by mobile can add an email on the notify
     expect(row?.name).toBe("Tomas Text");
   });
 });
+
+describe("B2503 — the confirm button in a join code mail carries on in the join guide", () => {
+  test("pressing it lands back on /j/<code>, and the guide then files the request", async () => {
+    await signInOwner();
+    const code = await newLink({ kind: "guest", name: "Group" });
+    jar.cookies = {};
+    const email = "linky@example.test";
+    await joinStep(code, { action: "send", name: "Lina Link", channel: "email", value: email });
+    const token = mails(email).at(-1)?.match(/\/ana\/s\/([A-Za-z0-9_-]+)/)?.[1];
+    expect(token).toBeTruthy();
+
+    const { POST } = await import("@/app/api/auth/links/redeem/route");
+    const res = await POST(post("/api/auth/links/redeem", { user: OWNER, token, for: "read" }));
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { next?: string }).next).toBe(`/j/${code}`);
+
+    const { getContactByEmail } = await import("@/lib/contacts");
+    expect(await getContactByEmail(OWNER, email)).toBeNull();
+    const joined = await joinStep(code, { action: "join", name: "Lina Link" });
+    expect(joined.status).toBe(200);
+    expect((await getContactByEmail(OWNER, email))?.status).toBe("pending");
+  });
+});
+
+describe("B2505 — a waiting reader leaves a WhatsApp number for digital postcards", () => {
+  async function waitingByEmail(name: string, email: string) {
+    await signInOwner();
+    const code = await newLink({ kind: "guest", name: "Group" });
+    jar.cookies = {};
+    await joinStep(code, { action: "send", name, channel: "email", value: email });
+    const verified = await joinStep(code, { action: "verify", name, channel: "email", value: email, code: codeMailed(email) });
+    expect(verified.json).toMatchObject({ status: "waiting" });
+    const { getContactByEmail } = await import("@/lib/contacts");
+    return { code, id: (await getContactByEmail(OWNER, email))!.id };
+  }
+
+  test("the number is kept with the request, unproved, and nothing is texted", async () => {
+    const { code, id } = await waitingByEmail("Wilma Wa", "wilma-wa@example.test");
+    const before = texts().length;
+    const saved = await joinStep(code, { action: "save", wantsEmailDigest: true, wantsWhatsapp: true, tel: "+41 79 555 88 11" });
+    expect(saved.status).toBe(200);
+    const after = await contact(id);
+    expect(after.status).toBe("pending");
+    expect(after.wantsWhatsapp).toBe(true);
+    expect(after.postalAddress?.tel?.replace(/\D/g, "")).toBe("41795558811");
+    expect(after.phoneProvenAt).toBeNull();
+    expect(texts().length).toBe(before);
+  });
+
+  test("an address saved on the step before survives the number", async () => {
+    const { code, id } = await waitingByEmail("Adam Addr", "adam@example.test");
+    await joinStep(code, { action: "save", address: { line1: "Hauptstrasse 1", postcode: "3000", city: "Bern", country: "CH" } });
+    await joinStep(code, { action: "save", wantsWhatsapp: true, tel: "+41 79 555 88 12" });
+    const after = await contact(id);
+    expect(after.postalAddress?.line1).toBe("Hauptstrasse 1");
+    expect(after.postalAddress?.city).toBe("Bern");
+    expect(after.wantsWhatsapp).toBe(true);
+  });
+
+  test("a number that cannot be read is refused, not stored", async () => {
+    const { code, id } = await waitingByEmail("Nora Nonum", "nora@example.test");
+    const saved = await joinStep(code, { action: "save", wantsWhatsapp: true, tel: "call me" });
+    expect(saved.status).toBe(400);
+    expect(saved.json).toMatchObject({ error: "invalid_phone" });
+    expect((await contact(id)).wantsWhatsapp).toBe(false);
+  });
+});
