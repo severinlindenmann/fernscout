@@ -108,7 +108,7 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
         return answer({ ok: true, ...(await settle(invite, proved.contact, proved.subject, null)) });
       }
       const email = normaliseEmail(value);
-      const session = isEmail(email) ? await verifyGuestCode(owner, email, text("code")) : null;
+      const session = isEmail(email) ? await verifyGuestCode(owner, email, text("code"), request.headers.get("accept-language")) : null;
       if (!session) return answer({ error: "invalid_code" }, 401);
       await setGuestSessionCookies(session.token, session.subject, request.headers.get("user-agent"));
       return answer({ ok: true, ...(await joinProved(invite, email, { name, locale })) });
