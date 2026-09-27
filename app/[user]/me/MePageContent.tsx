@@ -11,6 +11,7 @@ import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
 import OfflineTrips from "@/components/OfflineTrips";
 import NeverAskNextDay from "@/components/NeverAskNextDay";
+import NewsConsentOff from "@/components/NewsConsentOff";
 import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import ThisPhone from "@/components/studio/ThisPhone";
@@ -218,6 +219,7 @@ export default function MePageContent({
   username,
   siteUrl,
   manage,
+  newsConsent = false,
   sessionsShared = null,
   consentAgreedAt,
   consentRows = [],
@@ -240,6 +242,8 @@ export default function MePageContent({
   siteUrl: string;
   /** Present only when this reader has a contact record to edit. */
   manage?: ManagePanel;
+  /** B2453 — this address said yes to news from Fernscout; show the way out. */
+  newsConsent?: boolean;
   /** Whether codes can be issued at all, which is what signing in needs. */
   /** Whether the operator may read this journal's conversations, or `null`
    *  where there is no helper on it to have any — B976. */
@@ -647,6 +651,8 @@ export default function MePageContent({
         {/* B2464 — the day-end "Get the next day?" card's own permanent,
             reversible off switch, beside the journal-specific one above. */}
         <NeverAskNextDay />
+        {/* B2453 — withdrawing "News from Fernscout", shown only while given. */}
+        {newsConsent && <NewsConsentOff journal={username} />}
 
         {/*
           What this journal sends a model or the operator, and what to do
