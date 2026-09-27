@@ -136,8 +136,8 @@ only *buying* more of them costs money, and that part is hosted-only.
 > **printed photobooks**, **real postcards** to your readers' addresses,
 > **WhatsApp** (a guided assistant for people without an agent, and new-day
 > messages), and **buying credits** with Stripe. Those live in
-> a separate private repository. fernscout.ch is a hobby project run by one
-> person, with no uptime or support guarantee, and your journal stays plain
+> a separate private repository. fernscout.ch is run by one person, with
+> no uptime guarantee, and your journal stays plain
 > files you can export and move to your own instance at any time.
 
 ## Self-hosting

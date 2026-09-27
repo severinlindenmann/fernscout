@@ -529,6 +529,7 @@ const homeDoc = z.strictObject({
   devices: z.array(homeDevice),
 });
 const deviceRevoked = z.strictObject({ ok: z.literal(true), current: z.boolean() });
+const devicesRevoked = z.strictObject({ ok: z.literal(true), revoked: z.number().int().min(0) });
 
 // ── importing somebody's own data (B671) — gps and contacts only; a bank
 // statement moved to the media/statements doors in B1624. ────────────────
@@ -839,6 +840,21 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(200, homeDoc, "always 200 — `id: null` is a stranger, not a refusal"),
         ...noBodyResponse(405, "a verb this route does not answer"),
+      },
+    },
+  };
+  paths["/api/v2/me/devices"] = {
+    delete: {
+      summary:
+        "Sign out everywhere: end every browser sign-in this address holds — each device's identity and each " +
+        "journal's reader cookie. Agent keys and GPS tokens are not touched. Browser cookie only.",
+      responses: {
+        ...jsonResponse(200, devicesRevoked, "how many sign-ins ended; this browser's cookies are cleared too"),
+        ...refusalResponses([
+          ref("auth_disabled", 404),
+          ref("foreign_origin", 403),
+          ref("not_signed_in", 401),
+        ]),
       },
     },
   };

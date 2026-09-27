@@ -867,6 +867,23 @@ type MessageSwitchesTable = {
   updated_at: string;
 };
 
+/**
+ * "News from Fernscout" consent — B2453. One row per address, instance-wide,
+ * never per journal — see `047-news-consent`'s own note for why. Presence of
+ * the row is the consent itself.
+ */
+type NewsConsentTable = {
+  /** Normalised the same way `contacts.email_key` is. */
+  email: string;
+  /** Always `NO_JOURNAL` ("*") — instance state, see 048's note. */
+  owner_id: Generated<string>;
+  /** The exact copy shown when this was given — never rewritten by a later
+   * wording change, so an old consent stays provable as what it was. */
+  wording_key: string;
+  locale: string | null;
+  consented_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -900,6 +917,7 @@ export type Database = {
   message_log: MessageLogTable;
   invite_suppressions: InviteSuppressionsTable;
   message_switches: MessageSwitchesTable;
+  news_consent: NewsConsentTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -937,4 +955,5 @@ export const TABLE_NAMES = [
   "message_log",
   "invite_suppressions",
   "message_switches",
+  "news_consent",
 ] as const satisfies readonly (keyof Database)[];

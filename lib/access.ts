@@ -86,6 +86,19 @@ export function isOpenToApprovedGuest(trip: Trip): boolean {
   return isOpenToLink(trip) || trip.visibility === "guest";
 }
 
+/**
+ * Where the welcome guide sends a guest it has just let in (B2458): the trip
+ * `/<owner>` would show — the current one, else the newest past one, in
+ * `getTrips` order — but only among trips an approved guest may read, so a
+ * private newest trip never greets them with a refusal. With none, the trips
+ * list, which says so honestly.
+ */
+export function guestLanding(owner: string, trips: Trip[]): string {
+  const open = trips.filter(isOpenToApprovedGuest);
+  const trip = open.find((t) => t.status === "current") ?? open.find((t) => t.status === "past");
+  return trip ? `/${owner}/trips/${trip.id}` : `/${owner}/trips`;
+}
+
 /** Whether costs may be rendered for this viewer. */
 export function maySeeCosts(trip: Trip, isGuest: boolean): boolean {
   return trip.costsVisibility === "public" || isGuest;

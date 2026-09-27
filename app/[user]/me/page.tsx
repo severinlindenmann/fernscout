@@ -1,3 +1,4 @@
+import { hasNewsConsent } from "@/lib/newsConsent";
 import type { Metadata } from "next";
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { notFound } from "next/navigation";
@@ -141,6 +142,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       username={user}
       siteUrl={serverSite().url}
       manage={manage}
+      newsConsent={viewer.email ? await hasNewsConsent(viewer.email) : false}
       // Resolved here rather than guessed in the component: a capability is a
       // server ceiling and a journal opt-in, and the page was offering a door
       // that this journal had never opened. The panel used to take a second

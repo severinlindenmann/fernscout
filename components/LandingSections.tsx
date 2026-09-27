@@ -10,6 +10,7 @@ import {
   Mail,
   Mic,
 } from "lucide-react";
+import AccountChip from "@/components/AccountChip";
 import AppWaitlistDoor from "@/components/AppWaitlistDoor";
 import ChatVignette from "@/components/ChatVignette";
 import CopyLine from "@/components/CopyLine";
@@ -124,6 +125,7 @@ export function SiteHeader({
   admin,
   helperEnabled = false,
   onSignIn,
+  account,
   orgsLinks,
 }: {
   siteName: string;
@@ -131,6 +133,12 @@ export function SiteHeader({
   /** "Schools · Operators", rendered by the page from `paid/orgs` and handed
    * over like `Landing`'s `pricing` — B2450. Absent in a public build. */
   orgsLinks?: React.ReactNode;
+  /**
+   * The signed-in address, once `/api/v2/me/home` has said there is one —
+   * the chip to `/me`. Undefined on the server pass and for a stranger, for
+   * the same cacheability reason as `admin` below.
+   */
+  account?: string;
   /**
    * Whether this reader runs the instance — B746, placed here by B758.
    *
@@ -173,7 +181,10 @@ export function SiteHeader({
 }) {
   const { t } = useI18n();
   return (
-    <div className="flex items-start justify-between gap-4">
+    // Wraps rather than squeezes: operator word, account chip, theme and
+    // language do not all fit beside the site name at 360px, and a chip
+    // pushed off the edge is a door nobody finds.
+    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
       <div className="pt-3">
         <Kicker>{siteName}</Kicker>
       </div>
@@ -213,6 +224,7 @@ export function SiteHeader({
         )}
         <ThemeSwitcher subtle />
         <LocaleSwitcher locales={locales} subtle />
+        {account && <AccountChip email={account} />}
       </div>
     </div>
   );

@@ -36,11 +36,11 @@ export type HomeJournal = {
  * which B494 renders as a row rather than a card. A predicate rather than a
  * bare `filter`, so the card and its badge are typed against the four-value
  * union minus the one they cannot draw. */
-type MineJournal = HomeJournal & {
+export type MineJournal = HomeJournal & {
   role: Exclude<HomeJournal["role"], "admin">;
 };
 
-function isMine(journal: HomeJournal): journal is MineJournal {
+export function isMine(journal: HomeJournal): journal is MineJournal {
   return journal.role !== "admin";
 }
 
@@ -68,7 +68,7 @@ const TRIPS_SHOWN = 4;
  * the card away entirely, so those journals are rows under their own heading
  * and the heading says what the badge used to.
  */
-function RoleBadge({ role }: { role: MineJournal["role"] }) {
+export function RoleBadge({ role }: { role: MineJournal["role"] }) {
   const { t } = useI18n();
   const tone =
     role === "owner"

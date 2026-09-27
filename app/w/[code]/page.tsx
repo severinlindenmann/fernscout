@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
-import { isOpenToApprovedGuest } from "@/lib/access";
+import { guestLanding, isOpenToApprovedGuest } from "@/lib/access";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
-import { pickLocale } from "@/lib/contacts/locale";
+import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
 import { buddyTripOf, maskEmail, maskMobile, ownerShortName, resolveWelcomeCode } from "@/lib/contacts/welcome";
-import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
+import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrips } from "@/lib/trips";
+import { siteSummaryFor } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import WelcomeGuide, { type GuideDetails } from "./WelcomeGuide";
 
@@ -61,9 +62,15 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const { owner, contact } = found;
   const reader = await journalReader(owner);
   const signedIn = reader.contact?.id === contact.id;
-  if (signedIn && contact.onboardedAt) redirect(`/${owner}`);
+  const trips = getTrips(owner);
+  const landing = guestLanding(owner, trips);
+  if (signedIn && contact.onboardedAt) redirect(landing);
 
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  // B2456: the browser first, as on /j. The guide runs only until the person
+  // is onboarded (then it redirects), so this never overrides a language they
+  // later set on their own page; the stored locale is only a guess before then
+  // (an owner's default, or whatever an earlier code request carried).
+  const locale = pickLocale(fromAcceptLanguage((await headers()).get("accept-language")), contact.locale, user.defaultLocale);
   const trip = await buddyTripOf(owner, contact.id);
   const hasEmail = contact.email.includes("@");
   const caps = {
@@ -105,7 +112,19 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         firstName={(contact.name ?? "").trim().split(/\s+/)[0] ?? ""}
         kind={trip ? "buddy" : "reader"}
         trip={trip}
-        hasGuestTrip={getTrips(owner).some(isOpenToApprovedGuest)}
+        hasGuestTrip={trips.some(isOpenToApprovedGuest)}
+        landing={landing}
+        figures={siteSummaryFor(user, false).travellerFigures}
+        recent={
+          // B2457: only once this browser's session is this contact's — a
+          // forwarded link must not show which trips a journal has.
+          signedIn
+            ? trips
+                .filter((t) => isOpenToApprovedGuest(t) && t.status !== "upcoming")
+                .slice(0, 3)
+                .map((t) => ({ id: t.id, title: t.title, cover: t.cover ?? null, year: t.start.slice(0, 4) }))
+            : []
+        }
         signedIn={signedIn}
         onboarded={Boolean(contact.onboardedAt)}
         joined={(contact.createdVia ?? "").startsWith("invite:")}
@@ -117,6 +136,9 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         details={details}
         caps={caps}
         dictionary={dictionaryFor(locale, "guide")}
+        locale={locale}
+        locales={localesFor(owner)}
+        addressLookupEnabled={isEnabled("addressLookup", owner)}
       />
     </main>
   );

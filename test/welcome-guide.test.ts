@@ -12,7 +12,7 @@ import { writeTripFixture } from "./fixtures/content";
  * credits and WhatsApp off. Every code is read back out of what was "sent".
  */
 
-const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
+const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string>, accept: "" }));
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) => (jar.cookies[name] === undefined ? undefined : { value: jar.cookies[name] }),
@@ -20,7 +20,8 @@ vi.mock("next/headers", () => ({
       jar.cookies[name] = value;
     },
   }),
-  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.50" }),
+  headers: async () =>
+    new Headers({ "x-forwarded-for": "203.0.113.50", ...(jar.accept ? { "accept-language": jar.accept } : {}) }),
 }));
 
 const OWNER = "ana";
@@ -287,8 +288,10 @@ describe("the welcome guide — the reader's six screens", () => {
     expect(back.wantsPostcard).toBe(true);
     expect(back.onboardedAt).not.toBeNull();
 
-    // Runs once: the next visit goes straight to the journal.
-    expect(await redirectOf(() => guidePage(code))).toBe(`/${OWNER}`);
+    // Runs once: the next visit goes straight to the journal — to the newest
+    // trip a guest may read, and with only private trips here, to the list
+    // (B2458; it used to be the bare /<owner>, which shows a private trip).
+    expect(await redirectOf(() => guidePage(code))).toBe(`/${OWNER}/trips`);
   });
 
   test("skipping leaves the address and the channels empty", async () => {
@@ -445,5 +448,38 @@ describe("Readers: Let in, and inviting an import", () => {
     const asker = (await getContactByEmail(OWNER, "asker@example.test"))!;
     expect((await notify(asker.id, "self")).status).toBe(404);
     expect((await contact(asker.id)).status).toBe("pending");
+  });
+});
+
+describe("the welcome guide speaks the browser's language (B2456)", () => {
+  test("a German browser gets German even though the contact was stored in English", async () => {
+    const id = await addedId({ name: "Greta Sprache", email: "greta@example.test" });
+    const code = await welcomeCode(id);
+    jar.cookies = {};
+    jar.accept = "de-CH,de;q=0.9,en;q=0.5";
+    try {
+      const page = JSON.stringify(await guidePage(code));
+      expect(page).toContain('"lang":"de"');
+    } finally {
+      jar.accept = "";
+    }
+  });
+
+  test("with no Accept-Language the stored locale still decides", async () => {
+    const id = await addedId({ name: "Emil English", email: "emil@example.test" });
+    const code = await welcomeCode(id);
+    jar.cookies = {};
+    const page = JSON.stringify(await guidePage(code));
+    expect(page).toContain('"lang":"en"');
+  });
+});
+
+describe("the welcome shows no trips before the code (B2457)", () => {
+  test("a forwarded link carries no recent trips", async () => {
+    const id = await addedId({ name: "Walt Forward", email: "walt@example.test" });
+    const code = await welcomeCode(id);
+    jar.cookies = {};
+    const page = JSON.stringify(await guidePage(code));
+    expect(page).toContain('"recent":[]');
   });
 });

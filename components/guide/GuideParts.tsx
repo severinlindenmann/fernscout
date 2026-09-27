@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import AddressLookupField from "@/components/AddressLookupField";
+import CountryField from "@/components/CountryField";
 
 /**
  * The pieces the welcome guide (`/w/`) and the join flow (`/j/`) share —
@@ -85,22 +87,67 @@ export function CodeField({ id, label, value, onChange }: { id: string; label: s
 export type Address = { line1: string; postcode: string; city: string; country: string };
 export const EMPTY: Address = { line1: "", postcode: "", city: "", country: "" };
 
+/** B2452: street suggestions and a flag-and-name country picker, the same
+ * `AddressLookupField`/`CountryField` pair `ContactManage` already runs —
+ * wired in here once so both `/j` and `/w` get it. `enabled={false}` (the
+ * capability off) leaves the street field the plain input it always was;
+ * `CountryField` runs unconditionally, same as on `/me`. */
 export function AddressFields({
   value,
   onChange,
   labels,
+  enabled,
+  username,
+  locale,
+  locales,
 }: {
   value: Address;
   onChange: (next: Address) => void;
-  labels: { street: string; postcode: string; city: string; country: string };
+  labels: {
+    street: string;
+    postcode: string;
+    city: string;
+    country: string;
+    countrySearchPlaceholder: string;
+    countryNoMatches: string;
+    addressLookupAttribution: string;
+    addressLookupUnavailable: string;
+  };
+  /** `isEnabled("addressLookup", owner)`, from the page. */
+  enabled: boolean;
+  /** The journal's own username — `AddressLookupField`'s lookup is always
+   * against the owner's journal, never the person filling this in. */
+  username: string;
+  /** The form's own locale. */
+  locale: string;
+  /** The journal's own languages — `CountryField` resolves a legacy stored
+   * country string against these plus English. */
+  locales: string[];
 }) {
   const set = (key: keyof Address) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...value, [key]: e.target.value });
   return (
     <div className="flex flex-col gap-3 rounded-2xl border-2 border-yellow-400 bg-yellow-50 p-4">
-      <label className={LABEL}>
-        {labels.street}
-        <input className={FIELD} autoComplete="street-address" value={value.line1} onChange={set("line1")} />
-      </label>
+      <div>
+        <label className={LABEL} htmlFor="guide-address-line1">
+          {labels.street}
+        </label>
+        <AddressLookupField
+          id="guide-address-line1"
+          className={FIELD}
+          value={value.line1}
+          onChange={(line1) => onChange({ ...value, line1 })}
+          onPick={(suggestion) =>
+            onChange({ ...value, line1: suggestion.line1, postcode: suggestion.postcode, city: suggestion.city, country: suggestion.country })
+          }
+          enabled={enabled}
+          username={username}
+          locale={locale}
+          label={labels.street}
+          attribution={labels.addressLookupAttribution}
+          unavailable={labels.addressLookupUnavailable}
+          autoComplete="street-address"
+        />
+      </div>
       <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3">
         <label className={LABEL}>
           {labels.postcode}
@@ -111,15 +158,35 @@ export function AddressFields({
           <input className={FIELD} autoComplete="address-level2" value={value.city} onChange={set("city")} />
         </label>
       </div>
-      <label className={LABEL}>
-        {labels.country}
-        <input className={FIELD} autoComplete="country-name" value={value.country} onChange={set("country")} />
-      </label>
+      <div>
+        <label className={LABEL} htmlFor="guide-address-country">
+          {labels.country}
+        </label>
+        <CountryField
+          id="guide-address-country"
+          value={value.country}
+          locales={locales}
+          onChange={(country) => onChange({ ...value, country })}
+          label={labels.country}
+          searchPlaceholder={labels.countrySearchPlaceholder}
+          noMatches={labels.countryNoMatches}
+          locale={locale}
+        />
+      </div>
     </div>
   );
 }
 
-export type Tick = { key: string; label: string; hint: string; checked: boolean; disabled: boolean };
+export type Tick = {
+  key: string;
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled: boolean;
+  /** B2453/B2454: a small "recommended" pill beside the label — email, the
+   * free channel, carries one on the notify step and the reach step's tabs. */
+  badge?: string;
+};
 
 /** One tick per channel this server offers; a channel whose address is
  * missing is shown disabled, with the reason as its hint. */
@@ -141,7 +208,12 @@ export function Ticks({ ticks, onChange }: { ticks: Tick[]; onChange: (key: stri
             onChange={(e) => onChange(tick.key, e.target.checked)}
           />
           <span>
-            <span className="block font-semibold text-ink-strong">{tick.label}</span>
+            <span className="flex flex-wrap items-center gap-2 font-semibold text-ink-strong">
+              {tick.label}
+              {tick.badge && (
+                <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-950">{tick.badge}</span>
+              )}
+            </span>
             <span className="block text-sm text-ink-secondary">{tick.hint}</span>
           </span>
         </label>
@@ -181,10 +253,29 @@ export function WelcomeArt() {
 
 export function CodeArt() {
   return (
-    <svg viewBox="0 0 342 140" className="h-auto w-full" aria-hidden>
+    <svg viewBox="0 0 342 140" className="h-auto w-full" data-testid="code-art-envelope" aria-hidden>
       <rect width="342" height="140" rx="22" className="fill-surface-subtle" />
       <rect x="96" y="22" width="150" height="100" rx="12" className="fill-surface-raised stroke-ink-strong" strokeWidth="2.5" />
       <path d="M96 34 l75 50 75-50" fill="none" className="stroke-ink-strong" strokeWidth="2.5" strokeLinejoin="round" />
+      <circle cx="244" cy="28" r="18" className="fill-yellow-400 stroke-ink-strong" strokeWidth="2.5" />
+      <path d="M236 28h16" className="stroke-navy-900" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** The phone twin of `CodeArt`, for a code sent by SMS rather than email
+ * (B2455) — same viewBox, stroke and badge conventions, a phone outline with
+ * a message bubble instead of an envelope. */
+export function PhoneArt() {
+  return (
+    <svg viewBox="0 0 342 140" className="h-auto w-full" data-testid="code-art-phone" aria-hidden>
+      <rect width="342" height="140" rx="22" className="fill-surface-subtle" />
+      <rect x="141" y="14" width="60" height="112" rx="12" className="fill-surface-raised stroke-ink-strong" strokeWidth="2.5" />
+      <rect x="161" y="22" width="20" height="4" rx="2" className="fill-ink-strong" />
+      <rect x="149" y="52" width="44" height="20" rx="7" className="stroke-ink-strong" strokeWidth="2.5" fill="none" />
+      <circle cx="163" cy="62" r="2.5" className="fill-ink-strong" />
+      <circle cx="171" cy="62" r="2.5" className="fill-ink-strong" />
+      <circle cx="179" cy="62" r="2.5" className="fill-ink-strong" />
       <circle cx="244" cy="28" r="18" className="fill-yellow-400 stroke-ink-strong" strokeWidth="2.5" />
       <path d="M236 28h16" className="stroke-navy-900" strokeWidth="3" strokeLinecap="round" />
     </svg>
