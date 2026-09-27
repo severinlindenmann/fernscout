@@ -129,8 +129,6 @@ export type TranslationKey =
   | "a11y.skipToContent"
   | "about.title"
   | "account.title"
-  | "admin.messages.previewBody"
-  | "admin.messages.previewWhy"
   | "agent.andJoin"
   | "agent.answerLookUpWeather"
   | "agent.answerNone"

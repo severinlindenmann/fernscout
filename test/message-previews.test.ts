@@ -13,3 +13,16 @@ describe("admin message previews (B2493)", () => {
     }
   });
 });
+
+describe("every template has its own composer (B2493)", () => {
+  it("leaves no template to a generic stand-in", async () => {
+    const { PREVIEWS } = await import("@/lib/messages/fixtures");
+    const missing = (Object.keys(TEMPLATES) as TemplateId[]).filter((id) => !(id in PREVIEWS));
+    expect(missing).toEqual([]);
+  });
+
+  it("composes the day letter from a real demo-journal day", async () => {
+    const p = await buildPreview("news.mail", "en");
+    expect(p.text).not.toContain("no demo day to show");
+  });
+});

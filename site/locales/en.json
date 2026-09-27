@@ -9,8 +9,6 @@
   "a11y.skipToContent": "Skip to content",
   "about.title": "About this journal",
   "account.title": "Credits & storage",
-  "admin.messages.previewBody": "A sample message about {journal}, for this preview only.",
-  "admin.messages.previewWhy": "You are seeing this because you opened it from the operator console.",
   "agent.andJoin": "and",
   "agent.answerLookUpWeather": "Look it up",
   "agent.answerNone": "There was none",

@@ -1,4 +1,4 @@
-import { composeDayLetter } from "../../digest/dayLetter";
+import { composeDayLetter, exampleDayLetter } from "../../digest/dayLetter";
 import { composeEveningNudge } from "../../digest/reminder";
 import { composeFirstTripMail, composeFirstTripPush } from "../../digest/firstTrip";
 import { composeDaySms } from "../../digest/daySms";
@@ -23,16 +23,16 @@ const SAMPLE_SITE_URL = "https://fernscout.ch";
  * composer its send site calls, with `SAMPLE` (and only `SAMPLE`) standing
  * in for the real values a send would have read off disk. */
 export const digestPreviews: PreviewMap = {
+  // A real published day from the demo journal, so the letter carries real
+  // words; the marker below only shows on an instance without one.
   "news.mail": (locale) =>
+    exampleDayLetter(locale, SAMPLE.name) ??
     composeDayLetter({
       locale,
       journalTitle: SAMPLE.journal,
       dayTitle: SAMPLE.day,
-      // No real day's own words exist for a preview — the same generic
-      // stand-in the account group's `genericMailPreview` uses for content
-      // this composer does not itself write.
-      lead: translateIn(locale, "admin.messages.previewBody", { journal: SAMPLE.journal }),
-      metaParts: [SAMPLE.day.split("·").pop()?.trim() ?? "", translateIn(locale, "dayMail.timezone", { zone: "UTC" })],
+      lead: "(The day's own first paragraph goes here: this instance has no demo day to show.)",
+      metaParts: [translateIn(locale, "dayMail.timezone", { zone: "UTC" })],
       mapUrl: null,
       dayUrl: SAMPLE_URL,
       recipientName: SAMPLE.name,

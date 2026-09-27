@@ -15,7 +15,7 @@ import type { UserConfig } from "../config";
 import { conversionFor, costForDay } from "../costs";
 import { formatMoney } from "../currency";
 import { recordNotified } from "./dayNotify";
-import { AS_AUTHOR, getEntryBySlug } from "../entries";
+import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "../entries";
 import { contactsWithReadGrant } from "../grants";
 import { translateIn } from "../locales";
 import { sendMail } from "../mail";
@@ -30,7 +30,7 @@ type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { contentTypeFor, resolveMediaFile, resizedCopy } from "../media";
 import { serverSite } from "../site";
 import { peopleOf } from "../tripPeople";
-import { getTrip } from "../trips";
+import { getTrip, getTrips } from "../trips";
 import type { Entry, Locale, Trip } from "../types";
 import { getUser } from "../users";
 import { dayUrl, formatDigestDate } from "./content";
@@ -380,6 +380,44 @@ export function composeDayLetter(input: {
   };
 }
 
+/** Place, date and the journal's own timezone — the letter's meta line. */
+function dayMeta(locale: Locale, entry: Entry): string[] {
+  return [
+    [entry.location, entry.country].filter(Boolean).join(", "),
+    formatDigestDate(locale, entry.date),
+    translateIn(locale, "dayMail.timezone", { zone: journalTimezone() }),
+  ].filter((part) => part !== "");
+}
+
+/**
+ * The admin preview's day letter (B2493): a real published day from the demo
+ * journal `example`, composed exactly as `renderDayLetter` composes it —
+ * minus the photo attachment and the per-reader cost line. Null when this
+ * instance carries no demo day with words.
+ */
+export function exampleDayLetter(locale: Locale, recipientName: string) {
+  const user = getUser("example");
+  for (const trip of getTrips("example")) {
+    const entry = getAllEntries(trip.ref).find(
+      (e) => !isTestContent(trip, e) && localizedContent(locale, e).trim() !== "",
+    );
+    if (!user || !entry) continue;
+    const base = serverSite().url;
+    return composeDayLetter({
+      locale,
+      journalTitle: user.title,
+      dayTitle: localizedTitle(locale, entry),
+      lead: leadParagraph(localizedContent(locale, entry)),
+      metaParts: dayMeta(locale, entry),
+      mapUrl: mapUrlFor(entry.lat, entry.lng),
+      dayUrl: dayUrl(base, trip.username, trip.id, entry.slug),
+      recipientName,
+      unsubscribeUrl: unsubscribeUrlFor(base, "example", "k3x9", "mail"),
+    });
+  }
+  return null;
+}
+
 async function renderDayLetter(
   trip: Trip,
   entry: Entry,
@@ -397,11 +435,7 @@ async function renderDayLetter(
   // announcing a confidently wrong "it is 9pm there" for a day published
   // weeks late), and the cost — only for a reader this recipient-specific
   // gate actually admits.
-  const metaParts = [
-    [entry.location, entry.country].filter(Boolean).join(", "),
-    formatDigestDate(locale, entry.date),
-    translateIn(locale, "dayMail.timezone", { zone: journalTimezone() }),
-  ].filter((part) => part !== "");
+  const metaParts = dayMeta(locale, entry);
 
   if (recipient.showCosts && entry.costs.length > 0) {
     const { base: currency } = conversionFor(trip.ref);

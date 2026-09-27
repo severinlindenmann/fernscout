@@ -9,8 +9,6 @@
   "a11y.skipToContent": "Ugrás a tartalomra",
   "about.title": "Erről a naplóról",
   "account.title": "Kredit és tárhely",
-  "admin.messages.previewBody": "Egy minta üzenet erről: {journal}, csak ehhez az előnézethez.",
-  "admin.messages.previewWhy": "Ezt azért látja, mert megnyitotta az üzemeltetői konzolon.",
   "agent.andJoin": "és",
   "agent.answerLookUpWeather": "Nézzük meg",
   "agent.answerNone": "Nem volt ilyen",
