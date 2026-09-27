@@ -2282,6 +2282,7 @@ export type TranslationKey =
   | "push.install.step3"
   | "push.install.title"
   | "push.iosInstall"
+  | "push.newDay.body"
   | "push.prompt.body"
   | "push.prompt.never"
   | "push.prompt.notNow"

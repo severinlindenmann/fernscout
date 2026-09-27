@@ -2230,6 +2230,7 @@
   "push.install.step2": "„Zum Home-Bildschirm“ wählen",
   "push.install.step3": "Von dort öffnen, dann Benachrichtigungen aktivieren",
   "push.install.title": "Über neue Tage benachrichtigt werden",
+  "push.newDay.body": "Neuer Tag veröffentlicht: {day}",
   "push.iosInstall": "Auf iPhone und iPad zuerst zum Home-Bildschirm hinzufügen (Teilen → Zum Home-Bildschirm), danach lassen sich Benachrichtigungen aktivieren.",
   "push.prompt.body": "Wir können dich auf diesem Gerät benachrichtigen, wenn hier ein neuer Tag veröffentlicht wird. Sonst nichts, und nur aus diesem Reisetagebuch.",
   "push.prompt.never": "Nicht mehr fragen",

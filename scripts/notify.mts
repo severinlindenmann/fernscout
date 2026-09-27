@@ -30,11 +30,12 @@
  * for server components, used here for the same reason — see
  * `scripts/photobook.ts` and `scripts/export.mts`, which do the same thing.
  */
-import webpush, { WebPushError } from "web-push";
+import webpush from "web-push";
 import { isOpenToLink, isTestContent } from "../lib/access";
 import { AS_AUTHOR, getAllEntries, getDefaultDay, getEntryBySlug } from "../lib/entries";
-import { isGoneSubscription, removeSubscriptions, subscribersFor } from "../lib/push";
-import { sendApnsNotification } from "../lib/push/apns";
+import { translateIn } from "../lib/locales";
+import { subscribersFor, type StoredSubscription } from "../lib/push";
+import { localeForSubscriber, sendPush } from "../lib/push/send";
 import { currentTripRef, getTrip, getTripIds } from "../lib/trips";
 import { getDefaultUsername, getUser, getUsernames } from "../lib/users";
 
@@ -59,23 +60,16 @@ if (has("--generate-keys")) {
   process.exit(0);
 }
 
-const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = process.env;
+// `sendPush` (lib/push/send.ts) configures and calls `web-push` itself and
+// simply sends nothing without a working VAPID setup or the `push`
+// capability switched on — the same "absent, not broken" rule every
+// capability follows. This script keeps its own eager check only for the
+// person running it by hand: a silent zero-sent run is a worse experience
+// than a message pointing at `--generate-keys`.
+const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
 if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
   fail(
     "Missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY.\nRun:  npm run notify -- --generate-keys",
-  );
-}
-try {
-  webpush.setVapidDetails(
-    VAPID_SUBJECT || "mailto:hello@example.com",
-    VAPID_PUBLIC_KEY,
-    VAPID_PRIVATE_KEY,
-  );
-} catch (err) {
-  // Malformed keys otherwise surface as an unhandled throw with a stack.
-  fail(
-    `VAPID keys look wrong: ${(err as Error).message}\n` +
-      "Regenerate with:  npm run notify -- --generate-keys",
   );
 }
 
@@ -146,13 +140,8 @@ if (!entry) {
   );
 }
 
-const notice = {
-  title: entry.title,
-  body: `${entry.location}${entry.country ? `, ${entry.country}` : ""}`,
-  url: `${SITE_URL}${dayPath(entry.slug)}`,
-  tag: `day-${entry.slug}`,
-};
-const payload = JSON.stringify(notice);
+const url = `${SITE_URL}${dayPath(entry.slug)}`;
+const tag = `day-${entry.slug}`;
 
 console.log(`\n  → "${entry.title}" (${trip.ref})`);
 console.log(`    ${entry.location}${entry.country ? `, ${entry.country}` : ""} · ${entry.date}`);
@@ -211,51 +200,34 @@ if (has("--dry-run")) {
   process.exit(0);
 }
 
-let sent = 0;
-const dead: string[] = [];
-await Promise.all(
-  recipients.map(async (sub) => {
-    // B2115: two transports on one subscriber list. `kind` came back from
-    // `subscribersFor` (`lib/push.ts`, `lib/repos/pushDb.ts`) exactly as it
-    // was stored — "web" for every row that predates this and everything a
-    // browser ever subscribed, "apns" only for the iPhone shell.
-    if (sub.kind === "apns") {
-      try {
-        const result = await sendApnsNotification({ token: sub.endpoint, ...notice });
-        if (result.ok) {
-          sent++;
-        } else if (result.gone) {
-          dead.push(sub.endpoint);
-        } else {
-          console.error(`    ! apns ${result.status} ${result.body.slice(0, 120)}`);
-        }
-      } catch (err) {
-        console.error(`    ! apns ${(err as Error).message}`);
-      }
-      return;
-    }
-    try {
-      await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
-      sent++;
-    } catch (err) {
-      // 404/410 mean the subscription is gone for good — the PWA was deleted
-      // or the browser rotated it. Anything else is worth seeing. Pruning it
-      // rather than throwing is the point: one dead subscription must not
-      // fail the rest of the run.
-      if (isGoneSubscription(err)) {
-        dead.push(sub.endpoint);
-      } else {
-        const statusCode = err instanceof WebPushError ? err.statusCode : "?";
-        const body = err instanceof WebPushError ? err.body : (err as Error).message;
-        console.error(`    ! ${statusCode} ${String(body).slice(0, 120)}`);
-      }
-    }
-  }),
-);
+// Grouped by locale, so every subscriber sees the day's title through the
+// same `news.push` template the publish route's automatic fan-out uses
+// (lib/push/send.ts) — one rendered call per locale rather than one per
+// recipient.
+const owner = getUser(trip.username);
+const byLocale = new Map<string, StoredSubscription[]>();
+for (const sub of recipients) {
+  const locale = await localeForSubscriber(trip.username, sub);
+  const group = byLocale.get(locale);
+  if (group) group.push(sub);
+  else byLocale.set(locale, [sub]);
+}
 
-if (dead.length > 0) {
-  await removeSubscriptions(trip.username, dead);
+let sent = 0;
+let pruned = 0;
+for (const [locale, subs] of byLocale) {
+  const outcome = await sendPush({
+    template: "news.push",
+    subscriptions: subs,
+    title: owner?.title ?? trip.title,
+    body: translateIn(locale, "push.newDay.body", { day: entry.title }),
+    url,
+    tag,
+    locale,
+  });
+  sent += outcome.sent;
+  pruned += outcome.pruned;
 }
 
 console.log(`  sent ${sent} / ${recipients.length} subscribers`);
-console.log(`  pruned ${dead.length} expired subscription${dead.length === 1 ? "" : "s"}\n`);
+console.log(`  pruned ${pruned} expired subscription${pruned === 1 ? "" : "s"}\n`);
