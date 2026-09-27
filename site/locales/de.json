@@ -4185,5 +4185,13 @@
   "agent.slot.message": "Nachricht",
   "agent.slot.photo": "Foto",
   "agent.slot.recipients": "Geht an",
-  "agent.slot.size": "Grösse"
+  "agent.slot.size": "Grösse",
+  "op.spendSubject": "{site}: gemessene Ausgaben {amount} am {date}",
+  "op.spendPreheader": "Über deiner Grenze von {line} pro Tag.",
+  "op.spendTitle": "{amount} gemessen am {date}",
+  "op.spendBody": "Das liegt über der in costs.alertDailyRappen gesetzten Grenze von {line} pro Tag. Es ist ein Mindestwert: Alles, was die Preisliste nicht abdeckt, wird gezählt, aber nicht berechnet.",
+  "op.spendButton": "Betreiberseite öffnen",
+  "op.spendFooter": "Wird einmal pro Tag von der nächtlichen Prüfung gesendet. Setze costs.alertDailyRappen auf 0, um dies zu stoppen.",
+  "op.messageFooter": "Vom Betreiber von {site}, zu deinem Journal {user}. Antworte auf diese Mail, um zu antworten.",
+  "code.phoneVerify": "{code} ist dein Code für {site}. Er läuft in 30 Minuten ab."
 }

@@ -4186,5 +4186,13 @@
   "agent.slot.message": "Üzenet",
   "agent.slot.photo": "Fénykép",
   "agent.slot.recipients": "Címzett",
-  "agent.slot.size": "Méret"
+  "agent.slot.size": "Méret",
+  "op.spendSubject": "{site}: mert kiadas {amount}, ekkor: {date}",
+  "op.spendPreheader": "Tullepted a napi {line} hatart.",
+  "op.spendTitle": "{amount} merve ekkor: {date}",
+  "op.spendBody": "Ez meghaladja a costs.alertDailyRappen-ben beallitott napi {line} riasztasi hatart. Ez egy also korlat: amit az arlista nem fed le, azt szamoljuk, de nem arazzuk.",
+  "op.spendButton": "Uzemeltetoi oldal megnyitasa",
+  "op.spendFooter": "Naponta egyszer kuldve, az ejszakai ellenorzes altal. Allitsd a costs.alertDailyRappen erteket 0-ra a leallitashoz.",
+  "op.messageFooter": "A(z) {site} uzemeltetojetol, a(z) {user} journalodrol. Valaszolj erre a levelre.",
+  "code.phoneVerify": "{code} a(z) {site} kodod. 30 percen belul lejar."
 }

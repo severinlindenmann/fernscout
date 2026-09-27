@@ -1,6 +1,7 @@
 import { adminEmail } from "@/lib/admin";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { loadUserConfig } from "@/lib/config";
+import { translateIn } from "@/lib/locales";
 import { mailDisabledReason, sendMail } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -98,7 +99,11 @@ export async function POST(request: Request) {
       preheader: text.slice(0, 90),
       title: subject,
       blocks: text.split(/\n{2,}/).map((paragraph) => ({ kind: "paragraph" as const, text: paragraph })),
-      footer: `From the operator of ${site.name}, about your journal ${username}. Reply to this mail to answer.`,
+      // The owner reads whatever language they chose for the journal — this
+      // is the operator writing to them, and there is no operator-locale
+      // setting to resolve, so it stays English (W44 D7 covers owner/reader/
+      // stranger only). Still a real key, not a literal.
+      footer: translateIn("en", "op.messageFooter", { site: site.name, user: username }),
     },
     username,
   );

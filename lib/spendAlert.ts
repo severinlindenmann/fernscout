@@ -6,8 +6,15 @@ import { formatChf } from "./creditsFormat";
 import { dailyCosts } from "./instanceCosts";
 import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
+import { translateIn } from "./locales";
 import { OPERATION_LABEL } from "./operations";
 import { serverSite } from "./site";
+
+/** No per-operator locale exists to resolve (W44 D7 names owner/reader/
+ * stranger chains only) — English, through a real key rather than a literal,
+ * so the string lives beside every other mail's and a future operator-locale
+ * setting has somewhere to plug in. */
+const OPERATOR_LOCALE = "en";
 
 /**
  * Yesterday's metered spend against the operator's own alert line.
@@ -56,18 +63,16 @@ export async function checkSpendAlert(input: { dryRun?: boolean; now?: Date } = 
   if (input.dryRun) return { sent: true, dryRun: true, date: day.date, rappen: day.rappen, to };
 
   const site = serverSite();
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(OPERATOR_LOCALE, key, vars);
+  const vars = { site: site.name, amount: formatChf(day.rappen), date: day.date, line: formatChf(line) };
   const result = await sendMail(
-    renderMail(to, `${site.name}: metered spend ${formatChf(day.rappen)} on ${day.date}`, {
+    renderMail(to, t("op.spendSubject", vars), {
       template: "op.spend",
-      preheader: `Over your line of ${formatChf(line)} a day.`,
-      title: `${formatChf(day.rappen)} metered on ${day.date}`,
+      preheader: t("op.spendPreheader", vars),
+      title: t("op.spendTitle", vars),
       blocks: [
-        {
-          kind: "paragraph",
-          text:
-            `That is over the alert line of ${formatChf(line)} a day set in costs.alertDailyRappen. ` +
-            "It is a floor: anything the price list does not cover is counted and not priced.",
-        },
+        { kind: "paragraph", text: t("op.spendBody", vars) },
         {
           kind: "table",
           head: ["What", "Spent"],
@@ -75,9 +80,9 @@ export async function checkSpendAlert(input: { dryRun?: boolean; now?: Date } = 
             cells: [OPERATION_LABEL[part.operation] ?? part.operation, formatChf(part.rappen)],
           })),
         },
-        { kind: "button", text: "Open the operator page", href: `${site.url.replace(/\/$/, "")}/admin` },
+        { kind: "button", text: t("op.spendButton"), href: `${site.url.replace(/\/$/, "")}/admin` },
       ],
-      footer: "Sent once for the day, by the nightly check. Set costs.alertDailyRappen to 0 to stop these.",
+      footer: t("op.spendFooter"),
     }),
   );
   if (!result) return { sent: false, reason: "mail is switched off on this instance", date: day.date, rappen: day.rappen };

@@ -11,6 +11,7 @@ import {
 } from "../contacts";
 import { mayMailContact } from "../contacts/mail";
 import { pickLocale } from "../contacts/locale";
+import { ownerLocale } from "../messages/locale";
 import type { UserConfig } from "../config";
 import { conversionFor, costForDay } from "../costs";
 import { formatMoney } from "../currency";
@@ -153,7 +154,9 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
     out.push({
       email: user.owner.email,
       name: user.owner.nickname || user.owner.name,
-      locale: pickLocale(user.defaultLocale),
+      // Owner chain (W44 D7): the address's own `users.locale`, then the
+      // journal's default, then en.
+      locale: await ownerLocale(owner, user.owner.email, user.defaultLocale),
       showCosts: true,
       reader: "person",
       manageToken: null,
@@ -182,7 +185,9 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
     out.push({
       email: contact.email,
       name: contact.name,
-      locale: pickLocale(contact.locale, user.defaultLocale),
+      // Reader chain (W44 D7): the contact's own locale, else en — never the
+      // journal's default, which is a guess about somebody else.
+      locale: pickLocale(contact.locale),
       showCosts: mayMailCosts(trip, isTraveller, isGrantHolder),
       reader: isTraveller ? "person" : "guest",
       manageToken: manageTokenFor(owner, contact.id),

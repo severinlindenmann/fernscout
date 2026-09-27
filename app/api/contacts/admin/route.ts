@@ -415,7 +415,8 @@ export async function POST(request: Request) {
       const sent =
         (await sendInviteMail(username, user, {
           email: contact.email,
-          locale: pickLocale(contact.locale, user.defaultLocale),
+          // Reader chain (W44 D7): the contact's own locale, else en.
+          locale: pickLocale(contact.locale),
           kind: invite.kind,
           url: invite.url,
           tripTitle,

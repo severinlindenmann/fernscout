@@ -4,6 +4,7 @@ import { CODE_TTL_MINUTES, issueStandingLink, signInUrl } from "../auth";
 import { isEnabled } from "../capabilities";
 
 import { translateIn } from "../locales";
+import { ownerLocale } from "../messages/locale";
 import { sendMail, type SendResult } from "../mail";
 import { renderMail } from "../mail/template";
 import { serverSite } from "../site";
@@ -339,7 +340,7 @@ export async function notifyOwnerOfRequest(
   // owner is not the contact confirming, so there is no `confirmed_at` on the
   // recipient to be asking about. A different question, not an exception.
   if (!user.owner.email) return false;
-  const locale = pickLocale(user.defaultLocale);
+  const locale = await ownerLocale(username, user.owner.email, user.defaultLocale);
   // B349 — a buddy link is asking for write access to a trip, not to
   // "follow along". Same two facts the contacts page already shows for this
   // row (`viaLabel()` in `ContactsAdmin.tsx`): which kind of link, and which
@@ -455,7 +456,7 @@ export async function sendApprovedMail(
   contact: ContactRecord,
 ): Promise<SendResult | null> {
   if (!mayMailContact(contact)) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const locale = pickLocale(contact.locale);
   try {
     // Recomputed rather than carried around: the manage token is derived from
     // the contact id, so a mail written months later still has the working

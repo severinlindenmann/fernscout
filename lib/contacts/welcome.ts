@@ -320,7 +320,7 @@ type Message = {
 async function messageFor(owner: string, contact: ContactRecord, code: string): Promise<Message | null> {
   const user = getUser(owner);
   if (!user) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const locale = pickLocale(contact.locale);
   const trip = await buddyTripTitle(owner, contact.id);
   const url = welcomeUrl(code);
   const vars = {
@@ -571,7 +571,7 @@ export async function tellLetIn(owner: string, contact: ContactRecord): Promise<
   const user = getUser(owner);
   const code = user ? await welcomeCodeFor(owner, contact.id) : null;
   if (!user || !code) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const locale = pickLocale(contact.locale);
   const url = welcomeUrl(code);
   const vars = {
     name: capText(firstName(contact.name), 40),

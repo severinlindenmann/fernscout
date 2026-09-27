@@ -4186,5 +4186,13 @@
   "agent.slot.message": "Messaggio",
   "agent.slot.photo": "Foto",
   "agent.slot.recipients": "Va a",
-  "agent.slot.size": "Formato"
+  "agent.slot.size": "Formato",
+  "op.spendSubject": "{site}: metered spend {amount} on {date}",
+  "op.spendPreheader": "Over your line of {line} a day.",
+  "op.spendTitle": "{amount} metered on {date}",
+  "op.spendBody": "That is over the alert line of {line} a day set in costs.alertDailyRappen. It is a floor: anything the price list does not cover is counted and not priced.",
+  "op.spendButton": "Open the operator page",
+  "op.spendFooter": "Sent once for the day, by the nightly check. Set costs.alertDailyRappen to 0 to stop these.",
+  "op.messageFooter": "From the operator of {site}, about your journal {user}. Reply to this mail to answer.",
+  "code.phoneVerify": "{code} is your {site} code. It expires in 30 minutes."
 }

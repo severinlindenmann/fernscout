@@ -1,5 +1,6 @@
 import "server-only";
 import { loadServerConfig } from "../config";
+import { translateIn } from "../locales";
 import { sendSms } from "../sms";
 import { issuePhoneCode, checkPhoneCode } from "./codes";
 import type { CheckResult, PhoneVerifyBackend, StartResult } from "./types";
@@ -11,23 +12,16 @@ import type { CheckResult, PhoneVerifyBackend, StartResult } from "./types";
  * the delivery differs from `./dryRun.ts` — the same split B1222 settled for
  * the WhatsApp backend.
  *
- * The sentence is written here rather than in `site/locales/` because it
- * goes to a telephone, not to the UI: `t()` renders for a reader whose
- * locale a page negotiated, and this string is chosen by the signup route's
- * own locale pick before any page exists.
+ * B2439: the sentence used to be its own `SENTENCES` table here rather than
+ * in `site/locales/` — now it is `code.phoneVerify`, resolved through the
+ * same `translateIn` every other message uses, so a fifth language does not
+ * need a second place to be added.
  */
-const SENTENCES: Record<string, (code: string, site: string) => string> = {
-  en: (code, site) => `${code} is your ${site} code. It expires in 30 minutes.`,
-  de: (code, site) => `${code} ist dein Code für ${site}. Er läuft in 30 Minuten ab.`,
-  hu: (code, site) => `${code} a(z) ${site} kódod. 30 percen belül lejár.`,
-  fr: (code, site) => `${code} est ton code ${site}. Il expire dans 30 minutes.`,
-  it: (code, site) => `${code} è il tuo codice ${site}. Scade tra 30 minuti.`,
-};
 
 async function start(phone: string, locale: string): Promise<StartResult> {
   const { id, code } = await issuePhoneCode(phone);
-  const sentence = SENTENCES[locale] ?? SENTENCES.en;
-  await sendSms({ to: phone, body: sentence(code, loadServerConfig().site.name), template: "code.sms" });
+  const sentence = translateIn(locale, "code.phoneVerify", { code, site: loadServerConfig().site.name });
+  await sendSms({ to: phone, body: sentence, template: "code.sms" });
   return { id };
 }
 

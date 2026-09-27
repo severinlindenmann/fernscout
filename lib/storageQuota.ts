@@ -10,7 +10,7 @@ import { getTrips, tripDir } from "./trips";
 import { EXTRA_STORAGE_BYTES } from "@paid/credits/lib/credits/pricing";
 import { sendTransactional } from "./mail";
 import { renderMail } from "./mail/template";
-import { pickLocale } from "./contacts/locale";
+import { ownerLocale } from "./messages/locale";
 import { translateIn } from "./locales";
 import { rateLimitFor } from "./rateLimit";
 import { serverSite } from "./site";
@@ -313,10 +313,9 @@ async function warnOwner(
     return;
   }
 
-  // Written in the owner's own language — B857. This goes to one address, the
-  // one in the journal's own `config.json`, so the journal's `defaultLocale`
-  // is the whole answer; there is no request to fall back to.
-  const locale = pickLocale(journal.defaultLocale);
+  // Owner chain (W44 D7): the address's own `users.locale`, then the
+  // journal's `defaultLocale`, then en.
+  const locale = await ownerLocale(username, to, journal.defaultLocale);
   const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
     translateIn(locale, key, vars);
 

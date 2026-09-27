@@ -676,11 +676,14 @@ export async function verifyCode(
   /** The browser redeeming it, for a credential that becomes a cookie. Only
    * the identity flow passes one — see `openIdentitySession`. */
   userAgent?: string | null,
+  /** The request's own locale — written to `users.locale` as "last used"
+   * (W44 D7). */
+  locale?: string | null,
 ): Promise<VerifyResult> {
   const address = normaliseEmail(email);
   const spent = await spendCode(owner, address, code, kind, scope);
   if (!spent.ok) return spent;
-  return openSession(owner, address, kind, spent.scope, userAgent?.slice(0, 300) ?? null);
+  return openSession(owner, address, kind, spent.scope, userAgent?.slice(0, 300) ?? null, undefined, locale);
 }
 
 /**
@@ -1075,9 +1078,12 @@ async function openSession(
   /** Overrides `SESSION_TTL_MS[kind]` — only the `write:gps` mint uses this,
    * for a 30-day agent-kind token beside the ordinary 7-day one. */
   ttlMs?: number,
+  /** The request's own locale at this sign-in — written to `users.locale`
+   * as "last used" (W44 D7). Omitted for a mint with no request behind it. */
+  locale?: string | null,
 ): Promise<VerifyResult> {
   const { db } = await getDatabase();
-  const userId = await upsertUser(owner, address);
+  const userId = await upsertUser(owner, address, locale);
   const token = generateToken(kind);
   const expiresAt = new Date(Date.now() + (ttlMs ?? SESSION_TTL_MS[kind])).toISOString();
   const granted = kind === "agent" && scope ? scope : SESSION_SCOPE[kind];
@@ -1182,7 +1188,13 @@ export async function listIdentities(email: string) {
     .execute();
 }
 
-async function upsertUser(owner: string, email: string): Promise<string> {
+/**
+ * `locale`, when given, is "last used" (W44 D7) — the request locale at the
+ * moment of a successful sign-in. Only ever written when the caller actually
+ * has one: a silent renewal (no fresh sign-in) must not overwrite a real
+ * preference with a guess.
+ */
+async function upsertUser(owner: string, email: string, locale?: string | null): Promise<string> {
   const { db } = await getDatabase();
   const existing = await db
     .selectFrom("users")
@@ -1194,7 +1206,7 @@ async function upsertUser(owner: string, email: string): Promise<string> {
   if (existing) {
     await db
       .updateTable("users")
-      .set({ last_login_at: nowIso(), updated_at: nowIso() })
+      .set({ last_login_at: nowIso(), updated_at: nowIso(), ...(locale ? { locale } : {}) })
       .where("id", "=", existing.id)
       .execute();
     return existing.id;
@@ -1209,7 +1221,7 @@ async function upsertUser(owner: string, email: string): Promise<string> {
       email,
       name: null,
       role: "reader",
-      locale: null,
+      locale: locale ?? null,
       created_at: nowIso(),
       updated_at: nowIso(),
       last_login_at: nowIso(),

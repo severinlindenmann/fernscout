@@ -1,7 +1,7 @@
 import "server-only";
 import { ledgerFor } from "../credits";
-import { pickLocale } from "../contacts/locale";
 import { translateIn } from "../locales";
+import { ownerLocale } from "../messages/locale";
 import { sendMail } from "../mail";
 import { renderMail } from "../mail/template";
 import type { MailBlock } from "../mail/template";
@@ -150,7 +150,7 @@ export function unusedPhotoCount(run: RunManifest): number {
  *  follows for the evening nudge. */
 async function sendExpiryMail(username: string, user: UserConfig, run: RunManifest): Promise<boolean> {
   if (!user.owner.email) return false;
-  const locale = pickLocale(user.defaultLocale);
+  const locale = await ownerLocale(username, user.owner.email!, user.defaultLocale);
   const daysLeft = daysLeftToTell(run);
   const blocks: MailBlock[] = [
     {
@@ -196,7 +196,7 @@ async function sendExpiryMail(username: string, user: UserConfig, run: RunManife
  *  extension. */
 async function sendFinalNoticeMail(username: string, user: UserConfig, run: RunManifest): Promise<boolean> {
   if (!user.owner.email) return false;
-  const locale = pickLocale(user.defaultLocale);
+  const locale = await ownerLocale(username, user.owner.email!, user.defaultLocale);
   const blocks: MailBlock[] = [
     {
       kind: "paragraph",

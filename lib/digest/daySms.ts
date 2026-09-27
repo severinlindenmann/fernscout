@@ -63,7 +63,7 @@ async function recipientsFor(trip: Trip, entry: Entry | null): Promise<SmsRecipi
     seen.add(to);
     out.push({
       to,
-      locale: pickLocale(contact.locale, user.defaultLocale),
+      locale: pickLocale(contact.locale),
       free: email !== "" && email === ownerEmail,
       reader,
     });
