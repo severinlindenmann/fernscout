@@ -11,6 +11,7 @@ import { composeLetInMail } from "../../mail/letInMail";
 import { composeOperatorMessageMail } from "../../mail/operatorMessage";
 import { composeDeletionMail, composeExportMail } from "../../deletions";
 import { composeWaitlistMail } from "../../appWaitlist";
+import { composeInviteRequestMail } from "../../inviteRequest";
 import { composeWelcomeMail } from "../../journals";
 import { composeStorageMail } from "../../storageQuota";
 import { composeExpiryFinalMail, composeExpiryWarnMail } from "../../staging/expiry";
@@ -129,6 +130,8 @@ export const accountPreviews: PreviewMap = {
     composeStorageMail({ username: SAMPLE_USER, locale, usedBytes: 5_000_000_000, limitBytes: 5_000_000_000, full: true }),
 
   "notice.waitlist": (locale) => composeWaitlistMail(locale),
+
+  "notice.inviteRequest": (locale) => composeInviteRequestMail(locale),
 
   "notice.welcome": (locale) =>
     composeWelcomeMail({

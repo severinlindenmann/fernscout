@@ -274,3 +274,76 @@ describe("a journal that has no trips yet", () => {
     expect(found.map((one) => one.username)).not.toContain("neu");
   });
 });
+
+/**
+ * What `/` draws about each trip — B2508.
+ *
+ * The signed-in home shows a draft line, a cover, a latest day and a day
+ * count. Each is read at the address's own level: a draft is the owner's
+ * alone, and a day or photograph held back from a guest must not name itself
+ * to that guest through the home payload any more than through the trip page.
+ */
+describe("the detail the home page draws", { shuffle: false }, () => {
+  const GUS = "gus@example.test";
+
+  beforeAll(async () => {
+    const { writeDayFixture } = await import("./fixtures/content");
+    for (const [user, trip] of [[OWNER, "open-2026"], [OTHER, "invited-2026"]] as const) {
+      const media = path.join(dir, user, "trips", trip, "media");
+      fs.mkdirSync(media, { recursive: true });
+      fs.writeFileSync(path.join(media, "open.jpg"), "x");
+      fs.writeFileSync(path.join(media, "held.jpg"), "x");
+      writeDayFixture(dir, user, trip, {
+        slug: "first",
+        date: "2026-08-25",
+        title: "The first day",
+        content: "We **left** early.",
+        media: [{ src: "media/open.jpg" }],
+      });
+      writeDayFixture(dir, user, trip, {
+        slug: "held",
+        date: "2026-08-26",
+        title: "Held back",
+        visibility: "private",
+        media: [{ src: "media/held.jpg" }],
+      });
+      writeDayFixture(dir, user, trip, { slug: "unfinished", date: "2026-08-26", title: "Not yet", status: "draft" });
+    }
+
+    const { approveContact, confirmContact, listContacts, requestContact } = await import("@/lib/contacts");
+    const { issueCode } = await import("@/lib/auth");
+    await requestContact(OTHER, {
+      name: "Gus",
+      email: GUS,
+      locale: "en",
+      address: null,
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      createdVia: "open",
+    });
+    const { code } = await issueCode(OTHER, GUS, "guest");
+    await confirmContact(OTHER, GUS, code);
+    await approveContact(OTHER, (await listContacts(OTHER)).find((c) => c.email === GUS)!.id);
+  });
+
+  test("the owner sees their draft, and every day they wrote", async () => {
+    const trip = (await journalsFor(OWNER_EMAIL))[0].trips.find((t) => t.id === "open-2026")!;
+    expect(trip.draft).toMatchObject({ slug: "unfinished", title: "Not yet" });
+    expect(trip.latest?.slug).toBe("held");
+    expect(trip.days).toBe(2);
+    expect(trip.start).toBe("2026-08-25");
+    expect(trip.latest?.href).toBe(`/${OWNER}/trips/open-2026/day/held`);
+  });
+
+  test("a guest gets neither the draft nor the held-back day or its photograph", async () => {
+    const journal = (await journalsFor(GUS)).find((j) => j.username === OTHER)!;
+    const trip = journal.trips.find((t) => t.id === "invited-2026")!;
+    expect(trip.draft).toBeUndefined();
+    expect(trip.latest?.slug).toBe("first");
+    expect(trip.latest?.excerpt).toBe("We left early.");
+    expect(trip.days).toBe(1);
+    expect(JSON.stringify(journal)).not.toContain("held");
+    expect(JSON.stringify(journal)).not.toContain("Not yet");
+    expect(trip.cover).toContain("open.jpg");
+  });
+});
