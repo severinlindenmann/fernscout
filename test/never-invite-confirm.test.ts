@@ -111,3 +111,15 @@ test("the List-Unsubscribe header names /confirm, and posting it suppresses the 
   expect(response.status).toBe(200);
   expect(await isInviteSuppressed(READER_EMAIL)).toBe(true);
 });
+
+describe("without SESSION_SECRET there is no never-invite door (wave 2 review, L1)", () => {
+  test("the confirm route refuses, since an unkeyed hash is computable from an address", async () => {
+    delete process.env.SESSION_SECRET;
+    const { POST } = await import("@/app/x/[token]/confirm/route");
+    const token = "a".repeat(64);
+    const response = await POST(new Request(`https://example.test/x/${token}/confirm`, { method: "POST" }), {
+      params: Promise.resolve({ token }),
+    } as never);
+    expect(response.status).toBe(404);
+  });
+});

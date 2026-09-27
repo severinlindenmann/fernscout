@@ -60,6 +60,17 @@ export function neverInviteToken(addressOrNumber: string): string {
 /** Whether a token names a real, well-formed hash — not a database lookup
  * (a token still "means" a suppression once pressed, whether or not that
  * hash has ever been sent to), just the shape `recipientHash` produces. */
+/**
+ * Without `SESSION_SECRET` the recipient hash is a plain SHA-256, which a
+ * stranger who knows an address can compute — so the token would be no
+ * secret at all, and anyone could block anyone's invites (wave 2 security
+ * review, L1). The never-invite door simply does not exist then: no link in
+ * the invite, and the page and its confirm answer 404.
+ */
+export function neverInviteAvailable(): boolean {
+  return Boolean(process.env.SESSION_SECRET);
+}
+
 export function isNeverInviteToken(token: string): boolean {
-  return /^[0-9a-f]{64}$/.test(token);
+  return neverInviteAvailable() && /^[0-9a-f]{64}$/.test(token);
 }

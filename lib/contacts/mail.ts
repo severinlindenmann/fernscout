@@ -22,7 +22,7 @@ import {
 } from "./index";
 import { listInvites, type InviteKind } from "./invites";
 import { pickLocale } from "./locale";
-import { isInviteSuppressed, neverInviteToken } from "./suppressions";
+import { isInviteSuppressed, neverInviteAvailable, neverInviteToken } from "./suppressions";
 
 /** The public "never invite this address" page — B2442. */
 function neverInviteUrl(base: string, addressOrNumber: string): string {
@@ -258,11 +258,13 @@ export async function sendInviteMail(
         buttonText: translateIn(input.locale, "contact.mailInviteButton"),
         buttonUrl: input.url,
         why: footerFor(input.locale, user),
-        manage: {
+        manage: neverInviteAvailable()
+          ? {
           text: translateIn(input.locale, "contact.neverInvite"),
           href: neverInviteUrl(baseUrl(), input.email),
           unsubscribeHref: neverInviteConfirmUrl(baseUrl(), input.email),
-        },
+        }
+          : undefined,
         username,
       }),
     );
@@ -312,11 +314,13 @@ export async function sendWelcomeMail(
         buttonText,
         buttonUrl: message.url,
         why,
-        manage: {
+        manage: neverInviteAvailable()
+          ? {
           text: translateIn(message.locale, "contact.neverInvite"),
           href: neverInviteUrl(baseUrl(), contact.email),
           unsubscribeHref: neverInviteConfirmUrl(baseUrl(), contact.email),
-        },
+        }
+          : undefined,
         username,
       }),
     );
