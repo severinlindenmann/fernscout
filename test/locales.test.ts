@@ -333,17 +333,54 @@ describe("German address is consistently informal (B432)", () => {
 });
 
 /**
- * B2153: de.json mixed ß (standard German) and ss (Swiss German) spellings
- * of the same words in the same file, sometimes on the same screen. The
- * operator is Swiss and the file already leaned Swiss, so the decision is
- * ss everywhere. A regex for "ss" would false-positive on every word that
- * legitimately has one (dass, muss, …); the only thing worth pinning is
- * that ß itself never comes back.
+ * B2153 introduced a blanket Swiss-ss rewrite before the owner's decision 19
+ * (docs/audits/2026-09-25-docs-audit.md) was known: de.json uses ß, not
+ * Swiss ss. B2416 reverted it. A blanket regex for "ss" would false-positive
+ * on every word that legitimately keeps it (dass, muss, Schluss, …); the
+ * only thing worth pinning is that the specific words standard German
+ * spells with ß never regress to their Swiss ss form.
  */
-describe("German locale uses the Swiss ss convention (B2153)", () => {
-  test("de.json contains no ß", () => {
+describe("German locale uses standard ß, not Swiss ss (B2416)", () => {
+  test("de.json contains no Swiss-ss spelling of a word that takes ß", () => {
     const de = fs.readFileSync(path.join(process.cwd(), "site", "locales", "de.json"), "utf8");
-    expect(de.includes("ß")).toBe(false);
+    const swissForms = [
+      "weiss",
+      "weisst",
+      "heissen",
+      "heisst",
+      "ausser",
+      "ausserdem",
+      "ausserhalb",
+      "gross",
+      "grosse",
+      "grossen",
+      "grosses",
+      "Grösse",
+      "Grössenlimit",
+      "grösserer",
+      "grösseres",
+      "Druckgrösse",
+      "Vergrössern",
+      "Strasse",
+      "Strassen",
+      "Fuss",
+      "Gruss",
+      "Ausreisser",
+      "schliessen",
+      "schliesst",
+      "schliess",
+      "abschliessen",
+      "abzuschliessen",
+      "fliessen",
+      "fliesst",
+      "draussen",
+      "standardmässig",
+      "liess",
+    ];
+    for (const word of swissForms) {
+      const re = new RegExp(`\\b${word}\\b`, "i");
+      expect(de, `de.json still uses the Swiss spelling "${word}" where German uses ß`).not.toMatch(re);
+    }
   });
 });
 
