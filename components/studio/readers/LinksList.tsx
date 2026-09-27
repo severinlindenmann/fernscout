@@ -20,6 +20,8 @@ export default function LinksList({
   t,
   tn,
   onStopped,
+  journalTitle = username,
+  siteName = "Fernscout",
 }: {
   username: string;
   locale: Locale;
@@ -28,6 +30,8 @@ export default function LinksList({
   t: Translate;
   tn: Count;
   onStopped: () => void;
+  journalTitle?: string;
+  siteName?: string;
 }) {
   const [asking, setAsking] = useState<string | null>(null);
   const [showing, setShowing] = useState<string | null>(null);
@@ -63,9 +67,10 @@ export default function LinksList({
       </h2>
       <ul className="mt-3 space-y-3">
         {live.map((invite) => {
+          const shareTrip = invite.kind === "buddy" && invite.tripId ? tripLabel(trips, invite.tripId) : journalTitle;
           const kind =
             invite.kind === "buddy" && invite.tripId
-              ? t("readers.link.kindBuddyOf", { trip: tripLabel(trips, invite.tripId) })
+              ? t("readers.link.kindBuddyOf", { trip: shareTrip })
               : t("readers.link.kind.guest");
           const url = invite.joinUrl ?? invite.url;
           const facts = [
@@ -109,7 +114,13 @@ export default function LinksList({
               </div>
               {showing === invite.id && url && (
                 <div className="mt-3">
-                  <ShareLink url={url} t={t} />
+                  <ShareLink
+                    username={username}
+                    url={url}
+                    title={shareTrip}
+                    text={t("readers.share.text", { trip: shareTrip, site: siteName })}
+                    t={t}
+                  />
                 </div>
               )}
               {asking === invite.id && (

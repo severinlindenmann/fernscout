@@ -44,6 +44,8 @@ export default function AddPersonDoor({
   trips,
   t,
   onDone,
+  journalTitle = username,
+  siteName = "Fernscout",
 }: {
   username: string;
   locale: Locale;
@@ -51,6 +53,9 @@ export default function AddPersonDoor({
   trips: { id: string; title: string }[];
   t: Translate;
   onDone: () => void;
+  /** The journal's own title — passed on to `NotifyStep`'s share text (B2444). */
+  journalTitle?: string;
+  siteName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -241,6 +246,8 @@ export default function AddPersonDoor({
           <NotifyStep
             username={username}
             contactId={added.id}
+            journalTitle={journalTitle}
+            siteName={siteName}
             onLater={() => {
               reset();
               onDone();

@@ -2396,6 +2396,8 @@ export type TranslationKey =
   | "readers.role.wantsToRead"
   | "readers.role.wantsTrip"
   | "readers.sendAgain"
+  | "readers.share.editLabel"
+  | "readers.share.text"
   | "readers.takeAwayConfirm"
   | "readers.toldByEmail"
   | "readers.toldBySms"

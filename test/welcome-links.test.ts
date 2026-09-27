@@ -502,3 +502,35 @@ describe("security review of B2292", () => {
     }
   });
 });
+
+describe("B2444 — the owner's own share is logged, not sent", () => {
+  async function shared(body: Record<string, unknown>, headers: Record<string, string> = {}) {
+    const { POST } = await import("@/app/api/web/[user]/readers/shared/route");
+    return POST(post(`/api/web/${OWNER}/readers/shared`, body, headers), {
+      params: Promise.resolve({ user: OWNER }),
+    });
+  }
+
+  test("the owner's cookie logs a share and gets 204 back; nothing is sent", async () => {
+    const beforeMails = mails("lena@example.test").length;
+    const res = await shared({});
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe("");
+    expect(mails("lena@example.test").length).toBe(beforeMails);
+  });
+
+  test("a contactId is accepted the same way", async () => {
+    const id = await addedId({ name: "Nia", email: "nia@example.test" });
+    const res = await shared({ contactId: id });
+    expect(res.status).toBe(204);
+  });
+
+  test("a bearer token is refused outright, and so is somebody who is not the owner", async () => {
+    const bearer = await shared({}, { authorization: "Bearer fs_agent_x" });
+    expect(bearer.status).toBe(403);
+    expect(((await bearer.json()) as { error: string }).error).toBe("not_for_agents");
+
+    jar.cookies = {};
+    expect((await shared({})).status).toBe(403);
+  });
+});

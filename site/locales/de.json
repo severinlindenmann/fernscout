@@ -3964,6 +3964,8 @@
   "readers.link.copy": "Link kopieren",
   "readers.link.share": "Teilen…",
   "readers.link.show": "Link zeigen",
+  "readers.share.editLabel": "Deine Nachricht",
+  "readers.share.text": "Hallo! Ich schreibe über {trip} auf {site}. Lies hier mit:",
   "readers.link.worksUntil": "Gültig bis {date}",
   "readers.link.step1": "Sie öffnen den Link und sehen, wessen Tagebuch es ist",
   "readers.link.step2": "Name, dann E-Mail oder Handy — und der Code, den wir schicken",

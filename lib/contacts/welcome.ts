@@ -254,7 +254,9 @@ export async function markOnboarded(owner: string, contactId: string): Promise<v
 // ─── Channels ──────────────────────────────────────────────────────────────
 
 export type InviteChannel = "email" | "sms" | "self";
-export const INVITE_CHANNELS: readonly InviteChannel[] = ["email", "sms", "self"];
+// B2444 (W44 D4) — "self" first: sharing it yourself is the preferred
+// invite, Fernscout-sent email/SMS stay as the alternative underneath.
+export const INVITE_CHANNELS: readonly InviteChannel[] = ["self", "email", "sms"];
 
 /** Why a channel cannot be used for this person, or null when it can. */
 type ChannelBlock =

@@ -18,6 +18,7 @@ import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/loc
 import { readersModel } from "@/lib/readers/model";
 import { previewJournal } from "@/lib/studio/audiencePreview";
 import { pendingTripRequestsFor, peopleOf } from "@/lib/tripPeople";
+import { serverSite } from "@/lib/site";
 import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/contactNumber";
@@ -206,6 +207,8 @@ export default async function ContactsAdminPage({
         addressLookupEnabled={isEnabled("addressLookup", username)}
         ownEmail={ownEmail}
         preview={previewJournal(username, "guest")}
+        journalTitle={user.title}
+        siteName={serverSite().name}
       />
     </StudioPage>
   );
