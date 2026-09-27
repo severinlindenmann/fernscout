@@ -23,6 +23,8 @@ import { MAINTAINED_LOCALES, type TranslationKey } from "./i18n";
 import { LOCALE_TAG_RE, translateIn } from "./locales";
 import { sendMail } from "./mail";
 import { renderMail } from "./mail/template";
+import type { Composition } from "./messages/previews/types";
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { serverSite } from "./site";
 import { clearTombstone, journalTombstone } from "./tombstones";
 import { travellersBlock } from "./tripWrite";
@@ -480,6 +482,72 @@ export function createJournal(input: NewJournal): CreateJournalResult {
 }
 
 /**
+ * `notice.welcome`'s composition — B2493. `signIn`, when given, is already
+ * minted (`issueStandingLink`/`signInUrl`) — no capability check happens in
+ * here.
+ */
+export function composeWelcomeMail(params: {
+  username: string;
+  title: string;
+  email: string;
+  nickname: string;
+  visibility: JournalVisibility;
+  locale: string;
+  signIn?: string | null;
+}): MailComposition {
+  const { username, title, email, nickname, visibility, locale, signIn = null } = params;
+  const site = serverSite();
+  const url = `${site.url}/${username}`;
+  const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(locale, key, vars);
+  return {
+    channel: "mail",
+    subject: t("welcome.subject", { title }),
+    content: {
+      template: "notice.welcome",
+      preheader: t("welcome.intro", { nickname, title, site: site.name }),
+      title: t("welcome.title"),
+      blocks: [
+        {
+          kind: "paragraph",
+          text: t("welcome.intro", { nickname, title, site: site.name }),
+        },
+        { kind: "button", text: t("welcome.open"), href: signIn ?? url },
+        // What the button does, and the address on its own. The button
+        // signs whoever taps it in, so somebody forwarding this mail as
+        // "here is my journal" needs to know that is not all they are
+        // sending. And a link that has been used is spent — this mail is
+        // the only one carrying the address, so the address has to be in
+        // it as text too.
+        { kind: "paragraph", text: t(signIn ? "welcome.linkNote" : "welcome.addressNote", { url }) },
+        {
+          kind: "paragraph",
+          // The translation keys keep their old names — they are
+          // internal identifiers, not the copy a reader sees — but the
+          // copy itself has been reworded for `guest`. See
+          // site/locales/*.json.
+          text: t(visibility === "guest" ? "welcome.private" : "welcome.public"),
+        },
+        { kind: "heading", text: t("welcome.draftsHeading") },
+        { kind: "paragraph", text: t("welcome.draftsRule") },
+        { kind: "paragraph", text: t("welcome.drafts") },
+        { kind: "heading", text: t("welcome.tokenHeading") },
+        {
+          kind: "paragraph",
+          text: t("welcome.token", {
+            guide: `${site.url}/documentation.txt`,
+            email,
+          }),
+        },
+      ],
+      // The footer follows the body. An English "Sent by …" under a
+      // Hungarian letter is the seam that sends somebody to the spam
+      // button — the digest already learned this.
+      why: t("welcome.footer", { site: site.name }),
+    },
+  };
+}
+
+/**
  * Tell the owner their journal exists.
  *
  * The one mail this flow sends that is not a code. It carries the address of
@@ -545,63 +613,16 @@ export async function sendWelcome(input: {
   }
 
   try {
-    await sendMail(
-      renderMail(
-        input.email,
-        t("welcome.subject", { title: input.title }),
-        {
-          template: "notice.welcome",
-          preheader: t("welcome.intro", {
-            nickname: input.nickname,
-            title: input.title,
-            site: site.name,
-          }),
-          title: t("welcome.title"),
-          blocks: [
-            {
-              kind: "paragraph",
-              text: t("welcome.intro", {
-                nickname: input.nickname,
-                title: input.title,
-                site: site.name,
-              }),
-            },
-            { kind: "button", text: t("welcome.open"), href: signIn ?? url },
-            // What the button does, and the address on its own. The button
-            // signs whoever taps it in, so somebody forwarding this mail as
-            // "here is my journal" needs to know that is not all they are
-            // sending. And a link that has been used is spent — this mail is
-            // the only one carrying the address, so the address has to be in
-            // it as text too.
-            { kind: "paragraph", text: t(signIn ? "welcome.linkNote" : "welcome.addressNote", { url }) },
-            {
-              kind: "paragraph",
-              // The translation keys keep their old names — they are
-              // internal identifiers, not the copy a reader sees — but the
-              // copy itself has been reworded for `guest`. See
-              // site/locales/*.json.
-              text: t(input.visibility === "guest" ? "welcome.private" : "welcome.public"),
-            },
-            { kind: "heading", text: t("welcome.draftsHeading") },
-            { kind: "paragraph", text: t("welcome.draftsRule") },
-            { kind: "paragraph", text: t("welcome.drafts") },
-            { kind: "heading", text: t("welcome.tokenHeading") },
-            {
-              kind: "paragraph",
-              text: t("welcome.token", {
-                guide: `${site.url}/documentation.txt`,
-                email: input.email,
-              }),
-            },
-          ],
-          // The footer follows the body. An English "Sent by …" under a
-          // Hungarian letter is the seam that sends somebody to the spam
-          // button — the digest already learned this.
-          why: t("welcome.footer", { site: site.name }),
-        },
-        input.username,
-      ),
-    );
+    const { subject, content } = composeWelcomeMail({
+      username: input.username,
+      title: input.title,
+      email: input.email,
+      nickname: input.nickname,
+      visibility: input.visibility,
+      locale,
+      signIn,
+    });
+    await sendMail(renderMail(input.email, subject, content, input.username));
     return true;
   } catch (err) {
     console.error(`[journals] welcome mail for ${input.username} failed:`, err);
