@@ -108,6 +108,33 @@ export default function MessagesPanel({
     });
   }
 
+  // The preview button and switch for one channel of one message kind —
+  // shared by the table (tablet up) and the phone cards (B2482).
+  const channelControl = (group: (typeof kindGroups)[number], c: (typeof CHANNELS)[number], id: TemplateId, locked: boolean) => (
+    <>
+      <button
+        type="button"
+        aria-label={`Preview ${CHANNEL_LABEL[c]} — ${group.kind}`}
+        onClick={() => setPreviewId(id)}
+        className="rounded-lg hover:opacity-80"
+      >
+        <ChannelChip channel={c} label={false} />
+      </button>
+      <MessageSwitch
+        messageKey={id}
+        initialOff={off.has(id)}
+        locked={locked}
+        confirmQuestion={
+          FAMILIES[group.family].class === "service"
+            ? `Turn off ${group.kind} by ${CHANNEL_LABEL[c]}? It stays off until you turn it back on.`
+            : undefined
+        }
+        confirmLabel={`Turn off ${group.kind} by ${CHANNEL_LABEL[c]}`}
+        onChanged={(isOff) => markOff(id, isOff)}
+      />
+    </>
+  );
+
   return (
     <div className="mt-6 flex flex-col gap-4">
       {off.size > 0 ? (
@@ -161,7 +188,7 @@ export default function MessagesPanel({
             </form>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 hidden overflow-x-auto md:block">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-ink-secondary">
@@ -202,28 +229,7 @@ export default function MessagesPanel({
                             if (!id) return <td key={c} className="px-2 py-2" />;
                             return (
                               <td key={c} className="px-2 py-2">
-                                <div className="flex flex-col items-center gap-1">
-                                  <button
-                                    type="button"
-                                    aria-label={`Preview ${CHANNEL_LABEL[c]} — ${group.kind}`}
-                                    onClick={() => setPreviewId(id)}
-                                    className="rounded-lg hover:opacity-80"
-                                  >
-                                    <ChannelChip channel={c} label={false} />
-                                  </button>
-                                  <MessageSwitch
-                                    messageKey={id}
-                                    initialOff={off.has(id)}
-                                    locked={locked}
-                                    confirmQuestion={
-                                      FAMILIES[group.family].class === "service"
-                                        ? `Turn off ${group.kind} by ${CHANNEL_LABEL[c]}? It stays off until you turn it back on.`
-                                        : undefined
-                                    }
-                                    confirmLabel={`Turn off ${group.kind} by ${CHANNEL_LABEL[c]}`}
-                                    onChanged={(isOff) => markOff(id, isOff)}
-                                  />
-                                </div>
+                                <div className="flex flex-col items-center gap-1">{channelControl(group, c, id, locked)}</div>
                               </td>
                             );
                           })}
@@ -237,6 +243,49 @@ export default function MessagesPanel({
                 })}
               </tbody>
             </table>
+
+          {/* B2482: a card per kind below tablet width — every channel of a
+              kind reachable without the page scrolling sideways. */}
+          <ul className="mt-4 flex flex-col gap-4 md:hidden">
+            {FAMILY_ORDER.flatMap((fam) => {
+              const groups = kindGroups.filter((g) => g.family === fam);
+              if (!groups.length) return [];
+              return [
+                <li key={`grp-${fam}`} className="text-xs font-bold uppercase tracking-wide text-ink-secondary">
+                  {FAMILY_LABEL[fam]} · {CLASS_LABEL[FAMILIES[fam].class]}
+                </li>,
+                ...groups.map((group) => {
+                  const locked = FAMILIES[group.family].class === "required";
+                  const channels = CHANNELS.filter((c) => group.byChannel[c]);
+                  const rowIds = channels.map((c) => group.byChannel[c] as TemplateId);
+                  const sent = rowIds.reduce((sum, id) => sum + (counts[id]?.sent ?? 0), 0);
+                  const skipped = rowIds.reduce((sum, id) => sum + (counts[id]?.skipped ?? 0), 0);
+                  return (
+                    <li key={`card-${fam}-${group.kind}`} className="rounded-2xl border border-line-quiet p-3">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <div>
+                          <div className="font-semibold text-ink-strong">{group.kind}</div>
+                          <div className="text-xs text-ink-secondary">{group.audience}</div>
+                        </div>
+                        <div className="text-xs text-ink-secondary">{CLASS_LABEL[FAMILIES[group.family].class]}</div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-4">
+                        {channels.map((c) => (
+                          <div key={c} className="flex flex-col items-center gap-1">
+                            {channelControl(group, c, group.byChannel[c] as TemplateId, locked)}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-3 flex gap-4 text-xs text-ink-secondary tabular-nums">
+                        <span>Sent 7d {sent}</span>
+                        <span>Skipped 7d {skipped}</span>
+                      </div>
+                    </li>
+                  );
+                }),
+              ];
+            })}
+          </ul>
           </div>
         </div>
       ) : null}
