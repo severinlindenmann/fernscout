@@ -2238,6 +2238,7 @@
   "push.prompt.never": "Non chiedermelo più",
   "push.prompt.notNow": "Non ora",
   "push.prompt.title": "Vuoi ricevere il prossimo giorno?",
+  "push.prompt.wantDay": "Vuoi il giorno {n} appena sarà pubblicato?",
   "push.prompt.yes": "Sì, avvisami",
   "push.turnOff": "Disattiva",
   "push.unavailable": "In questo browser il servizio push è disattivato, quindi qui non si possono configurare le notifiche. In Brave: Impostazioni → Privacy e sicurezza → «Usa i servizi Google per la messaggistica push», poi riavvia il browser.",

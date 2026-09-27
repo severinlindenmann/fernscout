@@ -2315,6 +2315,7 @@ export type TranslationKey =
   | "push.prompt.never"
   | "push.prompt.notNow"
   | "push.prompt.title"
+  | "push.prompt.wantDay"
   | "push.prompt.yes"
   | "push.turnOff"
   | "push.unavailable"

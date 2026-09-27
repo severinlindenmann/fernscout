@@ -2247,6 +2247,7 @@
   "push.prompt.never": "Don't ask me again",
   "push.prompt.notNow": "Not now",
   "push.prompt.title": "Get the next day?",
+  "push.prompt.wantDay": "Want day {n} when it's out?",
   "push.prompt.yes": "Yes, notify me",
   "push.turnOff": "Turn off",
   "push.unavailable": "This browser has its push service switched off, so notifications can’t be set up here. In Brave: Settings → Privacy and security → “Use Google services for push messaging”, then restart the browser.",
