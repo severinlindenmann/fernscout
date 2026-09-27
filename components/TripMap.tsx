@@ -22,6 +22,7 @@ import { flagFor } from "@/lib/flags";
 import GoogleMark from "./GoogleMark";
 import { useWorldLand } from "./useWorldLand";
 import { useI18n } from "./LocaleProvider";
+import { useMapViewport } from "./map/useMapViewport";
 import type { Basemap } from "@/lib/basemap";
 
 /**
@@ -47,6 +48,7 @@ export default function TripMap({
   basemap = null,
   locals,
   track = [],
+  onRequestFullscreen,
 }: {
   /** The reader-filtered day summaries — see `tripStops`. */
   days: readonly StopSource[];
@@ -69,6 +71,12 @@ export default function TripMap({
    * wrote up cannot zoom the whole map out to fit itself.
    */
   track?: [number, number][][];
+  /**
+   * What a single tap on this map does — nothing yet opens a full-screen
+   * view (that is Phase 2, docs/plans/map-redesign.md), so this is absent
+   * until a caller has one to hand over.
+   */
+  onRequestFullscreen?: () => void;
 }) {
   const { t, formatShortDate } = useI18n();
   // The 1:110m coastline, fetched after the page is readable — all a checkout
@@ -84,8 +92,6 @@ export default function TripMap({
     stops.length > 1 ? "whole" : "local",
   );
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
 
   // Nothing chosen yet is the *last* stop, not the first: the default
   // selection is where the trip got to. The arrows step from there, so this
@@ -129,6 +135,17 @@ export default function TripMap({
     return () => observer.disconnect();
   }, []);
 
+  // Pan/zoom state and gesture handling — pinch, wheel, double-tap, keyboard
+  // — shared with `WorldMap` (B2419). Cooperative: this map sits under the
+  // hero on a phone, so one finger has to keep scrolling the page.
+  const viewport = useMapViewport({
+    svgRef,
+    maxZoom,
+    cooperative: true,
+    onRequestFullscreen,
+  });
+  const { zoom, pan } = viewport;
+
   /**
    * The frame actually drawn: the base, grown to the panel's shape, divided
    * by the zoom, moved by the pan.
@@ -161,6 +178,12 @@ export default function TripMap({
       lngScale: base.lngScale,
     };
   }, [base, zoom, pan, drawn]);
+  // Kept for gesture handlers that fire between renders (a pinch, a wheel
+  // tick) — an effect, not a call in the render body, so nothing here ever
+  // mutates a ref while rendering.
+  useEffect(() => {
+    viewport.syncFrame(frame);
+  }, [viewport, frame]);
 
   // Sizes in screen pixels, not viewBox units: a frame is 4 units across for
   // one trip and 900 for another, so a constant radius is a dot on one map
@@ -171,13 +194,10 @@ export default function TripMap({
     [frame.w, drawn.w],
   );
 
-  const refit = useCallback(() => {
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-  }, []);
+  const refit = viewport.reset;
 
   /** Whether the reader has moved the map away from its automatic bounds. */
-  const moved = zoom !== 1 || pan.x !== 0 || pan.y !== 0;
+  const moved = viewport.moved;
 
   /**
    * The list, and the row in it that is selected.
@@ -208,10 +228,10 @@ export default function TripMap({
   /** Zoom a step toward a point — what tapping a group of merged stops does. */
   const closer = useCallback(
     (x: number, y: number) => {
-      setZoom((z) => Math.min(maxZoom, z * 2));
-      setPan({ x: x - (base.x + base.w / 2), y: y - (base.y + base.h / 2) });
+      viewport.setZoom((z) => Math.min(maxZoom, z * 2));
+      viewport.setPan({ x: x - (base.x + base.w / 2), y: y - (base.y + base.h / 2) });
     },
-    [base, maxZoom],
+    [base, maxZoom, viewport],
   );
 
   const select = useCallback(
@@ -240,11 +260,6 @@ export default function TripMap({
     },
     [refit],
   );
-
-  // Mouse drag only. `touch-none` would hand every finger on the map to the
-  // pan handler, and on a phone this card is most of the screen — the page
-  // would stop scrolling where the map is.
-  const drag = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   if (!selected) return null;
 
@@ -328,30 +343,11 @@ export default function TripMap({
         <svg
           ref={svgRef}
           viewBox={`${frame.x} ${frame.y} ${frame.w} ${frame.h}`}
-          className="block h-full w-full"
+          className="block h-full w-full outline-none"
+          style={{ touchAction: viewport.touchAction }}
           role="group"
           aria-label={`${t("tripMap.title")} — ${selected.location}, ${selected.country}`}
-          onPointerDown={(e) => {
-            if (e.pointerType === "touch") return;
-            (e.target as Element).setPointerCapture?.(e.pointerId);
-            drag.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
-          }}
-          onPointerMove={(e) => {
-            const d = drag.current;
-            if (!d) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            const scale = frame.w / rect.width;
-            setPan({
-              x: d.panX - (e.clientX - d.x) * scale,
-              y: d.panY - (e.clientY - d.y) * scale,
-            });
-          }}
-          onPointerUp={() => {
-            drag.current = null;
-          }}
-          onPointerLeave={() => {
-            drag.current = null;
-          }}
+          {...viewport.bind}
         >
           {[0, ...(wrapped ? [worldWidth] : [])].map((offset) => (
             <g key={offset} transform={`translate(${offset} 0) scale(${base.lngScale} 1)`}>
@@ -574,13 +570,13 @@ export default function TripMap({
         <div className="absolute bottom-2 right-2 flex flex-row-reverse gap-1.5 sm:bottom-auto sm:top-2 sm:flex-col">
           <MapButton
             label={t("map.zoomIn")}
-            onClick={() => setZoom((z) => Math.min(maxZoom, z * 1.6))}
+            onClick={() => viewport.setZoom((z) => Math.min(maxZoom, z * 1.6))}
           >
             <Plus className="h-4 w-4" />
           </MapButton>
           <MapButton
             label={t("map.zoomOut")}
-            onClick={() => setZoom((z) => Math.max(1, z / 1.6))}
+            onClick={() => viewport.setZoom((z) => Math.max(1, z / 1.6))}
           >
             <Minus className="h-4 w-4" />
           </MapButton>
