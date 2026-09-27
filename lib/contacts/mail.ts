@@ -107,8 +107,17 @@ function baseUrl(): string {
   return serverSite().url;
 }
 
-function footerFor(locale: Locale, user: UserConfig): string {
-  return translateIn(locale, "contact.mailFooter", { site: user.title });
+/** The "why you got this" sentence (W44, B2440) for each kind of mail this
+ * file sends — one per family, never a bare "Sent by". */
+type WhyKind = "codeJournal" | "invite" | "reader" | "owner";
+const WHY_KEY = {
+  codeJournal: "mail.why.codeJournal",
+  invite: "mail.why.invite",
+  reader: "mail.why.reader",
+  owner: "mail.why.owner",
+} as const;
+function footerFor(locale: Locale, user: UserConfig, kind: WhyKind): string {
+  return translateIn(locale, WHY_KEY[kind], { site: user.title });
 }
 
 /**
@@ -190,7 +199,7 @@ export async function sendCodeMail(
       url: link ?? undefined,
       buttonText: link ? translateIn(locale, "contact.mailCodeButton") : undefined,
       ignoreText: translateIn(locale, "contact.mailCodeIgnore"),
-      why: footerFor(locale, user),
+      why: footerFor(locale, user, "codeJournal"),
       username,
     }),
   );
@@ -257,7 +266,7 @@ export async function sendInviteMail(
         body: translateIn(input.locale, buddy ? "contact.mailInviteBuddyBody" : "contact.mailInviteGuestBody", vars),
         buttonText: translateIn(input.locale, "contact.mailInviteButton"),
         buttonUrl: input.url,
-        why: footerFor(input.locale, user),
+        why: footerFor(input.locale, user, "invite"),
         manage: neverInviteAvailable()
           ? {
           text: translateIn(input.locale, "contact.neverInvite"),
@@ -298,7 +307,7 @@ export async function sendWelcomeMail(
   if (!mayMailContact(contact, { allowUnconfirmed: true })) return null;
   const token = manageTokenFor(username, contact.id);
   const buttonText = translateIn(message.locale, "welcomeLink.mailButton");
-  const why = footerFor(message.locale, user);
+  const why = footerFor(message.locale, user, "invite");
   if (template === "invite.mail") {
     // B2442 — this is the one still asking somebody in, so the manage line
     // is "never invite this address again", not "stop these emails": a
@@ -435,7 +444,7 @@ export async function notifyOwnerOfRequest(
               href: `${baseUrl()}/${username}/studio/readers?contact=${encodeURIComponent(contact.id)}`,
             },
           ],
-          why: footerFor(locale, user),
+          why: footerFor(locale, user, "owner"),
           locale,
         },
         username,
@@ -548,7 +557,7 @@ export async function sendApprovedMail(
             href: manageUrl(baseUrl(), username, token),
           },
         ],
-        why: footerFor(locale, user),
+        why: footerFor(locale, user, "reader"),
         manage: {
           text: translateIn(locale, "contact.unsubscribe"),
           href: unsubscribeUrlFor(baseUrl(), username, token),

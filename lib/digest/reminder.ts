@@ -112,7 +112,7 @@ async function sendReminder(username: string, user: UserConfig, trip: Trip): Pro
               href: `${serverSite().url}/${encodeURIComponent(username)}/studio/day/new`,
             },
           ],
-          why: translateIn(locale, "contact.mailFooter", { site: user.title }),
+          why: translateIn(locale, "mail.why.reminder", { site: user.title }),
         },
         username,
       ),

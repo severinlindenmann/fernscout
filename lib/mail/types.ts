@@ -37,6 +37,8 @@ export type Mail = {
    * lib/messages/registry.ts. Carried through so `deliver` (lib/mail/index.ts)
    * can log the send without every transport needing to know the registry. */
   template: TemplateId;
+  /** The language the mail was written in, for the send log (B2439). */
+  locale?: string;
   html: string;
   /** Always required. A mail with no text alternative is a mail some readers
    * cannot read, and it also reads as spam to most filters. */

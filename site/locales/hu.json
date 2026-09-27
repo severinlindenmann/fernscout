@@ -443,7 +443,6 @@
   "contact.mailCodePurpose": "Írd be ezt a kódot arra az oldalra, ahonnan jöttél, hogy megerősítsd az e-mail-címedet.",
   "contact.smsCodeBody": "{code} a(z) {title} kódod. {minutes} percig érvényes.",
   "contact.mailCodeTitle": "Egy kód, és kész",
-  "contact.mailFooter": "Küldte: {site}.",
   "contact.mailInviteBuddyBody": "{nickname} szeretné, ha segítenél írni ezt: {trip}, ami ennek a része: {title}. Nyomd meg az alábbi gombot, hogy igent mondj — ehhez egyszer meg kell erősítened az e-mail-címedet, ennyi az egész.",
   "contact.mailInviteBuddySubject": "{nickname} meghívott, hogy írjatok együtt: {trip}",
   "contact.mailInviteButton": "Igent mondok",
@@ -1231,7 +1230,7 @@
   "mail.identityApp": "Ha a {site} fent van a kezdőképernyődön, ott nyisd meg, és oda írd be a kódot — a gomb a böngésződet nyitja meg, és ott jelentkeztet be.",
   "mail.identityButton": "Bejelentkezés",
   "mail.identityCode": "A kódod: {code}. {minutes} percig érvényes.",
-  "mail.identityFooter": "Küldte: {site}.",
+  "mail.identityFooter": "Valaki bejelentkezési kódot kért ehhez a címhez a(z) {site} oldalon.",
   "mail.identityIgnore": "Ha nem te kérted, hagyd figyelmen kívül — semmi nem nyílt meg.",
   "mail.identityLasts": "Egy évig érvényes, ezen az eszközön. Bármikor megszüntetheted azon az oldalon, ahová bejelentkeztet.",
   "mail.identityTitle": "Bejelentkezés",
@@ -1828,7 +1827,7 @@
   "photobook.receipt.credits": "{credits} credit",
   "photobook.receipt.creditsNegative": "−{credits} credit",
   "photobook.receipt.download": "Letöltés",
-  "photobook.receipt.footer": "Fernscout",
+  "photobook.receipt.footer": "Azért kaptad, mert fotókönyvet rendeltek a naplódból. A nyugtákat mindig elküldjük.",
   "photobook.receipt.line": "Fotókönyv, nyomtatva és postázva",
   "photobook.receipt.meta": "Megrendelve: {date} · Hivatkozás: {id}",
   "photobook.receipt.missing": "Fotók, amelyeket nem sikerült beolvasni, és üresen nyomtatódnak: {count}.",
@@ -4273,5 +4272,10 @@
   "smsStop.working": "Mentés…",
   "smsStop.error": "Ez nem sikerült. Próbáld újra egy kicsit később.",
   "smsStop.cancel": "Maradjon",
-  "smsStop.done": "Kész. Nem kapsz több SMS-t ettől: {journal}."
+  "smsStop.done": "Kész. Nem kapsz több SMS-t ettől: {journal}.",
+  "mail.why.codeJournal": "Valaki kódot kért ezzel a címmel a(z) {site} olvasásához.",
+  "mail.why.invite": "Valaki, aki a(z) {site} naplót írja, beírta ezt a címet, hogy meghívjon. Ez az egyetlen meghívó, amit kapsz.",
+  "mail.why.reader": "Kérted, hogy követhesd a(z) {site} naplót.",
+  "mail.why.owner": "A(z) {site} a tiéd. A saját naplódról szóló leveleket mindig elküldjük.",
+  "mail.why.reminder": "Bekapcsoltad az esti emlékeztetőt egy utazáshoz a(z) {site} naplóban. Az utazás beállításaiban kapcsolhatod ki."
 }
