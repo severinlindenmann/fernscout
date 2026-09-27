@@ -91,6 +91,7 @@ export const SCOPES = {
   // `/x/<token>` — "never invite this address again" (B2442). No journal, no
   // login: the request's own language.
   neverInvitePage: { files: ["app/x/[token]/page.tsx"] },
+  smsStopPage: { files: ["app/[user]/stop/[token]/page.tsx"] },
   // The welcome guide and the join flow — B2293: the first page a stranger
   // holding a link loads, on a phone, so a few dozen strings.
   guide: {

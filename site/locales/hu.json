@@ -4216,5 +4216,13 @@
   "op.spendFooter": "Naponta egyszer kuldve, az ejszakai ellenorzes altal. Allitsd a costs.alertDailyRappen erteket 0-ra a leallitashoz.",
   "op.messageFooter": "A(z) {site} uzemeltetojetol, a(z) {user} journalodrol. Valaszolj erre a levelre.",
   "code.phoneVerify": "{code} a(z) {site} kodod. 30 percen belul lejar.",
-  "mail.whyLabel": "Miért kaptad ezt:"
+  "mail.whyLabel": "Miért kaptad ezt:",
+  "smsStop.title": "SMS leiratkozás",
+  "smsStop.question": "Ne kapj több SMS-t az új napokról ettől: {journal}?",
+  "smsStop.details": "Ettől a naplótól nem kapsz több SMS-t. Az e-mailek és a többi választott csatorna nem változik.",
+  "smsStop.confirm": "Leiratkozom",
+  "smsStop.working": "Mentés…",
+  "smsStop.error": "Ez nem sikerült. Próbáld újra egy kicsit később.",
+  "smsStop.cancel": "Maradjon",
+  "smsStop.done": "Kész. Nem kapsz több SMS-t ettől: {journal}."
 }

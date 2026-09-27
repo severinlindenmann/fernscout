@@ -4215,5 +4215,13 @@
   "op.spendFooter": "Wird einmal pro Tag von der nächtlichen Prüfung gesendet. Setze costs.alertDailyRappen auf 0, um dies zu stoppen.",
   "op.messageFooter": "Vom Betreiber von {site}, zu deinem Journal {user}. Antworte auf diese Mail, um zu antworten.",
   "code.phoneVerify": "{code} ist dein Code für {site}. Er läuft in 30 Minuten ab.",
-  "mail.whyLabel": "Warum du das bekommst:"
+  "mail.whyLabel": "Warum du das bekommst:",
+  "smsStop.title": "SMS abbestellen",
+  "smsStop.question": "Keine SMS mehr über neue Tage von {journal}?",
+  "smsStop.details": "Von diesem Journal kommen keine SMS mehr. E-Mails oder andere Wege, die du gewählt hast, bleiben, wie sie sind.",
+  "smsStop.confirm": "SMS abbestellen",
+  "smsStop.working": "Wird gespeichert…",
+  "smsStop.error": "Das hat nicht geklappt. Versuch es gleich noch einmal.",
+  "smsStop.cancel": "Weiter erhalten",
+  "smsStop.done": "Erledigt. Keine SMS mehr von {journal}."
 }

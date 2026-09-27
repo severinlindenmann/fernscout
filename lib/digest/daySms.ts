@@ -3,6 +3,7 @@ import { isTestContent } from "../access";
 import { isEnabled } from "../capabilities";
 import { whatsappCountryCode } from "../contactNumber";
 import { listContacts, manageTokenFor, unsubscribeUrlFor } from "../contacts";
+import { smsStopUrl } from "../contacts/smsStop";
 import { pickLocale } from "../contacts/locale";
 import { capText } from "../contacts/welcome";
 import { balanceOf, refund, spend } from "../credits";
@@ -36,7 +37,7 @@ import { recordNotified } from "./dayNotify";
  *   `owner.tel` alone does not opt anybody into texts.
  */
 
-type SmsRecipient = { to: string; locale: string; free: boolean; reader: ReaderLevel; manageToken: string };
+type SmsRecipient = { to: string; locale: string; free: boolean; reader: ReaderLevel; stop: string };
 
 async function recipientsFor(trip: Trip, entry: Entry | null): Promise<SmsRecipient[]> {
   const owner = trip.username;
@@ -66,7 +67,11 @@ async function recipientsFor(trip: Trip, entry: Entry | null): Promise<SmsRecipi
       locale: pickLocale(contact.locale),
       free: email !== "" && email === ownerEmail,
       reader,
-      manageToken: manageTokenFor(owner, contact.id),
+      // A stop-only link (review L2), never the manage token: an SMS body
+      // lives in provider logs and forwarded texts.
+      stop:
+        smsStopUrl(serverSite().url, owner, contact.id) ??
+        unsubscribeUrlFor(serverSite().url, owner, manageTokenFor(owner, contact.id), "sms"),
     });
   }
   return out;
@@ -139,7 +144,7 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
       trip: capText(trip.title, 60),
       day: capText(entry.title, 60),
       url,
-      stop: unsubscribeUrlFor(serverSite().url, owner, recipient.manageToken, "sms"),
+      stop: recipient.stop,
     });
     try {
       await sendSms({ to: recipient.to, body, template: "news.sms", owner: trip.username });
