@@ -4071,7 +4071,6 @@ export type TranslationKey =
   | "tripMap.selectedPlace"
   | "tripMap.stopOf"
   | "tripMap.title"
-  | "tripMap.whole"
   | "trips.allTrips"
   | "trips.chip"
   | "trips.daysAway"
