@@ -11,6 +11,8 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { logMessage } from "@/lib/messages/log";
+import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -109,7 +111,15 @@ export async function POST(
   // whole point is to avoid.
   if (channel === "whatsapp") {
     if (!(await claimChannel(user, trip.id, slug, "whatsapp"))) {
-      // TODO(B2438): logMessage({ owner: user, template: "day.whatsapp", flow: "tell_readers", channel: "whatsapp", status: "skipped", reason: "deduped" })
+      await logMessage({
+        template: "news.wa",
+        flow: "newday",
+        channel: "wa",
+        to: getUser(user)?.owner.email ?? user,
+        owner: user,
+        status: "skipped",
+        reason: "deduped",
+      });
       return already();
     }
     const outcome = await sendDayWhatsapp(user, ref, slug);
@@ -129,7 +139,15 @@ export async function POST(
   if (channel === "sms") {
     // B2292 — the same shape as WhatsApp above, one credit per paying reader.
     if (!(await claimChannel(user, trip.id, slug, "sms"))) {
-      // TODO(B2438): logMessage({ owner: user, template: "day.sms", flow: "tell_readers", channel: "sms", status: "skipped", reason: "deduped" })
+      await logMessage({
+        template: "news.sms",
+        flow: "newday",
+        channel: "sms",
+        to: getUser(user)?.owner.email ?? user,
+        owner: user,
+        status: "skipped",
+        reason: "deduped",
+      });
       return already();
     }
     const outcome = await sendDaySms(user, ref, slug);
@@ -147,7 +165,15 @@ export async function POST(
   }
 
   if (!(await claimChannel(user, trip.id, slug, "mail"))) {
-    // TODO(B2438): logMessage({ owner: user, template: "day.mail", flow: "tell_readers", channel: "mail", status: "skipped", reason: "deduped" })
+    await logMessage({
+      template: "news.mail",
+      flow: "newday",
+      channel: "mail",
+      to: getUser(user)?.owner.email ?? user,
+      owner: user,
+      status: "skipped",
+      reason: "deduped",
+    });
     return already();
   }
   const outcome = await sendDayLetter(user, ref, slug);

@@ -37,6 +37,7 @@ import { mailSummary } from "@/lib/api/dayMail";
 import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { missingAtPublish, v1Slug } from "@/lib/api/v2/days";
 import { claimChannel, releaseChannelClaim } from "@/lib/digest/dayNotify";
+import { logMessage } from "@/lib/messages/log";
 import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@paid/whatsapp/lib/digest/dayWhatsapp";
 import type { Trip } from "@/lib/types";
@@ -226,11 +227,21 @@ export async function applyPublish(
       const outcome = await sendDayLetter(user, ref, v1Slug(slug));
       if (!outcome.ok) await releaseChannelClaim(user, tripId, v1Slug(slug), "mail");
       mail = mailSummary(outcome);
+    } else {
+      // A lost claim reports nothing rather than inventing an outcome for a
+      // send this call never made — the same silence the WhatsApp branch
+      // below gives for a channel already spoken for. Logged against the
+      // owner's own address: there is no one recipient at this point, only
+      // "this journal's whole readership was skipped" (B2438).
+      await logMessage({
+        template: "news.mail",
+        channel: "mail",
+        to: getUser(user)?.owner.email ?? user,
+        owner: user,
+        status: "skipped",
+        reason: "deduped",
+      });
     }
-    // A lost claim reports nothing rather than inventing an outcome for a
-    // send this call never made — the same silence the WhatsApp branch below
-    // gives for a channel already spoken for.
-    // TODO(B2438): logMessage({ owner: user, template: "day.mail", channel: "mail", status: "skipped", reason: "deduped" })
   }
   let whatsapp: Record<string, unknown> | undefined;
   if (sendWhatsappRequested) {
@@ -250,11 +261,19 @@ export async function applyPublish(
       const outcome = await sendDayWhatsapp(user, ref, v1Slug(slug));
       if (!outcome.ok) await releaseChannelClaim(user, tripId, v1Slug(slug), "whatsapp");
       whatsapp = whatsappSummary(outcome);
+    } else {
+      // A lost claim reports nothing rather than inventing an outcome for a
+      // send this call never made — the same silence `notify/route.ts` gives
+      // for a channel already spoken for.
+      await logMessage({
+        template: "news.wa",
+        channel: "wa",
+        to: getUser(user)?.owner.email ?? user,
+        owner: user,
+        status: "skipped",
+        reason: "deduped",
+      });
     }
-    // A lost claim reports nothing rather than inventing an outcome for a
-    // send this call never made — the same silence `notify/route.ts` gives
-    // for a channel already spoken for.
-    // TODO(B2438): logMessage({ owner: user, template: "day.whatsapp", channel: "whatsapp", status: "skipped", reason: "deduped" })
   }
 
   /**
@@ -302,11 +321,19 @@ export async function applyPublish(
         ),
       );
     });
+  } else {
+    // A lost claim (an already-announced day, or a retried request) sends
+    // nothing a second time — the same silence the WhatsApp branch above
+    // gives for its own channel.
+    await logMessage({
+      template: "news.push",
+      channel: "push",
+      to: getUser(user)?.owner.email ?? user,
+      owner: user,
+      status: "skipped",
+      reason: "deduped",
+    });
   }
-  // A lost claim (an already-announced day, or a retried request) sends
-  // nothing a second time — the same silence the WhatsApp branch above gives
-  // for its own channel.
-  // TODO(B2438): logMessage({ owner: user, template: "news.push", channel: "push", status: "skipped", reason: "deduped" })
 
   const test = isTestContent(tripLike(user, tripId, trip.people), day) || trip.test === true || day.test === true;
   // Instance-level, like every capability in v2 (decision 5): whether this
