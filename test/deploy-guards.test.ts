@@ -154,3 +154,47 @@ describe("B1311: an unreadable config.json fails the build before .next is touch
     }
   });
 });
+
+describe("B2500: DEPLOY_SHA deploys an explicit commit instead of pulling a branch", () => {
+  test("a malformed DEPLOY_SHA is refused before anything is fetched", async () => {
+    const appDir = tmpAppDir();
+    git("init", "-q", "-b", "main", appDir);
+    git("-C", appDir, "commit", "-q", "--allow-empty", "-m", "init");
+
+    await expect(
+      run("bash", [script], {
+        env: {
+          ...process.env,
+          APP_DIR: appDir,
+          RUN_AS: os.userInfo().username,
+          DEPLOY_SHA: "not-a-sha",
+          PORT: "18175",
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("is not a full 40-character hex commit SHA"),
+    });
+  });
+
+  test("without DEPLOY_SHA, a detached HEAD is still refused the ordinary way", async () => {
+    const appDir = tmpAppDir();
+    git("init", "-q", "-b", "main", appDir);
+    git("-C", appDir, "commit", "-q", "--allow-empty", "-m", "init");
+    git("-C", appDir, "checkout", "-q", "--detach", "HEAD");
+
+    await expect(
+      run("bash", [script], {
+        env: {
+          ...process.env,
+          APP_DIR: appDir,
+          RUN_AS: os.userInfo().username,
+          PORT: "18176",
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining("is not on a branch"),
+    });
+  });
+});
