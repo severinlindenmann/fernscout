@@ -75,6 +75,9 @@ function FitIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* The centre dot is what tells "whole trip" apart from full screen,
+          which draws the same four corners. */}
+      <path d="M9 7a2 2 0 1 1 0 4a2 2 0 1 1 0-4Z" fill="currentColor" />
     </svg>
   );
 }

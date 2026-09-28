@@ -343,7 +343,6 @@ export default function MapPageContent({
                 live={live}
                 selectedKey={selectedKey}
                 onSelect={(p) => setSelectedKey(p ? p.key : null)}
-                stopCardFromLg
                 // The stop list to its left (above) already shows the
                 // selected stop's photos, headline, day link and Google Maps
                 // — the floating card over the map would only repeat it.

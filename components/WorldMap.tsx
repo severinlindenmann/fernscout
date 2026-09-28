@@ -89,7 +89,6 @@ export default function WorldMap({
   live = false,
   selectedKey: selectedKeyProp,
   onSelect: onSelectProp,
-  stopCardFromLg = false,
   showStopCard = true,
 }: {
   places: PlaceView[];
@@ -139,14 +138,9 @@ export default function WorldMap({
    * scrubber, or `selectedKey` above) — so a caller driving `selectedKey`
    * can mirror the same key back into its own UI. */
   onSelect?: (place: PlaceView | null) => void;
-  /** The map page on a phone shows the selected stop in its own sheet
-   * (B2427), so the card over the map would repeat it and cover the map.
-   * When set, that card appears from `lg` up only. */
-  stopCardFromLg?: boolean;
   /** Withholds the floating stop card entirely — for a caller that already
    * shows the same content its own way (the desktop map page's stop list,
-   * B2430, next to this map; the mobile sheet already had its own copy
-   * before this prop existed, via `stopCardFromLg`). Defaults to true, so
+   * B2430, next to this map; the phone sheet, B2427, below it). Defaults to true, so
    * every other caller (the countdown, the studio's recorded-trips
    * preview) is unaffected. */
   showStopCard?: boolean;
@@ -721,7 +715,7 @@ export default function WorldMap({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
               transition={{ duration: 0.2 }}
-              className={`absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm${stopCardFromLg ? " hidden lg:block" : ""}`}
+              className="absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm"
             >
               <button
                 onClick={() => {
