@@ -2459,6 +2459,8 @@
   "test.title": "Testinhalt — das ist kein echter Tag",
   "time.local": "Ortszeit",
   "time.yourTime": "{time} bei dir",
+  "printRouteMap.north": "N",
+  "printRouteMap.scaleApprox": "Etwa {distance}",
   "tripMap.connections": "Verbindung zwischen Stopps, keine aufgezeichnete Route",
   "tripMap.googleMaps": "In Google Maps öffnen",
   "tripMap.googleMapsHelp": "Öffnet den Ort in Google Maps.",

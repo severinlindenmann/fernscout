@@ -2258,6 +2258,8 @@
   "test.title": "Contenuto di prova — questo non è un giorno reale",
   "time.local": "ora locale",
   "time.yourTime": "{time} da te",
+  "printRouteMap.north": "N",
+  "printRouteMap.scaleApprox": "Circa {distance}",
   "tripMap.connections": "Collegamento tra le tappe, non un percorso registrato",
   "tripMap.googleMaps": "Apri in Google Maps",
   "tripMap.googleMapsHelp": "Apre questo luogo in Google Maps.",
