@@ -97,14 +97,14 @@ describe("WorldMap selection", () => {
     expect(seen).toEqual(["b"]);
   });
 
-  test("the selected-stop card shows everywhere by default, and only from lg up when the page's own sheet shows the stop", () => {
+  test("the selected-stop card shows by default, and not at all when the caller shows the stop itself", () => {
     const card = (el: HTMLElement) => el.querySelector<HTMLElement>("div.backdrop-blur.shadow-lg");
     const plain = render({ selectedKey: "b" });
-    expect(card(plain)?.className).not.toContain("hidden");
+    expect(card(plain)).not.toBeNull();
     act(() => root!.unmount());
     container!.remove();
-    const paged = render({ selectedKey: "b", stopCardFromLg: true });
-    expect(card(paged)?.className).toContain("hidden lg:block");
+    const paged = render({ selectedKey: "b", showStopCard: false });
+    expect(card(paged)).toBeNull();
   });
 
   test("an outside selectedKey nudges the same marker selected, as if it had been tapped", () => {
