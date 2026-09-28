@@ -227,14 +227,18 @@ export default function PrintRouteMap({
         </g>
       </svg>
 
-      <ol>
+      {/* `<ul>`, not `<ol>` — the visible "N." is the marker's own day-order
+          number (`entry.order`), and a browser's own list counter next to it
+          would double-number the same row (found in the check-a-drawing
+          render: "1. 1. Susten Pass"). */}
+      <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0 }}>
         {legend.map((entry) => (
           <li key={entry.order}>
             {entry.order}. {entry.location}
             {entry.country ? `, ${entry.country}` : ""}
           </li>
         ))}
-      </ol>
+      </ul>
     </figure>
   );
 }

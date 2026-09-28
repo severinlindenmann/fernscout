@@ -70,10 +70,12 @@ describe("PrintRouteMap", () => {
     expect(hu).toContain(">É<");
   });
 
-  test("renders a numbered legend list", () => {
+  test("renders a numbered legend list, without a doubled browser counter", () => {
     const html = render();
-    expect(html).toContain("<ol>");
     expect(html).toMatch(/<li>1\. Locarno, Switzerland<\/li>/);
+    // `<ol>` would add its own "1." beside this component's own — B2431's
+    // check-a-drawing render caught exactly that doubling.
+    expect(html).not.toContain("<ol");
   });
 
   test("no interactive control markup — a print frame is never panned", () => {
