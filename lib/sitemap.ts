@@ -66,10 +66,10 @@ function instancePage(base: string, path: string): SitemapEntry[] {
   return urls.map((url) => ({ url, alternates }));
 }
 
-/** The landing, the orgs pages and their demos, the docs and the imprint. */
+/** The landing, /agentic, the orgs pages and their demos, the docs and the imprint. */
 export function pagesSitemap(): SitemapEntry[] {
   const base = serverSite().url;
-  const paths = ["", "/docs", ...DOCS_PAGES.map((p) => p.href)];
+  const paths = ["", "/agentic", "/docs", ...DOCS_PAGES.map((p) => p.href)];
   // The schools and tour-operator pages exist only where paid/ does — B2450.
   if (PAID_AREAS.includes("orgs")) {
     paths.push("/schools", "/schools/demo", "/tour-operators", "/tour-operators/demo");
