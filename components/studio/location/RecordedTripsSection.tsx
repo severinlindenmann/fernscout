@@ -5,6 +5,7 @@ import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
+import TrackEditsPanel from "./TrackEditsPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import { routeStatus, useNativeShell, type RouteRecordStatus } from "@/components/nativeShell";
 import type { Basemap } from "@/lib/basemap";
@@ -19,12 +20,37 @@ type RecordedTrip = {
   daysRecorded: number;
   tripDays: number;
   lastReceived: string;
+  /** B2539 security review, S2 — true when this row exists only because
+   * `track.json` survives a store with nothing left in it (a purge, most
+   * often). The hide/name tools still need this trip reachable; the preview
+   * map and per-day delete do not, since there is nothing left to fetch or
+   * delete by day. */
+  hasPublishedTrack?: boolean;
 };
 
 type LineSegment = { day?: string; points: [number, number][] };
 type LineResponse = { ok?: true; segments?: LineSegment[]; error?: string };
 type TripsResponse = { ok?: true; trips?: RecordedTrip[]; error?: string };
 type DeleteResponse = { ok?: true; removed?: number; error?: string };
+
+/** Every date from `start` to `end`, inclusive — the trip's own calendar
+ * span, for `TrackEditsPanel`'s day picker. A hidden or named stretch is
+ * about a day the trip *has*, never one the store currently happens to
+ * still hold a fix for (B2539 security review, S2), so this is independent
+ * of `segmentsByTrip`'s own raw preview. Timezone-agnostic on purpose, the
+ * same as the trip-track derivation's own private `datesBetween` (in the
+ * GPS module the studio conformance grep (C9) refuses to name here) — this
+ * is only a list of labels for a `<select>`, never an instant. */
+function datesBetween(start: string, end: string): string[] {
+  const dates: string[] = [];
+  for (let d = start; d <= end; ) {
+    dates.push(d);
+    const next = new Date(`${d}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    d = next.toISOString().slice(0, 10);
+  }
+  return dates;
+}
 
 /**
  * "Your route" — B2226. One row per trip that has at least one recorded
@@ -241,7 +267,12 @@ export default function RecordedTripsSection({
 
               {expanded === trip.tripId && (
                 <div className="mt-4">
-                  <p className="text-sm text-ink-secondary">{t("studio.location.route.rawNote")}</p>
+                  {!trip.hasPublishedTrack && (
+                    <p className="text-sm text-ink-secondary">{t("studio.location.route.rawNote")}</p>
+                  )}
+                  {trip.hasPublishedTrack && (
+                    <p className="text-sm text-ink-secondary">{t("studio.location.route.publishedOnly")}</p>
+                  )}
                   {lineError && (
                     <p role="alert" className="mt-2 text-sm text-coral-600">
                       {lineError}
@@ -296,6 +327,21 @@ export default function RecordedTripsSection({
                       />
                     </div>
                   )}
+
+                  {/* B2539, D8 C — hide a spot, hide a stretch, name a
+                      stretch, for this trip. Offered for every trip in this
+                      list, including one whose `track.json` survives a
+                      purge with nothing left recorded (`hasPublishedTrack`)
+                      — the whole point of listing it at all (security
+                      review, S2). The day picker is the trip's own calendar
+                      span, not the segments above: a hidden/named stretch
+                      is about a day the trip *has*, not one the store
+                      currently happens to still hold a fix for. */}
+                  <TrackEditsPanel
+                    username={username}
+                    tripId={trip.tripId}
+                    days={datesBetween(trip.start, trip.end)}
+                  />
                 </div>
               )}
             </li>

@@ -38,7 +38,13 @@ import { validateEntry } from "@/lib/validate/entry";
  */
 
 const TOKEN = "s3cret-health-token";
-const PRIVATE_JOURNAL = "hidden";
+// Not "hidden" — B2539 gave the real API surface a legitimate "hidden spot"
+// / "hidden stretch" vocabulary (GPS route privacy, D8 C), which otherwise
+// collides with this fixture's own substring check below and fails for a
+// reason that has nothing to do with what this file guards. The security
+// property this test proves does not depend on which string is the private
+// journal's name, only that it never appears in a public document.
+const PRIVATE_JOURNAL = "guarded";
 const PUBLIC_JOURNAL = "shown";
 
 let dir: string;

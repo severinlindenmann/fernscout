@@ -135,6 +135,44 @@ describe("lib/gps/api.ts — placeForDay", () => {
     expect(placeForDay(OWNER, TRIP, "2026-06-22")).toBeNull();
   });
 
+  test("a day entirely inside a hidden spot gives null — security review, S5", async () => {
+    const { writeTrackEdits } = await import("@/lib/gps/api");
+    writeTrackEdits(OWNER, TRIP, {
+      hiddenSpots: [{ lat: 13.75, lon: 100.49, radiusM: 5000 }],
+      hiddenStretches: [],
+      namedStretches: [],
+    });
+    appendFixes(OWNER, [
+      at("2026-06-22T08:00:00Z", 13.751, 100.491),
+      at("2026-06-22T10:00:00Z", 13.752, 100.492),
+    ]);
+    expect(placeForDay(OWNER, TRIP, "2026-06-22")).toBeNull();
+  });
+
+  test("a day entirely inside a hidden stretch gives null — security review, S5", async () => {
+    const { writeTrackEdits } = await import("@/lib/gps/api");
+    writeTrackEdits(OWNER, TRIP, {
+      hiddenSpots: [],
+      // No day carries a `timezone` here, so this resolves in UTC — the
+      // fixes below are both inside 06:00–20:00Z.
+      hiddenStretches: [{ date: "2026-06-22", from: "06:00", to: "20:00" }],
+      namedStretches: [],
+    });
+    appendFixes(OWNER, [
+      at("2026-06-22T08:00:00Z", 13.751, 100.491),
+      at("2026-06-22T10:00:00Z", 13.752, 100.492),
+    ]);
+    expect(placeForDay(OWNER, TRIP, "2026-06-22")).toBeNull();
+  });
+
+  test("an unreadable track-edits.json fails closed rather than exposing a fix — security review, S5", () => {
+    const editsFile = path.join(dir, OWNER, "trips", TRIP, "track-edits.json");
+    fs.mkdirSync(path.dirname(editsFile), { recursive: true });
+    fs.writeFileSync(editsFile, "not json");
+    appendFixes(OWNER, [at("2026-06-22T08:00:00Z", 13.75, 100.49)]);
+    expect(placeForDay(OWNER, TRIP, "2026-06-22")).toBeNull();
+  });
+
   test("no fixes that day gives null, not an error", () => {
     expect(placeForDay(OWNER, TRIP, "2026-06-23")).toBeNull();
   });

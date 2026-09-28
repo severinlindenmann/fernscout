@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../contentRoot";
+import { isInHiddenSpot, readTrackEdits, type HiddenSpot } from "./edits";
 
 /**
  * A trip's own line — `content/<user>/trips/<trip>/track.json`.
@@ -33,11 +34,22 @@ export type TrackSegment = {
   points: [number, number][];
 };
 
+/** One named stretch's own point on the line — B2539, D8 C. Computed at
+ * derivation time (`deriveTrack`, `./enrich.ts`) from the fix closest to the
+ * stretch's own middle instant, among the fixes that would actually be
+ * drawn. `day` is absent only when derivation could not place the stretch on
+ * any trip date at all (nothing in range, or the whole range cut by another
+ * rule) — dropped the same way a legacy, dateless `TrackSegment` is. */
+export type TrackLabel = { id: string; label: string; day?: string; point: [number, number] };
+
 export type Track = {
   /** ISO instant this file was derived, so an owner can tell whether it
    * predates the days they have since written. */
   generated: string;
   segments: TrackSegment[];
+  /** Named stretches this file's own dates carry a label for — absent when
+   * none do. See `TrackLabel` and `namedStretchLabels` below. */
+  labels?: TrackLabel[];
 };
 
 export function trackFile(username: string, tripId: string): string {
@@ -71,7 +83,7 @@ function readTrackFile(file: string): Track | undefined {
     return undefined;
   }
   if (typeof raw !== "object" || raw === null) return undefined;
-  const { generated, segments } = raw as Partial<Track>;
+  const { generated, segments, labels } = raw as Partial<Track>;
   if (!Array.isArray(segments)) return undefined;
   const clean = segments.filter(
     (s): s is TrackSegment =>
@@ -84,8 +96,27 @@ function readTrackFile(file: string): Track | undefined {
         (p) => Array.isArray(p) && p.length === 2 && p.every((n) => Number.isFinite(n)),
       ),
   );
-  if (clean.length === 0) return undefined;
-  return { generated: typeof generated === "string" ? generated : "", segments: clean };
+  const cleanLabels = Array.isArray(labels)
+    ? labels.filter(
+        (l): l is TrackLabel =>
+          typeof l === "object" &&
+          l !== null &&
+          typeof l.id === "string" &&
+          typeof l.label === "string" &&
+          (l.day === undefined || typeof l.day === "string") &&
+          Array.isArray(l.point) &&
+          l.point.length === 2 &&
+          l.point.every((n) => Number.isFinite(n)),
+      )
+    : [];
+  // Nothing left to draw and nothing to label — the same "absent is
+  // normal" shape the rest of this file uses.
+  if (clean.length === 0 && cleanLabels.length === 0) return undefined;
+  return {
+    generated: typeof generated === "string" ? generated : "",
+    segments: clean,
+    ...(cleanLabels.length > 0 ? { labels: cleanLabels } : {}),
+  };
 }
 
 function writeTrackFile(file: string, track: Track): void {
@@ -179,7 +210,60 @@ export function readerTrack(
       : [];
   const all = [...segments, ...tailSegments];
   if (all.length === 0) return undefined;
-  return { generated: track?.generated ?? tail?.generated ?? "", segments: all };
+
+  // B2539 security review, S2 — a serve-time fallback for hidden spots,
+  // independent of whether `track.json`/`track-recent.json` were derived
+  // *after* the spot was hidden. Derivation-time filtering (`deriveTrack`,
+  // `./enrich.ts`) is still what actually runs on every import and explicit
+  // `POST …/track` — this is the safety net for the gap in between, and for
+  // the one case derivation-time filtering cannot cover at all: a store
+  // purged back to nothing still leaves an already-derived `track.json` on
+  // disk, and re-deriving it from an empty store would delete the whole
+  // published route rather than merely cut one spot out of it
+  // (`writeTrackEdits`, `./api.ts`, no longer re-derives for exactly this
+  // reason). A hidden *spot* needs only the coordinates already on this
+  // file to filter — a hidden *stretch* needs the store's own timestamps,
+  // which this file does not carry per point, so a stretch only takes
+  // effect on the next real derivation (see `docs/gps.md`).
+  let hiddenSpots: HiddenSpot[];
+  try {
+    hiddenSpots = readTrackEdits(username, tripId).hiddenSpots;
+  } catch {
+    // Cannot tell what the owner hid — the same "fail closed" rule
+    // `readExcludeZones` uses in `./enrich.ts`: show nothing from this trip
+    // rather than risk a point that was meant to be cut.
+    return undefined;
+  }
+  const drawn = hiddenSpots.length > 0 ? splitOutHiddenSpots(all, hiddenSpots) : all;
+  if (drawn.length === 0) return undefined;
+  return { generated: track?.generated ?? tail?.generated ?? "", segments: drawn };
+}
+
+/** Cuts every point inside a hidden spot out of `segments`, breaking each one
+ * where a point is dropped — the same "the run breaks there" rule a private
+ * zone or a hidden spot already gets at derivation time (`deriveTrack`,
+ * `./enrich.ts`), restated here because this runs over already-derived
+ * points with no per-point time to re-derive from. A resulting piece under
+ * two points is dropped, the same "one stray position is not a line" rule
+ * `deriveTrack` itself uses. */
+function splitOutHiddenSpots(segments: TrackSegment[], spots: HiddenSpot[]): TrackSegment[] {
+  const out: TrackSegment[] = [];
+  for (const segment of segments) {
+    let piece: [number, number][] = [];
+    const flush = () => {
+      if (piece.length >= 2) out.push({ ...segment, points: piece });
+      piece = [];
+    };
+    for (const point of segment.points) {
+      if (isInHiddenSpot({ lat: point[0], lon: point[1] }, spots)) {
+        flush();
+        continue;
+      }
+      piece.push(point);
+    }
+    flush();
+  }
+  return out;
 }
 
 /**
@@ -235,6 +319,46 @@ export function dayTrack(
     (s) => s.day === date,
   );
   return segments && segments.length > 0 ? segments.map((s) => s.points) : undefined;
+}
+
+/**
+ * A reader-safe list of named-stretch labels — B2539, D8 C. A separate door
+ * from `readerTrack` rather than folding into it, deliberately: this reads
+ * `track.json`'s (and, when `live` says so, `track-recent.json`'s) own
+ * `labels` field, filters to the dates `visibleDates` already resolved for
+ * this reader (the same rule `readerTrack`'s segments use), and hands back a
+ * label plus one point on the line for each — never the line itself. Maps
+ * draw it as a small tag ("Boat trip · dolphins") at that point; this
+ * function does not draw anything, so a UI change to how it is drawn never
+ * touches this file.
+ */
+export function namedStretchLabels(
+  username: string,
+  tripId: string,
+  visibleDates: ReadonlySet<string>,
+  live = false,
+): TrackLabel[] {
+  const track = readTrack(username, tripId);
+  const fromTrack = (track?.labels ?? []).filter((l) => l.day !== undefined && visibleDates.has(l.day));
+  const tail = live ? readTail(username, tripId) : undefined;
+  const fromTail =
+    tail && tailIsLive(tail)
+      ? (tail.labels ?? []).filter((l) => l.day !== undefined && visibleDates.has(l.day))
+      : [];
+  const all = [...fromTrack, ...fromTail];
+  if (all.length === 0) return all;
+  // B2539 security review, S2 — the same serve-time fallback `readerTrack`
+  // above applies to the line itself: a label's own point is a coordinate
+  // too, and a spot hidden after this file was last derived must cut it the
+  // same way. Fails closed the same way, and for the same reason.
+  let hiddenSpots: HiddenSpot[];
+  try {
+    hiddenSpots = readTrackEdits(username, tripId).hiddenSpots;
+  } catch {
+    return [];
+  }
+  if (hiddenSpots.length === 0) return all;
+  return all.filter((l) => !isInHiddenSpot({ lat: l.point[0], lon: l.point[1] }, hiddenSpots));
 }
 
 /** How many points, across every segment. For the CLI's report. */
