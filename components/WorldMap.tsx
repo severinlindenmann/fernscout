@@ -366,19 +366,29 @@ export default function WorldMap({
   // A real browser fullscreen of the map shell (docs/plans/map-redesign.md
   // §3 Phase 2 item 6, the desktop map page's own full-screen button) — not
   // the phone full-screen *route* the map page opens elsewhere. Feature-
-  // detected with a lazy initializer rather than an effect, so the button is
-  // simply absent on first paint where the API doesn't exist (iOS Safari has
-  // none at all — the same fact `SlideShow`'s own toggle already documents)
-  // instead of flashing in. Guarded for `document` because this component is
-  // also rendered to static markup on the server (`test/map-page.test.tsx`),
-  // where there is no `document` to ask.
+  // detected in an effect rather than a lazy initializer: this component is
+  // server-rendered (`test/map-page.test.tsx`, and the real trip page), where
+  // there is no `document` to ask, so starting from `false` and only turning
+  // the button on after mount is what keeps the client's first render
+  // matching the server's — a lazy initializer reading `document` would
+  // decide the answer during hydration itself, before React has anything to
+  // compare it against, and only mismatch where the browser actually has the
+  // API (never in a test, which is why it took a real browser to catch).
+  // iOS Safari has none at all, so the button never appears there either way.
   const mapShellRef = useRef<HTMLDivElement>(null);
-  const [fullscreenSupported] = useState(
-    () =>
+  const [fullscreenSupported, setFullscreenSupported] = useState(false);
+  useEffect(() => {
+    // Feature detection, not a subscription — nothing here changes after
+    // mount, so there is no later caller for this to react to. Same shape
+    // as the "read the URL once, right after mount" effects elsewhere on
+    // this map page.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFullscreenSupported(
       typeof document !== "undefined" &&
-      document.fullscreenEnabled === true &&
-      typeof HTMLElement.prototype.requestFullscreen === "function",
-  );
+        document.fullscreenEnabled === true &&
+        typeof HTMLElement.prototype.requestFullscreen === "function",
+    );
+  }, []);
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
