@@ -1,8 +1,11 @@
 import "server-only";
 import { getAllEntries, getDays, getDefaultDay, getTripStats, type ReadOptions } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
+import { isHiddenPlace } from "./gps/edits";
+import { isHomePlace } from "./gps/enrich";
+import { townNameFor } from "./map/townName";
 import { geodataAvailable, reverseGeocode } from "./ingest/geo";
-import { defaultLocaleFor } from "./locales";
+import { defaultLocaleFor, translateIn } from "./locales";
 import type { StoryDay } from "./prose";
 import { withProse } from "./proseTree";
 import { getTrip, parseTripRef } from "./trips";
@@ -55,27 +58,63 @@ export function showsCountdown(trip: Pick<Trip, "ref" | "status">): boolean {
   return trip.status === "upcoming" && getAllEntries(trip.ref).length === 0;
 }
 
-/** The navigation's view of one day. */
+/**
+ * The navigation's view of one day.
+ *
+ * `hidden` is B2544's own check — a day's own typed `coordinates` inside a
+ * hidden spot, for a viewer who is not the owner (`reader !== "person"`,
+ * resolved once per trip by the caller rather than reread here per day). The
+ * pin is blanked the same way a day with no coordinates at all already
+ * reads: `NaN`, so every existing `Number.isFinite`/`isPlottable` check
+ * already treats it as "nothing to plot" without a second flag to thread
+ * through the game path, the travel scene or the hero's small map.
+ *
+ * `home` is B2543's own check, same reader gate as `hidden` — a day's own
+ * coordinates inside the owner's home zone. Unlike `hidden`, the coordinates
+ * stay real (`lib/map/tripFrame.ts` still needs them to frame the trip and
+ * to tell "home" from "far"); only `location`/`country` become the localized
+ * "Home" string, and `countryCode` is dropped so the home country's own flag
+ * does not stand in for the name.
+ *
+ * `mapName` is B2543's second addition — "Places and names": a map draws at
+ * town level, this day's own page and every other list keep the owner's
+ * words exactly as written (`location` above, untouched by this). Home still
+ * wins over town. A hidden day's own words are not the secret (same as
+ * `location`, B2544) so it keeps them rather than a town this function has
+ * no business naming for a spot the owner asked off the map.
+ */
 function summarise(
   day: Day,
   cost: number,
-  costLocal?: DaySummary["costLocal"],
+  costLocal: DaySummary["costLocal"] | undefined,
+  hidden: boolean,
+  home: boolean,
+  homeLabel: string,
 ): DaySummary {
   const lead = day.lead;
+  const lat = hidden ? NaN : lead.lat;
+  const lng = hidden ? NaN : lead.lng;
+  const mapName = hidden
+    ? lead.location
+    : home
+      ? homeLabel
+      : townNameFor(lead.lat, lead.lng, lead.location);
   return {
     date: day.date,
     slug: lead.slug,
-    location: lead.location,
-    country: lead.country,
-    countryCode: lead.countryCode,
-    lat: lead.lat,
-    lng: lead.lng,
+    location: home ? homeLabel : lead.location,
+    country: home ? homeLabel : lead.country,
+    countryCode: home ? undefined : lead.countryCode,
+    lat,
+    lng,
     transport: lead.transport,
     travelScene: lead.travelScene,
     updates: day.entries.length,
     cost,
     costLocal,
-    population: populationAt(lead.lat, lead.lng),
+    population: populationAt(lat, lng),
+    home: home || undefined,
+    mapName,
   };
 }
 
@@ -200,13 +239,29 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
 
   const days = getDays(tripId, read);
   const costs = getCostSummary(tripId);
-  const index = days.map((d) =>
-    summarise(
+  // B2544/B2543 — resolved once per trip, not per day: `isHiddenPlace` and
+  // `isHomePlace` both reread a file (`track-edits.json`, `exclude.json`).
+  const owner = parseTripRef(tripId);
+  const checkHidden = reader !== "person" && owner !== null;
+  const homeLabel = checkHidden ? translateIn(defaultLocaleFor(owner.username), "map.homePlace") : "";
+  const index = days.map((d) => {
+    const plottable = Number.isFinite(d.lead.lat) && Number.isFinite(d.lead.lng);
+    const hidden =
+      checkHidden && plottable && isHiddenPlace(owner.username, owner.tripId, { lat: d.lead.lat, lon: d.lead.lng });
+    const home =
+      checkHidden &&
+      !hidden &&
+      plottable &&
+      isHomePlace(owner.username, { lat: d.lead.lat, lon: d.lead.lng });
+    return summarise(
       d,
       showCosts ? costForDay(tripId, d.entries) : 0,
       showCosts ? costLocalForDay(tripId, d.entries) : undefined,
-    ),
-  );
+      hidden,
+      home,
+      homeLabel,
+    );
+  });
 
   const initialDate = getDefaultDay(tripId, read)?.date;
   // Open where the reader asked, otherwise around today — a reader who lands

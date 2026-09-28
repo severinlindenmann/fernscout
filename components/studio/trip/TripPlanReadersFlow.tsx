@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import DoneScreen from "@/components/studio/DoneScreen";
 import StepPrimary from "@/components/studio/StepPrimary";
@@ -84,6 +85,7 @@ export default function TripPlanReadersFlow({
   costsPublic: boolean;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [chosen, setChosen] = useState<PlanReaders>(trip.readers);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -103,6 +105,9 @@ export default function TripPlanReadersFlow({
     }
     setDone(true);
     window.scrollTo(0, 0);
+    // B2549 — the trip's own plan page reads this level to decide what a
+    // reader sees.
+    router.refresh();
   }
 
   if (done) {

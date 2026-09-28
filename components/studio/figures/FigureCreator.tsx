@@ -266,6 +266,9 @@ export default function FigureCreator({
     try {
       const form = new FormData();
       form.append("photo", photoFile, photoFile.name);
+      // no-refresh: a proposal, not a save — it reads a face out of the
+      // photo and answers with candidate appearances; nothing is written
+      // until `save()` below.
       const res = await fetch(`/api/web/${encodeURIComponent(username)}/figures/from-photo`, {
         method: "POST",
         body: form,
@@ -339,6 +342,9 @@ export default function FigureCreator({
         return;
       }
       reset();
+      // no-refresh: every caller's onSaved (FigureLibrary's upsertFigure,
+      // PeopleFlow's own handler) already calls router.refresh() once this
+      // figure is folded into its list.
       onSaved(json as FigureDoc);
     } catch {
       setSaveError(t("studio.figures.shape.error"));

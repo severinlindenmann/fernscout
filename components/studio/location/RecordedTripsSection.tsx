@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
@@ -102,6 +103,7 @@ export default function RecordedTripsSection({
   basemapByTrip,
   kmByModeByTrip,
   initialSegmentsByTrip,
+  hiddenDaysByTrip,
 }: {
   username: string;
   initialTrips: RecordedTrip[];
@@ -119,8 +121,13 @@ export default function RecordedTripsSection({
    * card — left as it was rather than merged, since removing that fetch
    * would be a second change this ticket did not ask for). */
   initialSegmentsByTrip: Record<string, LineSegment[]>;
+  /** B2544 — this trip's own days whose typed `coordinates` fall inside a
+   * spot the owner has hidden, computed server-side (`AS_AUTHOR`) and
+   * handed to `TrackEditsPanel` to warn about. */
+  hiddenDaysByTrip: Record<string, { date: string; slug: string; location: string }[]>;
 }) {
   const { t, tn, formatShortDate, locale } = useI18n();
+  const router = useRouter();
   // `formatShortDate` reads a calendar date, not an instant — `lastReceived`
   // is an ISO timestamp, so it gets its own formatter, the same shape
   // `RouteRecordSection`'s own `fmt` uses.
@@ -210,6 +217,9 @@ export default function RecordedTripsSection({
       }
       setAsking(null);
       await refreshTrips();
+      // B2549 — a public track derived from this recording has to stop
+      // showing what was just deleted.
+      router.refresh();
       // The deleted trip's/day's segments are now stale — drop them so a
       // re-expand fetches the current line rather than showing what was
       // just removed.
@@ -459,6 +469,7 @@ export default function RecordedTripsSection({
                     username={username}
                     tripId={trip.tripId}
                     days={datesBetween(trip.start, trip.end)}
+                    hiddenDays={hiddenDaysByTrip[trip.tripId] ?? []}
                   />
                 </div>
               )}

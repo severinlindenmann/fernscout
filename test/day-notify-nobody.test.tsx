@@ -6,6 +6,8 @@ import DayNotify from "@/components/DayNotify";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+
 /**
  * B1027 — a journal with a channel switched on and nobody subscribed used to
  * still open the send confirmation, letting the owner press a button that

@@ -11,12 +11,20 @@ import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { getCurrentTrip, getTrips, tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
 import { kmByMode, ownerTripLine, recordedTrips } from "@/lib/gps/api";
-import { AS_AUTHOR, getPlaces } from "@/lib/entries";
+import { AS_AUTHOR, getDays, getPlaces } from "@/lib/entries";
+import { isHiddenPlace } from "@/lib/gps/edits";
 import { basemapForRoute } from "@/lib/basemap";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
+// B2549 — keep this page in the client Router Cache for 30s after a
+// visit, so hub -> journal -> hub within that window costs no new
+// document/RSC request; every save on this page calls router.refresh()
+// (a keeper, test/studio-refresh-after-save.test.ts, enforces it), which
+// invalidates the whole client cache, so a stale 30s window never shows
+// a page past its own save.
+export const unstable_dynamicStaleTime = 30;
 
 /**
  * "Your route" — B2240 reordered this page so recording, the thing a
@@ -83,12 +91,28 @@ export default async function StudioLocationPage({
     // (`days · km · positions · gaps`), always visible rather than folded
     // behind the accordion's own "Preview" toggle.
     const initialSegmentsByTrip: Record<string, NonNullable<ReturnType<typeof ownerTripLine>>["segments"]> = {};
+    // B2544 — a day's own typed `coordinates` never went through
+    // `deriveTrack`'s own hidden-spot cut (that only ever breaks a
+    // *recorded* run), so a day pinned inside a spot the owner has since hid
+    // kept showing that place to every reader. Computed here, `AS_AUTHOR`,
+    // once per trip, and handed to `TrackEditsPanel` to warn about — the
+    // same `isHiddenPlace` check `getPlaces`/`getMapDays` run for a reader.
+    const hiddenDaysByTrip: Record<string, { date: string; slug: string; location: string }[]> = {};
     for (const trip of recorded) {
-      const places = getPlaces(tripRef(user, trip.tripId), AS_AUTHOR);
+      const ref = tripRef(user, trip.tripId);
+      const places = getPlaces(ref, AS_AUTHOR);
       placesByTrip[trip.tripId] = places;
       basemapByTrip[trip.tripId] = basemapForRoute(places);
       kmByModeByTrip[trip.tripId] = kmByMode(user, trip.tripId);
       initialSegmentsByTrip[trip.tripId] = ownerTripLine(user, trip.tripId)?.segments ?? [];
+      hiddenDaysByTrip[trip.tripId] = getDays(ref, AS_AUTHOR)
+        .filter(
+          (day) =>
+            Number.isFinite(day.lead.lat) &&
+            Number.isFinite(day.lead.lng) &&
+            isHiddenPlace(user, trip.tripId, { lat: day.lead.lat, lon: day.lead.lng }),
+        )
+        .map((day) => ({ date: day.date, slug: day.lead.slug, location: day.lead.location }));
     }
     routeSection = (
       <RecordedTripsSection
@@ -98,6 +122,7 @@ export default async function StudioLocationPage({
         basemapByTrip={basemapByTrip}
         kmByModeByTrip={kmByModeByTrip}
         initialSegmentsByTrip={initialSegmentsByTrip}
+        hiddenDaysByTrip={hiddenDaysByTrip}
       />
     );
 

@@ -1,6 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
@@ -27,6 +29,7 @@ export function DeleteDayConfirm({
   onCancel: () => void;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   // A photobook draft uses the day's photographs: said in the question, and
@@ -43,7 +46,12 @@ export function DeleteDayConfirm({
       body: JSON.stringify({ ...(day.published ? { takeDown: true } : {}), ...(draftGaps ? { acceptPhotobookGaps: true } : {}) }),
     }).catch(() => null);
     setBusy(false);
-    if (response?.ok) return onDone();
+    if (response?.ok) {
+      // B2549 — the day is gone; whatever page comes next (the studio hub,
+      // the trip) has to stop showing it.
+      router.refresh();
+      return onDone();
+    }
     const code = ((await response?.json().catch(() => null)) as { error?: string } | null)?.error;
     if (code === "photobook_draft_uses_day") return setDraftGaps(true);
     const known: Record<string, TranslationKey> = {
@@ -101,9 +109,9 @@ export default function DeleteDay({
     return (
       <p role="status" className={`${tile ? "col-span-full " : ""}mt-3 text-sm text-ink-body`}>
         {t("studio.delete.done", { title: day.title })}{" "}
-        <a href={`${journalPath(encodeURIComponent(username))}/studio/day/deleted`} className="font-semibold underline underline-offset-2">
+        <Link href={`${journalPath(encodeURIComponent(username))}/studio/day/deleted`} className="font-semibold underline underline-offset-2">
           {t("studio.deleted.title")}
-        </a>
+        </Link>
       </p>
     );
   }

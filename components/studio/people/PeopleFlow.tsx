@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/components/LocaleProvider";
 import WhatStep from "@/components/studio/WhatStep";
 import StepPrimary from "@/components/studio/StepPrimary";
@@ -97,6 +97,7 @@ export default function PeopleFlow({
   people?: KnownPerson[];
 }) {
   const { t, tn } = useI18n();
+  const router = useRouter();
   const [doorState, setDoor] = useState<Door>(initialName ? "typeIn" : "upload");
   // B2136 — the door is in the URL too (`?mode=type|file`), so a reload of
   // the type-in screen is the type-in screen whatever the draft holds.
@@ -215,6 +216,8 @@ export default function PeopleFlow({
     try {
       const form = new FormData();
       form.append("files", file, file.name);
+      // no-refresh: stages the card photo, then reads it below — neither
+      // writes a contact yet. `commit()` does that and refreshes.
       const staged = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, {
         method: "POST",
         body: form,
@@ -226,6 +229,8 @@ export default function PeopleFlow({
         return;
       }
 
+      // no-refresh: reads the card into rows to confirm, still nothing
+      // written — see the comment on the upload above.
       const read = await fetch(`/api/helper/${encodeURIComponent(username)}/contacts/read`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -330,6 +335,9 @@ export default function PeopleFlow({
       setPendingDraw(withoutFigures);
       setOutcome(withoutFigures.length > 0 ? "draw" : "done");
       reset();
+      // B2549 — new contacts (and any trip byline) are filed; the studio's
+      // own people lists and the trip page have to stop showing the old set.
+      router.refresh();
     } catch {
       setCommitError(t("studio.people.decide.error"));
     } finally {
@@ -652,6 +660,8 @@ export default function PeopleFlow({
             setFiguresByEmail((prev) => (saved.person ? { ...prev, [saved.person]: saved } : prev));
             setDrawingPerson(null);
             dropFromDraw(drawingPerson.email);
+            // B2549 — a new figure now exists for this person.
+            router.refresh();
           }}
           onCancel={() => setDrawingPerson(null)}
         />

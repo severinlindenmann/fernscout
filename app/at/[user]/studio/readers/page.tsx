@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReadersAdmin from "@/components/studio/readers/ReadersAdmin";
 import type { AdminContact } from "@/components/studio/readers/shared";
@@ -25,6 +26,13 @@ import { whatsappCountryCode } from "@/lib/contactNumber";
 
 import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
+// B2549 — keep this page in the client Router Cache for 30s after a
+// visit, so hub -> journal -> hub within that window costs no new
+// document/RSC request; every save on this page calls router.refresh()
+// (a keeper, test/studio-refresh-after-save.test.ts, enforces it), which
+// invalidates the whole client cache, so a stale 30s window never shows
+// a page past its own save.
+export const unstable_dynamicStaleTime = 30;
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
@@ -77,9 +85,9 @@ export default async function ContactsAdminPage({
         lede={translateIn(locale, "contact.ownerSignIn")}
         back={false}
       >
-        <a className="mt-4 inline-block text-sm font-semibold text-ink-strong underline underline-offset-2" href={journalPath(username)}>
+        <Link className="mt-4 inline-block text-sm font-semibold text-ink-strong underline underline-offset-2" href={journalPath(username)}>
           {translateIn(locale, "err.goToJournal", { title: user.title })}
-        </a>
+        </Link>
       </StudioPage>
     );
   }

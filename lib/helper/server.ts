@@ -278,6 +278,11 @@ export function previewOf(
       updates: day.entries.length,
       cost: costForDay(ref, day.entries),
       costLocal: costLocalForDay(ref, day.entries),
+      // Not a map surface — this is the studio's own single-day preview
+      // pane, always the owner's own read, so there is no town-level label
+      // to compute here (B2543); it never reaches `DaySummary["mapName"]`'s
+      // real consumer, `lib/map/tripCard.ts`.
+      mapName: lead.location,
     },
   };
 }

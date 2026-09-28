@@ -85,6 +85,8 @@ export default function InviteLinkDoor({
         tripTitle: kind === "buddy" ? (trips.find((trip) => trip.id === tripId)?.title ?? null) : null,
         expiresAt: body?.expiresAt ?? null,
       });
+      // no-refresh: onCreated is ReadersAdmin's own `refresh`, which already
+      // calls router.refresh() right after this save succeeds.
       onCreated();
     } catch {
       setError(t("readers.link.error"));

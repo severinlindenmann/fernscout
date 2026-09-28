@@ -60,6 +60,7 @@ function fixtureDay(over: Partial<DaySummary>): DaySummary {
     lng: 8.2,
     updates: 1,
     cost: 0,
+    mapName: "Somewhere",
     ...over,
   };
 }

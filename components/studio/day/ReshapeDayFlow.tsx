@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import WhatStep from "@/components/studio/WhatStep";
@@ -89,6 +90,7 @@ export default function ReshapeDayFlow({
   trips: { id: string; title: string; start?: string; end?: string }[];
 }) {
   const { t, tn, formatLongDate } = useI18n();
+  const router = useRouter();
   const [operation, setOperation] = useState<Operation | null>(null);
   const [outcome, setOutcome] = useState<"done" | "writeFailed" | null>(null);
   // B1954 — same trim as "Change a day"'s own picker (`EditDayFlow`), which
@@ -277,6 +279,9 @@ export default function ReshapeDayFlow({
       setResultTripId(operation === "move" ? toTripId : dayA?.tripId ?? null);
       setOutcome("done");
       reset();
+      // B2549 — the day moved, split or merged; the studio's own lists and
+      // the day's page have to stop showing the pre-reshape state.
+      router.refresh();
     } finally {
       setBusy(false);
     }

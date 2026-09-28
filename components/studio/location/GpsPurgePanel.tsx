@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
@@ -19,6 +20,7 @@ type PurgeResponse = { ok?: true; monthsDeleted?: string[]; monthsHeld?: string[
  */
 export default function GpsPurgePanel({ username }: { username: string }) {
   const { t, tn, locale } = useI18n();
+  const router = useRouter();
   const [months, setMonths] = useState<string[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [all, setAll] = useState(false);
@@ -79,6 +81,9 @@ export default function GpsPurgePanel({ username }: { username: string }) {
       setAll(false);
       setConfirming(false);
       setDone(t("studio.location.purge.done"));
+      // B2549 — the route pages that read this store have to stop offering
+      // a place derived from history that is now gone.
+      router.refresh();
     } catch {
       setError(t("studio.location.purge.error"));
     } finally {

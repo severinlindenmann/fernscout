@@ -14,6 +14,8 @@ import { blankFieldsOf, daysToPublish, readersOf, type PublishRow } from "@/lib/
 import { clearUserCache } from "@/lib/users";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
+
 /**
  * B2140 — "Publish a day". The list is drafts only, nothing is written
  * before the confirm, the confirm says "Publish this day" (B1384 decision 8

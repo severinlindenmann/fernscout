@@ -14,6 +14,8 @@ import type { StopSource } from "@/lib/tripMap";
 import type { Trip } from "@/lib/types";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
+
 /**
  * B2429 — stop photo markers and the carousel card's thumbnail.
  *

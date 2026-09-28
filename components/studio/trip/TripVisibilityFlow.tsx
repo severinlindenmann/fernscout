@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { haptic } from "@/components/nativeShell";
@@ -54,6 +55,7 @@ export default function TripVisibilityFlow({
   previews: Record<string, TripPreview>;
 }) {
   const { t, tn } = useI18n();
+  const router = useRouter();
   const [chosen, setChosen] = useState<Visibility>(trip.visibility as Visibility);
   // The one follow-up question each side of the public line asks: a public
   // trip whether it is advertised, a closed one whether it shows a locked
@@ -99,6 +101,8 @@ export default function TripVisibilityFlow({
     setConfirming(false);
     setDone(true);
     window.scrollTo(0, 0);
+    // B2549 — the trip's own page reads its visibility, listed and teaser.
+    router.refresh();
   }
 
   if (done) {

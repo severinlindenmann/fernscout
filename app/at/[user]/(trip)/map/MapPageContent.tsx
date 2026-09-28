@@ -228,6 +228,9 @@ export default function MapPageContent({
         lat: p.lat,
         lng: p.lng,
         name: p.location,
+        // B2543 — `p.home` already came out of `getPlaces` with `p.location`
+        // swapped for the localized "Home" string.
+        home: p.home,
       })),
     [places, dayNumberByDate],
   );

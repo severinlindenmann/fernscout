@@ -21,10 +21,18 @@ import { computeLocaleScopes, formatLocaleScopes } from "./locale-scopes-lib.mjs
 export function syncPaidLocaleScopes(root) {
   const paidDir = path.join(root, "paid");
   const outFile = path.join(root, "lib", "localeScopes.paid.json");
-  if (!fs.existsSync(path.join(paidDir, "manifest.ts"))) {
-    if (fs.existsSync(outFile)) fs.rmSync(outFile);
-    return;
+  // Never fatal: next.config.ts runs this on `next start` as well, where the
+  // service user may not own lib/ (the build ran as someone else). The file
+  // the build wrote stays in place, and with none at all `dictionaryFor`
+  // ships whole dictionaries as before B2551 — slower, never broken.
+  try {
+    if (!fs.existsSync(path.join(paidDir, "manifest.ts"))) {
+      fs.rmSync(outFile, { force: true });
+      return;
+    }
+    const scopes = computeLocaleScopes(root, undefined, { paidRoot: paidDir });
+    fs.writeFileSync(outFile, formatLocaleScopes(scopes));
+  } catch (error) {
+    console.warn(`lib/localeScopes.paid.json not refreshed: ${error instanceof Error ? error.message : error}`);
   }
-  const scopes = computeLocaleScopes(root, undefined, { paidRoot: paidDir });
-  fs.writeFileSync(outFile, formatLocaleScopes(scopes));
 }
