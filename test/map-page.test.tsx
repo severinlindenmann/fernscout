@@ -10,6 +10,7 @@ import { kmForUnits } from "@/lib/mapFrame";
 import type { PlaceView } from "@/components/WorldMap";
 import type { SiteSummary } from "@/lib/site";
 import type { PlaceEntry, PlannedStop } from "@/lib/types";
+import type { MapDay } from "@/lib/map/mapDays";
 
 /**
  * What the map page draws, and for which of the two kinds of trip.
@@ -71,6 +72,21 @@ const place: PlaceView = {
 const travelled = { tripDays: 3, places: 1, countries: 1, totalMedia: 4 };
 const nothing = { tripDays: 0, places: 0, countries: 0, totalMedia: 0 };
 
+function daysFor(places: PlaceView[]): MapDay[] {
+  return places.map((p) => ({
+    date: p.firstDate,
+    slug: p.entries[0].slug,
+    location: p.location,
+    country: p.country,
+    countryCode: p.countryCode,
+    lat: p.lat,
+    lng: p.lng,
+    hasPlace: true,
+    mediaCount: p.mediaCount,
+    updates: p.entries.length,
+  }));
+}
+
 function render(props: {
   places?: PlaceView[];
   plan?: PlannedStop[];
@@ -86,6 +102,7 @@ function render(props: {
           <TripListProvider trips={[]}>
             <MapPageContent
               places={props.places ?? []}
+              days={daysFor(props.places ?? [])}
               plan={props.plan ?? []}
               stats={props.stats ?? nothing}
               reachedCount={props.reachedCount ?? 0}
@@ -174,23 +191,25 @@ describe("an upcoming trip: a plan and no days", () => {
 
   test("withholds the empty list of stops, and lists what is still to come", () => {
     const html = render({ plan: planned });
-    expect(html).not.toContain(dictionaryFor("en")["map.everyStop"]);
+    expect(html).not.toContain(dictionaryFor("en")["map.everyDay"]);
     expect(html).toContain(dictionaryFor("en")["map.stillToCome"]);
     expect(html).toContain("Fukuoka");
   });
 
   /**
    * B54. "Where we've been" is a claim, and over eight places nobody has been
-   * to it is a false one. The subtitle was worse: it invited the reader to tap
-   * stops that do not exist, since the only markers are planned and they open
-   * nothing.
+   * to it is a false one — the past tense, wherever this page still speaks
+   * it (the compact title line, and the map's own `aria-label` below), must
+   * follow the same rule. B2537 dropped the old page's separate subtitle
+   * line ("the map is the page", not a page with a paragraph under its
+   * heading); `map.subtitle`/`map.subtitlePlanned` still exist as a pair for
+   * anything that wants one (the bare `/map` route's own `<meta
+   * name="description">`), just not rendered here.
    */
   test("is titled for a journey ahead, not one already made", () => {
     const html = text(render({ plan: planned }));
     expect(html).toContain(dictionaryFor("en")["map.titlePlanned"]);
-    expect(html).toContain(dictionaryFor("en")["map.subtitlePlanned"]);
     expect(html).not.toContain(dictionaryFor("en")["map.title"]);
-    expect(html).not.toContain(dictionaryFor("en")["map.subtitle"]);
   });
 
   /**
@@ -223,7 +242,7 @@ describe("a trip with days", () => {
     const html = render({ places: [place], stats: travelled, over: true, hasDays: true });
     expect(mapViewBox(html)).not.toBeNull();
     expect(html).toContain(dictionaryFor("en")["map.days"]);
-    expect(html).toContain(dictionaryFor("en")["map.everyStop"]);
+    expect(html).toContain(dictionaryFor("en")["map.everyDay"]);
     expect(html).toContain("Kyoto");
     expect(html).not.toContain(dictionaryFor("en")["map.empty"]);
   });
@@ -231,7 +250,6 @@ describe("a trip with days", () => {
   test("keeps the past tense, which is true of it", () => {
     const html = text(render({ places: [place], stats: travelled, over: true, hasDays: true }));
     expect(html).toContain(dictionaryFor("en")["map.title"]);
-    expect(html).toContain(dictionaryFor("en")["map.subtitle"]);
     expect(html).not.toContain(dictionaryFor("en")["map.titlePlanned"]);
   });
 

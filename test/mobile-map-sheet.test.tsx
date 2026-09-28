@@ -6,6 +6,7 @@ import MobileMapSheet from "@/components/map/MobileMapSheet";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import type { PlaceView } from "@/components/WorldMap";
+import type { MapDay } from "@/lib/map/mapDays";
 
 vi.mock("next/image", () => ({
   default: (props: Record<string, unknown>) => {
@@ -64,53 +65,71 @@ function place(overrides: Partial<PlaceView> = {}): PlaceView {
   };
 }
 
+/** The day list `MapPageContent` would derive from these places (B2537) —
+ * one calendar day per place, all located, since none of these tests exercise
+ * the "no place given" row (that is `map-page.test.tsx`'s own job). */
+function daysFor(places: PlaceView[]): MapDay[] {
+  return places.map((p) => ({
+    date: p.firstDate,
+    slug: p.entries[0].slug,
+    location: p.location,
+    country: p.country,
+    countryCode: p.countryCode,
+    lat: p.lat,
+    lng: p.lng,
+    hasPlace: true,
+    mediaCount: p.mediaCount,
+    updates: p.entries.length,
+  }));
+}
+
 /**
  * Stands in for `MapPageContent`, which owns the one selection the real page
  * shares with `WorldMap` — a plain `useState` here proves the sheet holds no
- * selection of its own. `reportedKeys` records every `onSelectKey` call, so a
- * test can tell the sheet actually asked to change the selection rather than
- * only having changed what it shows locally.
+ * selection of its own. `reportedDates` records every `onSelectDate` call, so
+ * a test can tell the sheet actually asked to change the selection rather
+ * than only having changed what it shows locally.
  */
 function Harness({
   places,
-  initialKey,
-  reportedKeys,
+  initialDate,
+  reportedDates,
   exposeSetter,
 }: {
   places: PlaceView[];
-  initialKey: string | null;
-  reportedKeys: (string | null)[];
-  exposeSetter: (fn: (k: string | null) => void) => void;
+  initialDate: string | null;
+  reportedDates: (string | null)[];
+  exposeSetter: (fn: (d: string | null) => void) => void;
 }) {
-  const [selectedKey, setSelectedKey] = useState<string | null>(initialKey);
-  exposeSetter(setSelectedKey);
+  const [selectedDate, setSelectedDate] = useState<string | null>(initialDate);
+  exposeSetter(setSelectedDate);
   return (
     <MobileMapSheet
+      days={daysFor(places)}
       places={places}
-      stats={{ tripDays: 3, places: places.length, countries: 1, totalMedia: 0 }}
       hrefForDay={(slug) => `/day/${slug}`}
-      selectedKey={selectedKey}
-      onSelectKey={(k) => {
-        reportedKeys.push(k);
-        setSelectedKey(k);
+      selectedDate={selectedDate}
+      onSelectDate={(d) => {
+        reportedDates.push(d);
+        setSelectedDate(d);
       }}
     />
   );
 }
 
-function render(places: PlaceView[], initialKey: string | null = places[0]?.key ?? null) {
+function render(places: PlaceView[], initialDate: string | null = places[0]?.firstDate ?? null) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  const reportedKeys: (string | null)[] = [];
-  let setFromOutside: (k: string | null) => void = () => {};
+  const reportedDates: (string | null)[] = [];
+  let setFromOutside: (d: string | null) => void = () => {};
   act(() => {
     root!.render(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
         <Harness
           places={places}
-          initialKey={initialKey}
-          reportedKeys={reportedKeys}
+          initialDate={initialDate}
+          reportedDates={reportedDates}
           exposeSetter={(fn) => {
             setFromOutside = fn;
           }}
@@ -120,8 +139,8 @@ function render(places: PlaceView[], initialKey: string | null = places[0]?.key 
   });
   return {
     el: container!,
-    reportedKeys,
-    setKeyFromOutside: (k: string | null) => act(() => setFromOutside(k)),
+    reportedKeys: reportedDates,
+    setKeyFromOutside: (d: string | null) => act(() => setFromOutside(d)),
   };
 }
 
@@ -131,42 +150,46 @@ function handle(root: HTMLElement): HTMLButtonElement {
 }
 
 describe("MobileMapSheet", () => {
-  test("renders nothing when the trip has no places", () => {
+  test("renders nothing when the trip has no days", () => {
     const { el } = render([], null);
     expect(el.querySelector("button")).toBeNull();
   });
 
-  test("starts at peek, showing the stats and nothing about a stop", () => {
+  test("starts at peek, showing the day strip and no stat tiles or day detail", () => {
     const { el } = render([place()]);
-    expect(el.textContent).toContain("3"); // tripDays
-    expect(el.textContent).not.toContain("Alpha Town");
+    expect(el.textContent).toContain("Alpha Town"); // the day strip's own row
+    expect(el.textContent).not.toContain("Read this day"); // map.readDay — half only
   });
 
   test("clicking the handle cycles peek → half → full → peek", () => {
-    const { el } = render([place(), place({ key: "beta", location: "Beta City" })]);
+    const { el } = render([
+      place(),
+      place({ key: "beta", location: "Beta City", firstDate: "2024-05-03", lastDate: "2024-05-03" }),
+    ]);
     const h = handle(el);
-    expect(el.textContent).not.toContain("Alpha Town");
+    expect(el.textContent).not.toContain("Read this day");
+    expect(el.querySelector("ol")).toBeNull();
 
     act(() => h.click());
-    expect(el.textContent).toContain("Alpha Town"); // half: the selected stop
+    expect(el.textContent).toContain("Read this day"); // half: the selected day's own detail
 
     act(() => h.click());
-    expect(el.textContent).toContain("Beta City"); // full: every stop
+    expect(el.querySelector("ol")).not.toBeNull(); // full: every day, as a list
 
     act(() => h.click());
-    expect(el.textContent).not.toContain("Alpha Town");
-    expect(el.textContent).not.toContain("Beta City");
+    expect(el.textContent).not.toContain("Read this day");
+    expect(el.querySelector("ol")).toBeNull();
   });
 
   test("Escape returns to peek from any snap", () => {
     const { el } = render([place()]);
     const h = handle(el);
     act(() => h.click()); // -> half
-    expect(el.textContent).toContain("Alpha Town");
+    expect(el.textContent).toContain("Read this day");
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     });
-    expect(el.textContent).not.toContain("Alpha Town");
+    expect(el.textContent).not.toContain("Read this day");
   });
 
   test("half shows only the fields the page actually gave it — no invented text", () => {
@@ -211,36 +234,42 @@ describe("MobileMapSheet", () => {
   });
 
   describe("one selection, shared with the map (the review after B2427's first pass)", () => {
-    test("tapping a stop in Full reports it through onSelectKey, not just locally", () => {
-      const beta = place({ key: "beta", location: "Beta City" });
+    test("tapping a stop in Full reports it through onSelectDate, not just locally", () => {
+      const beta = place({ key: "beta", location: "Beta City", firstDate: "2024-05-03", lastDate: "2024-05-03" });
       const { el, reportedKeys } = render([place(), beta]);
       act(() => handle(el).click()); // -> half
       act(() => handle(el).click()); // -> full
       const rows = el.querySelectorAll<HTMLButtonElement>("ol button");
       act(() => rows[1].click()); // Beta City
-      expect(reportedKeys).toContain("beta");
+      expect(reportedKeys).toContain("2024-05-03");
       expect(el.textContent).toContain("Beta City"); // jumped to half showing it
     });
 
     test("previous/next report the new key the same way", () => {
-      const { el, reportedKeys } = render([place(), place({ key: "beta", location: "Beta City" })]);
+      const { el, reportedKeys } = render([
+        place(),
+        place({ key: "beta", location: "Beta City", firstDate: "2024-05-03", lastDate: "2024-05-03" }),
+      ]);
       act(() => handle(el).click()); // -> half, on alpha
       const next = el.querySelector<HTMLButtonElement>('[aria-label="Next stop"]')!;
       act(() => next.click());
-      expect(reportedKeys).toContain("beta");
+      expect(reportedKeys).toContain("2024-05-03");
     });
 
     test("a selection arriving from outside (a marker tapped on the map) opens Half", () => {
-      const { el, setKeyFromOutside } = render([place(), place({ key: "beta", location: "Beta City" })]);
-      expect(el.textContent).not.toContain("Beta City"); // still at peek
-      setKeyFromOutside("beta");
-      expect(el.textContent).toContain("Beta City"); // Half opened by itself
+      const { el, setKeyFromOutside } = render([
+        place(),
+        place({ key: "beta", location: "Beta City", firstDate: "2024-05-03", lastDate: "2024-05-03" }),
+      ]);
+      expect(el.textContent).not.toContain("Read this day"); // still at peek
+      setKeyFromOutside("2024-05-03");
+      expect(el.textContent).toContain("Read this day"); // Half opened by itself
     });
 
     test("the initial default selection does not itself pop the sheet open", () => {
-      const { el } = render([place()], "alpha");
-      // Same key the sheet started with — no external tap has happened.
-      expect(el.textContent).not.toContain("Alpha Town");
+      const { el } = render([place()], "2024-05-01");
+      // Same date the sheet started with — no external tap has happened.
+      expect(el.textContent).not.toContain("Read this day");
     });
   });
 });

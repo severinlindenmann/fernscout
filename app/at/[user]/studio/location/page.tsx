@@ -6,10 +6,11 @@ import LocationSample from "@/components/studio/location/LocationSample";
 import GpsZones from "@/components/studio/location/GpsZones";
 import GpsPurgePanel from "@/components/studio/location/GpsPurgePanel";
 import RecordedTripsSection from "@/components/studio/location/RecordedTripsSection";
+import TripDetailView from "@/components/studio/location/TripDetailView";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { getCurrentTrip, getTrips, tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
-import { kmByMode, recordedTrips } from "@/lib/gps/api";
+import { kmByMode, ownerTripLine, recordedTrips } from "@/lib/gps/api";
 import { AS_AUTHOR, getPlaces } from "@/lib/entries";
 import { basemapForRoute } from "@/lib/basemap";
 import { resolveAccess } from "@/lib/auth/handshake";
@@ -37,9 +38,16 @@ export const dynamic = "force-dynamic";
  * recording section is simply absent (`routeSection` stays `null`) and the
  * page still works as the import page.
  */
-export default async function StudioLocationPage({ params }: PageProps<"/at/[user]/studio/location">) {
+export default async function StudioLocationPage({
+  params,
+  searchParams,
+}: PageProps<"/at/[user]/studio/location">) {
   const { user } = await params;
   await requireStudioOwner(user);
+  const query = await searchParams;
+  const selectedTripId = typeof query.trip === "string" ? query.trip : null;
+  const selectedView = query.view === "readers" ? "readers" : "mine";
+  const selectedDay = typeof query.day === "string" ? query.day : undefined;
 
   const trips = getTrips(user).map((t) => ({ id: t.id, title: t.title, start: t.start, end: t.end }));
   const current = getCurrentTrip(user);
@@ -55,6 +63,7 @@ export default async function StudioLocationPage({ params }: PageProps<"/at/[use
   // metadata every `gps/` door refuses the admin (B2226 security review).
   const isJournalOwner = (await resolveAccess(user)).email === getUser(user)?.owner.email;
   let routeSection = null;
+  let tripDetail = null;
   if (isJournalOwner && isEnabled("routeRecording", user)) {
     const recorded = recordedTrips(user);
     // Places and a basemap for exactly the trips this owner has a
@@ -69,11 +78,17 @@ export default async function StudioLocationPage({ params }: PageProps<"/at/[use
     // handful of numbers) to compute for every row rather than only on
     // expand, the same reasoning `daysRecorded` already gets.
     const kmByModeByTrip: Record<string, ReturnType<typeof kmByMode>> = {};
+    // The owner's own raw line per trip, computed once here rather than
+    // fetched client-side — B2540's overview card map and facts line
+    // (`days · km · positions · gaps`), always visible rather than folded
+    // behind the accordion's own "Preview" toggle.
+    const initialSegmentsByTrip: Record<string, NonNullable<ReturnType<typeof ownerTripLine>>["segments"]> = {};
     for (const trip of recorded) {
       const places = getPlaces(tripRef(user, trip.tripId), AS_AUTHOR);
       placesByTrip[trip.tripId] = places;
       basemapByTrip[trip.tripId] = basemapForRoute(places);
       kmByModeByTrip[trip.tripId] = kmByMode(user, trip.tripId);
+      initialSegmentsByTrip[trip.tripId] = ownerTripLine(user, trip.tripId)?.segments ?? [];
     }
     routeSection = (
       <RecordedTripsSection
@@ -82,9 +97,22 @@ export default async function StudioLocationPage({ params }: PageProps<"/at/[use
         placesByTrip={placesByTrip}
         basemapByTrip={basemapByTrip}
         kmByModeByTrip={kmByModeByTrip}
+        initialSegmentsByTrip={initialSegmentsByTrip}
       />
     );
+
+    // The trip-detail view (S3 A) and its own day view (S5 A) — B2540,
+    // reached at `?trip=<id>` (`&view=mine|readers`, `&day=<date>`), never a
+    // client-side route of its own: the query string is what makes Mine and
+    // Readers' each a real URL a capture can navigate to directly.
+    const selectedTrip = selectedTripId ? recorded.find((r) => r.tripId === selectedTripId) : undefined;
+    if (selectedTrip) {
+      tripDetail = (
+        <TripDetailView username={user} trip={selectedTrip} view={selectedView} day={selectedDay} />
+      );
+    }
   }
+  const streetMapsOn = isEnabled("streetMaps");
 
   return (
     <StudioPage
@@ -94,7 +122,8 @@ export default async function StudioLocationPage({ params }: PageProps<"/at/[use
       lede={translateIn(locale, "studio.location.lede")}
     >
       {routeSection}
-      <GpsZones username={user} />
+      {tripDetail}
+      <GpsZones username={user} streetMapsOn={streetMapsOn} />
 
       {/* Second, and folded away (B2240): recording is what this page is
           for. `ImportDisclosure` mounts the import flow only when opened. */}

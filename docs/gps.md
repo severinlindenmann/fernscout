@@ -21,10 +21,10 @@ content/<user>/
 The store is somebody's complete location history: every address they sleep
 at, every place they work, everywhere they have been ill. So:
 
-- **No route reads it, with four named exceptions.** There is no API that
+- **No route reads it, with five named exceptions.** There is no API that
   returns a position. `test/gps-store.test.ts` asserts nothing under `app/`
   imports `lib/gps/store.ts` or `lib/gps/enrich.ts` — and, separately, that
-  `placeForDay`, `recordedTrips`, `ownerTripLine` and `kmByMode` (all below)
+  `placeForDay`, `recordedTrips`, `ownerTripLine`, `ownerDayLine` and `kmByMode` (all below)
   are the only exports in `lib/gps/api.ts` that reach into the store at all,
   and every one of them is reachable only from the owner's own browser
   cookie, never a bearer token.
@@ -698,5 +698,5 @@ No live tracking (B666 is the endpoint an app like OwnTracks or Overland would
 post to; a PWA cannot do background geolocation, so there is no point building
 one). No per-day tracks on a public map, no speed or elevation, no
 map-matching to roads, and no reading of the store from the web at all
-beyond the four named readers above — `placeForDay`, `recordedTrips`,
-`ownerTripLine` and `kmByMode`.
+beyond the five named readers above — `placeForDay`, `recordedTrips`,
+`ownerTripLine`, `ownerDayLine` and `kmByMode`.

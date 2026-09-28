@@ -4,7 +4,15 @@ import { CONTACTS_IMPORTERS } from "@/importers/contacts";
 import { checkGpsImporter, type GpsImporter, type Fix, type TransportMode } from "@/importers/gps/schema";
 import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
-import { appendFixes, deleteMonths, deleteRange, listMonths, metresBetween, readRange, type AppendResult } from "./store";
+import {
+  appendFixes,
+  deleteMonths,
+  deleteRange,
+  listMonths,
+  metresBetween,
+  readRange,
+  type AppendResult,
+} from "./store";
 import {
   deriveTrack,
   hasHomeZoneOrDeclined,
@@ -890,6 +898,10 @@ export type RecordedTrip = {
    *  natively at all, or armed before this shipped). Never a coordinate;
    *  see `recordingState` (`./recorderState.ts`). */
   recording: RecordingState | null;
+  /** Raw fix count inside the trip's own dates — B2540's overview card facts
+   * line ("positions"). Zero for a `hasPublishedTrack`-only row: there is
+   * nothing left in the store to count. */
+  positions: number;
 };
 
 export function recordedTrips(username: string): RecordedTrip[] {
@@ -914,6 +926,7 @@ export function recordedTrips(username: string): RecordedTrip[] {
         lastReceived: new Date(newest).toISOString(),
         hasPublishedTrack: false,
         recording: recordingState(username, trip.id),
+        positions: rows.length,
       });
       continue;
     }
@@ -935,6 +948,7 @@ export function recordedTrips(username: string): RecordedTrip[] {
       lastReceived: track.generated,
       hasPublishedTrack: true,
       recording: recordingState(username, trip.id),
+      positions: 0,
     });
   }
   return out;
@@ -1024,6 +1038,50 @@ export function kmByMode(username: string, tripId: string): Partial<Record<Trans
     totals[mode] = Math.round((totals[mode] ?? 0) * 10) / 10;
   }
   return totals;
+}
+
+/** How long with nothing received, *and* how far the next fix turns out to be
+ * once one arrives, before a day view draws the join as a dash rather than a
+ * line — B2540's own rule, finer than `deriveTrack`'s two-hour run break
+ * (which exists to split a whole *trip's* line into runs, not to say which
+ * one join within a single day is a real gap). Both conditions together: time
+ * alone would dash a phone sitting still for eleven minutes, distance alone
+ * would dash a slow queue at a border. */
+const DAY_GAP_MS = 10 * 60 * 1000;
+const DAY_GAP_METRES = 600;
+
+/** What `ownerDayLine` answers with — every raw fix inside the day's own
+ * local-midnight window, in order, plus which joins between them are a real
+ * gap. `gapAfter[i]` is the join between `points[i]` and `points[i + 1]`, so
+ * it always has one fewer entry than `points`. No thinning beyond what the
+ * store itself already did on write (B665) — a single day's fixes are few
+ * enough to draw as they are. */
+export type OwnerDayLine = { points: [number, number][]; gapAfter: boolean[] };
+
+/**
+ * The owner's own raw line for one recorded day, with gap joins marked for a
+ * street-level day view — B2540. Same owner-only audience and same "no
+ * private-zone removal" rule as `ownerTripLine` right above (the owner
+ * looking at their own history is not the audience that removal protects),
+ * restated here rather than shared because this needs each fix's own instant
+ * to test the gap rule, and `ownerTripLine`'s segments have already been
+ * thinned and simplified past the point of still carrying one.
+ */
+export function ownerDayLine(username: string, tripId: string, date: string): OwnerDayLine | null {
+  const trip = getTrip(tripRef(username, tripId));
+  if (!trip) return null;
+  if (!isRealDate(date) || date < trip.start || date > trip.end) return null;
+  const zones = dayTimezones(username, trip);
+  const window = localWindow(date, zones[date]);
+  const fixes = readRange(username, window.from, window.to - 1000).sort((a, b) => a.t - b.t);
+  const points: [number, number][] = fixes.map((f) => [f.lat, f.lon]);
+  const gapAfter: boolean[] = [];
+  for (let i = 1; i < fixes.length; i++) {
+    const dtMs = fixes[i].t - fixes[i - 1].t;
+    const distM = metresBetween(fixes[i - 1], fixes[i]);
+    gapAfter.push(dtMs > DAY_GAP_MS && distM > DAY_GAP_METRES);
+  }
+  return { points, gapAfter };
 }
 
 /** What `deleteTripRecording` answers with — counts, and whether the trip's
