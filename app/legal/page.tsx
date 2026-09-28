@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import EntryContent from "@/components/EntryContent";
-import LocaleProvider from "@/components/LocaleProvider";
-import LocaleSwitcher from "@/components/LocaleSwitcher";
-import UpLink from "@/components/UpLink";
+import PageShell from "@/components/landing/PageShell";
+import { Band, TITLE_H1 } from "@/components/landing/kit";
 import { legalLocales, legalSections, readLegal } from "@/lib/legal";
-import { pageAlternates, requestPathLocale } from "@/lib/pageLanguage";
-import { languageHref } from "@/lib/languagePaths";
-import { dictionaryFor, installedLocales, requestLocale, translateIn } from "@/lib/locales";
-import { serverSite } from "@/lib/site";
+import { pageAlternates } from "@/lib/pageLanguage";
+import { requestLocale, translateIn } from "@/lib/locales";
 
 /**
  * Imprint, liability and privacy — one page, linked from the landing footer.
@@ -39,7 +36,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LegalPage() {
   const locale = await requestLocale();
-  const pathLocale = await requestPathLocale();
   const legal = readLegal(locale);
   if (!legal) notFound();
   const { markdown, sections } = legalSections(legal.markdown);
@@ -51,28 +47,11 @@ export default async function LegalPage() {
     );
 
   return (
-    <div className="min-h-full">
-      {/* The docs pages' bar — B2312. Nothing else on this page links out, and
-          in the iPhone app there is no browser Back to fall back on. */}
-      <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 sm:px-6">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          <UpLink
-            href={languageHref(pathLocale, "/")}
-            label={serverSite().name}
-            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
-                       transition-colors hover:text-ink-strong
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          />
-          <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "legal")}>
-            <LocaleSwitcher locales={installedLocales()} subtle />
-          </LocaleProvider>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-        <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
-          {translateIn(locale, "legal.title")}
-        </h1>
+    // B2531: the site's frame and the reading width, like every page
+    // outside the journal; the header is the way home, in the app too.
+    <PageShell>
+      <Band width="reading">
+        <h1 className={TITLE_H1}>{translateIn(locale, "legal.title")}</h1>
         <p className="mt-3 text-lg leading-relaxed text-ink-body">
           {translateIn(locale, "legal.lede")}
         </p>
@@ -114,7 +93,7 @@ export default async function LegalPage() {
                   <a
                     href={`#${s.id}`}
                     className="inline-flex min-h-11 items-center text-ink-strong underline decoration-blue-500
-                               decoration-2 underline-offset-2 hover:decoration-coral-600 sm:min-h-0"
+                               decoration-2 underline-offset-2 hover:decoration-ink-strong sm:min-h-0"
                   >
                     {s.title}
                   </a>
@@ -134,7 +113,7 @@ export default async function LegalPage() {
             }}
           />
         </div>
-      </main>
-    </div>
+      </Band>
+    </PageShell>
   );
 }

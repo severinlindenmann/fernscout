@@ -4,6 +4,7 @@ import { openApiDocumentV2 } from "@/lib/api/v2/openapi";
 import EntryContent from "@/components/EntryContent";
 import { docsNavEntries, docsMetadata } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
+import { Band, TITLE_H1 } from "@/components/landing/kit";
 
 export const metadata: Metadata = docsMetadata("api");
 
@@ -12,7 +13,7 @@ const METHOD_STYLE: Record<string, string> = {
   get: "bg-action-strong text-on-action",
   post: "bg-yellow-400 text-yellow-950",
   patch: "border border-line-ink text-ink-strong",
-  delete: "bg-coral-600 text-on-deep",
+  delete: "bg-ink-strong text-surface-base",
 };
 
 type Operation = {
@@ -51,7 +52,7 @@ export default async function ApiDocsPage() {
   const paths = Object.entries(doc.paths) as [string, Record<string, Operation>][];
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
+    <Band width="reading">
       {/* The link back to `/docs` is gone: the shell's header carries the way
           out now, and two of them is the duplication B470 exists to remove.
           The two agent-facing documents stay, because they are what somebody
@@ -67,7 +68,7 @@ export default async function ApiDocsPage() {
           /api/v2/openapi.json
         </a>
       </p>
-      <h1 className="mt-2 font-display text-3xl font-semibold text-ink-strong">{doc.info.title}</h1>
+      <h1 className={`mt-2 ${TITLE_H1}`}>{doc.info.title}</h1>
       <div className="mt-3">
         <EntryContent markdown={doc.info.description} />
       </div>
@@ -105,7 +106,7 @@ export default async function ApiDocsPage() {
           </section>
         ))}
       </div>
-    </main>
+    </Band>
   );
 }
 

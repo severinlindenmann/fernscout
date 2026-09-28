@@ -12,13 +12,12 @@ import {
   Terminal,
 } from "lucide-react";
 import CopyLine from "@/components/CopyLine";
-import { PRIMARY_BUTTON } from "@/components/LandingSections";
-import { LandingFrame } from "@/components/landing/SignedOut";
-import { orgsNav } from "@paid/orgs/lib/nav";
+import PageShell from "@/components/landing/PageShell";
+import { Band, PageTitle, SECTION_H2 } from "@/components/landing/kit";
+import { PILL_PRIMARY } from "@/components/landing/styles";
 import { isEnabled } from "@/lib/capabilities";
 import { landingFlags } from "@/lib/landingMarkdown";
-import { hasLegal } from "@/lib/legal";
-import { installedLocales, requestLocale } from "@/lib/locales";
+import { requestLocale } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
 const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
@@ -51,9 +50,9 @@ export function generateMetadata(): Metadata {
  * that live in the separate, MIT-licensed Fernscout Helper say so, including
  * that its photo half wants a Mac.
  *
- * The header and footer are the homepage's own (`LandingFrame`, B2529) —
+ * The header and footer are the homepage's own (`PageShell`, B2531) —
  * in the reader's language, like every page's chrome — so this page has the
- * same way home and the same doors as `/`.
+ * same way home and the same doors as `/`. Wide, in bands, like `/`.
  */
 export default async function AgenticPage() {
   const site = serverSite();
@@ -70,27 +69,18 @@ export default async function AgenticPage() {
   const { photobook, postcards } = flags;
 
   return (
-    <LandingFrame
-      siteName={site.name}
-      locales={installedLocales()}
-      inviteCta={flags.inviteCta}
-      helperEnabled={flags.helperEnabled}
-      prints={flags.postcards || flags.photobook}
-      pricing={flags.credits}
-      orgs={orgsNav(locale)}
-      repository={site.repository}
-      credit={site.credit}
-      legal={hasLegal()}
-    >
-      <main lang="en" className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6 sm:pb-24 sm:pt-10">
+    <PageShell>
+      <div lang="en">
         {/* ——— Hero ——— */}
-        <header>
-          <Kicker>For self-hosters, tinkerers and people with a terminal open</Kicker>
-          <h1 className="mt-3 font-display text-4xl font-semibold leading-tight text-ink-strong sm:text-5xl">
+        <Band className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+          <div>
+          <PageTitle hero kicker="For self-hosters, tinkerers and people with a terminal open">
             Your travel journal is a folder.
             <br />
-            <span className="text-coral-600">Point an agent at it.</span>
-          </h1>
+            <span className="underline decoration-yellow-400 decoration-[6px] underline-offset-[10px]">
+              Point an agent at it.
+            </span>
+          </PageTitle>
           <p className="mt-5 text-lg leading-8 text-ink-body">
             {site.name} is an open-source travel journal: JSON documents and photographs in a
             folder you own, a website on top, and a documented API underneath. Bring Claude Code,
@@ -108,10 +98,10 @@ export default async function AgenticPage() {
               ),
             )}
           </ul>
-        </header>
+          </div>
 
         {/* ——— The instruction, in a terminal ——— */}
-        <section aria-labelledby="try" className="mt-10">
+        <section aria-labelledby="try">
           <h2 id="try" className="sr-only">
             Try it with your agent
           </h2>
@@ -135,34 +125,38 @@ export default async function AgenticPage() {
             </a>
           </div>
         </section>
+        </Band>
 
         {/* ——— Three altitudes ——— */}
-        <section aria-labelledby="altitudes" className="mt-16">
+        <Band tone="white">
+        <section aria-labelledby="altitudes">
           <SectionHeading id="altitudes">Pick your altitude</SectionHeading>
           <ul className="mt-5 grid gap-4 sm:grid-cols-3">
             <Card
-              icon={<FolderTree className="h-4 w-4 text-coral-600" aria-hidden />}
+              icon={<FolderTree className="h-4 w-4 text-ink-strong" aria-hidden />}
               title="Only a folder"
               body="Clone Fernscout Helper, open it with your agent, end up with trip.json and one JSON file per day on your own disk. No server, no account."
               code={`git clone ${HELPER_REPO}\ncd fernscout-helper && claude`}
             />
             <Card
-              icon={<BookOpen className="h-4 w-4 text-coral-600" aria-hidden />}
+              icon={<BookOpen className="h-4 w-4 text-ink-strong" aria-hidden />}
               title={`Hosted on ${site.name}`}
               body="Hand your agent the prompt above. With an invitation, it walks you through signing up and gets a key that writes to your journal for seven days."
               code={"GET /api/v2/status\nGET /api/v2/{user}/status"}
             />
             <Card
-              icon={<Server className="h-4 w-4 text-coral-600" aria-hidden />}
+              icon={<Server className="h-4 w-4 text-ink-strong" aria-hidden />}
               title="Your own server"
               body="A VPS, Node and Caddy, one deploy script. SQLite on your laptop, Postgres in production. A public journal needs no database at all."
               code={`git clone ${site.repository ?? "…"}\ncd fernscout && npm ci\nnpm run build && npm start`}
             />
           </ul>
         </section>
+        </Band>
 
         {/* ——— The backlog ——— */}
-        <section aria-labelledby="backlog" className="mt-16">
+        <Band>
+        <section aria-labelledby="backlog" className="max-w-3xl">
           <SectionHeading id="backlog">Ten years of trips, out of your photo library</SectionHeading>
           <p className="mt-4 text-base leading-7 text-ink-body">
             Most people do not have a travel blog. They have a photo library full of trips and no
@@ -193,7 +187,7 @@ export default async function AgenticPage() {
               ["validate-content → publish · sync", "Checks for gaps, prints a dry run, then uploads. Sync goes both ways and, by default, stops when both sides changed the same day."],
             ].map(([skill, body], i) => (
               <li key={skill} className="grid grid-cols-[1.75rem_1fr] gap-x-3">
-                <span aria-hidden className="font-mono text-sm leading-6 text-coral-600">
+                <span aria-hidden className="font-mono text-sm leading-6 text-ink-secondary">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <div>
@@ -211,13 +205,15 @@ export default async function AgenticPage() {
             location, offline.
           </Note>
         </section>
+        </Band>
 
         {/* ——— A new trip ——— */}
-        <section aria-labelledby="new-trip" className="mt-16">
+        <Band tone="white" className="grid gap-16 lg:grid-cols-2 lg:gap-12">
+        <section aria-labelledby="new-trip">
           <SectionHeading id="new-trip">A new trip, while you are still on it</SectionHeading>
-          <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+          <ul className="mt-5 grid gap-4">
             <Card
-              icon={<Terminal className="h-4 w-4 text-coral-600" aria-hidden />}
+              icon={<Terminal className="h-4 w-4 text-ink-strong" aria-hidden />}
               title="Your agent, over the API"
               body="A trip and a day are PUT at ids you choose. Every field is in the OpenAPI file; a section left empty is declined with a reason, never guessed."
               code={
@@ -228,13 +224,13 @@ export default async function AgenticPage() {
             />
             {voice ? (
               <Card
-                icon={<Mic className="h-4 w-4 text-coral-600" aria-hidden />}
+                icon={<Mic className="h-4 w-4 text-ink-strong" aria-hidden />}
                 title="Or just say it"
                 body="In the studio, a day can be spoken: five short questions, one per screen, answered out loud. You see the transcript and correct it; the day is only your own answers."
               />
             ) : (
               <Card
-                icon={<Mic className="h-4 w-4 text-coral-600" aria-hidden />}
+                icon={<Mic className="h-4 w-4 text-ink-strong" aria-hidden />}
                 title="Or write it in the studio"
                 body="No agent needed: the studio composes a day on one page from your words, facts measured from your photographs and real lookups."
               />
@@ -243,7 +239,7 @@ export default async function AgenticPage() {
         </section>
 
         {/* ——— What comes out ——— */}
-        <section aria-labelledby="out" className="mt-16">
+        <section aria-labelledby="out">
           <SectionHeading id="out">What comes out</SectionHeading>
           <div className="grid gap-4">
             <TerminalCard title="content/<you>/trips/<trip>/">
@@ -276,14 +272,16 @@ export default async function AgenticPage() {
             </ul>
           </div>
         </section>
+        </Band>
 
         {/* ——— The rule ——— */}
+        <Band className="grid gap-16 lg:grid-cols-2 lg:gap-12">
         <section
           aria-labelledby="rule"
-          className="mt-16 rounded-2xl border border-line-quiet border-l-8 border-l-yellow-400 bg-surface-base p-5 sm:p-6"
+          className="self-start rounded-2xl border border-line-quiet border-l-8 border-l-yellow-400 bg-surface-base p-5 sm:p-6"
         >
           <h2 id="rule" className="flex items-center gap-2 font-display text-xl font-semibold text-ink-strong">
-            <ShieldCheck className="h-5 w-5 text-coral-600" aria-hidden />
+            <ShieldCheck className="h-5 w-5 text-ink-strong" aria-hidden />
             The one rule agents follow here
           </h2>
           <ul className="mt-3 space-y-2 text-base leading-7 text-ink-body">
@@ -304,7 +302,7 @@ export default async function AgenticPage() {
         </section>
 
         {/* ——— Read further ——— */}
-        <section aria-labelledby="further" className="mt-16">
+        <section aria-labelledby="further">
           <SectionHeading id="further">Read the source of truth</SectionHeading>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {[
@@ -326,19 +324,14 @@ export default async function AgenticPage() {
             ))}
           </ul>
           <div className="mt-10">
-            <Link href="/welcome" className={PRIMARY_BUTTON}>
+            <Link href="/welcome" className={PILL_PRIMARY}>
               Or just start writing in the studio
             </Link>
           </div>
         </section>
-      </main>
-    </LandingFrame>
-  );
-}
-
-function Kicker({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-secondary">{children}</p>
+        </Band>
+      </div>
+    </PageShell>
   );
 }
 
@@ -354,7 +347,7 @@ function SectionHeading({ id, children }: { id: string; children: React.ReactNod
   return (
     <h2
       id={id}
-      className="border-b border-line-quiet pb-3 font-display text-2xl font-semibold text-ink-strong"
+      className={`border-b border-line-quiet pb-3 ${SECTION_H2}`}
     >
       {children}
     </h2>
@@ -370,7 +363,7 @@ function TerminalCard({ title, children }: { title: string; children: React.Reac
   return (
     <div className="mt-5 min-w-0 overflow-hidden rounded-2xl border border-navy-800 bg-navy-950 shadow-sm">
       <div className="flex items-center gap-2 border-b border-navy-800 px-4 py-2">
-        <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-coral-400" />
+        <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-navy-700" />
         <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
         <span aria-hidden className="h-2.5 w-2.5 rounded-full bg-green-500" />
         <span className="ml-2 truncate font-mono text-[11px] text-navy-300">{title}</span>
@@ -431,7 +424,7 @@ function Card({
 function Bullet({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <li className="flex gap-3">
-      <span className="mt-1 text-coral-600">{icon}</span>
+      <span className="mt-1 text-ink-strong">{icon}</span>
       <span>{children}</span>
     </li>
   );

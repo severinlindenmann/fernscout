@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import UpLink from "./UpLink";
 import { useLanguageHref } from "./LanguageLink";
+import { READING } from "./landing/kit";
 
 /**
  * One step up, out of the documentation — B1728.
@@ -14,28 +15,25 @@ import { useLanguageHref } from "./LanguageLink";
  * only way from `/docs/hosting` to the hub that lists it was the browser's
  * own Back — the exact gap this ticket is about.
  *
- * Both labels arrive translated from the server layout, which is what keeps
- * this the only client component in that subtree.
+ * The label arrives translated from the server layout. On the hub itself
+ * there is nothing to draw: the site's header (B2531) is the way out.
  */
 export default function DocsUpLink({
   hubHref,
   hubLabel,
-  siteLabel,
   className,
 }: {
   hubHref: string;
   hubLabel: string;
-  siteLabel: string;
   className?: string;
 }) {
   // `/de/docs` is the hub too, and goes up to `/de` — B2473.
   const to = useLanguageHref();
   const atHub = usePathname() === to(hubHref);
+  if (atHub) return null;
   return (
-    <UpLink
-      href={atHub ? to("/") : hubHref}
-      label={atHub ? siteLabel : hubLabel}
-      className={className}
-    />
+    <div className={`${READING} pt-6`}>
+      <UpLink href={hubHref} label={hubLabel} className={className} />
+    </div>
   );
 }

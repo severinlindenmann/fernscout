@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { READING } from "./landing/kit";
 
 /**
  * The one shape every "something is wrong" page takes.
@@ -25,6 +26,7 @@ export default function NoticeShell({
   title,
   body,
   actions = [],
+  inFrame = false,
   children,
 }: {
   /** Set only when the page's language is decided by data rather than by the
@@ -34,14 +36,17 @@ export default function NoticeShell({
   body?: string;
   /** In order of likelihood, because the first one gets pressed. */
   actions?: NoticeAction[];
+  /** Inside `PageShell` (B2531), which already draws `<main>`. */
+  inFrame?: boolean;
   children?: React.ReactNode;
 }) {
+  const Tag = inFrame ? "div" : "main";
   return (
-    <main
-      id="main"
-      tabIndex={-1}
+    <Tag
+      id={inFrame ? undefined : "main"}
+      tabIndex={inFrame ? undefined : -1}
       lang={lang}
-      className="mx-auto w-full max-w-xl px-6 py-20 sm:py-28"
+      className={inFrame ? `${READING} py-12 lg:py-22` : "mx-auto w-full max-w-xl px-6 py-20 sm:py-28"}
     >
       <h1 className="font-display text-3xl font-semibold leading-tight text-ink-strong sm:text-4xl">
         {title}
@@ -69,6 +74,6 @@ export default function NoticeShell({
       )}
 
       {children}
-    </main>
+    </Tag>
   );
 }

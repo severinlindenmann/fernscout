@@ -59,7 +59,7 @@ export default function IdentityBenchPage() {
   const DARK_GROUNDS = ["surface-base", "surface-raised", "surface-subtle"] as const;
 
   return (
-    <main id="main" className="min-h-screen bg-surface-base">
+    <div className="bg-surface-base">
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
         <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">Identity</h1>
         <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-body">
@@ -412,6 +412,6 @@ export default function IdentityBenchPage() {
           </Link>
         </p>
       </div>
-    </main>
+    </div>
   );
 }

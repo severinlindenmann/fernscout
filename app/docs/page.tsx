@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import Pricing from "@paid/credits/components/Pricing";
+import { Band, PageTitle } from "@/components/landing/kit";
 import { isEnabled } from "@/lib/capabilities";
 import { pageAlternates } from "@/lib/pageLanguage";
 import { DOCS_PAGES, docsMetadata, type DocsPageId } from "@/lib/docs";
@@ -112,7 +113,7 @@ function DoorCard({
         <div className="flex flex-1 flex-col gap-2 px-5 pb-5 pt-4">
           <span
             className={`font-mono text-xs font-medium uppercase tracking-wide ${
-              accent ? "text-coral-600" : "text-ink-secondary"
+              accent ? "text-ink-strong" : "text-ink-secondary"
             }`}
           >
             {translateIn(locale, eyebrowKey)}
@@ -152,7 +153,7 @@ function StudioSketch({ locale }: { locale: string }) {
                      text-sm font-semibold text-ink-strong"
         >
           <Icon
-            className={`h-4 w-4 shrink-0 ${strong ? "text-coral-600" : "text-ink-secondary"}`}
+            className={`h-4 w-4 shrink-0 ${strong ? "text-ink-strong" : "text-ink-secondary"}`}
             strokeWidth={2.4}
           />
           {translateIn(locale, key)}
@@ -179,7 +180,7 @@ function Way({
     <li className="flex flex-col gap-2 rounded-2xl border border-line-quiet bg-surface-raised p-5">
       <span
         className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-          accent ? "bg-coral-50 text-coral-600" : "bg-surface-neutral-strong text-ink-body"
+          accent ? "bg-surface-subtle text-ink-strong" : "bg-surface-neutral-strong text-ink-body"
         }`}
       >
         <Icon className="h-5 w-5" aria-hidden strokeWidth={2.2} />
@@ -231,13 +232,9 @@ export default async function DocsPage() {
   const gps = page("gps");
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-5xl">
-        {translateIn(locale, "docs.title")}
-      </h1>
-      <p className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-body sm:text-xl">
-        {translateIn(locale, "docs.lede")}
-      </p>
+    <>
+    <Band>
+      <PageTitle lede={translateIn(locale, "docs.lede")}>{translateIn(locale, "docs.title")}</PageTitle>
 
       <ul className={`mt-10 grid gap-5 ${writing ? "md:grid-cols-3" : "sm:grid-cols-2"}`}>
         {writing && (
@@ -318,7 +315,7 @@ export default async function DocsPage() {
                    transition-colors hover:border-line-ink
                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-coral-50 text-coral-600">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-subtle text-ink-strong">
           <MapPin className="h-5 w-5" aria-hidden strokeWidth={2.2} />
         </span>
         <span className="flex flex-1 flex-col gap-1">
@@ -382,14 +379,14 @@ export default async function DocsPage() {
         </section>
       </div>
 
+      <p className="mt-12 border-t border-line-quiet pt-6 font-mono text-xs text-ink-secondary">{site.url}</p>
+    </Band>
       {/*
         The same table the landing page carries, and deliberately the same
         component rather than a second page under `DOCS_PAGES` — one price
         list, two places it is asked for. Absent where credits are off. B840.
       */}
       {isEnabled("credits") && <Pricing locale={locale} />}
-
-      <p className="mt-12 border-t border-line-quiet pt-6 font-mono text-xs text-ink-secondary">{site.url}</p>
-    </main>
+    </>
   );
 }

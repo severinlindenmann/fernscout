@@ -4,6 +4,7 @@ import DocsNav from "@/components/DocsNav";
 import EntryContent from "@/components/EntryContent";
 import { GUIDES, docsMetadata, docsNavEntries, isGuide, readGuide } from "@/lib/docs";
 import { requestLocale, translateIn } from "@/lib/locales";
+import { Band, TITLE_H1 } from "@/components/landing/kit";
 
 /**
  * A translated reader guide — B445. Today there is one, `gps` (B2343); the
@@ -39,8 +40,8 @@ export default async function GuidePage({ params }: PageProps<"/docs/guide/[guid
   const { markdown, locale: written } = readGuide(guide, locale);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className=" font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
+    <Band width="reading">
+      <h1 className={TITLE_H1}>
         {translateIn(locale, `guides.${guide}.title`)}
       </h1>
       <p className="mt-3 text-lg leading-relaxed text-ink-body">
@@ -66,6 +67,6 @@ export default async function GuidePage({ params }: PageProps<"/docs/guide/[guid
       <div className="mt-8 border-t border-line-quiet pt-8">
         <EntryContent markdown={markdown} />
       </div>
-    </main>
+    </Band>
   );
 }

@@ -6,6 +6,8 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { whatsappCountryCode } from "@/lib/contactNumber";
 import WelcomeDoor from "@/components/WelcomeDoor";
+import PageShell from "@/components/landing/PageShell";
+import { Band } from "@/components/landing/kit";
 
 // Reads the identity cookie to prefill the address; nothing to prerender.
 export const dynamic = "force-dynamic";
@@ -25,13 +27,17 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Welcome() {
   const identity = isEnabled("auth") ? await resolveIdentity() : null;
   return (
+    // B2531: the slim header — somebody here is mid-task, not browsing.
+    <PageShell slim>
+      <Band width="reading">
     <WelcomeDoor
       codeMinutes={CODE_TTL_MINUTES}
       identityEmail={identity?.email ?? null}
       signupEnabled={isEnabled("signup")}
-      siteName={serverSite().name}
       phoneCountryCode={whatsappCountryCode() ?? null}
       contactEmail={serverSite().operatorEmail ?? null}
     />
+      </Band>
+    </PageShell>
   );
 }

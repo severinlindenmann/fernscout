@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BRANDING_BENCHES } from "@/lib/docs";
+import { Band, TITLE_H1 } from "@/components/landing/kit";
 
 /**
  * `/docs/branding` — the workbenches.
@@ -28,8 +29,8 @@ export const metadata: Metadata = {
 
 export default function BrandingHubPage() {
   return (
-    <main id="main" className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">Workbenches</h1>
+    <Band width="reading">
+      <h1 className={TITLE_H1}>Workbenches</h1>
       <p className="mt-3 text-lg leading-relaxed text-ink-body">
         The parts of this software that are drawn rather than written. A drawing is the
         one kind of output no test can check — code for an aeroplane whose wings rake
@@ -97,6 +98,6 @@ export default function BrandingHubPage() {
           Back to the documentation
         </Link>
       </p>
-    </main>
+    </Band>
   );
 }

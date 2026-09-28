@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function TravellerBenchPage() {
   return (
-    <main id="main" className="min-h-screen bg-surface-base">
+    <div className="bg-surface-base">
       <TravellerBench />
       <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
         <Link
@@ -22,6 +22,6 @@ export default function TravellerBenchPage() {
           Back to the workbenches
         </Link>
       </div>
-    </main>
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
 import OfflineNotice from "@/components/OfflineNotice";
+import PageShell from "@/components/landing/PageShell";
 
 /**
  * What the service worker serves when a page is wanted, the network is gone,
@@ -23,5 +24,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function Offline() {
-  return <OfflineNotice />;
+  // B2531: the site's frame, like every page outside the journal. Offline,
+  // its header asks who is signed in, fails, and stays header A.
+  return (
+    <PageShell>
+      <OfflineNotice />
+    </PageShell>
+  );
 }
