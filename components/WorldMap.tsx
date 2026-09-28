@@ -480,6 +480,24 @@ export default function WorldMap({
           <g transform={`scale(${base.lngScale} 1)`}>
             {basemap ? (
               <>
+                {/* B2426: `fillHeight`'s phone view can grow taller than the
+                    basemap's own clip, which stays the page's landscape
+                    `TARGET_ASPECT` (`lib/mapFrame.ts`) — the server-side fix
+                    (padding the clip itself) measured out at 1.4–2.7x the
+                    basemap payload on the example journal, so this reuses
+                    the coarse 1:110m coastline instead, already loaded for
+                    every page as the no-basemap fallback below, at no extra
+                    cost. Drawn first so the detailed basemap paints over it
+                    wherever the clip actually has data — a real seam is
+                    possible at that boundary, but only there, and only on a
+                    phone tall enough to reach past the clip at all. */}
+                {fillHeight && (
+                  <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
+                    {worldLand.map((d, i) => (
+                      <path key={`fallback-${i}`} d={d} vectorEffect="non-scaling-stroke" />
+                    ))}
+                  </g>
+                )}
                 <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1.2}>
                   {basemap.borders.map((d, i) => (
                     <path key={i} d={d} vectorEffect="non-scaling-stroke" />
