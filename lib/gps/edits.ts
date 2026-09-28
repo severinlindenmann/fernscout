@@ -234,6 +234,26 @@ export function isInHiddenSpot(point: { lat: number; lon: number }, spots: Hidde
   return spots.some((spot) => metresBetween(point, { lat: spot.lat, lon: spot.lon }) <= spot.radiusM);
 }
 
+/**
+ * Whether a day's own typed `coordinates` — never a recorded GPS fix — fall
+ * inside one of this trip's hidden spots. B2544: `deriveTrack` only ever
+ * breaks a *recorded* run at a hidden spot, so a day pinned at the hotel by
+ * the owner's own words kept showing the hotel to every reader after the
+ * spot that covers it was hidden. This is the one check every reader-facing
+ * place list (`getPlaces`, `getMapDays` — `lib/entries.ts`/`lib/map/mapDays.ts`
+ * — and the story index's `summarise`, `lib/tripView.ts`) runs before
+ * handing a day's coordinate to anyone whose `ReadOptions.reader` is not
+ * `"person"` (`lib/entries.ts`) — the owner's own studio stays unfiltered,
+ * the same split every other reader/owner question in this codebase makes. */
+export function isHiddenPlace(
+  username: string,
+  tripId: string,
+  point: { lat: number; lon: number },
+): boolean {
+  const { hiddenSpots } = readTrackEdits(username, tripId);
+  return hiddenSpots.length > 0 && isInHiddenSpot(point, hiddenSpots);
+}
+
 /** A stretch resolved to an absolute range — what `deriveTrack` (`./enrich.ts`)
  * actually tests a fix's instant against, never the wall clock stored on
  * disk. Built by `resolvedHiddenStretches`/`resolvedNamedStretches`

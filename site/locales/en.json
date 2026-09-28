@@ -3159,6 +3159,7 @@
   "studio.location.zones.conflict": "Somebody changed your private zones since this was loaded — reloaded to show the current list. Please try your edit again.",
   "studio.location.trackEdits.title": "Hide a spot, hide a stretch, name a stretch",
   "studio.location.trackEdits.lede": "Cut a place or a time range out of what readers are shown of this trip's route, or put a name on a stretch instead of trusting a guess at transport mode. Your own recorded positions are never deleted — only what a reader ever sees of them changes.",
+  "studio.location.trackEdits.ownPinWarningTitle": "This day's own pin is inside a hidden spot. Readers no longer see it on a map or card — only its place name still shows. Move the pin, or leave it.",
   "studio.location.trackEdits.spotsHeading": "Hidden spots",
   "studio.location.trackEdits.spotsEmpty": "No hidden spots on this trip yet.",
   "studio.location.trackEdits.spotRadiusUnit": "{radius} m radius",

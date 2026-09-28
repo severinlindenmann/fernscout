@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
+import { journalPath } from "@/lib/journalPath";
 
 type HiddenSpot = { id: string; lat: number; lon: number; radiusM: number };
 type HiddenStretch = { id: string; date: string; from: string; to: string };
@@ -50,10 +52,17 @@ export default function TrackEditsPanel({
   username,
   tripId,
   days,
+  hiddenDays,
 }: {
   username: string;
   tripId: string;
   days: string[];
+  /** B2544 — this trip's own days whose typed `coordinates` (never a
+   * recorded GPS fix, so `deriveTrack`'s own hidden-spot cut never touches
+   * them) fall inside one of the spots hidden below. Computed server-side,
+   * `AS_AUTHOR`, so it always reflects the owner's real pin, whatever a
+   * reader is shown. */
+  hiddenDays?: { date: string; slug: string; location: string }[];
 }) {
   const { t, formatShortDate } = useI18n();
   const [doc, setDoc] = useState<EditsDoc | null>(null);
@@ -235,6 +244,32 @@ export default function TrackEditsPanel({
         {t("studio.location.trackEdits.title")}
       </h3>
       <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.trackEdits.lede")}</p>
+
+      {/* B2544 — a day's own typed pin is never checked against a hidden
+          spot the way the recorded line already is (`deriveTrack`), so a
+          day pinned at the hotel still showed the hotel to readers after the
+          spot covering it was hidden. Warn the owner here, with a link
+          straight to that day's own edit page. */}
+      {hiddenDays && hiddenDays.length > 0 && (
+        <div className="mt-3 rounded-xl border border-coral-300 bg-coral-50 p-3">
+          <p role="alert" className="text-sm font-semibold text-coral-600">
+            {t("studio.location.trackEdits.ownPinWarningTitle")}
+          </p>
+          <ul className="mt-2 space-y-1">
+            {hiddenDays.map((day) => (
+              <li key={day.slug} className="text-sm text-ink-body">
+                <Link
+                  href={`${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(day.slug)}`}
+                  className="font-semibold text-ink-strong underline underline-offset-2"
+                >
+                  {formatShortDate(day.date)}
+                  {day.location ? ` · ${day.location}` : ""}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Hidden spots */}
       <h4 className="mt-4 text-sm font-semibold text-ink-strong">{t("studio.location.trackEdits.spotsHeading")}</h4>

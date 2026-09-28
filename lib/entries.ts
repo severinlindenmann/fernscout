@@ -22,6 +22,7 @@ import type {
 import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
 import { parseWeather } from "./weather";
 import type { Track } from "./tracks";
+import { isHiddenPlace } from "./gps/edits";
 import { maySeePhoto, mediaKey, parsePhotoVisibility, type ReaderLevel } from "./photos";
 import { parseDescribed } from "./photos/described";
 import { readTripSidecar } from "./sidecar";
@@ -715,6 +716,13 @@ const SAME_PLACE_KM = 5;
 export function getPlaces(ref: string, options?: ReadOptions): Place[] {
   const places: Place[] = [];
   const languages = localesOf(ref);
+  // B2544 — a day's own typed `coordinates`, unlike a recorded GPS fix,
+  // never went through `deriveTrack`'s own hidden-spot cut. Resolved once
+  // per trip rather than per day: `isHiddenPlace` (`lib/gps/edits.ts`)
+  // rereads `track-edits.json` itself, and this loop can run over a
+  // thousand-day trip.
+  const owner = parseTripRef(ref);
+  const checkHidden = options?.reader !== "person" && owner !== null;
 
   for (const day of getDays(ref, options)) {
     const lead = day.lead;
@@ -723,6 +731,10 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
     // Distinct from B339 below: that is a day that *has* coordinates and an
     // empty name. This is a day with nothing to plot, full stop.
     if (!Number.isFinite(lead.lat) || !Number.isFinite(lead.lng)) continue;
+    // Never drawn for a reader — the day itself still turns up elsewhere by
+    // name (`getDays`), only its place on a map is what a hidden spot buys
+    // back. The owner's own studio (`reader: "person"`) is unfiltered.
+    if (checkHidden && isHiddenPlace(owner.username, owner.tripId, { lat: lead.lat, lon: lead.lng })) continue;
     const entries = day.entries.map((e) => toPlaceEntry(e, languages));
     const last = places.at(-1);
     // Merged only when the day actually names where it was. `location:` is

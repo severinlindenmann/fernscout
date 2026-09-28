@@ -3159,6 +3159,7 @@
   "studio.location.zones.conflict": "Jemand hat deine privaten Zonen geändert, seit sie geladen wurden — die aktuelle Liste wurde neu geladen. Bitte versuche deine Änderung erneut.",
   "studio.location.trackEdits.title": "Einen Ort verbergen, einen Abschnitt verbergen, einen Abschnitt benennen",
   "studio.location.trackEdits.lede": "Schneide einen Ort oder einen Zeitraum aus dem heraus, was Lesende von der Route dieser Reise sehen, oder gib einem Abschnitt einen Namen, statt dich auf eine geratene Fortbewegungsart zu verlassen. Deine eigenen aufgezeichneten Positionen werden nie gelöscht — nur was Lesende davon zu sehen bekommen, ändert sich.",
+  "studio.location.trackEdits.ownPinWarningTitle": "Der eigene Pin dieses Tages liegt in einem versteckten Ort. Lesende sehen ihn nicht mehr auf der Karte — nur der Ortsname bleibt sichtbar. Verschiebe den Pin oder lass ihn so.",
   "studio.location.trackEdits.spotsHeading": "Verborgene Orte",
   "studio.location.trackEdits.spotsEmpty": "Für diese Reise gibt es noch keine verborgenen Orte.",
   "studio.location.trackEdits.spotRadiusUnit": "{radius} m Radius",
