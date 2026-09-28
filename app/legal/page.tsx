@@ -4,7 +4,9 @@ import EntryContent from "@/components/EntryContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import UpLink from "@/components/UpLink";
-import { legalSections, readLegal } from "@/lib/legal";
+import { legalLocales, legalSections, readLegal } from "@/lib/legal";
+import { pageAlternates, requestPathLocale } from "@/lib/pageLanguage";
+import { languageHref } from "@/lib/languagePaths";
 import { dictionaryFor, installedLocales, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
@@ -30,12 +32,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: translateIn(locale, "legal.title"),
     description: translateIn(locale, "legal.lede"),
-    alternates: { canonical: "/legal" },
+    // Language addresses only for the languages the imprint is written in — B2473.
+    alternates: await pageAlternates("/legal", legalLocales()),
   };
 }
 
 export default async function LegalPage() {
   const locale = await requestLocale();
+  const pathLocale = await requestPathLocale();
   const legal = readLegal(locale);
   if (!legal) notFound();
   const { markdown, sections } = legalSections(legal.markdown);
@@ -53,7 +57,7 @@ export default async function LegalPage() {
       <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
           <UpLink
-            href="/"
+            href={languageHref(pathLocale, "/")}
             label={serverSite().name}
             className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
                        transition-colors hover:text-ink-strong

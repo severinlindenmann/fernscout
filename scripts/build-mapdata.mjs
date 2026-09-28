@@ -43,6 +43,7 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { feature } from "topojson-client";
 import { project } from "../lib/mapProjection.mjs";
+import { unwrapLngs, shiftLng, fullyCircles } from "./antimeridian.mjs";
 
 const ROOT = path.join(import.meta.dirname, "..");
 const OUT_FILE = path.join(ROOT, "lib", "mapdata", "basemap.json.gz");
@@ -187,12 +188,11 @@ function ringToShape(ring, close) {
     // draw. There is no seam fix for a ring that never stops circling, so
     // this falls through to the plain cut below, same as before.
     if (unwrapped) {
-      const fullyCircles = Math.abs(unwrapped[unwrapped.length - 1][0] - unwrapped[0][0]) >= 350;
       // The old per-jump cut below closes each fragment with the same kind
       // of arbitrary chord this whole function exists to avoid, so it is no
       // fix for this case either — dropped instead, same as the brief's own
       // "the draft simply dropped those subpaths" for this exact shape.
-      if (fullyCircles) return [];
+      if (fullyCircles(unwrapped)) return [];
       return [
         projectRing(unwrapped, true),
         projectRing(shiftLng(unwrapped, 360), true),
@@ -235,38 +235,6 @@ function ringToShape(ring, close) {
       d,
     ],
   ];
-}
-
-/**
- * A ring's own longitudes, made continuous across an antimeridian crossing
- * — or `null` when it never crosses one, so the caller's ordinary path
- * stays exactly as it was.
- */
-function unwrapLngs(ring) {
-  let offset = 0;
-  let prevLng = null;
-  let jumped = false;
-  const out = [];
-  for (const [lng, lat] of ring) {
-    if (prevLng !== null) {
-      const delta = lng - prevLng;
-      if (delta > 180) {
-        offset -= 360;
-        jumped = true;
-      } else if (delta < -180) {
-        offset += 360;
-        jumped = true;
-      }
-    }
-    prevLng = lng;
-    out.push([lng + offset, lat]);
-  }
-  return jumped ? out : null;
-}
-
-/** The same unwrapped ring, one world-width over — the "other side" copy. */
-function shiftLng(ring, degrees) {
-  return ring.map(([lng, lat]) => [lng + degrees, lat]);
 }
 
 /** One already-continuous ring, projected and closed — no antimeridian

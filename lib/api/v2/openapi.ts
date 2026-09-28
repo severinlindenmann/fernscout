@@ -1991,6 +1991,28 @@ function buildPaths(): Record<string, PathItem> {
     },
   };
 
+  paths["/api/auth/signup/identity"] = {
+    post: {
+      summary:
+        "A signup token for the address this browser's identity cookie proves — cookie only, no code, no body.",
+      responses: {
+        ...jsonResponse(
+          200,
+          codesRedeemTokenResponse,
+          'the same token codes/redeem returns for "signup" — use it as for that one',
+        ),
+        ...refusalResponses([
+          ref("signup_disabled", 404),
+          ref("not_signed_in", 401, "no identity cookie, or it names a phone number rather than an address"),
+          ref("signup_not_invited", 403),
+          ref("foreign_origin", 403),
+          ref("too_many_journals", 409),
+          ref("too_many_requests", 429),
+        ]),
+      },
+    },
+  };
+
   paths["/api/auth/handover"] = {
     post: {
       summary: "Spend a handover credential for your own 7-day token.",

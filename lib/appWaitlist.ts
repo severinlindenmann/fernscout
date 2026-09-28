@@ -133,6 +133,7 @@ export function composeWaitlistMail(locale: string): MailComposition {
     subject: t("appWaitlist.mailSubject"),
     content: {
       template: "notice.waitlist",
+      locale,
       preheader: t("appWaitlist.mailSubject"),
       title: t("appWaitlist.mailSubject"),
       blocks,

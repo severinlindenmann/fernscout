@@ -8,8 +8,10 @@
 // render the key text on the page and nothing would fail.
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import ts from "typescript";
 import { computeLocaleScopes, formatLocaleScopes } from "./locale-scopes-lib.mjs";
+import { decidePaidLocaleKeysAction } from "./paid-locale-keys-lib.mjs";
 
 const ROOT = path.join(import.meta.dirname, "..");
 
@@ -123,22 +125,48 @@ function usedKeys(files, allKeys) {
 }
 const paidLocaleKeysFile = path.join(ROOT, "lib", "paidLocaleKeys.json");
 const paidDir = path.join(ROOT, "paid");
-if (fs.existsSync(paidDir)) {
+const force = process.argv.includes("--force");
+const paidExists = fs.existsSync(paidDir);
+const previous = fs.existsSync(paidLocaleKeysFile) ? JSON.parse(fs.readFileSync(paidLocaleKeysFile, "utf8")) : null;
+const previousGeneratedFrom = previous?.generatedFrom ?? null;
+
+const git = (args) => execFileSync("git", ["-C", paidDir, ...args], { encoding: "utf8" }).trim();
+
+const decision = paidExists
+  ? decidePaidLocaleKeysAction({
+      paidExists: true,
+      paidDirty: git(["status", "--porcelain"]).length > 0,
+      previousGeneratedFrom,
+      currentCommit: git(["rev-parse", "HEAD"]),
+      isAncestor: (ancestor, descendant) => {
+        try {
+          execFileSync("git", ["-C", paidDir, "merge-base", "--is-ancestor", ancestor, descendant]);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      force,
+    })
+  : decidePaidLocaleKeysAction({ paidExists: false });
+
+if (decision.action === "skip" || decision.action === "refuse") {
+  console.log(decision.message);
+} else {
+  const currentCommit = git(["rev-parse", "HEAD"]);
   const openCoreFiles = ["app", "components", "lib", "scripts"].flatMap((d) => collectFiles(path.join(ROOT, d)));
   const withPaidFiles = [...openCoreFiles, ...collectFiles(paidDir)];
   const usedOpenCore = usedKeys(openCoreFiles, keys);
   const usedWithPaid = usedKeys(withPaidFiles, keys);
   const paidOnly = keys.filter((k) => !usedOpenCore.has(k) && usedWithPaid.has(k));
-  const paidLocaleKeys = JSON.stringify(paidOnly, null, 2) + "\n";
-  const previousPaidLocaleKeys = fs.existsSync(paidLocaleKeysFile) ? fs.readFileSync(paidLocaleKeysFile, "utf8") : null;
-  if (previousPaidLocaleKeys === paidLocaleKeys) {
+  const paidLocaleKeys = JSON.stringify({ generatedFrom: currentCommit, keys: paidOnly }, null, 2) + "\n";
+  const previousRaw = fs.existsSync(paidLocaleKeysFile) ? fs.readFileSync(paidLocaleKeysFile, "utf8") : null;
+  if (previousRaw === paidLocaleKeys) {
     console.log("Paid-only locale keys already up to date.");
   } else {
     fs.writeFileSync(paidLocaleKeysFile, paidLocaleKeys);
-    console.log(`Wrote lib/paidLocaleKeys.json — ${paidOnly.length} keys only paid/ uses.`);
+    console.log(`Wrote lib/paidLocaleKeys.json — ${paidOnly.length} keys only paid/ uses (from ${currentCommit}).`);
   }
-} else {
-  console.log("No paid/ here — leaving lib/paidLocaleKeys.json as the main checkout last wrote it.");
 }
 
 // --- Coverage — B1894 ---
