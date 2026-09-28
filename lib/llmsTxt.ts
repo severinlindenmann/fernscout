@@ -6,6 +6,8 @@ import { translateIn } from "./locales";
 import { serverSite } from "./site";
 import { getDefaultUsername } from "./users";
 import { PAID_AREAS } from "@paid/manifest";
+import { markdownHref } from "./languagePaths";
+import { markdownPages } from "./sitemap";
 
 import { journalPath } from "./journalPath";
 /**
@@ -57,6 +59,18 @@ export function llmsTxt(): string {
     );
   }
 
+  // B2488 — the pages themselves, as Markdown. Each also answers at /de/,
+  // /fr/ and /it/ where it is translated, and to Accept: text/markdown.
+  const pages = markdownPages();
+  lines.push(
+    "",
+    "## Pages as Markdown",
+    "",
+    ...pages.map((path) => link(pageTitle(path), markdownHref(null, path))),
+    "",
+    "The same pages in German, French and Italian: put /de, /fr or /it in front (for example /de/index.md).",
+  );
+
   if (example) {
     lines.push("", "## Example", "", link(example.title, journalPath(example.username), "a public journal on this instance"));
   }
@@ -69,4 +83,15 @@ export function llmsTxt(): string {
     "",
   );
   return lines.join("\n");
+}
+
+/** A Markdown page's name in llms.txt: its address, spelled out. */
+function pageTitle(path: string): string {
+  if (path === "/") return "What this is (the landing page)";
+  return path
+    .slice(1)
+    .split("/")
+    .map((part) => part.replace(/-/g, " "))
+    .join(": ")
+    .replace(/^./, (c) => c.toUpperCase());
 }

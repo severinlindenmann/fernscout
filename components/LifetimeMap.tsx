@@ -72,48 +72,6 @@ function easeInOut(t: number): number {
 }
 
 /**
- * Review found the first attempt at this (a whole-path bounding-box
- * check) missed a real case on `/severin/trips`: a sea-coloured wedge from
- * Kamchatka/Chukotka to the frame's top-right corner. That path's overall
- * bounding box was not wide enough to trip a >=700-unit filter — only
- * *one* edge inside it actually jumped the antimeridian, cutting a wedge
- * out of an otherwise-local shape, not drawing a line clear across the
- * world. So this checks every consecutive pair of points instead of the
- * path's extremes, and splits at each jump rather than dropping the whole
- * path — the same guard `scripts/build-world-countries.mts`'s
- * `splitAntimeridian` already bakes into `lib/worldCountries.json`, run
- * here at render time for the basemap bundle (`lib/basemap.ts`'s
- * `data.borders`/`lakes`/`rivers`), which is a separate, pre-existing
- * dataset this ticket does not regenerate — every map that calls
- * `basemapFor()` shares it, and the real fix (baking the split into that
- * bundle directly) belongs in its own ticket.
- */
-const ANTIMERIDIAN_JUMP = 500; // half the 1000-unit world — a real border never spans more in one step.
-
-function fixAntimeridian(d: string): string {
-  return d
-    .split(/(?=M)/) // one or more "M…Z" subpaths concatenated in one `d`.
-    .map((sub) => {
-      const points = [...sub.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map(
-        (m) => [Number(m[1]), Number(m[2])] as const,
-      );
-      if (points.length < 2) return sub;
-      const runs: (readonly [number, number])[][] = [[points[0]]];
-      for (let i = 1; i < points.length; i++) {
-        const [x] = points[i];
-        const [prevX] = points[i - 1];
-        if (Math.abs(x - prevX) > ANTIMERIDIAN_JUMP) runs.push([]);
-        runs[runs.length - 1].push(points[i]);
-      }
-      return runs
-        .filter((run) => run.length >= 2)
-        .map((run) => `M${run.map(([x, y]) => `${x},${y}`).join(" L")} Z`)
-        .join(" ");
-    })
-    .join(" ");
-}
-
-/**
  * Every trip's route on one map — rewritten for B2491.
  *
  * Deliberately not what B2423 drew. That version filled every visited
@@ -422,13 +380,13 @@ export default function LifetimeMap({
           {displayBasemap ? (
             <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
               {displayBasemap.borders.map((d, i) => (
-                <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
+                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
               ))}
             </g>
           ) : (
             <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
               {worldLand.map((d, i) => (
-                <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
+                <path key={i} d={d} vectorEffect="non-scaling-stroke" />
               ))}
             </g>
           )}
@@ -504,12 +462,12 @@ export default function LifetimeMap({
             <>
               <g fill="none" stroke={mapStyle.water} strokeWidth={0.5}>
                 {displayBasemap.rivers.map((d, i) => (
-                  <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
+                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
                 ))}
               </g>
               <g fill={mapStyle.water} stroke={mapStyle.border} strokeWidth={0.7}>
                 {displayBasemap.lakes.map((d, i) => (
-                  <path key={i} d={fixAntimeridian(d)} vectorEffect="non-scaling-stroke" />
+                  <path key={i} d={d} vectorEffect="non-scaling-stroke" />
                 ))}
               </g>
             </>

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Pricing from "@paid/credits/components/Pricing";
 import { isEnabled } from "@/lib/capabilities";
+import { pageAlternates } from "@/lib/pageLanguage";
 import { DOCS_PAGES, docsMetadata, type DocsPageId } from "@/lib/docs";
 import type { TranslationKey } from "@/lib/i18n";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -36,7 +37,10 @@ import { serverSite } from "@/lib/site";
  */
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await requestLocale();
-  return docsMetadata("hub", locale);
+  const meta = docsMetadata("hub", locale);
+  // The hub is translated, so it has language addresses — B2473.
+  const alternates = await pageAlternates("/docs");
+  return { ...meta, alternates, openGraph: { ...meta.openGraph, url: alternates.canonical } };
 }
 
 /**

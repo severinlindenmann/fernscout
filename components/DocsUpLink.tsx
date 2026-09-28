@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import UpLink from "./UpLink";
+import { useLanguageHref } from "./LanguageLink";
 
 /**
  * One step up, out of the documentation — B1728.
@@ -27,10 +28,12 @@ export default function DocsUpLink({
   siteLabel: string;
   className?: string;
 }) {
-  const atHub = usePathname() === hubHref;
+  // `/de/docs` is the hub too, and goes up to `/de` — B2473.
+  const to = useLanguageHref();
+  const atHub = usePathname() === to(hubHref);
   return (
     <UpLink
-      href={atHub ? "/" : hubHref}
+      href={atHub ? to("/") : hubHref}
       label={atHub ? siteLabel : hubLabel}
       className={className}
     />

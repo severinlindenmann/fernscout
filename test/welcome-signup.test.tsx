@@ -18,6 +18,7 @@ import { typeInto } from "./support/type-input";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh: () => {} }),
+  usePathname: () => "/welcome",
 }));
 
 function withLocale(node: React.ReactNode) {

@@ -210,7 +210,7 @@ describe("the studio's locale keys are all in use (B2093, B2112)", () => {
     // tell "orphaned" from "paid uses this" — B2112.
     const paidKeys: string[] = fs.existsSync(path.join(process.cwd(), "paid"))
       ? []
-      : (JSON.parse(read(path.join("lib", "paidLocaleKeys.json"))) as string[]);
+      : (JSON.parse(read(path.join("lib", "paidLocaleKeys.json"))) as { keys: string[] }).keys;
     // `agent.slot.<name>` is the one dynamic prefix no static scan can chase,
     // and its live set includes the paid tools' argument names, which a
     // checkout without paid/ cannot see — so the whole prefix is exempt here.

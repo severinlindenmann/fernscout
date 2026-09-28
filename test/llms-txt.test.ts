@@ -4,6 +4,7 @@ import path from "node:path";
 import { llmsTxt } from "@/lib/llmsTxt";
 import { SKILL_DOC_SLUGS } from "@/lib/api/skillDocMeta";
 import { isGuide } from "@/lib/docs";
+import { splitMarkdownPath } from "@/lib/languagePaths";
 import { getUser } from "@/lib/users";
 import { serverSite } from "@/lib/site";
 import { GET } from "@/app/llms.txt/route";
@@ -18,6 +19,8 @@ const exists = (file: string) => fs.existsSync(path.join(process.cwd(), file));
 
 /** Whether a path this document links has something behind it. */
 function resolves(route: string): boolean {
+  // A page's Markdown version (B2488), served through the proxy.
+  if (splitMarkdownPath(route)) return exists("app/api/page-md/route.ts");
   if (exists(`app${route}/route.ts`) || exists(`app${route}/page.tsx`)) return true;
   const guide = route.match(/^\/docs\/guide\/([^/]+)$/);
   if (guide) return isGuide(guide[1]);

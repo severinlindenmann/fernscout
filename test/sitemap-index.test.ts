@@ -10,6 +10,7 @@ import {
   urlsetXml,
 } from "@/lib/sitemap";
 import { serverSite } from "@/lib/site";
+import { splitMarkdownPath } from "@/lib/languagePaths";
 
 /**
  * B2486 — /sitemap.xml is an index of three children, every entry is a page
@@ -71,8 +72,9 @@ describe("what the children list", () => {
   test("every agent document listed has a route behind it", () => {
     for (const { url } of agentsSitemap()) {
       const route = url.slice(base.length);
-      const file =
-        route === "/api/v2/openapi.json"
+      const file = splitMarkdownPath(route)
+        ? "app/api/page-md/route.ts"
+        : route === "/api/v2/openapi.json"
           ? "app/api/v2/openapi.json/route.ts"
           : `app${route}/route.ts`;
       expect(fs.existsSync(path.join(process.cwd(), file)), file).toBe(true);

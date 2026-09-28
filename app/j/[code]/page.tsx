@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { cache } from "react";
+import type { UserConfig } from "@/lib/config";
+import { inviteMetadata, inviteSubject } from "@/lib/invitePreview";
+import type { Trip } from "@/lib/types";
 import NoticeShell from "@/components/NoticeShell";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { isJournalGuest, isOwner, journalReader } from "@/lib/contacts/session";
-import { maskEmail, ownerShortName, resolveJoinCode } from "@/lib/contacts/welcome";
+import { maskEmail, ownerShortName, resolveJoinCode, type JoinInvite } from "@/lib/contacts/welcome";
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
 import { subjectPhone } from "@/lib/phone";
@@ -17,9 +21,28 @@ import JoinFlow from "./JoinFlow";
 import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { robots: { index: false, follow: false }, referrer: "no-referrer" };
-
 const LOOKUPS = { max: 30, windowMs: 15 * 60 * 1000 };
+
+type Lookup = { invite: JoinInvite | null; user: UserConfig | null; trip: Trip | undefined | null };
+
+/** One rate-limited lookup per request, shared by the preview's metadata and
+ * the page — `cache` makes the second ask free, so a render spends one. */
+const lookup = cache(async (code: string): Promise<Lookup> => {
+  const allowed = rateLimitFor("join-lookup", clientIp(await headers()), LOOKUPS).ok;
+  const invite = allowed && isEnabled("contacts") ? await resolveJoinCode(code) : null;
+  const user = invite && isEnabled("contacts", invite.owner) ? getUser(invite.owner) : null;
+  const trip = invite?.tripId ? getTrip(tripRef(invite.owner, invite.tripId)) : null;
+  return { invite, user, trip };
+});
+
+/** The link preview — B2502: an invitation to the journal, in its language
+ * (a preview bot sends no Accept-Language). Still noindex. */
+export async function generateMetadata({ params }: PageProps<"/j/[code]">): Promise<Metadata> {
+  const { code } = await params;
+  const { invite, user, trip } = await lookup(code);
+  const valid = invite && user && !(invite.kind === "buddy" && !trip);
+  return inviteMetadata(`/j/${code}`, valid ? inviteSubject(user, invite.locale) : null);
+}
 
 /**
  * `/j/<code>` — a group link (B2293, B2291 "Share an invite link"). It grants
@@ -29,10 +52,7 @@ const LOOKUPS = { max: 30, windowMs: 15 * 60 * 1000 };
  */
 export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
   const { code } = await params;
-  const allowed = rateLimitFor("join-lookup", clientIp(await headers()), LOOKUPS).ok;
-  const invite = allowed && isEnabled("contacts") ? await resolveJoinCode(code) : null;
-  const user = invite && isEnabled("contacts", invite.owner) ? getUser(invite.owner) : null;
-  const trip = invite?.tripId ? getTrip(tripRef(invite.owner, invite.tripId)) : null;
+  const { invite, user, trip } = await lookup(code);
 
   if (!invite || !user || (invite.kind === "buddy" && !trip)) {
     const locale = await requestLocale();

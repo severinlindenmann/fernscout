@@ -180,6 +180,7 @@ export function composeExpiryWarnMail(params: {
     subject,
     content: {
       template: "notice.expiryWarn",
+      locale,
       preheader: subject,
       title: subject,
       blocks,
@@ -240,6 +241,7 @@ export function composeExpiryFinalMail(params: {
     subject,
     content: {
       template: "notice.expiryFinal",
+      locale,
       preheader: subject,
       title: subject,
       blocks,

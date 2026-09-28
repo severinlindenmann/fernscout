@@ -325,6 +325,7 @@ export function composeStorageMail(params: {
     subject: t(full ? "mail.storageFullSubject" : "mail.storageLowSubject", vars),
     content: {
       template: "notice.storage",
+      locale,
       preheader: t("mail.storagePreheader", vars),
       title: t(full ? "mail.storageFullTitle" : "mail.storageLowTitle"),
       blocks: [

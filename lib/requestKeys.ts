@@ -30,3 +30,8 @@ export const PATH_HEADER = "x-fernscout-path";
  * person no longer owns falls back to their first rather than answering 404.
  */
 export const JOURNAL_COOKIE = "fs.journal";
+
+/** The language a language address asked for (`/de/schools` → `de`) — B2473.
+ * Set only by the proxy, which strips any a client sent; it wins over the
+ * cookie and `Accept-Language`, because the address is the language. */
+export const PATH_LOCALE_HEADER = "x-fernscout-path-locale";
