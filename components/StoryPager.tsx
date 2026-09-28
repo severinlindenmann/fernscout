@@ -196,7 +196,13 @@ export default function StoryPager({
 
   return (
     <div>
-      <AnimatePresence mode="wait">
+      {/* B2550: `initial={false}` skips only the very first mount's own
+          enter animation — the case a page arrives by navigation (a Link
+          tap, a fresh load) and should show at once rather than fade up from
+          nothing. A step change after that still swaps `key`s and animates
+          exactly as before; reduced motion is `MotionConfig` in
+          LocaleProvider.tsx, untouched by this. */}
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={stepIndex}
           initial={{ opacity: 0, y: 12 }}
