@@ -8,7 +8,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { flagFor } from "@/lib/flags";
-import { SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
+import { SEEN_KEY, type HomePayload } from "@/lib/homeProbe";
 import { Logo, WIDE } from "./kit";
 import { PILL_GHOST, PILL_PRIMARY, PILL_SMALL } from "./styles";
 
@@ -119,9 +119,13 @@ export function HeaderA({
           <ThemeSwitcher subtle />
           <LocaleSwitcher locales={locales} subtle />
         </div>
-        <SignIn onSignIn={onSignIn} className={`${PILL_GHOST} ${PILL_SMALL}`}>
-          {t("landing.signIn")}
-        </SignIn>
+        {/* Not on a phone, where "Bejelentkezés" pushes into the name: the
+            menu carries it there. Wrapped: `hidden` loses to `inline-flex`. */}
+        <span className="hidden sm:block">
+          <SignIn onSignIn={onSignIn} className={`${PILL_GHOST} ${PILL_SMALL}`}>
+            {t("landing.signIn")}
+          </SignIn>
+        </span>
         {cta && (
           // Wrapped: `hidden` on the pill itself loses to its own `inline-flex`.
           <span className="hidden sm:block">
@@ -147,6 +151,11 @@ export function HeaderA({
                 {link.label}
               </a>
             ))}
+            <span className="mt-2 flex flex-col sm:hidden">
+              <SignIn onSignIn={onSignIn} className={`${PILL_GHOST} ${PILL_SMALL}`}>
+                {t("landing.signIn")}
+              </SignIn>
+            </span>
             {cta && (
               <Link href={cta.href} className={`${PILL_PRIMARY} ${PILL_SMALL} mt-2`}>
                 {cta.label}
@@ -298,7 +307,11 @@ export function SiteFrame({
     } catch {
       // Blocked storage: header A until the answer, as for a first visit.
     }
-    probeHome(() => live)
+    // The plain question, without `probeHome`'s identity upgrade: that is
+    // `/` and `/me`'s to make, once. Asked on every page it would POST for
+    // every visitor signed out, and trip its rate limit within five pages.
+    fetch("/api/v2/me/home", { headers: { accept: "application/json" } })
+      .then(async (res) => (res.ok ? ((await res.json()) as HomePayload) : null))
       .then((data) => {
         if (live) setHome(data?.id ? data : null);
       })
