@@ -15,8 +15,12 @@ on:
 # A second push to the same PR should cancel the previous run rather than
 # queue behind it. Only on a PR: a cancelled main run is a main nobody knows
 # the colour of (24 of 78 were, before B2552).
+#
+# Grouped by commit everywhere else: GitHub keeps one run *pending* per group
+# and replaces it when the next one queues, whatever cancel-in-progress says,
+# so a burst of merges on one shared main group still dropped runs (B2552).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
