@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import LocaleProvider from "@/components/LocaleProvider";
 import NeverInviteConfirm from "@/components/NeverInviteConfirm";
-import PageHeader from "@/components/PageHeader";
+import PageShell from "@/components/landing/PageShell";
+import { Band } from "@/components/landing/kit";
 import { isNeverInviteToken } from "@/lib/contacts/suppressions";
 import { dictionaryFor, requestLocale } from "@/lib/locales";
 import { notFound } from "next/navigation";
@@ -30,12 +31,12 @@ export default async function NeverInvitePage({ params }: PageProps<"/x/[token]"
 
   return (
     <LocaleProvider locale={locale} dictionary={dictionary}>
-      <div className="min-h-screen">
-        <PageHeader />
-        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-md px-6 py-12 sm:py-16">
+      {/* B2531: the slim header C and the reading width. */}
+      <PageShell slim>
+        <Band width="reading">
           <NeverInviteConfirm token={token} />
-        </main>
-      </div>
+        </Band>
+      </PageShell>
     </LocaleProvider>
   );
 }

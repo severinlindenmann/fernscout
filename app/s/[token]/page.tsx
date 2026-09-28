@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
+import PageShell from "@/components/landing/PageShell";
 import SignInButton from "@/components/SignInButton";
 import { isEnabled } from "@/lib/capabilities";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -36,7 +37,10 @@ export default async function IdentitySignInPage({
   const locale = await requestLocale();
 
   return (
+    // B2531: the slim header C — somebody here is mid-task, holding a link.
+    <PageShell slim>
     <NoticeShell
+      inFrame
       title={translateIn(locale, "signin.identityTitle")}
       body={translateIn(locale, "signin.identityBody")}
     >
@@ -47,5 +51,6 @@ export default async function IdentitySignInPage({
         failed={translateIn(locale, "signin.identityFailed")}
       />
     </NoticeShell>
+    </PageShell>
   );
 }
