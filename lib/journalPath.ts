@@ -33,7 +33,7 @@
 export const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
 /** The character that marks a path segment as a journal. */
-export const JOURNAL_MARK = "@";
+const JOURNAL_MARK = "@";
 
 /** The internal route segment `proxy.ts` rewrites journal paths into. Never
  * linked to; a browser that asks for it is redirected to the `@` form. */
