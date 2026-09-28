@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { REQUEST_MAX_BYTES } from "./lib/validate/media";
 import { NEXT_DEVICE_SIZES, NEXT_IMAGE_SIZES } from "./lib/mediaSizes";
+import { syncPaidLocaleScopes } from "./scripts/locale-scopes-paid.mjs";
 
 /**
  * Open core: `@paid/*` resolves to `paid/` when that folder is present and to
@@ -34,6 +35,11 @@ function assertPaidCoversStubs(): void {
   }
 }
 assertPaidCoversStubs();
+// B2551: recomputes lib/localeScopes.paid.json (gitignored) from the real
+// paid/ files when present, so a hosted build's dictionaryFor() knows the
+// keys paid/ actually uses instead of shipping the whole dictionary to every
+// page. Runs for both `next build` and `next dev` — this file loads for both.
+syncPaidLocaleScopes(process.cwd());
 
 const isDev = process.env.NODE_ENV === "development";
 
