@@ -2,6 +2,7 @@ import "server-only";
 import { basemapFor, basemapForRoute, localBasemaps, type Basemap } from "./basemap";
 import { getAllEntries, getDays, getDefaultDay, getTripStats, type ReadOptions } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
+import { readerTrack } from "./gps/track";
 import { geodataAvailable, reverseGeocode } from "./ingest/geo";
 import { defaultLocaleFor } from "./locales";
 import type { StoryDay } from "./prose";
@@ -9,6 +10,23 @@ import { withProse } from "./proseTree";
 import { getTrip, parseTripRef } from "./trips";
 import type { Day, DaySummary, Trip } from "./types";
 import type { HeroStats } from "@/components/TripHero";
+
+/**
+ * The whole trip's own recorded line, for the overview story/hero — B2449.
+ * `readerTrack` is the one door onto `track.json` (see docs/gps.md); this
+ * just narrows it to the shape `TripMap`'s `tripTrack` prop wants, keyed on
+ * exactly the dates this reader is shown (`index`, already filtered by
+ * `buildStoryProps`/`getDays` for drafts and visibility). Absent track file,
+ * or nothing left after the date filter, is the empty array — the same "draw
+ * the hops instead" default `TripMap` already has.
+ */
+export function tripTrackFor(trip: Trip, index: DaySummary[]): [number, number][][] {
+  return (
+    readerTrack(trip.username, trip.id, new Set(index.map((d) => d.date)))?.segments.map(
+      (s) => s.points,
+    ) ?? []
+  );
+}
 
 /**
  * How many days either side of the one being read are sent with the page.

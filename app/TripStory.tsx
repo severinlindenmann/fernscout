@@ -56,6 +56,7 @@ export default function TripStory({
   photobook,
   travellerNames,
   dayTrack,
+  tripTrack,
   madeWith,
 }: {
   /** Every day of the trip, cheaply. */
@@ -94,6 +95,14 @@ export default function TripStory({
    * what it draws.
    */
   dayTrack?: [number, number][][];
+  /**
+   * The trip's own recorded line — B2449, `tripTrackFor` in lib/tripView.ts.
+   * Only the overview (`/trips/<id>` and the bare current-trip URL) pass
+   * this; a `/day/<slug>` permalink passes `dayTrack` instead, and `TripMap`
+   * draws the recorded line over the stop-to-stop hops whichever one it
+   * gets.
+   */
+  tripTrack?: [number, number][][];
   /** The instance's name for the "Made with" line — `madeWithFor` in
    *  lib/site.ts; absent on a page that is not public (B2485). */
   madeWith?: string;
@@ -602,6 +611,7 @@ export default function TripStory({
                   route={index}
                   current={landingDay}
                   track={dayTrack}
+                  tripTrack={tripTrack}
                   basemap={basemap}
                   locals={locals}
                   over={over}
