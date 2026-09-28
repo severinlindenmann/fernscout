@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import {
@@ -158,6 +159,7 @@ export default function TripMap({
    */
   const PHOTO_WINDOW = 24;
   const trip = useTrip();
+  const router = useRouter();
   const [photoByDate, setPhotoByDate] = useState<
     Record<string, { src: string; width?: number; height?: number }>
   >({});
@@ -264,11 +266,15 @@ export default function TripMap({
   }, []);
 
   // B2426: the trip page's own overlay route is the map page itself, reused
-  // rather than reimplemented — a plain navigation, carrying whichever stop
-  // is selected here so the reader lands on the same place, not the map
-  // page's own default. `trip` is absent in the countdown and in every test
-  // here (no `TripProvider`), where there is no page to send anyone to, so
-  // the tap and the control both simply do nothing rather than throw.
+  // rather than reimplemented — a router navigation (B2549: was a hard
+  // `window.location.assign`, reloading the whole document for what is
+  // still the same journal), carrying whichever stop is selected here so
+  // the reader lands on the same place, not the map page's own default.
+  // `router.push` still lands on a real history entry, so Back and the
+  // iPhone edge swipe (B2324) still close it for free. `trip` is absent in
+  // the countdown and in every test here (no `TripProvider`), where there
+  // is no page to send anyone to, so the tap and the control both simply do
+  // nothing rather than throw.
   const defaultFullscreen = useCallback(() => {
     if (!trip || !selected) return;
     // Not `selected.key` — this component's own `${date}-${areaKey}`
@@ -283,8 +289,8 @@ export default function TripMap({
     // has to have for a stop this reader cannot see (AGENTS.md), applied
     // here to an honest miss rather than a withheld one.
     const stopParam = `${selected.location}-${selected.date}`;
-    window.location.assign(trip.href(`/map?stop=${encodeURIComponent(stopParam)}`));
-  }, [trip, selected]);
+    router.push(trip.href(`/map?stop=${encodeURIComponent(stopParam)}`));
+  }, [trip, selected, router]);
   const fullscreen = onRequestFullscreen ?? defaultFullscreen;
 
   // Pan/zoom state and gesture handling — pinch, wheel, double-tap, keyboard

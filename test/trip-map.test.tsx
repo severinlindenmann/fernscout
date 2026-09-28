@@ -11,6 +11,12 @@ import { areaKey, googleMapsHref, tripStops, type StopSource } from "@/lib/tripM
 import { mapAccent, mapStyle } from "@/lib/map/style";
 import type { Trip } from "@/lib/types";
 
+// B2549 — the full-screen control moved from a hard `window.location.assign`
+// to `router.push`, so it still lands on a real history entry (Back / the
+// iPhone edge swipe close it for free) without reloading the whole document.
+const routerPush = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: routerPush, replace: () => {}, refresh: () => {} }) }));
+
 /**
  * The trip's overview map — B1911.
  *
@@ -414,53 +420,32 @@ describe("the full-screen control", () => {
     return container!;
   }
 
-  /** jsdom's own `location.assign` refuses `vi.spyOn` directly ("cannot
-   * redefine property") — the whole property is swapped instead, and put
-   * back after. */
-  function stubLocationAssign(): { assign: ReturnType<typeof vi.fn>; restore: () => void } {
-    const original = window.location;
-    const assign = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (window as any).location;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).location = { ...original, assign };
-    return {
-      assign,
-      restore: () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).location = original;
-      },
-    };
-  }
-
   // `${location}-${date}` — the map page's own place key (`getPlaces`,
   // lib/entries.ts), not this component's internal `${date}-${areaKey}` one
   // (`tripStops`) — see `defaultFullscreen`'s own doc comment in TripMap.tsx.
   const stops = tripStops(alps);
 
   test("opens the map page with the selected stop, when a caller hands it no route of its own", () => {
-    const { assign, restore } = stubLocationAssign();
+    routerPush.mockClear();
     renderWithTrip(alps);
     click(control("Full screen")!);
     // The last stop (Luzern) is selected by default — see "selection, and
     // where it sends the reader" above.
     const luzern = stops[3];
-    expect(assign).toHaveBeenCalledWith(
+    expect(routerPush).toHaveBeenCalledWith(
       `/@alex/trips/alps-2024/map?stop=${encodeURIComponent(`${luzern.location}-${luzern.date}`)}`,
     );
-    restore();
   });
 
   test("follows the reader's own selection, not always the last stop", () => {
-    const { assign, restore } = stubLocationAssign();
+    routerPush.mockClear();
     renderWithTrip(alps);
     click(stopButtons()[0]); // Grimsel
     click(control("Full screen")!);
     const grimsel = stops[0];
-    expect(assign).toHaveBeenCalledWith(
+    expect(routerPush).toHaveBeenCalledWith(
       `/@alex/trips/alps-2024/map?stop=${encodeURIComponent(`${grimsel.location}-${grimsel.date}`)}`,
     );
-    restore();
   });
 });
 

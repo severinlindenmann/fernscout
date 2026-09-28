@@ -56,6 +56,8 @@ export default function LinksList({
       setFailed(id);
       return;
     }
+    // no-refresh: onStopped is ReadersAdmin's own `refresh`, which already
+    // calls router.refresh() — calling it again here would be redundant.
     onStopped();
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -56,6 +57,7 @@ export default function TrackEditsPanel({
   days: string[];
 }) {
   const { t, formatShortDate } = useI18n();
+  const router = useRouter();
   const [doc, setDoc] = useState<EditsDoc | null>(null);
   const [etag, setEtag] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -120,6 +122,8 @@ export default function TrackEditsPanel({
     const body = (await res.json()) as EditsDoc;
     setDoc(body);
     setSaved(true);
+    // B2549 — the trip's own public track is drawn from these edits.
+    router.refresh();
     return true;
   }
 

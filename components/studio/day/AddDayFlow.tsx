@@ -364,6 +364,9 @@ export default function AddDayFlow({
     try {
       const form = new FormData();
       list.forEach((f) => form.append("files", f));
+      // no-refresh: stages the photo in the inbox for this draft to pick up;
+      // nothing is on the day itself until `day/new` commits below, which
+      // does refresh.
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, { method: "POST", body: form });
       const json = (await res.json().catch(() => null)) as { ok?: boolean; items?: InboxMediaItem[] } | null;
       if (!res.ok || !json?.ok) {
@@ -576,6 +579,8 @@ export default function AddDayFlow({
       setCreatedSlug(json.slug.startsWith(`${date}-`) ? json.slug.slice(date.length + 1) : json.slug);
       setOutcome("saved");
       reset();
+      // B2549 — the studio's own lists and the trip page have one more day.
+      router.refresh();
     } catch {
       // A network error (not a rejection the server actually sent) — B2330
       // queues the write itself, in order after any of its own photographs
@@ -707,9 +712,9 @@ export default function AddDayFlow({
         </div>
         <div className="mt-4 flex flex-col items-start gap-1">
           {/* A draft can take more; a published day is changed, not added to. */}
-          <a href={`${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(collision.slug)}`} className={LINK}>
+          <Link href={`${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(collision.slug)}`} className={LINK}>
             {collision.status === "draft" ? t("studio.day.collision.addToDay") : t("studio.day.collision.changeInstead")}
-          </a>
+          </Link>
           <button
             type="button"
             onClick={() => {

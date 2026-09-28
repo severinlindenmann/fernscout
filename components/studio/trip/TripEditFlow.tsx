@@ -70,6 +70,9 @@ function AddressSection({
     setRenamedTo(id);
     setConfirming(false);
     setNewId("");
+    // B2549 — the RSC cache still has the old id in it; refresh before the
+    // replace so the page it lands on cannot serve a stale render.
+    router.refresh();
     // The page's other sections now address the trip by its new id.
     router.replace(`${journalPath(username)}/studio/trip?trip=${encodeURIComponent(id)}&section=address`, { scroll: false });
   }
@@ -78,9 +81,9 @@ function AddressSection({
     return (
       <div role="status" className="mt-3 rounded-2xl border border-green-500/40 bg-green-100 px-4 py-3 text-sm text-ink-strong">
         {t("studio.tripRename.done.banner", { title: trip.title, path: path(renamedTo) })}{" "}
-        <a href={`${journalPath(username)}/trips/${renamedTo}`} className="font-semibold underline underline-offset-2">
+        <Link href={`${journalPath(username)}/trips/${renamedTo}`} className="font-semibold underline underline-offset-2">
           {t("studio.tripRename.done.openTrip")}
-        </a>
+        </Link>
       </div>
     );
   }

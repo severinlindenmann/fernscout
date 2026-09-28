@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 const LIBRARY_PREVIEW_FIGURES = 6;
@@ -125,6 +126,7 @@ export default function FigureLibrary({
   photoCredits: number;
 }) {
   const { t, tn } = useI18n();
+  const router = useRouter();
   const [figures, setFigures] = useState<FigureDoc[]>(initialFigures);
   const [journalSet, setJournalSet] = useState<string[]>(initialJournalSet);
   const [trips, setTrips] = useState<FigureTripRow[]>(initialTrips);
@@ -147,6 +149,10 @@ export default function FigureLibrary({
   // just made or changed leads the grid instead of sorting past "Show all".
   function upsertFigure(doc: FigureDoc) {
     setFigures((prev) => [doc, ...prev.filter((f) => f.id !== doc.id)]);
+    // B2549 — every FigureCreator/EditScreen save (create, look, edit) comes
+    // through here; a day's own cast, drawn server-side, has to stop showing
+    // the old figure.
+    router.refresh();
   }
 
   // B2089: after the creator saves, the library says so and brings the new
@@ -175,8 +181,10 @@ export default function FigureLibrary({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (res.ok) setSetSaved(true);
-      else setSetError(t("studio.figures.set.error"));
+      if (res.ok) {
+        setSetSaved(true);
+        router.refresh();
+      } else setSetError(t("studio.figures.set.error"));
     } catch {
       setSetError(t("studio.figures.set.error"));
     } finally {
@@ -213,6 +221,7 @@ export default function FigureLibrary({
         setJournalSet((prev) => prev.filter((x) => x !== id));
         setDeleteConfirming(false);
         setView({ kind: "library" });
+        router.refresh();
         return;
       }
       if (json?.error === "figure_referenced" && json.details) {
@@ -251,6 +260,7 @@ export default function FigureLibrary({
         ),
       );
       setView({ kind: "library" });
+      router.refresh();
     } finally {
       setTripSaving(false);
     }
@@ -744,6 +754,8 @@ function EditScreen({
         setSaveError(t("studio.figures.edit.error"));
         return;
       }
+      // no-refresh: onSaved is upsertFigure, which already calls
+      // router.refresh() once this figure is folded into the library's list.
       onSaved(json as FigureDoc);
       setSaved(true);
     } finally {

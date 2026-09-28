@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import DeleteDay from "@/components/DeleteDay";
 import EditDay from "@/components/EditDay";
 import DoneScreen from "@/components/studio/DoneScreen";
@@ -196,9 +197,9 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
   }
   return (
     <>
-      <a href={`${journalPath(encodeURIComponent(username))}/studio/day/edit`} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
+      <Link href={`${journalPath(encodeURIComponent(username))}/studio/day/edit`} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
         {t("studio.day.edit.backToPicker")}
-      </a>
+      </Link>
       <h2 className="mt-3 font-display text-lg font-semibold text-ink-strong">{title}</h2>
       <p className="text-sm text-ink-secondary">{editable.tripTitle}</p>
       {/* B2058 — a fact, not a prompt: this form has no publishing, so
@@ -209,19 +210,19 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
           <span className="rounded-full border border-yellow-300 bg-yellow-50 px-2.5 py-0.5 text-xs font-bold text-yellow-900">
             {t("studio.day.edit.statusDraft")}
           </span>
-          <a
+          <Link
             href={`${journalPath(encodeURIComponent(username))}/studio/day/publish?day=${encodeURIComponent(editable.day.lead.slug)}&trip=${encodeURIComponent(editable.tripId)}`}
             className="font-medium text-ink-strong underline underline-offset-2"
           >
             {t("studio.day.edit.draftPublishFrom")}
-          </a>
+          </Link>
         </p>
       ) : (
         /* E4 — a way to see the day as a reader would, which neither this
            panel nor `OwnerTools` draws. A draft's pill already links there. */
-        <a href={viewUrl} className="mt-2 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
+        <Link href={viewUrl} className="mt-2 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
           {t("studio.day.edit.openOnSite")}
-        </a>
+        </Link>
       )}
 
       <EditDay
