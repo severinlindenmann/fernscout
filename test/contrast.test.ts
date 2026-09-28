@@ -353,3 +353,29 @@ describe("no role ink under 7:1 carries small text (B2063)", () => {
     }
   });
 });
+
+describe("the audience tints clear the floor (B2531)", () => {
+  const dark = (name: string) => {
+    const block = CSS.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    return block.match(new RegExp(`--(?:color-)?${name}:\\s*(#[0-9a-fA-F]{6})`))?.[1] ?? token(name);
+  };
+
+  test("each tint's text shade reads on white, cream and its own ground", () => {
+    for (const [ink, ground] of [
+      ["green-700", "green-100"],
+      ["blue-700", "blue-100"],
+    ]) {
+      for (const bg of ["#ffffff", token("cream-50"), token(ground)]) {
+        expect(at(token(ink), bg), `${ink} on ${bg}`).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(at(dark(ink), dark(ground)), `${ink} on ${ground}, dark`).toBeGreaterThanOrEqual(4.5);
+      expect(at(dark(ink), dark("surface-base")), `${ink} on the dark page`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  test("each tint's eyebrow reads on a navy band", () => {
+    for (const name of ["yellow-400", "green-400", "blue-300"]) {
+      expect(at(token(name), token("navy-900")), name).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});

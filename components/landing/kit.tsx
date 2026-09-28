@@ -2,6 +2,11 @@ import type { ReactNode } from "react";
 import Link from "@/components/LanguageLink";
 import { KICKER } from "./styles";
 
+/** A hero's eyebrow, as a chip in the page's tint. */
+const KICKER_CHIP =
+  "self-start rounded-full border border-tint bg-surface-raised px-3 py-1 font-mono text-xs uppercase " +
+  "tracking-[0.08em] text-tint-ink";
+
 /**
  * The design kit every page outside the journal is built from — B2531, the
  * R3-Kit board. `PageShell` (the frame), `Band` (a section's ground and
@@ -16,8 +21,10 @@ export const WIDE = "mx-auto w-full max-w-7xl px-4 sm:px-8 lg:px-16";
 export const READING = "mx-auto w-full max-w-[49rem] px-4 sm:px-8";
 
 /** Cream is the page, white the alternate band, sand the prices, navy one
- * feature band per page at most. */
+ * feature band per page at most. `hero` is a selling page's first band, in
+ * the page's tint: cream for personal, pale green or blue for a group. */
 const TONES = {
+  hero: "bg-tint-ground",
   cream: "bg-surface-base",
   white: "bg-surface-raised",
   sand: "bg-surface-subtle",
@@ -48,7 +55,7 @@ export function Band({
 }
 
 /** The hero size, only on a selling page's first screen. */
-export const HERO_H1 =
+const HERO_H1 =
   "text-balance font-display text-[clamp(2.4rem,7vw,4.25rem)] font-semibold leading-[1.06] text-ink-strong";
 /** Every other page's h1: 40px, 32px on a phone. */
 export const TITLE_H1 =
@@ -71,23 +78,31 @@ export function PageTitle({
 }) {
   return (
     <div className="flex flex-col gap-3 lg:gap-4">
-      {kicker && <p className={KICKER}>{kicker}</p>}
+      {kicker && <p className={hero ? KICKER_CHIP : KICKER}>{kicker}</p>}
       <h1 className={hero ? HERO_H1 : TITLE_H1}>{children}</h1>
       {lede && <p className="max-w-[60ch] text-lg leading-relaxed text-ink-body">{lede}</p>}
     </div>
   );
 }
 
-/** The mark and the site's name, home. */
-export function Logo({ siteName }: { siteName: string }) {
+/** The mark and the site's name, home — and, on a tinted page, the
+ * audience's word beside it in the tint (B2531). */
+export function Logo({ siteName, badge }: { siteName: string; badge?: string }) {
   return (
-    <Link
-      href="/"
-      className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icon.svg" alt="" width={38} height={38} className="h-9 w-9" />
-      <span className="font-display text-2xl font-semibold text-ink-strong">{siteName}</span>
-    </Link>
+    <span className="flex min-w-0 items-center gap-2">
+      <Link
+        href="/"
+        className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon.svg" alt="" width={38} height={38} className="h-9 w-9" />
+        <span className="font-display text-2xl font-semibold text-ink-strong">{siteName}</span>
+      </Link>
+      {badge && (
+        <span className="hidden rounded-full bg-tint-ground px-2.5 py-0.5 text-xs font-bold text-tint-ink sm:inline">
+          {badge}
+        </span>
+      )}
+    </span>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AgentBlock, PublicJournals, type PublicJournal } from "@/components/LandingSections";
 import SignedOut, { ReaderStrip, type InviteCta, type NavLink } from "@/components/landing/SignedOut";
-import { Footer, TAB_BAR_ROOM } from "@/components/landing/Frame";
+import { Footer, Stripe, TAB_BAR_ROOM } from "@/components/landing/Frame";
 import { WIDE } from "@/components/landing/kit";
 import type { DemoDay } from "@/lib/demoDay";
 import SignedInHome from "@/components/home/SignedInHome";
@@ -232,6 +232,7 @@ export default function Landing({
           home.journals.some((j) => j.role === "owner") ? TAB_BAR_ROOM : ""
         }`}
       >
+        <Stripe />
         <SignedInHeader
           siteName={siteName}
           locales={locales}

@@ -42,8 +42,10 @@ const OUTSIDE = [
  * held to the kit, what it draws is not. */
 const DRAWS = "app/docs/branding/";
 
-/** Coral is not a kit colour. Where it still means something, the file and why. */
-const CORAL_ALLOWED: Record<string, string> = {
+/** Coral is not a kit colour, and green and blue are the audience tints,
+ * read through `tint-*` and never named. Where a file's own colours still
+ * mean something, the file and why. */
+const OWN_COLOURS: Record<string, string> = {
   // The operator's own notice banner above `/` — the one place the kit keeps it.
   "app/page.tsx": "the notice banner",
   // The brand workbench documents the palette itself, coral included.
@@ -140,7 +142,14 @@ function problems(page: string): string[] {
         found.push(`${file}: the retired square yellow button`);
       }
     }
-    if (!(file in CORAL_ALLOWED) && /\bcoral-\d/.test(src)) found.push(`${file}: coral outside the notice banner`);
+    if (file in OWN_COLOURS) continue;
+    if (/\bcoral-\d/.test(src)) found.push(`${file}: coral outside the notice banner`);
+    // Three are the kit's own, not a tint: blue-500 is the focus ring and a
+    // link's underline everywhere, and a green-500 dot means "included".
+    const hue = src.replace(/\b((outline|decoration)-blue-500|bg-green-500)\b/g, "");
+    for (const [cls] of hue.matchAll(/\b[a-z-]+-(green|blue|sky)-\d{2,3}\b/g)) {
+      found.push(`${file}: ${cls} — a tint is read through tint-*, never named`);
+    }
   }
   return found;
 }

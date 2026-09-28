@@ -28,6 +28,8 @@ import { PILL_GHOST, PILL_PRIMARY, PILL_SMALL } from "./styles";
  */
 
 export type InviteCta = "request" | "welcome";
+/** Whom a page is for — its tint (app/globals.css, `.audience-*`). */
+export type Audience = "personal" | "school" | "operator";
 export type NavLink = { href: string; label: string };
 
 export type Doors = {
@@ -45,6 +47,9 @@ export type FrameProps = {
   repository?: string;
   credit?: { name: string; url?: string; countryCode?: string };
   legal?: boolean;
+  /** The audience's word beside the wordmark ("Schools", "Tour operators"),
+   *  on a tinted page only — B2531's tints. */
+  badge?: string;
 };
 
 /** The header's links and the one primary door, for `/` or — `away` — for
@@ -92,6 +97,7 @@ const NAV_LINK =
 /** Header A — anybody signed out. */
 export function HeaderA({
   siteName,
+  badge,
   locales,
   onSignIn,
   nav,
@@ -100,7 +106,7 @@ export function HeaderA({
   const { t } = useI18n();
   return (
     <header className={`${WIDE} flex items-center justify-between gap-4 py-4 lg:py-5`}>
-      <Logo siteName={siteName} />
+      <Logo siteName={siteName} badge={badge} />
       <nav aria-label={t("landing.navLabel")} className="hidden items-center gap-6 lg:flex">
         {nav.map((link) => (
           <a key={link.href} href={link.href} className={NAV_LINK}>
@@ -159,11 +165,11 @@ export function HeaderA({
 
 /** Header C — slim, for a page somebody lands on mid-task: no menu to lose
  * them in, only the way home and, while signed out, the way in. */
-export function HeaderC({ siteName, locales, signedIn }: FrameProps & { signedIn: boolean }) {
+function HeaderC({ siteName, badge, locales, signedIn }: FrameProps & { signedIn: boolean }) {
   const { t } = useI18n();
   return (
     <header className={`${WIDE} flex items-center justify-between gap-3 py-4 lg:py-5`}>
-      <Logo siteName={siteName} />
+      <Logo siteName={siteName} badge={badge} />
       <div className="flex items-center gap-1.5 sm:gap-2.5">
         <div className="flex items-center gap-1">
           <span className="hidden sm:contents">
@@ -260,6 +266,11 @@ export function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: 
   );
 }
 
+/** The 6px stripe above every header, in the page's tint — B2531. */
+export function Stripe() {
+  return <div aria-hidden className="h-1.5 bg-tint" />;
+}
+
 /** The height the owner's phone tab bar (`SignedInHeader`) takes, reserved. */
 export const TAB_BAR_ROOM = "max-sm:pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]";
 
@@ -269,9 +280,10 @@ export const TAB_BAR_ROOM = "max-sm:pb-[calc(3.5rem+env(safe-area-inset-bottom,0
  */
 export function SiteFrame({
   slim = false,
+  audience = "personal",
   children,
   ...props
-}: FrameProps & Doors & { slim?: boolean; children: ReactNode }) {
+}: FrameProps & Doors & { slim?: boolean; audience?: Audience; children: ReactNode }) {
   const { nav, cta } = useDoors(props, true);
   // undefined: not known yet; null: nobody signed in.
   const [home, setHome] = useState<HomePayload | null | undefined>(undefined);
@@ -311,17 +323,23 @@ export function SiteFrame({
       admin={home.admin}
       journals={home.journals}
       prints={props.prints}
+      badge={props.badge}
     />
   ) : home === undefined && expected ? (
     <header className={`${WIDE} flex min-h-[4.75rem] items-center py-4 lg:py-5`}>
-      <Logo siteName={props.siteName} />
+      <Logo siteName={props.siteName} badge={props.badge} />
     </header>
   ) : (
     <HeaderA {...props} nav={nav} cta={cta} />
   );
 
   return (
-    <div className={`flex min-h-full flex-col bg-surface-base text-ink-body ${owner ? TAB_BAR_ROOM : ""}`}>
+    <div
+      className={`flex min-h-full flex-col bg-surface-base text-ink-body ${owner ? TAB_BAR_ROOM : ""} ${
+        audience === "personal" ? "" : `audience-${audience}`
+      }`}
+    >
+      <Stripe />
       {header}
       <main id="main" className="flex-1">
         {children}

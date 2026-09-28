@@ -8,7 +8,7 @@ import { PATH_LOCALE_HEADER } from "./requestKeys";
  * The language address this request came in on (`de` for `/de/schools`), or
  * null at the root — B2473. Set by the proxy only.
  */
-export async function requestPathLocale(): Promise<string | null> {
+async function requestPathLocale(): Promise<string | null> {
   const locale = (await headers()).get(PATH_LOCALE_HEADER) ?? undefined;
   return isPathLocale(locale) ? locale : null;
 }

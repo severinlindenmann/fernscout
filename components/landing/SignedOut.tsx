@@ -9,7 +9,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { posterSrc } from "@/components/mediaLoader";
 import type { DemoDay } from "@/lib/demoDay";
 import { landingFaq, landingHero, landingHow, landingPrints, landingTrust } from "@/lib/landingContent";
-import { Footer, HeaderA, useDoors, type InviteCta, type NavLink } from "./Frame";
+import { Footer, HeaderA, Stripe, useDoors, type InviteCta, type NavLink } from "./Frame";
 import { WIDE } from "./kit";
 import { KICKER, PILL_GHOST, PILL_PRIMARY, TEXT_LINK } from "./styles";
 
@@ -97,6 +97,7 @@ export default function SignedOut(props: SignedOutProps) {
 
   return (
     <div className="min-h-full bg-surface-base text-ink-body">
+      <Stripe />
       {props.top}
       <HeaderA {...props} nav={nav} cta={cta} />
       {props.skeleton ? (

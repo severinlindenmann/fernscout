@@ -55,6 +55,7 @@ export default function SignedInHeader({
   admin,
   journals,
   prints,
+  badge,
 }: {
   siteName: string;
   locales?: string[];
@@ -62,6 +63,8 @@ export default function SignedInHeader({
   admin?: boolean;
   journals: HomeJournal[];
   prints: boolean;
+  /** B2531: the audience's word beside the wordmark, on a tinted page. */
+  badge?: string;
 }) {
   const { t } = useI18n();
   // B2531: the same header on every page outside the journal; Home is only
@@ -71,7 +74,7 @@ export default function SignedInHeader({
     <>
       <header className="border-b border-line-quiet">
         <div className={WRAP}>
-          <Logo siteName={siteName} />
+          <Logo siteName={siteName} badge={badge} />
           {doors && (
             <nav aria-label={t("home.navLabel")} className="hidden items-center gap-5 sm:flex lg:gap-7">
               {doors.nav.map((d) => (
