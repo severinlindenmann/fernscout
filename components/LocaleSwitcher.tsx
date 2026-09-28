@@ -43,7 +43,10 @@ export default function LocaleSwitcher({
     if (LANGUAGE_PAGES[page]) {
       const target = languageHref(next, page) + window.location.search + window.location.hash;
       if (target !== pathname + window.location.search + window.location.hash) {
-        router.push(target);
+        // A full load, not router.push: the proxy rewrites `/de` to the same
+        // route as `/`, so a soft navigation kept the English tree and the
+        // root layout's `lang` — the first pick did nothing — B2546.
+        window.location.assign(target);
         return;
       }
     }
