@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES, loadServerConfig, type FeatureName } from "./config";
 import { getUser } from "./users";
 import { addressLookupEndpoints } from "./addressLookup";
@@ -164,6 +166,10 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // missing — see iosAppNote() below, which is where /api/health explains
   // which of the two states this instance is actually in.
   iosApp: { env: [], db: false },
+  // B2535. `MAPS_DIR` and the world extract it must hold are both checked in
+  // `configuredEnv` below, since the second is a file check `env` alone can't
+  // express — see the `streetMaps` branch there.
+  streetMaps: { env: [], db: false },
 };
 
 /** Transport and provider choices carry their own credential requirements.
@@ -576,6 +582,22 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
     // one is a single GET request that works the same against any of them.
     const env = ADDRESS_LOOKUP_PROVIDER_ENV[provider] ?? ["ADDRESS_LOOKUP_API_KEY"];
     return { env };
+  }
+  if (name === "streetMaps") {
+    const dir = process.env.MAPS_DIR?.trim();
+    // No MAPS_DIR at all: reported as a missing env var, the same shape as
+    // every other capability's credential — `MAPS_DIR` behaves like one here.
+    if (!dir) return { env: ["MAPS_DIR"] };
+    const world = path.join(dir, "world.pmtiles");
+    try {
+      fs.accessSync(world, fs.constants.R_OK);
+    } catch {
+      return {
+        env: [],
+        problem: `features.streetMaps is enabled but ${world} is not readable (run npm run maps:world)`,
+      };
+    }
+    return { env: [] };
   }
   return { env: [] };
 }
