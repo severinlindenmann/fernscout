@@ -52,8 +52,74 @@ export function resolveMapsFile(segments: readonly string[]): string | null {
   return full;
 }
 
+/** A font stack name (e.g. `Noto Sans Regular`) — letters and spaces only,
+ * matching the `@protomaps/basemaps` names this style actually asks for. No
+ * `.`, so `..` can never appear, and no `/`, so a single dynamic route
+ * segment already can't cross a directory boundary either way. */
+const SAFE_FONT_STACK = /^[A-Za-z0-9 _-]+$/;
+/** A glyph range, e.g. `1024-1279` — the `{start}-{end}` MapLibre asks for. */
+const SAFE_FONT_RANGE = /^\d{1,6}-\d{1,6}$/;
+
+/**
+ * Resolves a `{fontstack}/{range}.pbf` glyph request to an absolute path —
+ * `MAPS_DIR/fonts/<stack>/<range>.pbf` first (an operator's own full
+ * download, `npm run maps:world`), then the Latin-only ranges shipped in
+ * `public/fonts/` (this repo's own baked-in fallback). `null` for an unsafe
+ * name or a range neither has — the route this serves answers that with an
+ * empty glyph tile, never a 404 (B2560): a reader whose script needs a range
+ * nobody has downloaded yet loses those characters, not the whole map.
+ */
+export function resolveFontFile(stack: string, range: string): string | null {
+  if (!SAFE_FONT_STACK.test(stack) || !SAFE_FONT_RANGE.test(range)) return null;
+  const rel = path.join(stack, `${range}.pbf`);
+  const dir = mapsDir();
+  if (dir) {
+    const full = path.join(dir, "fonts", rel);
+    if (fs.existsSync(full) && fs.statSync(full).isFile()) return full;
+  }
+  const fallback = path.join(process.cwd(), "public", "fonts", rel);
+  if (fs.existsSync(fallback) && fs.statSync(fallback).isFile()) return fallback;
+  return null;
+}
+
 /** One region's file and the bbox it covers, in `[minLon, minLat, maxLon, maxLat]`. */
 export type MapRegion = { file: string; bbox: [number, number, number, number] };
+
+/** Whether a point falls inside a region's own bbox — the "does this file
+ * cover that place" test both `primaryStreetMap` and `streetMapRegionFiles`
+ * callers need. */
+function inBbox(point: { lat: number; lng: number }, bbox: MapRegion["bbox"]): boolean {
+  const [minLon, minLat, maxLon, maxLat] = bbox;
+  return point.lng >= minLon && point.lng <= maxLon && point.lat >= minLat && point.lat <= maxLat;
+}
+
+/**
+ * Among a trip's extracted region files, the one whose bbox covers the most
+ * of `points` — B2560. An operator's `index.json` lists a trip's files in
+ * whatever order `maps:trip` extracted them (often the operator's own home
+ * region first, since that is wherever the GPS store starts), so picking
+ * `[0]` picked "first extracted", not "the trip's own main region". `points`
+ * is the caller's main-region day places (`tripFrame`'s own region rule);
+ * ties, or an empty `points`, keep the first file — the previous behaviour,
+ * and still the only sane answer when nobody can say which file matters
+ * more.
+ */
+function pickCoveringRegion(
+  regions: readonly MapRegion[],
+  points: readonly { lat: number; lng: number }[],
+): MapRegion {
+  if (points.length === 0) return regions[0];
+  let best = regions[0];
+  let bestCount = -1;
+  for (const region of regions) {
+    const count = points.filter((p) => inBbox(p, region.bbox)).length;
+    if (count > bestCount) {
+      bestCount = count;
+      best = region;
+    }
+  }
+  return best;
+}
 
 type MapsIndex = { trips: Record<string, MapRegion[]> };
 
@@ -90,19 +156,57 @@ function mapsFileUrl(relFile: string): string {
   return `/api/maps/${relFile}`;
 }
 
+export type StreetMapFile = { url: string; bounds: [[number, number], [number, number]] };
+
+function toStreetMapFile(region: MapRegion): StreetMapFile {
+  const [minLon, minLat, maxLon, maxLat] = region.bbox;
+  return { url: mapsFileUrl(region.file), bounds: [[minLon, minLat], [maxLon, maxLat]] };
+}
+
 /**
- * This trip's primary region, as the `StreetMap` prop the map pages want —
- * `undefined` whenever the SVG map should keep rendering instead (the
+ * This trip's primary region file, as the `StreetMap` prop the map pages
+ * want — `undefined` whenever the SVG map should keep rendering instead (the
  * capability is off, or nothing has been extracted for this trip yet).
- * Only the first (largest) region: a trip that crosses several is B2537's
- * region-switcher to build, not this one.
+ *
+ * `mainRegionPoints` is the trip's own main-region day places (the same
+ * points `tripFrame`'s region rule already picked, e.g. via `framePoints`) —
+ * whichever extracted file covers the most of them wins (B2560). Omitting it
+ * (or passing none) keeps the previous behaviour of the first-listed file,
+ * for a caller that has no places to check against.
  */
 export function primaryStreetMap(
   user: string,
   tripId: string,
-): { url: string; bounds: [[number, number], [number, number]] } | undefined {
-  const region = tripMapRegions(user, tripId)?.[0];
-  if (!region) return undefined;
-  const [minLon, minLat, maxLon, maxLat] = region.bbox;
-  return { url: mapsFileUrl(region.file), bounds: [[minLon, minLat], [maxLon, maxLat]] };
+  mainRegionPoints: readonly { lat: number; lng: number }[] = [],
+): StreetMapFile | undefined {
+  const regions = tripMapRegions(user, tripId);
+  if (!regions) return undefined;
+  return toStreetMapFile(pickCoveringRegion(regions, mainRegionPoints));
+}
+
+/**
+ * The region file (path + bbox) covering the most of `points` — the same
+ * choice `primaryStreetMap` makes, for a server-side caller that reads the
+ * file itself (the trip/day card, B2538) rather than handing a URL to the
+ * browser. `undefined` under the same conditions as `tripMapRegions`.
+ */
+export function coveringRegion(
+  user: string,
+  tripId: string,
+  points: readonly { lat: number; lng: number }[],
+): MapRegion | undefined {
+  const regions = tripMapRegions(user, tripId);
+  return regions && regions.length > 0 ? pickCoveringRegion(regions, points) : undefined;
+}
+
+/**
+ * Every region file `maps:trip` extracted for this trip, each with its own
+ * bbox — what a reader's region switch (B2537/B2560) picks among client-side
+ * so that switching regions still shows street tiles, not just moved
+ * markers over the primary region's file. `undefined` under the same
+ * conditions as `tripMapRegions`.
+ */
+export function streetMapRegionFiles(user: string, tripId: string): StreetMapFile[] | undefined {
+  const regions = tripMapRegions(user, tripId);
+  return regions?.map(toStreetMapFile);
 }

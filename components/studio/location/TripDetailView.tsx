@@ -10,6 +10,7 @@ import { kmBetween } from "@/lib/mapFrame";
 import { tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
 import { primaryStreetMap } from "@/lib/maps/dir";
+import { framePoints } from "@/lib/map/tripFrame";
 import { ownerDayLine, ownerTripLine, type RecordedTrip } from "@/lib/gps/api";
 import { readerTrack } from "@/lib/gps/track";
 
@@ -114,7 +115,8 @@ export default async function TripDetailView({
   };
 
   const streetMapsOn = isEnabled("streetMaps");
-  const region = streetMapsOn ? primaryStreetMap(username, trip.tripId) : undefined;
+  // The file covering the trip's main region, not the first listed (B2560).
+  const region = streetMapsOn ? primaryStreetMap(username, trip.tripId, framePoints(places)) : undefined;
 
   return (
     <section className="mt-10 rounded-2xl border border-line-quiet bg-surface-raised p-4" data-testid="trip-detail">

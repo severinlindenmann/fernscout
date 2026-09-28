@@ -64,15 +64,40 @@ const PAPER_DARK: Flavor = {
  * no peak labels either. */
 const POI_LAYER_ID = "pois";
 
+/** `MAPS_DIR/world.pmtiles` (z0–6), served the same way a trip's own region
+ * file is (`lib/maps/dir.ts`'s `mapsFileUrl` builds the same `/api/maps/...`
+ * shape) — the one file `features.streetMaps` already requires to exist. */
+const WORLD_URL = "/api/maps/world.pmtiles";
+
+/** The world source's own layer ids this style keeps as an underlay — B2560:
+ * "nothing is ever grey" needs ground and water drawn everywhere, even
+ * outside a trip's own region file(s), zoomed in past the world file's own
+ * z6 (overzoom is fine — coarse ground is still ground, not grey). Every
+ * other id `layers()` would draw for this source (roads, buildings, labels)
+ * is left out: the world file was extracted at z0–6 and has none of that
+ * detail anyway. */
+const WORLD_LAYER_IDS = new Set(["background", "earth", "water", "boundaries_country", "boundaries"]);
+
 /**
- * A MapLibre style for one PMTiles source, in the Paper flavour, with labels
- * in `lang` only (a BCP-47 primary subtag — `layers()` itself only wants the
- * two-ish letter code, so a fuller locale like `en-US` is trimmed).
+ * A MapLibre style with a trip's own region file layered over a world
+ * underlay, in the Paper flavour, with labels in `lang` only (a BCP-47
+ * primary subtag — `layers()` itself only wants the two-ish letter code, so
+ * a fuller locale like `en-US` is trimmed).
  *
- * Glyphs are the self-hosted files under `public/fonts/` (see
- * `components/map/StreetMap.tsx` for why they're there and how big); no
- * `sprite` at all, since every icon this style might have drawn is the one
- * layer just dropped.
+ * The world source's layers are drawn first (so the region source's own
+ * roads/labels sit on top of them) and their ids are suffixed `-world` —
+ * `layers()` reuses the same ids for any source it's asked to draw, and two
+ * layers can't share an id in one style. The region source's own
+ * `background`/`earth`/`water`/`boundaries*` layers are dropped instead of
+ * duplicated: the world underlay already draws them for the whole visible
+ * area, including the parts a trip's own file doesn't cover.
+ *
+ * Glyphs come from `/api/maps/fonts/{fontstack}/{range}.pbf`
+ * (`app/api/maps/fonts/[stack]/[range]/route.ts`), never the baked
+ * `public/fonts/` URL directly — that route already falls back to
+ * `public/fonts/` for whatever range an operator hasn't downloaded, so this
+ * one URL covers both. No `sprite` at all, since every icon this style might
+ * have drawn is the one layer just dropped.
  */
 export function paperStyle(
   pmtilesUrl: string,
@@ -80,11 +105,18 @@ export function paperStyle(
   lang: string,
 ): StyleSpecification {
   const flavor = scheme === "dark" ? PAPER_DARK : PAPER_LIGHT;
-  const all = layers("protomaps", flavor, { lang: lang.split("-")[0] });
+  const opts = { lang: lang.split("-")[0] };
+  const worldLayers = layers("world", flavor, opts)
+    .filter((l) => WORLD_LAYER_IDS.has(l.id))
+    .map((l) => ({ ...l, id: `${l.id}-world` }));
+  const regionLayers = layers("protomaps", flavor, opts).filter(
+    (l) => l.id !== POI_LAYER_ID && !WORLD_LAYER_IDS.has(l.id),
+  );
   return {
     version: 8,
-    glyphs: "/fonts/{fontstack}/{range}.pbf",
+    glyphs: "/api/maps/fonts/{fontstack}/{range}.pbf",
     sources: {
+      world: { type: "vector", url: `pmtiles://${WORLD_URL}` },
       protomaps: {
         type: "vector",
         url: `pmtiles://${pmtilesUrl}`,
@@ -92,6 +124,6 @@ export function paperStyle(
           '<a href="https://openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>',
       },
     },
-    layers: all.filter((l) => l.id !== POI_LAYER_ID),
+    layers: [...worldLayers, ...regionLayers],
   };
 }

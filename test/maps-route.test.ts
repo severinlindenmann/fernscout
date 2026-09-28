@@ -109,3 +109,43 @@ test("the MapLibre worker is served only while street maps are on, and only its 
   expect((await worker("maplibre-gl-shared.mjs")).status).toBe(200);
   expect((await worker("package.json")).status).toBe(404);
 });
+
+async function glyph(stack: string, range: string) {
+  const { GET } = await import("@/app/api/maps/fonts/[stack]/[range]/route");
+  const url = `https://t.test/api/maps/fonts/${encodeURIComponent(stack)}/${range}`;
+  return GET(new Request(url), { params: Promise.resolve({ stack, range }) });
+}
+
+test("glyph route: 404 when the capability is off", async () => {
+  writeConfig({});
+  process.env.MAPS_DIR = mapsDir;
+  expect((await glyph("Noto Sans Regular", "0-255")).status).toBe(404);
+});
+
+test("glyph route: serves a range MAPS_DIR/fonts actually has", async () => {
+  writeConfig({ streetMaps: { enabled: true } });
+  process.env.MAPS_DIR = mapsDir;
+  fs.mkdirSync(path.join(mapsDir, "fonts", "Noto Sans Regular"), { recursive: true });
+  fs.writeFileSync(path.join(mapsDir, "fonts", "Noto Sans Regular", "1024-1279.pbf"), "glyph-bytes");
+  const res = await glyph("Noto Sans Regular", "1024-1279");
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toBe("application/x-protobuf");
+  expect(await res.text()).toBe("glyph-bytes");
+});
+
+test("glyph route: an unknown range answers an empty 200, never a 404", async () => {
+  writeConfig({ streetMaps: { enabled: true } });
+  process.env.MAPS_DIR = mapsDir;
+  const res = await glyph("Noto Sans Regular", "40960-41215");
+  expect(res.status).toBe(200);
+  expect(res.headers.get("content-type")).toBe("application/x-protobuf");
+  expect(await res.arrayBuffer()).toEqual(new ArrayBuffer(0));
+});
+
+test("glyph route: never serves outside MAPS_DIR/fonts or public/fonts", async () => {
+  writeConfig({ streetMaps: { enabled: true } });
+  process.env.MAPS_DIR = mapsDir;
+  const res = await glyph("../../../etc", "0-255");
+  expect(res.status).toBe(200);
+  expect(await res.arrayBuffer()).toEqual(new ArrayBuffer(0));
+});

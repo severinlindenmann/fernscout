@@ -11,9 +11,9 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { mapsSource, requirePmtilesBinary, runPmtilesExtract } from "./maps-lib.mts";
+import { downloadFontRanges, mapsSource, requirePmtilesBinary, runPmtilesExtract } from "./maps-lib.mts";
 
-function main() {
+async function main() {
   const dir = process.env.MAPS_DIR?.trim();
   if (!dir) {
     console.error("MAPS_DIR is not set. Point it at the folder your operator serves tiles from, then re-run.");
@@ -25,6 +25,7 @@ function main() {
   const out = path.join(dir, "world.pmtiles");
   console.error(`Extracting z0–6 world from ${source} to ${out} …`);
   runPmtilesExtract([source, out, "--maxzoom=6"]);
+  await downloadFontRanges(dir);
   console.error(`Done. features.streetMaps can now be enabled once MAPS_DIR is set on the server.`);
 }
 

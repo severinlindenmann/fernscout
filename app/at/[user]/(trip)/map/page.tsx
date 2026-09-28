@@ -7,7 +7,7 @@ import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { isEnabled } from "@/lib/capabilities";
-import { primaryStreetMap } from "@/lib/maps/dir";
+import { primaryStreetMap, streetMapRegionFiles } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
 import { getMapDays } from "@/lib/map/mapDays";
@@ -170,11 +170,24 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   // B2534: framed on the places where days happened, never a far outlier —
   // `WorldMap`'s own client-side `base` calls the same `framePoints` on the
   // same `places` array, so the two keep agreeing.
-  const basemap = basemapForRoute(places.length > 0 ? framePoints(places) : plan.stops);
+  // The trip's own main-region places (`framePoints`'s own doc) — reused
+  // below to pick whichever extracted region file actually covers this
+  // trip's main region, rather than an operator's first-extracted one
+  // (B2560: `primaryStreetMap`'s own doc explains why `[0]` alone was wrong).
+  const mainRegionPoints = places.length > 0 ? framePoints(places) : [];
+  const basemap = basemapForRoute(mainRegionPoints.length > 0 ? mainRegionPoints : plan.stops);
   // B2535: on only when the capability is on *and* something has been
   // extracted for this trip — `undefined` otherwise, which is what tells
   // `MapPageContent` to keep drawing the SVG map exactly as it does today.
-  const streetMap = isEnabled("streetMaps") ? (primaryStreetMap(trip.username, trip.id) ?? null) : null;
+  const streetMap = isEnabled("streetMaps")
+    ? (primaryStreetMap(trip.username, trip.id, mainRegionPoints) ?? null)
+    : null;
+  // B2560 — every region file this trip has, so a reader's region switch on
+  // the client can pick the file that actually covers whichever region they
+  // switched to, rather than always redrawing the main region's own tiles.
+  const streetMapRegions = isEnabled("streetMaps")
+    ? (streetMapRegionFiles(trip.username, trip.id) ?? null)
+    : null;
   // The ground actually covered, where the owner has derived it (B665). Read
   // here rather than in the component: it is a file in the trip folder, behind
   // the same gate as everything else on this page, and `mayReadTrip` in the
@@ -215,6 +228,7 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
       over={over}
       hasDays={days.length > 0}
       streetMap={streetMap}
+      streetMapRegions={streetMapRegions}
       stats={{
         tripDays: stats.tripDays,
         places: stats.places,

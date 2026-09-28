@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { isEnabled } from "@/lib/capabilities";
-import { primaryStreetMap } from "@/lib/maps/dir";
+import { primaryStreetMap, streetMapRegionFiles } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getMapDays } from "@/lib/map/mapDays";
@@ -110,7 +110,10 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   // B2534: framed on the places where days happened, never a far outlier —
   // `WorldMap`'s own client-side `base` calls the same `framePoints` on the
   // same `places` array, so the two keep agreeing.
-  const basemap = basemapForRoute(places.length > 0 ? framePoints(places) : plan.stops);
+  // See the sibling route's own comment: reused below to pick the region
+  // file that actually covers this trip's main region (B2560).
+  const mainRegionPoints = places.length > 0 ? framePoints(places) : [];
+  const basemap = basemapForRoute(mainRegionPoints.length > 0 ? mainRegionPoints : plan.stops);
   // B2536 — same resolution the bare map page makes; see its own comment.
   const live = await mayReadLiveTrack(trip);
   const visibleDates = new Set(days.map((d) => d.date));
@@ -118,13 +121,19 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   // from below — never a raw, unfiltered `readTail()`.
   const liveTail = live ? liveTailStatus(trip.username, trip.id, visibleDates) : undefined;
   // B2535 — see the sibling route's own copy of this line.
-  const streetMap = isEnabled("streetMaps") ? (primaryStreetMap(trip.username, trip.id) ?? null) : null;
+  const streetMap = isEnabled("streetMaps")
+    ? (primaryStreetMap(trip.username, trip.id, mainRegionPoints) ?? null)
+    : null;
+  const streetMapRegions = isEnabled("streetMaps")
+    ? (streetMapRegionFiles(trip.username, trip.id) ?? null)
+    : null;
   return (
     <MapPageContent
       places={places}
       days={getMapDays(trip.ref, read)}
       plan={plan.stops}
       streetMap={streetMap}
+      streetMapRegions={streetMapRegions}
       // B665, and behind `mayReadTrip` in the page above like everything
       // else here. B2537 — see the sibling route's own comment on why `day`
       // is carried through rather than dropped.

@@ -6,6 +6,8 @@
  * requires).
  */
 import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
 /** Earth's mean radius, km — near enough for a padding/clustering distance
  * that only ever decides which tiles to fetch, never anything drawn. */
@@ -154,4 +156,51 @@ export function requirePmtilesBinary(): void {
 
 export function runPmtilesExtract(args: readonly string[]): void {
   execFileSync("pmtiles", ["extract", ...args], { stdio: "inherit" });
+}
+
+/** The font stacks `@protomaps/basemaps`' layers actually reference
+ * (`base_layers.ts`'s own `text-font` values) — the same three names already
+ * baked into `public/fonts/` (Latin-only, 0–511) as this repo's fallback. */
+const FONT_STACKS = ["Noto Sans Regular", "Noto Sans Medium", "Noto Sans Italic"];
+
+/** One past the highest glyph range MapLibre ever asks a `{range}` template
+ * for — ranges run `0-255`, `256-511`, … up to `65280-65535`. */
+const GLYPH_RANGE_END = 65536;
+const GLYPH_RANGE_STEP = 256;
+
+const BASEMAPS_ASSETS_RAW = "https://raw.githubusercontent.com/protomaps/basemaps-assets/main";
+
+/**
+ * Downloads every glyph range for each font stack the style uses into
+ * `MAPS_DIR/fonts/<stack>/<start>-<end>.pbf` — B2560. `public/fonts/` only
+ * ships the Latin ranges (0–511), so a Cyrillic or CJK place name lost those
+ * characters until an operator ran this. Skips a range already on disk, so a
+ * re-run after a partial download only fetches what's still missing; a
+ * single range's fetch failing (say, the Thaana range genuinely isn't
+ * published) is logged and skipped rather than aborting the whole run —
+ * `app/api/maps/fonts/[stack]/[range]/route.ts` answers an empty glyph tile
+ * for whatever never arrives, never a 404.
+ */
+export async function downloadFontRanges(dir: string): Promise<void> {
+  for (const stack of FONT_STACKS) {
+    const stackDir = path.join(dir, "fonts", stack);
+    fs.mkdirSync(stackDir, { recursive: true });
+    for (let start = 0; start < GLYPH_RANGE_END; start += GLYPH_RANGE_STEP) {
+      const end = start + GLYPH_RANGE_STEP - 1;
+      const rangeName = `${start}-${end}`;
+      const out = path.join(stackDir, `${rangeName}.pbf`);
+      if (fs.existsSync(out)) continue;
+      const url = `${BASEMAPS_ASSETS_RAW}/fonts/${encodeURIComponent(stack)}/${rangeName}.pbf`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.error(`Skipped ${stack} ${rangeName}: ${res.status}`);
+          continue;
+        }
+        fs.writeFileSync(out, Buffer.from(await res.arrayBuffer()));
+      } catch (err) {
+        console.error(`Skipped ${stack} ${rangeName}: ${(err as Error).message}`);
+      }
+    }
+  }
 }

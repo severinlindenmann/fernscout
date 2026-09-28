@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { isEnabled } from "../capabilities";
 import { basemapForRoute, type Basemap } from "../basemap";
-import { tripMapRegions } from "../maps/dir";
+import { coveringRegion, tripMapRegions } from "../maps/dir";
 import { frameRoute, place, type Frame, type Point } from "../mapFrame";
 import { cardPalette, type CardPalette } from "./cardPalette";
 import { buildTripFrame, linesForDay, placesForDay, type Chip, type MapLine, type MapPlace, type TripFrame } from "./tripFrame";
@@ -146,7 +146,7 @@ async function renderAndCache(
   // underlay everywhere, and street water/landuse/roads draw on top of it
   // wherever the file actually covers.
   const [street, basemap] = await Promise.all([
-    streetLayers(user, tripId, svgFrame, width),
+    streetLayers(user, tripId, svgFrame, width, day !== undefined ? placesForDay(tripFrame, day) : tripFrame.framePlaces),
     Promise.resolve(
       basemapForRoute(placesToPoints(day !== undefined ? placesForDay(tripFrame, day) : tripFrame.framePlaces)),
     ),
@@ -177,9 +177,17 @@ async function renderAndCache(
   return { svg, usedStreet: street !== null };
 }
 
-async function streetLayers(user: string, tripId: string, frame: Frame, width: number): Promise<StreetLayers | null> {
+async function streetLayers(
+  user: string,
+  tripId: string,
+  frame: Frame,
+  width: number,
+  points: readonly { lat: number; lng: number }[],
+): Promise<StreetLayers | null> {
   if (!isEnabled("streetMaps", user)) return null;
-  const region = tripMapRegions(user, tripId)?.[0];
+  // The file covering this card's own places (B2560) — never simply the first
+  // listed, which for a trip that starts at home is the home region's file.
+  const region = coveringRegion(user, tripId, points);
   if (!region) return null;
   try {
     return await streetLayersForBbox(regionAbsolutePath(region.file), region.bbox, frame, width);
