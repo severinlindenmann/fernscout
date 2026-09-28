@@ -66,7 +66,13 @@
       "icon",
       "apple-icon",
       "opengraph-image",
-      "favicon"
+      "favicon",
+      "de",
+      "fr",
+      "it",
+      "en",
+      "prices",
+      "guides"
     ]
   },
   "features": {

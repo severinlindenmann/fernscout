@@ -6,12 +6,12 @@ import {
   AgentBlock,
   Colophon,
   PublicJournals,
-  SiteHeader,
   type PublicJournal,
 } from "@/components/LandingSections";
 import SignedOut, { ReaderStrip, type InviteCta, type NavLink } from "@/components/landing/SignedOut";
 import type { DemoDay } from "@/lib/demoDay";
 import SignedInHome from "@/components/home/SignedInHome";
+import SignedInHeader from "@/components/home/SignedInHeader";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import ServerChoice from "@/components/ServerChoice";
 import { useI18n } from "@/components/LocaleProvider";
@@ -64,7 +64,6 @@ export default function Landing({
   photobookEnabled = false,
   signupEnabled = false,
   pricing,
-  orgsLinks,
   demo,
   inviteCta = "welcome",
   planPoint,
@@ -121,8 +120,6 @@ export default function Landing({
    * arrives as an element rather than as data. `null` on an instance with
    * credits switched off, where nothing costs anything. */
   pricing?: ReactNode;
-  /** "Schools · Operators" for the signed-in header — B2450. */
-  orgsLinks?: ReactNode;
   /** The same two doors as data, for the signed-out nav and footer — B2506.
    * Empty in a public build. */
   orgs?: NavLink[];
@@ -223,20 +220,6 @@ export default function Landing({
    */
   const offerSignIn = phase === "out" || (phase === "unknown" && !expected);
 
-  const header = (
-    <SiteHeader
-      siteName={siteName}
-      locales={locales}
-      admin={home?.admin}
-      account={phase === "in" && home ? home.email : undefined}
-      // Suppressed once signed in — B1905. `SiteHeader`'s chip opens
-      // sign-in, which has nothing to offer a reader who already has a
-      // session; `SignedInHome` below is that reader's own way in now.
-      helperEnabled={helperEnabled && phase !== "in"}
-      onSignIn={() => setSigningIn(true)}
-      orgsLinks={orgsLinks}
-    />
-  );
   const publicList = <PublicJournals journals={journals} />;
   const colophon = <Colophon repository={repository} credit={credit} legal={legal} />;
 
@@ -245,9 +228,23 @@ export default function Landing({
       // B2508: a wide page on the cream ground, the boards' own — the
       // continue card and the trip grid need the width a 672px column
       // denied them.
-      <div className="min-h-full bg-surface-base">
+      // B2519: the owner's header and, on a phone, a tab bar whose height
+      // (plus the iPhone's safe area) the page reserves so nothing sits
+      // under it.
+      <div
+        className={`min-h-full bg-surface-base ${
+          home.journals.some((j) => j.role === "owner") ? "max-sm:pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]" : ""
+        }`}
+      >
+        <SignedInHeader
+          siteName={siteName}
+          locales={locales}
+          email={home.email}
+          admin={home.admin}
+          journals={home.journals}
+          prints={postcardsEnabled || photobookEnabled}
+        />
         <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-16">
-          {header}
           <SignedInHome
             journals={home.journals}
             photobookEnabled={photobookEnabled}

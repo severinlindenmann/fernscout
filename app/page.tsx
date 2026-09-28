@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
+import { pageAlternates } from "@/lib/pageLanguage";
 import Landing from "@/components/Landing";
 import { LandingStructuredData } from "@/components/StructuredData";
 import Pricing from "@paid/credits/components/Pricing";
-import { planFaq, planPoint, printPriceRows } from "@paid/credits/lib/plans";
-import HeaderLinks from "@paid/orgs/components/HeaderLinks";
 import { orgsNav } from "@paid/orgs/lib/nav";
 import { iosAppStoreUrl, iosAppWaitlistAvailable } from "@/lib/appWaitlist";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { demoDay } from "@/lib/demoDay";
-import { inviteRequestAvailable } from "@/lib/inviteRequest";
+import { landingFlags } from "@/lib/landingMarkdown";
 import { publicJournals } from "@/lib/home";
 import { hasLegal } from "@/lib/legal";
 import { installedLocales, ogLocale, requestLocale, translateIn } from "@/lib/locales";
@@ -48,12 +47,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await requestLocale();
   const title = translateIn(locale, "landing.metaTitle", { name: serverSite().name });
   const description = translateIn(locale, "landing.metaDescription");
+  const alternates = await pageAlternates("/");
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: "/" },
+    alternates,
     // B2479 — the card's image is still app/opengraph-image.tsx.
-    openGraph: { type: "website", url: "/", locale: ogLocale(locale), title, description },
+    openGraph: { type: "website", url: alternates.canonical, locale: ogLocale(locale), title, description },
   };
 }
 
@@ -91,9 +91,10 @@ export default async function Root() {
   const banner = bannerFor(locale);
   // B2506. The hero's and the pricing's primary door: B2507's /invite while
   // signup is invite-only and that page can work, otherwise /welcome.
-  const inviteCta = inviteRequestAvailable() ? "request" : "welcome";
   // Prices and plans only where this instance charges — B840's gate, kept.
-  const credits = isEnabled("credits");
+  // One answer for the page and its Markdown version (B2488).
+  const flags = landingFlags(locale);
+  const { inviteCta, credits } = flags;
 
   return (
     <>
@@ -157,8 +158,8 @@ export default async function Root() {
         // everything else on this page: the server decides, so a card for a
         // capability this instance does not have is absent from the document
         // rather than flashed in and removed.
-        postcardsEnabled={isEnabled("postcards")}
-        photobookEnabled={isEnabled("photobook")}
+        postcardsEnabled={flags.postcards}
+        photobookEnabled={flags.photobook}
         signupEnabled={isEnabled("signup")}
         // Rendered here and handed over, because `Landing` is a client
         // component and `Pricing` is a server one: it reads a price from the
@@ -169,14 +170,13 @@ export default async function Root() {
         // B2506. The same prices and plan facts as data, for the hero's
         // plan line, the prints block and the questions. Empty in a public
         // build (the stubs) and with credits off.
-        planPoint={credits ? planPoint(locale) : null}
-        planFaq={credits ? planFaq(locale) : []}
-        printPrices={credits ? printPriceRows(locale) : []}
+        planPoint={flags.planPoint}
+        planFaq={flags.planFaq}
+        printPrices={flags.printPrices}
         inviteCta={inviteCta}
         // A real published day beside the headline, or nothing — B2506.
         demo={demoDay(locale)}
         orgs={orgsNav(locale)}
-        orgsLinks={<HeaderLinks locale={locale} />}
       />
     </>
   );

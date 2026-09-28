@@ -504,6 +504,7 @@ export function composeWelcomeMail(params: {
     subject: t("welcome.subject", { title }),
     content: {
       template: "notice.welcome",
+      locale,
       preheader: t("welcome.intro", { nickname, title, site: site.name }),
       title: t("welcome.title"),
       blocks: [

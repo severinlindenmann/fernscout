@@ -31,8 +31,8 @@ export default function WelcomeDoor({
 }: {
   /** From `CODE_TTL_MINUTES` — `lib/auth` is server-only. */
   codeMinutes: string;
-  /** The address behind a live `fs_identity` cookie, prefilled only. A signup
-   *  token still needs its own fresh code. */
+  /** The address behind a live `fs_identity` cookie. While the field still
+   *  holds it, the wizard skips the code (B2522). */
   identityEmail: string | null;
   signupEnabled: boolean;
   siteName: string;
