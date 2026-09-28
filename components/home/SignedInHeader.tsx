@@ -35,9 +35,7 @@ function ownerDoors(
   if (!user) return null;
   const home: Door = { href: "/", label: t("home.navHome"), icon: House, current: true };
   const readers: Door = { href: journalPath(user, "/studio/readers"), label: t("studio.hub.item.readers.title"), icon: Users };
-  const printsDoor: Door[] = prints
-    ? [{ href: journalPath(user, "/studio/orders"), label: t("landing.navPrints"), icon: BookOpen }]
-    : [];
+  const printsDoor: Door[] = prints ? [{ href: journalPath(user, "/studio/orders"), label: t("landing.navPrints"), icon: BookOpen }] : [];
   return {
     nav: [home, { href: journalPath(user, "/studio"), label: t("nav.studio"), icon: PenLine }, readers, ...printsDoor],
     tabs: [home, { href: journalPath(user, "/studio"), label: t("studio.hub.group.write"), icon: PenLine }, readers, ...printsDoor],
