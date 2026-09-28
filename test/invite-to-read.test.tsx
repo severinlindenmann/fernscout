@@ -16,6 +16,7 @@ vi.mock("next/link", () => ({
     </a>
   ),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
 
 // The app router's `next/dynamic`, which is what the page actually runs: a lazy
 // component a server render waits for. The package's default entry is the

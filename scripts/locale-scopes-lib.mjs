@@ -168,13 +168,30 @@ export function importsOf(source) {
   return specifiers;
 }
 
-function resolveModule(root, from, specifier) {
+/**
+ * `paidRoot` — B2551. The committed scopes (and the default here) resolve
+ * `@paid/*` to the stub on purpose, even beside a real `paid/`: that output
+ * is committed, and must come out the same from every checkout. Passing a
+ * real `paid/` directory here is how `scripts/locale-scopes-paid.mjs` gets a
+ * *second*, uncommitted computation that resolves to the real files instead
+ * — the keys a hosted build's paid pages actually mention, rather than a
+ * stub that renders nothing and only marks "some paid area is reachable
+ * here". Falls back to the stub if the real tree happens to be missing a
+ * file `assertPaidCoversStubs` would otherwise have refused to build with.
+ */
+function resolveModule(root, from, specifier, paidRoot) {
   let base;
-  // `@paid/*` is resolved to the stub on purpose, even beside a real `paid/`:
-  // the output is committed, and must come out the same from every checkout.
   if (specifier.startsWith("@/")) base = path.join(root, specifier.slice(2));
-  else if (specifier.startsWith("@paid/")) base = path.join(root, "lib", "paid-stubs", specifier.slice("@paid/".length));
-  else if (specifier.startsWith(".")) base = path.resolve(path.dirname(from), specifier);
+  else if (specifier.startsWith("@paid/")) {
+    const rel = specifier.slice("@paid/".length);
+    if (paidRoot) {
+      for (const extension of SOURCE_EXTENSIONS) {
+        const candidate = path.join(paidRoot, rel) + extension;
+        if (fs.existsSync(candidate) && fs.statSync(candidate).isFile() && /\.(tsx?|mts|jsx?)$/.test(candidate)) return candidate;
+      }
+    }
+    base = path.join(root, "lib", "paid-stubs", rel);
+  } else if (specifier.startsWith(".")) base = path.resolve(path.dirname(from), specifier);
   else return null;
   for (const extension of SOURCE_EXTENSIONS) {
     const candidate = base + extension;
@@ -224,7 +241,7 @@ function routeFilesUnder(dir, stopAt) {
  * `{ [scope]: { keys, paid } }` for the repository at `root`, keys in
  * dictionary order so the committed file diffs line by line.
  */
-export function computeLocaleScopes(root, scopes = SCOPES) {
+export function computeLocaleScopes(root, scopes = SCOPES, { paidRoot } = {}) {
   // Every shipped locale's keys, not English's alone: `fallback.writtenIn.en`
   // is what German says about a day written in English, and English has no
   // such sentence about itself — so it exists only in the other files, and a
@@ -244,7 +261,7 @@ export function computeLocaleScopes(root, scopes = SCOPES) {
     const source = fs.readFileSync(file, "utf8");
     const imports = [];
     for (const specifier of importsOf(source)) {
-      const resolved = resolveModule(root, file, specifier);
+      const resolved = resolveModule(root, file, specifier, paidRoot);
       if (resolved) imports.push(resolved);
     }
     info = { imports, paid: paidAreaOf(root, file, source), keys: keysMentioned(source, allKeys, namespaces) };

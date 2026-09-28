@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
@@ -109,7 +110,7 @@ export default function DecideList({
                 />
               ) : (
                 row.href && (
-                  <a href={row.href} className="flex-none font-semibold whitespace-nowrap text-ink-body not-italic underline underline-offset-2" {...change(row.label)} />
+                  <Link href={row.href} className="flex-none font-semibold whitespace-nowrap text-ink-body not-italic underline underline-offset-2" {...change(row.label)} />
                 )
               )}
             </span>

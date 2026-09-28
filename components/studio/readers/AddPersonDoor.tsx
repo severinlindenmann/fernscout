@@ -108,6 +108,8 @@ export default function AddPersonDoor({
       }
       setAdded({ id: body.contact.id, updated: body.outcome === "updated" });
       // They are on the page now, under "Invited — not opened yet".
+      // no-refresh: onDone is ReadersAdmin's own `refresh`, which already
+      // calls router.refresh() right after this save succeeds.
       onDone();
     } catch {
       setError(t("readers.add.error.generic"));

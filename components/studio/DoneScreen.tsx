@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleCheck } from "lucide-react";
+import Link from "next/link";
 import { useI18n } from "@/components/LocaleProvider";
 
 export type DoneNext = { title: string; body?: string; href: string; label: string };
@@ -50,12 +51,12 @@ export default function DoneScreen({
               >
                 <p className="font-semibold text-ink-strong">{n.title}</p>
                 {n.body && <p className="mt-1 text-sm text-ink-secondary">{n.body}</p>}
-                <a
+                <Link
                   href={n.href}
                   className="mt-3 inline-flex min-h-11 items-center rounded-full border border-line-strong px-4 font-semibold text-ink-strong hover:bg-surface-subtle"
                 >
                   {n.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>

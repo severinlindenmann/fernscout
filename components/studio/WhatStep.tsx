@@ -1,3 +1,4 @@
+import Link from "next/link";
 import StepPrimary from "@/components/studio/StepPrimary";
 
 /**
@@ -81,12 +82,14 @@ function StepCta({ cta }: { cta: { label: string } & ({ href: string } | { onCon
   const className =
     "mt-4 inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action";
   if ("href" in cta) {
-    // Plain anchor, not `next/link` — this component is shared by server-
-    // rendered stub pages that never mount a client bundle at all.
+    // B2549 — next/link works from server components too (it does not force
+    // a client bundle); using it here avoids a full document reload in the
+    // studio's client-rendered flows without costing the server-rendered
+    // stub pages anything.
     return (
-      <a href={cta.href} className={className}>
+      <Link href={cta.href} className={className}>
         {cta.label}
-      </a>
+      </Link>
     );
   }
   return (

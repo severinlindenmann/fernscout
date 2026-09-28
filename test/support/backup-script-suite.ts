@@ -250,6 +250,7 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
   let staging: string;
   let stubBin: string;
   let shimBin: string;
+  let npmBin: string;
   let envFile: string;
 
   const PASSWORD = "backup-drill-password";
@@ -281,6 +282,11 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
       ENV_FILE: envFile,
       ...extra,
     };
+    // B2552. backup.sh's seven nightly `npm run` sweeps are tsx processes
+    // against the real checkout — seconds per run, and none of this suite's
+    // business. A recording no-op `npm` goes first on whatever PATH the test
+    // chose; the first test below proves the script still calls every one.
+    env.PATH = `${npmBin}${path.delimiter}${env.PATH ?? ""}`;
     const result = spawnSync("bash", [BACKUP_SH], { encoding: "utf8", env });
     return { status: result.status ?? 1, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
   }
@@ -435,6 +441,13 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
     shimBin = path.join(scratch, "shim-bin");
     fs.mkdirSync(shimBin, { recursive: true });
     fs.writeFileSync(path.join(shimBin, "timeout"), TIMEOUT_SHIM, { mode: 0o755 });
+    npmBin = path.join(scratch, "npm-bin");
+    fs.mkdirSync(npmBin, { recursive: true });
+    fs.writeFileSync(
+      path.join(npmBin, "npm"),
+      `#!/bin/sh\necho "$*" >> ${JSON.stringify(path.join(scratch, "npm-calls.log"))}\n`,
+      { mode: 0o755 },
+    );
 
     // DATA_DIR. Four things are claimed by the allowlist and must survive:
     // config.json, the two JSON stores lib/store.ts writes at the top level
@@ -538,10 +551,27 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
   nextTest()(
     "backs up exactly the allowlist — content/, config/config.json, state/*.json, db/fernscout.db, env/fernscout.env",
     () => {
+      const npmCalls = path.join(scratch, "npm-calls.log");
+      fs.rmSync(npmCalls, { force: true });
       const run = runBackup();
       expect(run.stderr + run.stdout).toContain("done");
       expect(run.status).toBe(0);
       expect(snapshotCount()).toBe(1);
+
+      // The nightly sweeps ride on this script (B1219 and after): every one
+      // of them is still asked for, in order, even though runBackup's npm
+      // shim keeps them from running here (B2552).
+      expect(fs.readFileSync(npmCalls, "utf8").trim().split("\n")).toEqual(
+        [
+          "rates:update",
+          "reminders:send",
+          "first-trip:send",
+          "messages:sweep",
+          "spend:alert",
+          "gap-nudges:send",
+          "extract:remind",
+        ].map((script) => `run --silent ${script}`),
+      );
 
       const staged = restoreLatest("roundtrip");
 

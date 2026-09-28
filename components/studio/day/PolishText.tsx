@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
@@ -78,6 +79,7 @@ export default function PolishText({
   priceChf: string | null;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const online = useOnline();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -123,6 +125,10 @@ export default function PolishText({
       }
       setPolished(json.draft.prose);
       setOpen(true);
+      // B2549 — this just spent credits; router.refresh() re-renders server
+      // components (the balance shown elsewhere) without touching the client
+      // state this form's own words live in, so nothing being typed is lost.
+      router.refresh();
     } catch {
       setError(polishErrorFor(t, undefined));
       setOpen(true);

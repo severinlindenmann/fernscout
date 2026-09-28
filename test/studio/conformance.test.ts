@@ -27,6 +27,16 @@ function run(args: string[]): { status: number; stdout: string; stderr: string }
   return { status: res.status ?? -1, stdout: res.stdout ?? "", stderr: res.stderr ?? "" };
 }
 
+// B2552: the whole-manifest run and the test-kind fixture each spawn a nested
+// vitest (~15s). Two tests read each, so each runs once and is shared.
+let wholeRun: ReturnType<typeof run> | undefined;
+const runWhole = () => (wholeRun ??= run([]));
+let testKind: ReturnType<typeof checkManifest> | undefined;
+const checkTestKind = () =>
+  (testKind ??= checkManifest(path.join(MANIFEST_FIXTURES, "test-kind.manifest.ts"), ROOT, [
+    path.join(FIXTURES, "sample.test.ts"),
+  ]));
+
 describe("the manifest itself", () => {
   test("has exactly the 36 ids from spec §9, each with proof: null", () => {
     const expectedIds = [
@@ -57,7 +67,7 @@ describe("B1838 acceptance", () => {
   // invariant is what is asserted now: the count is honest, every unproven
   // item is named, and the script refuses to exit clean while any remain.
   test("studio:check names every outstanding item and exits non-zero while any remain", () => {
-    const res = run([]);
+    const res = runWhole();
     const outstanding = manifest.filter((item) => item.proof === null);
 
     expect(res.stdout).toMatch(new RegExp(`\\d+ of ${manifest.length} proven`));
@@ -70,7 +80,7 @@ describe("B1838 acceptance", () => {
   }, 60_000);
 
   test("a proven item is not listed as outstanding", () => {
-    const res = run([]);
+    const res = runWhole();
     const provenIds = manifest
       .filter((item) => item.proof !== null)
       .filter((item) => hasPaid() || !(item.proof?.kind === "test" && item.proof.file.startsWith("paid/")))
@@ -82,11 +92,7 @@ describe("B1838 acceptance", () => {
   }, 60_000);
 
   test("an item flipped to proof kind test naming a test that does not exist fails the script rather than counting as proven", async () => {
-    const results = await checkManifest(
-      path.join(MANIFEST_FIXTURES, "test-kind.manifest.ts"),
-      ROOT,
-      [path.join(FIXTURES, "sample.test.ts")],
-    );
+    const results = await checkTestKind();
     const missing = results.find((r) => r.id === "BAD-TEST-MISSING");
     expect(missing?.proven).toBe(false);
     expect(missing?.reason).toMatch(/no test named/);
@@ -106,11 +112,7 @@ describe("B1838 acceptance", () => {
   });
 
   test("a test proof naming a test that exists and passed counts as proven", async () => {
-    const results = await checkManifest(
-      path.join(MANIFEST_FIXTURES, "test-kind.manifest.ts"),
-      ROOT,
-      [path.join(FIXTURES, "sample.test.ts")],
-    );
+    const results = await checkTestKind();
     const good = results.find((r) => r.id === "GOOD-TEST");
     expect(good).toEqual({ id: "GOOD-TEST", proven: true });
   }, 60_000);

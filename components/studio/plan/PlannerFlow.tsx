@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
@@ -49,6 +50,7 @@ export default function PlannerFlow({
   addressLookupEnabled: boolean;
 }) {
   const { t, tn, formatLongDate, locale } = useI18n();
+  const router = useRouter();
   const [plan, setPlan] = useState<PlanDoc>(initialPlan ?? { route: [] });
   const [costs, setCosts] = useState<CostsDoc>(initialCosts ?? {});
   const linkCount =
@@ -115,6 +117,8 @@ export default function PlannerFlow({
       setCosts(json.costs ?? {});
       setSaveStatus("saved");
       setDirty(false);
+      // B2549 — the trip's own read-only plan and costs read this fresh.
+      router.refresh();
       return true;
     } catch {
       // B2330 — a network error (offline), not a rejection the server sent:

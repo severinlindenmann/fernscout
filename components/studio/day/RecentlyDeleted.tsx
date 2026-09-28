@@ -1,6 +1,8 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 
@@ -27,6 +29,7 @@ const ERRORS: Record<string, "studio.deleted.taken" | "studio.deleted.gone"> = {
  */
 export default function RecentlyDeleted({ username, rows }: { username: string; rows: DeletedRow[] }) {
   const { t, tn, formatLongDate } = useI18n();
+  const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [restored, setRestored] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -38,7 +41,12 @@ export default function RecentlyDeleted({ username, rows }: { username: string; 
     const response = await fetch(url, { method: "POST" }).catch(() => null);
     const body = (await response?.json().catch(() => null)) as { error?: string; href?: string } | null;
     setBusy(null);
-    if (response?.ok && body?.href) return setRestored((r) => ({ ...r, [row.id]: body.href as string }));
+    if (response?.ok && body?.href) {
+      // B2549 — the day is a draft again; the studio's own lists have to
+      // stop showing it as deleted.
+      router.refresh();
+      return setRestored((r) => ({ ...r, [row.id]: body.href as string }));
+    }
     setErrors((e) => ({ ...e, [row.id]: t(ERRORS[body?.error ?? ""] ?? "studio.deleted.failed") }));
   }
 
@@ -55,9 +63,9 @@ export default function RecentlyDeleted({ username, rows }: { username: string; 
             {restored[row.id] ? (
               <p role="status" className="text-ink-body">
                 {t("studio.deleted.restored", { title: name })}{" "}
-                <a href={restored[row.id]} className="font-semibold underline underline-offset-2">
+                <Link href={restored[row.id]} className="font-semibold underline underline-offset-2">
                   {t("studio.deleted.open")}
-                </a>
+                </Link>
               </p>
             ) : (
               <>

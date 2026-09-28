@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
@@ -86,6 +87,7 @@ export default function LocationFlow({
   defaultTripId: string | null;
 }) {
   const { t, tn, formatLongDate, locale } = useI18n();
+  const router = useRouter();
   const [platform, setPlatform] = useState<Platform>("android");
   const [showTips, setShowTips] = useState(false);
 
@@ -141,6 +143,8 @@ export default function LocationFlow({
   async function runPeek(id: string, filename: string) {
     setBusy(true);
     try {
+      // no-refresh: dryRun — a preview of what would be imported, nothing
+      // written yet. `commit()` below does the real import and refreshes.
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/import`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -219,6 +223,8 @@ export default function LocationFlow({
       }
       setResult(json);
       reset();
+      // B2549 — the route pages that read GPS coverage have to catch up.
+      router.refresh();
     } catch {
       setWriteError(t("studio.location.decide.error"));
     } finally {

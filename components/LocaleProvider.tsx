@@ -53,6 +53,21 @@ type Ctx = {
 
 const LocaleContext = createContext<Ctx | null>(null);
 
+/**
+ * The raw dictionary a `LocaleProvider` was handed — separate from `Ctx`
+ * above, which exposes only `t`/`tn` and friends to ordinary call sites.
+ * `NestedLocaleProvider` (B2551) is the one reader: it merges the nearest
+ * ancestor's dictionary with a nested scope's delta, so a page under a
+ * `JournalLocaleProvider` need not resend every key its enclosing layout's
+ * provider already carries.
+ */
+const DictionaryContext = createContext<Record<string, string> | null>(null);
+
+/** Internal — see `DictionaryContext` above. */
+export function useAncestorDictionary(): Record<string, string> | null {
+  return useContext(DictionaryContext);
+}
+
 function parseUTC(date: string) {
   return new Date(`${date}T00:00:00Z`);
 }
@@ -196,7 +211,9 @@ export default function LocaleProvider({
   // width was a bar that had never been given one.
   return (
     <MotionConfig reducedMotion="user">
-      <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+      <DictionaryContext.Provider value={dictionary}>
+        <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+      </DictionaryContext.Provider>
     </MotionConfig>
   );
 }

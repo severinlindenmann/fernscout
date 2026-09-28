@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { TITLE_H1 } from "@/components/landing/kit";
 import { TEXT_LINK } from "@/components/landing/styles";
 import IdentitySignIn from "@/components/IdentitySignIn";
@@ -46,7 +45,6 @@ export default function WelcomeDoor({
   contactEmail?: string | null;
 }) {
   const { t, locale } = useI18n();
-  const router = useRouter();
   /** B1568 — the wizard's code step found the address already owns a journal;
    *  the way forward is signing in as it. */
   const [owns, setOwns] = useState(false);
@@ -64,12 +62,21 @@ export default function WelcomeDoor({
     // Without a session the studio answers 404 (it does not say whose it
     // is); the journal's own `/me` offers the code sign-in instead, and the
     // welcome mail's link works too.
-    router.push(`${journalPath(encodeURIComponent(username))}/${signedIn ? "studio" : "me"}`);
+    //
+    // A full load, not `router.push` (B2550): reading pages are now kept for
+    // 30s (`unstable_dynamicStaleTime`), and a signup just changed the
+    // session cookie this same browser tab may have cached a signed-out
+    // render under. `router.push` would risk serving that stale copy; a full
+    // navigation always re-requests it.
+    window.location.assign(`${journalPath(encodeURIComponent(username))}/${signedIn ? "studio" : "me"}`);
   }
 
   // The session cookie is set by the server; `/` renders the signed-in
-  // order from it, the reader's own journals first.
-  const signIn = <IdentitySignIn codeMinutes={codeMinutes} onDone={() => router.push("/")} />;
+  // order from it, the reader's own journals first. A full load for the same
+  // reason as `intoTheStudio` above — B2550.
+  const signIn = (
+    <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.assign("/")} />
+  );
 
   return (
     // B2531: the frame (the slim header C) and the reading width are the

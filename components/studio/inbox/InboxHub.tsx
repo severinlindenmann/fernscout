@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
@@ -72,6 +73,7 @@ const entryKey = (e: Pick<InboxDayEntry, "tripId" | "slug">) => `${e.tripId}/${e
 
 export default function InboxHub({ username, model }: { username: string; model: InboxHubModel }) {
   const { t, tn, formatShortDate, locale } = useI18n();
+  const router = useRouter();
   const base = `/api/helper/${encodeURIComponent(username)}`;
   const weekdays = weekdayNames(locale);
 
@@ -222,6 +224,8 @@ export default function InboxHub({ username, model }: { username: string; model:
     setBusy(false);
     setBulkDeleting(false);
     setMoved(tn("studio.inbox.deleted", gone, { count: String(gone) }));
+    // B2549 — the day pages these once counted toward have to catch up.
+    router.refresh();
   }
 
   async function confirmDelete() {
@@ -238,6 +242,7 @@ export default function InboxHub({ username, model }: { username: string; model:
         return next;
       });
       setDeleting(null);
+      router.refresh();
     } catch (thrown) {
       setError((thrown as Error).message);
     } finally {
@@ -296,6 +301,7 @@ export default function InboxHub({ username, model }: { username: string; model:
         ? tn("studio.inbox.pinned", targets.length, { name: what, day: dayLabel(destination) })
         : t("studio.inbox.movedWaiting", { name: what }),
     );
+    router.refresh();
   }
 
   /** B2138 — onto a written day for real: a pinned file goes back to the
@@ -330,6 +336,7 @@ export default function InboxHub({ username, model }: { username: string; model:
     setMoving(null);
     const what = targets.length === 1 ? targets[0].name : tn("studio.inbox.filesCount", targets.length, { count: String(targets.length) });
     setMoved(tn("studio.inbox.putOn", targets.length, { name: what, title: entry.title }));
+    router.refresh();
   }
 
   const movingTargets = moving ? rows.filter((r) => moving.keys.includes(keyOf(r))) : [];

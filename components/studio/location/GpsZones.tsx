@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -60,6 +61,7 @@ const LABEL = "text-sm font-semibold text-ink-strong";
  */
 export default function GpsZones({ username, streetMapsOn = false }: { username: string; streetMapsOn?: boolean }) {
   const { t } = useI18n();
+  const router = useRouter();
   const mapRef = useRef<MapLibreMap | null>(null);
   const [doc, setDoc] = useState<ZonesDoc | null>(null);
   const [etag, setEtag] = useState<string | null>(null);
@@ -201,6 +203,8 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
     const body = (await res.json()) as ZonesDoc;
     setDoc(body);
     setSaved(true);
+    // B2549 — the new-day place-name suggestion reads these zones fresh.
+    router.refresh();
     return true;
   }
 

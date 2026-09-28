@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
@@ -126,6 +127,7 @@ export default function RecordedTripsSection({
   hiddenDaysByTrip: Record<string, { date: string; slug: string; location: string }[]>;
 }) {
   const { t, tn, formatShortDate, locale } = useI18n();
+  const router = useRouter();
   // `formatShortDate` reads a calendar date, not an instant — `lastReceived`
   // is an ISO timestamp, so it gets its own formatter, the same shape
   // `RouteRecordSection`'s own `fmt` uses.
@@ -215,6 +217,9 @@ export default function RecordedTripsSection({
       }
       setAsking(null);
       await refreshTrips();
+      // B2549 — a public track derived from this recording has to stop
+      // showing what was just deleted.
+      router.refresh();
       // The deleted trip's/day's segments are now stale — drop them so a
       // re-expand fetches the current line rather than showing what was
       // just removed.

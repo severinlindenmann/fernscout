@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -27,6 +28,7 @@ const FIELD = "mt-1 block min-h-11 w-full rounded-xl border border-line-strong b
  */
 export default function PeopleYouHave({ username, people }: { username: string; people: KnownPerson[] }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [rows, setRows] = useState(people);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: "", email: "" });
@@ -55,12 +57,16 @@ export default function PeopleYouHave({ username, people }: { username: string; 
     if (!(await post({ action: "update", id, name, email }))) return;
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, name: name || null, email: email.toLowerCase() } : r)));
     setEditing(null);
+    // B2549 — this contact's name/address may show elsewhere (a day's
+    // byline, the readers page).
+    router.refresh();
   }
 
   async function remove(id: string) {
     if (!(await post({ action: "delete", id }))) return;
     setRows((prev) => prev.filter((r) => r.id !== id));
     setAsking(null);
+    router.refresh();
   }
 
   return (

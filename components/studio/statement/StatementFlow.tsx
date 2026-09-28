@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
@@ -97,6 +98,7 @@ export default function StatementFlow({
   currencies: string[];
 }) {
   const { t, tn, formatShortDate, locale } = useI18n();
+  const router = useRouter();
   // B2139 — amounts in the reader's own number format (12,40 in German).
   const money = (amount: number) => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
   const [tripId, setTripId] = useState(defaultTripId ?? trips[0]?.id ?? "");
@@ -172,6 +174,8 @@ export default function StatementFlow({
   const step = urlStep === "trip" && skipIntro && trips.length <= 1 ? "get" : urlStep;
 
   async function callRead(body: Record<string, unknown>): Promise<ApplyReadResponse | null> {
+    // no-refresh: a preview read of the statement (no `rows`), never a
+    // write — `commit()` below sends `rows` and does the real write.
     const res = await fetch(`/api/helper/${encodeURIComponent(username)}/statement/apply`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -193,6 +197,8 @@ export default function StatementFlow({
     try {
       const form = new FormData();
       form.append("files", file, file.name);
+      // no-refresh: stages the statement file, then previews it below —
+      // neither writes a cost row yet.
       const staged = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, { method: "POST", body: form });
       const stagedJson = (await staged.json().catch(() => null)) as InboxUploadResponse | null;
       const item = stagedJson?.items?.[0];
@@ -202,6 +208,7 @@ export default function StatementFlow({
       }
       setInboxId(item.id);
 
+      // no-refresh: see callRead's own comment above — a preview, not a write.
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/statement/apply`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -298,6 +305,8 @@ export default function StatementFlow({
       }
       setResult(json);
       reset();
+      // B2549 — the trip's own costs total these rows into.
+      router.refresh();
     } catch {
       setWriteError(t("studio.statement.decide.error"));
     } finally {
