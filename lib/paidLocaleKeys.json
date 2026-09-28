@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "8d9627d38daff76cd9274797339f04ca9f4fb3f9",
+  "generatedFrom": "9ff36042ecc52dd4e2201b4f994ee710aad798f2",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -802,6 +802,7 @@
     "studio.orders.lede",
     "studio.orders.photobook.body",
     "studio.orders.photobook.cta",
+    "studio.orders.photobook.none",
     "studio.orders.photobook.pick",
     "studio.orders.photobook.recent",
     "studio.orders.photobook.title",

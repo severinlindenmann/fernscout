@@ -4461,5 +4461,6 @@
   "studio.orders.photobook.cta": "Voir le livre",
   "studio.orders.postcard.title": "Envoyer une carte postale",
   "studio.orders.postcard.body": "Un jour, une photo, imprimés et envoyés n’importe où : {price}. Gratuit par e-mail.",
-  "studio.orders.postcard.cta": "Choisir un jour et une photo"
+  "studio.orders.postcard.cta": "Choisir un jour et une photo",
+  "studio.orders.photobook.none": "Dès qu’un voyage a des jours publiés, tu peux le voir ici comme un livre."
 }

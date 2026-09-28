@@ -4457,5 +4457,6 @@
   "studio.orders.photobook.cta": "Buch ansehen",
   "studio.orders.postcard.title": "Eine Postkarte schicken",
   "studio.orders.postcard.body": "Ein Tag, ein Foto, gedruckt und überallhin verschickt: {price}. Per E-Mail gratis.",
-  "studio.orders.postcard.cta": "Tag und Foto wählen"
+  "studio.orders.postcard.cta": "Tag und Foto wählen",
+  "studio.orders.photobook.none": "Sobald eine Reise veröffentlichte Tage hat, kannst du sie hier als Buch ansehen."
 }

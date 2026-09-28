@@ -4457,5 +4457,6 @@
   "studio.orders.photobook.cta": "See the book",
   "studio.orders.postcard.title": "Send a postcard",
   "studio.orders.postcard.body": "A day, a photo, printed and sent anywhere: {price}. Free by email.",
-  "studio.orders.postcard.cta": "Choose a day and a photo"
+  "studio.orders.postcard.cta": "Choose a day and a photo",
+  "studio.orders.photobook.none": "Once a trip has published days, you can see it as a book here."
 }

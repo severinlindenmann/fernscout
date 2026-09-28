@@ -3532,6 +3532,7 @@ export type TranslationKey =
   | "studio.orders.lede"
   | "studio.orders.photobook.body"
   | "studio.orders.photobook.cta"
+  | "studio.orders.photobook.none"
   | "studio.orders.photobook.pick"
   | "studio.orders.photobook.recent"
   | "studio.orders.photobook.title"

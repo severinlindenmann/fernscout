@@ -4458,5 +4458,6 @@
   "studio.orders.photobook.cta": "Könyv megtekintése",
   "studio.orders.postcard.title": "Képeslap küldése",
   "studio.orders.postcard.body": "Egy nap, egy fotó, kinyomtatva és bárhová elküldve: {price}. E-mailben ingyenes.",
-  "studio.orders.postcard.cta": "Nap és fotó kiválasztása"
+  "studio.orders.postcard.cta": "Nap és fotó kiválasztása",
+  "studio.orders.photobook.none": "Amint egy utazásnak vannak közzétett napjai, itt könyvként tekintheted meg."
 }
