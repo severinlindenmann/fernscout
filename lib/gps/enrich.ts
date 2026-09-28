@@ -245,6 +245,16 @@ export type DeriveOptions = {
    *  (`TrackSegment.day`). Absent entirely ⇒ every date is bounded in UTC,
    *  which is what the pure tests below exercise. */
   dayTimezones?: Readonly<Record<string, string>>;
+  /** Whether a fix crossing into the next date's window ends the current run
+   *  — true by default, required so every segment belongs to exactly one
+   *  date for `readerTrack`'s serve-time visibility filter (`./track.ts`).
+   *  `ownerTripLine` (`./api.ts`) is the one caller that sets this `false`:
+   *  it is never filtered by date (no reader, no publish state), so two real
+   *  fixes a few minutes apart either side of midnight are one continuous
+   *  run, not two one-point runs the length-2 rule below would both drop —
+   *  the B2516 bug. The date window still clips the trip's own bounds either
+   *  way; only the mid-trip break is optional. */
+  breakAtDate?: boolean;
 };
 
 /** One calendar day later, as a date string — timezone-agnostic, this is
@@ -331,6 +341,7 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
   const zones = options.zones ?? [];
   const gap = (options.gapSeconds ?? GAP_SECONDS) * 1000;
   const tolerance = options.toleranceM ?? SIMPLIFY_METRES;
+  const breakAtDate = options.breakAtDate ?? true;
 
   const sorted = [...fixes].sort((a, b) => a.t - b.t);
 
@@ -351,7 +362,7 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
       continue;
     }
     const last = current[current.length - 1];
-    if (last && fix.t - last.t <= gap && last.date === date) current.push({ ...fix, date });
+    if (last && fix.t - last.t <= gap && (!breakAtDate || last.date === date)) current.push({ ...fix, date });
     else {
       closeRun();
       current = [{ ...fix, date }];

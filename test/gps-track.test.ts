@@ -97,6 +97,31 @@ describe("deriving a trip's line", () => {
     expect(track.segments).toEqual([]);
   });
 
+  test("by default, breaks a run at the UTC day boundary and drops the two one-point pieces (B2516)", () => {
+    // Six minutes apart across midnight — the reader-facing path (default
+    // breakAtDate) must still end each segment at its own date, since
+    // readerTrack filters whole segments by day.
+    const track = deriveTrack(
+      [on("2026-06-22", 23, 47, 8), { t: Date.parse("2026-06-23T00:03:00Z"), lat: 47.01, lon: 8.01 }],
+      { start: "2026-06-22", end: "2026-06-23" },
+    );
+    expect(track.segments).toEqual([]);
+  });
+
+  test("breakAtDate: false keeps a real run continuous across the UTC day boundary (B2516)", () => {
+    // Same two fixes as above — the owner's own unfiltered view (ownerTripLine)
+    // has no per-date reader gate, so this must not lose the pair.
+    const track = deriveTrack(
+      [on("2026-06-22", 23, 47, 8), { t: Date.parse("2026-06-23T00:03:00Z"), lat: 47.01, lon: 8.01 }],
+      { start: "2026-06-22", end: "2026-06-23", breakAtDate: false },
+    );
+    const points = track.segments.flatMap((s) => s.points);
+    expect(points).toEqual([
+      [47, 8],
+      [47.01, 8.01],
+    ]);
+  });
+
   test("simplifies without moving the ends, or the corner", () => {
     // A straight run east, then a right-angle turn north. The straight part
     // collapses; the corner cannot.
