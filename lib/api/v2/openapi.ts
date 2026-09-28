@@ -1047,7 +1047,6 @@ function buildPaths(): Record<string, PathItem> {
           ref("storage_full", 400),
           ref("unreadable", 400),
           ref("contract", 400),
-          ref("unknown_trip", 404),
         ]),
       },
     },

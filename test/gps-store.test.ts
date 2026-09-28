@@ -527,3 +527,49 @@ describe("the rules that keep it private", () => {
     },
   );
 });
+
+describe("who may reach the owner-only, position-derived readers — security review, 2026-09-28", () => {
+  // `kmByMode`, `ownerTripLine` and `recordingState` each answer a question
+  // only the owner's own studio (a browser cookie) may ask — never a bearer
+  // token, never a reader. A hand-written sentence saying so goes stale the
+  // moment a second caller is added quietly; this derives the actual set of
+  // files under `app/` and `components/` that import each name, so a new
+  // caller shows up here by name rather than by nobody noticing.
+  function importersOf(name: string): string[] {
+    const hits: string[] = [];
+    const walk = (root: string) => {
+      let entries: fs.Dirent[];
+      try {
+        entries = fs.readdirSync(root, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const full = path.join(root, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(entry.name)) {
+          const source = fs.readFileSync(full, "utf8");
+          // An actual import specifier, not a doc comment mentioning the
+          // name in prose — `import {...NAME...} from` or `from "...NAME"`.
+          const importLine = new RegExp(`^\\s*import[^;]*\\b${name}\\b[^;]*from\\s+["'][^"']+["']`, "m");
+          if (importLine.test(source)) hits.push(path.relative(process.cwd(), full));
+        }
+      }
+    };
+    walk(path.join(process.cwd(), "app"));
+    walk(path.join(process.cwd(), "components"));
+    return hits.sort();
+  }
+
+  test("kmByMode is imported only by the studio location page", () => {
+    expect(importersOf("kmByMode")).toEqual(["app/at/[user]/studio/location/page.tsx"]);
+  });
+
+  test("ownerTripLine is imported only by the studio's owner-cookie line route", () => {
+    expect(importersOf("ownerTripLine")).toEqual(["app/api/helper/[user]/gps/line/route.ts"]);
+  });
+
+  test("recordingState is imported nowhere under app/ or components/ — only recordedTrips (lib/gps/api.ts) ever calls it", () => {
+    expect(importersOf("recordingState")).toEqual([]);
+  });
+});

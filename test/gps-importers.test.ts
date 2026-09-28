@@ -90,6 +90,27 @@ describe("google-timeline", () => {
     expect(out.every((f) => f.mode === undefined)).toBe(true);
   });
 
+  test("a crafted activity type of __proto__ or constructor never returns a prototype — security review, 2026-09-28", () => {
+    for (const type of ["__proto__", "constructor", "toString", "hasOwnProperty"]) {
+      const crafted = JSON.stringify([
+        {
+          startTime: "2026-06-22T08:00:00.000Z",
+          endTime: "2026-06-22T09:00:00.000Z",
+          activity: {
+            start: "geo:47.30000,8.30000",
+            end: "geo:47.40000,8.40000",
+            topCandidate: { type },
+          },
+        },
+      ]);
+      const out = timeline.parse(crafted);
+      for (const fix of out) {
+        expect(typeof fix.mode === "string" || fix.mode === undefined).toBe(true);
+        expect(fix.mode).toBeUndefined();
+      }
+    }
+  });
+
   test("skips a segment it cannot read rather than losing the file", () => {
     const broken = JSON.stringify([
       { startTime: "nonsense", timelinePath: [{ point: HOME }] },

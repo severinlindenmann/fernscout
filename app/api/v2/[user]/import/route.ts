@@ -32,6 +32,7 @@ import {
 import { gpsStateReport } from "@/lib/api/v2/schemas/gps";
 import { writeRecorderState } from "@/lib/gps/recorderState";
 import { getTrip, tripRef } from "@/lib/trips";
+import { resolveRenamedTripId } from "@/lib/tripRename";
 import { readContactsFile } from "@/lib/contacts/readImport";
 import { storageRefusal, withStorageQuota } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
@@ -237,25 +238,19 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     });
   }
 
-  // B2542 — the phone's own latest armed/permission report, alongside this
-  // same upload. Accepted from exactly the two callers already let past the
-  // gate above (the owner token, or the phone's own `write:gps`); never
-  // written on a dry run, the same "nothing was written" promise the rest of
-  // this route already makes. Validated as its own schema so a malformed
-  // report is refused rather than silently dropped or half-applied.
-  if (body.state !== undefined && !dryRun) {
-    const parsedState = gpsStateReport.safeParse(body.state);
-    if (!parsedState.success) {
-      return fail("invalid_request", ERROR_CODES.invalid_request, undefined, 400);
-    }
-    const { trip: tripId, ...report } = parsedState.data;
-    const trip = getTrip(tripRef(user, tripId));
-    if (!trip) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
-    writeRecorderState(user, tripId, report);
-  }
-
   let result: ReturnType<typeof importGps>;
-  if (dryRun) {
+  if (text.trim().length === 0) {
+    // B2542 — a state-only ping, nothing to import: most often the phone
+    // disarming with an already-empty buffer, which still needs its own
+    // `armed: false` to reach the server (security review, iOS truth-of-UI).
+    // Never a contract refusal for *this* — "the file held no positions"
+    // (`checkGpsImporter`'s "parse returned nothing") is a real complaint
+    // about a file that was supposed to have some; "there was nothing new
+    // to send this time" is not, and detection/format never even run on an
+    // empty string. Skips `importGps` and the storage-quota check above
+    // entirely, since there is nothing to write either way.
+    result = { kind: "gps", format: format ?? "fixes", detected: false, read: 0, from: null, to: null, extent: null };
+  } else if (dryRun) {
     result = importGps(user, text, filename, { format, dryRun });
   } else {
     const guard = await withStorageQuota(user, Buffer.byteLength(text), () =>
@@ -280,6 +275,34 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     );
   }
 
+  // B2542 — the phone's own latest armed/permission report, alongside this
+  // same upload. Never allowed to fail the positions upload it rides along
+  // with (security review, B1): the report is a status ping, and a phone
+  // whose positions were just accepted must never see them discarded because
+  // of a bad, stale or renamed-trip `state` object. So this runs only once
+  // `result` is a real success — never on a dry run (nothing was written, so
+  // there is nothing this trip's state is "alongside" yet) — and any failure
+  // (malformed shape, unknown trip even after following a rename) is
+  // swallowed rather than turned into a refusal; `stateIgnored: true` says so
+  // in the response for whichever caller sent it, so the phone can at least
+  // notice a persistent problem without ever losing a fix over it. Trip
+  // renames (`lib/tripRename.ts`) are resolved here for the same reason
+  // `app/api/v2/[user]/trips/[trip]/route.ts` resolves them: an old id a
+  // still-armed phone kept using after the owner renamed the trip must not
+  // read as "unknown".
+  let stateIgnored = false;
+  if (!dryRun && body.state !== undefined) {
+    const parsedState = gpsStateReport.safeParse(body.state);
+    const tripId = parsedState.success ? resolveRenamedTripId(user, parsedState.data.trip) : undefined;
+    const trip = tripId ? getTrip(tripRef(user, tripId)) : undefined;
+    if (parsedState.success && trip) {
+      const { trip: _reportedTrip, ...report } = parsedState.data;
+      writeRecorderState(user, tripId as string, report);
+    } else {
+      stateIgnored = true;
+    }
+  }
+
   // Counts only for a `write:gps` caller — B2204's acceptance line. `extent`
   // is a bounding box rather than a route (`lib/gps/api.ts`'s own module
   // comment), but this token's whole point is that a phone holding it never
@@ -302,6 +325,12 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     ...(isOwnerToken ? result : phone),
     kind: chosenKind,
     dryRun,
+    // Present only when a `state` was actually sent and ignored — absent
+    // rather than `false` on every ordinary call, so an old client reading
+    // this response with `JSON.stringify` never sees a field it never asked
+    // about (B540's own "every accepted field is readable back" cuts both
+    // ways: an unasked field should not ride along either).
+    ...(stateIgnored ? { stateIgnored: true } : {}),
     next: dryRun
       ? "Nothing was written. Send the same call without ?dryRun to keep it."
       : "Every trip whose dates overlap this import has had its line re-derived (`rederived`); " +

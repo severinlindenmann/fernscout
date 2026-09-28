@@ -76,6 +76,12 @@ final class Recorder: NSObject {
     /// to resume uploading" notice has already been posted for the current
     /// 401 streak, so it fires once rather than every ~30 minutes.
     private static let unauthorizedNoticePostedKey = "recorder-unauthorized-notice-posted"
+    /// B2542, security review 2026-09-28 — the fingerprint of each armed
+    /// trip's own state as last successfully sent, so an unchanged state is
+    /// not re-sent on every 30-minute upload, and so a trip whose state
+    /// *does* change is not stuck waiting for `armed.first`'s own buffer to
+    /// have fixes before it gets a report of its own. `[tripId: String]`.
+    private static let lastSentStateKey = "recorder-last-sent-state"
 
     private var armed: [String: ArmedTrip] {
         get { decode(defaults?.data(forKey: Self.armedKey)) ?? [:] }
@@ -116,6 +122,10 @@ final class Recorder: NSObject {
     private var unauthorizedNoticePosted: Bool {
         get { defaults?.bool(forKey: Self.unauthorizedNoticePostedKey) ?? false }
         set { defaults?.set(newValue, forKey: Self.unauthorizedNoticePostedKey) }
+    }
+    private var lastSentState: [String: String] {
+        get { decode(defaults?.data(forKey: Self.lastSentStateKey)) ?? [:] }
+        set { defaults?.set(try? JSONEncoder().encode(newValue), forKey: Self.lastSentStateKey) }
     }
 
     private func decode<T: Decodable>(_ data: Data?) -> T? {
@@ -725,20 +735,35 @@ final class Recorder: NSObject {
         guard let credential = GpsCredentialStore.load() else { return }
         // Same base/user for every armed trip in practice — the state
         // report (B2542) is scoped to this one trip's own id, the same trip
-        // the fixes in this snapshot were recorded against.
+        // the fixes in this snapshot were recorded against. Every *other*
+        // armed trip's own state is still kept current — see
+        // `syncOtherTripStates` — so a second trip armed alongside this one
+        // is not stuck waiting for this one's buffer to have fixes before
+        // its own recording state can update at all (security review,
+        // 2026-09-28).
         guard let (tripId, trip) = armed.first else { return }
         // Finding 7 — storage_full stops automatic attempts (nothing changed
         // server-side without the owner doing something about it), but a
         // foreground open still gets to check whether space freed up.
-        if !force, lastError == "storage_full" { return }
+        if !force, lastError == "storage_full" {
+            syncOtherTripStates(excluding: tripId)
+            return
+        }
         let snapshot = readBufferSnapshot()
-        guard !snapshot.isEmpty else { return } // never upload an empty buffer
-        if !force, let last = lastUpload, Date().timeIntervalSince(last) < Self.uploadInterval { return }
+        if snapshot.isEmpty || (!force && lastUpload.map { Date().timeIntervalSince($0) < Self.uploadInterval } == true) {
+            // Nothing of this trip's own fixes to upload right now — its own
+            // state may still have changed (permission downgraded, say), so
+            // report that on its own rather than waiting for a fix.
+            syncTripState(tripId: tripId, trip: trip, credential: credential)
+            syncOtherTripStates(excluding: tripId)
+            return
+        }
 
         let n = snapshot.count
+        let report = stateReport(tripId: tripId, trip: trip)
+        let fingerprint = Self.stateFingerprint(report)
         guard let request = uploadRequest(
-            trip: trip, credential: credential, text: snapshot.joined(separator: "\n"),
-            state: stateReport(tripId: tripId, trip: trip)
+            trip: trip, credential: credential, text: snapshot.joined(separator: "\n"), state: report
         ) else { return }
 
         backgroundTask = UIApplication.shared.beginBackgroundTask { [weak self] in
@@ -753,6 +778,7 @@ final class Recorder: NSObject {
                     UIApplication.shared.endBackgroundTask(self.backgroundTask)
                     self.backgroundTask = .invalid
                 }
+                self.syncOtherTripStates(excluding: tripId)
             }
             guard let http = response as? HTTPURLResponse else { return } // offline/transient — keep buffering
             switch http.statusCode {
@@ -761,6 +787,9 @@ final class Recorder: NSObject {
                 self.lastUpload = Date()
                 self.lastError = nil
                 self.unauthorizedNoticePosted = false // second review, finding 5
+                var sent = self.lastSentState
+                sent[tripId] = fingerprint
+                self.lastSentState = sent
             case 401:
                 self.lastError = "unauthorized"
                 // Second review (2026-09-24), finding 5 — posted once per
@@ -822,6 +851,48 @@ final class Recorder: NSObject {
         status == "restricted" ? "denied" : status
     }
 
+    /// A stable, order-independent encoding of one `stateReport(...)` —
+    /// B2542, security review 2026-09-28. Not `Equatable` on the raw
+    /// dictionary (`[String: Any]` has no such conformance); good enough to
+    /// tell "this trip's own state has not changed since the last report
+    /// that actually reached the server" without a round trip to find out.
+    private static func stateFingerprint(_ report: [String: Any]) -> String {
+        report.keys.sorted().map { "\($0)=\(report[$0] ?? "")" }.joined(separator: "&")
+    }
+
+    /// One armed trip's own state-only ping, sent with an **empty** `text`
+    /// (the server's own B2542 fix accepts this: nothing to import, still
+    /// something to say about the recorder) — only when it has actually
+    /// changed since the last one that reached the server. Used both for
+    /// the trip whose own buffer had nothing to upload this round
+    /// (`maybeUpload`) and for every *other* armed trip
+    /// (`syncOtherTripStates`).
+    private func syncTripState(tripId: String, trip: ArmedTrip, credential: GpsCredential) {
+        let report = stateReport(tripId: tripId, trip: trip)
+        let fingerprint = Self.stateFingerprint(report)
+        guard lastSentState[tripId] != fingerprint else { return }
+        guard let request = uploadRequest(trip: trip, credential: credential, text: "", state: report) else { return }
+        URLSession.shared.dataTask(with: request) { [weak self] _, response, _ in
+            guard let self, let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return }
+            var sent = self.lastSentState
+            sent[tripId] = fingerprint
+            self.lastSentState = sent
+        }.resume()
+    }
+
+    /// Every armed trip but `excluding` (the one `maybeUpload` already
+    /// covered this round, with its own fixes or its own empty-buffer ping)
+    /// — B2542, security review 2026-09-28: `maybeUpload` only ever picks
+    /// one trip's buffer to upload (`armed.first`), so without this a second
+    /// or third armed trip's own recording state would never reach the
+    /// server at all unless it happened to become `armed.first` itself.
+    private func syncOtherTripStates(excluding: String?) {
+        guard let credential = GpsCredentialStore.load() else { return }
+        for (tripId, trip) in armed where tripId != excluding {
+            syncTripState(tripId: tripId, trip: trip, credential: credential)
+        }
+    }
+
     private func uploadRequest(trip: ArmedTrip, credential: GpsCredential, text: String, state: [String: Any]? = nil) -> URLRequest? {
         guard let url = URL(string: "\(trip.base)/api/v2/\(trip.user)/import") else { return nil }
         var request = URLRequest(url: url)
@@ -852,8 +923,14 @@ final class Recorder: NSObject {
         // false` rather than reusing `stateReport`'s "still armed" default —
         // the studio should read "not recording" from the moment this lands,
         // not "recording" until the next report happens to correct it.
+        //
+        // **Sent even when the buffer is already empty** (security review,
+        // 2026-09-28) — an empty `text` is exactly the state-only ping the
+        // server's own B2542 fix now accepts, and disarming with nothing
+        // freshly recorded must still tell the studio recording stopped,
+        // not leave it reading whatever the last real upload said.
         let state = tripId.map { stateReport(tripId: $0, trip: trip, armed: false) }
-        guard !snapshot.isEmpty, let request = uploadRequest(
+        guard let request = uploadRequest(
             trip: trip, credential: credential, text: snapshot.joined(separator: "\n"), state: state
         ) else {
             purgeBuffer()

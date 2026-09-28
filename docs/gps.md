@@ -13,7 +13,7 @@ store, and one trip's worth of it is boiled down into a line the trip owns.
 ```
 content/<user>/
   gps/                          PRIVATE. Never served, never exported.
-    YYYY-MM.jsonl               [epochSeconds, lat, lon], one fix per line
+    YYYY-MM.jsonl               [epochSeconds, lat, lon(, mode)], one fix per line
     exclude.json                places that are never drawn
   trips/<trip>/track.json       the derived line — the only thing rendered
 ```
@@ -21,11 +21,13 @@ content/<user>/
 The store is somebody's complete location history: every address they sleep
 at, every place they work, everywhere they have been ill. So:
 
-- **No route reads it, with one named exception.** There is no API that
+- **No route reads it, with four named exceptions.** There is no API that
   returns a position. `test/gps-store.test.ts` asserts nothing under `app/`
   imports `lib/gps/store.ts` or `lib/gps/enrich.ts` — and, separately, that
-  `placeForDay` (below) is the only export in `lib/gps/api.ts` that reaches
-  into the store at all.
+  `placeForDay`, `recordedTrips`, `ownerTripLine` and `kmByMode` (all below)
+  are the only exports in `lib/gps/api.ts` that reach into the store at all,
+  and every one of them is reachable only from the owner's own browser
+  cookie, never a bearer token.
 - **It is in no export.** `appendUserContent` walks `trips/` and `config.json`
   and nothing else.
 - **It is inside the storage ceiling for free** — `lib/storageQuota.ts` counts
@@ -648,6 +650,13 @@ read a position back out of the store (after `placeForDay`, `recordedTrips`,
 fixes that share a known mode, and hands back kilometres per mode, never a
 coordinate. Reachable only from the studio's own server-rendered "Your
 route" page, the same as `ownerTripLine`.
+
+**Reader-facing mode chips are not built yet — this is data only.** A
+segment's `mode` and a named stretch's own `TrackLabel.mode` reach
+`track.json`/`track-recent.json` and `readerTrack`/`namedStretchLabels`, but
+no map page reads either field yet: a reader's line still draws exactly as
+it did before B2541, with no chip, colour or label naming how a segment was
+travelled. Drawing that is a separate, later ticket.
 
 ## The phone's own recording state — B2542
 

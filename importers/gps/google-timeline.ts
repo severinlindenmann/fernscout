@@ -35,27 +35,34 @@ import { isSaneFix, parseGeoUri, parseInstant, type Fix, type GpsImporter, type 
 /** Google's own activity-type strings, lowercased, mapped to
  * `TRANSPORT_MODES` — B2541. Only the types actually seen in an export are
  * named; anything else comes back `undefined` rather than a guess. */
+// A `Map`, not a plain object — a crafted export with `"type": "__proto__"`
+// or `"constructor"` against a plain `{}` lookup table returns the object's
+// own prototype or constructor rather than `undefined`, which is exactly
+// the kind of thing `isSaneFix`'s "is this actually on Earth" check does not
+// exist to catch (security review, 2026-09-28). A `Map` has no prototype
+// chain to shadow a key with.
+const GOOGLE_MODES = new Map<string, TransportMode>([
+  ["walking", "on_foot"],
+  ["on foot", "on_foot"],
+  ["running", "on_foot"],
+  ["cycling", "bike"],
+  ["in passenger vehicle", "car"],
+  ["in vehicle", "car"],
+  ["driving", "car"],
+  ["in bus", "bus"],
+  ["in train", "train"],
+  ["in tram", "tram"],
+  ["in subway", "train"],
+  ["in ferry", "boat"],
+  ["boating", "boat"],
+  ["sailing", "boat"],
+  ["flying", "plane"],
+  ["skiing", "skiing"],
+]);
+
 function modeFromGoogle(type: unknown): TransportMode | undefined {
   if (typeof type !== "string") return undefined;
-  const known: Record<string, TransportMode> = {
-    walking: "on_foot",
-    "on foot": "on_foot",
-    running: "on_foot",
-    cycling: "bike",
-    "in passenger vehicle": "car",
-    "in vehicle": "car",
-    driving: "car",
-    "in bus": "bus",
-    "in train": "train",
-    "in tram": "tram",
-    "in subway": "train",
-    "in ferry": "boat",
-    boating: "boat",
-    sailing: "boat",
-    flying: "plane",
-    skiing: "skiing",
-  };
-  return known[type.toLowerCase()];
+  return GOOGLE_MODES.get(type.toLowerCase());
 }
 
 function fixesFrom(segment: Record<string, unknown>): Fix[] {

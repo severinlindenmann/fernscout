@@ -247,16 +247,13 @@ export default function RecordedTripsSection({
                   when a phone has ever actually reported something; the
                   native-status line above already covers "this device". */}
               {trip.recording && <p className="text-sm text-ink-secondary">{serverStateLine(trip.recording, t)}</p>}
-              {/* ponytail: raw mode words, not translated — B2540 is
-                  redesigning this whole page; add locale strings for each
-                  mode name then, not twice. */}
               {(() => {
                 const modes = kmByModeByTrip?.[trip.tripId];
                 const entries = modes ? Object.entries(modes).filter(([, km]) => (km ?? 0) > 0) : [];
                 if (entries.length === 0) return null;
                 return (
                   <p className="text-sm text-ink-secondary">
-                    {entries.map(([mode, km]) => `${km} km ${mode.replace("_", " ")}`).join(" · ")}
+                    {entries.map(([mode, km]) => `${km} km ${modeLabel(mode, t)}`).join(" · ")}
                   </p>
                 );
               })()}
@@ -399,6 +396,31 @@ function serverStateLine(
   return recording.reason === "permission"
     ? t("studio.location.route.server.silentPermission")
     : t("studio.location.route.server.silentStale");
+}
+
+/** One word per `TransportMode` (`importers/gps/schema.ts`) — the km-by-mode
+ * line's own labels, B2541. A `Record` keyed by every mode the shared
+ * vocabulary names, not a lookup that can silently miss one: TypeScript
+ * refuses this object if a mode is ever added there and not here. An
+ * unrecognised string (there should never be one — `kmByMode` only sums
+ * fixes whose mode already validated against the same vocabulary) falls
+ * back to the raw word rather than throwing. */
+const MODE_KEYS: Record<string, TranslationKey> = {
+  on_foot: "studio.location.route.mode.onFoot",
+  bike: "studio.location.route.mode.bike",
+  car: "studio.location.route.mode.car",
+  bus: "studio.location.route.mode.bus",
+  train: "studio.location.route.mode.train",
+  tram: "studio.location.route.mode.tram",
+  boat: "studio.location.route.mode.boat",
+  plane: "studio.location.route.mode.plane",
+  skiing: "studio.location.route.mode.skiing",
+  unknown: "studio.location.route.mode.unknown",
+};
+
+function modeLabel(mode: string, t: (key: TranslationKey, vars?: Record<string, string>) => string): string {
+  const key = MODE_KEYS[mode];
+  return key ? t(key) : mode;
 }
 
 function statusLine(
