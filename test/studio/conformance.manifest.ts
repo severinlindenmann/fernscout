@@ -404,7 +404,7 @@ export const manifest: ManifestItem[] = [
     claim: "Real English and German entries for every new string.",
     proof: {
       kind: "test",
-      name: "dictionaries de.json, the one locale this project keeps at parity with English, covers every English key",
+      name: "dictionaries de.json, a maintained locale, covers every English key",
       file: "test/locales.test.ts",
     },
   },
