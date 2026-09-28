@@ -1318,6 +1318,8 @@
   "map.layers": "Rétegek",
   "map.media": "Fotó és videó",
   "map.nextUp": "Következik",
+  "map.osmCredit": "© OpenStreetMap közreműködői",
+  "map.osmCreditInfo": "Térképadatok forrása",
   "map.places": "helyszín",
   "map.planned": "Tervezett útvonal",
   "map.plannedFromDrafts": "· ezek egy része piszkozat, csak te látod",
