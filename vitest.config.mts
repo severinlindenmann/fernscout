@@ -20,12 +20,9 @@ export default defineConfig({
     // Only does anything when FERNSCOUT_TEST_CLOCK_OFFSET_DAYS is set — see
     // test/support/future-clock.ts and `npm run test:future-clock` (B1947).
     setupFiles: ["test/support/future-clock.ts", "test/support/per-file-database.ts"],
-    // SQLite runs in memory, one database per handle, so files can't collide.
-    // Postgres can't: every file that opts into POSTGRES_TEST_URL points at the
-    // same database and each of them drops the schema on the way in. Serialise
-    // the files only when that variable is set — the suite is under a second
-    // either way. See test/support/dialects.ts.
-    fileParallelism: !process.env.POSTGRES_TEST_URL,
+    // Postgres gets one database per worker (B2552), so files run in
+    // parallel on every leg — see test/support/pg-workers.ts.
+    globalSetup: ["test/support/pg-workers.ts"],
     // Fourteen test files spawn a subprocess — `tsx` running a script, a shell
     // running a deploy check — and wait for it to finish. Vitest's default
     // `testTimeout` is 5 seconds, which is generous when such a file is the
@@ -37,7 +34,8 @@ export default defineConfig({
     // files, or assertions loosened to hide a timing problem.
     // Half the cores, not all but one: several sessions run the suite at once
     // on one machine, and each taking every core is what took it down (B2144).
-    maxWorkers: "50%",
+    // A CI runner is nobody else's machine, so it takes them all (B2552).
+    maxWorkers: process.env.CI ? "100%" : "50%",
     testTimeout: 30_000,
     hookTimeout: 30_000,
   },

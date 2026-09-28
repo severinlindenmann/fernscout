@@ -44,7 +44,12 @@ async function sqliteDialect(file: string): Promise<Dialect> {
 async function postgresDialect(connectionString: string): Promise<Dialect> {
   const { Pool } = await import("pg");
   return new PostgresDialect({
-    pool: new Pool({ connectionString, max: 10 }),
+    // allowExitOnIdle: an idle pooled connection must not keep the process
+    // alive. Without it a tsx script (alert, the nightly sweeps) lingers
+    // pg-pool's 10s idleTimeoutMillis after its last query — alert-script's
+    // tests took 112s on Postgres against 11s on SQLite (B2553). The server
+    // has its own handles and is unaffected.
+    pool: new Pool({ connectionString, max: 10, allowExitOnIdle: true }),
   });
 }
 

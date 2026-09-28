@@ -388,6 +388,10 @@ them:
   POSTGRES_TEST_URL=postgres://fernscout:fernscout@localhost:5432/fernscout_test npx vitest run
   ```
 
+  The suite creates `fernscout_test_w1`, `_w2`, … beside that database, one
+  per vitest worker, and wipes them freely; that is what lets it run files in
+  parallel on Postgres too.
+
 - **The restore drill.** `test/backup-script-*.test.ts` needs `restic` on PATH
   (`brew install restic`) or it skips entirely — every test of the thing that
   would get your photographs back. Its last test additionally needs the

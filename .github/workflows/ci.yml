@@ -4,12 +4,24 @@ on:
   push:
     branches: [main]
   pull_request:
+  # B2555. Nightly on main, so a runner-image change, an expired pin or a
+  # dependency drift turns main red on a quiet day too — and the schedule-only
+  # flake-hunt job below runs the suite twice.
+  schedule:
+    - cron: "0 3 * * *"
+  # The same run by hand (`gh workflow run ci.yml`), flake-hunt included.
+  workflow_dispatch:
 
-# A second push to the same PR/branch should cancel the previous run rather
-# than queue behind it.
+# A second push to the same PR should cancel the previous run rather than
+# queue behind it. Only on a PR: a cancelled main run is a main nobody knows
+# the colour of (24 of 78 were, before B2552).
+#
+# Grouped by commit everywhere else: GitHub keeps one run *pending* per group
+# and replaces it when the next one queues, whatever cancel-in-progress says,
+# so a burst of merges on one shared main group still dropped runs (B2552).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Pinned to an exact patch, not "24". A floating major silently changes
@@ -65,9 +77,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      # tsc needs .next/types (route typing), which only next build/dev
-      # generate — see next.config.ts and app/layout.tsx's LayoutProps<"/">.
-      - run: npx next build
+      # tsc needs .next/types (route typing) — see next.config.ts and
+      # app/layout.tsx's LayoutProps<"/">. `next typegen` writes exactly that
+      # without a build; the one build is the `build` job's (B2552).
+      - run: npx next typegen
       - run: npx tsc --noEmit
 
   test:
@@ -125,15 +138,10 @@ jobs:
       CADDY_VERSION: "2.11.4"
       CADDY_SHA512: "8220d1f013b6f27510247b2360c9e0ca9f018feebd82515f07635318b34ff9777ccc8fd0b6e6f2486ce3a33fe389fbb7db12d05baa474f4587509fb4f5ebf1c9"
     steps:
-      # B1705, from before the open/private split. The tool this originally
-      # named (`scripts/agent-context.mjs`, reading `git log --all --grep=<id>`)
-      # now lives in the private harness, not this repository, and nothing
-      # under test/ here reads this checkout's own git history. Left at
-      # `fetch-depth: 0` because nothing currently needs it changed back —
-      # narrow it to the default once that is actually confirmed safe.
+      # Default depth 1: nothing under test/ reads this checkout's history —
+      # only `git ls-files`, and repositories the deploy tests build
+      # themselves (B2552 checked; B1705's history reader is the harness's).
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -253,9 +261,10 @@ jobs:
       # running. Keep this in step with `test/backup-script-*.test.ts`.
       - run: npx vitest run test/backup-script-content.test.ts test/backup-script-database.test.ts test/backup-script-monitoring.test.ts test/backup-script-recovery.test.ts test/backup-script-repository.test.ts
 
+  # The one CI build, in parallel with everything else (B2552); ci-ok is
+  # what waits for all of them.
   build:
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test, backup-drill]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -272,6 +281,8 @@ jobs:
   # failed dependency would skip ci-ok itself, and a *skipped* required
   # check blocks a merge no more than a green one does on some GitHub
   # settings — silent-green is exactly the shape B2497 is about.
+  #
+  # flake-hunt is deliberately not in `needs`: it runs only on the schedule.
   ci-ok:
     runs-on: ubuntu-latest
     needs: [lint, unused, typecheck, test, backup-drill, build]
@@ -291,3 +302,39 @@ jobs:
             echo "ci-ok: at least one required job did not succeed (see above)."
             exit 1
           }
+
+  # B2555. Nightly (or by hand), never on a PR or a push, and not in ci-ok's needs: the
+  # sqlite leg's suite twice over. The gate has retry 0, so a flaky test is a
+  # random red on somebody's PR; here it is a named test that failed in one
+  # pass of two. Vitest 4.1 has no --repeats flag, hence the loop.
+  flake-hunt:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "sqlite:./test.db"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: The suite, twice
+        run: |
+          set -uo pipefail
+          status=0
+          for pass in 1 2; do
+            npx vitest run --reporter=default --reporter=json --outputFile="pass-$pass.json" || status=1
+          done
+          {
+            echo "## Flake hunt: the sqlite suite, run twice"
+            for pass in 1 2; do
+              jq -r --arg pass "$pass" '"Pass \($pass): \(.numPassedTests) passed, \(.numFailedTests) failed, \(.numPendingTests) skipped of \(.numTotalTests)"' "pass-$pass.json"
+            done
+            echo
+            echo "Tests that failed in a pass:"
+            for pass in 1 2; do
+              jq -r --arg pass "$pass" '.testResults[] | .name as $file | .assertionResults[] | select(.status == "failed") | "- pass \($pass): \($file | sub(".*/test/"; "test/")) > \(.fullName)"' "pass-$pass.json"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"

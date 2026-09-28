@@ -1,6 +1,7 @@
 import "server-only";
 import { getAllEntries, getDays, getDefaultDay, getTripStats, type ReadOptions } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
+import { isHiddenPlace } from "./gps/edits";
 import { geodataAvailable, reverseGeocode } from "./ingest/geo";
 import { defaultLocaleFor } from "./locales";
 import type { StoryDay } from "./prose";
@@ -55,27 +56,40 @@ export function showsCountdown(trip: Pick<Trip, "ref" | "status">): boolean {
   return trip.status === "upcoming" && getAllEntries(trip.ref).length === 0;
 }
 
-/** The navigation's view of one day. */
+/**
+ * The navigation's view of one day.
+ *
+ * `hidden` is B2544's own check — a day's own typed `coordinates` inside a
+ * hidden spot, for a viewer who is not the owner (`reader !== "person"`,
+ * resolved once per trip by the caller rather than reread here per day). The
+ * pin is blanked the same way a day with no coordinates at all already
+ * reads: `NaN`, so every existing `Number.isFinite`/`isPlottable` check
+ * already treats it as "nothing to plot" without a second flag to thread
+ * through the game path, the travel scene or the hero's small map.
+ */
 function summarise(
   day: Day,
   cost: number,
-  costLocal?: DaySummary["costLocal"],
+  costLocal: DaySummary["costLocal"] | undefined,
+  hidden: boolean,
 ): DaySummary {
   const lead = day.lead;
+  const lat = hidden ? NaN : lead.lat;
+  const lng = hidden ? NaN : lead.lng;
   return {
     date: day.date,
     slug: lead.slug,
     location: lead.location,
     country: lead.country,
     countryCode: lead.countryCode,
-    lat: lead.lat,
-    lng: lead.lng,
+    lat,
+    lng,
     transport: lead.transport,
     travelScene: lead.travelScene,
     updates: day.entries.length,
     cost,
     costLocal,
-    population: populationAt(lead.lat, lead.lng),
+    population: populationAt(lat, lng),
   };
 }
 
@@ -200,11 +214,19 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
 
   const days = getDays(tripId, read);
   const costs = getCostSummary(tripId);
+  // B2544 — resolved once per trip, not per day: `isHiddenPlace` rereads
+  // `track-edits.json` itself.
+  const owner = parseTripRef(tripId);
+  const checkHidden = reader !== "person" && owner !== null;
   const index = days.map((d) =>
     summarise(
       d,
       showCosts ? costForDay(tripId, d.entries) : 0,
       showCosts ? costLocalForDay(tripId, d.entries) : undefined,
+      checkHidden &&
+        Number.isFinite(d.lead.lat) &&
+        Number.isFinite(d.lead.lng) &&
+        isHiddenPlace(owner.username, owner.tripId, { lat: d.lead.lat, lon: d.lead.lng }),
     ),
   );
 
