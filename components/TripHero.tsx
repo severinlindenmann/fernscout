@@ -435,7 +435,7 @@ export default function TripHero({
               {[
                 tn("map.days", stats.tripDays),
                 hasPlaces ? tn("map.places", stats.places) : null,
-                card.recordedKm > 0 ? t("mapCard.recordedKm", { km: card.recordedKm }) : null,
+                card.recordedKm > 0 ? t("mapCard.recordedKm", { km: String(card.recordedKm) }) : null,
               ]
                 .filter(Boolean)
                 .join(" · ")}
