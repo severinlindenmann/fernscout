@@ -99,6 +99,23 @@ const WORLD_LAYER_IDS = new Set(["background", "earth", "water", "boundaries_cou
  * one URL covers both. No `sprite` at all, since every icon this style might
  * have drawn is the one layer just dropped.
  */
+/**
+ * One name per label, in the reader's own language where the data has it,
+ * then English, then the local name — never the local script as a second
+ * line under it ("Labels in the reader's language only", the trip-maps plan).
+ * Protomaps' own text-field adds that second line for non-Latin scripts.
+ */
+function oneLanguage<L extends { type: string; layout?: Record<string, unknown> }>(layer: L, lang: string): L {
+  if (layer.type !== "symbol" || !layer.layout || !("text-field" in layer.layout)) return layer;
+  return {
+    ...layer,
+    layout: {
+      ...layer.layout,
+      "text-field": ["coalesce", ["get", `name:${lang}`], ["get", "name:en"], ["get", "name"]],
+    },
+  };
+}
+
 export function paperStyle(
   pmtilesUrl: string,
   scheme: "light" | "dark",
@@ -109,9 +126,9 @@ export function paperStyle(
   const worldLayers = layers("world", flavor, opts)
     .filter((l) => WORLD_LAYER_IDS.has(l.id))
     .map((l) => ({ ...l, id: `${l.id}-world` }));
-  const regionLayers = layers("protomaps", flavor, opts).filter(
-    (l) => l.id !== POI_LAYER_ID && !WORLD_LAYER_IDS.has(l.id),
-  );
+  const regionLayers = layers("protomaps", flavor, opts)
+    .filter((l) => l.id !== POI_LAYER_ID && !WORLD_LAYER_IDS.has(l.id))
+    .map((l) => oneLanguage(l, opts.lang));
   return {
     version: 8,
     glyphs: "/api/maps/fonts/{fontstack}/{range}.pbf",
