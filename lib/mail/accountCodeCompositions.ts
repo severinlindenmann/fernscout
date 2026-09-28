@@ -27,6 +27,7 @@ export function composeOwnerEmailMovedMail(params: {
     subject: t("mail.ownerEmailMovedSubject", vars),
     content: {
       template: "notice.moved",
+      locale,
       preheader: t("mail.ownerEmailMovedPreheader", vars),
       title: t("mail.ownerEmailMovedTitle"),
       blocks: [
