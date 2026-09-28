@@ -3,8 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { appendFixes, gpsDir, metresBetween } from "@/lib/gps/store";
-import { deriveTripTrack } from "@/lib/gps/api";
-import { readTail, readTrack, readerTrack } from "@/lib/gps/track";
+import { deriveTripTrack, purgeGpsHistory, writeZones } from "@/lib/gps/api";
+import { liveTailStatus, readTail, readTrack, readerTrack, writeTail } from "@/lib/gps/track";
 import { writeExcludeZones } from "@/lib/gps/enrich";
 import { writeTripFixture } from "./fixtures/content";
 import type { Fix } from "@/importers/gps/schema";
@@ -22,11 +22,16 @@ vi.mock("next/headers", () => ({
 /**
  * B2536 — who sees where the owner was less than 24h ago.
  *
- * Public: never, whatever the trip's own setting says. A named guest of the
- * trip: live by default, or the same ≥24h line as everyone else when the
- * trip's own `guestsLive` is `false`. The owner: always. A bearer token, any
- * scope: never — structurally, because no route under `/api/**` ever calls
- * `readerTrack` with `live: true` or reads `track-recent.json` at all.
+ * Keyed on the trip's own visibility (D6, `lib/tripGate.ts`'s
+ * `mayReadLiveTrack`): a `public` trip is never live for anyone but the
+ * journal's real owner (never the instance operator); a `guest` trip is
+ * live by default, or 24h-late for everyone once the trip's own
+ * `guestsLive` is `false`; a `private` trip is live for the travellers who
+ * were there. A bearer token, any scope: never — no route under `/api/**`
+ * ever calls `readerTrack` with `live: true`, `track-recent.json` is
+ * excluded from the sync manifest (`lib/sync/manifest.ts`) and from every
+ * export (`lib/exportZip.ts`), and a stale tail (derived more than 24h ago)
+ * is refused regardless of who is asking.
  */
 
 const OWNER = "ana";
@@ -135,6 +140,43 @@ describe("the derived tail — B2536", () => {
     expect(lats.some((lat) => Math.abs(lat - 37.9) < 0.05)).toBe(true);
   });
 
+  test("liveTailStatus reports minutesAgo only once a tail segment actually survives for this reader's visible dates", () => {
+    const recent = recentWalk(now - 2 * 60_000, 37.9, -8.9);
+    appendFixes(OWNER, recent);
+    deriveTripTrack(OWNER, { id: TRIP, start: START_DATE, end: END_DATE });
+
+    const tail = readTail(OWNER, TRIP);
+    expect(tail).toBeDefined();
+    const tailDates = new Set(tail!.segments.map((s) => s.day).filter((d): d is string => !!d));
+
+    // The real dates: a status.
+    const visible = liveTailStatus(OWNER, TRIP, tailDates);
+    expect(visible).toBeDefined();
+    expect(visible!.minutesAgo).toBeGreaterThanOrEqual(0);
+    expect(visible!.minutesAgo).toBeLessThan(5);
+
+    // A reader shown no date the tail's own segments carry (e.g. no day
+    // written for today yet) — undefined, never a stray badge with nothing
+    // under it.
+    expect(liveTailStatus(OWNER, TRIP, new Set(["1999-01-01"]))).toBeUndefined();
+  });
+
+  test("readerTrack(live=true) drops a stale tail, and liveTailStatus reports nothing for it — never a stale \"N min ago\"", () => {
+    const recent = recentWalk(now - 2 * 60_000, 37.9, -8.9);
+    appendFixes(OWNER, recent);
+    deriveTripTrack(OWNER, { id: TRIP, start: START_DATE, end: END_DATE });
+
+    const tail = readTail(OWNER, TRIP)!;
+    const visibleDates = new Set(tail.segments.map((s) => s.day).filter((d): d is string => !!d));
+    // The trip's own store still has a tail file, but nothing has
+    // re-derived it in (say) two days — the file itself has aged out of
+    // "the last 24h" even though nothing on disk changed.
+    writeTail(OWNER, TRIP, { ...tail, generated: new Date(now - 25 * 3600_000).toISOString() });
+
+    expect(readerTrack(OWNER, TRIP, visibleDates, true)).toBeUndefined();
+    expect(liveTailStatus(OWNER, TRIP, visibleDates)).toBeUndefined();
+  });
+
   test("the tail carries no point inside a private zone", () => {
     // Sixty points, ~170m apart (~10km end to end) — long enough that each
     // half, after the zone cut AND the 500m end-trim, still has points left
@@ -185,6 +227,28 @@ describe("the derived tail — B2536", () => {
     expect(readTail(OWNER, TRIP)).toBeUndefined();
   });
 
+  test("purgeGpsHistory deletes the tail immediately — the live dot must not survive a purge", () => {
+    const recent = recentWalk(now - 2 * 60_000, 37.9, -8.9);
+    appendFixes(OWNER, recent);
+    deriveTripTrack(OWNER, { id: TRIP, start: START_DATE, end: END_DATE });
+    expect(readTail(OWNER, TRIP)).toBeDefined();
+
+    purgeGpsHistory(OWNER, { all: true });
+
+    expect(readTail(OWNER, TRIP)).toBeUndefined();
+  });
+
+  test("writeZones deletes every trip's tail immediately — a fresh zone must not wait for the next import to take effect on the live dot", () => {
+    const recent = recentWalk(now - 2 * 60_000, 37.9, -8.9);
+    appendFixes(OWNER, recent);
+    deriveTripTrack(OWNER, { id: TRIP, start: START_DATE, end: END_DATE });
+    expect(readTail(OWNER, TRIP)).toBeDefined();
+
+    writeZones(OWNER, [{ label: "home", lat: 37.9, lon: -8.9, radiusM: 500 }]);
+
+    expect(readTail(OWNER, TRIP)).toBeUndefined();
+  });
+
   test("deleting content/<user>/gps/ entirely leaves both derived files, and the trip, rendering exactly as before", () => {
     const old = recentWalk(now - 26 * 3600_000, 37.1, -8.5);
     const recent = recentWalk(now - 2 * 60_000, 37.9, -8.9);
@@ -212,6 +276,8 @@ describe("mayReadLiveTrack — B2536", () => {
   const LIVE_ON = "live-on-2026";
   const LIVE_OFF = "live-off-2026";
   const PUBLIC_TRIP = "public-2026";
+  const PRIVATE_TRIP = "private-2026";
+  const ADMIN_EMAIL = "operator@example.test";
   const tokens: Record<string, string | null> = { anonymous: null };
 
   function as(viewer: string) {
@@ -254,6 +320,11 @@ describe("mayReadLiveTrack — B2536", () => {
     process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
     process.env.CONTACTS_ENCRYPTION_KEY = "44".repeat(32);
     process.env.SESSION_SECRET = "55".repeat(32);
+    // B2536 item 6 — the operator address owns every journal (`isOwner`
+    // answers yes for it, B480), and `mayReadLiveTrack` must refuse it
+    // anyway: an instance operator must not see where every journal's real
+    // owner physically is by opening their trip.
+    process.env.FERNSCOUT_ADMIN_EMAIL = ADMIN_EMAIL;
     config();
 
     const { clearConfigCache } = await import("@/lib/config");
@@ -287,8 +358,17 @@ describe("mayReadLiveTrack — B2536", () => {
       end: "2026-08-26",
       visibility: "public",
       listed: true,
+      people: [{ name: "Robin", email: ROBIN_EMAIL }],
       intro: "x",
-      guestsLive: true, // even set true, a public reader must never see it.
+      guestsLive: true, // even set true, a public trip is 24h-late for everyone but the owner.
+    });
+    writeTripFixture(OWNER, {
+      id: PRIVATE_TRIP,
+      start: "2026-08-25",
+      end: "2026-08-26",
+      visibility: "private",
+      people: [{ name: "Robin", email: ROBIN_EMAIL }],
+      intro: "x",
     });
 
     await addApprovedContact(GUEST_EMAIL);
@@ -303,7 +383,7 @@ describe("mayReadLiveTrack — B2536", () => {
     const { listContacts } = await import("@/lib/contacts");
     const robinContact = (await listContacts(OWNER)).find((c) => c.email === ROBIN_EMAIL);
     if (!robinContact) throw new Error("no contact for robin");
-    for (const id of [LIVE_ON, LIVE_OFF]) {
+    for (const id of [LIVE_ON, LIVE_OFF, PUBLIC_TRIP, PRIVATE_TRIP]) {
       await claimTripPlace(OWNER, id, robinContact.id, null);
     }
     await approveTripPlaces(OWNER, robinContact.id);
@@ -312,6 +392,9 @@ describe("mayReadLiveTrack — B2536", () => {
     tokens.robin = await signIn(ROBIN_EMAIL);
     tokens.guest = await signIn(GUEST_EMAIL);
     tokens.stranger = await signIn(STRANGER_EMAIL);
+    // The instance operator, signed in to THIS journal (not its own) —
+    // exactly how B480's admin reach works: one address, every journal.
+    tokens.admin = await signIn(ADMIN_EMAIL);
   });
 
   afterAll(async () => {
@@ -321,6 +404,7 @@ describe("mayReadLiveTrack — B2536", () => {
     delete process.env.DATABASE_URL;
     delete process.env.CONTACTS_ENCRYPTION_KEY;
     delete process.env.SESSION_SECRET;
+    delete process.env.FERNSCOUT_ADMIN_EMAIL;
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
@@ -331,34 +415,49 @@ describe("mayReadLiveTrack — B2536", () => {
     return t;
   }
 
-  test("the owner always sees it live — even on a trip with guestsLive: false", async () => {
+  test("the owner always sees it live — even on a trip with guestsLive: false, or a public one", async () => {
     const { mayReadLiveTrack } = await import("@/lib/tripGate");
     as("owner");
     expect(await mayReadLiveTrack(await trip(LIVE_ON))).toBe(true);
     expect(await mayReadLiveTrack(await trip(LIVE_OFF))).toBe(true);
+    expect(await mayReadLiveTrack(await trip(PUBLIC_TRIP))).toBe(true);
+    expect(await mayReadLiveTrack(await trip(PRIVATE_TRIP))).toBe(true);
   });
 
-  test("a traveller on the trip sees it live by default, and not when guestsLive is false", async () => {
+  test("the instance operator is not the journal's owner here, even though isOwner() says yes everywhere else", async () => {
     const { mayReadLiveTrack } = await import("@/lib/tripGate");
-    as("robin");
-    expect(await mayReadLiveTrack(await trip(LIVE_ON))).toBe(true);
+    const { isOwner } = await import("@/lib/contacts/session");
+    as("admin");
+    // The premise: the operator really does pass every OTHER owner-only
+    // gate on this journal (B480) — otherwise this test would prove nothing.
+    expect(await isOwner(OWNER)).toBe(true);
+    expect(await mayReadLiveTrack(await trip(LIVE_ON))).toBe(false);
     expect(await mayReadLiveTrack(await trip(LIVE_OFF))).toBe(false);
+    expect(await mayReadLiveTrack(await trip(PRIVATE_TRIP))).toBe(false);
+    expect(await mayReadLiveTrack(await trip(PUBLIC_TRIP))).toBe(false);
   });
 
-  test("an approved journal guest sees it live by default, and not when guestsLive is false", async () => {
+  test("a guest trip: live by default, and not when guestsLive is false — for a traveller and for an approved guest alike", async () => {
     const { mayReadLiveTrack } = await import("@/lib/tripGate");
-    as("guest");
-    expect(await mayReadLiveTrack(await trip(LIVE_ON))).toBe(true);
-    expect(await mayReadLiveTrack(await trip(LIVE_OFF))).toBe(false);
+    for (const viewer of ["robin", "guest"]) {
+      as(viewer);
+      expect(await mayReadLiveTrack(await trip(LIVE_ON))).toBe(true);
+      expect(await mayReadLiveTrack(await trip(LIVE_OFF))).toBe(false);
+    }
   });
 
-  test("a public reader — signed in or not — never sees it live, whatever guestsLive says", async () => {
+  test("a public trip is 24h-late for everyone but the owner — a traveller and an approved guest included, whatever guestsLive says", async () => {
     const { mayReadLiveTrack } = await import("@/lib/tripGate");
-    for (const viewer of ["anonymous", "stranger"]) {
+    for (const viewer of ["robin", "guest", "anonymous", "stranger"]) {
       as(viewer);
       expect(await mayReadLiveTrack(await trip(PUBLIC_TRIP))).toBe(false);
-      expect(await mayReadLiveTrack(await trip(LIVE_ON))).toBe(false);
     }
+  });
+
+  test("a private trip is live for the traveller who was there", async () => {
+    const { mayReadLiveTrack } = await import("@/lib/tripGate");
+    as("robin");
+    expect(await mayReadLiveTrack(await trip(PRIVATE_TRIP))).toBe(true);
   });
 });
 

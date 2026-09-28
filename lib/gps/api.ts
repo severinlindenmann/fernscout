@@ -334,7 +334,19 @@ export function gpsMonthsHeld(username: string): string[] {
  * The standalone purge (B1843 addendum) — whole months by name, or every
  * month this journal holds. Bytes are actually removed (`deleteMonths`).
  * Already-drawn `trips/<trip>/track.json` files are a different, published
- * artefact and survive untouched.
+ * artefact and survive untouched — deleting the store changes nothing about
+ * a route already published, the same guarantee `docs/gps.md` states for
+ * `content/<user>/gps/` as a whole.
+ *
+ * **`track-recent.json` is the opposite case, and it does not survive —
+ * B2536 security review.** The live tail's whole claim is "this is the
+ * store as of the last 24h"; a purge that removes exactly the fixes it was
+ * built from leaves it answering for data that no longer exists, and a
+ * reader with `mayReadLiveTrack` still true would keep being shown it until
+ * the next import happened to re-derive it. Deleted outright for every
+ * trip, not re-derived: this is a security-adjacent action (an owner
+ * choosing to discard their own history), so the honest answer is nothing
+ * drawn at all until a real import re-derives it, never a stale one.
  */
 export function purgeGpsHistory(
   username: string,
@@ -346,6 +358,7 @@ export function purgeGpsHistory(
   // a purge result that lies about its own effect.
   const months = "all" in selection ? [...held] : selection.months.filter((m) => held.has(m));
   deleteMonths(username, months);
+  for (const trip of getTrips(username)) deleteTail(username, trip.id);
   return { monthsDeleted: months, monthsHeld: listMonths(username) };
 }
 
@@ -494,6 +507,14 @@ export function listZones(username: string): { zones: ExcludeZone[]; homeDecline
  * around this call answers the same `unreadable_zones` refusal `GET` does,
  * which is honest about what actually failed (the confirming read, not the
  * write) without leaking which write, if any, is now on disk.
+ *
+ * **Every trip's `track-recent.json` is deleted here too — B2536 security
+ * review.** `track.json` is left for the next explicit `POST …/track` or
+ * import to pick the new zone up, the same as it always has been; the live
+ * tail cannot wait for that, because a reader with `mayReadLiveTrack` true
+ * keeps seeing it in the meantime. A fresh zone the owner just typed in must
+ * cut the *live* dot off from the moment they save it, not from the next
+ * time their phone happens to check in.
  */
 export function writeZones(
   username: string,
@@ -502,6 +523,7 @@ export function writeZones(
 ): { zones: ExcludeZone[]; homeDeclined: boolean } {
   writeExcludeZones(username, zones);
   if (homeDeclined !== undefined) writeHomeDeclined(username, homeDeclined);
+  for (const trip of getTrips(username)) deleteTail(username, trip.id);
   return listZones(username);
 }
 

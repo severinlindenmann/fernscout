@@ -145,13 +145,22 @@ export function deleteTail(username: string, tripId: string): void {
  * **the one place that decides whether this particular viewer may see where
  * the owner was less than 24h ago.** Every caller resolves it from
  * `lib/tripGate.ts`'s `mayReadLiveTrack` (owner always, a named guest unless
- * the trip's own `guestsLive` says otherwise, a stranger never) and nowhere
- * else — this function trusts whatever its caller sends, the same way it
- * already trusts `visibleDates`. Every caller is a page rendered behind a
- * browser cookie (`app/at/**`, the export, the story build); no bearer token
- * reaches any of them (AGENTS.md: "an agent token reaches `/api/…` and never
- * a rendered page"), so a `write:gps` token — or any other scope — never
- * reaches this branch at all, structurally, not by a check here.
+ * the trip's own `guestsLive` says otherwise, a public reader or the
+ * operator reading somebody else's journal never) and nowhere else — this
+ * function trusts whatever its caller sends, the same way it already trusts
+ * `visibleDates`. Every caller reading `app/`, `components/` or an export is
+ * a page rendered behind a browser cookie; no bearer token reaches any of
+ * them (AGENTS.md: "an agent token reaches `/api/…` and never a rendered
+ * page"). `track-recent.json` itself is also excluded from the sync
+ * manifest (`lib/sync/manifest.ts`) and from every export
+ * (`lib/exportZip.ts`), so a bearer token has no route to it even outside
+ * this one.
+ *
+ * The tail is only merged in when it is itself still fresh — `tailIsLive`
+ * below, under 24h since it was derived. Derivation only runs when
+ * something imports or re-derives (`deriveTripTrack`, `lib/gps/api.ts`), so
+ * a trip nobody has touched in two days would otherwise keep answering
+ * "live" with a tail that has quietly aged out from under it.
  */
 export function readerTrack(
   username: string,
@@ -164,12 +173,48 @@ export function readerTrack(
     (s) => s.day !== undefined && visibleDates.has(s.day),
   );
   const tail = live ? readTail(username, tripId) : undefined;
-  const tailSegments = (tail?.segments ?? []).filter(
-    (s) => s.day !== undefined && visibleDates.has(s.day),
-  );
+  const tailSegments =
+    tail && tailIsLive(tail)
+      ? tail.segments.filter((s) => s.day !== undefined && visibleDates.has(s.day))
+      : [];
   const all = [...segments, ...tailSegments];
   if (all.length === 0) return undefined;
   return { generated: track?.generated ?? tail?.generated ?? "", segments: all };
+}
+
+/**
+ * "Here now" copy for the map page — B2536. Reports a minute count only when
+ * the tail is both fresh (`tailIsLive`) and actually has something to show
+ * *this* reader once `visibleDates` narrows it — the same two conditions
+ * `readerTrack`'s own `live` branch above checks, asked here so a caller can
+ * draw the dot and the "updated N min ago" copy from the same filtered
+ * answer rather than a raw, unfiltered `readTail()` that might belong to a
+ * day this reader cannot see, or might be two days stale (never a live "4000
+ * min ago").
+ */
+export function liveTailStatus(
+  username: string,
+  tripId: string,
+  visibleDates: ReadonlySet<string>,
+): { minutesAgo: number } | undefined {
+  const tail = readTail(username, tripId);
+  if (!tail || !tailIsLive(tail)) return undefined;
+  const visible = tail.segments.some((s) => s.day !== undefined && visibleDates.has(s.day));
+  if (!visible) return undefined;
+  return { minutesAgo: minutesSinceGenerated(tail) };
+}
+
+/** Longer than this since a tail was derived, and it no longer represents
+ * "the last 24h" — it represents whatever the store happened to hold the
+ * last time something re-derived it, which is a different and staler claim.
+ * Mirrors `MIN_AGE_MS` in `lib/gps/api.ts`: the tail's own promise is never
+ * to be older than this. */
+const TAIL_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function tailIsLive(tail: Track): boolean {
+  const generated = Date.parse(tail.generated);
+  if (Number.isNaN(generated)) return false;
+  return Date.now() - generated < TAIL_MAX_AGE_MS;
 }
 
 /**
@@ -203,6 +248,6 @@ export function trackPointCount(track: Track): number {
  * function rather than inline `Date.now()` in a page component's render
  * body, which the React Compiler's impure-call check refuses.
  */
-export function minutesSinceGenerated(track: Track): number {
+function minutesSinceGenerated(track: Track): number {
   return Math.max(0, Math.round((Date.now() - Date.parse(track.generated)) / 60_000));
 }

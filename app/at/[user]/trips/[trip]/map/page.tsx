@@ -6,7 +6,7 @@ import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
-import { minutesSinceGenerated, readerTrack, readTail } from "@/lib/gps/track";
+import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { getTrip, tripRef } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
 import RouteBoundary from "@/components/RouteBoundary";
@@ -88,8 +88,10 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
   // B2536 — same resolution the bare map page makes; see its own comment.
   const live = await mayReadLiveTrack(trip);
-  const tail = live ? readTail(trip.username, trip.id) : undefined;
-  const liveTail = tail ? { minutesAgo: minutesSinceGenerated(tail) } : undefined;
+  const visibleDates = new Set(days.map((d) => d.date));
+  // The same filtered, freshness-checked answer `readerTrack` draws the dot
+  // from below — never a raw, unfiltered `readTail()`.
+  const liveTail = live ? liveTailStatus(trip.username, trip.id, visibleDates) : undefined;
   return (
     <MapPageContent
       places={places}
@@ -97,7 +99,7 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
       // B665, and behind `mayReadTrip` in the page above like everything
       // else here.
       track={
-        readerTrack(trip.username, trip.id, new Set(days.map((d) => d.date)), live)?.segments.map(
+        readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map(
           (s) => s.points,
         ) ?? []
       }
