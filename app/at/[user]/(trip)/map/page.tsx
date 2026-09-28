@@ -8,7 +8,7 @@ import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
-import { readerTrack, readTail } from "@/lib/gps/track";
+import { minutesSinceGenerated, readerTrack, readTail } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import { isOver } from "@/lib/tripTime";
@@ -172,9 +172,7 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   // owner's phone last check in" without ever reading a fix's own
   // timestamp (`Track` carries one instant per file, not per point).
   const tail = live ? readTail(trip.username, trip.id) : undefined;
-  const liveTail = tail
-    ? { minutesAgo: Math.max(0, Math.round((Date.now() - Date.parse(tail.generated)) / 60_000)) }
-    : undefined;
+  const liveTail = tail ? { minutesAgo: minutesSinceGenerated(tail) } : undefined;
   return (
     <MapPageContent
       places={places}

@@ -196,3 +196,13 @@ export function dayTrack(
 export function trackPointCount(track: Track): number {
   return track.segments.reduce((total, s) => total + s.points.length, 0);
 }
+
+/**
+ * How long ago a `Track` file was derived, in whole minutes — the map
+ * page's own "updated N min ago" copy for the live tail (B2536). A plain
+ * function rather than inline `Date.now()` in a page component's render
+ * body, which the React Compiler's impure-call check refuses.
+ */
+export function minutesSinceGenerated(track: Track): number {
+  return Math.max(0, Math.round((Date.now() - Date.parse(track.generated)) / 60_000));
+}

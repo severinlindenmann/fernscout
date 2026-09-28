@@ -6,7 +6,7 @@ import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
-import { readerTrack, readTail } from "@/lib/gps/track";
+import { minutesSinceGenerated, readerTrack, readTail } from "@/lib/gps/track";
 import { getTrip, tripRef } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
 import RouteBoundary from "@/components/RouteBoundary";
@@ -89,9 +89,7 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   // B2536 — same resolution the bare map page makes; see its own comment.
   const live = await mayReadLiveTrack(trip);
   const tail = live ? readTail(trip.username, trip.id) : undefined;
-  const liveTail = tail
-    ? { minutesAgo: Math.max(0, Math.round((Date.now() - Date.parse(tail.generated)) / 60_000)) }
-    : undefined;
+  const liveTail = tail ? { minutesAgo: minutesSinceGenerated(tail) } : undefined;
   return (
     <MapPageContent
       places={places}
