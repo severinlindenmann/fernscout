@@ -340,10 +340,10 @@ export default function Landing({
         repository={repository}
         credit={credit}
         legal={legal}
+        // Inside the iPhone app only, and only once we know nobody is
+        // signed in: point the app at the reader's own server.
+        serverChoice={phase === "out" && <ServerChoice signedIn={false} />}
       />
-      {/* Inside the iPhone app only, and only once we know nobody is
-          signed in: point the app at the reader's own server. */}
-      {phase === "out" && <ServerChoice signedIn={false} />}
     </>
   );
 }
