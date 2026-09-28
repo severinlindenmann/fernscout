@@ -9,6 +9,12 @@
 # a deploy is a pull, an install, a build and a restart. That is the whole
 # story, and it is why there is no Docker here.
 #
+# Nor is dev's build promoted to prod (B2557). A build is not
+# instance-independent: pages prerendered at build time bake in the
+# instance's own content and site config, and dev's content is not prod's —
+# promoted bytes would serve dev's journals on fernscout.ch. Each instance
+# builds its own.
+#
 # What it is *not* is the same eight steps whatever arrived. B258: `npm ci`
 # rewrote node_modules against a lockfile it already had, `db:migrate` started
 # a tsx process to find nothing to do, and `install-units.sh` rewrote units
@@ -43,6 +49,8 @@ skip() { printf '    \033[2m%-9s skipped — %s\033[0m\n' "$1" "$2"; }
 # stale site.
 # ---------------------------------------------------------------------------
 do_install=0 do_migrate=0 do_build=0 do_units=0 do_caddy=0 do_restart=0
+# What this run actually did, for fail_after_restart (B2556).
+MIGRATED=0 SWAPPED=0
 notes=()
 
 note() {
@@ -448,6 +456,9 @@ if [ "$do_migrate" = 1 ]; then
   log "running migrations (no-op when DATABASE_URL is unset)"
   if [ -n "${DATABASE_URL:-}" ]; then
     as_service npm run db:migrate
+    # B2556: the schema only moves forward, so a deploy that migrated is never
+    # rolled back onto the build that predates it (see fail_after_restart).
+    MIGRATED=1
   else
     echo "    DATABASE_URL unset — running without a database (supported)"
   fi
@@ -507,10 +518,38 @@ if [ "$do_build" = 1 ]; then
     fi
   fi
 
+  # B2557: dev and prod build on the same VPS, and a build started through
+  # `runuser` runs outside the dev unit's own CPUQuota — so a dev build took
+  # the CPU prod's live traffic needed. A dev build therefore runs in a
+  # transient systemd scope with its own quota, at a lower priority. Prod's
+  # own build is left as it is: it is the one that should win. Root is needed
+  # for a system scope; without it, or without systemd-run (a laptop), the
+  # build runs plain and the log says so. DEPLOY_SCOPE_UID exists only so a
+  # test can take the root branch without being root.
+  if [ "$SERVICE" != fernscout ]; then
+    if [ "${DEPLOY_SCOPE_UID:-$(id -u)}" -eq 0 ] && command -v systemd-run >/dev/null 2>&1; then
+      BUILD_SCOPE=1
+      log "building ${SERVICE} in a transient scope (systemd-run, CPUQuota=200%, nice 10) so prod keeps the CPU"
+    else
+      BUILD_SCOPE=0
+      log "building ${SERVICE} without a CPU scope (needs root and systemd-run) — it competes with prod for CPU"
+    fi
+  else
+    BUILD_SCOPE=0
+  fi
+  run_build() {
+    if [ "$BUILD_SCOPE" = 1 ]; then
+      systemd-run --scope --quiet -p CPUQuota=200% nice -n 10 \
+        runuser -u "$RUN_AS" -- env NEXT_DIST_DIR="$BUILD_DIR" npm run build
+    else
+      as_service env NEXT_DIST_DIR="$BUILD_DIR" npm run build
+    fi
+  }
+
   log "building into $BUILD_DIR"
   BUILD_LOG="$(mktemp)"
   BUILD_OK=1
-  as_service env NEXT_DIST_DIR="$BUILD_DIR" npm run build 2>&1 | tee "$BUILD_LOG" || BUILD_OK=0
+  run_build 2>&1 | tee "$BUILD_LOG" || BUILD_OK=0
   if [ "$BUILD_OK" = 0 ]; then
     # B1312/B1313: a poisoned Turbopack persistent cache panics on whichever
     # page happens to collect first, which reads like a fault in that page and
@@ -521,7 +560,7 @@ if [ "$do_build" = 1 ]; then
       log "build panicked inside Turbopack — clearing the persistent cache and retrying once"
       rm -f "$BUILD_LOG"
       as_service rm -rf "$BUILD_DIR" node_modules/.cache .turbo
-      as_service env NEXT_DIST_DIR="$BUILD_DIR" npm run build
+      run_build
     else
       rm -f "$BUILD_LOG"
       exit 1
@@ -552,7 +591,7 @@ if [ "$do_build" = 1 ]; then
   log "checking the build"
   if ! as_service node scripts/check-build.mjs "$BUILD_DIR"; then
     log "the build is incomplete — building again before going near the restart"
-    as_service env NEXT_DIST_DIR="$BUILD_DIR" npm run build
+    run_build
     if ! as_service node scripts/check-build.mjs "$BUILD_DIR"; then
       echo "ERROR: two builds of ${HEAD_SHA:0:12} both left pages without a client reference manifest." >&2
       echo "       Nothing was restarted or swapped, so the previous build is still serving." >&2
@@ -639,20 +678,23 @@ if [ "$do_restart" = 1 ] && [ "$do_build" = 1 ]; then
     echo "ERROR: could not move ${BUILD_DIR} into place — ${SERVICE} was started again on the previous build." >&2
     exit 1
   fi
+  SWAPPED=1
 fi
 
+SHA_CONF="/etc/systemd/system/${SERVICE}.service.d/git-sha.conf"
 if [ "$do_restart" = 1 ]; then
   log "recording GIT_SHA=${HEAD_SHA:0:12}"
   if [ "$(id -u)" -eq 0 ]; then
     mkdir -p "/etc/systemd/system/${SERVICE}.service.d"
-    printf '[Service]\nEnvironment=GIT_SHA=%s\n' "$HEAD_SHA" \
-      > "/etc/systemd/system/${SERVICE}.service.d/git-sha.conf"
+    # B2556: the label of what served before, for a rollback to put back.
+    rm -f "$SHA_CONF.prev"
+    if [ -f "$SHA_CONF" ]; then cp "$SHA_CONF" "$SHA_CONF.prev"; fi
+    printf '[Service]\nEnvironment=GIT_SHA=%s\n' "$HEAD_SHA" > "$SHA_CONF"
     # Only when there is a features tree to name — an empty PAID_SHA= would
     # relabel a public-only instance with a features commit it never had, and
     # /api/health treats an unset PAID_SHA as "no features repo," not a lie.
     if [ -n "$PAID_SHA" ]; then
-      printf 'Environment=PAID_SHA=%s\n' "$PAID_SHA" \
-        >> "/etc/systemd/system/${SERVICE}.service.d/git-sha.conf"
+      printf 'Environment=PAID_SHA=%s\n' "$PAID_SHA" >> "$SHA_CONF"
     fi
     systemctl daemon-reload
   fi
@@ -760,8 +802,96 @@ record_deployed() {
   fi
 }
 
+# ---------------------------------------------------------------------------
+# B2556: a restart onto a freshly swapped build that fails any check below
+# used to exit and leave the broken build serving, and the only way back was
+# a revert through PR, CI, dev and prod — half an hour of a broken site. The
+# previous generation is still on disk (.next-prev, $APP_DIR.paid-prev, the
+# saved git-sha.conf), so it is put back here, in the time a restart takes.
+#
+# Never across a migration: the schema only moves forward, and the build
+# that predates it may not read what it became. That deploy stays up and
+# says so, loudly, for a person to fix forward. A run that swapped nothing
+# (no build) has nothing to go back to and keeps the old behaviour.
+#
+# Always exit 1: a rollback is a failed deploy, never a successful one, and
+# $STATE_FILE is not advanced either way.
+# ---------------------------------------------------------------------------
+HEALTH_WAIT="${DEPLOY_HEALTH_WAIT:-30}"
+
+fail_after_restart() {
+  echo "ERROR: $1" >&2
+  [ "$SWAPPED" = 1 ] || exit 1
+  if [ "$MIGRATED" = 1 ]; then
+    echo "NOT ROLLING BACK: this deploy ran database migrations, and the schema only moves forward —" >&2
+    echo "       the previous build may not read it. ${HEAD_SHA:0:12} stays in place; fix forward." >&2
+    exit 1
+  fi
+  if [ ! -d .next-prev ]; then
+    echo "NOT ROLLING BACK: there is no .next-prev to go back to." >&2
+    exit 1
+  fi
+  local to="${DEPLOYED:-}"
+  log "rolling back to ${to:+${to:0:12}, }the previous build"
+  sudo systemctl stop "$SERVICE" || true
+  if ! { as_service rm -rf .next-failed && as_service mv .next .next-failed \
+      && as_service mv .next-prev .next; }; then
+    rollback_failed "could not move .next-prev back into place"
+  fi
+  # The checkout too: the server reads site/, content/example and scripts
+  # from it at runtime, not only .next. Detached, like a DEPLOY_SHA deploy.
+  if [ -n "$to" ] && ! as_service git checkout --quiet --detach "$to"; then
+    rollback_failed "could not check out ${to:0:12}"
+  fi
+  # paid/ only when the kept tree is the one that was serving: ship.sh and
+  # the CI wrapper both keep one, and an older one from a deploy before last
+  # must not be swapped in by mistake.
+  if [ -n "$PAID_SHA" ] && [ -n "$DEPLOYED_PAID" ] && [ "$PAID_SHA" != "$DEPLOYED_PAID" ]; then
+    if [ -f "$APP_DIR.paid-prev/.sha" ] \
+      && [ "$(tr -dc '0-9a-f' < "$APP_DIR.paid-prev/.sha" | head -c 40)" = "$DEPLOYED_PAID" ]; then
+      rm -rf "$APP_DIR/paid.failed"
+      if ! { mv "$PAID_DIR" "$APP_DIR/paid.failed" && mv "$APP_DIR.paid-prev" "$PAID_DIR"; }; then
+        rollback_failed "could not move $APP_DIR.paid-prev back into paid/"
+      fi
+    else
+      log "paid/: no kept tree at ${DEPLOYED_PAID:0:12} — leaving ${PAID_SHA:0:12} in place"
+    fi
+  fi
+  if [ "$do_install" = 1 ]; then
+    log "reinstalling dependencies for ${to:0:12} (npm ci)"
+    as_service npm ci || rollback_failed "npm ci failed on ${to:0:12}"
+  fi
+  if [ "$(id -u)" -eq 0 ]; then
+    # No saved copy means none existed: what served before had no label.
+    if [ -f "$SHA_CONF.prev" ]; then mv "$SHA_CONF.prev" "$SHA_CONF"; else rm -f "$SHA_CONF"; fi
+    systemctl daemon-reload
+  fi
+  sudo systemctl start "$SERVICE" || rollback_failed "systemctl start failed"
+  local _ served
+  for _ in $(seq 1 "$HEALTH_WAIT"); do
+    if HEALTH="$(fetch_health)"; then
+      served="$(printf '%s' "$HEALTH" | node -e \
+        'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const c=JSON.parse(s).commit;process.stdout.write(c?String(c):"")}catch{}})' \
+        2>/dev/null)" || served=""
+      if [ -n "$to" ] && [ -n "$served" ] && [ "$served" != "$to" ]; then
+        rollback_failed "/api/health reports ${served:0:12} after rolling back to ${to:0:12}"
+      fi
+      echo "ERROR: deploy of ${HEAD_SHA:0:12} failed — rolled back to ${to:-the previous build} (${SERVICE} healthy)." >&2
+      echo "       The failed build is in .next-failed; journalctl -u ${SERVICE} -n 50 says why." >&2
+      exit 1
+    fi
+    sleep 1
+  done
+  rollback_failed "${SERVICE} did not become healthy in ${HEALTH_WAIT}s on the previous build"
+}
+
+rollback_failed() {
+  echo "ERROR: rollback also failed: $1. ${SERVICE} may be down — journalctl -u ${SERVICE} -n 50." >&2
+  exit 1
+}
+
 log "waiting for health"
-for i in $(seq 1 30); do
+for i in $(seq 1 "$HEALTH_WAIT"); do
   if HEALTH="$(fetch_health)"; then
     log "healthy"
 
@@ -779,8 +909,7 @@ for i in $(seq 1 30); do
       'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const c=JSON.parse(s).commit;process.stdout.write(c?String(c):"")}catch{}})' \
       2>/dev/null)" || SERVED=""
     if [ "$do_restart" = 1 ] && [ -n "$SERVED" ] && [ "$SERVED" != "$HEAD_SHA" ]; then
-      echo "ERROR: restarted ${SERVICE} for ${HEAD_SHA:0:12} but /api/health reports ${SERVED:0:12} is serving. The restart did not adopt the new build — check journalctl -u ${SERVICE} -n 50 before trusting this deploy." >&2
-      exit 1
+      fail_after_restart "restarted ${SERVICE} for ${HEAD_SHA:0:12} but /api/health reports ${SERVED:0:12} is serving. The restart did not adopt the new build — check journalctl -u ${SERVICE} -n 50 before trusting this deploy."
     fi
 
     # B2525: /api/health goes through no proxy rewrite, so it said healthy on
@@ -791,8 +920,7 @@ for i in $(seq 1 30); do
     PAGE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
       -H 'X-Forwarded-Proto: https' "http://127.0.0.1:${PORT:-3000}/@example")" || true
     if [ "${PAGE:-000}" = 000 ] || [ "$PAGE" -ge 500 ]; then
-      echo "ERROR: /api/health is fine but the rewritten page /@example answered ${PAGE:-nothing}. Every /@user page is likely broken — check journalctl -u ${SERVICE} -n 50." >&2
-      exit 1
+      fail_after_restart "/api/health is fine but the rewritten page /@example answered ${PAGE:-nothing}. Every /@user page is likely broken — check journalctl -u ${SERVICE} -n 50."
     fi
 
     record_deployed
@@ -808,5 +936,4 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
-echo "ERROR: did not become healthy in 30s. journalctl -u ${SERVICE} -n 50" >&2
-exit 1
+fail_after_restart "did not become healthy in ${HEALTH_WAIT}s. journalctl -u ${SERVICE} -n 50"
