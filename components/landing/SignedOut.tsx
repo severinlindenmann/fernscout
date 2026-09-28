@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/LanguageLink";
 import type { ReactNode } from "react";
 import { Menu } from "lucide-react";
 import AppWaitlistDoor from "@/components/AppWaitlistDoor";
@@ -11,6 +11,7 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { posterSrc } from "@/components/mediaLoader";
 import { flagFor } from "@/lib/flags";
 import type { DemoDay } from "@/lib/demoDay";
+import { landingFaq, landingHero, landingHow, landingPrints, landingTrust } from "@/lib/landingContent";
 import { KICKER, PILL_GHOST, PILL_PRIMARY, PILL_SMALL, TEXT_LINK } from "./styles";
 
 /**
@@ -133,10 +134,10 @@ export default function SignedOut(props: SignedOutProps) {
             </div>
           )}
           {prints && <Prints {...props} />}
-          <How helperEnabled={helperEnabled} keep={props.postcards && props.photobook} />
+          <How {...props} />
           <Trust />
           {props.pricing}
-          <Faq {...props} cta={cta} prints={prints} />
+          <Faq {...props} cta={cta} />
         </main>
       )}
       <Footer {...props} />
@@ -226,30 +227,21 @@ function Header({
   );
 }
 
-function Hero({
-  demo,
-  photobook,
-  planPoint,
-  appStoreUrl,
-  appWaitlistAvailable,
-  cta,
-}: SignedOutProps & { cta: NavLink | null }) {
+function Hero(props: SignedOutProps & { cta: NavLink | null }) {
+  const { demo, appStoreUrl, appWaitlistAvailable, cta } = props;
   const { t } = useI18n();
-  const points = [planPoint, t("landing.pointPrivate"), t("landing.pointExport")].filter(
-    (p): p is string => Boolean(p),
-  );
+  const hero = landingHero(t, props);
+  const points = hero.points;
   return (
     <section
       className={`${WRAP} grid items-center gap-10 pb-16 pt-6 sm:pt-10 lg:grid-cols-2 lg:gap-16 lg:pb-24 lg:pt-14`}
     >
       <div className="flex flex-col gap-5 lg:gap-6">
-        <p className={KICKER}>{t("landing.heroKicker")}</p>
+        <p className={KICKER}>{hero.kicker}</p>
         <h1 className="font-display text-[clamp(2.4rem,7vw,4.25rem)] font-semibold leading-[1.06] text-ink-strong">
-          {t("landing.hero")}
+          {hero.title}
         </h1>
-        <p className="max-w-[32ch] text-lg leading-relaxed lg:text-xl">
-          {t(photobook ? "landing.ledeBook" : "landing.lede")}
-        </p>
+        <p className="max-w-[32ch] text-lg leading-relaxed lg:text-xl">{hero.lede}</p>
         {(cta || demo) && (
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-3.5">
             {cta && (
@@ -322,8 +314,11 @@ function DemoCard({ demo }: { demo: DemoDay }) {
   );
 }
 
-function Prints({ demo, photobook, printPrices }: SignedOutProps) {
+function Prints(props: SignedOutProps) {
+  const { demo, photobook, printPrices } = props;
   const { t } = useI18n();
+  const block = landingPrints(t, props);
+  if (!block) return null;
   return (
     <section
       id="prints"
@@ -356,11 +351,11 @@ function Prints({ demo, photobook, printPrices }: SignedOutProps) {
         <div className="hidden lg:block" />
       )}
       <div className="flex flex-col gap-5">
-        <p className={KICKER}>{t("landing.navPrints")}</p>
+        <p className={KICKER}>{block.kicker}</p>
         <h2 className="font-display text-[clamp(2rem,5vw,2.75rem)] font-semibold leading-[1.08] text-ink-strong">
-          {t(photobook ? "landing.printsTitle" : "landing.printsTitleCards")}
+          {block.title}
         </h2>
-        <p className="max-w-[38ch] text-lg">{t(photobook ? "landing.printsBody" : "landing.printsBodyCards")}</p>
+        <p className="max-w-[38ch] text-lg">{block.body}</p>
         {printPrices && printPrices.length > 0 && (
           <ul className="flex flex-col border-t border-line-quiet">
             {printPrices.map((row) => (
@@ -376,20 +371,17 @@ function Prints({ demo, photobook, printPrices }: SignedOutProps) {
   );
 }
 
-function How({ helperEnabled, keep }: { helperEnabled: boolean; keep: boolean }) {
+function How(props: SignedOutProps) {
   const { t } = useI18n();
-  const steps = [
-    { title: t("landing.howWrite"), body: t(helperEnabled ? "landing.howWriteBodyHelper" : "landing.howWriteBody") },
-    { title: t("landing.howShare"), body: t("landing.howShareBody") },
-    { title: t("landing.howKeep"), body: t(keep ? "landing.howKeepBody" : "landing.howKeepBodyPlain") },
-  ];
+  const how = landingHow(t, props);
+  const steps = how.steps;
   return (
     <section id="how" className="scroll-mt-4 border-y border-line-quiet bg-surface-raised py-16 lg:py-22">
       <div className={`${WRAP} flex flex-col gap-10`}>
         <div className="flex flex-col gap-3">
-          <p className={KICKER}>{t("landing.navHow")}</p>
+          <p className={KICKER}>{how.kicker}</p>
           <h2 className="max-w-[20ch] font-display text-[clamp(2rem,5vw,2.75rem)] font-semibold leading-[1.08] text-ink-strong">
-            {t("landing.howTitle")}
+            {how.title}
           </h2>
         </div>
         <ol className="grid gap-4 md:grid-cols-3 md:gap-6">
@@ -413,11 +405,7 @@ function How({ helperEnabled, keep }: { helperEnabled: boolean; keep: boolean })
 
 function Trust() {
   const { t } = useI18n();
-  const cards = [
-    { title: t("landing.trustPrivateTitle"), body: t("landing.trustPrivateBody") },
-    { title: t("landing.trustExportTitle"), body: t("landing.trustExportBody") },
-    { title: t("landing.trustOpenTitle"), body: t("landing.trustOpenBody"), link: true },
-  ];
+  const cards = landingTrust(t);
   return (
     <section className={`${WRAP} py-16 lg:pb-26`}>
       <ul className="grid gap-4 md:grid-cols-3 md:gap-6">
@@ -430,7 +418,7 @@ function Trust() {
                 <>
                   {" "}
                   <Link href="/docs" className={TEXT_LINK}>
-                    {t("landing.trustOpenLink")}
+                    {card.link}
                   </Link>
                 </>
               )}
@@ -442,26 +430,15 @@ function Trust() {
   );
 }
 
-function Faq({
-  inviteCta,
-  planFaq,
-  cta,
-  prints,
-  demo,
-}: SignedOutProps & { cta: NavLink | null; prints: boolean }) {
+function Faq(props: SignedOutProps & { cta: NavLink | null }) {
+  const { cta, demo } = props;
   const { t } = useI18n();
-  const items = [
-    ...(inviteCta === "request" ? [{ q: t("landing.faqInviteQ"), a: t("landing.faqInviteA") }] : []),
-    ...(prints ? [{ q: t("landing.faqPrintQ"), a: t("landing.faqPrintA") }] : []),
-    { q: t("landing.faqAppQ"), a: t("landing.faqAppA") },
-    ...(planFaq ?? []).slice(0, 1),
-    { q: t("landing.faqWhoQ"), a: t("landing.faqWhoA") },
-    ...(planFaq ?? []).slice(1),
-  ];
+  const faq = landingFaq(t, props);
+  const items = faq.items;
   return (
     <section className={`${WRAP} flex flex-col gap-9 py-16 lg:py-24`}>
       <h2 className="font-display text-[clamp(1.9rem,4.5vw,2.5rem)] font-semibold leading-[1.1] text-ink-strong">
-        {t("landing.faqTitle")}
+        {faq.title}
       </h2>
       <dl className="grid gap-x-14 gap-y-7 md:grid-cols-2">
         {items.map((item) => (

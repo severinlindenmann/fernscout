@@ -663,6 +663,11 @@ export type OwnerTripLine = { segments: { day?: string; points: [number, number]
  * tens of thousands of points and the point of this view is to see the
  * shape of the travel, not to relay the store byte for byte.
  *
+ * `breakAtDate: false` (B2516) — unlike `deriveTripTrack`, nothing here is
+ * ever filtered by date, so a run does not need to end at midnight; two real
+ * fixes minutes apart either side of it are one continuous run, not two
+ * one-point runs the run-length rule in `deriveTrack` would both drop.
+ *
  * Reachable only from the studio's own owner-cookie door
  * (`app/api/helper/[user]/gps/line/route.ts`) — never a bearer token, never
  * the admin cookie, and there is deliberately no `/api/v2` twin (the owner's
@@ -686,6 +691,7 @@ export function ownerTripLine(username: string, tripId: string): OwnerTripLine |
     // No private zones — the owner's own history, shown to the owner alone.
     zones: [],
     dayTimezones: zones,
+    breakAtDate: false,
     // No `maxEndMs`, no `trimMetres` — see the doc comment above.
   });
   return { segments: track.segments.map((s) => ({ day: s.day, points: s.points })) };

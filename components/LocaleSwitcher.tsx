@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Languages } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useI18n } from "./LocaleProvider";
 import { useOptionalSite } from "./SiteProvider";
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
+import { LANGUAGE_PAGES, languageHref, splitLanguagePath } from "@/lib/languagePaths";
 import { LOCALE_SHORT, LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /** Compact language picker: one small chip that opens a menu, so the header
@@ -32,9 +33,20 @@ export default function LocaleSwitcher({
   const site = useOptionalSite();
   const locales = given ?? site?.locales ?? MAINTAINED_LOCALES;
   const router = useRouter();
+  const pathname = usePathname();
 
   const choose = (next: string) => {
     remember(next);
+    // A page with language addresses goes to the address of the language
+    // picked — `/de/schools`, or `/schools` for one it has none in — B2473.
+    const page = splitLanguagePath(pathname)?.path ?? pathname;
+    if (LANGUAGE_PAGES[page]) {
+      const target = languageHref(next, page) + window.location.search + window.location.hash;
+      if (target !== pathname + window.location.search + window.location.hash) {
+        router.push(target);
+        return;
+      }
+    }
     router.refresh();
   };
   const [open, setOpen] = useState(false);

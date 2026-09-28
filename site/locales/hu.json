@@ -4438,5 +4438,10 @@
   "trips.map.subregion.polynesia": "Polinézia",
   "trips.map.subregion.sevenSeas": "Nyílt óceán",
   "trips.map.all": "Mind",
-  "trips.map.filteredBelow": "lent szűrve"
+  "trips.map.filteredBelow": "lent szűrve",
+  "invitePreview.title": "Meghívó: {title}",
+  "invitePreview.description": "Kövesd az utazást e-mailben vagy WhatsAppon. Alkalmazás nélkül.",
+  "invitePreview.kicker": "Meghívó, hogy velünk olvass",
+  "invitePreview.neutralTitle": "Meghívó",
+  "invitePreview.neutralDescription": "Egy link egy útinaplóhoz."
 }

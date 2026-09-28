@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadServerConfig } from "@/lib/config";
-import { LOCALE_COOKIE, PATH_HEADER } from "@/lib/requestKeys";
+import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, splitLanguagePath, splitMarkdownPath } from "@/lib/languagePaths";
+import { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER } from "@/lib/requestKeys";
 import { formatRequestLine } from "@/lib/requestLog";
 import { journalTombstone, tripTombstone, type Tombstone } from "@/lib/tombstones";
 
@@ -159,6 +160,23 @@ function logRequest(request: NextRequest): void {
   console.log(formatRequestLine(request.method, request.nextUrl.pathname, request.headers.get("user-agent")));
 }
 
+/** Whether a client asked for Markdown ahead of HTML (an agent's fetch, not
+ * a browser, which lists text/html first). */
+function prefersMarkdown(request: NextRequest): boolean {
+  const accept = (request.headers.get("accept") ?? "").toLowerCase();
+  const md = accept.indexOf("text/markdown");
+  if (md < 0) return false;
+  const html = accept.indexOf("text/html");
+  return html < 0 || md < html;
+}
+
+/** The page at `pathname`, when it has a Markdown version. */
+function markdownPage(pathname: string): { locale: string | null; path: string } | null {
+  const language = splitLanguagePath(pathname);
+  if (language) return MARKDOWN_PAGES.includes(language.path) ? language : null;
+  return MARKDOWN_PAGES.includes(pathname) ? { locale: null, path: pathname } : null;
+}
+
 export default function proxy(request: NextRequest) {
   logRequest(request);
 
@@ -173,6 +191,40 @@ export default function proxy(request: NextRequest) {
   // on the hot path this ticket was explicitly told not to slow down.
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
+  // Only this proxy says which language an address asked for — B2473.
+  request.headers.delete(PATH_LOCALE_HEADER);
+
+  // B2488 — the Markdown version of a page, at `/schools.md` or asked for
+  // with `Accept: text/markdown` on the page's own address.
+  const markdown = splitMarkdownPath(pathname) ?? (prefersMarkdown(request) ? markdownPage(pathname) : null);
+  if (markdown) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/api/page-md";
+    url.search = "";
+    url.searchParams.set("path", markdown.path);
+    if (markdown.locale) url.searchParams.set("lang", markdown.locale);
+    // A route handler behind a rewrite sees the address it was asked on,
+    // not the rewritten query — so the page travels as headers too.
+    request.headers.set(PATH_HEADER, markdown.path);
+    if (markdown.locale) request.headers.set(PATH_LOCALE_HEADER, markdown.locale);
+    const response = NextResponse.rewrite(url, { request });
+    response.headers.set("Vary", "Accept");
+    return response;
+  }
+
+  // `/de/schools` is `/schools` in German: rewritten, with the language in a
+  // header the locale resolver reads before any cookie. An address under
+  // /de/ that is not a listed page falls through to the journal route and
+  // 404s — `de`, `fr` and `it` are reserved usernames.
+  const language = splitLanguagePath(pathname);
+  if (language) {
+    request.headers.set(PATH_HEADER, language.path);
+    request.headers.set(PATH_LOCALE_HEADER, language.locale);
+    const url = request.nextUrl.clone();
+    url.pathname = language.path;
+    return NextResponse.rewrite(url, { request });
+  }
+
   const gone = goneFor(pathname);
   if (gone) return gone;
 
@@ -182,6 +234,22 @@ export default function proxy(request: NextRequest) {
   const tag = asked?.trim().toLowerCase();
   const locale = tag && LANGUAGE_TAG.test(tag) ? tag.slice(0, 2) : null;
 
+  // A page with its own address in the asked language: send the link there,
+  // once and for good, so `?lang=de` is not a second URL for /de/schools. The
+  // cookie still goes with it, as it always did.
+  if (locale && isPathLocale(locale) && LANGUAGE_PAGES[pathname]?.includes(locale)) {
+    const url = request.nextUrl.clone();
+    url.searchParams.delete("lang");
+    url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+    const response = NextResponse.redirect(url, 301);
+    response.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+    return response;
+  }
+
+  // No `Vary` for the HTML of these pages: Next sets the header itself on
+  // every app page and overwrites one from here. It also serves them
+  // `private, no-store`, so no shared cache ever holds one to mix up by
+  // cookie, Accept-Language or Accept. The Markdown says `Vary: Accept`.
   if (!locale) return NextResponse.next({ request });
 
   // Whether this journal actually offers the language is decided downstream,
@@ -241,5 +309,7 @@ export const config = {
     "/:user/day/:slug([^/]+)\\.md",
     "/:user/trips/:trip/day/:slug.md",
     "/:user/trips/:trip/day/:slug([^/]+)\\.md",
+    // The pages' Markdown versions (B2488) — `.md` is excluded above.
+    "/((?:de/|fr/|it/)?(?:index|prices|schools|schools/demo|tour-operators|tour-operators/demo|guides/[a-z-]+)\\.md)",
   ],
 };

@@ -2,6 +2,7 @@
   "root": {
     "paid": [
       "credits",
+      "guides",
       "orgs",
       "photobook"
     ],
@@ -236,6 +237,11 @@
       "invite.ownerBody",
       "invite.ownerTitle",
       "invite.share",
+      "invitePreview.description",
+      "invitePreview.kicker",
+      "invitePreview.neutralDescription",
+      "invitePreview.neutralTitle",
+      "invitePreview.title",
       "inviteRequest.mailBody",
       "inviteRequest.mailFooter",
       "inviteRequest.mailSubject",
