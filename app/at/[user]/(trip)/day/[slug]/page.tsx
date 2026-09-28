@@ -6,6 +6,7 @@ import { currentTripRef, getTrip } from "@/lib/trips";
 import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getUser } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
+import { dayCardFor } from "@/lib/map/tripCard";
 import { DayStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
@@ -14,7 +15,6 @@ import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
-import { dayTrack } from "@/lib/gps/track";
 import type { UserConfig } from "@/lib/config";
 import type { Entry, Trip } from "@/lib/types";
 
@@ -135,7 +135,7 @@ async function CurrentDayBody({
   site: SiteSummary;
   userConfig: UserConfig;
 }) {
-  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats } = buildStoryProps(trip.ref, {
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
     ...read,
@@ -144,9 +144,9 @@ async function CurrentDayBody({
     locale: await requestLocale(),
   });
 
-  // This day's own part of the recorded route — B2199. See the equivalent
-  // call in the /trips/<id>/day/<slug> route for what `visibleDates` is.
-  const track = dayTrack(trip.username, trip.id, new Set(index.map((d) => d.date)), entry.date);
+  // This day's own preview card — B2538. See the equivalent call in the
+  // /trips/<id>/day/<slug> route.
+  const card = await dayCardFor(trip, index, entry.date);
 
   return (
     <>
@@ -166,9 +166,7 @@ async function CurrentDayBody({
         initialDate={initialDate}
         openAtDate={entry.date}
         stats={stats}
-        basemap={basemap}
-        locals={locals}
-        dayTrack={track}
+        card={card}
       />
     </>
   );

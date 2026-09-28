@@ -5,7 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { basemapForRoute } from "@/lib/basemap";
 import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
-import { buildStoryProps, showsCountdown, tripTrackFor } from "@/lib/tripView";
+import { buildStoryProps, showsCountdown } from "@/lib/tripView";
+import { tripCardFor } from "@/lib/map/tripCard";
 import { getPlan, getPlanPrivate, stopsForReaders } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
 import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
@@ -176,7 +177,7 @@ async function TripStoryBody({
   site: SiteSummary;
   userConfig: UserConfig;
 }) {
-  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats } = buildStoryProps(trip.ref, {
     showCosts,
     ...read,
     // The window's prose is rendered here, in this reader's language — see
@@ -186,10 +187,10 @@ async function TripStoryBody({
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // gallery page.
   const photobook = await photobookEntryFor(trip);
-  // The trip's own recorded line — B2449. `index` is already this reader's
+  // The hero's still preview card — B2538. `index` is already this reader's
   // date list (drafts and visibility applied by `buildStoryProps` above), the
-  // same set `tripTrackFor` filters `track.json` against.
-  const tripTrack = tripTrackFor(trip, index);
+  // same set `tripCardFor` reads places and the recorded line from.
+  const card = await tripCardFor(trip, index);
   return (
     <>
       <BlogStructuredData
@@ -206,10 +207,8 @@ async function TripStoryBody({
         windowStart={windowStart}
         initialDate={initialDate}
         stats={stats}
-        basemap={basemap}
-        locals={locals}
+        card={card}
         photobook={photobook}
-        tripTrack={tripTrack}
         // B10 — who took this trip, visible on the page itself rather than
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}

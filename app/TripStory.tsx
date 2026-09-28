@@ -12,7 +12,7 @@ import PagerNav, { type PagerNavState } from "@/components/PagerNav";
 import ReactionsProvider from "@/components/ReactionsProvider";
 import StoryPager, { buildSteps } from "@/components/StoryPager";
 import TripHero from "@/components/TripHero";
-import type { Basemap } from "@/lib/basemap";
+import type { TripCard } from "@/lib/map/tripCard";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -52,12 +52,9 @@ export default function TripStory({
   initialDate,
   openAtDate,
   stats,
-  basemap = null,
-  locals,
+  card = null,
   photobook,
   travellerNames,
-  dayTrack,
-  tripTrack,
   madeWith,
 }: {
   /** Every day of the trip, cheaply. */
@@ -74,10 +71,14 @@ export default function TripStory({
   /** A specific day to open at, from the /day/<slug> route. */
   openAtDate?: string;
   stats: HeroStats;
-  /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
-  basemap?: Basemap | null;
-  /** One town-scale basemap per stop area — see `components/TripMap.tsx`. */
-  locals?: Record<string, Basemap>;
+  /**
+   * The hero's still preview card, rendered on the server — B2538. The
+   * overview passes the whole trip's own card (`tripCardFor`), a
+   * `/day/<slug>` permalink passes that day's own card instead
+   * (`dayCardFor`, lib/map/tripCard.ts) — never both, and `null` for a trip
+   * or day with no place at all (B1260).
+   */
+  card?: TripCard | null;
   /**
    * Present only for the journal's owner, on a journal with photobook and
    * credits switched on — B569. See `TripHero`, which is the only place this
@@ -89,21 +90,6 @@ export default function TripStory({
    * lands, and until now the only page that named them was the one about
    * money. */
   travellerNames?: string;
-  /**
-   * The recorded route for `openAtDate` — B2199. Only the `/day/<slug>`
-   * routes pass this; the overview and `/trips/<id>` pages leave it out and
-   * the hero's map draws no track, as before. See `TripMap`'s own doc for
-   * what it draws.
-   */
-  dayTrack?: [number, number][][];
-  /**
-   * The trip's own recorded line — B2449, `tripTrackFor` in lib/tripView.ts.
-   * Only the overview (`/trips/<id>` and the bare current-trip URL) pass
-   * this; a `/day/<slug>` permalink passes `dayTrack` instead, and `TripMap`
-   * draws the recorded line over the stop-to-stop hops whichever one it
-   * gets.
-   */
-  tripTrack?: [number, number][][];
   /** The instance's name for the "Made with" line — `madeWithFor` in
    *  lib/site.ts; absent on a page that is not public (B2485). */
   madeWith?: string;
@@ -609,12 +595,8 @@ export default function TripStory({
               landingDay && (
                 <TripHero
                   stats={stats}
-                  route={index}
                   current={landingDay}
-                  track={dayTrack}
-                  tripTrack={tripTrack}
-                  basemap={basemap}
-                  locals={locals}
+                  card={card}
                   over={over}
                   coverSrc={heroCover}
                   onStart={() => {

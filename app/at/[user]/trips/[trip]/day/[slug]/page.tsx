@@ -14,7 +14,7 @@ import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
-import { dayTrack } from "@/lib/gps/track";
+import { dayCardFor } from "@/lib/map/tripCard";
 import type { UserConfig } from "@/lib/config";
 import type { Entry, Trip } from "@/lib/types";
 
@@ -130,7 +130,7 @@ async function TripDayBody({
   site: SiteSummary;
   userConfig: UserConfig;
 }) {
-  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats } = buildStoryProps(trip.ref, {
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
     ...read,
@@ -143,10 +143,10 @@ async function TripDayBody({
   // gallery page.
   const photobook = await photobookEntryFor(trip);
 
-  // This day's own part of the recorded route — B2199. `visibleDates` is
-  // exactly the set this reader is shown an entry for (`index`, drafts and
-  // visibility already applied by `buildStoryProps` above).
-  const track = dayTrack(trip.username, trip.id, new Set(index.map((d) => d.date)), entry.date);
+  // This day's own preview card — B2538. `index` is exactly the set this
+  // reader is shown an entry for (drafts and visibility already applied by
+  // `buildStoryProps` above).
+  const card = await dayCardFor(trip, index, entry.date);
 
   return (
     <>
@@ -166,10 +166,8 @@ async function TripDayBody({
         initialDate={initialDate}
         openAtDate={entry.date}
         stats={stats}
-        basemap={basemap}
-        locals={locals}
+        card={card}
         photobook={photobook}
-        dayTrack={track}
       />
     </>
   );
