@@ -290,6 +290,51 @@ export default function WorldMap({
     viewport.syncFrame(view);
   }, [viewport, view]);
 
+  // B2426 follow-up: `fillHeight`'s view can reach past `base` — the exact
+  // frame the server clipped the basemap to (`frameRoute`, the same pure
+  // function, same points, on both sides) — into the *padding* margin
+  // `lib/basemap.ts`'s own `clipFrame` cuts the bundle to around it (50%
+  // wider each side), never meant to be seen: a clipped polygon there is
+  // "stroked along the box as if the border ran there" (`lib/mapClip.ts`'s
+  // own doc), and found live, one such border painted as a huge, wrongly
+  // shaped fill rather than a line — a genuine fill-rule instability in
+  // that margin's own geometry, not only a stray stroke. Two clips, both
+  // scoped to `fillHeight` alone so every other caller — which never draws
+  // past `base` in the first place (`h-auto`'s own aspect always matches
+  // it) — is untouched:
+  // Both clips below are nested `<svg>` viewports (a rectangle's native,
+  // always-reliable clip) rather than a CSS `clip-path` — that was tried
+  // first and did not actually keep the huge fill-rule-unstable geometry
+  // from painting, which at this magnification (the clip shape is a
+  // handful of units, scaled ~60x by the ancestor `scale(lngScale, 1)` and
+  // the SVG's own viewBox) points at a mask-rasterisation precision limit
+  // rather than a wrong shape. A rectangle's own viewport clip has no such
+  // failure mode.
+  const clipRects = useMemo(() => {
+    if (!fillHeight) return null;
+    // Raw (pre-`lngScale`) units, matching the space every path drawn
+    // inside `<g transform="scale(lngScale,1)">` is already baked in.
+    const x = view.x / base.lngScale;
+    const w = view.w / base.lngScale;
+    const baseX = base.x / base.lngScale;
+    const baseW = base.w / base.lngScale;
+    return {
+      // (1) the detailed basemap's own window: *exactly* `base` — never the
+      // wider padded box `lib/basemap.ts` actually clipped the bundle to —
+      // so the margin those artefacts live in is simply never drawn.
+      detail: { x: baseX, y: base.y, w: baseW, h: base.h },
+      // (2) the coarse fallback's own windows: whatever `view` adds above
+      // and below `base` (the one axis `fillHeight` ever grows) — so its
+      // own low-resolution edges can never appear inside the properly
+      // detailed area, whatever shape they trace.
+      fallbackTop: view.y < base.y ? { x, y: view.y, w, h: base.y - view.y } : null,
+      fallbackBottom:
+        view.y + view.h > base.y + base.h
+          ? { x, y: base.y + base.h, w, h: view.y + view.h - (base.y + base.h) }
+          : null,
+    };
+  }, [fillHeight, view, base]);
+
   /**
    * A length in screen pixels, expressed in the units this frame is drawn in.
    *
@@ -487,63 +532,130 @@ export default function WorldMap({
                     basemap payload on the example journal, so this reuses
                     the coarse 1:110m coastline instead, already loaded for
                     every page as the no-basemap fallback below, at no extra
-                    cost. Drawn first so the detailed basemap paints over it
+                    cost. Windowed to outside `base`'s own rectangle (see
+                    `clipRects` above — a nested `<svg>` per margin, not a CSS
+                    clip-path; that doc explains why) — this layer's own
+                    low-resolution edges must never be free to cut across
+                    the properly detailed area the way an unclipped one did.
+                    Drawn first so the detailed basemap paints over it
                     wherever the clip actually has data — a real seam is
-                    possible at that boundary, but only there, and only on a
-                    phone tall enough to reach past the clip at all. */}
-                {fillHeight && (
-                  <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
-                    {worldLand.map((d, i) => (
-                      <path key={`fallback-${i}`} d={d} vectorEffect="non-scaling-stroke" />
-                    ))}
-                  </g>
-                )}
-                <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1.2}>
-                  {basemap.borders.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                    possible at that boundary, but only there. */}
+                {fillHeight &&
+                  clipRects &&
+                  ([clipRects.fallbackTop, clipRects.fallbackBottom].filter(Boolean) as {
+                    x: number;
+                    y: number;
+                    w: number;
+                    h: number;
+                  }[]).map((r, i) => (
+                    <svg
+                      key={`fallback-window-${i}`}
+                      x={r.x}
+                      y={r.y}
+                      width={r.w}
+                      height={r.h}
+                      viewBox={`${r.x} ${r.y} ${r.w} ${r.h}`}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
+                        {worldLand.map((d, j) => (
+                          <path key={`fallback-${i}-${j}`} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                    </svg>
                   ))}
-                </g>
-                {/* Ice, over the land it sits on. */}
-                <g fill={mapStyle.ice} stroke={mapStyle.ice} strokeWidth={0.6} opacity={0.9}>
-                  {basemap.glaciers.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                {/* Cantons, prefectures, states. Dashed and faint, because an
-                    internal boundary is a weaker fact than a national one and
-                    should not read as the same line. */}
-                <g fill="none" stroke={mapStyle.borderInternal} strokeWidth={0.8} strokeDasharray="3 3">
-                  {basemap.admin1.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                <g fill={mapStyle.water} stroke={mapStyle.water} strokeWidth={0.8}>
-                  {basemap.lakes.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                <g fill="none" stroke={mapStyle.water} strokeWidth={1.6} strokeLinecap="round">
-                  {basemap.rivers.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                {/* Ways, drawn only when the frame is close enough that they
-                    are information rather than texture — the server sends
-                    nothing here otherwise. White with a sand casing, the way
-                    every road on this map reads now — deliberately paler than
-                    any route the trip took: the point of this map is where
-                    *these people* went, and a motorway they never drove must
-                    not out-shout it. */}
-                <g fill="none" stroke={mapStyle.roadCasing} strokeWidth={2.4} strokeLinecap="round">
-                  {basemap.roads.map((d, i) => (
-                    <path key={`casing-${i}`} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                <g fill="none" stroke={mapStyle.road} strokeWidth={1.4} strokeLinecap="round">
-                  {basemap.roads.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
+                {/* Windowed to exactly `base` — never the padded box the
+                    server actually cut the bundle to (`lib/basemap.ts`'s
+                    `clipFrame`, 50% wider each side) — when `fillHeight` can
+                    reach past `base` at all. That padding margin is where a
+                    clipped polygon is "stroked along the box as if the
+                    border ran there" (`lib/mapClip.ts`'s own doc); found
+                    live, one such border painted as a huge, wrongly-shaped
+                    fill rather than a line, which pointed at a genuine
+                    fill-rule instability in that geometry rather than only
+                    a stray stroke. A CSS `clip-path` was tried first and did
+                    not actually hide it at this magnification (see
+                    `clipRects`'s own doc) — a nested `<svg>`'s own viewport
+                    clip does. Every other caller already never draws past
+                    `base` (`h-auto`'s own aspect always matches it), so this
+                    window is a no-op there — a plain `<>` fragment, nothing
+                    windowed at all. */}
+                {(() => {
+                  const detailContent = (
+                    <>
+                      <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1.2}>
+                        {basemap.borders.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      {/* Ice, over the land it sits on. */}
+                      <g fill={mapStyle.ice} stroke={mapStyle.ice} strokeWidth={0.6} opacity={0.9}>
+                        {basemap.glaciers.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      {/* Cantons, prefectures, states. Dashed and faint, because
+                          an internal boundary is a weaker fact than a national
+                          one and should not read as the same line. */}
+                      <g
+                        fill="none"
+                        stroke={mapStyle.borderInternal}
+                        strokeWidth={0.8}
+                        strokeDasharray="3 3"
+                      >
+                        {basemap.admin1.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      <g fill={mapStyle.water} stroke={mapStyle.water} strokeWidth={0.8}>
+                        {basemap.lakes.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      <g fill="none" stroke={mapStyle.water} strokeWidth={1.6} strokeLinecap="round">
+                        {basemap.rivers.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      {/* Ways, drawn only when the frame is close enough that
+                          they are information rather than texture — the server
+                          sends nothing here otherwise. White with a sand
+                          casing, the way every road on this map reads now —
+                          deliberately paler than any route the trip took: the
+                          point of this map is where *these people* went, and a
+                          motorway they never drove must not out-shout it. */}
+                      <g
+                        fill="none"
+                        stroke={mapStyle.roadCasing}
+                        strokeWidth={2.4}
+                        strokeLinecap="round"
+                      >
+                        {basemap.roads.map((d, i) => (
+                          <path key={`casing-${i}`} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      <g fill="none" stroke={mapStyle.road} strokeWidth={1.4} strokeLinecap="round">
+                        {basemap.roads.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                    </>
+                  );
+                  if (!fillHeight || !clipRects) return detailContent;
+                  const r = clipRects.detail;
+                  return (
+                    <svg
+                      x={r.x}
+                      y={r.y}
+                      width={r.w}
+                      height={r.h}
+                      viewBox={`${r.x} ${r.y} ${r.w} ${r.h}`}
+                      style={{ overflow: "hidden" }}
+                    >
+                      {detailContent}
+                    </svg>
+                  );
+                })()}
               </>
             ) : (
               <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
