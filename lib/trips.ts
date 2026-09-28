@@ -465,6 +465,7 @@ export const KNOWN_TRIP_FIELDS = new Set([
   "listed",
   "teaser",
   "reminder",
+  "guestsLive",
   "people",
   "rates",
   "costs",
@@ -786,6 +787,10 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
      * straight through rather than reconciling two the way v1 had to.
      */
     reminder: tripFile.reminder ? { channel: tripFile.reminder.channel } : undefined,
+    // B2536 — absent reads as live, the same "presence narrows" shape
+    // `costsVisibility` uses: an owner who has never touched this setting
+    // gets the friendlier default, not a silent 24h-late everyone.
+    guestsLive: tripFile.guestsLive !== false,
     unknownFields: unknownFields(data),
     costsSection: tripFile.costs,
     // B2009 — `plan.private` dropped here, unconditionally, rather than

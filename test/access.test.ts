@@ -30,6 +30,7 @@ function trip(over: Partial<Trip> = {}): Trip {
     intro: "",
     visibility: "public",
     costsVisibility: "public",
+    guestsLive: true,
     ...over,
   };
 }

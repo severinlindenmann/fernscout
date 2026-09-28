@@ -405,3 +405,25 @@ export function trackForTrip(
     zones: options.zones ?? readExcludeZones(username),
   });
 }
+
+/**
+ * Derive the live tail from the store — B2536, `trackForTrip`'s sibling for
+ * `lib/gps/track.ts`'s `track-recent.json`. Reads only `[sinceMs, nowMs]`
+ * rather than the trip's whole span, which is what makes the result a tail
+ * rather than a second copy of `track.json`: no `maxEndMs` is needed here,
+ * because the read range itself is already bounded to "now". Every other
+ * rule — the trip's own date windows for tagging, private zones, gaps, and
+ * `trimMetres` cut from *both* ends of every run — is unchanged, so the
+ * newest point of the newest run is exactly as far from "right now" as
+ * `trimMetres` says, never the raw current position.
+ */
+export function tailForTrip(
+  username: string,
+  options: DeriveOptions & { sinceMs: number; nowMs: number },
+): Track {
+  const { sinceMs, nowMs, ...rest } = options;
+  return deriveTrack(readRange(username, sinceMs, nowMs), {
+    ...rest,
+    zones: rest.zones ?? readExcludeZones(username),
+  });
+}

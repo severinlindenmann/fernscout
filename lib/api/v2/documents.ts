@@ -273,6 +273,7 @@ export function tripToJson(trip: TripFile): string {
     listed: trip.listed,
     teaser: trip.teaser,
     reminder: trip.reminder,
+    guestsLive: trip.guestsLive,
     test: trip.test,
     accent: trip.accent,
     cover: trip.cover,
@@ -309,6 +310,7 @@ export function tripFromJson(raw: string): TripFile {
   if (data.listed !== undefined) trip.listed = data.listed as TripFile["listed"];
   if (data.teaser !== undefined) trip.teaser = data.teaser as TripFile["teaser"];
   if (data.reminder !== undefined) trip.reminder = data.reminder as TripFile["reminder"];
+  if (data.guestsLive !== undefined) trip.guestsLive = data.guestsLive as TripFile["guestsLive"];
   if (data.test !== undefined) trip.test = data.test as TripFile["test"];
   if (data.accent !== undefined) trip.accent = data.accent as TripFile["accent"];
   if (data.cover !== undefined) trip.cover = data.cover as TripFile["cover"];
@@ -345,6 +347,7 @@ const KNOWN_TRIP_KEYS = [
   "listed",
   "teaser",
   "reminder",
+  "guestsLive",
   "test",
   "accent",
   "cover",

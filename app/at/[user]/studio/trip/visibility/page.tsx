@@ -82,7 +82,14 @@ export default async function StudioTripVisibilityPage({
       )}
       <TripVisibilityFlow
         username={user}
-        trip={{ id: trip.id, title: trip.title, visibility: trip.visibility, listed: trip.listed, teaser: trip.teaser === true }}
+        trip={{
+          id: trip.id,
+          title: trip.title,
+          visibility: trip.visibility,
+          listed: trip.listed,
+          teaser: trip.teaser === true,
+          guestsLive: trip.guestsLive,
+        }}
         visibilities={VISIBILITIES}
         previews={previews}
       />

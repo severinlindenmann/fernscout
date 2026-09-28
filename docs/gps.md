@@ -190,6 +190,61 @@ included, still sees the same filtered, trimmed `readerTrack`; the owner's
 "Your route" section (below) is a different view onto a different question:
 not "what may a reader see" but "what did my phone actually record".
 
+## The live tail — B2536
+
+`track.json` never carries the last 24h, on purpose (`MIN_AGE_MS`). Some
+readers may still be shown it — the owner always, a trip's own named guests
+by default — and that line is derived and stored the same careful way
+`track.json` is, in a **second file**:
+
+```
+content/<user>/trips/<trip>/track-recent.json
+```
+
+Same shape as `track.json` (`Track`, `lib/gps/track.ts`), same rules — the
+trip's own private zones cut, 500 m straight-line trimmed off **both** ends
+of every run, so the newest point is never the exact current position —
+just the opposite time window: `[now - 24h, now]` instead of "older than
+24h". `deriveTripTail` (`lib/gps/api.ts`) runs inside `deriveTripTrack`
+itself, at exactly the same moments — an import, or the explicit
+`POST …/track` — so the two files can never disagree about what "this trip"
+means even though their time ranges never overlap. An empty result deletes
+the file, same reasoning as `track.json`'s own "nothing left to draw".
+
+**Who gets it is a serve-time decision, exactly like `track.json`'s own
+date filter, and it is the *same* function that decides both.**
+`readerTrack(user, trip, visibleDates, live)` (`lib/gps/track.ts`) takes one
+more argument: `live`, resolved by the caller from `mayReadLiveTrack(trip)`
+(`lib/tripGate.ts`) — never guessed at the call site. That function is the
+one place the three-way rule lives:
+
+- **The owner** — always.
+- **A named guest of the trip** (somebody on it, or an approved reader of a
+  non-`private` journal) — live by default; the trip's own `guestsLive`
+  field (`Trip`, `lib/types.ts`; `boolean`, absent reads as `true`) turns it
+  off, back to the same ≥24h line a stranger sees. Editable only in the
+  owner's own studio (`/@<user>/studio/trip/visibility`, asked only on a
+  `guest` trip — `private` has no readers to ask about and `public` is
+  24h-late for everyone regardless), and readable back over
+  `GET /api/v2/<user>/trips/<trip>` like `reminder` and every other plain
+  trip setting — a v2 `PATCH` may write it too, gated the same owner-only
+  way every other field on that document is.
+- **Everyone else** — a public reader, a signed-in stranger, anybody
+  `mayReadTrip` would refuse outright — never, whatever the trip's own
+  setting says.
+
+**Every caller of `readerTrack`'s `live` branch is a page rendered behind a
+browser cookie** — both map pages
+(`app/at/[user]/(trip)/map/page.tsx`, `app/at/[user]/trips/[trip]/map/page.tsx`).
+A bearer token, of any scope including `write:gps`, never reaches a rendered
+page at all (AGENTS.md), so it never reaches this branch either — not
+because of a check written here, but because no route under `/api/**`
+imports `readTail` or passes `live: true` into `readerTrack`. The export
+(`lib/exportZip.ts`) and the story build (`lib/tripView.ts`) still call
+`readerTrack` with `live` left at its default `false`: a downloaded archive
+or a cached story render is not "this viewer, right now", so neither ever
+carries the tail.
+
 ### Private zones
 
 `content/<user>/gps/exclude.json`:

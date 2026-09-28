@@ -60,6 +60,11 @@ export type TripFixture = {
   rates?: { currencies: string[]; manual?: Record<string, number> };
   declined?: Record<string, string>;
   figures?: { mode: "off" } | { mode: "journal" } | { mode: "custom"; figures: string[] };
+  /** Whether a named guest sees the live tail on this trip's map — B2536.
+   * Like `accent`/`cover`, `createTrip` has no input for it (a setting
+   * switched on later, not a create-time question), so this is applied to
+   * the written document the same way those are. */
+  guestsLive?: boolean;
 };
 
 /**
@@ -107,6 +112,7 @@ export function writeTripFixture(username: string, trip: TripFixture): { ref: st
   if (trip.rates !== undefined) extras.rates = trip.rates;
   if (trip.declined !== undefined) extras.declined = trip.declined;
   if (trip.figures !== undefined) extras.figures = trip.figures;
+  if (trip.guestsLive !== undefined) extras.guestsLive = trip.guestsLive;
   if (Object.keys(extras).length > 0) {
     const stored = readTripFile(username, trip.id);
     if (!stored) throw new Error(`writeTripFixture(${username}/${trip.id}): written but unreadable`);

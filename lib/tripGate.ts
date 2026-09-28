@@ -297,6 +297,34 @@ export async function isGuestOf(trip: Trip): Promise<boolean> {
 }
 
 /**
+ * Whether this viewer may see the live tail — the last 24h of the trip's
+ * route, drawn as a "here now" dot — B2536.
+ *
+ * Three answers, in the order D6 states them: the owner always (they are
+ * looking at their own position); a named guest of the trip — somebody who
+ * was there, or somebody the owner has approved into a non-`private`
+ * journal — live by default, unless the trip's own `guestsLive` says
+ * `false`; everybody else (a public reader, a signed-in stranger, anybody
+ * this trip does not even let read it) never, whatever the trip's setting
+ * says. Mirrors `isGuestOf`'s branch order and reasoning, one level down:
+ * that function decides who sees the *money*, this decides who sees the
+ * *position*, and both stay false for a reader `mayReadTrip` itself would
+ * refuse.
+ *
+ * The only caller of `lib/gps/track.ts`'s `readerTrack(…, live)` — every one
+ * of them a page rendered behind a browser cookie, never a bearer token
+ * (AGENTS.md: an agent token reaches `/api/…`, never a rendered page), which
+ * is what keeps a `write:gps` token, or any other scope, out of this branch
+ * structurally rather than by a check here.
+ */
+export async function mayReadLiveTrack(trip: Trip): Promise<boolean> {
+  if (await isOwner(trip.username)) return true;
+  if (await isTravellerOn(trip)) return trip.guestsLive;
+  if (trip.visibility === "private") return false;
+  return (await isJournalGuest(trip.username)) ? trip.guestsLive : false;
+}
+
+/**
  * Whether a refusal from `mayReadTrip` was specifically an approved journal
  * guest meeting a `private` trip — B300.
  *

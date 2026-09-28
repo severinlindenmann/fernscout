@@ -1370,6 +1370,10 @@ describe("the trip fields that had no writer", () => {
       // is asked. `KNOWN_TRIP_FIELDS` now derives from `tripDoc`'s own
       // shape, which is what caught it missing here in the first place.
       reminder: "createTrip has no field for it — set through a PATCH after creation",
+      // B2536 — same shape as reminder: a setting switched on later, not a
+      // question a brand-new trip is asked. A new trip reads as live for
+      // guests (the default) until an owner narrows it through a PATCH.
+      guestsLive: "createTrip has no field for it — set through a PATCH after creation",
     };
 
     const trip = createTrip("wanderer", {

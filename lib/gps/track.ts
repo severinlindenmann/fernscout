@@ -44,12 +44,29 @@ export function trackFile(username: string, tripId: string): string {
   return path.join(contentRoot(), username, "trips", tripId, "track.json");
 }
 
-/** The trip's line, or undefined. A trip with no track is the normal case and
- * renders exactly as it did before this existed. */
-export function readTrack(username: string, tripId: string): Track | undefined {
+/**
+ * The live tail — `content/<user>/trips/<trip>/track-recent.json` — B2536.
+ *
+ * The last-24h slice `track.json` deliberately never carries (see
+ * `MIN_AGE_MS` in `lib/gps/api.ts`). A second file rather than a flag on the
+ * first: `track.json`'s own guarantee — "never inside 24 hours" — stays true
+ * of the bytes on disk, not just of what a filter promises to drop, and
+ * `docs/gps.md`'s "delete `gps/`, every trip renders exactly as before"
+ * argument for two files applies here too. Same shape as `Track`, same
+ * derivation rules (zones cut, 500 m trimmed — at *both* ends of every
+ * segment, so the newest point is never the exact current position), derived
+ * at the same moments `track.json` is (`deriveTripTrack`, `lib/gps/api.ts`).
+ * Read by nobody but `readerTrack` below, which is the same single door
+ * `track.json` itself has.
+ */
+export function tailFile(username: string, tripId: string): string {
+  return path.join(contentRoot(), username, "trips", tripId, "track-recent.json");
+}
+
+function readTrackFile(file: string): Track | undefined {
   let raw: unknown;
   try {
-    raw = JSON.parse(fs.readFileSync(trackFile(username, tripId), "utf8"));
+    raw = JSON.parse(fs.readFileSync(file, "utf8"));
   } catch {
     return undefined;
   }
@@ -71,8 +88,22 @@ export function readTrack(username: string, tripId: string): Track | undefined {
   return { generated: typeof generated === "string" ? generated : "", segments: clean };
 }
 
+function writeTrackFile(file: string, track: Track): void {
+  fs.writeFileSync(file, `${JSON.stringify(track)}\n`, "utf8");
+}
+
+function deleteTrackFile(file: string): void {
+  fs.rmSync(file, { force: true });
+}
+
+/** The trip's line, or undefined. A trip with no track is the normal case and
+ * renders exactly as it did before this existed. */
+export function readTrack(username: string, tripId: string): Track | undefined {
+  return readTrackFile(trackFile(username, tripId));
+}
+
 export function writeTrack(username: string, tripId: string, track: Track): void {
-  fs.writeFileSync(trackFile(username, tripId), `${JSON.stringify(track)}\n`, "utf8");
+  writeTrackFile(trackFile(username, tripId), track);
 }
 
 /** Remove a trip's line file entirely — B2202, when derivation comes back
@@ -81,7 +112,22 @@ export function writeTrack(username: string, tripId: string, track: Track): void
  * answer: a track that no longer has anything behind it must not keep
  * drawing what it drew last time. */
 export function deleteTrack(username: string, tripId: string): void {
-  fs.rmSync(trackFile(username, tripId), { force: true });
+  deleteTrackFile(trackFile(username, tripId));
+}
+
+/** The tail, or undefined — same "absent is normal" shape as `readTrack`. */
+export function readTail(username: string, tripId: string): Track | undefined {
+  return readTrackFile(tailFile(username, tripId));
+}
+
+export function writeTail(username: string, tripId: string, track: Track): void {
+  writeTrackFile(tailFile(username, tripId), track);
+}
+
+/** Same reasoning as `deleteTrack`: nothing left in the last 24h deletes the
+ * file rather than leaving a stale dot behind. */
+export function deleteTail(username: string, tripId: string): void {
+  deleteTrackFile(tailFile(username, tripId));
 }
 
 /**
@@ -94,17 +140,36 @@ export function deleteTrack(username: string, tripId: string): void {
  * legacy file, derived before this field existed, and is dropped rather than
  * trusted: there is no way to know which date it came from, so there is no
  * way to know it is safe.
+ *
+ * `live` (B2536) adds the tail file's own segments, filtered the same way —
+ * **the one place that decides whether this particular viewer may see where
+ * the owner was less than 24h ago.** Every caller resolves it from
+ * `lib/tripGate.ts`'s `mayReadLiveTrack` (owner always, a named guest unless
+ * the trip's own `guestsLive` says otherwise, a stranger never) and nowhere
+ * else — this function trusts whatever its caller sends, the same way it
+ * already trusts `visibleDates`. Every caller is a page rendered behind a
+ * browser cookie (`app/at/**`, the export, the story build); no bearer token
+ * reaches any of them (AGENTS.md: "an agent token reaches `/api/…` and never
+ * a rendered page"), so a `write:gps` token — or any other scope — never
+ * reaches this branch at all, structurally, not by a check here.
  */
 export function readerTrack(
   username: string,
   tripId: string,
   visibleDates: ReadonlySet<string>,
+  live = false,
 ): Track | undefined {
   const track = readTrack(username, tripId);
-  if (!track) return undefined;
-  const segments = track.segments.filter((s) => s.day !== undefined && visibleDates.has(s.day));
-  if (segments.length === 0) return undefined;
-  return { ...track, segments };
+  const segments = (track?.segments ?? []).filter(
+    (s) => s.day !== undefined && visibleDates.has(s.day),
+  );
+  const tail = live ? readTail(username, tripId) : undefined;
+  const tailSegments = (tail?.segments ?? []).filter(
+    (s) => s.day !== undefined && visibleDates.has(s.day),
+  );
+  const all = [...segments, ...tailSegments];
+  if (all.length === 0) return undefined;
+  return { generated: track?.generated ?? tail?.generated ?? "", segments: all };
 }
 
 /**

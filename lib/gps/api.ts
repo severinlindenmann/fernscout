@@ -10,12 +10,13 @@ import {
   isExcluded,
   readExcludeZones,
   readHomeDeclined,
+  tailForTrip,
   trackForTrip,
   writeExcludeZones,
   writeHomeDeclined,
   type ExcludeZone,
 } from "./enrich";
-import { deleteTrack, trackPointCount, writeTrack } from "./track";
+import { deleteTail, deleteTrack, trackPointCount, writeTail, writeTrack } from "./track";
 import { reverseGeocode } from "../ingest/geo";
 import { earliestTodayISO } from "../tripTime";
 import { zonedTimeToUtc } from "../timezone";
@@ -364,6 +365,7 @@ export function deriveTripTrack(
   trip: { id: string; start: string; end: string },
 ): { segments: number; points: number; zones: number; written: boolean } {
   const zones = readExcludeZones(username);
+  const zonedDates = dayTimezones(username, trip);
   // B2202 rework: derivation now covers every trip date, drafts included —
   // never inside the last 24h, though, so a fix nobody has even written a
   // day for yet still cannot reach a reader within the hour. Which dates a
@@ -373,7 +375,7 @@ export function deriveTripTrack(
     start: trip.start,
     end: trip.end,
     zones,
-    dayTimezones: dayTimezones(username, trip),
+    dayTimezones: zonedDates,
     maxEndMs: Date.now() - MIN_AGE_MS,
     trimMetres: TRIM_METRES,
   });
@@ -383,10 +385,46 @@ export function deriveTripTrack(
   // stale (B2202: staleness here is a safety gap, not a convenience).
   if (track.segments.length === 0) {
     deleteTrack(username, trip.id);
-    return { segments: 0, points: 0, zones: zones.length, written: false };
+  } else {
+    writeTrack(username, trip.id, track);
   }
-  writeTrack(username, trip.id, track);
+  // B2536 — the tail is derived at exactly this same moment, from the same
+  // zones and date windows, so the two files never drift about what "this
+  // trip" means even though they cover disjoint time ranges.
+  deriveTripTail(username, trip, zones, zonedDates);
+  if (track.segments.length === 0) return { segments: 0, points: 0, zones: zones.length, written: false };
   return { segments: track.segments.length, points, zones: zones.length, written: true };
+}
+
+/**
+ * The live tail — B2536. `track.json`'s exact opposite half: everything
+ * `deriveTripTrack` refuses (anything inside the last 24h) and nothing it
+ * keeps (anything older). Same zones, same per-date timezones, same 500 m
+ * end-trim — so a reader allowed to see it gets the same private-zone and
+ * "not at the front door" guarantees `track.json` gives everyone else.
+ * Written to `trips/<trip>/track-recent.json` (`lib/gps/track.ts`), read by
+ * nothing but `readerTrack`'s own `live` branch there. Called from
+ * `deriveTripTrack` so it runs at every moment a track is (re)derived —
+ * import, and the explicit `POST …/track` — never on its own.
+ */
+function deriveTripTail(
+  username: string,
+  trip: { id: string; start: string; end: string },
+  zones: ExcludeZone[],
+  zonedDates: Readonly<Record<string, string>>,
+): void {
+  const now = Date.now();
+  const tail = tailForTrip(username, {
+    start: trip.start,
+    end: trip.end,
+    zones,
+    dayTimezones: zonedDates,
+    trimMetres: TRIM_METRES,
+    sinceMs: now - MIN_AGE_MS,
+    nowMs: now,
+  });
+  if (tail.segments.length === 0) deleteTail(username, trip.id);
+  else writeTail(username, trip.id, tail);
 }
 
 /**
