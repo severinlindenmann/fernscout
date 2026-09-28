@@ -79,6 +79,7 @@ export default async function StudioLocationPage({ params }: PageProps<"/at/[use
       />
     );
   }
+  const streetMapsOn = isEnabled("streetMaps");
 
   return (
     <StudioPage
@@ -88,7 +89,7 @@ export default async function StudioLocationPage({ params }: PageProps<"/at/[use
       lede={translateIn(locale, "studio.location.lede")}
     >
       {routeSection}
-      <GpsZones username={user} />
+      <GpsZones username={user} streetMapsOn={streetMapsOn} />
 
       {/* Second, and folded away (B2240): recording is what this page is
           for. `ImportDisclosure` mounts the import flow only when opened. */}

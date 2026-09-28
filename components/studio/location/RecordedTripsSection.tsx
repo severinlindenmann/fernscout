@@ -197,7 +197,33 @@ export default function RecordedTripsSection({
 
   return (
     <section className="mt-10">
-      <h2 className="font-display text-lg font-semibold text-ink-strong">
+      {/* S1 A's recording-status block — for now, one line per trip built
+          from what the server already has (`lastReceived`, or the native
+          shell's own live status when this session holds it). A parallel
+          builder is adding a real `recordingState(user, tripId)` read; this
+          block is the placeholder slot it swaps into, not that function. */}
+      <div className="rounded-2xl border border-line-quiet bg-surface-subtle p-4">
+        <h2 className="font-display text-base font-semibold text-ink-strong">
+          {t("studio.location.route.statusHeading")}
+        </h2>
+        <ul className="mt-2 space-y-1">
+          {trips.map((trip) => {
+            const status = nativeStatus[trip.tripId];
+            return (
+              <li key={trip.tripId} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                <span className="font-semibold text-ink-strong">{trip.title}</span>
+                <span className="text-ink-secondary">
+                  {native && status
+                    ? statusLine(status, t)
+                    : t("studio.location.route.lastReceived", { at: fmtInstant(trip.lastReceived) })}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <h2 className="mt-8 font-display text-lg font-semibold text-ink-strong">
         {t("studio.location.route.heading")}
       </h2>
       <p className="mt-2 text-sm text-ink-secondary">{t("studio.location.route.lede")}</p>

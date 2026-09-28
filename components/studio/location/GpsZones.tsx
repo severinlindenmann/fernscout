@@ -1,11 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
+import StreetMap from "@/components/map/StreetMap";
+import type { Map as MapLibreMap, GeoJSONSource } from "maplibre-gl";
 
 type Zone = { label: string; lat: number; lon: number; radiusM: number };
+
+/** A rough circle polygon in degrees, for drawing a private zone's radius on
+ * a map — good enough at zone scale (tens of metres to a few km) where the
+ * meridian/parallel distortion this ignores is well under a pixel.
+ * ponytail: equirectangular approximation, not a geodesic circle; revisit if
+ * zones ever grow toward `ZONE_LIMITS.maxRadiusM` at high latitude. */
+function circlePolygon(lat: number, lon: number, radiusM: number, steps = 48): GeoJSON.Feature {
+  const latDeg = radiusM / 111_320;
+  const lonDeg = radiusM / (111_320 * Math.cos((lat * Math.PI) / 180) || 1);
+  const coords: [number, number][] = [];
+  for (let i = 0; i <= steps; i++) {
+    const angle = (i / steps) * 2 * Math.PI;
+    coords.push([lon + lonDeg * Math.cos(angle), lat + latDeg * Math.sin(angle)]);
+  }
+  return { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [coords] } };
+}
+
+const ZONES_SOURCE = "gps-zones";
+const PENDING_SOURCE = "gps-zone-pending";
+
+function zonesAsFeatureCollection(zones: Zone[]): GeoJSON.FeatureCollection {
+  return { type: "FeatureCollection", features: zones.map((z) => circlePolygon(z.lat, z.lon, z.radiusM)) };
+}
 type ZonesDoc = {
   zones: Zone[];
   homeDeclined: boolean;
@@ -33,8 +58,9 @@ const LABEL = "text-sm font-semibold text-ink-strong";
  * Any saved zone is what `hasHomeZoneOrDeclined` (`lib/gps/api.ts`) looks
  * for when B2196/B2198's recorder decides whether it may arm at all.
  */
-export default function GpsZones({ username }: { username: string }) {
+export default function GpsZones({ username, streetMapsOn = false }: { username: string; streetMapsOn?: boolean }) {
   const { t } = useI18n();
+  const mapRef = useRef<MapLibreMap | null>(null);
   const [doc, setDoc] = useState<ZonesDoc | null>(null);
   const [etag, setEtag] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -66,6 +92,84 @@ export default function GpsZones({ username }: { username: string }) {
   }
 
   useEffect(load, [username]);
+
+  // Draws the map picker's two layers: the owner's saved zones (a hatch-ish
+  // dashed circle, always) and the pending new zone (only while there is a
+  // valid lat/lon to draw). Re-run whenever either changes; MapLibre's
+  // `setData` is cheap and idempotent, so this never waits for a reload.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !doc) return;
+    const draw = () => {
+      const zonesSrc = map.getSource(ZONES_SOURCE) as GeoJSONSource | undefined;
+      zonesSrc?.setData(zonesAsFeatureCollection(doc.zones));
+      const pendingSrc = map.getSource(PENDING_SOURCE) as GeoJSONSource | undefined;
+      const parsedLat = Number(lat);
+      const parsedLon = Number(lon);
+      const parsedRadius = Number(radius);
+      const pending =
+        Number.isFinite(parsedLat) && Number.isFinite(parsedLon) && Number.isFinite(parsedRadius)
+          ? circlePolygon(parsedLat, parsedLon, parsedRadius)
+          : null;
+      pendingSrc?.setData({ type: "FeatureCollection", features: pending ? [pending] : [] });
+    };
+    if (map.isStyleLoaded()) draw();
+    else map.once("load", draw);
+  }, [doc, lat, lon, radius]);
+
+  function onMapReady(map: import("maplibre-gl").Map) {
+    mapRef.current = map;
+    map.on("load", () => {
+      map.addSource(ZONES_SOURCE, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: `${ZONES_SOURCE}-fill`,
+        type: "fill",
+        source: ZONES_SOURCE,
+        paint: { "fill-color": "#c2410c", "fill-opacity": 0.15 },
+      });
+      map.addLayer({
+        id: `${ZONES_SOURCE}-line`,
+        type: "line",
+        source: ZONES_SOURCE,
+        paint: { "line-color": "#c2410c", "line-width": 2, "line-dasharray": [2, 2] },
+      });
+      map.addSource(PENDING_SOURCE, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({
+        id: `${PENDING_SOURCE}-fill`,
+        type: "fill",
+        source: PENDING_SOURCE,
+        paint: { "fill-color": "#2563eb", "fill-opacity": 0.15 },
+      });
+      map.addLayer({
+        id: `${PENDING_SOURCE}-line`,
+        type: "line",
+        source: PENDING_SOURCE,
+        paint: { "line-color": "#2563eb", "line-width": 2, "line-dasharray": [2, 2] },
+      });
+    });
+    map.on("click", (e) => {
+      setLat(e.lngLat.lat.toFixed(5));
+      setLon(e.lngLat.lng.toFixed(5));
+    });
+  }
+
+  // A saved zone's own lat/lon, so the map has somewhere to open on rather
+  // than the whole world — the last-added zone is as good a guess as any of
+  // "where this owner's places tend to be".
+  const centerZone = doc?.zones[doc.zones.length - 1];
+  const mapCenter: [number, number] = centerZone
+    ? [centerZone.lon, centerZone.lat]
+    : [Number(lon) || 0, Number(lat) || 0];
+  const mapBounds: [[number, number], [number, number]] =
+    mapCenter[0] || mapCenter[1]
+      ? [
+          [mapCenter[0] - 0.2, mapCenter[1] - 0.2],
+          [mapCenter[0] + 0.2, mapCenter[1] + 0.2],
+        ]
+      : [
+          [-30, -50],
+          [30, 60],
+        ];
 
   async function put(next: { zones: Zone[]; homeDeclined?: boolean }): Promise<boolean> {
     setBusy(true);
@@ -245,37 +349,61 @@ export default function GpsZones({ username }: { username: string }) {
               required
             />
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className={LABEL}>{t("studio.location.zones.latLabel")}</span>
-              <input
-                className={INPUT}
-                value={lat}
-                onChange={(e) => setLat(e.target.value)}
-                inputMode="decimal"
-                required
+          {streetMapsOn ? (
+            <div className="space-y-2">
+              <p className="text-sm text-ink-secondary">{t("studio.location.zones.mapHint")}</p>
+              <StreetMap
+                bounds={mapBounds}
+                pmtilesUrl="/api/maps/world.pmtiles"
+                onReady={onMapReady}
+                className="h-64 w-full overflow-hidden rounded-xl border border-line-quiet"
               />
-            </label>
-            <label className="block">
-              <span className={LABEL}>{t("studio.location.zones.lonLabel")}</span>
-              <input
-                className={INPUT}
-                value={lon}
-                onChange={(e) => setLon(e.target.value)}
-                inputMode="decimal"
-                required
-              />
-            </label>
-          </div>
+              {(!lat || !lon) && (
+                <p role="status" className="text-sm text-ink-secondary">
+                  {t("studio.location.zones.mapPending")}
+                </p>
+              )}
+              {doc.zones.length > 0 && (
+                <p className="text-sm text-ink-secondary">{t("studio.location.zones.hatchedLegend")}</p>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className={LABEL}>{t("studio.location.zones.latLabel")}</span>
+                <input
+                  className={INPUT}
+                  value={lat}
+                  onChange={(e) => setLat(e.target.value)}
+                  inputMode="decimal"
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className={LABEL}>{t("studio.location.zones.lonLabel")}</span>
+                <input
+                  className={INPUT}
+                  value={lon}
+                  onChange={(e) => setLon(e.target.value)}
+                  inputMode="decimal"
+                  required
+                />
+              </label>
+            </div>
+          )}
           <label className="block">
-            <span className={LABEL}>{t("studio.location.zones.radiusLabel")}</span>
+            <span className={LABEL}>
+              {t("studio.location.zones.radiusLabel")} — {t("studio.location.zones.radiusUnit", { radius })}
+            </span>
             <input
-              className={INPUT}
+              className="mt-1 w-full accent-yellow-500"
               value={radius}
               onChange={(e) => setRadius(e.target.value)}
-              type="number"
+              type="range"
               min={doc.limits.radiusM.min}
               max={doc.limits.radiusM.max}
+              step={10}
+              aria-label={t("studio.location.zones.radiusLabel")}
               required
             />
           </label>
