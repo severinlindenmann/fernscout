@@ -50,6 +50,8 @@ export type FrameProps = {
   /** The audience's word beside the wordmark ("Schools", "Tour operators"),
    *  on a tinted page only — B2531's tints. */
   badge?: string;
+  /** The iPhone app's "Bring your own server", in the bottom band — B2545. */
+  serverChoice?: ReactNode;
 };
 
 /** The header's links and the one primary door, for `/` or — `away` — for
@@ -200,7 +202,7 @@ function HeaderC({ siteName, badge, locales, signedIn }: FrameProps & { signedIn
 }
 
 /** The one footer. */
-export function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: FrameProps & { onSignIn?: () => void }) {
+export function Footer({ siteName, onSignIn, orgs, repository, legal, credit, serverChoice }: FrameProps & { onSignIn?: () => void }) {
   const { t } = useI18n();
   const link =
     "text-[15px] text-cream-50 hover:underline rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
@@ -270,6 +272,7 @@ export function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: 
           </p>
         )}
         <p>{t("landing.noTracking")}</p>
+        {serverChoice}
       </div>
     </footer>
   );
