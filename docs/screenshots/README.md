@@ -6,10 +6,10 @@ not site assets.
 
 | File | What it shows |
 | --- | --- |
-| `trip-story.jpg` | `/example/trips/parks-2025` — the day rail, the day card, the route map |
-| `day-entry.jpg` | `/example/trips/parks-2025/day/arches-at-dusk` — prose, gallery, reactions |
-| `trip-map.jpg` | `/example/trips/parks-2025/map` — every stop, and the baked base map |
-| `gallery.jpg` | `/example/trips/parks-2025/gallery` — the grid, filtered by place |
+| `trip-story.jpg` | `/@example/trips/parks-2025` — the day rail, the day card, the route map |
+| `day-entry.jpg` | `/@example/trips/parks-2025/day/arches-at-dusk` — prose, gallery, reactions |
+| `trip-map.jpg` | `/@example/trips/parks-2025/map` — every stop, and the baked base map |
+| `gallery.jpg` | `/@example/trips/parks-2025/gallery` — the grid, filtered by place |
 
 **Budget: 339 KB for the four, and that is the ceiling.** A screenshot
 committed at retina resolution bloats every clone of this repository for ever.

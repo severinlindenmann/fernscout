@@ -24,7 +24,7 @@ On APFS this validates and copy-on-write clones the shared checkout's install;
 elsewhere it uses `npm ci --prefer-offline`. If its lockfile later changes,
 rerun it with `-- --refresh`.
 
-The repo ships with a demo journal at `/example`, committed under
+The repo ships with a demo journal at `/@example`, committed under
 `content/example/`, so the app works end to end with no real trip data. Real
 configuration lives in `site/config.json`, read by `lib/config.ts` — don't
 put personal data or secrets in code; see [AGENTS.md](AGENTS.md) for the

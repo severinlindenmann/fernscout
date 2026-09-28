@@ -26,7 +26,7 @@ Nothing else matters until this passes.
 | **A1** | `npm install` | Finishes, no errors |
 | **A2** | `npm run dev`, open http://localhost:3000 | The **landing page** — what this is, how to hand it to an agent, and the public journals on this server |
 | **A3** | `npm test` | Every test passes |
-| **A4** | Click a journal card at the bottom of the landing page | Opens that journal, e.g. `/example` |
+| **A4** | Click a journal card at the bottom of the landing page | Opens that journal, e.g. `/@example` |
 | **A5** | `npm run build` | Compiles, no errors |
 | **A6** | `npm run build && npm start`, open http://localhost:3000 | Same as A2. **Test the rest against this**, not `dev` — some bugs only appear in a production build |
 
@@ -40,7 +40,7 @@ the operator can, in `site/config.json`.
 
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
-| **B1** | Look at `/example` | The current trip (**Across and back**, USA) opens on an overview: map, headline numbers, spend |
+| **B1** | Look at `/@example` | The current trip (**Across and back**, USA) opens on an overview: map, headline numbers, spend |
 | **B2** | Press **Continue** / the arrow keys | Moves day by day, animating between stops |
 | **B3** | Scroll to the bottom of a day | The next day follows; the address bar shows `#day-…` |
 | **B4** | Copy a `#day-…` URL, open it in a new tab | Opens on that day, not the top |
@@ -50,9 +50,9 @@ the operator can, in `site/config.json`.
 | **B8** | Open **Eighteen days, eleven parks** | A past road trip: 18 days, 18 different places, one night each |
 | **B9** | On that trip's overview | The heading is the **trip's** name, and the badge reads "The last stop was Denver" — past tense, no pulsing dot |
 | **B10** | Press **Continue** twenty times on it | Every day loads. Nothing sticks on "Fetching this day…" |
-| **B11** | `/example/trips` | Every trip on the journal, grouped current / upcoming / past. The ones that have happened each show a cover photo and a day, country and photo count that are **not 0** |
+| **B11** | `/@example/trips` | Every trip on the journal, grouped current / upcoming / past. The ones that have happened each show a cover photo and a day, country and photo count that are **not 0** |
 | **B12** | The lifetime map on that page | One drawn route per past trip, each a different colour in the legend |
-| **B13** | Try a URL that does not exist, e.g. `/example/day/nonsense` | A real "not found" page in the site's design, not a stack trace |
+| **B13** | Try a URL that does not exist, e.g. `/@example/day/nonsense` | A real "not found" page in the site's design, not a stack trace |
 | **B14** | Try `/nobody` | "There is no journal at this address" |
 | **B15** | Open **Japan, end to end** | A trip that has not happened: a days-away countdown, the planned route on a map, the planned budget — and "no days written yet". No story, no gallery |
 | **B16** | On that page, hover/tap a planned stop | Each carries a short `note` from the trip's `plan` section (`trip.json`, not the old `plan.md`) — "Fly home from here" |
@@ -66,14 +66,14 @@ the operator can, in `site/config.json`.
 | **C1** | Any day with photos | Photos in a grid, mixed portrait/landscape/square, none stretched |
 | **C2** | Click a photo | Full-screen viewer, arrow keys move, Escape closes |
 | **C3** | **Five months east** → **Two days on the Mekong** | A **ten-second video** among the photos. It should play |
-| **C4** | `/example/map` | World map with the route drawn, stops marked, coloured by transport |
-| **C5** | `/example/trips/parks-2025/map` | 18 stops, clustered into numbered circles when zoomed out. Every entry in the stop list below opens that day |
-| **C6** | `/example/gallery` | Every photo from the trip, filterable by place |
-| **C7** | `/example/analytics` | A card per analysis, each with a figure on it; the nav tab reads Analytics, not Costs |
-| **C7a** | `/example/costs` | Charts: spend by category, by country, against budget |
-| **C7b** | `/example/weather` (needs `features.weather`) | Says how many days carry a reading before any average, and credits Open-Meteo |
-| **C8** | On `/example/costs`, check the total | Should be a sensible number, not `NaN` or `0` |
-| **C9** | `/example/search`, search for `truck` | Finds "Denver, and a truck" and links to it |
+| **C4** | `/@example/map` | World map with the route drawn, stops marked, coloured by transport |
+| **C5** | `/@example/trips/parks-2025/map` | 18 stops, clustered into numbered circles when zoomed out. Every entry in the stop list below opens that day |
+| **C6** | `/@example/gallery` | Every photo from the trip, filterable by place |
+| **C7** | `/@example/analytics` | A card per analysis, each with a figure on it; the nav tab reads Analytics, not Costs |
+| **C7a** | `/@example/costs` | Charts: spend by category, by country, against budget |
+| **C7b** | `/@example/weather` (needs `features.weather`) | Says how many days carry a reading before any average, and credits Open-Meteo |
+| **C8** | On `/@example/costs`, check the total | Should be a sensible number, not `NaN` or `0` |
+| **C9** | `/@example/search`, search for `truck` | Finds "Denver, and a truck" and links to it |
 | **C10** | Search for `lantern` on the Asia trip | Finds the Hoi An day |
 | **C11** | Click a reaction (heart, etc.) on any day | It registers and survives a page reload |
 | **C12** | **Across and back** → 24 August | The day holds **two updates**, at 13:20 and 21:40, in that order. The header reads "2 updates" |
@@ -87,7 +87,7 @@ The five trips deliberately spend in **CHF, EUR, THB, VND, USD and JPY**.
 
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
-| **D1** | `/example/costs` on **Five months east** | Thai baht and Vietnamese dong shown converted to CHF |
+| **D1** | `/@example/costs` on **Five months east** | Thai baht and Vietnamese dong shown converted to CHF |
 | **D2** | The currency chip in the header → **EUR** | Every number on the page changes, marked `≈` |
 | **D3** | Switch to **USD**, reload the page | Still USD — the choice sticks |
 | **D4** | Compare the Alps trip and the USA trip | Each converts at its own rate; they are different trips in different years |
@@ -101,11 +101,11 @@ The five trips deliberately spend in **CHF, EUR, THB, VND, USD and JPY**.
 | --- | --- | --- |
 | **E1** | The language chip → **Deutsch** | Menus, buttons and dates in German |
 | **E2** | Reload | Still German — the server remembers, not just the browser |
-| **E3** | Open `/example?lang=hu` in a **private window** | Hungarian **on the first load**, no English flash |
+| **E3** | Open `/@example?lang=hu` in a **private window** | Hungarian **on the first load**, no English flash |
 | **E4** | Click through to another page, no `?lang=` | Still Hungarian |
 | **E5** | On the Asia trip, days **First morning in Bangkok** and **Two days on the Mekong** in German | The diary text itself is German, not just the menus |
 | **E6** | The same days in Hungarian | Both are Hungarian; ⚠️ other days on the same trip fall back to English text — only some days are translated, on purpose |
-| **E7** | `/example?lang=englishplease` | Ignored, falls back to the journal's own language |
+| **E7** | `/@example?lang=englishplease` | Ignored, falls back to the journal's own language |
 | **E8** | `/sitemap.xml`, search for `hreflang` | Every page listed in each language |
 
 ---
@@ -134,18 +134,18 @@ it there does nothing.
 
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
-| **F1** | In `content/example/trips/alps-2024/trip.json` set `"visibility": "private"`. Reload `/example/trips/alps-2024` | The **gate**, not the trip |
+| **F1** | In `content/example/trips/alps-2024/trip.json` set `"visibility": "private"`. Reload `/@example/trips/alps-2024` | The **gate**, not the trip |
 | **F2** | Read the gate | It carries the **journal's** name — "Fernscout Demo" — and says nothing about the Alps: not in the heading, not in the tagline, nowhere. B117 |
 | **F3** | `curl -s localhost:3000/@example/trips/alps-2024 \| grep -i '<title>'` | The journal's name again, and a `noindex`. Trip ids are guessable by hand, so a closed trip must not name itself in the tab either |
-| **F4** | 🔑 Sign in at the gate with an address that is **not** in that trip's `people:` (the code is in the `.eml` under `<DATA_DIR>/mail/example/`) | Signed in, and **still refused** — a different sentence, and a link to `/example/me`. Being able to prove an address is not access |
+| **F4** | 🔑 Sign in at the gate with an address that is **not** in that trip's `people:` (the code is in the `.eml` under `<DATA_DIR>/mail/example/`) | Signed in, and **still refused** — a different sentence, and a link to `/@example/me`. Being able to prove an address is not access |
 | **F5** | Add that address to the trip's `people` array (`{"name": …, "email": …}`), reload | The trip opens, and stays open across its other pages |
 | **F6** | Set `"visibility": "guest"` and take your address back out of `people`. Reload | Refused again, in the same words as F4: a `guest` trip opens for guests of the **journal**, and signing in is not being approved into one. The other half — an approved guest opening it — needs a contact to approve, which is **H2–H5**; come back to this URL after those and it opens, along with every other `guest` trip in the journal, because a guest is never a guest of one trip |
-| **F6a** | As owner, from `/example/studio/readers` — the only place a buddy link is made, approved or revoked (B2295) — share a **buddy** link for this trip, and open it in another session with an address that is on no trip. Approve it on the same page | That address can now get an `fs_agent_` token scoped to `alps-2024` and `PUT`/`PATCH` days on it — the granted `trip_people` row decides write access now, never the trip's own `people:` (B2297) — **and** it can read every `guest` trip in the journal too: approving a buddy does both at once, which is why a buddy link is never the safe one to forward casually |
-| **F7** | In a **private window**, open one of that trip's photos directly, e.g. `/example/media/alps-2024/over-the-susten/01.jpg` | **404.** A private trip's photos must not be fetchable by URL |
-| **F7a** | On a day in a `public` trip, add `"visibility": "guest"` to one photo's own entry in the day's `media` array (not the trip's own `visibility`). Reload the day signed out | That one photo is missing from the grid; every other photo on the same day still shows. Its own URL, e.g. `/example/media/<trip>/<day>/<the-photo>.jpg`, also answers 404 — a picture held back from the gallery but still fetchable would not be held back at all. B596: the label only ever narrows, never widens past what the trip already allows |
-| **F8** | In that private window, check `/sitemap.xml` and `/example/feed.xml` | The Alps trip appears in **neither** |
-| **F9** | `/example` and `/example/trips` in the private window | Still work. **A private trip must not hide the rest of the journal** |
-| **F10** | Put the trip back to `visibility: public` and add `listed: false`. Reload | Reachable by link, but absent from the sitemap, from `/example/feed.xml` and from the trip switcher. W27 split the old `unlisted` into these two fields: `visibility` is who may read it, `listed` is whether it is advertised |
+| **F6a** | As owner, from `/@example/studio/readers` — the only place a buddy link is made, approved or revoked (B2295) — share a **buddy** link for this trip, and open it in another session with an address that is on no trip. Approve it on the same page | That address can now get an `fs_agent_` token scoped to `alps-2024` and `PUT`/`PATCH` days on it — the granted `trip_people` row decides write access now, never the trip's own `people:` (B2297) — **and** it can read every `guest` trip in the journal too: approving a buddy does both at once, which is why a buddy link is never the safe one to forward casually |
+| **F7** | In a **private window**, open one of that trip's photos directly, e.g. `/@example/media/alps-2024/over-the-susten/01.jpg` | **404.** A private trip's photos must not be fetchable by URL |
+| **F7a** | On a day in a `public` trip, add `"visibility": "guest"` to one photo's own entry in the day's `media` array (not the trip's own `visibility`). Reload the day signed out | That one photo is missing from the grid; every other photo on the same day still shows. Its own URL, e.g. `/@example/media/<trip>/<day>/<the-photo>.jpg`, also answers 404 — a picture held back from the gallery but still fetchable would not be held back at all. B596: the label only ever narrows, never widens past what the trip already allows |
+| **F8** | In that private window, check `/sitemap.xml` and `/@example/feed.xml` | The Alps trip appears in **neither** |
+| **F9** | `/@example` and `/@example/trips` in the private window | Still work. **A private trip must not hide the rest of the journal** |
+| **F10** | Put the trip back to `visibility: public` and add `listed: false`. Reload | Reachable by link, but absent from the sitemap, from `/@example/feed.xml` and from the trip switcher. W27 split the old `unlisted` into these two fields: `visibility` is who may read it, `listed` is whether it is advertised |
 | **F11** | Now set `visibility: guest` **and** `listed: true`. Reload, and watch the server's console | Refused and logged — `[trips] … says listed: true, but visibility "guest" does not advertise the trip — ignoring it`. `listed:` can only ever narrow, so a mistake here cannot advertise a closed trip. B51 |
 | **F12** | Set `"visibility": "guests"` inside the trip's `costs` section (`costsVisibility` in the old `trip.md`; nested under `costs` in `trip.json` since B1598) on a public trip | The costs page hides the numbers |
 | **F13** | Undo F1–F12 (and F6a/F7a) before continuing | — |
@@ -171,7 +171,7 @@ and in `site/config.json` set `features.auth.enabled` and
 | **G1** | Open `/documentation.txt` | A readable document naming the journal and how to write to it |
 | **G2** | Open `/skill/add-a-day.md` | One task's own guide: fields, a worked example, editing, publishing (B311) |
 | **G3** | Open `/openapi.json` | A machine-readable API description, not a 404 |
-| **G4** | Open `/example/day/denver-and-a-truck.md` | The **markdown twin** of that day, not the rendered page |
+| **G4** | Open `/@example/day/denver-and-a-truck.md` | The **markdown twin** of that day, not the rendered page |
 | **G5** | `curl -X POST localhost:3000/api/auth/codes -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","for":"write"}'` | `202`, and an `.eml` file appears in `<DATA_DIR>/mail/example/` |
 | **G6** | `curl -X POST localhost:3000/api/auth/codes/redeem -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","for":"write"}'` | A token starting `fs_agent_` |
 | **G7** | Same request with a **different** email | `403` and **no** mail written — only the owner can get a write token |
@@ -202,10 +202,10 @@ mail this section tests.
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
 | **H1** | Set `features.contacts.enabled: true` and 🔑 `CONTACTS_ENCRYPTION_KEY=$(openssl rand -hex 32)`. Rebuild | — |
-| **H2** | Open `/example/studio/readers` as owner — the only place an invite is made (B2295) — share a link, open it in another session | A short guest/buddy redemption flow: name, email or mobile, a code |
+| **H2** | Open `/@example/studio/readers` as owner — the only place an invite is made (B2295) — share a link, open it in another session | A short guest/buddy redemption flow: name, email or mobile, a code |
 | **H3** | Fill it in and submit | A code arrives as an `.eml`; entering it confirms you |
 | **H4** | Check `<DATA_DIR>/mail/example/` | A "someone wants to follow" mail addressed to the owner |
-| **H5** | Open `/example/studio/readers` (as owner) — `/example/contacts` now redirects here | The pending request, with an approve button |
+| **H5** | Open `/@example/studio/readers` (as owner) — `/@example/contacts` now redirects here | The pending request, with an approve button |
 | **H6** | Approve that contact, then publish a day the address can read | A day letter `.eml` arrives for that contact, in their own language |
 | **H7** | Publish a second day right after | A second, separate letter — there is no batching or once-a-day limit any more |
 | **H8** | Open a letter in a mail client | Readable, large type, links work, has an unsubscribe link |
@@ -218,8 +218,8 @@ Hosted-only features are tested in the private features repository.
 
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
-| **I1** | `/example/feed.xml` | Valid RSS of the public days |
-| **I2** | `/example/export.zip` | A zip of JSON content and photos that could rebuild the journal |
+| **I1** | `/@example/feed.xml` | Valid RSS of the public days |
+| **I2** | `/@example/export.zip` | A zip of JSON content and photos that could rebuild the journal |
 | **I3** | `npm run export -- example` | The same, from the command line |
 | **I4** | `/api/health` | Every feature listed with on/off and **why** |
 | **I5** | `npm run ingest -- --user example --trip usa-2026 <a folder of photos>` | Reads EXIF, resizes, writes a dated entry |

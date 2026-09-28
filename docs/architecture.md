@@ -25,7 +25,7 @@ security boundary.
 
 ## The URL space
 
-Everything a person owns hangs off `/<username>`. `app/at/[user]/(trip)/…` serves
+Everything a person owns hangs off `/@<username>`. `app/at/[user]/(trip)/…` serves
 that journal's *current* trip at the short URL; `app/at/[user]/trips/[trip]/…`
 serves any trip at the explicit one. Both render the same components.
 

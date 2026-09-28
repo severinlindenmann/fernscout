@@ -1,4 +1,8 @@
+import { headers } from "next/headers";
+import { permanentRedirect } from "next/navigation";
 import NotFoundNotice from "@/components/NotFoundNotice";
+import { movedJournalPath } from "@/lib/movedJournal";
+import { PATH_HEADER, SEARCH_HEADER } from "@/lib/requestKeys";
 import { getDefaultUsername, getUser } from "@/lib/users";
 
 /**
@@ -6,10 +10,9 @@ import { getDefaultUsername, getUser } from "@/lib/users";
  *
  * It catches two things. Anything that matches no route at all lands here, and
  * so does `notFound()` thrown from `app/at/[user]/layout.tsx` — which is the case
- * that actually happens to people: a misspelt journal name in a forwarded link.
- * Since `[user]` is a top-level dynamic segment, almost every bad URL on this
- * server is one of those, so this page is really "no journal by that name",
- * with the generic wording kept for deeper misses.
+ * that actually happens to people: a misspelt journal name in a forwarded link
+ * (`/@anna`). A journal's old address without the `@` is not a miss at all,
+ * and is sent on — see `lib/movedJournal.ts`.
  *
  * It offers the default journal by name rather than a bare "home", because the
  * reader who got here was trying to read somebody's trip, not visit a website.
@@ -20,7 +23,12 @@ import { getDefaultUsername, getUser } from "@/lib/users";
  * the single `noindex` now come from `app/layout.tsx` and from Next itself —
  * see the note on `generateMetadata` there.
  */
-export default function NotFound() {
+export default async function NotFound() {
+  // A journal's pre-`@` address is not a miss: send it on (`lib/movedJournal.ts`).
+  const request = await headers();
+  const moved = movedJournalPath(request.get(PATH_HEADER), request.get(SEARCH_HEADER));
+  if (moved) permanentRedirect(moved);
+
   const username = getDefaultUsername();
   const user = username ? getUser(username) : null;
 
