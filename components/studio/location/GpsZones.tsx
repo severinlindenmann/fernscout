@@ -396,7 +396,7 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
               {t("studio.location.zones.radiusLabel")} — {t("studio.location.zones.radiusUnit", { radius })}
             </span>
             <input
-              className="mt-1 w-full accent-yellow-500"
+              className="mt-1 w-full accent-yellow-400"
               value={radius}
               onChange={(e) => setRadius(e.target.value)}
               type="range"
