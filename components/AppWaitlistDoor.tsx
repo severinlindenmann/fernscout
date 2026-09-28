@@ -5,8 +5,7 @@ import Link from "next/link";
 import { Smartphone } from "lucide-react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
-import { PRIMARY_BUTTON } from "@/components/LandingSections";
-import { TEXT_LINK } from "@/components/landing/styles";
+import { PILL_PRIMARY, TEXT_LINK } from "@/components/landing/styles";
 
 const LANGUAGES = ["en", "de", "hu"] as const;
 
@@ -138,7 +137,7 @@ export default function AppWaitlistDoor({
         busy={busy}
         type="submit"
         disabled={!email.includes("@")}
-        className={`${PRIMARY_BUTTON} disabled:opacity-50`}
+        className={`${PILL_PRIMARY} disabled:opacity-50`}
         busyLabel={t("appWaitlist.sending")}
       >
         {t("appWaitlist.submitCta")}

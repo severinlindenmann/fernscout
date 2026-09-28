@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useReducedMotion } from "motion/react";
-import { PRIMARY_BUTTON } from "@/components/LandingSections";
+// B2531: the kit's yellow pill; the square button is retired.
+import { PILL_PRIMARY } from "@/components/landing/styles";
 import { useI18n } from "@/components/LocaleProvider";
 import EnvelopeFly from "@/components/EnvelopeFly";
 
@@ -227,7 +228,7 @@ export default function IdentitySignIn({
             busy={busy}
             ref={sendRef}
             type="submit"
-            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >
             {t("me.signInSend")}
@@ -287,7 +288,7 @@ export default function IdentitySignIn({
           <BusyButton
             busy={busy}
             type="submit"
-            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >
             {t("me.signInSubmit")}

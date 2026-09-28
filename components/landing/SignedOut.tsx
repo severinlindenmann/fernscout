@@ -2,17 +2,18 @@
 
 import Link from "@/components/LanguageLink";
 import type { ReactNode } from "react";
-import { Menu, Terminal } from "lucide-react";
+import { Terminal } from "lucide-react";
 import AppWaitlistDoor from "@/components/AppWaitlistDoor";
 import { AgentBlock, LandingSteps } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
-import LocaleSwitcher from "@/components/LocaleSwitcher";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { posterSrc } from "@/components/mediaLoader";
-import { flagFor } from "@/lib/flags";
 import type { DemoDay } from "@/lib/demoDay";
 import { landingFaq, landingHero, landingHow, landingPrints, landingTrust } from "@/lib/landingContent";
-import { KICKER, PILL_GHOST, PILL_PRIMARY, PILL_SMALL, TEXT_LINK } from "./styles";
+import { Footer, HeaderA, useDoors, type InviteCta, type NavLink } from "./Frame";
+import { WIDE } from "./kit";
+import { KICKER, PILL_GHOST, PILL_PRIMARY, TEXT_LINK } from "./styles";
+
+export type { InviteCta, NavLink };
 
 /**
  * The signed-out `/` — B2506, the "Winner" boards.
@@ -31,12 +32,9 @@ import { KICKER, PILL_GHOST, PILL_PRIMARY, PILL_SMALL, TEXT_LINK } from "./style
  * instruction stays on the page, below the hero, where the helper is off —
  * with no helper it is the only way in (B751).
  *
- * The header and footer are also `/agentic`'s, through `LandingFrame` below
- * (B2529), so the two pages cannot drift apart.
+ * The header and footer are every other page's too (`./Frame`, B2531), so
+ * the pages cannot drift apart.
  */
-
-export type InviteCta = "request" | "welcome";
-export type NavLink = { href: string; label: string };
 
 export type SignedOutProps = {
   siteName: string;
@@ -65,8 +63,6 @@ export type SignedOutProps = {
   legal?: boolean;
 };
 
-const WRAP = "mx-auto w-full max-w-7xl px-4 sm:px-8 lg:px-16";
-
 function Dot() {
   return (
     <span
@@ -94,62 +90,6 @@ export function ReaderStrip({ onSignIn }: { onSignIn: () => void }) {
   );
 }
 
-type Doors = {
-  inviteCta: InviteCta;
-  helperEnabled: boolean;
-  prints: boolean;
-  pricing: boolean;
-  orgs?: NavLink[];
-};
-
-/** The header's links and the one primary door, for `/` or — `away` — for
- * another page, where "Home" leads and only the prices keep a section link:
- * the header has no room for a sixth word in German at 1280px. */
-function useDoors({ inviteCta, helperEnabled, prints, pricing, orgs }: Doors, away = false) {
-  const { t } = useI18n();
-  // The one primary door, the same in the header, the hero, the pricing and
-  // the questions: an invite request while signup is invite-only and the
-  // request page exists (B2507), otherwise `/welcome` — where the helper can
-  // write. With the helper off there is no hosted way in, and the agent
-  // instruction below the hero is the door instead (B694, B751).
-  const cta: NavLink | null =
-    inviteCta === "request"
-      ? { href: "/invite", label: t("landing.requestInvite") }
-      : helperEnabled
-        ? { href: "/welcome", label: t("landing.helperCta") }
-        : null;
-  const at = away ? "/" : "";
-  const nav: NavLink[] = [
-    ...(away
-      ? [{ href: "/", label: t("landing.navHome") }]
-      : [
-          { href: "#how", label: t("landing.navHow") },
-          ...(prints ? [{ href: "#prints", label: t("landing.navPrints") }] : []),
-        ]),
-    ...(pricing ? [{ href: `${at}#prices`, label: t("landing.navPrices") }] : []),
-    ...(orgs ?? []),
-  ];
-  return { nav, cta };
-}
-
-type FrameProps = Pick<SignedOutProps, "siteName" | "locales" | "orgs" | "repository" | "credit" | "legal">;
-
-/**
- * The homepage's header and footer around another page — `/agentic`, B2529.
- * No sign-in state lives here: "Sign in" is a link to `/?start=1`, which
- * opens the same form on `/` (B1905).
- */
-export function LandingFrame({ children, ...props }: FrameProps & Doors & { children: ReactNode }) {
-  const { nav, cta } = useDoors(props, true);
-  return (
-    <div className="min-h-full bg-surface-base text-ink-body">
-      <Header {...props} nav={nav} cta={cta} />
-      {children}
-      <Footer {...props} />
-    </div>
-  );
-}
-
 export default function SignedOut(props: SignedOutProps) {
   const { helperEnabled } = props;
   const prints = props.postcards || props.photobook;
@@ -158,9 +98,9 @@ export default function SignedOut(props: SignedOutProps) {
   return (
     <div className="min-h-full bg-surface-base text-ink-body">
       {props.top}
-      <Header {...props} nav={nav} cta={cta} />
+      <HeaderA {...props} nav={nav} cta={cta} />
       {props.skeleton ? (
-        <div aria-hidden className={`${WRAP} animate-pulse space-y-4 py-12`}>
+        <div aria-hidden className={`${WIDE} animate-pulse space-y-4 py-12`}>
           <div className="h-12 w-2/3 rounded bg-surface-muted" />
           <div className="h-40 rounded-xl bg-surface-muted" />
         </div>
@@ -168,7 +108,7 @@ export default function SignedOut(props: SignedOutProps) {
         <main>
           <Hero {...props} cta={cta} />
           {!helperEnabled && (
-            <div className={`${WRAP} pb-16`}>
+            <div className={`${WIDE} pb-16`}>
               <div className="max-w-2xl">
                 <AgentBlock docUrl={props.docUrl} agentUrl={props.agentUrl} />
                 <LandingSteps />
@@ -183,7 +123,7 @@ export default function SignedOut(props: SignedOutProps) {
           {/* The door to /agentic, for the reader who already has an agent
               open or would rather run this themselves: the last thing before
               the footer, after everything that addresses everybody (B2529). */}
-          <div className={`${WRAP} pb-16 lg:pb-24`}>
+          <div className={`${WIDE} pb-16 lg:pb-24`}>
             <div className="max-w-3xl">
               <AgenticTeaser />
             </div>
@@ -195,101 +135,6 @@ export default function SignedOut(props: SignedOutProps) {
   );
 }
 
-export function Logo({ siteName }: { siteName: string }) {
-  return (
-    <Link
-      href="/"
-      className="flex items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/icon.svg" alt="" width={38} height={38} className="h-9 w-9" />
-      <span className="font-display text-2xl font-semibold text-ink-strong">{siteName}</span>
-    </Link>
-  );
-}
-
-/** "Sign in": the form in place on `/`, a link to it anywhere else. */
-function SignIn({ onSignIn, className, children }: { onSignIn?: () => void; className: string; children: ReactNode }) {
-  return onSignIn ? (
-    <button type="button" onClick={onSignIn} className={className}>
-      {children}
-    </button>
-  ) : (
-    <Link href="/?start=1" className={className}>
-      {children}
-    </Link>
-  );
-}
-
-function Header({
-  siteName,
-  locales,
-  onSignIn,
-  nav,
-  cta,
-}: FrameProps & { onSignIn?: () => void; nav: NavLink[]; cta: NavLink | null }) {
-  const { t } = useI18n();
-  const navLink =
-    "whitespace-nowrap text-[15px] font-semibold text-ink-strong hover:underline decoration-blue-500 decoration-2 underline-offset-4 rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
-  return (
-    <header className={`${WRAP} flex items-center justify-between gap-4 py-4 lg:py-5`}>
-      <Logo siteName={siteName} />
-      <nav aria-label={t("landing.navLabel")} className="hidden items-center gap-6 lg:flex">
-        {nav.map((link) => (
-          <a key={link.href} href={link.href} className={navLink}>
-            {link.label}
-          </a>
-        ))}
-      </nav>
-      <div className="flex items-center gap-1.5 sm:gap-2.5">
-        <div className="hidden items-center gap-1 sm:flex">
-          <ThemeSwitcher subtle />
-          <LocaleSwitcher locales={locales} subtle />
-        </div>
-        <SignIn onSignIn={onSignIn} className={`${PILL_GHOST} ${PILL_SMALL}`}>
-          {t("landing.signIn")}
-        </SignIn>
-        {cta && (
-          // Wrapped: `hidden` on the pill itself loses to its own `inline-flex`.
-          <span className="hidden sm:block">
-            <Link href={cta.href} className={`${PILL_PRIMARY} ${PILL_SMALL}`}>
-              {cta.label}
-            </Link>
-          </span>
-        )}
-        {/* The phone's menu: a native disclosure, so it opens without
-            JavaScript and closes by a second tap. */}
-        <details className="relative lg:hidden">
-          <summary
-            aria-label={t("landing.navMenu")}
-            className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full border-2 border-line-quiet
-                       text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
-                       [&::-webkit-details-marker]:hidden"
-          >
-            <Menu className="h-5 w-5" aria-hidden />
-          </summary>
-          <div className="absolute right-0 z-20 mt-2 flex w-64 flex-col gap-1 rounded-2xl border border-line-quiet bg-surface-raised p-3 shadow-lg">
-            {nav.map((link) => (
-              <a key={link.href} href={link.href} className={`${navLink} flex min-h-11 items-center px-2`}>
-                {link.label}
-              </a>
-            ))}
-            {cta && (
-              <Link href={cta.href} className={`${PILL_PRIMARY} ${PILL_SMALL} mt-2`}>
-                {cta.label}
-              </Link>
-            )}
-            <div className="mt-2 flex items-center gap-1 border-t border-line-quiet pt-2 sm:hidden">
-              <ThemeSwitcher subtle />
-              <LocaleSwitcher locales={locales} subtle />
-            </div>
-          </div>
-        </details>
-      </div>
-    </header>
-  );
-}
-
 function Hero(props: SignedOutProps & { cta: NavLink | null }) {
   const { demo, appStoreUrl, appWaitlistAvailable, cta } = props;
   const { t } = useI18n();
@@ -297,7 +142,7 @@ function Hero(props: SignedOutProps & { cta: NavLink | null }) {
   const points = hero.points;
   return (
     <section
-      className={`${WRAP} grid items-center gap-10 pb-16 pt-6 sm:pt-10 lg:grid-cols-2 lg:gap-16 lg:pb-24 lg:pt-14`}
+      className={`${WIDE} grid items-center gap-10 pb-16 pt-6 sm:pt-10 lg:grid-cols-2 lg:gap-16 lg:pb-24 lg:pt-14`}
     >
       <div className="flex flex-col gap-5 lg:gap-6">
         <p className={KICKER}>{hero.kicker}</p>
@@ -385,7 +230,7 @@ function Prints(props: SignedOutProps) {
   return (
     <section
       id="prints"
-      className={`${WRAP} grid scroll-mt-4 items-center gap-10 py-16 lg:grid-cols-2 lg:gap-[4.5rem] lg:py-26`}
+      className={`${WIDE} grid scroll-mt-4 items-center gap-10 py-16 lg:grid-cols-2 lg:gap-[4.5rem] lg:py-26`}
     >
       {demo ? (
         <div aria-hidden className="relative h-[20rem] sm:h-[27.5rem]">
@@ -440,7 +285,7 @@ function How(props: SignedOutProps) {
   const steps = how.steps;
   return (
     <section id="how" className="scroll-mt-4 border-y border-line-quiet bg-surface-raised py-16 lg:py-22">
-      <div className={`${WRAP} flex flex-col gap-10`}>
+      <div className={`${WIDE} flex flex-col gap-10`}>
         <div className="flex flex-col gap-3">
           <p className={KICKER}>{how.kicker}</p>
           <h2 className="max-w-[20ch] font-display text-[clamp(2rem,5vw,2.75rem)] font-semibold leading-[1.08] text-ink-strong">
@@ -470,7 +315,7 @@ function Trust() {
   const { t } = useI18n();
   const cards = landingTrust(t);
   return (
-    <section className={`${WRAP} py-16 lg:pb-26`}>
+    <section className={`${WIDE} py-16 lg:pb-26`}>
       <ul className="grid gap-4 md:grid-cols-3 md:gap-6">
         {cards.map((card) => (
           <li key={card.title} className="flex flex-col gap-2.5 rounded-[22px] border border-line-quiet bg-surface-raised p-6 lg:p-7">
@@ -499,7 +344,7 @@ function Faq(props: SignedOutProps & { cta: NavLink | null }) {
   const faq = landingFaq(t, props);
   const items = faq.items;
   return (
-    <section className={`${WRAP} flex flex-col gap-9 py-16 lg:py-24`}>
+    <section className={`${WIDE} flex flex-col gap-9 py-16 lg:py-24`}>
       <h2 className="font-display text-[clamp(1.9rem,4.5vw,2.5rem)] font-semibold leading-[1.1] text-ink-strong">
         {faq.title}
       </h2>
@@ -526,81 +371,6 @@ function Faq(props: SignedOutProps & { cta: NavLink | null }) {
         </div>
       )}
     </section>
-  );
-}
-
-function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: FrameProps & { onSignIn?: () => void }) {
-  const { t } = useI18n();
-  const link =
-    "text-[15px] text-cream-50 hover:underline rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
-  const heading = "font-mono text-xs uppercase tracking-[0.08em] text-navy-300";
-  const madeBy = credit
-    ? t("landing.madeBy", { flag: flagFor("", credit.countryCode) || "", name: "\u0000" }).split("\u0000")
-    : null;
-  return (
-    <footer className="bg-navy-900 text-navy-300">
-      <div className={`${WRAP} grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:pb-12 lg:pt-16`}>
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.svg" alt="" width={34} height={34} className="h-8 w-8" />
-            <span className="font-display text-[22px] font-semibold text-cream-50">{siteName}</span>
-          </div>
-          <p className="text-[15px]">{t("landing.footerTagline")}</p>
-        </div>
-        <div className="flex flex-col items-start gap-2">
-          <p className={heading}>{t("landing.footerReaders")}</p>
-          <SignIn onSignIn={onSignIn} className={link}>
-            {t("landing.footerSignIn")}
-          </SignIn>
-        </div>
-        {orgs && orgs.length > 0 && (
-          <div className="flex flex-col items-start gap-2">
-            <p className={heading}>{t("landing.footerGroups")}</p>
-            {orgs.map((o) => (
-              <Link key={o.href} href={o.href} className={link}>
-                {o.label}
-              </Link>
-            ))}
-          </div>
-        )}
-        <div className="flex flex-col items-start gap-2">
-          <p className={heading}>{t("landing.footerOpen")}</p>
-          {repository && (
-            <a href={repository} className={link}>
-              {t("landing.source")}
-            </a>
-          )}
-          <Link href="/docs" className={link}>
-            {t("landing.footerDocs")}
-          </Link>
-          <Link href="/agentic" className={link}>
-            {t("landing.footerAgentic")}
-          </Link>
-          {legal && (
-            <Link href="/legal" className={link}>
-              {t("landing.legal")}
-            </Link>
-          )}
-        </div>
-      </div>
-      <div className={`${WRAP} flex flex-wrap gap-x-4 gap-y-1 border-t border-navy-700 py-5 text-xs text-navy-300`}>
-        {madeBy && credit && (
-          <p>
-            {madeBy[0]}
-            {credit.url ? (
-              <a href={credit.url} className="font-semibold text-cream-50 underline decoration-blue-500 decoration-2 underline-offset-4">
-                {credit.name}
-              </a>
-            ) : (
-              <span className="font-semibold text-cream-50">{credit.name}</span>
-            )}
-            {madeBy[1]}
-          </p>
-        )}
-        <p>{t("landing.noTracking")}</p>
-      </div>
-    </footer>
   );
 }
 
