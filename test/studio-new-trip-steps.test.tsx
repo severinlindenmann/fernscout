@@ -20,6 +20,7 @@ vi.mock("next/navigation", () => ({
     push: (href: string) => history.push(href.split("?")[1] ?? ""),
     back: () => history.length > 1 && history.pop(),
     replace: vi.fn(),
+    refresh: () => {},
   }),
   usePathname: () => "/@alex/studio/trip/new",
   useSearchParams: () => current(),

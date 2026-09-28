@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { DeleteDayConfirm } from "@/components/DeleteDay";
@@ -73,6 +75,7 @@ export default function PublishDayFlow({
   readers?: string[] | null;
 }) {
   const { t, tn, formatLongDate, locale } = useI18n();
+  const router = useRouter();
   const online = useOnline();
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
@@ -108,7 +111,12 @@ export default function PublishDayFlow({
     const body = JSON.stringify(declineOpen.length > 0 ? { declineOpen } : {});
     const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }).catch(() => null);
     setBusy(false);
-    if (response?.ok) return setDone(true);
+    if (response?.ok) {
+      // B2549 — the day's own page (and the drafts/published lists) have to
+      // stop showing its pre-publish state.
+      router.refresh();
+      return setDone(true);
+    }
     setError(response?.status === 422 ? t("studio.publish.incomplete") : t("studio.publish.failed"));
   }
 
@@ -165,16 +173,16 @@ export default function PublishDayFlow({
         : readers;
     return (
       <>
-        <a href={listHref} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
+        <Link href={listHref} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
           {t(takeDown ? "studio.publish.backToPublished" : "studio.publish.backToDrafts")}
-        </a>
+        </Link>
         <h2 className="mt-3 font-display text-lg font-semibold text-ink-strong">{nameOf(chosen)}</h2>
         <p className="text-sm text-ink-secondary">
           {chosen.tripTitle} · {formatLongDate(chosen.date)} · {tn("studio.publish.photos", chosen.photos, { count: String(chosen.photos) })}
         </p>
-        <a href={dayHref(chosen)} className="mt-2 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
+        <Link href={dayHref(chosen)} className="mt-2 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
           {t("studio.publish.preview")}
-        </a>
+        </Link>
 
         {!takeDown && (
           <dl className="mt-4 space-y-3 rounded-xl border border-line-faint bg-surface-subtle px-4 py-3 text-sm text-ink-body">
@@ -224,7 +232,7 @@ export default function PublishDayFlow({
               busy={busy}
               error={error}
               onConfirm={() => void commit(chosen)}
-              onCancel={() => window.location.assign(listHref)}
+              onCancel={() => router.push(listHref)}
               cancelLabel={takeDown ? undefined : t("studio.publish.cancel")}
             >
               {!takeDown && blank.length > 0 && (
@@ -237,9 +245,9 @@ export default function PublishDayFlow({
                         <li key={field} data-blank-field={field} className="flex flex-wrap items-baseline justify-between gap-x-3">
                           <span>{label(field)}</span>
                           {FILLABLE_IN_CHANGE_A_DAY.has(field) && (
-                            <a href={editHref} className="font-semibold underline underline-offset-2">
+                            <Link href={editHref} className="font-semibold underline underline-offset-2">
                               {t("studio.publish.fillNow")}
-                            </a>
+                            </Link>
                           )}
                         </li>
                       ))}
@@ -286,21 +294,21 @@ export default function PublishDayFlow({
             {visible.map((row) => (
               <li key={`${row.tripId}/${row.slug}`} data-publish-row className="px-4 py-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <a href={chooseHref(row)} className="min-w-0 flex-1 hover:underline">
+                  <Link href={chooseHref(row)} className="min-w-0 flex-1 hover:underline">
                     <span className="block font-semibold text-ink-strong">{nameOf(row)}</span>
                     <span className="block text-xs text-ink-secondary">
                       {row.tripTitle} · {row.date} · {tn("studio.publish.photos", row.photos, { count: String(row.photos) })}
                     </span>
-                  </a>
+                  </Link>
                   <span className="flex flex-none flex-col items-end gap-1">
                     {!takeDown && (
-                      <a href={chooseHref(row)} className="font-semibold text-ink-body underline underline-offset-2">
+                      <Link href={chooseHref(row)} className="font-semibold text-ink-body underline underline-offset-2">
                         {t("studio.publish.shareRow")}
-                      </a>
+                      </Link>
                     )}
-                    <a href={dayHref(row)} className="text-ink-secondary underline underline-offset-2">
+                    <Link href={dayHref(row)} className="text-ink-secondary underline underline-offset-2">
                       {t("studio.publish.previewShort")}
-                    </a>
+                    </Link>
                     <button
                       type="button"
                       data-delete-day
@@ -327,12 +335,12 @@ export default function PublishDayFlow({
         </>
       )}
 
-      <a
+      <Link
         href={takeDown ? base : `${base}?list=published`}
         className="mt-6 inline-block text-sm font-semibold text-ink-body underline underline-offset-2"
       >
         {t(takeDown ? "studio.publish.toDrafts" : "studio.publish.toTakeDown")}
-      </a>
+      </Link>
     </>
   );
 }

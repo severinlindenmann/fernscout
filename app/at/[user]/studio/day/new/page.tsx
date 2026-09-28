@@ -17,6 +17,13 @@ import { readTellBy } from "@/lib/studio/tellBy";
 import { proposeAddDayTrip, tripsForAddDay, writtenDatesForTrip } from "@/lib/studio/day";
 
 export const dynamic = "force-dynamic";
+// B2549 — keep this page in the client Router Cache for 30s after a
+// visit, so hub -> journal -> hub within that window costs no new
+// document/RSC request; every save on this page calls router.refresh()
+// (a keeper, test/studio-refresh-after-save.test.ts, enforces it), which
+// invalidates the whole client cache, so a stale 30s window never shows
+// a page past its own save.
+export const unstable_dynamicStaleTime = 30;
 
 /**
  * "Add a day" — B1830, spec §5. The studio's main flow, and the first proof

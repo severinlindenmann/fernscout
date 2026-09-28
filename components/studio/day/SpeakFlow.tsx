@@ -284,6 +284,10 @@ export function RatherTalk({
     }).catch(() => {});
     const q = new URLSearchParams(params.toString());
     q.set("mode", "speak");
+    // B2549 — the PATCH above changed the saved tell-by preference; refresh
+    // before the replace so the page it lands on cannot serve a cached RSC
+    // render from before the change.
+    router.refresh();
     router.replace(`${journalPath(username)}/studio/day/new?${q.toString()}`);
   }
 

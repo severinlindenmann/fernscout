@@ -6,6 +6,9 @@ import TrackEditsPanel from "@/components/studio/location/TrackEditsPanel";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 
+// B2549: the panel refreshes the router after a save.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
+
 /**
  * B2544 — the studio's own warning when a day's own typed pin falls inside a
  * hidden spot: readers no longer get it drawn (`test/hidden-spot-places.test.ts`

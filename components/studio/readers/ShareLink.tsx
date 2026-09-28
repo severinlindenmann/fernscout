@@ -13,6 +13,9 @@ const noop = () => () => {};
  * hands off to another app) still lands.
  */
 function logShared(username: string, contactId: string | undefined): void {
+  // no-refresh: a best-effort background log, fired with keepalive so it can
+  // outlive the tab handing off to a share sheet; nothing on screen depends
+  // on it, and it must never block or reload the owner's own Copy/Share.
   fetch(`/api/web/${encodeURIComponent(username)}/readers/shared`, {
     method: "POST",
     headers: { "content-type": "application/json" },

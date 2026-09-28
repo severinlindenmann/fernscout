@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/LocaleProvider";
@@ -209,6 +210,7 @@ export default function NewTripFlow({
   photoRun?: { start: string; end: string } | null;
 }) {
   const { t, tn, locale, formatLongDate, formatShortDate, languageName: langName } = useI18n();
+  const router = useRouter();
 
   const [title, setTitle] = useState("");
   // B2070 — an empty title is said under the field once it has been left.
@@ -395,6 +397,8 @@ export default function NewTripFlow({
       setCreatedId(json.id);
       setOutcome("done");
       reset();
+      // B2549 — the studio's own trip list has one more trip now.
+      router.refresh();
     } catch {
       // A network error (offline), not a rejection the server sent — B2330
       // queues the write itself rather than losing it, same reasoning as

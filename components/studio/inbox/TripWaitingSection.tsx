@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import SubmitError from "@/components/studio/SubmitError";
@@ -45,6 +46,7 @@ export default function TripWaitingSection({
   groups: TripWaitingGroup[];
 }) {
   const { t, formatShortDate } = useI18n();
+  const router = useRouter();
   const [rows, setRows] = useState(groups);
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -74,6 +76,8 @@ export default function TripWaitingSection({
           group.tripId === tripId ? { ...group, rows: group.rows.filter((row) => row.id !== filename) } : group,
         ),
       );
+      // B2549 — the day this landed on now has one more photograph.
+      router.refresh();
     } catch {
       setError(t("studio.inbox.tripWaiting.attachFailed"));
     } finally {

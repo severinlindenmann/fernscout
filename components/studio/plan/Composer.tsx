@@ -117,6 +117,10 @@ export default function Composer({
       return () => clearTimeout(clear);
     }
     const id = setTimeout(() => {
+      // no-refresh: a live parse of what is still being typed, debounced on
+      // every pause — not a save. Nothing is written until `onCommit` fires
+      // (PlannerFlow's own PATCH, which does refresh), and refreshing here
+      // on every keystroke would be pointless at best.
       fetch(`/api/helper/${encodeURIComponent(username)}/plan/read`, {
         method: "POST",
         headers: { "content-type": "application/json" },

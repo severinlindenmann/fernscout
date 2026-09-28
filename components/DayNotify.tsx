@@ -1,6 +1,8 @@
 "use client";
 
 import { Mail, MessageCircle, MessageSquareText } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useI18n } from "./LocaleProvider";
 import BusyButton from "@/components/BusyButton";
@@ -59,6 +61,7 @@ export default function DayNotify({
   slug: string;
 }) {
   const { t, tn } = useI18n();
+  const router = useRouter();
   const url = `${journalPath(username)}/trips/${tripId}/day/${slug}/notify`;
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
@@ -97,9 +100,9 @@ export default function DayNotify({
           needed: String(status.needed),
           balance: formatCredits(status.balance ?? 0),
         })}{" "}
-        <a className="font-semibold underline" href={`${journalPath(username)}/me`}>
+        <Link className="font-semibold underline" href={`${journalPath(username)}/me`}>
           {t("photobook.getCredits")}
-        </a>
+        </Link>
       </p>
     );
   }
@@ -127,6 +130,8 @@ export default function DayNotify({
       }
       setStatus({ ...status, alreadySent: true, pending: [] });
       setAsking(false);
+      // B2549 — the day's own page may show "already sent" server-side.
+      router.refresh();
     } catch {
       setError(t("notify.failed"));
     } finally {

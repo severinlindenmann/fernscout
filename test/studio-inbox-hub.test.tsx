@@ -12,7 +12,10 @@ import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import type { InboxHubModel, InboxRow } from "@/lib/studio/inbox";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {} }), usePathname: () => "/ana/studio/inbox" }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: () => {}, refresh: () => {} }),
+  usePathname: () => "/ana/studio/inbox",
+}));
 
 const CSV: InboxRow = {
   id: "d1e256f760d4-statement.csv",
