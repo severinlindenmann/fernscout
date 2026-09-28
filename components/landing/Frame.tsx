@@ -50,7 +50,8 @@ export type FrameProps = {
   /** The audience's word beside the wordmark ("Schools", "Tour operators"),
    *  on a tinted page only — B2531's tints. */
   badge?: string;
-  /** The iPhone app's "Bring your own server", in the bottom band — B2545. */
+  /** The iPhone app's "Bring your own server", under Open Source beside
+   *  the GitHub link — B2545. */
   serverChoice?: ReactNode;
 };
 
@@ -244,6 +245,7 @@ export function Footer({ siteName, onSignIn, orgs, repository, legal, credit, se
               {t("landing.source")}
             </a>
           )}
+          {serverChoice}
           <Link href="/docs" className={link}>
             {t("landing.footerDocs")}
           </Link>
@@ -272,7 +274,6 @@ export function Footer({ siteName, onSignIn, orgs, repository, legal, credit, se
           </p>
         )}
         <p>{t("landing.noTracking")}</p>
-        {serverChoice}
       </div>
     </footer>
   );

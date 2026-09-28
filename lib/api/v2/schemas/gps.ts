@@ -34,3 +34,36 @@ export const gpsPurgeRequest = z.union([
   z.strictObject({ all: z.literal(true) }),
 ]);
 export type GpsPurgeRequest = z.infer<typeof gpsPurgeRequest>;
+
+/**
+ * The phone's own "am I actually recording" report — B2542, an optional
+ * `state` alongside a `kind: "gps"` import body. `trip` names which trip
+ * this is about (the same one the recorder is armed against); everything
+ * else is exactly what the phone itself can say about its own arming and
+ * permission. Accepted only from the phone's own `write:gps` token or the
+ * owner (`app/api/v2/[user]/import/route.ts`), and read back only through
+ * the owner-only `recordingState` (`lib/gps/recorderState.ts`) — never over
+ * `/api/v2`, and never to a reader.
+ *
+ * **Write-only over this door, by design — not an oversight `keep-the-contract`
+ * should flag.** `POST …/import` answers with counts about the *positions*
+ * it just accepted; it never echoes `state` back, on this call or any other
+ * `/api/v2` route (there is no `GET` for it at all). This is deliberately
+ * unlike every other v2 write, where "every accepted field is readable
+ * back" holds — `state` is a status ping about the *device*, not journal
+ * content the caller wrote and might want to confirm, and its own answer
+ * (`recordingState`) is owner-cookie-only content for exactly the reason
+ * `docs/gps.md` gives for the rest of `lib/gps/`. **Never allowed to fail
+ * the positions upload it rides along with** — a malformed, stale or
+ * renamed-trip `state` is silently ignored (`stateIgnored: true` in the
+ * response) rather than refusing the whole call; see the route's own doc
+ * comment (security review, B1/2026-09-28).
+ */
+export const gpsStateReport = z.strictObject({
+  trip: z.string().min(1),
+  armed: z.boolean(),
+  armedUntil: z.string().datetime().optional(),
+  permission: z.enum(["always", "whenInUse", "denied", "notDetermined"]).optional(),
+  appVersion: z.string().max(40).optional(),
+});
+export type GpsStateReport = z.infer<typeof gpsStateReport>;

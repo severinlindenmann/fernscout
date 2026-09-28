@@ -6,7 +6,7 @@ import { contentRoot } from "./contentRoot";
 import { siteRoot } from "./siteRoot";
 import { journalInPathname } from "./journalPath";
 import { loadServerConfig, loadUserConfig } from "./config";
-import { MAINTAINED_LOCALES, translate, type TranslationKey } from "./i18n";
+import { MAINTAINED_LOCALES, plural, translate, type TranslationKey } from "./i18n";
 import { PAID_AREAS } from "@paid/manifest";
 import LOCALE_SCOPES from "./localeScopes.json";
 import { PATH_LOCALES, type PathLocale } from "./languagePaths";
@@ -339,6 +339,22 @@ export function translateIn(
   const english = readDictionary(FALLBACK_LOCALE);
   const requested = locale === FALLBACK_LOCALE ? english : readDictionary(locale);
   return translate(requested, key, vars, english);
+}
+
+/** `translateIn`'s own count-aware twin — the server-component equivalent of
+ * `useI18n()`'s `tn()`, for a page that renders a plural-sensitive count
+ * (B2093: an English plural noun right after its own number needs a `.one`
+ * variant, never a bare `{count}` template that would also have to cover
+ * "1 days"). Reads and falls back exactly as `translateIn` does above. */
+export function translatePluralIn(
+  locale: string,
+  key: TranslationKey,
+  count: number,
+  vars?: Record<string, string>,
+): string {
+  const english = readDictionary(FALLBACK_LOCALE);
+  const requested = locale === FALLBACK_LOCALE ? english : readDictionary(locale);
+  return plural(requested, key, count, vars, english);
 }
 
 /** Every dictionary a journal offers, for a form that switches language

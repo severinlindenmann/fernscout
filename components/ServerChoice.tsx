@@ -114,15 +114,16 @@ export default function ServerChoice({ signedIn }: { signedIn: boolean }) {
     }
   }
 
-  // In the footer's bottom band, beside "No analytics": one quiet line that
+  // In the footer's Open Source column, under the GitHub link: one line that
   // opens the explanation and the form — B2545. Drawn in the navy footer's
   // colours, not the page's.
   return (
-    <details className="group open:basis-full">
-      <summary className="cursor-pointer list-none underline decoration-navy-500 underline-offset-4 hover:text-cream-50 [&::-webkit-details-marker]:hidden">
+    <details className="w-full">
+      {/* The column's link style, so it reads as one more of its links. */}
+      <summary className="cursor-pointer list-none rounded text-[15px] text-cream-50 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 [&::-webkit-details-marker]:hidden">
         {t("landing.server.title")}
       </summary>
-      <div className="mt-3 max-w-xl">
+      <div className="mt-2 max-w-md">
         <p className="text-xs leading-5">{t("landing.server.body", { host: defaultHost || host })}</p>
         {status.custom && (
           <p className="mt-2 text-xs leading-5">

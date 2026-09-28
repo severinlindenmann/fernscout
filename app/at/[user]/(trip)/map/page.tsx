@@ -10,6 +10,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
+import { getMapDays } from "@/lib/map/mapDays";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
@@ -175,8 +176,15 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   // `guestsLive` says 24h late; a public reader never does. Computed once
   // and threaded through, never re-derived per marker.
   const live = await mayReadLiveTrack(trip);
-  const track =
-    readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => s.points) ?? [];
+  // B2537: each run carries the calendar day its own local-midnight window
+  // belongs to (`TrackSegment.day`), threaded through so the map page can
+  // draw the real recorded/gap line grammar and fit a selected day's own
+  // line — see `recordedSegmentsFor` in `MapPageContent`.
+  const trackByDay =
+    readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
+      date: s.day,
+      points: s.points,
+    })) ?? [];
   // B2536 — the badge/dot copy, from the same filtered answer `readerTrack`
   // just drew from: only when a tail segment actually survived for this
   // reader's own visible dates, and only when the tail is still under 24h
@@ -186,8 +194,9 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   return (
     <MapPageContent
       places={places}
+      days={getMapDays(tripId, read)}
       plan={plan.stops}
-      track={track}
+      trackByDay={trackByDay}
       liveTail={liveTail}
       reachedCount={plan.reachedCount}
       basemap={basemap}

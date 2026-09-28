@@ -2,7 +2,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { getUser } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
-import { ownerTripLine } from "@/lib/gps/api";
+import { ownerDayLine, ownerTripLine } from "@/lib/gps/api";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,17 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
 
   const url = new URL(request.url);
   const tripId = url.searchParams.get("trip") ?? "";
+  const date = url.searchParams.get("date");
+
+  // A day, with gap joins for the street-level day view (B2540) — same
+  // owner-only door, never a bearer token, still no `/api/v2` twin. `date`
+  // absent is the trip-wide line every existing caller already gets.
+  if (date) {
+    const dayLine = ownerDayLine(user, tripId, date);
+    if (!dayLine) return Response.json({ error: "unknown_trip" }, { status: 404, headers: NO_STORE });
+    return Response.json({ ok: true, ...dayLine }, { headers: NO_STORE });
+  }
+
   const line = ownerTripLine(user, tripId);
   if (!line) return Response.json({ error: "unknown_trip" }, { status: 404, headers: NO_STORE });
 

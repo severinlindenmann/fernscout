@@ -130,6 +130,44 @@ describe("the store on disk", () => {
   });
 });
 
+describe("transport mode on a fix — B2541", () => {
+  test("an old three-element line still parses with no mode", () => {
+    fs.mkdirSync(gpsDir(USER), { recursive: true });
+    fs.writeFileSync(
+      path.join(gpsDir(USER), "2026-06.jsonl"),
+      "[1750579200,47.1,8.1]\n",
+    );
+    const out = readRange(USER, 0, Date.now() + 1e10);
+    expect(out).toHaveLength(1);
+    expect(out[0].mode).toBeUndefined();
+  });
+
+  test("a mixed file — some lines with a mode, some without — round-trips", () => {
+    appendFixes(USER, [
+      at(0, 47, 8),
+      { ...at(10, 47.1, 8), mode: "car" },
+      { ...at(30, 47.2, 8), mode: "on_foot" },
+    ]);
+    const out = readRange(USER, 0, Date.now() + 1e10);
+    expect(out.map((f) => f.mode)).toEqual([undefined, "car", "on_foot"]);
+    // Written back out with the 4th element only where a mode is present.
+    const text = fs.readFileSync(path.join(gpsDir(USER), "2026-06.jsonl"), "utf8");
+    const lines = text.trim().split("\n");
+    expect(lines[0].split(",")).toHaveLength(3);
+    expect(lines[1]).toContain('"car"');
+  });
+
+  test("an unrecognised mode string on disk is dropped, not trusted", () => {
+    fs.mkdirSync(gpsDir(USER), { recursive: true });
+    fs.writeFileSync(
+      path.join(gpsDir(USER), "2026-06.jsonl"),
+      '[1750579200,47.1,8.1,"levitating"]\n',
+    );
+    const out = readRange(USER, 0, Date.now() + 1e10);
+    expect(out[0].mode).toBeUndefined();
+  });
+});
+
 describe("purging — B1843 addendum", () => {
   test("readRange returns nothing after a whole-months purge, and the bytes are gone", () => {
     appendFixes(USER, [at(0, 47, 8), at(10, 47.1, 8)]);
@@ -225,13 +263,13 @@ describe("the rules that keep it private", () => {
   });
 
   /**
-   * B2200, widened by B2226 — `placeForDay`, `recordedTrips` and
-   * `ownerTripLine` are the only functions anywhere allowed to read a
-   * position back out of the store, so this is the one place that fact could
-   * quietly stop being true: a fourth export in `lib/gps/api.ts` growing a
-   * call to `readRange` would widen what an API route can reach for without
-   * ever touching `./store` or `./enrich` directly, and the test above would
-   * not see it.
+   * B2200, widened by B2226 and again by B2540 — `placeForDay`,
+   * `recordedTrips`, `ownerTripLine` and `ownerDayLine` are the only
+   * functions anywhere allowed to read a position back out of the store, so
+   * this is the one place that fact could quietly stop being true: a fifth
+   * export in `lib/gps/api.ts` growing a call to `readRange` would widen
+   * what an API route can reach for without ever touching `./store` or
+   * `./enrich` directly, and the test above would not see it.
    *
    * Derived from the file's own exports rather than a hand-written list of
    * function names, which would go stale the moment somebody renamed or
@@ -241,11 +279,15 @@ describe("the rules that keep it private", () => {
    * `deriveTripTrack` and `deleteTripRecording` both reach the store too
    * (through `trackForTrip`/`deleteRange`), but neither calls `readRange`
    * itself and neither hands a coordinate back to its caller — only counts —
-   * so they are correctly outside this list; `recordedTrips` and
-   * `ownerTripLine` call `readRange` directly for exactly that reason (see
-   * their own doc comments in `lib/gps/api.ts`).
+   * so they are correctly outside this list; `recordedTrips`,
+   * `ownerTripLine` and `ownerDayLine` call `readRange` directly for exactly
+   * that reason (see their own doc comments in `lib/gps/api.ts`).
+   * `ownerDayLine` is the studio's own street-level day view (B2540) — same
+   * owner-only audience as `ownerTripLine`, needing each fix's own instant
+   * (which `ownerTripLine`'s already-thinned segments no longer carry) to
+   * test its finer ">10 min and >600 m" gap rule.
    */
-  test("api.ts's only position-reading exports are placeForDay, recordedTrips and ownerTripLine", () => {
+  test("api.ts's only position-reading exports are placeForDay, recordedTrips, ownerTripLine, kmByMode and ownerDayLine", () => {
     const file = path.join(process.cwd(), "lib", "gps", "api.ts");
     const source = fs.readFileSync(file, "utf8");
     const boundaries = [...source.matchAll(/^export function (\w+)/gm)];
@@ -258,7 +300,7 @@ describe("the rules that keep it private", () => {
       })
       .filter((f) => /\breadRange\(/.test(f.body))
       .map((f) => f.name);
-    expect(readers).toEqual(["placeForDay", "recordedTrips", "ownerTripLine"]);
+    expect(readers).toEqual(["placeForDay", "recordedTrips", "ownerTripLine", "kmByMode", "ownerDayLine"]);
   });
 
   /**
@@ -488,4 +530,66 @@ describe("the rules that keep it private", () => {
       expect(zip).not.toContain("77.7777");
     },
   );
+});
+
+describe("who may reach the owner-only, position-derived readers — security review, 2026-09-28", () => {
+  // `kmByMode`, `ownerTripLine` and `recordingState` each answer a question
+  // only the owner's own studio (a browser cookie) may ask — never a bearer
+  // token, never a reader. A hand-written sentence saying so goes stale the
+  // moment a second caller is added quietly; this derives the actual set of
+  // files under `app/` and `components/` that import each name, so a new
+  // caller shows up here by name rather than by nobody noticing.
+  function importersOf(name: string): string[] {
+    const hits: string[] = [];
+    const walk = (root: string) => {
+      let entries: fs.Dirent[];
+      try {
+        entries = fs.readdirSync(root, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        const full = path.join(root, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(entry.name)) {
+          const source = fs.readFileSync(full, "utf8");
+          // An actual import specifier, not a doc comment mentioning the
+          // name in prose — `import {...NAME...} from` or `from "...NAME"`.
+          const importLine = new RegExp(`^\\s*import[^;]*\\b${name}\\b[^;]*from\\s+["'][^"']+["']`, "m");
+          if (importLine.test(source)) hits.push(path.relative(process.cwd(), full));
+        }
+      }
+    };
+    walk(path.join(process.cwd(), "app"));
+    walk(path.join(process.cwd(), "components"));
+    return hits.sort();
+  }
+
+  test("kmByMode is imported only by the studio location page", () => {
+    expect(importersOf("kmByMode")).toEqual(["app/at/[user]/studio/location/page.tsx"]);
+  });
+
+  test("ownerTripLine is imported only by the studio's owner-cookie line route and the studio location page (B2540's trip cards)", () => {
+    expect([...importersOf("ownerTripLine")].sort()).toEqual(
+      [
+        "app/api/helper/[user]/gps/line/route.ts",
+        "app/at/[user]/studio/location/page.tsx",
+        "components/studio/location/TripDetailView.tsx",
+      ].sort(),
+    );
+  });
+
+  test("ownerDayLine is imported only by the studio's owner-cookie line route", () => {
+    expect([...importersOf("ownerDayLine")].sort()).toEqual(
+      ["app/api/helper/[user]/gps/line/route.ts", "components/studio/location/TripDetailView.tsx"].sort(),
+    );
+  });
+
+  test("TripDetailView (a server component that reads the owner's raw line) is rendered only by the owner-gated studio location page", () => {
+    expect(importersOf("TripDetailView")).toEqual(["app/at/[user]/studio/location/page.tsx"]);
+  });
+
+  test("recordingState is imported nowhere under app/ or components/ — only recordedTrips (lib/gps/api.ts) ever calls it", () => {
+    expect(importersOf("recordingState")).toEqual([]);
+  });
 });
