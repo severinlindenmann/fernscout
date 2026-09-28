@@ -39,6 +39,8 @@ import {
   geocodeResponse,
   gpsZonesWrite,
   gpsZonesDoc,
+  trackEditsWrite,
+  trackEditsDoc,
   journalCreate,
   postcardOrderWrite,
   postcardOrderDoc,
@@ -1525,6 +1527,41 @@ function buildPaths(): Record<string, PathItem> {
           ref("invalid_request", 400),
           ref("stale_document", 409, "no If-Match, or one that does not cover the current ETag — carries the stored document"),
           ref("unreadable_zones", 500),
+        ]),
+      },
+    },
+  };
+
+  // ── track edits — B2539, D8 C ──────────────────────────────────────
+  paths["/api/v2/{user}/trips/{trip}/track-edits"] = {
+    get: {
+      summary:
+        "One trip's hidden spots, hidden stretches and named stretches — what a reader is never " +
+        "shown of this trip's route, and what a stretch was called instead. Hiding never deletes " +
+        "the owner's own recorded positions; it only changes what a reader is ever shown of them.",
+      responses: {
+        ...jsonResponse(
+          200,
+          trackEditsDoc,
+          "the spots and stretches, the limits, and an ETag — send it back as If-Match on PUT",
+        ),
+        ...refusalResponses([...ownerRefusals, ref("unknown_trip", 404)]),
+      },
+    },
+    put: {
+      summary:
+        "Replace the whole list of hidden spots, hidden stretches and named stretches for this trip. " +
+        "Requires If-Match with the ETag GET last answered — refused without one, or with a stale " +
+        "one, as stale_document (409). Re-derives this trip's track.json and track-recent.json " +
+        "immediately, so a hidden spot cuts the reader-facing line off from the moment it is saved.",
+      requestBody: jsonBody(trackEditsWrite, "the whole list of hidden spots, hidden stretches and named stretches"),
+      responses: {
+        ...jsonResponse(200, trackEditsDoc, "the spots and stretches, with ids assigned and the new ETag"),
+        ...refusalResponses([
+          ...ownerRefusals,
+          ref("unknown_trip", 404),
+          ref("invalid_request", 400),
+          ref("stale_document", 409, "no If-Match, or one that does not cover the current ETag — carries the stored document"),
         ]),
       },
     },

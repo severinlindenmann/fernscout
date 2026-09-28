@@ -312,6 +312,13 @@ describe("the rules that keep it private", () => {
       path.join(trip, "track-recent.json"),
       JSON.stringify({ segments: [{ from: "x", day: "2026-06-22", points: [[47.38564, 8.21819], [47.3, 8.2]] }] }),
     );
+    // B2539, D8 C — the owner's own hidden spots and stretches, on disk
+    // beside the two derived files. A `write:content` bearer token must
+    // never learn where the owner chose to hide something either.
+    fs.writeFileSync(
+      path.join(trip, "track-edits.json"),
+      JSON.stringify({ hiddenSpots: [{ id: "s1", lat: 47.38564, lon: 8.21819, radiusM: 200 }], hiddenStretches: [], namedStretches: [] }),
+    );
     appendFixes(USER, [{ t: Date.parse("2026-06-22T09:00:00Z"), lat: 47.38564, lon: 8.21819 }]);
 
     const { clearUserCache } = await import("@/lib/users");
@@ -339,6 +346,10 @@ describe("the rules that keep it private", () => {
     // reads this manifest; it must never learn the tail exists.
     expect(manifest.files.map((f) => f.path)).not.toContain("trips/algarve/track-recent.json");
     expect(serialised).not.toContain("track-recent.json");
+    // B2539, D8 C — same reasoning as the live tail: the owner's own hidden
+    // spots and stretches never ride along in the sync manifest either.
+    expect(manifest.files.map((f) => f.path)).not.toContain("trips/algarve/track-edits.json");
+    expect(serialised).not.toContain("track-edits.json");
   });
 
   test("no route reads a file the manifest refuses", async () => {
@@ -350,6 +361,8 @@ describe("the rules that keep it private", () => {
       "trips/algarve/track.json",
       // B2536 — the live tail, refused the same way.
       "trips/algarve/track-recent.json",
+      // B2539, D8 C — the owner's own hidden spots and stretches.
+      "trips/algarve/track-edits.json",
       // Shouted, because the filesystem under this is usually
       // case-insensitive: on APFS these resolve to the real files, so a
       // case-sensitive check would exclude them from the listing and then
@@ -358,6 +371,11 @@ describe("the rules that keep it private", () => {
       "Gps/2026-06.jsonl",
       "trips/algarve/TRACK.json",
       "trips/algarve/TRACK-RECENT.json",
+      "trips/algarve/TRACK-EDITS.json",
+      // B2539 security review, S6 — an atomic writer's own leftover `.tmp`,
+      // general rather than naming `track-edits.json.tmp` specifically.
+      "trips/algarve/track-edits.json.tmp",
+      "trips/algarve/track.json.tmp",
       "postcards/a.pdf",
       "photobooks/b.pdf",
       "trips/algarve/.ingest.json",
@@ -428,7 +446,24 @@ describe("the rules that keep it private", () => {
           ],
         }),
       );
+      // B2539, D8 C — the owner's own hidden spots and stretches, skipped
+      // outright the same way (`lib/exportZip.ts`'s own `track-edits.json`
+      // branch), never filtered and re-shipped.
+      fs.writeFileSync(
+        path.join(trip, "track-edits.json"),
+        JSON.stringify({
+          hiddenSpots: [{ id: "s1", lat: 55.5555, lon: 66.6666, radiusM: 200 }],
+          hiddenStretches: [],
+          namedStretches: [],
+        }),
+      );
       appendFixes(USER, [{ t: Date.parse("2026-06-22T09:00:00Z"), lat: 47.38564, lon: 8.21819 }]);
+      // B2539 security review, S6 — an atomic writer's own leftover `.tmp`,
+      // as if a write to `track-edits.json` had been interrupted mid-way.
+      fs.writeFileSync(
+        path.join(trip, "track-edits.json.tmp"),
+        JSON.stringify({ hiddenSpots: [{ id: "s2", lat: 77.7777, lon: 88.8888, radiusM: 200 }], hiddenStretches: [], namedStretches: [] }),
+      );
 
       const { clearUserCache } = await import("@/lib/users");
       const { clearConfigCache } = await import("@/lib/config");
@@ -445,6 +480,12 @@ describe("the rules that keep it private", () => {
       // an export.
       expect(zip).not.toContain("track-recent.json");
       expect(zip).not.toContain("12.34567");
+      // B2539, D8 C — same for the owner's own hidden spots and stretches.
+      expect(zip).not.toContain("track-edits.json");
+      expect(zip).not.toContain("55.5555");
+      // B2539 security review, S6 — and its own `.tmp`.
+      expect(zip).not.toContain("track-edits.json.tmp");
+      expect(zip).not.toContain("77.7777");
     },
   );
 });
