@@ -8,9 +8,11 @@ import { isEnabled } from "@/lib/capabilities";
 import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
+import { getMapDays } from "@/lib/map/mapDays";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { getTrip, tripRef } from "@/lib/trips";
+import { isOver } from "@/lib/tripTime";
 import TripProvider from "@/components/TripProvider";
 import RouteBoundary from "@/components/RouteBoundary";
 import type { Trip } from "@/lib/types";
@@ -85,6 +87,11 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   // now covers every trip date regardless of publish state, so this, not the
   // file on disk, is what keeps a draft day's route off this page.
   const days = getDays(trip.ref, read);
+  // B1289 — this route never asked either question before this fix, so a
+  // finished trip's own map page (not the bare `/map` route, which already
+  // asked both) said "Where we're going" about a trip that ended years ago.
+  // Same resolution as the sibling route's own `MapBody`.
+  const over = isOver(trip, days);
   // The frame is worked out here as well as in the component, so that only the
   // few dozen kilobytes this trip covers cross the wire rather than the eleven
   // megabytes of the baked bundle. `frameRoute` is pure, so the two agree.
@@ -103,18 +110,23 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   return (
     <MapPageContent
       places={places}
+      days={getMapDays(trip.ref, read)}
       plan={plan.stops}
       streetMap={streetMap}
       // B665, and behind `mayReadTrip` in the page above like everything
-      // else here.
-      track={
-        readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map(
-          (s) => s.points,
-        ) ?? []
+      // else here. B2537 — see the sibling route's own comment on why `day`
+      // is carried through rather than dropped.
+      trackByDay={
+        readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
+          date: s.day,
+          points: s.points,
+        })) ?? []
       }
       liveTail={liveTail}
       reachedCount={plan.reachedCount}
       basemap={basemap}
+      over={over}
+      hasDays={days.length > 0}
       stats={{
         tripDays: stats.tripDays,
         places: stats.places,
