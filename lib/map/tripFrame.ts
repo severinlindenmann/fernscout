@@ -65,7 +65,7 @@ type Region = {
   home: boolean;
 };
 
-type Chip = {
+export type Chip = {
   kind: "far" | "region";
   /** The place a "far" chip names, or an "region" chip's first place. */
   place: MapPlace;

@@ -81,6 +81,38 @@ export function paddedBbox(points: readonly LatLng[], padKm: number): [number, n
 }
 
 /**
+ * Widens whichever side of a bbox is short, so the extracted region is at
+ * least `targetAspect` (width/height, in km) — B2538. A trip that runs one
+ * road north–south (`alps-2024`'s own four stops are a narrow vertical
+ * strip) extracted a region only as wide as `paddedBbox` above made it, so
+ * the card's own 16:10 frame showed street tiles only in a stripe down the
+ * middle and Natural Earth either side of it. Only ever grows a side,
+ * symmetrically around the box's own centre — never shrinks the other one,
+ * so a trip that was already wide enough is untouched.
+ */
+export function expandToAspect(
+  bbox: [number, number, number, number],
+  targetAspect: number,
+): [number, number, number, number] {
+  const [minLng, minLat, maxLng, maxLat] = bbox;
+  const midLat = (minLat + maxLat) / 2;
+  const kmPerDegLng = KM_PER_DEGREE_LAT * Math.max(0.1, Math.cos(toRad(midLat)));
+  const widthKm = (maxLng - minLng) * kmPerDegLng;
+  const heightKm = (maxLat - minLat) * KM_PER_DEGREE_LAT;
+  if (widthKm <= 0 || heightKm <= 0) return bbox;
+
+  const aspect = widthKm / heightKm;
+  // Already at least as wide (relative to its height) as the target — a
+  // route that runs mostly east–west needs no help, and this never narrows
+  // one to force it down to exactly the target.
+  if (aspect >= targetAspect) return bbox;
+
+  const wantWidthKm = heightKm * targetAspect;
+  const extraDeg = (wantWidthKm - widthKm) / kmPerDegLng / 2;
+  return [minLng - extraDeg, minLat, maxLng + extraDeg, maxLat];
+}
+
+/**
  * Protomaps publishes a rolling few days of daily builds and today's is
  * routinely not up yet (checked 2026-09-28: yesterday's build was live,
  * today's was still 404) — so the default points at yesterday's date in UTC

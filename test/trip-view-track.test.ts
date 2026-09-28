@@ -7,17 +7,19 @@ import { deriveTripTrack } from "@/lib/gps/api";
 import { getDays } from "@/lib/entries";
 import { tripRef } from "@/lib/trips";
 import { getTrip } from "@/lib/trips";
-import { buildStoryProps, tripTrackFor } from "@/lib/tripView";
+import { buildStoryProps } from "@/lib/tripView";
+import { recordedFrom } from "@/lib/map/tripCard";
 import { writeTripFixture, writeDayFixture } from "./fixtures/content";
 import type { Fix } from "@/importers/gps/schema";
 
 /**
- * B2449 — TripHero/TripStory never read `track.json`, so a trip page always
- * drew stop-to-stop hops even when a real route had been recorded. This
- * proves the trip page's own loader (`tripTrackFor`, built on the same
- * `readerTrack` the map page already goes through — lib/gps/track.ts) gets
- * the reader-filtered track, never the raw file: a draft day's segment must
- * not reach a public reader here either.
+ * B2449 — the trip page's map card used to draw stop-to-stop hops only, even
+ * when a real route had been recorded. This proves the card's own loader
+ * (`recordedFrom`, lib/map/tripCard.ts — built on the same `readerTrack` the
+ * map page already goes through, lib/gps/track.ts) gets the reader-filtered
+ * track, never the raw file: a draft day's segment must not reach a public
+ * reader here either. B2538 moved this loader from `tripTrackFor`
+ * (lib/tripView.ts) into the card builder; the guarantee is unchanged.
  */
 
 const OWNER = "ana";
@@ -68,7 +70,7 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("tripTrackFor — B2449", () => {
+describe("recordedFrom — B2449", () => {
   test("a public reader gets the recorded line, filtered, not the raw file", () => {
     writeTripFixture(OWNER, {
       id: TRIP,
@@ -85,13 +87,14 @@ describe("tripTrackFor — B2449", () => {
 
     const trip = getTrip(tripRef(OWNER, TRIP))!;
     const index = getDays(trip.ref, { includeDrafts: false, reader: "public" });
-    const track = tripTrackFor(trip, index);
+    const recorded = recordedFrom(trip, index);
+    const points = recorded.flatMap((s) => s.points);
 
     // The published day's line is there.
-    expect(track.flat().some(([lat]) => Math.abs(lat - 37.1) < 0.01)).toBe(true);
+    expect(points.some((p) => Math.abs(p.lat - 37.1) < 0.01)).toBe(true);
     // The draft day's line is not — same guarantee `readerTrack` gives the
     // map page, not a second, looser one written for this call site.
-    expect(track.flat().some(([lat]) => Math.abs(lat - 37.5) < 0.01)).toBe(false);
+    expect(points.some((p) => Math.abs(p.lat - 37.5) < 0.01)).toBe(false);
   });
 
   test("no track.json is unchanged: an empty array, not an error", () => {
@@ -107,7 +110,7 @@ describe("tripTrackFor — B2449", () => {
 
     const trip = getTrip(tripRef(OWNER, TRIP))!;
     const index = getDays(trip.ref, { includeDrafts: false, reader: "public" });
-    expect(tripTrackFor(trip, index)).toEqual([]);
+    expect(recordedFrom(trip, index)).toEqual([]);
   });
 
   test("buildStoryProps' own index is what the filter uses — a draft stays out even via the full page path", () => {
@@ -126,7 +129,7 @@ describe("tripTrackFor — B2449", () => {
 
     const trip = getTrip(tripRef(OWNER, TRIP))!;
     const { index } = buildStoryProps(trip.ref, { includeDrafts: false, reader: "public" });
-    const track = tripTrackFor(trip, index);
-    expect(track.flat().some(([lat]) => Math.abs(lat - 37.5) < 0.01)).toBe(false);
+    const points = recordedFrom(trip, index).flatMap((s) => s.points);
+    expect(points.some((p) => Math.abs(p.lat - 37.5) < 0.01)).toBe(false);
   });
 });
