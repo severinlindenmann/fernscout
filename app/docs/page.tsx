@@ -372,9 +372,9 @@ export default async function DocsPage() {
               mono
             />
             <RowLink
-              href="/openapi.json"
+              href="/api/v2/openapi.json"
               icon={Code2}
-              label="/openapi.json"
+              label="/api/v2/openapi.json"
               blurb={translateIn(locale, "docs.openapi")}
               mono
             />

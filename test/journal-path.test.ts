@@ -192,4 +192,33 @@ describe("the app root has no dynamic segment", () => {
     // Nothing else under app/at: it is the proxy's rewrite target, not a page.
     expect(fs.readdirSync(path.join(process.cwd(), "app", "at"))).toEqual(["[user]"]);
   });
+
+  /**
+   * A journal link built by hand — `/${user}/studio` — skips the @ and 404s,
+   * and no redirect catches it: the old addresses are not kept. The signed-in
+   * header shipped exactly that on 28 Sep. Every journal link goes through
+   * journalPath(); a template or concatenation that starts with a variable
+   * segment is the shape that forgets it.
+   */
+  test("no source file builds a journal path by hand", () => {
+    const handBuilt = /`\/\$\{[^}]+\}(\/|`)|["']\/["']\s*\+\s*[A-Za-z_]/;
+    const found: string[] = [];
+    const walk = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "node_modules" && entry.name !== "test") walk(full);
+        } else if (/\.(ts|tsx|mts)$/.test(entry.name) && !/\.test\./.test(entry.name)) {
+          fs.readFileSync(full, "utf8")
+            .split("\n")
+            .forEach((line, i) => {
+              if (handBuilt.test(line) && !line.includes("not a journal path")) found.push(`${path.relative(process.cwd(), full)}:${i + 1}: ${line.trim()}`);
+            });
+        }
+      }
+    };
+    for (const dir of ["app", "components", "lib", "paid"]) walk(path.join(process.cwd(), dir));
+    expect(found).toEqual([]);
+  });
 });
