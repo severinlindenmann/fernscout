@@ -144,7 +144,7 @@ export default function SignedOut(props: SignedOutProps) {
   );
 }
 
-function Logo({ siteName }: { siteName: string }) {
+export function Logo({ siteName }: { siteName: string }) {
   return (
     <Link
       href="/"
@@ -307,7 +307,9 @@ function DemoCard({ demo }: { demo: DemoDay }) {
       </Link>
       <div
         aria-hidden
-        className="mt-4 flex max-w-72 flex-col gap-1.5 rounded-[18px] bg-navy-900 px-4 py-4 text-cream-50 shadow-[0_20px_40px_-20px_rgba(30,41,59,.6)]
+        // B2519: a faint cream edge, lighter navy over the card — lost on the
+        // cream page, the only edge it has on the navy one.
+        className="mt-4 flex max-w-72 flex-col gap-1.5 rounded-[18px] border border-cream-50/20 bg-navy-900 px-4 py-4 text-cream-50 shadow-[0_20px_40px_-20px_rgba(30,41,59,.6)]
                    lg:absolute lg:bottom-0 lg:left-0 lg:mt-0"
       >
         <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-cream-200">

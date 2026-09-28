@@ -2,12 +2,9 @@
 
 import Link from "next/link";
 import { posterSrc } from "./mediaLoader";
-import AccountChip from "@/components/AccountChip";
 import CopyLine from "@/components/CopyLine";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
-import LocaleSwitcher from "@/components/LocaleSwitcher";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 /**
  * The root page's parts, as separate pieces — B411.
@@ -26,21 +23,6 @@ export type PublicJournal = {
   trips: number;
   cover?: string;
 };
-
-/**
- * The mono voice, shared — B733. Uppercase, letter-spaced `IBM Plex Mono`
- * (`--font-mono`, `app/globals.css`) for the machine-ish things: kickers,
- * labels, pills, ids and counts. One place rather than the class typed out
- * per section, which is how it drifted before — `SiteHeader`'s own kicker
- * carried the string by hand.
- */
-function Kicker({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-secondary">
-      {children}
-    </p>
-  );
-}
 
 /**
  * The primary action, shared — B733. `yellow-400` with a `yellow-600` edge
@@ -84,124 +66,6 @@ function GithubMark({ className }: { className?: string }) {
     >
       <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
     </svg>
-  );
-}
-
-/**
- * The name on the left, the language on the right.
- *
- * The switcher is the first thing on the page for a reason: somebody who
- * cannot read the hero has no way to guess that the rest of the site is
- * translated.
- */
-export function SiteHeader({
-  siteName,
-  locales,
-  admin,
-  helperEnabled = false,
-  onSignIn,
-  account,
-  orgsLinks,
-}: {
-  siteName: string;
-  locales?: string[];
-  /** "Schools · Operators", rendered by the page from `paid/orgs` and handed
-   * over like `Landing`'s `pricing` — B2450. Absent in a public build. */
-  orgsLinks?: React.ReactNode;
-  /**
-   * The signed-in address, once `/api/v2/me/home` has said there is one —
-   * the chip to `/me`. Undefined on the server pass and for a stranger, for
-   * the same cacheability reason as `admin` below.
-   */
-  account?: string;
-  /**
-   * Whether this reader runs the instance — B746, placed here by B758.
-   *
-   * A corner word rather than a section, which is the shape this page already
-   * settled on for a link only some readers want: B426's note below records
-   * the reader's way in being put "next to the language switcher, in the same
-   * weight as the language switcher", and this is the same kind of door for a
-   * much smaller population.
-   *
-   * `undefined` on the server pass and for everybody who is not the operator.
-   * It arrives from `/api/v2/me/home` rather than the page, because `/` is the
-   * same cacheable document for everybody (B412) — and it grants nothing:
-   * `/admin` asks `isInstanceAdmin()` for itself on every request.
-   */
-  admin?: boolean;
-  /**
-   * Whether the write door can actually be offered here — B825, revised by
-   * B1905. Unlike `admin`, this one is for everybody: the hero's own button
-   * (`LandingHero`) is already gated on the same flag, so a reader who
-   * scrolls past it or who arrives on a page where the hero is not the first
-   * thing shown still finds the same door up here.
-   *
-   * `Landing.tsx` also folds "signed in already" into this flag: once a
-   * reader has a session, this chip has nowhere useful of its own to send
-   * them (their own journals are the page below it, and `onSignIn` would be
-   * a sign-in form shown to somebody already signed in), so the caller stops
-   * passing `true` rather than this component guessing a destination.
-   */
-  helperEnabled?: boolean;
-  /**
-   * Opens the page's own inline sign-in — B1905. This chip used to be a
-   * `Link` to `/agent`, which was "write door" and "sign-in door" at once;
-   * splitting the studio out from `/agent` split that too. `/agent` still
-   * exists but is on a retirement path (`docs/plans/2026-09-17-the-studio.md`)
-   * and this page must not be one more way in. `onSignIn` is only ever
-   * called while `helperEnabled` is true, which the caller only passes for a
-   * reader with no session yet.
-   */
-  onSignIn?: () => void;
-}) {
-  const { t } = useI18n();
-  return (
-    // Wraps rather than squeezes: operator word, account chip, theme and
-    // language do not all fit beside the site name at 360px, and a chip
-    // pushed off the edge is a door nobody finds.
-    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-      <div className="pt-3">
-        <Kicker>{siteName}</Kicker>
-      </div>
-      <div className="flex flex-wrap items-center justify-end gap-1">
-        {orgsLinks}
-        {admin && (
-          // Drawn as LocaleSwitcher's `subtle` chip is, down to the hit area:
-          // two controls side by side in the same corner have to read as one
-          // pair, and min-h-11 is the tap target the switcher already keeps.
-          <Link
-            href="/admin"
-            className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink-strong"
-          >
-            {t("home.operator")}
-          </Link>
-        )}
-        {helperEnabled && (
-          // Filled, unlike the operator chip beside it — B836. It was drawn
-          // quiet to stay out of the hero's way and read as a label rather
-          // than a control. Navy rather than the hero's yellow: the hero's
-          // "start writing" leads to the same place, and two yellow buttons
-          // for one destination on one screen is a repetition, not emphasis.
-          // Navy is also what the agent control wears inside a journal, so
-          // the thing has one look wherever it appears.
-          //
-          // A `button`, not a `Link` — B1905. It opens the same inline
-          // sign-in `ReaderInvite` already uses below, rather than a route:
-          // a stranger clicking this has no journal and no session, so there
-          // is nothing at the far end of a link yet.
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="flex min-h-11 items-center rounded-full bg-action-strong px-3.5 text-xs font-bold text-on-action transition-colors hover:bg-action-strong-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            {t("home.agentLink")}
-          </button>
-        )}
-        <ThemeSwitcher subtle />
-        <LocaleSwitcher locales={locales} subtle />
-        {account && <AccountChip email={account} />}
-      </div>
-    </div>
   );
 }
 
