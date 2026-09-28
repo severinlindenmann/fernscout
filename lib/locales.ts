@@ -263,7 +263,10 @@ let paidScopes: Record<string, ScopeSpec> | null | undefined;
 function loadPaidLocaleScopes(): Record<string, ScopeSpec> | null {
   if (paidScopes !== undefined) return paidScopes;
   try {
-    paidScopes = JSON.parse(fs.readFileSync(path.join(process.cwd(), "lib", "localeScopes.paid.json"), "utf8"));
+    paidScopes = JSON.parse(fs.readFileSync(path.join(process.cwd(), "lib", "localeScopes.paid.json"), "utf8")) as Record<
+      string,
+      ScopeSpec
+    >;
   } catch {
     paidScopes = null;
   }
