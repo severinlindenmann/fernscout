@@ -141,7 +141,7 @@ function rows(el: HTMLElement): HTMLButtonElement[] {
 }
 
 describe("the desktop map page's stop list", () => {
-  test("the first stop is expanded by default, showing only its own headline and photo", () => {
+  test("nothing is expanded by default — the page opens on the whole trip; clicking a row shows only its own headline and photo", () => {
     const kyoto = place();
     const osaka = place({
       key: "osaka",
@@ -152,13 +152,20 @@ describe("the desktop map page's stop list", () => {
     });
     const el = render([kyoto, osaka]);
 
+    expect(rows(el).map((r) => r.getAttribute("aria-expanded"))).toEqual(["false", "false"]);
+    expect(el.textContent).not.toContain("A quiet temple morning.");
+
+    act(() => rows(el)[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
     const [first, second] = rows(el);
     expect(first.getAttribute("aria-expanded")).toBe("true");
     expect(second.getAttribute("aria-expanded")).toBe("false");
     expect(el.textContent).toContain("A quiet temple morning.");
     expect(el.textContent).not.toContain("Street food night.");
-    expect(el.querySelectorAll("img")).toHaveLength(1);
-    expect(el.querySelector("img")!.getAttribute("src")).toBe("/media/kyoto-1.jpg");
+    // The desktop row and the phone sheet (which opens on a selection) may
+    // both show it — but only ever that day's own photo.
+    const srcs = [...el.querySelectorAll("img")].map((i) => i.getAttribute("src"));
+    expect(srcs.length).toBeGreaterThan(0);
+    expect(new Set(srcs)).toEqual(new Set(["/media/kyoto-1.jpg"]));
   });
 
   test("clicking a row selects it: that row expands, the previous one collapses, and only its own content shows", () => {
@@ -183,6 +190,7 @@ describe("the desktop map page's stop list", () => {
 
   test("the expanded row links to the day and to Google Maps, at that stop's own coordinates", () => {
     const el = render([place()]);
+    act(() => rows(el)[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
     const links = [...el.querySelectorAll("a")];
     expect(links.some((a) => a.textContent?.includes(dictionaryFor("en")["map.readDay"]))).toBe(true);
     const gmaps = links.find((a) => a.getAttribute("href")?.includes("google.com/maps"));
