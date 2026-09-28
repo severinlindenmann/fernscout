@@ -20,7 +20,7 @@ import type { HeroStats } from "@/components/TripHero";
  * or nothing left after the date filter, is the empty array — the same "draw
  * the hops instead" default `TripMap` already has.
  */
-export function tripTrackFor(trip: Trip, index: DaySummary[]): [number, number][][] {
+export function tripTrackFor(trip: Trip, index: Pick<DaySummary, "date">[]): [number, number][][] {
   return (
     readerTrack(trip.username, trip.id, new Set(index.map((d) => d.date)))?.segments.map(
       (s) => s.points,
