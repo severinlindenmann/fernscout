@@ -227,7 +227,7 @@ Hosted-only features are tested in the private features repository.
 | **I7** | The whole site on a phone (or a 390px window) | Nothing scrolls sideways; buttons are thumb-sized |
 | **I8** | Tab through a page with the keyboard | A visible focus ring everywhere |
 | **I9** | `/welcome` | The signup page — making a journal from nothing (not a redirect) |
-| **I10** | The landing page with `?lang=de` and `?lang=hu` | Fully translated menus and copy, in German and Hungarian |
+| **I10** | The landing page with `?lang=de`, `?lang=hu`, `?lang=fr` and `?lang=it` | Fully translated menus and copy, in every maintained locale |
 
 ---
 

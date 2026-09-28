@@ -105,8 +105,9 @@ log, not just a fixture authored for the change.
 only once the `ci-ok` check is green (it waits for every CI job). Open one
 with `gh pr create --fill` and let it land with `gh pr merge --auto --merge`.
 
-A new UI string needs real English, German and Hungarian entries in
-`site/locales/`; run `npm run i18n:keys` after changing English. Translate it
+A new UI string needs a real entry in `site/locales/` for every locale in
+`MAINTAINED_LOCALES` (`lib/i18n.ts`) — English, German, Hungarian, French and
+Italian today; run `npm run i18n:keys` after changing English. Translate it
 yourself rather than leaving a key that falls back to English.
 
 Anything under `app/api/` must keep its public contract truthful.

@@ -15,7 +15,7 @@ import {
   localesFor,
   translateIn,
 } from "@/lib/locales";
-import { translate } from "@/lib/i18n";
+import { MAINTAINED_LOCALES, translate } from "@/lib/i18n";
 
 /**
  * The two language layers (ROADMAP §1.2).
@@ -118,31 +118,40 @@ describe("dictionaries", () => {
    * the set it iterated — is `en`, `de`, `hu`.** `hu.json` shipping a
    * dictionary file is not the same claim as `hu.json` being complete;
    * nothing before B1894 kept those two facts from drifting apart, which is
-   * exactly what happened. This test now holds only the two locales this
-   * project actually keeps at parity with English as it writes new UI
-   * strings, reads the shipped **files** directly rather than the
-   * English-padded dictionary, and says so in its name. Hungarian's own gap
-   * is real, tracked, and does not belong to a passing test — `npm run
-   * i18n:keys` reports it, per locale and per prefix, every time it runs.
+   * exactly what happened. This test read the shipped **files** directly
+   * rather than the English-padded dictionary, and named the one locale it
+   * checked rather than claiming all of them.
+   *
+   * B2512 — that one-locale carve-out was itself drift: French and Italian
+   * became maintained locales (PR #11) and both quietly shipped 241 keys
+   * behind English for a while, because nothing here looked. This now runs
+   * for every non-English member of `MAINTAINED_LOCALES` — the same source
+   * of truth `installedLocales()`, the signup wizard and the locale
+   * switcher all read — instead of a hand-picked locale that would drift
+   * from that list the same way `installedLocales()` once did.
    */
-  test("de.json, the one locale this project keeps at parity with English, covers every English key", () => {
-    const localesDir = path.join(process.cwd(), "site", "locales");
-    const english: Record<string, string> = JSON.parse(
-      fs.readFileSync(path.join(localesDir, "en.json"), "utf8"),
-    );
-    const german: Record<string, string> = JSON.parse(
-      fs.readFileSync(path.join(localesDir, "de.json"), "utf8"),
-    );
-    // `fallback.writtenIn.de` is deliberately absent from de.json — it is the
-    // sentence *other* languages show about German (it lives in en.json,
-    // never in de.json), so a locale is never asked to describe itself.
-    // Excluding it here is the same exception `dictionaryFor`'s consumers
-    // already rely on, not a new one invented for this test.
-    const missing = Object.keys(english).filter(
-      (k) => k !== "fallback.writtenIn.de" && !(k in german),
-    );
-    expect(missing, `de.json is missing: ${missing.slice(0, 5).join(", ")}`).toEqual([]);
-  });
+  test.each(MAINTAINED_LOCALES.filter((code) => code !== "en"))(
+    "%s.json, a maintained locale, covers every English key",
+    (code) => {
+      const localesDir = path.join(process.cwd(), "site", "locales");
+      const english: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(localesDir, "en.json"), "utf8"),
+      );
+      const locale: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(localesDir, `${code}.json`), "utf8"),
+      );
+      // `fallback.writtenIn.<code>` is deliberately absent from a locale's
+      // own file — it is the sentence *other* languages show about this one
+      // (it lives in en.json, never in the locale's own file), so a locale
+      // is never asked to describe itself. Excluding it here is the same
+      // exception `dictionaryFor`'s consumers already rely on, not a new one
+      // invented for this test.
+      const missing = Object.keys(english).filter(
+        (k) => k !== `fallback.writtenIn.${code}` && !(k in locale),
+      );
+      expect(missing, `${code}.json is missing: ${missing.slice(0, 5).join(", ")}`).toEqual([]);
+    },
+  );
 
   /**
    * B1936 — a key existing in both English and a locale is not the same
