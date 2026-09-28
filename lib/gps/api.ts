@@ -17,11 +17,16 @@ import {
   writeHomeDeclined,
   type ExcludeZone,
 } from "./enrich";
-import { deleteTail, deleteTrack, trackPointCount, writeTail, writeTrack } from "./track";
+import { deleteTail, deleteTrack, readTrack, trackPointCount, writeTail, writeTrack } from "./track";
 import {
   EDIT_LIMITS,
+  isInHiddenSpot,
+  isInStretch,
   readTrackEdits,
   writeTrackEdits as writeTrackEditsFile,
+  type HiddenStretch,
+  type NamedStretch,
+  type ResolvedRange,
   type TrackEdits,
 } from "./edits";
 import { reverseGeocode } from "../ingest/geo";
@@ -370,6 +375,44 @@ export function purgeGpsHistory(
 }
 
 /**
+ * A stretch's own wall clock (`date` + `HH:MM` `from`/`to`), resolved to an
+ * absolute range against that date's own day `timezone` — B2539 security
+ * review. `deriveTrack` (`./enrich.ts`) is pure and has no timezone to
+ * resolve against; this is the one place that has both a stretch's `date`
+ * and `dayTimezones`'s map of it, so this is where the resolution happens,
+ * fresh on every derivation rather than stored — the same reasoning
+ * `windowsFor`'s own per-date window already rests on. A date absent from
+ * `zonedDates` (no day of that date carries a `timezone`) resolves in UTC,
+ * matching `windowsFor`'s own fallback exactly, so a stretch's own window
+ * and the trip date's window it falls in never disagree about the zone.
+ */
+function resolvedHiddenStretches(
+  stretches: HiddenStretch[],
+  zonedDates: Readonly<Record<string, string>>,
+): ResolvedRange[] {
+  return stretches.map((s) => ({
+    from: zonedTimeToUtc(s.date, s.from, zonedDates[s.date] ?? "UTC").toISOString(),
+    to: zonedTimeToUtc(s.date, s.to, zonedDates[s.date] ?? "UTC").toISOString(),
+  }));
+}
+
+/** Same resolution as `resolvedHiddenStretches`, for named stretches — kept
+ * as a second function rather than one generic over both shapes, since a
+ * named stretch carries its own `id`/`label` through to `deriveTrack`'s
+ * label computation and a hidden one carries neither. */
+function resolvedNamedStretches(
+  stretches: NamedStretch[],
+  zonedDates: Readonly<Record<string, string>>,
+): (ResolvedRange & { id: string; label: string })[] {
+  return stretches.map((s) => ({
+    id: s.id,
+    label: s.label,
+    from: zonedTimeToUtc(s.date, s.from, zonedDates[s.date] ?? "UTC").toISOString(),
+    to: zonedTimeToUtc(s.date, s.to, zonedDates[s.date] ?? "UTC").toISOString(),
+  }));
+}
+
+/**
  * Derive one trip's line from what the store holds, and write it.
  *
  * The second half of the loop, and the half that is a *decision*: importing is
@@ -379,10 +422,22 @@ export function purgeGpsHistory(
  *
  * Idempotent, and safe to run again whenever the store gains fixes for those
  * dates. It rewrites one file and touches nothing else.
+ *
+ * `preserveExistingWhenEmpty` (B2539 security review, S2) — `false` (the
+ * default) is every existing caller: an import or an explicit
+ * `POST …/track` re-deriving to nothing is itself news (B2202: staleness
+ * here is a safety gap, not a convenience), so the existing file is deleted
+ * rather than left stale. `writeTrackEdits` below passes `true`: a hide/name
+ * edit re-deriving to nothing almost always means the store has since been
+ * purged, not that the owner's positions vanished, and deleting an
+ * already-published route because of *that* would be a far bigger change
+ * than the one spot or stretch they actually asked to hide — see
+ * `docs/gps.md`'s "Hide a spot…" section.
  */
 export function deriveTripTrack(
   username: string,
   trip: { id: string; start: string; end: string },
+  options: { preserveExistingWhenEmpty?: boolean } = {},
 ): { segments: number; points: number; zones: number; written: boolean } {
   const zones = readExcludeZones(username);
   const zonedDates = dayTimezones(username, trip);
@@ -390,7 +445,11 @@ export function deriveTripTrack(
   // stretches for this trip. Read here, once, and threaded into both
   // `deriveTrack` calls below (track and tail) exactly the way `zones` is —
   // never into `ownerTripLine`, which is the owner's own unfiltered view and
-  // deliberately bypasses this whole function.
+  // deliberately bypasses this whole function. Stretches are resolved from
+  // their own stored wall clock to an absolute range here, against this
+  // trip's own `zonedDates` — see `resolvedHiddenStretches` above and
+  // `docs/gps.md` for why that resolution happens fresh here rather than
+  // being stored.
   const edits = readTrackEdits(username, trip.id);
   // B2202 rework: derivation now covers every trip date, drafts included —
   // never inside the last 24h, though, so a fix nobody has even written a
@@ -405,22 +464,24 @@ export function deriveTripTrack(
     maxEndMs: Date.now() - MIN_AGE_MS,
     trimMetres: TRIM_METRES,
     hiddenSpots: edits.hiddenSpots,
-    hiddenStretches: edits.hiddenStretches,
-    namedStretches: edits.namedStretches,
+    hiddenStretches: resolvedHiddenStretches(edits.hiddenStretches, zonedDates),
+    namedStretches: resolvedNamedStretches(edits.namedStretches, zonedDates),
   });
   const points = trackPointCount(track);
   // Nothing left to draw — the store has no fixes for these dates, or every
-  // one trimmed away — deletes any existing line rather than leaving it
-  // stale (B2202: staleness here is a safety gap, not a convenience).
+  // one trimmed away. Every caller but `writeTrackEdits` deletes any
+  // existing line rather than leaving it stale (B2202: staleness here is a
+  // safety gap, not a convenience); `writeTrackEdits` passes
+  // `preserveExistingWhenEmpty` instead, see this function's own doc comment.
   if (track.segments.length === 0) {
-    deleteTrack(username, trip.id);
+    if (!options.preserveExistingWhenEmpty) deleteTrack(username, trip.id);
   } else {
     writeTrack(username, trip.id, track);
   }
   // B2536 — the tail is derived at exactly this same moment, from the same
   // zones and date windows, so the two files never drift about what "this
   // trip" means even though they cover disjoint time ranges.
-  deriveTripTail(username, trip, zones, zonedDates, edits);
+  deriveTripTail(username, trip, zones, zonedDates, edits, options.preserveExistingWhenEmpty ?? false);
   if (track.segments.length === 0) return { segments: 0, points: 0, zones: zones.length, written: false };
   return { segments: track.segments.length, points, zones: zones.length, written: true };
 }
@@ -442,6 +503,7 @@ function deriveTripTail(
   zones: ExcludeZone[],
   zonedDates: Readonly<Record<string, string>>,
   edits: TrackEdits,
+  preserveExistingWhenEmpty = false,
 ): void {
   const now = Date.now();
   const tail = tailForTrip(username, {
@@ -453,11 +515,14 @@ function deriveTripTail(
     sinceMs: now - MIN_AGE_MS,
     nowMs: now,
     hiddenSpots: edits.hiddenSpots,
-    hiddenStretches: edits.hiddenStretches,
-    namedStretches: edits.namedStretches,
+    hiddenStretches: resolvedHiddenStretches(edits.hiddenStretches, zonedDates),
+    namedStretches: resolvedNamedStretches(edits.namedStretches, zonedDates),
   });
-  if (tail.segments.length === 0) deleteTail(username, trip.id);
-  else writeTail(username, trip.id, tail);
+  if (tail.segments.length === 0) {
+    if (!preserveExistingWhenEmpty) deleteTail(username, trip.id);
+  } else {
+    writeTail(username, trip.id, tail);
+  }
 }
 
 /**
@@ -574,21 +639,72 @@ export function listTrackEdits(username: string, tripId: string): TrackEdits {
  * studio) — never client-chosen, so two tabs adding "a hidden spot" at once
  * cannot collide on the same id the way a client-chosen one could.
  */
+/** Assigns a fresh id to anything that does not already carry one that
+ * existed before this write — B2539 security review, S6. `id` is never
+ * client-chosen: a caller may only ever *keep* the id an entry already had,
+ * echoed straight back from a previous read, never invent one of their own
+ * or claim somebody else's. `usedIds` is threaded across all three arrays of
+ * one document (spots, hidden stretches, named stretches share one id
+ * space, the same shape `readTrackEdits`'s own duplicate check expects), so
+ * a client sending the same existing id twice — or an id colliding with a
+ * freshly generated one — gets a fresh id on every occurrence but the
+ * first. */
+function assignIds<T extends { id?: string }>(
+  items: T[],
+  existingIds: ReadonlySet<string>,
+  usedIds: Set<string>,
+): (Omit<T, "id"> & { id: string })[] {
+  return items.map((item) => {
+    let id = item.id;
+    if (id === undefined || !existingIds.has(id) || usedIds.has(id)) {
+      do {
+        id = randomUUID();
+      } while (usedIds.has(id));
+    }
+    usedIds.add(id);
+    return { ...item, id };
+  });
+}
+
 export function writeTrackEdits(
   username: string,
   tripId: string,
   edits: { hiddenSpots: { id?: string; lat: number; lon: number; radiusM: number }[];
-    hiddenStretches: { id?: string; from: string; to: string }[];
-    namedStretches: { id?: string; from: string; to: string; label: string }[] },
+    hiddenStretches: { id?: string; date: string; from: string; to: string }[];
+    namedStretches: { id?: string; date: string; from: string; to: string; label: string }[] },
 ): TrackEdits {
+  const existing = readTrackEdits(username, tripId);
+  const existingIds = new Set(
+    [...existing.hiddenSpots, ...existing.hiddenStretches, ...existing.namedStretches].map((e) => e.id),
+  );
+  const usedIds = new Set<string>();
   const withIds: TrackEdits = {
-    hiddenSpots: edits.hiddenSpots.map((s) => ({ ...s, id: s.id ?? randomUUID() })),
-    hiddenStretches: edits.hiddenStretches.map((s) => ({ ...s, id: s.id ?? randomUUID() })),
-    namedStretches: edits.namedStretches.map((s) => ({ ...s, id: s.id ?? randomUUID() })),
+    hiddenSpots: assignIds(edits.hiddenSpots, existingIds, usedIds),
+    hiddenStretches: assignIds(edits.hiddenStretches, existingIds, usedIds),
+    namedStretches: assignIds(edits.namedStretches, existingIds, usedIds),
   };
   writeTrackEditsFile(username, tripId, withIds);
   const trip = getTrip(tripRef(username, tripId));
-  if (trip) deriveTripTrack(username, trip);
+  if (trip) {
+    try {
+      // `preserveExistingWhenEmpty` — see `deriveTripTrack`'s own doc
+      // comment: a hide/name edit re-deriving to nothing almost always means
+      // the store has since been purged, not that the route should vanish.
+      deriveTripTrack(username, trip, { preserveExistingWhenEmpty: true });
+    } catch (error) {
+      // B2539 security review, S4 — the edits just written are already on
+      // disk; if re-deriving from them threw (a corrupt `exclude.json`, say),
+      // the OLD `track.json`/`track-recent.json` — derived *before* this
+      // edit — may still be serving exactly what the owner just asked to be
+      // hidden. Refuse to keep serving something this uncertain: delete both
+      // reader-facing files outright rather than leave a stale, possibly
+      // unsafe one up, then let the caller's own refusal report the write as
+      // what it honestly was — accepted, but not yet safely visible.
+      deleteTrack(username, trip.id);
+      deleteTail(username, trip.id);
+      throw error;
+    }
+  }
   return withIds;
 }
 
@@ -685,18 +801,27 @@ export function placeForDay(username: string, tripId: string, date: string): Pla
   if (date < trip.start || date > trip.end) return null;
 
   let zones;
+  let edits;
   try {
     zones = readExcludeZones(username);
+    // B2539 security review, S5 — a day inside a hidden spot or a hidden
+    // stretch must not have its place suggested here either: the studio's
+    // new-day flow would otherwise name exactly the place or the stretch the
+    // owner had already asked this trip's own map never to show.
+    edits = readTrackEdits(username, tripId);
   } catch {
     // Fail closed, same as `deriveTripTrack`'s own reasoning in docs/gps.md:
-    // an unreadable exclusion list must not risk naming somebody's front
-    // door rather than simply saying nothing.
+    // an unreadable exclusion or edits list must not risk naming somebody's
+    // front door, or a place they hid, rather than simply saying nothing.
     return null;
   }
 
   const from = Date.parse(`${date}T00:00:00Z`);
   const to = Date.parse(`${date}T23:59:59.999Z`);
-  const fixes = readRange(username, from, to).filter((fix) => !isExcluded(fix, zones));
+  const hiddenStretches = resolvedHiddenStretches(edits.hiddenStretches, dayTimezones(username, trip));
+  const fixes = readRange(username, from, to).filter(
+    (fix) => !isExcluded(fix, zones) && !isInHiddenSpot(fix, edits.hiddenSpots) && !isInStretch(fix.t, hiddenStretches),
+  );
   return dwellWeightedPlace(fixes);
 }
 
@@ -738,8 +863,17 @@ export type RecordedTrip = {
   end: string;
   daysRecorded: number;
   tripDays: number;
-  /** ISO instant of the newest fix inside this trip's dates. */
+  /** ISO instant of the newest fix inside this trip's dates — or, for a trip
+   * found only through `hasPublishedTrack` below, the instant its
+   * `track.json` was last derived (a fact about that file, still never a
+   * coordinate). */
   lastReceived: string;
+  /** Whether this row exists only because a `track.json` survives with
+   * nothing left in the store to back it — B2539 security review, S2. A
+   * purge (B1843 addendum) can do this to any trip: the studio still needs
+   * to reach it (to hide a spot that is still on the published route, say),
+   * even though there is currently nothing to preview or delete by day. */
+  hasPublishedTrack: boolean;
 };
 
 export function recordedTrips(username: string): RecordedTrip[] {
@@ -748,21 +882,41 @@ export function recordedTrips(username: string): RecordedTrip[] {
     const from = Date.parse(`${trip.start}T00:00:00Z`);
     const to = Date.parse(`${trip.end}T23:59:59.999Z`);
     const rows = readRange(username, from, to);
-    if (rows.length === 0) continue;
-    const coverage = coverageOf(rows, trip);
-    // A loop, not Math.max(...rows): a long, dense trip passes the argument
-    // limit and throws (B2226 security review).
-    let newest = 0;
-    for (const r of rows) if (r.t > newest) newest = r.t;
-    const lastReceived = new Date(newest).toISOString();
+    if (rows.length > 0) {
+      const coverage = coverageOf(rows, trip);
+      // A loop, not Math.max(...rows): a long, dense trip passes the
+      // argument limit and throws (B2226 security review).
+      let newest = 0;
+      for (const r of rows) if (r.t > newest) newest = r.t;
+      out.push({
+        tripId: trip.id,
+        title: trip.title,
+        start: trip.start,
+        end: trip.end,
+        daysRecorded: coverage.days,
+        tripDays: coverage.tripDays,
+        lastReceived: new Date(newest).toISOString(),
+        hasPublishedTrack: false,
+      });
+      continue;
+    }
+    // B2539 security review, S2 — the store has nothing left for this trip
+    // (never recorded, or purged since), but a `track.json` survives on
+    // disk: list it anyway, so the studio's own hide/name tools stay
+    // reachable for a route that is still published. `generated` is a fact
+    // about the file, not a position.
+    const track = readTrack(username, trip.id);
+    if (!track) continue;
+    const tripDays = coverageOf([], trip).tripDays;
     out.push({
       tripId: trip.id,
       title: trip.title,
       start: trip.start,
       end: trip.end,
-      daysRecorded: coverage.days,
-      tripDays: coverage.tripDays,
-      lastReceived,
+      daysRecorded: 0,
+      tripDays,
+      lastReceived: track.generated,
+      hasPublishedTrack: true,
     });
   }
   return out;

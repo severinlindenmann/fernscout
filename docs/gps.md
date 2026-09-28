@@ -370,9 +370,12 @@ Chiang Mai — use it?" instead of leaving the field blank. It is the one
 function anywhere that reads a position out of the store, and it is built to
 be exhaustive about what it refuses to give back:
 
-- **Private zones removed first**, with the same `readExcludeZones` /
-  `isExcluded` the trip-track derivation uses. An unreadable zone list fails
-  closed — `null`, not a guess.
+- **Private zones, hidden spots and hidden stretches all removed first** —
+  the same `readExcludeZones`/`isExcluded` the trip-track derivation uses,
+  plus B2539's own `readTrackEdits`/`isInHiddenSpot`/`isInStretch` (security
+  review, S5): a day inside a spot or a stretch the owner already asked this
+  trip's own map never to show must not have its name suggested here either.
+  An unreadable zone or edits list fails closed — `null`, not a guess.
 - **The place is wherever the remaining fixes add up to the most dwell
   time** that day (`from` this fix to the next, capped at the same two-hour
   gap `enrich.ts` breaks a line at), not the single most common fix and not
@@ -473,8 +476,8 @@ transport mode is a guess. The owner can now say otherwise, per trip:
 content/<user>/trips/<trip>/track-edits.json
 {
   "hiddenSpots": [{ "id": "…", "lat": 37.1, "lon": -8.8, "radiusM": 200 }],
-  "hiddenStretches": [{ "id": "…", "from": "2026-06-22T14:00:00Z", "to": "2026-06-22T16:00:00Z" }],
-  "namedStretches": [{ "id": "…", "from": "2026-06-22T10:00:00Z", "to": "2026-06-22T12:00:00Z", "label": "Boat trip · dolphins" }]
+  "hiddenStretches": [{ "id": "…", "date": "2026-06-22", "from": "14:00", "to": "16:00" }],
+  "namedStretches": [{ "id": "…", "date": "2026-06-22", "from": "10:00", "to": "12:00", "label": "Boat trip · dolphins" }]
 }
 ```
 
@@ -486,7 +489,23 @@ A **named stretch** is the same time range with a label a reader's map may
 draw. Naming does not hide: every fix in a named stretch still reaches the
 line unless some other rule also cuts it. `id` is assigned server-side on
 write (`writeTrackEdits`, `lib/gps/api.ts`) for anything new, never
-client-chosen, so two tabs adding a hidden spot at once cannot collide.
+client-chosen — a caller may only ever keep an id an entry already had, an
+unrecognised or repeated one is replaced with a fresh one, so two tabs
+adding a hidden spot at once cannot collide.
+
+**A stretch is a wall clock, not an instant — security review, 2026-09-28.**
+The first cut of this stored a raw ISO instant, built by the *browser*;
+editing a Tokyo trip's stretch from a laptop in Zürich silently hid the
+wrong seven hours while the studio's own list echoed the typed times back as
+if nothing had moved. `date` (`YYYY-MM-DD`) plus `from`/`to` (`HH:MM`, both
+on that one date — a stretch does not cross midnight) is unambiguous however
+it is read. Resolving it to an absolute range happens exactly once, at
+derivation time (`resolvedHiddenStretches`/`resolvedNamedStretches`,
+`lib/gps/api.ts`), against that date's own day `timezone` — the same
+"local to the day, resolved fresh, never stored" rule `deriveTrack`'s own
+per-date window (`windowsFor`) already rests on. The write schema
+(`lib/api/v2/schemas/trackEdits.ts`) refuses `from >= to` and a `date`
+outside the trip's own span before either ever reaches disk.
 
 **Hiding never deletes a position.** The store keeps every fix; only what a
 reader is ever shown changes, applied at exactly the same place a private
@@ -503,25 +522,63 @@ further filtering: both map pages (through `readerTrack`), the export
 too) and the trip's story/card build (`lib/tripView.ts`) all pass through
 the same two files.
 
+**A hidden spot also gets a serve-time fallback — security review, S2.**
+Derivation-time filtering runs on every import and explicit
+`POST …/track`, but a hide/name edit does not re-derive from an empty
+store the way an import does (below): between two real derivations, or
+after a purge left `track.json` with nothing left to re-derive from,
+`readerTrack` (`lib/gps/track.ts`) filters the *already-derived* segments
+itself, cutting any point inside a hidden spot and breaking the segment
+there, and does the same for a named stretch's own label point. **This
+fallback only covers spots** — it needs nothing but the coordinates already
+on the file. A hidden or named *stretch* needs the store's own per-point
+timestamps, which a derived file does not carry, so a stretch only takes
+effect on the next real derivation; the studio's own panel says so. Fails
+closed the same way `readExcludeZones` does: an unreadable
+`track-edits.json` at serve time means nothing from that trip is shown,
+not that nothing is hidden.
+
 **A named stretch's own label and point** are computed at that same
 derivation step — the fix closest to the stretch's own middle instant, among
-the fixes that would actually be drawn (in range, on a real trip date, not
-cut by any other rule) — and stored as `Track.labels` (`lib/gps/track.ts`)
-alongside the file's `segments`. `namedStretchLabels(user, tripId,
-visibleDates, live)` is the reader-safe door onto it, filtered to this
-reader's own visible dates the same way `readerTrack`'s segments are — a
-label, never the line, one point on it. It does not draw anything; a map
-page choosing how to draw that point is a separate ticket (B2537).
+the fixes that actually survive onto the *drawn* line (post-trim, not the
+raw store — security review, S1: the first cut of this could pick a fix
+`trimByDistance` was about to cut off a run's own end, which on the live
+tail meant a stretch whose `to` is still in the future centred on the
+current position the trim exists to hide) — and stored as `Track.labels`
+(`lib/gps/track.ts`) alongside the file's `segments`.
+`namedStretchLabels(user, tripId, visibleDates, live)` is the reader-safe
+door onto it, filtered to this reader's own visible dates the same way
+`readerTrack`'s segments are, and through the same hidden-spot fallback. It
+does not draw anything; a map page choosing how to draw that point is a
+separate ticket (B2537).
 
-**Writing edits re-derives immediately.** `writeTrackEdits` calls
+**Writing edits re-derives immediately, without deleting a published route
+out from under a purge — security review, S2.** `writeTrackEdits` calls
 `deriveTripTrack` before it returns, the same urgency `writeZones` already
-has for private zones and for the same reason: a hidden spot the owner just
-saved must cut the reader-facing line off from the moment it is saved, not
-from the next import or explicit `POST …/track`.
+has for private zones, but passes `preserveExistingWhenEmpty: true`: every
+*other* caller (an import, the explicit `POST …/track`) still deletes
+`track.json`/`track-recent.json` when re-deriving finds nothing, because
+staleness there is itself news (B2202). A hide/name edit re-deriving to
+nothing almost always means the store has since been purged, not that the
+owner's positions vanished — deleting an already-published route because of
+*that* would be a far bigger change than the one spot or stretch actually
+asked for. **If the re-derive throws instead of merely coming back empty**
+(a corrupt `exclude.json`, say), `writeTrackEdits` deletes both files anyway
+before re-throwing — the edits are already saved, so the old files may now
+be serving exactly what was just asked to be hidden, and that is a worse
+failure than serving nothing. `recordedTrips` (`lib/gps/api.ts`) lists a
+trip by its surviving `track.json` alone when the store has nothing left for
+it, so the studio's own hide/name panel stays reachable through a purge —
+counts and a timestamp from the file, same as everywhere else in this
+module, never a coordinate.
 
 **Doors**, mirroring `gps/zones` exactly — owner only, a trip-scoped token
 refused even for its own trip, because a hidden spot changes what every
-reader of the trip is shown, a bigger authority than an ordinary write to it:
+reader of the trip is shown, a bigger authority than an ordinary write to it.
+Optimistic concurrency (`If-Match`) reads the request body before checking
+the current ETag, not after, so the one `await` in the handler cannot open a
+window for a concurrent write to land unnoticed (security review, S3 — the
+same ordering bug was found, and left unfixed, in `gps/zones` itself):
 
 ```http
 GET  /api/v2/<user>/trips/<trip>/track-edits

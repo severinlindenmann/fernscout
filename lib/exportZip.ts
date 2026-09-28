@@ -228,6 +228,11 @@ function appendUserContent(
       // leaves the server, and dropping it there loses it for good. Kept
       // in, at the same cost every other export already accepts.
       if (isDotfilePath(relative)) continue;
+      // B2539 security review, S6 — an atomic writer's own `<file>.tmp`,
+      // left behind only if a write never finished, must never leave any
+      // more than the finished file it was becoming would. See
+      // `lib/sync/manifest.ts`'s own identical rule.
+      if (relative.toLowerCase().endsWith(".tmp")) continue;
       if (scope === "open-to-link" && isDraftEntry(file)) continue;
       // Tested by photograph identity, not by path: the first segment says
       // *which representation* (`media/`, `originals/`, a `meta/` sidecar

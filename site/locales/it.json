@@ -3156,7 +3156,7 @@
   "studio.location.trackEdits.spotsLimitReached": "Hai raggiunto il limite di {max} punti nascosti su questo viaggio.",
   "studio.location.trackEdits.stretchesHeading": "Tratti nascosti e con nome",
   "studio.location.trackEdits.stretchesEmpty": "Nessun tratto nascosto o con nome su questo viaggio per ora.",
-  "studio.location.trackEdits.hiddenRange": "Nascosto · {from} – {to}",
+  "studio.location.trackEdits.hiddenRange": "Nascosto · {range}",
   "studio.location.trackEdits.dateLabel": "Giorno",
   "studio.location.trackEdits.fromLabel": "Da",
   "studio.location.trackEdits.toLabel": "A",
@@ -3201,6 +3201,7 @@
   "studio.location.route.hidePreview": "Nascondi anteprima",
   "studio.location.route.previewError": "Impossibile caricare questo percorso. Riprova.",
   "studio.location.route.rawNote": "Questo è il tuo percorso completo e non filtrato per questo viaggio: le zone private e i consueti limiti di una mappa pubblica qui non si applicano.",
+  "studio.location.route.publishedOnly": "Al momento non resta nulla di registrato per questo viaggio, ma il suo percorso pubblicato sopravvive: puoi comunque nascondere un punto o un tratto qui sotto.",
   "studio.location.sample.title": "Com’è fatto il file",
   "studio.location.sample.lede": "Un semplice array JSON: una voce per posizione, dalla più vecchia.",
   "studio.location.sample.time": "Ora",
@@ -4499,5 +4500,6 @@
   "studio.orders.postcard.title": "Invia una cartolina",
   "studio.orders.postcard.body": "Un giorno, una foto, stampati e spediti ovunque: {price}. Gratis via e-mail.",
   "studio.orders.postcard.cta": "Scegli un giorno e una foto",
-  "studio.orders.photobook.none": "Non appena un viaggio ha giorni pubblicati, potrai vederlo qui come un libro."
+  "studio.orders.photobook.none": "Non appena un viaggio ha giorni pubblicati, potrai vederlo qui come un libro.",
+  "studio.location.trackEdits.stretchOrderError": "L’orario di inizio deve precedere quello di fine, entrambi nello stesso giorno."
 }

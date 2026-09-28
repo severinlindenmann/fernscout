@@ -212,6 +212,14 @@ export function inSync(relative: string): boolean {
   // is everything under it.
   if (segments.some((segment) => segment === "." || segment === "..")) return false;
   if (isDotfilePath(relative)) return false;
+  // B2539 security review, S6 — every atomic writer in `lib/gps/` (and
+  // several elsewhere) writes `<file>.tmp` before renaming it into place; one
+  // left behind by a write that never finished must never be offered any
+  // more than the finished file it was becoming. General rather than naming
+  // `track-edits.json.tmp` specifically, since the same is true of any other
+  // writer's own `.tmp` and a name-by-name list would only cover the ones
+  // remembered to add.
+  if (segments[segments.length - 1].toLowerCase().endsWith(".tmp")) return false;
   if (relative.toLowerCase() === BASE_MANIFEST_FILE) return false;
   if (segments.length === 1) return relative.toLowerCase() === "config.json";
 

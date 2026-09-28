@@ -3158,7 +3158,7 @@
   "studio.location.trackEdits.spotsLimitReached": "Elérted a {max} elrejtett hely limitjét ezen az úton.",
   "studio.location.trackEdits.stretchesHeading": "Elrejtett és elnevezett szakaszok",
   "studio.location.trackEdits.stretchesEmpty": "Ehhez az úthoz még nincs elrejtett vagy elnevezett szakasz.",
-  "studio.location.trackEdits.hiddenRange": "Elrejtve · {from} – {to}",
+  "studio.location.trackEdits.hiddenRange": "Elrejtve · {range}",
   "studio.location.trackEdits.dateLabel": "Nap",
   "studio.location.trackEdits.fromLabel": "Ettől",
   "studio.location.trackEdits.toLabel": "Eddig",
@@ -3203,6 +3203,7 @@
   "studio.location.route.hidePreview": "Előnézet elrejtése",
   "studio.location.route.previewError": "Ezt az útvonalat nem sikerült betölteni. Próbáld újra.",
   "studio.location.route.rawNote": "Ez a teljes, szűretlen útvonalad ehhez az úthoz — a privát zónák és a nyilvános térkép szokásos korlátai itt nem érvényesek.",
+  "studio.location.route.publishedOnly": "Ehhez az úthoz jelenleg nincs megmaradt rögzített adat, de a közzétett útvonala megmaradt — alább így is elrejthetsz egy helyet vagy szakaszt.",
   "studio.location.sample.title": "Így néz ki a fájl",
   "studio.location.sample.lede": "Egy egyszerű JSON-tömb — egy bejegyzés pozíciónként, a legrégebbivel kezdve.",
   "studio.location.sample.time": "Idő",
@@ -4496,5 +4497,6 @@
   "studio.orders.postcard.title": "Képeslap küldése",
   "studio.orders.postcard.body": "Egy nap, egy fotó, kinyomtatva és bárhová elküldve: {price}. E-mailben ingyenes.",
   "studio.orders.postcard.cta": "Nap és fotó kiválasztása",
-  "studio.orders.photobook.none": "Amint egy utazásnak vannak közzétett napjai, itt könyvként tekintheted meg."
+  "studio.orders.photobook.none": "Amint egy utazásnak vannak közzétett napjai, itt könyvként tekintheted meg.",
+  "studio.location.trackEdits.stretchOrderError": "A kezdő időpontnak a záró időpont előtt kell lennie, mindkettő ugyanazon a napon."
 }

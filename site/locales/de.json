@@ -3156,7 +3156,7 @@
   "studio.location.trackEdits.spotsLimitReached": "Du hast das Limit von {max} verborgenen Orten für diese Reise erreicht.",
   "studio.location.trackEdits.stretchesHeading": "Verborgene und benannte Abschnitte",
   "studio.location.trackEdits.stretchesEmpty": "Für diese Reise gibt es noch keine verborgenen oder benannten Abschnitte.",
-  "studio.location.trackEdits.hiddenRange": "Verborgen · {from} – {to}",
+  "studio.location.trackEdits.hiddenRange": "Verborgen · {range}",
   "studio.location.trackEdits.dateLabel": "Tag",
   "studio.location.trackEdits.fromLabel": "Von",
   "studio.location.trackEdits.toLabel": "Bis",
@@ -3201,6 +3201,7 @@
   "studio.location.route.hidePreview": "Vorschau ausblenden",
   "studio.location.route.previewError": "Diese Route konnte nicht geladen werden. Versuch es noch einmal.",
   "studio.location.route.rawNote": "Das ist deine vollständige, ungefilterte Route für diese Reise — private Zonen und die üblichen Grenzen einer öffentlichen Karte gelten hier nicht.",
+  "studio.location.route.publishedOnly": "Für diese Reise ist gerade nichts Aufgezeichnetes mehr vorhanden, aber ihre veröffentlichte Route ist erhalten — du kannst unten trotzdem einen Ort oder einen Abschnitt verbergen.",
   "studio.location.sample.title": "So sieht die Datei aus",
   "studio.location.sample.lede": "Ein einfaches JSON-Array — ein Eintrag pro Position, älteste zuerst.",
   "studio.location.sample.time": "Zeit",
@@ -4495,5 +4496,6 @@
   "studio.orders.postcard.title": "Eine Postkarte schicken",
   "studio.orders.postcard.body": "Ein Tag, ein Foto, gedruckt und überallhin verschickt: {price}. Per E-Mail gratis.",
   "studio.orders.postcard.cta": "Tag und Foto wählen",
-  "studio.orders.photobook.none": "Sobald eine Reise veröffentlichte Tage hat, kannst du sie hier als Buch ansehen."
+  "studio.orders.photobook.none": "Sobald eine Reise veröffentlichte Tage hat, kannst du sie hier als Buch ansehen.",
+  "studio.location.trackEdits.stretchOrderError": "Die Startzeit muss vor der Endzeit liegen, beide am selben Tag."
 }

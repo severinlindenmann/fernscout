@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { writeTripFixture } from "./fixtures/content";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
 
 // The web-cookie door's own gate (`isOwner`, `lib/contacts/session.ts`) reads
 // `next/headers` in a way that only resolves inside a real request — the
@@ -157,13 +157,13 @@ describe("GET/PUT /api/v2/{user}/trips/{trip}/track-edits", { shuffle: false }, 
     const { status, body } = await putEdits(token, {
       hiddenSpots: [{ lat: 37.1, lon: -8.8, radiusM: 200 }],
       hiddenStretches: [],
-      namedStretches: [{ from: "2026-06-22T10:00:00Z", to: "2026-06-22T12:00:00Z", label: "Boat trip · dolphins" }],
+      namedStretches: [{ date: "2026-06-22", from: "10:00", to: "12:00", label: "Boat trip · dolphins" }],
     });
     expect(status).toBe(200);
     expect(body.hiddenSpots).toHaveLength(1);
     expect(body.hiddenSpots[0]).toMatchObject({ lat: 37.1, lon: -8.8, radiusM: 200 });
     expect(typeof body.hiddenSpots[0].id).toBe("string");
-    expect(body.namedStretches[0]).toMatchObject({ label: "Boat trip · dolphins" });
+    expect(body.namedStretches[0]).toMatchObject({ date: "2026-06-22", from: "10:00", to: "12:00", label: "Boat trip · dolphins" });
 
     const read = await getEdits(token);
     expect(read.body).toEqual(body);
@@ -185,10 +185,45 @@ describe("GET/PUT /api/v2/{user}/trips/{trip}/track-edits", { shuffle: false }, 
     const { status, body } = await putEdits(token, {
       hiddenSpots: [],
       hiddenStretches: [],
-      namedStretches: [{ from: "2026-06-22T10:00:00Z", to: "2026-06-22T11:00:00Z", label: "x".repeat(81) }],
+      namedStretches: [{ date: "2026-06-22", from: "10:00", to: "11:00", label: "x".repeat(81) }],
     });
     expect(status).toBe(400);
     expect(body.error).toBe("invalid_request");
+  });
+
+  test("a stretch with from >= to is refused — security review, S6", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    const { status, body } = await putEdits(token, {
+      hiddenSpots: [],
+      hiddenStretches: [{ date: "2026-06-22", from: "10:00", to: "10:00" }],
+      namedStretches: [],
+    });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_request");
+  });
+
+  test("a stretch dated outside the trip's own span is refused — security review, S6", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    const { status, body } = await putEdits(token, {
+      hiddenSpots: [],
+      // The trip runs 2026-06-22 to 2026-06-24.
+      hiddenStretches: [{ date: "2026-07-01", from: "10:00", to: "11:00" }],
+      namedStretches: [],
+    });
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_request");
+  });
+
+  test("a client-supplied id that never existed is ignored, not kept — security review, S6", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    const { status, body } = await putEdits(token, {
+      hiddenSpots: [{ id: "not-a-real-id", lat: 9, lon: 9, radiusM: 100 } as never],
+      hiddenStretches: [],
+      namedStretches: [],
+    });
+    expect(status).toBe(200);
+    expect(body.hiddenSpots[0].id).not.toBe("not-a-real-id");
+    expect(typeof body.hiddenSpots[0].id).toBe("string");
   });
 
   test("over the spot count limit is refused", async () => {
@@ -383,5 +418,181 @@ describe("readerTrack never carries a hidden point; ownerTripLine — the owner'
     const owner = ownerTripLine(OWNER, TRIP);
     const ownerPoints = (owner?.segments ?? []).flatMap((s) => s.points);
     expect(ownerPoints).toContainEqual([middle.lat, middle.lon]);
+  });
+});
+
+describe("a stretch is resolved against the day's own timezone, not the caller's — security review, B1 (blocker)", () => {
+  test("a stretch on a day carrying Asia/Tokyo hides the Tokyo-local hour, not the same clock digits read as UTC", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    // A draft day is enough — `dayTimezones` reads every entry, drafts
+    // included, the same way `deriveTripTrack`'s own doc comment says.
+    writeDayFixture(dir, OWNER, TRIP, {
+      slug: "tokyo-day",
+      date: "2026-06-23",
+      status: "draft",
+      timezone: "Asia/Tokyo",
+    });
+    const { clearUserCache } = await import("@/lib/users");
+    clearUserCache();
+
+    // 80 points, 5 minutes apart, starting 2026-06-22T21:00:00Z — 06:00
+    // *Tokyo* local time on the 23rd (Tokyo midnight is UTC 15:00 the day
+    // before). Long, and starting well before the hidden window, so the
+    // window this test hides sits comfortably in the *middle* of the run —
+    // clear of the 500 m end-trim `trimByDistance` already applies to both
+    // of the run's own true ends, which this test must not be confused with.
+    const fixes = walk("2026-06-22", 21, 20.0, 20.0, 80);
+    const { appendFixes } = await import("@/lib/gps/store");
+    appendFixes(OWNER, fixes);
+
+    // Hide 09:00–10:00 *Tokyo local time* — correctly resolved, that is
+    // 2026-06-23T00:00Z–01:00Z, index 36–48 of this walk (36 steps of 5 min
+    // from the 21:00Z start). Read as bare UTC (the B1 bug) it would
+    // instead cover 2026-06-23T09:00Z–10:00Z, which this walk (ending at
+    // 2026-06-23T02:35Z) never reaches at all — so the bug's signature is
+    // "nothing gets hidden".
+    await putEdits(token, {
+      hiddenSpots: [],
+      hiddenStretches: [{ date: "2026-06-23", from: "09:00", to: "10:00" }],
+      namedStretches: [],
+    });
+
+    const { readTrack } = await import("@/lib/gps/track");
+    const track = readTrack(OWNER, TRIP);
+    const points = (track?.segments ?? []).flatMap((s) => s.points);
+    // Well inside the correctly-resolved (Tokyo) hidden window, and well
+    // clear of both the run's own true ends.
+    const shouldBeHidden = fixes[40];
+    // Well before the window, and well clear of the run's own start.
+    const shouldSurviveBefore = fixes[15];
+    // Well after the window, and well clear of the run's own end.
+    const shouldSurviveAfter = fixes[65];
+    expect(points).not.toContainEqual([shouldBeHidden.lat, shouldBeHidden.lon]);
+    expect(points).toContainEqual([shouldSurviveBefore.lat, shouldSurviveBefore.lon]);
+    expect(points).toContainEqual([shouldSurviveAfter.lat, shouldSurviveAfter.lon]);
+  });
+});
+
+describe("a named stretch's label never lands on a trimmed-away fix — security review, S1", () => {
+  test("a stretch whose `to` is in the future does not centre its label on the live tail's own current position", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    const fixes = walk("2026-06-24", 9, 30.0, 30.0);
+    const { appendFixes } = await import("@/lib/gps/store");
+    appendFixes(OWNER, fixes);
+
+    // A named stretch that started when the walk did and has not "ended"
+    // yet — its own middle instant, naively, is close to the walk's own
+    // last (most recent) fix, which `trimByDistance` cuts off the end of
+    // every run.
+    const lastFix = fixes[fixes.length - 1];
+    const inTheFuture = new Date(lastFix.t + 60 * 60_000).toISOString().slice(11, 16);
+    const startTime = new Date(fixes[0].t).toISOString().slice(11, 16);
+    await putEdits(token, {
+      hiddenSpots: [],
+      hiddenStretches: [],
+      namedStretches: [{ date: "2026-06-24", from: startTime, to: inTheFuture, label: "Still going" }],
+    });
+
+    const { readTrack } = await import("@/lib/gps/track");
+    const track = readTrack(OWNER, TRIP);
+    const label = track?.labels?.find((l) => l.label === "Still going");
+    // Never absent — some fix in range must have survived trimming, since
+    // the walk is long enough.
+    expect(label).toBeDefined();
+    // And never the walk's own last point or its immediate neighbours — the
+    // exact 500 m `trimByDistance` cuts off this run's own end.
+    const trimmedEnd = fixes.slice(-4).map((f) => [f.lat, f.lon]);
+    expect(trimmedEnd).not.toContainEqual(label!.point);
+  });
+});
+
+describe("a hide PUT never destroys a published route just because the store was purged — security review, S2", () => {
+  test("preserveExistingWhenEmpty: an empty re-derive after a purge leaves the existing track.json alone", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    const fixes = walk("2026-06-22", 6, 40.0, 40.0);
+    const { appendFixes, deleteRange } = await import("@/lib/gps/store");
+    appendFixes(OWNER, fixes);
+    const { deriveTripTrack } = await import("@/lib/gps/api");
+    deriveTripTrack(OWNER, { id: TRIP, start: "2026-06-22", end: "2026-06-24" });
+
+    const { readTrack } = await import("@/lib/gps/track");
+    const before = readTrack(OWNER, TRIP);
+    expect(before?.segments.length).toBeGreaterThan(0);
+
+    // The owner purges their whole history (B1843 addendum) — nothing left
+    // in the store for this trip's dates at all.
+    deleteRange(OWNER, 0, Date.now() + 1e12);
+
+    // A hide edit now re-derives to nothing, since the store has nothing —
+    // but the trip's already-published route must survive that; only an
+    // import or an explicit POST …/track may legitimately delete it.
+    await putEdits(token, { hiddenSpots: [{ lat: 1, lon: 1, radiusM: 100 }], hiddenStretches: [], namedStretches: [] });
+
+    const after = readTrack(OWNER, TRIP);
+    expect(after).toBeDefined();
+    expect(after?.segments).toEqual(before?.segments);
+  });
+
+  test("recordedTrips lists a trip by its surviving track.json alone once the store has nothing left for it", async () => {
+    const { recordedTrips } = await import("@/lib/gps/api");
+    const rows = recordedTrips(OWNER);
+    const row = rows.find((r) => r.tripId === TRIP);
+    expect(row).toBeDefined();
+    expect(row?.hasPublishedTrack).toBe(true);
+    expect(row?.daysRecorded).toBe(0);
+  });
+});
+
+describe("a re-derive that throws after edits are saved does not leave a stale file being served — security review, S4", () => {
+  test("writeTrackEdits deletes track.json and track-recent.json, then rethrows", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    const fixes = walk("2026-06-22", 6, 50.0, 50.0);
+    const { appendFixes, gpsDir } = await import("@/lib/gps/store");
+    appendFixes(OWNER, fixes);
+    const { deriveTripTrack, writeTrackEdits } = await import("@/lib/gps/api");
+    deriveTripTrack(OWNER, { id: TRIP, start: "2026-06-22", end: "2026-06-24" });
+
+    const { readTrack } = await import("@/lib/gps/track");
+    expect(readTrack(OWNER, TRIP)).toBeDefined();
+
+    // A corrupt exclude.json makes the next derivation throw.
+    const excludeFile = path.join(gpsDir(OWNER), "exclude.json");
+    fs.writeFileSync(excludeFile, "{ not json");
+    try {
+      expect(() => writeTrackEdits(OWNER, TRIP, { hiddenSpots: [], hiddenStretches: [], namedStretches: [] })).toThrow();
+      expect(readTrack(OWNER, TRIP)).toBeUndefined();
+    } finally {
+      fs.writeFileSync(excludeFile, "[]");
+    }
+
+    // Re-derive cleanly now that the store's own zone file is readable
+    // again, so later tests in this file are not left broken by this one.
+    deriveTripTrack(OWNER, { id: TRIP, start: "2026-06-22", end: "2026-06-24" });
+    void token;
+  });
+});
+
+describe("two entries citing the same existing id never collide on disk — security review, S6", () => {
+  test("the later occurrence gets a fresh id instead of a duplicate", async () => {
+    const { writeTrackEdits, listTrackEdits } = await import("@/lib/gps/api");
+    const first = writeTrackEdits(OWNER, TRIP, {
+      hiddenSpots: [{ lat: 2, lon: 2, radiusM: 100 }],
+      hiddenStretches: [],
+      namedStretches: [],
+    });
+    const existingId = first.hiddenSpots[0].id;
+    const second = writeTrackEdits(OWNER, TRIP, {
+      hiddenSpots: [
+        { id: existingId, lat: 2, lon: 2, radiusM: 100 },
+        { id: existingId, lat: 3, lon: 3, radiusM: 100 },
+      ],
+      hiddenStretches: [],
+      namedStretches: [],
+    });
+    expect(second.hiddenSpots).toHaveLength(2);
+    expect(second.hiddenSpots[0].id).not.toBe(second.hiddenSpots[1].id);
+    const stored = listTrackEdits(OWNER, TRIP);
+    const ids = stored.hiddenSpots.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

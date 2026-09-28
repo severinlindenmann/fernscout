@@ -6,8 +6,8 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 
 type HiddenSpot = { id: string; lat: number; lon: number; radiusM: number };
-type HiddenStretch = { id: string; from: string; to: string };
-type NamedStretch = { id: string; from: string; to: string; label: string };
+type HiddenStretch = { id: string; date: string; from: string; to: string };
+type NamedStretch = { id: string; date: string; from: string; to: string; label: string };
 type EditsDoc = {
   hiddenSpots: HiddenSpot[];
   hiddenStretches: HiddenStretch[];
@@ -33,14 +33,18 @@ const LABEL = "text-sm font-semibold text-ink-strong";
  *
  * Smallest form that works: a spot is typed coordinates and a radius (no map
  * to tap — that is B2540's job); a stretch is a day already recorded plus a
- * from/to clock time, read in the browser's own local time zone and turned
- * into an ISO instant with `new Date(...)`. That is a simplification of the
- * trip's own per-day time zone the rest of this feature is careful about
- * (`docs/gps.md`) —
- * ponytail: good enough for an owner picking a time they remember, upgrade
- * path is a day-timezone-aware picker if it ever misses by an hour that
- * matters. One form for both "hide" and "name": leaving the label blank
- * hides the stretch with nothing said about it; filling it in also names it.
+ * from/to clock time. Sent to the server as `{date, from, to}` — a wall
+ * clock, not an instant — and resolved there against that date's own day
+ * timezone (`resolvedHiddenStretches`, `lib/gps/api.ts`), never here:
+ * security review, 2026-09-28 found the first cut of this converting with
+ * `new Date(...)`, which reads the *browser's* own zone. Editing a Tokyo
+ * trip's stretch from a laptop in Zürich would have silently hidden the
+ * wrong seven hours while this same list echoed the typed times back as if
+ * nothing had moved. Because the server does the one conversion that
+ * matters, this component never has to — the list below just echoes back
+ * exactly the `date`/`from`/`to` the write answered with. One form for both
+ * "hide" and "name": leaving the label blank hides the stretch with nothing
+ * said about it; filling it in also names it.
  */
 export default function TrackEditsPanel({
   username,
@@ -59,6 +63,7 @@ export default function TrackEditsPanel({
   const [error, setError] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
   const [asking, setAsking] = useState<string | null>(null);
+  const [stretchError, setStretchError] = useState<string | undefined>();
 
   const [spotLat, setSpotLat] = useState("");
   const [spotLon, setSpotLon] = useState("");
@@ -146,15 +151,26 @@ export default function TrackEditsPanel({
 
   async function addStretch(event: React.FormEvent) {
     event.preventDefault();
+    setStretchError(undefined);
     if (!doc || !stretchDate || !stretchFrom || !stretchTo) return;
-    const from = new Date(`${stretchDate}T${stretchFrom}:00`).toISOString();
-    const to = new Date(`${stretchDate}T${stretchTo}:00`).toISOString();
-    if (Date.parse(from) >= Date.parse(to)) return;
+    // Sent exactly as typed — `date`, `from`, `to` — never converted here.
+    // The server resolves it against that date's own day timezone; see the
+    // component doc comment above.
+    if (stretchFrom >= stretchTo) {
+      setStretchError(t("studio.location.trackEdits.stretchOrderError"));
+      return;
+    }
     const label = stretchLabel.trim();
     const ok = await put(
       label
-        ? { ...stripped(doc), namedStretches: [...doc.namedStretches, { from, to, label } as NamedStretch] }
-        : { ...stripped(doc), hiddenStretches: [...doc.hiddenStretches, { from, to } as HiddenStretch] },
+        ? {
+            ...stripped(doc),
+            namedStretches: [...doc.namedStretches, { date: stretchDate, from: stretchFrom, to: stretchTo, label } as NamedStretch],
+          }
+        : {
+            ...stripped(doc),
+            hiddenStretches: [...doc.hiddenStretches, { date: stretchDate, from: stretchFrom, to: stretchTo } as HiddenStretch],
+          },
     );
     if (ok) {
       setStretchFrom("");
@@ -181,10 +197,12 @@ export default function TrackEditsPanel({
     await put({ ...stripped(doc), namedStretches: doc.namedStretches.filter((s) => s.id !== id) });
   }
 
-  const fmtInstant = (iso: string) =>
-    new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(
-      new Date(iso),
-    );
+  // A stretch's own `date`/`from`/`to` is a wall clock, not an instant — it
+  // is shown exactly as stored, never re-interpreted through this browser's
+  // own zone. `formatShortDate` is the same day formatter the picker below
+  // already uses.
+  const fmtStretch = (s: { date: string; from: string; to: string }) =>
+    `${formatShortDate(s.date)}, ${s.from} – ${s.to}`;
 
   if (!doc) {
     if (loadError) {
@@ -297,9 +315,7 @@ export default function TrackEditsPanel({
         <ul className="mt-2 space-y-2">
           {doc.hiddenStretches.map((s) => (
             <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-subtle px-3 py-2 text-sm">
-              <span className="text-ink-body">
-                {t("studio.location.trackEdits.hiddenRange", { from: fmtInstant(s.from), to: fmtInstant(s.to) })}
-              </span>
+              <span className="text-ink-body">{t("studio.location.trackEdits.hiddenRange", { range: fmtStretch(s) })}</span>
               <button
                 type="button"
                 onClick={() => setAsking(`hidden:${s.id}`)}
@@ -323,7 +339,7 @@ export default function TrackEditsPanel({
           {doc.namedStretches.map((s) => (
             <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-subtle px-3 py-2 text-sm">
               <span className="text-ink-body">
-                {s.label} · {fmtInstant(s.from)} – {fmtInstant(s.to)}
+                {s.label} · {fmtStretch(s)}
               </span>
               <button
                 type="button"
@@ -382,6 +398,11 @@ export default function TrackEditsPanel({
             />
           </label>
           <p className="text-sm text-ink-secondary">{t("studio.location.trackEdits.stretchLabelHint")}</p>
+          {stretchError && (
+            <p role="alert" className="text-sm text-coral-600">
+              {stretchError}
+            </p>
+          )}
           <BusyButton
             busy={busy}
             type="submit"

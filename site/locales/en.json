@@ -3156,7 +3156,7 @@
   "studio.location.trackEdits.spotsLimitReached": "You have reached the limit of {max} hidden spots on this trip.",
   "studio.location.trackEdits.stretchesHeading": "Hidden and named stretches",
   "studio.location.trackEdits.stretchesEmpty": "No hidden or named stretches on this trip yet.",
-  "studio.location.trackEdits.hiddenRange": "Hidden · {from} – {to}",
+  "studio.location.trackEdits.hiddenRange": "Hidden · {range}",
   "studio.location.trackEdits.dateLabel": "Day",
   "studio.location.trackEdits.fromLabel": "From",
   "studio.location.trackEdits.toLabel": "To",
@@ -3201,6 +3201,7 @@
   "studio.location.route.hidePreview": "Hide preview",
   "studio.location.route.previewError": "Could not load this route. Try again.",
   "studio.location.route.rawNote": "This is your full, unfiltered route for this trip — the private zones and the usual limits on a public map do not apply here.",
+  "studio.location.route.publishedOnly": "Nothing recorded is left for this trip right now, but its published route survives — you can still hide a spot or a stretch on it below.",
   "studio.location.sample.title": "What the file looks like",
   "studio.location.sample.lede": "A plain JSON array — one entry per position, oldest first.",
   "studio.location.sample.time": "Time",
@@ -4495,5 +4496,6 @@
   "studio.orders.postcard.title": "Send a postcard",
   "studio.orders.postcard.body": "A day, a photo, printed and sent anywhere: {price}. Free by email.",
   "studio.orders.postcard.cta": "Choose a day and a photo",
-  "studio.orders.photobook.none": "Once a trip has published days, you can see it as a book here."
+  "studio.orders.photobook.none": "Once a trip has published days, you can see it as a book here.",
+  "studio.location.trackEdits.stretchOrderError": "The start time must be before the end time, both on the same day."
 }

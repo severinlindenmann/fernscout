@@ -3156,7 +3156,7 @@
   "studio.location.trackEdits.spotsLimitReached": "Tu as atteint la limite de {max} lieux masqués sur ce voyage.",
   "studio.location.trackEdits.stretchesHeading": "Tronçons masqués et nommés",
   "studio.location.trackEdits.stretchesEmpty": "Aucun tronçon masqué ou nommé sur ce voyage pour l’instant.",
-  "studio.location.trackEdits.hiddenRange": "Masqué · {from} – {to}",
+  "studio.location.trackEdits.hiddenRange": "Masqué · {range}",
   "studio.location.trackEdits.dateLabel": "Jour",
   "studio.location.trackEdits.fromLabel": "De",
   "studio.location.trackEdits.toLabel": "À",
@@ -3201,6 +3201,7 @@
   "studio.location.route.hidePreview": "Masquer l’aperçu",
   "studio.location.route.previewError": "Impossible de charger cet itinéraire. Réessaie.",
   "studio.location.route.rawNote": "C’est ton itinéraire complet et non filtré pour ce voyage — les zones privées et les limites habituelles d’une carte publique ne s’appliquent pas ici.",
+  "studio.location.route.publishedOnly": "Il ne reste rien d’enregistré pour ce voyage pour l’instant, mais son itinéraire publié subsiste — tu peux quand même masquer un lieu ou un tronçon ci-dessous.",
   "studio.location.sample.title": "À quoi ressemble le fichier",
   "studio.location.sample.lede": "Un simple tableau JSON — une entrée par position, la plus ancienne en premier.",
   "studio.location.sample.time": "Heure",
@@ -4499,5 +4500,6 @@
   "studio.orders.postcard.title": "Envoyer une carte postale",
   "studio.orders.postcard.body": "Un jour, une photo, imprimés et envoyés n’importe où : {price}. Gratuit par e-mail.",
   "studio.orders.postcard.cta": "Choisir un jour et une photo",
-  "studio.orders.photobook.none": "Dès qu’un voyage a des jours publiés, tu peux le voir ici comme un livre."
+  "studio.orders.photobook.none": "Dès qu’un voyage a des jours publiés, tu peux le voir ici comme un livre.",
+  "studio.location.trackEdits.stretchOrderError": "L’heure de début doit précéder l’heure de fin, toutes deux le même jour."
 }

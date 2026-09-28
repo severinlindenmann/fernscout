@@ -115,16 +115,22 @@ describe("named stretches (D8 C) — the Algarve boat trip", () => {
     const namedOverSpot = { id: "n3", from: "2026-06-22T10:00:00Z", to: "2026-06-22T12:00:00Z", label: "Overlap" };
     const track = deriveTrack(
       [
+        // A real two-point run, both outside the hidden spot and inside the
+        // stretch — S1 restricts label candidates to fixes that survive
+        // onto an actual *drawn* line, and a lone fix (a run of one, once a
+        // neighbour is cut) is never drawn at all, so this needs a genuine
+        // second point to remain a valid candidate.
+        on("2026-06-22", 10, 10, 37.3, -8.6),
+        on("2026-06-22", 10, 15, 37.301, -8.599),
         // Exactly the stretch's own midpoint (11:00) — and inside the hidden
         // spot. Without the spot this would be the label's point.
         on("2026-06-22", 11, 0, 37.1, -8.8),
-        // Further from the midpoint, but not hidden — this is the only
-        // candidate left once the spot cuts the closer one.
-        on("2026-06-22", 10, 10, 37.3, -8.6),
       ],
       { ...DATES, hiddenSpots: [spot], namedStretches: [namedOverSpot] },
     );
-    expect(track.labels).toEqual([{ id: "n3", label: "Overlap", day: "2026-06-22", point: [37.3, -8.6] }]);
+    // Nearer the stretch's own middle (11:00) of the two surviving fixes —
+    // 10:15 (45 min away) beats 10:10 (50 min away).
+    expect(track.labels).toEqual([{ id: "n3", label: "Overlap", day: "2026-06-22", point: [37.301, -8.599] }]);
   });
 });
 
@@ -178,5 +184,87 @@ describe("namedStretchLabels (D8 C) — the reader-safe door onto a stretch's ow
       labels: [{ id: "t1", label: "Just now", day: "2026-06-22", point: [1, 1] }],
     });
     expect(namedStretchLabels(USER, TRIP, visible, true)).toEqual([]);
+  });
+});
+
+describe("readTrackEdits fails closed on a malformed file — security review, S6", () => {
+  const USER = "ana";
+  const TRIP = "algarve";
+  let dir: string;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-edits-validate-"));
+    process.env.CONTENT_DIR = dir;
+    fs.mkdirSync(path.join(dir, USER, "trips", TRIP), { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+    delete process.env.CONTENT_DIR;
+  });
+
+  function write(body: unknown) {
+    fs.writeFileSync(
+      path.join(dir, USER, "trips", TRIP, "track-edits.json"),
+      typeof body === "string" ? body : JSON.stringify(body),
+    );
+  }
+
+  test("missing entirely reads as empty, not an error", async () => {
+    const { readTrackEdits } = await import("@/lib/gps/edits");
+    expect(readTrackEdits(USER, TRIP)).toEqual({ hiddenSpots: [], hiddenStretches: [], namedStretches: [] });
+  });
+
+  test("not JSON throws", async () => {
+    write("{ not json");
+    const { readTrackEdits } = await import("@/lib/gps/edits");
+    expect(() => readTrackEdits(USER, TRIP)).toThrow();
+  });
+
+  test("a spot with a radius outside the discoverable bounds throws", async () => {
+    write({ hiddenSpots: [{ id: "a", lat: 1, lon: 1, radiusM: 1 }], hiddenStretches: [], namedStretches: [] });
+    const { readTrackEdits } = await import("@/lib/gps/edits");
+    expect(() => readTrackEdits(USER, TRIP)).toThrow();
+  });
+
+  test("a stretch with from >= to throws", async () => {
+    write({
+      hiddenSpots: [],
+      hiddenStretches: [{ id: "a", date: "2026-06-22", from: "10:00", to: "09:00" }],
+      namedStretches: [],
+    });
+    const { readTrackEdits } = await import("@/lib/gps/edits");
+    expect(() => readTrackEdits(USER, TRIP)).toThrow();
+  });
+
+  test("a named stretch with an empty label throws", async () => {
+    write({
+      hiddenSpots: [],
+      hiddenStretches: [],
+      namedStretches: [{ id: "a", date: "2026-06-22", from: "09:00", to: "10:00", label: "  " }],
+    });
+    const { readTrackEdits } = await import("@/lib/gps/edits");
+    expect(() => readTrackEdits(USER, TRIP)).toThrow();
+  });
+
+  test("two entries sharing one id throws — ids are one space across the whole document", async () => {
+    write({
+      hiddenSpots: [{ id: "dup", lat: 1, lon: 1, radiusM: 100 }],
+      hiddenStretches: [{ id: "dup", date: "2026-06-22", from: "09:00", to: "10:00" }],
+      namedStretches: [],
+    });
+    const { readTrackEdits } = await import("@/lib/gps/edits");
+    expect(() => readTrackEdits(USER, TRIP)).toThrow();
+  });
+
+  test("a well-formed file reads back exactly", async () => {
+    const doc = {
+      hiddenSpots: [{ id: "s1", lat: 1, lon: 1, radiusM: 100 }],
+      hiddenStretches: [{ id: "h1", date: "2026-06-22", from: "09:00", to: "10:00" }],
+      namedStretches: [{ id: "n1", date: "2026-06-22", from: "11:00", to: "12:00", label: "Boat trip" }],
+    };
+    write(doc);
+    const { readTrackEdits } = await import("@/lib/gps/edits");
+    expect(readTrackEdits(USER, TRIP)).toEqual(doc);
   });
 });

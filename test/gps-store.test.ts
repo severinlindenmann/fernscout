@@ -372,6 +372,10 @@ describe("the rules that keep it private", () => {
       "trips/algarve/TRACK.json",
       "trips/algarve/TRACK-RECENT.json",
       "trips/algarve/TRACK-EDITS.json",
+      // B2539 security review, S6 — an atomic writer's own leftover `.tmp`,
+      // general rather than naming `track-edits.json.tmp` specifically.
+      "trips/algarve/track-edits.json.tmp",
+      "trips/algarve/track.json.tmp",
       "postcards/a.pdf",
       "photobooks/b.pdf",
       "trips/algarve/.ingest.json",
@@ -454,6 +458,12 @@ describe("the rules that keep it private", () => {
         }),
       );
       appendFixes(USER, [{ t: Date.parse("2026-06-22T09:00:00Z"), lat: 47.38564, lon: 8.21819 }]);
+      // B2539 security review, S6 — an atomic writer's own leftover `.tmp`,
+      // as if a write to `track-edits.json` had been interrupted mid-way.
+      fs.writeFileSync(
+        path.join(trip, "track-edits.json.tmp"),
+        JSON.stringify({ hiddenSpots: [{ id: "s2", lat: 77.7777, lon: 88.8888, radiusM: 200 }], hiddenStretches: [], namedStretches: [] }),
+      );
 
       const { clearUserCache } = await import("@/lib/users");
       const { clearConfigCache } = await import("@/lib/config");
@@ -473,6 +483,9 @@ describe("the rules that keep it private", () => {
       // B2539, D8 C — same for the owner's own hidden spots and stretches.
       expect(zip).not.toContain("track-edits.json");
       expect(zip).not.toContain("55.5555");
+      // B2539 security review, S6 — and its own `.tmp`.
+      expect(zip).not.toContain("track-edits.json.tmp");
+      expect(zip).not.toContain("77.7777");
     },
   );
 });

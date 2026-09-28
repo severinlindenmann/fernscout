@@ -55,18 +55,41 @@ export async function trackEditsPutResponse(user: string, tripId: string, reques
   const found = tripOr404(user, tripId);
   if (!found.ok) return found.response;
 
-  const currentDoc = { ...listTrackEdits(user, tripId), limits };
-  const currentEtag = etagFor(currentDoc);
-  if (!request.headers.get("if-match") || ifMatchStale(request, currentEtag)) {
-    return fail("stale_document", ERROR_CODES.stale_document, currentDoc, 409);
-  }
-
+  // B2539 security review, S3 — the body is read (the one `await` this
+  // handler needs) *before* the ETag is checked, not after: checking first
+  // and awaiting the body second left a window where a concurrent PUT could
+  // land in between, so the ETag this request checked against was no longer
+  // the one actually on disk by the time it finally wrote. Everything from
+  // here to `writeTrackEdits` below is synchronous — no `await` — so nothing
+  // else can run in between and the check is against what is really still
+  // there.
   const body = await readJson(request);
   if (!body.ok) return body.response;
 
   const parsed = trackEditsWrite.safeParse(body.value);
   if (!parsed.success) {
     return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(parsed.error), 400);
+  }
+
+  // Every stretch's own `date` clamped to the trip's own span — a hidden or
+  // named stretch is about *this trip's* line, and a date outside it names a
+  // day this document has no business touching (security review, S1/S6).
+  const outOfSpan = [...parsed.data.hiddenStretches, ...parsed.data.namedStretches].find(
+    (s) => s.date < found.trip.start || s.date > found.trip.end,
+  );
+  if (outOfSpan) {
+    return fail(
+      "invalid_request",
+      `${outOfSpan.date} is outside this trip's own dates (${found.trip.start} – ${found.trip.end}).`,
+      undefined,
+      400,
+    );
+  }
+
+  const currentDoc = { ...listTrackEdits(user, tripId), limits };
+  const currentEtag = etagFor(currentDoc);
+  if (!request.headers.get("if-match") || ifMatchStale(request, currentEtag)) {
+    return fail("stale_document", ERROR_CODES.stale_document, currentDoc, 409);
   }
 
   const result: TrackEdits = writeTrackEdits(user, tripId, parsed.data);
