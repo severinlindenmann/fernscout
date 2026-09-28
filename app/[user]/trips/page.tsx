@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
+import { countryNameFor } from "@/lib/countries";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { getAllMedia, getPlaces, getTripStats } from "@/lib/entries";
@@ -57,6 +58,12 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
  * heaviest page a journal has, since it reads every trip rather than one.
  */
 async function TripsIndexBody({ user }: { user: string }) {
+  // The lifetime map's legend, pins and hover label all name a country for
+  // *this reader* (B2511) — the platform's own registry beats whichever
+  // day's spelling of "Frankreich" or "France" happened to be the first one
+  // `countryNames` below met, which used to leak one contributor's language
+  // into every other reader's legend.
+  const reader = await requestLocale();
   // Filtered by who is asking, not just fetched. The trip switcher in the user
   // layout has always run `listableTrips`; this page — the one actually called
   // "Trips" — did not, and listed every restricted trip's title, tagline,
@@ -303,10 +310,13 @@ async function TripsIndexBody({ user }: { user: string }) {
       return shape
         ? {
             code,
-            // The journal's own word for the country, not the shapefile's:
-            // content says "United States", Natural Earth says "United States
-            // of America" and it does not fit anywhere. B370.
-            name: countryNames.get(code) ?? shape.name,
+            // This reader's own name for the code (B2511), never simply
+            // whichever day's own spelling of the country happened to be met
+            // first while walking every trip — that used to make one
+            // contributor's language win the legend for every reader. Falls
+            // back to the shapefile's name only once `countryNames` (a day's
+            // own text) has nothing either.
+            name: countryNameFor(code, reader, countryNames.get(code) ?? shape.name),
             path: shape.path,
             trips,
             x: shape.x,
