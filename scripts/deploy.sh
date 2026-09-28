@@ -783,6 +783,18 @@ for i in $(seq 1 30); do
       exit 1
     fi
 
+    # B2525: /api/health goes through no proxy rewrite, so it said healthy on
+    # 2026-09-28 while every /@user page, /de/… address and .md twin answered
+    # 500 (Next proxied the rewrite as an external https fetch — PR #47). One
+    # rewritten page, asked the way Caddy asks: a 404 still proves the rewrite
+    # stayed internal, a 5xx or no answer fails the deploy before it is recorded.
+    PAGE="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+      -H 'X-Forwarded-Proto: https' "http://127.0.0.1:${PORT:-3000}/@example")" || true
+    if [ "${PAGE:-000}" = 000 ] || [ "$PAGE" -ge 500 ]; then
+      echo "ERROR: /api/health is fine but the rewritten page /@example answered ${PAGE:-nothing}. Every /@user page is likely broken — check journalctl -u ${SERVICE} -n 50." >&2
+      exit 1
+    fi
+
     record_deployed
     report_backup "$HEALTH"
     report_logging "$HEALTH"
