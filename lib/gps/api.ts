@@ -30,8 +30,6 @@ import {
   type TrackEdits,
 } from "./edits";
 import { recordingState, type RecordingState } from "./recorderState";
-export { recordingState };
-export type { RecordingState };
 import { reverseGeocode } from "../ingest/geo";
 import { earliestTodayISO } from "../tripTime";
 import { zonedTimeToUtc } from "../timezone";

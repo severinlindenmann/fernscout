@@ -162,7 +162,7 @@ describe("transport mode — B2541", () => {
       from: "2026-06-22T10:00:00Z",
       to: "2026-06-22T12:00:00Z",
       label: "Boat trip · dolphins",
-      mode: "boat",
+      mode: "boat" as const,
     };
     const track = deriveTrack(
       [
