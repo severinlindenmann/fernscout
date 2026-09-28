@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "109f0f7dc461b2d5828ac4eded797c2f0af595cc",
+  "generatedFrom": "60c578e7ae7f439e62c623ef6a833d64681a4710",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -644,6 +644,7 @@
     "plans.rowMadeFor",
     "plans.rowPay",
     "plans.rowPhotobook",
+    "plans.rowPhotobookPages",
     "plans.rowPostcard",
     "plans.rowSms",
     "plans.rowStorage",

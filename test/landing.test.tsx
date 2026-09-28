@@ -264,6 +264,38 @@ describe("the landing page", () => {
   /** B2506: "Sign in" sits in the header for everybody now — it opens the
    * same `IdentitySignIn` the reader strip does, which serves an owner and a
    * reader alike, so there is no instance on which it is a false door. */
+  /** B2529 — the owner's review of the live page. */
+  describe("after the owner's review", () => {
+    test("the agent teaser is the last section before the footer", () => {
+      const html = renderLanding("en", false, { pricing: <section id="prices" /> });
+      const teaser = html.indexOf('aria-labelledby="agentic-teaser"');
+      expect(teaser).toBeGreaterThan(html.indexOf('id="prices"'));
+      expect(teaser).toBeGreaterThan(html.indexOf("Questions people ask first"));
+      expect(html.indexOf("<footer")).toBeGreaterThan(teaser);
+      expect(html.slice(teaser, html.indexOf("<footer"))).not.toContain("<section");
+    });
+
+    test("the iPhone line is a quiet line, only with a store link or a waitlist", () => {
+      const line = dictionaryFor("en")["appWaitlist.line"];
+      expect(renderLanding()).not.toContain(line);
+      const waitlist = renderLanding("en", false, { appWaitlistAvailable: true });
+      expect(waitlist).toContain(line);
+      expect(waitlist).toContain(dictionaryFor("en")["appWaitlist.openCta"]);
+      const store = renderLanding("en", false, { appStoreUrl: "https://apps.example/fernscout" });
+      expect(store).toContain(line);
+      expect(store).toContain('href="https://apps.example/fernscout"');
+    });
+
+    test("no plan string ties writing itself to a number of days", () => {
+      for (const locale of installedLocales()) {
+        for (const [key, value] of Object.entries(dictionaryFor(locale))) {
+          if (!key.startsWith("plans.") || !value.includes("{days}")) continue;
+          expect(value, `${locale} ${key}`).not.toMatch(/writing tool|Schreibwerkzeug|íróeszköz|outils d’écriture|strumenti di scrittura/i);
+        }
+      }
+    });
+  });
+
   test("offers sign-in in the header, helper on or off", () => {
     expect(renderLanding()).toContain(">Sign in<");
     expect(renderLanding("en", true)).toContain(">Sign in<");
