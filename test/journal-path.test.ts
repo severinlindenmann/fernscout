@@ -1,10 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, test } from "vitest";
+import os from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { NextRequest } from "next/server";
 import { default as proxy } from "@/proxy";
 import { LOCALE_COOKIE, PATH_HEADER } from "@/lib/requestKeys";
 import { journalInPathname, journalPath, parseJournalPath } from "@/lib/journalPath";
+import { writeTombstone } from "@/lib/tombstones";
 
 /**
  * A journal's address is `/@<username>` — `lib/journalPath.ts`.
@@ -99,6 +101,74 @@ describe("one address per page", () => {
   test("the API is left alone", () => {
     const { response } = get("/api/v2/anna/status");
     expect(rewrittenTo(response)).toBeNull();
+  });
+});
+
+describe("a path that cannot be a journal is not rewritten", () => {
+  /**
+   * The rewrite target is assigned to a URL, which resolves dot segments. A
+   * name of `..` or `%2e%2e` would otherwise serve `/admin` or `/api/…` at an
+   * `@` address, past the header pins next.config.ts matched against it.
+   */
+  test("dot segments, in the name or after it, never leave the journal", () => {
+    for (const bad of [
+      "/@../admin",
+      "/@%2e%2e/api/v2/x",
+      "/@..",
+      "/@./anna/contacts",
+      "/@%2e/anna/contacts",
+      "/@anna/%2e%2e/%2e%2e/admin",
+      "/@anna/day/%2e%2e.md",
+      "/@anna/trips/a%2Fb/day/x.md",
+      "/@Anna",
+      "/@anna/%zz",
+    ]) {
+      const { response } = get(bad);
+      expect(rewrittenTo(response), bad).toBeNull();
+      expect(response.headers.get("location"), bad).toBeNull();
+    }
+  });
+
+  test("an .MD suffix is still a twin", () => {
+    expect(rewrittenTo(get("/@anna/day/hoi-an.MD").response)).toBe("/api/md/anna/hoi-an");
+  });
+
+  test("the internal route spelled with an encoded letter still redirects", () => {
+    const { response } = get("/%61t/anna/contacts");
+    expect(response.status).toBe(308);
+    expect(new URL(response.headers.get("location")!).pathname).toBe("/@anna/contacts");
+  });
+});
+
+describe("a deleted journal", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-journal-path-"));
+    process.env.CONTENT_DIR = dir;
+    writeTombstone({
+      kind: "journal",
+      username: "gone",
+      title: "Gone journal",
+      deletedAt: "2026-01-01T00:00:00.000Z",
+      requestedBy: "owner@example.test",
+      held: { files: 0, bytes: 0 },
+      notice: { lang: "en", title: "Gone", body: "Gone", homeLabel: "Home", homeHref: "/" },
+    });
+  });
+  afterEach(() => {
+    delete process.env.CONTENT_DIR;
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("answers 410 at its @ address", () => {
+    expect(get("/@gone").response.status).toBe(410);
+    expect(get("/@gone/trips/alps").response.status).toBe(410);
+  });
+
+  test("leaves its markdown twins to the route that answers in plain text", () => {
+    const { response } = get("/@gone/day/x.md");
+    expect(response.status).toBe(200);
+    expect(rewrittenTo(response)).toBe("/api/md/gone/x");
   });
 });
 

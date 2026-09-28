@@ -358,7 +358,7 @@ export default function SignupWizard({
     setBusy(true);
     // The one-press relay link, spent here rather than by a press — there is
     // nobody left to press it, the wizard already asked everything it needs
-    // to. `signIn` is `${base}/${username}/s/${token}?lang=xx` (`signInUrl`
+    // to. `signIn` is `${base}/@${username}/s/${token}?lang=xx` (`signInUrl`
     // in `lib/auth`); the token is the path after the last "/s/", without the
     // query — B2170 found the old `split("/s/").pop()` sent "?lang=en" as part
     // of the token, so this call always failed. The same call the welcome

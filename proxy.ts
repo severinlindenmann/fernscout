@@ -116,34 +116,56 @@ function goneFor(username: string, rest: string): NextResponse | null {
 }
 
 /**
- * Where a journal path is served from. `/@anna/…` is rendered by
- * `app/at/[user]/…` — see `lib/journalPath.ts` for why the two differ — except
- * for the day markdown twins (B291), which are route handlers under
- * `/api/md/`. A bare `:slug.md` param would stop at the first `.`, and a slug
- * is not guaranteed not to contain one, so the slug is everything up to the
- * final `.md`.
+ * Where a journal path is served from, or null when the path cannot be one.
+ *
+ * `/@anna/…` is rendered by `app/at/[user]/…` — see `lib/journalPath.ts` for
+ * why the two differ — except for the day markdown twins (B291), which are
+ * route handlers under `/api/md/`. A bare `:slug.md` param would stop at the
+ * first `.`, and a slug is not guaranteed not to contain one, so the slug is
+ * everything up to the final `.md`.
+ *
+ * The name must be a real username, and no segment may be a dot segment in
+ * disguise (`%2e%2e`) or hide a slash: the target is assigned to a URL, which
+ * resolves those, so `/@../admin` would otherwise be served from `/admin` —
+ * past the header pins `next.config.ts` matched against the `@` path.
  */
-function journalTarget(username: string, rest: string): string {
-  const trip = /^\/trips\/([^/]+)\/day\/([^/]+)\.md$/.exec(rest);
-  if (trip) return `/api/md/${username}/${trip[1]}/${trip[2]}`;
-  const day = /^\/day\/([^/]+)\.md$/.exec(rest);
-  if (day) return `/api/md/${username}/${day[1]}`;
-  return `/${JOURNAL_ROUTE_ROOT}/${username}${rest}`;
+function journalTarget(username: string, rest: string): { path: string; twin: boolean } | null {
+  if (!USERNAME_RE.test(username)) return null;
+  const unsafe = rest.split("/").some((segment) => {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      return true;
+    }
+    return decoded === "." || decoded === ".." || /[/\\]/.test(decoded);
+  });
+  if (unsafe) return null;
+
+  const trip = /^\/trips\/([^/]+)\/day\/([^/]+)\.md$/i.exec(rest);
+  if (trip) return { path: `/api/md/${username}/${trip[1]}/${trip[2]}`, twin: true };
+  const day = /^\/day\/([^/]+)\.md$/i.exec(rest);
+  if (day) return { path: `/api/md/${username}/${day[1]}`, twin: true };
+  return { path: `/${JOURNAL_ROUTE_ROOT}/${username}${rest}`, twin: false };
 }
 
 /**
- * The internal journal route, asked for by name: `/at/anna/…`. Nothing links
- * there, but the address is guessable, and answering it would give every page
- * two URLs. A permanent redirect to the `@` form keeps it at one.
+ * The internal journal route, asked for by name: `/at/anna/…`, or `/%61t/…`
+ * spelled so as to slip past a string comparison. Nothing links there, but
+ * the address is guessable, and answering it would give every page two URLs
+ * — the second without the header pins. A permanent redirect to the `@` form
+ * keeps it at one.
  */
 function internalJournalPath(pathname: string): string | null {
-  const prefix = `/${JOURNAL_ROUTE_ROOT}/`;
-  if (!pathname.startsWith(prefix)) return null;
-  const tail = pathname.slice(prefix.length);
-  const slash = tail.indexOf("/");
-  const username = slash === -1 ? tail : tail.slice(0, slash);
-  if (!username) return null;
-  return journalPath(username, slash === -1 ? "" : tail.slice(slash));
+  const [, first, username, ...rest] = pathname.split("/");
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(first ?? "");
+  } catch {
+    return null;
+  }
+  if (decoded !== JOURNAL_ROUTE_ROOT || !username) return null;
+  return journalPath(username, rest.length ? `/${rest.join("/")}` : "");
 }
 
 /**
@@ -198,11 +220,14 @@ export default function proxy(request: NextRequest) {
   if (internal) return redirectTo(request, internal);
 
   const journal = parseJournalPath(pathname);
+  const target = journal ? journalTarget(journal.username, journal.rest) : null;
   if (journal) {
     // `%40anna` — how some apps write the `@` when they copy a link. One
     // address per page, so it converges on the `@` form.
     if (!pathname.startsWith("/@")) return redirectTo(request, journalPath(journal.username, journal.rest));
-    const gone = goneFor(journal.username, journal.rest);
+    // A twin answers its own 410, in plain text for the agent reading it —
+    // `lib/api/markdownTwin.ts`.
+    const gone = target && !target.twin ? goneFor(journal.username, journal.rest) : null;
     if (gone) return gone;
   }
 
@@ -218,11 +243,13 @@ export default function proxy(request: NextRequest) {
   // where its config is readable; middleware only carries the request.
   if (locale) request.cookies.set(LOCALE_COOKIE, locale);
 
+  // A journal path that cannot be one — a malformed name, a dot segment —
+  // is not rewritten, and so matches no route: a 404.
   let response: NextResponse;
-  if (journal) {
-    const target = request.nextUrl.clone();
-    target.pathname = journalTarget(journal.username, journal.rest);
-    response = NextResponse.rewrite(target, { request });
+  const url = request.nextUrl.clone();
+  if (target) url.pathname = target.path;
+  if (target && url.pathname === target.path) {
+    response = NextResponse.rewrite(url, { request });
   } else {
     response = NextResponse.next({ request });
   }
