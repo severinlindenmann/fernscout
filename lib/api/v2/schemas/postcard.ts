@@ -56,7 +56,7 @@ export const postcardOrderDoc = z.object({
   ...postcardOrderWrite.shape,
   id: z.string(),
   status: z.enum(["draft", "expired", "submitted", "built", "failed"]),
-  /** `/{user}/postcards/{id}` — where the owner looks and presses Send. */
+  /** `/@{user}/postcards/{id}` — where the owner looks and presses Send. */
   url: z.string(),
   credits: z.strictObject({
     each: z.number(),

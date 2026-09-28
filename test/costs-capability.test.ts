@@ -119,13 +119,13 @@ async function tripCostsPage(user = "alex") {
 }
 
 describe("the costs pages when the capability is off", () => {
-  test("/<user>/costs is not there", async () => {
+  test("/@<user>/costs is not there", async () => {
     enabled.mockImplementation((name) => name !== "costs");
     await expect(currentTripCostsPage()).rejects.toBeInstanceOf(NotFound);
     expect(enabled).toHaveBeenCalledWith("costs", "alex");
   });
 
-  test("/<user>/trips/<trip>/costs is not there", async () => {
+  test("/@<user>/trips/<trip>/costs is not there", async () => {
     enabled.mockImplementation((name) => name !== "costs");
     await expect(tripCostsPage()).rejects.toBeInstanceOf(NotFound);
   });

@@ -13,7 +13,7 @@ import EnvelopeFly from "@/components/EnvelopeFly";
  * B411 gave the root page something to show a signed-in reader and no way for
  * anybody to become one. The credential existed, the endpoints existed, and
  * the only doors to them were the API itself and signing in to a journal at
- * `/<user>/me` — which issues an identity as a side effect, and which you have
+ * `/@<user>/me` — which issues an identity as a side effect, and which you have
  * to already know the name of a journal to reach. Somebody opening
  * fernscout.ch got the pitch and no alternative, whether or not they owned a
  * journal on it.

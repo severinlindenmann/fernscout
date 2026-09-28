@@ -1459,7 +1459,7 @@ function claimsAChatScreen(text: string): boolean {
  * So a sentence saying **a person** can read something is always suspect —
  * B2295 (one door for readers, B2291) took away the last tool that could ever
  * make it true. Naming somebody grants nothing, letting somebody in happens
- * only from `/<user>/studio/readers`, and nothing a conversation says changes
+ * only from `/@<user>/studio/readers`, and nothing a conversation says changes
  * either.
  *
  * Two exemptions, and both are true readings rather than softenings. A

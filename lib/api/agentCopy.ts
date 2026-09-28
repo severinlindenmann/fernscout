@@ -2,7 +2,7 @@
  * The sentences more than one agent-facing document has to say.
  *
  * There are eleven doors onto the same API — `/documentation.txt`,
- * `/<user>/documentation.txt`, the nine task-sized guides at `/skill/*.md`
+ * `/@<user>/documentation.txt`, the nine task-sized guides at `/skill/*.md`
  * (B311) and `/openapi.json` — and they are deliberately different documents
  * rather than one. The first two are *indexes*, and the second of them is
  * generated per journal, naming that journal's own trips; the skill guides

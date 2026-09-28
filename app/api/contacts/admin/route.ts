@@ -237,7 +237,7 @@ export async function POST(request: Request) {
     }
     // `case "invite"` was here, and it made a `personal` link — the only kind
     // this panel could make, while the two an owner actually hands out were
-    // made on `/{user}/me` by a different component. B281 removed it rather
+    // made on `/@{user}/me` by a different component. B281 removed it rather
     // than growing a second copy of the validation: the panel now posts to
     // `POST /api/web/{user}/invites`, the cookie proxy in front of `PUT
     // /api/v2/{user}/invites/{id}`, which already refuses a buddy link with
@@ -252,7 +252,7 @@ export async function POST(request: Request) {
     /**
      * The owner's own row — B619.
      *
-     * `/{user}/me` has always had a *your details* form: name, telephone,
+     * `/@{user}/me` has always had a *your details* form: name, telephone,
      * postal address, the language to write in, the three consents. It is
      * `ContactManage`, gated on the viewer having a contact row, and the
      * owner never had one — so the one reader of that page who could not

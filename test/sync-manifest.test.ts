@@ -8,7 +8,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vit
  *
  * The two routes that make `sync down` possible. What is worth testing here is
  * less that they work than that they refuse: this listing walks private trips
- * and unpublished drafts, so every gate it shares with `/<user>/export.zip`
+ * and unpublished drafts, so every gate it shares with `/@<user>/export.zip`
  * has to hold, and the path it accepts from a caller has to be the same path
  * the listing was willing to name.
  *
@@ -416,7 +416,7 @@ describe("one file at a time", () => {
 
 /**
  * The half that matters most. This listing walks private trips and
- * unpublished drafts, so it must refuse everything `/<user>/export.zip`
+ * unpublished drafts, so it must refuse everything `/@<user>/export.zip`
  * refuses — the trip-scoped token above all, since it is the lowest-trust
  * credential this system issues and it satisfies `ownsUser` on its own.
  */

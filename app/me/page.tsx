@@ -12,7 +12,7 @@ import { serverSite } from "@/lib/site";
  * Where somebody is owner, traveller or guest; the devices they are signed in
  * on; signing out here or everywhere. What belongs to one journal (the trips
  * it lets them read, its push and contact settings) stays on that journal's
- * own `/<user>/me`, and this page links there rather than copying it.
+ * own `/@<user>/me`, and this page links there rather than copying it.
  *
  * Absent — a 404, not an empty page — when `auth` is off: with no sign-in
  * there is no "me" for this page to be about (closed by default).

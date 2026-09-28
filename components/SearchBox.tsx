@@ -16,7 +16,7 @@ import { journalPath } from "@/lib/journalPath";
 type LoadState = "loading" | "ready" | "error";
 
 /**
- * Loads `/<username>/search-index.json` — rendered per request (see
+ * Loads `/@<username>/search-index.json` — rendered per request (see
  * app/at/[user]/search-index.json/route.ts), scoped to whoever is asking — and
  * searches it entirely in the browser with MiniSearch. No further request
  * reaches the server as the reader types: this is the "no runtime service"

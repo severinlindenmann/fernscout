@@ -177,7 +177,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/at/[u
       // address, computed to a single word.
       ownerName={ownerShortName(journal)}
       signinNotice={signinNotice}
-      // B10 — whether `/<user>/about` exists for this reader. The owner's
+      // B10 — whether `/@<user>/about` exists for this reader. The owner's
       // own preview of a draft counts (`includeDrafts: viewer.owner`, same
       // reasoning as the page itself); everybody else sees the door only
       // once it is published.

@@ -5,7 +5,7 @@
 // This used to also back `GET/PUT/DELETE /api/v2/{user}/invites*`, the agent
 // bearer door — removed per the owner's decision (B2291 "Design", D1): an
 // agent proposes, reads and writes a journal's content, but letting somebody
-// in happens only from `/<user>/studio/readers`, in the owner's own browser.
+// in happens only from `/@<user>/studio/readers`, in the owner's own browser.
 // The functions stayed here (not folded back into the route files) because
 // there are two web routes that both need exactly this logic and neither may
 // import the other's glue.

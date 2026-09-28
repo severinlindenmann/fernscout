@@ -10,9 +10,9 @@ type Ctx = {
   trip: Trip;
   /** True when this trip is shown at the bare URLs. */
   isCurrent: boolean;
-  /** "/<username>" for the current trip, "/<username>/trips/<id>" otherwise. */
+  /** "/@<username>" for the current trip, "/@<username>/trips/<id>" otherwise. */
   base: string;
-  /** "/<username>" — the owner's root, regardless of which trip is in view. */
+  /** "/@<username>" — the owner's root, regardless of which trip is in view. */
   userBase: string;
   /** Prefixes an in-site path with that base. */
   href: (path: string) => string;

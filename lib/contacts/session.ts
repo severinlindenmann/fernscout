@@ -93,7 +93,7 @@ export async function isOwner(username: string, request?: Request): Promise<bool
  * The person asking, as this journal knows them.
  *
  * **One lookup, one question, two callers** — `resolveViewer`, which tells a
- * reader on `/<user>/me` what they may open, and `mayReadTrip`, which decides
+ * reader on `/@<user>/me` what they may open, and `mayReadTrip`, which decides
  * it. B41 exists because those two asked *different* questions: the panel
  * asked whether the contact was `active` and the gate never asked at all, so
  * an approved reader was shown a trip and then handed a password form for a

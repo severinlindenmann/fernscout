@@ -52,7 +52,7 @@ import { writeTripFixture } from "./fixtures/content";
  *    about, and the mail `notifyNewPeople` used to send when `people` grew:
  *    `people:` is the byline only now, grants nothing, and mails nobody.
  *    Write access to a trip comes only from a buddy granted at
- *    `/<user>/studio/readers` (`trip_people`, not this document at all).
+ *    `/@<user>/studio/readers` (`trip_people`, not this document at all).
  */
 
 let dir: string;

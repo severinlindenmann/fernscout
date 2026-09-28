@@ -20,7 +20,7 @@
  * and up reverses it. It is at most three long, because the journal is at most
  * three deep.
  *
- * One decision worth naming: `/<user>/trips` is the journal's home here, not
+ * One decision worth naming: `/@<user>/trips` is the journal's home here, not
  * `/<user>`. `/<user>` is the *current trip's story* (components/TripProvider)
  * — it is a trip, not a journal — and the trip list is the page that already
  * lists every trip a reader may see. The alternative was a new `/<user>`
@@ -44,7 +44,7 @@ export type UpContext = {
   userBase: string;
   /**
    * `TripProvider`'s `base` — `/<username>` for the current trip and
-   * `/<username>/trips/<id>` for any other — or null where no trip is in
+   * `/@<username>/trips/<id>` for any other — or null where no trip is in
    * context, which is every journal-level page (`/trips`, `/search`, `/me`).
    */
   tripBase: string | null;

@@ -474,7 +474,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const { GET } = await import("@/app/at/[user]/media/[...path]/route");
       const segments = [tripId, "bangkok", file];
       return GET(
-        new Request(`https://example.test/${OWNER}/media/${segments.join("/")}${query}`),
+        new Request(`https://example.test/@${OWNER}/media/${segments.join("/")}${query}`),
         { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
       );
     }
@@ -532,7 +532,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const { GET } = await import("@/app/at/[user]/media/[...path]/route");
       const segments = [CLIP_TRIP, "bangkok", file];
       return GET(
-        new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`),
+        new Request(`https://example.test/@${OWNER}/media/${segments.join("/")}`),
         { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
       );
     }
@@ -573,7 +573,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const { GET } = await import("@/app/at/[user]/media/[...path]/route");
       const segments = [V2_TRIP, folder, file];
       return GET(
-        new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`),
+        new Request(`https://example.test/@${OWNER}/media/${segments.join("/")}`),
         { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
       );
     }
@@ -637,7 +637,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       as("anonymous");
       const segments = [V2_TRIP, "cover.jpg"];
       const response = await GET(
-        new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`),
+        new Request(`https://example.test/@${OWNER}/media/${segments.join("/")}`),
         { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
       );
       expect(response.status).toBe(200);
@@ -688,7 +688,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     /**
      * The key is forgiving about the owner prefix, because a caller sending back
      * what `GET .../days/<slug>` handed it has to work — that reads
-     * `/<user>/media/…` while the file on disk carries `/media/…`.
+     * `/@<user>/media/…` while the file on disk carries `/media/…`.
      */
     test("the src may be spelled either way", async () => {
       const { editEntry } = await import("@/lib/api/entries");
@@ -696,7 +696,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const ref = `${OWNER}/invited-2026`;
 
       const result = editEntry(ref, "bangkok", {
-        photoVisibility: { [`/${OWNER}/media/invited-2026/bangkok/02.jpg`]: "private" },
+        photoVisibility: { [`/@${OWNER}/media/invited-2026/bangkok/02.jpg`]: "private" },
       });
       expect(result.ok).toBe(true);
       forgetEntries(ref);

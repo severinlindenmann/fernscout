@@ -23,7 +23,7 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
  * guards every other marker), and it never comes from a day this reader may
  * not see at all — a draft, or a photo labelled below their level. That
  * second guarantee is `lib/entries.ts`'s own `visible()`/`maySeePhoto`,
- * reused through `storyWindow` (the same function `/<user>/story.json`
+ * reused through `storyWindow` (the same function `/@<user>/story.json`
  * calls) rather than re-implemented here — see `TripMap`'s photo-fetching
  * effect and `TripStop.photo`'s own doc in lib/tripMap.ts.
  */
@@ -60,7 +60,7 @@ afterEach(() => {
 
 /** Renders `TripMap` inside a `TripProvider` (unlike test/trip-map.test.tsx,
  * which deliberately has none) and stubs `fetch` to answer like
- * `/<user>/story.json` would, for the one stop named in `photoFor`. */
+ * `/@<user>/story.json` would, for the one stop named in `photoFor`. */
 async function render(days: StopSource[], photoFor?: { date: string; src: string }) {
   const fetchMock = vi.fn().mockResolvedValue({
     ok: true,

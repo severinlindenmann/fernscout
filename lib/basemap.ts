@@ -457,7 +457,7 @@ type BasemapOptions = { worldParks?: boolean; worldRivers?: boolean };
  * which are only ever replaced by a restart or by `clearBasemapCache`.
  *
  * Keyed by the frame's own numbers rather than by trip, so one frame reached
- * from two routes — `/<user>` and `/<user>/trips/<id>`, the story and the map
+ * from two routes — `/@<user>` and `/@<user>/trips/<id>`, the story and the map
  * page — is one entry, and a trip whose stops changed frames differently and
  * simply misses. Bounded, because the keys come from content: every area of
  * every trip of every journal on an instance is a frame. 256 holds every

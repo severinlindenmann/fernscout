@@ -3,7 +3,7 @@
 //
 // B2295 (one door for readers, B2291): the agent bearer equivalent this
 // used to proxy for is gone — revoking an invite link happens only from
-// `/<user>/studio/readers`. `isOwner` on the cookie only; any
+// `/@<user>/studio/readers`. `isOwner` on the cookie only; any
 // `Authorization` header is refused outright, not pointed elsewhere.
 //
 // Revoking an invite grants nothing and takes nothing away that was already

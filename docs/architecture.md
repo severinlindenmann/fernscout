@@ -31,18 +31,18 @@ serves any trip at the explicit one. Both render the same components.
 
 | | |
 | --- | --- |
-| `/<user>`, `/<user>/day/<slug>` | the story — overview, then one day per screen |
-| `/<user>/gallery` · `/map` | the other views of one trip |
-| `/<user>/analytics` · `/costs` · `/weather` | what the trip adds up to — a hub and one page per analysis (B557) |
-| `/<user>/trips` | every trip, with the lifetime map |
-| `/<user>/search` | across the whole journal, not one trip |
-| `/<user>/me` · `/<user>/contacts` | the reader's own access, and a permanent redirect to `/<user>/studio/readers` for the owner |
-| `/<user>/studio` | the owner's control room — journal settings, agent keys, export, delete, and every trip's own edit page (`/studio/trip?trip=<id>`); credits and storage (`/studio/account`) and visitor analytics (`/studio/visitors`) moved in whole from `/account` and `/me/analytics`, which are now permanent redirects (B2016–B2019) |
-| `/<user>/invite/guest/<token>` · `/<user>/invite/buddy/<token>` · `/<user>/c/<token>` · `/<user>/u/<token>` | reader and buddy invites; confirm; unsubscribe. A reader link leads to reading every `guest`-visibility trip in the journal once approved; a buddy link names one trip and leads to write access to it, plus the same read access a reader gets. `/<user>/studio/readers` is the only place either kind is made, approved or revoked (B2295) |
-| `/<user>/feed.xml` · `/<user>/search-index.json` · `/<user>/story.json` · `/<user>/export.zip` | generated |
-| `/<user>/media/<path>` | media, resized on demand (the grid widths ahead of time, after an upload) and cached |
-| `/<user>/postcards/<id>` | a proposed printed postcard, for the owner to look at and send. Hosted edition only |
-| `/documentation.txt` · `/<user>/documentation.txt` · `/skill/<name>.md` | the agent-facing guides — plain text an external agent reads instead of a person reading a page. There is no web helper room any more: `/agent.md` is a 301 to `/documentation.txt` (B311), and the studio's own `/<user>/studio/agent` is the handover page for a person's own agent, not a face on this instance's assistant |
+| `/@<user>`, `/@<user>/day/<slug>` | the story — overview, then one day per screen |
+| `/@<user>/gallery` · `/map` | the other views of one trip |
+| `/@<user>/analytics` · `/costs` · `/weather` | what the trip adds up to — a hub and one page per analysis (B557) |
+| `/@<user>/trips` | every trip, with the lifetime map |
+| `/@<user>/search` | across the whole journal, not one trip |
+| `/@<user>/me` · `/@<user>/contacts` | the reader's own access, and a permanent redirect to `/@<user>/studio/readers` for the owner |
+| `/@<user>/studio` | the owner's control room — journal settings, agent keys, export, delete, and every trip's own edit page (`/studio/trip?trip=<id>`); credits and storage (`/studio/account`) and visitor analytics (`/studio/visitors`) moved in whole from `/account` and `/me/analytics`, which are now permanent redirects (B2016–B2019) |
+| `/@<user>/invite/guest/<token>` · `/@<user>/invite/buddy/<token>` · `/@<user>/c/<token>` · `/@<user>/u/<token>` | reader and buddy invites; confirm; unsubscribe. A reader link leads to reading every `guest`-visibility trip in the journal once approved; a buddy link names one trip and leads to write access to it, plus the same read access a reader gets. `/@<user>/studio/readers` is the only place either kind is made, approved or revoked (B2295) |
+| `/@<user>/feed.xml` · `/@<user>/search-index.json` · `/@<user>/story.json` · `/@<user>/export.zip` | generated |
+| `/@<user>/media/<path>` | media, resized on demand (the grid widths ahead of time, after an upload) and cached |
+| `/@<user>/postcards/<id>` | a proposed printed postcard, for the owner to look at and send. Hosted edition only |
+| `/documentation.txt` · `/@<user>/documentation.txt` · `/skill/<name>.md` | the agent-facing guides — plain text an external agent reads instead of a person reading a page. There is no web helper room any more: `/agent.md` is a 301 to `/documentation.txt` (B311), and the studio's own `/@<user>/studio/agent` is the handover page for a person's own agent, not a face on this instance's assistant |
 | `/admin` | what this server costs to run, for its operator. Gated on `FERNSCOUT_ADMIN_EMAIL`, cookie session only — see "Four credentials", below |
 
 ## Server-side modules

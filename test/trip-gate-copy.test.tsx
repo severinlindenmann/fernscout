@@ -121,7 +121,7 @@ describe("a reader who is signed in and still refused", () => {
   });
 
   /** B2295 — there used to be a form here ("ask to be let in"). The owner
-   * decided `/<user>/studio/readers` is the only place a person is let in, so
+   * decided `/@<user>/studio/readers` is the only place a person is let in, so
    * this is now a sentence naming them, and nothing to press. */
   test("is told the trip is private and to ask the owner for an invite, with no form", () => {
     expect(html).toMatch(/ask Alex for an invite/i);

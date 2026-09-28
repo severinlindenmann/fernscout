@@ -102,7 +102,7 @@ already is one. Send the file and read what comes back.
 
 ## The studio path
 
-`/<user>/studio/statement` walks an owner through the same three calls from
+`/@<user>/studio/statement` walks an owner through the same three calls from
 the browser: upload, read the report, agree categories merchant by merchant,
 apply. It sends the header plus five sample rows from the statement to the
 assistant so it can suggest a category per merchant — the owner still decides

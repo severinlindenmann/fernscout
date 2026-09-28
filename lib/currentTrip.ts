@@ -6,8 +6,8 @@ import type { Trip } from "./types";
 
 import { journalPath } from "./journalPath";
 /**
- * The trip the bare URLs show — `/<user>`, `/<user>/gallery`, `/<user>/map`,
- * `/<user>/costs` — or a redirect to the trip list when there is none.
+ * The trip the bare URLs show — `/@<user>`, `/@<user>/gallery`, `/@<user>/map`,
+ * `/@<user>/costs` — or a redirect to the trip list when there is none.
  *
  * Having no current trip is a normal state, not a missing page: a new journal
  * has no trips at all, and one whose trips are all `upcoming` is simply not
@@ -20,7 +20,7 @@ import { journalPath } from "./journalPath";
  * `SiteNav` renders the same four links from one list, and they have to fail
  * the same way or not at all.
  *
- * `/<user>/trips` is the honest destination — it is where the journal's
+ * `/@<user>/trips` is the honest destination — it is where the journal's
  * content actually is, and where an empty journal gets told so.
  */
 export async function currentTripOrRedirect(username: string): Promise<Trip> {

@@ -133,7 +133,7 @@ export function readGuide(guide: Guide, locale: string): { markdown: string; loc
  * and travel buddies, as translated markdown files. Every one of
  * them had been overtaken by the screens it described: the owner's said there
  * was no editing screen and never would be, a week after the studio shipped;
- * the buddy's was a longer copy of what `/<user>/me` already says beside the
+ * the buddy's was a longer copy of what `/@<user>/me` already says beside the
  * instructions it explains; and the reader's walked through a sign-in card
  * and an iPhone install sheet that now explain themselves
  * (`PushInstallOnboarding`). The screens carry their own guidance, so the

@@ -14,7 +14,7 @@ import { NEVER_KEY } from "./PushPrompt";
  * would be easy to press by accident and hard to find again on purpose. A
  * settings page is where a permanent, *reversible* choice belongs, so this is
  * an ordinary switch beside `PushOptIn`'s own — same journal-wide notification
- * section on `/<user>/me`, one door down.
+ * section on `/@<user>/me`, one door down.
  *
  * Global and instance-wide, same as before: it is read by every journal's
  * `PushPrompt`, not just this one.

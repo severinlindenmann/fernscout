@@ -13,8 +13,8 @@ import { journalPath } from "../journalPath";
  * The markdown twin of a day page.
  *
  * One function behind two routes, because there are two URLs a day page has —
- * `/<user>/day/<slug>` when it is the current trip's, and
- * `/<user>/trips/<trip>/day/<slug>` always — and the promise the documentation
+ * `/@<user>/day/<slug>` when it is the current trip's, and
+ * `/@<user>/trips/<trip>/day/<slug>` always — and the promise the documentation
  * makes is that appending `.md` to *the page's own URL* gives you its source.
  * That promise was only kept for the first form, and only for the current
  * trip: `/example/day/zion-narrows.md` answered 404 because zion-narrows is in
@@ -123,7 +123,7 @@ async function inCurrentTripOrAnyOther(user: string, slug: string): Promise<Foun
  * `410` for something the person deliberately removed.
  *
  * Deliberately says *nothing* about what to try instead. The 404 below points
- * at `/<user>/documentation.txt`, which is the right advice for a live journal
+ * at `/@<user>/documentation.txt`, which is the right advice for a live journal
  * and, for a deleted one, a URL that also answers 410 — the single piece of
  * help in the message being a dead end is how a retry loop starts.
  *

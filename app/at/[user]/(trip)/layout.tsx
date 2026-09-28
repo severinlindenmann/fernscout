@@ -15,7 +15,7 @@ import { getUser } from "@/lib/users";
  * journal because one trip is private is the wrong blast radius.
  *
  * A route group keeps the URLs unchanged: `/(trip)/costs` is still
- * `/<user>/costs`.
+ * `/@<user>/costs`.
  */
 export default async function TripPagesLayout({
   children,

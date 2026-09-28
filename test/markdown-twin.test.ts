@@ -252,7 +252,7 @@ describe("a journal that was deleted", () => {
   });
 
   test("and does not send anybody to a URL that is also gone", async () => {
-    // The 404 points at /<user>/documentation.txt, which is right for a live
+    // The 404 points at /@<user>/documentation.txt, which is right for a live
     // journal and a dead end for this one.
     entomb("alex");
     const body = await (await markdownTwin("alex", "parks-2025", "zion-narrows")).text();

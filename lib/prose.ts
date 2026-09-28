@@ -13,7 +13,7 @@ import type { Day, Entry } from "./types";
  *
  * Data rather than an HTML string, so nothing is ever handed to
  * `dangerouslySetInnerHTML`, and rather than React Server Component output,
- * because the days a reader pages to arrive from `/<user>/story.json` — a
+ * because the days a reader pages to arrive from `/@<user>/story.json` — a
  * plain GET the service worker caches and keeps for offline reading (B2158) —
  * and a server function answering a POST could be neither.
  *

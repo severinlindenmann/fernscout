@@ -620,7 +620,7 @@ describe("who may read a trip is read before it is chosen", () => {
 /**
  * Letting the person they named actually read it — B931; B2295 (one door for
  * readers, B2291) replaced the tool that used to propose a guest link with
- * one that only hands over `/<user>/studio/readers`, the one place a person
+ * one that only hands over `/@<user>/studio/readers`, the one place a person
  * is let in.
  */
 describe("pointing at the one door", () => {

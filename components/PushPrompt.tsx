@@ -11,7 +11,7 @@ import { useEngagement } from "./useEngagement";
 /**
  * Offering notifications to a reader who never went looking for them — B440.
  *
- * The switch exists in two places (`TripHero`, and `/<user>/me` since B439)
+ * The switch exists in two places (`TripHero`, and `/@<user>/me` since B439)
  * and both have to be found. Somebody reading their daughter's journal does
  * not know that a bell icon under a trip's hero is what gets them the next
  * day; they find out there was a way when they stop hearing about it.
@@ -54,7 +54,7 @@ import { useEngagement } from "./useEngagement";
  *
  * - **Not now** snoozes *this journal* for `SNOOZE_DAYS`. A reader who is not
  *   interested today may be after the trip starts.
- * - **Don't ask again**, since B2464, lives on `/<user>/me` beside the push
+ * - **Don't ask again**, since B2464, lives on `/@<user>/me` beside the push
  *   switch rather than as a button on this card — it is global and permanent,
  *   across every journal on the instance, and a settings page is where a
  *   permanent, reversible choice belongs, not a card the reader may never see

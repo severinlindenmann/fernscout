@@ -22,9 +22,9 @@ import type { Trip } from "./types";
  *
  * - `"all"` — every trip, exactly as it sits on disk, drafts included. This is
  *   the owner's own backup. `scripts/export.ts` produces it locally, and two
- *   HTTP routes serve it: `/<username>/export.zip` to a token carrying the
+ *   HTTP routes serve it: `/@<username>/export.zip` to a token carrying the
  *   journal owner's unqualified `write:content`, and
- *   `/<username>/delete/<token>/export.zip` to the single-use, hour-lived
+ *   `/@<username>/delete/<token>/export.zip` to the single-use, hour-lived
  *   token mailed to `owner.email` before a deletion. This comment used to say
  *   "nothing here is exposed over HTTP", which stopped being true when the
  *   first of those learned to serve it — and a route that read it as still

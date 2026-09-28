@@ -68,7 +68,7 @@ export type NavEntry = {
  *   trips exist on a journal whose owner may not want that known, so the door
  *   is identical on a journal with ten hidden trips and on one with none.
  * - It is **absent rather than broken**. With `auth` off there is no form
- *   behind `/<user>/me` to reach, only a line saying to ask for a link, and a
+ *   behind `/@<user>/me` to reach, only a line saying to ask for a link, and a
  *   control marked "Sign in" leading to that is the exact bug recorded at
  *   app/at/[user]/me/MePageContent.tsx. That journal keeps the icon it had.
  *

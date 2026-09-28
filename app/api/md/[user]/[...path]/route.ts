@@ -7,8 +7,8 @@ import { markdownTwin } from "@/lib/api/markdownTwin";
  * has two URLs and the promise is that `.md` on the end of *either* gives you
  * its source:
  *
- *   /<user>/day/<slug>.md                 -> [<slug>]
- *   /<user>/trips/<trip>/day/<slug>.md    -> [<trip>, <slug>]
+ *   /@<user>/day/<slug>.md                 -> [<slug>]
+ *   /@<user>/trips/<trip>/day/<slug>.md    -> [<trip>, <slug>]
  *
  * A catch-all rather than two route folders: `[slug]` and `[trip]/[slug]`
  * cannot both sit under `[user]`, since Next refuses two different names for

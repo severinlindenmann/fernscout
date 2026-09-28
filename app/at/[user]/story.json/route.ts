@@ -5,7 +5,7 @@ import { mayReadTrip, mayViewCosts, readFor } from "@/lib/tripGate";
 import { userExists } from "@/lib/users";
 
 /**
- * `/<username>/story.json?trip=<id>&from=<n>&to=<n>&lang=<locale>` — days
+ * `/@<username>/story.json?trip=<id>&from=<n>&to=<n>&lang=<locale>` — days
  * `from`…`to` of a trip, in full, each with its `prose` already rendered in
  * `lang` (see `lib/prose.ts`).
  *

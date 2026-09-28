@@ -34,7 +34,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/alex",
+  usePathname: () => "/@alex",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -48,7 +48,7 @@ const base: SiteSummary = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   travellerFigures: [],
   signedIn: false,
   hasIdentity: false,
@@ -91,7 +91,7 @@ describe("the way up, out of a journal", () => {
   /**
    * The crumb is drawn for everyone; only its *word* turns on `hasIdentity`,
    * and the two genuinely come apart from `signedIn`. Every session issued
-   * before B410, and every one a journal's own `/<user>/me` form issues, is a
+   * before B410, and every one a journal's own `/@<user>/me` form issues, is a
    * guest session on this journal with no identity behind it — promising those
    * readers "your journals" and landing them on the public pitch is the bug
    * `hasIdentity` exists for.
@@ -109,7 +109,7 @@ describe("the way up, out of a journal", () => {
   });
 
   /**
-   * The journal is its trip list, not `/<user>` — that address is the current
+   * The journal is its trip list, not `/@<user>` — that address is the current
    * trip's story (`TripProvider`), so a crumb pointing there would have said
    * "journal" and gone to a trip.
    *
@@ -121,8 +121,8 @@ describe("the way up, out of a journal", () => {
    */
   test("the journal's own crumb is its trip list, named for that page", () => {
     const html = markup(base);
-    expect(links(html).some((l) => l.href === "/alex/trips" && l.text === "Trips")).toBe(true);
-    expect(links(html).some((l) => l.href === "/alex/trips" && l.text === "Journal of Five")).toBe(
+    expect(links(html).some((l) => l.href === "/@alex/trips" && l.text === "Trips")).toBe(true);
+    expect(links(html).some((l) => l.href === "/@alex/trips" && l.text === "Journal of Five")).toBe(
       false,
     );
   });
@@ -135,7 +135,7 @@ describe("the way up, out of a journal", () => {
    */
   test("a way up renders at both widths", () => {
     const html = markup(base);
-    const up = links(html).filter((l) => l.href === "/alex/trips");
+    const up = links(html).filter((l) => l.href === "/@alex/trips");
     expect(up.length).toBeGreaterThanOrEqual(2);
     // And the phone one carries its word. An unlabelled arrow there is what
     // made the old control unreadable — the label was the only thing that

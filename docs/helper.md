@@ -13,7 +13,7 @@ decision 24, "no editing UI, ever", is superseded by the studio — see
 but nothing writes a new one on their behalf without a further, explicit
 call. That is a clean answer to "who owns this content" and an unhelpful one
 to "I have ten days of holiday photos on my laptop and no idea where to
-start" — unless the instance you are on has the studio, at `/<user>/studio`,
+start" — unless the instance you are on has the studio, at `/@<user>/studio`,
 which walks the same person through turning a photo library into days
 without either of you inventing a word of what happened.
 
@@ -184,7 +184,7 @@ There is no `/api/v2/<user>/import` kind for photographs. `content/<user>/inbox/
 of its own bytes, so uploading the same picture twice is a no-op. Turning a
 folder of camera files into entries has three paths today: this repository's
 own interview locally; the studio's own guided import
-(`/<user>/studio/photos`, the `extract` feature — see `docs/capabilities.md`),
+(`/@<user>/studio/photos`, the `extract` feature — see `docs/capabilities.md`),
 a journal must switch on for itself; or, for an owner self-hosting with a
 shell on their own checkout, `npm run ingest` against a folder of camera
 files directly.

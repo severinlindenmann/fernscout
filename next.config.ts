@@ -43,7 +43,7 @@ const isDev = process.env.NODE_ENV === "development";
  * Nothing here is load-bearing today: there is no `rehype-raw`, so entry prose
  * cannot inject an element, and the one `dangerouslySetInnerHTML` is JSON-LD
  * built from typed fields. This is the second layer, and the reason to have
- * one is that `/<user>/join`, `/<user>/me` and the trip gate all take input on
+ * one is that `/@<user>/join`, `/@<user>/me` and the trip gate all take input on
  * the origin that holds the guest cookie. The day an XSS does appear — a new
  * component, a dependency, an upload path nobody has written yet — this is the
  * difference between a bug and a session.
@@ -208,9 +208,9 @@ const nextConfig: NextConfig = {
    * `docs/plans/2026-09-17-the-studio.md` says "301s" plainly, and a `308`,
    * while functionally equivalent for a `GET`, is not what was asked for.
    *
-   * **B1825** absorbed `/<user>/extract`'s five pages into the studio
+   * **B1825** absorbed `/@<user>/extract`'s five pages into the studio
    * (spec.md §3): the hub itself, and its guided photographs and location
-   * flows, all now live under `/<user>/studio`, at the same addresses the
+   * flows, all now live under `/@<user>/studio`, at the same addresses the
    * hub already links to. `/extract/costs` converged on `/studio/costs`
    * until B2083 retired that duplicate of the statement flow; both now land
    * on `/studio/statement` (the page file redirects, this line skips a hop).

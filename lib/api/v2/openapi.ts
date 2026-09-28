@@ -1669,7 +1669,7 @@ function buildPaths(): Record<string, PathItem> {
   // `/contacts/{id}` (read/patch/delete), `/contacts/{id}/approve`,
   // `/contacts/{id}/revoke` and `/contacts/{id}/resend` are gone — B2295
   // (one door for readers, B2291). Letting somebody in, approving or
-  // revoking them happens only from `/<user>/studio/readers`, in the
+  // revoking them happens only from `/@<user>/studio/readers`, in the
   // owner's own browser; an agent bearer token reaches neither. `self` and
   // `import` stay: the owner's own contact record, and importing "who was
   // there" from a phone's address book.

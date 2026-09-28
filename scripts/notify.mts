@@ -11,8 +11,8 @@
  * see `lib/users.ts#getDefaultUsername`) and that user's current trip; pass
  * `--user` and/or `--trip` to target another journal or trip explicitly.
  * `--trip` may be a bare id (combined with `--user`, or the default user) or
- * a full `<username>/<trip-id>` ref. The notification links to `/day/<slug>`
- * for a user's current trip and `/<username>/trips/<id>/day/<slug>` for any
+ * a full `<username>/<trip-id>` ref. The notification links to `/@<username>/day/<slug>`
+ * for a user's current trip and `/@<username>/trips/<id>/day/<slug>` for any
  * other.
  *
  * Needs VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT in the

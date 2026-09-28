@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /**
  * The whole journal, or one trip of it, handed to somebody about to delete it.
  *
- * `/<user>/export.zip` is owner-only (B1086), reachable with the owner's own
+ * `/@<user>/export.zip` is owner-only (B1086), reachable with the owner's own
  * token. Neither that nor `npm run export` is any use here: the person reading
  * the confirmation mail is on a phone, in a mail client, holding no token —
  * and linking them the anonymous export before a deletion would hand over a

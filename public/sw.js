@@ -16,7 +16,7 @@
  *                 copy wins, and the network response, if it ever lands, is
  *                 still written to the cache for next time.
  *   JSON data     Stale-while-revalidate. The story pager fetches its day
- *                 windows from `/<user>/story.json`, which is not under /api
+ *                 windows from `/@<user>/story.json`, which is not under /api
  *                 and so used to fall into the cache-first branch below —
  *                 meaning a reader who came back a week later got last week's
  *                 days, permanently. Serving the cached copy and refreshing
@@ -125,7 +125,7 @@ const NAV_TIMEOUT_MS = 4000;
 const RUNTIME_MAX_ENTRIES = 300;
 
 /* The only URL that can be precached on a multi-user instance: journals live
- * at /<user>/… and the worker has no idea whose page it is being installed
+ * at /@<user>/… and the worker has no idea whose page it is being installed
  * from. The previous list — "/", "/map", "/gallery", "/costs" — predates that
  * and cached three URLs that no longer exist. Everything else arrives through
  * the runtime cache on first visit, which is what happens in practice anyway:

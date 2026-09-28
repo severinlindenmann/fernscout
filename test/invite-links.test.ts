@@ -329,7 +329,7 @@ describe("issuing a link", () => {
   });
 
   /**
-   * B79 — the arm the copy-a-link control on `/{user}/me` stands on.
+   * B79 — the arm the copy-a-link control on `/@{user}/me` stands on.
    *
    * That panel is a page the owner is *reading in a browser*, so its request
    * carries the session cookie and no `Authorization` header at all. Since

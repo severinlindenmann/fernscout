@@ -5,7 +5,7 @@ import { clearNewsConsent } from "@/lib/newsConsent";
 export const dynamic = "force-dynamic";
 
 /**
- * `POST /<user>/me/news` — "Stop news from Fernscout" on the reader's own page
+ * `POST /@<user>/me/news` — "Stop news from Fernscout" on the reader's own page
  * (B2453). Withdraws the instance-wide consent the join form asked for, for
  * the address this browser's session proves and nothing else: no body is
  * read, so no caller can name somebody else's address. Cookie-only, like the

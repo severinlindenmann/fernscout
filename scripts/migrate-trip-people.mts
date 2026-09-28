@@ -3,7 +3,7 @@
  *
  * Before this ticket, everyone listed in a trip's `people:` block could
  * write to that trip, with no owner approval anywhere in it — a second,
- * unapproved door beside a buddy granted at `/<user>/studio/readers`
+ * unapproved door beside a buddy granted at `/@<user>/studio/readers`
  * (B2295, one door for readers, B2291). Once `lib/tripPeople.ts` stops
  * reading `people:` for write access, every one of those names loses the
  * ability to write unless something turns them into a real, granted

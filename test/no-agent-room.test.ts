@@ -6,7 +6,7 @@ import path from "node:path";
  * The chat room at `/agent` is gone — B2173. The address answers the site's
  * ordinary not-found page, and nothing may link back into it.
  *
- * Allowed: `/agent.md` (a 301 to /documentation.txt) and `/<user>/studio/agent`
+ * Allowed: `/agent.md` (a 301 to /documentation.txt) and `/@<user>/studio/agent`
  * (Permissions & keys). Comments may still mention the room's history; only a
  * quoted string or an href counts as a link.
  */

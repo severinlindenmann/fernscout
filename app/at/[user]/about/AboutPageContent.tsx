@@ -2,7 +2,7 @@ import EntryContent from "@/components/EntryContent";
 import PageHeader from "@/components/PageHeader";
 
 /**
- * The rendering half of `/<user>/about` — split out from `page.tsx` so it can
+ * The rendering half of `/@<user>/about` — split out from `page.tsx` so it can
  * be rendered in a test with plain props, the same shape `MePageContent` and
  * `TripsIndexContent` already use.
  *

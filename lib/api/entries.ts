@@ -1070,7 +1070,7 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
    * string removes the caption it names.
    *
    * The key is forgiving about the owner prefix: a day read back over the API
-   * carries `/<user>/media/…` while the file on disk carries `/media/…`, and
+   * carries `/@<user>/media/…` while the file on disk carries `/media/…`, and
    * sending back what you were given has to work.
    */
   captions?: Record<string, string>;

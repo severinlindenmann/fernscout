@@ -880,7 +880,7 @@ export async function listContacts(owner: string): Promise<ContactRecord[]> {
 
 /**
  * How many of this journal's contacts would receive each channel, journal-wide
- * — B367's "up to N" on `/<user>/me`, not one trip's.
+ * — B367's "up to N" on `/@<user>/me`, not one trip's.
  *
  * The predicate — `status: "active"` and the channel's own opt-in — is
  * `lib/digest/dayLetter.ts`'s `recipientsFor` restated without a trip to ask
@@ -1166,7 +1166,7 @@ export type GrantAccessResult =
  * `AGENTS.md`'s own amended sentence). The address can read the journal the
  * moment this call returns. The route that used to mail this event
  * (`sendGrantedMail`, `/api/helper/[user]/reader/grant`) is gone since B2295
- * (one door for readers, B2291/B2292): `/<user>/studio/readers`'s own "add a
+ * (one door for readers, B2291/B2292): `/@<user>/studio/readers`'s own "add a
  * person" flow is the one door now, and it sends its own mail
  * (`sendWelcomeMail`) at the moment the owner presses a channel, not here.
  *

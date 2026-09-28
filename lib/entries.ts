@@ -373,7 +373,7 @@ function posterFor(
  * React's `cache()` is what stops that check being paid a dozen times over
  * in one page render: `buildStoryProps` alone reaches this through
  * `getDays`, `getDefaultDay`, `getTripStats` and `getCostSummary`, and the
- * page asks again for its structured data, so `/<user>/trips/asia-2023`
+ * page asks again for its structured data, so `/@<user>/trips/asia-2023`
  * re-listed and re-stat'ed the same directory on every one of them.
  *
  * Safe because of what `cache()` is and is not (the long note on

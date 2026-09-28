@@ -5,8 +5,8 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { writeTripFixture } from "./fixtures/content";
 
 /**
- * Who may open `/<user>/studio/visitors` — B566, moved from
- * `/<user>/me/analytics` by B2017 (still reachable there, as a permanent
+ * Who may open `/@<user>/studio/visitors` — B566, moved from
+ * `/@<user>/me/analytics` by B2017 (still reachable there, as a permanent
  * redirect).
  *
  * The page is one gate and one line: `requireStudioOwner`, then

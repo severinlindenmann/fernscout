@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
- * `/{user}/invite/guest/<token>` — the link that lets somebody into a journal.
+ * `/@{user}/invite/guest/<token>` — the link that lets somebody into a journal.
  *
  * Journal-wide, and deliberately so: a guest is a guest of the journal and
  * never of one trip (B41). Approving somebody opens every trip marked

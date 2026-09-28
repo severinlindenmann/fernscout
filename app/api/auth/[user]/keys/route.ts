@@ -74,7 +74,7 @@ type Caller = { owner: true } | { owner: false; email: string };
  * carries it — B323.
  *
  * `resolveAccess` covers a guest cookie or a year-long identity, which is
- * how a reader signed in on `/{user}/me` is recognised. A buddy driving an
+ * how a reader signed in on `/@{user}/me` is recognised. A buddy driving an
  * agent instead presents a trip-scoped **bearer** token, so that is checked
  * too, the same way `isOwner`'s own admin fallback does. Either way what
  * comes back is an address, never a scope — the filter below is "this row's

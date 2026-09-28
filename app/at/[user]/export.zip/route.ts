@@ -6,7 +6,7 @@ import { getUser } from "@/lib/users";
 export const dynamic = "force-dynamic";
 
 /**
- * `/<username>/export.zip` — the journal, as a zip. **Owner only** (B1086).
+ * `/@<username>/export.zip` — the journal, as a zip. **Owner only** (B1086).
  *
  * The whole journal, exactly as it sits on disk, drafts included: this is the
  * owner's own backup, and only the owner gets it. A request carrying the

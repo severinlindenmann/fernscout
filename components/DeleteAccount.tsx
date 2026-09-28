@@ -5,7 +5,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 
 import { journalPath } from "@/lib/journalPath";
-/** What `GET /<user>/me/delete` counted off the disk, for the question below. */
+/** What `GET /@<user>/me/delete` counted off the disk, for the question below. */
 type Inventory = { title: string; trips: number; days: number; files: number; size: string };
 
 /**

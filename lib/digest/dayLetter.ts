@@ -275,7 +275,7 @@ async function photoAttachment(
   if (!image) return null;
 
   // `entry.gallery[*].src` is already owner-prefixed by `lib/entries.ts` —
-  // `/{username}/media/{tripId}/{path}` — the exact shape the media route
+  // `/@{username}/media/{tripId}/{path}` — the exact shape the media route
   // resolves. Strip the URL prefix back to the segments that route works with.
   const prefix = `${journalPath(trip.username)}/media/`;
   if (!image.src.startsWith(prefix)) return null;

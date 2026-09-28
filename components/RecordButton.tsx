@@ -745,7 +745,7 @@ export default function RecordButton({
   // same judgement B978 made about the send panel: the tariff belongs where
   // credits are bought, not on somebody's face while they speak. What a hold
   // costs is still said before it, on the button's own label where there is
-  // one, and the ledger on `/<user>/me` is what it was actually charged.
+  // one, and the ledger on `/@<user>/me` is what it was actually charged.
   // What the button is called, and it has to be true: with `hold` off there
   // is no holding to talk, and a name that offers it sends somebody looking
   // for an interaction that is not there — B1004.

@@ -22,7 +22,7 @@ export const READERS_TOOLS: readonly Tool[] = [
     /**
      * Letting somebody read it — B931 built `invite_guest` here; B2295 (one
      * door for readers, B2291) took it, `invites` and `revoke_invite` back
-     * out. The owner decided `/<user>/studio/readers` is the only place a
+     * out. The owner decided `/@<user>/studio/readers` is the only place a
      * person is let in or an invite link is made, seen again or revoked — no
      * agent, on the web or on WhatsApp, does any of that any more. This is
      * what is left: a link to the one page, so "invite my daughter" still

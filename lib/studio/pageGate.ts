@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { isHelperOwner } from "@/lib/helper/server";
 
 /**
- * The gate every page under `/<user>/studio` shares — B1829, the same shape
+ * The gate every page under `/@<user>/studio` shares — B1829, the same shape
  * `lib/extract/pageGate.ts` already uses for the four `extract`-capability
  * pages the studio absorbed (`/studio/photos`, `/location`, `/contacts`,
  * `/costs` — B1825).

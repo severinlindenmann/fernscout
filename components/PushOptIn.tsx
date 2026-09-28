@@ -62,7 +62,7 @@ export default function PushOptIn({
    *
    * The page cannot decide this for itself, which is the bug: only this
    * component knows whether push can work in this browser, on this journal,
-   * and `/<user>/me` rendered a heading and a paragraph promising
+   * and `/@<user>/me` rendered a heading and a paragraph promising
    * notifications "on this device" above a control that had returned `null`.
    * Its own comment claimed the section was conditional on the same answer. It
    * was not, and `unsupported` is also where every unexpected error lands, so

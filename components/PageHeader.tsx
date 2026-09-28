@@ -68,7 +68,7 @@ export default function PageHeader({
   /**
    * Overrides the ancestor trail `useUpCrumbs` would otherwise compute from
    * the URL alone — B1992. `lib/navUp.ts` only knows the journal and the
-   * trip; it has no way to know that `/<user>/studio/day/edit`'s real parent
+   * trip; it has no way to know that `/@<user>/studio/day/edit`'s real parent
    * is the studio hub rather than the trip list, because nothing about that
    * shape is in the path. Every studio subpage passes this instead of
    * forking the header for one different word.
@@ -341,7 +341,7 @@ export default function PageHeader({
 
                 `helper` still gates the row, and it is owner-only now too:
                 unlike `/agent`, which always opened *this reader's own*
-                journal regardless of whose page they were on, `/<user>/studio`
+                journal regardless of whose page they were on, `/@<user>/studio`
                 is gated on this journal specifically (`requireStudioOwner`),
                 so a guest reading somebody else's trip has nothing at the far
                 end of it. Docs stays ungated for the same reason as the

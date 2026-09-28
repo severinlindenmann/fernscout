@@ -3,7 +3,7 @@
  *
  * The page ships a window of full days around wherever the reader arrived and
  * fetches the neighbours as they move (see `app/TripStory.tsx` and
- * `/<user>/story.json`). The bookkeeping for that — what has been asked for,
+ * `/@<user>/story.json`). The bookkeeping for that — what has been asked for,
  * and what may be asked for again — lives here rather than inside the effect,
  * because it was wrong and none of it needs a browser to be wrong in. The same
  * reasoning, and the same class of bug, as `lib/whatsNew.ts`.

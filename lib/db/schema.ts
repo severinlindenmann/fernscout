@@ -216,9 +216,9 @@ type ContactInvitesTable = {
   /**
    * `personal` | `guest` | `buddy`.
    *
-   * `personal` is decision 19's original link, `/{user}/i/<token>`, and every
+   * `personal` is decision 19's original link, `/@{user}/i/<token>`, and every
    * row written before B33 is one. `guest` is the same door at a name that
-   * says what it opens — `/{user}/invite/guest/<token>` — and leads to being
+   * says what it opens — `/@{user}/invite/guest/<token>` — and leads to being
    * let into the journal. `buddy` leads to being on one trip: writing to it,
    * and holding an agent token scoped to it. The open link that had no row at
    * all, because it carried no secret, was removed in B37.

@@ -136,7 +136,7 @@ export default function TripMap({
   /**
    * Photos for stops — B2429's markers and carousel cards.
    *
-   * Filled in client-side, after mount, from `/<user>/story.json` rather
+   * Filled in client-side, after mount, from `/@<user>/story.json` rather
    * than carried on `days`/`StopSource` — see `TripStop.photo`'s own doc in
    * lib/tripMap.ts for the byte budget that rules that out. `story.json` is
    * the same reader-gated, `visible()`-filtered route the story page itself

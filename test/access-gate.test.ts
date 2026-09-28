@@ -8,7 +8,7 @@ import { writeTripFixture } from "./fixtures/content";
 /**
  * The panel and the gate, asked the same question.
  *
- * B41. `resolveViewer` told an approved contact, on their own `/<user>/me`
+ * B41. `resolveViewer` told an approved contact, on their own `/@<user>/me`
  * page, that they could open every `visibility: guest` trip in the journal;
  * `mayReadTrip` then asked them for a password nobody had ever issued. Two
  * pieces of code answering "may this person read this trip" differently is the
@@ -115,7 +115,7 @@ const TEST_TRIPS = TRIPS.filter((t) => t.test).map((t) => t.id);
  * - `read` is `mayReadTrip` — the gate, and the only thing that actually
  *   opens a page. Every other column is measured against it.
  * - `panel` is `resolveViewer`'s `through` value, or null for "not
- *   mentioned": what `/<user>/me` tells somebody who came looking.
+ *   mentioned": what `/@<user>/me` tells somebody who came looking.
  * - `switcher` is `listableTrips` — the trip list `app/at/[user]/layout.tsx`
  *   and `app/at/[user]/trips/page.tsx` both render, and the one that travels in
  *   the RSC payload of every page whether the reader opened a menu or not

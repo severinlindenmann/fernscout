@@ -437,7 +437,7 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // DATABASE_URL — `resolveOne` in lib/capabilities.ts treats the server as
       // a ceiling and this as the opt-in underneath it. Nothing here is
       // advertised to a stranger either: B37 removed the open request form, and
-      // the invite controls render inside `{viewer.owner && …}` on /<user>/me.
+      // the invite controls render inside `{viewer.owner && …}` on /@<user>/me.
       contacts: { enabled: true },
       // `mail` is deliberately *not* written here, even though B60 made a
       // journal's own switch govern the letters it sends. Absent means "no

@@ -13,7 +13,7 @@ import { writeTripFixture } from "./fixtures/content";
  * `test/auth.test.ts` covers the rule — a destination is stored beside the
  * link and re-checked when the link is redeemed. This file asserts the thing a
  * reader would actually notice, which is the `Location` header on
- * `/<user>/s/<token>`. The two halves are worth keeping apart: the unit tests
+ * `/@<user>/s/<token>`. The two halves are worth keeping apart: the unit tests
  * would still pass if the route ignored `result.destination` altogether, which
  * is exactly the bug being fixed.
  */
@@ -100,7 +100,7 @@ afterEach(async () => {
 /**
  * Press the button, and say where the browser was told to go.
  *
- * B142 moved the redemption off the `GET` of `/<user>/s/<token>` and onto a
+ * B142 moved the redemption off the `GET` of `/@<user>/s/<token>` and onto a
  * POST, because a scanner at the reader's own mail host was following the link
  * and spending it before they ever saw it. The destination rule this file
  * exists for is unchanged and now lives beside the redemption, so these
@@ -150,7 +150,7 @@ describe("the one-tap sign-in link", () => {
     expect(await follow(token)).toBe(`${SITE}/@${OWNER}/day/2026-08-25-hanoi`);
   });
 
-  test("signing in from /<user>/me still lands on the journal", async () => {
+  test("signing in from /@<user>/me still lands on the journal", async () => {
     // `/me` sends no destination at all — it is the page whose whole question
     // is "what can I see?", and the journal is the answer.
     const token = await askFrom();

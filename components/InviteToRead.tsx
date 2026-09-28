@@ -10,7 +10,7 @@ import { journalPath } from "@/lib/journalPath";
  * — a fetch on mount to see whether the journal even offers one, then a
  * `POST` that minted it right here. That put a second place in the product
  * that could grant somebody access to a journal, beside
- * `/<user>/studio/readers`, which the owner decided should be the only one.
+ * `/@<user>/studio/readers`, which the owner decided should be the only one.
  * So this is a plain link now — same tile, same grid cell, no fetch, no
  * state — to the one page that actually adds or invites a person.
  */

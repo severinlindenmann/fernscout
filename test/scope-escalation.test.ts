@@ -23,7 +23,7 @@ import { writeTripFixture } from "./fixtures/content";
  *   asked for a code naming that trip, verified with the field left off, and
  *   was handed the owner's unqualified `write:content`. The trip is now bound
  *   to the code at issue time (`login_codes.trip_id`) and read off the row.
- * - **B231** — `/<user>/export.zip` decided "owner" with `ownsUser` alone,
+ * - **B231** — `/@<user>/export.zip` decided "owner" with `ownsUser` alone,
  *   which asks only which journal the token belongs to. A token that may write
  *   one trip downloaded every trip in the journal, private ones included, with
  *   every unpublished draft in them. The route now asks for the owner's
@@ -209,7 +209,7 @@ async function writeDay(token: string, trip: string, title: string) {
 async function exportZip(token?: string) {
   const { GET } = await import("@/app/at/[user]/export.zip/route");
   const response = await GET(
-    new Request(`https://example.test/${OWNER}/export.zip`, {
+    new Request(`https://example.test/@${OWNER}/export.zip`, {
       headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
     }),
     { params: Promise.resolve({ user: OWNER }) },

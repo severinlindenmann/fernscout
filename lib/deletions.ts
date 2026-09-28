@@ -487,7 +487,7 @@ export type ExportRequested = { ok: true; email: string; expiresAt: string };
  * shape as a deletion request: a random token, hashed and stored, mailed to
  * the address in the journal's own `config.json`, single-use and short-lived.
  * It exists because the landing page has always promised "export everything,
- * whenever you like" and `/<user>/export.zip` only answers a bearer token —
+ * whenever you like" and `/@<user>/export.zip` only answers a bearer token —
  * so an owner with a browser and no agent of their own had no way to ask.
  *
  * Not a `DeletionTarget`: nothing here can ever delete anything, so it gets

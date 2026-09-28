@@ -10,7 +10,7 @@ import { journalPath } from "../journalPath";
 /**
  * The link shapes — decision 19, as amended by B37 and extended by B33.
  *
- * | | personal `/{user}/i/<token>` | guest `/{user}/invite/guest/<t>` | buddy `/{user}/invite/buddy/<t>` |
+ * | | personal `/@{user}/i/<token>` | guest `/@{user}/invite/guest/<t>` | buddy `/@{user}/invite/buddy/<t>` |
  * | --- | --- | --- | --- |
  * | one per | person | however many you send it to | the people you travelled with |
  * | carries | a name and a language | the same | the same, plus which trip |
@@ -37,7 +37,7 @@ import { journalPath } from "../journalPath";
  * was the leak, not the access.
  *
  * So the open link is gone, its old address answers with a redirect to
- * `/{user}/me` rather than a 404 — people had already sent it to their
+ * `/@{user}/me` rather than a 404 — people had already sent it to their
  * families — and `POST /api/contacts/request` now requires a live token.
  * Removing the page alone would have been a sign taken down from an open
  * door.
@@ -168,7 +168,7 @@ function inviteUrl(base: string, username: string, token: string): string {
  * **The kind is in the path on purpose.** The two grant different things, and
  * somebody who is forwarded one has nothing else to go on: `/invite/buddy/…`
  * is legible in a message in a way that a token is not. It is kept off
- * `/{user}/i/…`, which already means the personal link and must keep meaning
+ * `/@{user}/i/…`, which already means the personal link and must keep meaning
  * only that.
  */
 export function inviteLinkUrl(
@@ -402,11 +402,11 @@ export async function listInvites(owner: string): Promise<Invite[]> {
  * old behaviour.
  *
  * **Also null for a legacy `personal` invite (security review, D3/B2295).**
- * `/{user}/i/<token>` was the personal link's own page; B2295 (one door for
+ * `/@{user}/i/<token>` was the personal link's own page; B2295 (one door for
  * readers, B2291) removed it along with every other agent-reachable way to
  * create one, so nothing can create a new `personal` row any more — but an
  * old one, from before that decision, can still be sitting in this table.
- * `inviteLinkUrl` would still happily build `/{user}/i/<token>` for it, and
+ * `inviteLinkUrl` would still happily build `/@{user}/i/<token>` for it, and
  * that address now 404s: showing it would be handing the owner a link that
  * was never going to work, the exact thing the null-url rule above already
  * exists to avoid.

@@ -29,7 +29,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  *
  * So the fetch and the sign-in are now two different things, and the second
  * one needs a press. **Scanners follow links; they do not submit forms** —
- * the same reasoning the unsubscribe route at `/{user}/u/{token}` has always
+ * the same reasoning the unsubscribe route at `/@{user}/u/{token}` has always
  * used, applied to the link where being spent is terminal rather than
  * recoverable.
  *

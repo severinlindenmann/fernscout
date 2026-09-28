@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
- * `/{user}/invite/buddy/<token>` — the link that puts somebody on a trip.
+ * `/@{user}/invite/buddy/<token>` — the link that puts somebody on a trip.
  *
  * **The stronger of the two, and the kind is in the path so a recipient can
  * tell.** Being on a trip means writing to the whole of it and being able to
