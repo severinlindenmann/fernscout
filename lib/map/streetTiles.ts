@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs/promises";
 import zlib from "node:zlib";
 import { promisify } from "node:util";
-import { PbfReader } from "pbf";
+import Pbf from "pbf";
 import { VectorTile } from "@mapbox/vector-tile";
 import { PMTiles, type Source, type RangeResponse, Compression } from "pmtiles";
 import { place, type Frame } from "../mapFrame";
@@ -177,7 +177,7 @@ export async function streetLayersForBbox(
     sawAny = true;
     let tile: VectorTile;
     try {
-      tile = new VectorTile(new PbfReader(new Uint8Array(resp.data)));
+      tile = new VectorTile(new Pbf(new Uint8Array(resp.data)));
     } catch {
       continue;
     }
