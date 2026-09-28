@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import type { Metadata } from "next";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { default as proxy } from "@/proxy";
@@ -98,20 +101,41 @@ describe("the proxy", () => {
 
 });
 
+// /schools is a paid page: without paid/ (public CI) it is a stub with no metadata.
+const HAS_PAID = fs.existsSync(path.join(process.cwd(), "paid"));
+
 describe("metadata", () => {
   beforeEach(() => {
     request.headers.clear();
     request.cookie = undefined;
   });
 
-  test("/de/schools is German, canonical to itself, with the full set", async () => {
+  test("/de/docs is German, canonical to itself, with the full set (public, no paid/ needed)", async () => {
+    request.headers.set(PATH_LOCALE_HEADER, "de");
+    request.headers.set(PATH_HEADER, "/docs");
+    request.cookie = "en";
+    const { generateMetadata } = await import("@/app/docs/page");
+    const meta: Metadata = await generateMetadata();
+    expect(meta.alternates?.canonical).toBe("/de/docs");
+    expect(meta.alternates?.languages).toEqual(languageAlternates("/docs"));
+  });
+
+  test("the /docs root stays canonical to itself in whatever language it rendered", async () => {
+    request.headers.set(PATH_HEADER, "/docs");
+    request.cookie = "de";
+    const { generateMetadata } = await import("@/app/docs/page");
+    const meta: Metadata = await generateMetadata();
+    expect(meta.alternates?.canonical).toBe("/docs");
+  });
+
+  test.skipIf(!HAS_PAID)("/de/schools is German, canonical to itself, with the full set", async () => {
     request.headers.set(PATH_LOCALE_HEADER, "de");
     request.headers.set(PATH_HEADER, "/schools");
     request.cookie = "en";
     const { requestLocale } = await import("@/lib/locales");
     expect(await requestLocale()).toBe("de");
     const { generateMetadata } = await import("@/app/schools/page");
-    const meta = await generateMetadata();
+    const meta: Metadata = await generateMetadata();
     expect(meta.alternates?.canonical).toBe("/de/schools");
     expect(meta.alternates?.languages).toEqual(languageAlternates("/schools"));
     // B2488 — and links its Markdown version in the same language.
@@ -119,11 +143,11 @@ describe("metadata", () => {
     expect(String((meta.title as { absolute: string }).absolute)).toMatch(/Klassenlager|Schul/);
   });
 
-  test("the root stays canonical to itself in whatever language it rendered", async () => {
+  test.skipIf(!HAS_PAID)("the root stays canonical to itself in whatever language it rendered", async () => {
     request.headers.set(PATH_HEADER, "/schools");
     request.cookie = "de";
     const { generateMetadata } = await import("@/app/schools/page");
-    const meta = await generateMetadata();
+    const meta: Metadata = await generateMetadata();
     expect(meta.alternates?.canonical).toBe("/schools");
   });
 });
