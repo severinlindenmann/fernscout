@@ -6,7 +6,9 @@ import { analyticsCardsFor } from "./analytics";
 import { serverSite } from "./site";
 import { listedUsernames } from "./users";
 import { DOCS_PAGES } from "./docs";
-import { hasLegal } from "./legal";
+import { hasLegal, legalLocales } from "./legal";
+import { LANGUAGE_PAGES, MARKDOWN_PAGES, languageAlternates, markdownHref } from "./languagePaths";
+import { GUIDE_PATHS } from "@paid/guides/lib/paths";
 import { SKILL_DOC_SLUGS, skillDocPath } from "./api/skillDocMeta";
 import { PAID_AREAS } from "@paid/manifest";
 import { isEnabled } from "./capabilities";
@@ -33,8 +35,8 @@ import { isEnabled } from "./capabilities";
  * **Languages.** A page's language versions go in `alternates` as
  * `hreflang → URL`. Nothing sets them today: journal languages are a `?lang=`
  * parameter whose pages canonicalise to the bare URL, so listing them as
- * alternates argued with the canonical. When languages get paths of their own
- * (B2473), `instancePage` below is the one place to hand them in.
+ * alternates argued with the canonical. The instance pages with language
+ * addresses (B2473) get them in `instancePage` below.
  */
 
 export type SitemapEntry = {
@@ -49,14 +51,25 @@ export type SitemapEntry = {
 
 export const SITEMAPS = ["pages", "journals", "agents"] as const;
 
-function instancePage(base: string, path: string): SitemapEntry {
-  return { url: `${base}${path}` };
+/**
+ * One instance page, and its language addresses (B2473) as entries of their
+ * own: every version lists every version, itself included, so the set is
+ * reciprocal. `/legal` offers only the languages its imprint is written in.
+ */
+function instancePage(base: string, path: string): SitemapEntry[] {
+  const offered = path === "/legal" ? legalLocales() : LANGUAGE_PAGES[path];
+  if (!offered) return [{ url: `${base}${path}` }];
+  const alternates = Object.fromEntries(
+    Object.entries(languageAlternates(path, offered)).map(([lang, href]) => [lang, `${base}${href === "/" ? "" : href}`]),
+  );
+  const urls = [...new Set(Object.values(alternates))];
+  return urls.map((url) => ({ url, alternates }));
 }
 
-/** The landing, the orgs pages and their demos, the docs and the imprint. */
+/** The landing, /agentic, the orgs pages and their demos, the docs and the imprint. */
 export function pagesSitemap(): SitemapEntry[] {
   const base = serverSite().url;
-  const paths = ["", "/docs", ...DOCS_PAGES.map((p) => p.href)];
+  const paths = ["", "/agentic", "/docs", ...DOCS_PAGES.map((p) => p.href)];
   // The schools and tour-operator pages exist only where paid/ does — B2450.
   if (PAID_AREAS.includes("orgs")) {
     paths.push("/schools", "/schools/demo", "/tour-operators", "/tour-operators/demo");
@@ -65,7 +78,9 @@ export function pagesSitemap(): SitemapEntry[] {
   // page itself is a 404 otherwise.
   if (isEnabled("credits")) paths.push("/prices");
   if (hasLegal()) paths.push("/legal");
-  return paths.map((path) => instancePage(base, path));
+  // The answer pages — B2489. Empty without paid/.
+  paths.push(...GUIDE_PATHS);
+  return paths.flatMap((path) => instancePage(base, path === "" ? "/" : path));
 }
 
 /** A photograph's absolute URL, for the ones this server serves itself. */
@@ -132,7 +147,20 @@ export function journalsSitemap(): SitemapEntry[] {
 }
 
 /**
- * What an agent reads: llms.txt, the task guides, the API. Not
+ * The pages whose Markdown version answers on this build — B2488: the
+ * orgs pages only with paid/, /prices only where this instance charges.
+ */
+export function markdownPages(): string[] {
+  return MARKDOWN_PAGES.filter((path) => {
+    if (path === "/prices") return isEnabled("credits");
+    if (path.startsWith("/schools") || path.startsWith("/tour-operators")) return PAID_AREAS.includes("orgs");
+    return true;
+  });
+}
+
+/**
+ * What an agent reads: llms.txt, the task guides, the API, and the pages'
+ * Markdown versions in every language they have (B2488). Not
  * `/documentation.txt` — it answers `X-Robots-Tag: noindex` on purpose, and a
  * sitemap entry for it would argue with that; llms.txt links it instead.
  */
@@ -142,6 +170,7 @@ export function agentsSitemap(): SitemapEntry[] {
     "/llms.txt",
     ...SKILL_DOC_SLUGS.map(skillDocPath),
     "/api/v2/openapi.json",
+    ...markdownPages().flatMap((path) => [null, ...(LANGUAGE_PAGES[path] ?? [])].map((l) => markdownHref(l, path))),
   ].map((path) => ({ url: `${base}${path}` }));
 }
 

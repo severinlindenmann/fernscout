@@ -114,8 +114,10 @@ export default function SignupWizard({
   contactEmail,
 }: {
   /** Prefilled when the visitor already carries an identity cookie — they
-   * proved this address once already, but a signup token still needs its
-   * own fresh code (see the route's own reasoning). */
+   * proved this address once already, so while the field still holds it the
+   * email step trades the cookie for a signup token instead of mailing a
+   * second code (B2522, `POST /api/auth/signup/identity`). Editing the field
+   * is the "not me" path: a different address gets the ordinary code. */
   email?: string;
   /** The reader's current UI language — offered as the journal's own
    * starting language, changeable before the journal is created. */
@@ -148,6 +150,7 @@ export default function SignupWizard({
   const [error, setError] = useState<string | null>(null);
 
   const [email, setEmail] = useState(prefillEmail ?? "");
+  const proven = Boolean(prefillEmail) && email.trim().toLowerCase() === prefillEmail!.toLowerCase();
   const [code, setCode] = useState("");
   const [signupToken, setSignupToken] = useState("");
 
@@ -261,6 +264,26 @@ export default function SignupWizard({
     setEmail(value);
     setBusy(true);
     setError(null);
+    if (prefillEmail && value.trim().toLowerCase() === prefillEmail.toLowerCase()) {
+      const result = await post("/api/auth/signup/identity", {}, undefined, ["too_many_journals", "not_signed_in"]);
+      if (!result) {
+        setBusy(false);
+        return;
+      }
+      if (result.error === "too_many_journals") {
+        setBusy(false);
+        setStep("owns");
+        return;
+      }
+      if (typeof result.token === "string") {
+        setBusy(false);
+        setSignupToken(result.token);
+        setStep("journal");
+        return;
+      }
+      // `not_signed_in`: the cookie lapsed, or it names a phone number.
+      // The ordinary code below still works for the address typed.
+    }
     /**
      * The answer is deliberately not read — the door answers 202 whether or
      * not the address is known, so there is nothing here to branch on.
@@ -535,10 +558,13 @@ export default function SignupWizard({
             busy={busy}
             type="submit"
             className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
-            busyLabel={t("me.signInSending")}
+            busyLabel={proven ? undefined : t("me.signInSending")}
           >
-            {t("me.signInSend")}
+            {proven ? t("agent.startVerify") : t("me.signInSend")}
           </BusyButton>
+          {proven && (
+            <p className="mt-2 text-sm leading-6 text-ink-secondary">{t("signupPage.provenHint")}</p>
+          )}
         </form>
       )}
 

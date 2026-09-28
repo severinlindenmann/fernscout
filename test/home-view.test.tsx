@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import LocaleProvider from "@/components/LocaleProvider";
 import { YourDevices, type HomeDevice, type HomeJournal, type HomeTrip } from "@/components/HomeJournals";
 import SignedInHome, { pickContinue } from "@/components/home/SignedInHome";
+import SignedInHeader from "@/components/home/SignedInHeader";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
@@ -20,6 +21,8 @@ vi.mock("next/link", () => ({
     <a href={href}>{children}</a>
   ),
 }));
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }), usePathname: () => "/" }));
 
 function render(node: React.ReactNode) {
   return renderToStaticMarkup(
@@ -196,5 +199,33 @@ describe("your devices", () => {
 
   test("no devices, no section", () => {
     expect(render(<YourDevices devices={[]} onRevoke={() => {}} />)).toBe("");
+  });
+});
+
+/**
+ * B2519 — the signed-in header. An owner gets their own doors (and a phone
+ * tab bar with the same ones); Prints only where a print route exists; a
+ * reader-only person owns nothing to write in and gets none of them.
+ */
+describe("the signed-in header", () => {
+  const header = (journals: HomeJournal[], prints = false, admin = false) =>
+    render(<SignedInHeader siteName="Fernscout" email="ana@example.org" journals={journals} prints={prints} admin={admin} />);
+
+  test("an owner gets Studio, Readers and a tab bar, Prints only when printing exists", () => {
+    const html = header([journal()]);
+    expect(html).toContain('href="/ana/studio"');
+    expect(html).toContain('href="/ana/studio/readers"');
+    expect(html).not.toContain("/ana/studio/orders");
+    expect(html).toContain("safe-area-inset-bottom");
+    expect(header([journal()], true)).toContain('href="/ana/studio/orders"');
+  });
+
+  test("a reader-only person gets the mark and the account, no owner doors", () => {
+    const html = header([journal({ role: "guest" })], true);
+    expect(html).not.toContain("/studio");
+    expect(html).not.toContain("safe-area-inset-bottom");
+    expect(html).toContain('href="/me"');
+    expect(html).not.toContain('href="/admin"');
+    expect(header([journal({ role: "guest" })], true, true)).toContain('href="/admin"');
   });
 });
