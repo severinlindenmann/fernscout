@@ -1,4 +1,3 @@
-import "client-only";
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import type { MapLine, TripFrame } from "./tripFrame";
 
