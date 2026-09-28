@@ -185,6 +185,21 @@ export function primaryStreetMap(
 }
 
 /**
+ * The region file (path + bbox) covering the most of `points` — the same
+ * choice `primaryStreetMap` makes, for a server-side caller that reads the
+ * file itself (the trip/day card, B2538) rather than handing a URL to the
+ * browser. `undefined` under the same conditions as `tripMapRegions`.
+ */
+export function coveringRegion(
+  user: string,
+  tripId: string,
+  points: readonly { lat: number; lng: number }[],
+): MapRegion | undefined {
+  const regions = tripMapRegions(user, tripId);
+  return regions && regions.length > 0 ? pickCoveringRegion(regions, points) : undefined;
+}
+
+/**
  * Every region file `maps:trip` extracted for this trip, each with its own
  * bbox — what a reader's region switch (B2537/B2560) picks among client-side
  * so that switching regions still shows street tiles, not just moved
