@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { COUNTRIES, countryName, filterCountryList, flagOf, resolveCountry } from "@/lib/countries";
+import {
+  COUNTRIES,
+  countryName,
+  countryNameFor,
+  filterCountryList,
+  flagOf,
+  resolveCountry,
+} from "@/lib/countries";
 import CountryField from "@/components/CountryField";
 
 /**
@@ -12,6 +19,17 @@ import CountryField from "@/components/CountryField";
  * re-exports, so this file is only what B398 actually added:
  * `filterCountryList`, `resolveCountry`, and the picker component itself.
  */
+
+describe("countryNameFor — a reader's own name for a code (B2511)", () => {
+  test("names the code in the reader's locale, over any content spelling", () => {
+    expect(countryNameFor("FR", "en", "Frankreich")).toBe("France");
+    expect(countryNameFor("FR", "de", "France")).toBe("Frankreich");
+  });
+
+  test("falls back to the content's own text when there is no code", () => {
+    expect(countryNameFor("", "en", "Elbonia")).toBe("Elbonia");
+  });
+});
 
 describe("filterCountryList — the postal address picker's own search, no dial digits", () => {
   test("matches by (translated) country name", () => {

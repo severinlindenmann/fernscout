@@ -125,6 +125,23 @@ export function countryName(iso2: string, locale: string): string {
   }
 }
 
+/**
+ * A country's name for a *reader*, from its ISO2 code — B2511. The lifetime
+ * map's legend, pin and hover label used to read `countryNames.get(code)`,
+ * the first day's own spelling of the country met while walking every trip,
+ * so a German contributor's "Frankreich" won the legend for an English
+ * reader too. `countryName` already speaks the reader's own locale off the
+ * code alone; `ownerText` (a day's own `country` string) is the fallback for
+ * when the code cannot be named at all — unknown to `Intl.DisplayNames`, or
+ * simply missing, in which case `code` itself is empty and `countryName`
+ * would just hand it back unchanged.
+ */
+export function countryNameFor(code: string, locale: string, ownerText?: string): string {
+  if (!code) return ownerText ?? "";
+  const named = countryName(code, locale);
+  return named !== code ? named : (ownerText ?? code);
+}
+
 /** Every country named in the given locale and sorted by that name — what a
  * plain country picker wants, as opposed to `TelField`'s own `filterCountries`
  * which also carries and searches the dial code. */
