@@ -114,9 +114,14 @@ export default function TripMap({
    * claim about right now rather than a wrong one. */
   live?: boolean;
   /**
-   * What a single tap on this map does — nothing yet opens a full-screen
-   * view (that is Phase 2, docs/plans/map-redesign.md), so this is absent
-   * until a caller has one to hand over.
+   * What a single tap (cooperative mode) and the full-screen control both
+   * do — B2426, Phase 2 item 1 of docs/plans/map-redesign.md. Absent for
+   * every caller today, so this falls back to `defaultFullscreen` below:
+   * navigating to the map page with the selected stop already carried in
+   * `?stop=`, rather than a second overlay implementation reusing the same
+   * data. Real navigation, not a client-side overlay, is also what makes
+   * Back — the browser's own and the iPhone edge swipe B2324 wired up —
+   * close it for free: it lands on a real, separate history entry.
    */
   onRequestFullscreen?: () => void;
 }) {
@@ -254,6 +259,30 @@ export default function TripMap({
     return () => observer.disconnect();
   }, []);
 
+  // B2426: the trip page's own overlay route is the map page itself, reused
+  // rather than reimplemented — a plain navigation, carrying whichever stop
+  // is selected here so the reader lands on the same place, not the map
+  // page's own default. `trip` is absent in the countdown and in every test
+  // here (no `TripProvider`), where there is no page to send anyone to, so
+  // the tap and the control both simply do nothing rather than throw.
+  const defaultFullscreen = useCallback(() => {
+    if (!trip || !selected) return;
+    // Not `selected.key` — this component's own `${date}-${areaKey}`
+    // identity (`tripStops`, lib/tripMap.ts) is a coordinate-rounded id the
+    // map page has never heard of. The map page's own stops (`getPlaces`,
+    // lib/entries.ts) are keyed `${location}-${firstDate}`, so that is what
+    // is built here — the same two fields this component already carries
+    // for its own first day. The two dedupe rules differ slightly (name +
+    // country + 5 km there, a coordinate grid here), so a stop that merged
+    // one way and not the other simply fails to match on arrival — which is
+    // exactly the same "matches or selects nothing" rule `?stop=` already
+    // has to have for a stop this reader cannot see (AGENTS.md), applied
+    // here to an honest miss rather than a withheld one.
+    const stopParam = `${selected.location}-${selected.date}`;
+    window.location.assign(trip.href(`/map?stop=${encodeURIComponent(stopParam)}`));
+  }, [trip, selected]);
+  const fullscreen = onRequestFullscreen ?? defaultFullscreen;
+
   // Pan/zoom state and gesture handling — pinch, wheel, double-tap, keyboard
   // — shared with `WorldMap` (B2419). Cooperative: this map sits under the
   // hero on a phone, so one finger has to keep scrolling the page.
@@ -261,7 +290,7 @@ export default function TripMap({
     svgRef,
     maxZoom,
     cooperative: true,
-    onRequestFullscreen,
+    onRequestFullscreen: fullscreen,
   });
   const { zoom, pan } = viewport;
 
@@ -816,7 +845,7 @@ export default function TripMap({
             // Absent until there is something to reset — a control for a
             // state nobody is in is furniture.
             onFit={moved ? refit : undefined}
-            onFullscreen={onRequestFullscreen}
+            onFullscreen={fullscreen}
           />
         </div>
 

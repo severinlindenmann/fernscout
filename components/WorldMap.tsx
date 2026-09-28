@@ -90,6 +90,7 @@ export default function WorldMap({
   selectedKey: selectedKeyProp,
   onSelect: onSelectProp,
   showStopCard = true,
+  fillHeight = false,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -144,6 +145,13 @@ export default function WorldMap({
    * every other caller (the countdown, the studio's recorded-trips
    * preview) is unaffected. */
   showStopCard?: boolean;
+  /** The map page on a phone (B2426, Phase 2 item 1): the map fills the
+   * whole viewport under the header rather than sitting at whatever height
+   * its own aspect ratio would give it. Off everywhere else (the countdown,
+   * the studio's recorded-trips preview, and this same page from `lg` up,
+   * which keeps its own fixed-aspect box) — a caller that forgets it keeps
+   * the original, safer height-follows-content behaviour. */
+  fillHeight?: boolean;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -223,21 +231,27 @@ export default function WorldMap({
   );
 
   /**
-   * How wide this map is actually being drawn, in CSS pixels.
+   * How large this map is actually being drawn, in CSS pixels.
    *
    * Set after mount, and deliberately *not* during the server render: the
-   * initial value has to be identical on both sides or every size below becomes
-   * a hydration mismatch. 900 is a desktop map; a phone corrects it on the
-   * first frame.
+   * initial value has to be identical on both sides or every size below
+   * becomes a hydration mismatch. 900x450 is a desktop map's shape; a phone
+   * corrects it on the first frame.
+   *
+   * Both dimensions, not just the width (B2426) — `fillHeight` (the map
+   * page on a phone) hands this a box whose shape is the *remaining
+   * viewport*, not `base`'s own aspect, so `view` below has to grow to
+   * match it the same way `TripMap`'s own `frame` already does, or a
+   * portrait phone box would letterbox a landscape route.
    */
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [drawnWidth, setDrawnWidth] = useState(900);
+  const [drawn, setDrawn] = useState({ w: 900, h: 450 });
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
-      const w = entry.contentRect.width;
-      if (w > 0) setDrawnWidth(w);
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) setDrawn({ w: width, h: height });
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -250,8 +264,17 @@ export default function WorldMap({
   const { zoom, pan, setZoom, setPan } = viewport;
 
   const view = useMemo(() => {
-    const w = base.w / zoom;
-    const h = base.h / zoom;
+    // Grown to the rendered box's own shape before dividing by zoom — a
+    // no-op wherever the box's aspect already follows `base`'s (every
+    // caller but the phone full-screen map, since elsewhere the SVG's own
+    // `h-auto` makes those the same number).
+    const aspect = drawn.w / drawn.h;
+    let baseW = base.w;
+    let baseH = base.h;
+    if (baseW / baseH < aspect) baseW = baseH * aspect;
+    else baseH = baseW / aspect;
+    const w = baseW / zoom;
+    const h = baseH / zoom;
     const baseCx = base.x + base.w / 2;
     const baseCy = base.y + base.h / 2;
     // 0 at zoom 1, approaching 1 as you zoom in.
@@ -259,13 +282,58 @@ export default function WorldMap({
     const cx = (focus ? baseCx + (focus.x - baseCx) * drift : baseCx) + pan.x;
     const cy = (focus ? baseCy + (focus.y - baseCy) * drift : baseCy) + pan.y;
     return { x: cx - w / 2, y: cy - h / 2, w, h };
-  }, [base, zoom, pan, focus]);
+  }, [base, zoom, pan, focus, drawn]);
   // Kept for gesture handlers that fire between renders (a pinch, a wheel
   // tick) — an effect, not a call in the render body, so nothing here ever
   // mutates a ref while rendering.
   useEffect(() => {
     viewport.syncFrame(view);
   }, [viewport, view]);
+
+  // B2426 follow-up: `fillHeight`'s view can reach past `base` — the exact
+  // frame the server clipped the basemap to (`frameRoute`, the same pure
+  // function, same points, on both sides) — into the *padding* margin
+  // `lib/basemap.ts`'s own `clipFrame` cuts the bundle to around it (50%
+  // wider each side), never meant to be seen: a clipped polygon there is
+  // "stroked along the box as if the border ran there" (`lib/mapClip.ts`'s
+  // own doc), and found live, one such border painted as a huge, wrongly
+  // shaped fill rather than a line — a genuine fill-rule instability in
+  // that margin's own geometry, not only a stray stroke. Two clips, both
+  // scoped to `fillHeight` alone so every other caller — which never draws
+  // past `base` in the first place (`h-auto`'s own aspect always matches
+  // it) — is untouched:
+  // Both clips below are nested `<svg>` viewports (a rectangle's native,
+  // always-reliable clip) rather than a CSS `clip-path` — that was tried
+  // first and did not actually keep the huge fill-rule-unstable geometry
+  // from painting, which at this magnification (the clip shape is a
+  // handful of units, scaled ~60x by the ancestor `scale(lngScale, 1)` and
+  // the SVG's own viewBox) points at a mask-rasterisation precision limit
+  // rather than a wrong shape. A rectangle's own viewport clip has no such
+  // failure mode.
+  const clipRects = useMemo(() => {
+    if (!fillHeight) return null;
+    // Raw (pre-`lngScale`) units, matching the space every path drawn
+    // inside `<g transform="scale(lngScale,1)">` is already baked in.
+    const x = view.x / base.lngScale;
+    const w = view.w / base.lngScale;
+    const baseX = base.x / base.lngScale;
+    const baseW = base.w / base.lngScale;
+    return {
+      // (1) the detailed basemap's own window: *exactly* `base` — never the
+      // wider padded box `lib/basemap.ts` actually clipped the bundle to —
+      // so the margin those artefacts live in is simply never drawn.
+      detail: { x: baseX, y: base.y, w: baseW, h: base.h },
+      // (2) the coarse fallback's own windows: whatever `view` adds above
+      // and below `base` (the one axis `fillHeight` ever grows) — so its
+      // own low-resolution edges can never appear inside the properly
+      // detailed area, whatever shape they trace.
+      fallbackTop: view.y < base.y ? { x, y: view.y, w, h: base.y - view.y } : null,
+      fallbackBottom:
+        view.y + view.h > base.y + base.h
+          ? { x, y: base.y + base.h, w, h: view.y + view.h - (base.y + base.h) }
+          : null,
+    };
+  }, [fillHeight, view, base]);
 
   /**
    * A length in screen pixels, expressed in the units this frame is drawn in.
@@ -288,8 +356,8 @@ export default function WorldMap({
    * definition of "legible" that survives changing the screen.
    */
   const px = useCallback(
-    (pixels: number) => (pixels * view.w) / drawnWidth,
-    [view.w, drawnWidth],
+    (pixels: number) => (pixels * view.w) / drawn.w,
+    [view.w, drawn.w],
   );
 
   // Clustered against the radius the markers are actually drawn at, so the
@@ -392,10 +460,21 @@ export default function WorldMap({
   }, []);
 
   return (
-    <div>
+    <div
+      className={
+        // `absolute inset-0`, not `h-full`: the caller's own box (B2426, the
+        // map page on a phone) gets its height from flex-grow, not a
+        // specified height, and a percentage-height child of a flex item
+        // does not reliably resolve two levels down through it in Chrome.
+        // Absolute positioning resolves against the nearest *positioned*
+        // ancestor's actual box regardless — the caller's own wrapper is
+        // already `relative` for exactly this.
+        fillHeight ? "absolute inset-0 flex flex-col lg:static lg:contents" : undefined
+      }
+    >
       <div
         ref={mapShellRef}
-        className="relative overflow-hidden rounded-2xl border border-line-quiet shadow-sm [&:fullscreen]:flex [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:items-center [&:fullscreen]:rounded-none [&:fullscreen]:border-0"
+        className={`relative overflow-hidden rounded-2xl border border-line-quiet shadow-sm [&:fullscreen]:flex [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:items-center [&:fullscreen]:rounded-none [&:fullscreen]:border-0${fillHeight ? " flex-1 lg:flex-none" : ""}`}
         style={{ backgroundColor: mapStyle.sea }}
       >
         {/* role="group", not role="img": img makes every descendant
@@ -409,7 +488,17 @@ export default function WorldMap({
           // page, where the map is the entire point of the screen. The pan and
           // zoom controls also need somewhere to be that is not on top of the
           // route.
-          className="block h-auto min-h-[340px] w-full cursor-grab touch-none outline-none active:cursor-grabbing sm:min-h-0"
+          //
+          // `fillHeight` (B2426): the map page on a phone, where the box is
+          // already the full remaining viewport height (`h-full`) rather than
+          // something this SVG should still be sizing for itself — `view`
+          // above already grew to match it, so `h-auto`'s own aspect-follows-
+          // content logic would fight that rather than agree with it.
+          className={
+            fillHeight
+              ? "block h-full w-full cursor-grab touch-none outline-none active:cursor-grabbing lg:h-auto"
+              : "block h-auto min-h-[340px] w-full cursor-grab touch-none outline-none active:cursor-grabbing sm:min-h-0"
+          }
           role="group"
           // The same question the heading above it asks (B54). A map showing
           // only a planned route must not announce itself as "where we've
@@ -436,52 +525,137 @@ export default function WorldMap({
           <g transform={`scale(${base.lngScale} 1)`}>
             {basemap ? (
               <>
-                <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1.2}>
-                  {basemap.borders.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                {/* B2426: `fillHeight`'s phone view can grow taller than the
+                    basemap's own clip, which stays the page's landscape
+                    `TARGET_ASPECT` (`lib/mapFrame.ts`) — the server-side fix
+                    (padding the clip itself) measured out at 1.4–2.7x the
+                    basemap payload on the example journal, so this reuses
+                    the coarse 1:110m coastline instead, already loaded for
+                    every page as the no-basemap fallback below, at no extra
+                    cost. Windowed to outside `base`'s own rectangle (see
+                    `clipRects` above — a nested `<svg>` per margin, not a CSS
+                    clip-path; that doc explains why) — this layer's own
+                    low-resolution edges must never be free to cut across
+                    the properly detailed area the way an unclipped one did.
+                    Drawn first so the detailed basemap paints over it
+                    wherever the clip actually has data — a real seam is
+                    possible at that boundary, but only there. */}
+                {fillHeight &&
+                  clipRects &&
+                  ([clipRects.fallbackTop, clipRects.fallbackBottom].filter(Boolean) as {
+                    x: number;
+                    y: number;
+                    w: number;
+                    h: number;
+                  }[]).map((r, i) => (
+                    <svg
+                      key={`fallback-window-${i}`}
+                      x={r.x}
+                      y={r.y}
+                      width={r.w}
+                      height={r.h}
+                      viewBox={`${r.x} ${r.y} ${r.w} ${r.h}`}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
+                        {worldLand.map((d, j) => (
+                          <path key={`fallback-${i}-${j}`} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                    </svg>
                   ))}
-                </g>
-                {/* Ice, over the land it sits on. */}
-                <g fill={mapStyle.ice} stroke={mapStyle.ice} strokeWidth={0.6} opacity={0.9}>
-                  {basemap.glaciers.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                {/* Cantons, prefectures, states. Dashed and faint, because an
-                    internal boundary is a weaker fact than a national one and
-                    should not read as the same line. */}
-                <g fill="none" stroke={mapStyle.borderInternal} strokeWidth={0.8} strokeDasharray="3 3">
-                  {basemap.admin1.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                <g fill={mapStyle.water} stroke={mapStyle.water} strokeWidth={0.8}>
-                  {basemap.lakes.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                <g fill="none" stroke={mapStyle.water} strokeWidth={1.6} strokeLinecap="round">
-                  {basemap.rivers.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                {/* Ways, drawn only when the frame is close enough that they
-                    are information rather than texture — the server sends
-                    nothing here otherwise. White with a sand casing, the way
-                    every road on this map reads now — deliberately paler than
-                    any route the trip took: the point of this map is where
-                    *these people* went, and a motorway they never drove must
-                    not out-shout it. */}
-                <g fill="none" stroke={mapStyle.roadCasing} strokeWidth={2.4} strokeLinecap="round">
-                  {basemap.roads.map((d, i) => (
-                    <path key={`casing-${i}`} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
-                <g fill="none" stroke={mapStyle.road} strokeWidth={1.4} strokeLinecap="round">
-                  {basemap.roads.map((d, i) => (
-                    <path key={i} d={d} vectorEffect="non-scaling-stroke" />
-                  ))}
-                </g>
+                {/* Windowed to exactly `base` — never the padded box the
+                    server actually cut the bundle to (`lib/basemap.ts`'s
+                    `clipFrame`, 50% wider each side) — when `fillHeight` can
+                    reach past `base` at all. That padding margin is where a
+                    clipped polygon is "stroked along the box as if the
+                    border ran there" (`lib/mapClip.ts`'s own doc); found
+                    live, one such border painted as a huge, wrongly-shaped
+                    fill rather than a line, which pointed at a genuine
+                    fill-rule instability in that geometry rather than only
+                    a stray stroke. A CSS `clip-path` was tried first and did
+                    not actually hide it at this magnification (see
+                    `clipRects`'s own doc) — a nested `<svg>`'s own viewport
+                    clip does. Every other caller already never draws past
+                    `base` (`h-auto`'s own aspect always matches it), so this
+                    window is a no-op there — a plain `<>` fragment, nothing
+                    windowed at all. */}
+                {(() => {
+                  const detailContent = (
+                    <>
+                      <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1.2}>
+                        {basemap.borders.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      {/* Ice, over the land it sits on. */}
+                      <g fill={mapStyle.ice} stroke={mapStyle.ice} strokeWidth={0.6} opacity={0.9}>
+                        {basemap.glaciers.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      {/* Cantons, prefectures, states. Dashed and faint, because
+                          an internal boundary is a weaker fact than a national
+                          one and should not read as the same line. */}
+                      <g
+                        fill="none"
+                        stroke={mapStyle.borderInternal}
+                        strokeWidth={0.8}
+                        strokeDasharray="3 3"
+                      >
+                        {basemap.admin1.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      <g fill={mapStyle.water} stroke={mapStyle.water} strokeWidth={0.8}>
+                        {basemap.lakes.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      <g fill="none" stroke={mapStyle.water} strokeWidth={1.6} strokeLinecap="round">
+                        {basemap.rivers.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      {/* Ways, drawn only when the frame is close enough that
+                          they are information rather than texture — the server
+                          sends nothing here otherwise. White with a sand
+                          casing, the way every road on this map reads now —
+                          deliberately paler than any route the trip took: the
+                          point of this map is where *these people* went, and a
+                          motorway they never drove must not out-shout it. */}
+                      <g
+                        fill="none"
+                        stroke={mapStyle.roadCasing}
+                        strokeWidth={2.4}
+                        strokeLinecap="round"
+                      >
+                        {basemap.roads.map((d, i) => (
+                          <path key={`casing-${i}`} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                      <g fill="none" stroke={mapStyle.road} strokeWidth={1.4} strokeLinecap="round">
+                        {basemap.roads.map((d, i) => (
+                          <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+                        ))}
+                      </g>
+                    </>
+                  );
+                  if (!fillHeight || !clipRects) return detailContent;
+                  const r = clipRects.detail;
+                  return (
+                    <svg
+                      x={r.x}
+                      y={r.y}
+                      width={r.w}
+                      height={r.h}
+                      viewBox={`${r.x} ${r.y} ${r.w} ${r.h}`}
+                      style={{ overflow: "hidden" }}
+                    >
+                      {detailContent}
+                    </svg>
+                  );
+                })()}
               </>
             ) : (
               <g fill={mapStyle.land} stroke={mapStyle.border} strokeWidth={1}>
