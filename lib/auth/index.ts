@@ -1172,6 +1172,23 @@ export async function openIdentitySession(
   return { token: result.token, expiresAt: result.expiresAt, publicId: result.publicId };
 }
 
+/**
+ * A signup token for an address a live identity cookie already proves —
+ * B2522. The same token `/api/auth/codes/redeem` (`for: "signup"`) hands
+ * back, minted without a second code because the identity is itself the
+ * persisted result of proving that address. Only
+ * `POST /api/auth/signup/identity` calls this, after the same gates the code
+ * redeem runs (signup on, invite list, journal cap).
+ */
+export async function openSignupSession(
+  email: string,
+  locale?: string | null,
+): Promise<{ token: string; expiresAt: string }> {
+  const result = await openSession(NO_JOURNAL, normaliseEmail(email), "signup", undefined, null, undefined, locale);
+  if (!result.ok) throw new Error("could not open a signup session");
+  return { token: result.token, expiresAt: result.expiresAt };
+}
+
 /** Every device this address has proved itself on, newest first. Never returns
  * a token; `public_id` is the opaque name B412 keys a cache by. */
 export async function listIdentities(email: string) {
