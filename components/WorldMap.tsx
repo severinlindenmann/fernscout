@@ -89,7 +89,7 @@ export default function WorldMap({
   live = false,
   selectedKey: selectedKeyProp,
   onSelect: onSelectProp,
-  stopCardFromLg = false,
+  showStopCard = true,
   fillHeight = false,
 }: {
   places: PlaceView[];
@@ -139,10 +139,12 @@ export default function WorldMap({
    * scrubber, or `selectedKey` above) — so a caller driving `selectedKey`
    * can mirror the same key back into its own UI. */
   onSelect?: (place: PlaceView | null) => void;
-  /** The map page on a phone shows the selected stop in its own sheet
-   * (B2427), so the card over the map would repeat it and cover the map.
-   * When set, that card appears from `lg` up only. */
-  stopCardFromLg?: boolean;
+  /** Withholds the floating stop card entirely — for a caller that already
+   * shows the same content its own way (the desktop map page's stop list,
+   * B2430, next to this map; the phone sheet, B2427, below it). Defaults to true, so
+   * every other caller (the countdown, the studio's recorded-trips
+   * preview) is unaffected. */
+  showStopCard?: boolean;
   /** The map page on a phone (B2426, Phase 2 item 1): the map fills the
    * whole viewport under the header rather than sitting at whatever height
    * its own aspect ratio would give it. Off everywhere else (the countdown,
@@ -378,6 +380,40 @@ export default function WorldMap({
   // `live` prop's own doc comment above).
   const hereNow = live && plottable.length > 0 ? plottable[plottable.length - 1] : null;
 
+  // A real browser fullscreen of the map shell (docs/plans/map-redesign.md
+  // §3 Phase 2 item 6, the desktop map page's own full-screen button) — not
+  // the phone full-screen *route* the map page opens elsewhere. Feature-
+  // detected in an effect rather than a lazy initializer: this component is
+  // server-rendered (`test/map-page.test.tsx`, and the real trip page), where
+  // there is no `document` to ask, so starting from `false` and only turning
+  // the button on after mount is what keeps the client's first render
+  // matching the server's — a lazy initializer reading `document` would
+  // decide the answer during hydration itself, before React has anything to
+  // compare it against, and only mismatch where the browser actually has the
+  // API (never in a test, which is why it took a real browser to catch).
+  // iOS Safari has none at all, so the button never appears there either way.
+  const mapShellRef = useRef<HTMLDivElement>(null);
+  const [fullscreenSupported, setFullscreenSupported] = useState(false);
+  useEffect(() => {
+    // Feature detection, not a subscription — nothing here changes after
+    // mount, so there is no later caller for this to react to. Same shape
+    // as the "read the URL once, right after mount" effects elsewhere on
+    // this map page.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFullscreenSupported(
+      typeof document !== "undefined" &&
+        document.fullscreenEnabled === true &&
+        typeof HTMLElement.prototype.requestFullscreen === "function",
+    );
+  }, []);
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      mapShellRef.current?.requestFullscreen().catch(() => {});
+    }
+  }, []);
+
   return (
     <div
       className={
@@ -392,7 +428,8 @@ export default function WorldMap({
       }
     >
       <div
-        className={`relative overflow-hidden rounded-2xl border border-line-quiet shadow-sm${fillHeight ? " flex-1 lg:flex-none" : ""}`}
+        ref={mapShellRef}
+        className={`relative overflow-hidden rounded-2xl border border-line-quiet shadow-sm [&:fullscreen]:flex [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:items-center [&:fullscreen]:rounded-none [&:fullscreen]:border-0${fillHeight ? " flex-1 lg:flex-none" : ""}`}
         style={{ backgroundColor: mapStyle.sea }}
       >
         {/* role="group", not role="img": img makes every descendant
@@ -691,6 +728,12 @@ export default function WorldMap({
             onZoomIn={() => setZoom((z) => Math.min(maxZoom, z * 1.6))}
             onZoomOut={() => setZoom((z) => Math.max(1, z / 1.6))}
             onFit={reset}
+            // Desktop only (B2430) — the phone map already opens its own
+            // full-screen route (elsewhere on this page) for the same
+            // reason, so a second full-screen button here would be a second
+            // way to do the one thing on a screen too small for either.
+            onFullscreen={fullscreenSupported ? toggleFullscreen : undefined}
+            fullscreenClassName="hidden lg:block"
           />
         </div>
 
@@ -710,13 +753,13 @@ export default function WorldMap({
         )}
 
         <AnimatePresence>
-          {selected && (
+          {selected && showStopCard && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
               transition={{ duration: 0.2 }}
-              className={`absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm${stopCardFromLg ? " hidden lg:block" : ""}`}
+              className="absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm"
             >
               <button
                 onClick={() => {

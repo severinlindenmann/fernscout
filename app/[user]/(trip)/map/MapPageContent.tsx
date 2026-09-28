@@ -2,17 +2,21 @@
 
 import PageHeader from "@/components/PageHeader";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard } from "lucide-react";
+import { Clapperboard, MapPin } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
 import { isPlottable } from "@/lib/mapFrame";
+import { googleMapsHref } from "@/lib/tripMap";
 import type { Basemap } from "@/lib/basemap";
 import type { PlannedStop } from "@/lib/types";
 import MobileMapSheet from "@/components/map/MobileMapSheet";
 import TimeScrubber from "@/components/map/TimeScrubber";
+import { mediaLoader, posterSrc } from "@/components/mediaLoader";
+import { POSTER_WIDTH } from "@/lib/mediaSizes";
 
 // Behind a button — nobody should pay to download the presentation bundle
 // (map projection data, motion) until they actually press it.
@@ -45,7 +49,7 @@ export default function MapPageContent({
    * the more conservative "no days written" rather than a false negative. */
   hasDays?: boolean;
 }) {
-  const { t, tn, formatShortDate, formatStay } = useI18n();
+  const { t, tn, locale, formatShortDate, formatStay } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
   // current trip, `/example/trips/<id>/day/…` for any other.
   const trip = useTrip()?.trip;
@@ -273,43 +277,156 @@ export default function MapPageContent({
             guard, published entries only, was the single thing withholding it.
             An upcoming trip is the one most likely to be shared before there is
             anything else to show, and it was answering "no entries yet"
-            directly above a legend for the route it had just refused to draw.
+            directly above a legend for the route it had just refused to draw. */}
+        {/* Desktop (`lg` up): a stop list on the left, sharing this page's
+            one selection with the map on the right, which stays in view
+            while the list scrolls (docs/plans/map-redesign.md §3 Phase 2
+            item 6 — the "Every stop" list this page always drew, now living
+            beside the map instead of under it, rather than a second list).
+            Below `lg` this is the full-screen map itself (B2426): `min-h-0
+            flex-1` grows it to fill what the header left, and `fillHeight` on
+            `WorldMap` makes the SVG follow that box; the phone sheet (B2427)
+            shows the selected stop. */}
+        <div className="relative min-h-0 flex-1 overflow-hidden lg:mt-7 lg:grid lg:flex-none lg:grid-cols-[22rem_1fr] lg:items-start lg:gap-6 lg:overflow-visible">
+          {hasPlaces && (
+            <section
+              aria-label={t("map.everyStop")}
+              className="hidden lg:block lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1"
+            >
+              <h2 className="font-display text-xl font-semibold text-ink-strong">
+                {t("map.everyStop")}
+              </h2>
+              <ol className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
+                {places.map((place) => {
+                  const isSelected = place.key === selectedKey;
+                  // Never invented: the same `entries`/`gallery` fields the
+                  // map's own floating card and the phone sheet already read
+                  // for this stop (see `MobileMapSheet`), nothing fetched or
+                  // guessed for this list.
+                  const headline =
+                    place.entries[0]?.headline?.[locale] ??
+                    Object.values(place.entries[0]?.headline ?? {})[0];
+                  const gallery = place.entries.flatMap((e) => e.gallery ?? []);
+                  return (
+                    <li key={place.key}>
+                      <button
+                        type="button"
+                        onClick={() => selectStop(place.key)}
+                        aria-expanded={isSelected}
+                        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-base${
+                          isSelected ? " bg-surface-selected" : ""
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-display text-sm font-semibold text-ink-strong">
+                            {flagFor(place.country, place.countryCode)} {place.location}
+                          </div>
+                          <div className="text-xs text-ink-secondary">{place.country}</div>
+                        </div>
+                        <div className="shrink-0 text-right text-xs text-ink-secondary">
+                          <div>
+                            {formatShortDate(place.firstDate)}
+                            {place.lastDate !== place.firstDate &&
+                              ` – ${formatShortDate(place.lastDate)}`}
+                          </div>
+                          <div>
+                            {formatStay(place.nights)} · {place.mediaCount} {t("media.count")}
+                          </div>
+                        </div>
+                      </button>
 
-            Below `lg` this is the full-screen map itself — `min-h-0 flex-1`
-            grows it to fill whatever the header and (at `lg`, the hidden
-            title block above) left behind; `fillHeight` on `WorldMap` is
-            what makes the SVG itself follow that box rather than its own
-            aspect ratio. */}
-        <div className="relative min-h-0 flex-1 overflow-hidden lg:mt-7 lg:flex-none lg:overflow-visible">
-          {hasPlaces || plan.length > 0 || track.length > 0 ? (
-            <WorldMap
-              places={places}
-              plan={plan}
-              track={track}
-              basemap={basemap}
-              pastTense={pastTense}
-              accent={accent}
-              live={live}
-              selectedKey={selectedKey}
-              onSelect={(p) => selectStop(p ? p.key : null)}
-              stopCardFromLg
-              fillHeight
-            />
-          ) : (
-            // Not `story.empty`. "No entries yet" is true and is not the reason
-            // the map is missing; with neither days nor a route there is
-            // nothing to draw, and the message should say that instead.
-            //
-            // And not always the same sentence — B1289. `hasDays` tells apart
-            // "nobody has written a day" from "a day is written and has no
-            // place attached", which is the ordinary case for anybody writing
-            // without GPS and a different fact from the first. Saying "no days
-            // written" over a published day told an owner their day was
-            // missing when it was on the site.
-            <p className="flex h-full items-center justify-center p-6 text-center text-ink-secondary lg:block lg:h-auto lg:p-0 lg:text-left">
-              {t(hasDays ? "map.emptyNoPlace" : "map.empty")}
-            </p>
+                      {isSelected && (
+                        <div className="flex flex-col gap-2 px-4 pb-4">
+                          {headline && <p className="text-sm text-ink-body">{headline}</p>}
+                          {gallery.length > 0 && (
+                            <div className="flex gap-1.5 overflow-x-auto">
+                              {gallery.slice(0, 8).map((m) => (
+                                <span
+                                  key={m.src}
+                                  className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-md border border-line-quiet bg-surface-muted"
+                                >
+                                  {m.type === "video" ? (
+                                    <video
+                                      src={m.src}
+                                      poster={posterSrc(m.poster, POSTER_WIDTH.GRID)}
+                                      preload={m.poster ? "none" : "metadata"}
+                                      className="h-full w-full object-cover"
+                                      muted
+                                    />
+                                  ) : (
+                                    <Image
+                                      src={m.src}
+                                      loader={mediaLoader}
+                                      alt={m.alt ?? m.caption ?? place.location}
+                                      fill
+                                      sizes="64px"
+                                      className="object-cover"
+                                    />
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold">
+                            <a
+                              href={href(`/day/${place.entries[0].slug}`)}
+                              className="text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
+                            >
+                              {t("map.readDay")} →
+                            </a>
+                            <a
+                              href={googleMapsHref(place)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-ink-secondary underline decoration-line-quiet underline-offset-2"
+                            >
+                              <MapPin className="h-3.5 w-3.5" aria-hidden />
+                              {t("tripMap.googleMaps")}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
           )}
+
+          <div className="lg:sticky lg:top-6">
+            {hasPlaces || plan.length > 0 || track.length > 0 ? (
+              <WorldMap
+                places={places}
+                plan={plan}
+                track={track}
+                basemap={basemap}
+                pastTense={pastTense}
+                accent={accent}
+                live={live}
+                selectedKey={selectedKey}
+                onSelect={(p) => selectStop(p ? p.key : null)}
+                fillHeight
+                // The stop list to its left (above) already shows the
+                // selected stop's photos, headline, day link and Google Maps
+                // — the floating card over the map would only repeat it.
+                showStopCard={false}
+              />
+            ) : (
+              // Not `story.empty`. "No entries yet" is true and is not the reason
+              // the map is missing; with neither days nor a route there is
+              // nothing to draw, and the message should say that instead.
+              //
+              // And not always the same sentence — B1289. `hasDays` tells apart
+              // "nobody has written a day" from "a day is written and has no
+              // place attached", which is the ordinary case for anybody writing
+              // without GPS and a different fact from the first. Saying "no days
+              // written" over a published day told an owner their day was
+              // missing when it was on the site.
+              <p className="flex h-full items-center justify-center p-6 text-center text-ink-secondary lg:block lg:h-auto lg:p-0 lg:text-left">
+                {t(hasDays ? "map.emptyNoPlace" : "map.empty")}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* The planned-route legend and the still-to-come chips — desktop
@@ -380,46 +497,6 @@ export default function MapPageContent({
           )}
         </div>
 
-        {/* Withheld rather than drawn empty. A heading reading "Every stop"
-            over a blank bordered box says this trip had no stops, when what is
-            true is that it has not started — and where it is going is the list
-            immediately above. */}
-        {/* Hidden on phone — the sheet's full snap is this same list
-            (B2427), and the sheet's row is also a link to the day itself. */}
-        {hasPlaces && (
-          <section className="mt-10 hidden lg:block">
-            <h2 className="font-display text-xl font-semibold text-ink-strong">
-              {t("map.everyStop")}
-            </h2>
-            <ol className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
-              {places.map((place) => (
-                <li key={place.key}>
-                  <a
-                    href={href(`/day/${place.entries[0].slug}`)}
-                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-base"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate font-display text-sm font-semibold text-ink-strong">
-                        {flagFor(place.country, place.countryCode)} {place.location}
-                      </div>
-                      <div className="text-xs text-ink-secondary">{place.country}</div>
-                    </div>
-                    <div className="shrink-0 text-right text-xs text-ink-secondary">
-                      <div>
-                        {formatShortDate(place.firstDate)}
-                        {place.lastDate !== place.firstDate &&
-                          ` – ${formatShortDate(place.lastDate)}`}
-                      </div>
-                      <div>
-                        {formatStay(place.nights)} · {place.mediaCount} {t("media.count")}
-                      </div>
-                    </div>
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
       </main>
 
       {showing && (
