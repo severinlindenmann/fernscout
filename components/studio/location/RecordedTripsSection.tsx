@@ -297,7 +297,7 @@ export default function RecordedTripsSection({
                       />
                     </div>
                     <p className="mt-2 text-sm text-ink-secondary">
-                      {t("studio.location.route.cardFacts", {
+                      {tn("studio.location.route.cardFacts", trip.daysRecorded, {
                         days: String(trip.daysRecorded),
                         km: km.toFixed(1),
                         positions: String(trip.positions ?? 0),

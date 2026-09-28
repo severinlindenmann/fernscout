@@ -3,7 +3,7 @@ import WorldMap from "@/components/WorldMap";
 import DayLineMap from "./DayLineMap";
 import TrackEditsPanel from "./TrackEditsPanel";
 import { journalPath } from "@/lib/journalPath";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
 import { AS_AUTHOR, getPlaces } from "@/lib/entries";
 import { basemapForRoute } from "@/lib/basemap";
 import { kmBetween } from "@/lib/mapFrame";
@@ -149,7 +149,7 @@ export default async function TripDetailView({
       </div>
 
       <p className="mt-3 text-sm text-ink-secondary">
-        {t("studio.location.tripDetail.stats", {
+        {translatePluralIn(locale, "studio.location.tripDetail.stats", trip.daysRecorded, {
           days: String(trip.daysRecorded),
           km: km.toFixed(1),
           positions: String(positions),
