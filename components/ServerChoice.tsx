@@ -168,7 +168,7 @@ export default function ServerChoice({ signedIn }: { signedIn: boolean }) {
           </button>
         </form>
         {error && (
-          <p role="alert" className="mt-2 text-xs text-coral-400">
+          <p role="alert" className="mt-2 text-xs font-semibold text-cream-50">
             {t(ERROR_KEYS[error])}
           </p>
         )}
