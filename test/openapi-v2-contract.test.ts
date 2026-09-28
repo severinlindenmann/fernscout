@@ -189,6 +189,8 @@ describe("the v2 openapi document covers every route on disk", () => {
       // B2204: mints from the owner's cookie, same as the handover door
       // above — nothing is read from a body.
       "/api/auth/{user}/gps-token post",
+      // B2522: the identity cookie is the whole request.
+      "/api/auth/signup/identity post",
       "/api/v2/{user}/trips/{trip}/track post",
       "/api/v2/{user}/deletions/{token} post",
     ]);

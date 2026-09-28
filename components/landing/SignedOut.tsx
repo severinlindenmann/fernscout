@@ -2,7 +2,7 @@
 
 import Link from "@/components/LanguageLink";
 import type { ReactNode } from "react";
-import { Menu } from "lucide-react";
+import { Menu, Terminal } from "lucide-react";
 import AppWaitlistDoor from "@/components/AppWaitlistDoor";
 import { AgentBlock, LandingSteps } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
@@ -136,6 +136,14 @@ export default function SignedOut(props: SignedOutProps) {
           {prints && <Prints {...props} />}
           <How {...props} />
           <Trust />
+          {/* The door to /agentic, for the reader who already has an agent
+              open or would rather run this themselves: after what addresses
+              everybody, before what it costs. */}
+          <div className={`${WRAP} pb-16`}>
+            <div className="max-w-3xl">
+              <AgenticTeaser />
+            </div>
+          </div>
           {props.pricing}
           <Faq {...props} cta={cta} />
         </main>
@@ -509,6 +517,9 @@ function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: SignedO
           <Link href="/docs" className={link}>
             {t("landing.footerDocs")}
           </Link>
+          <Link href="/agentic" className={link}>
+            {t("landing.footerAgentic")}
+          </Link>
           {legal && (
             <Link href="/legal" className={link}>
               {t("landing.legal")}
@@ -533,5 +544,50 @@ function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: SignedO
         <p>{t("landing.noTracking")}</p>
       </div>
     </footer>
+  );
+}
+
+/**
+ * The teaser for `/agentic` — the page for self-hosters and people who bring
+ * their own agent. A dark, terminal-shaped card on purpose: it is the one
+ * block on this page addressed to somebody who already has a terminal open,
+ * and it should look like the thing it is about. `navy-950` and `cream-50`
+ * are palette tokens with the same value in both themes, so it stays dark
+ * in either. Makes no claim that depends on a capability — voice and print
+ * are named on `/agentic` itself, where they are gated.
+ */
+function AgenticTeaser() {
+  const { t } = useI18n();
+  return (
+    <section
+      aria-labelledby="agentic-teaser"
+      className="overflow-hidden rounded-2xl border border-navy-800 bg-navy-950 px-5 py-6 sm:px-6"
+    >
+      <p className="border-l-2 border-yellow-400 pl-2 font-mono text-[11px] uppercase tracking-[0.14em] text-cream-200">
+        {t("landing.agenticKicker")}
+      </p>
+      <h2
+        id="agentic-teaser"
+        className="mt-2 font-display text-xl font-semibold text-cream-50"
+      >
+        {t("landing.agenticTitle")}
+      </h2>
+      <p className="mt-2 text-base leading-7 text-cream-200">
+        {t("landing.agenticBody")}
+      </p>
+      <p className="mt-4 rounded-lg border border-navy-800 px-3 py-2 font-mono text-[13px] text-cream-200 [overflow-wrap:anywhere]">
+        <span aria-hidden className="mr-2 font-bold text-cream-50">$</span>
+        git clone …/fernscout-helper &amp;&amp; claude
+      </p>
+      <Link
+        href="/agentic"
+        className="mt-4 inline-flex min-h-11 items-center gap-2 text-base font-semibold text-cream-50
+                   underline decoration-yellow-400 decoration-2 underline-offset-4
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
+      >
+        <Terminal className="h-4 w-4" aria-hidden />
+        {t("landing.agenticCta")}
+      </Link>
+    </section>
   );
 }
