@@ -44,7 +44,7 @@ export type StreetOverlayOptions = {
   /** This region's own day numbers — everything outside it is simply never
    * drawn (the chip row stands for it instead). */
   regionDayNumbers: Set<number>;
-  /** `null` means "whole trip/region" — nothing muted, no fit. */
+  /** `null` means "whole trip/region" — nothing muted, fit the region. */
   selectedDay: number | null;
   accentHex: string;
   onSelectDay: (day: number) => void;
@@ -194,11 +194,11 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         // it to be markup.
         label.textContent = place.name;
         el.append(disc, label);
-        el.addEventListener("click", () => onSelectDay(place.day));
         mk = new Marker({ element: el }).setLngLat([place.lng, place.lat]).addTo(map);
         markers.set(place.day, mk);
       }
       const el = mk.getElement();
+      el.onclick = () => onSelectDay(place.day);
       el.style.display = hide ? "none" : "";
       el.style.opacity = muted ? "0.4" : "1";
       const disc = el.querySelector<HTMLElement>(".fs-daymarker-disc");
@@ -217,20 +217,16 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         markers.delete(day);
       }
     }
-
-    if (selectedDay !== null) {
-      const selectedPlace = places.find((p) => p.day === selectedDay);
-      const selectedLinePoints = activeLines.flatMap((l) => l.coords);
-      const box = boundsOf([...(selectedPlace ? [selectedPlace] : []), ...selectedLinePoints]);
-      if (box) {
-        map.fitBounds(box, {
-          padding,
-          maxZoom: 15,
-          duration: 400,
-        });
-      }
-    }
   };
+
+  // Fit only when selection/region changes, never on zoom redraws (which
+  // would fight the reader's camera and trigger another zoom event).
+  const selectedPlace = places.find((p) => p.day === selectedDay);
+  const fitPoints = selectedDay === null
+    ? places
+    : [...(selectedPlace ? [selectedPlace] : []), ...activeLines.flatMap((l) => l.coords)];
+  const box = boundsOf(fitPoints);
+  if (box) map.fitBounds(box, { padding, maxZoom: 15, duration: 400 });
 
   if (map.isStyleLoaded()) void draw();
   else map.once("load", () => void draw());

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
@@ -10,6 +10,7 @@ import TripListProvider from "@/components/TripListProvider";
 import { dictionaryFor } from "@/lib/locales";
 import type { PlaceView } from "@/components/WorldMap";
 import type { SiteSummary } from "@/lib/site";
+import type { Map as MapLibreMap } from "maplibre-gl";
 import type { PlaceEntry } from "@/lib/types";
 
 /**
@@ -36,6 +37,32 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/alex/trips/alps-2024/map",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
+}));
+
+// Keep the real street overlay; replace only MapLibre's WebGL boundary.
+const street = vi.hoisted(() => ({
+  fitBounds: vi.fn(),
+  getSource: vi.fn(() => ({ setData: vi.fn() })),
+  getLayer: vi.fn(() => ({})),
+  getZoom: vi.fn(() => 10),
+  isStyleLoaded: () => true,
+  on: vi.fn(), off: vi.fn(), once: vi.fn(),
+}));
+vi.mock("@/components/map/StreetMap", () => ({
+  default: ({ onReady }: { onReady: (map: MapLibreMap) => void }) => {
+    useEffect(() => onReady(street as unknown as MapLibreMap), [onReady]);
+    return <div data-street-map />;
+  },
+}));
+vi.mock("maplibre-gl", () => ({
+  Marker: class {
+    element: HTMLElement;
+    constructor({ element }: { element: HTMLElement }) { this.element = element; }
+    setLngLat() { return this; }
+    addTo() { document.querySelector("[data-street-map]")!.append(this.element); return this; }
+    getElement() { return this.element; }
+    remove() { this.element.remove(); }
+  },
 }));
 
 // jsdom has no ResizeObserver, and WorldMap measures itself with one.
@@ -102,7 +129,8 @@ afterEach(() => {
   window.history.replaceState(null, "", "/alex/trips/alps-2024/map");
 });
 
-function render(search: string) {
+function render(search: string, props: Partial<React.ComponentProps<typeof MapPageContent>> = {}) {
+  street.fitBounds.mockClear();
   window.history.replaceState(null, "", `/alex/trips/alps-2024/map${search}`);
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -115,9 +143,12 @@ function render(search: string) {
             <TripListProvider trips={[]}>
               <MapPageContent
                 places={places}
+                days={places.map((p) => ({ date: p.firstDate, slug: p.key, location: p.location,
+                  country: p.country, countryCode: p.countryCode, hasPlace: true, mediaCount: 1 }))}
                 stats={stats}
                 over
                 hasDays
+                {...props}
               />
             </TripListProvider>
           </CurrencyProvider>
@@ -152,16 +183,18 @@ describe("?day= on load", () => {
    */
   test("an unknown date selects nothing", () => {
     const el = render("?day=2099-01-01");
-    // Neither stop is pressed — the page's own no-selection default
-    // (`plottable[0]`, applied before this component ever reads the URL)
-    // is left standing, exactly as if `?day=` had never been on the link.
-    expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("true");
+    expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("false");
     expect(marker(el, "Susten").getAttribute("aria-pressed")).toBe("false");
   });
 
-  test("with no ?day= at all, the page's own default stands", () => {
+  test("without ?day= the whole trip is selected, with collapsed days and unmuted markers", () => {
     const el = render("");
-    expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("true");
+    expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("false");
+    expect(marker(el, "Susten").getAttribute("aria-pressed")).toBe("false");
+    expect(el.querySelectorAll('section button[aria-expanded="false"]')).toHaveLength(2);
+    expect(el.querySelector('section button[aria-expanded="true"]')).toBeNull();
+    expect(el.querySelector('g[opacity="0.35"]')).toBeNull();
+    expect(window.location.search).toBe("");
   });
 });
 
@@ -178,4 +211,106 @@ describe("selecting a day", () => {
     // before this tap, not to the previous selection.
     expect(window.history.length).toBe(before);
   });
+});
+
+function click(element: Element) {
+  act(() => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+}
+function button(el: HTMLElement, text: string) {
+  return [...el.querySelectorAll("button")].find((b) => b.textContent === text)!;
+}
+
+test("SVG marker repeat-click and Whole trip both clear selection and restore the camera", () => {
+  const el = render("");
+  const svg = el.querySelector('svg[role="group"]')!;
+  const overview = svg.getAttribute("viewBox");
+  click(marker(el, "Susten"));
+  click(button(el, dictionaryFor("en")["map.thisStop"]));
+  expect(svg.getAttribute("viewBox")).not.toBe(overview);
+  click(button(el, dictionaryFor("en")["map.wholeTrip"]));
+  expect(svg.getAttribute("viewBox")).toBe(overview);
+  expect(window.location.search).toBe("");
+  expect(marker(el, "Susten").getAttribute("aria-pressed")).toBe("false");
+  click(marker(el, "Susten"));
+  click(marker(el, "Susten"));
+  expect(window.location.search).toBe("");
+  expect(marker(el, "Susten").getAttribute("aria-pressed")).toBe("false");
+});
+
+test("desktop day buttons toggle selection and collapse again", () => {
+  const el = render("");
+  const day = el.querySelector('section button[aria-expanded]')!;
+  click(day);
+  expect(day.getAttribute("aria-expanded")).toBe("true");
+  expect(window.location.search).toBe("?day=2024-09-01");
+  click(day);
+  expect(day.getAttribute("aria-expanded")).toBe("false");
+  expect(window.location.search).toBe("");
+  expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("false");
+});
+
+const streetMap = { url: "/test.pmtiles", bounds: [[0, 0], [20, 60]] as [[number, number], [number, number]] };
+
+test.each(["", "?day=2024-09-01"])("street map fits overview and restores it after repeat-click (%s)", async (search) => {
+  const far = place("far", "Far away", "2024-08-31", 1, 100);
+  const el = render(search, { streetMap, places: [far, ...places], trackByDay: [
+    { date: places[0].firstDate, points: [[46.57, 8.41], [46.58, 8.42]] },
+  ] });
+  await act(async () => {});
+  const overview = [[8.4113, 46.5713], [8.4456, 46.7264]];
+  const first = el.querySelector('[data-street-map] button[aria-label="Furka"]') as HTMLElement;
+  const second = el.querySelector('[data-street-map] button[aria-label="Susten"]') as HTMLElement;
+  expect(el.querySelector('[data-street-map] button[aria-label="Far away"]')).toBeNull();
+  if (!search) {
+    expect(street.fitBounds.mock.lastCall?.[0]).toEqual(overview);
+    expect([first.style.opacity, second.style.opacity]).toEqual(["1", "1"]);
+    click(first);
+    await act(async () => {});
+  }
+  expect(window.location.search).toBe("?day=2024-09-01");
+  expect(street.fitBounds.mock.lastCall?.[0]).not.toEqual(overview);
+  expect(second.style.opacity).toBe("0.4");
+  // Reuse the same DOM marker: its click handler must see current selection.
+  click(first);
+  await act(async () => {});
+  expect(window.location.search).toBe("");
+  expect(street.fitBounds.mock.lastCall?.[0]).toEqual(overview);
+  expect([first.style.opacity, second.style.opacity]).toEqual(["1", "1"]);
+  expect(el.textContent).toContain(dictionaryFor("en")["map.legend.recorded"]);
+});
+
+const plan = places.map((p) => ({ location: p.location, country: p.country,
+  countryCode: p.countryCode, lat: p.lat, lng: p.lng, reached: false }));
+
+test.each([
+  { name: "finished, fully reached", over: true, hasDays: true, plan: plan.map((p) => ({ ...p, reached: true })), shown: false },
+  { name: "finished, unreached stops", over: true, hasDays: true, plan, shown: false },
+  { name: "not started", over: false, hasDays: false, plan, shown: true },
+  { name: "under way", over: false, hasDays: true, plan: [{ ...plan[0], reached: true }, plan[1]], shown: true },
+  { name: "no plan", over: false, hasDays: true, plan: [], shown: false },
+  { name: "one stop, no leg", over: false, hasDays: false, plan: plan.slice(0, 1), shown: false },
+  { name: "all stops reached", over: false, hasDays: true, plan: plan.map((p) => ({ ...p, reached: true })), shown: false },
+])("planned legend: $name", ({ shown, ...props }) => {
+  const el = render("", props);
+  expect(el.textContent?.includes(dictionaryFor("en")["map.planned"])).toBe(shown);
+  expect(el.textContent?.includes(dictionaryFor("en")["map.progress"])).toBe(shown);
+});
+
+test("street map has no planned legend because it draws no planned legs", async () => {
+  const el = render("", { over: false, plan, streetMap });
+  await act(async () => {});
+  expect(el.textContent).not.toContain(dictionaryFor("en")["map.planned"]);
+});
+
+test("mobile list repeat-click clears the day and returns to the collapsed strip", () => {
+  const el = render("");
+  const sheet = el.querySelector("div.fixed.inset-x-0") as HTMLElement;
+  const strip = sheet.querySelector('[role="list"]')!;
+  click(strip.querySelector("button")!);
+  expect(window.location.search).toBe("?day=2024-09-01");
+  click(sheet.querySelector('button[aria-label="' + dictionaryFor("en")["map.everyDay"] + '"]')!);
+  click(sheet.querySelector("ol button")!);
+  expect(window.location.search).toBe("");
+  expect(sheet.querySelector('[role="list"]')).not.toBeNull();
+  expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("false");
 });

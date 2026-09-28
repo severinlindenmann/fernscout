@@ -177,7 +177,6 @@ export default function MapPageContent({
   const hasDraftStops = plan.some((s) => s.fromDraft);
   const hasDraftPlaces = places.some((p) => p.entries.some((e) => e.draft));
   const hasPlaces = places.length > 0;
-  const plottable = useMemo(() => places.filter(isPlottable), [places]);
   // `WorldMap`'s own flattened shape — it never asked for a day, only points.
   const track = useMemo(() => trackByDay.map((s) => s.points), [trackByDay]);
 
@@ -239,7 +238,7 @@ export default function MapPageContent({
   const [regionIndex, setRegionIndex] = useState(frame.mainRegionIndex);
 
   const regionDayNumbers = useMemo(
-    () => new Set((frame.regions[regionIndex]?.places ?? []).map((p) => p.day)),
+    () => new Set((frame.isTour ? frame.framePlaces : frame.regions[regionIndex]?.places ?? []).map((p) => p.day)),
     [frame, regionIndex],
   );
   // A tour shows every place at once (docs/plans/2026-09-28-trip-maps —
@@ -262,9 +261,7 @@ export default function MapPageContent({
 
   const plottableInRegion = useMemo(() => regionPlaces.filter(isPlottable), [regionPlaces]);
 
-  const [selectedDate, setSelectedDate] = useState<string | null>(
-    () => days.find((d) => d.hasPlace)?.date ?? plottable[0]?.firstDate ?? null,
-  );
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sheetInset, setSheetInset] = useState(0);
 
   // Selects a day and carries it in the URL as `?day=<date>` (B2537 — was
@@ -285,6 +282,10 @@ export default function MapPageContent({
       `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
     );
   }, []);
+
+  const toggleDay = useCallback((date: string | null) => {
+    selectDay(date === selectedDate ? null : date);
+  }, [selectDay, selectedDate]);
 
   const [dayParam] = useState<string | null>(() =>
     typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("day"),
@@ -315,6 +316,10 @@ export default function MapPageContent({
   const selectedDayNumber = selectedPlace ? (dayNumberByDate.get(selectedPlace.firstDate) ?? null) : null;
 
   const pastTense = over && hasDays;
+  // WorldMap draws from the last reached stop onward, and needs two
+  // stops for a leg. StreetMap currently draws no planned legs.
+  const lastReached = plan.findLastIndex((stop) => stop.reached);
+  const showPlannedLegend = !over && !streetMap && plan.length - Math.max(0, lastReached) > 1;
 
   useEffect(() => {
     if (!hasPlaces) return;
@@ -381,7 +386,7 @@ export default function MapPageContent({
         accentHex: ACCENT_HEX[accent],
         onSelectDay: (day) => {
           const date = dateByDayNumber.get(day);
-          if (date) selectDay(date);
+          if (date) toggleDay(date);
         },
         // Keeps a fitted day clear of the header above and the phone
         // sheet's own peek height below — `sheetInset` is 0 on desktop and
@@ -395,7 +400,7 @@ export default function MapPageContent({
     return () => {
       map.off("zoom", redraw);
     };
-  }, [streetMapReady, frame, regionDayNumbers, selectedDayNumber, accent, dateByDayNumber, selectDay, sheetInset]);
+  }, [streetMapReady, frame, regionDayNumbers, selectedDayNumber, accent, dateByDayNumber, toggleDay, sheetInset]);
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden lg:h-screen">
@@ -497,7 +502,7 @@ export default function MapPageContent({
                     {day.hasPlace ? (
                       <button
                         type="button"
-                        onClick={() => selectDay(day.date)}
+                        onClick={() => toggleDay(day.date)}
                         aria-expanded={isSelected}
                         className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-base${
                           isSelected ? " bg-surface-selected" : ""
@@ -599,9 +604,9 @@ export default function MapPageContent({
             </ol>
           )}
 
-          {(plan.length > 0 || remaining.length > 0) && (
+          {(showPlannedLegend || (!over && remaining.length > 0)) && (
             <div className="mt-2 flex flex-col gap-3 border-t border-line-quiet px-4 py-3">
-              {plan.length > 0 && (
+              {showPlannedLegend && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-secondary">
                   <span className="flex items-center gap-1.5">
                     <svg width="20" height="6" aria-hidden className="shrink-0">
@@ -626,7 +631,7 @@ export default function MapPageContent({
                   )}
                 </div>
               )}
-              {remaining.length > 0 && (
+              {!over && remaining.length > 0 && (
                 <div>
                   <h2 className="font-display text-sm font-semibold text-ink-strong">{t("map.stillToCome")}</h2>
                   <ol className="mt-2 flex flex-wrap gap-1.5">
@@ -710,7 +715,7 @@ export default function MapPageContent({
         days={days}
         places={places}
         selectedDate={selectedDate}
-        onSelectDate={selectDay}
+        onSelectDate={toggleDay}
         onInsetChange={setSheetInset}
         hrefForDay={(slug) => href(`/day/${slug}`)}
       />

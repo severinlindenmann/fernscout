@@ -131,21 +131,18 @@ export default function MobileMapSheet({
   // A new selection — a marker tapped on the map, or a day picked here —
   // opens the sheet to Half, so whichever surface drove it, the result is
   // the same day in view. Not on the very first render (the page's own
-  // default selection shouldn't pop the sheet open by itself), and not on a
-  // selection *clearing* (`null` only ever comes from the map's own close
-  // button, which shouldn't reopen a sheet that was closed).
+  // default selection shouldn't pop the sheet open by itself). Clearing a
+  // selection returns to the strip, with no day's details left open.
   const lastDate = useRef(selectedDate);
   useEffect(() => {
     if (selectedDate && selectedDate !== lastDate.current) setSnap(HALF);
+    if (!selectedDate) setSnap(PEEK);
     lastDate.current = selectedDate;
   }, [selectedDate]);
 
   if (days.length === 0) return null;
 
-  const selectedIndex = Math.max(
-    0,
-    days.findIndex((d) => d.date === selectedDate),
-  );
+  const selectedIndex = days.findIndex((d) => d.date === selectedDate);
   const selectedDay = days[selectedIndex];
   const selectedPlace = places.find(
     (p) => selectedDay && selectedDay.date >= p.firstDate && selectedDay.date <= p.lastDate,
@@ -353,13 +350,10 @@ export default function MobileMapSheet({
                   <button
                     type="button"
                     onClick={() => {
-                      // Explicit, not only the generic "a new selection opens
-                      // Half" effect below: re-tapping the day already
-                      // selected changes no key, so that effect wouldn't
-                      // fire, and tapping a row in Full should always jump to
-                      // Half.
+                      // A new day opens its details; repeating it returns
+                      // to the whole-trip strip.
                       goToDay(day);
-                      setSnap(HALF);
+                      setSnap(day.date === selectedDate ? PEEK : HALF);
                     }}
                     className="flex w-full items-center justify-between gap-3 py-3 text-left"
                   >

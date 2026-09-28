@@ -462,6 +462,13 @@ export default function WorldMap({
     [onSelectProp],
   );
 
+  const clearSelection = useCallback(() => {
+    setSelectedState(null);
+    setScope("trip");
+    reset();
+    onSelectProp?.(null);
+  }, [reset, onSelectProp]);
+
   // An outside nudge (B2427's mobile sheet, tapping a stop in its own list,
   // or its own copy of the time scrubber) — applied through `selectPlace`
   // so it gets the exact same scope-aware camera behaviour a tap on the map
@@ -474,12 +481,12 @@ export default function WorldMap({
     lastExternalKey.current = selectedKeyProp;
     if (selectedKeyProp === null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedState(null);
+      clearSelection();
       return;
     }
     const place = places.find((p) => p.key === selectedKeyProp);
     if (place) selectPlace(place);
-  }, [selectedKeyProp, places, selectPlace]);
+  }, [selectedKeyProp, places, selectPlace, clearSelection]);
 
   // Track is the real route; hops are a straight-line reconstruction of one.
   // Never both — a recorded line is what actually happened, and drawing a
@@ -917,7 +924,7 @@ export default function WorldMap({
                   selected={selected?.key === place.key}
                   ariaLabel={`${place.location}, ${place.country}`}
                   px={px}
-                  onSelect={() => selectPlace(place)}
+                  onSelect={() => selected?.key === place.key ? clearSelection() : selectPlace(place)}
                 />
               </g>
             );
@@ -953,7 +960,7 @@ export default function WorldMap({
               onChange={(next) => {
                 setScope(next);
                 if (next === "stop") focusOnStop(selected);
-                else reset();
+                else clearSelection();
               }}
             />
           </div>
@@ -969,10 +976,7 @@ export default function WorldMap({
               className="absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm"
             >
               <button
-                onClick={() => {
-                  setSelectedState(null);
-                  onSelectProp?.(null);
-                }}
+                onClick={clearSelection}
                 aria-label="Close"
                 className="absolute right-2 top-2 rounded-full p-1 text-ink-secondary hover:bg-surface-selected/60 hover:text-ink-strong"
               >
