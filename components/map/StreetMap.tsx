@@ -68,30 +68,30 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
     let map: import("maplibre-gl").Map | undefined;
 
     (async () => {
-      const [{ default: maplibregl }, { Protocol }, { paperStyle }] = await Promise.all([
+      // maplibre-gl has no default export — named imports only.
+      const [{ Map, NavigationControl, addProtocol }, { Protocol }, { paperStyle }] = await Promise.all([
         import("maplibre-gl"),
         import("pmtiles"),
         import("@/lib/map/paperFlavor"),
-        // @ts-expect-error — no type declarations for the plain CSS import; Next
-        // resolves it as a stylesheet, loaded only once this effect runs.
         import("maplibre-gl/dist/maplibre-gl.css"),
       ]);
       if (cancelled || !containerRef.current) return;
 
       // Idempotent: `addProtocol` overwrites rather than erroring on a second
       // call, but registering once per loaded module is simplest and cheap.
-      maplibregl.addProtocol("pmtiles", new Protocol().tile);
+      addProtocol("pmtiles", new Protocol().tile);
 
-      map = new maplibregl.Map({
+      const created = new Map({
         container: containerRef.current,
         style: paperStyle(pmtilesUrl, currentScheme(), locale),
         bounds,
         fitBoundsOptions: { padding },
         attributionControl: false,
       });
-      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-      mapRef.current = map;
-      onReady?.(map);
+      created.addControl(new NavigationControl({ showCompass: false }), "top-right");
+      map = created;
+      mapRef.current = created;
+      onReady?.(created);
     })();
 
     return () => {

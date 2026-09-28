@@ -14,7 +14,7 @@ import path from "node:path";
 import { AS_AUTHOR, getPlaces } from "../lib/entries";
 import { isPlottable } from "../lib/mapFrame";
 import { getTrip, tripRef } from "../lib/trips";
-import { clusterRegions, mapsSource, paddedBbox, requirePmtilesBinary, runPmtilesExtract } from "./maps-lib";
+import { clusterRegions, mapsSource, paddedBbox, requirePmtilesBinary, runPmtilesExtract } from "./maps-lib.mts";
 import type { MapRegion } from "../lib/maps/dir";
 
 /** ~15 km padding, per the plan. */

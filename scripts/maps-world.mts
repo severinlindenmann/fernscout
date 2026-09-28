@@ -11,7 +11,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { mapsSource, requirePmtilesBinary, runPmtilesExtract } from "./maps-lib";
+import { mapsSource, requirePmtilesBinary, runPmtilesExtract } from "./maps-lib.mts";
 
 function main() {
   const dir = process.env.MAPS_DIR?.trim();
