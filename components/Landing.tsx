@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { ChevronRight, CircleUserRound } from "lucide-react";
 import { AgentBlock, PublicJournals, type PublicJournal } from "@/components/LandingSections";
 import SignedOut, { ReaderStrip, type InviteCta, type NavLink } from "@/components/landing/SignedOut";
 import { Footer, Stripe, TAB_BAR_ROOM } from "@/components/landing/Frame";
@@ -247,7 +248,6 @@ export default function Landing({
             photobookEnabled={photobookEnabled}
             signupEnabled={signupEnabled}
           />
-          {publicList}
           {/*
             B797: the write call to action, its paragraph, the agent
             disclosure and the docs link used to sit here for every signed-in
@@ -267,17 +267,27 @@ export default function Landing({
           )}
           {/* Devices, sign-out and everything else about the person rather
               than a journal live on `/me` now — reached from the header's
-              account chip, and from here in words for anybody who does not
-              read a chip as a door. */}
-          <p className="mt-12 border-t border-line-quiet pt-8 text-sm leading-6 text-ink-body">
-            <Link
-              href="/me"
-              className="font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-4
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              {t("home.accountLink")}
-            </Link>
-          </p>
+              account chip, and as a row card here for anybody who does not
+              read a chip as a door — B2532's row, same shape as every other
+              card on this page rather than an underlined sentence. */}
+          <Link
+            href="/me"
+            className="mt-12 flex items-center gap-4 rounded-3xl border border-surface-muted bg-surface-raised px-5 py-4
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            <span aria-hidden className="grid size-11 flex-none place-items-center rounded-xl bg-surface-subtle">
+              <CircleUserRound className="size-6 text-ink-strong" strokeWidth={2} />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="font-display text-lg font-semibold text-ink-strong">{t("home.account.title")}</span>
+              <span className="text-sm text-ink-body">{t("home.account.body")}</span>
+            </span>
+            <ChevronRight aria-hidden className="size-5 flex-none text-ink-strong" />
+          </Link>
+          {/* B2532: the last section of the page, just above the footer —
+              this instance's own journals matter least to somebody who
+              already has one of their own. */}
+          {publicList}
           {/* Inside the iPhone app only: which server it is talking to. */}
           <ServerChoice signedIn />
         </main>

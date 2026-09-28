@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "60c578e7ae7f439e62c623ef6a833d64681a4710",
+  "generatedFrom": "fd05920758f6ec7556478278991c11dcb02925bf",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -800,6 +800,15 @@
     "purchase.refund.subject",
     "purchase.refund.title",
     "studio.orders.lede",
+    "studio.orders.photobook.body",
+    "studio.orders.photobook.cta",
+    "studio.orders.photobook.none",
+    "studio.orders.photobook.pick",
+    "studio.orders.photobook.recent",
+    "studio.orders.photobook.title",
+    "studio.orders.postcard.body",
+    "studio.orders.postcard.cta",
+    "studio.orders.postcard.title",
     "studio.photobook.pick.current",
     "studio.photobook.pick.dayCount",
     "studio.photobook.pick.dayCount.one",
