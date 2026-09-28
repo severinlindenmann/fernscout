@@ -123,6 +123,7 @@ export function composeInviteRequestMail(locale: string): MailComposition {
     subject: t("inviteRequest.mailSubject"),
     content: {
       template: "notice.inviteRequest",
+      locale,
       preheader: t("inviteRequest.mailSubject"),
       title: t("inviteRequest.mailSubject"),
       blocks,

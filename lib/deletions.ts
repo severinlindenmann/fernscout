@@ -444,6 +444,7 @@ export function composeDeletionMail(input: {
     subject: t(isJournal ? "del.journalSubject" : "del.tripSubject", counts),
     content: {
       template: "notice.delete",
+      locale,
       preheader: t(isJournal ? "del.journalIntro" : "del.tripIntro", counts),
       title: t(isJournal ? "del.journalTitle" : "del.tripTitle"),
       blocks,
@@ -611,7 +612,14 @@ export function composeExportMail(input: {
   return {
     channel: "mail",
     subject: t("exp.subject", vars),
-    content: { template: "notice.export", preheader: t("exp.intro", vars), title: t("exp.title"), blocks, why: t("exp.footer", vars) },
+    content: {
+      template: "notice.export",
+      locale,
+      preheader: t("exp.intro", vars),
+      title: t("exp.title"),
+      blocks,
+      why: t("exp.footer", vars),
+    },
   };
 }
 
