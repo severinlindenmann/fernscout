@@ -59,7 +59,7 @@ export function trackFile(username: string, tripId: string): string {
  * Read by nobody but `readerTrack` below, which is the same single door
  * `track.json` itself has.
  */
-export function tailFile(username: string, tripId: string): string {
+function tailFile(username: string, tripId: string): string {
   return path.join(contentRoot(), username, "trips", tripId, "track-recent.json");
 }
 
