@@ -14,6 +14,7 @@ import type { ExistingTripSummary, NewTripContact, NewTripFigure } from "@/lib/s
 import type { TranslationKey } from "@/lib/i18n";
 import StepBody from "@/components/studio/StepBody";
 
+import { journalPath } from "@/lib/journalPath";
 /** One screen since B2187 — not a wizard, so no step indicator and no
  *  check list. `useStep` stays for its session draft alone (B2077): a reload
  *  keeps what was typed. The overlap notice, done and a failed write are
@@ -145,7 +146,7 @@ const ACCENT_SWATCH: Record<string, string> = {
  * `accents` arrive as props rather than an import from `lib/tripWrite.ts`
  * directly — that module is `server-only`, and `components/SignupWizard.tsx`
  * already hit this same wall and left the comment explaining it; the server
- * page component (`app/[user]/studio/trip/new/page.tsx`) is what actually
+ * page component (`app/at/[user]/studio/trip/new/page.tsx`) is what actually
  * imports the real lists, this only renders the ones it was handed.
  *
  * **The trap this flow exists to avoid (spec §7.2):** `POST
@@ -913,7 +914,7 @@ export default function NewTripFlow({
           <p className="mt-3 text-sm text-ink-secondary">{t("studio.newTrip.decide.currentNotice")}</p>
           {photoRun && (photoRun.start !== initialRange?.start || photoRun.end !== initialRange?.end) && (
             <Link
-              href={`/${username}/studio/trip/new?start=${photoRun.start}&end=${photoRun.end}`}
+              href={`${journalPath(username)}/studio/trip/new?start=${photoRun.start}&end=${photoRun.end}`}
               className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-ink-body underline underline-offset-2"
             >
               {t("studio.newTrip.fromPhotos.link")}
@@ -960,7 +961,7 @@ export default function NewTripFlow({
             next={[
               {
                 title: t("studio.newTrip.done.firstDay.title"),
-                href: `/${username}/studio/day/new?trip=${encodeURIComponent(createdId)}`,
+                href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(createdId)}`,
                 label: t("studio.newTrip.done.addFirstDay"),
               },
               // B2187 — one way to let somebody in, said before the tap.
@@ -972,7 +973,7 @@ export default function NewTripFlow({
                     {
                       title: t("studio.newTrip.done.invite.title", { names: namedContacts.map((c) => c.name).join(", ") }),
                       body: t("studio.newTrip.done.invite.note"),
-                      href: `/${username}/studio/people`,
+                      href: `${journalPath(username)}/studio/people`,
                       label: t("studio.newTrip.done.invite.cta"),
                     },
                   ]
@@ -981,7 +982,7 @@ export default function NewTripFlow({
                       {
                         title: t("studio.newTrip.done.readAlong.title"),
                         body: t("studio.newTrip.done.readAlong.body"),
-                        href: `/${username}/studio/readers#invite`,
+                        href: `${journalPath(username)}/studio/readers#invite`,
                         label: t("studio.newTrip.done.readAlong.cta"),
                       },
                     ]

@@ -6,6 +6,7 @@ import { Contact, Eye, FileText, MapPin, Play, Receipt, ScrollText } from "lucid
 import { useI18n } from "@/components/LocaleProvider";
 import type { InboxFileType, InboxRow } from "@/lib/studio/inbox";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * One inbox tile — split out of `InboxHub.tsx` (B1995) so its own icons, its
  * date/dimensions line and its `.vcf` detail sheet can be built without
@@ -288,7 +289,7 @@ export default function InboxTile({
           <p className="mt-1 text-[11px] text-ink-secondary">{dateLabel}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Link
-              href={`/${encodeURIComponent(username)}/studio/people?step=bring&name=${encodeURIComponent(row.contact.name ?? "")}`}
+              href={`${journalPath(encodeURIComponent(username))}/studio/people?step=bring&name=${encodeURIComponent(row.contact.name ?? "")}`}
               className="min-h-9 rounded-full bg-yellow-400 px-3 text-xs font-semibold text-yellow-950"
             >
               {t("studio.inbox.createPerson")}

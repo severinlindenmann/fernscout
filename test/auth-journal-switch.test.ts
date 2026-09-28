@@ -13,7 +13,7 @@ import { issueCode } from "@/lib/auth";
  * B252 — the trip gate and `/api/auth/*` used to ask two different
  * questions about the same journal.
  *
- * `app/[user]/trips/[trip]/layout.tsx` asked `isEnabled("auth", user)` — the
+ * `app/at/[user]/trips/[trip]/layout.tsx` asked `isEnabled("auth", user)` — the
  * per-journal opt-in every other capability used to have — while
  * `/api/auth/request` and `/api/auth/verify` asked only `isEnabled("auth")`,
  * the server-wide ceiling, with no username. So a journal that never turned

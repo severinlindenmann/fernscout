@@ -39,7 +39,7 @@ const SLUG = "bangkok";
 let dir: string;
 
 async function get(file: string, headers?: Record<string, string>): Promise<Response> {
-  const { GET } = await import("@/app/[user]/media/[...path]/route");
+  const { GET } = await import("@/app/at/[user]/media/[...path]/route");
   const segments = [TRIP, SLUG, file];
   return GET(
     new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`, { headers }),

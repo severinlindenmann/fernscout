@@ -11,6 +11,7 @@ import { SKILL_DOC_SLUGS, SKILL_DOC_SUMMARY, SKILL_DOC_TITLE } from "./skillDocM
 // kept in one place so they cannot come to disagree.
 import { PRIVATE_SHUTS_OUT_GUESTS, VISIBILITY_MEANING, VISIBILITY_NOT_A_LOCK, wrap } from "./agentCopy";
 
+import { journalPath } from "../journalPath";
 /**
  * The document an owner hands to their agent (decision 25).
  *
@@ -269,7 +270,7 @@ export function instanceDocumentation(): string {
       .filter(Boolean)
       .join(" — ");
     const marker = username === defaultUser ? " (served at the bare domain too)" : "";
-    lines.push(`- [${user.title}](${base()}/${username}/documentation.txt): ${note}${marker}`);
+    lines.push(`- [${user.title}](${base()}${journalPath(username)}/documentation.txt): ${note}${marker}`);
   }
 
   lines.push(
@@ -310,7 +311,7 @@ export function userDocumentation(username: string): string | null {
   const user = getUser(username);
   if (!user) return null;
 
-  const root = `${base()}/${username}`;
+  const root = `${base()}${journalPath(username)}`;
   const trips = getTrips(username).filter(isIndexable);
 
   const lines: string[] = [

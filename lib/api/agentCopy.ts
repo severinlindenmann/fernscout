@@ -136,6 +136,7 @@ export const SECOND_LANGUAGE_COMMITMENT =
 // it exists. The media limits table already works this way.
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "../i18n";
 
+import { journalPath } from "../journalPath";
 /**
  * The maintained languages, named the way a person recognises them —
  * "Deutsch", not "de" — with the code beside each for the field that actually
@@ -283,7 +284,7 @@ export const TRIP_FIELDS: {
     required: false,
     what:
       "The mirror of `listed`, for a trip nobody may read: `true` on a `guest` or `private` " +
-      "trip puts a locked card on `/<user>/trips` carrying the title, the dates and nothing " +
+      "trip puts a locked card on `/@<user>/trips` carrying the title, the dates and nothing " +
       "else, so a reader knows the journey exists and can ask to be let in. Refused on a " +
       "public trip. It grants nothing — `visibility` still decides who may open it.",
   },
@@ -547,7 +548,7 @@ export function handoverPrompt(input: {
 }): string {
   const { siteUrl, username, handover, minutes } = input;
   return [
-    `You are writing for a Fernscout travel journal that already exists: ${siteUrl}/${username}`,
+    `You are writing for a Fernscout travel journal that already exists: ${siteUrl}${journalPath(username)}`,
     "",
     `1. Exchange this handover code for your own 7-day token. It works once, for ${minutes} minutes:`,
     "",
@@ -651,7 +652,7 @@ export function buddyPrompt(input: {
     code: "<the six digits>",
   });
   return [
-    `You are writing one trip in a Fernscout travel journal: ${siteUrl}/${username}/trips/${tripId}`,
+    `You are writing one trip in a Fernscout travel journal: ${siteUrl}${journalPath(username)}/trips/${tripId}`,
     "",
     "1. Ask for a code. It is emailed to me, and I will read it to you — this",
     "   call tells you nothing on its own:",

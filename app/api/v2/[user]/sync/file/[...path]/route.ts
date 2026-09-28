@@ -28,7 +28,7 @@ export async function GET(
   if (!auth.ok) return auth.response;
 
   // Next has already percent-decoded each segment — one decode, done by the
-  // framework, the same reliance `app/[user]/media/[...path]/route.ts` and
+  // framework, the same reliance `app/at/[user]/media/[...path]/route.ts` and
   // the v1 sync route both document.
   const file = resolveSyncPath(user, segments.join("/"));
   if (!file) return fail("not_found", ERROR_CODES.not_found, undefined, 404);
@@ -41,7 +41,7 @@ export async function GET(
   }
   if (!stat.isFile()) return fail("not_found", ERROR_CODES.not_found, undefined, 404);
 
-  // Read whole, like the v1 route and app/[user]/media/[...path]/route.ts —
+  // Read whole, like the v1 route and app/at/[user]/media/[...path]/route.ts —
   // these are the site's own derivatives, never a photobook's originals/.
   return new Response(new Uint8Array(fs.readFileSync(file)), {
     headers: {

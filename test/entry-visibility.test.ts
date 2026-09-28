@@ -395,7 +395,7 @@ describe("the surfaces that walk every entry", () => {
  */
 describe("the photographs of a held-back update", () => {
   async function fetchPhoto(tripId: string, slug: string, file: string, query = "") {
-    const { GET } = await import("@/app/[user]/media/[...path]/route");
+    const { GET } = await import("@/app/at/[user]/media/[...path]/route");
     const segments = [tripId, slug, file];
     return GET(
       new Request(`https://example.test/${OWNER}/media/${segments.join("/")}${query}`),

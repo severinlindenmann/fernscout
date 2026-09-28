@@ -17,6 +17,7 @@ import type { ReminderChannel, Trip } from "../types";
 import { getUser, getUsernames, userDir } from "../users";
 import type { UserConfig } from "../config";
 
+import { journalPath } from "../journalPath";
 /**
  * The evening nudge itself — B1219, D46, and B673's open question answered.
  *
@@ -108,7 +109,7 @@ export function composeEveningNudge(
         {
           kind: "button",
           text: translateIn(locale, "mail.reminderButton"),
-          href: `${serverSite().url}/${encodeURIComponent(input.username)}/studio/day/new`,
+          href: `${serverSite().url}${journalPath(encodeURIComponent(input.username))}/studio/day/new`,
         },
       ],
       why: translateIn(locale, "mail.why.reminder", { site: input.journalTitle }),

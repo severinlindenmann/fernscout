@@ -351,25 +351,25 @@ describe("the destinations in the index", () => {
     const json = await jsonFor("stranger");
     // No trip in this fixture is `status: current`, so `open-2026` keeps its
     // own trip-scoped URLs rather than the bare journal ones.
-    expect(json).toContain(`/${OWNER}/trips/open-2026/gallery`);
-    expect(json).toContain(`/${OWNER}/trips/open-2026/map`);
+    expect(json).toContain(`/@${OWNER}/trips/open-2026/gallery`);
+    expect(json).toContain(`/@${OWNER}/trips/open-2026/map`);
   });
 
   test("the owner's search finds the account page", async () => {
     const json = await jsonFor("owner");
-    expect(json).toContain(`/${OWNER}/studio/account`);
+    expect(json).toContain(`/@${OWNER}/studio/account`);
     expect(json.toLowerCase()).toContain("storage");
   });
 
   test("nobody else's search finds it — not a fellow traveller, not an approved guest, not a stranger", async () => {
     for (const viewer of ["buddy", "guest", "stranger"]) {
       const json = await jsonFor(viewer);
-      expect(json).not.toContain(`/${OWNER}/studio/account`);
+      expect(json).not.toContain(`/@${OWNER}/studio/account`);
     }
     // And not in the anonymous, prerendered index either.
     const { buildSearchIndexJson } = await import("@/lib/search");
     const anonymousJson = buildSearchIndexJson(OWNER)!;
-    expect(anonymousJson).not.toContain(`/${OWNER}/studio/account`);
+    expect(anonymousJson).not.toContain(`/@${OWNER}/studio/account`);
   });
 });
 
@@ -383,18 +383,18 @@ describe("the destinations in the index", () => {
 describe("the studio in the index — B1964", () => {
   test("the owner's search finds the studio by name", async () => {
     const json = await jsonFor("owner");
-    expect(json).toContain(`/${OWNER}/studio`);
+    expect(json).toContain(`/@${OWNER}/studio`);
   });
 
   test("a reader searching the same journal finds nothing — not a fellow traveller, not an approved guest, not a stranger", async () => {
     for (const viewer of ["buddy", "guest", "stranger"]) {
       const json = await jsonFor(viewer);
-      expect(json).not.toContain(`/${OWNER}/studio`);
+      expect(json).not.toContain(`/@${OWNER}/studio`);
     }
     // And not in the anonymous, prerendered index either.
     const { buildSearchIndexJson } = await import("@/lib/search");
     const anonymousJson = buildSearchIndexJson(OWNER)!;
-    expect(anonymousJson).not.toContain(`/${OWNER}/studio`);
+    expect(anonymousJson).not.toContain(`/@${OWNER}/studio`);
   });
 });
 
@@ -406,9 +406,9 @@ describe("the studio in the index — B1964", () => {
 describe("the studio's flows in the index — B2019", () => {
   test("the owner's search finds a flow by its hub label", async () => {
     const json = await jsonFor("owner");
-    expect(json).toContain(`/${OWNER}/studio/postcard`);
-    expect(json).toContain(`/${OWNER}/studio/inbox`);
-    expect(json).toContain(`/${OWNER}/studio/trip`);
+    expect(json).toContain(`/@${OWNER}/studio/postcard`);
+    expect(json).toContain(`/@${OWNER}/studio/inbox`);
+    expect(json).toContain(`/@${OWNER}/studio/trip`);
   });
 
   test("the owner's search finds the trip-editing flow by 'rename' or 'delete', neither of which is in its own title", async () => {
@@ -437,25 +437,25 @@ describe("the studio's flows in the index — B2019", () => {
  */
 describe("journal-scoped destinations and trip rows", () => {
   test("the owner finds their contacts page; nobody else does", async () => {
-    expect(await jsonFor("owner")).toContain(`/${OWNER}/studio/readers`);
+    expect(await jsonFor("owner")).toContain(`/@${OWNER}/studio/readers`);
     for (const viewer of ["buddy", "guest", "stranger"]) {
-      expect(await jsonFor(viewer)).not.toContain(`/${OWNER}/studio/readers`);
+      expect(await jsonFor(viewer)).not.toContain(`/@${OWNER}/studio/readers`);
     }
     const { buildSearchIndexJson } = await import("@/lib/search");
-    expect(buildSearchIndexJson(OWNER)!).not.toContain(`/${OWNER}/studio/readers`);
+    expect(buildSearchIndexJson(OWNER)!).not.toContain(`/@${OWNER}/studio/readers`);
   });
 
   test("the sign-in door is in everybody's index, and it is named for who is reading — B903", async () => {
     for (const viewer of ["owner", "buddy", "guest", "stranger"]) {
       const json = await jsonFor(viewer);
-      expect(json).toContain(`/${OWNER}/me`);
+      expect(json).toContain(`/@${OWNER}/me`);
       // A reader with a session is offered their own page, not a door they
       // are already through.
       expect(json).toContain('"title":"Your access"');
     }
     const { buildSearchIndexJson } = await import("@/lib/search");
     const anonymous = buildSearchIndexJson(OWNER)!;
-    expect(anonymous).toContain(`/${OWNER}/me`);
+    expect(anonymous).toContain(`/@${OWNER}/me`);
     expect(anonymous).toContain('"title":"Sign in"');
   });
 

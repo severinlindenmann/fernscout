@@ -296,7 +296,7 @@ describe("who may see a trip's drafts", () => {
  * The tenth reading path — the one B327 shipped without.
  *
  * A buddy could open the draft day and read every word of it, and each of its
- * photographs came back 404, because `app/[user]/media/[...path]/route.ts`
+ * photographs came back 404, because `app/at/[user]/media/[...path]/route.ts`
  * still ended its draft check in `!(await isOwner(username))`. Reported from
  * the live site, against a real request:
  * `GET /viki/media/asien-2025/bangkok/01.jpg?w=320` → 404.
@@ -307,7 +307,7 @@ describe("who may see a trip's drafts", () => {
  */
 describe("a draft day's photographs", () => {
   async function fetchPhoto(tripId: string, slug: string) {
-    const { GET } = await import("@/app/[user]/media/[...path]/route");
+    const { GET } = await import("@/app/at/[user]/media/[...path]/route");
     const segments = [tripId, slug, "01.jpg"];
     return GET(
       new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`),
@@ -423,14 +423,14 @@ describe("a draft day's photographs", () => {
  * `isOwner` because that is what the neighbouring pages used to do. Grepping
  * is blunt, and it is the instrument that catches the thing that happens.
  */
-describe("nothing under app/[user] decides drafts for itself", () => {
+describe("nothing under app/at/[user] decides drafts for itself", () => {
   /**
    * **Every file under `/[user]`, not only `page.tsx`.**
    *
-   * The first version of this walked `app/[user]/(trip)` and
-   * `app/[user]/trips/[trip]` looking for `page.tsx`, on the reasoning that
+   * The first version of this walked `app/at/[user]/(trip)` and
+   * `app/at/[user]/trips/[trip]` looking for `page.tsx`, on the reasoning that
    * those are the two route groups that render a trip. It shipped, and it
-   * missed `app/[user]/media/[...path]/route.ts` — which gated a draft day's
+   * missed `app/at/[user]/media/[...path]/route.ts` — which gated a draft day's
    * photographs on `isOwner` and went on doing so, so a buddy could open the
    * day, read every word, and get a 404 for each of its pictures.
    *
@@ -439,7 +439,7 @@ describe("nothing under app/[user] decides drafts for itself", () => {
    * anything a future route adds; the rule is about the *journal*, so the walk
    * is the journal's whole tree.
    */
-  const root = path.join(process.cwd(), "app/[user]");
+  const root = path.join(process.cwd(), "app/at/[user]");
 
   function sourcesUnder(at: string): string[] {
     const out: string[] = [];
@@ -451,7 +451,7 @@ describe("nothing under app/[user] decides drafts for itself", () => {
     return out;
   }
 
-  const sources = [root, ...paidCounterparts("app/[user]")].flatMap(sourcesUnder);
+  const sources = [root, ...paidCounterparts("app/at/[user]")].flatMap(sourcesUnder);
 
   /**
    * The files where `isOwner` beside a draft is correct — because the two
@@ -464,7 +464,7 @@ describe("nothing under app/[user] decides drafts for itself", () => {
    * because of it. Named here with the reason rather than left to a looser
    * pattern, so the next file that wants an exemption has to argue for one.
    *
-   * `app/[user]/trips/page.tsx` (B336) reads `isOwner(user)` for a question
+   * `app/at/[user]/trips/page.tsx` (B336) reads `isOwner(user)` for a question
    * with nothing to do with any trip's drafts: whether *this* reader gets the
    * malformed-trip debug list, a courtesy for the person who owns the folder
    * on disk. Its actual draft question — which of the lifetime map's markers
@@ -472,7 +472,7 @@ describe("nothing under app/[user] decides drafts for itself", () => {
    * same as everywhere else. The file merely contains both words; it decides
    * drafts from neither `isOwner` nor a copy of it.
    *
-   * `app/[user]/trips/[trip]/day/[slug]/notify/route.ts` (B633) reads
+   * `app/at/[user]/trips/[trip]/day/[slug]/notify/route.ts` (B633) reads
    * `entry.draft` to refuse *sending mail about* an unpublished day — "there
    * is nothing to announce yet" — never to decide whether this reader may see
    * one. `isOwner` beside it answers a different question again: whether this
@@ -481,10 +481,10 @@ describe("nothing under app/[user] decides drafts for itself", () => {
    * to have made instead.
    *
    * The identical shape once lived one level further, in
-   * `app/[user]/trips/[trip]/day/[slug]/unpublish/route.ts` (B980 round 3):
+   * `app/at/[user]/trips/[trip]/day/[slug]/unpublish/route.ts` (B980 round 3):
    * `entry.draft` refused *repeating* a takedown that already happened.
    * B1595 moved that door to `app/api/web/[user]/trips/[trip]/days/[slug]/
-   * unpublish/route.ts` — outside `app/[user]`, so outside this walk — and
+   * unpublish/route.ts` — outside `app/at/[user]`, so outside this walk — and
    * it is unpublish's own `test/web-cookie-proxies.test.ts` that pins it now.
    */
   const OWNER_ONLY = new Set([
@@ -496,9 +496,9 @@ describe("nothing under app/[user] decides drafts for itself", () => {
     // Its siblings `photobook/preview/route.ts` and `photobook/order/route.ts`
     // ask the same question and contain the word for the same reason.
     "paid/photobook/routes/[user]/photobook/draft/route.ts",
-    "app/[user]/export.zip/route.ts",
-    "app/[user]/trips/page.tsx",
-    "app/[user]/trips/[trip]/day/[slug]/notify/route.ts",
+    "app/at/[user]/export.zip/route.ts",
+    "app/at/[user]/trips/page.tsx",
+    "app/at/[user]/trips/[trip]/day/[slug]/notify/route.ts",
   ]);
 
   /** Comments say `isOwner` when explaining why it is *not* used any more —

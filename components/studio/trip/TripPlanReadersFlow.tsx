@@ -8,6 +8,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import type { PlanReaders } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * The two plan-reader cards — B2012. Shared by this page and Edit a trip's
  * own "Who sees the plan" section (B2072), so the choice reads the same in
@@ -113,7 +114,7 @@ export default function TripPlanReadersFlow({
           // Mid-sentence after the colon: "now see: the details too".
           level: t(`studio.planReaders.${chosen}.title` as TranslationKey).replace(/^./, (c) => c.toLowerCase()),
         })}
-        next={[{ title: trip.title, href: `/${username}/trips/${trip.id}`, label: t("studio.planReaders.openPlan") }]}
+        next={[{ title: trip.title, href: `${journalPath(username)}/trips/${trip.id}`, label: t("studio.planReaders.openPlan") }]}
       />
     );
   }

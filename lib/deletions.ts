@@ -26,6 +26,7 @@ import { getTrip, getTrips, parseTripRef, tripDir, tripRef } from "./trips";
 import { clearUserCache, getUser, userDir } from "./users";
 import { sql, type Kysely } from "kysely";
 
+import { journalPath } from "./journalPath";
 /**
  * Deleting a journal, or one trip out of it.
  *
@@ -49,7 +50,7 @@ import { sql, type Kysely } from "kysely";
  * also re-proves the address still belongs to them, which nothing else in this
  * path would.
  *
- * The link does not delete on GET either — see `app/[user]/delete/[token]`.
+ * The link does not delete on GET either — see `app/at/[user]/delete/[token]`.
  */
 
 /** An hour. Long enough to read the mail after dinner, short enough that a
@@ -365,7 +366,7 @@ export async function requestDeletion(
 /** Where the confirmation page lives. One place, so the mail and the route
  * cannot disagree about the shape of it. */
 function deletionUrl(base: string, username: string, token: string): string {
-  return `${base.replace(/\/$/, "")}/${username}/delete/${token}`;
+  return `${base.replace(/\/$/, "")}${journalPath(username)}/delete/${token}`;
 }
 
 /** The full archive, authorised by the same token. See the page for why. */
@@ -395,7 +396,7 @@ export function composeDeletionMail(input: {
     days: String(summary.days),
     files: String(summary.files),
     size: humanBytes(summary.bytes),
-    url: `${site.url}/${summary.username}`,
+    url: `${site.url}${journalPath(summary.username)}`,
     title: summary.title,
     journal: summary.journalTitle,
     nickname: input.nickname,
@@ -579,7 +580,7 @@ export async function requestExport(username: string): Promise<ExportRequested |
  * straight back, since there is no separate confirmation step the way a
  * deletion has one: downloading a copy changes nothing. */
 function exportLinkUrl(base: string, username: string, token: string): string {
-  return `${base.replace(/\/$/, "")}/${username}/export/${token}`;
+  return `${base.replace(/\/$/, "")}${journalPath(username)}/export/${token}`;
 }
 
 /** `notice.export`'s composition — B2493. */
@@ -815,7 +816,7 @@ function goneNotice(input: {
     homeLabel: journal
       ? t("del.goneHome", { site: serverSite().name })
       : t("err.goToJournal", { title: vars.journal }),
-    homeHref: journal ? "/" : `/${input.username}`,
+    homeHref: journal ? "/" : journalPath(input.username),
   };
 }
 

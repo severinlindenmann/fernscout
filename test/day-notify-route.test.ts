@@ -115,7 +115,7 @@ function mailFiles(): string[] {
 }
 
 async function route() {
-  return import("@/app/[user]/trips/[trip]/day/[slug]/notify/route");
+  return import("@/app/at/[user]/trips/[trip]/day/[slug]/notify/route");
 }
 
 function req(method: string, headers: Record<string, string> = {}) {

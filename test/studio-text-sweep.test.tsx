@@ -24,7 +24,7 @@ vi.mock("next/navigation", async (orig) => ({
 }));
 
 const ROOT = path.join(import.meta.dirname, "..");
-const STUDIO_DIRS = ["components/studio", "app/[user]/studio"];
+const STUDIO_DIRS = ["components/studio", "app/at/[user]/studio"];
 const APP_DIRS = ["app", "components"];
 const LOCALES = ["en", "de", "hu"] as const;
 

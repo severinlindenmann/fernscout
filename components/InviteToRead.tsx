@@ -2,6 +2,7 @@ import Link from "next/link";
 import { useI18n } from "./LocaleProvider";
 import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * "Invite family to read", on the day she just published — B799.
  *
@@ -17,7 +18,7 @@ export default function InviteToRead({ username }: { username: string }) {
   const { t } = useI18n();
   return (
     <div className={OWNER_TOOL_CELL}>
-      <Link href={`/${username}/studio/readers`} className={OWNER_TOOL}>
+      <Link href={`${journalPath(username)}/studio/readers`} className={OWNER_TOOL}>
         {t("invite.share")}
       </Link>
     </div>

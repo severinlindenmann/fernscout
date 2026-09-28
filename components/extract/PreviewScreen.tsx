@@ -11,6 +11,7 @@ import { thumbSrc } from "@/components/extract/PhotoTile";
 import type { Question } from "@/lib/extract/questions";
 import type { DayRow, PhotoRow, RunManifest } from "@/lib/staging/manifest";
 
+import { journalPath } from "@/lib/journalPath";
 type RunResponse = { manifest: RunManifest; groups: DayGroup[]; questions: Record<string, Question[]> };
 type Person = { name: string; email: string };
 type TripHeader = { title: string };
@@ -236,7 +237,7 @@ export default function PreviewScreen({
           <span />
         )}
         <Link
-          href={`/${encodeURIComponent(username)}/studio/day/edit`}
+          href={`${journalPath(encodeURIComponent(username))}/studio/day/edit`}
           className="text-sm font-semibold text-ink-strong underline"
         >
           {t("studio.photos.preview.edit")}
@@ -282,7 +283,7 @@ export default function PreviewScreen({
               return (
                 <li key={d.date} className="rounded-2xl border border-line-faint bg-surface-raised p-3">
                   <Link
-                    href={`/${username}/trips/${tripId}/day/${d.entrySlug}`}
+                    href={`${journalPath(username)}/trips/${tripId}/day/${d.entrySlug}`}
                     className="flex min-w-0 items-center gap-2"
                   >
                     <span className="min-w-0 truncate text-sm font-semibold text-ink-strong">
@@ -321,7 +322,7 @@ export default function PreviewScreen({
 
         {tripId && days.length > 0 && (
           <Link
-            href={`/${username}/trips/${tripId}`}
+            href={`${journalPath(username)}/trips/${tripId}`}
             className="mt-3 inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong"
           >
             {t("studio.photos.preview.viewTrip")}
@@ -345,14 +346,14 @@ export default function PreviewScreen({
                 consent in words, day by day; the room used to be the only
                 place that did. */}
             {t("studio.photos.preview.publishHint")}{" "}
-            <Link href={`/${encodeURIComponent(username)}/studio/day/publish`} className="font-semibold underline">
+            <Link href={`${journalPath(encodeURIComponent(username))}/studio/day/publish`} className="font-semibold underline">
               {t("studio.photos.preview.openAgent")}
             </Link>
           </p>
         )}
 
         <Link
-          href={`/${encodeURIComponent(username)}/studio/day/edit`}
+          href={`${journalPath(encodeURIComponent(username))}/studio/day/edit`}
           className="mt-3 inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong"
         >
           {t("studio.photos.preview.keepEditing")}

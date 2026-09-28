@@ -11,6 +11,7 @@ import { SKILL_DOC_SLUGS, skillDocPath } from "./api/skillDocMeta";
 import { PAID_AREAS } from "@paid/manifest";
 import { isEnabled } from "./capabilities";
 
+import { journalPath } from "./journalPath";
 /**
  * The sitemap, as an index of three — B2486.
  *
@@ -89,12 +90,12 @@ export function journalsSitemap(): SitemapEntry[] {
       .filter((d): d is string => Boolean(d))
       .sort()
       .at(-1);
-    out.push({ url: `${base}/${username}`, lastmod: latest });
-    out.push({ url: `${base}/${username}/trips`, lastmod: latest });
+    out.push({ url: `${base}${journalPath(username)}`, lastmod: latest });
+    out.push({ url: `${base}${journalPath(username)}/trips`, lastmod: latest });
 
     for (const trip of trips) {
       const isCurrent = trip.id === currentId;
-      const tripBase = isCurrent ? `${base}/${username}` : `${base}/${username}/trips/${trip.id}`;
+      const tripBase = isCurrent ? `${base}${journalPath(username)}` : `${base}${journalPath(username)}/trips/${trip.id}`;
       const lastmod = getDays(trip.ref).at(-1)?.date ?? trip.end;
 
       if (!isCurrent) out.push({ url: tripBase, lastmod });

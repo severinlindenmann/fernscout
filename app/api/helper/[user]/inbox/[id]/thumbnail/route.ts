@@ -48,7 +48,7 @@ export const dynamic = "force-dynamic";
  *   ever shells out, so a crafted file cannot spend an unbounded decode on
  *   this route any more than it could on ingest.
  * - **`private, no-store`.** Unlike a published photograph's long-lived
- *   `public` cache on `app/[user]/media/…`, nothing here may sit in a shared
+ *   `public` cache on `app/at/[user]/media/…`, nothing here may sit in a shared
  *   cache: the same URL answers differently for every journal, and a shared
  *   cache cannot tell that apart.
  */

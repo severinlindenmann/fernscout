@@ -9,6 +9,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * The root page's parts, as separate pieces — B411.
  *
@@ -353,7 +354,7 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
           {journals.map((journal) => (
             <li key={journal.username}>
               <Link
-                href={`/${journal.username}`}
+                href={journalPath(journal.username)}
                 className="group block h-full overflow-hidden rounded-xl border border-line-quiet bg-surface-base
                            transition-colors hover:border-line-ink
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"

@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import TripsIndexContent, {
   type EmptyJournal,
   type TripCardData,
-} from "@/app/[user]/trips/TripsIndexContent";
+} from "@/app/at/[user]/trips/TripsIndexContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";

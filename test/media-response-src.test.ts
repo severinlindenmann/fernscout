@@ -212,11 +212,11 @@ describe("the upload response's src", () => {
     expect(status, JSON.stringify(body)).toBe(201);
 
     // frontmatterSrc(tripId, relPath) — see lib/ingest/paths.ts. Not
-    // `/${OWNER}/media/...`: v2 deliberately leaves the owner prefix off
+    // `/@${OWNER}/media/...`: v2 deliberately leaves the owner prefix off
     // `src` and carries it only in the separate, browser-facing `url` field
     // instead, so there is no read-time rewrite of `src` left to drift.
     expect(body.src).toMatch(new RegExp(`^/media/${TRIP}/${SECOND_DAY}/[0-9a-f]+\\.jpg$`));
     expect(typeof body.url).toBe("string");
-    expect(body.url).toBe(`/${OWNER}${body.src}`);
+    expect(body.url).toBe(`/@${OWNER}${body.src}`);
   });
 });

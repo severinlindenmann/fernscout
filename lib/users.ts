@@ -4,6 +4,7 @@ import path from "node:path";
 import { contentRoot } from "./contentRoot";
 import { ConfigError, loadServerConfig, loadUserConfig, type UserConfig } from "./config";
 import { isDeletedUsername } from "./tombstones";
+import { USERNAME_RE } from "./journalPath";
 
 /**
  * Users, and the boundary between them.
@@ -14,13 +15,9 @@ import { isDeletedUsername } from "./tombstones";
  * is always a directory lookup rather than string concatenation.
  */
 
-/** Same shape as a trip id: lowercase, digits, dashes, no leading dash.
- *
- * Exported since B1720 so the published contract can state it rather than
- * carry a second copy: every `{user}` in `/api/v2/openapi.json` declares this
- * pattern, read from here. A caller building a URL from the document is then
- * checking against the same rule the server resolves with. */
-export const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+/** The username pattern — see `lib/journalPath.ts`, which holds it so
+ * `proxy.ts` can read it too. */
+export { USERNAME_RE } from "./journalPath";
 
 /**
  * Not people: shared currency rates, shared UI dictionaries, and the
@@ -36,11 +33,18 @@ export const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 const INSTANCE_DIRS = new Set(["rates", "locales", "legal"]);
 
 /**
- * Route segments a username would shadow.
+ * Names no journal may take.
+ *
+ * Journals live at `/@<name>` (`lib/journalPath.ts`), so none of these can
+ * shadow a page any more — the app's pages and people's journals are separate
+ * namespaces, and a page added later needs no entry here. The list stays for
+ * what a username still is: a directory under `content/`, the `{user}` in
+ * `/api/v2/{user}/…` (where `me` is the caller's own door), and a name a
+ * reader might take for the instance itself.
  *
  * Kept in code as well as in server config: a self-hoster editing config.json
- * should not be able to make `/api` resolve to a person by deleting a line.
- * The config list is additive on top of this one.
+ * should not be able to hand out `api` or `me` by deleting a line. The config
+ * list is additive on top of this one.
  */
 const ALWAYS_RESERVED = [
   "api",

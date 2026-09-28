@@ -100,7 +100,7 @@ describe("getAbout", () => {
 describe("AboutPageContent", () => {
   test("names the owner and never prints their address", async () => {
     const { default: AboutPageContent } = await import(
-      "@/app/[user]/about/AboutPageContent"
+      "@/app/at/[user]/about/AboutPageContent"
     );
     const { default: LocaleProvider } = await import("@/components/LocaleProvider");
     const { default: SiteProvider } = await import("@/components/SiteProvider");

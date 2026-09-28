@@ -32,7 +32,7 @@ export function useSite(): SiteSummary {
 /**
  * Site identity where there might legitimately be none.
  *
- * `SiteProvider` is seeded by `app/[user]/layout.tsx`, because the trip list
+ * `SiteProvider` is seeded by `app/at/[user]/layout.tsx`, because the trip list
  * and the currencies belong to a journal. The landing page, the notices and a
  * 404 for an address that names nobody sit *above* that, so a component shared
  * with them — the language switcher — has to be able to ask and be told no,

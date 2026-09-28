@@ -46,7 +46,7 @@ export type DecideRow = {
  * that is allowed to have a side effect.
  *
  * **`inStudioBar`** — B2002. A caller mounted under
- * `app/[user]/studio/layout.tsx`'s `StudioBarProvider` (every studio flow's
+ * `app/at/[user]/studio/layout.tsx`'s `StudioBarProvider` (every studio flow's
  * own decide step: `NewTripFlow`, `AddDayFlow`) sets this so the commit
  * button also becomes the bar's own step primary on a phone, via
  * `StepPrimary`. `EditDay.tsx` renders this same list for its own E3 save

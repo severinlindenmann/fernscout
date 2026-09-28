@@ -11,7 +11,7 @@ import { describe, expect, test } from "vitest";
  * at lowercase text tags only. No allow-list.
  */
 
-const ROOTS = ["components/studio", "app/[user]/studio"];
+const ROOTS = ["components/studio", "app/at/[user]/studio"];
 const TEXT_TAGS = new Set(["p", "span", "em", "strong", "small", "div", "li", "label"]);
 
 function files(dir: string): string[] {

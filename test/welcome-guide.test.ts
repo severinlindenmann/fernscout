@@ -291,7 +291,7 @@ describe("the welcome guide — the reader's six screens", () => {
     // Runs once: the next visit goes straight to the journal — to the newest
     // trip a guest may read, and with only private trips here, to the list
     // (B2458; it used to be the bare /<owner>, which shows a private trip).
-    expect(await redirectOf(() => guidePage(code))).toBe(`/${OWNER}/trips`);
+    expect(await redirectOf(() => guidePage(code))).toBe(`/@${OWNER}/trips`);
   });
 
   test("skipping leaves the address and the channels empty", async () => {
@@ -390,7 +390,7 @@ describe("the join flow at /j/ — asking, never access", () => {
     const link = await newLink();
     const token = link.url.split("/invite/guest/")[1];
     // `/invite/guest/[token]/page` renders exactly this with kind "guest".
-    const { default: RedeemPage } = await import("@/app/[user]/invite/redeemPage");
+    const { default: RedeemPage } = await import("@/app/at/[user]/invite/redeemPage");
     const to = await redirectOf(() => RedeemPage({ username: OWNER, token, kind: "guest" }));
     expect(to).toBe(`/j/${link.code}`);
     // A made-up token, or the wrong kind for the path, still says the link is dead.

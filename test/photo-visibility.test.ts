@@ -471,7 +471,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
    */
   describe("the photograph itself", () => {
     async function fetchPhoto(tripId: string, file: string, query = "") {
-      const { GET } = await import("@/app/[user]/media/[...path]/route");
+      const { GET } = await import("@/app/at/[user]/media/[...path]/route");
       const segments = [tripId, "bangkok", file];
       return GET(
         new Request(`https://example.test/${OWNER}/media/${segments.join("/")}${query}`),
@@ -529,7 +529,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
      * the file rather than the matcher learning one more name.
      */
     async function fetchClip(file: string) {
-      const { GET } = await import("@/app/[user]/media/[...path]/route");
+      const { GET } = await import("@/app/at/[user]/media/[...path]/route");
       const segments = [CLIP_TRIP, "bangkok", file];
       return GET(
         new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`),
@@ -570,7 +570,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
      * answered 200 while the photograph beside it answered 404.
      */
     async function fetchV2(folder: string, file: string) {
-      const { GET } = await import("@/app/[user]/media/[...path]/route");
+      const { GET } = await import("@/app/at/[user]/media/[...path]/route");
       const segments = [V2_TRIP, folder, file];
       return GET(
         new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`),
@@ -633,7 +633,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
      * need not belong to any day at all.
      */
     test("the trip's cover is named by the trip, so it is served", async () => {
-      const { GET } = await import("@/app/[user]/media/[...path]/route");
+      const { GET } = await import("@/app/at/[user]/media/[...path]/route");
       as("anonymous");
       const segments = [V2_TRIP, "cover.jpg"];
       const response = await GET(

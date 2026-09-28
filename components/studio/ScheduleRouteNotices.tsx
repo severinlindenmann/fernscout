@@ -13,6 +13,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { beforeTripNoticeTime, tripsNeedingBeforeNotice, type NoticeTrip } from "@/lib/gps/notify";
 
+import { journalPath } from "@/lib/journalPath";
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
 
 const BUTTON = "mt-3 min-h-11 rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong hover:bg-surface-subtle disabled:opacity-50";
@@ -26,7 +27,7 @@ async function scheduleAll(username: string, due: readonly NoticeTrip[], t: T): 
   await scheduleBeforeTripNotices(
     due.map((trip) => ({
       id: trip.id,
-      url: `/${username}/studio/trip?trip=${encodeURIComponent(trip.id)}`,
+      url: `${journalPath(username)}/studio/trip?trip=${encodeURIComponent(trip.id)}`,
       body: t("studio.record.notice.beforeTrip", { title: trip.title }),
       at: new Date(beforeTripNoticeTime(Date.now(), trip) ?? Date.now()).toISOString(),
     })),

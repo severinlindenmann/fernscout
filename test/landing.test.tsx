@@ -125,16 +125,16 @@ function renderLanding(
 }
 
 const DEMO: DemoDay = {
-  journalHref: "/example",
-  href: "/example/trips/alps/day/over-the-pass",
+  journalHref: "/@example",
+  href: "/@example/trips/alps/day/over-the-pass",
   title: "Over the pass",
   date: "Thursday, 12 September 2024",
   location: "A pass",
   tripTitle: "Round the Alps",
   excerpt: "We left late.",
-  photo: { src: "/example/media/alps/over-the-pass/01.jpg", alt: "A hairpin" },
-  cover: { src: "/example/media/alps/over-the-pass/01.jpg", alt: "" },
-  postcard: { src: "/example/media/alps/into-italy/01.jpg", alt: "", title: "Into Italy" },
+  photo: { src: "/@example/media/alps/over-the-pass/01.jpg", alt: "A hairpin" },
+  cover: { src: "/@example/media/alps/over-the-pass/01.jpg", alt: "" },
+  postcard: { src: "/@example/media/alps/into-italy/01.jpg", alt: "", title: "Into Italy" },
 };
 
 describe("the landing page", () => {
@@ -162,8 +162,8 @@ describe("the landing page", () => {
     const html = renderLanding("en", false, { demo: DEMO });
     expect(html).toContain("Over the pass");
     expect(html).toContain("We left late.");
-    expect(html).toContain('href="/example/trips/alps/day/over-the-pass"');
-    expect(html).toContain('href="/example"');
+    expect(html).toContain('href="/@example/trips/alps/day/over-the-pass"');
+    expect(html).toContain('href="/@example"');
     expect(html).toContain("A new day: Over the pass");
     // /tour-operators' "Read a real trip" lands here (B2450).
     expect(html).toContain('id="journals"');
@@ -275,7 +275,7 @@ describe("the landing page", () => {
   });
 
   /**
-   * The landing page sits above `app/[user]/layout.tsx`, so there is no
+   * The landing page sits above `app/at/[user]/layout.tsx`, so there is no
    * `SiteProvider` over it. The switcher used to be a journal-only component
    * that read its language list from that context and threw without it, which
    * is why the one page a stranger sees first had no way to change language.
@@ -358,9 +358,9 @@ describe("the demo day", () => {
     writeDayFixture(dir, "example", "t", { slug: "the-one", title: "The one", date: "2024-09-14", content: "First paragraph.\n\nSecond paragraph.", media: [{ src: "/media/t/c/01.jpg", caption: "A view" }] });
     clearUserCache();
     const day = demoDay("en");
-    expect(day?.journalHref).toBe("/example");
+    expect(day?.journalHref).toBe("/@example");
     expect(day?.title).toBe("The one");
-    expect(day?.href).toBe("/example/trips/t/day/the-one");
+    expect(day?.href).toBe("/@example/trips/t/day/the-one");
     expect(day?.excerpt).toBe("First paragraph.");
     expect(day?.photo.src).toContain("/c/01.jpg");
     expect(day?.photo.alt).toBe("A view");

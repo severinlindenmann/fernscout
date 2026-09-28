@@ -80,7 +80,7 @@ export default function LocaleProvider({
    * The language this journal's prose is written in — its own
    * `defaultLocale`. Defaults to `en` so the ninety-odd call sites outside a
    * journal (the landing page, the invite pages, every test) need not care;
-   * `app/[user]/layout.tsx` passes the real one, and since B1200 the agent
+   * `app/at/[user]/layout.tsx` passes the real one, and since B1200 the agent
    * room's own provider does too — the room previews a real `DayCard`, so
    * it is the second place a day is rendered. B294.
    */

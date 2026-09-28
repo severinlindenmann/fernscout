@@ -665,7 +665,7 @@ describe("the personal link", () => {
     const { id, token } = await createInvite("ana", { kind: "guest", name: "Familie" });
     const [row] = await listInvitesWithLinks("ana", "https://example.test");
     expect(row.id).toBe(id);
-    expect(row.url).toBe(`https://example.test/ana/invite/guest/${token}`);
+    expect(row.url).toBe(`https://example.test/@ana/invite/guest/${token}`);
     // And it is still the token redemption accepts — not a re-encoded copy.
     expect((await resolveInvite("ana", token))?.name).toBe("Familie");
   });

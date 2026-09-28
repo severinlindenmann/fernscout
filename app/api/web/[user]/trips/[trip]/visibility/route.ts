@@ -12,7 +12,7 @@
 // cookie only; any `Authorization` header is refused outright, and no bearer
 // token is minted, held, or sent anywhere for this call.
 //
-// Replaces `app/[user]/trips/[trip]/visibility/route.ts`, which wrote
+// Replaces `app/at/[user]/trips/[trip]/visibility/route.ts`, which wrote
 // through v1's `patchTripVisibility` against the pre-B1598 file shape.
 import { applyTripPatch } from "@/app/api/v2/[user]/trips/[trip]/route";
 import { isOwner } from "@/lib/contacts/session";

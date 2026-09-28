@@ -18,7 +18,7 @@ import { useEngagement } from "./useEngagement";
  *
  * ## Where it lives — B2464
  *
- * Used to be appended after every page's content in `app/[user]/layout.tsx`,
+ * Used to be appended after every page's content in `app/at/[user]/layout.tsx`,
  * pushed into the corner of whatever page happened to be open — /me, the
  * trips list, a finished trip — disconnected from anything the reader had
  * just done. It now renders exactly once: inside `DayCard` (`StoryPager.tsx`),

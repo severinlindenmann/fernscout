@@ -31,16 +31,16 @@ const HOME = {
   email: "oma@example.test",
   admin: false,
   journals: [
-    { username: "ana", title: "Nordwärts", tagline: "", href: "/ana", role: "owner", trips: [] },
+    { username: "ana", title: "Nordwärts", tagline: "", href: "/@ana", role: "owner", trips: [] },
     {
       username: "bea",
       title: "Béla's journal",
       tagline: "",
-      href: "/bea",
+      href: "/@bea",
       role: "traveller",
-      trips: [{ id: "balkan", title: "Balkan", href: "/bea/trips/balkan", through: "traveller" }],
+      trips: [{ id: "balkan", title: "Balkan", href: "/@bea/trips/balkan", through: "traveller" }],
     },
-    { username: "cleo", title: "Cleo reads", tagline: "", href: "/cleo", role: "guest", trips: [] },
+    { username: "cleo", title: "Cleo reads", tagline: "", href: "/@cleo", role: "guest", trips: [] },
   ],
   devices: [
     { id: "d1", createdAt: "2026-09-01", lastSeenAt: "2026-09-27T10:00:00Z", userAgent: "Macintosh Chrome", current: true },
@@ -101,10 +101,10 @@ describe("/me, signed in", () => {
     for (const title of ["Nordwärts", "Béla's journal", "Cleo reads"]) expect(text).toContain(title);
 
     const hrefs = [...host.querySelectorAll("a")].map((a) => a.getAttribute("href"));
-    expect(hrefs).toContain("/ana/studio");
-    expect(hrefs).toContain("/bea/me");
-    expect(hrefs).toContain("/cleo/me");
-    expect(hrefs).not.toContain("/ana/me");
+    expect(hrefs).toContain("/@ana/studio");
+    expect(hrefs).toContain("/@bea/me");
+    expect(hrefs).toContain("/@cleo/me");
+    expect(hrefs).not.toContain("/@ana/me");
     // Not the operator: no door to /admin.
     expect(hrefs).not.toContain("/admin");
 

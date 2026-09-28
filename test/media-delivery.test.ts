@@ -89,7 +89,7 @@ async function get(
   file: string,
   opts: { width?: number; headers?: Record<string, string> } = {},
 ): Promise<Response> {
-  const { GET } = await import("@/app/[user]/media/[...path]/route");
+  const { GET } = await import("@/app/at/[user]/media/[...path]/route");
   const segments = [TRIP, SLUG, file];
   const query = opts.width ? `?w=${opts.width}` : "";
   return GET(

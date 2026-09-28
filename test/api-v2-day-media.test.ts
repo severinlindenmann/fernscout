@@ -511,7 +511,7 @@ describe("what a day records a clip as — B1885", () => {
     const entry = getEntryBySlug(`${OWNER}/${TRIP_ID}`, "the-pass", AS_AUTHOR);
     const clip = entry?.gallery.find((g) => g.src.endsWith("clip.mp4"));
     expect(clip?.type).toBe("video");
-    expect(clip?.poster).toBe(`/${OWNER}/media/${TRIP_ID}/2026-06-07-the-pass/clip-poster.jpg`);
+    expect(clip?.poster).toBe(`/@${OWNER}/media/${TRIP_ID}/2026-06-07-the-pass/clip-poster.jpg`);
   });
 });
 

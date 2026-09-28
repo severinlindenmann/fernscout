@@ -30,6 +30,7 @@ import {
 } from "@/components/guide/GuideParts";
 import { translate, type TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "@/lib/journalPath";
 type StepName = "welcome" | "code" | "what" | "check" | "address" | "notify";
 
 /** What the owner typed, handed over only once the person proved it is them. */
@@ -567,7 +568,7 @@ export default function WelcomeGuide(props: GuideProps) {
       footer={
         kind === "buddy" && trip ? (
           <>
-            <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(`/${owner}/trips/${trip.id}`)}>
+            <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => done(`${journalPath(owner)}/trips/${trip.id}`)}>
               {t("guide.notify.openTrip", vars)}
             </BusyButton>
             <BusyButton busy={busy} type="button" className={SECONDARY} onClick={() => done(props.landing)}>

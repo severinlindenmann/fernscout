@@ -977,7 +977,7 @@ export function attachGallery(
  * pointing at a file that is already gone — answering 404, which is safe —
  * never the other order, which would leave the file reachable at its old,
  * guessable URL after the day says it is not there. Same reasoning
- * `app/[user]/media/[...path]/route.ts` gives the photoVisibility label.
+ * `app/at/[user]/media/[...path]/route.ts` gives the photoVisibility label.
  *
  * A photobook or postcard order already referencing one of these files is
  * left untouched. Both resolve the photograph live, at send/print time

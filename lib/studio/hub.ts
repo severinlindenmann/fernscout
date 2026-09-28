@@ -16,6 +16,7 @@ import type { WaitingDays } from "@/lib/studio/dayCards";
 import { getTrip, getTrips, parseTripRef, tripRef } from "@/lib/trips";
 import { daysUntil, readerTodayISO } from "@/lib/tripTime";
 
+import { journalPath } from "../journalPath";
 /**
  * What `/[user]/studio` (B1829) needs to render its three non-default
  * states, computed once, server-side, from the same functions every other
@@ -27,7 +28,7 @@ import { daysUntil, readerTodayISO } from "@/lib/tripTime";
  * `getTrips`, `getDays`, `listRuns` — is server-only (`node:fs`, in
  * `lib/staging/manifest.ts`'s case, the same reason `PreviewScreen.tsx`'s own
  * doc comment gives for keeping `groupIntoDays` off the client bundle). The
- * split is the same one `app/[user]/studio/photos/page.tsx` already makes
+ * split is the same one `app/at/[user]/studio/photos/page.tsx` already makes
  * for its own trip list.
  */
 export type StudioHubModel =
@@ -142,7 +143,7 @@ export type StudioHubModel =
       facts: HubFacts;
       /** `isEnabled("routeRecording", username)`'s trips, `{id, title,
        *  start, end}` — B2197's shell-only scheduling effect needs dates
-       *  from *somewhere* server-side, the same way `app/[user]/studio/
+       *  from *somewhere* server-side, the same way `app/at/[user]/studio/
        *  location/page.tsx:25` already reads trips for its own client
        *  component. Empty when the capability is off, so the effect that
        *  reads it never even asks the plugin whether it is native. */
@@ -241,7 +242,7 @@ export type PostcardCard = {
 };
 
 /** The one postcard-shaped moment worth surfacing, if there is one — B436,
- *  moved here from `app/[user]/me/page.tsx` by B2017 so it can sit beside the
+ *  moved here from `app/at/[user]/me/page.tsx` by B2017 so it can sit beside the
  *  hub's own resume banners rather than only on `/[user]/me`. Kept as raw
  *  data (a day's own title, not a rendered English sentence) rather than the
  *  translated copy that page used to build — this module has no locale to
@@ -261,7 +262,7 @@ async function postcardCard(
     dayTitle: entry?.title?.trim() || null,
     dayDate: entry?.date ?? null,
     tripTitle: getTrip(suggestion.trip)?.title ?? null,
-    dayHref: `/${username}/trips/${parseTripRef(suggestion.trip)?.tripId ?? ""}/day/${suggestion.day}`,
+    dayHref: `${journalPath(username)}/trips/${parseTripRef(suggestion.trip)?.tripId ?? ""}/day/${suggestion.day}`,
   };
 }
 
@@ -304,8 +305,8 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
       : null;
 
   // `AS_AUTHOR` — the owner's own count of days includes drafts, the same
-  // way every other owner-facing surface (`app/[user]/me/page.tsx`,
-  // `app/[user]/about/page.tsx`) reads its own content back. Kept per trip
+  // way every other owner-facing surface (`app/at/[user]/me/page.tsx`,
+  // `app/at/[user]/about/page.tsx`) reads its own content back. Kept per trip
   // so `toldToday` can ask only the current trip's own days, not the whole
   // journal's, without a second `getDays` call.
   const daysByTrip = trips.map((trip) => ({ id: trip.id, days: getDays(tripRef(username, trip.id), AS_AUTHOR) }));

@@ -12,11 +12,12 @@ import {
   type SearchDoc,
 } from "@/lib/searchOptions";
 
+import { journalPath } from "@/lib/journalPath";
 type LoadState = "loading" | "ready" | "error";
 
 /**
  * Loads `/<username>/search-index.json` — rendered per request (see
- * app/[user]/search-index.json/route.ts), scoped to whoever is asking — and
+ * app/at/[user]/search-index.json/route.ts), scoped to whoever is asking — and
  * searches it entirely in the browser with MiniSearch. No further request
  * reaches the server as the reader types: this is the "no runtime service"
  * half of M4 made visible. A signed-in reader gets a different, private
@@ -37,7 +38,7 @@ export default function SearchBox() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/${site.username}/search-index.json`)
+    fetch(`${journalPath(site.username)}/search-index.json`)
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
         return res.text();

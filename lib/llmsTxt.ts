@@ -7,6 +7,7 @@ import { serverSite } from "./site";
 import { getDefaultUsername } from "./users";
 import { PAID_AREAS } from "@paid/manifest";
 
+import { journalPath } from "./journalPath";
 /**
  * /llms.txt, in the llmstxt.org shape — B2487.
  *
@@ -57,7 +58,7 @@ export function llmsTxt(): string {
   }
 
   if (example) {
-    lines.push("", "## Example", "", link(example.title, `/${example.username}`, "a public journal on this instance"));
+    lines.push("", "## Example", "", link(example.title, journalPath(example.username), "a public journal on this instance"));
   }
 
   lines.push(

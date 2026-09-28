@@ -116,8 +116,8 @@ const TEST_TRIPS = TRIPS.filter((t) => t.test).map((t) => t.id);
  *   opens a page. Every other column is measured against it.
  * - `panel` is `resolveViewer`'s `through` value, or null for "not
  *   mentioned": what `/<user>/me` tells somebody who came looking.
- * - `switcher` is `listableTrips` — the trip list `app/[user]/layout.tsx`
- *   and `app/[user]/trips/page.tsx` both render, and the one that travels in
+ * - `switcher` is `listableTrips` — the trip list `app/at/[user]/layout.tsx`
+ *   and `app/at/[user]/trips/page.tsx` both render, and the one that travels in
  *   the RSC payload of every page whether the reader opened a menu or not
  *   (B45).
  * - `push` is `subscribersFor` — what arrives on their lock screen (B68).

@@ -174,7 +174,7 @@ describe("invite_to_read — the one door", () => {
     expect(ran.ok).toBe(true);
     expect(ran.proposal).toBeUndefined();
     const block = ran.blocks.find((b) => b.shape === "link");
-    expect(block && block.shape === "link" && block.href).toBe("/alex/studio/readers");
+    expect(block && block.shape === "link" && block.href).toBe("/@alex/studio/readers");
   });
 });
 

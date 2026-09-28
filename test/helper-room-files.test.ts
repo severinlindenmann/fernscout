@@ -70,8 +70,8 @@ test("a named trip's own photographs, on demand", () => {
   const found = tripFilesForRoom("u", "a-trip");
   expect(found?.title).toBe("A Trip");
   expect(found?.files).toHaveLength(1);
-  expect(found?.files[0].src).toBe("/u/media/a-trip/tuesday/01.jpg");
-  expect(found?.files[0].id).toBe("photo:tuesday:/u/media/a-trip/tuesday/01.jpg");
+  expect(found?.files[0].src).toBe("/@u/media/a-trip/tuesday/01.jpg");
+  expect(found?.files[0].id).toBe("photo:tuesday:/@u/media/a-trip/tuesday/01.jpg");
 });
 
 test("a trip id nothing answers to is told apart from a trip with nothing on it", () => {
@@ -85,10 +85,10 @@ test("a selection is described from disk, and an id nothing answers to is droppe
 
   const said = describeSelection("u", [
     `inbox:${stored.entry.id}`,
-    "photo:tuesday:/u/media/a-trip/tuesday/01.jpg",
+    "photo:tuesday:/@u/media/a-trip/tuesday/01.jpg",
     // Neither of these exists. Both must contribute nothing at all.
     "inbox:deadbeef-secrets.csv",
-    "photo:tuesday:/u/media/a-trip/tuesday/99.jpg",
+    "photo:tuesday:/@u/media/a-trip/tuesday/99.jpg",
   ]);
 
   expect(said).toContain("statement.csv");

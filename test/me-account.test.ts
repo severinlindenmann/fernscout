@@ -115,7 +115,7 @@ describe("the name me", () => {
       held: { files: 0, bytes: 0 },
       notice: { lang: "en", title: "Gone", body: "Gone.", homeHref: "/", homeLabel: "Home" },
     });
-    expect(proxy(new NextRequest(new Request("https://t.test/gone")))?.status).toBe(410);
+    expect(proxy(new NextRequest(new Request("https://t.test/@gone")))?.status).toBe(410);
   });
 });
 

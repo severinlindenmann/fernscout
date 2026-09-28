@@ -31,6 +31,7 @@ import { fail, ok, readJson } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { codesRequest, type CodesRequest, type CredentialFor } from "@/lib/api/v2/schemas/auth";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 /**
@@ -341,7 +342,7 @@ async function handleJournal(
 
   const scopedTrip = req.for === "write" && tripId ? getTrip(tripRef(username, tripId)) : null;
   const link =
-    req.for === "write" ? null : linkToken ? signInUrl(base, username, linkToken, locale) : `${base}/${username}`;
+    req.for === "write" ? null : linkToken ? signInUrl(base, username, linkToken, locale) : `${base}${journalPath(username)}`;
 
   try {
     const { subject, content } = composeJournalCodeMail({

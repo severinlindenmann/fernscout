@@ -3,6 +3,7 @@
 import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * The one press that spends a sign-in link (B142).
  *
@@ -65,7 +66,7 @@ export default function SignInButton({
       return;
     }
 
-    window.location.href = body?.next ?? (username ? `/${username}` : "/");
+    window.location.href = body?.next ?? (username ? journalPath(username) : "/");
   }
 
   return (

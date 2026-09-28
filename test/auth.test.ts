@@ -529,17 +529,19 @@ describe("the sign-in link", () => {
   test("the url carries no address, only the token", async () => {
     // A forwarded link must not also disclose who reads this journal.
     const url = signInUrl("https://x.test", "ana", "TOKEN123");
-    expect(url).toBe("https://x.test/ana/s/TOKEN123");
-    expect(url).not.toContain("@");
+    expect(url).toBe("https://x.test/@ana/s/TOKEN123");
+    // The `@` in `/@ana` is the journal mark; nothing after it may be an
+    // address.
+    expect(url.slice("https://x.test/@".length)).not.toContain("@");
   });
 
   test("the url carries no destination either — it is stored, not echoed", async () => {
     // The whole reason B69 puts the destination in the database. A redirect
     // target that travels in the link is a redirect target anybody can edit
     // before following it.
-    const { linkToken } = await issueCode("ana", "reader@example.test", "guest", { destination: "/ana/trips/x" });
+    const { linkToken } = await issueCode("ana", "reader@example.test", "guest", { destination: "/@ana/trips/x" });
     expect(signInUrl("https://x.test", "ana", linkToken!)).toBe(
-      `https://x.test/ana/s/${linkToken}`,
+      `https://x.test/@ana/s/${linkToken}`,
     );
   });
 });
@@ -560,12 +562,12 @@ describe("where the sign-in link lands", () => {
       "ana",
       "reader@example.test",
       "guest",
-      { destination: "/ana/trips/vietnam-2026" },
+      { destination: "/@ana/trips/vietnam-2026" },
     );
     const result = await verifyLink("ana", linkToken!);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.destination).toBe("/ana/trips/vietnam-2026");
+    expect(result.destination).toBe("/@ana/trips/vietnam-2026");
   });
 
   test("no destination means the journal, as it always did", async () => {
@@ -579,7 +581,7 @@ describe("where the sign-in link lands", () => {
   test("a destination is never stored for an agent code", async () => {
     // No link to follow, so nowhere to land — and no reason to keep a note of
     // what somebody was reading.
-    await issueCode("ana", "reader@example.test", "agent", { destination: "/ana/trips/vietnam-2026" });
+    await issueCode("ana", "reader@example.test", "agent", { destination: "/@ana/trips/vietnam-2026" });
     const { db } = await getDatabase();
     const row = await db
       .selectFrom("login_codes")
@@ -596,16 +598,16 @@ describe("where the sign-in link lands", () => {
    * read back out of the database and not only on the way in.
    */
   test.each([
-    ["an absolute url", "https://evil.test/ana"],
-    ["a protocol-relative url", "//evil.test/ana"],
-    ["a backslash the browser reads as one", String.raw`/\evil.test/ana`],
+    ["an absolute url", "https://evil.test/@ana"],
+    ["a protocol-relative url", "//evil.test/@ana"],
+    ["a backslash the browser reads as one", String.raw`/\evil.test/@ana`],
     ["a scheme with no slash", "javascript:alert(1)"],
-    ["another journal", "/bea/trips/theirs"],
-    ["a journal whose name merely starts the same way", "/anabelle/trips/theirs"],
-    ["a climb out with dot segments", "/ana/../bea/trips/theirs"],
-    ["a climb out the url parser decodes", "/ana/%2e%2e/bea/trips/theirs"],
+    ["another journal", "/@bea/trips/theirs"],
+    ["a journal whose name merely starts the same way", "/@anabelle/trips/theirs"],
+    ["a climb out with dot segments", "/@ana/../@bea/trips/theirs"],
+    ["a climb out the url parser decodes", "/@ana/%2e%2e/@bea/trips/theirs"],
     ["a bare path outside the journal", "/api/health"],
-    ["a newline smuggled into a header", "/ana\nLocation: https://evil.test"],
+    ["a newline smuggled into a header", "/@ana\nLocation: https://evil.test"],
     ["nothing at all", ""],
   ])("%s is refused, and the reader lands on the journal", async (_label, crafted) => {
     const { linkToken } = await issueCode("ana", "reader@example.test", "guest");
@@ -622,16 +624,16 @@ describe("where the sign-in link lands", () => {
   });
 
   test("the form's own value is refused before it is written down", async () => {
-    await issueCode("ana", "reader@example.test", "guest", { destination: "https://evil.test/ana" });
+    await issueCode("ana", "reader@example.test", "guest", { destination: "https://evil.test/@ana" });
     const { db } = await getDatabase();
     const row = await db.selectFrom("login_codes").selectAll().executeTakeFirstOrThrow();
     expect(row.link_dest).toBeNull();
   });
 
   test("the journal's own front page is a destination like any other", () => {
-    expect(safeDestination("ana", "/ana")).toBe("/ana");
-    expect(safeDestination("ana", "/ana/trips/vietnam-2026")).toBe("/ana/trips/vietnam-2026");
-    expect(safeDestination("ana", "/ana/day/2026-08-25-hanoi")).toBe("/ana/day/2026-08-25-hanoi");
+    expect(safeDestination("ana", "/@ana")).toBe("/@ana");
+    expect(safeDestination("ana", "/@ana/trips/vietnam-2026")).toBe("/@ana/trips/vietnam-2026");
+    expect(safeDestination("ana", "/@ana/day/2026-08-25-hanoi")).toBe("/@ana/day/2026-08-25-hanoi");
   });
 
   test("a group or welcome link's own page is a destination, and nothing below or beside it (B2503)", () => {
@@ -649,15 +651,15 @@ describe("where the sign-in link lands", () => {
   test("a query string or a fragment is dropped rather than followed", () => {
     // Nothing that sets a destination has one, and a redirect is not the place
     // to discover which parameters a page acts on.
-    expect(safeDestination("ana", "/ana/trips/x?next=https://evil.test")).toBeNull();
-    expect(safeDestination("ana", "/ana/trips/x#f")).toBeNull();
+    expect(safeDestination("ana", "/@ana/trips/x?next=https://evil.test")).toBeNull();
+    expect(safeDestination("ana", "/@ana/trips/x#f")).toBeNull();
   });
 
   test("anything that is not a string is not a destination", () => {
     expect(safeDestination("ana", null)).toBeNull();
     expect(safeDestination("ana", 42)).toBeNull();
-    expect(safeDestination("ana", { toString: () => "/ana" })).toBeNull();
-    expect(safeDestination("ana", "/ana/" + "x".repeat(600))).toBeNull();
+    expect(safeDestination("ana", { toString: () => "/@ana" })).toBeNull();
+    expect(safeDestination("ana", "/@ana/" + "x".repeat(600))).toBeNull();
   });
 });
 

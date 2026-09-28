@@ -62,7 +62,7 @@ function studioSources(): { file: string; source: string }[] {
       if (entry.isDirectory()) return walk(full);
       return entry.name.endsWith(".tsx") ? [full] : [];
     });
-  return ["components/studio", "app/[user]/studio"]
+  return ["components/studio", "app/at/[user]/studio"]
     .flatMap((root) => walk(path.join(process.cwd(), root)))
     .map((full) => ({ file: path.relative(process.cwd(), full), source: fs.readFileSync(full, "utf8") }));
 }

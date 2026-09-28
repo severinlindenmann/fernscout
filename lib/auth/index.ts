@@ -4,6 +4,7 @@ import { cache } from "react";
 import { getDatabase } from "../db";
 import { reviewLoginCodeFor } from "./reviewLogin";
 
+import { journalPath } from "../journalPath";
 /**
  * Email one-time codes, and the two classes of session they produce.
  *
@@ -343,7 +344,7 @@ function withLang(url: string, locale?: string | null): string {
 /** Where a sign-in link points. One place, so the mail and the route cannot
  * disagree about the shape of it. */
 export function signInUrl(base: string, username: string, linkToken: string, locale?: string | null): string {
-  return withLang(`${base.replace(/\/$/, "")}/${username}/s/${linkToken}`, locale);
+  return withLang(`${base.replace(/\/$/, "")}${journalPath(username)}/s/${linkToken}`, locale);
 }
 
 /**
@@ -423,7 +424,7 @@ export function safeDestination(username: string, value: unknown): string | null
   // bring the reader back there to finish — the page is public, and a code
   // that belongs to another journal only shows that journal's own join form.
   if (/^\/[jw]\/[A-Za-z0-9_-]{1,64}$/.test(path)) return path;
-  const prefix = `/${username}`;
+  const prefix = journalPath(username);
   if (path !== prefix && !path.startsWith(`${prefix}/`)) return null;
   return path;
 }

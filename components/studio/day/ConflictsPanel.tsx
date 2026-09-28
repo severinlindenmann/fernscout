@@ -6,6 +6,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import ConflictCard from "@/components/studio/day/ConflictCard";
 import { hasOutbox, openOutboxStore, pendingConflicts, type DayEditConflict } from "@/lib/outbox";
 
+import { journalPath } from "@/lib/journalPath";
 /** `/api/web/{user}/trips/{trip}/days/{slug}` — `EditDay.tsx`'s own
  *  `dayApiUrl`. Parsed back apart only to link to "Change a day", never to
  *  build a request. */
@@ -46,7 +47,7 @@ export default function ConflictsPanel({ username }: { username: string }) {
             <ConflictCard conflict={conflict} onResolved={refresh} />
             {slug && (
               <Link
-                href={`/${username}/studio/day/edit?slug=${encodeURIComponent(decodeURIComponent(slug))}`}
+                href={`${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(decodeURIComponent(slug))}`}
                 className="mt-1 inline-block text-sm font-semibold text-ink-strong underline underline-offset-2"
               >
                 {t("studio.conflicts.openDay")}

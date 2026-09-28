@@ -10,6 +10,7 @@ import { routeStatus, useNativeShell, type RouteRecordStatus } from "@/component
 import type { Basemap } from "@/lib/basemap";
 import type { TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "@/lib/journalPath";
 type RecordedTrip = {
   tripId: string;
   title: string;
@@ -159,7 +160,7 @@ export default function RecordedTripsSection({
         </h2>
         <p className="mt-2 text-sm text-ink-secondary">{t("studio.location.route.empty")}</p>
         <Link
-          href={`/${username}/studio/trip`}
+          href={`${journalPath(username)}/studio/trip`}
           className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-ink-strong underline underline-offset-2"
         >
           {t("studio.location.route.emptyCta")}

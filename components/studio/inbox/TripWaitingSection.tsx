@@ -6,6 +6,7 @@ import SubmitError from "@/components/studio/SubmitError";
 import { formatBytes } from "@/components/studio/inbox/InboxTile";
 import type { TripWaitingGroup } from "@/lib/studio/inbox";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * "Waiting for a day in <trip>" — B2207.
  *
@@ -32,7 +33,7 @@ import type { TripWaitingGroup } from "@/lib/studio/inbox";
  * The thumbnail is the ordinary served media URL, not a dedicated thumbnail
  * route the way `InboxTile.tsx`'s is: the file already sits under
  * `trips/<id>/media/`, so `/<user>/media/<trip>/<file>?w=` is what
- * `app/[user]/media/[...path]/route.ts` already serves it as, and that route
+ * `app/at/[user]/media/[...path]/route.ts` already serves it as, and that route
  * answers it `private` until a gallery names it (`labelOf`) — an owner-only
  * cookie session (this page) reads it fine; nobody else can.
  */
@@ -90,7 +91,7 @@ export default function TripWaitingSection({
           <ul className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
             {group.rows.map((row) => {
               const key = `${group.tripId}:${row.id}`;
-              const src = `/${encodeURIComponent(username)}/media/${encodeURIComponent(group.tripId)}/${encodeURIComponent(row.id)}`;
+              const src = `${journalPath(encodeURIComponent(username))}/media/${encodeURIComponent(group.tripId)}/${encodeURIComponent(row.id)}`;
               return (
                 <li key={key} className="rounded-xl border border-line-quiet bg-surface-raised p-3">
                   <div className="flex items-start gap-3">

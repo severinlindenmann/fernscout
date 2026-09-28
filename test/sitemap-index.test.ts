@@ -39,7 +39,7 @@ describe("what the children list", () => {
   const journals = journalsSitemap();
 
   test("the example journal's days are there, dated by the day", () => {
-    const day = journals.find((e) => /\/example\/.*day\//.test(e.url));
+    const day = journals.find((e) => /\/@example\/.*day\//.test(e.url));
     expect(day?.lastmod).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 

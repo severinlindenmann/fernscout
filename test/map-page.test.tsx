@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
+import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";

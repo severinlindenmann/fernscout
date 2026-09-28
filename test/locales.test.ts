@@ -515,20 +515,22 @@ describe("Hungarian address is consistently informal (B481)", () => {
 
 describe("localeForPath", () => {
   test("a journal's own default, not the instance's", () => {
-    expect(localeForPath("/bea")).toBe("hr");
-    expect(localeForPath("/bea/trips/x")).toBe("hr");
-    expect(localeForPath("/ana")).toBe("de");
+    expect(localeForPath("/@bea")).toBe("hr");
+    expect(localeForPath("/@bea/trips/x")).toBe("hr");
+    expect(localeForPath("/@ana")).toBe("de");
   });
 
   test("the instance language outside a journal", () => {
     expect(localeForPath("/")).toBe(instanceLocale());
     expect(localeForPath("")).toBe(instanceLocale());
     expect(localeForPath(null)).toBe(instanceLocale());
+    // Without the `@`, a first segment is the app's, even when it spells a username.
+    expect(localeForPath("/bea")).toBe(instanceLocale());
   });
 
   /** A first segment that names nobody is a 404, not a journal. */
   test("an address that names nobody falls back", () => {
-    expect(localeForPath("/nobody")).toBe(instanceLocale());
+    expect(localeForPath("/@nobody")).toBe(instanceLocale());
     expect(localeForPath("/api/health")).toBe(instanceLocale());
   });
 });

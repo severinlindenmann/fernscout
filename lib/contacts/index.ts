@@ -29,6 +29,7 @@ import { isMessageable, phoneSubject, subjectPhone, toE164 } from "../phone";
 import { getUser } from "../users";
 import { whatsappCountryCode } from "../contactNumber";
 
+import { journalPath } from "../journalPath";
 /**
  * One contact record — ROADMAP §3.1.
  *
@@ -1677,14 +1678,14 @@ export async function markContactPhoneProven(owner: string, digits: string): Pro
  * asks the page to open scrolled to and highlighting that channel — B2442,
  * the `?s=` this and `unsubscribeUrlFor` share. */
 export function manageUrl(base: string, username: string, token: string, stream?: UnsubscribeStream): string {
-  return `${base}/${username}/c/${token}${stream ? `?s=${stream}` : ""}`;
+  return `${base}${journalPath(username)}/c/${token}${stream ? `?s=${stream}` : ""}`;
 }
 
 /**
  * What goes in `List-Unsubscribe`.
  *
  * A different URL from `manageUrl` because it answers a POST as well as a GET —
- * see `app/[user]/u/[token]/route.ts`. A mail client's own unsubscribe button
+ * see `app/at/[user]/u/[token]/route.ts`. A mail client's own unsubscribe button
  * stops everything at once; a person following the footer link lands on their
  * details page instead of being unsubscribed by a link scanner.
  *
@@ -1695,5 +1696,5 @@ export function manageUrl(base: string, username: string, token: string, stream?
  * (the manage page's own button still offers that).
  */
 export function unsubscribeUrlFor(base: string, username: string, token: string, stream?: UnsubscribeStream): string {
-  return `${base}/${username}/u/${token}${stream ? `?s=${stream}` : ""}`;
+  return `${base}${journalPath(username)}/u/${token}${stream ? `?s=${stream}` : ""}`;
 }

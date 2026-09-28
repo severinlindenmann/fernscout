@@ -33,6 +33,7 @@ import { unfinishedIcon, unfinishedTitle } from "@paid/printOrder/components/stu
 import type { OrderRow, UnfinishedPrint } from "@paid/printOrder/lib/orders";
 import { addDayExpiresOn, readAddDaySnapshot, type AddDaySnapshot } from "@/lib/studio/addDayResume";
 
+import { journalPath } from "@/lib/journalPath";
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
 
 type HeroModel = {
@@ -59,7 +60,7 @@ type HeroModel = {
 function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T): HeroModel {
   if (model.kind === "empty") {
     return {
-      href: `/${username}/studio/trip/new`,
+      href: `${journalPath(username)}/studio/trip/new`,
       Icon: Compass,
       title: t("studio.hub.empty.cta"),
       description: t("studio.hub.empty.ctaHint"),
@@ -71,26 +72,26 @@ function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T):
     const trip = model.addDayTrip;
     if (model.toldToday) {
       return {
-        href: `/${username}/studio/day/new?from=hub`,
+        href: `${journalPath(username)}/studio/day/new?from=hub`,
         Icon: CalendarPlus,
         title: t("studio.hub.addDay.toldToday.title"),
         description: t("studio.hub.addDay.toldToday.subtitle", { trip: trip.title }),
         cta: t("studio.hub.addDay.toldToday.cta"),
-        altLink: { href: `/${username}/studio/day/edit`, label: t("studio.hub.addDay.change") },
+        altLink: { href: `${journalPath(username)}/studio/day/edit`, label: t("studio.hub.addDay.change") },
       };
     }
     if (speak) {
       return {
-        href: `/${username}/studio/day/new?mode=speak&from=hub`,
+        href: `${journalPath(username)}/studio/day/new?mode=speak&from=hub`,
         Icon: Mic,
         title: t("studio.hub.speak.title"),
         description: t("studio.hub.speak.subtitle"),
         cta: t("studio.hub.speak.cta"),
-        altLink: { href: `/${username}/studio/day/new?from=hub`, label: t("studio.hub.hero.writeInstead") },
+        altLink: { href: `${journalPath(username)}/studio/day/new?from=hub`, label: t("studio.hub.hero.writeInstead") },
       };
     }
     return {
-      href: `/${username}/studio/day/new?from=hub`,
+      href: `${journalPath(username)}/studio/day/new?from=hub`,
       Icon: CalendarPlus,
       title: t("studio.hub.addDay.title"),
       description: t("studio.hub.addDay.subtitle", { trip: trip.title }),
@@ -103,7 +104,7 @@ function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T):
   // it already exists; what is missing is a plan.
   if (model.planTrip && model.facts.planStartsInDays !== null && model.facts.planStartsInDays <= 1) {
     return {
-      href: `/${username}/studio/plan/${model.planTrip.id}`,
+      href: `${journalPath(username)}/studio/plan/${model.planTrip.id}`,
       Icon: MapPinned,
       title: t("studio.hub.plan.hero.title", { trip: model.planTrip.title }),
       description: t("studio.hub.plan.hero.subtitle"),
@@ -115,12 +116,12 @@ function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T):
   // for yet. An ended trip is still reachable, honestly labelled, from the
   // Write group below (unchanged).
   return {
-    href: `/${username}/studio/trip/new`,
+    href: `${journalPath(username)}/studio/trip/new`,
     Icon: Compass,
     title: t("studio.hub.betweenTrips.title"),
     description: t("studio.hub.item.newTrip.description"),
     cta: t("studio.hub.newTrip.cta"),
-    altLink: speak ? { href: `/${username}/studio/day/new?mode=speak&from=hub`, label: t("studio.hub.hero.tellAnyway") } : undefined,
+    altLink: speak ? { href: `${journalPath(username)}/studio/day/new?mode=speak&from=hub`, label: t("studio.hub.hero.tellAnyway") } : undefined,
   };
 }
 
@@ -279,7 +280,7 @@ function DuringTripRows({
       ? [
           {
             key: "waiting",
-            href: `/${username}/studio/day/new?photos=${waitingFirstDate}&from=hub`,
+            href: `${journalPath(username)}/studio/day/new?photos=${waitingFirstDate}&from=hub`,
             Icon: Images,
             title: t("studio.hub.duringTrip.waiting.title"),
             detail: tn("studio.hub.duringTrip.waiting.detail", waitingCount, { count: String(waitingCount) }),
@@ -288,7 +289,7 @@ function DuringTripRows({
       : []),
     {
       key: "share",
-      href: `/${username}/studio/day/publish`,
+      href: `${journalPath(username)}/studio/day/publish`,
       Icon: Send,
       title: t("studio.hub.item.publishDay.title"),
       detail: t("studio.hub.item.publishDay.description"),
@@ -298,7 +299,7 @@ function DuringTripRows({
       ? [
           {
             key: "postcard",
-            href: `/${username}/studio/postcard`,
+            href: `${journalPath(username)}/studio/postcard`,
             Icon: Mailbox,
             title: t("studio.hub.item.postcard.title"),
             detail: t("studio.hub.item.postcard.description"),
@@ -574,7 +575,7 @@ function HalfDone({
       ? [
           {
             key: "add-day",
-            href: `/${username}/studio/day/new`,
+            href: `${journalPath(username)}/studio/day/new`,
             Icon: CalendarPlus,
             title: t("studio.hub.resume.addDay.title"),
             detail: t("studio.hub.resume.addDay.detail", { date: formatLongDate(addDayExpiresOn(snapshot.savedAt)) }),
@@ -584,7 +585,7 @@ function HalfDone({
       : []),
     ...runs.map((run) => ({
       key: run.runId,
-      href: `/${username}/studio/photos`,
+      href: `${journalPath(username)}/studio/photos`,
       Icon: Images,
       title: tn("studio.hub.resume.import.title", run.livePhotoCount, { count: String(run.livePhotoCount) }),
       detail: tn("studio.hub.resume.import.detail", run.daysLeftToTell, {
@@ -609,7 +610,7 @@ function HalfDone({
       ? [
           {
             key: "postcard",
-            href: `/${username}/studio/postcard`,
+            href: `${journalPath(username)}/studio/postcard`,
             Icon: Mailbox,
             title: t("me.postcardCardTitle"),
             detail: postcard.dayTitle
@@ -697,7 +698,7 @@ function RecentOrders({ username, orders }: { username: string; orders: OrderRow
         {orders.map((order) => (
           <li key={`${order.kind}-${order.id}`}>
             <Link
-              href={`/${username}/${order.kind === "postcard" ? "postcards" : "photobooks"}/${order.id}`}
+              href={`${journalPath(username)}/${order.kind === "postcard" ? "postcards" : "photobooks"}/${order.id}`}
               className="flex min-h-11 items-center rounded-[10px] px-1.5 text-[13px] text-ink-strong transition-colors hover:bg-surface-neutral
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
@@ -710,7 +711,7 @@ function RecentOrders({ username, orders }: { username: string; orders: OrderRow
           </li>
         ))}
       </ul>
-      <Link href={`/${username}/studio/orders`} className="mt-1 inline-flex min-h-11 items-center px-1.5 text-sm font-semibold text-ink-strong underline underline-offset-2">
+      <Link href={`${journalPath(username)}/studio/orders`} className="mt-1 inline-flex min-h-11 items-center px-1.5 text-sm font-semibold text-ink-strong underline underline-offset-2">
         {t("studio.hub.allOrders")}
       </Link>
     </div>

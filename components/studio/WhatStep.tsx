@@ -49,7 +49,7 @@ export default function WhatStep({
    *  that keeps its own step in client state instead. */
   cta: { label: string } & ({ href: string } | { onContinue: () => void });
   /**
-   * B2110 — a caller mounted under `app/[user]/studio/layout.tsx`'s
+   * B2110 — a caller mounted under `app/at/[user]/studio/layout.tsx`'s
    * `StudioBarProvider` (every studio flow's intro) sets this, and the
    * continue button becomes the bar's one primary via `StepPrimary` (rule 5)
    * instead of sitting inline. The server-rendered stub pages have no

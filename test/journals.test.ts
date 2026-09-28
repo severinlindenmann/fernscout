@@ -373,7 +373,7 @@ describe("reclaiming a deleted journal's name", () => {
     expect(make("reclaimed").ok).toBe(true);
 
     expect(isDeletedUsername("reclaimed")).toBe(false);
-    const response = proxy(new NextRequest(new Request("https://t.test/reclaimed")));
+    const response = proxy(new NextRequest(new Request("https://t.test/@reclaimed")));
     expect(response?.status).not.toBe(410);
   });
 });
@@ -573,7 +573,7 @@ describe("the welcome mail", () => {
     const body = mailBodyOf("wanderer");
 
     expect(raw).toContain(OWNER);
-    expect(body).toContain("https://t.test/wanderer");
+    expect(body).toContain("https://t.test/@wanderer");
     expect(body).toContain("draft");
     // The guest wording, not the public one.
     expect(body).toContain("appears on no list");
@@ -651,7 +651,7 @@ describe("the welcome mail", () => {
     ).toBe(true);
 
     const body = mailBodyOf("wanderer");
-    const link = /https:\/\/t\.test\/wanderer\/s\/([A-Za-z0-9_-]+)/.exec(body);
+    const link = /https:\/\/t\.test\/@wanderer\/s\/([A-Za-z0-9_-]+)/.exec(body);
     expect(link, "the mail should carry a /s/<token> sign-in link").not.toBeNull();
 
     // It redeems to a session…
@@ -663,7 +663,7 @@ describe("the welcome mail", () => {
     // sign-in URL removed, so the plain address cannot be satisfied by the
     // link's own prefix.
     const withoutLink = body.replaceAll(link![0], "");
-    expect(withoutLink).toContain("https://t.test/wanderer");
+    expect(withoutLink).toContain("https://t.test/@wanderer");
 
     // And the letter says what the button does, so nobody forwards it
     // believing they are only sharing an address.

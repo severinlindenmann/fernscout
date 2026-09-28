@@ -114,7 +114,7 @@ describe("photo markers only at town zoom", () => {
     const { fetchMock } = await render(alps, { date: alps[1].date, src: "/media/alps-2024/furka/01.jpg" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const url = fetchMock.mock.calls[0][0] as string;
-    expect(url).toContain("/alex/story.json");
+    expect(url).toContain("/@alex/story.json");
     expect(url).toContain(`trip=${encodeURIComponent("alex/alps-2024")}`);
   });
 

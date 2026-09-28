@@ -9,7 +9,7 @@
  * as it sits on disk, closed ones included, so it is the same trust level as
  * `npm run db:migrate` — whoever can run this already has filesystem access to
  * content/. The public `/<username>/export.zip` route
- * (app/[user]/export.zip/route.ts) shares the same lib/exportZip.ts machinery
+ * (app/at/[user]/export.zip/route.ts) shares the same lib/exportZip.ts machinery
  * but with the `"open-to-link"` scope, which drops every trip that is not
  * `public` instead of trusting the requester.
  *

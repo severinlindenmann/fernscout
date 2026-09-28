@@ -21,7 +21,7 @@ function resolves(route: string): boolean {
   if (exists(`app${route}/route.ts`) || exists(`app${route}/page.tsx`)) return true;
   const guide = route.match(/^\/docs\/guide\/([^/]+)$/);
   if (guide) return isGuide(guide[1]);
-  const journal = route.match(/^\/([^/]+)$/);
+  const journal = route.match(/^\/@([^/]+)$/);
   return journal ? getUser(journal[1]) !== null : false;
 }
 

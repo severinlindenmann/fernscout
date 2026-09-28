@@ -69,7 +69,7 @@ afterEach(() => {
 
 describe("GET /:user/story.json", () => {
   test("carries Vary: Cookie beside its private Cache-Control", async () => {
-    const { GET } = await import("@/app/[user]/story.json/route");
+    const { GET } = await import("@/app/at/[user]/story.json/route");
     const response = await GET(
       new Request("https://example.test/alex/story.json?trip=asia-2023&from=0&to=1"),
       { params: Promise.resolve({ user: "alex" }) } as never,
@@ -82,7 +82,7 @@ describe("GET /:user/story.json", () => {
 
 describe("GET /:user/search-index.json", () => {
   test("the anonymous, public branch needs no Vary (same answer for everyone)", async () => {
-    const { GET } = await import("@/app/[user]/search-index.json/route");
+    const { GET } = await import("@/app/at/[user]/search-index.json/route");
     const response = await GET(new Request("https://example.test/alex/search-index.json"), {
       params: Promise.resolve({ user: "alex" }),
     } as never);

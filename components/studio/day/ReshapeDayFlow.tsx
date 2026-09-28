@@ -17,6 +17,7 @@ import StepBody from "@/components/studio/StepBody";
 import { useStep } from "@/lib/studio/useStep";
 import { useSkipIntro } from "@/lib/studio/fromHub";
 
+import { journalPath } from "@/lib/journalPath";
 type Operation = "move" | "split" | "merge";
 
 type DayDetail = {
@@ -687,12 +688,12 @@ export default function ReshapeDayFlow({
           next={[
             {
               title: t("studio.day.reshape.done.dayTitle"),
-              href: `/${encodeURIComponent(username)}/trips/${encodeURIComponent(resultTripId ?? "")}/day/${encodeURIComponent(resultSlug)}`,
+              href: `${journalPath(encodeURIComponent(username))}/trips/${encodeURIComponent(resultTripId ?? "")}/day/${encodeURIComponent(resultSlug)}`,
               label: t("studio.day.done.openDay"),
             },
             {
               title: t("studio.day.reshape.done.anotherTitle"),
-              href: `/${encodeURIComponent(username)}/studio/day/reshape`,
+              href: `${journalPath(encodeURIComponent(username))}/studio/day/reshape`,
               label: t("studio.day.reshape.done.another"),
             },
           ]}

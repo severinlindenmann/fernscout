@@ -32,6 +32,7 @@ import { parseTravellers } from "./travellers/parse";
 import type { Figure } from "./travellers/vocabulary";
 import { clearUserCache, getUser, getUsernames, isReservedUsername, isValidUsername } from "./users";
 
+import { journalPath } from "./journalPath";
 /**
  * Creating a journal — the one thing an agent could not do.
  *
@@ -497,7 +498,7 @@ export function composeWelcomeMail(params: {
 }): MailComposition {
   const { username, title, email, nickname, visibility, locale, signIn = null } = params;
   const site = serverSite();
-  const url = `${site.url}/${username}`;
+  const url = `${site.url}${journalPath(username)}`;
   const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(locale, key, vars);
   return {
     channel: "mail",
@@ -584,7 +585,7 @@ export async function sendWelcome(input: {
   if (hasSwitchedOff("mail", input.username)) return false;
 
   const site = serverSite();
-  const url = `${site.url}/${input.username}`;
+  const url = `${site.url}${journalPath(input.username)}`;
   const locale = input.locale ?? "en";
   const t = (key: TranslationKey, vars?: Record<string, string>) =>
     translateIn(locale, key, vars);
@@ -1071,7 +1072,7 @@ export type JournalProfile = {
    * number is still sitting in `config.json` from before that table existed
    * reads back unchanged; a number set or cleared through the new door does
    * NOT show up here — `getOwnerTel()` is the one place that answers "what
-   * is the number now", and `app/[user]/me/page.tsx` calls it directly
+   * is the number now", and `app/at/[user]/me/page.tsx` calls it directly
    * rather than trusting this field for that.
    *
    * The empty string means there is none, the same way a cleared `tagline`
@@ -1428,7 +1429,7 @@ export function setJournalProfile(
  *
  * Deliberately not built by bending `journalProfile`'s field list to fit:
  * that function's shape is v1's, kept for the surviving v1 profile writers
- * (`app/api/helper/[user]/journal/route.ts`, `app/[user]/me/page.tsx`'s own
+ * (`app/api/helper/[user]/journal/route.ts`, `app/at/[user]/me/page.tsx`'s own
  * read), and adding `owner`/`figures`/`declined` to it would change what
  * those already read and write, for a document nothing there has a schema
  * for. `JournalDoc` (the wire type) is

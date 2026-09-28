@@ -17,6 +17,7 @@ import { translateIn } from "./locales";
 import { rateLimitFor } from "./rateLimit";
 import { serverSite } from "./site";
 
+import { journalPath } from "./journalPath";
 /**
  * How much disk one journal is using, and how much it is allowed — B661.
  *
@@ -335,7 +336,7 @@ export function composeStorageMail(params: {
         {
           kind: "button",
           text: t("mail.storageOpen"),
-          href: `${serverSite().url}/${username}/studio/account`,
+          href: `${serverSite().url}${journalPath(username)}/studio/account`,
         },
       ],
       why: t("mail.storageFooter", vars),

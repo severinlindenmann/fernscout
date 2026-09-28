@@ -10,6 +10,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import type { TripPreview } from "@/lib/studio/audiencePreview";
 import type { TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "@/lib/journalPath";
 type Visibility = "private" | "public" | "guest";
 
 /** How widely each visibility reads — `patchTripVisibility`'s own `REACH`
@@ -82,7 +83,7 @@ export default function TripVisibilityFlow({
       <DoneScreen
         username={username}
         done={t("studio.tripVisibility.done.banner", { title: trip.title, visibility: label(chosen) })}
-        next={[{ title: trip.title, href: `/${username}/trips/${trip.id}`, label: t("studio.tripVisibility.done.openTrip") }]}
+        next={[{ title: trip.title, href: `${journalPath(username)}/trips/${trip.id}`, label: t("studio.tripVisibility.done.openTrip") }]}
       />
     );
   }
