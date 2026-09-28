@@ -3166,6 +3166,7 @@
   "studio.location.zones.conflict": "Qualcuno ha modificato le tue zone private da quando la pagina è stata caricata: l’abbiamo ricaricata per mostrarti l’elenco attuale. Ripeti la tua modifica.",
   "studio.location.trackEdits.title": "Nascondi un punto, nascondi un tratto, dai un nome a un tratto",
   "studio.location.trackEdits.lede": "Togli un punto o una fascia oraria da ciò che i lettori vedono del percorso di questo viaggio, oppure dai un nome a un tratto invece di affidarti a un mezzo di trasporto indovinato. Le tue posizioni registrate non vengono mai eliminate — cambia solo ciò che i lettori ne vedono.",
+  "studio.location.trackEdits.ownPinWarningTitle": "Il punto di questo giorno si trova in un punto nascosto. I lettori non lo vedono più su una mappa o una scheda — resta visibile solo il nome del luogo. Sposta il punto, oppure lascialo così.",
   "studio.location.trackEdits.spotsHeading": "Punti nascosti",
   "studio.location.trackEdits.spotsEmpty": "Nessun punto nascosto su questo viaggio per ora.",
   "studio.location.trackEdits.spotRadiusUnit": "raggio {radius} m",

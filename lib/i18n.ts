@@ -3458,6 +3458,7 @@ export type TranslationKey =
   | "studio.location.trackEdits.lede"
   | "studio.location.trackEdits.loadError"
   | "studio.location.trackEdits.lonLabel"
+  | "studio.location.trackEdits.ownPinWarningTitle"
   | "studio.location.trackEdits.radiusLabel"
   | "studio.location.trackEdits.remove"
   | "studio.location.trackEdits.removeNamedQuestion"

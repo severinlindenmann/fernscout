@@ -3168,6 +3168,7 @@
   "studio.location.zones.conflict": "Valaki megváltoztatta a privát zónáidat, mióta betöltötted őket — az aktuális lista újra betöltve. Kérjük, próbáld meg újra a módosítást.",
   "studio.location.trackEdits.title": "Egy hely elrejtése, egy szakasz elrejtése, egy szakasz elnevezése",
   "studio.location.trackEdits.lede": "Vágj ki egy helyet vagy egy időszakot abból, amit az olvasók látnak ennek az útnak az útvonalából, vagy adj nevet egy szakasznak ahelyett, hogy a közlekedési mód kitalálására hagyatkoznál. A saját rögzített pozícióid soha nem törlődnek — csak az változik, amit az olvasók belőlük látnak.",
+  "studio.location.trackEdits.ownPinWarningTitle": "Ennek a napnak a saját tűje egy elrejtett helyen belül van. Az olvasók már nem látják a térképen vagy a kártyán — csak a helynév marad látható. Mozgasd el a tűt, vagy hagyd így.",
   "studio.location.trackEdits.spotsHeading": "Elrejtett helyek",
   "studio.location.trackEdits.spotsEmpty": "Ehhez az úthoz még nincs elrejtett hely.",
   "studio.location.trackEdits.spotRadiusUnit": "{radius} m sugár",

@@ -102,6 +102,7 @@ export default function RecordedTripsSection({
   basemapByTrip,
   kmByModeByTrip,
   initialSegmentsByTrip,
+  hiddenDaysByTrip,
 }: {
   username: string;
   initialTrips: RecordedTrip[];
@@ -119,6 +120,10 @@ export default function RecordedTripsSection({
    * card — left as it was rather than merged, since removing that fetch
    * would be a second change this ticket did not ask for). */
   initialSegmentsByTrip: Record<string, LineSegment[]>;
+  /** B2544 — this trip's own days whose typed `coordinates` fall inside a
+   * spot the owner has hidden, computed server-side (`AS_AUTHOR`) and
+   * handed to `TrackEditsPanel` to warn about. */
+  hiddenDaysByTrip: Record<string, { date: string; slug: string; location: string }[]>;
 }) {
   const { t, tn, formatShortDate, locale } = useI18n();
   // `formatShortDate` reads a calendar date, not an instant — `lastReceived`
@@ -459,6 +464,7 @@ export default function RecordedTripsSection({
                     username={username}
                     tripId={trip.tripId}
                     days={datesBetween(trip.start, trip.end)}
+                    hiddenDays={hiddenDaysByTrip[trip.tripId] ?? []}
                   />
                 </div>
               )}
