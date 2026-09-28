@@ -40,3 +40,20 @@ if (pgUrl && poolId) {
   process.env.POSTGRES_TEST_URL = perWorker(pgUrl);
   if (url.trim() === pgUrl) process.env.DATABASE_URL = perWorker(pgUrl);
 }
+
+/**
+ * And every file starts on an empty schema, the Postgres half of B2496: a
+ * worker runs many files in turn against its one database, and a file that
+ * writes without cleaning up must not leave rows for whichever file that
+ * worker happens to take next.
+ */
+if (pgUrl && poolId) {
+  const { Client } = await import("pg");
+  const client = new Client({ connectionString: process.env.POSTGRES_TEST_URL });
+  await client.connect();
+  try {
+    await client.query("drop schema if exists public cascade; create schema public");
+  } finally {
+    await client.end();
+  }
+}
