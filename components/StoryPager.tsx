@@ -16,11 +16,13 @@ import TestNotice from "./TestNotice";
 import Prose from "./Prose";
 import { EntryVisibility } from "./Visibility";
 import Gallery from "./Gallery";
+import MapCard from "./map/MapCard";
 import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
 import { useMoney } from "./CurrencyProvider";
 import type { DaySummary, Entry } from "@/lib/types";
 import type { ProseNode, StoryDay } from "@/lib/prose";
+import type { TripCard } from "@/lib/map/tripCard";
 import {
   SOURCE_CREDIT,
   weatherGroup,
@@ -140,6 +142,8 @@ export default function StoryPager({
   onStepChange,
   onLegDone,
   hero,
+  dayCard,
+  dayCardDate,
 }: {
   index: DaySummary[];
   /** The full day at that position, once it has arrived. */
@@ -151,6 +155,13 @@ export default function StoryPager({
   onStepChange: (index: number) => void;
   onLegDone: () => void;
   hero?: React.ReactNode;
+  /** That one day's own preview card — B2538, `dayCardFor` in
+   * lib/map/tripCard.ts. Only a `/day/<slug>` permalink's server render has
+   * one (`dayCardDate` says which day it belongs to); paging to a
+   * neighbouring day fetched client-side simply shows none, the same way
+   * `hero` is never re-fetched either. */
+  dayCard?: TripCard | null;
+  dayCardDate?: string;
 }) {
   const step = steps[stepIndex];
 
@@ -231,6 +242,7 @@ export default function StoryPager({
                 dayIndex={step.dayIndex}
                 isNewestDay={step.dayIndex === index.length - 1}
                 titleIsPageHeading
+                mapCard={index[step.dayIndex].date === dayCardDate ? dayCard : undefined}
               />
             ) : (
               <DayPlaceholder
@@ -300,6 +312,7 @@ export function DayCard({
   tripTest,
   isNewestDay = false,
   titleIsPageHeading = false,
+  mapCard,
 }: {
   /** The story page's day card names the page — B2479: its first update's
    *  title is the document's h1, the same thing the tab title says. The docs
@@ -327,6 +340,11 @@ export function DayCard({
    * and this day being published, so a caller passing `true` by mistake
    * cannot make the card appear on a finished trip or under a draft. */
   isNewestDay?: boolean;
+  /** This day's own still preview card — B2538. Only the `/day/<slug>`
+   * permalink route (`StoryPager`'s own `dayCardDate` match) ever hands one
+   * in; every other caller of this exported component leaves it out and
+   * shows no map, the same as every other optional prop here. */
+  mapCard?: TripCard | null;
 }) {
   // Trip-relative: URLs carry a username now, so a bare "/costs" would send a
   // reader to somebody else's site — or to nothing at all.
@@ -487,6 +505,12 @@ export function DayCard({
             }
           />
         ))}
+
+        {/* This day's own still map — B2538, D9. Absent, not a card with
+            nothing drawn on it, until this day has a place of its own
+            (`mapCard` is `null` rather than an empty card for that case —
+            `lib/map/tripCard.ts`'s `dayCardFor`). */}
+        {mapCard && <MapCard card={mapCard} mapHref={trip?.href("/map") ?? "/map"} />}
 
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
         <div className="mt-10 border-t border-line-quiet pt-4">

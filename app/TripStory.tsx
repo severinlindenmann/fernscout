@@ -53,6 +53,7 @@ export default function TripStory({
   openAtDate,
   stats,
   card = null,
+  dayCard = null,
   photobook,
   travellerNames,
   madeWith,
@@ -72,13 +73,19 @@ export default function TripStory({
   openAtDate?: string;
   stats: HeroStats;
   /**
-   * The hero's still preview card, rendered on the server — B2538. The
-   * overview passes the whole trip's own card (`tripCardFor`), a
-   * `/day/<slug>` permalink passes that day's own card instead
-   * (`dayCardFor`, lib/map/tripCard.ts) — never both, and `null` for a trip
-   * or day with no place at all (B1260).
+   * The hero's own still preview card, rendered on the server — B2538,
+   * always the whole trip's route (`tripCardFor`, lib/map/tripCard.ts).
+   * `null` for a trip with no place at all (B1260).
    */
   card?: TripCard | null;
+  /**
+   * `openAtDate`'s own card (`dayCardFor`) — only a `/day/<slug>`
+   * permalink's server render passes one; `StoryPager` shows it on that
+   * day's own screen, not the hero, since the pager opens straight on a
+   * day rather than mounting the hero step at all. `null` for a day with no
+   * place of its own.
+   */
+  dayCard?: TripCard | null;
   /**
    * Present only for the journal's owner, on a journal with photobook and
    * credits switched on — B569. See `TripHero`, which is the only place this
@@ -576,6 +583,8 @@ export default function TripStory({
             loadFailed={loadFailed}
             steps={steps}
             stepIndex={stepIndex}
+            dayCard={dayCard}
+            dayCardDate={openAtDate}
             onStepChange={(next) => {
               directionRef.current = next > stepIndex ? 1 : -1;
               moveTo(next);

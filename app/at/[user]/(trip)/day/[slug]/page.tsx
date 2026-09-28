@@ -6,7 +6,7 @@ import { currentTripRef, getTrip } from "@/lib/trips";
 import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getUser } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
-import { dayCardFor } from "@/lib/map/tripCard";
+import { dayCardFor, tripCardFor } from "@/lib/map/tripCard";
 import { DayStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
@@ -144,9 +144,13 @@ async function CurrentDayBody({
     locale: await requestLocale(),
   });
 
-  // This day's own preview card — B2538. See the equivalent call in the
-  // /trips/<id>/day/<slug> route.
-  const card = await dayCardFor(trip, index, entry.date);
+  // The overview's own card (for the hero, reachable via "Overview") and
+  // this day's own (for the screen the permalink actually opens on) —
+  // B2538. See the equivalent calls in the /trips/<id>/day/<slug> route.
+  const [card, dayCard] = await Promise.all([
+    tripCardFor(trip, index),
+    dayCardFor(trip, index, entry.date),
+  ]);
 
   return (
     <>
@@ -167,6 +171,7 @@ async function CurrentDayBody({
         openAtDate={entry.date}
         stats={stats}
         card={card}
+        dayCard={dayCard}
       />
     </>
   );

@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { ArrowDown, BookOpen, ChevronRight, Clapperboard, PlayCircle, Sparkles } from "lucide-react";
 import LatestDayButton from "./LatestDayButton";
 import type { TripCard } from "@/lib/map/tripCard";
+import MapCard from "./map/MapCard";
 import PushInstallOnboarding from "./PushInstallOnboarding";
 import PushOptIn from "./PushOptIn";
 import { KeptMark } from "./KeepTrip";
@@ -420,34 +421,17 @@ export default function TripHero({
           (B2538). Absent, not a card with nothing drawn on it, until some
           day has a coordinate — same B1260 rule `TripMap` used to follow. */}
       {card && (
-        <div className="mt-4">
-          <Link href={active.href("/map")} className="block overflow-hidden rounded-2xl border border-line-quiet">
-            {/* The cached SVG carries no locale text of its own (see
-                lib/map/cardSvg.ts) — safe to inline, and the only way its
-                `var(--map-…)` colours pick up this page's theme. */}
-            <div
-              className="w-full [&_svg]:block [&_svg]:h-auto [&_svg]:w-full"
-              dangerouslySetInnerHTML={{ __html: card.card.svg }}
-            />
-          </Link>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-            <p className="text-ink-secondary">
-              {[
-                tn("map.days", stats.tripDays),
-                hasPlaces ? tn("map.places", stats.places) : null,
-                card.recordedKm > 0 ? t("mapCard.recordedKm", { km: String(card.recordedKm) }) : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-            <Link href={active.href("/map")} className="font-semibold text-ink-strong hover:text-ink-body">
-              {t("mapCard.openMap")}
-            </Link>
-          </div>
-          {card.card.usedStreet && (
-            <p className="mt-1 text-xs text-ink-secondary">{t("mapCard.osmCredit")}</p>
-          )}
-        </div>
+        <MapCard
+          card={card}
+          mapHref={active.href("/map")}
+          factsLine={[
+            tn("mapCard.days", stats.tripDays, { count: String(stats.tripDays) }),
+            hasPlaces ? tn("mapCard.places", stats.places, { count: String(stats.places) }) : null,
+            card.recordedKm > 0 ? t("mapCard.recordedKm", { km: String(card.recordedKm) }) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        />
       )}
 
       {/* Numbers. A <dl> because Stat renders dt/dd — as a plain <section>

@@ -21,6 +21,9 @@
   ],
   "units": "metric",
   "visibility": "public",
+  "features": {
+    "streetMaps": { "enabled": true }
+  },
   "figures": {
     "mode": "set",
     "figures": [
