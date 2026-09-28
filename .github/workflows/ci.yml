@@ -9,6 +9,8 @@ on:
   # flake-hunt job below runs the suite twice.
   schedule:
     - cron: "0 3 * * *"
+  # The same run by hand (`gh workflow run ci.yml`), flake-hunt included.
+  workflow_dispatch:
 
 # A second push to the same PR should cancel the previous run rather than
 # queue behind it. Only on a PR: a cancelled main run is a main nobody knows
@@ -297,12 +299,12 @@ jobs:
             exit 1
           }
 
-  # B2555. Nightly only, never on a PR or a push, and not in ci-ok's needs: the
+  # B2555. Nightly (or by hand), never on a PR or a push, and not in ci-ok's needs: the
   # sqlite leg's suite twice over. The gate has retry 0, so a flaky test is a
   # random red on somebody's PR; here it is a named test that failed in one
   # pass of two. Vitest 4.1 has no --repeats flag, hence the loop.
   flake-hunt:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: "sqlite:./test.db"
