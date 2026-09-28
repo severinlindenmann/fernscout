@@ -10,6 +10,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { routeStatus, useNativeShell, type RouteRecordStatus } from "@/components/nativeShell";
 import type { Basemap } from "@/lib/basemap";
 import type { TranslationKey } from "@/lib/i18n";
+import { kmBetween } from "@/lib/mapFrame";
 
 import { journalPath } from "@/lib/journalPath";
 type RecordedTrip = {
@@ -26,6 +27,10 @@ type RecordedTrip = {
    * map and per-day delete do not, since there is nothing left to fetch or
    * delete by day. */
   hasPublishedTrack?: boolean;
+  /** Raw fix count inside the trip's own dates — the overview card's facts
+   * line. Absent (rather than 0) is treated the same as 0: an older caller
+   * that has not started sending it yet still renders. */
+  positions?: number;
 };
 
 type LineSegment = { day?: string; points: [number, number][] };
@@ -52,6 +57,22 @@ function datesBetween(start: string, end: string): string[] {
   return dates;
 }
 
+/** Straight-line kilometres along every segment's own points, never across
+ * the break between two segments (that break is a real gap, not distance
+ * travelled) — the overview card's "km recorded" fact. */
+function kmAlong(segments: LineSegment[]): number {
+  let km = 0;
+  for (const s of segments) {
+    for (let i = 1; i < s.points.length; i++) {
+      km += kmBetween(
+        { lat: s.points[i - 1][0], lng: s.points[i - 1][1] },
+        { lat: s.points[i][0], lng: s.points[i][1] },
+      );
+    }
+  }
+  return km;
+}
+
 /**
  * "Your route" — B2226. One row per trip that has at least one recorded
  * fix (`recordedTrips`), with a Preview (the owner's own raw, unclipped
@@ -69,11 +90,19 @@ export default function RecordedTripsSection({
   initialTrips,
   placesByTrip,
   basemapByTrip,
+  initialSegmentsByTrip,
 }: {
   username: string;
   initialTrips: RecordedTrip[];
   placesByTrip: Record<string, PlaceView[]>;
   basemapByTrip: Record<string, Basemap | null>;
+  /** The owner's own raw line per trip, computed server-side
+   * (`ownerTripLine`) — B2540's overview card map and facts line. Shown
+   * unconditionally, unlike `segmentsByTrip` below (the same data, fetched
+   * lazily on "Preview" for the per-day delete list further down this same
+   * card — left as it was rather than merged, since removing that fetch
+   * would be a second change this ticket did not ask for). */
+  initialSegmentsByTrip: Record<string, LineSegment[]>;
 }) {
   const { t, tn, formatShortDate, locale } = useI18n();
   // `formatShortDate` reads a calendar date, not an instant — `lastReceived`
@@ -197,7 +226,33 @@ export default function RecordedTripsSection({
 
   return (
     <section className="mt-10">
-      <h2 className="font-display text-lg font-semibold text-ink-strong">
+      {/* S1 A's recording-status block — for now, one line per trip built
+          from what the server already has (`lastReceived`, or the native
+          shell's own live status when this session holds it). A parallel
+          builder is adding a real `recordingState(user, tripId)` read; this
+          block is the placeholder slot it swaps into, not that function. */}
+      <div className="rounded-2xl border border-line-quiet bg-surface-subtle p-4">
+        <h2 className="font-display text-base font-semibold text-ink-strong">
+          {t("studio.location.route.statusHeading")}
+        </h2>
+        <ul className="mt-2 space-y-1">
+          {trips.map((trip) => {
+            const status = nativeStatus[trip.tripId];
+            return (
+              <li key={trip.tripId} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+                <span className="font-semibold text-ink-strong">{trip.title}</span>
+                <span className="text-ink-secondary">
+                  {native && status
+                    ? statusLine(status, t)
+                    : t("studio.location.route.lastReceived", { at: fmtInstant(trip.lastReceived) })}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+      <h2 className="mt-8 font-display text-lg font-semibold text-ink-strong">
         {t("studio.location.route.heading")}
       </h2>
       <p className="mt-2 text-sm text-ink-secondary">{t("studio.location.route.lede")}</p>
@@ -226,6 +281,38 @@ export default function RecordedTripsSection({
                   ? statusLine(status, t)
                   : t("studio.location.route.lastReceived", { at: fmtInstant(trip.lastReceived) })}
               </p>
+
+              {(() => {
+                const initial = initialSegmentsByTrip[trip.tripId] ?? [];
+                if (initial.length === 0) return null;
+                const km = kmAlong(initial);
+                const gaps = Math.max(0, initial.length - 1);
+                return (
+                  <>
+                    <div className="mt-3 h-32 overflow-hidden rounded-xl border border-line-quiet">
+                      <WorldMap
+                        places={placesByTrip[trip.tripId] ?? []}
+                        basemap={basemapByTrip[trip.tripId] ?? null}
+                        track={initial.map((s) => s.points)}
+                      />
+                    </div>
+                    <p className="mt-2 text-sm text-ink-secondary">
+                      {tn("studio.location.route.cardFacts", trip.daysRecorded, {
+                        days: String(trip.daysRecorded),
+                        km: km.toFixed(1),
+                        positions: String(trip.positions ?? 0),
+                        gaps: String(gaps),
+                      })}
+                    </p>
+                  </>
+                );
+              })()}
+              <Link
+                href={`${journalPath(username)}/studio/location?trip=${encodeURIComponent(trip.tripId)}&view=mine`}
+                className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-ink-strong underline underline-offset-2"
+              >
+                {t("studio.location.route.viewTrip")}
+              </Link>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <BusyButton

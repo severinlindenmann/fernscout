@@ -225,13 +225,13 @@ describe("the rules that keep it private", () => {
   });
 
   /**
-   * B2200, widened by B2226 — `placeForDay`, `recordedTrips` and
-   * `ownerTripLine` are the only functions anywhere allowed to read a
-   * position back out of the store, so this is the one place that fact could
-   * quietly stop being true: a fourth export in `lib/gps/api.ts` growing a
-   * call to `readRange` would widen what an API route can reach for without
-   * ever touching `./store` or `./enrich` directly, and the test above would
-   * not see it.
+   * B2200, widened by B2226 and again by B2540 — `placeForDay`,
+   * `recordedTrips`, `ownerTripLine` and `ownerDayLine` are the only
+   * functions anywhere allowed to read a position back out of the store, so
+   * this is the one place that fact could quietly stop being true: a fifth
+   * export in `lib/gps/api.ts` growing a call to `readRange` would widen
+   * what an API route can reach for without ever touching `./store` or
+   * `./enrich` directly, and the test above would not see it.
    *
    * Derived from the file's own exports rather than a hand-written list of
    * function names, which would go stale the moment somebody renamed or
@@ -241,11 +241,15 @@ describe("the rules that keep it private", () => {
    * `deriveTripTrack` and `deleteTripRecording` both reach the store too
    * (through `trackForTrip`/`deleteRange`), but neither calls `readRange`
    * itself and neither hands a coordinate back to its caller — only counts —
-   * so they are correctly outside this list; `recordedTrips` and
-   * `ownerTripLine` call `readRange` directly for exactly that reason (see
-   * their own doc comments in `lib/gps/api.ts`).
+   * so they are correctly outside this list; `recordedTrips`,
+   * `ownerTripLine` and `ownerDayLine` call `readRange` directly for exactly
+   * that reason (see their own doc comments in `lib/gps/api.ts`).
+   * `ownerDayLine` is the studio's own street-level day view (B2540) — same
+   * owner-only audience as `ownerTripLine`, needing each fix's own instant
+   * (which `ownerTripLine`'s already-thinned segments no longer carry) to
+   * test its finer ">10 min and >600 m" gap rule.
    */
-  test("api.ts's only position-reading exports are placeForDay, recordedTrips and ownerTripLine", () => {
+  test("api.ts's only position-reading exports are placeForDay, recordedTrips, ownerTripLine and ownerDayLine", () => {
     const file = path.join(process.cwd(), "lib", "gps", "api.ts");
     const source = fs.readFileSync(file, "utf8");
     const boundaries = [...source.matchAll(/^export function (\w+)/gm)];
@@ -258,7 +262,7 @@ describe("the rules that keep it private", () => {
       })
       .filter((f) => /\breadRange\(/.test(f.body))
       .map((f) => f.name);
-    expect(readers).toEqual(["placeForDay", "recordedTrips", "ownerTripLine"]);
+    expect(readers).toEqual(["placeForDay", "recordedTrips", "ownerTripLine", "ownerDayLine"]);
   });
 
   /**
