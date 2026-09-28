@@ -34,3 +34,22 @@ export const gpsPurgeRequest = z.union([
   z.strictObject({ all: z.literal(true) }),
 ]);
 export type GpsPurgeRequest = z.infer<typeof gpsPurgeRequest>;
+
+/**
+ * The phone's own "am I actually recording" report — B2542, an optional
+ * `state` alongside a `kind: "gps"` import body. `trip` names which trip
+ * this is about (the same one the recorder is armed against); everything
+ * else is exactly what the phone itself can say about its own arming and
+ * permission. Accepted only from the phone's own `write:gps` token or the
+ * owner (`app/api/v2/[user]/import/route.ts`), and read back only through
+ * the owner-only `recordingState` (`lib/gps/recorderState.ts`) — never over
+ * `/api/v2`, and never to a reader.
+ */
+export const gpsStateReport = z.strictObject({
+  trip: z.string().min(1),
+  armed: z.boolean(),
+  armedUntil: z.string().datetime().optional(),
+  permission: z.enum(["always", "whenInUse", "denied", "notDetermined"]).optional(),
+  appVersion: z.string().max(40).optional(),
+});
+export type GpsStateReport = z.infer<typeof gpsStateReport>;

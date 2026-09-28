@@ -600,11 +600,94 @@ token — the kind that sits in agent scrollbacks — cannot list or fetch it
 through the sync surface either. `test/gps-track-edits.test.ts` and
 `test/track-edits-route.test.ts` are the tests.
 
+## Transport mode — B2541
+
+A fix may carry how it was made: `TRANSPORT_MODES`
+(`importers/gps/schema.ts`) — `on_foot`, `bike`, `car`, `bus`, `train`,
+`tram`, `boat`, `plane`, `skiing`, `unknown` — the one vocabulary read and
+written everywhere a mode appears. The store format stays backward
+compatible forever: `[t, lat, lon]` is still valid, and a mode is only ever
+a 4th element, `[t, lat, lon, "mode"]` — added by `lib/gps/store.ts` when a
+fix actually carries one, never required.
+
+Two sources fill it in:
+
+- **The iPhone recorder** (`ios/App/App/Recorder.swift`) reads Core Motion's
+  own activity classifier (`CMMotionActivityManager`) alongside every fix,
+  mapped to the same vocabulary (`modeString(for:)`) — walking/running →
+  `on_foot`, cycling → `bike`, automotive → `car`; stationary says nothing
+  about transport and is left alone rather than overwriting a real reading.
+- **Google Timeline import** (`importers/gps/google-timeline.ts`) maps
+  Google's own guessed activity type (`topCandidate.type`) to the same
+  vocabulary — a recognised string only; an unrecognised one is left with no
+  mode at all, never guessed. This reverses the importer's original
+  "deliberately dropped" stance: the owner decided (S2 B, 2026-09-28) that a
+  visible, overridable guess beats no information, since the actual fix for
+  a wrong guess is naming the stretch (below), not silence.
+
+**Derivation carries a mode into `track.json`, never finer than a
+segment.** `deriveTrack` (`lib/gps/enrich.ts`) tags each drawn segment with
+the single most-recorded known mode among its own fixes (`dominantMode`) —
+absent when nothing in it carries one. `readerTrack`/`namedStretchLabels`
+(`lib/gps/track.ts`) pass it straight through with the segment or label,
+the same reader-safe door as everything else in this file; a raw fix's own
+mode never reaches a reader, only the segment's rollup.
+
+**A named stretch (B2539) may set its own `mode`, overriding what the
+recording says for that stretch's own label** — the Algarve boat trip is
+the whole reason: Google's "in passenger vehicle" is now kept rather than
+dropped, but a named stretch is still how the owner corrects it, exactly as
+before. `NamedStretch.mode` (`lib/gps/edits.ts`), written through
+`PUT /api/v2/{user}/trips/{trip}/track-edits`; never rewrites the segment
+around it, only the label's own point (`TrackLabel.mode`).
+
+**The studio's own "km by mode"** — `kmByMode(username, tripId)`
+(`lib/gps/api.ts`) — is the fourth, and last, function anywhere allowed to
+read a position back out of the store (after `placeForDay`, `recordedTrips`,
+`ownerTripLine`): it sums straight-line distance between consecutive raw
+fixes that share a known mode, and hands back kilometres per mode, never a
+coordinate. Reachable only from the studio's own server-rendered "Your
+route" page, the same as `ownerTripLine`.
+
+## The phone's own recording state — B2542
+
+The studio could previously only say "positions last arrived at …", which
+cannot tell "recording", "off" and "armed but silently not working" (most
+often: permission downgraded to "While Using" mid-trip, or the phone simply
+has not reached the server in hours) apart. Each `POST …/import` upload may
+now carry a `state` object alongside the fixes:
+
+```json
+{ "kind": "gps", "format": "fixes", "text": "…",
+  "state": { "trip": "<tripId>", "armed": true, "armedUntil": "…", "permission": "always", "appVersion": "1.4" } }
+```
+
+Accepted only from the two callers `import` already admits for a `kind:
+"gps"` write — the owner's own journal-wide token, or the phone's own narrow
+`write:gps` token — and never on a dry run. The server stores only the
+*latest* report per trip, `content/<user>/trips/<trip>/recorder-state.json`
+(`lib/gps/recorderState.ts`) — owner-only content, the same shape and the
+same export/sync exclusions as `track-edits.json` (never a position, but
+still "nobody outside this journal").
+
+`recordingState(user, tripId)` answers `{ state: "recording" | "off" |
+"silent", reason?, armedUntil?, lastReport?, permission? } | null` — `null`
+when nothing has ever been reported. `"silent"` covers both known causes:
+`permission` is anything but `"always"`, or nothing has arrived in over six
+hours. Read only by `recordedTrips` (`lib/gps/api.ts`), which is itself
+reachable only from the owner's cookie — never over `/api/v2`, and never
+inside a reader's response.
+
+The iPhone recorder sends this with every upload — `stateReport` in
+`Recorder.swift` — including the *last* upload after Stop or the cooldown
+ending, with `armed: false`, so the studio reads "not recording" the moment
+that lands rather than waiting for staleness to say so on its own.
+
 ## What this does not do
 
 No live tracking (B666 is the endpoint an app like OwnTracks or Overland would
 post to; a PWA cannot do background geolocation, so there is no point building
 one). No per-day tracks on a public map, no speed or elevation, no
 map-matching to roads, and no reading of the store from the web at all
-beyond the three named readers above — `placeForDay`, `recordedTrips` and
-`ownerTripLine`.
+beyond the four named readers above — `placeForDay`, `recordedTrips`,
+`ownerTripLine` and `kmByMode`.

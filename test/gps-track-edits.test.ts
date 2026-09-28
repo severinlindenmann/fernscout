@@ -134,6 +134,60 @@ describe("named stretches (D8 C) — the Algarve boat trip", () => {
   });
 });
 
+describe("transport mode — B2541", () => {
+  test("a segment carries the dominant known mode among its own fixes", () => {
+    const track = deriveTrack(
+      [
+        { ...on("2026-06-22", 8, 0, 37.0, -8.0), mode: "car" },
+        { ...on("2026-06-22", 8, 5, 37.01, -8.01), mode: "car" },
+        { ...on("2026-06-22", 8, 10, 37.02, -8.02), mode: "on_foot" },
+      ],
+      DATES,
+    );
+    expect(track.segments).toHaveLength(1);
+    expect(track.segments[0].mode).toBe("car");
+  });
+
+  test("a segment with no mode on any fix carries none", () => {
+    const track = deriveTrack(
+      [on("2026-06-22", 8, 0, 37.0, -8.0), on("2026-06-22", 8, 5, 37.01, -8.01)],
+      DATES,
+    );
+    expect(track.segments[0].mode).toBeUndefined();
+  });
+
+  test("a named stretch's own mode overrides the recorded mode for its label", () => {
+    const boatTrip = {
+      id: "n1",
+      from: "2026-06-22T10:00:00Z",
+      to: "2026-06-22T12:00:00Z",
+      label: "Boat trip · dolphins",
+      mode: "boat",
+    };
+    const track = deriveTrack(
+      [
+        // Google's own guess: "car" — the whole reason this override exists.
+        { ...on("2026-06-22", 11, 0, 37.1, -8.8), mode: "car" },
+        { ...on("2026-06-22", 11, 5, 37.11, -8.81), mode: "car" },
+      ],
+      { ...DATES, namedStretches: [boatTrip], toleranceM: 0 },
+    );
+    expect(track.labels?.[0].mode).toBe("boat");
+    // The override never rewrites the segment itself — a reader's line
+    // still shows what the phone actually recorded.
+    expect(track.segments[0].mode).toBe("car");
+  });
+
+  test("with no override, a named stretch's label falls back to the recorded mode", () => {
+    const named = { id: "n1", from: "2026-06-22T10:00:00Z", to: "2026-06-22T12:00:00Z", label: "Boat trip" };
+    const track = deriveTrack(
+      [{ ...on("2026-06-22", 11, 0, 37.1, -8.8), mode: "boat" }, on("2026-06-22", 11, 5, 37.11, -8.81)],
+      { ...DATES, namedStretches: [named], toleranceM: 0 },
+    );
+    expect(track.labels?.[0].mode).toBe("boat");
+  });
+});
+
 describe("namedStretchLabels (D8 C) — the reader-safe door onto a stretch's own label", () => {
   const USER = "ana";
   const TRIP = "algarve";

@@ -29,6 +29,9 @@ import {
   isRefusal,
   type ImportKind,
 } from "@/lib/gps/api";
+import { gpsStateReport } from "@/lib/api/v2/schemas/gps";
+import { writeRecorderState } from "@/lib/gps/recorderState";
+import { getTrip, tripRef } from "@/lib/trips";
 import { readContactsFile } from "@/lib/contacts/readImport";
 import { storageRefusal, withStorageQuota } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
@@ -76,6 +79,9 @@ type Body = {
   format?: unknown;
   inbox?: unknown;
   text?: unknown;
+  /** B2542 — the phone's own latest armed/permission report, alongside an
+   *  ordinary `kind: "gps"` upload. See `gpsStateReport`. */
+  state?: unknown;
 };
 
 /** The bytes, from whichever of the three doors was used.
@@ -229,6 +235,23 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
         "row with its own confirmation mail; none of them is postcard-addressable until " +
         "it confirms.",
     });
+  }
+
+  // B2542 — the phone's own latest armed/permission report, alongside this
+  // same upload. Accepted from exactly the two callers already let past the
+  // gate above (the owner token, or the phone's own `write:gps`); never
+  // written on a dry run, the same "nothing was written" promise the rest of
+  // this route already makes. Validated as its own schema so a malformed
+  // report is refused rather than silently dropped or half-applied.
+  if (body.state !== undefined && !dryRun) {
+    const parsedState = gpsStateReport.safeParse(body.state);
+    if (!parsedState.success) {
+      return fail("invalid_request", ERROR_CODES.invalid_request, undefined, 400);
+    }
+    const { trip: tripId, ...report } = parsedState.data;
+    const trip = getTrip(tripRef(user, tripId));
+    if (!trip) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
+    writeRecorderState(user, tripId, report);
   }
 
   let result: ReturnType<typeof importGps>;

@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { GPS_IMPORTERS } from "@/importers/gps";
 import { CONTACTS_IMPORTERS } from "@/importers/contacts";
-import { checkGpsImporter, type GpsImporter, type Fix } from "@/importers/gps/schema";
+import { checkGpsImporter, type GpsImporter, type Fix, type TransportMode } from "@/importers/gps/schema";
 import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
-import { appendFixes, deleteMonths, deleteRange, listMonths, readRange, type AppendResult } from "./store";
+import { appendFixes, deleteMonths, deleteRange, listMonths, metresBetween, readRange, type AppendResult } from "./store";
 import {
   deriveTrack,
   hasHomeZoneOrDeclined,
@@ -29,6 +29,9 @@ import {
   type ResolvedRange,
   type TrackEdits,
 } from "./edits";
+import { recordingState, type RecordingState } from "./recorderState";
+export { recordingState };
+export type { RecordingState };
 import { reverseGeocode } from "../ingest/geo";
 import { earliestTodayISO } from "../tripTime";
 import { zonedTimeToUtc } from "../timezone";
@@ -78,11 +81,13 @@ function dayTimezones(username: string, trip: { id: string }): Record<string, st
  * owner's own cookie on the studio's location page, with no `/api/v2` door
  * at all. `recordedTrips` (also B2226) reads the store too, but hands back
  * only counts and timestamps, never a coordinate — the same shape
- * `coverageOf` above already had. `test/gps-store.test.ts` asserts that no
+ * `coverageOf` above already had. `kmByMode` (B2541) is a fourth: kilometres
+ * summed per transport mode, never a coordinate either.
+ * `test/gps-store.test.ts` asserts that no
  * route imports `./store` or `./enrich` directly, and that exactly these
- * three — `placeForDay`, `recordedTrips`, `ownerTripLine` — are the exports
- * here that reach into the store at all — this module is the reason both
- * can still be true at once.
+ * four — `placeForDay`, `recordedTrips`, `ownerTripLine`, `kmByMode` — are
+ * the exports here that reach into the store at all — this module is the
+ * reason both can still be true at once.
  */
 
 /**
@@ -403,10 +408,11 @@ function resolvedHiddenStretches(
 function resolvedNamedStretches(
   stretches: NamedStretch[],
   zonedDates: Readonly<Record<string, string>>,
-): (ResolvedRange & { id: string; label: string })[] {
+): (ResolvedRange & { id: string; label: string; mode?: NamedStretch["mode"] })[] {
   return stretches.map((s) => ({
     id: s.id,
     label: s.label,
+    mode: s.mode,
     from: zonedTimeToUtc(s.date, s.from, zonedDates[s.date] ?? "UTC").toISOString(),
     to: zonedTimeToUtc(s.date, s.to, zonedDates[s.date] ?? "UTC").toISOString(),
   }));
@@ -671,7 +677,14 @@ export function writeTrackEdits(
   tripId: string,
   edits: { hiddenSpots: { id?: string; lat: number; lon: number; radiusM: number }[];
     hiddenStretches: { id?: string; date: string; from: string; to: string }[];
-    namedStretches: { id?: string; date: string; from: string; to: string; label: string }[] },
+    namedStretches: {
+      id?: string;
+      date: string;
+      from: string;
+      to: string;
+      label: string;
+      mode?: NamedStretch["mode"];
+    }[] },
 ): TrackEdits {
   const existing = readTrackEdits(username, tripId);
   const existingIds = new Set(
@@ -874,6 +887,11 @@ export type RecordedTrip = {
    * to reach it (to hide a spot that is still on the published route, say),
    * even though there is currently nothing to preview or delete by day. */
   hasPublishedTrack: boolean;
+  /** The phone's own latest armed/permission report for this trip — B2542.
+   *  `null` when nothing has ever been reported (never armed the recorder
+   *  natively at all, or armed before this shipped). Never a coordinate;
+   *  see `recordingState` (`./recorderState.ts`). */
+  recording: RecordingState | null;
 };
 
 export function recordedTrips(username: string): RecordedTrip[] {
@@ -897,6 +915,7 @@ export function recordedTrips(username: string): RecordedTrip[] {
         tripDays: coverage.tripDays,
         lastReceived: new Date(newest).toISOString(),
         hasPublishedTrack: false,
+        recording: recordingState(username, trip.id),
       });
       continue;
     }
@@ -917,6 +936,7 @@ export function recordedTrips(username: string): RecordedTrip[] {
       tripDays,
       lastReceived: track.generated,
       hasPublishedTrack: true,
+      recording: recordingState(username, trip.id),
     });
   }
   return out;
@@ -972,6 +992,40 @@ export function ownerTripLine(username: string, tripId: string): OwnerTripLine |
     // No `maxEndMs`, no `trimMetres` — see the doc comment above.
   });
   return { segments: track.segments.map((s) => ({ day: s.day, points: s.points })) };
+}
+
+/**
+ * Kilometres of this trip's own recorded route, by transport mode — B2541,
+ * the studio's "km by mode" line. Reads the same raw, unfiltered fixes
+ * `ownerTripLine` does (no private-zone cut, no 24h cap, no end-trim — this
+ * is the owner's own history, not a reader's view of it) and sums the
+ * straight-line distance between consecutive fixes that share a known mode.
+ *
+ * ponytail: a fix with no mode, or a boundary between two different modes,
+ * contributes nothing to any total rather than being split or guessed —
+ * cheaper than inventing which side of the gap a leg's first metre belongs
+ * to, and honest about what the data actually says. Upgrade path, if it
+ * ever matters: attribute an unmodalled gap to whichever mode is nearest in
+ * time on either side.
+ */
+export function kmByMode(username: string, tripId: string): Partial<Record<TransportMode, number>> {
+  const trip = getTrip(tripRef(username, tripId));
+  if (!trip) return {};
+  const zones = dayTimezones(username, trip);
+  const from = localWindow(trip.start, zones[trip.start]).from;
+  const to = localWindow(trip.end, zones[trip.end]).to;
+  const fixes = readRange(username, from, to);
+  const totals: Partial<Record<TransportMode, number>> = {};
+  for (let i = 1; i < fixes.length; i++) {
+    const a = fixes[i - 1];
+    const b = fixes[i];
+    if (!a.mode || a.mode !== b.mode) continue;
+    totals[a.mode] = (totals[a.mode] ?? 0) + metresBetween(a, b) / 1000;
+  }
+  for (const mode of Object.keys(totals) as TransportMode[]) {
+    totals[mode] = Math.round((totals[mode] ?? 0) * 10) / 10;
+  }
+  return totals;
 }
 
 /** What `deleteTripRecording` answers with — counts, and whether the trip's

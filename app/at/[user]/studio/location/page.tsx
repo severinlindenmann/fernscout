@@ -9,7 +9,7 @@ import RecordedTripsSection from "@/components/studio/location/RecordedTripsSect
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { getCurrentTrip, getTrips, tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
-import { recordedTrips } from "@/lib/gps/api";
+import { kmByMode, recordedTrips } from "@/lib/gps/api";
 import { AS_AUTHOR, getPlaces } from "@/lib/entries";
 import { basemapForRoute } from "@/lib/basemap";
 import { resolveAccess } from "@/lib/auth/handshake";
@@ -65,10 +65,15 @@ export default async function StudioLocationPage({ params }: PageProps<"/at/[use
     // "What it looks like".
     const placesByTrip: Record<string, ReturnType<typeof getPlaces>> = {};
     const basemapByTrip: Record<string, ReturnType<typeof basemapForRoute>> = {};
+    // B2541 — km by transport mode, for the same trips. Small enough (a
+    // handful of numbers) to compute for every row rather than only on
+    // expand, the same reasoning `daysRecorded` already gets.
+    const kmByModeByTrip: Record<string, ReturnType<typeof kmByMode>> = {};
     for (const trip of recorded) {
       const places = getPlaces(tripRef(user, trip.tripId), AS_AUTHOR);
       placesByTrip[trip.tripId] = places;
       basemapByTrip[trip.tripId] = basemapForRoute(places);
+      kmByModeByTrip[trip.tripId] = kmByMode(user, trip.tripId);
     }
     routeSection = (
       <RecordedTripsSection
@@ -76,6 +81,7 @@ export default async function StudioLocationPage({ params }: PageProps<"/at/[use
         initialTrips={recorded}
         placesByTrip={placesByTrip}
         basemapByTrip={basemapByTrip}
+        kmByModeByTrip={kmByModeByTrip}
       />
     );
   }

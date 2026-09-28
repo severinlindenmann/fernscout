@@ -130,6 +130,44 @@ describe("the store on disk", () => {
   });
 });
 
+describe("transport mode on a fix — B2541", () => {
+  test("an old three-element line still parses with no mode", () => {
+    fs.mkdirSync(gpsDir(USER), { recursive: true });
+    fs.writeFileSync(
+      path.join(gpsDir(USER), "2026-06.jsonl"),
+      "[1750579200,47.1,8.1]\n",
+    );
+    const out = readRange(USER, 0, Date.now() + 1e10);
+    expect(out).toHaveLength(1);
+    expect(out[0].mode).toBeUndefined();
+  });
+
+  test("a mixed file — some lines with a mode, some without — round-trips", () => {
+    appendFixes(USER, [
+      at(0, 47, 8),
+      { ...at(10, 47.1, 8), mode: "car" },
+      { ...at(30, 47.2, 8), mode: "on_foot" },
+    ]);
+    const out = readRange(USER, 0, Date.now() + 1e10);
+    expect(out.map((f) => f.mode)).toEqual([undefined, "car", "on_foot"]);
+    // Written back out with the 4th element only where a mode is present.
+    const text = fs.readFileSync(path.join(gpsDir(USER), "2026-06.jsonl"), "utf8");
+    const lines = text.trim().split("\n");
+    expect(lines[0].split(",")).toHaveLength(3);
+    expect(lines[1]).toContain('"car"');
+  });
+
+  test("an unrecognised mode string on disk is dropped, not trusted", () => {
+    fs.mkdirSync(gpsDir(USER), { recursive: true });
+    fs.writeFileSync(
+      path.join(gpsDir(USER), "2026-06.jsonl"),
+      '[1750579200,47.1,8.1,"levitating"]\n',
+    );
+    const out = readRange(USER, 0, Date.now() + 1e10);
+    expect(out[0].mode).toBeUndefined();
+  });
+});
+
 describe("purging — B1843 addendum", () => {
   test("readRange returns nothing after a whole-months purge, and the bytes are gone", () => {
     appendFixes(USER, [at(0, 47, 8), at(10, 47.1, 8)]);
@@ -245,7 +283,7 @@ describe("the rules that keep it private", () => {
    * `ownerTripLine` call `readRange` directly for exactly that reason (see
    * their own doc comments in `lib/gps/api.ts`).
    */
-  test("api.ts's only position-reading exports are placeForDay, recordedTrips and ownerTripLine", () => {
+  test("api.ts's only position-reading exports are placeForDay, recordedTrips, ownerTripLine and kmByMode", () => {
     const file = path.join(process.cwd(), "lib", "gps", "api.ts");
     const source = fs.readFileSync(file, "utf8");
     const boundaries = [...source.matchAll(/^export function (\w+)/gm)];
@@ -258,7 +296,7 @@ describe("the rules that keep it private", () => {
       })
       .filter((f) => /\breadRange\(/.test(f.body))
       .map((f) => f.name);
-    expect(readers).toEqual(["placeForDay", "recordedTrips", "ownerTripLine"]);
+    expect(readers).toEqual(["placeForDay", "recordedTrips", "ownerTripLine", "kmByMode"]);
   });
 
   /**

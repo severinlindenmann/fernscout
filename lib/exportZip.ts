@@ -272,6 +272,12 @@ function appendUserContent(
       // otherwise be a bearer token's own machine with no reader-facing gate
       // left to filter it through.
       if (relative === "track-edits.json") continue;
+      // B2542 — the phone's latest armed/permission report never leaves in
+      // an export either: it is owner-only content about the recording
+      // device itself, not the trip, and the same "no reader-facing gate
+      // left to filter it through" reasoning applies once it is on a bearer
+      // token's own machine.
+      if (relative === "recorder-state.json") continue;
       archive.file(file, { name });
     }
 

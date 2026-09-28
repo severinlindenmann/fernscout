@@ -1,4 +1,4 @@
-import { isSaneFix, parseGeoUri, parseInstant, type Fix, type GpsImporter } from "./schema";
+import { isSaneFix, parseGeoUri, parseInstant, type Fix, type GpsImporter, type TransportMode } from "./schema";
 
 /**
  * Google Maps Timeline, as exported from the phone.
@@ -15,9 +15,15 @@ import { isSaneFix, parseGeoUri, parseInstant, type Fix, type GpsImporter } from
  * fifty points a day, a minute apart while moving — and the other two are what
  * keeps the line joined across the hours the path does not cover.
  *
- * Google's guessed mode (`in train`, `cycling`) is deliberately dropped. It is
- * a guess about what happened, and what happened is the one thing this
- * software does not invent.
+ * Google's guessed mode (`in train`, `cycling`) is a guess about what
+ * happened — the one thing this software does not invent on its own — but
+ * since B2541 (owner decision S2 B) it is kept anyway, mapped to the one
+ * shared vocabulary (`TRANSPORT_MODES`), because a guess the owner can see
+ * and override (a named stretch, B2539) beats no information at all: the
+ * Algarve find that started this ticket was a dolphin boat trip Google
+ * called "in passenger vehicle, 43 km", and naming the stretch is the actual
+ * fix — trusting the guess never was. A type this map does not recognise is
+ * left with no mode at all, never guessed at.
  *
  * Android and iOS write this file differently since Google moved Timeline
  * onto the phone in 2024 — B1819. Both wrap the same segment shape above, but
@@ -26,6 +32,32 @@ import { isSaneFix, parseGeoUri, parseInstant, type Fix, type GpsImporter } from
  * `visit.topCandidate.placeLocation` is that string directly where Android
  * nests it one level down, under `latLng`.
  */
+/** Google's own activity-type strings, lowercased, mapped to
+ * `TRANSPORT_MODES` — B2541. Only the types actually seen in an export are
+ * named; anything else comes back `undefined` rather than a guess. */
+function modeFromGoogle(type: unknown): TransportMode | undefined {
+  if (typeof type !== "string") return undefined;
+  const known: Record<string, TransportMode> = {
+    walking: "on_foot",
+    "on foot": "on_foot",
+    running: "on_foot",
+    cycling: "bike",
+    "in passenger vehicle": "car",
+    "in vehicle": "car",
+    driving: "car",
+    "in bus": "bus",
+    "in train": "train",
+    "in tram": "tram",
+    "in subway": "train",
+    "in ferry": "boat",
+    boating: "boat",
+    sailing: "boat",
+    flying: "plane",
+    skiing: "skiing",
+  };
+  return known[type.toLowerCase()];
+}
+
 function fixesFrom(segment: Record<string, unknown>): Fix[] {
   const start = parseInstant(segment.startTime);
   const end = parseInstant(segment.endTime);
@@ -49,8 +81,14 @@ function fixesFrom(segment: Record<string, unknown>): Fix[] {
     const leg = activity as Record<string, unknown>;
     const from = parseGeoUri(leg.start);
     const to = parseGeoUri(leg.end);
-    if (from) out.push({ t: start, ...from });
-    if (to && end !== undefined) out.push({ t: end, ...to });
+    const candidate = leg.topCandidate;
+    const mode = modeFromGoogle(
+      typeof candidate === "object" && candidate !== null
+        ? (candidate as Record<string, unknown>).type
+        : undefined,
+    );
+    if (from) out.push({ t: start, ...from, ...(mode ? { mode } : {}) });
+    if (to && end !== undefined) out.push({ t: end, ...to, ...(mode ? { mode } : {}) });
   }
 
   const visit = segment.visit;

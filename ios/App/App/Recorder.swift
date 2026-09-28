@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import CoreMotion
 import UIKit
 import UserNotifications
 
@@ -21,14 +22,21 @@ private struct ArmedTrip: Codable {
     let unauthorizedBody: String
 }
 
-/// One recorded fix, the buffer's own line shape — B2196.
-/// `[epochSeconds, lat, lon]`, matching the `fixes` import format exactly so
-/// nothing has to reshape it before it is sent.
+/// One recorded fix, the buffer's own line shape — B2196, mode added B2541.
+/// `[epochSeconds, lat, lon]` or `[epochSeconds, lat, lon, "mode"]`, matching
+/// the `fixes` import format exactly so nothing has to reshape it before it
+/// is sent.
 private struct Fix {
     let t: Int
     let lat: Double
     let lon: Double
-    var jsonLine: String { "[\(t),\(lat),\(lon)]" }
+    /// One of `TRANSPORT_MODES` (`importers/gps/schema.ts`), or `nil` when
+    /// Core Motion has not reported an activity yet. Never guessed here —
+    /// see `modeString(for:)` below for exactly what is (and is not) mapped.
+    let mode: String?
+    var jsonLine: String {
+        mode.map { "[\(t),\(lat),\(lon),\"\($0)\"]" } ?? "[\(t),\(lat),\(lon)]"
+    }
 }
 
 /// The whole of B2196: one singleton, owned by `AppDelegate`, that arms
@@ -41,6 +49,12 @@ final class Recorder: NSObject {
     static let shared = Recorder()
 
     private let manager = CLLocationManager()
+    /// B2541 — Core Motion's own best guess at how the phone is currently
+    /// moving, read alongside each fix. Started only while at least one trip
+    /// is armed (`beginTracking`/`endTracking`), the same lifetime GPS
+    /// itself gets, so it costs nothing while nothing is recording.
+    private let motion = CMMotionActivityManager()
+    private var currentMode: String?
     /// The last fix seen, whatever service delivered it — where a pause
     /// drops the resume fence.
     private var lastLocation: CLLocation?
@@ -146,6 +160,7 @@ final class Recorder: NSObject {
         manager.startMonitoringSignificantLocationChanges()
         manager.startMonitoringVisits()
         startMoving()
+        startMotionUpdates()
     }
 
     private func endTracking() {
@@ -154,6 +169,33 @@ final class Recorder: NSObject {
         manager.stopMonitoringSignificantLocationChanges()
         manager.stopMonitoringVisits()
         clearResumeFence()
+        motion.stopActivityUpdates()
+        currentMode = nil
+    }
+
+    /// B2541 — Core Motion's own activity classifier, alongside GPS. Kept
+    /// deliberately small: only the categories `CMMotionActivity` itself
+    /// reports, mapped to the shared vocabulary
+    /// (`importers/gps/schema.ts`'s `TRANSPORT_MODES`) — a low-confidence
+    /// reading is still kept (a phone's own guess is what this vocabulary is
+    /// *for*; a named stretch, B2539, is how the owner overrides it), but
+    /// `.unknown` (no categories set at all) leaves `currentMode` untouched
+    /// rather than overwriting a real reading with "not sure" on every
+    /// callback.
+    private func startMotionUpdates() {
+        guard CMMotionActivityManager.isActivityAvailable() else { return }
+        motion.startActivityUpdates(to: .main) { [weak self] activity in
+            guard let self, let activity else { return }
+            if let mapped = Self.modeString(for: activity) { self.currentMode = mapped }
+        }
+    }
+
+    private static func modeString(for activity: CMMotionActivity) -> String? {
+        if activity.walking || activity.running { return "on_foot" }
+        if activity.cycling { return "bike" }
+        if activity.automotive { return "car" }
+        if activity.stationary { return nil } // says nothing about transport mode
+        return activity.unknown ? nil : "unknown"
     }
 
     /// Left a place — trace the road with GPS until the phone settles again.
@@ -187,7 +229,7 @@ final class Recorder: NSObject {
     /// One fix into the buffer, if any armed trip's window covers it.
     private func record(at time: Date, _ coordinate: CLLocationCoordinate2D) {
         guard withinAnyArmedWindow(time) else { return }
-        appendFix(Fix(t: Int(time.timeIntervalSince1970), lat: coordinate.latitude, lon: coordinate.longitude))
+        appendFix(Fix(t: Int(time.timeIntervalSince1970), lat: coordinate.latitude, lon: coordinate.longitude, mode: currentMode))
         maybeUpload()
     }
 
@@ -310,7 +352,7 @@ final class Recorder: NSObject {
             // Security review (2026-09-24), finding 9 — one last upload
             // attempt before the buffer goes, not silent data loss for
             // whatever was recorded since the last successful upload.
-            finalUploadThenPurge(removedTrip) // ponytail: whole-buffer purge, correct only
+            finalUploadThenPurge(tripId: trip, removedTrip) // ponytail: whole-buffer purge, correct only
             // because a second, still-armed trip would keep its own fixes
             // in the same file — see the doc comment on `purgeBuffer`.
             endTracking()
@@ -518,12 +560,12 @@ final class Recorder: NSObject {
         var a = armed
         var s = stopped
         var changed = false
-        var lastStopped: ArmedTrip?
+        var lastStopped: (id: String, trip: ArmedTrip)?
         for (id, trip) in a {
             if !trip.openEnded, now >= cooldownEnd(trip) {
                 a.removeValue(forKey: id)
                 s[id] = trip
-                lastStopped = trip
+                lastStopped = (id, trip)
                 changed = true
             }
         }
@@ -533,7 +575,7 @@ final class Recorder: NSObject {
             if a.isEmpty {
                 // Security review (2026-09-24), finding 9 — one last upload
                 // attempt before the buffer goes.
-                finalUploadThenPurge(lastStopped)
+                finalUploadThenPurge(tripId: lastStopped?.id, lastStopped?.trip)
                 endTracking()
                 // Security review (2026-09-24), finding 4 — nothing left
                 // armed, nothing left to upload with.
@@ -681,7 +723,10 @@ final class Recorder: NSObject {
 
     private func maybeUpload(force: Bool = false) {
         guard let credential = GpsCredentialStore.load() else { return }
-        guard let trip = armed.values.first else { return } // same base/user for every armed trip in practice
+        // Same base/user for every armed trip in practice — the state
+        // report (B2542) is scoped to this one trip's own id, the same trip
+        // the fixes in this snapshot were recorded against.
+        guard let (tripId, trip) = armed.first else { return }
         // Finding 7 — storage_full stops automatic attempts (nothing changed
         // server-side without the owner doing something about it), but a
         // foreground open still gets to check whether space freed up.
@@ -691,7 +736,10 @@ final class Recorder: NSObject {
         if !force, let last = lastUpload, Date().timeIntervalSince(last) < Self.uploadInterval { return }
 
         let n = snapshot.count
-        guard let request = uploadRequest(trip: trip, credential: credential, text: snapshot.joined(separator: "\n")) else { return }
+        guard let request = uploadRequest(
+            trip: trip, credential: credential, text: snapshot.joined(separator: "\n"),
+            state: stateReport(tripId: tripId, trip: trip)
+        ) else { return }
 
         backgroundTask = UIApplication.shared.beginBackgroundTask { [weak self] in
             guard let self else { return }
@@ -747,13 +795,42 @@ final class Recorder: NSObject {
         }.resume()
     }
 
-    private func uploadRequest(trip: ArmedTrip, credential: GpsCredential, text: String) -> URLRequest? {
+    /// B2542 — the phone's own latest armed/permission report, sent
+    /// alongside every upload so the studio can tell "recording", "off" and
+    /// "armed but silently not working" apart. `armed` is `true` here by
+    /// construction: only an armed trip's own buffer ever reaches
+    /// `uploadRequest` at all. `armedUntil` is the same cooldown formula
+    /// `cooldownEnd` already computes, restated as the one instant this
+    /// trip's own arming currently claims it will stop — an open-ended trip
+    /// (D3) has no such ceiling, so it is left out rather than guessed.
+    private func stateReport(tripId: String, trip: ArmedTrip, armed: Bool = true) -> [String: Any] {
+        var report: [String: Any] = ["trip": tripId, "armed": armed]
+        if armed, !trip.openEnded { report["armedUntil"] = ISO8601DateFormatter().string(from: cooldownEnd(trip)) }
+        report["permission"] = jsPermission(locationPermission().status)
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            report["appVersion"] = version
+        }
+        return report
+    }
+
+    /// Native's own `"always"`/`"whenInUse"`/… already matches
+    /// `GpsStateReport`'s enum exactly (`locationPermission()` above), except
+    /// `"restricted"` — parental controls or an MDM profile, which the
+    /// server-side vocabulary has no slot for since it behaves like "denied"
+    /// from a recording point of view (no fixes either way).
+    private func jsPermission(_ status: String) -> String {
+        status == "restricted" ? "denied" : status
+    }
+
+    private func uploadRequest(trip: ArmedTrip, credential: GpsCredential, text: String, state: [String: Any]? = nil) -> URLRequest? {
         guard let url = URL(string: "\(trip.base)/api/v2/\(trip.user)/import") else { return nil }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.setValue("Bearer \(credential.token)", forHTTPHeaderField: "authorization")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["kind": "gps", "format": "fixes", "text": text])
+        var body: [String: Any] = ["kind": "gps", "format": "fixes", "text": text]
+        if let state { body["state"] = state }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         return request
     }
 
@@ -764,13 +841,21 @@ final class Recorder: NSObject {
     /// any failure, and on the background task simply running out of time —
     /// `finish()` is the only path to `purgeBuffer()` and it is reachable
     /// from both the network callback and the expiration handler.
-    private func finalUploadThenPurge(_ trip: ArmedTrip?) {
+    private func finalUploadThenPurge(tripId: String?, _ trip: ArmedTrip?) {
         guard let trip, let credential = GpsCredentialStore.load() else {
             purgeBuffer()
             return
         }
         let snapshot = readBufferSnapshot()
-        guard !snapshot.isEmpty, let request = uploadRequest(trip: trip, credential: credential, text: snapshot.joined(separator: "\n")) else {
+        // B2542 — this trip is no longer armed by the time this runs (Stop,
+        // or the cooldown ending), so its own last report says `armed:
+        // false` rather than reusing `stateReport`'s "still armed" default —
+        // the studio should read "not recording" from the moment this lands,
+        // not "recording" until the next report happens to correct it.
+        let state = tripId.map { stateReport(tripId: $0, trip: trip, armed: false) }
+        guard !snapshot.isEmpty, let request = uploadRequest(
+            trip: trip, credential: credential, text: snapshot.joined(separator: "\n"), state: state
+        ) else {
             purgeBuffer()
             return
         }

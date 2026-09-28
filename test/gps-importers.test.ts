@@ -61,11 +61,33 @@ describe("google-timeline", () => {
     expect(timeline.parse(file)[2].t).toBe(Date.parse("2026-06-22T06:00:00Z"));
   });
 
-  test("keeps no guess about how somebody travelled", () => {
-    // Google says "in train" with a probability. That is a guess about what
-    // happened, and what happened is the one thing this software never
-    // invents — see AGENTS.md.
-    expect(JSON.stringify(timeline.parse(file))).not.toContain("train");
+  test("maps Google's own guess at the mode to the shared vocabulary — B2541", () => {
+    // Google says "in train" with a probability, and this software never
+    // invents a fact — but the owner decided (S2 B) that a mapped, visible
+    // guess the owner can later override with a named stretch (B2539) beats
+    // no information at all, so the *literal* Google string never survives
+    // (still true — "train" here is our own word, not theirs), but our own
+    // vocabulary word does.
+    const out = timeline.parse(file);
+    expect(out[2]).toMatchObject({ lat: 47.3, mode: "train" });
+    expect(out[3]).toMatchObject({ lat: 47.4, mode: "train" });
+    expect(JSON.stringify(out)).not.toContain('"in train"');
+  });
+
+  test("leaves an unrecognised activity type with no mode at all", () => {
+    const unknownType = JSON.stringify([
+      {
+        startTime: "2026-06-22T08:00:00.000Z",
+        endTime: "2026-06-22T09:00:00.000Z",
+        activity: {
+          start: "geo:47.30000,8.30000",
+          end: "geo:47.40000,8.40000",
+          topCandidate: { type: "levitating" },
+        },
+      },
+    ]);
+    const out = timeline.parse(unknownType);
+    expect(out.every((f) => f.mode === undefined)).toBe(true);
   });
 
   test("skips a segment it cannot read rather than losing the file", () => {
