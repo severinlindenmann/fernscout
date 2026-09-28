@@ -8,6 +8,7 @@ import { loadServerConfig, loadUserConfig } from "./config";
 import { MAINTAINED_LOCALES, translate, type TranslationKey } from "./i18n";
 import { PAID_AREAS } from "@paid/manifest";
 import LOCALE_SCOPES from "./localeScopes.json";
+import { PATH_LOCALES, type PathLocale } from "./languagePaths";
 
 /**
  * The two language layers (ROADMAP §1.2, decision 13).
@@ -507,9 +508,12 @@ function journalInPath(pathname: string | null | undefined): string | null {
  */
 export async function requestLocale(): Promise<string> {
   const { cookies, headers } = await import("next/headers");
-  const { LOCALE_COOKIE, PATH_HEADER } = await import("./requestKeys");
-  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER } = await import("./requestKeys");
   const h = await headers();
+  // A language address (`/de/schools`) is its own answer — B2473.
+  const fromPath = h.get(PATH_LOCALE_HEADER);
+  if (fromPath && PATH_LOCALES.includes(fromPath as PathLocale)) return fromPath;
+  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
   return readerLocaleForPath(h.get(PATH_HEADER), chosen, h.get("accept-language"));
 }
 

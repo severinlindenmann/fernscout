@@ -47,7 +47,8 @@ vi.mock("next/link", () => ({
 }));
 
 // The language switcher refreshes the route so the server re-reads the cookie.
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+// The language switcher and in-page links read the path (B2473).
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }), usePathname: () => "/" }));
 
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
