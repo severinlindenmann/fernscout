@@ -1336,7 +1336,6 @@ export type TranslationKey =
   | "map.planned"
   | "map.plannedFromDrafts"
   | "map.plannedFromDraftsShared"
-  | "map.plannedHint"
   | "map.progress"
   | "map.readDay"
   | "map.regions"

@@ -26,11 +26,12 @@ const FULL = 2;
  * line, so a rounding pixel never tips it over. */
 const HALF_MAX_VH = 0.42;
 const FULL_MAX_VH = 0.86;
-/** The peek row: the stats grid plus the day strip, a fixed content height
+/** The peek row: the day strip alone (the stat tiles that used to sit above
+ * it are gone — review: "the map is the page"), a fixed content height
  * rather than a vh fraction — it doesn't grow with the screen.
  * `MapPageContent` pads its own bottom by this same number so the page's
  * content never sits behind the sheet at rest — keep the two in sync. */
-const PEEK_PX = 176;
+const PEEK_PX = 118;
 
 function useViewportHeight(): number {
   const [vh, setVh] = useState(() => (typeof window === "undefined" ? 800 : window.innerHeight));
@@ -64,7 +65,6 @@ function useIsDesktop(): boolean {
 export default function MobileMapSheet({
   days,
   places,
-  stats,
   hrefForDay,
   selectedDate,
   onSelectDate,
@@ -75,7 +75,6 @@ export default function MobileMapSheet({
    * rather than `places`, so a placeless day is never simply missing. */
   days: MapDay[];
   places: PlaceView[];
-  stats: { tripDays: number; places: number; countries: number; totalMedia: number };
   hrefForDay: (slug: string) => string;
   /** The map page's one selection, by calendar date — B2537 (was a place
    * `key`; a date is what the day strip/list itself is keyed on, and it
@@ -89,7 +88,7 @@ export default function MobileMapSheet({
    * or `lg` and up, where the desktop layout puts nothing over the map. */
   onInsetChange?: (px: number) => void;
 }) {
-  const { t, tn, locale, formatShortDate } = useI18n();
+  const { t, locale, formatShortDate } = useI18n();
   const reducedMotion = useReducedMotion();
   const vh = useViewportHeight();
   const isDesktop = useIsDesktop();
@@ -198,17 +197,13 @@ export default function MobileMapSheet({
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3">
           {snap === PEEK && (
-            <div className="flex flex-col gap-3">
-              <dl className="grid grid-cols-4 gap-2">
-                <PeekStat label={tn("map.days", stats.tripDays)} value={stats.tripDays} />
-                <PeekStat label={tn("map.stops", stats.places)} value={stats.places} />
-                <PeekStat label={tn("map.countries", stats.countries)} value={stats.countries} />
-                <PeekStat label={t("map.media")} value={stats.totalMedia} />
-              </dl>
-              {/* The day strip — B2537, replacing the old time scrubber.
-                  "days along the bottom on a phone: a strip of date + place
-                  + update count." A day with no place still gets a row,
-                  greyed, so the strip is never quietly missing one. */}
+            <div className="flex flex-col gap-3 pt-2">
+              {/* The day strip — B2537, replacing the old time scrubber and
+                  the stat tiles that used to sit above it (per review: "the
+                  map is the page" — a stat grid isn't). "days along the
+                  bottom on a phone: a strip of date + place + update count."
+                  A day with no place still gets a row, greyed, so the strip
+                  is never quietly missing one. */}
               <div
                 role="list"
                 aria-label={t("map.everyDay")}
@@ -388,15 +383,6 @@ export default function MobileMapSheet({
           )}
         </div>
       </motion.div>
-    </div>
-  );
-}
-
-function PeekStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-line-quiet bg-surface-raised px-2 py-1.5 text-center">
-      <dt className="text-[10px] text-ink-secondary">{label}</dt>
-      <dd className="font-display text-base font-semibold text-ink-strong">{value}</dd>
     </div>
   );
 }

@@ -107,7 +107,6 @@ function Harness({
     <MobileMapSheet
       days={daysFor(places)}
       places={places}
-      stats={{ tripDays: 3, places: places.length, countries: 1, totalMedia: 0 }}
       hrefForDay={(slug) => `/day/${slug}`}
       selectedDate={selectedDate}
       onSelectDate={(d) => {
@@ -156,9 +155,8 @@ describe("MobileMapSheet", () => {
     expect(el.querySelector("button")).toBeNull();
   });
 
-  test("starts at peek, showing the stats and the day strip, but no day detail", () => {
+  test("starts at peek, showing the day strip and no stat tiles or day detail", () => {
     const { el } = render([place()]);
-    expect(el.textContent).toContain("3"); // tripDays
     expect(el.textContent).toContain("Alpha Town"); // the day strip's own row
     expect(el.textContent).not.toContain("Read this day"); // map.readDay — half only
   });

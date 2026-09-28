@@ -198,16 +198,18 @@ describe("an upcoming trip: a plan and no days", () => {
 
   /**
    * B54. "Where we've been" is a claim, and over eight places nobody has been
-   * to it is a false one. The subtitle was worse: it invited the reader to tap
-   * stops that do not exist, since the only markers are planned and they open
-   * nothing.
+   * to it is a false one — the past tense, wherever this page still speaks
+   * it (the compact title line, and the map's own `aria-label` below), must
+   * follow the same rule. B2537 dropped the old page's separate subtitle
+   * line ("the map is the page", not a page with a paragraph under its
+   * heading); `map.subtitle`/`map.subtitlePlanned` still exist as a pair for
+   * anything that wants one (the bare `/map` route's own `<meta
+   * name="description">`), just not rendered here.
    */
   test("is titled for a journey ahead, not one already made", () => {
     const html = text(render({ plan: planned }));
     expect(html).toContain(dictionaryFor("en")["map.titlePlanned"]);
-    expect(html).toContain(dictionaryFor("en")["map.subtitlePlanned"]);
     expect(html).not.toContain(dictionaryFor("en")["map.title"]);
-    expect(html).not.toContain(dictionaryFor("en")["map.subtitle"]);
   });
 
   /**
@@ -248,7 +250,6 @@ describe("a trip with days", () => {
   test("keeps the past tense, which is true of it", () => {
     const html = text(render({ places: [place], stats: travelled, over: true, hasDays: true }));
     expect(html).toContain(dictionaryFor("en")["map.title"]);
-    expect(html).toContain(dictionaryFor("en")["map.subtitle"]);
     expect(html).not.toContain(dictionaryFor("en")["map.titlePlanned"]);
   });
 
