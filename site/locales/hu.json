@@ -2399,7 +2399,7 @@
   "wa.onb.askNickname": "És hogyan szólítson téged az oldal, {name}? Ahogy a saját oldalaidon szívesen olvasod.",
   "wa.onb.askReaders": "{language} nyelven írsz. Az olvasók át tudják majd váltani a naplót másik nyelvre is? Az igen azt jelenti, hogy minden napot kétszer írsz meg, a saját szavaiddal — amelyik napról az egyik nyelv hiányzik, azt a rendszer nem fogadja el.",
   "wa.onb.askTitle": "Mi legyen a napló neve? Ez a név szerepel minden oldalon, és később megváltoztathatod.",
-  "wa.onb.askUsername": "És a címe: {url}/… — kisbetűk, számok és kötőjelek. Ez véglegesen megmarad, és a naplót nevezi meg, nem egy utazást.",
+  "wa.onb.askUsername": "És a címe: {url}/@… — kisbetűk, számok és kötőjelek. Ez véglegesen megmarad, és a naplót nevezi meg, nem egy utazást.",
   "wa.onb.askVisibility": "A napló legyen nyilvános, vagy nem listázott — bárki számára elérhető, akinek megvan a link, csak nincs hirdetve?",
   "wa.onb.cancelled": "Leállítottam, a válaszaidat elfelejtettem. Írj újra, amikor csak szeretnél.",
   "wa.onb.card": "{site} — your own travel journal.\n\nDeutsch: Wähle eine Sprache, dann richten wir alles hier im Chat ein.\nEnglish: Choose a language and we'll set it up here, in this chat.\nMagyar: Válassz nyelvet, és itt, ebben a beszélgetésben beállítjuk.",

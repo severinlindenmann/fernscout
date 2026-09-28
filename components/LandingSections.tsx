@@ -385,7 +385,7 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
                     {journal.tagline}
                   </p>
                   <p className="mt-2 font-mono text-xs text-ink-secondary">
-                    /{journal.username} ·{" "}
+                    {journalPath(journal.username)} ·{" "}
                     {tn("landing.trips", journal.trips, {
                       count: String(journal.trips),
                     })}

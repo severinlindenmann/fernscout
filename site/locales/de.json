@@ -2604,7 +2604,7 @@
   "wa.onb.askNickname": "Und wie soll die Seite dich nennen, {name}? Was du gern auf deinen eigenen Seiten lesen möchtest.",
   "wa.onb.askReaders": "Du schreibst auf {language}. Sollen Leser das Tagebuch auch in einer anderen Sprache lesen können? Ja bedeutet: jeden Tag zweimal schreiben, in deinen eigenen Worten — ein Tag, dem eine Sprache fehlt, wird abgelehnt.",
   "wa.onb.askTitle": "Wie soll das Tagebuch heißen? Der Name steht auf jeder Seite, und du kannst ihn später ändern.",
-  "wa.onb.askUsername": "Und die Adresse: {url}/… — Kleinbuchstaben, Zahlen und Bindestriche. Die bleibt für immer, und sie ist der Name des Tagebuchs, nicht der einer Reise.",
+  "wa.onb.askUsername": "Und die Adresse: {url}/@… — Kleinbuchstaben, Zahlen und Bindestriche. Die bleibt für immer, und sie ist der Name des Tagebuchs, nicht der einer Reise.",
   "wa.onb.askVisibility": "Soll das Tagebuch öffentlich sein oder nicht gelistet — für alle mit dem Link offen, nur nicht beworben?",
   "wa.onb.cancelled": "Abgebrochen, deine Antworten sind vergessen. Schreib einfach wieder, wann du magst.",
   "wa.onb.card": "{site} — your own travel journal.\n\nDeutsch: Wähle eine Sprache, dann richten wir alles hier im Chat ein.\nEnglish: Choose a language and we'll set it up here, in this chat.\nMagyar: Válassz nyelvet, és itt, ebben a beszélgetésben beállítjuk.",

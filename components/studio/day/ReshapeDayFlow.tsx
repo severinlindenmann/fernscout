@@ -661,11 +661,11 @@ export default function ReshapeDayFlow({
           <div className="mt-3 divide-y divide-line-faint rounded-xl border border-line-strong text-sm">
             <div className="px-4 py-2">
               <span className="font-semibold text-ink-strong">{t("studio.day.reshape.addressConfirm.was")}</span>{" "}
-              <code className="text-xs">/{username}/trips/{dayA.tripId}/day/{dayA.slug}</code>
+              <code className="text-xs">{journalPath(username)}/trips/{dayA.tripId}/day/{dayA.slug}</code>
             </div>
             <div className="px-4 py-2">
               <span className="font-semibold text-ink-strong">{t("studio.day.reshape.addressConfirm.becomes")}</span>{" "}
-              <code className="text-xs">/{username}/trips/{toTripId}/day/{dayA.slug}</code>
+              <code className="text-xs">{journalPath(username)}/trips/{toTripId}/day/{dayA.slug}</code>
             </div>
           </div>
           <p className="mt-3 text-sm font-semibold text-ink-strong">{t("studio.day.reshape.addressConfirm.noRedirect")}</p>

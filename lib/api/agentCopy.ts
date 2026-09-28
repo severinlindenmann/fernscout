@@ -260,7 +260,7 @@ export const TRIP_FIELDS: {
     required: false,
     what:
       "`upcoming`, `current` or `past` — accepted and quietly ignored. The dates decide it, " +
-      "always: whichever trip's `start`/`end` covers today is the one the bare `/<user>` URLs " +
+      "always: whichever trip's `start`/`end` covers today is the one the bare `/@<user>` URLs " +
       "serve, and sending `status` cannot move that.",
   },
   {
@@ -424,7 +424,7 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
     {
       ask: "The **journal's address** (`username`), if they have no journal yet",
       because:
-        `It becomes ${siteUrl}/<username>, it is permanent, and it **is the journal's own ` +
+        `It becomes ${siteUrl}/@<username>, it is permanent, and it **is the journal's own ` +
         "name — never a trip's** — in lowercase letters, digits and dashes. Never invent " +
         "one, and never illustrate it either: an example inside the question you ask is a " +
         'suggestion, and "asia-2025" is a trip\'s name that somebody would be stuck with as ' +

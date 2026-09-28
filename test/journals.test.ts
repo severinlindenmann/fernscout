@@ -415,7 +415,7 @@ describe("journal visibility", () => {
     expect(getUser("quiet")?.visibility).toBe("guest");
     // Off every list…
     expect(listedUsernames()).not.toContain("quiet");
-    expect(instanceDocumentation()).not.toContain("/quiet/");
+    expect(instanceDocumentation()).not.toContain("/@quiet/");
     // …and still resolvable for anybody sent the address.
     expect(getUsernames()).toContain("quiet");
     expect(userExists("quiet")).toBe(true);
@@ -431,7 +431,7 @@ describe("journal visibility", () => {
 
     expect(getUser("test-run")?.visibility).toBe("public");
     expect(listedUsernames()).not.toContain("test-run");
-    expect(instanceDocumentation()).not.toContain("/test-run/");
+    expect(instanceDocumentation()).not.toContain("/@test-run/");
     expect(getUsernames()).toContain("test-run");
     expect(userExists("test-run")).toBe(true);
   });
@@ -487,7 +487,7 @@ describe("journal visibility", () => {
     );
     expect(getUser("vintage")?.visibility).toBe("guest");
     expect(listedUsernames()).not.toContain("vintage");
-    expect(instanceDocumentation()).not.toContain("/vintage/");
+    expect(instanceDocumentation()).not.toContain("/@vintage/");
     // Still resolvable for anybody sent the address — unlisted, not gone.
     expect(getUsernames()).toContain("vintage");
     expect(userExists("vintage")).toBe(true);

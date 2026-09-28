@@ -2403,7 +2403,7 @@
   "wa.onb.askNickname": "E come deve chiamarti il sito, {name}? Come ti piacerebbe leggerlo sulle tue pagine.",
   "wa.onb.askReaders": "Scrivi in {language}. I lettori devono poter passare il diario anche a un’altra lingua? Sì significa scrivere ogni giorno due volte, con parole tue — un giorno a cui ne manca una viene rifiutato.",
   "wa.onb.askTitle": "Come deve chiamarsi il diario? È il nome su ogni pagina, e potrai cambiarlo in seguito.",
-  "wa.onb.askUsername": "E il suo indirizzo: {url}/… — lettere minuscole, cifre e trattini. Questo è permanente, ed è il nome del diario stesso, non di un viaggio.",
+  "wa.onb.askUsername": "E il suo indirizzo: {url}/@… — lettere minuscole, cifre e trattini. Questo è permanente, ed è il nome del diario stesso, non di un viaggio.",
   "wa.onb.askVisibility": "Il diario deve essere pubblico o non elencato — aperto a chiunque abbia il link, ma non pubblicizzato?",
   "wa.onb.cancelled": "Interrotto, e le tue risposte sono dimenticate. Scrivi di nuovo quando vuoi.",
   "wa.onb.card": "{site} — your own travel journal.\n\nDeutsch: Wähle eine Sprache, dann richten wir alles hier im Chat ein.\nEnglish: Choose a language and we’ll set it up here, in this chat.\nMagyar: Válassz nyelvet, és itt, ebben a beszélgetésben beállítjuk.",

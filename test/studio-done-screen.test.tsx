@@ -42,7 +42,7 @@ describe("DoneScreen", () => {
     const html = render(<DoneScreen username="example" done="Saved." next={[card(1)]} />);
     expect(html).not.toContain("studio.flow.backToStudio");
     expect(html).not.toContain(en["studio.flow.backToStudio"]);
-    expect(html).not.toMatch(/href="\/example\/studio"/);
+    expect(html).not.toMatch(/href="\/@example\/studio"/);
   });
 
   test("one to three cards, at the type level", () => {

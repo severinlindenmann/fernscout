@@ -39,8 +39,8 @@ npm install
 npm run dev            # then open http://localhost:3000/@example
 ```
 
-`/example` is a demo journal that ships in the repository. Your own journal
-lives in `content/<username>/` and appears at `/<username>`. One instance can
+`/@example` is a demo journal that ships in the repository. Your own journal
+lives in `content/<username>/` and appears at `/@<username>`. One instance can
 host many people.
 
 **No agent yet?** A day is one JSON file, so you can start by hand: copy an

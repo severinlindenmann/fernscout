@@ -45,7 +45,7 @@ function RoleRow({ journal }: { journal: MineJournal }) {
             {journal.title}
           </Link>
           <p className="mt-0.5 font-mono text-xs text-ink-secondary">
-            /{journal.username} ·{" "}
+            {journalPath(journal.username)} ·{" "}
             {tn("landing.trips", journal.trips.length, { count: String(journal.trips.length) })}
           </p>
         </div>

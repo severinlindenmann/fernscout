@@ -8,6 +8,7 @@ import type { Entry, Trip } from "../types";
 import { translationLines } from "./entries";
 import { weatherLine } from "../weather";
 
+import { journalPath } from "../journalPath";
 /**
  * The markdown twin of a day page.
  *
@@ -146,9 +147,9 @@ function gone(stone: Tombstone): Response {
 function notFound(user: string, tripId: string | null, slug: string): Response {
   return new Response(
     `No day "${slug}" in ${tripId ? `${user}/${tripId}` : `${user}'s readable trips`}.\n` +
-      `Days are listed at /${user}/documentation.txt, and identified there as ` +
+      `Days are listed at ${journalPath(user)}/documentation.txt, and identified there as ` +
       `<trip-id>/<slug>. The markdown twin of a day is its own page's URL with .md ` +
-      `on the end: /${user}/trips/<trip-id>/day/<slug>.md\n`,
+      `on the end: ${journalPath(user)}/trips/<trip-id>/day/<slug>.md\n`,
     {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex" },
