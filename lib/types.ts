@@ -389,6 +389,15 @@ export type DaySummary = {
    * mid-ocean coordinates, and for a place the dump carries no figure for.
    */
   population?: number;
+  /** B2543 — this day's own coordinates fall inside the owner's home zone;
+   * `location`/`country` are already the localized "Home" string by the
+   * time a reader sees this. Unset for the owner's own studio read. */
+  home?: boolean;
+  /** B2543 — the town-level name a map surface (a card's own label) should
+   * draw for this day, never `location`'s owner-written words. Falls back
+   * to `location` itself when the offline geocoder has nothing; already the
+   * localized "Home" string when `home` is true. */
+  mapName?: string;
 };
 
 /** A place worth seeing at a plan stop — public, unlike the stay (B2012). */

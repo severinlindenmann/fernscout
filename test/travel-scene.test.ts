@@ -42,6 +42,7 @@ function day(over: Partial<DaySummary>): DaySummary {
     lng: 0,
     updates: 1,
     cost: 0,
+    mapName: "X",
     ...over,
   };
 }

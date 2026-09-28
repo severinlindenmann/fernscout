@@ -38,6 +38,9 @@ export type PlaceView = {
   nights: number;
   mediaCount: number;
   entries: PlaceEntry[];
+  /** B2543 — this place falls inside the owner's home zone; `location`/
+   * `country` are already the localized "Home" string for a reader. */
+  home?: boolean;
 };
 
 type Leg = { from: PlaceView; to: PlaceView; mode: TransportMode };

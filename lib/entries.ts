@@ -23,10 +23,12 @@ import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
 import { parseWeather } from "./weather";
 import type { Track } from "./tracks";
 import { isHiddenPlace } from "./gps/edits";
+import { isHomePlace } from "./gps/enrich";
+import { townNameFor } from "./map/townName";
 import { maySeePhoto, mediaKey, parsePhotoVisibility, type ReaderLevel } from "./photos";
 import { parseDescribed } from "./photos/described";
 import { readTripSidecar } from "./sidecar";
-import { defaultLocaleFor, localesFor } from "./locales";
+import { defaultLocaleFor, localesFor, translateIn } from "./locales";
 import { isVideoSrc, resolveMediaFile } from "./media";
 import { kmBetween } from "./mapFrame";
 
@@ -636,7 +638,9 @@ export function getDefaultDay(ref: string, options?: ReadOptions): Day | undefin
 }
 
 /** A place visited on the trip: consecutive days in the same location, with
- * all their media collected together. Used by the world map. */
+ * all their media collected together. Used by the world map — B2543:
+ * `location`/`country` are already the map's own town-level label (never the
+ * owner's raw words for the day), see `getPlaces`'s own note. */
 export type Place = {
   key: string;
   location: string;
@@ -649,6 +653,13 @@ export type Place = {
   lastDate: string;
   nights: number;
   mediaCount: number;
+  /** B2543 — this place's coordinates fall inside the owner's home zone.
+   * `location`/`country` are already the localized "Home" string by the
+   * time a reader sees this, never the real town — `home` is what lets
+   * `lib/map/tripFrame.ts` apply the frame's own Home rule (never counted as
+   * "far", chips read "from home") without re-deriving the same fact. Unset
+   * for the owner's own studio read, which always gets the real name. */
+  home?: boolean;
 };
 
 /** Same fallback as `readAllEntries`'s `owner`/`baseCurrency` lookup above,
@@ -723,6 +734,12 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
   // thousand-day trip.
   const owner = parseTripRef(ref);
   const checkHidden = options?.reader !== "person" && owner !== null;
+  // B2543 — resolved once per trip, not per day: `isHomePlace` (a
+  // `lib/gps/enrich.ts` read of the owner's own `exclude.json`) is a
+  // filesystem read, and this loop can run over a thousand-day trip. Never
+  // computed at all for the owner's own studio read, which always gets the
+  // real name.
+  const homeLabel = checkHidden ? translateIn(defaultLocaleFor(owner.username), "map.homePlace") : "";
 
   for (const day of getDays(ref, options)) {
     const lead = day.lead;
@@ -735,6 +752,25 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
     // name (`getDays`), only its place on a map is what a hidden spot buys
     // back. The owner's own studio (`reader: "person"`) is unfiltered.
     if (checkHidden && isHiddenPlace(owner.username, owner.tripId, { lat: lead.lat, lon: lead.lng })) continue;
+    // B2543 — inside the owner's home zone: the place keeps its real
+    // coordinates (so `tripFrame.ts` can still apply the frame's Home rule
+    // by distance) but never its real name. `location`/`country`/`key` all
+    // switch to the localized "Home" string below, and `countryCode` — which
+    // would otherwise still show the home country's flag next to it — is
+    // dropped. The owner's own studio is never touched.
+    const isHome = checkHidden && isHomePlace(owner.username, { lat: lead.lat, lon: lead.lng });
+    // Merging (below) still runs on the owner's own words, exactly as
+    // before B2543 — a stay's coordinates drift a little day to day (a
+    // different room, a different corner of the same town), and comparing
+    // each day's own independently-geocoded town name would fracture a
+    // single stay across a boundary the offline index happens to draw
+    // between two nearby points. The town-level label ("Places and names")
+    // is applied once per finished place below instead, from its own anchor
+    // coordinate — same "measured from the first day of the stop" rule this
+    // function already keeps for `nights`.
+    const location = isHome ? homeLabel : lead.location;
+    const country = isHome ? homeLabel : lead.country;
+    const countryCode = isHome ? undefined : lead.countryCode;
     const entries = day.entries.map((e) => toPlaceEntry(e, languages));
     const last = places.at(-1);
     // Merged only when the day actually names where it was. `location:` is
@@ -745,9 +781,9 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
     // location means *unknown*, not *unchanged*: it starts its own place.
     if (
       last &&
-      lead.location &&
-      last.location === lead.location &&
-      last.country === lead.country &&
+      location &&
+      last.location === location &&
+      last.country === country &&
       kmBetween(last, lead) <= SAME_PLACE_KM
     ) {
       last.entries.push(...entries);
@@ -756,10 +792,10 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
       continue;
     }
     places.push({
-      key: `${lead.location}-${day.date}`,
-      location: lead.location,
-      country: lead.country,
-      countryCode: lead.countryCode,
+      key: `${location}-${day.date}`,
+      location,
+      country,
+      countryCode,
       lat: lead.lat,
       lng: lead.lng,
       entries,
@@ -767,6 +803,7 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
       lastDate: day.date,
       nights: 0,
       mediaCount: day.entries.reduce((n, e) => n + e.gallery.length, 0),
+      home: isHome || undefined,
     });
   }
 
@@ -779,6 +816,14 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
       new Date(`${place.firstDate}T00:00:00Z`).getTime();
     place.nights = Math.max(0, Math.round(ms / 86_400_000));
   });
+
+  // B2543 — "Places and names": a map draws at town level, never the
+  // owner's own words. Applied once per finished (already-merged) place,
+  // from its own anchor coordinate (`place.lat`/`place.lng`, the first day of
+  // the stop), not per day — see the note above. Home already won.
+  for (const place of places) {
+    if (!place.home) place.location = townNameFor(place.lat, place.lng, place.location);
+  }
 
   return places;
 }
