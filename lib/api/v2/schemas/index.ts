@@ -73,5 +73,5 @@ export {
 export type { InviteDoc, ContactDoc } from "./social";
 export { dayMoveRequest, dayMoveResult, daySplitRequest, daySplitResult, dayMergeRequest, dayMergeResult } from "./reshape";
 export { tripRenameRequest, tripRenameResult } from "./tripRename";
-export { gpsMonthsDoc, gpsPurgeRequest } from "./gps";
-export type { GpsMonthsDoc, GpsPurgeRequest } from "./gps";
+export { gpsMonthsDoc, gpsPurgeRequest, gpsStateReport } from "./gps";
+export type { GpsMonthsDoc, GpsPurgeRequest, GpsStateReport } from "./gps";
