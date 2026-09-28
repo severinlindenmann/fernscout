@@ -19,18 +19,18 @@ const isoInstant = z
 /** `id` is optional on the way in — assigned server-side
  * (`writeTrackEdits`) for anything the owner just added, echoed back so the
  * next `PUT` can keep it. Required on the way out (`trackEditsDoc`). */
-export const hiddenSpotWrite = z.strictObject({
+const hiddenSpotWrite = z.strictObject({
   id: z.string().min(1).optional(),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
   radiusM: z.number().min(EDIT_LIMITS.minRadiusM).max(EDIT_LIMITS.maxRadiusM),
 });
-export const hiddenStretchWrite = z.strictObject({
+const hiddenStretchWrite = z.strictObject({
   id: z.string().min(1).optional(),
   from: isoInstant,
   to: isoInstant,
 });
-export const namedStretchWrite = z.strictObject({
+const namedStretchWrite = z.strictObject({
   id: z.string().min(1).optional(),
   from: isoInstant,
   to: isoInstant,

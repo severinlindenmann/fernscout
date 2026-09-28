@@ -68,7 +68,7 @@ export const EDIT_LIMITS = {
   labelMax: 80,
 } as const;
 
-export function editsFile(username: string, tripId: string): string {
+function editsFile(username: string, tripId: string): string {
   return path.join(contentRoot(), username, "trips", tripId, "track-edits.json");
 }
 
@@ -118,7 +118,7 @@ export function isInHiddenSpot(fix: Fix, spots: HiddenSpot[]): boolean {
  * comment on `deriveTrack`) stretch. Both share this check: naming a
  * stretch says something about it, it does not change whether it is
  * hidden — only `hiddenStretches` does that. */
-export function isInStretch(t: number, stretches: { from: string; to: string }[]): boolean {
+export function isInStretch(t: number, stretches: Pick<HiddenStretch, "from" | "to">[]): boolean {
   return stretches.some((s) => {
     const from = Date.parse(s.from);
     const to = Date.parse(s.to);

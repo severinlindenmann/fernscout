@@ -1,5 +1,9 @@
-import { describe, expect, test } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { deriveTrack } from "@/lib/gps/enrich";
+import { namedStretchLabels, writeTrack, writeTail } from "@/lib/gps/track";
 import type { Fix } from "@/importers/gps/schema";
 
 /**
@@ -121,5 +125,58 @@ describe("named stretches (D8 C) — the Algarve boat trip", () => {
       { ...DATES, hiddenSpots: [spot], namedStretches: [namedOverSpot] },
     );
     expect(track.labels).toEqual([{ id: "n3", label: "Overlap", day: "2026-06-22", point: [37.3, -8.6] }]);
+  });
+});
+
+describe("namedStretchLabels (D8 C) — the reader-safe door onto a stretch's own label", () => {
+  const USER = "ana";
+  const TRIP = "algarve";
+  let dir: string;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-labels-"));
+    process.env.CONTENT_DIR = dir;
+    fs.mkdirSync(path.join(dir, USER, "trips", TRIP), { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+    delete process.env.CONTENT_DIR;
+  });
+
+  test("a label on a visible date comes back; one on a date this reader cannot see does not", () => {
+    writeTrack(USER, TRIP, {
+      generated: new Date().toISOString(),
+      segments: [{ from: "2026-06-22T10:00:00.000Z", day: "2026-06-22", points: [[37.1, -8.8], [37.2, -8.7]] }],
+      labels: [
+        { id: "n1", label: "Boat trip · dolphins", day: "2026-06-22", point: [37.1, -8.8] },
+        // A day this reader's own visibleDates set (below) does not include.
+        { id: "n2", label: "Not this reader's", day: "2026-06-23", point: [37.3, -8.6] },
+      ],
+    });
+    const labels = namedStretchLabels(USER, TRIP, new Set(["2026-06-22"]));
+    expect(labels).toEqual([{ id: "n1", label: "Boat trip · dolphins", day: "2026-06-22", point: [37.1, -8.8] }]);
+  });
+
+  test("a live tail's own label is included only when live is asked for, and only while the tail is fresh", () => {
+    writeTail(USER, TRIP, {
+      generated: new Date().toISOString(),
+      segments: [{ from: new Date().toISOString(), day: "2026-06-22", points: [[1, 1], [2, 2]] }],
+      labels: [{ id: "t1", label: "Just now", day: "2026-06-22", point: [1, 1] }],
+    });
+    const visible = new Set(["2026-06-22"]);
+    expect(namedStretchLabels(USER, TRIP, visible)).toEqual([]);
+    expect(namedStretchLabels(USER, TRIP, visible, true)).toEqual([
+      { id: "t1", label: "Just now", day: "2026-06-22", point: [1, 1] },
+    ]);
+
+    // A stale tail (generated over 24h ago) is refused even with live: true —
+    // the same freshness rule readerTrack's own live branch uses.
+    writeTail(USER, TRIP, {
+      generated: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString(),
+      segments: [{ from: new Date().toISOString(), day: "2026-06-22", points: [[1, 1], [2, 2]] }],
+      labels: [{ id: "t1", label: "Just now", day: "2026-06-22", point: [1, 1] }],
+    });
+    expect(namedStretchLabels(USER, TRIP, visible, true)).toEqual([]);
   });
 });

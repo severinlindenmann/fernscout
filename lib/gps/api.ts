@@ -550,7 +550,7 @@ export function writeZones(
 export { hasHomeZoneOrDeclined };
 
 export { EDIT_LIMITS };
-export type { HiddenSpot, HiddenStretch, NamedStretch, TrackEdits } from "./edits";
+export type { TrackEdits } from "./edits";
 
 /**
  * One trip's hidden spots, hidden stretches and named stretches — B2539,
