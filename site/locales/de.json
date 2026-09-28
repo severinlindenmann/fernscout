@@ -1346,7 +1346,7 @@
   "landing.footerAgentic": "Für Tüftler",
   "landing.agenticKicker": "Open Source · selbst hostbar · bereit für Agenten",
   "landing.agenticTitle": "Hast du einen Agenten im Terminal offen?",
-  "landing.agenticBody": "Mach aus zehn Jahren Fotomediathek Reiseentwürfe, schreib neue Tage über die API, betreib das Ganze auf deinem eigenen Server. Agenten erledigen die Handarbeit und schreiben nur Entwürfe; die Worte bleiben deine.",
+  "landing.agenticBody": "Mach aus zehn Jahren Fotomediathek Reiseentwürfe, schreib neue Tage über die API, betreib das Ganze auf deinem eigenen Server. Agenten erledigen die Handarbeit, neue Tage beginnen als Entwurf, und die Worte bleiben deine.",
   "landing.agenticCta": "So funktioniert es mit Claude Code & Co.",
   "landing.copyInstruction": "Anweisung kopieren",
   "landing.handBody": "Kopiere das und füge es in einen eigenen Agenten ein, um loszulegen.",

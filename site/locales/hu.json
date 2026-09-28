@@ -1141,7 +1141,7 @@
   "landing.footerAgentic": "Fejlesztőknek",
   "landing.agenticKicker": "Nyílt forráskód · saját szerveren is · ügynökökre felkészítve",
   "landing.agenticTitle": "Nyitva van egy ügynök a terminálodban?",
-  "landing.agenticBody": "Tíz év fotókönyvtárából készíts utazásvázlatokat, írj új napokat az API-n keresztül, és futtasd az egészet a saját szervereden. Az ügynökök csak a gépies munkát végzik, és mindig csak vázlatot írnak; a szavak a tieid maradnak.",
+  "landing.agenticBody": "Tíz év fotókönyvtárából készíts utazásvázlatokat, írj új napokat az API-n keresztül, és futtasd az egészet a saját szervereden. Az ügynökök a gépies munkát végzik, az új napok vázlatként indulnak, a szavak pedig a tieid maradnak.",
   "landing.agenticCta": "Így működik a Claude Code-dal és társaival",
   "landing.copyInstruction": "Utasítás másolása",
   "landing.handBody": "Másold ki, és illeszd be egy saját ügynöködbe a kezdéshez.",

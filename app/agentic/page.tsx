@@ -21,7 +21,7 @@ const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
 export function generateMetadata(): Metadata {
   const site = serverSite();
   return {
-    title: `Agentic — ${site.name}`,
+    title: "Agentic",
     description:
       "An open-source travel journal your agent can work with: import years of trips from " +
       "your photo library, write new days by voice or with Claude Code, and keep every word " +
@@ -62,7 +62,7 @@ export default function AgenticPage() {
 
   return (
     <div className="min-h-full bg-surface-subtle">
-      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-16">
+      <main lang="en" className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-16">
         <nav className="flex items-center justify-between gap-4">
           <Link
             href="/"
@@ -93,11 +93,11 @@ export default function AgenticPage() {
             folder you own, a website on top, and a documented API underneath. Bring Claude Code,
             or any agent that can read a Markdown guide and make an HTTP call, and let it do the
             plumbing — exports, sorting, resizing, uploading. <strong className="text-ink-strong">
-            The words stay yours.</strong> Everything an agent writes lands as a draft, and only
-            you publish.
+            The words stay yours.</strong> A new day lands as a draft, and nothing is
+            published until you say so.
           </p>
           <ul className="mt-5 flex flex-wrap gap-2" aria-label="At a glance">
-            {["Apache-2.0", "JSON + photos", "OpenAPI", "SQLite · Postgres", "no tracking"].map(
+            {["Apache-2.0", "JSON + photos", "OpenAPI", "SQLite · Postgres"].map(
               (fact) => (
                 <li key={fact}>
                   <Pill>{fact}</Pill>
@@ -146,26 +146,26 @@ export default function AgenticPage() {
             <Card
               icon={<BookOpen className="h-4 w-4 text-coral-600" aria-hidden />}
               title={`Hosted on ${site.name}`}
-              body="Hand your agent the prompt above. It proves your email, gets a journal made and a token that writes drafts for seven days."
+              body="Hand your agent the prompt above. With an invitation, it walks you through signing up and gets a key that writes to your journal for seven days."
               code={"GET /api/v2/status\nGET /api/v2/{user}/status"}
             />
             <Card
               icon={<Server className="h-4 w-4 text-coral-600" aria-hidden />}
               title="Your own server"
               body="A VPS, Node and Caddy, one deploy script. SQLite on your laptop, Postgres in production. A public journal needs no database at all."
-              code={`git clone ${site.repository ?? "…"}\nnpm run build && npm start`}
+              code={`git clone ${site.repository ?? "…"}\ncd fernscout && npm ci\nnpm run build && npm start`}
             />
           </ul>
         </section>
 
         {/* ——— The backlog ——— */}
         <section aria-labelledby="backlog" className="mt-16">
-          <SectionHeading id="backlog">Ten years of trips, in an evening</SectionHeading>
+          <SectionHeading id="backlog">Ten years of trips, out of your photo library</SectionHeading>
           <p className="mt-4 text-base leading-7 text-ink-body">
-            Most people do not have a travel blog. They have a photo library with forty trips in
-            it and no idea when any of them were. Fernscout Helper is a set of agent skills that
-            reads that library — <em>metadata only</em>, nothing downloaded — finds the weeks you
-            were away, and turns each one into draft days you can review in a browser page.
+            Most people do not have a travel blog. They have a photo library full of trips and no
+            clear idea when any of them were. Fernscout Helper is a set of agent skills that
+            reads that library — <em>metadata only</em> at first — finds the weeks you were away,
+            and turns the ones you pick into draft days you can review in a browser page.
           </p>
           <TerminalCard title="~/fernscout-helper · claude">
             <Line prompt=">">find the trips in my photos from the last ten years</Line>
@@ -174,7 +174,7 @@ export default function AgenticPage() {
             <Out>{"  2019-08-02 → 2019-08-16  15d  1233p   960 km  Split · Hvar · Kotor"}</Out>
             <Out>{"  2023-02-18 → 2023-02-25   8d   287p  9310 km  Tokyo · Kyoto"}</Out>
             <Out muted>These are candidates, not facts — check them against what you remember.</Out>
-            <Line prompt=">">export the Croatia one, favourites plus the best fifteen a day</Line>
+            <Line prompt=">">export the Croatia one, up to fifteen a day, favourites first</Line>
             <Out>1233 photographs · 6.1 GB · opening the review page…</Out>
           </TerminalCard>
           <p className="mt-2 font-mono text-[11px] text-ink-secondary">
@@ -184,10 +184,10 @@ export default function AgenticPage() {
           <ol className="mt-8 space-y-4">
             {[
               ["find-trips", "Finds the weeks you were away, from photo metadata. Asks where home is instead of guessing."],
-              ["icloud-export", "Exports one trip, opens a review page per day: Keep, a note per photo, a box for what happened. Location and camera data are stripped from every file."],
+              ["icloud-export", "Exports one trip and opens a review page: Keep, a note per photo, a box for what happened each day. Location and camera data are stripped from the photos that go into the journal."],
               ["statement-costs · trip-budget", "Reads a bank CSV, filters it to the trip, shows you the merchants first. Asks about the flights instead of estimating them."],
-              ["gps-history", "Google Timeline, Takeout or a GPX from your watch → the road you actually drove on the trip map. The raw history never becomes public."],
-              ["validate-content → publish · sync", "Checks for gaps, prints a dry run, then uploads. Sync goes both ways and stops rather than overwrite when both sides moved."],
+              ["gps-history", "Google Timeline, Takeout or a GPX from your watch → the route you actually travelled, simplified, on the trip map. The raw history never becomes public."],
+              ["validate-content → publish · sync", "Checks for gaps, prints a dry run, then uploads. Sync goes both ways and, by default, stops when both sides changed the same day."],
             ].map(([skill, body], i) => (
               <li key={skill} className="grid grid-cols-[1.75rem_1fr] gap-x-3">
                 <span aria-hidden className="font-mono text-sm leading-6 text-coral-600">
@@ -203,8 +203,9 @@ export default function AgenticPage() {
           <Note>
             Built and tested with Claude Code on a Mac — that is where the Photos library is. The
             cost, GPS and publishing skills run anywhere. On Linux or Windows, a self-hosted
-            instance&apos;s <code className="font-mono text-sm">npm run ingest</code> turns any
-            folder of camera files into dated, geotagged draft days, offline.
+            instance&apos;s <code className="font-mono text-sm">npm run ingest</code> turns a
+            folder of camera files into dated draft days, geotagged where the photos carry a
+            location, offline.
           </Note>
         </section>
 
@@ -215,7 +216,7 @@ export default function AgenticPage() {
             <Card
               icon={<Terminal className="h-4 w-4 text-coral-600" aria-hidden />}
               title="Your agent, over the API"
-              body="A trip and a day are PUT at ids you choose. Every field is in the OpenAPI file; anything not filled in is declined with a reason, never guessed."
+              body="A trip and a day are PUT at ids you choose. Every field is in the OpenAPI file; a section left empty is declined with a reason, never guessed."
               code={
                 "PUT  /api/v2/{user}/trips/{trip}\n" +
                 "PUT  /api/v2/{user}/trips/{trip}/days/{slug}\n" +
@@ -226,7 +227,7 @@ export default function AgenticPage() {
               <Card
                 icon={<Mic className="h-4 w-4 text-coral-600" aria-hidden />}
                 title="Or just say it"
-                body="In the studio, a day can be spoken: five short questions, one per screen, answered out loud. You see the transcript and correct it; the day is only your own answers. The recording is never stored."
+                body="In the studio, a day can be spoken: five short questions, one per screen, answered out loud. You see the transcript and correct it; the day is only your own answers."
               />
             ) : (
               <Card
@@ -247,13 +248,13 @@ export default function AgenticPage() {
               <Out>{"track.json           the clipped route for the map"}</Out>
               <Out>{"entries/"}</Out>
               <Out>{"  2019-08-03-hvar.json   one day, status: draft"}</Out>
-              <Out>{"media/               resized, metadata stripped"}</Out>
+              <Out>{"media/               resized, EXIF and GPS stripped"}</Out>
               <Out>{"originals/           the print masters"}</Out>
             </TerminalCard>
             <ul className="space-y-3 text-base leading-6 text-ink-body">
               <Bullet icon={<FileJson className="h-4 w-4" aria-hidden />}>
-                A website: map, gallery, costs, an RSS feed, and a private door for the people
-                you invite.
+                A website: map, gallery and an RSS feed, public or only for the people you
+                choose.
               </Bullet>
               <Bullet icon={<FolderTree className="h-4 w-4" aria-hidden />}>
                 One command hands the whole thing back as a zip. No lock-in: the folder is the
@@ -289,8 +290,8 @@ export default function AgenticPage() {
               plausible fiction.
             </li>
             <li>
-              <strong className="text-ink-strong">Drafts only.</strong> Publishing is a separate
-              call, made when you say so in words.
+              <strong className="text-ink-strong">Drafts first.</strong> A new day starts as a
+              draft. Publishing is a separate call, made only when you say so in words.
             </li>
             <li>
               <strong className="text-ink-strong">Tokens stay in the API.</strong> An agent&apos;s
@@ -306,7 +307,7 @@ export default function AgenticPage() {
             {[
               ["/documentation.txt", "The overview your agent reads first"],
               ["/skill/add-a-day.md", "How a day is written, field by field"],
-              ["/api/v2/openapi.json", "Every endpoint, from the Zod schemas"],
+              ["/api/v2/openapi.json", "The v2 API, generated from its Zod schemas"],
               ["/docs/helper", "Fernscout Helper, in full"],
               ["/docs/hosting", "Running your own instance"],
             ].map(([href, label]) => (

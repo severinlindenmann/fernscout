@@ -1303,7 +1303,7 @@
   "landing.footerAgentic": "Pour les bidouilleurs",
   "landing.agenticKicker": "Open source · auto-hébergeable · prêt pour les agents",
   "landing.agenticTitle": "Tu as un agent ouvert dans un terminal ?",
-  "landing.agenticBody": "Transforme dix ans de photothèque en brouillons de voyages, écris de nouveaux jours via l’API, fais tourner le tout sur ton propre serveur. Les agents font la plomberie et n’écrivent que des brouillons ; les mots restent les tiens.",
+  "landing.agenticBody": "Transforme dix ans de photothèque en brouillons de voyages, écris de nouveaux jours via l’API, fais tourner le tout sur ton propre serveur. Les agents font la plomberie, les nouveaux jours commencent en brouillon, et les mots restent les tiens.",
   "landing.agenticCta": "Comment ça marche avec Claude Code et les autres",
   "landing.copyInstruction": "Copier l’instruction",
   "landing.handBody": "Copie ce texte et colle-le dans ton propre agent pour commencer.",
