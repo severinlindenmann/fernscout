@@ -29,7 +29,9 @@ describe("the docs shell", () => {
   });
 
   test("the shell owns the only language switcher", () => {
-    expect(read("app/docs/layout.tsx")).toContain("LocaleSwitcher");
+    // B2531: the switcher is the site header's now, through `PageShell`, the
+    // frame of every page outside the journal — still one owner, one place.
+    expect(read("app/docs/layout.tsx")).toContain("<PageShell>");
     // No page under /docs brings its own; that is what made the guides' one
     // read as part of the guides rather than part of the site.
     for (const file of [

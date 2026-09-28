@@ -137,6 +137,24 @@
   --color-coral-600: #c2334a;
 
   --color-blue-500: #2f6fed;
+  /* B2531 — the audience tints (the R3-Tints board). Green marks schools,
+     blue tour operators; each has a text shade that clears 4.5:1 on white,
+     cream and its own ground, a ground, and a shade for eyebrows on navy.
+       blue-700 #1f4fb8   7.32 white · 7.04 cream · 6.45 on blue-100
+       blue-300 #7aa5ff   6.03 on navy-900
+       green-400 #4ade80  8.40 on navy-900 */
+  --color-blue-100: #eaf1fe;
+  --color-blue-300: #7aa5ff;
+  --color-blue-700: #1f4fb8;
+  --color-green-400: #4ade80;
+
+  /* The tint a page wears — `PageShell`'s `audience`. Personal (yellow) is
+     every page's default; `.audience-school` and `.audience-operator` below
+     swap it. Components read these four, never a hue. */
+  --tint: var(--color-yellow-400);
+  --tint-ink: var(--color-yellow-900);
+  --tint-ground: var(--surface-base);
+  --tint-on-navy: var(--color-yellow-400);
 
   --background: var(--color-cream-50);
   --foreground: var(--color-navy-900);
@@ -305,6 +323,15 @@
   --color-coral-600: var(--color-coral-600);
 
   --color-blue-500: var(--color-blue-500);
+  --color-blue-100: var(--color-blue-100);
+  --color-blue-300: var(--color-blue-300);
+  --color-blue-700: var(--color-blue-700);
+  --color-green-400: var(--color-green-400);
+
+  --color-tint: var(--tint);
+  --color-tint-ink: var(--tint-ink);
+  --color-tint-ground: var(--tint-ground);
+  --color-tint-on-navy: var(--tint-on-navy);
 
   --color-surface-base: var(--surface-base);
   --color-surface-raised: var(--surface-raised);
@@ -393,6 +420,10 @@ html {
       coral-100  #33191f — 6.97:1 against coral-600's #f38ba6
   */
   --color-green-100: #1c3327;
+  /* B2531 — the operator tint's text and ground, dark: blue-700 takes
+     blue-300's hex (6.96:1 on surface-base, 5.90:1 on its ground). */
+  --color-blue-700: #7aa5ff;
+  --color-blue-100: #1a2a47;
   --color-coral-50: #2b141a;
   --color-coral-100: #33191f;
   /* B1810 — the caution-banner shades, same method as the green/coral pair
@@ -493,6 +524,8 @@ html {
     --color-green-700: #22c55e;
     --color-coral-600: #f38ba6;
     --color-green-100: #1c3327;
+    --color-blue-700: #7aa5ff;
+    --color-blue-100: #1a2a47;
     --color-coral-50: #2b141a;
     --color-coral-100: #33191f;
     --color-yellow-50: #2e2610;
@@ -783,6 +816,21 @@ body {
   :root:not([data-theme="light"]) .fs-ask-dark {
     background: var(--color-navy-950);
   }
+}
+
+/* B2531 — the audience tints. The dark values ride on the tokens' own dark
+   overrides, so each class is set once. */
+.audience-school {
+  --tint: var(--color-green-700);
+  --tint-ink: var(--color-green-700);
+  --tint-ground: var(--color-green-100);
+  --tint-on-navy: var(--color-green-400);
+}
+.audience-operator {
+  --tint: var(--color-blue-500);
+  --tint-ink: var(--color-blue-700);
+  --tint-ground: var(--color-blue-100);
+  --tint-on-navy: var(--color-blue-300);
 }
 
 /* Non-negotiable, and the reason every one of the rules above is a class

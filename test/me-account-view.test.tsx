@@ -84,7 +84,7 @@ function serve(home: unknown) {
 
 const page = (
   <LocaleProvider locale="en" dictionary={dictionaryFor("en", "account")}>
-    <AccountPage siteName="Fernscout" locales={["en", "de"]} codeMinutes="30" />
+    <AccountPage codeMinutes="30" />
   </LocaleProvider>
 );
 

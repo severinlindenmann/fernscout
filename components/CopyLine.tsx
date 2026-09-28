@@ -69,9 +69,10 @@ export default function CopyLine({
       // that a focus indicator needs on every surface it is drawn against.
       className={
         variant === "primary"
-          ? "group inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-600 " +
-            "bg-yellow-400 px-5 font-mono text-base font-semibold text-yellow-950 transition-colors " +
-            "hover:bg-yellow-300"
+          ? // B2531: the kit's yellow pill (components/landing/styles.ts), in mono.
+            "group inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-navy-900 " +
+            "bg-yellow-400 px-5 font-mono text-base font-bold text-navy-900 shadow-[0_3px_0_var(--color-navy-900)] " +
+            "transition-colors hover:bg-yellow-300"
           : "group inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-quiet " +
             "bg-surface-base px-4 font-mono text-base text-ink-body transition-colors " +
             "hover:border-line-ink hover:text-ink-strong"

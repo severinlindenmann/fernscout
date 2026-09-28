@@ -27,7 +27,7 @@ function withLocale(node: React.ReactNode) {
 
 function door(signupEnabled: boolean) {
   return withLocale(
-    <WelcomeDoor codeMinutes="20" identityEmail={null} signupEnabled={signupEnabled} siteName="T" />,
+    <WelcomeDoor codeMinutes="20" identityEmail={null} signupEnabled={signupEnabled} />,
   );
 }
 

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AccountPage from "@/app/me/AccountPage";
+import PageShell from "@/components/landing/PageShell";
+import { Band } from "@/components/landing/kit";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
-import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
+import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
 /**
@@ -32,10 +34,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function Me() {
   if (!isEnabled("auth")) notFound();
   return (
-    <AccountPage
-      siteName={serverSite().name}
-      locales={installedLocales()}
-      codeMinutes={CODE_TTL_MINUTES}
-    />
+    // B2531: the site's frame (header B for the person signed in) and the
+    // reading width.
+    <PageShell>
+      <Band width="reading">
+        <AccountPage codeMinutes={CODE_TTL_MINUTES} />
+      </Band>
+    </PageShell>
   );
 }

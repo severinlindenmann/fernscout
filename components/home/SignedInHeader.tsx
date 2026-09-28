@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BookOpen, House, PenLine, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import AccountChip from "@/components/AccountChip";
@@ -8,7 +9,7 @@ import type { HomeJournal } from "@/components/HomeJournals";
 import { useI18n } from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
-import { Logo } from "@/components/landing/SignedOut";
+import { Logo, WIDE } from "@/components/landing/kit";
 import { journalPath } from "@/lib/journalPath";
 
 /**
@@ -29,11 +30,12 @@ function ownerDoors(
   journals: HomeJournal[],
   prints: boolean,
   t: (key: "home.navHome" | "nav.studio" | "studio.hub.group.write" | "studio.hub.item.readers.title" | "landing.navPrints") => string,
+  atHome = true,
 ): { nav: Door[]; tabs: Door[] } | null {
   // ponytail: the first owned journal; an address owning two gets the other from the trip cards.
   const user = journals.find((j) => j.role === "owner")?.username;
   if (!user) return null;
-  const home: Door = { href: "/", label: t("home.navHome"), icon: House, current: true };
+  const home: Door = { href: "/", label: t("home.navHome"), icon: House, current: atHome };
   const readers: Door = { href: journalPath(user, "/studio/readers"), label: t("studio.hub.item.readers.title"), icon: Users };
   const printsDoor: Door[] = prints ? [{ href: journalPath(user, "/studio/orders"), label: t("landing.navPrints"), icon: BookOpen }] : [];
   return {
@@ -42,7 +44,8 @@ function ownerDoors(
   };
 }
 
-const WRAP = "mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:px-16";
+// B2531: the kit's wide column, the same edge as every other page's header.
+const WRAP = `${WIDE} flex items-center justify-between gap-3 py-3 sm:py-4`;
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
 
 export default function SignedInHeader({
@@ -52,6 +55,7 @@ export default function SignedInHeader({
   admin,
   journals,
   prints,
+  badge,
 }: {
   siteName: string;
   locales?: string[];
@@ -59,14 +63,18 @@ export default function SignedInHeader({
   admin?: boolean;
   journals: HomeJournal[];
   prints: boolean;
+  /** B2531: the audience's word beside the wordmark, on a tinted page. */
+  badge?: string;
 }) {
   const { t } = useI18n();
-  const doors = ownerDoors(journals, prints, t);
+  // B2531: the same header on every page outside the journal; Home is only
+  // the current door on `/`.
+  const doors = ownerDoors(journals, prints, t, usePathname() === "/");
   return (
     <>
       <header className="border-b border-line-quiet">
         <div className={WRAP}>
-          <Logo siteName={siteName} />
+          <Logo siteName={siteName} badge={badge} />
           {doors && (
             <nav aria-label={t("home.navLabel")} className="hidden items-center gap-5 sm:flex lg:gap-7">
               {doors.nav.map((d) => (

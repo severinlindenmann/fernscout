@@ -68,7 +68,8 @@ import path from "node:path";
  * which layout the client router happened to keep from the previous page.
  */
 export const SCOPES = {
-  // The landing page, notices, 404s, `/legal` — and the chrome of every
+  // The landing page, notices, 404s, `/legal` (B2531: in the site's frame,
+  // under this provider) — and the chrome of every
   // nested layout that renders anything outside its provider.
   root: { layout: "app/layout.tsx" },
   // The operator console and the sign-up page carry the helper's whole
@@ -89,8 +90,6 @@ export const SCOPES = {
   // The documentation. `/docs/api` reaches the helper's tool definitions on
   // the server, and with them the helper's vocabulary.
   docs: { layout: "app/docs/layout.tsx" },
-  // `/legal` renders under its own provider in the reader's language.
-  legal: { files: ["app/legal/page.tsx"] },
   // `/@<user>/c/<token>` in the contact's own language rather than the reader's.
   contactPage: { files: ["app/at/[user]/c/[token]/page.tsx"] },
   // `/x/<token>` — "never invite this address again" (B2442). No journal, no

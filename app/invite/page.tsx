@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import InviteRequestForm from "@/components/InviteRequestForm";
-import UpLink from "@/components/UpLink";
+import PageShell from "@/components/landing/PageShell";
+import { Band, TITLE_H1 } from "@/components/landing/kit";
 import { inviteRequestAvailable } from "@/lib/inviteRequest";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -32,27 +33,15 @@ export default async function InvitePage() {
   const name = serverSite().name;
 
   return (
-    <div className="min-h-full bg-surface-subtle">
-      <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 sm:px-6">
-        <div className="mx-auto flex max-w-lg items-center">
-          <UpLink
-            href="/"
-            label={name}
-            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
-                       transition-colors hover:text-ink-strong
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          />
-        </div>
-      </header>
-      <main className="mx-auto max-w-lg px-4 py-10 sm:py-16">
-        <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
-          {translateIn(locale, "inviteRequest.title")}
-        </h1>
+    // B2531: the slim header C and the reading width — mid-task, no menu.
+    <PageShell slim>
+      <Band width="reading">
+        <h1 className={TITLE_H1}>{translateIn(locale, "inviteRequest.title")}</h1>
         <p className="mt-3 text-lg leading-relaxed text-ink-body">
           {translateIn(locale, "inviteRequest.intro", { name })}
         </p>
         <InviteRequestForm />
-      </main>
-    </div>
+      </Band>
+    </PageShell>
   );
 }

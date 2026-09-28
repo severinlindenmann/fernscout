@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import NoticeShell from "./NoticeShell";
+import { PILL_PRIMARY } from "./landing/styles";
 import { useI18n } from "./LocaleProvider";
 
 /**
@@ -42,16 +43,17 @@ export default function OfflineNotice() {
 
   return (
     <NoticeShell
+      inFrame
       title={t("err.offlineTitle")}
       body={notKept ? `${t("err.offlineBody")} ${t("err.offlineNotKept")}` : t("err.offlineBody")}
     >
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className={`mt-9 inline-flex min-h-12 items-center justify-center rounded-full px-6 text-lg font-semibold transition-colors ${
+        className={`mt-9 ${
           online
-            ? "bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
-            : "border border-line-quiet bg-surface-raised text-ink-body"
+            ? PILL_PRIMARY
+            : "inline-flex min-h-13 items-center justify-center rounded-full border-2 border-line-quiet bg-surface-raised px-6 text-[17px] font-bold text-ink-body"
         }`}
       >
         {t("err.retry")}

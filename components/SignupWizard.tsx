@@ -3,7 +3,8 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
-import { PRIMARY_BUTTON } from "@/components/LandingSections";
+// B2531: the kit's yellow pill; the square button is retired.
+import { PILL_PRIMARY } from "@/components/landing/styles";
 import { useI18n } from "@/components/LocaleProvider";
 import TelField from "@/components/TelField";
 import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
@@ -563,7 +564,7 @@ export default function SignupWizard({
           <BusyButton
             busy={busy}
             type="submit"
-            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={proven ? undefined : t("me.signInSending")}
           >
             {proven ? t("agent.startVerify") : t("me.signInSend")}
@@ -603,7 +604,7 @@ export default function SignupWizard({
           <BusyButton
             busy={busy}
             type="submit"
-            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >
             {t("agent.startVerify")}
@@ -619,7 +620,7 @@ export default function SignupWizard({
           <button
             type="button"
             onClick={onAlreadyOwns}
-            className={`mt-4 w-full ${PRIMARY_BUTTON}`}
+            className={`mt-4 w-full ${PILL_PRIMARY}`}
           >
             {t("agent.haveJournalYes")}
           </button>
@@ -662,7 +663,7 @@ export default function SignupWizard({
           <BusyButton
             busy={busy}
             type="submit"
-            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >
             {t("agent.phoneSend")}
@@ -701,7 +702,7 @@ export default function SignupWizard({
           <BusyButton
             busy={busy}
             type="submit"
-            className={`mt-4 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >
             {t("agent.startVerify")}
@@ -725,7 +726,7 @@ export default function SignupWizard({
             href={waLink}
             target="_blank"
             rel="noreferrer"
-            className={`mt-4 block w-full text-center ${PRIMARY_BUTTON}`}
+            className={`mt-4 block w-full text-center ${PILL_PRIMARY}`}
           >
             {t("agent.phoneWaOpen")}
           </a>
@@ -996,7 +997,7 @@ export default function SignupWizard({
               !ownerNickname ||
               !/^[A-Z]{3}$/.test(baseCurrency)
             }
-            className={`mt-5 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
+            className={`mt-5 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={t("agent.creatingJournal")}
           >
             {t("agent.createJournal")}

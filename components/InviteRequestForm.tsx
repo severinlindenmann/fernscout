@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
-import { PRIMARY_BUTTON } from "@/components/LandingSections";
+// B2531: the kit's yellow pill; the square button is retired.
+import { PILL_PRIMARY } from "@/components/landing/styles";
 
 /**
  * The `/invite` form — B2507.
@@ -71,7 +72,7 @@ export default function InviteRequestForm() {
         busy={busy}
         type="submit"
         disabled={!email.includes("@")}
-        className={`w-full sm:w-auto ${PRIMARY_BUTTON} disabled:opacity-50`}
+        className={`w-full sm:w-auto ${PILL_PRIMARY} disabled:opacity-50`}
         busyLabel={t("inviteRequest.sending")}
       >
         {t("inviteRequest.submitCta")}

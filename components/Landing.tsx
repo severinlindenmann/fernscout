@@ -3,13 +3,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronRight, CircleUserRound } from "lucide-react";
-import {
-  AgentBlock,
-  Colophon,
-  PublicJournals,
-  type PublicJournal,
-} from "@/components/LandingSections";
+import { AgentBlock, PublicJournals, type PublicJournal } from "@/components/LandingSections";
 import SignedOut, { ReaderStrip, type InviteCta, type NavLink } from "@/components/landing/SignedOut";
+import { Footer, Stripe, TAB_BAR_ROOM } from "@/components/landing/Frame";
+import { WIDE } from "@/components/landing/kit";
 import type { DemoDay } from "@/lib/demoDay";
 import SignedInHome from "@/components/home/SignedInHome";
 import SignedInHeader from "@/components/home/SignedInHeader";
@@ -222,7 +219,6 @@ export default function Landing({
   const offerSignIn = phase === "out" || (phase === "unknown" && !expected);
 
   const publicList = <PublicJournals journals={journals} />;
-  const colophon = <Colophon repository={repository} credit={credit} legal={legal} />;
 
   if (phase === "in" && home) {
     return (
@@ -233,10 +229,11 @@ export default function Landing({
       // (plus the iPhone's safe area) the page reserves so nothing sits
       // under it.
       <div
-        className={`min-h-full bg-surface-base ${
-          home.journals.some((j) => j.role === "owner") ? "max-sm:pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]" : ""
+        className={`flex min-h-full flex-col bg-surface-base ${
+          home.journals.some((j) => j.role === "owner") ? TAB_BAR_ROOM : ""
         }`}
       >
+        <Stripe />
         <SignedInHeader
           siteName={siteName}
           locales={locales}
@@ -245,7 +242,7 @@ export default function Landing({
           journals={home.journals}
           prints={postcardsEnabled || photobookEnabled}
         />
-        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-16">
+        <main id="main" className={`${WIDE} flex-1 py-6 sm:py-10`}>
           <SignedInHome
             journals={home.journals}
             photobookEnabled={photobookEnabled}
@@ -291,10 +288,11 @@ export default function Landing({
               this instance's own journals matter least to somebody who
               already has one of their own. */}
           {publicList}
-          {colophon}
           {/* Inside the iPhone app only: which server it is talking to. */}
           <ServerChoice signedIn />
         </main>
+        {/* B2531: the one footer, instead of the old two-column colophon. */}
+        <Footer siteName={siteName} orgs={orgs} repository={repository} credit={credit} legal={legal} />
       </div>
     );
   }

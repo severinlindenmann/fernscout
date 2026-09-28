@@ -5,10 +5,8 @@ import { useEffect, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import IdentitySignIn from "@/components/IdentitySignIn";
-import LocaleSwitcher from "@/components/LocaleSwitcher";
 import SignOut from "@/components/SignOut";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
-import UpLink from "@/components/UpLink";
+import { TITLE_H1 } from "@/components/landing/kit";
 import {
   RoleBadge,
   YourDevices,
@@ -137,12 +135,8 @@ function SignOutEverywhere({ devices }: { devices: number }) {
 }
 
 export default function AccountPage({
-  siteName,
-  locales,
   codeMinutes,
 }: {
-  siteName: string;
-  locales: string[];
   codeMinutes: string;
 }) {
   const { t } = useI18n();
@@ -177,24 +171,10 @@ export default function AccountPage({
   const owned = mine.find((journal) => journal.role === "owner");
 
   return (
-    <div className="min-h-full bg-surface-subtle">
-      <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <UpLink
-            href="/"
-            label={siteName}
-            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-secondary hover:text-ink-strong
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          />
-          <div className="flex items-center gap-1">
-            <ThemeSwitcher subtle />
-            <LocaleSwitcher locales={locales} subtle />
-          </div>
-        </div>
-
-        <h1 className="mt-6 font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-[1.15] text-ink-strong">
-          {t("meAccount.title")}
-        </h1>
+    // B2531: header B, the footer and the reading width are the page's
+    // (`PageShell` and `Band` in app/me/page.tsx).
+    <>
+        <h1 className={TITLE_H1}>{t("meAccount.title")}</h1>
 
         {phase === "loading" && (
           <div aria-hidden className="mt-6 animate-pulse space-y-4">
@@ -262,7 +242,6 @@ export default function AccountPage({
             <SignOutEverywhere devices={home.devices.length} />
           </>
         )}
-      </main>
-    </div>
+    </>
   );
 }

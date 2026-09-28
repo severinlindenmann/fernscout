@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function AnimationBrandingPage() {
   return (
-    <main id="main" className="min-h-screen bg-surface-base">
+    <div className="bg-surface-base">
       <AnimationWorkbench />
       <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
         <Link
@@ -35,6 +35,6 @@ export default function AnimationBrandingPage() {
           Back to the workbenches
         </Link>
       </div>
-    </main>
+    </div>
   );
 }

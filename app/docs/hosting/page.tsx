@@ -4,6 +4,7 @@ import EntryContent from "@/components/EntryContent";
 import { docsNavEntries, HOSTING_CAPABILITY_SECTIONS, sectionOrNull, docsMetadata } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
+import { Band, TITLE_H1 } from "@/components/landing/kit";
 
 export const metadata: Metadata = docsMetadata("hosting");
 
@@ -38,7 +39,7 @@ const SECTIONS = [
 ] as const;
 
 const H2 = "mt-12 scroll-mt-6 font-display text-2xl font-semibold text-ink-strong";
-const LINK = "underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600";
+const LINK = "underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-ink-strong";
 
 export default async function HostingPage() {
   const locale = await requestLocale();
@@ -52,8 +53,8 @@ export default async function HostingPage() {
   const repoFile = (file: string) => (site.repository ? `${site.repository}/blob/main/${file}` : null);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">Hosting</h1>
+    <Band width="reading">
+      <h1 className={TITLE_H1}>Hosting</h1>
       <p className="mt-3 text-lg leading-relaxed text-ink-body">
         One server with Node behind Caddy, and one deploy script. Reading a
         public journal needs no database; writing and guests do. Every optional
@@ -178,6 +179,6 @@ export default async function HostingPage() {
           .
         </p>
       )}
-    </main>
+    </Band>
   );
 }

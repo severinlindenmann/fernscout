@@ -5,6 +5,7 @@ import EntryContent from "@/components/EntryContent";
 import { docsNavEntries, readRepoFile, section, docsMetadata } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
+import { Band, TITLE_H1 } from "@/components/landing/kit";
 
 export const metadata: Metadata = docsMetadata("contributing");
 
@@ -33,8 +34,8 @@ export default async function ContributingPage() {
     );
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
+    <Band width="reading">
+      <h1 className={TITLE_H1}>
         Contributing
       </h1>
       <p className="mt-3 text-lg leading-relaxed text-ink-body">
@@ -86,7 +87,7 @@ export default async function ContributingPage() {
             The whole file, and the licence terms, are{" "}
             <a
               href={`${site.repository}/blob/main/CONTRIBUTING.md`}
-              className="underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
+              className="underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-ink-strong"
             >
               in the repository
             </a>
@@ -94,6 +95,6 @@ export default async function ContributingPage() {
           </p>
         )}
       </div>
-    </main>
+    </Band>
   );
 }

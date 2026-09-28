@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { posterSrc } from "./mediaLoader";
 import CopyLine from "@/components/CopyLine";
-import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
 
 import { journalPath } from "@/lib/journalPath";
@@ -25,17 +24,6 @@ export type PublicJournal = {
   cover?: string;
 };
 
-/**
- * The primary action, shared — B733. `yellow-400` with a `yellow-600` edge
- * and `yellow-950` text: the waymark colour doing the job the waymark does.
- * Text on `yellow-400` is `navy-900` or `yellow-950` and nothing else —
- * `yellow-950` here clears AAA. Callers add their own width/margin.
- */
-export const PRIMARY_BUTTON =
-  "inline-flex min-h-14 items-center justify-center rounded-xl border border-yellow-600 bg-yellow-400 px-6 " +
-  "text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 " +
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
-
 // B2338 retired the WhatsApp door this file used to draw here (B1314), and
 // `OrDivider` along with it — the button, its `wa.me` lookup and its
 // `agent.open.whatsappGreeting` / `landing.whatsappCta` copy are gone too.
@@ -52,21 +40,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
     <h2 className="border-b border-line-quiet pb-3 font-display text-xl font-semibold text-ink-strong">
       {children}
     </h2>
-  );
-}
-
-/** The GitHub mark. Inline because lucide-react carries no brand icons. */
-function GithubMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      className={className}
-      fill="currentColor"
-      aria-hidden
-      focusable="false"
-    >
-      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-    </svg>
   );
 }
 
@@ -261,109 +234,5 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
         </ul>
       )}
     </section>
-  );
-}
-
-export function Colophon({
-  repository,
-  credit,
-  legal,
-}: {
-  repository?: string;
-  credit?: { name: string; url?: string; countryCode?: string };
-  /** Whether this instance has written a `site/legal/` page. Absent
-   * instances draw no link rather than one that 404s — the same bargain every
-   * optional capability makes. */
-  legal?: boolean;
-}) {
-  const { t } = useI18n();
-  return (
-    <>
-      {/*
-        Who made it, if this instance says so.
-
-        Read from `site.credit` rather than written here: the content folder's
-        whole promise is that somebody deletes it, drops in their own and has
-        their own site, and a name compiled into a component would greet every
-        one of their visitors with mine. Absent by default, and absent stays
-        absent — there is no fallback that quietly credits the wrong person.
-      */}
-      {(credit || legal || repository) && (
-        <footer className="mt-12 border-t border-line-quiet pt-6 text-sm text-ink-secondary">
-          {credit && (
-            <p>
-              {/* Split on the {name} token rather than appending the link after
-              the sentence: German ends "von {name}" and Hungarian puts it
-              after a dash, and a name glued to the end would be wrong in both
-              the moment a translator moves it. */}
-              {(() => {
-                const flag = flagFor("", credit.countryCode);
-                const [before, after = ""] = t("landing.madeBy", {
-                  flag: flag || "",
-                  name: "\u0000",
-                }).split("\u0000");
-                const name = credit.url ? (
-                  <a
-                    href={credit.url}
-                    className="font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-4"
-                  >
-                    {credit.name}
-                  </a>
-                ) : (
-                  <span className="font-semibold text-ink-strong">
-                    {credit.name}
-                  </span>
-                );
-                return (
-                  <>
-                    {before}
-                    {name}
-                    {after}
-                  </>
-                );
-              })()}
-            </p>
-          )}
-          {/*
-            What this instance can honestly say about itself, in the place a
-            reader goes looking for it — B487 put it in a card above the
-            colophon, which gave a privacy claim more of the page than the
-            journals underneath it. A footer line is the honest weight: it is
-            reassurance for somebody who thought to ask, not a selling point.
-          */}
-          {/* B2520: the source link is a footer word beside Legal, not a
-              "Self-host" section of its own — the reading/self-host block it
-              used to sit in was clutter above the one line a reader looks for. */}
-          <p className="mt-2 flex flex-wrap items-center gap-x-1 text-xs leading-5 text-ink-secondary">
-            {t("landing.noTracking")}
-            {legal && (
-              <>
-                {" · "}
-                <Link
-                  href="/legal"
-                  className="underline decoration-blue-500 decoration-2 underline-offset-4
-                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                >
-                  {t("landing.legal")}
-                </Link>
-              </>
-            )}
-            {repository && (
-              <>
-                {" · "}
-                <a
-                  href={repository}
-                  className="inline-flex items-center gap-1 underline decoration-blue-500 decoration-2 underline-offset-4
-                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                >
-                  <GithubMark className="h-3.5 w-3.5" />
-                  GitHub
-                </a>
-              </>
-            )}
-          </p>
-        </footer>
-      )}
-    </>
   );
 }

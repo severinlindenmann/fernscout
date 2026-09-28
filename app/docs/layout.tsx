@@ -1,8 +1,7 @@
 import DocsUpLink from "@/components/DocsUpLink";
 import LocaleProvider from "@/components/LocaleProvider";
-import LocaleSwitcher from "@/components/LocaleSwitcher";
-import { dictionaryFor, installedLocales, requestLocale, translateIn } from "@/lib/locales";
-import { serverSite } from "@/lib/site";
+import PageShell from "@/components/landing/PageShell";
+import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 
 /**
  * One frame for every documentation page — B470.
@@ -13,13 +12,13 @@ import { serverSite } from "@/lib/site";
  * menu — so it read as a property of the guides rather than of the site.
  *
  * Two jobs, and each now belongs to exactly one place: the way home, and the
- * language. The **navigation is deliberately not here** — the pages render it
+ * language. Both are `PageShell`'s since B2531 — the site's header — and the
+ * layout adds only the step up from a guide to the hub. The **navigation is deliberately not here** — the pages render it
  * themselves, because the hub's cards *are* its navigation and a row of the
  * same six links above them would be the second menu again, in a new place.
  */
 export default async function DocsLayout({ children }: LayoutProps<"/docs">) {
   const locale = await requestLocale();
-  const site = serverSite();
 
   // One provider over the whole of `/docs`, with its own strings: the API
   // reference reaches the helper's whole vocabulary on the server, and
@@ -28,24 +27,18 @@ export default async function DocsLayout({ children }: LayoutProps<"/docs">) {
   // `requestLocale`.
   return (
     <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "docs")}>
-      <div className="min-h-full">
-        <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 backdrop-blur sm:px-6">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-            {/* One step up, not one page back — B1728. On a guide that is the
-                hub; on the hub it is the site. */}
-            <DocsUpLink
-              hubHref="/docs"
-              hubLabel={translateIn(locale, "docs.title")}
-              siteLabel={site.name}
-              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
-                         transition-colors hover:text-ink-strong
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            />
-            <LocaleSwitcher locales={installedLocales()} subtle />
-          </div>
-        </header>
+      {/* B2531: the site's own frame, like every page outside the journal;
+          the way up to the hub stays above an inner page's text. */}
+      <PageShell>
+        <DocsUpLink
+          hubHref="/docs"
+          hubLabel={translateIn(locale, "docs.title")}
+          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
+                     transition-colors hover:text-ink-strong
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        />
         {children}
-      </div>
+      </PageShell>
     </LocaleProvider>
   );
 }

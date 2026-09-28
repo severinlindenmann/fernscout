@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import UpLink from "@/components/UpLink";
-import LocaleSwitcher from "@/components/LocaleSwitcher";
+import { TITLE_H1 } from "@/components/landing/kit";
+import { TEXT_LINK } from "@/components/landing/styles";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
@@ -26,7 +26,6 @@ export default function WelcomeDoor({
   codeMinutes,
   identityEmail,
   signupEnabled,
-  siteName,
   phoneCountryCode,
   contactEmail,
 }: {
@@ -36,7 +35,6 @@ export default function WelcomeDoor({
    *  holds it, the wizard skips the code (B2522). */
   identityEmail: string | null;
   signupEnabled: boolean;
-  siteName: string;
   /** `whatsappCountryCode()` — `lib/contactNumber.ts` is server-only, so this
    *  instance's own dialling-code convention (`features.whatsapp.defaultCountryCode`)
    *  arrives as a prop rather than a second import. Absent (or not passed at
@@ -74,19 +72,10 @@ export default function WelcomeDoor({
   const signIn = <IdentitySignIn codeMinutes={codeMinutes} onDone={() => router.push("/")} />;
 
   return (
-    <div className="min-h-screen bg-surface-subtle">
-      <div className="mx-auto flex max-w-xl items-center justify-between px-4 pt-6">
-        <UpLink
-          href="/"
-          label={siteName}
-          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
-                     transition-colors hover:text-ink-strong
-                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-        />
-        <LocaleSwitcher subtle />
-      </div>
-      <main className="mx-auto w-full max-w-xl px-4 pb-12 pt-4">
-        <h1 className="font-display text-2xl font-semibold text-ink-strong">{t("signupPage.title")}</h1>
+    // B2531: the frame (the slim header C) and the reading width are the
+    // page's, `PageShell` and `Band` in app/welcome/page.tsx.
+    <>
+        <h1 className={TITLE_H1}>{t("signupPage.title")}</h1>
         {!signupEnabled ? (
           <>
             <p className="mt-2 text-sm text-ink-body">{t("agent.signupOff")}</p>
@@ -106,13 +95,12 @@ export default function WelcomeDoor({
               contactEmail={contactEmail}
             />
             <p className="mt-4">
-              <Link href="/?start=1" className="text-sm font-semibold text-ink-strong underline underline-offset-2">
+              <Link href="/?start=1" className={`text-sm ${TEXT_LINK}`}>
                 {t("signupPage.haveOne")}
               </Link>
             </p>
           </div>
         )}
-      </main>
-    </div>
+    </>
   );
 }
