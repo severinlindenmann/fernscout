@@ -18,7 +18,7 @@ type StreetMapProps = {
    * lib/maps/dir.ts and app/api/maps/[...path]/route.ts). */
   pmtilesUrl: string;
   /** Pixels of breathing room around `bounds` when the map first frames it. */
-  padding?: number;
+  padding?: number | { top: number; bottom: number; left: number; right: number };
   className?: string;
   /** Called once the map exists, before its style has necessarily finished
    * loading — the same escape hatch `ref` gives, for a caller that would

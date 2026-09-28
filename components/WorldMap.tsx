@@ -62,6 +62,18 @@ type Cluster = { x: number; y: number; places: PlaceView[] };
  */
 const MERGE_RADII = 1.9;
 
+/**
+ * How far zoomed in (relative to the whole-trip fit, `zoom` below) before a
+ * muted, unselected day's marker is hidden outright rather than merely
+ * dimmed — "hidden at street zoom" in the spec. `zoom` is a multiple of the
+ * whole-trip frame, not an absolute map zoom level, so this is deliberately a
+ * middling constant rather than a street-level one: past it the frame is
+ * already a small fraction of the trip's own span, close enough to a single
+ * day's own streets that a crowd of muted markers from other days is noise,
+ * not context.
+ */
+const STREET_ZOOM_HIDE = 6;
+
 function clusterPlaces(places: PlaceView[], markerRadius: number, frame: Frame): Cluster[] {
   const radius = markerRadius * MERGE_RADII;
   const clusters: Cluster[] = [];
@@ -93,6 +105,8 @@ export default function WorldMap({
   showStopCard = true,
   fillHeight = false,
   bottomInset = 0,
+  showTimeScrubber = true,
+  dayNumbers,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -162,6 +176,19 @@ export default function WorldMap({
    * box's full height, so a stop the sheet's own current snap would hide
    * is never the one the camera claims to have centred. */
   bottomInset?: number;
+  /** Withholds the built-in desktop time scrubber — B2537's map page draws
+   * its own day list/strip instead, and a second way to move through the
+   * trip on the same screen is the thing the ticket removes. Defaults to
+   * true, so every other caller (the countdown, the studio's recorded-trips
+   * preview) is unaffected. */
+  showTimeScrubber?: boolean;
+  /** The trip's own calendar-day numbers, keyed by `PlaceView.key` — B2537,
+   * `lib/map/mapDays.ts`/`buildTripFrame`'s day numbering, which counts every
+   * published day (including ones with no place) rather than only the ones
+   * that made it into `places`. Absent (every other caller) keeps the
+   * original behaviour: a marker's own 1-based position among *plottable*
+   * places, which drifts from the calendar once an earlier day had no place. */
+  dayNumbers?: Map<string, number>;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -191,8 +218,9 @@ export default function WorldMap({
   // many stops merge into a cluster at this zoom — B2422's own "the number
   // survives every zoom" rule.
   const orderByKey = useMemo(
-    () => new Map(plottable.map((p, i) => [p.key, i + 1] as const)),
-    [plottable],
+    () =>
+      dayNumbers ?? new Map(plottable.map((p, i) => [p.key, i + 1] as const)),
+    [plottable, dayNumbers],
   );
 
   const legs: Leg[] = useMemo(() => {
@@ -434,6 +462,13 @@ export default function WorldMap({
     [onSelectProp],
   );
 
+  const clearSelection = useCallback(() => {
+    setSelectedState(null);
+    setScope("trip");
+    reset();
+    onSelectProp?.(null);
+  }, [reset, onSelectProp]);
+
   // An outside nudge (B2427's mobile sheet, tapping a stop in its own list,
   // or its own copy of the time scrubber) — applied through `selectPlace`
   // so it gets the exact same scope-aware camera behaviour a tap on the map
@@ -446,12 +481,12 @@ export default function WorldMap({
     lastExternalKey.current = selectedKeyProp;
     if (selectedKeyProp === null) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSelectedState(null);
+      clearSelection();
       return;
     }
     const place = places.find((p) => p.key === selectedKeyProp);
     if (place) selectPlace(place);
-  }, [selectedKeyProp, places, selectPlace]);
+  }, [selectedKeyProp, places, selectPlace, clearSelection]);
 
   // Track is the real route; hops are a straight-line reconstruction of one.
   // Never both — a recorded line is what actually happened, and drawing a
@@ -846,42 +881,52 @@ export default function WorldMap({
 
           {clusters.map((cluster, i) => {
             const many = cluster.places.length > 1;
+            // "Selected day in accent; other days muted, and hidden at
+            // street zoom" — docs/plans/2026-09-28-trip-maps/README.md. Only
+            // once something is actually selected; every other day dims
+            // rather than vanishing outright until the reader has zoomed in
+            // close enough that a crowd of muted markers would otherwise sit
+            // on top of the one street the selected day is about.
+            const hasOther = selected && !cluster.places.some((p) => p.key === selected.key);
+            if (hasOther && zoom > STREET_ZOOM_HIDE) return null;
             if (many) {
               return (
-                <ClusterMarker
-                  key={i}
-                  x={cluster.x}
-                  y={cluster.y}
-                  count={cluster.places.length}
-                  ariaLabel={`${cluster.places.length} ${t("map.places")}`}
-                  px={px}
-                  onSelect={() => {
-                    // Zoom into the cluster instead of picking one arbitrarily,
-                    // centring it after the drift the new zoom will apply.
-                    const nextZoom = Math.min(maxZoom, zoom * 2);
-                    const baseCx = base.x + base.w / 2;
-                    const baseCy = base.y + base.h / 2;
-                    const drift = focus ? Math.min(1, (nextZoom - 1) / 2) : 0;
-                    const anchorX = focus ? baseCx + (focus.x - baseCx) * drift : baseCx;
-                    const anchorY = focus ? baseCy + (focus.y - baseCy) * drift : baseCy;
-                    setZoom(nextZoom);
-                    setPan({ x: cluster.x - anchorX, y: cluster.y - anchorY });
-                  }}
-                />
+                <g key={i} opacity={hasOther ? 0.35 : 1}>
+                  <ClusterMarker
+                    x={cluster.x}
+                    y={cluster.y}
+                    count={cluster.places.length}
+                    ariaLabel={`${cluster.places.length} ${t("map.places")}`}
+                    px={px}
+                    onSelect={() => {
+                      // Zoom into the cluster instead of picking one arbitrarily,
+                      // centring it after the drift the new zoom will apply.
+                      const nextZoom = Math.min(maxZoom, zoom * 2);
+                      const baseCx = base.x + base.w / 2;
+                      const baseCy = base.y + base.h / 2;
+                      const drift = focus ? Math.min(1, (nextZoom - 1) / 2) : 0;
+                      const anchorX = focus ? baseCx + (focus.x - baseCx) * drift : baseCx;
+                      const anchorY = focus ? baseCy + (focus.y - baseCy) * drift : baseCy;
+                      setZoom(nextZoom);
+                      setPan({ x: cluster.x - anchorX, y: cluster.y - anchorY });
+                    }}
+                  />
+                </g>
               );
             }
             const place = cluster.places[0];
             return (
-              <StopMarker
-                key={i}
-                x={cluster.x}
-                y={cluster.y}
-                order={orderByKey.get(place.key) ?? 1}
-                selected={selected?.key === place.key}
-                ariaLabel={`${place.location}, ${place.country}`}
-                px={px}
-                onSelect={() => selectPlace(place)}
-              />
+              <g key={i} opacity={hasOther ? 0.35 : 1}>
+                <StopMarker
+                  x={cluster.x}
+                  y={cluster.y}
+                  order={orderByKey.get(place.key) ?? 1}
+                  selected={selected?.key === place.key}
+                  ariaLabel={`${place.location}, ${place.country}`}
+                  px={px}
+                  onSelect={() => selected?.key === place.key ? clearSelection() : selectPlace(place)}
+                />
+              </g>
             );
           })}
 
@@ -915,7 +960,7 @@ export default function WorldMap({
               onChange={(next) => {
                 setScope(next);
                 if (next === "stop") focusOnStop(selected);
-                else reset();
+                else clearSelection();
               }}
             />
           </div>
@@ -931,10 +976,7 @@ export default function WorldMap({
               className="absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm"
             >
               <button
-                onClick={() => {
-                  setSelectedState(null);
-                  onSelectProp?.(null);
-                }}
+                onClick={clearSelection}
                 aria-label="Close"
                 className="absolute right-2 top-2 rounded-full p-1 text-ink-secondary hover:bg-surface-selected/60 hover:text-ink-strong"
               >
@@ -1005,7 +1047,7 @@ export default function WorldMap({
           Desktop only (`hidden lg:block`) — B2427's mobile sheet puts its
           own copy of this same component in its peek snap on a phone, so a
           second one here would be drawn twice on the same screen. */}
-      {plottable.length > 0 && (
+      {showTimeScrubber && plottable.length > 0 && (
         <div className="hidden lg:block">
           <TimeScrubber
             stops={plottable.map((p) => ({ key: p.key, date: p.firstDate, location: p.location }))}
