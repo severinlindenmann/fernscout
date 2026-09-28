@@ -69,7 +69,20 @@ echo "systemctl $* next=$(m .next) prev=$(m .next-prev) build=$(m .next-build)" 
 case "$1" in start|restart) git -C "$APP_DIR" rev-parse HEAD > "$APP_DIR/.served" ;; esac
 `;
 
-async function fixture(pageStatus = 200) {
+type Options = {
+  pageStatus?: number;
+  /** The build-worthy path the pushed commit changes. */
+  change?: string;
+  /** B2556: /api/health answers 503 while the new commit is the one serving. */
+  newIsUnhealthy?: boolean;
+  /** B2556: a paid/ tree uploaded for this deploy, the served one kept beside it. */
+  paid?: boolean;
+};
+
+async function fixture(pageStatusOrOptions: number | Options = 200) {
+  const opts: Options =
+    typeof pageStatusOrOptions === "number" ? { pageStatus: pageStatusOrOptions } : pageStatusOrOptions;
+  const pageStatus = opts.pageStatus ?? 200;
   const appDir = tmp();
   const remote = tmp();
   const bin = tmp();
@@ -83,9 +96,13 @@ async function fixture(pageStatus = 200) {
   fs.writeFileSync(path.join(appDir, "build-stub.js"), BUILD_STUB);
   fs.writeFileSync(
     path.join(appDir, "package.json"),
-    JSON.stringify({ name: "fixture", version: "1.0.0", scripts: { build: "node build-stub.js" } }),
+    JSON.stringify({
+      name: "fixture",
+      version: "1.0.0",
+      scripts: { build: "node build-stub.js", "db:migrate": "node -e 0" },
+    }),
   );
-  fs.writeFileSync(path.join(appDir, ".gitignore"), ".next*\n.served\n.deploy*\n");
+  fs.writeFileSync(path.join(appDir, ".gitignore"), ".next*\n.served\n.deploy*\npaid/\npaid.failed/\n");
   git("-C", appDir, "add", "-A");
   git("-C", appDir, "commit", "-q", "-m", "baseline");
   git("-C", appDir, "push", "-q", "origin", "main");
@@ -93,11 +110,25 @@ async function fixture(pageStatus = 200) {
   fs.writeFileSync(path.join(appDir, ".served"), baseline);
 
   // A build-worthy change, pushed but not yet pulled.
-  fs.writeFileSync(path.join(appDir, "lib-marker.ts"), "// touch");
+  const change = opts.change ?? "lib-marker.ts";
+  fs.mkdirSync(path.dirname(path.join(appDir, change)), { recursive: true });
+  fs.writeFileSync(path.join(appDir, change), "// touch");
   git("-C", appDir, "add", "-A");
   git("-C", appDir, "commit", "-q", "-m", "change");
   git("-C", appDir, "push", "-q", "origin", "main");
+  const next = git("-C", appDir, "rev-parse", "HEAD");
   git("-C", appDir, "reset", "-q", "--hard", baseline);
+
+  if (opts.paid) {
+    // What the CI wrapper leaves: the new upload in paid/, the served one
+    // beside the checkout, and the served paid SHA on record.
+    fs.mkdirSync(path.join(appDir, "paid"));
+    fs.writeFileSync(path.join(appDir, "paid", ".sha"), "b".repeat(40));
+    fs.mkdirSync(`${appDir}.paid-prev`);
+    dirs.push(`${appDir}.paid-prev`);
+    fs.writeFileSync(path.join(`${appDir}.paid-prev`, ".sha"), "a".repeat(40));
+    fs.writeFileSync(path.join(appDir, ".deploy-state-paid"), "a".repeat(40));
+  }
 
   // The build that is serving right now, with its cache and route types.
   fs.mkdirSync(path.join(appDir, ".next", "cache"), { recursive: true });
@@ -107,6 +138,12 @@ async function fixture(pageStatus = 200) {
 
   fs.writeFileSync(path.join(bin, "sudo"), '#!/usr/bin/env bash\nexec "$@"\n', { mode: 0o755 });
   fs.writeFileSync(path.join(bin, "systemctl"), SYSTEMCTL_STUB, { mode: 0o755 });
+  // B2557: records the scope it was asked for, then runs what runuser would.
+  fs.writeFileSync(
+    path.join(bin, "systemd-run"),
+    '#!/usr/bin/env bash\necho "systemd-run $*" >> "$LOG"\nwhile [ "$1" != -- ]; do shift; done\nshift\nexec "$@"\n',
+    { mode: 0o755 },
+  );
 
   const server = http.createServer((req, res) => {
     // B2525: the rewritten page the deploy asks for after /api/health.
@@ -115,6 +152,10 @@ async function fixture(pageStatus = 200) {
       return res.end();
     }
     const commit = fs.readFileSync(path.join(appDir, ".served"), "utf8").trim();
+    if (opts.newIsUnhealthy && commit === next) {
+      res.statusCode = 503;
+      return res.end();
+    }
     res.setHeader("content-type", "application/json");
     res.end(JSON.stringify({ ok: true, commit }));
   });
@@ -130,11 +171,15 @@ async function fixture(pageStatus = 200) {
     ENV_FILE: path.join(appDir, "no-env"),
     PORT: String(port),
     LOG: log,
+    DEPLOY_HEALTH_WAIT: "3",
   };
   delete env.HEALTH_TOKEN;
   delete env.NEXT_DIST_DIR;
   delete env.FERNSCOUT_CONFIG;
-  return { appDir, env, readLog: () => fs.readFileSync(log, "utf8") };
+  delete env.DATABASE_URL;
+  delete env.DEPLOY_SCOPE_UID;
+  delete env.SERVICE;
+  return { appDir, env, baseline, next, readLog: () => fs.readFileSync(log, "utf8") };
 }
 
 const marker = (dir: string) =>
@@ -199,5 +244,90 @@ describe("B2230: the build never touches the .next that is serving", () => {
     const { env } = await fixture(404);
     const result = await run("bash", [script], { env }).catch((e) => e);
     expect(result.code ?? 0, String(result.stdout) + String(result.stderr)).toBe(0);
+  }, 60_000);
+});
+
+describe("B2556: a restart that fails its checks goes back to the build that served", () => {
+  test("health never answers on the new build: previous build and commit serve again, exit 1", async () => {
+    const { appDir, env, baseline, next } = await fixture({ newIsUnhealthy: true, paid: true });
+    const result = await run("bash", [script], { env }).catch((e) => e);
+    const out = String(result.stdout) + String(result.stderr);
+    expect(result.code, out).toBe(1);
+    expect(out).toContain("did not become healthy in 3s");
+    expect(out).toContain(`rolled back to ${baseline}`);
+
+    expect(marker(path.join(appDir, ".next"))).toBe("old");
+    expect(marker(path.join(appDir, ".next-failed"))).toBe("new");
+    expect(fs.existsSync(path.join(appDir, ".next-prev"))).toBe(false);
+    expect(git("-C", appDir, "rev-parse", "HEAD")).toBe(baseline);
+    expect(fs.readFileSync(path.join(appDir, ".served"), "utf8").trim()).toBe(baseline);
+    expect(baseline).not.toBe(next);
+    // The paid/ tree that served is back, the failed upload kept beside it.
+    expect(fs.readFileSync(path.join(appDir, "paid", ".sha"), "utf8")).toBe("a".repeat(40));
+    expect(fs.readFileSync(path.join(appDir, "paid.failed", ".sha"), "utf8")).toBe("b".repeat(40));
+    expect(fs.existsSync(`${appDir}.paid-prev`)).toBe(false);
+    // A rollback is not a deploy: nothing recorded.
+    expect(fs.existsSync(path.join(appDir, ".deploy-state"))).toBe(false);
+  }, 60_000);
+
+  test("a 5xx on /@example after the restart also rolls back", async () => {
+    const { appDir, env, baseline } = await fixture(502);
+    const result = await run("bash", [script], { env }).catch((e) => e);
+    const out = String(result.stdout) + String(result.stderr);
+    expect(result.code, out).toBe(1);
+    expect(out).toContain("/@example answered 502");
+    expect(out).toContain(`rolled back to ${baseline}`);
+    expect(marker(path.join(appDir, ".next"))).toBe("old");
+    expect(git("-C", appDir, "rev-parse", "HEAD")).toBe(baseline);
+  }, 60_000);
+
+  test("a deploy that ran migrations is not rolled back, and says why", async () => {
+    const { appDir, env, next } = await fixture({
+      newIsUnhealthy: true,
+      change: "lib/db/migrations/0001_x.sql",
+    });
+    const result = await run("bash", [script], { env: { ...env, DATABASE_URL: "postgres://stub/none" } }).catch(
+      (e) => e,
+    );
+    const out = String(result.stdout) + String(result.stderr);
+    expect(result.code, out).toBe(1);
+    expect(out).toContain("NOT ROLLING BACK: this deploy ran database migrations");
+    expect(out).not.toContain("rolled back to");
+    expect(marker(path.join(appDir, ".next"))).toBe("new");
+    expect(git("-C", appDir, "rev-parse", "HEAD")).toBe(next);
+  }, 60_000);
+});
+
+describe("B2557: a dev build runs in a CPU-limited scope, prod's does not", () => {
+  test("dev, as root with systemd-run: every build goes through the transient scope", async () => {
+    const { env, readLog } = await fixture();
+    const result = await run("bash", [script], {
+      env: { ...env, SERVICE: "fernscout-dev", DEPLOY_SCOPE_UID: "0" },
+    }).catch((e) => e);
+    const out = String(result.stdout) + String(result.stderr);
+    expect(result.code ?? 0, out).toBe(0);
+    expect(out).toContain("building fernscout-dev in a transient scope (systemd-run, CPUQuota=200%, nice 10)");
+    expect(readLog()).toContain(
+      `systemd-run --scope --quiet -p CPUQuota=200% nice -n 10 runuser -u ${env.RUN_AS} -- env NEXT_DIST_DIR=.next-build npm run build`,
+    );
+  }, 60_000);
+
+  test("dev without root: the build runs plain and the log says so", async () => {
+    const { env, readLog } = await fixture();
+    const result = await run("bash", [script], { env: { ...env, SERVICE: "fernscout-dev" } }).catch((e) => e);
+    const out = String(result.stdout) + String(result.stderr);
+    expect(result.code ?? 0, out).toBe(0);
+    expect(out).toContain("building fernscout-dev without a CPU scope");
+    expect(readLog()).not.toContain("systemd-run");
+    expect(readLog()).toContain("build dist=.next-build");
+  }, 60_000);
+
+  test("prod never takes the scope, even as root with systemd-run", async () => {
+    const { env, readLog } = await fixture();
+    const result = await run("bash", [script], { env: { ...env, DEPLOY_SCOPE_UID: "0" } }).catch((e) => e);
+    const out = String(result.stdout) + String(result.stderr);
+    expect(result.code ?? 0, out).toBe(0);
+    expect(out).not.toContain("scope");
+    expect(readLog()).not.toContain("systemd-run");
   }, 60_000);
 });
