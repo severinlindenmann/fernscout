@@ -44,6 +44,22 @@ export function zonesGetDoc(user: string): Response {
 export async function zonesPutResponse(user: string, request: Request): Promise<Response> {
   if (!getUser(user)) return fail("unknown_user", ERROR_CODES.unknown_user, undefined, 404);
 
+  // B2547 — the body is read (the one `await` this handler needs) *before*
+  // the ETag is checked, not after: checking first and awaiting the body
+  // second left a window where a concurrent PUT could land in between, so
+  // the ETag this request checked against was no longer the one actually on
+  // disk by the time it finally wrote (same fix as track-edits, B2539 S3).
+  // Everything from here to `writeZones` below is synchronous — no `await`
+  // — so nothing else can run in between and the check is against what is
+  // really still there.
+  const body = await readJson(request);
+  if (!body.ok) return body.response;
+
+  const parsed = gpsZonesWrite.safeParse(body.value);
+  if (!parsed.success) {
+    return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(parsed.error), 400);
+  }
+
   let currentDoc: { zones: ReturnType<typeof listZones>["zones"]; homeDeclined: boolean; limits: typeof limits };
   try {
     currentDoc = { ...listZones(user), limits };
@@ -58,14 +74,6 @@ export async function zonesPutResponse(user: string, request: Request): Promise<
   const currentEtag = etagFor(currentDoc);
   if (!request.headers.get("if-match") || ifMatchStale(request, currentEtag)) {
     return fail("stale_document", ERROR_CODES.stale_document, currentDoc, 409);
-  }
-
-  const body = await readJson(request);
-  if (!body.ok) return body.response;
-
-  const parsed = gpsZonesWrite.safeParse(body.value);
-  if (!parsed.success) {
-    return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(parsed.error), 400);
   }
 
   let doc: { zones: ReturnType<typeof listZones>["zones"]; homeDeclined: boolean; limits: typeof limits };
