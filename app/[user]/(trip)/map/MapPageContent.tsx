@@ -2,14 +2,21 @@
 
 import PageHeader from "@/components/PageHeader";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard } from "lucide-react";
+import { Clapperboard, MapPin } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
+import { isPlottable } from "@/lib/mapFrame";
+import { googleMapsHref } from "@/lib/tripMap";
 import type { Basemap } from "@/lib/basemap";
 import type { PlannedStop } from "@/lib/types";
+import MobileMapSheet from "@/components/map/MobileMapSheet";
+import TimeScrubber from "@/components/map/TimeScrubber";
+import { mediaLoader, posterSrc } from "@/components/mediaLoader";
+import { POSTER_WIDTH } from "@/lib/mediaSizes";
 
 // Behind a button — nobody should pay to download the presentation bundle
 // (map projection data, motion) until they actually press it.
@@ -42,7 +49,7 @@ export default function MapPageContent({
    * the more conservative "no days written" rather than a false negative. */
   hasDays?: boolean;
 }) {
-  const { t, tn, formatShortDate, formatStay } = useI18n();
+  const { t, tn, locale, formatShortDate, formatStay } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
   // current trip, `/example/trips/<id>/day/…` for any other.
   const trip = useTrip()?.trip;
@@ -82,6 +89,70 @@ export default function MapPageContent({
   // and asked as `places.length > 0` in four separate places the first kind
   // rendered anyway — as four zeroes, an empty box, and no map at all.
   const hasPlaces = places.length > 0;
+  // The same coordinate-bearing, day-ordered subset `WorldMap` draws markers
+  // from (a day with no place is not a stop — B265) — shared here so the
+  // phone sheet's list, its own time-scrubber copy, and the map itself are
+  // never counting or ordering stops differently from one another.
+  const plottable = useMemo(() => places.filter(isPlottable), [places]);
+  // One selection for the whole map page (the review after B2427's first
+  // pass) — driven from the map's own marker taps and time scrubber, the
+  // sheet's stop list, and its own copy of the time scrubber, all landing on
+  // this same key. `WorldMap` still owns the camera: this is only ever
+  // handed to it as a nudge (`selectedKey`/`onSelect` below), which applies
+  // it through the exact same `selectPlace` a tap on the map itself calls.
+  const [selectedKey, setSelectedKey] = useState<string | null>(plottable[0]?.key ?? null);
+
+  // Selects a stop and carries it in the URL as `?stop=<key>` (B2426, Phase 2
+  // item 1 of docs/plans/map-redesign.md) — `history.replaceState`, like
+  // `closeSlideshow` below, so picking through a trip never grows the back
+  // stack or jumps the scroll position `pushState`/a hash link would. Every
+  // caller below (a marker tap, the scrubber, the sheet) already only ever
+  // hands this a key from `plottable`, so a link built from it can carry no
+  // more than what was already on screen for this reader.
+  const selectStop = useCallback((key: string | null) => {
+    setSelectedKey(key);
+    const params = new URLSearchParams(window.location.search);
+    if (key) params.set("stop", key);
+    else params.delete("stop");
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+    );
+  }, []);
+
+  // The `?stop=` a shared link named, read once on mount — a lazy `useState`
+  // initialiser rather than an effect, and rather than a plain `useRef` (its
+  // `.current` may not be read during render). `window` is absent during
+  // SSR, same as every other read below.
+  //
+  // Read here, during the render that seeds it, not in a `useEffect` like
+  // the `?show=` read further down: `WorldMap` echoes whatever `selectedKey`
+  // this page hands it straight back through `onSelect` on mount (the same
+  // round trip a real tap takes — see its own doc comment), and that echo
+  // reaches `selectStop` and rewrites the URL *before* a same-priority
+  // effect declared here would get to run, since passive effects fire
+  // child-first. Seeding this during the initial render captures the URL
+  // before anything downstream has had the chance to touch it.
+  const [stopParam] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("stop"),
+  );
+
+  // Applies it once `plottable` exists to check it against — matched against
+  // that same reader-filtered pool the map and the sheet already draw from,
+  // so a key from a draft or hidden day, which was never in it to begin
+  // with, and a wholly unknown key are the same case: neither matches
+  // anything, and nothing is selected. The link carries no access of its own
+  // (AGENTS.md).
+  useEffect(() => {
+    if (!stopParam || plottable.length === 0) return;
+    if (plottable.some((p) => p.key === stopParam)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedKey(stopParam);
+    }
+  }, [plottable, stopParam]);
+
   // The tense the heading speaks in — B1289. `hasPlaces` alone said a
   // finished trip with a published day and no coordinates was still "going",
   // because nothing had been drawn yet. `over` is the trip's own hero telling
@@ -127,59 +198,78 @@ export default function MapPageContent({
   };
 
   return (
-    <div className="min-h-screen">
-      <PageHeader />
-      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Past tense is a claim, and on a trip that has not started it is a
-            false one: "Wo wir waren" over eight places nobody has been to yet.
-            The subtitle was worse — it invited the reader to tap stops that do
-            not exist, because the only markers on the map are planned ones and
-            they open nothing. Both follow `pastTense` — `hasPlaces` or `over`,
-            never `trip.status` directly, so the two cannot drift apart. */}
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
-          {t(pastTense ? "map.title" : "map.titlePlanned")}
-        </h1>
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-ink-secondary">
-            {t(pastTense ? "map.subtitle" : "map.subtitlePlanned")}
-          </p>
+    <div className="flex min-h-[100dvh] flex-col overflow-hidden lg:block lg:min-h-screen lg:overflow-visible">
+      <div className="shrink-0 lg:contents">
+        <PageHeader />
+      </div>
+      {/* Below `lg` (B2426, Phase 2 item 1): the map page *is* the
+          full-screen view — this becomes a flex column whose one growing
+          row is the map itself, filling the viewport under the header, with
+          the sheet floating over it rather than sitting below page content
+          nobody can scroll to reach. `lg` up is the original stacked page,
+          unchanged. */}
+      <main
+        id="main"
+        tabIndex={-1}
+        className="flex min-h-0 flex-1 flex-col overflow-hidden lg:mx-auto lg:block lg:w-full lg:max-w-5xl lg:overflow-visible lg:px-8 lg:pt-8 lg:pb-8"
+      >
+        {/* The title, subtitle, stats and draft note — desktop only below
+            `lg`, the map fills their place instead (see above). The text
+            itself is unchanged, so `test/map-page.test.tsx`'s plain-markup
+            assertions (tense, drafts, i18n) still hold regardless of which
+            width is looking at it. */}
+        <div className="hidden shrink-0 px-4 pt-8 sm:px-6 lg:block lg:px-0 lg:pt-0">
+          {/* Past tense is a claim, and on a trip that has not started it is a
+              false one: "Wo wir waren" over eight places nobody has been to yet.
+              The subtitle was worse — it invited the reader to tap stops that do
+              not exist, because the only markers on the map are planned ones and
+              they open nothing. Both follow `pastTense` — `hasPlaces` or `over`,
+              never `trip.status` directly, so the two cannot drift apart. */}
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
+            {t(pastTense ? "map.title" : "map.titlePlanned")}
+          </h1>
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-ink-secondary">
+              {t(pastTense ? "map.subtitle" : "map.subtitlePlanned")}
+            </p>
+            {hasPlaces && (
+              <button
+                onClick={() => {
+                  setStartDate(undefined);
+                  setShowing(true);
+                }}
+                className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
+              >
+                <Clapperboard className="h-4 w-4" />
+                {t("show.start")}
+              </button>
+            )}
+          </div>
+
+          {/* Days on the road, stops, countries, photographs — every one counts
+              travel that has happened. A trip that has not started has an honest
+              answer for none of them, and four zeroes is not that answer. Nor is
+              the plan's own arithmetic: eight planned stops is not eight stops,
+              and putting it in this row would say it was. The size of the plan is
+              already on this page twice — the `0/8` counter under the map, and
+              the list of stops still to come. */}
           {hasPlaces && (
-            <button
-              onClick={() => {
-                setStartDate(undefined);
-                setShowing(true);
-              }}
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
-            >
-              <Clapperboard className="h-4 w-4" />
-              {t("show.start")}
-            </button>
+            <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat label={tn("map.days", stats.tripDays)} value={stats.tripDays} />
+              <Stat label={tn("map.stops", stats.places)} value={stats.places} />
+              <Stat label={tn("map.countries", stats.countries)} value={stats.countries} />
+              <Stat label={t("map.media")} value={stats.totalMedia} />
+            </dl>
+          )}
+          {hasDraftPlaces && (
+            // Visible only to somebody who may see the drafts themselves (see
+            // `hasDraftPlaces`) — the same audience, and the same wording shape,
+            // as the planned route's own note below.
+            <p className="mt-2 text-xs text-ink-secondary">
+              {t(canPublish ? "map.stopsFromDrafts" : "map.stopsFromDraftsShared")}
+            </p>
           )}
         </div>
-
-        {/* Days on the road, stops, countries, photographs — every one counts
-            travel that has happened. A trip that has not started has an honest
-            answer for none of them, and four zeroes is not that answer. Nor is
-            the plan's own arithmetic: eight planned stops is not eight stops,
-            and putting it in this row would say it was. The size of the plan is
-            already on this page twice — the `0/8` counter under the map, and
-            the list of stops still to come. */}
-        {hasPlaces && (
-          <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label={tn("map.days", stats.tripDays)} value={stats.tripDays} />
-            <Stat label={tn("map.stops", stats.places)} value={stats.places} />
-            <Stat label={tn("map.countries", stats.countries)} value={stats.countries} />
-            <Stat label={t("map.media")} value={stats.totalMedia} />
-          </dl>
-        )}
-        {hasDraftPlaces && (
-          // Visible only to somebody who may see the drafts themselves (see
-          // `hasDraftPlaces`) — the same audience, and the same wording shape,
-          // as the planned route's own note below.
-          <p className="mt-2 text-xs text-ink-secondary">
-            {t(canPublish ? "map.stopsFromDrafts" : "map.stopsFromDraftsShared")}
-          </p>
-        )}
 
         {/* A planned route is a map. `WorldMap` has framed one since it was
             written — see the `base` frame in components/WorldMap.tsx, which
@@ -188,128 +278,225 @@ export default function MapPageContent({
             An upcoming trip is the one most likely to be shared before there is
             anything else to show, and it was answering "no entries yet"
             directly above a legend for the route it had just refused to draw. */}
-        <div className="mt-7">
-          {hasPlaces || plan.length > 0 || track.length > 0 ? (
-            <WorldMap
-              places={places}
-              plan={plan}
-              track={track}
-              basemap={basemap}
-              pastTense={pastTense}
-              accent={accent}
-              live={live}
-            />
-          ) : (
-            // Not `story.empty`. "No entries yet" is true and is not the reason
-            // the map is missing; with neither days nor a route there is
-            // nothing to draw, and the message should say that instead.
-            //
-            // And not always the same sentence — B1289. `hasDays` tells apart
-            // "nobody has written a day" from "a day is written and has no
-            // place attached", which is the ordinary case for anybody writing
-            // without GPS and a different fact from the first. Saying "no days
-            // written" over a published day told an owner their day was
-            // missing when it was on the site.
-            <p className="text-ink-secondary">
-              {t(hasDays ? "map.emptyNoPlace" : "map.empty")}
-            </p>
+        {/* Desktop (`lg` up): a stop list on the left, sharing this page's
+            one selection with the map on the right, which stays in view
+            while the list scrolls (docs/plans/map-redesign.md §3 Phase 2
+            item 6 — the "Every stop" list this page always drew, now living
+            beside the map instead of under it, rather than a second list).
+            Below `lg` this is the full-screen map itself (B2426): `min-h-0
+            flex-1` grows it to fill what the header left, and `fillHeight` on
+            `WorldMap` makes the SVG follow that box; the phone sheet (B2427)
+            shows the selected stop. */}
+        <div className="relative min-h-0 flex-1 overflow-hidden lg:mt-7 lg:grid lg:flex-none lg:grid-cols-[22rem_1fr] lg:items-start lg:gap-6 lg:overflow-visible">
+          {hasPlaces && (
+            <section
+              aria-label={t("map.everyStop")}
+              className="hidden lg:block lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1"
+            >
+              <h2 className="font-display text-xl font-semibold text-ink-strong">
+                {t("map.everyStop")}
+              </h2>
+              <ol className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
+                {places.map((place) => {
+                  const isSelected = place.key === selectedKey;
+                  // Never invented: the same `entries`/`gallery` fields the
+                  // map's own floating card and the phone sheet already read
+                  // for this stop (see `MobileMapSheet`), nothing fetched or
+                  // guessed for this list.
+                  const headline =
+                    place.entries[0]?.headline?.[locale] ??
+                    Object.values(place.entries[0]?.headline ?? {})[0];
+                  const gallery = place.entries.flatMap((e) => e.gallery ?? []);
+                  return (
+                    <li key={place.key}>
+                      <button
+                        type="button"
+                        onClick={() => selectStop(place.key)}
+                        aria-expanded={isSelected}
+                        className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-base${
+                          isSelected ? " bg-surface-selected" : ""
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate font-display text-sm font-semibold text-ink-strong">
+                            {flagFor(place.country, place.countryCode)} {place.location}
+                          </div>
+                          <div className="text-xs text-ink-secondary">{place.country}</div>
+                        </div>
+                        <div className="shrink-0 text-right text-xs text-ink-secondary">
+                          <div>
+                            {formatShortDate(place.firstDate)}
+                            {place.lastDate !== place.firstDate &&
+                              ` – ${formatShortDate(place.lastDate)}`}
+                          </div>
+                          <div>
+                            {formatStay(place.nights)} · {place.mediaCount} {t("media.count")}
+                          </div>
+                        </div>
+                      </button>
+
+                      {isSelected && (
+                        <div className="flex flex-col gap-2 px-4 pb-4">
+                          {headline && <p className="text-sm text-ink-body">{headline}</p>}
+                          {gallery.length > 0 && (
+                            <div className="flex gap-1.5 overflow-x-auto">
+                              {gallery.slice(0, 8).map((m) => (
+                                <span
+                                  key={m.src}
+                                  className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-md border border-line-quiet bg-surface-muted"
+                                >
+                                  {m.type === "video" ? (
+                                    <video
+                                      src={m.src}
+                                      poster={posterSrc(m.poster, POSTER_WIDTH.GRID)}
+                                      preload={m.poster ? "none" : "metadata"}
+                                      className="h-full w-full object-cover"
+                                      muted
+                                    />
+                                  ) : (
+                                    <Image
+                                      src={m.src}
+                                      loader={mediaLoader}
+                                      alt={m.alt ?? m.caption ?? place.location}
+                                      fill
+                                      sizes="64px"
+                                      className="object-cover"
+                                    />
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold">
+                            <a
+                              href={href(`/day/${place.entries[0].slug}`)}
+                              className="text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
+                            >
+                              {t("map.readDay")} →
+                            </a>
+                            <a
+                              href={googleMapsHref(place)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-ink-secondary underline decoration-line-quiet underline-offset-2"
+                            >
+                              <MapPin className="h-3.5 w-3.5" aria-hidden />
+                              {t("tripMap.googleMaps")}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          )}
+
+          <div className="lg:sticky lg:top-6">
+            {hasPlaces || plan.length > 0 || track.length > 0 ? (
+              <WorldMap
+                places={places}
+                plan={plan}
+                track={track}
+                basemap={basemap}
+                pastTense={pastTense}
+                accent={accent}
+                live={live}
+                selectedKey={selectedKey}
+                onSelect={(p) => selectStop(p ? p.key : null)}
+                fillHeight
+                // The stop list to its left (above) already shows the
+                // selected stop's photos, headline, day link and Google Maps
+                // — the floating card over the map would only repeat it.
+                showStopCard={false}
+              />
+            ) : (
+              // Not `story.empty`. "No entries yet" is true and is not the reason
+              // the map is missing; with neither days nor a route there is
+              // nothing to draw, and the message should say that instead.
+              //
+              // And not always the same sentence — B1289. `hasDays` tells apart
+              // "nobody has written a day" from "a day is written and has no
+              // place attached", which is the ordinary case for anybody writing
+              // without GPS and a different fact from the first. Saying "no days
+              // written" over a published day told an owner their day was
+              // missing when it was on the site.
+              <p className="flex h-full items-center justify-center p-6 text-center text-ink-secondary lg:block lg:h-auto lg:p-0 lg:text-left">
+                {t(hasDays ? "map.emptyNoPlace" : "map.empty")}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* The planned-route legend and the still-to-come chips — desktop
+            only below `lg`, same reasoning as the title block above. This is
+            a real loss on a phone today: the sheet has no equivalent of
+            "still to come" for a trip in progress (`plottable`, what the
+            sheet draws from, is only stops already reached). Left for a
+            follow-up rather than folded into this ticket, which is the
+            full-screen map and its URL, not the sheet's own contents.
+            ponytail: ceiling is "a planned trip's upcoming stops are
+            desktop-only"; ticket for the sheet to carry them if that's
+            noticed. */}
+        <div className="hidden px-4 sm:px-6 lg:block lg:px-0">
+          {plan.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-secondary">
+              <span className="flex items-center gap-1.5">
+                <svg width="26" height="6" aria-hidden className="shrink-0">
+                  <line
+                    x1="0"
+                    y1="3"
+                    x2="26"
+                    y2="3"
+                    stroke="#5a6a80"
+                    strokeWidth="1.6"
+                    strokeDasharray="5 4"
+                    opacity="0.6"
+                  />
+                </svg>
+                {t("map.planned")} — {t("map.plannedHint")}
+              </span>
+              <span className="font-semibold text-ink-body">
+                {reachedCount}/{plan.length} {t("map.progress")}
+              </span>
+              {hasDraftStops && (
+                // Visible only to somebody who may see the drafts themselves
+                // (see `hasDraftStops`), so this is the one place on the site
+                // allowed to say "draft" out loud without it meaning an entry is
+                // showing through.
+                <span>
+                  {t(canPublish ? "map.plannedFromDrafts" : "map.plannedFromDraftsShared")}
+                </span>
+              )}
+            </div>
+          )}
+
+          {remaining.length > 0 && (
+            <section className="mt-10">
+              <h2 className="font-display text-xl font-semibold text-ink-strong">
+                {t("map.stillToCome")}
+              </h2>
+              <ol className="mt-3 flex flex-wrap gap-2">
+                {remaining.map((stop, i) => (
+                  <li
+                    key={`${stop.location}-${i}`}
+                    className={`rounded-full border px-3 py-1.5 text-xs ${
+                      i === 0
+                        ? "border-yellow-600 bg-yellow-400 font-semibold text-yellow-950"
+                        : "border-dashed border-line-quiet bg-surface-raised text-ink-body"
+                    }`}
+                    title={stop.note}
+                  >
+                    {i === 0 && <span className="mr-1">{t("map.nextUp")}:</span>}
+                    {flagFor(stop.country, stop.countryCode)} {stop.location}
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
         </div>
 
-        {plan.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-secondary">
-            <span className="flex items-center gap-1.5">
-              <svg width="26" height="6" aria-hidden className="shrink-0">
-                <line
-                  x1="0"
-                  y1="3"
-                  x2="26"
-                  y2="3"
-                  stroke="#5a6a80"
-                  strokeWidth="1.6"
-                  strokeDasharray="5 4"
-                  opacity="0.6"
-                />
-              </svg>
-              {t("map.planned")} — {t("map.plannedHint")}
-            </span>
-            <span className="font-semibold text-ink-body">
-              {reachedCount}/{plan.length} {t("map.progress")}
-            </span>
-            {hasDraftStops && (
-              // Visible only to somebody who may see the drafts themselves
-              // (see `hasDraftStops`), so this is the one place on the site
-              // allowed to say "draft" out loud without it meaning an entry is
-              // showing through.
-              <span>
-                {t(canPublish ? "map.plannedFromDrafts" : "map.plannedFromDraftsShared")}
-              </span>
-            )}
-          </div>
-        )}
-
-        {remaining.length > 0 && (
-          <section className="mt-10">
-            <h2 className="font-display text-xl font-semibold text-ink-strong">
-              {t("map.stillToCome")}
-            </h2>
-            <ol className="mt-3 flex flex-wrap gap-2">
-              {remaining.map((stop, i) => (
-                <li
-                  key={`${stop.location}-${i}`}
-                  className={`rounded-full border px-3 py-1.5 text-xs ${
-                    i === 0
-                      ? "border-yellow-600 bg-yellow-400 font-semibold text-yellow-950"
-                      : "border-dashed border-line-quiet bg-surface-raised text-ink-body"
-                  }`}
-                  title={stop.note}
-                >
-                  {i === 0 && <span className="mr-1">{t("map.nextUp")}:</span>}
-                  {flagFor(stop.country, stop.countryCode)} {stop.location}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-
-        {/* Withheld rather than drawn empty. A heading reading "Every stop"
-            over a blank bordered box says this trip had no stops, when what is
-            true is that it has not started — and where it is going is the list
-            immediately above. */}
-        {hasPlaces && (
-          <section className="mt-10">
-            <h2 className="font-display text-xl font-semibold text-ink-strong">
-              {t("map.everyStop")}
-            </h2>
-            <ol className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
-              {places.map((place) => (
-                <li key={place.key}>
-                  <a
-                    href={href(`/day/${place.entries[0].slug}`)}
-                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-base"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate font-display text-sm font-semibold text-ink-strong">
-                        {flagFor(place.country, place.countryCode)} {place.location}
-                      </div>
-                      <div className="text-xs text-ink-secondary">{place.country}</div>
-                    </div>
-                    <div className="shrink-0 text-right text-xs text-ink-secondary">
-                      <div>
-                        {formatShortDate(place.firstDate)}
-                        {place.lastDate !== place.firstDate &&
-                          ` – ${formatShortDate(place.lastDate)}`}
-                      </div>
-                      <div>
-                        {formatStay(place.nights)} · {place.mediaCount} {t("media.count")}
-                      </div>
-                    </div>
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
       </main>
 
       {showing && (
@@ -321,6 +508,31 @@ export default function MapPageContent({
           basemap={basemap}
         />
       )}
+
+      {/* Phone only (the component hides itself past `lg`) — the three-snap
+          bottom sheet, B2427. Desktop keeps the stacked layout above
+          unchanged. `plottable`, not `places`: the same stops the map itself
+          numbers and the scrubber below reads. */}
+      <MobileMapSheet
+        places={plottable}
+        stats={stats}
+        selectedKey={selectedKey}
+        onSelectKey={selectStop}
+        hrefForDay={(slug) => href(`/day/${slug}`)}
+        scrubberSlot={
+          plottable.length > 0 && (
+            <TimeScrubber
+              stops={plottable.map((p) => ({ key: p.key, date: p.firstDate, location: p.location }))}
+              selectedIndex={Math.max(
+                0,
+                plottable.findIndex((p) => p.key === selectedKey),
+              )}
+              live={live}
+              onSelect={(i) => selectStop(plottable[i].key)}
+            />
+          )
+        }
+      />
     </div>
   );
 }

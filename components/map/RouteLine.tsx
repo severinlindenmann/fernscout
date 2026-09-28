@@ -45,7 +45,10 @@ function poleBiasSide(x1: number, y1: number, x2: number, y2: number): 1 | -1 {
   return Math.sign(dx / len) === toward || dx === 0 ? 1 : -1;
 }
 
-function hopPath(x1: number, y1: number, x2: number, y2: number, arc: boolean, px: Px): string {
+/** Exported for `PrintRouteMap` (B2431), which draws the same straight/arc
+ * hop geometry into a fixed print frame rather than this component's own
+ * interactive one — one arc rule, not two implementations of it. */
+export function hopPath(x1: number, y1: number, x2: number, y2: number, arc: boolean, px: Px): string {
   if (!arc) return `M${x1},${y1} L${x2},${y2}`;
   const mx = (x1 + x2) / 2;
   const my = (y1 + y2) / 2;

@@ -17,6 +17,7 @@ import { flagFor } from "@/lib/flags";
 import { useMoney } from "./CurrencyProvider";
 import type { DaySummary } from "@/lib/types";
 import { followInPlace } from "@/lib/inPlaceLink";
+import { nearestSnapIndex } from "./SnapSheet";
 
 /** Sheet collapse duration, shared by the animation and the deferred scroll. */
 const CLOSE_MS = 220;
@@ -159,9 +160,19 @@ export default function MobileDaySheet({
               dragMomentum={false}
               onDragEnd={(_e, info) => {
                 const height = panelRef.current?.offsetHeight ?? 300;
-                const pastThreshold =
-                  info.offset.y > height * 0.25 || info.velocity.y > 500;
-                if (pastThreshold) {
+                // The same close-or-stay decision every snap sheet in this
+                // app now shares (B2427) — `[0, height]` is this sheet's own
+                // two points (closed, open), `[0.75]` reproduces the
+                // original "dragged past a quarter closes it" bar exactly.
+                // See the doc comment on `nearestSnapIndex`.
+                const next = nearestSnapIndex(
+                  [0, height],
+                  height - info.offset.y,
+                  info.velocity.y,
+                  1,
+                  [0.75],
+                );
+                if (next === 0) {
                   setOpen(false);
                 } else if (!reducedMotion) {
                   animate(dragY, 0, {

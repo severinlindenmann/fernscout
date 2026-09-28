@@ -25,6 +25,20 @@ export type StopSource = {
    * transport chip on the leg leading into this stop; absent draws no
    * chip, never an invented mode. */
   transport?: { mode: TransportMode; from: string; to: string };
+  /**
+   * A photo for this stop's marker and carousel card — B2429.
+   *
+   * Deliberately absent from every `StopSource` the server hands over: the
+   * navigation index this comes from is sent for *every* day of the trip
+   * (`lib/tripView.ts`'s `DaySummary`, ~150 bytes each by design,
+   * `test/payload.test.tsx`), and a photo URL on every one of those would
+   * grow that budget by roughly its own length per day, trip-length over
+   * trip-length. `TripMap` fills this in itself, client-side, from
+   * `/<user>/story.json` — the same reader-gated route the story page
+   * already lazily pages through, so a photo here has already passed
+   * `maySeePhoto`/`visible()` (`lib/entries.ts`) before it arrives.
+   */
+  photo?: { src: string; width?: number; height?: number };
 };
 
 export type TripStop = StopSource & {
