@@ -29,7 +29,7 @@ function hostOf(url: string | undefined): string {
 }
 
 /**
- * Bring your own server, at the foot of the landing page — iPhone app only.
+ * Bring your own server, in the landing page's footer — iPhone app only.
  *
  * Signed out, it offers to point the app at the reader's own Fernscout:
  * paste an address, the app checks something there answers as a Fernscout,
@@ -114,61 +114,65 @@ export default function ServerChoice({ signedIn }: { signedIn: boolean }) {
     }
   }
 
+  // In the footer's bottom band, beside "No analytics": one quiet line that
+  // opens the explanation and the form — B2545. Drawn in the navy footer's
+  // colours, not the page's.
   return (
-    <section className="mt-10 border-t border-line-quiet pt-8" aria-labelledby="server-choice-title">
-      <h2 id="server-choice-title" className="font-display text-base font-semibold text-ink-strong">
+    <details className="group open:basis-full">
+      <summary className="cursor-pointer list-none underline decoration-navy-500 underline-offset-4 hover:text-cream-50 [&::-webkit-details-marker]:hidden">
         {t("landing.server.title")}
-      </h2>
-      <p className="mt-2 text-sm leading-6 text-ink-body">
-        {t("landing.server.body", { host: defaultHost || host })}
-      </p>
-      {status.custom && (
-        <p className="mt-3 text-sm leading-6 text-ink-body">
-          {t("landing.server.connected", { host })}{" "}
+      </summary>
+      <div className="mt-3 max-w-xl">
+        <p className="text-xs leading-5">{t("landing.server.body", { host: defaultHost || host })}</p>
+        {status.custom && (
+          <p className="mt-2 text-xs leading-5">
+            {t("landing.server.connected", { host })}{" "}
+            <button
+              type="button"
+              onClick={() => void reset()}
+              disabled={busy}
+              className="min-h-11 font-semibold text-cream-50 underline decoration-blue-500 decoration-2 underline-offset-4 disabled:opacity-50"
+            >
+              {t("landing.server.reset", { host: defaultHost })}
+            </button>
+          </p>
+        )}
+        <form onSubmit={(e) => void connect(e)} className="mt-3 flex gap-2">
+          <label htmlFor="server-choice-url" className="sr-only">
+            {t("landing.server.label")}
+          </label>
+          <input
+            id="server-choice-url"
+            // Text rather than `url`, which would refuse a bare `travel.example.org`;
+            // the plugin adds `https://` itself. `inputMode` keeps the URL keyboard.
+            type="text"
+            inputMode="url"
+            enterKeyHint="go"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="https://travel.example.org"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            // 16px text: anything smaller makes iOS zoom in on focus.
+            className="min-h-11 min-w-0 flex-1 rounded-xl border border-navy-700 bg-navy-800 px-3 text-base text-cream-50 placeholder:text-navy-400
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          />
           <button
-            type="button"
-            onClick={() => void reset()}
-            disabled={busy}
-            className="min-h-11 font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-4 disabled:opacity-50"
+            type="submit"
+            disabled={busy || !url.trim()}
+            className="min-h-11 flex-none rounded-full border border-navy-700 px-4 text-sm font-semibold text-cream-50
+                       transition-colors hover:border-navy-500 disabled:opacity-50"
           >
-            {t("landing.server.reset", { host: defaultHost })}
+            {busy ? t("landing.server.checking") : t("landing.server.connect")}
           </button>
-        </p>
-      )}
-      <form onSubmit={(e) => void connect(e)} className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <label htmlFor="server-choice-url" className="sr-only">
-          {t("landing.server.label")}
-        </label>
-        <input
-          id="server-choice-url"
-          // Text rather than `url`, which would refuse a bare `travel.example.org`;
-          // the plugin adds `https://` itself. `inputMode` keeps the URL keyboard.
-          type="text"
-          inputMode="url"
-          enterKeyHint="go"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          placeholder="https://travel.example.org"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          className="min-h-11 flex-1 rounded-xl border border-line-quiet bg-surface-raised px-3 text-base text-ink-strong
-                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-        />
-        <button
-          type="submit"
-          disabled={busy || !url.trim()}
-          className="min-h-11 rounded-full border border-line-quiet px-4 text-sm font-semibold text-ink-body
-                     transition-colors hover:border-line-prominent disabled:opacity-50"
-        >
-          {busy ? t("landing.server.checking") : t("landing.server.connect")}
-        </button>
-      </form>
-      {error && (
-        <p role="alert" className="mt-2 text-sm text-coral-600">
-          {t(ERROR_KEYS[error])}
-        </p>
-      )}
-    </section>
+        </form>
+        {error && (
+          <p role="alert" className="mt-2 text-xs font-semibold text-cream-50">
+            {t(ERROR_KEYS[error])}
+          </p>
+        )}
+      </div>
+    </details>
   );
 }

@@ -18,6 +18,8 @@ export { geocodeRequest, geocodeResponse, geocodeCandidate } from "./geocode";
 export type { GeocodeRequest } from "./geocode";
 export { gpsZone, gpsZonesWrite, gpsZonesDoc } from "./gpsZones";
 export type { GpsZone, GpsZonesWrite, GpsZonesDoc } from "./gpsZones";
+export { trackEditsWrite, trackEditsDoc } from "./trackEdits";
+export type { TrackEditsWrite, TrackEditsDoc } from "./trackEdits";
 export { journalCreate } from "./journalCreate";
 export type { JournalCreate } from "./journalCreate";
 export { postcardOrderWrite, postcardOrderDoc, postcardSource } from "./postcard";

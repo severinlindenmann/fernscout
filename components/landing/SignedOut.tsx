@@ -61,6 +61,7 @@ export type SignedOutProps = {
   repository?: string;
   credit?: { name: string; url?: string; countryCode?: string };
   legal?: boolean;
+  serverChoice?: ReactNode;
 };
 
 function Dot() {
