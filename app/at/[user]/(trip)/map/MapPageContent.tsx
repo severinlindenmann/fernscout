@@ -392,7 +392,9 @@ export default function MapPageContent({
         // sheet's own peek height below — `sheetInset` is 0 on desktop and
         // wherever nothing covers the map, same value `WorldMap` already
         // frames around.
-        padding: { top: 70, bottom: sheetInset + 40, left: 40, right: 40 },
+        // The bottom also clears the legend row and the town label drawn
+        // under each marker, or the southernmost day sits under them.
+        padding: { top: 80, bottom: sheetInset + 96, left: 56, right: 56 },
       },
       streetMarkersRef.current,
     );
@@ -660,7 +662,12 @@ export default function MapPageContent({
         <div className="relative h-full min-h-0">
           {streetMap ? (
             <StreetMap
-              bounds={onMainRegion ? streetMap.bounds : boundsFor(plottableInRegion)}
+              // The places where days happened, not the region file's own padded
+              // box — that box is 15 km wider and lets a day sit on the edge.
+              bounds={plottableInRegion.length > 0 ? boundsFor(plottableInRegion) : streetMap.bounds}
+              // Clear of the header chips above and the legend (and, on a
+              // phone, the day sheet) below.
+              padding={{ top: 70, bottom: sheetInset + 56, left: 40, right: 40 }}
               pmtilesUrl={streetMap.url}
               onReady={onStreetMapReady}
               className="h-full w-full"
