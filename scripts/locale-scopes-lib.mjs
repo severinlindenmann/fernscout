@@ -102,6 +102,11 @@ export const SCOPES = {
     files: ["app/w/[code]/WelcomeGuide.tsx", "app/j/[code]/JoinFlow.tsx"],
     at: ["app/w/[code]/page.tsx", "app/j/[code]/page.tsx"],
   },
+  // B2533: /j and /w's own frame (PageShell's slim header and the shared
+  // footer), in the contact's own language rather than the root layout's —
+  // each needs its own provider, the same reason `contactPage` does.
+  joinFrame: { layout: "app/j/[code]/layout.tsx" },
+  welcomeLinkFrame: { layout: "app/w/[code]/layout.tsx" },
   // Components that translate from a `dictionary`/`dictionaries` prop.
   contactManage: { files: ["components/ContactManage.tsx"], at: ["app/at/[user]/me/page.tsx"] },
   readersAdmin: { files: ["components/studio/readers/ReadersAdmin.tsx"], at: ["app/at/[user]/studio/readers/page.tsx"] },

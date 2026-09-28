@@ -1,40 +1,22 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { cache } from "react";
-import type { UserConfig } from "@/lib/config";
 import { inviteMetadata, inviteSubject } from "@/lib/invitePreview";
 import { redirect } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
+import PageShell from "@/components/landing/PageShell";
 import { guestLanding, isOpenToApprovedGuest } from "@/lib/access";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
-import { buddyTripOf, maskEmail, maskMobile, ownerShortName, resolveWelcomeCode } from "@/lib/contacts/welcome";
+import { buddyTripOf, maskEmail, maskMobile, ownerShortName } from "@/lib/contacts/welcome";
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrips } from "@/lib/trips";
 import { siteSummaryFor } from "@/lib/site";
-import { getUser } from "@/lib/users";
+import { lookup } from "./lookup";
 import WelcomeGuide, { type GuideDetails } from "./WelcomeGuide";
 
 export const dynamic = "force-dynamic";
-
-/** Per IP: a person opens their link a handful of times; a list of guesses is
- * something else. */
-const LOOKUPS = { max: 30, windowMs: 15 * 60 * 1000 };
-
-type Lookup = { found: Awaited<ReturnType<typeof resolveWelcomeCode>>; user: UserConfig | null };
-
-/** One rate-limited lookup per request, shared by the preview's metadata and
- * the page. */
-const lookup = cache(async (code: string): Promise<Lookup> => {
-  const allowed = rateLimitFor("welcome-lookup", clientIp(await headers()), LOOKUPS).ok;
-  const found = allowed && isEnabled("contacts") ? await resolveWelcomeCode(code) : null;
-  // The journal's own contacts switch too, not only the server's (I3).
-  const user = found && isEnabled("contacts", found.owner) ? getUser(found.owner) : null;
-  return { found, user };
-});
 
 /** The link preview — B2502: an invitation to the journal, in its language.
  * The journal's title only, never the name the owner typed for the person. */
@@ -70,10 +52,16 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   if (!found || !user) {
     const locale = await requestLocale();
     return (
-      <NoticeShell
-        title={translateIn(locale, "welcomeLink.unknownTitle")}
-        body={translateIn(locale, "welcomeLink.unknownBody")}
-      />
+      // B2533: the slim header C and the shared footer, same as every other
+      // mid-task page — this one used to draw no frame at all.
+      <PageShell slim>
+        <NoticeShell
+          inFrame
+          lang={locale}
+          title={translateIn(locale, "welcomeLink.unknownTitle")}
+          body={translateIn(locale, "welcomeLink.unknownBody")}
+        />
+      </PageShell>
     );
   }
 
@@ -122,50 +110,52 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
     : null;
 
   return (
-    <main id="main" lang={locale} className="mx-auto w-full max-w-md px-4 py-8">
-      <WelcomeGuide
-        code={code}
-        owner={owner}
-        title={user.title}
-        ownerName={ownerShortName(user)}
-        firstName={(contact.name ?? "").trim().split(/\s+/)[0] ?? ""}
-        kind={trip ? "buddy" : "reader"}
-        trip={trip}
-        hasGuestTrip={trips.some(isOpenToApprovedGuest)}
-        landing={landing}
-        figures={
-          // The journal's own party, else the party of its newest trip a
-          // guest may read (a journal like /severin draws its figures per
-          // trip) — never a private trip's (B2457).
-          journalFigures.length > 0
-            ? journalFigures
-            : (trips.find((t) => isOpenToApprovedGuest(t) && t.status !== "upcoming" && t.travellers.length > 0)?.travellers ?? [])
-        }
-        recent={
-          // B2457: only once this browser's session is this contact's — a
-          // forwarded link must not show which trips a journal has.
-          signedIn
-            ? trips
-                .filter((t) => isOpenToApprovedGuest(t) && t.status !== "upcoming")
-                .slice(0, 3)
-                .map((t) => ({ id: t.id, title: t.title, cover: t.cover ?? null, year: t.start.slice(0, 4) }))
-            : []
-        }
-        signedIn={signedIn}
-        onboarded={Boolean(contact.onboardedAt)}
-        joined={(contact.createdVia ?? "").startsWith("invite:")}
-        prove={{
-          email: hasEmail && caps.mail ? maskEmail(contact.email) : null,
-          mobile: contact.phone && caps.sms ? maskMobile(contact.phone) : null,
-          preferred: contact.invitedVia === "sms" || contact.invitedVia === "whatsapp" || !hasEmail ? "sms" : "email",
-        }}
-        details={details}
-        caps={caps}
-        dictionary={dictionaryFor(locale, "guide")}
-        locale={locale}
-        locales={localesFor(owner)}
-        addressLookupEnabled={isEnabled("addressLookup", owner)}
-      />
-    </main>
+    <PageShell slim>
+      <div lang={locale} className="mx-auto w-full max-w-md px-4 py-8">
+        <WelcomeGuide
+          code={code}
+          owner={owner}
+          title={user.title}
+          ownerName={ownerShortName(user)}
+          firstName={(contact.name ?? "").trim().split(/\s+/)[0] ?? ""}
+          kind={trip ? "buddy" : "reader"}
+          trip={trip}
+          hasGuestTrip={trips.some(isOpenToApprovedGuest)}
+          landing={landing}
+          figures={
+            // The journal's own party, else the party of its newest trip a
+            // guest may read (a journal like /severin draws its figures per
+            // trip) — never a private trip's (B2457).
+            journalFigures.length > 0
+              ? journalFigures
+              : (trips.find((t) => isOpenToApprovedGuest(t) && t.status !== "upcoming" && t.travellers.length > 0)?.travellers ?? [])
+          }
+          recent={
+            // B2457: only once this browser's session is this contact's — a
+            // forwarded link must not show which trips a journal has.
+            signedIn
+              ? trips
+                  .filter((t) => isOpenToApprovedGuest(t) && t.status !== "upcoming")
+                  .slice(0, 3)
+                  .map((t) => ({ id: t.id, title: t.title, cover: t.cover ?? null, year: t.start.slice(0, 4) }))
+              : []
+          }
+          signedIn={signedIn}
+          onboarded={Boolean(contact.onboardedAt)}
+          joined={(contact.createdVia ?? "").startsWith("invite:")}
+          prove={{
+            email: hasEmail && caps.mail ? maskEmail(contact.email) : null,
+            mobile: contact.phone && caps.sms ? maskMobile(contact.phone) : null,
+            preferred: contact.invitedVia === "sms" || contact.invitedVia === "whatsapp" || !hasEmail ? "sms" : "email",
+          }}
+          details={details}
+          caps={caps}
+          dictionary={dictionaryFor(locale, "guide")}
+          locale={locale}
+          locales={localesFor(owner)}
+          addressLookupEnabled={isEnabled("addressLookup", owner)}
+        />
+      </div>
+    </PageShell>
   );
 }
