@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { decidePaidLocaleKeysAction } from "../scripts/paid-locale-keys-lib.mjs";
+import fs from "node:fs";
+import path from "node:path";
 
 /**
  * Whether `npm run i18n:keys` may rewrite lib/paidLocaleKeys.json this run —
@@ -103,5 +105,21 @@ describe("decidePaidLocaleKeysAction", () => {
       force: true,
     });
     expect(decision.action).toBe("write");
+  });
+});
+
+/**
+ * B2554 — lib/paidLocaleKeys.json is the public declaration of the strings
+ * only paid/ reads. Public CI runs without paid/, so deleting one of them
+ * from English used to pass here and fail only in the paid tests at the next
+ * deploy. Every declared key has to stay in English.
+ */
+describe("every key paid/ is declared to read is still in English", () => {
+  test("lib/paidLocaleKeys.json names no key site/locales/en.json lacks", () => {
+    const read = (file: string) => JSON.parse(fs.readFileSync(path.join(process.cwd(), file), "utf8"));
+    const english = read("site/locales/en.json") as Record<string, string>;
+    const declared = (read("lib/paidLocaleKeys.json") as { keys: string[] }).keys;
+    expect(declared.length).toBeGreaterThan(0);
+    expect(declared.filter((key) => typeof english[key] !== "string")).toEqual([]);
   });
 });
