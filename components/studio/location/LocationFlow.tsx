@@ -14,6 +14,7 @@ import { useStep } from "@/lib/studio/useStep";
 import { useSkipIntro } from "@/lib/studio/fromHub";
 import StepBody from "@/components/studio/StepBody";
 
+import { journalPath } from "@/lib/journalPath";
 /** The screens a person counts, in `?step=` (B2079). A file that could not
  *  be read is the "read" step's own answer, and done is the write's outcome,
  *  not a step a reload or Back should land on. */
@@ -253,7 +254,7 @@ export default function LocationFlow({
   // the photographs.
   const drawnNext: DoneNext[] = (result?.drawn ?? []).slice(0, 2).map((d) => ({
     title: t("studio.location.done.mapTitle", { trip: tripById.get(d.tripId)?.title ?? d.tripId }),
-    href: `/${username}/trips/${encodeURIComponent(d.tripId)}/map`,
+    href: `${journalPath(username)}/trips/${encodeURIComponent(d.tripId)}/map`,
     label: t("studio.location.done.seeMap"),
   }));
   const doneNext: [DoneNext] | [DoneNext, DoneNext] =
@@ -262,7 +263,7 @@ export default function LocationFlow({
       : [
           drawnNext[0] ?? {
             title: t("studio.newTrip.done.photos.title"),
-            href: `/${username}/studio/photos`,
+            href: `${journalPath(username)}/studio/photos`,
             label: t("studio.newTrip.done.photos.cta"),
           },
         ];

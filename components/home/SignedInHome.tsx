@@ -7,6 +7,7 @@ import { AdminJournals, type HomeJournal, type HomeTrip } from "@/components/Hom
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader } from "@/components/mediaLoader";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * The signed-in half of `/` — B2508.
  *
@@ -102,7 +103,7 @@ function ContinueCard({ item }: { item: Owned }) {
   const { t, tn } = useI18n();
   const { range } = useDates();
   const { journal, trip } = item;
-  const studio = `/${journal.username}/studio`;
+  const studio = `${journalPath(journal.username)}/studio`;
   const when = range(trip.start, trip.end);
   return (
     <section aria-labelledby="home-continue" className="flex flex-col gap-3">
@@ -171,7 +172,7 @@ function FirstTrip({ journal }: { journal: HomeJournal }) {
         {journal.title}
       </h1>
       <p className="text-base text-ink-body">{t("home.firstTrip")}</p>
-      <Link href={`/${journal.username}/studio/trip/new`} className={`self-start ${BUTTON}`}>
+      <Link href={`${journalPath(journal.username)}/studio/trip/new`} className={`self-start ${BUTTON}`}>
         {t("home.newTrip")}
       </Link>
     </section>
@@ -216,7 +217,7 @@ function YourTrips({ journal, named }: { journal: HomeJournal; named: boolean })
         <h2 id={`home-trips-${journal.username}`}>
           <Kicker>{named ? journal.title : t("home.yourTrips")}</Kicker>
         </h2>
-        <Link href={`/${journal.username}/trips`} className={`text-sm ${LINK}`}>
+        <Link href={`${journalPath(journal.username)}/trips`} className={`text-sm ${LINK}`}>
           {t("home.allTrips")}
         </Link>
       </div>
@@ -229,7 +230,7 @@ function YourTrips({ journal, named }: { journal: HomeJournal; named: boolean })
         ))}
         <li>
           <Link
-            href={`/${journal.username}/studio/trip/new`}
+            href={`${journalPath(journal.username)}/studio/trip/new`}
             className="flex h-full min-h-12 items-center justify-center gap-3 rounded-full border-2 border-dashed border-line-strong px-5 py-3
                        font-bold text-ink-strong sm:min-h-56 sm:flex-col sm:rounded-3xl
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
@@ -268,7 +269,7 @@ function ReadyForPaper({ item }: { item: Owned }) {
       </div>
       <div className="md:col-span-3 md:flex md:justify-end">
         <Link
-          href={`/${journal.username}/trips/${encodeURIComponent(trip.id)}/photobook`}
+          href={`${journalPath(journal.username)}/trips/${encodeURIComponent(trip.id)}/photobook`}
           className={`w-full md:w-auto ${BUTTON} border-yellow-400 shadow-none`}
         >
           {t("home.paper.action")}

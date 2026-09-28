@@ -31,7 +31,7 @@ function markup(owner: boolean) {
 describe("the trip page's own visibility control — D4", () => {
   test("is a link into the studio flow, with this trip already chosen", () => {
     const html = markup(true);
-    expect(html).toContain('href="/alex/studio/trip/visibility?trip=reise"');
+    expect(html).toContain('href="/@alex/studio/trip/visibility?trip=reise"');
   });
 
   test("renders nothing for anybody but the owner", () => {

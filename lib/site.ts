@@ -6,6 +6,7 @@ import { getUser } from "./users";
 import type { Figure } from "./travellers/vocabulary";
 import type { Trip, TripPerson } from "./types";
 
+import { journalPath } from "./journalPath";
 /**
  * Site identity.
  *
@@ -199,7 +200,7 @@ export type SiteSummary = {
    * let in with, so requiring a session meant only a reader who still had it
    * could reach it. The entry is now offered to everyone (components/SiteNav),
    * and this decides how it is *drawn*: a stranger is shown a door, somebody
-   * who is already in is shown the panel's own name. See app/[user]/me.
+   * who is already in is shown the panel's own name. See app/at/[user]/me.
    */
   signedIn: boolean;
   /**
@@ -209,7 +210,7 @@ export type SiteSummary = {
    * The header needs it (B44): the way back in is a door marked in words, and
    * a door is only drawn where there is a form behind it. On a journal with
    * `auth` off, `/<user>/me` has nothing to press and says so, and a control
-   * promising otherwise is the bug recorded at app/[user]/me/MePageContent.tsx.
+   * promising otherwise is the bug recorded at app/at/[user]/me/MePageContent.tsx.
    *
    * Deliberately journal-wide and viewer-independent: it comes from config and
    * from nothing the reader is or is not allowed to see.
@@ -310,7 +311,7 @@ export type SiteSummary = {
  * A figure with its `for:` address removed.
  *
  * `SiteSummary` is serialised into the HTML of **every** page under
- * `/<username>` — `app/[user]/layout.tsx` wraps the lot, including the sign-in
+ * `/<username>` — `app/at/[user]/layout.tsx` wraps the lot, including the sign-in
  * gate an uninvited reader meets. A journal whose `config.json` names its
  * default party by address would therefore hand those addresses to anyone who
  * loaded the gate, on a page that deliberately does not even name the trip
@@ -341,7 +342,7 @@ export function siteSummaryFor(
     startLocation: user.startLocation,
     baseCurrency: user.baseCurrency,
     locales: user.locales,
-    base: `/${user.username}`,
+    base: journalPath(user.username),
     travellerFigures: user.travellers.map(withoutAddress),
     signedIn,
     hasIdentity,

@@ -117,7 +117,7 @@ export async function requireJournalOwner(request: Request, username: string): P
 
 /**
  * The sync surface's own gate — every refusal the same `not_found`, copied
- * from `app/[user]/export.zip/route.ts`'s reasoning (see the v1
+ * from `app/at/[user]/export.zip/route.ts`'s reasoning (see the v1
  * `sync/manifest` and `sync/file` route comments this replaces). This
  * answers the same question that export does — what is in this journal,
  * drafts and private trips included — so an unknown journal, a token for a

@@ -175,8 +175,8 @@ describe("the nightly sweep (sweepFirstTrip)", () => {
     const text = [...eml.matchAll(/Content-Transfer-Encoding: base64\r?\n(?:[^\r\n]+\r?\n)*\r?\n([A-Za-z0-9+/=\r\n]+)/g)]
       .map((part) => Buffer.from(part[1].replace(/\s+/g, ""), "base64").toString("utf8"))
       .join("\n");
-    expect(text).toContain("https://example.test/ana/studio/journal");
-    expect(text).toContain("https://example.test/ana/studio/trip/new");
+    expect(text).toContain("https://example.test/@ana/studio/journal");
+    expect(text).toContain("https://example.test/@ana/studio/trip/new");
   });
 });
 

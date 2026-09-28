@@ -8,6 +8,7 @@ import InviteToRead from "./InviteToRead";
 import { useI18n } from "./LocaleProvider";
 import { OWNER_TOOL } from "./ownerToolClass";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * Everything the owner can do here, in one block that says it is theirs — B877.
  *
@@ -90,8 +91,8 @@ export default function OwnerTools({
   // the room at `/agent?about=` (B979/B984) while publishing had no flow of
   // its own; the studio page asks the same consent in words, on the site.
   const publish = day
-    ? `/${encodeURIComponent(username)}/studio/day/publish?day=${encodeURIComponent(day.slug)}&trip=${encodeURIComponent(day.tripId)}`
-    : `/${encodeURIComponent(username)}/studio/day/publish`;
+    ? `${journalPath(encodeURIComponent(username))}/studio/day/publish?day=${encodeURIComponent(day.slug)}&trip=${encodeURIComponent(day.tripId)}`
+    : `${journalPath(encodeURIComponent(username))}/studio/day/publish`;
 
   return (
     <section
@@ -134,7 +135,7 @@ export default function OwnerTools({
         {!day && <InviteToRead username={username} />}
         {!day && tripId && (
           <Link
-            href={`/${encodeURIComponent(username)}/studio/trip?trip=${encodeURIComponent(tripId)}`}
+            href={`${journalPath(encodeURIComponent(username))}/studio/trip?trip=${encodeURIComponent(tripId)}`}
             prefetch={false}
             className={OWNER_TOOL}
           >
@@ -164,7 +165,7 @@ export default function OwnerTools({
             // doors), the studio flow being the door that does not already
             // have the panel open in place the way `onCorrect` above does.
             <Link
-              href={`/${encodeURIComponent(username)}/studio/day/edit?slug=${encodeURIComponent(day.slug)}`}
+              href={`${journalPath(encodeURIComponent(username))}/studio/day/edit?slug=${encodeURIComponent(day.slug)}`}
               prefetch={false}
               className={OWNER_TOOL}
             >

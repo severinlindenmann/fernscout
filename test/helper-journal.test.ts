@@ -331,7 +331,7 @@ describe("buy_credits", () => {
   test("hands over the page, and never claims a credit was added", async () => {
     const ran = await runTool("alex", "buy_credits", {}, say, "2026-05-06", [], "", WEB_CALLER);
     const link = ran.blocks.find((b) => b.shape === "link")!;
-    expect(link.href).toBe("/alex/studio/account");
+    expect(link.href).toBe("/@alex/studio/account");
     expect(link.text.toLowerCase()).not.toMatch(/added|granted|credited|topped up/);
     expect(link.label.toLowerCase()).not.toMatch(/added|granted|credited|topped up/);
   });

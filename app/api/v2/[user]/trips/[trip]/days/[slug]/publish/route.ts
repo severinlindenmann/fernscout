@@ -43,6 +43,7 @@ import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@pa
 import type { Trip } from "@/lib/types";
 import type { StoredSubscription } from "@/lib/repos/types";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 function tripLike(user: string, tripId: string, people: { name: string; email: string }[]): Trip {
@@ -294,7 +295,7 @@ export async function applyPublish(
   if (isEnabled("push") && (await claimChannel(user, tripId, v1Slug(slug), "push"))) {
     const pushTrip = { username: user, visibility: trip.visibility, test: trip.test } as unknown as Trip;
     const pushEntry = { test: day.test, visibility: day.visibility };
-    const pushUrl = `${serverSite().url}/${user}/trips/${tripId}/day/${slug}`;
+    const pushUrl = `${serverSite().url}${journalPath(user)}/trips/${tripId}/day/${slug}`;
     const owner = getUser(user);
     afterResponse("publish-push", async () => {
       const recipients = await subscribersFor(pushTrip, pushEntry);
@@ -365,11 +366,11 @@ export async function applyPublish(
   return ok({
     slug,
     status: "published",
-    url: `${serverSite().url}/${user}/trips/${tripId}/day/${slug}`,
+    url: `${serverSite().url}${journalPath(user)}/trips/${tripId}/day/${slug}`,
     note: publishNotice({
       title: day.title,
       date: day.date,
-      url: `${serverSite().url}/${user}`,
+      url: `${serverSite().url}${journalPath(user)}`,
       test,
       visibility: trip.visibility,
       listed: trip.listed,

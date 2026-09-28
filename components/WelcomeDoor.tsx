@@ -10,6 +10,7 @@ import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * `/welcome` — where a journal is made from nothing, B2170.
  *
@@ -65,7 +66,7 @@ export default function WelcomeDoor({
     // Without a session the studio answers 404 (it does not say whose it
     // is); the journal's own `/me` offers the code sign-in instead, and the
     // welcome mail's link works too.
-    router.push(`/${encodeURIComponent(username)}/${signedIn ? "studio" : "me"}`);
+    router.push(`${journalPath(encodeURIComponent(username))}/${signedIn ? "studio" : "me"}`);
   }
 
   // The session cookie is set by the server; `/` renders the signed-in

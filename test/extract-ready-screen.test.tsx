@@ -118,7 +118,7 @@ describe("ReadyScreen", () => {
 
     const publishLink = [...container!.querySelectorAll("a")].find((a) => a.textContent === "Publish these days");
     expect(publishLink).toBeDefined();
-    expect(publishLink!.getAttribute("href")).toBe("/alex/studio/day/publish");
+    expect(publishLink!.getAttribute("href")).toBe("/@alex/studio/day/publish");
 
     // No button on the whole screen ever fires a network call — the only
     // fetch this component makes is its own initial `studio/run` read.
@@ -182,6 +182,6 @@ describe("ReadyScreen counts the photographs the commit actually moved", () => {
 
     const leave = [...container!.querySelectorAll("a")].find((a) => a.textContent === "Leave it as a draft");
     expect(leave).toBeDefined();
-    expect(leave!.getAttribute("href")).toBe("/alex/trips/japan-2026");
+    expect(leave!.getAttribute("href")).toBe("/@alex/trips/japan-2026");
   });
 });

@@ -219,16 +219,16 @@ function handles(url: string, init: { mode?: string; method?: string; rsc?: bool
 
 describe("the service worker's fetch routing", () => {
   test("takes a page navigation, so a dropped connection has something to show", () => {
-    expect(handles("https://journal.test/alex/day/one", { mode: "navigate" })).toBe(true);
+    expect(handles("https://journal.test/@alex/day/one", { mode: "navigate" })).toBe(true);
   });
 
   test("takes photographs and build assets", () => {
     expect(handles("https://journal.test/_next/static/chunks/main-abc123.js")).toBe(true);
-    expect(handles("https://journal.test/alex/media/trip/day/01.jpg")).toBe(true);
+    expect(handles("https://journal.test/@alex/media/trip/day/01.jpg")).toBe(true);
   });
 
   test("takes the story pager's day windows", () => {
-    expect(handles("https://journal.test/alex/story.json?trip=alex%2Ftrip&from=0&to=2")).toBe(true);
+    expect(handles("https://journal.test/@alex/story.json?trip=alex%2Ftrip&from=0&to=2")).toBe(true);
   });
 
   /**
@@ -238,7 +238,7 @@ describe("the service worker's fetch routing", () => {
    */
   test("stands aside for the router's own payloads", () => {
     expect(handles("https://journal.test/alex?_rsc=abc123")).toBe(false);
-    expect(handles("https://journal.test/alex/trips?_rsc=zzz")).toBe(false);
+    expect(handles("https://journal.test/@alex/trips?_rsc=zzz")).toBe(false);
     expect(handles("https://journal.test/alex", { rsc: true })).toBe(false);
   });
 
@@ -335,7 +335,7 @@ async function offlineAnswer(url: string, cached: Cached[]) {
 }
 
 describe("what a navigation falls back to", () => {
-  const page = "https://journal.test/alex/day/one";
+  const page = "https://journal.test/@alex/day/one";
 
   test("the same address, from the cache", async () => {
     const answer = await offlineAnswer(page, [{ url: page, body: "day one" }]);
@@ -363,24 +363,24 @@ describe("what a navigation falls back to", () => {
    * JSON to the browser as the document.
    */
   test("never a photograph or a JSON file dressed as a page", async () => {
-    const answer = await offlineAnswer("https://journal.test/alex/day/three", [
-      { url: "https://journal.test/alex/media/trip/day/01.jpg", type: "image/jpeg", body: "JPEG" },
-      { url: "https://journal.test/alex/story.json", type: "application/json", body: "{}" },
-      { url: "https://journal.test/alex/day/two", body: "day two" },
+    const answer = await offlineAnswer("https://journal.test/@alex/day/three", [
+      { url: "https://journal.test/@alex/media/trip/day/01.jpg", type: "image/jpeg", body: "JPEG" },
+      { url: "https://journal.test/@alex/story.json", type: "application/json", body: "{}" },
+      { url: "https://journal.test/@alex/day/two", body: "day two" },
     ]);
     expect(await answer?.text()).toBe("day two");
   });
 
   test("with nothing readable held, the offline page", async () => {
-    const answer = await offlineAnswer("https://journal.test/alex/day/four", [
-      { url: "https://journal.test/alex/story.json", type: "application/json", body: "{}" },
+    const answer = await offlineAnswer("https://journal.test/@alex/day/four", [
+      { url: "https://journal.test/@alex/story.json", type: "application/json", body: "{}" },
       { url: "https://journal.test/offline", body: "You are offline" },
     ]);
     expect(await answer?.text()).toBe("You are offline");
   });
 
   test("and with nothing at all, a 503 rather than a crash", async () => {
-    const answer = await offlineAnswer("https://journal.test/alex/day/five", []);
+    const answer = await offlineAnswer("https://journal.test/@alex/day/five", []);
     expect(answer?.status).toBe(503);
   });
 });
@@ -419,7 +419,7 @@ async function offlineSubresource(url: string, cached: Cached[]) {
 
 /**
  * B2220 — a same-origin subresource that 307s (the trip layout's own
- * redirect, `app/[user]/trips/[trip]/layout.tsx`) came back a plain
+ * redirect, `app/at/[user]/trips/[trip]/layout.tsx`) came back a plain
  * "offline" 503 from `fetchOrKept` here (`.catch(() => fallback())`,
  * ~line 510), traced to `net::ERR_SSL_PROTOCOL_ERROR`: `/sw.js`'s own
  * response carried `Content-Security-Policy: … upgrade-insecure-requests`,
@@ -434,8 +434,8 @@ async function offlineSubresource(url: string, cached: Cached[]) {
  * scheme the origin actually serves already follows and resolves 200.
  */
 describe("what a failed subresource fetch is answered with", () => {
-  const photo = "https://journal.test/alex/media/trip/day/01.jpg";
-  const window_ = "https://journal.test/alex/story.json?from=0&to=2";
+  const photo = "https://journal.test/@alex/media/trip/day/01.jpg";
+  const window_ = "https://journal.test/@alex/story.json?from=0&to=2";
 
   test("a photograph nothing holds: a response, not a rejected promise", async () => {
     const answer = await offlineSubresource(photo, []);
@@ -697,7 +697,7 @@ describe("what the worker keeps, and what it refuses to keep", () => {
   }
 
   test("keeps an ordinary public response", async () => {
-    const written = await fetchThrough("https://journal.test/alex/media/one.jpg", {
+    const written = await fetchThrough("https://journal.test/@alex/media/one.jpg", {
       "cache-control": "public, max-age=300",
     });
     expect(written).toHaveLength(1);
@@ -707,14 +707,14 @@ describe("what the worker keeps, and what it refuses to keep", () => {
     // The exact shape of the day-notify answer: outside `/api/`, so no path
     // test would have caught it.
     const written = await fetchThrough(
-      "https://journal.test/alex/trips/alps/day/one/notify",
+      "https://journal.test/@alex/trips/alps/day/one/notify",
       { "cache-control": "private, no-store" },
     );
     expect(written).toEqual([]);
   });
 
   test("refuses one marked private, which story.json and search-index.json are", async () => {
-    const written = await fetchThrough("https://journal.test/alex/story.json", {
+    const written = await fetchThrough("https://journal.test/@alex/story.json", {
       "cache-control": "private, max-age=60, stale-while-revalidate=600",
     });
     expect(written).toEqual([]);
@@ -732,9 +732,9 @@ describe("what the worker keeps, and what it refuses to keep", () => {
  */
 describe("a trip kept for reading with no signal", () => {
   const manifest = {
-    pages: ["/alex/trips/alps", "/alex/trips/alps/day/one"],
-    data: ["/alex/story.json?trip=alex%2Falps&from=0&to=24"],
-    media: ["/alex/media/alps/a.jpg?w=640"],
+    pages: ["/@alex/trips/alps", "/@alex/trips/alps/day/one"],
+    data: ["/@alex/story.json?trip=alex%2Falps&from=0&to=24"],
+    media: ["/@alex/media/alps/a.jpg?w=640"],
     bytes: 1000,
     build: "abc",
   };
@@ -775,11 +775,11 @@ describe("a trip kept for reading with no signal", () => {
     expect(kept).toBeDefined();
     expect([...kept!.keys()].sort()).toEqual(
       [
-        "/alex/story.json?trip=alex%2Falps&from=0&to=24",
-        "/alex/media/alps/a.jpg?w=640",
-        "/alex/trips/alps",
-        "/alex/trips/alps/day/one",
-        "/alex/trips/alps/keep.json",
+        "/@alex/story.json?trip=alex%2Falps&from=0&to=24",
+        "/@alex/media/alps/a.jpg?w=640",
+        "/@alex/trips/alps",
+        "/@alex/trips/alps/day/one",
+        "/@alex/trips/alps/keep.json",
         "/_next/static/chunks/day.js",
       ].sort(),
     );
@@ -799,7 +799,7 @@ describe("a trip kept for reading with no signal", () => {
       throw new Error("offline");
     });
     offline.caches.named.set("kept-public-alex-alps", kept);
-    const res = await run(offline.handlers, "https://journal.test/alex/media/alps/a.jpg?w=640");
+    const res = await run(offline.handlers, "https://journal.test/@alex/media/alps/a.jpg?w=640");
     expect(res?.status).toBe(200);
     expect(await res?.text()).toContain("a.jpg");
   });
@@ -819,8 +819,8 @@ describe("a trip kept for reading with no signal", () => {
       return network()(request);
     });
     await keep(handlers);
-    expect(accepts["/alex/media/alps/a.jpg?w=640"]).toMatch(/^image\/avif,image\/webp/);
-    expect(accepts["/alex/trips/alps"]).toBeUndefined();
+    expect(accepts["/@alex/media/alps/a.jpg?w=640"]).toMatch(/^image\/avif,image\/webp/);
+    expect(accepts["/@alex/trips/alps"]).toBeUndefined();
   });
 
   test("another identity's kept copy is not served, offline or not", async () => {
@@ -834,7 +834,7 @@ describe("a trip kept for reading with no signal", () => {
     });
     // The same entries, but kept by somebody else on this device.
     offline.caches.named.set("kept-bbbb2222-alex-alps", kept);
-    const res = await run(offline.handlers, "https://journal.test/alex/media/alps/a.jpg?w=640");
+    const res = await run(offline.handlers, "https://journal.test/@alex/media/alps/a.jpg?w=640");
     expect(res?.status).toBe(503);
   });
 
@@ -848,7 +848,7 @@ describe("a trip kept for reading with no signal", () => {
       async () => new Response("fresh", { headers: { "cache-control": "private, no-store" } }),
     );
     online.caches.named.set("kept-public-alex-alps", kept);
-    const res = await run(online.handlers, "https://journal.test/alex/story.json?trip=alex%2Falps&from=0&to=24");
+    const res = await run(online.handlers, "https://journal.test/@alex/story.json?trip=alex%2Falps&from=0&to=24");
     expect(await res?.text()).toBe("fresh");
   });
 
@@ -908,15 +908,15 @@ describe("a trip kept for reading with no signal", () => {
  * already lives in.
  */
 describe("the studio kept for the signed-in owner — B2329", () => {
-  const STUDIO = "https://journal.test/alex/studio";
-  const ADD_DAY = "https://journal.test/alex/studio/day/new";
+  const STUDIO = "https://journal.test/@alex/studio";
+  const ADD_DAY = "https://journal.test/@alex/studio/day/new";
   // B2330 (wave 2) — the pages Add/Edit day and the planner navigate
   // between while writing offline, added to the same explicit allowlist.
-  const EDIT_DAY = "https://journal.test/alex/studio/day/edit";
-  const PLAN_TRIP = "https://journal.test/alex/studio/plan/japan-2026";
-  const NEW_TRIP = "https://journal.test/alex/studio/trip/new";
+  const EDIT_DAY = "https://journal.test/@alex/studio/day/edit";
+  const PLAN_TRIP = "https://journal.test/@alex/studio/plan/japan-2026";
+  const NEW_TRIP = "https://journal.test/@alex/studio/trip/new";
   // Never on the allowlist, widened or not — an order/delete/payment page.
-  const ORDERS = "https://journal.test/alex/studio/orders";
+  const ORDERS = "https://journal.test/@alex/studio/orders";
 
   function studioPage(body: string) {
     return new Response(body, {

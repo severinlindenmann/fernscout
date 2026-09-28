@@ -84,7 +84,7 @@ async function pageProps(owner: boolean) {
     listableTrips: async (t: { listed?: boolean }[]) => t.filter((trip) => trip.listed !== false),
     signedInAs: async () => null,
   }));
-  const { default: TripsPage } = await import("@/app/[user]/trips/page");
+  const { default: TripsPage } = await import("@/app/at/[user]/trips/page");
   const element = (await resolveServerTree(await TripsPage({
     params: Promise.resolve({ user: "alex" }),
     searchParams: Promise.resolve({}),

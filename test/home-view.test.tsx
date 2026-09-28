@@ -37,15 +37,15 @@ function journal(over: Partial<HomeJournal> = {}): HomeJournal {
     username: "ana",
     title: "Two Backpacks",
     tagline: "A tagline.",
-    href: "/ana",
+    href: "/@ana",
     role: "owner",
-    trips: [{ id: "alps", title: "Four days round the Alps", href: "/ana/trips/alps", through: "owner" }],
+    trips: [{ id: "alps", title: "Four days round the Alps", href: "/@ana/trips/alps", through: "owner" }],
     ...over,
   };
 }
 
 function trip(over: Partial<HomeTrip> = {}): HomeTrip {
-  return { id: "alps", title: "Four days round the Alps", href: "/ana/trips/alps", through: "owner", ...over };
+  return { id: "alps", title: "Four days round the Alps", href: "/@ana/trips/alps", through: "owner", ...over };
 }
 
 function home(journals: HomeJournal[], opts: { photobook?: boolean; signup?: boolean } = {}) {
@@ -62,9 +62,9 @@ describe("the signed-in home", () => {
     const html = home([journal()]);
     expect(html).toContain("Continue");
     expect(html).toContain("Four days round the Alps");
-    expect(html).toContain('href="/ana/trips/alps"');
-    expect(html).toContain('href="/ana/studio/day/new?trip=alps"');
-    expect(html).toContain('href="/ana/studio"');
+    expect(html).toContain('href="/@ana/trips/alps"');
+    expect(html).toContain('href="/@ana/studio/day/new?trip=alps"');
+    expect(html).toContain('href="/@ana/studio"');
   });
 
   test("the draft line appears only when the payload names a draft", () => {
@@ -74,7 +74,7 @@ describe("the signed-in home", () => {
     ]);
     expect(html).toContain("Draft · only you can see it");
     expect(html).toContain("A wrong turn");
-    expect(html).toContain('href="/ana/studio/day/edit?slug=d3"');
+    expect(html).toContain('href="/@ana/studio/day/edit?slug=d3"');
   });
 
   test("no figure is drawn that the payload did not carry", () => {
@@ -99,7 +99,7 @@ describe("the signed-in home", () => {
     const ended = journal({ trips: [trip({ status: "past", days: 5, end: "2023-06-01" })] });
     expect(home([ended])).not.toContain("Ready for paper");
     expect(home([ended], { photobook: true })).toContain("Ready for paper");
-    expect(home([ended], { photobook: true })).toContain('href="/ana/trips/alps/photobook"');
+    expect(home([ended], { photobook: true })).toContain('href="/@ana/trips/alps/photobook"');
     const rehearsal = journal({ trips: [trip({ status: "past", days: 1, test: true })] });
     expect(home([rehearsal], { photobook: true })).not.toContain("Ready for paper");
     const empty = journal({ trips: [trip({ status: "past", days: 0 })] });
@@ -108,14 +108,14 @@ describe("the signed-in home", () => {
 
   test("an owner with no trip yet is offered the first one", () => {
     const html = home([journal({ trips: [] })]);
-    expect(html).toContain('href="/ana/studio/trip/new"');
+    expect(html).toContain('href="/@ana/studio/trip/new"');
   });
 
   /** Publishing and the studio are the owner's, and only the owner's — B28. */
   test("somebody else's journal never gets a studio link or the owner's words", () => {
     for (const role of ["guest", "traveller"] as const) {
       const html = home([journal({ role, trips: [trip({ through: role })] })]);
-      expect(html).not.toContain('href="/ana/studio');
+      expect(html).not.toContain('href="/@ana/studio');
       expect(html).not.toContain("Continue");
       expect(html).not.toContain(">Yours<");
       expect(html).toContain("Shared with you");
@@ -127,14 +127,14 @@ describe("the signed-in home", () => {
       journal({
         role: "guest",
         trips: [
-          trip({ id: "a", title: "Older trip", through: "guest", latest: { slug: "x", title: "Old day", date: "2024-01-01", href: "/ana/trips/a/day/x" } }),
-          trip({ id: "b", title: "Newer trip", through: "guest", latest: { slug: "y", title: "Over the Susten", date: "2025-09-01", href: "/ana/trips/b/day/y", excerpt: "We left late." } }),
+          trip({ id: "a", title: "Older trip", through: "guest", latest: { slug: "x", title: "Old day", date: "2024-01-01", href: "/@ana/trips/a/day/x" } }),
+          trip({ id: "b", title: "Newer trip", through: "guest", latest: { slug: "y", title: "Over the Susten", date: "2025-09-01", href: "/@ana/trips/b/day/y", excerpt: "We left late." } }),
         ],
       }),
     ]);
     expect(html.indexOf("Over the Susten")).toBeLessThan(html.indexOf("Older trip"));
     expect(html).toContain("We left late.");
-    expect(html).toContain('href="/ana/trips/b/day/y"');
+    expect(html).toContain('href="/@ana/trips/b/day/y"');
     // The board's badge needs a last-visit record nobody keeps.
     expect(html).not.toContain("New since");
   });

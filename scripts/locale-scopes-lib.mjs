@@ -81,22 +81,22 @@ export const SCOPES = {
   // `/me` — the person across every journal: roles, devices, sign-out.
   account: { layout: "app/me/layout.tsx" },
   // A reader's journal: the story, trips, the gallery, the map.
-  journal: { layout: "app/[user]/layout.tsx" },
+  journal: { layout: "app/at/[user]/layout.tsx" },
   // The reader's own page and the owner's studio — the two places inside a
   // journal that carry forms, flows and the helper's words.
-  me: { layout: "app/[user]/me/layout.tsx" },
-  studio: { layout: "app/[user]/studio/layout.tsx" },
+  me: { layout: "app/at/[user]/me/layout.tsx" },
+  studio: { layout: "app/at/[user]/studio/layout.tsx" },
   // The documentation. `/docs/api` reaches the helper's tool definitions on
   // the server, and with them the helper's vocabulary.
   docs: { layout: "app/docs/layout.tsx" },
   // `/legal` renders under its own provider in the reader's language.
   legal: { files: ["app/legal/page.tsx"] },
   // `/<user>/c/<token>` in the contact's own language rather than the reader's.
-  contactPage: { files: ["app/[user]/c/[token]/page.tsx"] },
+  contactPage: { files: ["app/at/[user]/c/[token]/page.tsx"] },
   // `/x/<token>` — "never invite this address again" (B2442). No journal, no
   // login: the request's own language.
   neverInvitePage: { files: ["app/x/[token]/page.tsx"] },
-  smsStopPage: { files: ["app/[user]/stop/[token]/page.tsx"] },
+  smsStopPage: { files: ["app/at/[user]/stop/[token]/page.tsx"] },
   // The welcome guide and the join flow — B2293: the first page a stranger
   // holding a link loads, on a phone, so a few dozen strings.
   guide: {
@@ -104,8 +104,8 @@ export const SCOPES = {
     at: ["app/w/[code]/page.tsx", "app/j/[code]/page.tsx"],
   },
   // Components that translate from a `dictionary`/`dictionaries` prop.
-  contactManage: { files: ["components/ContactManage.tsx"], at: ["app/[user]/me/page.tsx"] },
-  readersAdmin: { files: ["components/studio/readers/ReadersAdmin.tsx"], at: ["app/[user]/studio/readers/page.tsx"] },
+  contactManage: { files: ["components/ContactManage.tsx"], at: ["app/at/[user]/me/page.tsx"] },
+  readersAdmin: { files: ["components/studio/readers/ReadersAdmin.tsx"], at: ["app/at/[user]/studio/readers/page.tsx"] },
 };
 
 /** The files Next renders for a route segment — never a `route.ts`, which

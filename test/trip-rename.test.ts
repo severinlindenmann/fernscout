@@ -28,7 +28,7 @@ import { writeDayFixture } from "./fixtures/content";
 import { renameTrip, readRenamedMap, resolveRenamedTripId, isValidTripId } from "@/lib/tripRename";
 import { GET as getTripRoute, PATCH as patchTripRoute } from "@/app/api/v2/[user]/trips/[trip]/route";
 import { POST as renameRoute } from "@/app/api/v2/[user]/trips/[trip]/rename/route";
-import TripLayout from "@/app/[user]/trips/[trip]/layout";
+import TripLayout from "@/app/at/[user]/trips/[trip]/layout";
 
 /**
  * Renaming a trip's id — B2015.

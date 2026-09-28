@@ -243,7 +243,7 @@ describe("issuing a link", () => {
     // Journal-wide. A guest is a guest of the journal and never of one trip.
     expect(guest.body.invite?.scope).toBe(OWNER);
     expect(guest.body.invite?.trip).toBeNull();
-    expect(guest.body.invite?.url).toMatch(/\/ana\/invite\/guest\/fs_inv_/);
+    expect(guest.body.invite?.url).toMatch(/\/@ana\/invite\/guest\/fs_inv_/);
 
     const buddy = await createLink(token, { kind: "buddy", trip: "bus-2026" });
     expect(buddy.status).toBe(201);
@@ -251,7 +251,7 @@ describe("issuing a link", () => {
     // A trip ref, never a bare id: ids are unique within a user, not across
     // the instance.
     expect(buddy.body.invite?.scope).toBe("ana/bus-2026");
-    expect(buddy.body.invite?.url).toMatch(/\/ana\/invite\/buddy\/fs_inv_/);
+    expect(buddy.body.invite?.url).toMatch(/\/@ana\/invite\/buddy\/fs_inv_/);
 
     // Both dated. A link that never expires is the shared password again,
     // wearing a URL.
@@ -366,14 +366,14 @@ describe("issuing a link", () => {
 
     const guest = await fromTheBrowser({ kind: "guest" });
     expect(guest.status).toBe(201);
-    expect(guest.body.invite?.url).toMatch(/\/ana\/invite\/guest\/fs_inv_/);
+    expect(guest.body.invite?.url).toMatch(/\/@ana\/invite\/guest\/fs_inv_/);
     // Dated, which is what the panel reads back to say when it stops working.
     expect(guest.body.invite?.expiresAt).toBeTruthy();
 
     const buddy = await fromTheBrowser({ kind: "buddy", trip: "bus-2026" });
     expect(buddy.status).toBe(201);
     expect(buddy.body.invite?.scope).toBe("ana/bus-2026");
-    expect(buddy.body.invite?.url).toMatch(/\/ana\/invite\/buddy\/fs_inv_/);
+    expect(buddy.body.invite?.url).toMatch(/\/@ana\/invite\/buddy\/fs_inv_/);
 
     as(null);
   });

@@ -26,6 +26,7 @@ import { listInvites, type InviteKind } from "./invites";
 import { pickLocale } from "./locale";
 import { isInviteSuppressed, neverInviteAvailable, neverInviteToken } from "./suppressions";
 
+import { journalPath } from "../journalPath";
 /** The public "never invite this address" page — B2442. */
 function neverInviteUrl(base: string, addressOrNumber: string): string {
   return `${base.replace(/\/$/, "")}/x/${neverInviteToken(addressOrNumber)}`;
@@ -450,7 +451,7 @@ export function composeRequestMail(params: {
         {
           kind: "button",
           text: translateIn(locale, "contact.mailRequestButton"),
-          href: `${baseUrl()}/${username}/studio/readers?contact=${encodeURIComponent(contactId)}`,
+          href: `${baseUrl()}${journalPath(username)}/studio/readers?contact=${encodeURIComponent(contactId)}`,
         },
       ],
       why: translateIn(locale, WHY_KEY.owner, { site: title }),
@@ -590,7 +591,7 @@ export async function sendApprovedMail(
             ? [
                 {
                   title: translateIn(locale, "contact.mailApprovedMeLink"),
-                  href: `${baseUrl()}/${username}/me`,
+                  href: `${baseUrl()}${journalPath(username)}/me`,
                 },
               ]
             : []),

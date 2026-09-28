@@ -114,8 +114,8 @@ results.push(
     contentDir: path.join(root, "content"),
     // Whoever this instance serves by default — never a username written into
     // the script, which would measure nothing on anybody else's clone.
-    storyPath: `/${defaultUser}`,
-    costsPath: `/${defaultUser}/costs`,
+    storyPath: `/@${defaultUser}`,
+    costsPath: `/@${defaultUser}/costs`,
     port: 4311,
   }),
 );

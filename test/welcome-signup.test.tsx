@@ -54,7 +54,7 @@ describe("/welcome", () => {
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
       {
         ok: true,
-        json: async () => ({ ok: true, token: "agent-token", user: "robin", signIn: "https://t/robin/s/tok?lang=en" }),
+        json: async () => ({ ok: true, token: "agent-token", user: "robin", signIn: "https://t/@robin/s/tok?lang=en" }),
       },
       { ok: redeemOk, json: async () => (redeemOk ? { ok: true } : { error: "link_spent" }) },
     ];
@@ -92,12 +92,12 @@ describe("/welcome", () => {
 
   test("finishing lands on the new journal's studio", async () => {
     await finish(true);
-    expect(push).toHaveBeenCalledWith("/robin/studio");
+    expect(push).toHaveBeenCalledWith("/@robin/studio");
     expect(document.cookie).toContain(`${JOURNAL_COOKIE}=robin`);
   });
 
   test("a sign-in that did not take lands on the journal's own sign-in, not a studio 404", async () => {
     await finish(false);
-    expect(push).toHaveBeenCalledWith("/robin/me");
+    expect(push).toHaveBeenCalledWith("/@robin/me");
   });
 });

@@ -136,7 +136,7 @@ it there does nothing.
 | --- | --- | --- |
 | **F1** | In `content/example/trips/alps-2024/trip.json` set `"visibility": "private"`. Reload `/example/trips/alps-2024` | The **gate**, not the trip |
 | **F2** | Read the gate | It carries the **journal's** name — "Fernscout Demo" — and says nothing about the Alps: not in the heading, not in the tagline, nowhere. B117 |
-| **F3** | `curl -s localhost:3000/example/trips/alps-2024 \| grep -i '<title>'` | The journal's name again, and a `noindex`. Trip ids are guessable by hand, so a closed trip must not name itself in the tab either |
+| **F3** | `curl -s localhost:3000/@example/trips/alps-2024 \| grep -i '<title>'` | The journal's name again, and a `noindex`. Trip ids are guessable by hand, so a closed trip must not name itself in the tab either |
 | **F4** | 🔑 Sign in at the gate with an address that is **not** in that trip's `people:` (the code is in the `.eml` under `<DATA_DIR>/mail/example/`) | Signed in, and **still refused** — a different sentence, and a link to `/example/me`. Being able to prove an address is not access |
 | **F5** | Add that address to the trip's `people` array (`{"name": …, "email": …}`), reload | The trip opens, and stays open across its other pages |
 | **F6** | Set `"visibility": "guest"` and take your address back out of `people`. Reload | Refused again, in the same words as F4: a `guest` trip opens for guests of the **journal**, and signing in is not being approved into one. The other half — an approved guest opening it — needs a contact to approve, which is **H2–H5**; come back to this URL after those and it opens, along with every other `guest` trip in the journal, because a guest is never a guest of one trip |

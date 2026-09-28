@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/md/[
   if (path.length === 2) return markdownTwin(user, path[0], path[1]);
 
   return new Response(
-    "A markdown twin is /<user>/day/<slug>.md or /<user>/trips/<trip>/day/<slug>.md\n",
+    "A markdown twin is /@<user>/day/<slug>.md or /@<user>/trips/<trip>/day/<slug>.md\n",
     { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } },
   );
 }

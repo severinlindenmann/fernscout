@@ -81,7 +81,7 @@ export default function ContactManage({
   /**
    * The manage token, or `""` — B1395. Empty means there is no row yet to
    * hold one: a person on a trip's `people:` block with write access and no
-   * contacts row (`app/[user]/me/page.tsx`'s `isTraveller` branch). This
+   * contacts row (`app/at/[user]/me/page.tsx`'s `isTraveller` branch). This
    * form still renders, empty, and posts through `/api/contacts/self`
    * instead of `/api/contacts/manage`, which is keyed on a token that would
    * not exist to look up.

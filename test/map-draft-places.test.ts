@@ -8,12 +8,12 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 /**
  * B336 — one trip, three map surfaces, three different marker counts.
  *
- * `app/[user]/(trip)/map/page.tsx` asked `getPlan` who may see this trip's
+ * `app/at/[user]/(trip)/map/page.tsx` asked `getPlan` who may see this trip's
  * drafts and then asked `getPlaces` nothing at all — so the dashed planned
  * route on a map followed `draftsVisibleTo` and the solid "where we've been"
  * markers on the very same map did not, for the owner included.
- * `app/[user]/trips/[trip]/map/page.tsx` had the identical shape, and
- * `app/[user]/trips/page.tsx` (the lifetime map) called `getPlaces` with no
+ * `app/at/[user]/trips/[trip]/map/page.tsx` had the identical shape, and
+ * `app/at/[user]/trips/page.tsx` (the lifetime map) called `getPlaces` with no
  * options at all, per trip.
  *
  * The decided rule: the markers follow the same audience the planned route
@@ -115,7 +115,7 @@ function signInOwner() {
  * uses, so a client component that never runs (`useState`, etc.) is not a
  * reason this test needs jsdom. */
 async function journalMapPlaces(): Promise<unknown[]> {
-  const { default: MapPage } = await import("@/app/[user]/(trip)/map/page");
+  const { default: MapPage } = await import("@/app/at/[user]/(trip)/map/page");
   const element = (await resolveServerTree(await MapPage({
     params: Promise.resolve({ user: OWNER }),
   } as never))) as { props: { children: { props: { places: unknown[] } } } } | null;
@@ -124,7 +124,7 @@ async function journalMapPlaces(): Promise<unknown[]> {
 }
 
 async function tripMapPlaces(): Promise<unknown[]> {
-  const { default: TripMapPage } = await import("@/app/[user]/trips/[trip]/map/page");
+  const { default: TripMapPage } = await import("@/app/at/[user]/trips/[trip]/map/page");
   const element = (await resolveServerTree(await TripMapPage({
     params: Promise.resolve({ user: OWNER, trip: TRIP_ID }),
   } as never))) as { props: { children: { props: { places: unknown[] } } } } | null;
@@ -144,7 +144,7 @@ async function tripMapPlaces(): Promise<unknown[]> {
  * off the one thing that still varies with it.
  */
 async function lifetimeMapFrameWidth(): Promise<number> {
-  const { default: TripsPage } = await import("@/app/[user]/trips/page");
+  const { default: TripsPage } = await import("@/app/at/[user]/trips/page");
   const element = (await resolveServerTree(await TripsPage({
     params: Promise.resolve({ user: OWNER }),
   } as never))) as { props: { views: { id: string; frame: { w: number } }[] } };

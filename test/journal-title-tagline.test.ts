@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { generateMetadata as journalMetadata } from "@/app/[user]/layout";
+import { generateMetadata as journalMetadata } from "@/app/at/[user]/layout";
 import { titleWithLocation } from "@/lib/i18n";
 
 /**

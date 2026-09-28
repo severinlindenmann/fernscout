@@ -1,6 +1,7 @@
 import "server-only";
 import type { Trip } from "./types";
 
+import { journalPath } from "./journalPath";
 /**
  * Reading rights for a trip, as far as the trip's own frontmatter decides them.
  *
@@ -96,7 +97,7 @@ export function isOpenToApprovedGuest(trip: Trip): boolean {
 export function guestLanding(owner: string, trips: Trip[]): string {
   const open = trips.filter(isOpenToApprovedGuest);
   const trip = open.find((t) => t.status === "current") ?? open.find((t) => t.status === "past");
-  return trip ? `/${owner}/trips/${trip.id}` : `/${owner}/trips`;
+  return trip ? `${journalPath(owner)}/trips/${trip.id}` : `${journalPath(owner)}/trips`;
 }
 
 /** Whether costs may be rendered for this viewer. */

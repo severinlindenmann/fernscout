@@ -26,7 +26,7 @@ export default function OfflineNotice() {
     sync();
     window.addEventListener("online", sync);
     window.addEventListener("offline", sync);
-    const m = window.location.pathname.match(/^\/([^/]+)\/trips\/([^/]+)/);
+    const m = window.location.pathname.match(/^\/@([^/]+)\/trips\/([^/]+)/);
     if (m && "caches" in window) {
       const suffix = `-${decodeURIComponent(m[1])}-${decodeURIComponent(m[2])}`;
       void caches

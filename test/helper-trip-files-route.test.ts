@@ -73,7 +73,7 @@ test("a named trip answers with its title and its photographs", async () => {
   };
   expect(body.title).toBe("A Trip");
   expect(body.files).toHaveLength(1);
-  expect(body.files[0].id).toBe("photo:tuesday:/ux/media/a-trip/tuesday/01.jpg");
+  expect(body.files[0].id).toBe("photo:tuesday:/@ux/media/a-trip/tuesday/01.jpg");
 });
 
 test("a trip id nothing answers to is a 404, not an empty trip", async () => {

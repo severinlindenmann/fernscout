@@ -100,7 +100,7 @@ const ALIASES: Record<string, string> = {
  * Paris colours in South America too (B1594). This table pulls a feature's
  * far-flung part off under its own ISO 3166-1 code before the fill and the
  * label are built, so the two consumers (`components/LifetimeMap.tsx`'s fill,
- * and `app/[user]/trips/page.tsx`'s bounding-box frame) need no special case.
+ * and `app/at/[user]/trips/page.tsx`'s bounding-box frame) need no special case.
  *
  * At 110m this has exactly one certain row. Norway's MultiPolygon spans
  * Svalbard too, but Svalbard is genuinely Norwegian territory rather than a

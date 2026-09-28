@@ -70,7 +70,7 @@ export type NavEntry = {
  * - It is **absent rather than broken**. With `auth` off there is no form
  *   behind `/<user>/me` to reach, only a line saying to ask for a link, and a
  *   control marked "Sign in" leading to that is the exact bug recorded at
- *   app/[user]/me/MePageContent.tsx. That journal keeps the icon it had.
+ *   app/at/[user]/me/MePageContent.tsx. That journal keeps the icon it had.
  *
  * Only this one entry gets a permanent label; giving all six one is what the
  * paragraph above measured at 529px and rejected. It sits last because an

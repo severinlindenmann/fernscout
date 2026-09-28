@@ -134,7 +134,7 @@ describe("the day page, since the ask row went — B2309", () => {
       anchor.textContent?.includes("Publish this day"),
     ) as HTMLAnchorElement;
     // B2169 — the studio page (B2140), not the retired room.
-    expect(link.getAttribute("href")).toBe("/alex/studio/day/publish?day=bellinzona&trip=reise-2026");
+    expect(link.getAttribute("href")).toBe("/@alex/studio/day/publish?day=bellinzona&trip=reise-2026");
     expect(host.innerHTML).not.toContain('href="/agent');
   });
 

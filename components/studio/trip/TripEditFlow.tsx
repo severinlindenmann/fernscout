@@ -18,6 +18,7 @@ import type { TripEditPanel } from "@/lib/studio/tripEdit";
 import { slugify } from "@/lib/tripId";
 import DateField from "@/components/studio/DateField";
 
+import { journalPath } from "@/lib/journalPath";
 const INPUT = "mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong";
 const EYEBROW = "font-mono text-xs uppercase tracking-wide text-ink-secondary";
 
@@ -48,7 +49,7 @@ function AddressSection({
   // refusal ("Ungarn 2026!" → ungarn-2026); the server still checks it.
   const trimmed = slugify(newId);
   const valid = trimmed.length > 0 && trimmed !== trip.id;
-  const path = (id: string) => `/${username}/trips/${id}`;
+  const path = (id: string) => `${journalPath(username)}/trips/${id}`;
   const taken = trips.some((other) => other.id === trimmed);
 
   async function commit() {
@@ -70,14 +71,14 @@ function AddressSection({
     setConfirming(false);
     setNewId("");
     // The page's other sections now address the trip by its new id.
-    router.replace(`/${username}/studio/trip?trip=${encodeURIComponent(id)}&section=address`, { scroll: false });
+    router.replace(`${journalPath(username)}/studio/trip?trip=${encodeURIComponent(id)}&section=address`, { scroll: false });
   }
 
   if (renamedTo) {
     return (
       <div role="status" className="mt-3 rounded-2xl border border-green-500/40 bg-green-100 px-4 py-3 text-sm text-ink-strong">
         {t("studio.tripRename.done.banner", { title: trip.title, path: path(renamedTo) })}{" "}
-        <a href={`/${username}/trips/${renamedTo}`} className="font-semibold underline underline-offset-2">
+        <a href={`${journalPath(username)}/trips/${renamedTo}`} className="font-semibold underline underline-offset-2">
           {t("studio.tripRename.done.openTrip")}
         </a>
       </div>
@@ -197,7 +198,7 @@ export default function TripEditFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!trip) return <TripPicker base={`/${username}/studio/trip`} trips={trips} />;
+  if (!trip) return <TripPicker base={`${journalPath(username)}/studio/trip`} trips={trips} />;
 
   const detailsDirty = title.trim() !== trip.title || tagline.trim() !== trip.tagline || start !== trip.start || end !== trip.end;
   const readersDirty = trip.hasPlan && readers !== trip.planReaders;
@@ -235,7 +236,7 @@ export default function TripEditFlow({
       {trips.length > 1 && (
         <p className="mt-2 text-sm text-ink-secondary">
           /{trip.id} ·{" "}
-          <Link href={`/${username}/studio/trip`} className="font-semibold text-ink-strong underline underline-offset-2">
+          <Link href={`${journalPath(username)}/studio/trip`} className="font-semibold text-ink-strong underline underline-offset-2">
             {t("studio.tripEdit.otherTrip")}
           </Link>
         </p>
@@ -278,7 +279,7 @@ export default function TripEditFlow({
             {t(`studio.visibility.${trip.visibility}.title` as TranslationKey)}
           </span>
           <Link
-            href={`/${username}/studio/trip/visibility?trip=${encodeURIComponent(trip.id)}`}
+            href={`${journalPath(username)}/studio/trip/visibility?trip=${encodeURIComponent(trip.id)}`}
             className="text-sm font-semibold text-ink-strong underline underline-offset-2"
           >
             {t("studio.tripEdit.readers.change")}

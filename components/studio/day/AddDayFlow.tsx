@@ -28,6 +28,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
 import { slugify } from "@/lib/slug";
 
+import { journalPath } from "@/lib/journalPath";
 /** First-run mode (B2188, owner decision D1 "C inside A"): the same page,
  *  revealed one part at a time for somebody who has no day yet. The one-page
  *  mode never calls `go`, so these steps only ever mean something there. */
@@ -643,7 +644,7 @@ export default function AddDayFlow({
     const q = new URLSearchParams(params.toString());
     q.delete("q");
     q.set("mode", "type");
-    router.replace(`/${username}/studio/day/new?${q.toString()}`);
+    router.replace(`${journalPath(username)}/studio/day/new?${q.toString()}`);
   }
 
   // ── rendering ───────────────────────────────────────────────────────
@@ -653,7 +654,7 @@ export default function AddDayFlow({
   // with a stale build's payload), so a soft `router.push` to a kept page
   // would simply fail with no connection. A full navigation still opens it,
   // from the same kept personal cache the initial visit warmed.
-  const toStudio = () => (online ? router.push(`/${username}/studio`) : (window.location.href = `/${username}/studio`));
+  const toStudio = () => (online ? router.push(`${journalPath(username)}/studio`) : (window.location.href = `${journalPath(username)}/studio`));
 
   if (outcome === "queued") {
     return (
@@ -679,7 +680,7 @@ export default function AddDayFlow({
         />
         {content.trim() && <p className="mt-4 line-clamp-3 text-sm text-ink-body">{content}</p>}
         <Link
-          href={`/${username}/studio/day/publish?day=${encodeURIComponent(createdSlug)}&trip=${encodeURIComponent(tripId)}`}
+          href={`${journalPath(username)}/studio/day/publish?day=${encodeURIComponent(createdSlug)}&trip=${encodeURIComponent(tripId)}`}
           className={`mt-4 inline-flex items-center ${LINK}`}
         >
           {t("studio.day.saved.share")}
@@ -706,7 +707,7 @@ export default function AddDayFlow({
         </div>
         <div className="mt-4 flex flex-col items-start gap-1">
           {/* A draft can take more; a published day is changed, not added to. */}
-          <a href={`/${username}/studio/day/edit?slug=${encodeURIComponent(collision.slug)}`} className={LINK}>
+          <a href={`${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(collision.slug)}`} className={LINK}>
             {collision.status === "draft" ? t("studio.day.collision.addToDay") : t("studio.day.collision.changeInstead")}
           </a>
           <button
@@ -961,7 +962,7 @@ export default function AddDayFlow({
                   {t("studio.day.mismatch.leaveOut")}
                 </button>
                 {photoDays > 1 && (
-                  <Link href={`/${username}/studio#waiting`} className={`inline-flex items-center ${LINK}`}>
+                  <Link href={`${journalPath(username)}/studio#waiting`} className={`inline-flex items-center ${LINK}`}>
                     {tn("studio.day.mismatch.split", photoDays, { count: String(photoDays) })}
                   </Link>
                 )}

@@ -98,7 +98,7 @@ describe("a trip-scoped costs page's description", () => {
     clearConfigCache();
     clearUserCache();
     clearLocaleCache();
-    const { generateMetadata } = await import("@/app/[user]/trips/[trip]/costs/page");
+    const { generateMetadata } = await import("@/app/at/[user]/trips/[trip]/costs/page");
 
     const past = await generateMetadata({
       params: Promise.resolve({ user: "alex", trip: "ridge-2025" }),
@@ -143,8 +143,8 @@ describe.each(["en", "de", "hu"] as const)("a trip-scoped costs page in %s", (lo
     clearConfigCache();
     clearUserCache();
     clearLocaleCache();
-    const { generateMetadata } = await import("@/app/[user]/trips/[trip]/costs/page");
-    const CostsPageContent = (await import("@/app/[user]/(trip)/costs/CostsPageContent")).default;
+    const { generateMetadata } = await import("@/app/at/[user]/trips/[trip]/costs/page");
+    const CostsPageContent = (await import("@/app/at/[user]/(trip)/costs/CostsPageContent")).default;
     const LocaleProvider = (await import("@/components/LocaleProvider")).default;
     const SiteProvider = (await import("@/components/SiteProvider")).default;
     const CurrencyProvider = (await import("@/components/CurrencyProvider")).default;

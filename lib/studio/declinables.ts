@@ -9,7 +9,7 @@
 // out into `lib/studio/declineReasons.ts` instead — no import of any kind,
 // safe for a browser bundle. Everything in *this* file is read only from
 // the server (`lib/studio/day.ts`, `lib/studio/createDay.ts`,
-// `app/[user]/studio/day/new/page.tsx`).
+// `app/at/[user]/studio/day/new/page.tsx`).
 import { DAY_DECLINABLES } from "@/lib/api/v2/schemas/day";
 import type { Declinable } from "@/lib/api/v2/schemas/shared";
 

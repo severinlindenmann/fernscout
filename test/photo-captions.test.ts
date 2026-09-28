@@ -262,9 +262,9 @@ describe("correcting a caption is a splice, not a rewrite", () => {
     const gallery = await dayWithTwoPhotographs();
     const before = onDisk();
 
-    // Keyed by the src as the API hands it back, `/alex/media/…`, while the
+    // Keyed by the src as the API hands it back, `/@alex/media/…`, while the
     // file on disk carries `/media/…`.
-    expect(gallery[0].src.startsWith("/alex/media/")).toBe(true);
+    expect(gallery[0].src.startsWith("/@alex/media/")).toBe(true);
     const result = editEntry(REF, DAY, { captions: { [gallery[0].src]: "First, corrected" } });
     expect(result).toEqual({ ok: true, slug: DAY, status: "draft" });
 
@@ -294,7 +294,7 @@ describe("correcting a caption is a splice, not a rewrite", () => {
   test("an empty string removes a caption; an unknown src is ignored", async () => {
     const gallery = await dayWithTwoPhotographs();
     editEntry(REF, DAY, {
-      captions: { [gallery[0].src]: "", "/alex/media/asia-2026/other-day/99.jpg": "nowhere" },
+      captions: { [gallery[0].src]: "", "/@alex/media/asia-2026/other-day/99.jpg": "nowhere" },
     });
 
     const read = getEntryBySlug(REF, DAY, { includeDrafts: true })!.gallery;
@@ -305,7 +305,7 @@ describe("correcting a caption is a splice, not a rewrite", () => {
 
   test("a day with no gallery at all is left alone rather than gaining a block", () => {
     const before = onDisk();
-    const result = editEntry(REF, DAY, { captions: { "/alex/media/asia-2026/x/01.jpg": "hello" } });
+    const result = editEntry(REF, DAY, { captions: { "/@alex/media/asia-2026/x/01.jpg": "hello" } });
     expect(result.ok).toBe(true);
     expect(onDisk()).toBe(before);
   });

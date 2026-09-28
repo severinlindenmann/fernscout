@@ -95,7 +95,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
     interfaces: ["api"],
   },
   analytics: {
-    // Its own UI is the studio's "Visitors" page (`app/[user]/studio/visitors`),
+    // Its own UI is the studio's "Visitors" page (`app/at/[user]/studio/visitors`),
     // not `/admin` — this flow's step 6 checks the capability off there, from
     // an operator session, so both interfaces are real for it.
     flows: ["operator-check-admin-dashboard"],

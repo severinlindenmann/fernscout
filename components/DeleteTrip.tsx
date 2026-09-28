@@ -4,6 +4,7 @@ import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "./LocaleProvider";
 
+import { journalPath } from "@/lib/journalPath";
 /** What `GET .../delete` counted off the disk, for the question below. */
 type Inventory = { title: string; days: number; files: number; size: string };
 
@@ -29,7 +30,7 @@ export default function DeleteTrip({
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const base = `/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/delete`;
+  const base = `${journalPath(encodeURIComponent(username))}/trips/${encodeURIComponent(tripId)}/delete`;
 
   async function remove() {
     setBusy(true);

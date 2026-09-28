@@ -23,7 +23,7 @@ vi.mock("next/navigation", () => ({
     back: () => history.length > 1 && history.pop(),
     replace: (href: string) => (history[history.length - 1] = href.split("?")[1] ?? ""),
   }),
-  usePathname: () => "/alex/studio/statement",
+  usePathname: () => "/@alex/studio/statement",
   useSearchParams: () => current(),
 }));
 
@@ -201,7 +201,7 @@ describe("StatementFlow on useStep — B2079, B2083", () => {
     expect(container.querySelector('[role="status"]')?.textContent).toContain("1 cost filed to The coast.");
     expect(container.textContent).toContain("1 cost landed");
     const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent === "See the trip's costs");
-    expect(link?.getAttribute("href")).toBe("/alex/trips/coast/costs");
+    expect(link?.getAttribute("href")).toBe("/@alex/trips/coast/costs");
     // B2130 — guests-only costs: the public never sees them.
     expect(container.textContent).toContain("The public never sees these costs");
     expect(container.textContent).not.toContain("Anyone who can read this trip sees these costs.");

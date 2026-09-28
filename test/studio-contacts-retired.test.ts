@@ -17,18 +17,18 @@ import path from "node:path";
  */
 describe("studio/contacts is retired in favour of studio/people", () => {
   test("the page file no longer exists", () => {
-    const pagePath = path.join(process.cwd(), "app/[user]/studio/contacts/page.tsx");
+    const pagePath = path.join(process.cwd(), "app/at/[user]/studio/contacts/page.tsx");
     expect(existsSync(pagePath)).toBe(false);
   });
 
-  test("both its old addresses redirect to /:user/studio/people", async () => {
+  test("both its old addresses redirect to /@:user/studio/people", async () => {
     const config = (await import("../next.config")).default;
     const redirects = await config.redirects!();
 
-    const fromStudio = redirects.find((r) => r.source === "/:user/studio/contacts");
-    expect(fromStudio?.destination).toBe("/:user/studio/people");
+    const fromStudio = redirects.find((r) => r.source === "/@:user/studio/contacts");
+    expect(fromStudio?.destination).toBe("/@:user/studio/people");
 
-    const fromExtract = redirects.find((r) => r.source === "/:user/extract/contacts");
-    expect(fromExtract?.destination).toBe("/:user/studio/people");
+    const fromExtract = redirects.find((r) => r.source === "/@:user/extract/contacts");
+    expect(fromExtract?.destination).toBe("/@:user/studio/people");
   });
 });

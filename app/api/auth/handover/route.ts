@@ -2,6 +2,7 @@ import { SESSION_SCOPE, SESSION_TTL_MS, exchangeHandover, resolveSession } from 
 import { isEnabled } from "@/lib/capabilities";
 import { serverSite } from "@/lib/site";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 /**
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
     expiresAt,
     scope: SESSION_SCOPE.agent,
     user: session.owner,
-    journal: `${base}/${session.owner}`,
+    journal: `${base}${journalPath(session.owner)}`,
     status: `GET ${base}/api/v2/${session.owner}/status`,
     next:
       "This token is yours for seven days, on this journal and nothing else. Read " +

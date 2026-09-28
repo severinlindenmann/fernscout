@@ -109,7 +109,7 @@ describe("guestLanding — where the welcome guide sends a new guest (B2458)", (
       trip({ id: "algarve", status: "past", visibility: "guest" }),
       trip({ id: "davos", status: "past", visibility: "public" }),
     ];
-    expect(guestLanding("sevi", trips)).toBe("/sevi/trips/algarve");
+    expect(guestLanding("sevi", trips)).toBe("/@sevi/trips/algarve");
   });
 
   test("a readable current trip wins over a newer-listed past one, as on /<owner>", () => {
@@ -117,17 +117,17 @@ describe("guestLanding — where the welcome guide sends a new guest (B2458)", (
       trip({ id: "old", status: "past", visibility: "guest" }),
       trip({ id: "now", status: "current", visibility: "guest" }),
     ];
-    expect(guestLanding("sevi", trips)).toBe("/sevi/trips/now");
+    expect(guestLanding("sevi", trips)).toBe("/@sevi/trips/now");
   });
 
   test("a private current trip is never the target", () => {
     const trips = [trip({ id: "now", status: "current", visibility: "private" }), trip({ id: "old", status: "past", visibility: "guest" })];
-    expect(guestLanding("sevi", trips)).toBe("/sevi/trips/old");
+    expect(guestLanding("sevi", trips)).toBe("/@sevi/trips/old");
   });
 
   test("nothing readable, or only upcoming trips, lands on the trips list", () => {
-    expect(guestLanding("sevi", [trip({ id: "p", visibility: "private" })])).toBe("/sevi/trips");
-    expect(guestLanding("sevi", [trip({ id: "u", status: "upcoming", visibility: "guest" })])).toBe("/sevi/trips");
-    expect(guestLanding("sevi", [])).toBe("/sevi/trips");
+    expect(guestLanding("sevi", [trip({ id: "p", visibility: "private" })])).toBe("/@sevi/trips");
+    expect(guestLanding("sevi", [trip({ id: "u", status: "upcoming", visibility: "guest" })])).toBe("/@sevi/trips");
+    expect(guestLanding("sevi", [])).toBe("/@sevi/trips");
   });
 });

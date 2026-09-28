@@ -15,11 +15,11 @@ vi.mock("next/headers", () => ({
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { currentTripFor, currentTripOrRedirect } from "@/lib/currentTrip";
-import Home from "@/app/[user]/(trip)/page";
-import GalleryPage from "@/app/[user]/(trip)/gallery/page";
-import MapPage from "@/app/[user]/(trip)/map/page";
-import CostsPage from "@/app/[user]/(trip)/costs/page";
-import TripsPage from "@/app/[user]/trips/page";
+import Home from "@/app/at/[user]/(trip)/page";
+import GalleryPage from "@/app/at/[user]/(trip)/gallery/page";
+import MapPage from "@/app/at/[user]/(trip)/map/page";
+import CostsPage from "@/app/at/[user]/(trip)/costs/page";
+import TripsPage from "@/app/at/[user]/trips/page";
 import { writeTripFixture } from "./fixtures/content";
 import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
 
@@ -98,10 +98,10 @@ const search = Promise.resolve({});
 
 /** The four links in the header, in the order `SiteNav` draws them. */
 const NAV_PAGES: [string, () => Promise<unknown>][] = [
-  ["/alex", () => Home({ params, searchParams: search })],
-  ["/alex/gallery", () => GalleryPage({ params, searchParams: search })],
-  ["/alex/map", () => MapPage({ params, searchParams: search })],
-  ["/alex/costs", () => CostsPage({ params, searchParams: search })],
+  ["/@alex", () => Home({ params, searchParams: search })],
+  ["/@alex/gallery", () => GalleryPage({ params, searchParams: search })],
+  ["/@alex/map", () => MapPage({ params, searchParams: search })],
+  ["/@alex/costs", () => CostsPage({ params, searchParams: search })],
 ];
 
 afterEach(() => {
@@ -118,7 +118,7 @@ describe("a journal with no trips at all", () => {
     try {
       await currentTripOrRedirect("alex");
     } catch (err) {
-      expect(digestOf(err)).toContain(";/alex/trips;");
+      expect(digestOf(err)).toContain(";/@alex/trips;");
     }
   });
 
@@ -128,7 +128,7 @@ describe("a journal with no trips at all", () => {
    */
   for (const [url, page] of NAV_PAGES) {
     test(`${url} redirects to the trip list rather than answering 404`, async () => {
-      await expect(redirectTarget(page)).resolves.toBe("/alex/trips");
+      await expect(redirectTarget(page)).resolves.toBe("/@alex/trips");
     });
   }
 });
@@ -142,7 +142,7 @@ describe("a journal whose only trip is upcoming", () => {
 
   for (const [url, page] of NAV_PAGES) {
     test(`${url} redirects to the trip list rather than answering 404`, async () => {
-      await expect(redirectTarget(page)).resolves.toBe("/alex/trips");
+      await expect(redirectTarget(page)).resolves.toBe("/@alex/trips");
     });
   }
 });
@@ -167,7 +167,7 @@ describe("the destination", () => {
    * list is the one page in the header that does not resolve a trip at all,
    * which is what makes it the honest answer for a journal that has none.
    */
-  test("/alex/trips renders for a journal with no trips", async () => {
+  test("/@alex/trips renders for a journal with no trips", async () => {
     journal([]);
     const page = await TripsPage({ params, searchParams: search });
     expect(page).toBeTruthy();
@@ -177,7 +177,7 @@ describe("the destination", () => {
 describe("a day permalink", () => {
   test("is still a 404 when the journal has no trips — that day is not a page", async () => {
     journal([]);
-    const { default: DayPage } = await import("@/app/[user]/(trip)/day/[slug]/page");
+    const { default: DayPage } = await import("@/app/at/[user]/(trip)/day/[slug]/page");
     let digest = "";
     try {
       await DayPage({ params: slug, searchParams: search });

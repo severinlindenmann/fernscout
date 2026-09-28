@@ -35,9 +35,9 @@ function journal(overrides: Partial<HomeJournal>): HomeJournal {
     username: "ana",
     title: "Two Backpacks",
     tagline: "Across and back",
-    href: "/ana",
+    href: "/@ana",
     role: "owner",
-    trips: [{ id: "alps", title: "Across the Alps", href: "/ana/alps", through: "owner" }],
+    trips: [{ id: "alps", title: "Across the Alps", href: "/@ana/alps", through: "owner" }],
     ...overrides,
   };
 }
@@ -57,7 +57,7 @@ describe("a title nobody sane typed (B493)", () => {
   test("a trip card's title is capped and ellipsised rather than pushing the grid wide", () => {
     const html = markup([
       journal({
-        trips: [{ id: "x", title: UNBROKEN, href: "/ana/x", through: "owner" }],
+        trips: [{ id: "x", title: UNBROKEN, href: "/@ana/x", through: "owner" }],
       }),
     ]);
     expect(html).toMatch(/<li class="min-w-0">/);
@@ -65,10 +65,10 @@ describe("a title nobody sane typed (B493)", () => {
   });
 
   test("the Continue title can break mid-word, a shared journal's name is cut short", () => {
-    const own = markup([journal({ trips: [{ id: "x", title: UNBROKEN, href: "/ana/x", through: "owner" }] })]);
+    const own = markup([journal({ trips: [{ id: "x", title: UNBROKEN, href: "/@ana/x", through: "owner" }] })]);
     expect(own).toMatch(/<h1[^>]*class="[^"]*break-words/);
     const shared = markup([
-      journal({ role: "guest", title: UNBROKEN, trips: [{ id: "x", title: "t", href: "/ana/x", through: "guest" }] }),
+      journal({ role: "guest", title: UNBROKEN, trips: [{ id: "x", title: "t", href: "/@ana/x", through: "guest" }] }),
     ]);
     expect(shared).toMatch(new RegExp(`class="[^"]*truncate[^"]*">${UNBROKEN}`));
   });
@@ -92,9 +92,9 @@ describe("the operator's list (B494)", () => {
     expect(html).toContain("Other journals on this server");
     // The Continue card and the trip links belong to the one journal that
     // is actually theirs: the operator's rows add no trip link of their own
-    // (the fixture's trips all point at /ana/alps).
+    // (the fixture's trips all point at /@ana/alps).
     expect(html).toContain("Continue");
-    const links = (h: string) => h.split('href="/ana/alps"').length - 1;
+    const links = (h: string) => h.split('href="/@ana/alps"').length - 1;
     expect(links(html)).toBe(links(markup([mine])));
   });
 
@@ -119,13 +119,13 @@ describe("the operator's list (B494)", () => {
 describe("the owner's card links into their own studio (B1948)", () => {
   test("Open the studio is a link to /[user]/studio", () => {
     const html = markup([journal({ username: "ana", role: "owner" })]);
-    expect(html).toMatch(/<a href="\/ana\/studio"[^>]*>Open the studio<\/a>/);
+    expect(html).toMatch(/<a href="\/@ana\/studio"[^>]*>Open the studio<\/a>/);
   });
 
   test("a reader or traveller on somebody else's journal gets no such link", () => {
     for (const role of ["guest", "traveller"] as const) {
       const html = markup([journal({ role })]);
-      expect(html).not.toContain('href="/ana/studio"');
+      expect(html).not.toContain('href="/@ana/studio"');
     }
   });
 });

@@ -9,6 +9,7 @@ import { useOnline } from "@/components/studio/useOnline";
 import type { TranslationKey } from "@/lib/i18n";
 import type { PublishRow } from "@/lib/studio/publishDay";
 
+import { journalPath } from "@/lib/journalPath";
 /** More rows than this and the list gets a search box. */
 const SEARCH_FROM = 8;
 
@@ -81,10 +82,10 @@ export default function PublishDayFlow({
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleted, setDeleted] = useState<PublishRow | null>(null);
 
-  const base = `/${encodeURIComponent(username)}/studio/day/publish`;
+  const base = `${journalPath(encodeURIComponent(username))}/studio/day/publish`;
   const listHref = takeDown ? `${base}?list=published` : base;
   const dayHref = (row: PublishRow) =>
-    `/${encodeURIComponent(username)}/trips/${encodeURIComponent(row.tripId)}/day/${encodeURIComponent(row.slug)}`;
+    `${journalPath(encodeURIComponent(username))}/trips/${encodeURIComponent(row.tripId)}/day/${encodeURIComponent(row.slug)}`;
   const chooseHref = (row: PublishRow) =>
     `${base}?day=${encodeURIComponent(row.slug)}&trip=${encodeURIComponent(row.tripId)}${takeDown ? "&list=published" : ""}`;
 
@@ -111,7 +112,7 @@ export default function PublishDayFlow({
     setError(response?.status === 422 ? t("studio.publish.incomplete") : t("studio.publish.failed"));
   }
 
-  const deletedHref = `/${encodeURIComponent(username)}/studio/day/deleted`;
+  const deletedHref = `${journalPath(encodeURIComponent(username))}/studio/day/deleted`;
   if (deleted) {
     return (
       <DoneScreen
@@ -157,7 +158,7 @@ export default function PublishDayFlow({
       ...named.map((part) => t(`studio.publish.part.${part}` as TranslationKey)),
       ...(details > 0 ? [tn("studio.publish.moreDetails", details, { count: String(details) })] : []),
     ];
-    const editHref = `/${encodeURIComponent(username)}/studio/day/edit?slug=${encodeURIComponent(chosen.slug)}`;
+    const editHref = `${journalPath(encodeURIComponent(username))}/studio/day/edit?slug=${encodeURIComponent(chosen.slug)}`;
     const readerNames =
       readers && readers.length > NAMES_SHOWN
         ? [...readers.slice(0, 2), tn("studio.publish.others", readers.length - 2, { count: String(readers.length - 2) })]

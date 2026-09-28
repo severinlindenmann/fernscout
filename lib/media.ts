@@ -7,6 +7,7 @@ import { contentRoot } from "./contentRoot";
 import { parseTripRef, tripDir } from "./trips";
 import { IMAGE_MAX_PIXELS } from "./validate/media";
 
+import { journalPath } from "./journalPath";
 /**
  * Where a trip's media lives and how it is addressed.
  *
@@ -102,7 +103,7 @@ export function mediaUrl(ref: string, relativePath: string): string {
   const clean = relativePath.replace(/^\/+/, "");
   const parsed = parseTripRef(ref);
   if (!parsed) return `${MEDIA_URL_PREFIX}/${clean}`;
-  return `/${parsed.username}${MEDIA_URL_PREFIX}/${parsed.tripId}/${clean}`;
+  return `${journalPath(parsed.username)}${MEDIA_URL_PREFIX}/${parsed.tripId}/${clean}`;
 }
 
 /** `name`, folded the way two spellings of one file are the same file — see

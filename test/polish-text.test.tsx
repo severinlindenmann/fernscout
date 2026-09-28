@@ -120,7 +120,7 @@ describe("visibility", () => {
     expect(container.querySelector("button")).toBeNull();
     expect(container.textContent).toContain("You have no credits left for this.");
     const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent?.trim() === "Add credits");
-    expect(link?.getAttribute("href")).toBe("/alex/studio/account");
+    expect(link?.getAttribute("href")).toBe("/@alex/studio/account");
   });
 });
 
@@ -187,7 +187,7 @@ describe("errors", () => {
     await click("Polish my text · 0.05 (about CHF 0.01)");
     const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent?.trim() === "Add credits");
     expect(link).toBeDefined();
-    expect(link?.getAttribute("href")).toBe("/alex/studio/account");
+    expect(link?.getAttribute("href")).toBe("/@alex/studio/account");
   });
 
   test("no other error code offers the credits link", async () => {

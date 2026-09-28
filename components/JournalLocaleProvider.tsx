@@ -6,7 +6,7 @@ import { getUser } from "@/lib/users";
 /**
  * A journal's language again, one layout down, with a larger set of strings.
  *
- * `app/[user]/layout.tsx` ships the strings a reader's pages use and no more
+ * `app/at/[user]/layout.tsx` ships the strings a reader's pages use and no more
  * (see `dictionaryFor`). The two places inside a journal with far more words
  * — the owner's studio and a reader's own `/me` — sit under this instead, which
  * replaces that provider for its subtree with one carrying its own scope. Same

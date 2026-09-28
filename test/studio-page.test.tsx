@@ -28,7 +28,7 @@ describe("StudioPage", () => {
     expect(html.match(/<h1/g)).toHaveLength(1);
     expect(html).toContain("A new trip");
     expect(html).toContain('id="body"');
-    expect(html).toContain('data-back="/alex/studio"');
+    expect(html).toContain('data-back="/@alex/studio"');
     expect(html).toContain("Plan");
     expect(html).toContain("Two dates are enough.");
   });

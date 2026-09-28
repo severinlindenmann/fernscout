@@ -5,7 +5,7 @@ import type { FeatureName } from "@/lib/config";
  * B74 — where the panel's answer about contacts comes from.
  *
  * `isEnabled` reads server config, and the panel is a client component, so the
- * question has to be asked in `app/[user]/me/page.tsx` and travel as a prop.
+ * question has to be asked in `app/at/[user]/me/page.tsx` and travel as a prop.
  * The bug was that it was asked once, for `manageHref`, and not again for the
  * owner's link to the guest list — which then pointed at a page that answers
  * 404 whenever the journal has contacts off.
@@ -99,7 +99,7 @@ vi.mock("next/headers", () => ({
  * kept this helper compiling while it was one prop short.
  */
 async function propsOf(user = "alex", searchParams: Record<string, string> = {}) {
-  const { default: MePage } = await import("@/app/[user]/me/page");
+  const { default: MePage } = await import("@/app/at/[user]/me/page");
   const element = (await MePage({
     params: Promise.resolve({ user }),
     searchParams: Promise.resolve(searchParams),
@@ -206,7 +206,7 @@ describe("what the me page tells the panel about its owner", () => {
 
   test("the journal panel no longer travels here at all, even to the owner — B2017", async () => {
     // B619's own card (this journal's name, subtitle and owner address) moved
-    // whole to `app/[user]/studio/journal/page.tsx` by B2017, along with the
+    // whole to `app/at/[user]/studio/journal/page.tsx` by B2017, along with the
     // rest of the owner block — `journalProfile()` and `getOwnerTel()` are
     // read there now, not by this page.
     enabled.mockReturnValue(true);

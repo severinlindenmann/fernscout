@@ -419,7 +419,7 @@ describe("B2453 — a second channel and news consent on the join form", () => {
     await setNewsConsent("other@example.test", "en");
     const keen = await joinedByEmail("Nina News", "nina@example.test");
     await joinStep(keen.code, { action: "save", wantsNews: true });
-    const { POST } = await import("@/app/[user]/me/news/route");
+    const { POST } = await import("@/app/at/[user]/me/news/route");
     const res = await POST(post(`/${OWNER}/me/news`, { email: "other@example.test" }), { params: Promise.resolve({ user: OWNER }) } as never);
     expect(res.status).toBe(200);
     expect(await hasNewsConsent("nina@example.test")).toBe(false);
@@ -455,7 +455,7 @@ describe("B2503 — the confirm button in a join code mail carries on in the joi
     jar.cookies = {};
     const email = "linky@example.test";
     await joinStep(code, { action: "send", name: "Lina Link", channel: "email", value: email });
-    const token = mails(email).at(-1)?.match(/\/ana\/s\/([A-Za-z0-9_-]+)/)?.[1];
+    const token = mails(email).at(-1)?.match(/\/@ana\/s\/([A-Za-z0-9_-]+)/)?.[1];
     expect(token).toBeTruthy();
 
     const { POST } = await import("@/app/api/auth/links/redeem/route");

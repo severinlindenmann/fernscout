@@ -27,7 +27,7 @@ vi.mock("next/navigation", () => ({
     back: () => history.length > 1 && history.pop(),
     replace: (href: string) => (history[history.length - 1] = href.split("?")[1] ?? ""),
   }),
-  usePathname: () => "/alex/studio/location",
+  usePathname: () => "/@alex/studio/location",
   useSearchParams: () => new URLSearchParams(history[history.length - 1]),
 }));
 
@@ -221,9 +221,9 @@ describe("LocationFlow on useStep — B2079, B2082", () => {
     act(() => root!.render(tree()));
     expect(container!.querySelector('[role="status"]')?.textContent).toContain("Alps 2024 has a map now.");
     const hrefs = [...container!.querySelectorAll("a")].map((a) => a.getAttribute("href") ?? "");
-    expect(hrefs).toContain("/alex/trips/alps-2024/map");
+    expect(hrefs).toContain("/@alex/trips/alps-2024/map");
     // One way back: the studio bar's own link, and no second one in the body.
-    expect(hrefs.filter((h) => h.startsWith("/alex/studio") && !h.includes("/studio/"))).toHaveLength(1);
+    expect(hrefs.filter((h) => h.startsWith("/@alex/studio") && !h.includes("/studio/"))).toHaveLength(1);
     expect(history[history.length - 1]).toBe("");
     expect(sessionStorage.getItem("studio:location:alex")).toBeNull();
   });

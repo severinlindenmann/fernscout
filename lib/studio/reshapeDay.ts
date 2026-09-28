@@ -15,7 +15,7 @@ import { withoutDeclinedMedia, type DayFile } from "@/lib/api/v2/documents";
  * "Something is filed wrong" — B1832, spec §7.1. Every write in this module
  * is genuinely new: nothing in the browser moved, split or merged a day
  * before this ticket. All three share one address convention, worth stating
- * once — a day's public permalink (`app/[user]/trips/[trip]/day/[slug]/
+ * once — a day's public permalink (`app/at/[user]/trips/[trip]/day/[slug]/
  * page.tsx`) is `/<user>/trips/<tripId>/day/<bareSlug>`, built from the
  * BARE slug (`entrySlugFromFile`, lib/entries.ts) and the trip id. The date
  * is only ever part of the on-disk *filename*

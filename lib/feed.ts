@@ -10,6 +10,7 @@ import { getUser } from "./users";
 import type { Entry, Trip } from "./types";
 import { titleWithLocation } from "./i18n";
 
+import { journalPath } from "./journalPath";
 /**
  * RSS for one user's public journal.
  *
@@ -80,7 +81,7 @@ function feedItems(username: string, trips: Trip[]): FeedItem[] {
     if (trip.status === "upcoming") continue;
 
     const isCurrent = trip.id === currentId;
-    const tripBase = isCurrent ? `${base}/${username}` : `${base}/${username}/trips/${trip.id}`;
+    const tripBase = isCurrent ? `${base}${journalPath(username)}` : `${base}${journalPath(username)}/trips/${trip.id}`;
 
     for (const entry of getAllEntries(trip.ref)) {
       // A day marked `test` inside a real trip. `isIndexable` above already
@@ -110,7 +111,7 @@ export function buildFeedXml(username: string): string | null {
 
   const items = feedItems(username, getTrips(username));
   const base = serverSite().url;
-  const siteUrl = `${base}/${username}`;
+  const siteUrl = `${base}${journalPath(username)}`;
   const feedUrl = `${siteUrl}/feed.xml`;
   const now = new Date().toUTCString();
 

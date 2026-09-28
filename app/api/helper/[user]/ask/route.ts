@@ -19,6 +19,7 @@ import { requestLocale } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 /**
@@ -299,7 +300,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     const noCredits = noCreditsAnswer(
       say,
       balance,
-      `/${encodeURIComponent(user)}/studio/account#buy`,
+      `${journalPath(encodeURIComponent(user))}/studio/account#buy`,
     );
     return Response.json({
       ok: true,

@@ -5,7 +5,7 @@ import { getDefaultUsername, getUser } from "@/lib/users";
  * The 404 for the whole instance.
  *
  * It catches two things. Anything that matches no route at all lands here, and
- * so does `notFound()` thrown from `app/[user]/layout.tsx` — which is the case
+ * so does `notFound()` thrown from `app/at/[user]/layout.tsx` — which is the case
  * that actually happens to people: a misspelt journal name in a forwarded link.
  * Since `[user]` is a top-level dynamic segment, almost every bad URL on this
  * server is one of those, so this page is really "no journal by that name",

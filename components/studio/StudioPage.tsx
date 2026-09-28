@@ -6,6 +6,7 @@ import { StudioBarPage } from "@/components/studio/StudioBar";
 import SubmitError from "@/components/studio/SubmitError";
 import type { StudioGroup } from "@/lib/studio/groups";
 
+import { journalPath } from "@/lib/journalPath";
 const WIDTH = { flow: "max-w-xl", board: "max-w-3xl", wide: "max-w-5xl" } as const;
 
 /**
@@ -54,7 +55,7 @@ export default function StudioPage({
   return (
     <div>
       <StudioBarPage group={group} width={width} />
-      <PageHeader backTo={back ? { href: `/${username}/studio`, labelKey: "nav.studio" } : undefined} />
+      <PageHeader backTo={back ? { href: `${journalPath(username)}/studio`, labelKey: "nav.studio" } : undefined} />
       <main id="main" tabIndex={-1} className={`mx-auto w-full ${WIDTH[width]} px-4 py-8`}>
         {group && <GroupMark group={group} size="sm" />}
         <h1 className="font-display text-2xl font-semibold text-ink-strong">{title}</h1>

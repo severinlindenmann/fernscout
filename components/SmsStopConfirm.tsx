@@ -4,6 +4,7 @@ import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 
+import { journalPath } from "@/lib/journalPath";
 export default function SmsStopConfirm({ username, token, journal }: { username: string; token: string; journal: string }) {
   const { t } = useI18n();
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
@@ -24,11 +25,11 @@ export default function SmsStopConfirm({ username, token, journal }: { username:
       tone="destructive"
       onConfirm={async () => {
         setState("busy");
-        const response = await fetch(`/${username}/stop/${token}/confirm`, { method: "POST" }).catch(() => null);
+        const response = await fetch(`${journalPath(username)}/stop/${token}/confirm`, { method: "POST" }).catch(() => null);
         setState(response?.ok ? "done" : "error");
       }}
       onCancel={() => {
-        window.location.href = `/${username}`;
+        window.location.href = journalPath(username);
       }}
       cancelLabel={t("smsStop.cancel")}
     />

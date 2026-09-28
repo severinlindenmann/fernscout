@@ -30,8 +30,8 @@ vi.mock("next/headers", () => ({
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { clearLocaleCache } from "@/lib/locales";
-import { generateMetadata as tripMetadata } from "@/app/[user]/trips/[trip]/page";
-import { generateMetadata as dayMetadata } from "@/app/[user]/trips/[trip]/day/[slug]/page";
+import { generateMetadata as tripMetadata } from "@/app/at/[user]/trips/[trip]/page";
+import { generateMetadata as dayMetadata } from "@/app/at/[user]/trips/[trip]/day/[slug]/page";
 import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
 const SERVER_CFG =

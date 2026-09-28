@@ -130,7 +130,7 @@ describe("removing one photograph from a day", () => {
     expect(response.status).toBe(200);
 
     const entry = getEntryBySlug(REF, SLUG, AS_AUTHOR);
-    expect(entry?.gallery.map((item) => item.src)).toEqual([`/alex/media/${TRIP}/${SLUG}/01.jpg`]);
+    expect(entry?.gallery.map((item) => item.src)).toEqual([`/@alex/media/${TRIP}/${SLUG}/01.jpg`]);
     // Half of a removal is worse than none: a picture out of the gallery and
     // still at its URL has not been taken down.
     expect(fs.existsSync(path.join(tripMediaDir(REF), SLUG, "02.jpg"))).toBe(false);

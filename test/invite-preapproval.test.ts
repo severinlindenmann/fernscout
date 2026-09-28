@@ -200,7 +200,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
 
       expect(created.status).toBe(201);
       expect(created.body.sent).toBe(true);
-      expect(created.body.invite?.url).toMatch(/\/ana\/invite\/guest\/fs_inv_/);
+      expect(created.body.invite?.url).toMatch(/\/@ana\/invite\/guest\/fs_inv_/);
 
       // One .eml on disk, addressed to the family — the fifth letter this task
       // adds, and not merely the code that follows redemption.
