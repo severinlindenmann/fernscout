@@ -38,12 +38,3 @@ export function writeCachedCardSvg(key: string, svg: string): void {
     // "cannot read" as "draw without it" rather than throwing.
   }
 }
-
-/** Test/tooling seam. */
-export function clearCardCache(): void {
-  try {
-    fs.rmSync(cacheDir(), { recursive: true, force: true });
-  } catch {
-    // Never built — nothing to clear.
-  }
-}

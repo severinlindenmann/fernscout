@@ -5,8 +5,6 @@ import type { DaySummary, Trip } from "../types";
 import { tripCardSvg, dayCardSvg, type CardResult } from "./cardSvg";
 import type { MapPlace, RecordedSegment } from "./tripFrame";
 
-export type { CardResult } from "./cardSvg";
-
 /** What the facts line needs beside the SVG itself. */
 export type TripCard = {
   card: CardResult;
