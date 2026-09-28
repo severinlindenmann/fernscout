@@ -92,3 +92,20 @@ test("refuses a file that doesn't exist", async () => {
   const res = await get(["nope.pmtiles"]);
   expect(res.status).toBe(404);
 });
+
+async function worker(name: string) {
+  const { GET } = await import("@/app/api/maps/worker/[name]/route");
+  return GET(new Request(`https://t.test/api/maps/worker/${name}`), { params: Promise.resolve({ name }) });
+}
+
+test("the MapLibre worker is served only while street maps are on, and only its two files", async () => {
+  writeConfig({});
+  process.env.MAPS_DIR = mapsDir;
+  expect((await worker("maplibre-gl-worker.mjs")).status).toBe(404);
+  writeConfig({ streetMaps: { enabled: true } });
+  const ok = await worker("maplibre-gl-worker.mjs");
+  expect(ok.status).toBe(200);
+  expect(ok.headers.get("content-type")).toContain("javascript");
+  expect((await worker("maplibre-gl-shared.mjs")).status).toBe(200);
+  expect((await worker("package.json")).status).toBe(404);
+});
