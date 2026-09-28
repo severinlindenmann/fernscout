@@ -1524,6 +1524,8 @@
   "map.liveUpdatedAgo": "In diretta · aggiornato {count} min fa",
   "map.media": "Foto e video",
   "map.nextUp": "Prossima tappa",
+  "map.osmCredit": "© collaboratori di OpenStreetMap",
+  "map.osmCreditInfo": "Credito dei dati della mappa",
   "map.places": "luoghi",
   "map.planned": "Percorso pianificato",
   "map.plannedFromDrafts": "· alcuni di questi sono bozze, visibili solo a te",

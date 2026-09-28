@@ -1524,6 +1524,8 @@
   "map.liveUpdatedAgo": "Live · updated {count} min ago",
   "map.media": "Photos & videos",
   "map.nextUp": "Next up",
+  "map.osmCredit": "© OpenStreetMap contributors",
+  "map.osmCreditInfo": "Map data credit",
   "map.places": "places",
   "map.planned": "Planned route",
   "map.plannedFromDrafts": "· some of these are drafts, visible only to you",

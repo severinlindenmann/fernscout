@@ -4,6 +4,8 @@ import { mayReadLiveTrack, readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
+import { isEnabled } from "@/lib/capabilities";
+import { primaryStreetMap } from "@/lib/maps/dir";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
@@ -92,10 +94,13 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   // The same filtered, freshness-checked answer `readerTrack` draws the dot
   // from below — never a raw, unfiltered `readTail()`.
   const liveTail = live ? liveTailStatus(trip.username, trip.id, visibleDates) : undefined;
+  // B2535 — see the sibling route's own copy of this line.
+  const streetMap = isEnabled("streetMaps") ? (primaryStreetMap(trip.username, trip.id) ?? null) : null;
   return (
     <MapPageContent
       places={places}
       plan={plan.stops}
+      streetMap={streetMap}
       // B665, and behind `mayReadTrip` in the page above like everything
       // else here.
       track={

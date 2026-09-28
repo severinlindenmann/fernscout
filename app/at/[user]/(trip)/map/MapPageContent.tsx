@@ -2,6 +2,8 @@
 
 import PageHeader from "@/components/PageHeader";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
+import StreetMap from "@/components/map/StreetMap";
+import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
@@ -12,7 +14,7 @@ import { flagFor } from "@/lib/flags";
 import { isPlottable } from "@/lib/mapFrame";
 import { googleMapsHref } from "@/lib/tripMap";
 import type { Basemap } from "@/lib/basemap";
-import type { PlannedStop } from "@/lib/types";
+import { ACCENT_HEX, type PlannedStop } from "@/lib/types";
 import MobileMapSheet from "@/components/map/MobileMapSheet";
 import TimeScrubber from "@/components/map/TimeScrubber";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
@@ -32,6 +34,7 @@ export default function MapPageContent({
   basemap = null,
   over = false,
   hasDays = false,
+  streetMap = null,
 }: {
   places: PlaceView[];
   /** This trip's own line, where the owner has derived one — see lib/gps/. */
@@ -58,6 +61,15 @@ export default function MapPageContent({
    * coordinates — B1289. Defaults to false, so a caller that forgets it gets
    * the more conservative "no days written" rather than a false negative. */
   hasDays?: boolean;
+  /**
+   * `features.streetMaps` resolved server-side, and a region file that
+   * actually covers this trip (`lib/maps/dir.ts`'s `tripMapRegions`) — B2535.
+   * `null` (the default) is the ordinary case: the capability off, or no
+   * extract for this trip yet, and this page keeps drawing `WorldMap`
+   * exactly as it always has. Only the trip's primary (largest) region is
+   * used here; switching between several is B2537's job.
+   */
+  streetMap?: { url: string; bounds: [[number, number], [number, number]] } | null;
 }) {
   const { t, tn, locale, formatShortDate, formatStay } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
@@ -104,6 +116,69 @@ export default function MapPageContent({
   // phone sheet's list, its own time-scrubber copy, and the map itself are
   // never counting or ordering stops differently from one another.
   const plottable = useMemo(() => places.filter(isPlottable), [places]);
+  // B2535's own minimal overlay: just the stops and the recorded line, drawn
+  // as plain MapLibre GeoJSON layers rather than DOM markers, since nothing
+  // here is clickable yet — B2537 replaces this with the real interactive
+  // markers `WorldMap` already has. Re-added on every `style.load` because
+  // `StreetMap`'s own theme switch calls `setStyle`, which drops any layer
+  // added outside the style object itself.
+  const addStreetOverlay = useCallback(
+    (map: MapLibreMap) => {
+      const stopsData = {
+        type: "FeatureCollection" as const,
+        features: plottable.map((p) => ({
+          type: "Feature" as const,
+          geometry: { type: "Point" as const, coordinates: [p.lng, p.lat] },
+          properties: {},
+        })),
+      };
+      const trackData = {
+        type: "FeatureCollection" as const,
+        features: track.map((segment) => ({
+          type: "Feature" as const,
+          geometry: {
+            type: "LineString" as const,
+            coordinates: segment.map(([lat, lng]) => [lng, lat]),
+          },
+          properties: {},
+        })),
+      };
+      const colour = ACCENT_HEX[accent];
+      const apply = () => {
+        const trackSource = map.getSource("fs-track") as GeoJSONSource | undefined;
+        if (trackSource) trackSource.setData(trackData);
+        else {
+          map.addSource("fs-track", { type: "geojson", data: trackData });
+          map.addLayer({
+            id: "fs-track-line",
+            type: "line",
+            source: "fs-track",
+            paint: { "line-color": colour, "line-width": 3, "line-opacity": 0.9 },
+          });
+        }
+        const stopsSource = map.getSource("fs-stops") as GeoJSONSource | undefined;
+        if (stopsSource) stopsSource.setData(stopsData);
+        else {
+          map.addSource("fs-stops", { type: "geojson", data: stopsData });
+          map.addLayer({
+            id: "fs-stops-circle",
+            type: "circle",
+            source: "fs-stops",
+            paint: {
+              "circle-radius": 6,
+              "circle-color": colour,
+              "circle-stroke-width": 2,
+              "circle-stroke-color": "#ffffff",
+            },
+          });
+        }
+      };
+      if (map.isStyleLoaded()) apply();
+      else map.once("load", apply);
+      map.on("style.load", apply);
+    },
+    [plottable, track, accent],
+  );
   // One selection for the whole map page (the review after B2427's first
   // pass) — driven from the map's own marker taps and time scrubber, the
   // sheet's stop list, and its own copy of the time scrubber, all landing on
@@ -420,7 +495,14 @@ export default function MapPageContent({
           )}
 
           <div className="lg:sticky lg:top-6">
-            {hasPlaces || plan.length > 0 || track.length > 0 ? (
+            {streetMap ? (
+              <StreetMap
+                bounds={streetMap.bounds}
+                pmtilesUrl={streetMap.url}
+                onReady={addStreetOverlay}
+                className="h-[60vh] w-full overflow-hidden rounded-2xl lg:h-[calc(100vh-9rem)]"
+              />
+            ) : hasPlaces || plan.length > 0 || track.length > 0 ? (
               <WorldMap
                 places={places}
                 plan={plan}
