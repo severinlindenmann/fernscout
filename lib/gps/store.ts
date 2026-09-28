@@ -1,13 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../contentRoot";
-import type { Fix } from "../../importers/gps/schema";
+import { isTransportMode, type Fix } from "../../importers/gps/schema";
 
 /**
  * The private position store — B665.
  *
  * `content/<username>/gps/YYYY-MM.jsonl`, one fix per line as
- * `[epochSeconds, lat, lon]`. This is somebody's complete location history:
+ * `[epochSeconds, lat, lon]`, or, since B2541, `[epochSeconds, lat, lon, mode]`
+ * when the source actually said how the fix was made (`TransportMode`,
+ * `importers/gps/schema.ts` — the one vocabulary read and written everywhere
+ * a mode appears). The three-element line is forever valid: an older file,
+ * an importer that never learns modes, or a purely time/position source all
+ * still read back exactly as before, and a 4th element is only ever added,
+ * never required. This is somebody's complete location history:
  * every address they sleep at, every place they work, every clinic they have
  * ever visited. It is the most sensitive thing in this repository by a
  * distance, and three rules keep it that way:
@@ -79,6 +85,7 @@ function normalise(fix: Fix): Fix {
     t: Math.round(fix.t / 1000) * 1000,
     lat: Number(fix.lat.toFixed(PLACES)),
     lon: Number(fix.lon.toFixed(PLACES)),
+    ...(fix.mode ? { mode: fix.mode } : {}),
   };
 }
 
@@ -137,8 +144,8 @@ function readMonth(username: string, month: string): Fix[] {
   for (const line of text.split("\n")) {
     if (line.trim().length === 0) continue;
     try {
-      const [t, lat, lon] = JSON.parse(line) as [number, number, number];
-      out.push({ t: t * 1000, lat, lon });
+      const [t, lat, lon, mode] = JSON.parse(line) as [number, number, number, string?];
+      out.push({ t: t * 1000, lat, lon, ...(isTransportMode(mode) ? { mode } : {}) });
     } catch {
       // A half-written line from an interrupted write. Losing one fix is
       // nothing; refusing to read the month because of it is not.
@@ -154,7 +161,7 @@ function writeMonth(username: string, month: string, fixes: Fix[]): void {
       (f) =>
         `[${Math.round(f.t / 1000)},${Number(f.lat.toFixed(PLACES))},${Number(
           f.lon.toFixed(PLACES),
-        )}]`,
+        )}${f.mode ? `,${JSON.stringify(f.mode)}` : ""}]`,
     )
     .join("\n");
   // Written whole and renamed: a month file is read by the enrich step, and a

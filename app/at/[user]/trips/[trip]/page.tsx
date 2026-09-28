@@ -5,7 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { basemapForRoute } from "@/lib/basemap";
 import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
-import { buildStoryProps, showsCountdown, tripTrackFor } from "@/lib/tripView";
+import { buildStoryProps, showsCountdown } from "@/lib/tripView";
+import { tripCardMeta } from "@/lib/map/tripCard";
 import { getPlan, getPlanPrivate, stopsForReaders } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
 import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
@@ -23,6 +24,15 @@ import type { UserConfig } from "@/lib/config";
 import type { Trip } from "@/lib/types";
 
 import { journalPath } from "@/lib/journalPath";
+/** B2550 — kept in the client router cache for 30s: a `Link` tap back to a
+ * day, trip or list a reader already opened moments ago (Trips → back, a
+ * `StoryPager` step) shows what was already fetched rather than waiting on
+ * the server again. Owner-only mutations do not live on this page (they are
+ * under `/studio`), so nothing here can go stale in a way that matters more
+ * than a 30s wait would have cost anyway. Pages only, per Next's own rule —
+ * never on a layout. */
+export const unstable_dynamicStaleTime = 30;
+
 export async function generateMetadata({
   params,
 }: PageProps<"/at/[user]/trips/[trip]">): Promise<Metadata> {
@@ -176,7 +186,7 @@ async function TripStoryBody({
   site: SiteSummary;
   userConfig: UserConfig;
 }) {
-  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats } = buildStoryProps(trip.ref, {
     showCosts,
     ...read,
     // The window's prose is rendered here, in this reader's language — see
@@ -186,10 +196,10 @@ async function TripStoryBody({
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // gallery page.
   const photobook = await photobookEntryFor(trip);
-  // The trip's own recorded line — B2449. `index` is already this reader's
-  // date list (drafts and visibility applied by `buildStoryProps` above), the
-  // same set `tripTrackFor` filters `track.json` against.
-  const tripTrack = tripTrackFor(trip, index);
+  // The hero's own card facts — B2538. `index` is already this reader's
+  // date list (drafts and visibility applied by `buildStoryProps` above);
+  // the SVG itself is fetched as `<img src>` from `/card.svg`.
+  const card = tripCardMeta(trip, index);
   return (
     <>
       <BlogStructuredData
@@ -206,10 +216,8 @@ async function TripStoryBody({
         windowStart={windowStart}
         initialDate={initialDate}
         stats={stats}
-        basemap={basemap}
-        locals={locals}
+        card={card}
         photobook={photobook}
-        tripTrack={tripTrack}
         // B10 — who took this trip, visible on the page itself rather than
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}

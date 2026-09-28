@@ -1929,14 +1929,3 @@ select:disabled {
     transform: translateY(10px);
   }
 }
-
-/* Reduced motion: no slide, a 200ms crossfade of the whole page. */
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*) {
-    animation: none;
-  }
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation-duration: 200ms;
-  }
-}

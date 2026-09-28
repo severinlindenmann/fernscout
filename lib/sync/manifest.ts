@@ -127,7 +127,11 @@ const BASE_MANIFEST_FILE = ".fernscout-sync.json";
  * nothing worth keeping on either side, and this one especially must never
  * leave the trip's own reader-facing gate.
  */
-const DERIVED_FILES = new Set(["track.json", "track-recent.json", "track-edits.json"]);
+const DERIVED_FILES = new Set(["track.json", "track-recent.json", "track-edits.json", "recorder-state.json"]);
+// `recorder-state.json` (B2542) is the phone's own latest armed/permission
+// report for one trip — never a coordinate, but still owner-only content a
+// `write:content` bearer token has no business relaying in bulk, the same
+// reasoning `track-edits.json` gets above.
 // `track-edits.json` (B2539, D8 C) is not itself a derivation — it is the
 // owner's own settings, the coordinates and times of a hidden spot or
 // stretch — but it stays out of the manifest for the same reason

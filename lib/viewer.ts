@@ -92,7 +92,14 @@ function detailFor(trip: Trip, through: ViewerTrip["through"], level: ReaderLeve
     slug: entry.slug,
     title: entry.title,
     date: entry.date,
-    href: `${journalPath(trip.username)}/trips/${trip.id}/day/${entry.slug}`,
+    // The current trip's own day answers at the bare `/day/<slug>` address
+    // (`app/at/[user]/trips/[trip]/day/[slug]/page.tsx` 307s there) — matching
+    // `href` below rather than always spelling out `/trips/<id>/…` here saves
+    // every tap on the home page a redirect round trip (B2550).
+    href:
+      trip.status === "current"
+        ? `${journalPath(trip.username)}/day/${entry.slug}`
+        : `${journalPath(trip.username)}/trips/${trip.id}/day/${entry.slug}`,
   });
   const imageOf = (entry: Entry) => entry.gallery.find((item) => item.type === "image")?.src;
   const cover = trip.cover ?? read.map(imageOf).find(Boolean);

@@ -310,6 +310,20 @@ describe("the detail the home page draws", { shuffle: false }, () => {
       writeDayFixture(dir, user, trip, { slug: "unfinished", date: "2026-08-26", title: "Not yet", status: "draft" });
     }
 
+    // B2550 — the current trip's own day answers at the bare `/day/<slug>`
+    // address (the page 307s a `/trips/<id>/day/<slug>` tap there), so the
+    // home page's own link must already be the bare form.
+    writeTripFixture(OWNER, { id: "now-2026", start: "2020-01-01", end: "2099-01-01", status: "current" });
+    const nowMedia = path.join(dir, OWNER, "trips", "now-2026", "media");
+    fs.mkdirSync(nowMedia, { recursive: true });
+    fs.writeFileSync(path.join(nowMedia, "today.jpg"), "x");
+    writeDayFixture(dir, OWNER, "now-2026", {
+      slug: "today",
+      date: "2026-09-27",
+      title: "Today",
+      media: [{ src: "media/today.jpg" }],
+    });
+
     const { approveContact, confirmContact, listContacts, requestContact } = await import("@/lib/contacts");
     const { issueCode } = await import("@/lib/auth");
     await requestContact(OTHER, {
@@ -333,6 +347,11 @@ describe("the detail the home page draws", { shuffle: false }, () => {
     expect(trip.days).toBe(2);
     expect(trip.start).toBe("2026-08-25");
     expect(trip.latest?.href).toBe(`/@${OWNER}/trips/open-2026/day/held`);
+  });
+
+  test("the current trip's own day link skips straight past the redirect", async () => {
+    const trip = (await journalsFor(OWNER_EMAIL))[0].trips.find((t) => t.id === "now-2026")!;
+    expect(trip.latest?.href).toBe(`/@${OWNER}/day/today`);
   });
 
   test("a guest gets neither the draft nor the held-back day or its photograph", async () => {

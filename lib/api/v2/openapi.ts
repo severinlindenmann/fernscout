@@ -67,6 +67,7 @@ import {
   tripRenameRequest,
   tripRenameResult,
   gpsMonthsDoc,
+  gpsStateReport,
 } from "./schemas";
 import {
   ACCESSORIES,
@@ -1013,7 +1014,18 @@ function buildPaths(): Record<string, PathItem> {
         '`kind: "gps"` with `dryRun` false or absent; its response has no `extent`. Everything ' +
         "else about this door refuses that token exactly as it refuses any other non-owner call.",
       requestBody: jsonBody(
-        z.strictObject({ kind: z.enum(IMPORT_KINDS), format: z.string().optional(), inbox: z.string().optional(), text: z.string().optional() }),
+        z.strictObject({
+          kind: z.enum(IMPORT_KINDS),
+          format: z.string().optional(),
+          inbox: z.string().optional(),
+          text: z.string().optional(),
+          // B2542 — alongside a `kind: "gps"` upload, the phone's own latest
+          // armed/permission report for one trip. Never written on a dry
+          // run, never readable back through this door — see
+          // `recordingState` (`lib/gps/recorderState.ts`), the owner-cookie
+          // door onto it.
+          state: gpsStateReport.optional(),
+        }),
         "name the kind; give the bytes as inbox, text, or (multipart only) file",
       ),
       responses: {

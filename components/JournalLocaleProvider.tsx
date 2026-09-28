@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import LocaleProvider from "./LocaleProvider";
-import { dictionaryFor, journalLocale, type LocaleScope } from "@/lib/locales";
+import NestedLocaleProvider from "./NestedLocaleProvider";
+import { dictionaryDeltaFor, journalLocale, type LocaleScope } from "@/lib/locales";
 import { getUser } from "@/lib/users";
 
 /**
@@ -13,6 +13,11 @@ import { getUser } from "@/lib/users";
  * language (`journalLocale`, the one the journal layout asks), same
  * `writtenLocale`; only the dictionary differs.
  *
+ * Sends only the delta beyond `parentScope` (B2551, `dictionaryDeltaFor`) —
+ * every call today nests directly inside the journal layout's own provider,
+ * so that is the default; `NestedLocaleProvider` merges it back onto that
+ * provider's dictionary in the browser.
+ *
  * `notFound()` for a name that is no journal, as the journal layout does:
  * layouts render side by side, so this one cannot count on that one having
  * stopped the request first.
@@ -20,18 +25,21 @@ import { getUser } from "@/lib/users";
 export default async function JournalLocaleProvider({
   username,
   scope,
+  parentScope = "journal",
   children,
 }: {
   username: string;
   scope: LocaleScope;
+  parentScope?: LocaleScope;
   children: React.ReactNode;
 }) {
   const user = getUser(username);
   if (!user) notFound();
   const locale = await journalLocale(user);
+  const delta = dictionaryDeltaFor(locale, scope, parentScope);
   return (
-    <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, scope)} writtenLocale={user.defaultLocale}>
+    <NestedLocaleProvider locale={locale} writtenLocale={user.defaultLocale} delta={delta}>
       {children}
-    </LocaleProvider>
+    </NestedLocaleProvider>
   );
 }

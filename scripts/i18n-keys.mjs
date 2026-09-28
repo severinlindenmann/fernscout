@@ -156,9 +156,13 @@ if (decision.action === "skip" || decision.action === "refuse") {
   const currentCommit = git(["rev-parse", "HEAD"]);
   const openCoreFiles = ["app", "components", "lib", "scripts"].flatMap((d) => collectFiles(path.join(ROOT, d)));
   const withPaidFiles = [...openCoreFiles, ...collectFiles(paidDir)];
-  const usedOpenCore = usedKeys(openCoreFiles, keys);
-  const usedWithPaid = usedKeys(withPaidFiles, keys);
-  const paidOnly = keys.filter((k) => !usedOpenCore.has(k) && usedWithPaid.has(k));
+  // A key deleted from English that paid/ still reads stays declared, so
+  // test/paid-locale-keys.test.ts fails in public CI instead of the file
+  // quietly forgetting it (B2554).
+  const candidates = [...new Set([...keys, ...(previous?.keys ?? [])])].sort();
+  const usedOpenCore = usedKeys(openCoreFiles, candidates);
+  const usedWithPaid = usedKeys(withPaidFiles, candidates);
+  const paidOnly = candidates.filter((k) => !usedOpenCore.has(k) && usedWithPaid.has(k));
   const paidLocaleKeys = JSON.stringify({ generatedFrom: currentCommit, keys: paidOnly }, null, 2) + "\n";
   const previousRaw = fs.existsSync(paidLocaleKeysFile) ? fs.readFileSync(paidLocaleKeysFile, "utf8") : null;
   if (previousRaw === paidLocaleKeys) {

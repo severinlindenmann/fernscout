@@ -46,11 +46,11 @@ on a `public` trip, `guestsLive` (default live) on a `guest` trip, the
 travellers on a `private` trip — the instance operator gets none of it on a
 journal that is not their own, whatever the trip says. Excluded from the
 sync manifest and every export; see `docs/gps.md`'s "The live tail" for the
-whole rule. `routeRecording` is the one flag that
-gates the recorder UI and two owner-cookie-only doors (a place-name
-suggestion for a new day, and the owner's own route on their own location
-page) — neither ever returns raw positions to a bearer token or a third
-party. Several other doors read the raw store directly and are **not**
+whole rule. `routeRecording` is the one flag that gates the recorder UI and
+two doors, both on the owner's own cookie: a place name for a new day, and
+the owner's own route page (the line, per-trip counts and km by mode) —
+neither ever returns raw positions to a bearer token or a third party.
+Several other doors read the raw store directly and are **not**
 behind that flag or a cookie-only gate: `POST /api/v2/{user}/import` and
 `POST …/trips/{trip}/track` (owner cookie or a `write:gps` bearer token),
 and `GET /api/v2/{user}/gps` and `…/gps/zones` (owner cookie). See

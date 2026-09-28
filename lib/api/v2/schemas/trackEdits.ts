@@ -11,6 +11,7 @@
 // writing to the trip itself.
 import { z } from "zod";
 import { EDIT_LIMITS } from "@/lib/gps/api";
+import { TRANSPORT_MODES } from "@/importers/gps/schema";
 
 /**
  * A stretch's own wall clock, not an instant — security review, 2026-09-28.
@@ -55,6 +56,11 @@ const hiddenStretchWrite = z.strictObject({ id: editId, date: isoDate, from: wal
   (v) => v.from < v.to,
   { message: "from must be before to, both on the same date", path: ["to"] },
 );
+/** B2541 — the owner's own chosen mode for a named stretch, overriding
+ * whatever the recorded fixes say for it. Optional: naming a stretch never
+ * required saying how it was travelled, and still does not. */
+const transportMode = z.enum(TRANSPORT_MODES);
+
 const namedStretchWrite = z
   .strictObject({
     id: editId,
@@ -62,6 +68,7 @@ const namedStretchWrite = z
     from: wallTime,
     to: wallTime,
     label: z.string().trim().min(1).max(EDIT_LIMITS.labelMax),
+    mode: transportMode.optional(),
   })
   .refine((v) => v.from < v.to, { message: "from must be before to, both on the same date", path: ["to"] });
 
@@ -85,6 +92,7 @@ const namedStretchDoc = z.strictObject({
   from: z.string(),
   to: z.string(),
   label: z.string(),
+  mode: transportMode.optional(),
 });
 
 export const trackEditsDoc = z.strictObject({

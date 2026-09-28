@@ -4,7 +4,8 @@ import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
-import { buildStoryProps, tripTrackFor } from "@/lib/tripView";
+import { buildStoryProps } from "@/lib/tripView";
+import { tripCardMeta } from "@/lib/map/tripCard";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
@@ -13,6 +14,15 @@ import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
 import type { UserConfig } from "@/lib/config";
 import type { Trip } from "@/lib/types";
+
+/** B2550 — kept in the client router cache for 30s: a `Link` tap back to a
+ * day, trip or list a reader already opened moments ago (Trips → back, a
+ * `StoryPager` step) shows what was already fetched rather than waiting on
+ * the server again. Owner-only mutations do not live on this page (they are
+ * under `/studio`), so nothing here can go stale in a way that matters more
+ * than a 30s wait would have cost anyway. Pages only, per Next's own rule —
+ * never on a layout. */
+export const unstable_dynamicStaleTime = 30;
 
 export default async function Home({ params }: PageProps<"/at/[user]">) {
   const { user } = await params;
@@ -73,16 +83,18 @@ async function CurrentStoryBody({
   userConfig: UserConfig;
 }) {
   const tripId = trip.ref;
-  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
+  const { index, days, windowStart, initialDate, stats } = buildStoryProps(tripId, {
     showCosts,
     ...read,
     // The window's prose is rendered here, in this reader's language — see
     // lib/prose.ts.
     locale: await requestLocale(),
   });
-  // The trip's own recorded line — B2449. See the mirrored call in
-  // app/[user]/trips/[trip]/page.tsx.
-  const tripTrack = tripTrackFor(trip, index);
+  // The hero's own card facts — B2538. The SVG itself is `<img src>`'d
+  // straight from `/card.svg` (`components/map/MapCard.tsx`); this page
+  // only needs enough to lay the card out around it. See the mirrored call
+  // in app/[user]/trips/[trip]/page.tsx.
+  const card = tripCardMeta(trip, index);
   return (
     <>
       <BlogStructuredData
@@ -99,9 +111,7 @@ async function CurrentStoryBody({
         windowStart={windowStart}
         initialDate={initialDate}
         stats={stats}
-        basemap={basemap}
-        locals={locals}
-        tripTrack={tripTrack}
+        card={card}
         // B10 — who took this trip, visible on the page itself rather than
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}

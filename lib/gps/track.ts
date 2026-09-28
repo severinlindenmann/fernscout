@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../contentRoot";
 import { isInHiddenSpot, readTrackEdits, type HiddenSpot } from "./edits";
+import { isTransportMode, type TransportMode } from "../../importers/gps/schema";
 
 /**
  * A trip's own line — `content/<user>/trips/<trip>/track.json`.
@@ -32,6 +33,12 @@ export type TrackSegment = {
   day?: string;
   /** `[lat, lon]`, in order. Five decimal places. */
   points: [number, number][];
+  /** How most of this segment's fixes were made — B2541. The dominant known
+   *  mode among the underlying fixes, never finer than that (a segment does
+   *  not switch modes mid-line); absent when nothing recorded a mode for any
+   *  fix in it. A named stretch's own chosen mode (B2539) overrides this for
+   *  the labelled point, but never rewrites the segment itself. */
+  mode?: TransportMode;
 };
 
 /** One named stretch's own point on the line — B2539, D8 C. Computed at
@@ -40,7 +47,17 @@ export type TrackSegment = {
  * drawn. `day` is absent only when derivation could not place the stretch on
  * any trip date at all (nothing in range, or the whole range cut by another
  * rule) — dropped the same way a legacy, dateless `TrackSegment` is. */
-export type TrackLabel = { id: string; label: string; day?: string; point: [number, number] };
+export type TrackLabel = {
+  id: string;
+  label: string;
+  day?: string;
+  point: [number, number];
+  /** The stretch's own mode, when the owner set one (B2541/B2539) — read by
+   *  `namedStretchLabels` below alongside the label, so a named stretch
+   *  overrides what a reader is shown for that stretch rather than only its
+   *  words. */
+  mode?: TransportMode;
+};
 
 export type Track = {
   /** ISO instant this file was derived, so an owner can tell whether it
@@ -90,6 +107,7 @@ function readTrackFile(file: string): Track | undefined {
       typeof s === "object" &&
       s !== null &&
       (s.day === undefined || typeof s.day === "string") &&
+      (s.mode === undefined || isTransportMode(s.mode)) &&
       Array.isArray(s.points) &&
       s.points.length > 1 &&
       s.points.every(
@@ -104,6 +122,7 @@ function readTrackFile(file: string): Track | undefined {
           typeof l.id === "string" &&
           typeof l.label === "string" &&
           (l.day === undefined || typeof l.day === "string") &&
+          (l.mode === undefined || isTransportMode(l.mode)) &&
           Array.isArray(l.point) &&
           l.point.length === 2 &&
           l.point.every((n) => Number.isFinite(n)),

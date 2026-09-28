@@ -14,7 +14,7 @@ import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
-import { dayTrack } from "@/lib/gps/track";
+import { tripCardMeta } from "@/lib/map/tripCard";
 import type { UserConfig } from "@/lib/config";
 import type { Entry, Trip } from "@/lib/types";
 
@@ -25,6 +25,15 @@ import { journalPath } from "@/lib/journalPath";
  * that day. Rendered per request — see the layout for why nothing under
  * `/[user]/trips/[trip]` declares `generateStaticParams` any more.
  */
+
+/** B2550 — kept in the client router cache for 30s: a `Link` tap back to a
+ * day, trip or list a reader already opened moments ago (Trips → back, a
+ * `StoryPager` step) shows what was already fetched rather than waiting on
+ * the server again. Owner-only mutations do not live on this page (they are
+ * under `/studio`), so nothing here can go stale in a way that matters more
+ * than a 30s wait would have cost anyway. Pages only, per Next's own rule —
+ * never on a layout. */
+export const unstable_dynamicStaleTime = 30;
 
 export async function generateMetadata({
   params,
@@ -130,7 +139,7 @@ async function TripDayBody({
   site: SiteSummary;
   userConfig: UserConfig;
 }) {
-  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats } = buildStoryProps(trip.ref, {
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
     ...read,
@@ -143,10 +152,9 @@ async function TripDayBody({
   // gallery page.
   const photobook = await photobookEntryFor(trip);
 
-  // This day's own part of the recorded route — B2199. `visibleDates` is
-  // exactly the set this reader is shown an entry for (`index`, drafts and
-  // visibility already applied by `buildStoryProps` above).
-  const track = dayTrack(trip.username, trip.id, new Set(index.map((d) => d.date)), entry.date);
+  // The trip's own card facts — B2538. See the equivalent call and comment
+  // in the bare-URL /day/<slug> route.
+  const card = tripCardMeta(trip, index);
 
   return (
     <>
@@ -166,10 +174,8 @@ async function TripDayBody({
         initialDate={initialDate}
         openAtDate={entry.date}
         stats={stats}
-        basemap={basemap}
-        locals={locals}
+        card={card}
         photobook={photobook}
-        dayTrack={track}
       />
     </>
   );
