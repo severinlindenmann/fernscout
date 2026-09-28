@@ -10,13 +10,13 @@ import path from "node:path";
  * so a caller that skipped that check would read `undefined` rather than
  * some default path nobody configured.
  */
-export function mapsDir(): string | undefined {
+function mapsDir(): string | undefined {
   const dir = process.env.MAPS_DIR?.trim();
   return dir ? dir : undefined;
 }
 
 /** The one file `streetMaps` requires to exist before it can be on. */
-export function worldFile(): string | undefined {
+function worldFile(): string | undefined {
   const dir = mapsDir();
   return dir ? path.join(dir, "world.pmtiles") : undefined;
 }
@@ -86,7 +86,7 @@ export function tripMapRegions(user: string, tripId: string): MapRegion[] | unde
 }
 
 /** The URL `components/map/StreetMap.tsx` fetches a region file from. */
-export function mapsFileUrl(relFile: string): string {
+function mapsFileUrl(relFile: string): string {
   return `/api/maps/${relFile}`;
 }
 

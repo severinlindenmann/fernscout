@@ -7,11 +7,11 @@ import { useI18n } from "@/components/LocaleProvider";
 /** A map's own coordinate handle, exposed for a caller (B2537) to draw
  * markers or lines on it after it loads — through the real maplibre-gl
  * instance this component alone ever imports. */
-export type StreetMapHandle = { map: import("maplibre-gl").Map | null };
+type StreetMapHandle = { map: import("maplibre-gl").Map | null };
 
 type Bounds = [[number, number], [number, number]];
 
-export type StreetMapProps = {
+type StreetMapProps = {
   /** `[[minLng, minLat], [maxLng, maxLat]]` — the same shape `map.fitBounds` takes. */
   bounds: Bounds;
   /** Where this trip's region file is served from — `/api/maps/<file>` (see
