@@ -144,7 +144,7 @@ function render(search: string, props: Partial<React.ComponentProps<typeof MapPa
               <MapPageContent
                 places={places}
                 days={places.map((p) => ({ date: p.firstDate, slug: p.key, location: p.location,
-                  country: p.country, countryCode: p.countryCode, hasPlace: true, mediaCount: 1 }))}
+                  country: p.country, countryCode: p.countryCode, lat: p.lat, lng: p.lng, hasPlace: true, mediaCount: 1, updates: 1 }))}
                 stats={stats}
                 over
                 hasDays
