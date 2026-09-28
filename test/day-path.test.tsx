@@ -30,6 +30,7 @@ function days(): DaySummary[] {
       lng: -115.14,
       updates: 1,
       cost: 126,
+      mapName: "Las Vegas",
     },
     {
       date: "2026-09-06",
@@ -42,6 +43,7 @@ function days(): DaySummary[] {
       transport: { mode: "car", from: "Las Vegas", to: "Zion" },
       updates: 3,
       cost: 211,
+      mapName: "Zion National Park",
     },
   ];
 }

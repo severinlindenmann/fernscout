@@ -201,10 +201,23 @@ const KM_PER_DEGREE = 111;
 /**
  * The place a person would name for these coordinates, or null if the index
  * holds nothing within a thousand kilometres (mid-ocean, deep Antarctic).
+ *
+ * `townOnly` — B2543 — skips a GeoNames section (`isSection`, byte 11: a
+ * city district or borough, "Khlong Toei District") the same way
+ * `placesInBox` already does for a route map's town labels. Default
+ * `false`: a photograph is still named after the district it was actually
+ * taken in, which is the more precise answer and what every existing caller
+ * of this function wants. The map's own labels, chips and day strip want
+ * the coarser "Bangkok" instead — see `lib/map/townName.ts`.
  */
-export function reverseGeocode(lat: number, lng: number): Place | null {
+export function reverseGeocode(
+  lat: number,
+  lng: number,
+  options?: { townOnly?: boolean },
+): Place | null {
   const index = load();
   if (index.count === 0) return null;
+  const townOnly = options?.townOnly ?? false;
 
   const scan = (bandDegrees: number, score: (i: number) => number) => {
     const from = lowerBound(index.lats, lat - bandDegrees);
@@ -212,6 +225,7 @@ export function reverseGeocode(lat: number, lng: number): Place | null {
     let best = -1;
     let bestScore = Infinity;
     for (let i = from; i < to; i++) {
+      if (townOnly && index.records.readUInt8(i * RECORD_SIZE + 11)) continue;
       const s = score(i);
       if (s < bestScore) {
         bestScore = s;

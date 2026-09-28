@@ -69,7 +69,20 @@ const GAP_MS = 10 * 60 * 1000;
 
 function placesFrom(index: readonly DaySummary[]): MapPlace[] {
   return index
-    .map((d, i) => ({ day: i + 1, date: d.date, lat: d.lat, lng: d.lng, name: d.location }))
+    .map((d, i) => ({
+      day: i + 1,
+      date: d.date,
+      lat: d.lat,
+      lng: d.lng,
+      // B2543 — `d.mapName` (not `d.location`, the owner's own words) is
+      // already the map's own town-level label, or the localized "Home"
+      // string when `d.home` is true.
+      name: d.mapName,
+      // `d.home` came out of `buildStoryProps` the same way, so
+      // `buildTripFrame` (`lib/map/tripFrame.ts`) can apply its own Home
+      // rule (never "far", chips read "from home").
+      home: d.home,
+    }))
     .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 }
 

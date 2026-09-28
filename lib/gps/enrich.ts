@@ -107,6 +107,32 @@ export function isExcluded(fix: Fix, zones: ExcludeZone[]): boolean {
 }
 
 /**
+ * Whether a point sits inside the owner's home zone — B2543, the reader-safe
+ * yes/no `lib/map/tripFrame.ts`'s own `home` flag needed and never had (no
+ * reader-facing caller could set it, so a trip starting at home still named
+ * the home town). `exclude.json` carries no separate "home" marker on a zone
+ * — the module doc above shows the shape, and `hasHomeZoneOrDeclined` already
+ * treats *any* saved zone, whatever its label, as what the recorder arms
+ * against. So every zone in the file is a home-equivalent private place for
+ * this check too; there is nothing on disk to tell one apart from another.
+ *
+ * Never returns the zone itself, only the answer. Fails closed: an
+ * unreadable `exclude.json` must not crash the caller, and it must not let a
+ * real place be named "Home" either, so a read error answers `false` —
+ * "not confirmed home", the same side of the fence as "no zone saved at
+ * all" — rather than guessing either way.
+ */
+export function isHomePlace(username: string, point: { lat: number; lon: number }): boolean {
+  let zones: ExcludeZone[];
+  try {
+    zones = readExcludeZones(username);
+  } catch {
+    return false;
+  }
+  return isExcluded({ t: 0, lat: point.lat, lon: point.lon }, zones);
+}
+
+/**
  * Write the zone list — B2203. The only writer of `exclude.json`; before
  * this the file was documented as something only a shell could create, which
  * a hosted owner cannot reach. The shape on disk does not change — still the

@@ -1321,6 +1321,7 @@ export type TranslationKey =
   | "map.everyDay"
   | "map.fullscreen"
   | "map.hereNow"
+  | "map.homePlace"
   | "map.layers"
   | "map.legend.flight"
   | "map.legend.gap"

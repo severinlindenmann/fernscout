@@ -79,7 +79,12 @@ describe("grouping", () => {
     const places = getPlaces("u/coarse-2026");
 
     expect(places).toHaveLength(2);
-    expect(places.map((p) => p.location)).toEqual(["Wide Region", "Wide Region"]);
+    // B2543 — a map draws at town level now, never the owner's coarse
+    // "Wide Region"; the two real towns these coordinates resolve to are
+    // twelve kilometres apart, so the merge (still decided on the owner's
+    // own words, before this transform) is exactly what this test is about
+    // and is unchanged.
+    expect(places.map((p) => p.location)).toEqual(["Gaschurn", "Dalaas"]);
   });
 
   /** The other half of B1871: a genuine stay still merges. */

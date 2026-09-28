@@ -94,7 +94,14 @@ describe("getPlaces — B2544", () => {
   test("the owner's own studio still sees the real pin", () => {
     const ref = tripRef(OWNER, TRIP);
     const places = getPlaces(ref, AS_AUTHOR);
-    expect(places.map((p) => p.location).sort()).toEqual(["Ohrid", "The Hotel"]);
+    // B2543 broadened `getPlaces`' own `location` to the map's town-level
+    // label for every viewer, owner included ("Places and names" — a map
+    // draws at town level, never the owner's own words); the coordinates
+    // this test is actually about stay the real, unhidden pin either way.
+    const hotel = places.find((p) => p.entries.some((e) => e.slug === "at-the-hotel"))!;
+    expect(hotel.lat).toBeCloseTo(HOTEL.lat);
+    expect(hotel.lng).toBeCloseTo(HOTEL.lng);
+    expect(places.map((p) => p.location).sort()).toEqual(["Ljubljana", "Ohrid"]);
   });
 });
 
