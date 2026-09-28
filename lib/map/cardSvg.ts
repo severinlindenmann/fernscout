@@ -117,7 +117,8 @@ function regionAbsolutePath(relFile: string): string {
 }
 
 function cacheKey(...parts: unknown[]): string {
-  return crypto.createHash("sha256").update(JSON.stringify(parts)).digest("hex").slice(0, 32);
+  // Rendering changes must invalidate SVGs already cached on disk.
+  return crypto.createHash("sha256").update(JSON.stringify(["street-pixels-v2", ...parts])).digest("hex").slice(0, 32);
 }
 
 async function renderAndCache(
@@ -163,6 +164,7 @@ async function renderAndCache(
     // actually legible-sized against; the wider TRIP_WIDTH/DAY_WIDTH keep
     // choosing more detail for a card that renders bigger on a desktop.
     width: UI_WIDTH,
+    streetWidth: width,
     street,
     basemap,
     lines,
@@ -198,6 +200,7 @@ const DAY_RADIUS_SELECTED = 15;
 function renderSvg(opts: {
   frame: Frame;
   width: number;
+  streetWidth: number;
   street: StreetLayers | null;
   basemap: Basemap | null;
   lines: readonly MapLine[];
@@ -236,6 +239,8 @@ function renderSvg(opts: {
   // Overlay: street tiles, only where the trip's own region file covers —
   // refining the Natural Earth ground underneath it, not replacing it.
   if (street) {
+    const scale = frame.w / opts.streetWidth;
+    parts.push(`<g transform="translate(${frame.x} ${frame.y}) scale(${scale})">`);
     if (street.landuse.length > 0) {
       parts.push(`<g fill="${palette.visited}" fill-opacity="0.35" fill-rule="evenodd">`);
       for (const d of street.landuse) parts.push(`<path d="${d}"/>`);
@@ -247,13 +252,14 @@ function renderSvg(opts: {
       parts.push(`</g>`);
     }
     if (street.roads.length > 0) {
-      parts.push(`<g fill="none" stroke="${palette.roadCasing}" stroke-width="${px(2.4)}" stroke-linecap="round">`);
+      parts.push(`<g fill="none" stroke="${palette.roadCasing}" stroke-width="${px(2.4) / scale}" stroke-linecap="round">`);
       for (const d of street.roads) parts.push(`<path d="${d}"/>`);
       parts.push(`</g>`);
-      parts.push(`<g fill="none" stroke="${palette.road}" stroke-width="${px(1.1)}" stroke-linecap="round">`);
+      parts.push(`<g fill="none" stroke="${palette.road}" stroke-width="${px(1.1) / scale}" stroke-linecap="round">`);
       for (const d of street.roads) parts.push(`<path d="${d}"/>`);
       parts.push(`</g>`);
     }
+    parts.push(`</g>`);
   }
 
   // Overlay: B2534's own lines, drawn straight from the frame's own points —

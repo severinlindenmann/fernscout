@@ -45,7 +45,7 @@ async function nodeDecompress(buf: ArrayBuffer, compression: Compression): Promi
   return out.buffer.slice(out.byteOffset, out.byteOffset + out.byteLength);
 }
 
-/** One decoded layer, already projected into a `Frame`'s SVG units — ready
+/** One decoded layer, already projected into frame-local output pixels — ready
  * to join straight into a `<path d="…">`. */
 export type StreetLayers = {
   /** Filled polygons: water bodies. */
@@ -68,9 +68,8 @@ export type StreetLayers = {
  * of them for a four-stop Alpine trip, 264 kB of path data on its own even
  * after `ringsToPath`'s own trims — for a 35%-opacity tint the card can
  * lose without losing "the route at a glance". Re-add it, filtered to a
- * real minimum footprint (a tile-local bounding-box test, the same idea
- * `decimate` below applies to point count instead of shape count), if a
- * design review wants the tint back and has room in the "< 150 kB" budget
+ * real minimum footprint (the projected-area test below also used for water),
+ * if a design review wants the tint back and has room in the "< 150 kB" budget
  * for it.
  *
  * ponytail: "places" (town labels) and "buildings" are skipped entirely —
@@ -123,8 +122,8 @@ function chooseZoom(dLngDeg: number, widthPx: number, minZoom: number, maxZoom: 
 
 /**
  * Decodes the vector tiles covering `bbox` out of one PMTiles file, and
- * projects every feature straight into `frame`'s own SVG units via
- * `place()` — the same function every marker and line on this card uses, so
+ * projects every feature via `place()` into frame-local pixels at `widthPx`
+ * — the same projection every marker and line on this card uses, so
  * a road and a day marker never disagree about where the ground is.
  *
  * Returns `null` for a file that cannot be read or has nothing at this
@@ -188,6 +187,13 @@ export async function streetLayersForBbox(
       const bucket = out[name];
       for (let i = 0; i < layer.length; i++) {
         const feature = layer.feature(i);
+        // Regional frames need the road network, not every residential street.
+        const kind = feature.properties.kind;
+        if (
+          name === "roads" && z < 12 &&
+          kind !== "highway" && kind !== "major_road" &&
+          !(z >= 10 && kind === "medium_road")
+        ) continue;
         const rings = feature.loadGeometry();
         const isPolygon = feature.type === 3;
         const isLine = feature.type === 2;
@@ -197,7 +203,7 @@ export async function streetLayersForBbox(
         // them (measured: 5,729 for one region), the overwhelming majority
         // of every card's own weight — see `LAYER_NAMES`'s own note on why
         // this layer is not fetched at all today.
-        const d = ringsToPath(rings, z, x, y, layer.extent, frame, isPolygon);
+        const d = ringsToPath(rings, z, x, y, layer.extent, frame, isPolygon, widthPx);
         if (d) bucket.push(d);
       }
     }
@@ -206,38 +212,43 @@ export async function streetLayersForBbox(
   return sawAny ? out : null;
 }
 
-/** A ring longer than this is decimated to roughly this many points before
- * it is even reduced to a path — some rural highways at z15 carried 2,000+
- * vertices for a shape a 390px-wide card cannot show a tenth of. Uniform
- * striding (every Nth point, always keeping the first and last), not a real
- * simplification (nothing is moved and no shape-preserving algorithm runs),
- * but cheap and enough to hold the "< 150 kB" budget.
- * ponytail: a proper Douglas-Peucker pass would keep the shape's actual
- * corners rather than an arbitrary stride; upgrade if a real trip's road
- * still reads as visibly wrong after this. */
-const MAX_RING_POINTS = 50;
+type PixelPoint = [number, number];
 
-function decimate<T>(points: readonly T[], max: number): T[] {
-  if (points.length <= max) return [...points];
-  const stride = Math.ceil(points.length / max);
-  const out: T[] = [];
-  for (let i = 0; i < points.length; i += stride) out.push(points[i]);
-  const last = points[points.length - 1];
-  if (out[out.length - 1] !== last) out.push(last);
-  return out;
+/** Iterative Douglas-Peucker: bound screen-space error without a recursion
+ * limit on long coastlines. Closed rings include their first point again;
+ * the initial zero-length baseline splits at the farthest vertex. */
+function simplify(points: PixelPoint[], tolerance: number): PixelPoint[] {
+  if (points.length < 3) return points;
+  const keep = new Set([0, points.length - 1]);
+  const pending: [number, number][] = [[0, points.length - 1]];
+  while (pending.length) {
+    const [first, last] = pending.pop()!;
+    const [ax, ay] = points[first];
+    const dx = points[last][0] - ax;
+    const dy = points[last][1] - ay;
+    const length2 = dx * dx + dy * dy;
+    let farthest = -1;
+    let maxDistance2 = tolerance * tolerance;
+    for (let i = first + 1; i < last; i++) {
+      const [x, y] = points[i];
+      const t = length2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / length2)) : 0;
+      const distance2 = (x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2;
+      if (distance2 > maxDistance2) {
+        maxDistance2 = distance2;
+        farthest = i;
+      }
+    }
+    if (farthest !== -1) {
+      keep.add(farthest);
+      pending.push([first, farthest], [farthest, last]);
+    }
+  }
+  return points.filter((_, i) => keep.has(i));
 }
 
-/** One feature's rings, each already reduced to an SVG subpath — polygons
- * closed with `Z` (drawn `fillRule="evenodd"` so a hole cancels its outer
- * ring regardless of winding order — B2534's own `photoJoinLines` doc notes
- * the same "never guess the topology" instinct), lines left open.
- *
- * Coordinates round to 1 decimal place (not `place()`'s own 4 — plenty of
- * precision left over a card rendered at a few hundred CSS pixels wide) and
- * a point that rounds to the same spot as the one before it is dropped —
- * both just string-length savings toward the same "< 150 kB" budget, on top
- * of `decimate`'s own stride.
- */
+/** Paths use output pixels so a decimal place remains subpixel even for a
+ * town-sized frame. The card maps them back with one group transform.
+ * Polygon holes follow their exterior; dropping an exterior drops its holes. */
 function ringsToPath(
   rings: { x: number; y: number }[][],
   z: number,
@@ -246,23 +257,52 @@ function ringsToPath(
   extent: number,
   frame: Frame,
   close: boolean,
+  widthPx: number,
 ): string {
   const parts: string[] = [];
+  let exteriorSign = 0;
+  let keepExterior = false;
   for (const original of rings) {
-    const ring = decimate(original, MAX_RING_POINTS);
-    if (ring.length < (close ? 3 : 2)) continue;
-    const seen: string[] = [];
-    let last: string | null = null;
-    for (const p of ring) {
-      const { lat, lng } = tileLocalToLngLat(z, x, y, p.x, p.y, extent);
-      const [px, py] = place(frame, { lat, lng });
-      const rounded = `${px.toFixed(1)} ${py.toFixed(1)}`;
-      if (rounded === last) continue;
-      seen.push(rounded);
-      last = rounded;
+    if (original.length < (close ? 3 : 2)) continue;
+    let points: PixelPoint[] = original.map((p) => {
+      const coord = tileLocalToLngLat(z, x, y, p.x, p.y, extent);
+      const [px, py] = place(frame, coord);
+      return [(px - frame.x) * widthPx / frame.w, (py - frame.y) * widthPx / frame.w];
+    });
+    let isExterior = false;
+    if (close) {
+      const area = points.reduce((sum, p, i) => {
+        const next = points[(i + 1) % points.length];
+        return sum + p[0] * next[1] - next[0] * p[1];
+      }, 0) / 2;
+      if (!area) continue;
+      if (!exteriorSign) exteriorSign = Math.sign(area);
+      isExterior = Math.sign(area) === exteriorSign;
+      if (isExterior) keepExterior = Math.abs(area) >= 2;
+      if (!keepExterior || Math.abs(area) < 2) continue;
+      const first = points[0];
+      const last = points[points.length - 1];
+      if (first[0] !== last[0] || first[1] !== last[1]) points.push(first);
     }
-    if (seen.length < (close ? 3 : 2)) continue;
-    parts.push(`M${seen.join("L")}${close ? "Z" : ""}`);
+    points = simplify(points, 0.6);
+    const rounded: PixelPoint[] = [];
+    for (const [x, y] of points) {
+      const point: PixelPoint = [Number(x.toFixed(1)), Number(y.toFixed(1))];
+      const last = rounded.at(-1);
+      if (!last || point[0] !== last[0] || point[1] !== last[1]) rounded.push(point);
+    }
+    if (close) {
+      if (rounded.length > 1 && rounded[0][0] === rounded.at(-1)![0] && rounded[0][1] === rounded.at(-1)![1]) rounded.pop();
+      if (rounded.length < 3) {
+        // A collapsed exterior must not leave its holes as filled islands.
+        if (isExterior) keepExterior = false;
+        continue;
+      }
+    } else {
+      const length = rounded.reduce((sum, p, i) => i === 0 ? sum : sum + Math.hypot(p[0] - rounded[i - 1][0], p[1] - rounded[i - 1][1]), 0);
+      if (length < 2) continue;
+    }
+    parts.push(`M${rounded.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join("L")}${close ? "Z" : ""}`);
   }
   return parts.join("");
 }
