@@ -2254,6 +2254,8 @@
   "test.title": "Teszttartalom — ez nem valódi nap",
   "time.local": "helyi idő",
   "time.yourTime": "{time} nálad",
+  "printRouteMap.north": "É",
+  "printRouteMap.scaleApprox": "Kb. {distance}",
   "tripMap.connections": "A megállók közötti összeköttetés, nem rögzített útvonal",
   "tripMap.googleMaps": "Megnyitás a Google Térképen",
   "tripMap.googleMapsHelp": "Megnyitja ezt a helyet a Google Térképen.",

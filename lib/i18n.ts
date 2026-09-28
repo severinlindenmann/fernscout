@@ -2430,6 +2430,8 @@ export type TranslationKey =
   | "postcard.step.send"
   | "postcard.step.write"
   | "postcard.title"
+  | "printRouteMap.north"
+  | "printRouteMap.scaleApprox"
   | "publish.closed"
   | "publish.head"
   | "publish.listed"
