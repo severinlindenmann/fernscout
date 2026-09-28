@@ -7,6 +7,7 @@ import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 import { frameRoute, frameSpanKm, isPlottable, place as placeIn, type Frame } from "@/lib/mapFrame";
+import { framePoints } from "@/lib/map/tripFrame";
 import { useWorldLand } from "./useWorldLand";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
@@ -204,12 +205,18 @@ export default function WorldMap({
     return out;
   }, [plottable]);
 
-  // Base frame: the visited area, padded. An upcoming trip has no places yet
-  // — fall back to framing the planned route instead, so it isn't a few dots
-  // lost in the full world. Only when there's neither does the whole world
-  // stand in.
+  // Base frame: the visited area, padded — B2534's "fit the places where
+  // days happened, never home". `framePoints` drops a far outlier (a home
+  // leg, a side trip in its own region) down to the region most of the trip
+  // actually happened in, unless there are more than three regions, in
+  // which case it is a tour and every place stays. An upcoming trip has no
+  // places yet — fall back to framing the planned route instead, so it
+  // isn't a few dots lost in the full world. Only when there's neither does
+  // the whole world stand in. `lib/basemap.ts`'s server-side clip calls
+  // `framePoints` on the same `places` array before framing it, so the two
+  // keep agreeing the way the comment there already required.
   const base = useMemo(
-    () => frameRoute(plottable.length > 0 ? plottable : plan),
+    () => frameRoute(plottable.length > 0 ? framePoints(plottable) : plan),
     [plottable, plan],
   );
 
@@ -218,7 +225,11 @@ export default function WorldMap({
   // rather than the empty ocean in the middle of a long-haul leg.
   const focus = useMemo(() => {
     if (plottable.length === 0) return null;
-    const pts = plottable.map((p) => placeIn(base, p));
+    // The same framed subset `base` was fit to — a far outlier still pulling
+    // the drift-zoom centre toward it would undo the point of tightening the
+    // frame in the first place.
+    const framed = framePoints(plottable);
+    const pts = (framed.length > 0 ? framed : plottable).map((p) => placeIn(base, p));
     return {
       x: pts.reduce((s, p) => s + p[0], 0) / pts.length,
       y: pts.reduce((s, p) => s + p[1], 0) / pts.length,
