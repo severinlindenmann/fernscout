@@ -4,7 +4,9 @@ import { cache } from "react";
 import type { UserConfig } from "@/lib/config";
 import { inviteMetadata, inviteSubject } from "@/lib/invitePreview";
 import { redirect } from "next/navigation";
+import LocaleProvider from "@/components/LocaleProvider";
 import NoticeShell from "@/components/NoticeShell";
+import PageShell from "@/components/landing/PageShell";
 import { guestLanding, isOpenToApprovedGuest } from "@/lib/access";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
@@ -70,10 +72,16 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   if (!found || !user) {
     const locale = await requestLocale();
     return (
-      <NoticeShell
-        title={translateIn(locale, "welcomeLink.unknownTitle")}
-        body={translateIn(locale, "welcomeLink.unknownBody")}
-      />
+      // B2533: the slim header C and the shared footer, same as every other
+      // mid-task page — this one used to draw no frame at all.
+      <PageShell slim>
+        <NoticeShell
+          inFrame
+          lang={locale}
+          title={translateIn(locale, "welcomeLink.unknownTitle")}
+          body={translateIn(locale, "welcomeLink.unknownBody")}
+        />
+      </PageShell>
     );
   }
 
@@ -122,8 +130,10 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
     : null;
 
   return (
-    <main id="main" lang={locale} className="mx-auto w-full max-w-md px-4 py-8">
-      <WelcomeGuide
+    <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "root")}>
+      <PageShell slim>
+        <div lang={locale} className="mx-auto w-full max-w-md px-4 py-8">
+          <WelcomeGuide
         code={code}
         owner={owner}
         title={user.title}
@@ -165,7 +175,9 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         locale={locale}
         locales={localesFor(owner)}
         addressLookupEnabled={isEnabled("addressLookup", owner)}
-      />
-    </main>
+          />
+        </div>
+      </PageShell>
+    </LocaleProvider>
   );
 }

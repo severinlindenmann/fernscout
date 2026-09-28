@@ -4,7 +4,9 @@ import { cache } from "react";
 import type { UserConfig } from "@/lib/config";
 import { inviteMetadata, inviteSubject } from "@/lib/invitePreview";
 import type { Trip } from "@/lib/types";
+import LocaleProvider from "@/components/LocaleProvider";
 import NoticeShell from "@/components/NoticeShell";
+import PageShell from "@/components/landing/PageShell";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { isJournalGuest, isOwner, journalReader } from "@/lib/contacts/session";
@@ -59,10 +61,16 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
     // B2368 — a group link was never sent by email; "Links sent by email
     // expire on purpose" is simply false here.
     return (
-      <NoticeShell
-        title={translateIn(locale, "err.linkExpiredTitle")}
-        body={translateIn(locale, "err.linkExpiredBodyShared")}
-      />
+      // B2533: the slim header C and the shared footer, same as every other
+      // mid-task page — this one used to draw no frame at all.
+      <PageShell slim>
+        <NoticeShell
+          inFrame
+          lang={locale}
+          title={translateIn(locale, "err.linkExpiredTitle")}
+          body={translateIn(locale, "err.linkExpiredBodyShared")}
+        />
+      </PageShell>
     );
   }
 
@@ -73,44 +81,67 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
   // Following your own link is not a way of joining your own journal.
   if (await isOwner(owner)) {
     return (
-      <NoticeShell
-        lang={locale}
-        title={translateIn(locale, "invite.ownerTitle")}
-        body={translateIn(locale, "invite.ownerBody")}
-        actions={[home]}
-      />
+      // Nested rather than left to the root layout's own (browser/cookie-driven)
+      // provider — the same reason the body renders in this language: a
+      // header in one language above a notice in another is exactly the
+      // mismatch this page exists to avoid (app/at/[user]/c/[token]/page.tsx).
+      <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "root")}>
+        <PageShell slim>
+          <NoticeShell
+            inFrame
+            lang={locale}
+            title={translateIn(locale, "invite.ownerTitle")}
+            body={translateIn(locale, "invite.ownerBody")}
+            actions={[home]}
+          />
+        </PageShell>
+      </LocaleProvider>
     );
   }
   const reader = await journalReader(owner);
   const alreadyIn = trip ? await isPersonOn(trip, reader.email) : await isJournalGuest(owner);
   if (alreadyIn) {
     return (
-      <NoticeShell lang={locale} title={translateIn(locale, "join.alreadyTitle")} body={translateIn(locale, "join.alreadyBody", { title: user.title })} actions={[home]} />
+      <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "root")}>
+        <PageShell slim>
+          <NoticeShell
+            inFrame
+            lang={locale}
+            title={translateIn(locale, "join.alreadyTitle")}
+            body={translateIn(locale, "join.alreadyBody", { title: user.title })}
+            actions={[home]}
+          />
+        </PageShell>
+      </LocaleProvider>
     );
   }
 
   const knownEmail = reader.email && !subjectPhone(reader.email) ? maskEmail(reader.email) : null;
   return (
-    <main id="main" lang={locale} className="mx-auto w-full max-w-md px-4 py-8">
-      <JoinFlow
-        code={code}
-        owner={owner}
-        title={user.title}
-        ownerName={ownerShortName(user)}
-        kind={invite.kind === "buddy" ? "buddy" : "guest"}
-        tripTitle={trip?.title ?? null}
-        knownEmail={knownEmail}
-        caps={{
-          mail: !mailDisabledReason(owner),
-          sms: isEnabled("sms"),
-          whatsapp: isEnabled("whatsapp") && !hasSwitchedOff("whatsapp", owner),
-          postcards: isEnabled("postcards", owner),
-        }}
-        dictionary={dictionaryFor(locale, "guide")}
-        locale={locale}
-        locales={localesFor(owner)}
-        addressLookupEnabled={isEnabled("addressLookup", owner)}
-      />
-    </main>
+    <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "root")}>
+      <PageShell slim>
+        <div lang={locale} className="mx-auto w-full max-w-md px-4 py-8">
+          <JoinFlow
+            code={code}
+            owner={owner}
+            title={user.title}
+            ownerName={ownerShortName(user)}
+            kind={invite.kind === "buddy" ? "buddy" : "guest"}
+            tripTitle={trip?.title ?? null}
+            knownEmail={knownEmail}
+            caps={{
+              mail: !mailDisabledReason(owner),
+              sms: isEnabled("sms"),
+              whatsapp: isEnabled("whatsapp") && !hasSwitchedOff("whatsapp", owner),
+              postcards: isEnabled("postcards", owner),
+            }}
+            dictionary={dictionaryFor(locale, "guide")}
+            locale={locale}
+            locales={localesFor(owner)}
+            addressLookupEnabled={isEnabled("addressLookup", owner)}
+          />
+        </div>
+      </PageShell>
+    </LocaleProvider>
   );
 }
