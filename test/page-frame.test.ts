@@ -31,10 +31,6 @@ const OUTSIDE = [
   // The operator console: a tool with its own shell (B2484), not a page a
   // visitor reaches.
   "app/admin/",
-  // A journal's own invite links: the journal's welcome, in the contact's
-  // language rather than the visitor's, so not the site's frame.
-  "app/j/",
-  "app/w/",
 ];
 
 /** The brand workbenches draw the app's own components (a day card, a
@@ -53,6 +49,9 @@ const OWN_COLOURS: Record<string, string> = {
   // Drawings of the app's own screens, whose warning, recording and delete
   // marks are coral in the app itself.
   "paid/orgs/components/PhoneMock.tsx": "a drawing of the app's screens",
+  // The "proven" mark on an address the contact already confirmed — B2533:
+  // the frame moved into the kit, the guide's own steps did not.
+  "app/w/[code]/WelcomeGuide.tsx": "the proven/done mark, green-700",
 };
 
 function walk(dir: string, out: string[] = []): string[] {
