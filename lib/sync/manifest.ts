@@ -127,7 +127,16 @@ const BASE_MANIFEST_FILE = ".fernscout-sync.json";
  * nothing worth keeping on either side, and this one especially must never
  * leave the trip's own reader-facing gate.
  */
-const DERIVED_FILES = new Set(["track.json", "track-recent.json"]);
+const DERIVED_FILES = new Set(["track.json", "track-recent.json", "track-edits.json"]);
+// `track-edits.json` (B2539, D8 C) is not itself a derivation — it is the
+// owner's own settings, the coordinates and times of a hidden spot or
+// stretch — but it stays out of the manifest for the same reason
+// `exclude.json` never enters one either: a `write:content` bearer token
+// sits in agent scrollbacks, and this is exactly the kind of "owner typed a
+// coordinate meaning nobody outside this journal may see it" content that
+// must never ride along in bulk. `lib/gps/edits.ts` and its doors
+// (`GET`/`PUT /api/v2/{user}/trips/{trip}/track-edits`) are the only way to
+// read or write it.
 
 /**
  * Top-level directories under `content/<username>/` that a sync never walks.

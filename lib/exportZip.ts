@@ -260,6 +260,13 @@ function appendUserContent(
       // token's own machine (or the mailed delete archive) with no
       // reader-facing gate left to filter it through afterwards.
       if (relative === "track-recent.json") continue;
+      // B2539, D8 C — the owner's own hidden spots, hidden stretches and
+      // named stretches never leave in an export either, the same reasoning
+      // as `track-recent.json` just above: coordinates and times the owner
+      // typed meaning "nobody outside this journal", on a file that would
+      // otherwise be a bearer token's own machine with no reader-facing gate
+      // left to filter it through.
+      if (relative === "track-edits.json") continue;
       archive.file(file, { name });
     }
 

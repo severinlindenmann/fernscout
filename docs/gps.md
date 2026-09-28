@@ -461,6 +461,88 @@ exact Settings path instead. `locationPermission()` reports
 switch at all times, Precise Location included, since without it every fix
 is kilometres wide.
 
+## Hide a spot, hide a stretch, name a stretch — B2539, D8 C
+
+GPS makes mistakes, and some places should never be public — a hotel, a
+friend's flat, a private moment the owner does not want plotted. The Algarve
+find that named this ticket: a boat trip with dolphins came out of Google
+Timeline as "in passenger vehicle, 43 km", because a phone's best guess at
+transport mode is a guess. The owner can now say otherwise, per trip:
+
+```json
+content/<user>/trips/<trip>/track-edits.json
+{
+  "hiddenSpots": [{ "id": "…", "lat": 37.1, "lon": -8.8, "radiusM": 200 }],
+  "hiddenStretches": [{ "id": "…", "from": "2026-06-22T14:00:00Z", "to": "2026-06-22T16:00:00Z" }],
+  "namedStretches": [{ "id": "…", "from": "2026-06-22T10:00:00Z", "to": "2026-06-22T12:00:00Z", "label": "Boat trip · dolphins" }]
+}
+```
+
+A **hidden spot** is a circle, the same shape as a private zone
+(`ExcludeZone`, above) but scoped to one trip rather than the whole journal —
+a place visited once on this trip is not "everywhere the owner has ever
+been near". A **hidden stretch** is a time range with nothing said about it.
+A **named stretch** is the same time range with a label a reader's map may
+draw. Naming does not hide: every fix in a named stretch still reaches the
+line unless some other rule also cuts it. `id` is assigned server-side on
+write (`writeTrackEdits`, `lib/gps/api.ts`) for anything new, never
+client-chosen, so two tabs adding a hidden spot at once cannot collide.
+
+**Hiding never deletes a position.** The store keeps every fix; only what a
+reader is ever shown changes, applied at exactly the same place a private
+zone already is — inside `deriveTrack` (`lib/gps/enrich.ts`), which breaks a
+run wherever a fix falls inside a hidden spot or a hidden stretch, the same
+way it already breaks one at a private zone. Read once per derivation
+(`deriveTripTrack`, `lib/gps/api.ts`) and threaded into **both**
+`track.json` and `track-recent.json` (the live tail) — never into
+`ownerTripLine`, the owner's own unfiltered view, which is deliberately not
+the audience a hidden spot or stretch protects. Because the cut happens at
+derivation, every reader of the resulting file is already safe with no
+further filtering: both map pages (through `readerTrack`), the export
+(`lib/exportZip.ts`, which re-derives through `readerTrack` at export time
+too) and the trip's story/card build (`lib/tripView.ts`) all pass through
+the same two files.
+
+**A named stretch's own label and point** are computed at that same
+derivation step — the fix closest to the stretch's own middle instant, among
+the fixes that would actually be drawn (in range, on a real trip date, not
+cut by any other rule) — and stored as `Track.labels` (`lib/gps/track.ts`)
+alongside the file's `segments`. `namedStretchLabels(user, tripId,
+visibleDates, live)` is the reader-safe door onto it, filtered to this
+reader's own visible dates the same way `readerTrack`'s segments are — a
+label, never the line, one point on it. It does not draw anything; a map
+page choosing how to draw that point is a separate ticket (B2537).
+
+**Writing edits re-derives immediately.** `writeTrackEdits` calls
+`deriveTripTrack` before it returns, the same urgency `writeZones` already
+has for private zones and for the same reason: a hidden spot the owner just
+saved must cut the reader-facing line off from the moment it is saved, not
+from the next import or explicit `POST …/track`.
+
+**Doors**, mirroring `gps/zones` exactly — owner only, a trip-scoped token
+refused even for its own trip, because a hidden spot changes what every
+reader of the trip is shown, a bigger authority than an ordinary write to it:
+
+```http
+GET  /api/v2/<user>/trips/<trip>/track-edits
+PUT  /api/v2/<user>/trips/<trip>/track-edits
+```
+
+`/api/web/<user>/trips/<trip>/track-edits` is the studio's own cookie-only
+twin — Studio › Location's per-trip "Hide a spot, hide a stretch, name a
+stretch" panel, folded under a recorded trip's day list, uses it.
+
+**Never in export or sync, the same reasoning `track-recent.json` gets.**
+`track-edits.json` is decided as trip content — it lives beside `track.json`
+in the trip's own folder, because it is inherently about one trip's line —
+but it still carries coordinates and times the owner chose meaning "nobody
+outside this journal", so it gets the same two exclusions the live tail
+does: `lib/exportZip.ts` skips it outright in every export scope, and
+`lib/sync/manifest.ts`'s `inSync` refuses it, so a `write:content` bearer
+token — the kind that sits in agent scrollbacks — cannot list or fetch it
+through the sync surface either. `test/gps-track-edits.test.ts` and
+`test/track-edits-route.test.ts` are the tests.
+
 ## What this does not do
 
 No live tracking (B666 is the endpoint an app like OwnTracks or Overland would

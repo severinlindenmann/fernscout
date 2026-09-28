@@ -5,6 +5,7 @@ import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
+import TrackEditsPanel from "./TrackEditsPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import { routeStatus, useNativeShell, type RouteRecordStatus } from "@/components/nativeShell";
 import type { Basemap } from "@/lib/basemap";
@@ -295,6 +296,17 @@ export default function RecordedTripsSection({
                         onCancel={() => setAsking(null)}
                       />
                     </div>
+                  )}
+
+                  {/* B2539, D8 C — hide a spot, hide a stretch, name a
+                      stretch, for this trip. Only offered once at least one
+                      day is recorded, the same days list above. */}
+                  {days.size > 0 && (
+                    <TrackEditsPanel
+                      username={username}
+                      tripId={trip.tripId}
+                      days={[...days.keys()].sort()}
+                    />
                   )}
                 </div>
               )}

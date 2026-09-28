@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { GPS_IMPORTERS } from "@/importers/gps";
 import { CONTACTS_IMPORTERS } from "@/importers/contacts";
 import { checkGpsImporter, type GpsImporter, type Fix } from "@/importers/gps/schema";
@@ -17,6 +18,12 @@ import {
   type ExcludeZone,
 } from "./enrich";
 import { deleteTail, deleteTrack, trackPointCount, writeTail, writeTrack } from "./track";
+import {
+  EDIT_LIMITS,
+  readTrackEdits,
+  writeTrackEdits as writeTrackEditsFile,
+  type TrackEdits,
+} from "./edits";
 import { reverseGeocode } from "../ingest/geo";
 import { earliestTodayISO } from "../tripTime";
 import { zonedTimeToUtc } from "../timezone";
@@ -379,6 +386,12 @@ export function deriveTripTrack(
 ): { segments: number; points: number; zones: number; written: boolean } {
   const zones = readExcludeZones(username);
   const zonedDates = dayTimezones(username, trip);
+  // B2539, D8 C — the owner's own hidden spots, hidden stretches and named
+  // stretches for this trip. Read here, once, and threaded into both
+  // `deriveTrack` calls below (track and tail) exactly the way `zones` is —
+  // never into `ownerTripLine`, which is the owner's own unfiltered view and
+  // deliberately bypasses this whole function.
+  const edits = readTrackEdits(username, trip.id);
   // B2202 rework: derivation now covers every trip date, drafts included —
   // never inside the last 24h, though, so a fix nobody has even written a
   // day for yet still cannot reach a reader within the hour. Which dates a
@@ -391,6 +404,9 @@ export function deriveTripTrack(
     dayTimezones: zonedDates,
     maxEndMs: Date.now() - MIN_AGE_MS,
     trimMetres: TRIM_METRES,
+    hiddenSpots: edits.hiddenSpots,
+    hiddenStretches: edits.hiddenStretches,
+    namedStretches: edits.namedStretches,
   });
   const points = trackPointCount(track);
   // Nothing left to draw — the store has no fixes for these dates, or every
@@ -404,7 +420,7 @@ export function deriveTripTrack(
   // B2536 — the tail is derived at exactly this same moment, from the same
   // zones and date windows, so the two files never drift about what "this
   // trip" means even though they cover disjoint time ranges.
-  deriveTripTail(username, trip, zones, zonedDates);
+  deriveTripTail(username, trip, zones, zonedDates, edits);
   if (track.segments.length === 0) return { segments: 0, points: 0, zones: zones.length, written: false };
   return { segments: track.segments.length, points, zones: zones.length, written: true };
 }
@@ -425,6 +441,7 @@ function deriveTripTail(
   trip: { id: string; start: string; end: string },
   zones: ExcludeZone[],
   zonedDates: Readonly<Record<string, string>>,
+  edits: TrackEdits,
 ): void {
   const now = Date.now();
   const tail = tailForTrip(username, {
@@ -435,6 +452,9 @@ function deriveTripTail(
     trimMetres: TRIM_METRES,
     sinceMs: now - MIN_AGE_MS,
     nowMs: now,
+    hiddenSpots: edits.hiddenSpots,
+    hiddenStretches: edits.hiddenStretches,
+    namedStretches: edits.namedStretches,
   });
   if (tail.segments.length === 0) deleteTail(username, trip.id);
   else writeTail(username, trip.id, tail);
@@ -528,6 +548,49 @@ export function writeZones(
 }
 
 export { hasHomeZoneOrDeclined };
+
+export { EDIT_LIMITS };
+export type { HiddenSpot, HiddenStretch, NamedStretch, TrackEdits } from "./edits";
+
+/**
+ * One trip's hidden spots, hidden stretches and named stretches — B2539,
+ * D8 C. `writeTrackEdits` re-derives this trip's `track.json` and
+ * `track-recent.json` the moment it returns — the same urgency `writeZones`
+ * (above) already has for private zones, and for the same reason: a hidden
+ * spot the owner just typed in must cut the reader-facing line off from the
+ * moment they save it, not from the next import or explicit `POST …/track`.
+ * Never touches `content/<user>/gps/` at all, and never deletes a position
+ * — every fix stays in the store; only what a reader is later shown changes.
+ */
+export function listTrackEdits(username: string, tripId: string): TrackEdits {
+  return readTrackEdits(username, tripId);
+}
+
+/**
+ * Write the whole edits document for one trip and re-derive its two
+ * reader-facing files immediately — same shape as `writeZones`. IDs are
+ * assigned here, server-side, for any spot, hidden stretch or named stretch
+ * that does not already carry one (a fresh one the owner just added in the
+ * studio) — never client-chosen, so two tabs adding "a hidden spot" at once
+ * cannot collide on the same id the way a client-chosen one could.
+ */
+export function writeTrackEdits(
+  username: string,
+  tripId: string,
+  edits: { hiddenSpots: { id?: string; lat: number; lon: number; radiusM: number }[];
+    hiddenStretches: { id?: string; from: string; to: string }[];
+    namedStretches: { id?: string; from: string; to: string; label: string }[] },
+): TrackEdits {
+  const withIds: TrackEdits = {
+    hiddenSpots: edits.hiddenSpots.map((s) => ({ ...s, id: s.id ?? randomUUID() })),
+    hiddenStretches: edits.hiddenStretches.map((s) => ({ ...s, id: s.id ?? randomUUID() })),
+    namedStretches: edits.namedStretches.map((s) => ({ ...s, id: s.id ?? randomUUID() })),
+  };
+  writeTrackEditsFile(username, tripId, withIds);
+  const trip = getTrip(tripRef(username, tripId));
+  if (trip) deriveTripTrack(username, trip);
+  return withIds;
+}
 
 /** A day may be offered a place, never a coordinate — B2200. Not exported:
  * `placeForDay`'s one caller (`app/api/helper/[user]/day/place/route.ts`)

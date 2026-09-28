@@ -33,11 +33,22 @@ export type TrackSegment = {
   points: [number, number][];
 };
 
+/** One named stretch's own point on the line — B2539, D8 C. Computed at
+ * derivation time (`deriveTrack`, `./enrich.ts`) from the fix closest to the
+ * stretch's own middle instant, among the fixes that would actually be
+ * drawn. `day` is absent only when derivation could not place the stretch on
+ * any trip date at all (nothing in range, or the whole range cut by another
+ * rule) — dropped the same way a legacy, dateless `TrackSegment` is. */
+export type TrackLabel = { id: string; label: string; day?: string; point: [number, number] };
+
 export type Track = {
   /** ISO instant this file was derived, so an owner can tell whether it
    * predates the days they have since written. */
   generated: string;
   segments: TrackSegment[];
+  /** Named stretches this file's own dates carry a label for — absent when
+   * none do. See `TrackLabel` and `namedStretchLabels` below. */
+  labels?: TrackLabel[];
 };
 
 export function trackFile(username: string, tripId: string): string {
@@ -71,7 +82,7 @@ function readTrackFile(file: string): Track | undefined {
     return undefined;
   }
   if (typeof raw !== "object" || raw === null) return undefined;
-  const { generated, segments } = raw as Partial<Track>;
+  const { generated, segments, labels } = raw as Partial<Track>;
   if (!Array.isArray(segments)) return undefined;
   const clean = segments.filter(
     (s): s is TrackSegment =>
@@ -84,8 +95,27 @@ function readTrackFile(file: string): Track | undefined {
         (p) => Array.isArray(p) && p.length === 2 && p.every((n) => Number.isFinite(n)),
       ),
   );
-  if (clean.length === 0) return undefined;
-  return { generated: typeof generated === "string" ? generated : "", segments: clean };
+  const cleanLabels = Array.isArray(labels)
+    ? labels.filter(
+        (l): l is TrackLabel =>
+          typeof l === "object" &&
+          l !== null &&
+          typeof l.id === "string" &&
+          typeof l.label === "string" &&
+          (l.day === undefined || typeof l.day === "string") &&
+          Array.isArray(l.point) &&
+          l.point.length === 2 &&
+          l.point.every((n) => Number.isFinite(n)),
+      )
+    : [];
+  // Nothing left to draw and nothing to label — the same "absent is
+  // normal" shape the rest of this file uses.
+  if (clean.length === 0 && cleanLabels.length === 0) return undefined;
+  return {
+    generated: typeof generated === "string" ? generated : "",
+    segments: clean,
+    ...(cleanLabels.length > 0 ? { labels: cleanLabels } : {}),
+  };
 }
 
 function writeTrackFile(file: string, track: Track): void {
@@ -235,6 +265,33 @@ export function dayTrack(
     (s) => s.day === date,
   );
   return segments && segments.length > 0 ? segments.map((s) => s.points) : undefined;
+}
+
+/**
+ * A reader-safe list of named-stretch labels — B2539, D8 C. A separate door
+ * from `readerTrack` rather than folding into it, deliberately: this reads
+ * `track.json`'s (and, when `live` says so, `track-recent.json`'s) own
+ * `labels` field, filters to the dates `visibleDates` already resolved for
+ * this reader (the same rule `readerTrack`'s segments use), and hands back a
+ * label plus one point on the line for each — never the line itself. Maps
+ * draw it as a small tag ("Boat trip · dolphins") at that point; this
+ * function does not draw anything, so a UI change to how it is drawn never
+ * touches this file.
+ */
+export function namedStretchLabels(
+  username: string,
+  tripId: string,
+  visibleDates: ReadonlySet<string>,
+  live = false,
+): TrackLabel[] {
+  const track = readTrack(username, tripId);
+  const fromTrack = (track?.labels ?? []).filter((l) => l.day !== undefined && visibleDates.has(l.day));
+  const tail = live ? readTail(username, tripId) : undefined;
+  const fromTail =
+    tail && tailIsLive(tail)
+      ? (tail.labels ?? []).filter((l) => l.day !== undefined && visibleDates.has(l.day))
+      : [];
+  return [...fromTrack, ...fromTail];
 }
 
 /** How many points, across every segment. For the CLI's report. */

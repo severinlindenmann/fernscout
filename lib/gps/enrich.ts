@@ -2,7 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { gpsDir, metresBetween, readRange } from "./store";
 import { zonedTimeToUtc } from "../timezone";
-import type { Track, TrackSegment } from "./track";
+import { isInHiddenSpot, isInStretch, type HiddenSpot, type NamedStretch } from "./edits";
+import type { Track, TrackLabel, TrackSegment } from "./track";
 import type { Fix } from "../../importers/gps/schema";
 
 /**
@@ -255,6 +256,22 @@ export type DeriveOptions = {
    *  the B2516 bug. The date window still clips the trip's own bounds either
    *  way; only the mid-trip break is optional. */
   breakAtDate?: boolean;
+  /** B2539, D8 C — one trip's own hidden spots (a circle, same shape as an
+   *  `ExcludeZone` but scoped to this trip alone) and hidden stretches (a
+   *  time range). A fix inside either is cut, the run breaks there, exactly
+   *  like a private zone — see `isInHiddenSpot`/`isInStretch` (`./edits.ts`).
+   *  Opt-in, same reason as `maxEndMs`/`trimMetres`: `ownerTripLine`
+   *  (`./api.ts`) never passes these, because the owner looking at their own
+   *  recorded history is not the audience a hidden spot or stretch protects
+   *  — the owner is the one who hid it. */
+  hiddenSpots?: HiddenSpot[];
+  hiddenStretches?: { from: string; to: string }[];
+  /** Named, not hidden — a stretch the owner put a label on, so a reader's
+   *  map can draw "Boat trip · dolphins" instead of trusting a phone's own
+   *  best guess at transport mode. Every fix in range still reaches the
+   *  line (unless some other rule above also cuts it); naming only adds a
+   *  label, computed below into `Track.labels`. */
+  namedStretches?: NamedStretch[];
 };
 
 /** One calendar day later, as a date string — timezone-agnostic, this is
@@ -342,8 +359,19 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
   const gap = (options.gapSeconds ?? GAP_SECONDS) * 1000;
   const tolerance = options.toleranceM ?? SIMPLIFY_METRES;
   const breakAtDate = options.breakAtDate ?? true;
+  const hiddenSpots = options.hiddenSpots ?? [];
+  const hiddenStretches = options.hiddenStretches ?? [];
+  const namedStretches = options.namedStretches ?? [];
 
   const sorted = [...fixes].sort((a, b) => a.t - b.t);
+
+  /** Whether `fix` belongs in the line at all — every cut this function
+   * makes but the date window and the 24h cap, both of which govern what a
+   * run even *is* rather than what is drawn inside one. Shared between the
+   * run-building loop below and the named-stretch midpoint search, so a
+   * label is never placed from a fix the line itself would never draw. */
+  const isHidden = (fix: Fix): boolean =>
+    isExcluded(fix, zones) || isInHiddenSpot(fix, hiddenSpots) || isInStretch(fix.t, hiddenStretches);
 
   const runs: TrackedFix[][] = [];
   let current: TrackedFix[] = [];
@@ -357,7 +385,7 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
       continue;
     }
     const date = dateOf(fix.t, windows);
-    if (date === undefined || isExcluded(fix, zones)) {
+    if (date === undefined || isHidden(fix)) {
       closeRun();
       continue;
     }
@@ -387,7 +415,33 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
     }
   }
 
-  return { generated: new Date().toISOString(), segments };
+  // B2539 — a named stretch's own point on the line: the fix closest to the
+  // stretch's own middle instant, among the fixes that would actually be
+  // drawn (in range, on a real trip date, not cut by any other rule above).
+  // Read from the same `sorted` fixes the line itself is built from, never
+  // a second read of anything — this function is pure and reads nothing.
+  const labels: TrackLabel[] = [];
+  for (const stretch of namedStretches) {
+    const from = Date.parse(stretch.from);
+    const to = Date.parse(stretch.to);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
+    const mid = (from + to) / 2;
+    let best: TrackedFix | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const fix of sorted) {
+      if (fix.t < from || fix.t > to || fix.t > maxEndMs || isHidden(fix)) continue;
+      const date = dateOf(fix.t, windows);
+      if (date === undefined) continue;
+      const distance = Math.abs(fix.t - mid);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = { ...fix, date };
+      }
+    }
+    if (best) labels.push({ id: stretch.id, label: stretch.label, day: best.date, point: [round(best.lat), round(best.lon)] });
+  }
+
+  return { generated: new Date().toISOString(), segments, ...(labels.length > 0 ? { labels } : {}) };
 }
 
 type TrackedFix = Fix & { date: string };
