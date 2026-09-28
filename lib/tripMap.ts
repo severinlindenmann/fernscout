@@ -45,6 +45,14 @@ export type TripStop = StopSource & {
   /** Stable across renders and unique within a trip — a React key and the
    * identity the selection is held as. */
   key: string;
+  /**
+   * The trip's own day number — B2534's "numbers are day numbers
+   * everywhere" rule. 1-based position of this stop's *first* day within
+   * the full `days` array `tripStops` was called with, never the position
+   * among the deduplicated stops below it: a run of three days collapsed
+   * into one stop still reads as the day it started, not as "stop 1".
+   */
+  day: number;
 };
 
 /**
@@ -76,13 +84,13 @@ export function areaKey(point: Point): string {
 export function tripStops(days: readonly StopSource[]): TripStop[] {
   const stops: TripStop[] = [];
   let lastArea = "";
-  for (const day of days) {
-    if (!isPlottable(day)) continue;
+  days.forEach((day, i) => {
+    if (!isPlottable(day)) return;
     const area = areaKey(day);
-    if (area === lastArea) continue;
+    if (area === lastArea) return;
     lastArea = area;
-    stops.push({ ...day, key: `${day.date}-${area}` });
-  }
+    stops.push({ ...day, key: `${day.date}-${area}`, day: i + 1 });
+  });
   return stops;
 }
 

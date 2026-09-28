@@ -381,6 +381,24 @@ export function linesForDay(frame: TripFrame, day: number): MapLine[] {
   return frame.lines.filter((line) => line.kind !== "flight" && (line.fromDay === day || line.toDay === day));
 }
 
+/**
+ * The points a route's frame should be fit to — "fit the places where days
+ * happened, never the recorded line, never home." A thin adapter over
+ * `buildTripFrame` for a call site that only has raw points, in trip order,
+ * and no day numbers, names or home flags to give it: `home` is never known
+ * here (see `MapPlace.home`'s own doc), so this can only apply the region
+ * rule — drop a point that isn't in the main region, unless the trip is a
+ * tour, in which case every point stays. Both `WorldMap` and the server
+ * basemap clip it frames against (`lib/basemap.ts`'s `basemapForRoute`) call
+ * this on the same array, so the two keep agreeing the way they always have.
+ */
+export function framePoints<P extends Point>(points: readonly P[]): P[] {
+  if (points.length === 0) return [];
+  const asPlaces: MapPlace[] = points.map((p, i) => ({ day: i + 1, date: "", lat: p.lat, lng: p.lng, name: "" }));
+  const inFrame = new Set(buildTripFrame(asPlaces).framePlaces.map((p) => p.day));
+  return points.filter((_, i) => inFrame.has(i + 1));
+}
+
 /** A day's own places — every place whose day matches, which is at most one
  * for a trip without same-day multi-stop entries and the whole point of
  * keeping `day` rather than a stop index: a place merged into a wider stop

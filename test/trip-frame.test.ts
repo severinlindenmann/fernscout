@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   buildTripFrame,
+  framePoints,
   greatCircleArc,
   linesForDay,
   placesForDay,
@@ -193,6 +194,35 @@ describe("recorded segments — a tracked trip", () => {
     expect(linesForDay(frame, 1)).toHaveLength(2);
     expect(linesForDay(frame, 2)).toHaveLength(0);
     expect(placesForDay(frame, 1).map((p) => p.name)).toEqual(["Geneva"]);
+  });
+});
+
+describe("framePoints", () => {
+  test("drops a far outlier so a home-far trip frames the holiday, not a continent", () => {
+    const points = [
+      { lat: 47.4, lng: 8.5 }, // "home" — no flag needed, it's just a lone far point
+      { lat: 37.02, lng: -8.0 },
+      { lat: 37.05, lng: -8.25 },
+      { lat: 37.1, lng: -8.6 },
+    ];
+    const framed = framePoints(points);
+    expect(framed).toHaveLength(3);
+    expect(framed).not.toContainEqual(points[0]);
+  });
+
+  test("a tour keeps every point", () => {
+    const points = [
+      { lat: 47.37, lng: 8.54 },
+      { lat: 48.21, lng: 16.37 },
+      { lat: 41.9, lng: 12.5 },
+      { lat: 52.52, lng: 13.4 },
+      { lat: 40.42, lng: -3.7 },
+    ];
+    expect(framePoints(points)).toHaveLength(5);
+  });
+
+  test("empty in, empty out", () => {
+    expect(framePoints([])).toEqual([]);
   });
 });
 

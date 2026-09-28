@@ -1,5 +1,6 @@
 import "server-only";
 import { basemapFor, basemapForRoute, localBasemaps, type Basemap } from "./basemap";
+import { framePoints } from "./map/tripFrame";
 import { getAllEntries, getDays, getDefaultDay, getTripStats, type ReadOptions } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
 import { readerTrack } from "./gps/track";
@@ -251,11 +252,13 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
   return {
     trip,
     index,
-    // Framed on the same points MiniMap frames on, so the clip covers what is
+    // Framed on the same points TripMap frames on, so the clip covers what is
     // actually drawn. `frameRoute` is pure, so the two agree — and an empty
     // index draws no hero and therefore no map, so it gets no basemap either
     // (B85). `basemapFor` stays in the type above as the shape of the result.
-    basemap: basemapForRoute(index),
+    // `framePoints` is B2534's "fit the places where days happened, never
+    // home" rule — see `lib/map/tripFrame.ts`.
+    basemap: basemapForRoute(framePoints(index)),
     locals: localBasemaps(index),
     days: proseFor(
       tripId,

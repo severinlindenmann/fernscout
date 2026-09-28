@@ -4,6 +4,7 @@ import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
+import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { readerTrack } from "@/lib/gps/track";
@@ -85,7 +86,10 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   // The frame is worked out here as well as in the component, so that only the
   // few dozen kilobytes this trip covers cross the wire rather than the eleven
   // megabytes of the baked bundle. `frameRoute` is pure, so the two agree.
-  const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
+  // B2534: framed on the places where days happened, never a far outlier —
+  // `WorldMap`'s own client-side `base` calls the same `framePoints` on the
+  // same `places` array, so the two keep agreeing.
+  const basemap = basemapForRoute(places.length > 0 ? framePoints(places) : plan.stops);
   return (
     <MapPageContent
       places={places}

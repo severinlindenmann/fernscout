@@ -6,6 +6,7 @@ import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
+import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { readerTrack } from "@/lib/gps/track";
@@ -151,7 +152,10 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   const over = isOver(trip, days);
   // Clipped here so the reader gets their own trip's worth of map rather than
   // the whole bundle — see the same two lines in the trip-scoped route.
-  const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
+  // B2534: framed on the places where days happened, never a far outlier —
+  // `WorldMap`'s own client-side `base` calls the same `framePoints` on the
+  // same `places` array, so the two keep agreeing.
+  const basemap = basemapForRoute(places.length > 0 ? framePoints(places) : plan.stops);
   // The ground actually covered, where the owner has derived it (B665). Read
   // here rather than in the component: it is a file in the trip folder, behind
   // the same gate as everything else on this page, and `mayReadTrip` in the
