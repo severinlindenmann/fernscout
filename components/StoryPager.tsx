@@ -19,10 +19,11 @@ import Gallery from "./Gallery";
 import MapCard from "./map/MapCard";
 import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
+import { isPlottable } from "@/lib/mapFrame";
 import { useMoney } from "./CurrencyProvider";
 import type { DaySummary, Entry } from "@/lib/types";
 import type { ProseNode, StoryDay } from "@/lib/prose";
-import type { TripCard } from "@/lib/map/tripCard";
+import type { CardMeta } from "@/lib/map/tripCard";
 import {
   SOURCE_CREDIT,
   weatherGroup,
@@ -142,8 +143,7 @@ export default function StoryPager({
   onStepChange,
   onLegDone,
   hero,
-  dayCard,
-  dayCardDate,
+  card,
 }: {
   index: DaySummary[];
   /** The full day at that position, once it has arrived. */
@@ -155,13 +155,14 @@ export default function StoryPager({
   onStepChange: (index: number) => void;
   onLegDone: () => void;
   hero?: React.ReactNode;
-  /** That one day's own preview card — B2538, `dayCardFor` in
-   * lib/map/tripCard.ts. Only a `/day/<slug>` permalink's server render has
-   * one (`dayCardDate` says which day it belongs to); paging to a
-   * neighbouring day fetched client-side simply shows none, the same way
-   * `hero` is never re-fetched either. */
-  dayCard?: TripCard | null;
-  dayCardDate?: string;
+  /** The trip's own card facts — B2538. Only `usedStreet` is read here (for
+   * a day's own credit line, which doesn't vary by day); whether *this* day
+   * gets a card at all is decided client-side, from `index` alone
+   * (`isPlottable`), which is why a day fetched client-side through
+   * `story.json` (never `dayCardMeta`, a server-only call) still gets one —
+   * the `<img>` itself (`/card.svg?day=…`) is what actually enforces the
+   * gate and leaves out a draft's line, same as every other day. */
+  card?: CardMeta | null;
 }) {
   const step = steps[stepIndex];
 
@@ -242,7 +243,11 @@ export default function StoryPager({
                 dayIndex={step.dayIndex}
                 isNewestDay={step.dayIndex === index.length - 1}
                 titleIsPageHeading
-                mapCard={index[step.dayIndex].date === dayCardDate ? dayCard : undefined}
+                mapCard={
+                  isPlottable(index[step.dayIndex])
+                    ? { query: `?day=${encodeURIComponent(index[step.dayIndex].date)}`, usedStreet: card?.usedStreet ?? false }
+                    : undefined
+                }
               />
             ) : (
               <DayPlaceholder
@@ -340,11 +345,12 @@ export function DayCard({
    * and this day being published, so a caller passing `true` by mistake
    * cannot make the card appear on a finished trip or under a draft. */
   isNewestDay?: boolean;
-  /** This day's own still preview card — B2538. Only the `/day/<slug>`
-   * permalink route (`StoryPager`'s own `dayCardDate` match) ever hands one
-   * in; every other caller of this exported component leaves it out and
-   * shows no map, the same as every other optional prop here. */
-  mapCard?: TripCard | null;
+  /** This day's own still preview card — B2538. `StoryPager` is the only
+   * caller that ever hands one in (it decides client-side, from `isPlottable`
+   * on this day's own summary); every other caller of this exported
+   * component leaves it out and shows no map, the same as every other
+   * optional prop here. */
+  mapCard?: { query: string; usedStreet: boolean };
 }) {
   // Trip-relative: URLs carry a username now, so a bare "/costs" would send a
   // reader to somebody else's site — or to nothing at all.
@@ -508,9 +514,16 @@ export function DayCard({
 
         {/* This day's own still map — B2538, D9. Absent, not a card with
             nothing drawn on it, until this day has a place of its own
-            (`mapCard` is `null` rather than an empty card for that case —
-            `lib/map/tripCard.ts`'s `dayCardFor`). */}
-        {mapCard && <MapCard card={mapCard} mapHref={trip?.href("/map") ?? "/map"} />}
+            (`mapCard` is `undefined` rather than an empty card for that
+            case — the caller's own `isPlottable` check). */}
+        {mapCard && (
+          <MapCard
+            src={trip?.href("/card.svg") ?? "/card.svg"}
+            query={mapCard.query}
+            usedStreet={mapCard.usedStreet}
+            mapHref={trip?.href("/map") ?? "/map"}
+          />
+        )}
 
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
         <div className="mt-10 border-t border-line-quiet pt-4">

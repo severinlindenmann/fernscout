@@ -5,7 +5,7 @@ import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { buildStoryProps } from "@/lib/tripView";
-import { tripCardFor } from "@/lib/map/tripCard";
+import { tripCardMeta } from "@/lib/map/tripCard";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
@@ -81,9 +81,11 @@ async function CurrentStoryBody({
     // lib/prose.ts.
     locale: await requestLocale(),
   });
-  // The hero's still preview card — B2538. See the mirrored call in
-  // app/[user]/trips/[trip]/page.tsx.
-  const card = await tripCardFor(trip, index);
+  // The hero's own card facts — B2538. The SVG itself is `<img src>`'d
+  // straight from `/card.svg` (`components/map/MapCard.tsx`); this page
+  // only needs enough to lay the card out around it. See the mirrored call
+  // in app/[user]/trips/[trip]/page.tsx.
+  const card = tripCardMeta(trip, index);
   return (
     <>
       <BlogStructuredData

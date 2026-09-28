@@ -14,7 +14,7 @@ import TripStory from "@/app/TripStory";
 import RouteBoundary from "@/components/RouteBoundary";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
-import { dayCardFor, tripCardFor } from "@/lib/map/tripCard";
+import { tripCardMeta } from "@/lib/map/tripCard";
 import type { UserConfig } from "@/lib/config";
 import type { Entry, Trip } from "@/lib/types";
 
@@ -143,14 +143,9 @@ async function TripDayBody({
   // gallery page.
   const photobook = await photobookEntryFor(trip);
 
-  // The overview's own card (for the hero) and this day's own (for the
-  // screen the permalink actually opens on) — B2538. `index` is exactly the
-  // set this reader is shown an entry for (drafts and visibility already
-  // applied by `buildStoryProps` above).
-  const [card, dayCard] = await Promise.all([
-    tripCardFor(trip, index),
-    dayCardFor(trip, index, entry.date),
-  ]);
+  // The trip's own card facts — B2538. See the equivalent call and comment
+  // in the bare-URL /day/<slug> route.
+  const card = tripCardMeta(trip, index);
 
   return (
     <>
@@ -171,7 +166,6 @@ async function TripDayBody({
         openAtDate={entry.date}
         stats={stats}
         card={card}
-        dayCard={dayCard}
         photobook={photobook}
       />
     </>

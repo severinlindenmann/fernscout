@@ -6,7 +6,7 @@ import { currentTripRef, getTrip } from "@/lib/trips";
 import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getUser } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
-import { dayCardFor, tripCardFor } from "@/lib/map/tripCard";
+import { tripCardMeta } from "@/lib/map/tripCard";
 import { DayStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
@@ -144,13 +144,12 @@ async function CurrentDayBody({
     locale: await requestLocale(),
   });
 
-  // The overview's own card (for the hero, reachable via "Overview") and
-  // this day's own (for the screen the permalink actually opens on) —
-  // B2538. See the equivalent calls in the /trips/<id>/day/<slug> route.
-  const [card, dayCard] = await Promise.all([
-    tripCardFor(trip, index),
-    dayCardFor(trip, index, entry.date),
-  ]);
+  // The trip's own card facts — B2538. `StoryPager` decides client-side
+  // whether the day actually being shown gets its own card (`isPlottable`
+  // on its own summary in `index`); this only carries `usedStreet` for
+  // that day's credit line, plus the hero's own trip-wide card. See the
+  // equivalent call in the /trips/<id>/day/<slug> route.
+  const card = tripCardMeta(trip, index);
 
   return (
     <>
@@ -171,7 +170,6 @@ async function CurrentDayBody({
         openAtDate={entry.date}
         stats={stats}
         card={card}
-        dayCard={dayCard}
       />
     </>
   );

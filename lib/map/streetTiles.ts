@@ -63,11 +63,24 @@ export type StreetLayers = {
  * card already fills its background with the land colour, so drawing earth
  * polygons on top would be paying to redraw the same pixels.
  *
+ * "landuse" is measured and dropped, not merely simplified: at z14/15 it is
+ * overwhelmingly individual building footprints and small parcels — 3,608
+ * of them for a four-stop Alpine trip, 264 kB of path data on its own even
+ * after `ringsToPath`'s own trims — for a 35%-opacity tint the card can
+ * lose without losing "the route at a glance". Re-add it, filtered to a
+ * real minimum footprint (a tile-local bounding-box test, the same idea
+ * `decimate` below applies to point count instead of shape count), if a
+ * design review wants the tint back and has room in the "< 150 kB" budget
+ * for it.
+ *
  * ponytail: "places" (town labels) and "buildings" are skipped entirely —
  * the day-number markers and chips already carry every name the card needs,
  * and a name collision-avoidance pass is a feature of its own. Add it if a
  * design review says the card reads as bare without them. */
-const LAYER_NAMES = ["water", "landuse", "roads"] as const;
+const LAYER_NAMES = ["water", "roads"] as const;
+/** Every `StreetLayers.landuse` is `[]` — kept in the type (rather than
+ * dropped from it) so `lib/map/cardSvg.ts`'s "if street.landuse.length > 0"
+ * branch needs no change to re-enable it later. */
 
 /** Standard slippy-map tile math — the inverse of what every `/{z}/{x}/{y}`
  * tile server uses to cut the world up. */
@@ -179,6 +192,11 @@ export async function streetLayersForBbox(
         const isPolygon = feature.type === 3;
         const isLine = feature.type === 2;
         if (!isPolygon && !isLine) continue;
+        // README: "aim < 150 kB". `landuse` at z15 is mostly individual
+        // building parcels — a handful of trip stops came to thousands of
+        // them (measured: 5,729 for one region), the overwhelming majority
+        // of every card's own weight — see `LAYER_NAMES`'s own note on why
+        // this layer is not fetched at all today.
         const d = ringsToPath(rings, z, x, y, layer.extent, frame, isPolygon);
         if (d) bucket.push(d);
       }
@@ -188,10 +206,38 @@ export async function streetLayersForBbox(
   return sawAny ? out : null;
 }
 
+/** A ring longer than this is decimated to roughly this many points before
+ * it is even reduced to a path — some rural highways at z15 carried 2,000+
+ * vertices for a shape a 390px-wide card cannot show a tenth of. Uniform
+ * striding (every Nth point, always keeping the first and last), not a real
+ * simplification (nothing is moved and no shape-preserving algorithm runs),
+ * but cheap and enough to hold the "< 150 kB" budget.
+ * ponytail: a proper Douglas-Peucker pass would keep the shape's actual
+ * corners rather than an arbitrary stride; upgrade if a real trip's road
+ * still reads as visibly wrong after this. */
+const MAX_RING_POINTS = 50;
+
+function decimate<T>(points: readonly T[], max: number): T[] {
+  if (points.length <= max) return [...points];
+  const stride = Math.ceil(points.length / max);
+  const out: T[] = [];
+  for (let i = 0; i < points.length; i += stride) out.push(points[i]);
+  const last = points[points.length - 1];
+  if (out[out.length - 1] !== last) out.push(last);
+  return out;
+}
+
 /** One feature's rings, each already reduced to an SVG subpath — polygons
  * closed with `Z` (drawn `fillRule="evenodd"` so a hole cancels its outer
  * ring regardless of winding order — B2534's own `photoJoinLines` doc notes
- * the same "never guess the topology" instinct), lines left open. */
+ * the same "never guess the topology" instinct), lines left open.
+ *
+ * Coordinates round to 1 decimal place (not `place()`'s own 4 — plenty of
+ * precision left over a card rendered at a few hundred CSS pixels wide) and
+ * a point that rounds to the same spot as the one before it is dropped —
+ * both just string-length savings toward the same "< 150 kB" budget, on top
+ * of `decimate`'s own stride.
+ */
 function ringsToPath(
   rings: { x: number; y: number }[][],
   z: number,
@@ -202,13 +248,21 @@ function ringsToPath(
   close: boolean,
 ): string {
   const parts: string[] = [];
-  for (const ring of rings) {
+  for (const original of rings) {
+    const ring = decimate(original, MAX_RING_POINTS);
     if (ring.length < (close ? 3 : 2)) continue;
-    const pts = ring.map((p) => {
+    const seen: string[] = [];
+    let last: string | null = null;
+    for (const p of ring) {
       const { lat, lng } = tileLocalToLngLat(z, x, y, p.x, p.y, extent);
-      return place(frame, { lat, lng });
-    });
-    parts.push(`M${pts.map(([px, py]) => `${px} ${py}`).join("L")}${close ? "Z" : ""}`);
+      const [px, py] = place(frame, { lat, lng });
+      const rounded = `${px.toFixed(1)} ${py.toFixed(1)}`;
+      if (rounded === last) continue;
+      seen.push(rounded);
+      last = rounded;
+    }
+    if (seen.length < (close ? 3 : 2)) continue;
+    parts.push(`M${seen.join("L")}${close ? "Z" : ""}`);
   }
   return parts.join("");
 }

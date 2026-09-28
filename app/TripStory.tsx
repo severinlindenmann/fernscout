@@ -12,7 +12,7 @@ import PagerNav, { type PagerNavState } from "@/components/PagerNav";
 import ReactionsProvider from "@/components/ReactionsProvider";
 import StoryPager, { buildSteps } from "@/components/StoryPager";
 import TripHero from "@/components/TripHero";
-import type { TripCard } from "@/lib/map/tripCard";
+import type { CardMeta } from "@/lib/map/tripCard";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -53,7 +53,6 @@ export default function TripStory({
   openAtDate,
   stats,
   card = null,
-  dayCard = null,
   photobook,
   travellerNames,
   madeWith,
@@ -77,15 +76,7 @@ export default function TripStory({
    * always the whole trip's route (`tripCardFor`, lib/map/tripCard.ts).
    * `null` for a trip with no place at all (B1260).
    */
-  card?: TripCard | null;
-  /**
-   * `openAtDate`'s own card (`dayCardFor`) — only a `/day/<slug>`
-   * permalink's server render passes one; `StoryPager` shows it on that
-   * day's own screen, not the hero, since the pager opens straight on a
-   * day rather than mounting the hero step at all. `null` for a day with no
-   * place of its own.
-   */
-  dayCard?: TripCard | null;
+  card?: CardMeta | null;
   /**
    * Present only for the journal's owner, on a journal with photobook and
    * credits switched on — B569. See `TripHero`, which is the only place this
@@ -583,8 +574,7 @@ export default function TripStory({
             loadFailed={loadFailed}
             steps={steps}
             stepIndex={stepIndex}
-            dayCard={dayCard}
-            dayCardDate={openAtDate}
+            card={card}
             onStepChange={(next) => {
               directionRef.current = next > stepIndex ? 1 : -1;
               moveTo(next);

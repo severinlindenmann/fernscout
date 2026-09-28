@@ -6,7 +6,7 @@ import { basemapForRoute } from "@/lib/basemap";
 import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { buildStoryProps, showsCountdown } from "@/lib/tripView";
-import { tripCardFor } from "@/lib/map/tripCard";
+import { tripCardMeta } from "@/lib/map/tripCard";
 import { getPlan, getPlanPrivate, stopsForReaders } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
 import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
@@ -187,10 +187,10 @@ async function TripStoryBody({
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // gallery page.
   const photobook = await photobookEntryFor(trip);
-  // The hero's still preview card — B2538. `index` is already this reader's
-  // date list (drafts and visibility applied by `buildStoryProps` above), the
-  // same set `tripCardFor` reads places and the recorded line from.
-  const card = await tripCardFor(trip, index);
+  // The hero's own card facts — B2538. `index` is already this reader's
+  // date list (drafts and visibility applied by `buildStoryProps` above);
+  // the SVG itself is fetched as `<img src>` from `/card.svg`.
+  const card = tripCardMeta(trip, index);
   return (
     <>
       <BlogStructuredData

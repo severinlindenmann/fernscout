@@ -14,13 +14,17 @@ import path from "node:path";
 import { AS_AUTHOR, getPlaces } from "../lib/entries";
 import { isPlottable } from "../lib/mapFrame";
 import { getTrip, tripRef } from "../lib/trips";
-import { clusterRegions, mapsSource, paddedBbox, requirePmtilesBinary, runPmtilesExtract } from "./maps-lib.mts";
+import { clusterRegions, expandToAspect, mapsSource, paddedBbox, requirePmtilesBinary, runPmtilesExtract } from "./maps-lib.mts";
 import type { MapRegion } from "../lib/maps/dir";
 
 /** ~15 km padding, per the plan. */
 const PAD_KM = 15;
 /** Regions further apart than this stay separate files. */
 const REGION_THRESHOLD_KM = 300;
+/** The card's own frame (`lib/map/cardSvg.ts`'s `TRIP_WIDTH`/`TRIP_HEIGHT`,
+ * 800×460) — a region narrower than this leaves the card's own left/right
+ * edges with no street tiles under them at all. */
+const CARD_ASPECT = 800 / 460;
 
 type Index = { trips: Record<string, MapRegion[]> };
 
@@ -66,7 +70,7 @@ function main() {
   const regionGroups = clusterRegions(places, REGION_THRESHOLD_KM);
   const slug = `${user}-${trip}`.toLowerCase().replace(/[^a-z0-9-]/g, "-");
   const regions: MapRegion[] = regionGroups.map((group, i) => {
-    const bbox = paddedBbox(group, PAD_KM);
+    const bbox = expandToAspect(paddedBbox(group, PAD_KM), CARD_ASPECT);
     const relFile = regionGroups.length > 1 ? `trips/${slug}-${i + 1}.pmtiles` : `trips/${slug}.pmtiles`;
     const out = path.join(dir, relFile);
     fs.mkdirSync(path.dirname(out), { recursive: true });

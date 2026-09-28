@@ -6,7 +6,7 @@ import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
 import { ArrowDown, BookOpen, ChevronRight, Clapperboard, PlayCircle, Sparkles } from "lucide-react";
 import LatestDayButton from "./LatestDayButton";
-import type { TripCard } from "@/lib/map/tripCard";
+import type { CardMeta } from "@/lib/map/tripCard";
 import MapCard from "./map/MapCard";
 import PushInstallOnboarding from "./PushInstallOnboarding";
 import PushOptIn from "./PushOptIn";
@@ -89,7 +89,7 @@ export default function TripHero({
   /** The still preview card, rendered on the server — B2538,
    * `lib/map/tripCard.ts`. `null` when nothing on the trip (or this one
    * day, on a `/day/<slug>` permalink) has ever carried a coordinate. */
-  card?: TripCard | null;
+  card?: CardMeta | null;
   /** Where the trip has got to — the pin on the map and the "currently in" /
    * "ended in" line. A summary, not a full day: the hero never shows the day's
    * prose. For a finished trip this is its last day, not "today". */
@@ -422,7 +422,9 @@ export default function TripHero({
           day has a coordinate — same B1260 rule `TripMap` used to follow. */}
       {card && (
         <MapCard
-          card={card}
+          src={active.href("/card.svg")}
+          query={card.query}
+          usedStreet={card.usedStreet}
           mapHref={active.href("/map")}
           factsLine={[
             tn("mapCard.days", stats.tripDays, { count: String(stats.tripDays) }),
