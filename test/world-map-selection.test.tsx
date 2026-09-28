@@ -107,6 +107,32 @@ describe("WorldMap selection", () => {
     expect(card(paged)?.className).toContain("hidden lg:block");
   });
 
+  test("showStopCard: false withholds the floating card even while something is selected — B2430's desktop map page shows the same stop its own way, in a list beside the map", () => {
+    const card = (el: HTMLElement) => el.querySelector<HTMLElement>("div.backdrop-blur.shadow-lg");
+    const el = render({ selectedKey: "b", showStopCard: false });
+    expect(card(el)).toBeNull();
+  });
+
+  test("the full-screen button is absent when the browser has no Fullscreen API (jsdom, like iOS Safari)", () => {
+    const el = render({ selectedKey: "b" });
+    expect(el.querySelector("button[aria-label='Full screen']")).toBeNull();
+  });
+
+  test("the full-screen button appears, lg-scoped, when the Fullscreen API exists, and toggles it on the map's own container", () => {
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(document, "fullscreenEnabled", { value: true, configurable: true });
+    HTMLElement.prototype.requestFullscreen = requestFullscreen;
+    const el = render({ selectedKey: "b" });
+    const button = el.querySelector<HTMLButtonElement>("button[aria-label='Full screen']");
+    expect(button).not.toBeNull();
+    expect(button!.parentElement!.className).toBe("hidden lg:block");
+    act(() => button!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    Object.defineProperty(document, "fullscreenEnabled", { value: undefined, configurable: true });
+    // @ts-expect-error — cleaning up the prototype stub for later tests
+    delete HTMLElement.prototype.requestFullscreen;
+  });
+
   test("an outside selectedKey nudges the same marker selected, as if it had been tapped", () => {
     const el = render({ selectedKey: "b" });
     expect(markerFor(el, "Grimsel, Switzerland").getAttribute("aria-pressed")).toBe("true");

@@ -90,6 +90,7 @@ export default function WorldMap({
   selectedKey: selectedKeyProp,
   onSelect: onSelectProp,
   stopCardFromLg = false,
+  showStopCard = true,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -142,6 +143,13 @@ export default function WorldMap({
    * (B2427), so the card over the map would repeat it and cover the map.
    * When set, that card appears from `lg` up only. */
   stopCardFromLg?: boolean;
+  /** Withholds the floating stop card entirely — for a caller that already
+   * shows the same content its own way (the desktop map page's stop list,
+   * B2430, next to this map; the mobile sheet already had its own copy
+   * before this prop existed, via `stopCardFromLg`). Defaults to true, so
+   * every other caller (the countdown, the studio's recorded-trips
+   * preview) is unaffected. */
+  showStopCard?: boolean;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -355,10 +363,35 @@ export default function WorldMap({
   // `live` prop's own doc comment above).
   const hereNow = live && plottable.length > 0 ? plottable[plottable.length - 1] : null;
 
+  // A real browser fullscreen of the map shell (docs/plans/map-redesign.md
+  // §3 Phase 2 item 6, the desktop map page's own full-screen button) — not
+  // the phone full-screen *route* the map page opens elsewhere. Feature-
+  // detected with a lazy initializer rather than an effect, so the button is
+  // simply absent on first paint where the API doesn't exist (iOS Safari has
+  // none at all — the same fact `SlideShow`'s own toggle already documents)
+  // instead of flashing in. Guarded for `document` because this component is
+  // also rendered to static markup on the server (`test/map-page.test.tsx`),
+  // where there is no `document` to ask.
+  const mapShellRef = useRef<HTMLDivElement>(null);
+  const [fullscreenSupported] = useState(
+    () =>
+      typeof document !== "undefined" &&
+      document.fullscreenEnabled === true &&
+      typeof HTMLElement.prototype.requestFullscreen === "function",
+  );
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      mapShellRef.current?.requestFullscreen().catch(() => {});
+    }
+  }, []);
+
   return (
     <div>
       <div
-        className="relative overflow-hidden rounded-2xl border border-line-quiet shadow-sm"
+        ref={mapShellRef}
+        className="relative overflow-hidden rounded-2xl border border-line-quiet shadow-sm [&:fullscreen]:flex [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:items-center [&:fullscreen]:rounded-none [&:fullscreen]:border-0"
         style={{ backgroundColor: mapStyle.sea }}
       >
         {/* role="group", not role="img": img makes every descendant
@@ -647,6 +680,12 @@ export default function WorldMap({
             onZoomIn={() => setZoom((z) => Math.min(maxZoom, z * 1.6))}
             onZoomOut={() => setZoom((z) => Math.max(1, z / 1.6))}
             onFit={reset}
+            // Desktop only (B2430) — the phone map already opens its own
+            // full-screen route (elsewhere on this page) for the same
+            // reason, so a second full-screen button here would be a second
+            // way to do the one thing on a screen too small for either.
+            onFullscreen={fullscreenSupported ? toggleFullscreen : undefined}
+            fullscreenClassName="hidden lg:block"
           />
         </div>
 
@@ -666,7 +705,7 @@ export default function WorldMap({
         )}
 
         <AnimatePresence>
-          {selected && (
+          {selected && showStopCard && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
