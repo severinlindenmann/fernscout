@@ -91,6 +91,7 @@ export default function WorldMap({
   onSelect: onSelectProp,
   showStopCard = true,
   fillHeight = false,
+  bottomInset = 0,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -152,6 +153,14 @@ export default function WorldMap({
    * which keeps its own fixed-aspect box) — a caller that forgets it keeps
    * the original, safer height-follows-content behaviour. */
   fillHeight?: boolean;
+  /** B2517: how much of the bottom of the drawn box (in CSS px) the phone
+   * map page's own sheet currently covers — reported by `MobileMapSheet`
+   * through `MapPageContent`, 0 wherever nothing overlaps the map (every
+   * other caller, and the same page from `lg` up). "Whole trip" and "This
+   * stop" both frame into the part of the box *above* this rather than the
+   * box's full height, so a stop the sheet's own current snap would hide
+   * is never the one the camera claims to have centred. */
+  bottomInset?: number;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -264,25 +273,44 @@ export default function WorldMap({
   const { zoom, pan, setZoom, setPan } = viewport;
 
   const view = useMemo(() => {
-    // Grown to the rendered box's own shape before dividing by zoom — a
-    // no-op wherever the box's aspect already follows `base`'s (every
-    // caller but the phone full-screen map, since elsewhere the SVG's own
-    // `h-auto` makes those the same number).
-    const aspect = drawn.w / drawn.h;
+    // The fraction of the drawn box's own height that is actually visible
+    // above `bottomInset` — 1 wherever nothing covers the map (every caller
+    // but the phone map page's own sheet, and that same page from `lg` up,
+    // where `bottomInset` is always 0). Clamped short of 0 so a transient
+    // inset taller than the box itself (mid-resize) never divides by zero
+    // or inverts the frame.
+    const visibleFrac = drawn.h > 0 ? Math.min(1, Math.max(0.1, 1 - bottomInset / drawn.h)) : 1;
+    // Grown to the *visible* box's own shape before dividing by zoom — a
+    // no-op wherever the box's aspect already follows `base`'s and nothing
+    // covers it (every caller but the phone full-screen map with the sheet
+    // open, since elsewhere the SVG's own `h-auto` makes those the same
+    // number).
+    const aspect = drawn.w / (drawn.h * visibleFrac);
     let baseW = base.w;
     let baseH = base.h;
     if (baseW / baseH < aspect) baseW = baseH * aspect;
     else baseH = baseW / aspect;
     const w = baseW / zoom;
-    const h = baseH / zoom;
+    // The height of the part actually on screen above the sheet — `base`
+    // (or the focused stop) is framed into this, not into `h` below.
+    const visH = baseH / zoom;
+    // The full viewBox height: the visible window above extended straight
+    // down behind the sheet, at the same world-units-per-pixel scale, so a
+    // drag that shrinks the sheet reveals more of the same frame rather
+    // than a re-zoomed one.
+    const h = visH / visibleFrac;
     const baseCx = base.x + base.w / 2;
     const baseCy = base.y + base.h / 2;
     // 0 at zoom 1, approaching 1 as you zoom in.
     const drift = focus ? Math.min(1, (zoom - 1) / 2) : 0;
     const cx = (focus ? baseCx + (focus.x - baseCx) * drift : baseCx) + pan.x;
     const cy = (focus ? baseCy + (focus.y - baseCy) * drift : baseCy) + pan.y;
-    return { x: cx - w / 2, y: cy - h / 2, w, h };
-  }, [base, zoom, pan, focus, drawn]);
+    // Centred horizontally as before; vertically centred on the *visible*
+    // window (top of the box), which is `view.y`'s own top edge — the rest
+    // of `h` below it sits behind the sheet and is never what the camera is
+    // aimed at.
+    return { x: cx - w / 2, y: cy - visH / 2, w, h };
+  }, [base, zoom, pan, focus, drawn, bottomInset]);
   // Kept for gesture handlers that fire between renders (a pinch, a wheel
   // tick) — an effect, not a call in the render body, so nothing here ever
   // mutates a ref while rendering.

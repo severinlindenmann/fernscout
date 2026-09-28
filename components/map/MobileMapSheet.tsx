@@ -41,6 +41,25 @@ function useViewportHeight(): number {
   return vh;
 }
 
+/** Whether this sheet is actually on screen — the wrapping div is
+ * `lg:hidden`, and above that breakpoint the map keeps the desktop layout
+ * (a stop list beside it) where nothing covers the map at all. Compared
+ * against the same `lg` Tailwind breakpoint (1024px, unset in this app's
+ * own theme) via `window.innerWidth` rather than measuring the DOM node, so
+ * the reported inset lands on the sheet's own settled snap height rather
+ * than tracking every frame of its open/close spring. */
+function useIsDesktop(): boolean {
+  const [desktop, setDesktop] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= 1024,
+  );
+  useEffect(() => {
+    const onResize = () => setDesktop(window.innerWidth >= 1024);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return desktop;
+}
+
 export default function MobileMapSheet({
   places,
   stats,
@@ -48,6 +67,7 @@ export default function MobileMapSheet({
   hrefForDay,
   selectedKey,
   onSelectKey,
+  onInsetChange,
 }: {
   places: PlaceView[];
   stats: { tripDays: number; places: number; countries: number; totalMedia: number };
@@ -63,10 +83,20 @@ export default function MobileMapSheet({
    * would. */
   selectedKey: string | null;
   onSelectKey: (key: string) => void;
+  /** B2517: called with how tall this sheet's *current snap* stands, in
+   * CSS px, so `WorldMap` can frame the whole trip and a selected stop into
+   * the part of the map above it rather than the box's full height. Fires
+   * with 0 wherever the sheet is not actually on screen — no places at all,
+   * or `lg` and up, where the desktop layout puts nothing over the map. Not
+   * the sheet's live, mid-drag height: framing follows the settled snap,
+   * the same "peek and half" the ticket names, not every animation frame of
+   * the spring between them. */
+  onInsetChange?: (px: number) => void;
 }) {
   const { t, tn, locale, formatShortDate, formatStay } = useI18n();
   const reducedMotion = useReducedMotion();
   const vh = useViewportHeight();
+  const isDesktop = useIsDesktop();
 
   const [snap, setSnap] = useState(PEEK);
 
@@ -74,6 +104,10 @@ export default function MobileMapSheet({
     () => [PEEK_PX, Math.round(vh * HALF_MAX_VH), Math.round(vh * FULL_MAX_VH)],
     [vh],
   );
+
+  useEffect(() => {
+    onInsetChange?.(places.length === 0 || isDesktop ? 0 : heights[snap]);
+  }, [onInsetChange, places.length, isDesktop, heights, snap]);
   const { height, bind } = useSnapDrag({
     heights,
     index: snap,

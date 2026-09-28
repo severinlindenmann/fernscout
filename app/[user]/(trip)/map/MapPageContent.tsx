@@ -101,6 +101,10 @@ export default function MapPageContent({
   // handed to it as a nudge (`selectedKey`/`onSelect` below), which applies
   // it through the exact same `selectPlace` a tap on the map itself calls.
   const [selectedKey, setSelectedKey] = useState<string | null>(plottable[0]?.key ?? null);
+  // B2517: the phone sheet's own current snap height, so the map frames
+  // "Whole trip" and a selected stop into the part of itself the sheet
+  // doesn't cover — 0 whenever nothing does (desktop, or no places at all).
+  const [sheetInset, setSheetInset] = useState(0);
 
   // Selects a stop and carries it in the URL as `?stop=<key>` (B2426, Phase 2
   // item 1 of docs/plans/map-redesign.md) — `history.replaceState`, like
@@ -406,6 +410,7 @@ export default function MapPageContent({
                 selectedKey={selectedKey}
                 onSelect={(p) => selectStop(p ? p.key : null)}
                 fillHeight
+                bottomInset={sheetInset}
                 // The stop list to its left (above) already shows the
                 // selected stop's photos, headline, day link and Google Maps
                 // — the floating card over the map would only repeat it.
@@ -518,6 +523,7 @@ export default function MapPageContent({
         stats={stats}
         selectedKey={selectedKey}
         onSelectKey={selectStop}
+        onInsetChange={setSheetInset}
         hrefForDay={(slug) => href(`/day/${slug}`)}
         scrubberSlot={
           plottable.length > 0 && (
