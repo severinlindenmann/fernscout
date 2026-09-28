@@ -35,7 +35,8 @@ vi.mock("next/link", () => ({
 // The language switcher refreshes the route so the server re-reads the cookie.
 // There is no router in a `renderToStaticMarkup`, and the switcher is the only
 // reason this file needs one.
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+// The language switcher and in-page links read the path (B2473).
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }), usePathname: () => "/" }));
 
 let dir: string;
 

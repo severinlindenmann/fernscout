@@ -4441,5 +4441,10 @@
   "trips.map.subregion.polynesia": "Polynesia",
   "trips.map.subregion.sevenSeas": "Open ocean",
   "trips.map.all": "All",
-  "trips.map.filteredBelow": "filtered below"
+  "trips.map.filteredBelow": "filtered below",
+  "invitePreview.title": "Invitation to read {title}",
+  "invitePreview.description": "Follow the journey as it happens, by email or WhatsApp. No app needed.",
+  "invitePreview.kicker": "An invitation to read along",
+  "invitePreview.neutralTitle": "Invitation",
+  "invitePreview.neutralDescription": "A link to read a travel journal."
 }
