@@ -21,6 +21,16 @@ type RecordedTrip = {
   daysRecorded: number;
   tripDays: number;
   lastReceived: string;
+  /** The phone's own latest armed/permission report — B2542. `null` when
+   *  nothing has ever been reported for this trip. Read here alongside the
+   *  client-side native status (`nativeStatus` below), which only knows
+   *  about *this* device; this is what the server was actually sent by
+   *  whichever phone (or none) is out there recording. */
+  recording: {
+    state: "recording" | "off" | "silent";
+    reason?: "permission" | "stale";
+    permission?: string;
+  } | null;
   /** B2539 security review, S2 — true when this row exists only because
    * `track.json` survives a store with nothing left in it (a purge, most
    * often). The hide/name tools still need this trip reachable; the preview
@@ -90,6 +100,7 @@ export default function RecordedTripsSection({
   initialTrips,
   placesByTrip,
   basemapByTrip,
+  kmByModeByTrip,
   initialSegmentsByTrip,
   hiddenDaysByTrip,
 }: {
@@ -97,6 +108,11 @@ export default function RecordedTripsSection({
   initialTrips: RecordedTrip[];
   placesByTrip: Record<string, PlaceView[]>;
   basemapByTrip: Record<string, Basemap | null>;
+  /** B2541 — kilometres recorded by transport mode, per trip. A plain
+   *  object rather than a component prop type imported from `lib/gps/api.ts`
+   *  (server-only): the shape is just `{ [mode]: km }`, small enough to
+   *  restate here the same way `RecordedTrip` itself is. */
+  kmByModeByTrip?: Record<string, Partial<Record<string, number>>>;
   /** The owner's own raw line per trip, computed server-side
    * (`ownerTripLine`) — B2540's overview card map and facts line. Shown
    * unconditionally, unlike `segmentsByTrip` below (the same data, fetched
@@ -286,6 +302,21 @@ export default function RecordedTripsSection({
                   ? statusLine(status, t)
                   : t("studio.location.route.lastReceived", { at: fmtInstant(trip.lastReceived) })}
               </p>
+              {/* B2542 — the phone's own reported state, independent of
+                  whether this browser is the device recording. Only shown
+                  when a phone has ever actually reported something; the
+                  native-status line above already covers "this device". */}
+              {trip.recording && <p className="text-sm text-ink-secondary">{serverStateLine(trip.recording, t)}</p>}
+              {(() => {
+                const modes = kmByModeByTrip?.[trip.tripId];
+                const entries = modes ? Object.entries(modes).filter(([, km]) => (km ?? 0) > 0) : [];
+                if (entries.length === 0) return null;
+                return (
+                  <p className="text-sm text-ink-secondary">
+                    {entries.map(([mode, km]) => `${km} km ${modeLabel(mode, t)}`).join(" · ")}
+                  </p>
+                );
+              })()}
 
               {(() => {
                 const initial = initialSegmentsByTrip[trip.tripId] ?? [];
@@ -443,6 +474,46 @@ export default function RecordedTripsSection({
       </ul>
     </section>
   );
+}
+
+/** B2542 — turns the server's own `recordingState` answer into one line.
+ * `permission`'s reason gets the exact "needs Always" wording the studio's
+ * arming flow already uses elsewhere, so a person reads the same sentence
+ * whichever screen told them. */
+function serverStateLine(
+  recording: NonNullable<RecordedTrip["recording"]>,
+  t: (key: TranslationKey, vars?: Record<string, string>) => string,
+): string {
+  if (recording.state === "recording") return t("studio.location.route.server.recording");
+  if (recording.state === "off") return t("studio.location.route.server.off");
+  return recording.reason === "permission"
+    ? t("studio.location.route.server.silentPermission")
+    : t("studio.location.route.server.silentStale");
+}
+
+/** One word per `TransportMode` (`importers/gps/schema.ts`) — the km-by-mode
+ * line's own labels, B2541. A `Record` keyed by every mode the shared
+ * vocabulary names, not a lookup that can silently miss one: TypeScript
+ * refuses this object if a mode is ever added there and not here. An
+ * unrecognised string (there should never be one — `kmByMode` only sums
+ * fixes whose mode already validated against the same vocabulary) falls
+ * back to the raw word rather than throwing. */
+const MODE_KEYS: Record<string, TranslationKey> = {
+  on_foot: "studio.location.route.mode.onFoot",
+  bike: "studio.location.route.mode.bike",
+  car: "studio.location.route.mode.car",
+  bus: "studio.location.route.mode.bus",
+  train: "studio.location.route.mode.train",
+  tram: "studio.location.route.mode.tram",
+  boat: "studio.location.route.mode.boat",
+  plane: "studio.location.route.mode.plane",
+  skiing: "studio.location.route.mode.skiing",
+  unknown: "studio.location.route.mode.unknown",
+};
+
+function modeLabel(mode: string, t: (key: TranslationKey, vars?: Record<string, string>) => string): string {
+  const key = MODE_KEYS[mode];
+  return key ? t(key) : mode;
 }
 
 function statusLine(

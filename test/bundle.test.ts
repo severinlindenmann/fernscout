@@ -138,10 +138,38 @@ describe("route bundles", () => {
   });
 
   it("does not put map data in the story page's bundle either", () => {
-    // The hero does draw a map — but after the page is readable, not before.
+    // B2538: the hero's map is a server-rendered SVG card now, not the
+    // interactive `TripMap` — so this route no longer reaches it (or the
+    // world outline `TripMap` used to pull in) at all.
     const reached = staticallyReachable(g, "app/at/[user]/(trip)/page.tsx");
-    expect(reached).toContain("components/TripMap.tsx");
+    expect(reached).not.toContain("components/TripMap.tsx");
     expect([...reached].filter((f) => f === LAND)).toEqual([]);
+  });
+
+  it("keeps maplibre-gl out of the trip and day pages' static bundle — B2538", () => {
+    // The card is a cached SVG string, inlined server-side; no map library
+    // ever needs to reach the client for it. A *dynamic* `import("maplibre-gl")`
+    // (components/map/StreetMap.tsx, only mounted by the interactive /map
+    // page) is fine and deliberately not what this checks.
+    for (const entry of [
+      "app/at/[user]/(trip)/page.tsx",
+      "app/at/[user]/trips/[trip]/page.tsx",
+      "app/at/[user]/(trip)/day/[slug]/page.tsx",
+      "app/at/[user]/trips/[trip]/day/[slug]/page.tsx",
+    ]) {
+      const reached = staticallyReachable(g, entry);
+      const offenders: string[] = [];
+      for (const file of reached) {
+        const src = fs.readFileSync(path.join(root, file), "utf8");
+        for (const re of [STATIC_IMPORT, SIDE_EFFECT]) {
+          re.lastIndex = 0;
+          for (const m of src.matchAll(re)) {
+            if (m[1] === "maplibre-gl") offenders.push(file);
+          }
+        }
+      }
+      expect(offenders).toEqual([]);
+    }
   });
 
   it("keeps the photobook's own copy off the client", () => {

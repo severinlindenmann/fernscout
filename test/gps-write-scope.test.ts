@@ -81,7 +81,7 @@ async function mintGpsToken(
 
 async function importGps(
   token: string,
-  options: { kind?: string; dryRun?: boolean } = {},
+  options: { kind?: string; dryRun?: boolean; state?: Record<string, unknown> } = {},
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   const { POST } = await import("@/app/api/v2/[user]/import/route");
   const dryRun = options.dryRun ?? false;
@@ -89,7 +89,11 @@ async function importGps(
     new Request(`https://example.test/api/v2/${OWNER}/import${dryRun ? "?dryRun=true" : ""}`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}`, "content-type": "application/json" }),
-      body: JSON.stringify({ kind: options.kind ?? "gps", text: fixesJsonl() }),
+      body: JSON.stringify({
+        kind: options.kind ?? "gps",
+        text: fixesJsonl(),
+        ...(options.state ? { state: options.state } : {}),
+      }),
     }),
     { params: Promise.resolve({ user: OWNER }) },
   );
@@ -733,5 +737,149 @@ describe("the claim, derived rather than hand-listed", () => {
         "a same-file helper they call) and are not in EXEMPT above with a reason:\n" +
         unaccounted.join("\n"),
     ).toEqual([]);
+  });
+});
+
+describe("the phone's own recording-state report — B2542", () => {
+  test("the write:gps token may report its own state alongside an upload", async () => {
+    cookie = await ownerGuestCookie();
+    const { body: minted } = await mintGpsToken();
+    cookie = undefined;
+    const { status, body } = await importGps(minted.token as string, {
+      state: { trip: TRIP, armed: true, permission: "always", appVersion: "1.4" },
+    });
+    expect(status).toBe(200);
+    const { recordingState } = await import("@/lib/gps/recorderState");
+    expect(recordingState(OWNER, TRIP)).toMatchObject({ state: "recording" });
+  });
+
+  test("the owner's own journal-wide token may report it too", async () => {
+    const { status } = await importGps(await ownerAgentToken(), {
+      state: { trip: TRIP, armed: false },
+    });
+    expect(status).toBe(200);
+    const { recordingState } = await import("@/lib/gps/recorderState");
+    expect(recordingState(OWNER, TRIP)).toMatchObject({ state: "off" });
+  });
+
+  test("never written on a dry run", async () => {
+    // A dry run is owner-only regardless of `state` (`write:gps` never dry
+    // runs at all — B2204) — the owner's own token exercises the "state
+    // arrived, dryRun true" branch this test is actually about.
+    const { readRecorderState } = await import("@/lib/gps/recorderState");
+    const before = readRecorderState(OWNER, TRIP);
+    const { status } = await importGps(await ownerAgentToken(), {
+      dryRun: true,
+      state: { trip: TRIP, armed: true, permission: "always" },
+    });
+    expect(status).toBe(200);
+    expect(readRecorderState(OWNER, TRIP)).toEqual(before);
+  });
+
+  test("a malformed report is silently ignored — never fails the positions upload (security review, B1)", async () => {
+    cookie = await ownerGuestCookie();
+    const { body: minted } = await mintGpsToken();
+    cookie = undefined;
+    const { readRecorderState } = await import("@/lib/gps/recorderState");
+    const before = readRecorderState(OWNER, TRIP);
+    const { status, body } = await importGps(minted.token as string, {
+      state: { trip: TRIP, armed: "yes" },
+    });
+    expect(status).toBe(200);
+    expect(body.stateIgnored).toBe(true);
+    expect(readRecorderState(OWNER, TRIP)).toEqual(before);
+  });
+
+  test("an appVersion over the length ceiling is ignored the same way — the positions still land", async () => {
+    cookie = await ownerGuestCookie();
+    const { body: minted } = await mintGpsToken();
+    cookie = undefined;
+    const { status, body } = await importGps(minted.token as string, {
+      state: { trip: TRIP, armed: true, permission: "always", appVersion: "x".repeat(41) },
+    });
+    expect(status).toBe(200);
+    expect(body.stateIgnored).toBe(true);
+    expect(typeof body.read).toBe("number"); // the fixes themselves were still stored
+  });
+
+  test("a deleted trip's state is ignored, and the positions are still stored — security review, B1", async () => {
+    cookie = await ownerGuestCookie();
+    const { body: minted } = await mintGpsToken();
+    cookie = undefined;
+    const { status, body } = await importGps(minted.token as string, {
+      state: { trip: "no-such-trip-at-all", armed: true, permission: "always" },
+    });
+    expect(status).toBe(200);
+    expect(body.stateIgnored).toBe(true);
+    expect(typeof body.read).toBe("number");
+  });
+
+  test("a renamed trip's old id still resolves — the state is applied, not ignored", async () => {
+    // A trip of its own, never touched by any other test in this file —
+    // `renameTrip` appends to `content/<user>/renamed.json` forever (by
+    // design, `lib/tripRename.ts`'s own doc comment), so renaming the shared
+    // `TRIP` fixture and back would leave a two-hop redirect that could
+    // misdirect a *later* test's own state report for `TRIP`.
+    const OLD_ID = "rename-me-2026";
+    const NEW_ID = "renamed-2026";
+    writeTripFixture(OWNER, {
+      id: OLD_ID,
+      title: "Renamed Trip",
+      start: "2026-07-01",
+      end: "2026-07-02",
+      status: "past",
+      visibility: "private",
+    });
+    const { renameTrip } = await import("@/lib/tripRename");
+    const renamed = await renameTrip(OWNER, OLD_ID, NEW_ID);
+    expect(renamed.ok).toBe(true);
+
+    cookie = await ownerGuestCookie();
+    const { body: minted } = await mintGpsToken();
+    cookie = undefined;
+    const { status, body } = await importGps(minted.token as string, {
+      // The phone kept using the trip's old id — it armed before the
+      // rename and has no way to know about it.
+      state: { trip: OLD_ID, armed: true, permission: "always" },
+    });
+    expect(status).toBe(200);
+    expect(body.stateIgnored).toBeUndefined();
+    const { recordingState } = await import("@/lib/gps/recorderState");
+    expect(recordingState(OWNER, NEW_ID)).toMatchObject({ state: "recording" });
+  });
+
+  test("a trip-scoped agent token cannot report state — the import door itself already refuses it", async () => {
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent", { trip: TRIP });
+    const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
+    if (!result.ok) throw new Error("no trip token");
+    const { status, body } = await importGps(result.token, {
+      state: { trip: TRIP, armed: true, permission: "always" },
+    });
+    expect(status).toBe(403);
+    expect(body.error).toBe("forbidden");
+  });
+
+  test("a plain reader (guest) session token is not a bearer credential at all — refused before the state is ever looked at", async () => {
+    const guestToken = await ownerGuestCookie();
+    const { status, body } = await importGps(guestToken, {
+      state: { trip: TRIP, armed: true, permission: "always" },
+    });
+    expect(status).toBe(401);
+    expect(body.error).toBe("invalid_token");
+  });
+
+  test("nothing under app/api/v2 reads recordingState — the studio's own owner-cookie door is the one reader", () => {
+    const hits: string[] = [];
+    const walk = (root: string) => {
+      for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+        const full = path.join(root, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(entry.name) && /recordingState/.test(fs.readFileSync(full, "utf8")))
+          hits.push(path.relative(process.cwd(), full));
+      }
+    };
+    walk(path.join(process.cwd(), "app", "api", "v2"));
+    expect(hits).toEqual([]);
   });
 });

@@ -329,7 +329,8 @@ directories:
 | --- | --- |
 | `.next` | The build that is serving. Nothing writes into it while the service runs. |
 | `.next-build` | The build in progress (`NEXT_DIST_DIR=.next-build`). It is emptied before each build, and the Turbopack cache is moved into it from `.next/cache` so the build is not cold. |
-| `.next-prev` | The build that served before the last deploy. It is kept for a rollback by hand, and the next deploy replaces it. |
+| `.next-prev` | The build that served before the last deploy. A failed restart rolls back onto it automatically (below), and the next deploy replaces it. |
+| `.next-failed` | A build a deploy swapped in and then rolled back from, kept to read what went wrong. The next rollback replaces it. |
 
 After `check-build` passes, the deploy stops the service, renames
 `.next` → `.next-prev` and `.next-build` → `.next`, and starts the service
@@ -353,7 +354,35 @@ carrying it forward, logs `turbopack cache NN GB > 10 GB — building cold`, and
 that one build runs cold. To change the limit, set the variable in
 `/etc/fernscout/env`, which the deploy reads.
 
-**Rollback to the previous build**, when the new one starts but misbehaves:
+**Automatic rollback (B2556).** After the restart the deploy waits 30s for
+`/api/health` (`DEPLOY_HEALTH_WAIT`), checks it reports the new commit, and asks
+for `/@example`. When any of these fails on a build it just swapped in, it
+rolls back by itself: it stops the service, moves `.next` → `.next-failed` and
+`.next-prev` → `.next`, checks out the commit that was serving (detached), puts
+the kept `paid/` tree back when it is the one that was serving (the failed one
+goes to `paid.failed`), restores the previous `git-sha.conf`, runs `npm ci`
+again if this deploy installed, starts the service and waits for health. It
+then exits 1 with `rolled back to <sha>`, or `rollback also failed: …` when the
+previous build does not come up either. Nothing is recorded in `.deploy-state`
+either way.
+
+It never rolls back a deploy that ran migrations: the schema only moves
+forward, and the older build may not read it. That deploy stays up and prints
+`NOT ROLLING BACK: this deploy ran database migrations` — fix forward. A deploy
+with no build (units only, a restart) has nothing to go back to and just fails.
+
+After a rollback by hand-run `deploy.sh` (no `DEPLOY_SHA`), the checkout is
+left detached, and the next hand-run deploy refuses until it is reattached
+(`git checkout main`). CI deploys use `DEPLOY_SHA` and do not care.
+
+A dev build (`SERVICE` other than `fernscout`) runs in a transient scope,
+`systemd-run --scope -p CPUQuota=200% nice -n 10`, so it does not take the
+CPU prod is serving with (B2557). Without root or `systemd-run` it builds plain
+and the log says so. Dev's build is never promoted to prod: prerendered pages
+carry each instance's own content.
+
+**Rollback to the previous build by hand**, when the new one passed those
+checks but misbehaves:
 
 ```bash
 cd /srv/fernscout

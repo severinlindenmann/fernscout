@@ -4,7 +4,7 @@ import { gpsDir, metresBetween, readRange } from "./store";
 import { zonedTimeToUtc } from "../timezone";
 import { isInHiddenSpot, isInStretch, type HiddenSpot, type ResolvedRange } from "./edits";
 import type { Track, TrackLabel, TrackSegment } from "./track";
-import type { Fix } from "../../importers/gps/schema";
+import type { Fix, TransportMode } from "../../importers/gps/schema";
 
 /**
  * Turning the private store into one trip's line — B665, reworked by B2202.
@@ -223,6 +223,27 @@ function simplify(points: Fix[], toleranceM: number): Fix[] {
 
 const round = (n: number): number => Number(n.toFixed(PLACES));
 
+/** The single mode most of a run's fixes actually carry — B2541. Never
+ * finer than a segment: a stretch of fixes does not switch labelled modes
+ * mid-line, so this picks the most-recorded known mode among them (ties
+ * broken by whichever was seen first) rather than drawing per-fix. `unknown`
+ * counts like any other named mode here — a source that says "moving, mode
+ * unclear" still overrides one that recorded nothing at all. `undefined`
+ * only when not one fix in the run carries a mode. */
+function dominantMode(fixes: Fix[]): TransportMode | undefined {
+  const counts = new Map<TransportMode, number>();
+  for (const fix of fixes) if (fix.mode) counts.set(fix.mode, (counts.get(fix.mode) ?? 0) + 1);
+  let best: TransportMode | undefined;
+  let bestCount = 0;
+  for (const [mode, count] of counts) {
+    if (count > bestCount) {
+      best = mode;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
 export type DeriveOptions = {
   /** ISO date, inclusive. The trip's first day. */
   start: string;
@@ -275,8 +296,10 @@ export type DeriveOptions = {
    *  best guess at transport mode. Every fix in range still reaches the
    *  line (unless some other rule above also cuts it); naming only adds a
    *  label, computed below into `Track.labels`. Also pre-resolved to an
-   *  absolute range by the caller (`resolvedNamedStretches`, `./api.ts`). */
-  namedStretches?: (ResolvedRange & { id: string; label: string })[];
+   *  absolute range by the caller (`resolvedNamedStretches`, `./api.ts`).
+   *  `mode`, when the owner set one, overrides whatever the recorded fixes
+   *  say for this stretch's own label — B2541/B2539. */
+  namedStretches?: (ResolvedRange & { id: string; label: string; mode?: TransportMode })[];
 };
 
 /** One calendar day later, as a date string — timezone-agnostic, this is
@@ -427,10 +450,12 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
       if (trimmed.length < 2) continue;
       drawable.push(...trimmed);
       const kept = simplify(trimmed, tolerance);
+      const mode = dominantMode(trimmed);
       segments.push({
         from: new Date(trimmed[0].t).toISOString(),
         day: run[0].date,
         points: kept.map((p) => [round(p.lat), round(p.lon)] as [number, number]),
+        ...(mode ? { mode } : {}),
       });
     }
   }
@@ -456,7 +481,18 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
         best = fix;
       }
     }
-    if (best) labels.push({ id: stretch.id, label: stretch.label, day: best.date, point: [round(best.lat), round(best.lon)] });
+    if (best)
+      labels.push({
+        id: stretch.id,
+        label: stretch.label,
+        day: best.date,
+        point: [round(best.lat), round(best.lon)],
+        // The owner's own chosen mode, when they set one, overrides
+        // whatever the fix itself recorded — B2541/B2539: naming "Boat
+        // trip" is the actual fix for a phone's "in passenger vehicle"
+        // guess, not merely a label alongside it.
+        ...(stretch.mode ? { mode: stretch.mode } : best.mode ? { mode: best.mode } : {}),
+      });
   }
 
   return { generated: new Date().toISOString(), segments, ...(labels.length > 0 ? { labels } : {}) };

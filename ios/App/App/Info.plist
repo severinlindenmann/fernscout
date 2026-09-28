@@ -32,6 +32,8 @@
 	<string>Fernscout records where you go during a trip you turned recording on for, so your journal gets a real map of the roads you took.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Fernscout records where you go during a trip you turned recording on for, including while the app is in the background, so your journal gets a real map of the roads you took.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Fernscout reads how you are moving — on foot, by car, by train — alongside your recorded route, so your journal can say how a day was travelled.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

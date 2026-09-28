@@ -6,9 +6,8 @@ import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
 import { ArrowDown, BookOpen, ChevronRight, Clapperboard, PlayCircle, Sparkles } from "lucide-react";
 import LatestDayButton from "./LatestDayButton";
-import TripMap from "./TripMap";
-import { isPlottable } from "@/lib/mapFrame";
-import type { Basemap } from "@/lib/basemap";
+import type { CardMeta } from "@/lib/map/tripCard";
+import MapCard from "./map/MapCard";
 import PushInstallOnboarding from "./PushInstallOnboarding";
 import PushOptIn from "./PushOptIn";
 import { KeptMark } from "./KeepTrip";
@@ -73,7 +72,6 @@ export type HeroStats = {
 
 export default function TripHero({
   stats,
-  route,
   current,
   over,
   coverSrc,
@@ -83,24 +81,15 @@ export default function TripHero({
   resumeLabel,
   newDayCount = 0,
   onShowNew,
-  basemap = null,
-  locals,
+  card = null,
   photobook,
   travellerNames,
-  track = [],
-  tripTrack = [],
 }: {
   stats: HeroStats;
-  /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
-  basemap?: Basemap | null;
-  /** One town-scale basemap per stop area — see `TripMap`. */
-  locals?: Record<string, Basemap>;
-  /**
-   * Every day the reader may see, in order — the map's stops come from these
-   * (`lib/tripMap.ts`), which is why they arrive as summaries rather than as
-   * bare coordinates: a marker without a name is a dot nobody can read.
-   */
-  route: DaySummary[];
+  /** The still preview card, rendered on the server — B2538,
+   * `lib/map/tripCard.ts`. `null` when nothing on the trip (or this one
+   * day, on a `/day/<slug>` permalink) has ever carried a coordinate. */
+  card?: CardMeta | null;
   /** Where the trip has got to — the pin on the map and the "currently in" /
    * "ended in" line. A summary, not a full day: the hero never shows the day's
    * prose. For a finished trip this is its last day, not "today". */
@@ -132,13 +121,6 @@ export default function TripHero({
    * that says whose trip it was in words rather than only in the page's
    * JSON-LD. Absent for a trip nobody is credited on. */
   travellerNames?: string;
-  /** The recorded route for the one day this permalink names — B2199. See
-   * `TripMap`'s own doc for what it draws and why the frame ignores it. */
-  track?: [number, number][][];
-  /** The whole trip's own recorded line — B2449, `tripTrackFor` in
-   * lib/tripView.ts. See `TripMap`'s own `tripTrack` doc: when present, it
-   * replaces the stop-to-stop hops. */
-  tripTrack?: [number, number][][];
 }) {
   const { t, tn, formatShortDate, localizedTrip } = useI18n();
   const { money } = useMoney();
@@ -149,11 +131,6 @@ export default function TripHero({
   // day itself does not carry, so the badge is simply not drawn rather than
   // drawn empty.
   const hasLocation = current.location !== "";
-  // Nothing plottable anywhere on the trip — no day has a coordinate — is the
-  // "nothing recorded" case B1260 is about, and the map has nothing to draw
-  // but the whole world. A real trip that spent its one day somewhere has a
-  // point; a fresh journal with no coordinates yet does not.
-  const hasRoute = route.some(isPlottable) || isPlottable(current);
   // Same shape of question for the two location-derived tiles: `places` is 0
   // only when no day carries a coordinate at all, never as a real count that
   // happens to be zero (a trip cannot visit zero of its own stops).
@@ -440,17 +417,22 @@ export default function TripHero({
         </div>
       </section>
 
-      {/* Where we are — absent, not a map of the whole world with no marker
-          on it, until some day has a coordinate. B1260. */}
-      {hasRoute && (
-        <TripMap
-          days={route}
-          basemap={basemap}
-          locals={locals}
-          track={track}
-          tripTrack={tripTrack}
-          accent={active.trip.accent}
-          live={live}
+      {/* Where we are — a still preview card, not an interactive map
+          (B2538). Absent, not a card with nothing drawn on it, until some
+          day has a coordinate — same B1260 rule `TripMap` used to follow. */}
+      {card && (
+        <MapCard
+          src={active.href("/card.svg")}
+          query={card.query}
+          usedStreet={card.usedStreet}
+          mapHref={active.href("/map")}
+          factsLine={[
+            tn("mapCard.days", stats.tripDays, { count: String(stats.tripDays) }),
+            hasPlaces ? tn("mapCard.places", stats.places, { count: String(stats.places) }) : null,
+            card.recordedKm > 0 ? t("mapCard.recordedKm", { km: String(card.recordedKm) }) : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         />
       )}
 

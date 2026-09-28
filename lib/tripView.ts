@@ -1,9 +1,6 @@
 import "server-only";
-import { basemapFor, basemapForRoute, localBasemaps, type Basemap } from "./basemap";
-import { framePoints } from "./map/tripFrame";
 import { getAllEntries, getDays, getDefaultDay, getTripStats, type ReadOptions } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
-import { readerTrack } from "./gps/track";
 import { isHiddenPlace } from "./gps/edits";
 import { geodataAvailable, reverseGeocode } from "./ingest/geo";
 import { defaultLocaleFor } from "./locales";
@@ -12,23 +9,6 @@ import { withProse } from "./proseTree";
 import { getTrip, parseTripRef } from "./trips";
 import type { Day, DaySummary, Trip } from "./types";
 import type { HeroStats } from "@/components/TripHero";
-
-/**
- * The whole trip's own recorded line, for the overview story/hero — B2449.
- * `readerTrack` is the one door onto `track.json` (see docs/gps.md); this
- * just narrows it to the shape `TripMap`'s `tripTrack` prop wants, keyed on
- * exactly the dates this reader is shown (`index`, already filtered by
- * `buildStoryProps`/`getDays` for drafts and visibility). Absent track file,
- * or nothing left after the date filter, is the empty array — the same "draw
- * the hops instead" default `TripMap` already has.
- */
-export function tripTrackFor(trip: Trip, index: Pick<DaySummary, "date">[]): [number, number][][] {
-  return (
-    readerTrack(trip.username, trip.id, new Set(index.map((d) => d.date)))?.segments.map(
-      (s) => s.points,
-    ) ?? []
-  );
-}
 
 /**
  * How many days either side of the one being read are sent with the page.
@@ -57,20 +37,6 @@ export type StoryProps = {
   /** A specific day to open at, from the /day/<slug> route. */
   openAtDate?: string;
   stats: HeroStats;
-  /**
-   * The basemap for the hero's small map, clipped here rather than in the
-   * browser — the same reason the trip map does it (lib/basemap.ts). Built in
-   * this function because all four routes that render a story go through it,
-   * and the alternative was passing it down four call sites that otherwise have
-   * nothing to say about maps.
-   */
-  basemap: ReturnType<typeof basemapFor>;
-  /**
-   * And one town-scale basemap per area the trip stopped in, for the map's
-   * "surroundings" view — see `localBasemaps`. Empty when the bundle was
-   * never built, which is the same absent state `basemap` has.
-   */
-  locals: Record<string, Basemap>;
 };
 
 /**
@@ -274,14 +240,6 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
   return {
     trip,
     index,
-    // Framed on the same points TripMap frames on, so the clip covers what is
-    // actually drawn. `frameRoute` is pure, so the two agree — and an empty
-    // index draws no hero and therefore no map, so it gets no basemap either
-    // (B85). `basemapFor` stays in the type above as the shape of the result.
-    // `framePoints` is B2534's "fit the places where days happened, never
-    // home" rule — see `lib/map/tripFrame.ts`.
-    basemap: basemapForRoute(framePoints(index)),
-    locals: localBasemaps(index),
     days: proseFor(
       tripId,
       showCosts ? days.slice(from, to) : days.slice(from, to).map(withoutCosts),
