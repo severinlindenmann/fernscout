@@ -133,12 +133,13 @@ export default function MobileMapSheet({
   // the same day in view. Not on the very first render (the page's own
   // default selection shouldn't pop the sheet open by itself). Clearing a
   // selection returns to the strip, with no day's details left open.
-  const lastDate = useRef(selectedDate);
-  useEffect(() => {
-    if (selectedDate && selectedDate !== lastDate.current) setSnap(HALF);
-    if (!selectedDate) setSnap(PEEK);
-    lastDate.current = selectedDate;
-  }, [selectedDate]);
+  // Adjusted during render rather than in an effect (React's own pattern for
+  // state that follows a prop), so there is no extra cascading render.
+  const [lastDate, setLastDate] = useState(selectedDate);
+  if (selectedDate !== lastDate) {
+    setLastDate(selectedDate);
+    setSnap(selectedDate ? HALF : PEEK);
+  }
 
   if (days.length === 0) return null;
 

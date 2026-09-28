@@ -49,7 +49,7 @@ const street = vi.hoisted(() => ({
   on: vi.fn(), off: vi.fn(), once: vi.fn(),
 }));
 vi.mock("@/components/map/StreetMap", () => ({
-  default: ({ onReady }: { onReady: (map: MapLibreMap) => void }) => {
+  default: function StreetMapMock({ onReady }: { onReady: (map: MapLibreMap) => void }) {
     useEffect(() => onReady(street as unknown as MapLibreMap), [onReady]);
     return <div data-street-map />;
   },
