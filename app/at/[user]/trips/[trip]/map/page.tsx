@@ -4,6 +4,8 @@ import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
+import { isEnabled } from "@/lib/capabilities";
+import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
@@ -90,10 +92,13 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   // `WorldMap`'s own client-side `base` calls the same `framePoints` on the
   // same `places` array, so the two keep agreeing.
   const basemap = basemapForRoute(places.length > 0 ? framePoints(places) : plan.stops);
+  // B2535 — see the sibling route's own copy of this line.
+  const streetMap = isEnabled("streetMaps") ? (primaryStreetMap(trip.username, trip.id) ?? null) : null;
   return (
     <MapPageContent
       places={places}
       plan={plan.stops}
+      streetMap={streetMap}
       // B665, and behind `mayReadTrip` in the page above like everything
       // else here.
       track={

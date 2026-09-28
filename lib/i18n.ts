@@ -1324,6 +1324,8 @@ export type TranslationKey =
   | "map.layers"
   | "map.media"
   | "map.nextUp"
+  | "map.osmCredit"
+  | "map.osmCreditInfo"
   | "map.places"
   | "map.planned"
   | "map.plannedFromDrafts"

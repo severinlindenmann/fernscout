@@ -108,6 +108,9 @@
   "ignoreDependencies": ["d3-geo","stripe"],
 
   "ignoreBinaries": [
+    // Protomaps' extraction CLI, used only by the operator scripts
+    // scripts/maps-world.mts and maps-trip.mts (B2535); the app never needs it.
+    "pmtiles",
     // macOS's own memory report, read by scripts/slot.mjs to hold heavy work
     // back while the machine is short of memory. Part of the OS, not a package.
     "vm_stat",

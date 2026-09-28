@@ -1523,6 +1523,8 @@
   "map.layers": "Calques",
   "map.media": "Photos et vidéos",
   "map.nextUp": "Prochaine étape",
+  "map.osmCredit": "© contributeurs d'OpenStreetMap",
+  "map.osmCreditInfo": "Crédit des données cartographiques",
   "map.places": "lieux",
   "map.planned": "Itinéraire prévu",
   "map.plannedFromDrafts": "· certaines sont des brouillons, visibles par toi seul·e",

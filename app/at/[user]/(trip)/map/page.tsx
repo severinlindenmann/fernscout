@@ -6,6 +6,8 @@ import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
 import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
+import { isEnabled } from "@/lib/capabilities";
+import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
@@ -156,6 +158,10 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   // `WorldMap`'s own client-side `base` calls the same `framePoints` on the
   // same `places` array, so the two keep agreeing.
   const basemap = basemapForRoute(places.length > 0 ? framePoints(places) : plan.stops);
+  // B2535: on only when the capability is on *and* something has been
+  // extracted for this trip — `undefined` otherwise, which is what tells
+  // `MapPageContent` to keep drawing the SVG map exactly as it does today.
+  const streetMap = isEnabled("streetMaps") ? (primaryStreetMap(trip.username, trip.id) ?? null) : null;
   // The ground actually covered, where the owner has derived it (B665). Read
   // here rather than in the component: it is a file in the trip folder, behind
   // the same gate as everything else on this page, and `mayReadTrip` in the
@@ -176,6 +182,7 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
       basemap={basemap}
       over={over}
       hasDays={days.length > 0}
+      streetMap={streetMap}
       stats={{
         tripDays: stats.tripDays,
         places: stats.places,

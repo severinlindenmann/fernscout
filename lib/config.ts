@@ -72,6 +72,14 @@ export const FEATURE_NAMES = [
   // a fresh clone shows no app button at all until an operator turns this
   // on. See lib/capabilities.ts for the storeUrl/waitlist split.
   "iosApp",
+  // B2535. Self-hosted street-level basemap tiles (Protomaps PMTiles, served
+  // from our own origin) under the trip map. Off means the drawn Natural
+  // Earth map keeps rendering exactly as it does today — no third party ever
+  // sees a reader, and no request for a tile is ever made. A journal opts in
+  // for itself, the same shape as `mapRelief`: the requirement is a file on
+  // disk (`MAPS_DIR`'s world extract), not a key or an account. See
+  // lib/capabilities.ts for the readable-world-file check.
+  "streetMaps",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -675,6 +683,10 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // Store, and until then the door is a waitlist instead. See
   // lib/capabilities.ts for how the two states are told apart.
   iosApp: { enabled: false },
+  // B2535. Off by default like every optional capability, and off means the
+  // trip map page never requests a tile — it draws the existing SVG map
+  // unchanged. See lib/capabilities.ts for what turns this on.
+  streetMaps: { enabled: false },
 };
 
 /**
