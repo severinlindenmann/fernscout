@@ -134,6 +134,20 @@ describe("lib/gps/api.ts — recordedTrips", () => {
 });
 
 describe("lib/gps/api.ts — ownerTripLine", () => {
+  // B2516: CI hit this test just after UTC midnight, where "now − 6 min" and
+  // "now" straddled the day boundary — deriveTrack's default per-day split
+  // turned the pair into two one-point runs and dropped both. Pinning the
+  // clock right on that boundary reproduces it deterministically instead of
+  // depending on the wall clock, and proves ownerTripLine's breakAtDate:
+  // false fix (lib/gps/enrich.ts, lib/gps/api.ts) actually holds.
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-23T00:03:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   test("draws a segment for today, unlike the reader-facing track", () => {
     const now = Date.now();
     appendFixes(OWNER, [
@@ -159,6 +173,25 @@ describe("lib/gps/api.ts — ownerTripLine", () => {
     // was not clipped by the reader-facing 24h cap (it isn't applied here).
     const totalPoints = line!.segments.reduce((n, s) => n + s.points.length, 0);
     expect(totalPoints).toBeGreaterThan(0);
+  });
+
+  test("a run either side of UTC midnight is one continuous line, not two dropped singletons", () => {
+    appendFixes(OWNER, [
+      { t: Date.parse("2026-06-22T23:57:00Z"), lat: 13.75, lon: 100.49 },
+      { t: Date.parse("2026-06-23T00:03:00Z"), lat: 13.759, lon: 100.49 },
+    ]);
+    writeTripFixture(OWNER, {
+      id: "ongoing",
+      title: "Ongoing",
+      start: "2026-06-20",
+      end: "2026-06-25",
+      status: "past",
+      visibility: "private",
+    });
+    const line = ownerTripLine(OWNER, "ongoing");
+    expect(line).not.toBeNull();
+    const totalPoints = line!.segments.reduce((n, s) => n + s.points.length, 0);
+    expect(totalPoints).toBe(2);
   });
 
   test("an unknown trip gives null", () => {
