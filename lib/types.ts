@@ -397,7 +397,7 @@ export type DaySummary = {
    * draw for this day, never `location`'s owner-written words. Falls back
    * to `location` itself when the offline geocoder has nothing; already the
    * localized "Home" string when `home` is true. */
-  mapName: string;
+  mapName?: string;
 };
 
 /** A place worth seeing at a plan stop — public, unlike the stay (B2012). */

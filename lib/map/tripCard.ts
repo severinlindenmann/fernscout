@@ -77,7 +77,7 @@ function placesFrom(index: readonly DaySummary[]): MapPlace[] {
       // B2543 — `d.mapName` (not `d.location`, the owner's own words) is
       // already the map's own town-level label, or the localized "Home"
       // string when `d.home` is true.
-      name: d.mapName,
+      name: d.mapName ?? d.location,
       // `d.home` came out of `buildStoryProps` the same way, so
       // `buildTripFrame` (`lib/map/tripFrame.ts`) can apply its own Home
       // rule (never "far", chips read "from home").
