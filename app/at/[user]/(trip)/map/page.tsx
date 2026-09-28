@@ -57,6 +57,15 @@ import { journalPath } from "@/lib/journalPath";
  * runs behind the same cookie the page reads, so the tense this reader is
  * shown here is the tense their own request is about to render.
  */
+/** B2550 — kept in the client router cache for 30s: a `Link` tap back to a
+ * day, trip or list a reader already opened moments ago (Trips → back, a
+ * `StoryPager` step) shows what was already fetched rather than waiting on
+ * the server again. Owner-only mutations do not live on this page (they are
+ * under `/studio`), so nothing here can go stale in a way that matters more
+ * than a 30s wait would have cost anyway. Pages only, per Next's own rule —
+ * never on a layout. */
+export const unstable_dynamicStaleTime = 30;
+
 export async function generateMetadata({
   params,
 }: PageProps<"/at/[user]/map">): Promise<Metadata> {

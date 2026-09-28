@@ -73,7 +73,14 @@ export function demoDay(locale: string): DemoDay | null {
     const other = days.find((e) => e !== day && openPhoto(e));
     return {
       journalHref: journalPath(journal.username),
-      href: `${journalPath(journal.username)}/trips/${trip.id}/day/${day.slug}`,
+      // The current trip's own day answers at the bare `/day/<slug>` address
+      // (`app/at/[user]/trips/[trip]/day/[slug]/page.tsx` 307s a
+      // `/trips/<id>/day/<slug>` tap there) — matched here for the same
+      // reason `lib/viewer.ts`'s own `detailFor` does (B2550).
+      href:
+        trip.status === "current"
+          ? `${journalPath(journal.username)}/day/${day.slug}`
+          : `${journalPath(journal.username)}/trips/${trip.id}/day/${day.slug}`,
       title: day.title,
       date: new Intl.DateTimeFormat(locale, {
         weekday: "long",

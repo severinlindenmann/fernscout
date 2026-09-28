@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../contentRoot";
+import { isTransportMode, type TransportMode } from "../../importers/gps/schema";
 
 /**
  * Great-circle metres — the same haversine `./store.ts` and
@@ -88,7 +89,17 @@ export type HiddenSpot = { id: string; lat: number; lon: number; radiusM: number
  * one date) — a wall clock local to the day it names, not an instant. See
  * the module doc above for why. */
 export type HiddenStretch = { id: string; date: string; from: string; to: string };
-export type NamedStretch = { id: string; date: string; from: string; to: string; label: string };
+export type NamedStretch = {
+  id: string;
+  date: string;
+  from: string;
+  to: string;
+  label: string;
+  /** The owner's own chosen mode for this stretch — B2541. Overrides
+   *  whatever the recorded fixes say for the stretch's own label, never the
+   *  segment either side of it. Absent means "let the recording speak". */
+  mode?: TransportMode;
+};
 
 export type TrackEdits = {
   hiddenSpots: HiddenSpot[];
@@ -171,8 +182,9 @@ function validStretchShape(v: unknown): v is { id: string; date: string; from: s
 
 function validNamedStretch(v: unknown): v is NamedStretch {
   if (!validStretchShape(v)) return false;
-  const label = (v as Partial<NamedStretch>).label;
-  return typeof label === "string" && label.trim().length > 0 && label.length <= EDIT_LIMITS.labelMax;
+  const { label, mode } = v as Partial<NamedStretch>;
+  if (typeof label !== "string" || label.trim().length === 0 || label.length > EDIT_LIMITS.labelMax) return false;
+  return mode === undefined || isTransportMode(mode);
 }
 
 /** Fails closed the same way `readExcludeZones` does: an unreadable **or

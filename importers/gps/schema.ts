@@ -18,12 +18,42 @@ import type { Importer } from "../schema";
 
 export { parseInstant } from "../schema";
 
+/**
+ * The one transport-mode vocabulary, named here and used everywhere a mode
+ * is read, written or drawn — B2541 (D8 C's Algarve boat trip was a phone's
+ * best guess at "car", which is what named-stretch overrides above the store
+ * fix). A fix's own mode is what the phone or an importer actually recorded
+ * or mapped to this list — never invented, and `"unknown"` is itself an
+ * honest answer rather than an absent field, for a fix a source could tell
+ * was moving but not how.
+ */
+export const TRANSPORT_MODES = [
+  "on_foot",
+  "bike",
+  "car",
+  "bus",
+  "train",
+  "tram",
+  "boat",
+  "plane",
+  "skiing",
+  "unknown",
+] as const;
+export type TransportMode = (typeof TRANSPORT_MODES)[number];
+
+export function isTransportMode(value: unknown): value is TransportMode {
+  return typeof value === "string" && (TRANSPORT_MODES as readonly string[]).includes(value);
+}
+
 /** One position, at one instant. The only currency this folder deals in. */
 export type Fix = {
   /** Milliseconds since the epoch, UTC. */
   t: number;
   lat: number;
   lon: number;
+  /** How this fix was made, when a source actually says — B2541. Absent
+   *  means "not recorded", never "on foot" or any other guess. */
+  mode?: TransportMode;
 };
 
 export type GpsImporter = Importer<Fix>;

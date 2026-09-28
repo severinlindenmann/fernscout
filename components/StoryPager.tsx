@@ -16,11 +16,14 @@ import TestNotice from "./TestNotice";
 import Prose from "./Prose";
 import { EntryVisibility } from "./Visibility";
 import Gallery from "./Gallery";
+import MapCard from "./map/MapCard";
 import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
+import { isPlottable } from "@/lib/mapFrame";
 import { useMoney } from "./CurrencyProvider";
 import type { DaySummary, Entry } from "@/lib/types";
 import type { ProseNode, StoryDay } from "@/lib/prose";
+import type { CardMeta } from "@/lib/map/tripCard";
 import {
   SOURCE_CREDIT,
   weatherGroup,
@@ -140,6 +143,7 @@ export default function StoryPager({
   onStepChange,
   onLegDone,
   hero,
+  card,
 }: {
   index: DaySummary[];
   /** The full day at that position, once it has arrived. */
@@ -151,6 +155,14 @@ export default function StoryPager({
   onStepChange: (index: number) => void;
   onLegDone: () => void;
   hero?: React.ReactNode;
+  /** The trip's own card facts — B2538. Only `usedStreet` is read here (for
+   * a day's own credit line, which doesn't vary by day); whether *this* day
+   * gets a card at all is decided client-side, from `index` alone
+   * (`isPlottable`), which is why a day fetched client-side through
+   * `story.json` (never `dayCardMeta`, a server-only call) still gets one —
+   * the `<img>` itself (`/card.svg?day=…`) is what actually enforces the
+   * gate and leaves out a draft's line, same as every other day. */
+  card?: CardMeta | null;
 }) {
   const step = steps[stepIndex];
 
@@ -196,7 +208,13 @@ export default function StoryPager({
 
   return (
     <div>
-      <AnimatePresence mode="wait">
+      {/* B2550: `initial={false}` skips only the very first mount's own
+          enter animation — the case a page arrives by navigation (a Link
+          tap, a fresh load) and should show at once rather than fade up from
+          nothing. A step change after that still swaps `key`s and animates
+          exactly as before; reduced motion is `MotionConfig` in
+          LocaleProvider.tsx, untouched by this. */}
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={stepIndex}
           initial={{ opacity: 0, y: 12 }}
@@ -231,6 +249,11 @@ export default function StoryPager({
                 dayIndex={step.dayIndex}
                 isNewestDay={step.dayIndex === index.length - 1}
                 titleIsPageHeading
+                mapCard={
+                  isPlottable(index[step.dayIndex])
+                    ? { query: `?day=${encodeURIComponent(index[step.dayIndex].date)}`, usedStreet: card?.usedStreet ?? false }
+                    : undefined
+                }
               />
             ) : (
               <DayPlaceholder
@@ -300,6 +323,7 @@ export function DayCard({
   tripTest,
   isNewestDay = false,
   titleIsPageHeading = false,
+  mapCard,
 }: {
   /** The story page's day card names the page — B2479: its first update's
    *  title is the document's h1, the same thing the tab title says. The docs
@@ -327,6 +351,12 @@ export function DayCard({
    * and this day being published, so a caller passing `true` by mistake
    * cannot make the card appear on a finished trip or under a draft. */
   isNewestDay?: boolean;
+  /** This day's own still preview card — B2538. `StoryPager` is the only
+   * caller that ever hands one in (it decides client-side, from `isPlottable`
+   * on this day's own summary); every other caller of this exported
+   * component leaves it out and shows no map, the same as every other
+   * optional prop here. */
+  mapCard?: { query: string; usedStreet: boolean };
 }) {
   // Trip-relative: URLs carry a username now, so a bare "/costs" would send a
   // reader to somebody else's site — or to nothing at all.
@@ -487,6 +517,19 @@ export function DayCard({
             }
           />
         ))}
+
+        {/* This day's own still map — B2538, D9. Absent, not a card with
+            nothing drawn on it, until this day has a place of its own
+            (`mapCard` is `undefined` rather than an empty card for that
+            case — the caller's own `isPlottable` check). */}
+        {mapCard && (
+          <MapCard
+            src={trip?.href("/card.svg") ?? "/card.svg"}
+            query={mapCard.query}
+            usedStreet={mapCard.usedStreet}
+            mapHref={trip?.href("/map") ?? "/map"}
+          />
+        )}
 
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
         <div className="mt-10 border-t border-line-quiet pt-4">

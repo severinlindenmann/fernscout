@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { TOOLS } from "@/lib/helper/tools";
+import { PRINTED_SLOT_NAMES } from "@paid/printOrder/lib/helper/tools/areas/printed";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
 
 /**
@@ -15,12 +16,17 @@ import { MAINTAINED_LOCALES } from "@/lib/i18n";
  * reads. This walks every one against every maintained locale's own file on
  * disk, not the English-merged dictionary, which would hide a field missing
  * from one language behind English's copy of the same key.
+ *
+ * B2554 — plus the slots the paid printed tools take, which a checkout
+ * without paid/ cannot see in TOOLS: the stub declares them, so deleting one
+ * fails here in public CI rather than in the paid tests at the next deploy.
  */
 describe("every proposal field has a locale string in every maintained locale", () => {
   const slotNames = [
-    ...new Set(
-      TOOLS.filter((tool) => tool.kind === "write").flatMap((tool) => Object.keys(tool.properties)),
-    ),
+    ...new Set([
+      ...TOOLS.filter((tool) => tool.kind === "write").flatMap((tool) => Object.keys(tool.properties)),
+      ...PRINTED_SLOT_NAMES,
+    ]),
   ];
 
   for (const locale of MAINTAINED_LOCALES) {

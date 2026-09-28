@@ -15,11 +15,25 @@ import { typeInto } from "./support/type-input";
  * answer, as in `test/signup-wizard.test.tsx`.
  */
 
-const push = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push, refresh: () => {} }),
+  useRouter: () => ({ push: vi.fn(), refresh: () => {} }),
   usePathname: () => "/welcome",
 }));
+
+/** B2550 — `intoTheStudio` is a full load (`window.location.assign`), not a
+ *  `router.push`: reading pages are now kept in the client router cache for
+ *  30s, and a signup that just changed the session cookie must not risk
+ *  handing back a page cached from before it.
+ *
+ *  jsdom's own `location.assign` refuses `vi.spyOn` directly ("cannot
+ *  redefine property") — the whole property is swapped instead, same as
+ *  `test/trip-map.test.tsx`'s `stubLocationAssign`. */
+const assign = vi.fn();
+const originalLocation = window.location;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+delete (window as any).location;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).location = { ...originalLocation, assign };
 
 function withLocale(node: React.ReactNode) {
   return <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>{node}</LocaleProvider>;
@@ -48,7 +62,7 @@ describe("/welcome", () => {
   });
 
   async function finish(redeemOk: boolean) {
-    push.mockClear();
+    assign.mockClear();
     const responses = [
       { ok: true, json: async () => ({ status: "accepted" }) },
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
@@ -92,12 +106,12 @@ describe("/welcome", () => {
 
   test("finishing lands on the new journal's studio", async () => {
     await finish(true);
-    expect(push).toHaveBeenCalledWith("/@robin/studio");
+    expect(assign).toHaveBeenCalledWith("/@robin/studio");
     expect(document.cookie).toContain(`${JOURNAL_COOKIE}=robin`);
   });
 
   test("a sign-in that did not take lands on the journal's own sign-in, not a studio 404", async () => {
     await finish(false);
-    expect(push).toHaveBeenCalledWith("/@robin/me");
+    expect(assign).toHaveBeenCalledWith("/@robin/me");
   });
 });

@@ -1,4 +1,4 @@
-import { isSaneFix, parseInstant, type Fix, type GpsImporter } from "./schema";
+import { isSaneFix, isTransportMode, parseInstant, type Fix, type GpsImporter } from "./schema";
 
 /**
  * The neutral format — the door for a tool that is not written in TypeScript.
@@ -19,21 +19,39 @@ import { isSaneFix, parseInstant, type Fix, type GpsImporter } from "./schema";
  * is unambiguous for any date a person has been anywhere. A plain JSON array
  * of either shape is accepted too, because that is what somebody's first
  * attempt will produce.
+ *
+ * A 4th array element, or a `mode`/`activity` object field, names how the fix
+ * was made — B2541, one of `TRANSPORT_MODES` (`./schema.ts`). This is the
+ * shape the iPhone recorder itself sends (Core Motion activity alongside
+ * each fix): a value outside that vocabulary is dropped rather than stored,
+ * the same "never invent it" rule the rest of this module already follows
+ * for a coordinate.
  */
 const SECONDS_CEILING = 100_000_000_000;
 
 function toFix(row: unknown): Fix | undefined {
   if (Array.isArray(row)) {
-    const [t, lat, lon] = row;
-    return { t: toMillis(t), lat: Number(lat), lon: Number(lon) };
+    const [t, lat, lon, mode] = row;
+    return {
+      t: toMillis(t),
+      lat: Number(lat),
+      lon: Number(lon),
+      ...(isTransportMode(mode) ? { mode } : {}),
+    };
   }
   if (typeof row === "object" && row !== null) {
     const r = row as Record<string, unknown>;
     const lat = r.lat ?? r.latitude;
     const lon = r.lon ?? r.lng ?? r.longitude;
     const t = r.t ?? r.time ?? r.timestamp;
+    const mode = r.mode ?? r.activity;
     if (lat === undefined || lon === undefined || t === undefined) return undefined;
-    return { t: toMillis(t), lat: Number(lat), lon: Number(lon) };
+    return {
+      t: toMillis(t),
+      lat: Number(lat),
+      lon: Number(lon),
+      ...(isTransportMode(mode) ? { mode } : {}),
+    };
   }
   return undefined;
 }

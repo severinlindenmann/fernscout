@@ -244,6 +244,30 @@ describe("GET/PUT /api/v2/{user}/gps/zones", { shuffle: false }, () => {
     expect(fresh.body.zones).toEqual([{ label: "Fresh", lat: 5, lon: 5, radiusM: 100 }]);
   });
 
+  test("two concurrent PUTs carrying the same ETag: exactly one succeeds, B2547", async () => {
+    const token = await tokenFor(OWNER_EMAIL);
+    // Both requests read the current ETag before either writes — the same
+    // shape a real race between two open tabs takes. The fix (read/parse the
+    // body first, then check If-Match with no await in between) means only
+    // the request that actually runs its check-and-write first still finds
+    // that ETag current; the other's check now runs against what the first
+    // one just wrote and is refused, rather than both passing and the
+    // second silently discarding the first's zone.
+    const etag = (await getZones(token)).etag!;
+    const [a, b] = await Promise.all([
+      putZones(token, { zones: [{ label: "First", lat: 6, lon: 6, radiusM: 100 }] }, etag),
+      putZones(token, { zones: [{ label: "Second", lat: 7, lon: 7, radiusM: 100 }] }, etag),
+    ]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([200, 409]);
+    const [winner, loser] = a.status === 200 ? [a, b] : [b, a];
+    expect(loser.body.error).toBe("stale_document");
+    // The winner's zone is really what is on disk — the other one never
+    // landed, and there is no third, merged or half-written state.
+    const read = await getZones(token);
+    expect(read.body.zones).toEqual(winner.body.zones);
+  });
+
   test("GET and PUT both answer Cache-Control: no-store", async () => {
     const token = await tokenFor(OWNER_EMAIL);
     const get = await getZones(token);

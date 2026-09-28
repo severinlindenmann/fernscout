@@ -10,7 +10,7 @@ import TripDetailView from "@/components/studio/location/TripDetailView";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { getCurrentTrip, getTrips, tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
-import { ownerTripLine, recordedTrips } from "@/lib/gps/api";
+import { kmByMode, ownerTripLine, recordedTrips } from "@/lib/gps/api";
 import { AS_AUTHOR, getPlaces } from "@/lib/entries";
 import { basemapForRoute } from "@/lib/basemap";
 import { resolveAccess } from "@/lib/auth/handshake";
@@ -74,6 +74,10 @@ export default async function StudioLocationPage({
     // "What it looks like".
     const placesByTrip: Record<string, ReturnType<typeof getPlaces>> = {};
     const basemapByTrip: Record<string, ReturnType<typeof basemapForRoute>> = {};
+    // B2541 — km by transport mode, for the same trips. Small enough (a
+    // handful of numbers) to compute for every row rather than only on
+    // expand, the same reasoning `daysRecorded` already gets.
+    const kmByModeByTrip: Record<string, ReturnType<typeof kmByMode>> = {};
     // The owner's own raw line per trip, computed once here rather than
     // fetched client-side — B2540's overview card map and facts line
     // (`days · km · positions · gaps`), always visible rather than folded
@@ -83,6 +87,7 @@ export default async function StudioLocationPage({
       const places = getPlaces(tripRef(user, trip.tripId), AS_AUTHOR);
       placesByTrip[trip.tripId] = places;
       basemapByTrip[trip.tripId] = basemapForRoute(places);
+      kmByModeByTrip[trip.tripId] = kmByMode(user, trip.tripId);
       initialSegmentsByTrip[trip.tripId] = ownerTripLine(user, trip.tripId)?.segments ?? [];
     }
     routeSection = (
@@ -91,6 +96,7 @@ export default async function StudioLocationPage({
         initialTrips={recorded}
         placesByTrip={placesByTrip}
         basemapByTrip={basemapByTrip}
+        kmByModeByTrip={kmByModeByTrip}
         initialSegmentsByTrip={initialSegmentsByTrip}
       />
     );
