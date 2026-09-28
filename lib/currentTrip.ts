@@ -4,6 +4,7 @@ import { mayReadTrip } from "./tripGate";
 import { getCurrentTrip, getTrips } from "./trips";
 import type { Trip } from "./types";
 
+import { journalPath } from "./journalPath";
 /**
  * The trip the bare URLs show — `/<user>`, `/<user>/gallery`, `/<user>/map`,
  * `/<user>/costs` — or a redirect to the trip list when there is none.
@@ -24,7 +25,7 @@ import type { Trip } from "./types";
  */
 export async function currentTripOrRedirect(username: string): Promise<Trip> {
   const trip = await currentTripFor(username);
-  if (!trip) redirect(`/${username}/trips`);
+  if (!trip) redirect(`${journalPath(username)}/trips`);
   return trip;
 }
 

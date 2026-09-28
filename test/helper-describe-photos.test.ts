@@ -328,8 +328,8 @@ describe("a mixed day — B873", () => {
     // Every gallery item is accounted for — two photographs and the video —
     // not just the two the model actually saw.
     expect(captions).toHaveLength(3);
-    const video = captions.find((c) => c.src === "/alex/media/a-trip/the-pass/clip.mp4");
-    expect(video).toEqual({ src: "/alex/media/a-trip/the-pass/clip.mp4", caption: "", skipped: "video" });
+    const video = captions.find((c) => c.src === "/@alex/media/a-trip/the-pass/clip.mp4");
+    expect(video).toEqual({ src: "/@alex/media/a-trip/the-pass/clip.mp4", caption: "", skipped: "video" });
     // The credit spend and the model calls still cover photographs only —
     // two calls for the two photographs, none for the video.
     expect(describeImage).toHaveBeenCalledTimes(2);

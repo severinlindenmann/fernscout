@@ -19,6 +19,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
 import { tellWorkerSignedOut } from "@/lib/signedOut";
 
+import { journalPath } from "@/lib/journalPath";
 type Phase = "loading" | "out" | "in" | "offline";
 
 const LINK =
@@ -44,7 +45,7 @@ function RoleRow({ journal }: { journal: MineJournal }) {
             {journal.title}
           </Link>
           <p className="mt-0.5 font-mono text-xs text-ink-secondary">
-            /{journal.username} ·{" "}
+            {journalPath(journal.username)} ·{" "}
             {tn("landing.trips", journal.trips.length, { count: String(journal.trips.length) })}
           </p>
         </div>
@@ -52,11 +53,11 @@ function RoleRow({ journal }: { journal: MineJournal }) {
       </div>
       <p className="mt-2 text-sm">
         {journal.role === "owner" ? (
-          <Link href={`/${journal.username}/studio`} className={`text-ink-body ${LINK}`}>
+          <Link href={`${journalPath(journal.username)}/studio`} className={`text-ink-body ${LINK}`}>
             {t("meAccount.openStudio")}
           </Link>
         ) : (
-          <Link href={`/${journal.username}/me`} className={`text-ink-body ${LINK}`}>
+          <Link href={`${journalPath(journal.username)}/me`} className={`text-ink-body ${LINK}`}>
             {t("meAccount.inThisJournal")}
           </Link>
         )}

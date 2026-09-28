@@ -9,7 +9,7 @@ import path from "node:path";
  * Two places decided which language a request renders in, and they asked
  * different questions:
  *
- *   - the **body**, in `app/[user]/layout.tsx`, narrowed the `fs.locale`
+ *   - the **body**, in `app/at/[user]/layout.tsx`, narrowed the `fs.locale`
  *     cookie to `user.locales` — the languages this journal offers;
  *   - the **metadata**, through `requestLocale()`, narrowed it to
  *     `installedLocales()` — every language the *project* ships chrome for.
@@ -27,7 +27,7 @@ import path from "node:path";
 
 const request = vi.hoisted(() => ({
   cookieLocale: undefined as string | undefined,
-  path: "/alex/gallery",
+  path: "/@alex/gallery",
 }));
 
 vi.mock("next/headers", () => ({
@@ -47,7 +47,7 @@ import {
   readerLocaleForPath,
   requestLocale,
 } from "@/lib/locales";
-import { generateMetadata as galleryMetadata } from "@/app/[user]/(trip)/gallery/page";
+import { generateMetadata as galleryMetadata } from "@/app/at/[user]/(trip)/gallery/page";
 
 const SERVER_CFG =
   '{"site":{"name":"F","url":"https://example.test","defaultUser":"alex"},"users":{"reserved":[]},"features":{}}';
@@ -97,7 +97,7 @@ function bodyLocale(username: string): string {
 afterEach(() => {
   delete process.env.CONTENT_DIR;
   request.cookieLocale = undefined;
-  request.path = "/alex/gallery";
+  request.path = "/@alex/gallery";
   clearConfigCache();
   clearUserCache();
   clearLocaleCache();
@@ -106,21 +106,21 @@ afterEach(() => {
 describe("the language a request resolves to", () => {
   test("a cookie the journal does not offer is not honoured", () => {
     instance();
-    expect(readerLocaleForPath("/alex/gallery", "de")).toBe("en");
-    expect(readerLocaleForPath("/alex/gallery", "de")).toBe(bodyLocaleFor("alex", "de"));
+    expect(readerLocaleForPath("/@alex/gallery", "de")).toBe("en");
+    expect(readerLocaleForPath("/@alex/gallery", "de")).toBe(bodyLocaleFor("alex", "de"));
   });
 
   test("a cookie the journal does offer still is", () => {
     instance();
-    expect(readerLocaleForPath("/mila/gallery", "en")).toBe("en");
-    expect(readerLocaleForPath("/mila/gallery", "de")).toBe("de");
-    expect(readerLocaleForPath("/mila/gallery", undefined)).toBe("de");
+    expect(readerLocaleForPath("/@mila/gallery", "en")).toBe("en");
+    expect(readerLocaleForPath("/@mila/gallery", "de")).toBe("de");
+    expect(readerLocaleForPath("/@mila/gallery", undefined)).toBe("de");
   });
 
   test("no cookie is the journal's own default, whichever journal it is", () => {
     instance();
-    expect(readerLocaleForPath("/alex", undefined)).toBe("en");
-    expect(readerLocaleForPath("/mila/trips/x", undefined)).toBe("de");
+    expect(readerLocaleForPath("/@alex", undefined)).toBe("en");
+    expect(readerLocaleForPath("/@mila/trips/x", undefined)).toBe("de");
   });
 
   /**
@@ -132,19 +132,19 @@ describe("the language a request resolves to", () => {
    */
   test("no cookie: the device's own language wins if the journal offers it", () => {
     instance();
-    expect(readerLocaleForPath("/mila/gallery", undefined, "en-US,en;q=0.9")).toBe("en");
+    expect(readerLocaleForPath("/@mila/gallery", undefined, "en-US,en;q=0.9")).toBe("en");
     // Quality values are honoured, not just the first tag.
-    expect(readerLocaleForPath("/mila/gallery", undefined, "hu;q=0.5,en;q=0.9")).toBe("en");
+    expect(readerLocaleForPath("/@mila/gallery", undefined, "hu;q=0.5,en;q=0.9")).toBe("en");
   });
 
   test("no cookie: a device language the journal does not offer falls through to the journal's own default", () => {
     instance();
-    expect(readerLocaleForPath("/mila/gallery", undefined, "hu,fr;q=0.8")).toBe("de");
+    expect(readerLocaleForPath("/@mila/gallery", undefined, "hu,fr;q=0.8")).toBe("de");
   });
 
   test("a chosen cookie still beats the device language", () => {
     instance();
-    expect(readerLocaleForPath("/mila/gallery", "de", "en")).toBe("de");
+    expect(readerLocaleForPath("/@mila/gallery", "de", "en")).toBe("de");
   });
 
   /**
@@ -155,7 +155,7 @@ describe("the language a request resolves to", () => {
   test("outside a journal the reader's choice still counts", () => {
     instance();
     expect(readerLocaleForPath("/", "de")).toBe("de");
-    expect(readerLocaleForPath("/nobody", "hu")).toBe("hu");
+    expect(readerLocaleForPath("/@nobody", "hu")).toBe("hu");
     expect(readerLocaleForPath("/welcome", undefined)).toBe(instanceLocale());
     // A language the project ships no chrome for is not an interface language.
     expect(readerLocaleForPath("/", "hr")).toBe(instanceLocale());
@@ -164,9 +164,9 @@ describe("the language a request resolves to", () => {
   test("requestLocale is that rule, with the cookie and the header read for it", async () => {
     instance();
     request.cookieLocale = "de";
-    request.path = "/alex/gallery";
+    request.path = "/@alex/gallery";
     expect(await requestLocale()).toBe("en");
-    request.path = "/mila/gallery";
+    request.path = "/@mila/gallery";
     expect(await requestLocale()).toBe("de");
   });
 });
@@ -176,7 +176,7 @@ describe("a German reader landing on an English-only journal", () => {
   test("the tab title is in the language the page will render in", async () => {
     instance();
     request.cookieLocale = "de";
-    request.path = "/alex/gallery";
+    request.path = "/@alex/gallery";
     const meta = await galleryMetadata({ params: Promise.resolve({ user: "alex" }) } as never);
 
     expect(bodyLocale("alex")).toBe("en");
@@ -187,7 +187,7 @@ describe("a German reader landing on an English-only journal", () => {
   test("and on a journal that does offer German, German survives", async () => {
     instance();
     request.cookieLocale = "de";
-    request.path = "/mila/gallery";
+    request.path = "/@mila/gallery";
     const meta = await galleryMetadata({ params: Promise.resolve({ user: "mila" }) } as never);
 
     expect(bodyLocale("mila")).toBe("de");
@@ -238,7 +238,7 @@ describe("a journal whose name is not the first segment", () => {
   }
 
   for (const where of [
-    "/oma/day/erster",
+    "/@oma/day/erster",
     "/api/helper/oma/ask",
     "/api/v1/oma/trips",
   ]) {

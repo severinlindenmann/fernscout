@@ -1,6 +1,7 @@
 import { monthNames } from "../i18n";
 import type { Locale } from "../types";
 
+import { journalPath } from "../journalPath";
 /**
  * The two pieces of a letter's presentation that outlived the weekly digest.
  *
@@ -42,5 +43,5 @@ export function formatDigestDate(locale: Locale, iso: string): string {
  * and a link in an email has to still work in a year.
  */
 export function dayUrl(base: string, username: string, tripId: string, slug: string): string {
-  return `${base}/${username}/trips/${tripId}/day/${slug}`;
+  return `${base}${journalPath(username)}/trips/${tripId}/day/${slug}`;
 }

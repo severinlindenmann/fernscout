@@ -81,8 +81,8 @@ afterEach(() => {
 });
 
 async function get(trip: string) {
-  const { GET } = await import("@/app/[user]/trips/[trip]/keep.json/route");
-  return GET(new Request(`https://example.test/alex/trips/${trip}/keep.json`), {
+  const { GET } = await import("@/app/at/[user]/trips/[trip]/keep.json/route");
+  return GET(new Request(`https://example.test/@alex/trips/${trip}/keep.json`), {
     params: Promise.resolve({ user: "alex", trip }),
   } as never);
 }
@@ -95,15 +95,15 @@ describe("GET /:user/trips/:trip/keep.json", () => {
     expect(res.headers.get("Vary")).toContain("Cookie");
     const body = await res.json();
     expect(body.pages).toEqual([
-      "/alex/trips/alps",
-      "/alex/trips/alps/map",
-      "/alex/trips/alps/gallery",
-      "/alex/trips/alps/day/one",
+      "/@alex/trips/alps",
+      "/@alex/trips/alps/map",
+      "/@alex/trips/alps/gallery",
+      "/@alex/trips/alps/day/one",
     ]);
-    expect(body.data).toEqual(["/alex/story.json?trip=alex%2Falps&from=0&to=24"]);
+    expect(body.data).toEqual(["/@alex/story.json?trip=alex%2Falps&from=0&to=24"]);
     expect(body.media).toEqual([
-      "/alex/media/alps/one.jpg?w=640",
-      "/alex/media/alps/one.jpg?w=1200",
+      "/@alex/media/alps/one.jpg?w=640",
+      "/@alex/media/alps/one.jpg?w=1200",
     ]);
     expect(body.counts).toEqual({ days: 1, media: 1 });
     expect(body.bytes).toBe(1234);
@@ -114,7 +114,7 @@ describe("GET /:user/trips/:trip/keep.json", () => {
 
   test("the current trip is listed at its bare URLs, where it is served", async () => {
     const body = await (await get("now")).json();
-    expect(body.pages).toEqual(["/alex", "/alex/map", "/alex/gallery"]);
+    expect(body.pages).toEqual(["/@alex", "/@alex/map", "/@alex/gallery"]);
   });
 
   test("refuses a private trip like the pages do", async () => {

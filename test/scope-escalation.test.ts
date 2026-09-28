@@ -207,7 +207,7 @@ async function writeDay(token: string, trip: string, title: string) {
  * file header, so it can be searched for a path without unpacking it.
  */
 async function exportZip(token?: string) {
-  const { GET } = await import("@/app/[user]/export.zip/route");
+  const { GET } = await import("@/app/at/[user]/export.zip/route");
   const response = await GET(
     new Request(`https://example.test/${OWNER}/export.zip`, {
       headers: headers(token ? { authorization: `Bearer ${token}` } : {}),

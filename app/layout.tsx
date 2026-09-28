@@ -83,7 +83,7 @@ const plexMonoMedium = IBM_Plex_Mono({
  * Instance-level metadata.
  *
  * Deliberately thin: a title, a description and an OG image belong to whoever
- * owns the page, and that is a user — see app/[user]/layout.tsx. What is left
+ * owns the page, and that is a user — see app/at/[user]/layout.tsx. What is left
  * here is what is true of the server regardless of whose journal is being read.
  *
  * `title.default` is this layout's fallback for a page with no title of its
@@ -170,9 +170,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <ServiceWorkerRegistrar />
         <NavProgress />
         {/* Site identity, the trip list and currency options are all per-user,
-            so they are provided by app/[user]/layout.tsx rather than here. */}
+            so they are provided by app/at/[user]/layout.tsx rather than here. */}
         {/* Language belongs to whose journal you are reading, so
-            app/[user]/layout.tsx provides its own and wins for that subtree.
+            app/at/[user]/layout.tsx provides its own and wins for that subtree.
             This one covers what sits outside a journal: the landing page, the
             notices, a 404 for an address that names nobody. */}
         <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "root")}>

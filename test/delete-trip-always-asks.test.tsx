@@ -44,7 +44,7 @@ function inventory(days: number, files: number) {
       const body =
         method === "GET"
           ? { title: "Empty trip", days, files, size: "1 KB" }
-          : { redirect: "/alex/studio" };
+          : { redirect: "/@alex/studio" };
       return { ok: true, json: async () => body } as Response;
     }),
   );
@@ -101,7 +101,7 @@ describe("B2052 — DeleteTrip always asks", () => {
     vi.stubGlobal("location", { ...window.location, set href(value: string) { assign(value); } });
     await act(async () => confirmButton().click());
     expect(calls.filter((c) => c.method === "POST")).toEqual([
-      { url: "/alex/trips/empty/delete", method: "POST" },
+      { url: "/@alex/trips/empty/delete", method: "POST" },
     ]);
   });
 });
@@ -110,18 +110,18 @@ describe("B2052 — GET .../delete opened in a browser", () => {
   const params = Promise.resolve({ user: "alex", trip: "empty" });
 
   test("a navigation is sent to the trip's studio page, not handed raw JSON", async () => {
-    const { GET } = await import("@/app/[user]/trips/[trip]/delete/route");
+    const { GET } = await import("@/app/at/[user]/trips/[trip]/delete/route");
     const response = await GET(
-      new Request("https://fernscout.ch/alex/trips/empty/delete", { headers: { "sec-fetch-mode": "navigate" } }),
+      new Request("https://fernscout.ch/@alex/trips/empty/delete", { headers: { "sec-fetch-mode": "navigate" } }),
       { params },
     );
     expect(response.status).toBe(303);
-    expect(response.headers.get("location")).toBe("/alex/studio/trip?trip=empty");
+    expect(response.headers.get("location")).toBe("/@alex/studio/trip?trip=empty");
   });
 
   test("the page's own fetch still gets the inventory", async () => {
-    const { GET } = await import("@/app/[user]/trips/[trip]/delete/route");
-    const response = await GET(new Request("https://fernscout.ch/alex/trips/empty/delete"), { params });
+    const { GET } = await import("@/app/at/[user]/trips/[trip]/delete/route");
+    const response = await GET(new Request("https://fernscout.ch/@alex/trips/empty/delete"), { params });
     expect(await response.json()).toEqual({ title: "Empty trip", days: 0, files: 1, size: "10 B" });
   });
 });

@@ -8,6 +8,7 @@ import { getTrips } from "./trips";
 import { getUser, getUsernames, listedUsernames } from "./users";
 import { tripsVisibleTo, type ViewerTrip } from "./viewer";
 
+import { journalPath } from "./journalPath";
 /**
  * What one address may open, across every journal on this instance — B411.
  *
@@ -182,7 +183,7 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
       username,
       title: user.title,
       tagline: user.tagline,
-      href: `/${username}`,
+      href: journalPath(username),
       role,
       trips,
     });

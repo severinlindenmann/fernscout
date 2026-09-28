@@ -103,7 +103,7 @@ describe("what a no means", () => {
     const toggle = read("components/NeverAskNextDay.tsx");
     expect(toggle).toContain("NEVER_KEY");
     expect(toggle).toContain('t("push.prompt.never")');
-    const me = read("app/[user]/me/MePageContent.tsx");
+    const me = read("app/at/[user]/me/MePageContent.tsx");
     expect(me).toMatch(/<PushOptIn[\s\S]{0,400}<NeverAskNextDay/);
   });
 });
@@ -134,7 +134,7 @@ describe("when and where it appears", () => {
    * day it makes sense on.
    */
   test("it is gone from the layout", () => {
-    expect(read("app/[user]/layout.tsx")).not.toContain("<PushPrompt");
+    expect(read("app/at/[user]/layout.tsx")).not.toContain("<PushPrompt");
   });
 
   test("it renders inside the day reader, gated on the newest day of a trip still going", () => {

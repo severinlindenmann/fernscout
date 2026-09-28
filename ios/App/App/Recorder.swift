@@ -343,7 +343,7 @@ final class Recorder: NSObject {
     private func studioURL(base: String, user: String, trip: String) -> String {
         let tripQ = trip.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trip
         let userP = user.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? user
-        return "\(base)/\(userP)/studio/trip?trip=\(tripQ)"
+        return "\(base)/@\(userP)/studio/trip?trip=\(tripQ)"
     }
 
     private func scheduleStopNotice(trip: String, end: String, body: String, base: String, user: String) {

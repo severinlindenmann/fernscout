@@ -121,7 +121,7 @@ export const manifest: ManifestItem[] = [
     proof: {
       kind: "absent",
       grep: String.raw`\b(alert|confirm|prompt)\(`,
-      paths: ["app/[user]/studio", "components/studio", "lib/studio"],
+      paths: ["app/at/[user]/studio", "components/studio", "lib/studio"],
     },
   },
   {
@@ -172,7 +172,7 @@ export const manifest: ManifestItem[] = [
       // against B1937 before merge, which traced every value and found no
       // coordinate-bearing field crossing from the store into any response.
       grep: "gps/(store|enrich)|content/[^\"']*/gps",
-      paths: ["app/[user]/studio", "components/studio", "lib/studio"],
+      paths: ["app/at/[user]/studio", "components/studio", "lib/studio"],
     },
   },
   {
@@ -404,7 +404,7 @@ export const manifest: ManifestItem[] = [
     claim: "Real English and German entries for every new string.",
     proof: {
       kind: "test",
-      name: "dictionaries de.json, the one locale this project keeps at parity with English, covers every English key",
+      name: "dictionaries de.json, a maintained locale, covers every English key",
       file: "test/locales.test.ts",
     },
   },
@@ -464,7 +464,7 @@ export const manifest: ManifestItem[] = [
       kind: "capture",
       path: "test/fixtures/studio-proofs/people-390-dark.png",
       observed:
-        "Driven live against content/example/ at 390px, dark theme (Emulation.setEmulatedMedia prefers-color-scheme: dark, no explicit data-theme override — matching a real reader's 'Automatic' default): the hub, day/new, people, trip/visibility and statement were each captured at both 1280px and 390px in both light and dark, all legible with consistent cream/navy/yellow tokens and no colour inversion artefacts; `grep -rnE '#[0-9a-fA-F]{3,6}' app/[user]/studio components/studio` returns no matches, so nothing here can be a raw hex outside app/globals.css's tokens.",
+        "Driven live against content/example/ at 390px, dark theme (Emulation.setEmulatedMedia prefers-color-scheme: dark, no explicit data-theme override — matching a real reader's 'Automatic' default): the hub, day/new, people, trip/visibility and statement were each captured at both 1280px and 390px in both light and dark, all legible with consistent cream/navy/yellow tokens and no colour inversion artefacts; `grep -rnE '#[0-9a-fA-F]{3,6}' app/at/[user]/studio components/studio` returns no matches, so nothing here can be a raw hex outside app/globals.css's tokens.",
     },
   },
   {

@@ -2,6 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getDatabase } from "../db";
 
+import { journalPath } from "../journalPath";
 /**
  * A stop-only link for the SMS news a reader receives (B2442; wave 2
  * security review, L2). The manage token would open the reader's whole
@@ -26,7 +27,7 @@ export function smsStopToken(owner: string, contactId: string): string | null {
 
 export function smsStopUrl(base: string, owner: string, contactId: string): string | null {
   const token = smsStopToken(owner, contactId);
-  return token ? `${base.replace(/\/$/, "")}/${owner}/stop/${token}` : null;
+  return token ? `${base.replace(/\/$/, "")}${journalPath(owner)}/stop/${token}` : null;
 }
 
 /** The contact id a well-formed, correctly signed token names, else null. */

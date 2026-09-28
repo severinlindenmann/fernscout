@@ -4,7 +4,7 @@ import AccountPageContent, {
   groupSpent,
   type PaymentPanel,
   type StoragePanel,
-} from "@/app/[user]/account/AccountPageContent";
+} from "@/app/at/[user]/account/AccountPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -20,7 +20,7 @@ import type { SiteSummary } from "@/lib/site";
  * Moved whole from `test/access-panel.test.tsx`, where these two describe
  * blocks tested the panels as part of `/me`. The component renders what it
  * is given and asks no question of its own about who may see a balance —
- * `app/[user]/account/page.tsx` is where the owner-only gate and the
+ * `app/at/[user]/account/page.tsx` is where the owner-only gate and the
  * server-side resolution live, and that is not a React test.
  */
 

@@ -8,6 +8,7 @@ import { getTrips } from "./trips";
 import { getUser } from "./users";
 import type { Entry, Trip, TripStatus } from "./types";
 
+import { journalPath } from "./journalPath";
 /**
  * Who is asking, and what that entitles them to see.
  *
@@ -91,7 +92,7 @@ function detailFor(trip: Trip, through: ViewerTrip["through"], level: ReaderLeve
     slug: entry.slug,
     title: entry.title,
     date: entry.date,
-    href: `/${trip.username}/trips/${trip.id}/day/${entry.slug}`,
+    href: `${journalPath(trip.username)}/trips/${trip.id}/day/${entry.slug}`,
   });
   const imageOf = (entry: Entry) => entry.gallery.find((item) => item.type === "image")?.src;
   const cover = trip.cover ?? read.map(imageOf).find(Boolean);
@@ -155,7 +156,7 @@ function describe(
   return {
     id: trip.id,
     title: trip.title,
-    href: trip.id === current ? `/${trip.username}` : `/${trip.username}/trips/${trip.id}`,
+    href: trip.id === current ? journalPath(trip.username) : `${journalPath(trip.username)}/trips/${trip.id}`,
     status: trip.status,
     end: trip.end,
     through,

@@ -332,7 +332,7 @@ describe("the detail the home page draws", { shuffle: false }, () => {
     expect(trip.latest?.slug).toBe("held");
     expect(trip.days).toBe(2);
     expect(trip.start).toBe("2026-08-25");
-    expect(trip.latest?.href).toBe(`/${OWNER}/trips/open-2026/day/held`);
+    expect(trip.latest?.href).toBe(`/@${OWNER}/trips/open-2026/day/held`);
   });
 
   test("a guest gets neither the draft nor the held-back day or its photograph", async () => {

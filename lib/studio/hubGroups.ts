@@ -28,6 +28,7 @@ import type { HubAccount, StudioHubModel } from "@/lib/studio/hub";
 import type { UnfinishedPrint } from "@paid/printOrder/lib/orders";
 import type { TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "../journalPath";
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
 type TN = (key: TranslationKey, count: number, vars?: Record<string, string>) => string;
 
@@ -75,15 +76,15 @@ export function journalRows(username: string, t: T, tn: TN, locale: string, anal
   ];
   return [
     {
-      href: `/${username}/studio/account`,
+      href: `${journalPath(username)}/studio/account`,
       Icon: Coins,
       title: t("studio.hub.item.account.title"),
       factLine: factLine.length ? factLine : undefined,
     },
-    { href: `/${username}/studio/journal`, Icon: BookMarked, title: t("studio.hub.item.journalSettings.title") },
-    { href: `/${username}/studio/agent`, Icon: KeyRound, title: t("studio.hub.item.agent.title") },
+    { href: `${journalPath(username)}/studio/journal`, Icon: BookMarked, title: t("studio.hub.item.journalSettings.title") },
+    { href: `${journalPath(username)}/studio/agent`, Icon: KeyRound, title: t("studio.hub.item.agent.title") },
     {
-      href: `/${username}/studio/visitors`,
+      href: `${journalPath(username)}/studio/visitors`,
       Icon: ChartNoAxesColumn,
       title: t("studio.hub.item.visitors.title"),
       reason: analyticsEnabled ? undefined : t("studio.hub.cannotRun.visitors"),
@@ -104,13 +105,13 @@ function draftsChip(unfinished: UnfinishedPrint[], kind: UnfinishedPrint["kind"]
 export function bringInFirstRows(username: string, t: T): Row[] {
   return [
     {
-      href: `/${username}/studio/photos`,
+      href: `${journalPath(username)}/studio/photos`,
       Icon: Images,
       title: t("studio.hub.item.photos.title"),
       description: t("studio.hub.item.photos.description"),
     },
     {
-      href: `/${username}/studio/location?from=hub`,
+      href: `${journalPath(username)}/studio/location?from=hub`,
       Icon: MapPin,
       title: t("studio.hub.item.location.title"),
       description: t("studio.hub.item.location.description"),
@@ -138,14 +139,14 @@ export function buildHubGroups(
       group: "write",
       rows: [
         {
-          href: `/${username}/studio/day/edit`,
+          href: `${journalPath(username)}/studio/day/edit`,
           Icon: PenLine,
           title: t("studio.hub.item.changeDay.title"),
           description: t("studio.hub.item.changeDay.description"),
           reason: model.cannotRun.changeDay ? t("studio.hub.cannotRun.changeDay") : undefined,
         },
         {
-          href: `/${username}/studio/day/publish`,
+          href: `${journalPath(username)}/studio/day/publish`,
           Icon: SendHorizontal,
           title: t("studio.hub.item.publishDay.title"),
           description: t("studio.hub.item.publishDay.description"),
@@ -156,7 +157,7 @@ export function buildHubGroups(
         ...(facts.deleted
           ? [
               {
-                href: `/${username}/studio/day/deleted`,
+                href: `${journalPath(username)}/studio/day/deleted`,
                 Icon: ArchiveRestore,
                 title: t("studio.hub.item.deleted.title"),
                 description: t("studio.hub.item.deleted.description"),
@@ -165,7 +166,7 @@ export function buildHubGroups(
             ]
           : []),
         {
-          href: `/${username}/studio/day/reshape?from=hub`,
+          href: `${journalPath(username)}/studio/day/reshape?from=hub`,
           Icon: Scissors,
           title: t("studio.hub.item.reshapeDay.title"),
           description: t("studio.hub.item.reshapeDay.description"),
@@ -177,7 +178,7 @@ export function buildHubGroups(
         ...(ended
           ? [
               {
-                href: `/${username}/studio/day/new?trip=${encodeURIComponent(ended.id)}&from=hub`,
+                href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(ended.id)}&from=hub`,
                 Icon: CalendarPlus,
                 title: t("studio.hub.item.addDayEnded.title", { trip: ended.title }),
                 description: t("studio.hub.item.addDayEnded.description", { trip: ended.title }),
@@ -194,7 +195,7 @@ export function buildHubGroups(
           ? []
           : [
               {
-                href: `/${username}/studio/trip/new`,
+                href: `${journalPath(username)}/studio/trip/new`,
                 Icon: Compass,
                 title: t("studio.hub.item.newTrip.title"),
                 description: t("studio.hub.item.newTrip.description"),
@@ -204,7 +205,7 @@ export function buildHubGroups(
         ...(model.planTrip
           ? [
               {
-                href: `/${username}/studio/plan/${model.planTrip.id}`,
+                href: `${journalPath(username)}/studio/plan/${model.planTrip.id}`,
                 Icon: MapPinned,
                 title: t("studio.hub.item.plan.title", { trip: model.planTrip.title }),
                 description: t("studio.hub.item.plan.description"),
@@ -215,7 +216,7 @@ export function buildHubGroups(
             ]
           : []),
         {
-          href: `/${username}/studio/trip`,
+          href: `${journalPath(username)}/studio/trip`,
           Icon: SlidersHorizontal,
           title: t("studio.hub.item.tripEdit.title"),
           description: t("studio.hub.item.tripEdit.description"),
@@ -228,7 +229,7 @@ export function buildHubGroups(
         // B2133 — one row for the one readers page: inviting, answering who
         // asks and who reads along all happen on /studio/readers.
         {
-          href: `/${username}/studio/readers`,
+          href: `${journalPath(username)}/studio/readers`,
           Icon: UserPlus,
           title: t("studio.hub.item.readers.title"),
           description: t("studio.hub.item.readers.description"),
@@ -237,13 +238,13 @@ export function buildHubGroups(
             : undefined,
         },
         {
-          href: `/${username}/studio/people?from=hub`,
+          href: `${journalPath(username)}/studio/people?from=hub`,
           Icon: Users,
           title: t("studio.hub.item.people.title"),
           description: t("studio.hub.item.people.description"),
         },
         {
-          href: `/${username}/studio/figures`,
+          href: `${journalPath(username)}/studio/figures`,
           Icon: PersonStanding,
           title: t("studio.hub.item.figures.title"),
           description: t("studio.hub.item.figures.description"),
@@ -255,13 +256,13 @@ export function buildHubGroups(
       rows: [
         ...bringInFirstRows(username, t),
         {
-          href: `/${username}/studio/statement?from=hub`,
+          href: `${journalPath(username)}/studio/statement?from=hub`,
           Icon: Receipt,
           title: t("studio.hub.item.statement.title"),
           description: t("studio.hub.item.statement.description"),
         },
         {
-          href: `/${username}/studio/inbox`,
+          href: `${journalPath(username)}/studio/inbox`,
           Icon: Inbox,
           title: t("studio.hub.item.inbox.title"),
           description: facts.inboxCount ? t("studio.hub.item.inbox.hint") : t("studio.hub.item.inbox.empty"),
@@ -278,7 +279,7 @@ export function buildHubGroups(
       group: "print",
       rows: [
         {
-          href: `/${username}/studio/postcard`,
+          href: `${journalPath(username)}/studio/postcard`,
           Icon: Send,
           title: t("studio.hub.item.postcard.title"),
           description: t("studio.hub.item.postcard.description"),
@@ -286,7 +287,7 @@ export function buildHubGroups(
           fact: draftsChip(model.print.unfinished, "postcard", tn),
         },
         {
-          href: `/${username}/studio/photobook`,
+          href: `${journalPath(username)}/studio/photobook`,
           Icon: BookImage,
           title: t("studio.hub.item.photobook.title"),
           description: t("studio.hub.item.photobook.description"),

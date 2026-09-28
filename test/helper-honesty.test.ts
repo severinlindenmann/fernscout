@@ -588,7 +588,7 @@ describe("a sentence saying somebody can read it", () => {
     expect(create).toHaveBeenCalledTimes(2);
     expect(answered.body.proposals).toEqual([]);
     const blocks = answered.body.blocks as { shape: string; href?: string }[];
-    expect(blocks.some((b) => b.shape === "link" && b.href === "/alex/studio/readers")).toBe(true);
+    expect(blocks.some((b) => b.shape === "link" && b.href === "/@alex/studio/readers")).toBe(true);
     expect(String(answered.body.answer)).toContain("Studio");
   });
 });

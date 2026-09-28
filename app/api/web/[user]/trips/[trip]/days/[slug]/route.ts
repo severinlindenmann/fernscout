@@ -9,7 +9,7 @@
 // after its own trip-write gate, in process. No bearer token is minted,
 // held, or sent anywhere for this call.
 //
-// Replaces `app/[user]/trips/[trip]/day/[slug]/edit/route.ts`, which wrote
+// Replaces `app/at/[user]/trips/[trip]/day/[slug]/edit/route.ts`, which wrote
 // through v1's `editEntry` against the pre-B1598 file shape and a flat
 // `captions`/`photoVisibility` vocabulary v2 retired in favour of `media`
 // array items each carrying their own `caption`/`visibility` (owner review,
@@ -29,6 +29,7 @@ import { listPhotobookOrders } from "@paid/photobook/lib/photobook/orders";
 import { photobookPhotoRefs } from "@/lib/studio/reshapeDay";
 import { isExpired, isPending, listOrders as listPostcardOrders } from "@paid/postcard/lib/postcard/orders";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 /**
@@ -239,7 +240,7 @@ export async function DELETE(
       {
         error: "used_by_postcard",
         message: "A postcard you have not sent yet uses a photograph from this day. Send or delete that card first. Nothing was deleted.",
-        href: `/${user}/postcards/${card.id}`,
+        href: `${journalPath(user)}/postcards/${card.id}`,
       },
       { status: 409 },
     );
@@ -253,7 +254,7 @@ export async function DELETE(
       {
         error: "used_by_photobook_order",
         message: "A photobook you ordered and that is still being made uses photographs from this day. Wait until it is built. Nothing was deleted.",
-        href: `/${user}/photobooks/${book.id}`,
+        href: `${journalPath(user)}/photobooks/${book.id}`,
       },
       { status: 409 },
     );

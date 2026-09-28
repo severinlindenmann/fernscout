@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic";
  * **`Cache-Control: private, no-store`** on every response — this is a
  * location history's own months and its own removal, and neither belongs in
  * a shared cache. **`foreignOrigin` on `DELETE`**, the same second layer
- * `app/[user]/trips/[trip]/delete/route.ts` (B1559) puts in front of a
+ * `app/at/[user]/trips/[trip]/delete/route.ts` (B1559) puts in front of a
  * cookie-only destructive call: `sameSite: "lax"` is the first line, this is
  * the second, for a proxy or a cookie set without the attribute.
  */

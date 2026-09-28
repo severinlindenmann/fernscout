@@ -33,7 +33,7 @@ import type { Question } from "@/lib/extract/questions";
  * - `"type"` — the original textarea-and-submit box, reached by "Type this
  *   one instead" or used from the start whenever speech is not available at
  *   all (`speechProvider === ""` — the capability off, not merely
- *   unconsented; see `app/[user]/extract/photos/page.tsx`).
+ *   unconsented; see `app/at/[user]/extract/photos/page.tsx`).
  *
  * A follow-up question (`question.kind === "follow-up"`, S7c) never uses any
  * of the three states above — it keeps the plain typing box (with its own

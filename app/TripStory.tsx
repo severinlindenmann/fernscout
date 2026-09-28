@@ -31,6 +31,7 @@ import type { DaySummary, PhotobookEntry } from "@/lib/types";
 import type { StoryDay } from "@/lib/prose";
 import type { HeroStats } from "@/components/TripHero";
 
+import { journalPath } from "@/lib/journalPath";
 /** How many days either side of the one on screen are kept loaded. Mirrors
  * `STORY_WINDOW` on the server; the client asks for the same shape. */
 const WINDOW = 2;
@@ -312,7 +313,7 @@ export default function TripStory({
     }
     const day = index[s.dayIndex];
     // A real permalink, not `#day-…` — /day/<slug> is a route of its own
-    // (see app/[user]/(trip)/day/[slug]/page.tsx) that opens the story
+    // (see app/at/[user]/(trip)/day/[slug]/page.tsx) that opens the story
     // window centred on this day server-side. A `#fragment` never reaches
     // the server, so a link copied from the address bar mid-scroll opened on
     // whatever day the page happened to land on by default (B329).
@@ -445,7 +446,7 @@ export default function TripStory({
             <h1 className="text-2xl font-semibold text-ink-strong">{localizedTrip(trip.trip).title}</h1>
             <p className="mt-3 text-ink-secondary">{t("story.emptyOwner.body")}</p>
             <Link
-              href={`/${encodeURIComponent(trip.trip.username)}/studio/day/new?trip=${encodeURIComponent(trip.trip.id)}`}
+              href={`${journalPath(encodeURIComponent(trip.trip.username))}/studio/day/new?trip=${encodeURIComponent(trip.trip.id)}`}
               className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-action-strong px-5 py-2 font-semibold text-on-action"
             >
               <Plus className="h-4 w-4" />

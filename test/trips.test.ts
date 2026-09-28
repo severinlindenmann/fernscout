@@ -79,7 +79,7 @@ describe("getTrips", () => {
     // trip.md writes "/media/<trip>/…" so a trip folder is self-contained and
     // copyable — `npm run seed:example` does exactly that. Handing that path
     // to the browser unprefixed is a 404 on the trip card and in the OG image.
-    expect(getTrip("u/beta-2026")?.cover).toBe("/u/media/beta-2026/one/01.jpg");
+    expect(getTrip("u/beta-2026")?.cover).toBe("/@u/media/beta-2026/one/01.jpg");
   });
 
   test("leaves an already-absolute cover alone", () => {

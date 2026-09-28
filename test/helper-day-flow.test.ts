@@ -164,7 +164,7 @@ describe("writing a day from the wizard", () => {
 
     const live = await read(await publishRoute(json("POST", { trip: "a-trip", slug: renamed }), params));
     expect(live.status).toBe(200);
-    expect(live.body.url).toBe(`https://t.test/alex/trips/a-trip/day/${renamed}`);
+    expect(live.body.url).toBe(`https://t.test/@alex/trips/a-trip/day/${renamed}`);
 
     // Published once and only once — an agent, or a double tap, that gets a
     // cheerful second 200 would report a thing that happened last week.

@@ -10,6 +10,7 @@ import { fail, ok, readJson } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { CREDENTIAL_TO_SESSION_KIND, linksRedeemRequest } from "@/lib/api/v2/schemas/auth";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 /**
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
     request.headers.get("user-agent"),
   );
   if (!result.ok) {
-    const next = req.for === "read" ? `/${owner}/me?signin=expired` : "/?signin=expired";
+    const next = req.for === "read" ? `${journalPath(owner)}/me?signin=expired` : "/?signin=expired";
     // Never a dead end: the page named can issue a fresh code, and says why.
     return fail("link_spent", ERROR_CODES.link_spent, { next }, 401);
   }
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
  * explains itself; only a trip that is gone falls back to the journal home.
  */
 function landing(username: string, destination: string | null): string {
-  const home = `/${username}`;
+  const home = journalPath(username);
   if (!destination) return home;
 
   const [, , section, id] = destination.split("/");

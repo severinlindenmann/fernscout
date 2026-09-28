@@ -6,6 +6,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { OWNER_TOOL } from "@/components/ownerToolClass";
 
+import { journalPath } from "@/lib/journalPath";
 export type DeletableDay = { tripId: string; slug: string; title: string; published: boolean };
 
 /**
@@ -100,7 +101,7 @@ export default function DeleteDay({
     return (
       <p role="status" className={`${tile ? "col-span-full " : ""}mt-3 text-sm text-ink-body`}>
         {t("studio.delete.done", { title: day.title })}{" "}
-        <a href={`/${encodeURIComponent(username)}/studio/day/deleted`} className="font-semibold underline underline-offset-2">
+        <a href={`${journalPath(encodeURIComponent(username))}/studio/day/deleted`} className="font-semibold underline underline-offset-2">
           {t("studio.deleted.title")}
         </a>
       </p>

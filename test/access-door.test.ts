@@ -8,7 +8,7 @@ import type { FeatureName, UserConfig } from "@/lib/config";
  * decides whether it may be drawn at all is server config: a journal with
  * `features.auth` off has no form behind `/<user>/me`, and a control marked
  * "Sign in" leading to a page that cannot serve one is the bug already
- * recorded at app/[user]/me/MePageContent.tsx.
+ * recorded at app/at/[user]/me/MePageContent.tsx.
  *
  * `SiteNav` is a client component, so the question has to be asked on the
  * server and travel in `SiteSummary`. This asserts that wiring; the markup it
@@ -70,7 +70,10 @@ describe("what the header is told about signing in", () => {
   test("carries no address from the journal's default party", async () => {
     enabled.mockImplementation(() => true);
     const summary = await summaryFor();
-    expect(JSON.stringify(summary)).not.toContain("@");
+    // The one `@` allowed is the journal mark in the page base (`/@alex`),
+    // which is a path, not an address.
+    expect(summary.base).toBe("/@alex");
+    expect(JSON.stringify({ ...summary, base: undefined })).not.toContain("@");
   });
 
   test("carries nothing derived from a trip", async () => {

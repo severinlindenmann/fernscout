@@ -216,7 +216,7 @@ describe("what the trip gate covers", () => {
    * nothing else would notice it moving.
    */
   test("the gate is in the (trip) group, not the user layout", () => {
-    const app = path.join(process.cwd(), "app", "[user]");
+    const app = path.join(process.cwd(), "app", "at", "[user]");
     expect(fs.existsSync(path.join(app, "(trip)", "layout.tsx"))).toBe(true);
 
     const gateLayout = fs.readFileSync(path.join(app, "(trip)", "layout.tsx"), "utf8");
@@ -227,13 +227,13 @@ describe("what the trip gate covers", () => {
   });
 
   test("only the trip's own pages sit inside the gate", () => {
-    const group = path.join(process.cwd(), "app", "[user]", "(trip)");
+    const group = path.join(process.cwd(), "app", "at", "[user]", "(trip)");
     const gated = fs.readdirSync(group).sort();
     // "photobook" joined this list deliberately (Task 10): the current-trip
-    // photobook page lives at app/[user]/(trip)/photobook, and a trip's own
+    // photobook page lives at app/at/[user]/(trip)/photobook, and a trip's own
     // photobook is exactly the kind of trip's-own-page this gate is for — a
     // private trip must hide it same as its gallery. The trip-scoped
-    // equivalent, app/[user]/trips/[trip]/photobook, is a different route
+    // equivalent, app/at/[user]/trips/[trip]/photobook, is a different route
     // outside this group and gates itself via mayReadTrip.
     expect(gated).toEqual([
       // B557 — the hub and the weather analysis are the current trip's pages
@@ -250,7 +250,7 @@ describe("what the trip gate covers", () => {
     ]);
 
     // These must stay outside it, or a private trip hides them too.
-    const user = path.join(process.cwd(), "app", "[user]");
+    const user = path.join(process.cwd(), "app", "at", "[user]");
     for (const outside of ["trips", "search", "contacts", "media"]) {
       expect(fs.existsSync(path.join(user, outside))).toBe(true);
     }

@@ -16,7 +16,7 @@ import { STUDIO_GROUPS } from "@/lib/studio/groups";
 let query = "";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn() }),
-  usePathname: () => "/alex/studio/people",
+  usePathname: () => "/@alex/studio/people",
   useSearchParams: () => new URLSearchParams(query),
 }));
 vi.mock("@/components/PageHeader", () => ({ default: () => <header /> }));
@@ -65,14 +65,14 @@ describe("TripPicker", () => {
   ];
 
   test("filters by search as you type, on title or address", () => {
-    const el = render(<TripPicker base="/alex/studio/trip" trips={trips} />);
+    const el = render(<TripPicker base="/@alex/studio/trip" trips={trips} />);
     const titles = () => [...el.querySelectorAll("ul a")].map((a) => a.getAttribute("href"));
     expect(titles()).toHaveLength(3);
     const box = el.querySelector<HTMLInputElement>('input[type="search"]')!;
     type(box, "JAPAN");
-    expect(titles()).toEqual(["/alex/studio/trip?trip=japan-2025"]);
+    expect(titles()).toEqual(["/@alex/studio/trip?trip=japan-2025"]);
     type(box, "alps");
-    expect(titles()).toEqual(["/alex/studio/trip?trip=alps"]);
+    expect(titles()).toEqual(["/@alex/studio/trip?trip=alps"]);
     type(box, "nowhere");
     expect(titles()).toEqual([]);
     expect(el.textContent).toContain("No trip matches that.");
@@ -110,7 +110,7 @@ describe("the bar's group sheet", () => {
     const sheet = el.querySelector("details[data-group-sheet]")!;
     expect(sheet.querySelector("summary")!.getAttribute("aria-label")).toBe("All studio groups");
     expect([...sheet.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(
-      STUDIO_GROUPS.map((g) => `/alex/studio#${g}`),
+      STUDIO_GROUPS.map((g) => `/@alex/studio#${g}`),
     );
     // Escape closes it.
     act(() => {

@@ -38,6 +38,7 @@ import { subscribersFor, type StoredSubscription } from "../lib/push";
 import { localeForSubscriber, sendPush } from "../lib/push/send";
 import { currentTripRef, getTrip, getTripIds } from "../lib/trips";
 import { getDefaultUsername, getUser, getUsernames } from "../lib/users";
+import { journalPath } from "../lib/journalPath";
 
 const args = process.argv.slice(2);
 const has = (flag: string) => args.includes(flag);
@@ -119,7 +120,7 @@ if (!trip) {
 
 const isCurrent = trip.ref === currentTripRef(trip.username);
 const dayPath = (slug: string) =>
-  isCurrent ? `/${trip.username}/day/${slug}` : `/${trip.username}/trips/${trip.id}/day/${slug}`;
+  isCurrent ? `${journalPath(trip.username)}/day/${slug}` : `${journalPath(trip.username)}/trips/${trip.id}/day/${slug}`;
 
 // ---- resolve which day this run is about -----------------------------------
 

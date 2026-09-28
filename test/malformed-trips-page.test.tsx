@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import TripsIndexContent, { type TripCardData } from "@/app/[user]/trips/TripsIndexContent";
+import TripsIndexContent, { type TripCardData } from "@/app/at/[user]/trips/TripsIndexContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -231,7 +231,7 @@ describe("the page decides who sees it", () => {
       listableTrips: async (t: unknown) => t,
       signedInAs: async () => null,
     }));
-    const { default: TripsPage } = await import("@/app/[user]/trips/page");
+    const { default: TripsPage } = await import("@/app/at/[user]/trips/page");
     const element = (await resolveServerTree(await TripsPage({
       params: Promise.resolve({ user: "alex" }),
       searchParams: Promise.resolve({}),

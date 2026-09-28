@@ -292,7 +292,7 @@ describe("a miss", () => {
     expect(body).not.toContain("<!DOCTYPE");
     expect(body.length).toBeLessThan(500);
     // And it says where to look, since the slug alone is not the identity.
-    expect(body).toContain("/alex/documentation.txt");
+    expect(body).toContain("/@alex/documentation.txt");
   });
 
   test("names no trip it was not asked about", async () => {

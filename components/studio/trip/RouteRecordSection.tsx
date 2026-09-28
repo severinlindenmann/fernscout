@@ -19,6 +19,7 @@ import {
   type RouteRecordStatus,
 } from "@/components/nativeShell";
 
+import { journalPath } from "@/lib/journalPath";
 const EYEBROW = "font-mono text-xs uppercase tracking-wide text-ink-secondary";
 const BUTTON = "mt-3 min-h-11 rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong hover:bg-surface-subtle disabled:opacity-50";
 
@@ -244,7 +245,7 @@ export default function RouteRecordSection({
         ) : (
           <p className="mt-3 text-sm text-ink-secondary">
             {t("studio.record.needsHomeZone")}{" "}
-            <Link href={`/${username}/studio/location`} className="font-semibold text-ink-strong underline underline-offset-2">
+            <Link href={`${journalPath(username)}/studio/location`} className="font-semibold text-ink-strong underline underline-offset-2">
               {t("studio.record.setHomeZone")}
             </Link>
           </p>

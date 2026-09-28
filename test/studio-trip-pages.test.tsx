@@ -39,8 +39,8 @@ const { default: ReaderPreview } = await import("@/components/studio/readers/Rea
 const { plural, translate } = await import("@/lib/i18n");
 const { default: TripEditFlow } = await import("@/components/studio/trip/TripEditFlow");
 const { default: TripPicker } = await import("@/components/studio/trip/TripPicker");
-const { default: PlanReadersPage } = await import("@/app/[user]/studio/trip/plan-readers/page");
-const { default: TripEditPage } = await import("@/app/[user]/studio/trip/page");
+const { default: PlanReadersPage } = await import("@/app/at/[user]/studio/trip/plan-readers/page");
+const { default: TripEditPage } = await import("@/app/at/[user]/studio/trip/page");
 
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;

@@ -36,6 +36,7 @@ import { getUser } from "../users";
 import { dayUrl, formatDigestDate } from "./content";
 import { journalTimezone } from "./quiet";
 
+import { journalPath } from "../journalPath";
 /**
  * The letter one published day sends — B345.
  *
@@ -243,7 +244,7 @@ const PHOTO_WIDTH = 640;
 /**
  * The day's first photograph, as an inline attachment — never a link.
  *
- * `app/[user]/media/[...path]/route.ts` gates every image on `mayReadTrip`,
+ * `app/at/[user]/media/[...path]/route.ts` gates every image on `mayReadTrip`,
  * and a mail client carries no session cookie: a linked `<img>` would be a
  * 404 in the inbox for every trip that is not fully public. So the bytes
  * travel with the message (`cid:`), read straight off disk the same way that
@@ -276,7 +277,7 @@ async function photoAttachment(
   // `entry.gallery[*].src` is already owner-prefixed by `lib/entries.ts` —
   // `/{username}/media/{tripId}/{path}` — the exact shape the media route
   // resolves. Strip the URL prefix back to the segments that route works with.
-  const prefix = `/${trip.username}/media/`;
+  const prefix = `${journalPath(trip.username)}/media/`;
   if (!image.src.startsWith(prefix)) return null;
   const segments = image.src.slice(prefix.length).split("/").filter(Boolean);
   const file = resolveMediaFile(trip.username, segments);

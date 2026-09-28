@@ -88,25 +88,25 @@ describe("rows that need a capability", () => {
   // studio's now, not a separate top-level route.
   test("writing a day and its inbox are the owner's, addressed in the studio", async () => {
     const owner = await jsonFor("owner");
-    expect(owner).toContain(`/${OWNER}/studio/day/new`);
-    expect(owner).toContain(`/${OWNER}/studio/inbox`);
+    expect(owner).toContain(`/@${OWNER}/studio/day/new`);
+    expect(owner).toContain(`/@${OWNER}/studio/inbox`);
   });
 
   test("nobody else finds them, and the anonymous index never carries them", async () => {
     const stranger = await jsonFor("stranger");
-    expect(stranger).not.toContain(`/${OWNER}/studio/day/new`);
-    expect(stranger).not.toContain(`/${OWNER}/studio/inbox`);
+    expect(stranger).not.toContain(`/@${OWNER}/studio/day/new`);
+    expect(stranger).not.toContain(`/@${OWNER}/studio/inbox`);
     const { buildSearchIndexJson } = await import("@/lib/search");
     const anonymous = buildSearchIndexJson(OWNER)!;
-    expect(anonymous).not.toContain(`/${OWNER}/studio/day/new`);
-    expect(anonymous).not.toContain(`/${OWNER}/studio/inbox`);
+    expect(anonymous).not.toContain(`/@${OWNER}/studio/day/new`);
+    expect(anonymous).not.toContain(`/@${OWNER}/studio/inbox`);
   });
 
   test("the photobook is the owner's too, on the trip's own base", async () => {
     // One trip, so it is the current one and its pages hang off the journal's
     // base rather than `/trips/<id>` — `tripBaseFor`, unchanged since B823.
     const owner = await jsonFor("owner");
-    expect(owner).toContain(`/${OWNER}/photobook`);
+    expect(owner).toContain(`/@${OWNER}/photobook`);
     expect(await jsonFor("stranger")).not.toContain("/photobook");
   });
 

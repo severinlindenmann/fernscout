@@ -10,6 +10,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import type { EditablePickerTrip, EditableDay } from "@/lib/studio/editDay";
 import { cutEditPicker, editPickerHasMore } from "@/lib/studio/pickerCut";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * "Change a day" — B1831, spec §6. Two shapes on one route: E1, the picker,
  * and E2, `EditDay` itself — reused whole (its own doc comment) rather than
@@ -129,7 +130,7 @@ export default function EditDayFlow({
                         {day.entries.map((entry) => (
                           <li key={entry.slug}>
                             <a
-                              href={`/${encodeURIComponent(username)}/studio/day/edit?slug=${encodeURIComponent(entry.slug)}`}
+                              href={`${journalPath(encodeURIComponent(username))}/studio/day/edit?slug=${encodeURIComponent(entry.slug)}`}
                               className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-surface-subtle"
                             >
                               <span className="text-ink-strong">
@@ -175,7 +176,7 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
   const [saved, setSaved] = useState(false);
   const [queued, setQueued] = useState(false);
   const [deleted, setDeleted] = useState(false);
-  const viewUrl = `/${encodeURIComponent(username)}/trips/${encodeURIComponent(editable.tripId)}/day/${encodeURIComponent(editable.day.lead.slug)}`;
+  const viewUrl = `${journalPath(encodeURIComponent(username))}/trips/${encodeURIComponent(editable.tripId)}/day/${encodeURIComponent(editable.day.lead.slug)}`;
   const title = editable.day.lead.title || formatLongDate(editable.day.date, { year: true });
   if (deleted) {
     return (
@@ -183,10 +184,10 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
         username={username}
         done={t("studio.delete.done", { title })}
         next={[
-          { title: t("studio.deleted.title"), href: `/${encodeURIComponent(username)}/studio/day/deleted`, label: t("studio.deleted.title") },
+          { title: t("studio.deleted.title"), href: `${journalPath(encodeURIComponent(username))}/studio/day/deleted`, label: t("studio.deleted.title") },
           {
             title: t("studio.hub.item.changeDay.title"),
-            href: `/${encodeURIComponent(username)}/studio/day/edit`,
+            href: `${journalPath(encodeURIComponent(username))}/studio/day/edit`,
             label: t("studio.day.edit.backToPicker"),
           },
         ]}
@@ -195,7 +196,7 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
   }
   return (
     <>
-      <a href={`/${encodeURIComponent(username)}/studio/day/edit`} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
+      <a href={`${journalPath(encodeURIComponent(username))}/studio/day/edit`} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
         {t("studio.day.edit.backToPicker")}
       </a>
       <h2 className="mt-3 font-display text-lg font-semibold text-ink-strong">{title}</h2>
@@ -209,7 +210,7 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
             {t("studio.day.edit.statusDraft")}
           </span>
           <a
-            href={`/${encodeURIComponent(username)}/studio/day/publish?day=${encodeURIComponent(editable.day.lead.slug)}&trip=${encodeURIComponent(editable.tripId)}`}
+            href={`${journalPath(encodeURIComponent(username))}/studio/day/publish?day=${encodeURIComponent(editable.day.lead.slug)}&trip=${encodeURIComponent(editable.tripId)}`}
             className="font-medium text-ink-strong underline underline-offset-2"
           >
             {t("studio.day.edit.draftPublishFrom")}
@@ -243,7 +244,7 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
           if (!info?.queued) router.refresh();
         }}
         onClose={() => {
-          router.push(`/${encodeURIComponent(username)}/studio/day/edit`);
+          router.push(`${journalPath(encodeURIComponent(username))}/studio/day/edit`);
         }}
       />
 
@@ -254,7 +255,7 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
         <p className="mt-1">
           {t("studio.day.edit.tripNote")}{" "}
           <a
-            href={`/${encodeURIComponent(username)}/studio/trip?trip=${encodeURIComponent(editable.tripId)}`}
+            href={`${journalPath(encodeURIComponent(username))}/studio/trip?trip=${encodeURIComponent(editable.tripId)}`}
             className="font-semibold text-ink-strong underline underline-offset-2"
           >
             {t("studio.hub.item.tripEdit.title")} →

@@ -9,6 +9,7 @@ import { formatCredits } from "@/lib/creditsFormat";
 import { WRITE_DAY_CREDITS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/credits";
 import type { TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "@/lib/journalPath";
 /** A text link only appears once there is enough written to be worth
  *  polishing — the same reasoning as showing a price before the tap: a
  *  one-word field has nothing for the model to rework. */
@@ -93,7 +94,7 @@ export default function PolishText({
       <div className="mt-2">
         <p className="text-sm text-ink-secondary">
           {t("studio.day.polish.noCreditsBeforeTap")}{" "}
-          <Link href={`/${username}/studio/account`} className="font-semibold underline underline-offset-2">
+          <Link href={`${journalPath(username)}/studio/account`} className="font-semibold underline underline-offset-2">
             {t("studio.day.polish.error.noCredits.link")}
           </Link>
         </p>
@@ -178,7 +179,7 @@ export default function PolishText({
               {error.creditsLink && (
                 <>
                   {" "}
-                  <Link href={`/${username}/studio/account`} className="font-semibold underline underline-offset-2">
+                  <Link href={`${journalPath(username)}/studio/account`} className="font-semibold underline underline-offset-2">
                     {t("studio.day.polish.error.noCredits.link")}
                   </Link>
                 </>

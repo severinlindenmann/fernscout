@@ -660,7 +660,7 @@ cost time on the day (2026-08-31, the first deployment to fernscout.ch).
 | Untracked `.npm/`, `.cache/`, `.config/` appear in the repo | The service user's home *was* the repo root, so npm cached into it | `usermod -d /var/lib/fernscout/home fernscout` |
 | Migrations skipped, cheerfully | `deploy.sh` did not read `/etc/fernscout/env` | Fixed in the script; see above |
 | `git` refuses the repo halfway through a deploy | `HOME` is repointed at the service user by then, so root's `safe.directory` exception is in the wrong config file | Every git call in the script runs as the service user |
-| Port 3000 answering on the public IP | `next start` binds `0.0.0.0` by default | `--hostname 127.0.0.1` in the unit. `HOSTNAME=` in the environment does **not** do this — `next start` takes the flag |
+| Port 3000 answering on the public IP | `next start` binds `0.0.0.0` by default | `--hostname localhost` in the unit (not `127.0.0.1`, which sends every proxy rewrite out as a failing external fetch; `localhost` must resolve to 127.0.0.1 first). `HOSTNAME=` in the environment does **not** do this — `next start` takes the flag |
 | Auth returns 500, log says "SMTP transport is not implemented" | It genuinely was not, until 2026-08-31 | Implemented in `lib/mail/smtp.ts`; see [deploy-mail.md](deploy-mail.md) |
 
 One thing was left undone rather than fixed: **there are no backups**, by

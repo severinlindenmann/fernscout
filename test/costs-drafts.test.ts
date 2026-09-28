@@ -117,7 +117,7 @@ async function costsPageResult(owner: boolean): Promise<unknown> {
   vi.doMock("next/headers", () => ({
     cookies: async () => ({ get: () => undefined }),
   }));
-  const { default: CostsPage } = await import("@/app/[user]/(trip)/costs/page");
+  const { default: CostsPage } = await import("@/app/at/[user]/(trip)/costs/page");
   return CostsPage({ params: Promise.resolve({ user: "alex" }) } as never);
 }
 

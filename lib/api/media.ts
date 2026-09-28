@@ -201,7 +201,7 @@ type CachedFingerprint = Fingerprint & { size: number; mtimeMs: number };
  * Where a day's fingerprints are remembered between requests — B720.
  *
  * Beside `.ingest.json`, at the trip's root rather than inside `media/`: that
- * directory is served straight to the browser (`app/[user]/media/…`), and a
+ * directory is served straight to the browser (`app/at/[user]/media/…`), and a
  * file the gallery never mentions still falls under the day's own visibility
  * there — harmless for a held-back day, but there is no reason for a decode
  * cache to be servable at all. `.fingerprints/<slug>.json` sits next to

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // B2001 — `StudioBarProvider`/`useStudioBar` (`components/studio/StudioBar.tsx`)
-// is what `app/[user]/studio/layout.tsx` wraps every studio page in, so it
+// is what `app/at/[user]/studio/layout.tsx` wraps every studio page in, so it
 // is the one place that guarantees a bottom bar on a plain subpage that
 // registers nothing, and that a page in `replace` mode never shows the
 // default link back to the studio alongside its own actions. The four
@@ -59,7 +59,7 @@ function ReplacingPage() {
 describe("useStudioBar's default", () => {
   test("a page that registers nothing gets the back-to-studio link", () => {
     const el = render(<PlainPage />);
-    const link = el.querySelector('a[href="/alex/studio"]');
+    const link = el.querySelector('a[href="/@alex/studio"]');
     expect(link).not.toBeNull();
     expect(link!.textContent).toContain("Back to the studio");
   });
@@ -68,7 +68,7 @@ describe("useStudioBar's default", () => {
 describe("useStudioBar replace mode", () => {
   test("a page in replace mode shows only its own actions, no back link", () => {
     const el = render(<ReplacingPage />);
-    expect(el.querySelector('a[href="/alex/studio"]')).toBeNull();
+    expect(el.querySelector('a[href="/@alex/studio"]')).toBeNull();
     expect(el.textContent).toContain("Its own action");
   });
 });
@@ -160,7 +160,7 @@ describe("StepPrimary and the desktop row", () => {
     const all = [...el.querySelectorAll("button")].filter((b) => b.textContent?.trim() === "Onwards");
     expect(all).toHaveLength(1);
     // The back link, once — the group sheet's six links (B2141) are not it.
-    expect(backLinks(el, '[href^="/alex/studio#"]')).toHaveLength(1);
+    expect(backLinks(el, '[href^="/@alex/studio#"]')).toHaveLength(1);
     const bar = all[0].parentElement!;
     expect(bar.className).not.toMatch(/(^|\s)md:hidden(\s|$)/);
     expect(bar.className.split(/\s+/)).toEqual(expect.arrayContaining(["md:static", "md:justify-end", "md:max-w-xl"]));
@@ -168,7 +168,7 @@ describe("StepPrimary and the desktop row", () => {
 
   test("the hub (no StudioPage) keeps its bar phone-only", () => {
     const el = render(<PlainPage />);
-    const bar = el.querySelector('a[href="/alex/studio"]')!.parentElement!;
+    const bar = el.querySelector('a[href="/@alex/studio"]')!.parentElement!;
     expect(bar.className.split(/\s+/)).toContain("md:hidden");
   });
 
@@ -180,7 +180,7 @@ describe("StepPrimary and the desktop row", () => {
     const el = render(<Extending />);
     const more = [...el.querySelectorAll("button")].find((b) => b.textContent === "Show more")!;
     expect(more.parentElement!.className.split(/\s+/)).toContain("md:hidden");
-    expect(backLinks(el, '[href="/alex/studio#print"]')).toHaveLength(1);
+    expect(backLinks(el, '[href="/@alex/studio#print"]')).toHaveLength(1);
   });
 });
 
@@ -189,12 +189,12 @@ describe("the bar's back link carries the page's group", () => {
   test("with group plan the back href ends in #plan", () => {
     const el = render(<StudioPage username="alex" group="plan" title="Who sees the plan" />);
     const back = el.querySelector('a[aria-label="Back to the studio"]') as HTMLAnchorElement;
-    expect(back.getAttribute("href")).toBe("/alex/studio#plan");
+    expect(back.getAttribute("href")).toBe("/@alex/studio#plan");
   });
 
-  test("without a group it is /alex/studio", () => {
+  test("without a group it is /@alex/studio", () => {
     const el = render(<PlainPage />);
     const back = el.querySelector('a[aria-label="Back to the studio"]') as HTMLAnchorElement;
-    expect(back.getAttribute("href")).toBe("/alex/studio");
+    expect(back.getAttribute("href")).toBe("/@alex/studio");
   });
 });

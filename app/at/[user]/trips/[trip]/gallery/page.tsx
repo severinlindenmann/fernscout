@@ -1,0 +1,71 @@
+import type { Metadata } from "next";
+import { requestLocale, translateIn } from "@/lib/locales";
+import { readFor, mayReadTrip } from "@/lib/tripGate";
+import { notFound, redirect } from "next/navigation";
+import GalleryPageContent from "@/app/at/[user]/(trip)/gallery/GalleryPageContent";
+import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
+import { postcardEntryFor } from "@paid/postcard/lib/postcard/entry";
+import { getAllMedia } from "@/lib/entries";
+import { getTrip, tripRef } from "@/lib/trips";
+import TripProvider from "@/components/TripProvider";
+
+import { journalPath } from "@/lib/journalPath";
+export async function generateMetadata({
+  params,
+}: PageProps<"/at/[user]/trips/[trip]/gallery">): Promise<Metadata> {
+  const { user, trip: id } = await params;
+  const trip = getTrip(tripRef(user, id));
+  if (!trip) return {};
+  const locale = await requestLocale();
+  return {
+    // The section name follows the reader; the trip's own title is the
+    // author's and is never translated. See the note in the gallery page.
+    title: translateIn(locale, "meta.sectionOfTrip", {
+      section: translateIn(locale, "gallery.title"),
+      trip: trip.title,
+    }),
+    description: `Every photo and video from ${trip.title}, newest first — filterable by place.`,
+    alternates: { canonical: `${journalPath(user)}/trips/${trip.id}/gallery` },
+  };
+}
+
+export default async function TripGalleryPage({
+  params,
+}: PageProps<"/at/[user]/trips/[trip]/gallery">) {
+  const { user, trip: id } = await params;
+  const trip = getTrip(tripRef(user, id));
+  if (!trip) notFound();
+  // The layout draws the gate; this stops the page from *running*.
+  // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
+  // payload and the document head even when it renders something else.
+  if (!(await mayReadTrip(trip))) return null;
+  if (trip.status === "current") redirect(`${journalPath(user)}/gallery`);
+
+  // B318: this page called getAllMedia/getPlaces with no options at all, so
+  // it filtered drafts out for every viewer, owner included — the one
+  // reading path in the trip that never checked who was asking.
+  const { read, canPublish, owner } = await readFor(trip);
+
+  // Not `isOwner` inline: see the note beside the equivalent call in the
+  // current-trip gallery page.
+  const photobook = await photobookEntryFor(trip);
+  // B582: a trip being over is not a reason not to post a card from it. The
+  // API never asked which trip was current; only this page did, by omission.
+  const postcard = await postcardEntryFor(trip);
+
+  return (
+    <TripProvider
+      trip={trip}
+      isCurrent={false}
+      canPublish={canPublish}
+      reader={read.reader}
+      owner={owner}
+    >
+      <GalleryPageContent
+        media={getAllMedia(trip.ref, read)}
+        photobook={photobook}
+        postcard={postcard}
+      />
+    </TripProvider>
+  );
+}

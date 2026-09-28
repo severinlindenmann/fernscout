@@ -96,7 +96,7 @@ describe("everything else this site renders — B890", () => {
     const index = buildSearchIndex("creator")!;
     const hits = index.search("PUBLICTRIPINTRO").filter((h) => h.kind === "trip");
     expect(hits.map((h) => h.id)).toEqual(["trip:public-2026"]);
-    expect(hits[0].url).toBe("/creator/trips/public-2026");
+    expect(hits[0].url).toBe("/@creator/trips/public-2026");
   });
 
   test("a closed trip has no trip row either", () => {
@@ -136,7 +136,7 @@ describe("everything else this site renders — B890", () => {
 
   test("a capability that is off has no row — this fixture has no sign-in door, no costs and no weather", () => {
     const json = buildSearchIndexJson("creator")!;
-    expect(json).not.toContain("/creator/me");
+    expect(json).not.toContain("/@creator/me");
     expect(json).not.toContain("/costs");
     expect(json).not.toContain("/weather");
     expect(json).not.toContain("/photobook");
@@ -144,11 +144,11 @@ describe("everything else this site renders — B890", () => {
 
   test("the owner's own pages are not in a stranger's index", () => {
     const json = buildSearchIndexJson("creator")!;
-    expect(json).not.toContain("/creator/studio/readers");
-    expect(json).not.toContain("/creator/studio/account");
-    expect(json).not.toContain("/creator/me");
+    expect(json).not.toContain("/@creator/studio/readers");
+    expect(json).not.toContain("/@creator/studio/account");
+    expect(json).not.toContain("/@creator/me");
     // …but the trips page, which anybody may open, is.
-    expect(json).toContain("/creator/trips");
+    expect(json).toContain("/@creator/trips");
   });
 });
 
@@ -159,7 +159,7 @@ describe("the served JSON round-trips through MiniSearch.loadJSON", () => {
     const hits = loaded.search("PUBLICMARKERONE");
     expect(hits).toHaveLength(1);
     expect(hits[0].title).toBe("A Public Day");
-    expect(hits[0].url).toBe("/creator/trips/public-2026/day/somewhere");
+    expect(hits[0].url).toBe("/@creator/trips/public-2026/day/somewhere");
   });
 });
 

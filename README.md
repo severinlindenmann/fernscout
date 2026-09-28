@@ -8,7 +8,7 @@ agent of your own, or this instance's built-in assistant, is an optional
 second way in. Your family and friends read it in a browser. Everything
 stays JSON documents and photographs in a folder you own.
 
-[See a real journal](https://fernscout.ch/example) ·
+[See a real journal](https://fernscout.ch/@example) ·
 [Run your own](#run-it) ·
 [Docs](docs/)
 
@@ -22,9 +22,9 @@ Every picture is the demo journal, on a production build.
 
 | | |
 | --- | --- |
-| [![A trip's story page: the winding day-by-day path, the day card, the route map](docs/screenshots/trip-story.jpg)](https://fernscout.ch/example) | [![One day's entry: the prose, three photographs, the reaction row](docs/screenshots/day-entry.jpg)](https://fernscout.ch/example) |
+| [![A trip's story page: the winding day-by-day path, the day card, the route map](docs/screenshots/trip-story.jpg)](https://fernscout.ch/@example) | [![One day's entry: the prose, three photographs, the reaction row](docs/screenshots/day-entry.jpg)](https://fernscout.ch/@example) |
 | The story page. The rail on the left *is* the trip, one stop per day. | One day: prose, photographs, what it cost, and readers' reactions. |
-| [![The trip map: every stop joined by the route travelled](docs/screenshots/trip-map.jpg)](https://fernscout.ch/example) | [![The gallery: every photograph from the trip, filterable by place](docs/screenshots/gallery.jpg)](https://fernscout.ch/example) |
+| [![The trip map: every stop joined by the route travelled](docs/screenshots/trip-map.jpg)](https://fernscout.ch/@example) | [![The gallery: every photograph from the trip, filterable by place](docs/screenshots/gallery.jpg)](https://fernscout.ch/@example) |
 | Every stop on one map. The base map is built in: no tile server, no API key. | The gallery, filterable by place, with a slideshow. |
 
 ## Run it
@@ -36,11 +36,11 @@ database, no keys and no accounts:
 git clone https://github.com/severinlindenmann/fernscout.git
 cd fernscout
 npm install
-npm run dev            # then open http://localhost:3000/example
+npm run dev            # then open http://localhost:3000/@example
 ```
 
-`/example` is a demo journal that ships in the repository. Your own journal
-lives in `content/<username>/` and appears at `/<username>`. One instance can
+`/@example` is a demo journal that ships in the repository. Your own journal
+lives in `content/<username>/` and appears at `/@<username>`. One instance can
 host many people.
 
 **No agent yet?** A day is one JSON file, so you can start by hand: copy an

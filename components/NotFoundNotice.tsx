@@ -2,12 +2,13 @@
 
 import { usePathname } from "next/navigation";
 import ReaderNotice from "./ReaderNotice";
+import { journalPath, parseJournalPath } from "@/lib/journalPath";
 
 /**
  * The root 404, worded from the URL that produced it.
  *
- * Every top-level path in this app is somebody's journal name, so a one-segment
- * miss (`/alx`) and a deeper miss (`/alex/day/typo`) are two different
+ * A path starting with `@` is somebody's journal, so a one-segment miss
+ * (`/@alx`) and a deeper miss (`/@alex/day/typo`) are two different
  * accidents with two different fixes, and telling a reader "page not found"
  * when the real problem is a misspelt name sends them looking in the wrong
  * place. `not-found.tsx` gets no props and cannot see the path, so this reads
@@ -22,8 +23,8 @@ export default function NotFoundNotice({
   homeTitle?: string;
 }) {
   const pathname = usePathname();
-  const segments = pathname.split("/").filter(Boolean);
-  const unknownJournal = segments.length <= 1;
+  const journal = parseJournalPath(pathname);
+  const unknownJournal = journal !== null && journal.rest.replace(/\/$/, "") === "";
 
   return (
     <ReaderNotice
@@ -33,7 +34,7 @@ export default function NotFoundNotice({
         ...(homeUser && homeTitle
           ? [
               {
-                href: `/${homeUser}`,
+                href: journalPath(homeUser),
                 labelKey: "err.goToJournal" as const,
                 vars: { title: homeTitle },
               },

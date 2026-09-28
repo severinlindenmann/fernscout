@@ -328,8 +328,8 @@ describe("the documents an agent reads (v2, step 6 of the v2 migration)", () => 
   test("the instance document lists every journal", () => {
     const doc = instanceDocumentation();
     expect(doc.startsWith("# Fernscout")).toBe(true);
-    expect(doc).toContain("/ana/documentation.txt");
-    expect(doc).toContain("/bea/documentation.txt");
+    expect(doc).toContain("/@ana/documentation.txt");
+    expect(doc).toContain("/@bea/documentation.txt");
   });
 
   test("it follows the llmstxt.org shape: H1, blockquote, then H2 lists", () => {
@@ -622,8 +622,8 @@ describe("the discovery document does not point at 404s", () => {
       p.startsWith("/.well-known/") ||
       // The documentation hub and its pages — app/docs/**.
       p.startsWith("/docs/") ||
-      /^\/[a-z0-9-]+\/documentation\.txt$/.test(p) ||
-      /^\/[a-z0-9-]+(\/(trips(\/.+)?|feed\.xml|export\.zip|search-index\.json))?$/.test(p) ||
+      /^\/@[a-z0-9-]+\/documentation\.txt$/.test(p) ||
+      /^\/@[a-z0-9-]+(\/(trips(\/.+)?|feed\.xml|export\.zip|search-index\.json))?$/.test(p) ||
       p.startsWith("/api/");
 
     const dangling = paths.filter((p) => !routed(p));

@@ -29,8 +29,8 @@ import {
 import { DELETE as deleteJournalRoute } from "@/app/api/v2/[user]/route";
 import { DELETE as deleteTripRoute, PATCH as patchTripRoute } from "@/app/api/v2/[user]/trips/[trip]/route";
 import * as confirmRoute from "@/app/api/v2/[user]/deletions/[token]/route";
-import DeletePage from "@/app/[user]/delete/[token]/page";
-import { GET as deletionExport } from "@/app/[user]/delete/[token]/export.zip/route";
+import DeletePage from "@/app/at/[user]/delete/[token]/page";
+import { GET as deletionExport } from "@/app/at/[user]/delete/[token]/export.zip/route";
 
 /**
  * Deleting a journal, and deleting one trip out of it (B38).
@@ -205,7 +205,7 @@ function takeToken(username: string): string {
     throw new Error(`expected exactly one unread mail for ${username}, found ${files.length}`);
   }
   const body = mailBody(username, 0);
-  const match = body.match(new RegExp(`/${username}/delete/([A-Za-z0-9_-]+)`));
+  const match = body.match(new RegExp(`/@${username}/delete/([A-Za-z0-9_-]+)`));
   if (!match) throw new Error(`no deletion link in the mail:\n${body}`);
   fs.unlinkSync(path.join(dir, "mail", username, files[0]));
   return match[1];
@@ -235,9 +235,9 @@ describe("asking to delete", () => {
     const text = mailBody(user);
     expect(text).toContain("Anna's journal");
     expect(text).toMatch(/1 trips, 1 days/);
-    expect(text).toContain(`/${user}/delete/`);
+    expect(text).toContain(`/@${user}/delete/`);
     // The export is offered, and it is the complete one.
-    expect(text).toContain(`/${user}/delete/`);
+    expect(text).toContain(`/@${user}/delete/`);
     expect(text).toMatch(/export\.zip/);
   });
 
@@ -456,7 +456,7 @@ describe("the link", () => {
     };
     expect(page.props.title).toBe("This link no longer works");
     expect(page.props.body).toContain("already been used");
-    expect(page.props.actions[0].href).toBe(`/${user}`);
+    expect(page.props.actions[0].href).toBe(`/@${user}`);
   });
 
   test("an expired token is refused", async () => {
@@ -513,7 +513,7 @@ describe("the link", () => {
       searchParams: Promise.resolve({}),
     })) as { props: { title: string; actions: { href: string }[] } };
     expect(page.props.title).toBe("This link no longer works");
-    expect(page.props.actions[0].href).toBe(`/${bruno}`);
+    expect(page.props.actions[0].href).toBe(`/@${bruno}`);
   });
 
   test("it hands over the complete export, private trips and drafts included", async () => {
@@ -757,9 +757,9 @@ describe("deleting a journal", () => {
     expect(again).toMatchObject({ ok: false, error: "deleted_username" });
 
     for (const url of [
-      `https://t.test/${user}`,
-      `https://t.test/${user}/trips/japan-2027`,
-      `https://t.test/${user}/documentation.txt`,
+      `https://t.test/@${user}`,
+      `https://t.test/@${user}/trips/japan-2027`,
+      `https://t.test/@${user}/documentation.txt`,
     ]) {
       const response = proxy(new NextRequest(new Request(url)));
       expect(`${url} -> ${response?.status}`).toBe(`${url} -> 410`);
@@ -767,7 +767,7 @@ describe("deleting a journal", () => {
     }
 
     // A journal that was never here still answers 404, not 410.
-    expect(proxy(new NextRequest(new Request("https://t.test/nobody")))?.status).not.toBe(410);
+    expect(proxy(new NextRequest(new Request("https://t.test/@nobody")))?.status).not.toBe(410);
   });
 
   test("the API answers 410 rather than 404 for a journal that has gone", async () => {
@@ -817,7 +817,7 @@ describe("deleting a journal", () => {
     // journal already reads as gone.
     const stone = journalTombstone(user);
     expect(stone).toMatchObject({ kind: "journal", username: user, title: "Anna's journal" });
-    const response = proxy(new NextRequest(new Request(`https://t.test/${user}`)));
+    const response = proxy(new NextRequest(new Request(`https://t.test/@${user}`)));
     expect(response?.status).toBe(410);
 
     // The hygiene that comes after the failed step still ran: the owner's
@@ -957,12 +957,12 @@ describe("deleting a trip", () => {
     await confirmDeletion(user, takeToken(user));
 
     expect(tripTombstone(user, going)).toMatchObject({ kind: "trip", title: "Japan" });
-    const gone = proxy(new NextRequest(new Request(`https://t.test/${user}/trips/${going}`)));
+    const gone = proxy(new NextRequest(new Request(`https://t.test/@${user}/trips/${going}`)));
     expect(gone?.status).toBe(410);
     expect(await gone!.text()).toContain("This trip has been deleted");
 
     // The journal itself is not gone, so it must not answer 410.
-    expect(proxy(new NextRequest(new Request(`https://t.test/${user}`)))?.status).not.toBe(410);
+    expect(proxy(new NextRequest(new Request(`https://t.test/@${user}`)))?.status).not.toBe(410);
   });
 });
 

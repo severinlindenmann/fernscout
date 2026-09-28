@@ -66,6 +66,7 @@ import { loadServerConfig } from "@/lib/config";
 import { OPERATION_LABEL } from "@/lib/operations";
 import type { JournalRow as StatusRow } from "@/lib/statusReport";
 
+import { journalPath } from "@/lib/journalPath";
 // Reads a session and the database on every request; nothing to prerender.
 export const dynamic = "force-dynamic";
 
@@ -1975,7 +1976,7 @@ function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones:
                 className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl border border-line-quiet bg-surface-base p-3"
               >
                 <div>
-                  <p className="font-mono text-sm text-ink-strong">/{stone.username}</p>
+                  <p className="font-mono text-sm text-ink-strong">{journalPath(stone.username)}</p>
                   <p className="text-xs text-ink-body">
                     “{stone.title}” · deleted {stone.deletedAt.slice(0, 10)}
                   </p>

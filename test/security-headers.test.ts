@@ -111,7 +111,7 @@ describe("the baseline headers on a document", () => {
    * resolved as `https://` regardless of the scheme the origin actually
    * answers on. Behind a TLS-terminating proxy that is a no-op; on a
    * self-hoster who has not put one in front yet it turns a normal 307 (the
-   * trip layout's own redirect, `app/[user]/trips/[trip]/layout.tsx`) into
+   * trip layout's own redirect, `app/at/[user]/trips/[trip]/layout.tsx`) into
    * `net::ERR_SSL_PROTOCOL_ERROR`, which the worker's own `fetchOrKept`
    * (`public/sw.js`) reports as a plain "offline" 503. Reproduced directly
    * against a production build in a real browser (`npm run build && npx
@@ -144,25 +144,25 @@ describe("the baseline headers on a document", () => {
 });
 
 describe("the two pages that carry addresses and credentials (B287)", () => {
-  test("/:user/contacts is pinned no-store, not merely defaulted", async () => {
+  test("/@:user/contacts is pinned no-store, not merely defaulted", async () => {
     const all = await rules();
-    const rule = all.find((r) => r.source === "/:user/contacts");
+    const rule = all.find((r) => r.source === "/@:user/contacts");
     expect(rule, "next.config.ts must pin Cache-Control for /:user/contacts").toBeDefined();
     const cc = rule!.headers.find((h) => h.key.toLowerCase() === "cache-control")?.value;
     expect(cc).toContain("no-store");
   });
 
-  test("/:user/studio/readers, where the contacts page moved (B2092), is pinned no-store", async () => {
+  test("/@:user/studio/readers, where the contacts page moved (B2092), is pinned no-store", async () => {
     const all = await rules();
-    const rule = all.find((r) => r.source === "/:user/studio/readers");
+    const rule = all.find((r) => r.source === "/@:user/studio/readers");
     expect(rule, "next.config.ts must pin Cache-Control for /:user/studio/readers").toBeDefined();
     const cc = rule!.headers.find((h) => h.key.toLowerCase() === "cache-control")?.value;
     expect(cc).toContain("no-store");
   });
 
-  test("/:user/me is pinned no-store, not merely defaulted", async () => {
+  test("/@:user/me is pinned no-store, not merely defaulted", async () => {
     const all = await rules();
-    const rule = all.find((r) => r.source === "/:user/me");
+    const rule = all.find((r) => r.source === "/@:user/me");
     expect(rule, "next.config.ts must pin Cache-Control for /:user/me").toBeDefined();
     const cc = rule!.headers.find((h) => h.key.toLowerCase() === "cache-control")?.value;
     expect(cc).toContain("no-store");
@@ -170,9 +170,9 @@ describe("the two pages that carry addresses and credentials (B287)", () => {
 });
 
 describe("the credit-approval page carries no-referrer (B1635)", () => {
-  test("/:user/payment/:id/approve overrides the baseline referrer policy", async () => {
+  test("/@:user/payment/:id/approve overrides the baseline referrer policy", async () => {
     const all = await rules();
-    const rule = all.find((r) => r.source === "/:user/payment/:id/approve");
+    const rule = all.find((r) => r.source === "/@:user/payment/:id/approve");
     expect(rule, "next.config.ts must declare a rule for the approval page").toBeDefined();
     const referrer = rule!.headers.find((h) => h.key.toLowerCase() === "referrer-policy")?.value;
     expect(referrer).toBe("no-referrer");
@@ -180,16 +180,16 @@ describe("the credit-approval page carries no-referrer (B1635)", () => {
     // It must actually win — declared after the baseline rule, so Next's
     // last-rule-wins ordering applies it.
     const baselineIndex = all.findIndex((r) => anyPath(r.source));
-    const approveIndex = all.findIndex((r) => r.source === "/:user/payment/:id/approve");
+    const approveIndex = all.findIndex((r) => r.source === "/@:user/payment/:id/approve");
     expect(approveIndex).toBeGreaterThan(baselineIndex);
   });
 });
 
 describe("the deletion and invite links carry no-referrer (B1690)", () => {
   const sources = [
-    "/:user/delete/:token",
-    "/:user/delete/:token/export.zip",
-    "/:user/invite/:kind/:token",
+    "/@:user/delete/:token",
+    "/@:user/delete/:token/export.zip",
+    "/@:user/invite/:kind/:token",
   ];
 
   test.each(sources)("%s overrides the baseline referrer policy", async (source) => {
@@ -278,7 +278,7 @@ describe("an SVG served out of somebody's content folder", () => {
   });
 
   async function fetchMedia(file: string) {
-    const { GET } = await import("@/app/[user]/media/[...path]/route");
+    const { GET } = await import("@/app/at/[user]/media/[...path]/route");
     return GET(new Request(`https://example.test/alex/media/asia-2023/day/${file}`), {
       params: Promise.resolve({ user: "alex", path: ["asia-2023", "day", file] }),
     } as never);
@@ -316,7 +316,7 @@ describe("an SVG served out of somebody's content folder", () => {
    */
   test("does not claim to vary on Accept, since the bytes do not", async () => {
     const withJpegOnly = await (
-      await import("@/app/[user]/media/[...path]/route")
+      await import("@/app/at/[user]/media/[...path]/route")
     ).GET(
       new Request("https://example.test/alex/media/asia-2023/day/photo.jpg", {
         headers: { accept: "image/jpeg" },

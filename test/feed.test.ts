@@ -39,7 +39,7 @@ describe("buildFeedXml", () => {
     const xml = buildFeedXml("creator")!;
     expect(xml).toContain("PUBLICMARKERONE");
     expect(xml).toContain("A Public Day");
-    expect(xml).toContain("/creator/trips/public-2026/day/somewhere");
+    expect(xml).toContain("/@creator/trips/public-2026/day/somewhere");
   });
 
   /** The one that matters most. */
@@ -80,7 +80,7 @@ describe("buildFeedXml", () => {
   test("channel metadata reflects the user, not the server", () => {
     const xml = buildFeedXml("creator")!;
     expect(xml).toContain("<title>Creator&apos;s journal</title>");
-    expect(xml).toContain("<link>https://example.test/creator</link>");
+    expect(xml).toContain("<link>https://example.test/@creator</link>");
   });
 });
 

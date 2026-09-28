@@ -25,6 +25,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import DateField, { type TripCalendar } from "@/components/studio/DateField";
 import DayExtras, { extrasToWrite, lineProblem, type DayExtrasValue } from "@/components/studio/day/DayExtras";
 
+import { journalPath } from "@/lib/journalPath";
 /** `DAY_DECLINABLES`' own sentence for `media` (`lib/api/v2/schemas/day.ts`),
  *  copied rather than imported: that module's chain reaches this instance's
  *  real database drivers (`lib/studio/declinables.ts`'s own doc comment
@@ -176,7 +177,7 @@ export default function EditDay({
   confirmBeforeSave?: boolean;
   /**
    * B2073 — `DecideList`'s own opt-in, for the same reason: only a caller
-   * mounted under `app/[user]/studio/layout.tsx`'s `StudioBarProvider`
+   * mounted under `app/at/[user]/studio/layout.tsx`'s `StudioBarProvider`
    * (`EditDayFlow`) sets it; `StoryPager`'s in-place panel has no bar. On,
    * Save is the bar's one primary, labelled with the change count (the count
    * *is* the review, so E3's separate diff screen is skipped), disabled until
@@ -374,7 +375,7 @@ export default function EditDay({
   }
 
   const dayUrl = (slug: string, tail: string) =>
-    `/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(slug)}/${tail}`;
+    `${journalPath(encodeURIComponent(username))}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(slug)}/${tail}`;
 
   /** The v2 cookie proxies (B1595) — `/api/web`, never `/api/v1` or
    *  `/api/v2` directly, since a browser must never hold the bearer token

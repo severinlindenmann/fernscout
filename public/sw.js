@@ -215,7 +215,7 @@ async function trimRuntime() {
  * which is how this was found.
  *
  * So the test is the header the server already sends. Every owner-only route
- * under `app/[user]/` says `private, no-store` or `private`, and this now
+ * under `app/at/[user]/` says `private, no-store` or `private`, and this now
  * means what it says — including for `story.json` and `search-index.json`,
  * which the `.json` branch below had been keeping well past their own
  * `max-age`. A route added later gets this for free by saying what it is.
@@ -532,7 +532,7 @@ function assetsOf(html) {
  */
 async function keepTrip(client, user, trip) {
   const say = (msg) => client && client.postMessage({ type: "fernscout-kept", user, trip, ...msg });
-  const base = `/${encodeURIComponent(user)}/trips/${encodeURIComponent(trip)}`;
+  const base = `/@${encodeURIComponent(user)}/trips/${encodeURIComponent(trip)}`;
   let manifest;
   try {
     const res = await fetch(`${base}/keep.json`);

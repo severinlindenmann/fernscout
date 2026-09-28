@@ -4,6 +4,7 @@ import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * B2453 — the way back out of "News from Fernscout": shown on /me only while
  * this address is on the list, so the join form's promise ("you can turn it
@@ -16,7 +17,7 @@ export default function NewsConsentOff({ journal }: { journal: string }) {
   async function stop() {
     setState("busy");
     try {
-      const res = await fetch(`/${encodeURIComponent(journal)}/me/news`, { method: "POST" });
+      const res = await fetch(`${journalPath(encodeURIComponent(journal))}/me/news`, { method: "POST" });
       setState(res.ok ? "off" : "failed");
     } catch {
       setState("failed");
