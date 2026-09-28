@@ -69,7 +69,7 @@ echo "systemctl $* next=$(m .next) prev=$(m .next-prev) build=$(m .next-build)" 
 case "$1" in start|restart) git -C "$APP_DIR" rev-parse HEAD > "$APP_DIR/.served" ;; esac
 `;
 
-async function fixture() {
+async function fixture(pageStatus = 200) {
   const appDir = tmp();
   const remote = tmp();
   const bin = tmp();
@@ -108,7 +108,12 @@ async function fixture() {
   fs.writeFileSync(path.join(bin, "sudo"), '#!/usr/bin/env bash\nexec "$@"\n', { mode: 0o755 });
   fs.writeFileSync(path.join(bin, "systemctl"), SYSTEMCTL_STUB, { mode: 0o755 });
 
-  const server = http.createServer((_req, res) => {
+  const server = http.createServer((req, res) => {
+    // B2525: the rewritten page the deploy asks for after /api/health.
+    if (req.url?.startsWith("/@")) {
+      res.statusCode = pageStatus;
+      return res.end();
+    }
     const commit = fs.readFileSync(path.join(appDir, ".served"), "utf8").trim();
     res.setHeader("content-type", "application/json");
     res.end(JSON.stringify({ ok: true, commit }));
@@ -179,5 +184,20 @@ describe("B2230: the build never touches the .next that is serving", () => {
     expect(readLog()).not.toContain("systemctl");
     expect(marker(path.join(appDir, ".next"))).toBe("old");
     expect(fs.existsSync(path.join(appDir, ".next-prev"))).toBe(false);
+  }, 60_000);
+
+  test("B2525: healthy /api/health but a 500 on a rewritten page fails the deploy unrecorded", async () => {
+    const { appDir, env } = await fixture(500);
+    const result = await run("bash", [script], { env }).catch((e) => e);
+    const out = String(result.stdout) + String(result.stderr);
+    expect(result.code, out).toBe(1);
+    expect(out).toContain("/@example answered 500");
+    expect(fs.existsSync(path.join(appDir, ".deploy-state"))).toBe(false);
+  }, 60_000);
+
+  test("B2525: a 404 on the rewritten page still passes — that journal need not exist", async () => {
+    const { env } = await fixture(404);
+    const result = await run("bash", [script], { env }).catch((e) => e);
+    expect(result.code ?? 0, String(result.stdout) + String(result.stderr)).toBe(0);
   }, 60_000);
 });
