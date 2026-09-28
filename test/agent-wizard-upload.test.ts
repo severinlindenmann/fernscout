@@ -138,7 +138,7 @@ describe("this route's day-scoped upload", () => {
 
     const { getEntryBySlug } = await import("@/lib/entries");
     const entry = getEntryBySlug("alex/a-trip", slug, { includeDrafts: true });
-    expect(entry?.gallery.map((item) => item.src)).toEqual([`/alex/media/a-trip/${slug}/01.jpg`]);
+    expect(entry?.gallery.map((item) => item.src)).toEqual([`/@alex/media/a-trip/${slug}/01.jpg`]);
   });
 
   test("a file that is not media goes to the inbox instead of being refused", async () => {

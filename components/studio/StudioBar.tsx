@@ -9,6 +9,7 @@ import { useOutbox } from "@/components/studio/useOutbox";
 import { useI18n } from "@/components/LocaleProvider";
 import { STUDIO_GROUPS, type StudioGroup } from "@/lib/studio/groups";
 
+import { journalPath } from "@/lib/journalPath";
 type BarState = { actions: ReactNode; mode: "extend" | "replace"; revealAfterScroll: number; desktop: boolean };
 
 /** What `StudioPage` tells the bar about the page it is drawing — B2069/B2076. */
@@ -37,7 +38,7 @@ const StudioBarContext = createContext<StudioBarContextValue | null>(null);
  * and the postcard flow) their own sticky bottom bar, each rendering
  * `ActionBar` itself. Every other studio page had none, so on a phone the
  * only way back to the studio was the header's small crumb at the very top
- * of a long page. `app/[user]/studio/layout.tsx` wraps every studio page in
+ * of a long page. `app/at/[user]/studio/layout.tsx` wraps every studio page in
  * this provider instead, which renders the one `ActionBar` — last in flow,
  * as `ActionBar`'s own doc comment requires for `position: sticky` to
  * behave — so a page gets a bar by doing nothing, and the four pages that
@@ -166,7 +167,7 @@ export default function StudioBarProvider({
   const hasExtension = bar?.mode !== "replace" && !!bar?.actions;
   const backLink = (
     <Link
-      href={`/${username}/studio${page?.group ? `#${page.group}` : ""}`}
+      href={`${journalPath(username)}/studio${page?.group ? `#${page.group}` : ""}`}
       aria-label={t("studio.flow.backToStudio")}
       className={`flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-line-strong
                  px-4 text-sm font-semibold text-ink-body transition-colors hover:bg-surface-subtle ${
@@ -242,7 +243,7 @@ function OutboxPill({
   if (conflicts > 0) {
     return (
       <Link
-        href={`/${username}/studio/day/conflicts`}
+        href={`${journalPath(username)}/studio/day/conflicts`}
         className="absolute -top-3 left-4 z-20 -translate-y-full rounded-full border border-coral-400
                    bg-coral-100 px-3 py-1 text-xs font-semibold text-coral-600 shadow-sm hover:bg-coral-300/40"
       >
@@ -310,7 +311,7 @@ function GroupSheet({ username }: { username: string }) {
           {STUDIO_GROUPS.map((group) => (
             <li key={group}>
               <Link
-                href={`/${username}/studio#${group}`}
+                href={`${journalPath(username)}/studio#${group}`}
                 onClick={close}
                 className="block rounded-xl px-2 pt-2 pb-0.5 hover:bg-surface-subtle"
               >
@@ -356,7 +357,7 @@ export function useStudioBar(
   }: { replace?: boolean; revealAfterScroll?: number; desktop?: boolean } = {},
 ) {
   const ctx = useContext(StudioBarContext);
-  if (!ctx) throw new Error("useStudioBar must be used under app/[user]/studio/layout.tsx");
+  if (!ctx) throw new Error("useStudioBar must be used under app/at/[user]/studio/layout.tsx");
   const { setBar, clearBar } = ctx;
   useEffect(() => {
     setBar({ actions, mode: replace ? "replace" : "extend", revealAfterScroll, desktop });

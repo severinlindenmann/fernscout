@@ -160,7 +160,7 @@ visibility both applied). A segment with no `day` at all is a legacy file,
 derived before this field existed, and is dropped rather than trusted: there
 is no way to know which date it came from, so there is no way to know it is
 safe. Both map pages
-(`app/[user]/(trip)/map/page.tsx`, `app/[user]/trips/[trip]/map/page.tsx`)
+(`app/at/[user]/(trip)/map/page.tsx`, `app/at/[user]/trips/[trip]/map/page.tsx`)
 and the export (`lib/exportZip.ts`, filtered to published dates in every
 scope) go through `readerTrack`; nothing else under `app/`, `components/` or
 `lib/` reads `track.json` raw except the owner-only `/track` route, which

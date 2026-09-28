@@ -4,6 +4,7 @@ import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, splitLanguagePath, splitM
 import { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER } from "@/lib/requestKeys";
 import { formatRequestLine } from "@/lib/requestLog";
 import { journalTombstone, tripTombstone, type Tombstone } from "@/lib/tombstones";
+import { JOURNAL_ROUTE_ROOT, USERNAME_RE, journalPath, parseJournalPath } from "@/lib/journalPath";
 
 /**
  * `?lang=de` — a shareable link in a particular language.
@@ -98,32 +99,74 @@ function gonePage(stone: Tombstone): NextResponse {
   });
 }
 
-/**
- * Top-level pages the app owns that a journal could once have been named
- * before the name was reserved. `lib/users.ts`'s reserved list is the rule;
- * it is `server-only` and cannot be imported here, so the one name that ever
- * went from "a username somebody could pick" to "a route of ours" is listed
- * again. A tombstone left by a deleted journal called `me` must not answer
- * 410 for the account page that now lives there.
- */
-const APP_OWNED_ROOTS = new Set(["me"]);
-
-/** The tombstone covering this path, if there is one. Only the two shapes a
- * link in somebody's address book actually has: the journal, and a trip. */
-function goneFor(pathname: string): NextResponse | null {
-  const segments = pathname.split("/").filter(Boolean);
-  const username = segments[0];
-  if (!username || APP_OWNED_ROOTS.has(username)) return null;
-
+/** The tombstone covering this journal path, if there is one. Only the two
+ * shapes a link in somebody's address book actually has: the journal, and a
+ * trip. */
+function goneFor(username: string, rest: string): NextResponse | null {
+  if (!USERNAME_RE.test(username)) return null;
   const journal = journalTombstone(username);
   if (journal) return gonePage(journal);
 
-  // `/<user>/trips/<trip-id>` — the only URL a deleted trip had of its own.
-  if (segments[1] === "trips" && segments[2]) {
-    const trip = tripTombstone(username, segments[2]);
+  // `/@<user>/trips/<trip-id>` — the only URL a deleted trip had of its own.
+  const segments = rest.split("/").filter(Boolean);
+  if (segments[0] === "trips" && segments[1]) {
+    const trip = tripTombstone(username, segments[1]);
     if (trip) return gonePage(trip);
   }
   return null;
+}
+
+/**
+ * Where a journal path is served from, or null when the path cannot be one.
+ *
+ * `/@anna/…` is rendered by `app/at/[user]/…` — see `lib/journalPath.ts` for
+ * why the two differ — except for the day markdown twins (B291), which are
+ * route handlers under `/api/md/`. A bare `:slug.md` param would stop at the
+ * first `.`, and a slug is not guaranteed not to contain one, so the slug is
+ * everything up to the final `.md`.
+ *
+ * The name must be a real username, and no segment may be a dot segment in
+ * disguise (`%2e%2e`) or hide a slash: the target is assigned to a URL, which
+ * resolves those, so `/@../admin` would otherwise be served from `/admin` —
+ * past the header pins `next.config.ts` matched against the `@` path.
+ */
+function journalTarget(username: string, rest: string): { path: string; twin: boolean } | null {
+  if (!USERNAME_RE.test(username)) return null;
+  const unsafe = rest.split("/").some((segment) => {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(segment);
+    } catch {
+      return true;
+    }
+    return decoded === "." || decoded === ".." || /[/\\]/.test(decoded);
+  });
+  if (unsafe) return null;
+
+  const trip = /^\/trips\/([^/]+)\/day\/([^/]+)\.md$/i.exec(rest);
+  if (trip) return { path: `/api/md/${username}/${trip[1]}/${trip[2]}`, twin: true };
+  const day = /^\/day\/([^/]+)\.md$/i.exec(rest);
+  if (day) return { path: `/api/md/${username}/${day[1]}`, twin: true };
+  return { path: `/${JOURNAL_ROUTE_ROOT}/${username}${rest}`, twin: false };
+}
+
+/**
+ * The internal journal route, asked for by name: `/at/anna/…`, or `/%61t/…`
+ * spelled so as to slip past a string comparison. Nothing links there, but
+ * the address is guessable, and answering it would give every page two URLs
+ * — the second without the header pins. A permanent redirect to the `@` form
+ * keeps it at one.
+ */
+function internalJournalPath(pathname: string): string | null {
+  const [, first, username, ...rest] = pathname.split("/");
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(first ?? "");
+  } catch {
+    return null;
+  }
+  if (decoded !== JOURNAL_ROUTE_ROOT || !username) return null;
+  return journalPath(username, rest.length ? `/${rest.join("/")}` : "");
 }
 
 /**
@@ -191,6 +234,9 @@ export default function proxy(request: NextRequest) {
   // on the hot path this ticket was explicitly told not to slow down.
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
+  const internal = internalJournalPath(pathname);
+  if (internal) return redirectTo(request, internal);
+
   // Only this proxy says which language an address asked for — B2473.
   request.headers.delete(PATH_LOCALE_HEADER);
 
@@ -214,8 +260,8 @@ export default function proxy(request: NextRequest) {
 
   // `/de/schools` is `/schools` in German: rewritten, with the language in a
   // header the locale resolver reads before any cookie. An address under
-  // /de/ that is not a listed page falls through to the journal route and
-  // 404s — `de`, `fr` and `it` are reserved usernames.
+  // /de/ that is not a listed page matches no route and 404s — journals live
+  // under `@`, so no name can be mistaken for a language.
   const language = splitLanguagePath(pathname);
   if (language) {
     request.headers.set(PATH_HEADER, language.path);
@@ -225,9 +271,20 @@ export default function proxy(request: NextRequest) {
     return NextResponse.rewrite(url, { request });
   }
 
-  const gone = goneFor(pathname);
-  if (gone) return gone;
+  const journal = parseJournalPath(pathname);
+  const target = journal ? journalTarget(journal.username, journal.rest) : null;
+  if (journal) {
+    // `%40anna` — how some apps write the `@` when they copy a link. One
+    // address per page, so it converges on the `@` form.
+    if (!pathname.startsWith("/@")) return redirectTo(request, journalPath(journal.username, journal.rest));
+    // A twin answers its own 410, in plain text for the agent reading it —
+    // `lib/api/markdownTwin.ts`.
+    const gone = target && !target.twin ? goneFor(journal.username, journal.rest) : null;
+    if (gone) return gone;
+  }
 
+  // The public path, `@` included: this is what the root layout and the
+  // pages read to learn whose journal is on show (`lib/locales.ts`).
   request.headers.set(PATH_HEADER, pathname);
 
   const asked = request.nextUrl.searchParams.get("lang");
@@ -250,19 +307,37 @@ export default function proxy(request: NextRequest) {
   // every app page and overwrites one from here. It also serves them
   // `private, no-store`, so no shared cache ever holds one to mix up by
   // cookie, Accept-Language or Accept. The Markdown says `Vary: Accept`.
-  if (!locale) return NextResponse.next({ request });
-
+  //
   // Whether this journal actually offers the language is decided downstream,
   // where its config is readable; middleware only carries the request.
-  request.cookies.set(LOCALE_COOKIE, locale);
+  if (locale) request.cookies.set(LOCALE_COOKIE, locale);
 
-  const response = NextResponse.next({ request });
-  response.cookies.set(LOCALE_COOKIE, locale, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-  });
+  // A journal path that cannot be one — a malformed name, a dot segment —
+  // is not rewritten, and so matches no route: a 404.
+  let response: NextResponse;
+  const url = request.nextUrl.clone();
+  if (target) url.pathname = target.path;
+  if (target && url.pathname === target.path) {
+    response = NextResponse.rewrite(url, { request });
+  } else {
+    response = NextResponse.next({ request });
+  }
+
+  if (locale) {
+    response.cookies.set(LOCALE_COOKIE, locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
   return response;
+}
+
+/** A permanent redirect to `pathname`, keeping the query string. */
+function redirectTo(request: NextRequest, pathname: string): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  return NextResponse.redirect(url, 308);
 }
 
 export const config = {
@@ -276,14 +351,14 @@ export const config = {
     // `/_next/static/…` lines is a log nobody reads. Nothing diagnostic is
     // lost — the page request that asked for them is still logged.
     "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:txt|json|xml|md|png|svg|ico)$).*)",
-    // Added for the 410 above, not for the language cookie. These four are the
-    // agent- and reader-facing documents of a journal, and after it is deleted
-    // they must say it was removed rather than that it was never here. The
-    // pattern above excludes them by extension.
-    "/:user/documentation.txt",
-    "/:user/feed.xml",
-    "/:user/search-index.json",
-    "/:user/story.json",
+    // Every journal path, whatever its extension: `/@anna/…` is only ever
+    // served through the rewrite above, so its feeds, `.md` twins, media and
+    // agent documents must all come through here — not just the pages the
+    // extension exclusion above lets by. `%40` is the encoded `@`, and `/at/…`
+    // is the internal route, redirected.
+    "/(@.*)",
+    "/(%40.*)",
+    "/at/:path*",
     // Added for request logging (B257), not for the 410 or the language
     // cookie. `/agent.md` (now a redirect — B311) and the instance's own
     // `/documentation.txt` are agent-facing documents the extension exclusion
@@ -298,17 +373,6 @@ export const config = {
     "/agent.md",
     "/skill/:name.md",
     "/api/:path*",
-    // The day markdown twins (B291) — the other agent-facing document, and
-    // the one an agent actually reaches for: it is what checks a day's own
-    // work back. Excluded by the extension pattern above like every other
-    // `.md`, so it needs the same explicit re-inclusion as the four above.
-    // Two entries per shape, matching the same pair next.config.ts's
-    // rewrites use, because a bare `:slug.md` param stops at the first `.`
-    // and a slug is not guaranteed not to contain one.
-    "/:user/day/:slug.md",
-    "/:user/day/:slug([^/]+)\\.md",
-    "/:user/trips/:trip/day/:slug.md",
-    "/:user/trips/:trip/day/:slug([^/]+)\\.md",
     // The pages' Markdown versions (B2488) — `.md` is excluded above.
     "/((?:de/|fr/|it/)?(?:index|prices|schools|schools/demo|tour-operators|tour-operators/demo|guides/[a-z-]+)\\.md)",
   ],

@@ -166,8 +166,8 @@ describe("GET /api/v2/<user>/trips/<trip>/media/duplicates", () => {
     const groups = body.groups as { src: string; day: string; bytes: number }[][];
     expect(groups).toHaveLength(1);
     expect(groups[0].map((item) => item.src)).toEqual([
-      `/${OWNER}/media/${TRIP}/lanterns/01.jpg`,
-      `/${OWNER}/media/${TRIP}/lanterns/02.jpg`,
+      `/@${OWNER}/media/${TRIP}/lanterns/01.jpg`,
+      `/@${OWNER}/media/${TRIP}/lanterns/02.jpg`,
     ]);
     expect(groups[0][0].bytes).toBeGreaterThan(groups[0][1].bytes);
     expect(groups[0][0].day).toBe("lanterns");

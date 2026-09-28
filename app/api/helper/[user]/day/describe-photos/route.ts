@@ -46,7 +46,7 @@ export const dynamic = "force-dynamic";
  *
  * **A derivative goes to the model, never the original.** `resizedCopy` is
  * the same resize the browser's own gallery reads through
- * `app/[user]/media/[...path]/route.ts`; sending a print-resolution original
+ * `app/at/[user]/media/[...path]/route.ts`; sending a print-resolution original
  * down the wire to a model that only needs to describe what is in frame would
  * be waste for no better an answer.
  */

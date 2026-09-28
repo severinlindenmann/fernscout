@@ -30,7 +30,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const pathname = { current: "/alex/trips" };
+const pathname = { current: "/@alex/trips" };
 vi.mock("next/navigation", () => ({ usePathname: () => pathname.current }));
 
 const site: SiteSummary = {
@@ -41,7 +41,7 @@ const site: SiteSummary = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   travellerFigures: [],
   signedIn: false,
   name: "Fernscout",
@@ -89,24 +89,24 @@ function render(withTrip: boolean, isCurrent = false) {
   return [...markup(withTrip, isCurrent).matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
 }
 
-/** Just the entry that leads to `/alex/me`, which is the whole of B44's fix. */
+/** Just the entry that leads to `/@alex/me`, which is the whole of B44's fix. */
 function door(html: string): string {
-  const match = html.match(/<a href="\/alex\/me"[\s\S]*?<\/a>/);
-  if (!match) throw new Error("no /alex/me entry in the nav");
+  const match = html.match(/<a href="\/@alex\/me"[\s\S]*?<\/a>/);
+  if (!match) throw new Error("no /@alex/me entry in the nav");
   return match[0];
 }
 
 describe("SiteNav", () => {
   test("with no trip in context, every link still names the journal", () => {
     const hrefs = render(false);
-    expect(hrefs).toContain("/alex/analytics");
-    expect(hrefs).toContain("/alex/gallery");
-    expect(hrefs).toContain("/alex/map");
-    expect(hrefs).toContain("/alex/trips");
-    expect(hrefs).toContain("/alex/search");
+    expect(hrefs).toContain("/@alex/analytics");
+    expect(hrefs).toContain("/@alex/gallery");
+    expect(hrefs).toContain("/@alex/map");
+    expect(hrefs).toContain("/@alex/trips");
+    expect(hrefs).toContain("/@alex/search");
     // The story link is the journal itself, not a trailing slash.
-    expect(hrefs).toContain("/alex");
-    expect(hrefs.some((h) => !h.startsWith("/alex"))).toBe(false);
+    expect(hrefs).toContain("/@alex");
+    expect(hrefs.some((h) => !h.startsWith("/@alex"))).toBe(false);
   });
 
   /**
@@ -124,35 +124,35 @@ describe("SiteNav", () => {
       site.analyticsEnabled = false;
       try {
         const hrefs = render(false);
-        expect(hrefs).not.toContain("/alex/analytics");
+        expect(hrefs).not.toContain("/@alex/analytics");
         // And nothing else in the row went with it.
-        expect(hrefs).toContain("/alex/gallery");
-        expect(hrefs).toContain("/alex/map");
-        expect(hrefs).toContain("/alex/trips");
+        expect(hrefs).toContain("/@alex/gallery");
+        expect(hrefs).toContain("/@alex/map");
+        expect(hrefs).toContain("/@alex/trips");
       } finally {
         site.analyticsEnabled = true;
       }
     });
 
     test("and is there when it does, in a trip's own context too", () => {
-      expect(render(false)).toContain("/alex/analytics");
-      expect(render(true, true)).toContain("/alex/analytics");
+      expect(render(false)).toContain("/@alex/analytics");
+      expect(render(true, true)).toContain("/@alex/analytics");
     });
   });
 
   test("on the current trip, the bare URLs", () => {
     const hrefs = render(true, true);
-    expect(hrefs).toContain("/alex/analytics");
-    expect(hrefs).toContain("/alex");
+    expect(hrefs).toContain("/@alex/analytics");
+    expect(hrefs).toContain("/@alex");
   });
 
   test("on any other trip, the trip's own URLs", () => {
     const hrefs = render(true, false);
-    expect(hrefs).toContain("/alex/trips/asia-2023/analytics");
-    expect(hrefs).toContain("/alex/trips/asia-2023");
+    expect(hrefs).toContain("/@alex/trips/asia-2023/analytics");
+    expect(hrefs).toContain("/@alex/trips/asia-2023");
     // /trips and /search stay at the journal level even inside a trip.
-    expect(hrefs).toContain("/alex/trips");
-    expect(hrefs).toContain("/alex/search");
+    expect(hrefs).toContain("/@alex/trips");
+    expect(hrefs).toContain("/@alex/search");
   });
 
   /**
@@ -166,8 +166,8 @@ describe("SiteNav", () => {
       for (const isOwner of [true, false]) {
         site.isOwner = isOwner;
         try {
-          expect(render(false), `owner=${isOwner}`).not.toContain("/alex/account");
-          expect(render(false), `owner=${isOwner}`).not.toContain("/alex/studio/account");
+          expect(render(false), `owner=${isOwner}`).not.toContain("/@alex/account");
+          expect(render(false), `owner=${isOwner}`).not.toContain("/@alex/studio/account");
         } finally {
           site.isOwner = false;
         }
@@ -203,7 +203,7 @@ describe("SiteNav", () => {
             expect(
               render(false),
               `owner=${isOwner} extract=${extractEnabled}`,
-            ).not.toContain("/alex/studio");
+            ).not.toContain("/@alex/studio");
           } finally {
             site.isOwner = false;
             site.extractEnabled = false;
@@ -230,10 +230,10 @@ describe("the access panel link", () => {
    * unable to find any way to sign in, and was right.
    */
   test("is offered whether or not there is a session", () => {
-    expect(render(false)).toContain("/alex/me");
+    expect(render(false)).toContain("/@alex/me");
     site.signedIn = true;
     try {
-      expect(render(false)).toContain("/alex/me");
+      expect(render(false)).toContain("/@alex/me");
     } finally {
       site.signedIn = false;
     }

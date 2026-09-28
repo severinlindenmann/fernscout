@@ -102,20 +102,20 @@ afterAll(() => {
 
 describe("what a German reader gets for the words they type", () => {
   test("Preis lands on the costs page, not on the hub above it", () => {
-    expect(top("Preis")[0].url).toBe(`/${USER}/costs`);
+    expect(top("Preis")[0].url).toBe(`/@${USER}/costs`);
   });
 
   test("Kosten does too", () => {
-    expect(top("Kosten")[0].url).toBe(`/${USER}/costs`);
+    expect(top("Kosten")[0].url).toBe(`/@${USER}/costs`);
   });
 
   test("Bilder and Fotos reach the gallery — B974's second fault", () => {
-    expect(top("Bilder")[0].url).toBe(`/${USER}/gallery`);
-    expect(top("Fotos")[0].url).toBe(`/${USER}/gallery`);
+    expect(top("Bilder")[0].url).toBe(`/@${USER}/gallery`);
+    expect(top("Fotos")[0].url).toBe(`/@${USER}/gallery`);
   });
 
   test("Route reaches the map", () => {
-    expect(top("Route")[0].url).toBe(`/${USER}/map`);
+    expect(top("Route")[0].url).toBe(`/@${USER}/map`);
   });
 
   test("Hilfe reaches the docs hub, not a page about hosting", () => {

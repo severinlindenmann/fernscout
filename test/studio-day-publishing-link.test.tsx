@@ -17,7 +17,7 @@ import type { Entry } from "@/lib/types";
 // AddDayFlow keeps its step in the URL (`useStep`, B2078); its router also
 // carries the `refresh` `EditDayFlow` calls after a save (B2073). One mock:
 // a second `vi.mock` of the same module raced this one and failed now and then.
-vi.mock("next/navigation", async () => (await import("./fixtures/fakeNavigation")).navigationMock("/alex/studio/day/new"));
+vi.mock("next/navigation", async () => (await import("./fixtures/fakeNavigation")).navigationMock("/@alex/studio/day/new"));
 
 /**
  * B2058 — "Go to publishing" on the day-created screen used to open
@@ -96,7 +96,7 @@ describe("the day-created screen", () => {
     const link = [...container!.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Publish this day ›");
     expect(link, container!.innerHTML.slice(0, 400)).toBeTruthy();
     // The route answers with the dated v2 id; the publish page wants the bare slug.
-    expect(link!.getAttribute("href")).toBe("/alex/studio/day/publish?day=a-day&trip=reise");
+    expect(link!.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
   });
 });
 
@@ -136,7 +136,7 @@ describe("day/edit", () => {
     );
     const pill = container!.querySelector("[data-draft-pill]");
     expect(pill?.textContent).toContain("Draft");
-    expect(pill?.querySelector("a")?.getAttribute("href")).toBe("/alex/studio/day/publish?day=a-day&trip=reise");
+    expect(pill?.querySelector("a")?.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
     expect(pill?.querySelector("button")).toBeNull();
   });
 

@@ -288,7 +288,7 @@ describe("what happens once both are answered", () => {
     expect(response.status).toBe(201);
     expect(getUser("quiet-f")?.visibility).toBe("guest");
     expect(listedUsernames()).not.toContain("quiet-f");
-    expect(instanceDocumentation()).not.toContain("/quiet-f/");
+    expect(instanceDocumentation()).not.toContain("/@quiet-f/");
   });
 
   test("a journal created with defaultLocale de gets a German welcome mail", async () => {

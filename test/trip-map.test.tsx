@@ -446,7 +446,7 @@ describe("the full-screen control", () => {
     // where it sends the reader" above.
     const luzern = stops[3];
     expect(assign).toHaveBeenCalledWith(
-      `/alex/trips/alps-2024/map?stop=${encodeURIComponent(`${luzern.location}-${luzern.date}`)}`,
+      `/@alex/trips/alps-2024/map?stop=${encodeURIComponent(`${luzern.location}-${luzern.date}`)}`,
     );
     restore();
   });
@@ -458,7 +458,7 @@ describe("the full-screen control", () => {
     click(control("Full screen")!);
     const grimsel = stops[0];
     expect(assign).toHaveBeenCalledWith(
-      `/alex/trips/alps-2024/map?stop=${encodeURIComponent(`${grimsel.location}-${grimsel.date}`)}`,
+      `/@alex/trips/alps-2024/map?stop=${encodeURIComponent(`${grimsel.location}-${grimsel.date}`)}`,
     );
     restore();
   });

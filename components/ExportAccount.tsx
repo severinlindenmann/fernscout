@@ -4,6 +4,7 @@ import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * Taking everything with you — B1295, beside `DeleteAccount`.
  *
@@ -33,7 +34,7 @@ export default function ExportAccount({
   async function ask() {
     setBusy(true);
     setFailed(false);
-    const response = await fetch(`/${encodeURIComponent(username)}/me/export`, {
+    const response = await fetch(`${journalPath(encodeURIComponent(username))}/me/export`, {
       method: "POST",
     }).catch(() => null);
     setBusy(false);

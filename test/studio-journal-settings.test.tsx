@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import JournalPageContent, { type JournalPanel, type ReminderRow } from "@/app/[user]/studio/journal/JournalPageContent";
+import JournalPageContent, { type JournalPanel, type ReminderRow } from "@/app/at/[user]/studio/journal/JournalPageContent";
 import StudioBarProvider from "@/components/studio/StudioBar";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";

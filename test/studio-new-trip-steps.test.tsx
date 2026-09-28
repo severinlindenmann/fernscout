@@ -21,7 +21,7 @@ vi.mock("next/navigation", () => ({
     back: () => history.length > 1 && history.pop(),
     replace: vi.fn(),
   }),
-  usePathname: () => "/alex/studio/trip/new",
+  usePathname: () => "/@alex/studio/trip/new",
   useSearchParams: () => current(),
 }));
 
@@ -175,7 +175,7 @@ describe("NewTripFlow — one screen, B2187", () => {
     mount();
     fillStepOne();
     await create();
-    expect(doneLinks()).toEqual([["Add the first day", "/alex/studio/day/new?trip=round-the-alps-2026"]]);
+    expect(doneLinks()).toEqual([["Add the first day", "/@alex/studio/day/new?trip=round-the-alps-2026"]]);
     expect(sessionStorage.getItem("studio:newTrip:alex")).toBeNull();
   });
 
@@ -189,8 +189,8 @@ describe("NewTripFlow — one screen, B2187", () => {
     await create();
     expect(sent(fetchMock).visibility).toBe("guest");
     expect(doneLinks()).toEqual([
-      ["Add the first day", "/alex/studio/day/new?trip=round-the-alps-2026"],
-      ["Invite someone (sends an email)", "/alex/studio/readers#invite"],
+      ["Add the first day", "/@alex/studio/day/new?trip=round-the-alps-2026"],
+      ["Invite someone (sends an email)", "/@alex/studio/readers#invite"],
     ]);
   });
 
@@ -273,7 +273,7 @@ describe("B2193 — a trip started from waiting photographs", () => {
     extra = { photoRun: { start: "2026-09-20", end: "2026-09-27" } };
     mount();
     const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent === "Or start from my photos");
-    expect(link?.getAttribute("href")).toBe("/alex/studio/trip/new?start=2026-09-20&end=2026-09-27");
+    expect(link?.getAttribute("href")).toBe("/@alex/studio/trip/new?start=2026-09-20&end=2026-09-27");
     expect(container.querySelector("[data-from-photos]")).toBeNull();
   });
 });

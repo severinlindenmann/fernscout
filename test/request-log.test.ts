@@ -136,18 +136,14 @@ describe("proxy request logging", () => {
     log.mockRestore();
   });
 
-  test("the matcher covers both day markdown twin shapes (B291)", () => {
+  test("the matcher covers every journal path, day markdown twins included (B291)", () => {
     // config.matcher is compile-time — see the comment on the build-asset
     // test above for why this reads the pattern rather than invoking proxy.
+    // Every `/@user/…` path — `.md` twins, feeds, media — is served through
+    // the proxy's rewrite, so the matcher takes the whole `@` space rather
+    // than listing shapes the extension exclusion would otherwise drop.
     const matcher = proxyConfig.matcher.map(String);
-    expect(matcher).toEqual(
-      expect.arrayContaining([
-        "/:user/day/:slug.md",
-        "/:user/day/:slug([^/]+)\\.md",
-        "/:user/trips/:trip/day/:slug.md",
-        "/:user/trips/:trip/day/:slug([^/]+)\\.md",
-      ]),
-    );
+    expect(matcher).toEqual(expect.arrayContaining(["/(@.*)", "/(%40.*)", "/at/:path*"]));
   });
 
   test("still excludes build assets from the matcher, capability on or off", () => {

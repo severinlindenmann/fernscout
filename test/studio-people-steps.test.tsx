@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
     back: () => history.length > 1 && history.pop(),
     replace: (href: string) => (history[history.length - 1] = href.split("?")[1] ?? ""),
   }),
-  usePathname: () => "/alex/studio/people",
+  usePathname: () => "/@alex/studio/people",
   useSearchParams: () => current(),
 }));
 
@@ -162,7 +162,7 @@ describe("PeopleFlow on useStep — B2079", () => {
     });
     rerender();
     expect(container.querySelector('[role="status"]')?.textContent).toContain("1 person added");
-    expect(Array.from(container.querySelectorAll("a")).some((a) => a.getAttribute("href") === "/alex/studio/people")).toBe(true);
+    expect(Array.from(container.querySelectorAll("a")).some((a) => a.getAttribute("href") === "/@alex/studio/people")).toBe(true);
     expect(sessionStorage.getItem("studio:people:alex")).toBeNull();
     expect(current().get("step")).toBeNull();
   });

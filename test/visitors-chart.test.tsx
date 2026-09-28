@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import VisitorsContent from "@/app/[user]/studio/visitors/VisitorsContent";
+import VisitorsContent from "@/app/at/[user]/studio/visitors/VisitorsContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import type { VisitorReport } from "@/lib/analytics/report";
 import { dictionaryFor } from "@/lib/locales";

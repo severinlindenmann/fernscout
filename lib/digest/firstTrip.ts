@@ -16,6 +16,7 @@ import { getTrips } from "../trips";
 import { getUser, getUsernames } from "../users";
 import type { OwnerTips, UserConfig } from "../config";
 
+import { journalPath } from "../journalPath";
 /**
  * The first-trip nudge — B2447 (W44 D5) and B2448 item 4's push branch.
  *
@@ -124,13 +125,13 @@ export function composeFirstTripMail(
         {
           kind: "button",
           text: translateIn(locale, "mail.firstTripButton"),
-          href: `${serverSite().url}/${encodeURIComponent(input.username)}/studio/trip/new`,
+          href: `${serverSite().url}${journalPath(encodeURIComponent(input.username))}/studio/trip/new`,
         },
       ],
       why: translateIn(locale, "mail.firstTripWhy", { journal: input.journalTitle }),
       manage: {
         text: translateIn(locale, "mail.firstTripManage"),
-        href: `${serverSite().url}/${encodeURIComponent(input.username)}/studio/journal`,
+        href: `${serverSite().url}${journalPath(encodeURIComponent(input.username))}/studio/journal`,
       },
       locale,
     },
@@ -138,7 +139,7 @@ export function composeFirstTripMail(
 }
 
 async function sendFirstTripPush(username: string, journal: string, subs: StoredSubscription[], locale: string): Promise<boolean> {
-  const url = `${serverSite().url}/${encodeURIComponent(username)}/studio/trip/new`;
+  const url = `${serverSite().url}${journalPath(encodeURIComponent(username))}/studio/trip/new`;
   const composed = composeFirstTripPush({ username, journalTitle: journal }, locale as PreviewLocale);
   const outcome = await sendPush({
     template: "nudge.first.push",

@@ -20,7 +20,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { clearLocaleCache, dictionaryFor } from "@/lib/locales";
 import { getCostSummary } from "@/lib/costs";
-import CostsPageContent from "@/app/[user]/(trip)/costs/CostsPageContent";
+import CostsPageContent from "@/app/at/[user]/(trip)/costs/CostsPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";

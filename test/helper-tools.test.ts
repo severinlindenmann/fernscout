@@ -640,7 +640,7 @@ describe("pointing at the one door", () => {
       const ran = await runTool("alex", "invite_to_read", {}, say, "2026-09-07", [], "", WEB_CALLER);
       expect(ran.proposal).toBeUndefined();
       const block = ran.blocks.find((b) => b.shape === "link");
-      expect(block && block.shape === "link" && block.href).toBe("/alex/studio/readers");
+      expect(block && block.shape === "link" && block.href).toBe("/@alex/studio/readers");
       expect(fs.readdirSync(dir)).toEqual([]);
     } finally {
       if (before === undefined) delete process.env.CONTENT_DIR;

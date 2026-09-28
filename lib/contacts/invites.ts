@@ -6,6 +6,7 @@ import { getDatabase, newId, nowIso } from "../db";
 import type { Locale } from "../types";
 import { parseLocale } from "./locale";
 
+import { journalPath } from "../journalPath";
 /**
  * The link shapes — decision 19, as amended by B37 and extended by B33.
  *
@@ -114,7 +115,7 @@ export type Invite = {
    * say so here rather than pretend it is the original.
    *
    * Whether it is safe to show at all is a separate question — see the
-   * doc comment on `RedeemPage` in `app/[user]/invite/redeemPage.tsx`, which
+   * doc comment on `RedeemPage` in `app/at/[user]/invite/redeemPage.tsx`, which
    * is where the decision to prefill only from this field (never from
    * nothing) is actually made.
    */
@@ -158,7 +159,7 @@ function generateInviteToken(): string {
 
 /** The URL to send someone. Built here so no caller invents its own shape. */
 function inviteUrl(base: string, username: string, token: string): string {
-  return `${base}/${username}/i/${token}`;
+  return `${base}${journalPath(username)}/i/${token}`;
 }
 
 /**
@@ -177,7 +178,7 @@ export function inviteLinkUrl(
   token: string,
 ): string {
   if (kind === "personal") return inviteUrl(base, username, token);
-  return `${base.replace(/\/$/, "")}/${username}/invite/${kind}/${token}`;
+  return `${base.replace(/\/$/, "")}${journalPath(username)}/invite/${kind}/${token}`;
 }
 
 /**
@@ -392,7 +393,7 @@ export async function listInvites(owner: string): Promise<Invite[]> {
  * different audiences and a boolean argument is how the wrong one gets passed:
  * this is for the owner's own page, server-side, behind `isOwner`, and the
  * plain list is for everything else. Postal addresses are decrypted under
- * exactly this rule (`app/[user]/contacts/page.tsx`), and this follows it.
+ * exactly this rule (`app/at/[user]/contacts/page.tsx`), and this follows it.
  *
  * `url` is null for a row with no ciphertext — every row written before the
  * migration, and any row created while `CONTACTS_ENCRYPTION_KEY` was unset —

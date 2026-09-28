@@ -42,7 +42,7 @@ describe("DoneScreen", () => {
     const html = render(<DoneScreen username="example" done="Saved." next={[card(1)]} />);
     expect(html).not.toContain("studio.flow.backToStudio");
     expect(html).not.toContain(en["studio.flow.backToStudio"]);
-    expect(html).not.toMatch(/href="\/example\/studio"/);
+    expect(html).not.toMatch(/href="\/@example\/studio"/);
   });
 
   test("one to three cards, at the type level", () => {
@@ -62,7 +62,7 @@ function studioSources(): { file: string; source: string }[] {
       if (entry.isDirectory()) return walk(full);
       return entry.name.endsWith(".tsx") ? [full] : [];
     });
-  return ["components/studio", "app/[user]/studio"]
+  return ["components/studio", "app/at/[user]/studio"]
     .flatMap((root) => walk(path.join(process.cwd(), root)))
     .map((full) => ({ file: path.relative(process.cwd(), full), source: fs.readFileSync(full, "utf8") }));
 }

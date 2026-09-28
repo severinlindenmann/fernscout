@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
@@ -8,6 +8,10 @@ import { useI18n } from "@/components/LocaleProvider";
 import TelField from "@/components/TelField";
 import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
+import { journalPath } from "@/lib/journalPath";
+
+/** `window.location.host` never changes under a mounted page. */
+const noSubscription = () => () => {};
 
 /**
  * Every refusal `post()` can actually get back from the signup routes, and
@@ -150,6 +154,8 @@ export default function SignupWizard({
   const [error, setError] = useState<string | null>(null);
 
   const [email, setEmail] = useState(prefillEmail ?? "");
+  // The host is only knowable in the browser; the server renders without it.
+  const host = useSyncExternalStore(noSubscription, () => window.location.host, () => "");
   const proven = Boolean(prefillEmail) && email.trim().toLowerCase() === prefillEmail!.toLowerCase();
   const [code, setCode] = useState("");
   const [signupToken, setSignupToken] = useState("");
@@ -375,7 +381,7 @@ export default function SignupWizard({
     setBusy(true);
     // The one-press relay link, spent here rather than by a press — there is
     // nobody left to press it, the wizard already asked everything it needs
-    // to. `signIn` is `${base}/${username}/s/${token}?lang=xx` (`signInUrl`
+    // to. `signIn` is `${base}/@${username}/s/${token}?lang=xx` (`signInUrl`
     // in `lib/auth`); the token is the path after the last "/s/", without the
     // query — B2170 found the old `split("/s/").pop()` sent "?lang=en" as part
     // of the token, so this call always failed. The same call the welcome
@@ -790,6 +796,13 @@ export default function SignupWizard({
                 className={input}
               />
             </div>
+            {/* The address exactly as it will be written down and shared —
+                the `@` is what tells a reader it is a person's journal. */}
+            <p className="mt-2 break-all text-sm leading-6 text-ink-secondary">
+              {t("agent.usernamePreview", {
+                address: `${host}${journalPath(username.trim() || "…")}`,
+              })}
+            </p>
           </div>
           {/* B809 — two name fields a tester could not tell apart, so he put
               "Kevin" in both. They are genuinely two things: `owner.name` is

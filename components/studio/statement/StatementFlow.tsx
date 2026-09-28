@@ -19,6 +19,7 @@ import type { MerchantGroup, SpendingRow } from "./types";
 import StepBody from "@/components/studio/StepBody";
 import StatementSample from "./StatementSample";
 
+import { journalPath } from "@/lib/journalPath";
 /** The screens a person counts, in `?step=` (B2079, B2083): which trip,
  *  the file, what was read (the column mapping for a bank nothing here
  *  knows is the same step), a category per merchant, and the check before
@@ -639,7 +640,7 @@ export default function StatementFlow({
               {
                 title: t("studio.statement.done.tripTitle", { trip: tripTitle }),
                 body: t(trips.find((tr) => tr.id === tripId)?.costsPublic ? "studio.statement.done.public" : "studio.statement.done.private"),
-                href: `/${username}/trips/${encodeURIComponent(tripId)}/costs`,
+                href: `${journalPath(username)}/trips/${encodeURIComponent(tripId)}/costs`,
                 label: t("studio.statement.done.seeTrip"),
               },
             ]}

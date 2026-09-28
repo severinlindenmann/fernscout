@@ -127,7 +127,7 @@ async function currentGalleryProps(owner: boolean) {
     ...(await importOriginal<object>()),
     isOwner: async () => owner,
   }));
-  const { default: GalleryPage } = await import("@/app/[user]/(trip)/gallery/page");
+  const { default: GalleryPage } = await import("@/app/at/[user]/(trip)/gallery/page");
   const element = (await GalleryPage({
     params: Promise.resolve({ user: "alex" }),
   } as never)) as {

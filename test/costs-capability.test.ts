@@ -107,12 +107,12 @@ beforeEach(() => {
 });
 
 async function currentTripCostsPage(user = "alex") {
-  const { default: Page } = await import("@/app/[user]/(trip)/costs/page");
+  const { default: Page } = await import("@/app/at/[user]/(trip)/costs/page");
   return Page({ params: Promise.resolve({ user }) } as Parameters<typeof Page>[0]);
 }
 
 async function tripCostsPage(user = "alex") {
-  const { default: Page } = await import("@/app/[user]/trips/[trip]/costs/page");
+  const { default: Page } = await import("@/app/at/[user]/trips/[trip]/costs/page");
   return Page({
     params: Promise.resolve({ user, trip: "asia-2023" }),
   } as Parameters<typeof Page>[0]);
@@ -149,8 +149,8 @@ describe("the costs pages when the capability is off", () => {
   /** Nothing describes a page that is not there. */
   test("neither page emits metadata for a journal with it off", async () => {
     enabled.mockImplementation((name) => name !== "costs");
-    const current = await import("@/app/[user]/(trip)/costs/page");
-    const perTrip = await import("@/app/[user]/trips/[trip]/costs/page");
+    const current = await import("@/app/at/[user]/(trip)/costs/page");
+    const perTrip = await import("@/app/at/[user]/trips/[trip]/costs/page");
     expect(
       await current.generateMetadata({ params: Promise.resolve({ user: "alex" }) } as never),
     ).toEqual({});
@@ -174,7 +174,7 @@ describe("the costs pages when the capability is off", () => {
    * would be one reader's answer served to the next.
    */
   test("the per-trip page is never prerendered", async () => {
-    const perTrip = await import("@/app/[user]/trips/[trip]/costs/page");
+    const perTrip = await import("@/app/at/[user]/trips/[trip]/costs/page");
     expect("generateStaticParams" in perTrip).toBe(false);
   });
 });

@@ -9,7 +9,7 @@
 // the v2 route calls after its own owner-only bearer gate, in process. No
 // bearer token is minted, held, or sent anywhere for this call.
 //
-// Replaces `app/[user]/trips/[trip]/day/[slug]/unpublish/route.ts`, which
+// Replaces `app/at/[user]/trips/[trip]/day/[slug]/unpublish/route.ts`, which
 // wrote through v1's `unpublishEntry` against the pre-B1598 file shape.
 import { applyUnpublish } from "@/app/api/v2/[user]/trips/[trip]/days/[slug]/unpublish/route";
 import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";

@@ -6,7 +6,7 @@ import { currentSearch, resetNavigation } from "./fixtures/fakeNavigation";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-vi.mock("next/navigation", async () => (await import("./fixtures/fakeNavigation")).navigationMock("/alex/studio/day/new"));
+vi.mock("next/navigation", async () => (await import("./fixtures/fakeNavigation")).navigationMock("/@alex/studio/day/new"));
 
 /**
  * B2188 — "Add a day" is one page (it was six screens, B2078). Two files are
@@ -261,7 +261,7 @@ describe("AddDayFlow, one page — B2188", () => {
       await mount();
       await chooseEveryWaitingPhoto();
       const split = Array.from(container.querySelectorAll("a")).find((a) => a.textContent === "These are from 3 days — make 3 days");
-      expect(split?.getAttribute("href")).toBe("/alex/studio#waiting");
+      expect(split?.getAttribute("href")).toBe("/@alex/studio#waiting");
     });
   });
 
@@ -362,7 +362,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await click("Save privately");
     expect(text()).toContain("Saved. Only you and Hans, Viki can see this day.");
     const share = [...container.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Publish this day ›");
-    expect(share?.getAttribute("href")).toBe("/alex/studio/day/publish?day=a-day&trip=reise");
+    expect(share?.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
   });
 
   test("a date with a draft day offers to add to it, and a second entry with a time", async () => {
@@ -374,7 +374,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await click("Save privately");
     expect(text()).toContain("already has a day");
     expect([...container.querySelectorAll("a")].find((a) => a.textContent === "Add to that day instead")?.getAttribute("href")).toBe(
-      "/alex/studio/day/edit?slug=first",
+      "/@alex/studio/day/edit?slug=first",
     );
     type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
     await flush();

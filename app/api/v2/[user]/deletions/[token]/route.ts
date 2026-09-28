@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  * routes the v2 migration kept; it is not a document like the ones every
  * other door replaced, and moved here rather than staying behind at
  * `/api/v1`, which is retired (B1734). The mailed link itself never names
- * this address — it lands on `app/[user]/delete/[token]`, which composes
+ * this address — it lands on `app/at/[user]/delete/[token]`, which composes
  * this endpoint fresh on every render, so a link already sitting in a mailbox
  * keeps working across this move.
  */

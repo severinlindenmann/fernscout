@@ -150,7 +150,7 @@ export default function TripMap({
    *
    * ponytail: one request, the trip's first `PHOTO_WINDOW` stops only —
    * `story.json` itself refuses more than 24 days in one call
-   * (`MAX_DAYS`, app/[user]/story.json/route.ts). A trip longer than that
+   * (`MAX_DAYS`, app/at/[user]/story.json/route.ts). A trip longer than that
    * gets photos for its early stops and plain markers for the rest until
    * this pages further the way `lib/dayLoader.ts`'s `WindowLedger` already
    * does for full days.

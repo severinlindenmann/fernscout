@@ -4,7 +4,7 @@ import path from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import JournalPageContent, { type JournalPanel } from "@/app/[user]/studio/journal/JournalPageContent";
+import JournalPageContent, { type JournalPanel } from "@/app/at/[user]/studio/journal/JournalPageContent";
 import MoneyPanel from "@/components/studio/plan/MoneyPanel";
 import StudioBarProvider from "@/components/studio/StudioBar";
 import LocaleProvider from "@/components/LocaleProvider";
@@ -67,8 +67,8 @@ describe("the helpers", () => {
   test("feeds the new trip, the planner's cost line and the statement mapping", () => {
     const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf8");
     expect(read("lib/studio/newTrip.ts")).toMatch(/currencies: journalCurrencies\(username\)/);
-    expect(read("app/[user]/studio/plan/[trip]/page.tsx")).toMatch(/currencies=\{journalCurrencies\(user\)\}/);
-    expect(read("app/[user]/studio/statement/page.tsx")).toMatch(/currencies=\{journalCurrencies\(user\)\}/);
+    expect(read("app/at/[user]/studio/plan/[trip]/page.tsx")).toMatch(/currencies=\{journalCurrencies\(user\)\}/);
+    expect(read("app/at/[user]/studio/statement/page.tsx")).toMatch(/currencies=\{journalCurrencies\(user\)\}/);
     // And none of the three still takes a typed code.
     for (const file of [
       "components/studio/trip/NewTripFlow.tsx",

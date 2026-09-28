@@ -25,7 +25,15 @@ EnvironmentFile=/etc/fernscout/env
 # listens on 0.0.0.0 — which puts an untrusted, TLS-less copy of the site on
 # port 3000 the moment a firewall rule changes. A deployment that genuinely
 # wants the port reachable (a load balancer on another host) drops the flag.
-ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1
+#
+# `localhost`, not `127.0.0.1`: the proxy's `nextUrl` always calls loopback
+# `localhost`, and Next keeps a rewrite (`/@anna` -> `/at/anna`, `/de/...`,
+# `.md`) internal only when that origin matches the one it listens on. Given
+# `127.0.0.1` it forwarded every rewrite as a fetch to https://localhost:3000
+# and each journal answered 500. On this host `localhost` resolves to
+# 127.0.0.1 first, which is where Caddy points; check `getent ahosts
+# localhost` on a new one.
+ExecStart=/usr/bin/npm run start -- --hostname localhost
 Restart=always
 RestartSec=5
 

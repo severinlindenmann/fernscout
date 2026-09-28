@@ -8,6 +8,7 @@ import { DAY_ARGS } from "../args";
 import { resolveDay, tripIdFor } from "../resolve";
 
 
+import { journalPath } from "../../../journalPath";
 /**
  * Letting somebody else read it.
  *
@@ -35,7 +36,7 @@ export const READERS_TOOLS: readonly Tool[] = [
     properties: {},
     link: (username, _args, say) => ({
       text: say("agent.tool.inviteToRead"),
-      href: `/${encodeURIComponent(username)}/studio/readers`,
+      href: `${journalPath(encodeURIComponent(username))}/studio/readers`,
       label: say("agent.tool.inviteToReadLabel"),
     }),
   },

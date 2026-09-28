@@ -137,9 +137,9 @@ describe("PublishDayFlow", () => {
     // The row's title, "Publish…" and "Preview" all point at the row —
     // Publish and the title open the confirm step directly (B2237).
     expect(links).toEqual([
-      "/alex/studio/day/publish?day=open&trip=alps",
-      "/alex/studio/day/publish?day=open&trip=alps",
-      "/alex/trips/alps/day/open",
+      "/@alex/studio/day/publish?day=open&trip=alps",
+      "/@alex/studio/day/publish?day=open&trip=alps",
+      "/@alex/trips/alps/day/open",
     ]);
     const shareLink = [...row.querySelectorAll("a")].find((a) => a.textContent === "Publish…");
     expect(shareLink, row.innerHTML).toBeTruthy();
@@ -176,7 +176,7 @@ describe("PublishDayFlow", () => {
     // Only what "Change a day" can actually fill is linked there — since
     // B2233 that includes costs and how you travelled.
     const fill = [...dialog.querySelectorAll("a")];
-    expect(fill.map((a) => a.getAttribute("href"))).toEqual(Array(3).fill("/alex/studio/day/edit?slug=open"));
+    expect(fill.map((a) => a.getAttribute("href"))).toEqual(Array(3).fill("/@alex/studio/day/edit?slug=open"));
     expect(fill.every((a) => a.textContent === "Fill in now")).toBe(true);
     expect(fill.map((a) => a.closest("[data-blank-field]")!.getAttribute("data-blank-field")).sort()).toEqual(["costs", "time", "transportMode"]);
     expect([...dialog.querySelectorAll("button")].map((b) => b.textContent?.trim())).toEqual(["Publish this day", "Not yet"]);

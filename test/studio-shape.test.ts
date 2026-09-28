@@ -7,7 +7,7 @@ import { STUDIO_GROUPS } from "@/lib/studio/groups";
 /**
  * The studio's shape keeper — B2062.
  *
- * Every page under app/[user]/studio/ (found on disk, never listed here)
+ * Every page under app/at/[user]/studio/ (found on disk, never listed here)
  * renders through `components/studio/StudioPage.tsx`, which owns the frame,
  * the one text-2xl h1 and the crumb back to the studio. A page's source is
  * read together with the files it imports one level down (`@/components/…`
@@ -38,7 +38,7 @@ const HUB_WIDTH = {
   reason: "six group cards three abreast at desktop, so a row's chips stay on its title's line",
 } as const;
 
-const ROOT = path.join(process.cwd(), "app", "[user]", "studio");
+const ROOT = path.join(process.cwd(), "app", "at", "[user]", "studio");
 
 function pages(dir = ROOT): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {

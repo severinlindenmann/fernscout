@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import AnalyticsHubContent from "@/app/[user]/(trip)/analytics/AnalyticsHubContent";
+import AnalyticsHubContent from "@/app/at/[user]/(trip)/analytics/AnalyticsHubContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";

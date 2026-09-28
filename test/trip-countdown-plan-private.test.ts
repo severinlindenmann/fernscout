@@ -17,7 +17,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
  * stranger with no session at all, which is `readerLevelFor`'s `public`.
  */
 
-const request = vi.hoisted(() => ({ path: "/alex/trips/future-plans-2031" }));
+const request = vi.hoisted(() => ({ path: "/@alex/trips/future-plans-2031" }));
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
@@ -44,7 +44,7 @@ vi.mock("@/lib/contacts/session", async (importOriginal) => {
 
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import TripPage from "@/app/[user]/trips/[trip]/page";
+import TripPage from "@/app/at/[user]/trips/[trip]/page";
 import TripCountdown from "@/components/TripCountdown";
 import { tripToJson, type TripFile } from "@/lib/api/v2/documents";
 
@@ -220,7 +220,7 @@ describe("the countdown page's own props", () => {
     const hits = findByType(element, TripCountdown);
     expect(hits).toHaveLength(1);
     const props = hits[0].props as Record<string, unknown>;
-    expect(props.changePlanHref).toBe("/alex/studio/plan/future-plans-2031");
+    expect(props.changePlanHref).toBe("/@alex/studio/plan/future-plans-2031");
 
     const json = JSON.stringify(props);
     expect(json).toContain("Some Hotel");

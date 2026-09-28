@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 /**
  * B139 — the costs page's tab title, in the language of the page under it.
  *
- * `app/[user]/(trip)/costs/page.tsx` built its whole metadata block out of
+ * `app/at/[user]/(trip)/costs/page.tsx` built its whole metadata block out of
  * English literals — `title: "Costs"` — while `CostsPageContent` rendered
  * `t("cost.title")`. On a German journal that is "Was die Reise kostet" in the
  * `<h1>` and "Costs" in the browser tab, in the reader's history, in a
@@ -36,7 +36,7 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: () => (request.cookieLocale ? { value: request.cookieLocale } : undefined),
   }),
-  headers: async () => ({ get: () => "/alex/costs" }),
+  headers: async () => ({ get: () => "/@alex/costs" }),
 }));
 
 // The page header links and reads the path.
@@ -47,7 +47,7 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("next/navigation", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  usePathname: () => "/alex/costs",
+  usePathname: () => "/@alex/costs",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -55,8 +55,8 @@ vi.mock("next/navigation", async (importOriginal) => ({
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { clearLocaleCache, dictionaryFor, readerLocale } from "@/lib/locales";
-import { generateMetadata } from "@/app/[user]/(trip)/costs/page";
-import CostsPageContent from "@/app/[user]/(trip)/costs/CostsPageContent";
+import { generateMetadata } from "@/app/at/[user]/(trip)/costs/page";
+import CostsPageContent from "@/app/at/[user]/(trip)/costs/CostsPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -164,7 +164,7 @@ const site = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   hasAccessPanel: false,
 } as unknown as SiteSummary;
 

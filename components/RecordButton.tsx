@@ -14,6 +14,7 @@ import {
   creditsForSeconds,
 } from "@/lib/helper/speech";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * Hold to talk — B686.
  *
@@ -584,7 +585,7 @@ export default function RecordButton({
           {t("agent.speechNoCredits")}
         </p>
         <Link
-          href={`/${username}/studio/account`}
+          href={`${journalPath(username)}/studio/account`}
           className={`text-sm font-semibold underline underline-offset-2 ${hero ? "text-cream-50" : "text-ink-strong"}`}
         >
           {t("studio.day.polish.error.noCredits.link")}

@@ -42,7 +42,7 @@ afterEach(() => {
 });
 
 // `StudioHub` calls `useStudioBar` (B2001) — it now needs the provider
-// `app/[user]/studio/layout.tsx` supplies in the real app, or the hook
+// `app/at/[user]/studio/layout.tsx` supplies in the real app, or the hook
 // throws. Wrapping it here is the only change this needed: the provider
 // renders its own `ActionBar` as a sibling right after `StudioHub`, in the
 // same container, so every anchor-count assertion below still finds it.
@@ -85,7 +85,7 @@ describe("H2 — an empty journal", () => {
 
   test("offers photographs as a real second path, not a dead end", () => {
     const el = render(EMPTY_BASE);
-    const link = el.querySelector('a[href="/alex/studio/photos"]');
+    const link = el.querySelector('a[href="/@alex/studio/photos"]');
     expect(link).not.toBeNull();
   });
 
@@ -102,9 +102,9 @@ describe("H2 — an empty journal", () => {
     expect(el.textContent).toContain("Permissions & keys");
     expect(el.textContent).toContain("Visitors");
     expect(el.textContent).toContain("Visits are not counted on this journal.");
-    expect(el.querySelector('a[href="/alex/studio/account"]')).not.toBeNull();
-    expect(el.querySelector('a[href="/alex/studio/journal"]')).not.toBeNull();
-    expect(el.querySelector('a[href="/alex/studio/agent"]')).not.toBeNull();
+    expect(el.querySelector('a[href="/@alex/studio/account"]')).not.toBeNull();
+    expect(el.querySelector('a[href="/@alex/studio/journal"]')).not.toBeNull();
+    expect(el.querySelector('a[href="/@alex/studio/agent"]')).not.toBeNull();
   });
 
   /** B2017 — export and delete, quiet text below every group, in this state
@@ -193,16 +193,16 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
     expect(withoutAnalytics.textContent).toContain("Journal settings");
     expect(withoutAnalytics.textContent).toContain("Permissions & keys");
     expect(withoutAnalytics.textContent).toContain("People");
-    expect(withoutAnalytics.querySelector('a[href="/alex/studio/journal"]')).not.toBeNull();
-    expect(withoutAnalytics.querySelector('a[href="/alex/studio/agent"]')).not.toBeNull();
-    expect(withoutAnalytics.querySelector('a[href="/alex/studio/readers"]')).not.toBeNull();
+    expect(withoutAnalytics.querySelector('a[href="/@alex/studio/journal"]')).not.toBeNull();
+    expect(withoutAnalytics.querySelector('a[href="/@alex/studio/agent"]')).not.toBeNull();
+    expect(withoutAnalytics.querySelector('a[href="/@alex/studio/readers"]')).not.toBeNull();
     // B2066: greyed with its reason and an "off" chip, never absent.
-    const visitorsOff = withoutAnalytics.querySelector('a[href="/alex/studio/visitors"]');
+    const visitorsOff = withoutAnalytics.querySelector('a[href="/@alex/studio/visitors"]');
     expect(visitorsOff?.textContent).toContain("Visits are not counted on this journal.");
     expect(visitorsOff?.textContent).toContain("off");
 
     const withAnalytics = render({ ...FULL_BASE, analyticsEnabled: true });
-    const visitorsOn = withAnalytics.querySelector('a[href="/alex/studio/visitors"]');
+    const visitorsOn = withAnalytics.querySelector('a[href="/@alex/studio/visitors"]');
     expect(visitorsOn?.textContent).toBe("Visitors");
   });
 
@@ -277,7 +277,7 @@ describe("H4 — half-done work resumes from the hub, above the list", () => {
     // `/studio/photos` rather than inventing a second resumable surface —
     // the half-done row and the Bring in group's own "Bring in an old trip"
     // row: two anchors. B2304 removed the phone bar's own third.
-    expect(el.querySelectorAll('a[href="/alex/studio/photos"]').length).toBe(2);
+    expect(el.querySelectorAll('a[href="/@alex/studio/photos"]').length).toBe(2);
   });
 });
 
@@ -288,7 +288,7 @@ describe("B1951 — the main card never calls a finished trip the trip you are o
     expect(mainCard).not.toBeNull();
     expect(mainCard!.textContent).toContain("Add a day");
     expect(mainCard!.textContent).toContain("Four days round the Alps · the trip you are on");
-    expect(mainCard!.getAttribute("href")).toBe("/alex/studio/day/new?from=hub");
+    expect(mainCard!.getAttribute("href")).toBe("/@alex/studio/day/new?from=hub");
   });
 
   test("no current trip, but a finished one: the main card offers a new trip, never calls the finished trip current", () => {
@@ -299,13 +299,13 @@ describe("B1951 — the main card never calls a finished trip the trip you are o
     // The main card is now the between-trips hero (B2304: "Start a trip").
     const mainCard = el.querySelector("a[data-hero]");
     expect(mainCard).not.toBeNull();
-    expect(mainCard!.getAttribute("href")).toBe("/alex/studio/trip/new");
+    expect(mainCard!.getAttribute("href")).toBe("/@alex/studio/trip/new");
     expect(mainCard!.textContent).toContain("Start a trip");
     // Nothing on the page claims the finished trip is the one the person is on.
     expect(el.textContent).not.toContain("the trip you are on");
     // Adding a day to the finished trip is still reachable, honestly labelled.
     // B2134: it carries the ended trip, so day/new opens with it chosen.
-    const addDayEnded = el.querySelector('a[href="/alex/studio/day/new?trip=alps-2023&from=hub"]');
+    const addDayEnded = el.querySelector('a[href="/@alex/studio/day/new?trip=alps-2023&from=hub"]');
     expect(addDayEnded).not.toBeNull();
     expect(addDayEnded!.textContent).toContain("Add a day to Three weeks in Japan");
     expect(addDayEnded!.textContent).toContain("Three weeks in Japan has ended");
@@ -325,7 +325,7 @@ describe("B1951 — the main card never calls a finished trip the trip you are o
     const el = render({ ...FULL_BASE, addDayTrip: null });
     const mainCard = el.querySelector("a[data-hero]")!;
     expect(mainCard.textContent).toContain("Start a trip");
-    expect(mainCard.getAttribute("href")).toBe("/alex/studio/trip/new");
+    expect(mainCard.getAttribute("href")).toBe("/@alex/studio/trip/new");
     expect(el.textContent).not.toContain("the trip you are on");
     expect(el.textContent).not.toContain("Add a day to");
   });
@@ -384,8 +384,8 @@ describe("B2066 — the Desk", () => {
     expect(el.querySelectorAll("a[data-hero]").length).toBe(1);
     expect(groupsOf(el)).toEqual(["bringIn", "journal"]);
     expect(Array.from(el.querySelectorAll("#bringIn a[data-row]")).map((a) => a.getAttribute("href"))).toEqual([
-      "/alex/studio/photos",
-      "/alex/studio/location?from=hub",
+      "/@alex/studio/photos",
+      "/@alex/studio/location?from=hub",
     ]);
   });
 
@@ -413,7 +413,7 @@ describe("B2110 — the Readers row tells the truth", () => {
   test("its line says access opens at once, and it is the People card's only readers row", () => {
     const el = render(FULL_BASE);
     const rows = Array.from(el.querySelectorAll("a[data-row]")).filter((a) => /\/studio\/reader/.test(a.getAttribute("href") ?? ""));
-    expect(rows.map((a) => a.getAttribute("href"))).toEqual(["/alex/studio/readers"]);
+    expect(rows.map((a) => a.getAttribute("href"))).toEqual(["/@alex/studio/readers"]);
     expect(rows[0].textContent).toContain("Readers");
     expect(rows[0].textContent).toContain("Let somebody in at once, and answer who asks.");
     expect(el.textContent).not.toContain("asked first");
@@ -455,14 +455,14 @@ describe("B2193 — waiting photographs as day cards", () => {
     const cards = Array.from(section.querySelectorAll("[data-day-card]"));
     expect(cards.map((c) => c.getAttribute("data-day-card"))).toEqual(["2026-09-22", "2026-09-23", "2026-09-28", "undated"]);
     expect(cards[0].textContent).toContain("Porto · 31 photos");
-    expect(cards[0].querySelector("a")?.getAttribute("href")).toBe("/alex/studio/day/new?photos=2026-09-22&from=hub");
+    expect(cards[0].querySelector("a")?.getAttribute("href")).toBe("/@alex/studio/day/new?photos=2026-09-22&from=hub");
     expect(cards[2].textContent).toContain("No trip covers this day yet.");
     expect(Array.from(cards[2].querySelectorAll("a"), (a) => a.getAttribute("href"))).toEqual([
-      "/alex/studio/trip/new?start=2026-09-28&end=2026-09-30",
-      "/alex/studio/day/new?photos=2026-09-28&from=hub",
+      "/@alex/studio/trip/new?start=2026-09-28&end=2026-09-30",
+      "/@alex/studio/day/new?photos=2026-09-28&from=hub",
     ]);
     expect(cards[3].textContent).toContain("2 photos have no date");
-    expect(cards[3].querySelector("a")?.getAttribute("href")).toBe("/alex/studio/day/new?photos=undated&from=hub");
+    expect(cards[3].querySelector("a")?.getAttribute("href")).toBe("/@alex/studio/day/new?photos=undated&from=hub");
   });
 
   test("five cards, then the rest behind one button", () => {
@@ -511,10 +511,10 @@ describe("B2304 — the hero, chosen by state", () => {
     const hero = el.querySelector("a[data-hero]")!;
     expect(hero.textContent).toContain("Today is told");
     expect(hero.textContent).toContain("Four days round the Alps");
-    expect(hero.getAttribute("href")).toBe("/alex/studio/day/new?from=hub");
+    expect(hero.getAttribute("href")).toBe("/@alex/studio/day/new?from=hub");
     const alt = el.querySelector("a[data-hero-alt]")!;
     expect(alt.textContent).toBe("Change it");
-    expect(alt.getAttribute("href")).toBe("/alex/studio/day/edit");
+    expect(alt.getAttribute("href")).toBe("/@alex/studio/day/edit");
     expect(el.textContent).not.toContain("Tell about today");
   });
 
@@ -523,10 +523,10 @@ describe("B2304 — the hero, chosen by state", () => {
     const hero = el.querySelector("a[data-hero]")!;
     expect(hero.textContent).toContain("Tell about today");
     expect(hero.textContent).toContain("Start talking");
-    expect(hero.getAttribute("href")).toBe("/alex/studio/day/new?mode=speak&from=hub");
+    expect(hero.getAttribute("href")).toBe("/@alex/studio/day/new?mode=speak&from=hub");
     const alt = el.querySelector("a[data-hero-alt]")!;
     expect(alt.textContent).toBe("Write instead");
-    expect(alt.getAttribute("href")).toBe("/alex/studio/day/new?from=hub");
+    expect(alt.getAttribute("href")).toBe("/@alex/studio/day/new?from=hub");
   });
 
   test("during a trip, speak on, but already told today: told-today wins over the mic", () => {
@@ -545,7 +545,7 @@ describe("B2304 — the hero, chosen by state", () => {
     });
     const hero = el.querySelector("a[data-hero]")!;
     expect(hero.textContent).toContain("Get ready for Japan");
-    expect(hero.getAttribute("href")).toBe("/alex/studio/plan/jp");
+    expect(hero.getAttribute("href")).toBe("/@alex/studio/plan/jp");
   });
 
   test("a trip starting today (not yet declared current) also gets the plan hero", () => {
@@ -572,7 +572,7 @@ describe("B2304 — the hero, chosen by state", () => {
     const el = render({ ...FULL_BASE, addDayTrip: null }, true);
     const alt = el.querySelector("a[data-hero-alt]")!;
     expect(alt.textContent).toBe("Tell about a day anyway");
-    expect(alt.getAttribute("href")).toBe("/alex/studio/day/new?mode=speak&from=hub");
+    expect(alt.getAttribute("href")).toBe("/@alex/studio/day/new?mode=speak&from=hub");
   });
 
   test("between trips with speak off: no alt link at all", () => {
@@ -655,7 +655,7 @@ describe("B2304 — during a trip, at most three rows", () => {
 describe("B2304 — no floating pill on the hub", () => {
   test("the hero's own link appears once, not doubled in a bottom bar", () => {
     const el = render(FULL_BASE);
-    expect(el.querySelectorAll('a[href="/alex/studio/day/new?from=hub"]').length).toBe(1);
+    expect(el.querySelectorAll('a[href="/@alex/studio/day/new?from=hub"]').length).toBe(1);
     expect(el.textContent).not.toContain("Back to the studio");
   });
 

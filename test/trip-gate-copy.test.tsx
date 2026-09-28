@@ -30,7 +30,7 @@ vi.mock("next/link", () => ({
 // mounted, so it needs a stub.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ back: () => {} }),
-  usePathname: () => "/alex/asia-2023",
+  usePathname: () => "/@alex/asia-2023",
 }));
 
 function render(
@@ -116,8 +116,8 @@ describe("a reader who is signed in and still refused", () => {
   /** Not a dead end: the page that lists what this address *can* open, and
    * carries the control for signing out and trying another one. */
   test("is given somewhere to go", () => {
-    expect(html).toContain("/alex/me");
-    expect(html).toContain("/alex");
+    expect(html).toContain("/@alex/me");
+    expect(html).toContain("/@alex");
   });
 
   /** B2295 — there used to be a form here ("ask to be let in"). The owner
@@ -172,7 +172,7 @@ describe("an approved journal guest refused a private trip", () => {
 
   /** Still given somewhere to go, same as the ordinary refusal. */
   test("is given somewhere to go", () => {
-    expect(html).toContain("/alex/me");
+    expect(html).toContain("/@alex/me");
   });
 });
 
@@ -243,7 +243,7 @@ describe("the layout that draws the gate", () => {
     vi.doMock("@/lib/capabilities", () => ({ isEnabled: () => true }));
     vi.resetModules();
 
-    const { default: TripLayout } = await import("@/app/[user]/trips/[trip]/layout");
+    const { default: TripLayout } = await import("@/app/at/[user]/trips/[trip]/layout");
     const tree = await TripLayout({
       children: <p>the trip itself</p>,
       params: Promise.resolve({ user: "alex", trip: "secret-2026" }),

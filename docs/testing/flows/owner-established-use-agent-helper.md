@@ -3,7 +3,7 @@
 **Persona:** `owner-established` (docs/testing/personas/owner-established.md)
 **Interface:** `ui` — a real browser, owner cookie session, the studio. The
 old web agent room (`/agent`) is retired; the assistant now lives inline in
-the studio itself (`app/[user]/studio/day/new`'s "Polish my text" and
+the studio itself (`app/at/[user]/studio/day/new`'s "Polish my text" and
 `app/api/helper/[user]/day/describe-photos`), reached only by a cookie
 session — `app/api/helper/[user]/*` is bound to `journal.owner.email` and
 refuses every bearer token, including the owner's own.

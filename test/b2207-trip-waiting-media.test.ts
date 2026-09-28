@@ -102,7 +102,7 @@ describe("a day-less trip photo is waiting, not invisible", () => {
     const entry = getEntryBySlug(tripRef(USER, "kyoto-2026"), "arrival", AS_AUTHOR);
     // `mediaWithOwner` prefixes the owner onto `frontmatterSrc`'s bare
     // `/media/<trip>/<file>` at read time (lib/entries.ts).
-    expect(entry?.gallery[0]?.src).toBe(`/${USER}/media/kyoto-2026/abc123.jpg`);
+    expect(entry?.gallery[0]?.src).toBe(`/@${USER}/media/kyoto-2026/abc123.jpg`);
   });
 
   test("a poster frame and a sidecar are never rows of their own", () => {

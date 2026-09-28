@@ -14,6 +14,7 @@ import { useStep } from "@/lib/studio/useStep";
 import { assembleSpokenDay, SPEAK_QUESTIONS, type SpeakQuestion, type TellBy } from "@/lib/studio/speak";
 import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
 
+import { journalPath } from "@/lib/journalPath";
 const LINK = "min-h-11 text-left text-sm font-semibold text-ink-body underline underline-offset-2";
 const noSubscribe = () => () => {};
 
@@ -283,7 +284,7 @@ export function RatherTalk({
     }).catch(() => {});
     const q = new URLSearchParams(params.toString());
     q.set("mode", "speak");
-    router.replace(`/${username}/studio/day/new?${q.toString()}`);
+    router.replace(`${journalPath(username)}/studio/day/new?${q.toString()}`);
   }
 
   return (

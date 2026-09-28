@@ -16,11 +16,15 @@ function pages(dir: string): string[] {
   });
 }
 
-const root = path.join(process.cwd(), "app/[user]");
+const root = path.join(process.cwd(), "app/at/[user]");
+
+/** A journal's own base: `journalPath(user)` (lib/journalPath.ts), which is
+ * `/@<user>`, either as the whole value or opening a template literal. */
+const JOURNAL_BASE = /^(`\$\{journalPath\((user|username)\)\}|journalPath\((user|username)\)$)/;
 
 /** Each canonical value in a file, with a bare identifier resolved to its `const`. */
 function canonicals(src: string): string[] {
-  return [...src.matchAll(/canonical:\s*(`[^`]*`|"[^"]*"|'[^']*'|[A-Za-z_]\w*)/g)].map((m) => {
+  return [...src.matchAll(/canonical:\s*(`[^`]*`|"[^"]*"|'[^']*'|[A-Za-z_]\w*(?:\([^)]*\))?)/g)].map((m) => {
     const raw = m[1].trim();
     if (!/^[A-Za-z_]\w*$/.test(raw)) return raw;
     const def = src.match(new RegExp(`const ${raw}\\s*=\\s*([^;]+);`));
@@ -40,14 +44,15 @@ describe("journal canonicals point at their own journal", () => {
     const src = fs.readFileSync(file, "utf8");
     for (const value of canonicals(src)) {
       expect(value, "a route template is not a URL").not.toContain("[");
-      expect(value, "a canonical outside the journal").toMatch(/^`\/\$\{(user|username)\}/);
+      expect(value, "a canonical outside the journal").toMatch(JOURNAL_BASE);
     }
   });
 
   test("the check catches the shapes B2474 found", () => {
-    for (const bad of ['canonical: "/trips",', 'canonical: "/[user]/gallery",']) {
+    // The pre-`@` shape, `/${user}/…`, is now the app's root, not the journal.
+    for (const bad of ['canonical: "/trips",', 'canonical: "/[user]/gallery",', "canonical: `/${user}/gallery`,"]) {
       const [value] = canonicals(bad);
-      expect(value.includes("[") || !/^`\/\$\{(user|username)\}/.test(value)).toBe(true);
+      expect(value.includes("[") || !JOURNAL_BASE.test(value)).toBe(true);
     }
   });
 });

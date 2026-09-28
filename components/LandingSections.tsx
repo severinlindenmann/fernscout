@@ -6,6 +6,7 @@ import CopyLine from "@/components/CopyLine";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * The root page's parts, as separate pieces — B411.
  *
@@ -217,7 +218,7 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
           {journals.map((journal) => (
             <li key={journal.username}>
               <Link
-                href={`/${journal.username}`}
+                href={journalPath(journal.username)}
                 className="group block h-full overflow-hidden rounded-xl border border-line-quiet bg-surface-base
                            transition-colors hover:border-line-ink
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
@@ -248,7 +249,7 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
                     {journal.tagline}
                   </p>
                   <p className="mt-2 font-mono text-xs text-ink-secondary">
-                    /{journal.username} ·{" "}
+                    {journalPath(journal.username)} ·{" "}
                     {tn("landing.trips", journal.trips, {
                       count: String(journal.trips),
                     })}

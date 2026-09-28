@@ -46,7 +46,7 @@ vi.mock("next/headers", () => ({
         ? { value: request.cookieLocale }
         : undefined,
   }),
-  headers: async () => ({ get: () => "/alex/map" }),
+  headers: async () => ({ get: () => "/@alex/map" }),
 }));
 
 // The page header links and reads the path. `redirect` and `notFound` are left
@@ -59,7 +59,7 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("next/navigation", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  usePathname: () => "/alex/map",
+  usePathname: () => "/@alex/map",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -70,8 +70,8 @@ import { clearLocaleCache, dictionaryFor } from "@/lib/locales";
 import { getDays, getPlaces } from "@/lib/entries";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import { isOver } from "@/lib/tripTime";
-import { generateMetadata } from "@/app/[user]/(trip)/map/page";
-import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
+import { generateMetadata } from "@/app/at/[user]/(trip)/map/page";
+import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -103,7 +103,7 @@ function userCfg(locale: string, offers?: string[]): string {
  * A journal on disk with one trip, which either has a day written or does not.
  *
  * `status: past` on purpose: it is the case the ticket is about. `getCurrentTrip`
- * falls back to the most recent past trip, so this is what `/alex/map` renders
+ * falls back to the most recent past trip, so this is what `/@alex/map` renders
  * for a journal between trips — not a transient pre-departure state.
  */
 function journal(opts: {
@@ -153,7 +153,7 @@ const site = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   hasAccessPanel: false,
 } as unknown as SiteSummary;
 

@@ -89,9 +89,9 @@ describe("the preview screen", () => {
     );
     await render();
 
-    const link = container!.querySelector('a[href="/alex/trips/japan-2026/day/first-day"]');
+    const link = container!.querySelector('a[href="/@alex/trips/japan-2026/day/first-day"]');
     expect(link).not.toBeNull();
-    expect(container!.querySelector('a[href="/alex/trips/japan-2026"]')).not.toBeNull();
+    expect(container!.querySelector('a[href="/@alex/trips/japan-2026"]')).not.toBeNull();
   });
 
   test("a run with nothing committed says so, and offers no people form with no trip to add them to", async () => {
@@ -158,7 +158,7 @@ describe("the preview screen", () => {
     await render();
 
     expect(container!.querySelector("form")).not.toBeNull();
-    expect(container!.querySelector('a[href="/alex/studio/day/publish"]')).not.toBeNull();
+    expect(container!.querySelector('a[href="/@alex/studio/day/publish"]')).not.toBeNull();
   });
 
   test("names the real trip and marks it Draft — B1803 Task 3.7", async () => {
@@ -207,7 +207,7 @@ describe("the preview screen", () => {
     await render();
 
     expect(container!.querySelector('a[href="/vietnam-2019/day-1"]')).toBeNull();
-    expect(container!.querySelector('a[href="/alex/trips/vietnam-2019/day/day-1"]')).not.toBeNull();
+    expect(container!.querySelector('a[href="/@alex/trips/vietnam-2019/day/day-1"]')).not.toBeNull();
     expect(container!.textContent).toContain("Couldn't load the trip's title");
   });
 

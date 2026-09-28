@@ -166,7 +166,7 @@ const asAnonymous = () => (jar.cookies = {});
 const asOwner = () => (jar.cookies = { fs_session: ownerToken });
 
 type Page = (props: never) => Promise<ReactNode>;
-const load = async (file: string): Promise<Page> => (await import(`@/app/[user]/${file}`)).default;
+const load = async (file: string): Promise<Page> => (await import(`@/app/at/[user]/${file}`)).default;
 const call = (page: Page, params: Record<string, string>) =>
   page({ params: Promise.resolve({ user: OWNER, ...params }) } as never);
 
@@ -309,7 +309,7 @@ describe("the reason there is no loading.tsx", () => {
 
   /** A route fallback wraps the page, so every 404 below it streams as 200. */
   test("no route segment under a journal has one", () => {
-    const found = (fs.readdirSync(path.join(APP, "[user]"), { recursive: true }) as string[]).filter(
+    const found = (fs.readdirSync(path.join(APP, "at", "[user]"), { recursive: true }) as string[]).filter(
       (f) => path.basename(f) === "loading.tsx" || path.basename(f) === "loading.js",
     );
     expect(found).toEqual([]);
@@ -321,9 +321,9 @@ describe("the reason there is no loading.tsx", () => {
    * test above until the one slug that reaches it.
    */
   test("no body below a boundary can answer 404, redirect or gate", () => {
-    const pages = (fs.readdirSync(path.join(APP, "[user]"), { recursive: true }) as string[])
+    const pages = (fs.readdirSync(path.join(APP, "at", "[user]"), { recursive: true }) as string[])
       .filter((f) => f.endsWith("page.tsx"))
-      .map((f) => path.join(APP, "[user]", f))
+      .map((f) => path.join(APP, "at", "[user]", f))
       .filter((f) => fs.readFileSync(f, "utf8").includes("<RouteBoundary"));
     expect(pages.length).toBeGreaterThanOrEqual(7);
     for (const file of pages) {

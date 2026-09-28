@@ -8,6 +8,7 @@ import type { Entry, Trip } from "../types";
 import { translationLines } from "./entries";
 import { weatherLine } from "../weather";
 
+import { journalPath } from "../journalPath";
 /**
  * The markdown twin of a day page.
  *
@@ -38,14 +39,12 @@ export async function markdownTwin(
    * Deleted is not missing, and the twin was the one route that could not tell
    * them apart.
    *
-   * Every other surface of a removed journal answers 410 — the pages through
-   * `proxy.ts`, and `documentation.txt`, `feed.xml`, `search-index.json` and
-   * `story.json` through the extra matcher entries there. The twins fell
-   * through both: the matcher excludes `.md` by extension, and they are not in
-   * the four it names.
+   * Every other surface of a removed journal answers 410 through `proxy.ts`.
+   * The twins pass through the proxy too — every `/@user/…` path does — but
+   * it deliberately leaves their 410 to this route.
    *
-   * Handled here rather than by adding them to that matcher, for a reason
-   * worth keeping: `gonePage` answers in HTML. This route answers `text/plain`
+   * Handled here rather than in the proxy, for a reason worth keeping:
+   * `gonePage` answers in HTML. This route answers `text/plain`
    * on purpose, so that an agent polling it never pulls a page of markup into
    * a context window, and that reasoning does not stop applying because the
    * status changed.
@@ -148,9 +147,9 @@ function gone(stone: Tombstone): Response {
 function notFound(user: string, tripId: string | null, slug: string): Response {
   return new Response(
     `No day "${slug}" in ${tripId ? `${user}/${tripId}` : `${user}'s readable trips`}.\n` +
-      `Days are listed at /${user}/documentation.txt, and identified there as ` +
+      `Days are listed at ${journalPath(user)}/documentation.txt, and identified there as ` +
       `<trip-id>/<slug>. The markdown twin of a day is its own page's URL with .md ` +
-      `on the end: /${user}/trips/<trip-id>/day/<slug>.md\n`,
+      `on the end: ${journalPath(user)}/trips/<trip-id>/day/<slug>.md\n`,
     {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex" },

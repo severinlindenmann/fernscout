@@ -16,6 +16,7 @@ import type { FigureTripRow } from "@/lib/figures";
 import { moveFigureInSet } from "@/lib/figures/order";
 import type { TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "@/lib/journalPath";
 type Contact = { name: string; email: string };
 
 type ReferencedBy = { journal: boolean; trips: string[] };
@@ -117,7 +118,7 @@ export default function FigureLibrary({
   contacts: Contact[];
   /** The journal's own default set, in walking order — empty for "nobody
    *  walks by default", the same reading a missing/`{mode:"off"}` config
-   *  gets (`app/[user]/studio/figures/page.tsx`). */
+   *  gets (`app/at/[user]/studio/figures/page.tsx`). */
   initialJournalSet: string[];
   trips: FigureTripRow[];
   photoConsent: boolean;
@@ -779,7 +780,7 @@ function EditScreen({
             {referencedBy.trips.map((tripId, i) => (
               <span key={tripId}>
                 {i > 0 && ", "}
-                <Link href={`/${username}/trips/${tripId}`} className="underline">
+                <Link href={`${journalPath(username)}/trips/${tripId}`} className="underline">
                   {tripNames.get(tripId) ?? tripId}
                 </Link>
               </span>
@@ -871,7 +872,7 @@ function EditScreen({
             {deleteRefusal.journal && <li>{t("studio.figures.edit.usedByJournal")}</li>}
             {deleteRefusal.trips.map((tripId) => (
               <li key={tripId}>
-                <Link href={`/${username}/trips/${tripId}`} className="underline">
+                <Link href={`${journalPath(username)}/trips/${tripId}`} className="underline">
                   {tripNames.get(tripId) ?? tripId}
                 </Link>
               </li>

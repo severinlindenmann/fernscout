@@ -7,6 +7,7 @@ import { formatCredits } from "@/lib/creditsFormat";
 import { Meter, Sparkline } from "./Charts";
 import { goTo, useHash } from "./Shell";
 
+import { journalPath } from "@/lib/journalPath";
 /** One row, with its opened panel already rendered on the server. */
 export type JournalView = {
   username: string;
@@ -447,7 +448,7 @@ function Panel({ journal, days, onClose }: { journal: JournalView; days: number;
               </p>
             </div>
             <a
-              href={`/${journal.username}`}
+              href={journalPath(journal.username)}
               className="flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-ink-strong underline"
             >
               Open

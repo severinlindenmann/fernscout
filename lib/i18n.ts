@@ -486,6 +486,7 @@ export type TranslationKey =
   | "agent.tool.whichDayToRewrite"
   | "agent.usernameHint"
   | "agent.usernameLabel"
+  | "agent.usernamePreview"
   | "agent.visibilityGuest"
   | "agent.visibilityLabel"
   | "agent.visibilityPublic"

@@ -222,7 +222,7 @@ describe("media stays inside its owner", () => {
   });
 
   test("media URLs carry the username", () => {
-    expect(mediaUrl("ana/alps-2026", "photo.jpg")).toBe("/ana/media/alps-2026/photo.jpg");
+    expect(mediaUrl("ana/alps-2026", "photo.jpg")).toBe("/@ana/media/alps-2026/photo.jpg");
   });
 });
 
