@@ -23,10 +23,10 @@ import { MAINTAINED_LOCALES } from "@/lib/i18n";
  */
 describe("every proposal field has a locale string in every maintained locale", () => {
   const slotNames = [
-    ...new Set(
-      TOOLS.filter((tool) => tool.kind === "write").flatMap((tool) => Object.keys(tool.properties)),
+    ...new Set([
+      ...TOOLS.filter((tool) => tool.kind === "write").flatMap((tool) => Object.keys(tool.properties)),
       ...PRINTED_SLOT_NAMES,
-    ),
+    ]),
   ];
 
   for (const locale of MAINTAINED_LOCALES) {
