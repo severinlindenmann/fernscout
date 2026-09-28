@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { READING } from "./landing/kit";
+import { READING, TITLE_H1 } from "./landing/kit";
 
 /**
  * The one shape every "something is wrong" page takes.
@@ -48,7 +48,7 @@ export default function NoticeShell({
       lang={lang}
       className={inFrame ? `${READING} py-12 lg:py-22` : "mx-auto w-full max-w-xl px-6 py-20 sm:py-28"}
     >
-      <h1 className="font-display text-3xl font-semibold leading-tight text-ink-strong sm:text-4xl">
+      <h1 className={inFrame ? TITLE_H1 : "font-display text-3xl font-semibold leading-tight text-ink-strong sm:text-4xl"}>
         {title}
       </h1>
       {body && <p className="mt-5 text-xl leading-8 text-ink-body">{body}</p>}

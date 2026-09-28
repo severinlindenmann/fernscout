@@ -69,7 +69,7 @@ const read = (file: string) => fs.readFileSync(path.join(ROOT, file), "utf8");
 function resolve(from: string, spec: string): string | null {
   let base: string;
   if (spec.startsWith("./") || spec.startsWith("../")) base = path.join(path.dirname(from), spec);
-  else if (spec.startsWith("@/app/")) base = spec.slice(2);
+  else if (spec.startsWith("@/app/") || spec.startsWith("@/components/")) base = spec.slice(2);
   else if (spec.startsWith("@paid/")) {
     if (!HAS_PAID) return null;
     base = `paid/${spec.slice(6)}`;
@@ -81,13 +81,17 @@ function resolve(from: string, spec: string): string | null {
   return null;
 }
 
-/** The page's own files: it, and what it imports from its route or a paid area. */
+/** The kit itself: the one place a header, footer, main and site nav are drawn. */
+const KIT = ["components/landing/", "components/home/SignedInHeader.tsx", "components/Landing.tsx"];
+
+/** The page's own files: it, and every component it draws with, followed
+ * through its imports — the kit excepted. */
 function ownFiles(page: string, deep = true): string[] {
   const seen = new Set<string>();
   const queue = [page];
   while (queue.length) {
     const file = queue.shift()!;
-    if (seen.has(file)) continue;
+    if (seen.has(file) || KIT.some((k) => file.startsWith(k))) continue;
     seen.add(file);
     const src = read(file);
     for (const [, spec] of src.matchAll(/(?:from|import)\s+"([^"]+)"/g)) {
@@ -118,7 +122,20 @@ const pages = walk(path.join(ROOT, "app"))
   .filter((p) => renders(read(p)) || /from "@paid\//.test(read(p)))
   .sort();
 
-/** Every way a page can draw its own frame, a retired button or coral. */
+/** Source without comments: a comment naming `<main>` draws nothing. */
+const code = (file: string) => read(file).replace(/\/\*[\s\S]*?\*\/|\{\/\*[\s\S]*?\*\/\}|^\s*\/\/.*$/gm, "");
+
+/** The shades that exist only for the audience tints (app/globals.css):
+ * named anywhere but through `tint-*`, a page has picked its own tint. */
+const TINT_ONLY = /\b[a-z-]+-(?:green-400|blue-(?:100|300|700))\b/g;
+
+/** A shared component keeps its own meaning for coral (a notice, an error),
+ * green-700 (done) and blue-500 (focus); what the page's own files may not
+ * do is pick a colour at all. These three are the kit's everywhere: blue-500
+ * is the focus ring and a link's underline, a green-500 dot means "included". */
+const SEMANTIC = /\b(?:[a-z]+-blue-500|bg-green-500)\b/g;
+
+/** Every way a page can draw its own frame, a retired button or a colour. */
 function problems(page: string): string[] {
   const found: string[] = [];
   const files = [...ownFiles(page, !page.startsWith(DRAWS)), ...layoutsAbove(page)];
@@ -128,7 +145,8 @@ function problems(page: string): string[] {
   // header and footer directly, around its sign-in state.
   if (page !== "app/page.tsx" && !/<PageShell[\s>]/.test(all)) found.push(`${page}: not inside <PageShell>`);
   for (const file of files) {
-    const src = read(file);
+    const src = code(file);
+    const shared = file.startsWith("components/");
     for (const tag of ["header", "footer", "main"]) {
       if (new RegExp(`<${tag}[\\s>]`).test(src)) found.push(`${file}: its own <${tag}>`);
     }
@@ -143,12 +161,11 @@ function problems(page: string): string[] {
       }
     }
     if (file in OWN_COLOURS) continue;
+    for (const [cls] of src.matchAll(TINT_ONLY)) found.push(`${file}: ${cls} — a tint is read through tint-*`);
+    if (shared) continue;
     if (/\bcoral-\d/.test(src)) found.push(`${file}: coral outside the notice banner`);
-    // Three are the kit's own, not a tint: blue-500 is the focus ring and a
-    // link's underline everywhere, and a green-500 dot means "included".
-    const hue = src.replace(/\b((outline|decoration)-blue-500|bg-green-500)\b/g, "");
-    for (const [cls] of hue.matchAll(/\b[a-z-]+-(green|blue|sky)-\d{2,3}\b/g)) {
-      found.push(`${file}: ${cls} — a tint is read through tint-*, never named`);
+    for (const [cls] of src.replace(SEMANTIC, "").matchAll(/\b[a-z-]+-(?:green|blue|sky)-\d{2,3}\b/g)) {
+      found.push(`${file}: ${cls} — a page's own files name no hue; a tint is read through tint-*`);
     }
   }
   return found;
