@@ -54,7 +54,7 @@ export type RecordedSegment = {
   gap?: boolean;
 };
 
-export type Region = {
+type Region = {
   places: MapPlace[];
   /** Distinct day count across these places — what decides the main region
    * and the day count on a region chip. */
@@ -65,7 +65,7 @@ export type Region = {
   home: boolean;
 };
 
-export type Chip = {
+type Chip = {
   kind: "far" | "region";
   /** The place a "far" chip names, or an "region" chip's first place. */
   place: MapPlace;
