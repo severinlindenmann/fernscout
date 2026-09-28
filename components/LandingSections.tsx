@@ -414,42 +414,6 @@ export function Colophon({
   const { t } = useI18n();
   return (
     <>
-      <section className="mt-10 grid gap-6 border-t border-line-quiet pt-8 sm:grid-cols-2">
-        <div>
-          <h2 className="font-display text-base font-semibold text-ink-strong">
-            {t("landing.readers")}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-ink-body">
-            {t("landing.readersBody")}
-          </p>
-        </div>
-        <div>
-          <h2 className="font-display text-base font-semibold text-ink-strong">
-            {t("landing.selfHost")}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-ink-body">
-            {t("landing.selfHostBody")}
-          </p>
-          <div className="mt-3 flex flex-col gap-2">
-            {repository && (
-              <a
-                href={repository}
-                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-ink-strong
-                           underline decoration-blue-500 decoration-2 underline-offset-4
-                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-              >
-                <GithubMark className="h-4 w-4" />
-                {t("landing.source")}
-              </a>
-            )}
-            {/* One door to the documentation, not three — B470. The API
-                reference is a card on `/docs`, one click away; three separate
-                links from this page is how a visitor came to meet the docs at
-                three different depths depending on which one they pressed. */}
-          </div>
-        </div>
-      </section>
-
       {/*
         Who made it, if this instance says so.
 
@@ -459,7 +423,7 @@ export function Colophon({
         one of their visitors with mine. Absent by default, and absent stays
         absent — there is no fallback that quietly credits the wrong person.
       */}
-      {(credit || legal) && (
+      {(credit || legal || repository) && (
         <footer className="mt-12 border-t border-line-quiet pt-6 text-sm text-ink-secondary">
           {credit && (
             <p>
@@ -502,7 +466,10 @@ export function Colophon({
             journals underneath it. A footer line is the honest weight: it is
             reassurance for somebody who thought to ask, not a selling point.
           */}
-          <p className="mt-2 text-xs leading-5 text-ink-secondary">
+          {/* B2520: the source link is a footer word beside Legal, not a
+              "Self-host" section of its own — the reading/self-host block it
+              used to sit in was clutter above the one line a reader looks for. */}
+          <p className="mt-2 flex flex-wrap items-center gap-x-1 text-xs leading-5 text-ink-secondary">
             {t("landing.noTracking")}
             {legal && (
               <>
@@ -514,6 +481,19 @@ export function Colophon({
                 >
                   {t("landing.legal")}
                 </Link>
+              </>
+            )}
+            {repository && (
+              <>
+                {" · "}
+                <a
+                  href={repository}
+                  className="inline-flex items-center gap-1 underline decoration-blue-500 decoration-2 underline-offset-4
+                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                >
+                  <GithubMark className="h-3.5 w-3.5" />
+                  GitHub
+                </a>
               </>
             )}
           </p>
