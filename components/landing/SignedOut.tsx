@@ -30,6 +30,9 @@ import { KICKER, PILL_GHOST, PILL_PRIMARY, PILL_SMALL, TEXT_LINK } from "./style
  * `paid/credits` as data and are absent in a build without it. The agent
  * instruction stays on the page, below the hero, where the helper is off —
  * with no helper it is the only way in (B751).
+ *
+ * The header and footer are also `/agentic`'s, through `LandingFrame` below
+ * (B2529), so the two pages cannot drift apart.
  */
 
 export type InviteCta = "request" | "welcome";
@@ -91,27 +94,66 @@ export function ReaderStrip({ onSignIn }: { onSignIn: () => void }) {
   );
 }
 
-export default function SignedOut(props: SignedOutProps) {
+type Doors = {
+  inviteCta: InviteCta;
+  helperEnabled: boolean;
+  prints: boolean;
+  pricing: boolean;
+  orgs?: NavLink[];
+};
+
+/** The header's links and the one primary door, for `/` or — `away` — for
+ * another page, where "Home" leads and only the prices keep a section link:
+ * the header has no room for a sixth word in German at 1280px. */
+function useDoors({ inviteCta, helperEnabled, prints, pricing, orgs }: Doors, away = false) {
   const { t } = useI18n();
-  const { inviteCta, helperEnabled } = props;
   // The one primary door, the same in the header, the hero, the pricing and
   // the questions: an invite request while signup is invite-only and the
   // request page exists (B2507), otherwise `/welcome` — where the helper can
   // write. With the helper off there is no hosted way in, and the agent
   // instruction below the hero is the door instead (B694, B751).
-  const cta =
+  const cta: NavLink | null =
     inviteCta === "request"
       ? { href: "/invite", label: t("landing.requestInvite") }
       : helperEnabled
         ? { href: "/welcome", label: t("landing.helperCta") }
         : null;
-  const prints = props.postcards || props.photobook;
+  const at = away ? "/" : "";
   const nav: NavLink[] = [
-    { href: "#how", label: t("landing.navHow") },
-    ...(prints ? [{ href: "#prints", label: t("landing.navPrints") }] : []),
-    ...(props.pricing ? [{ href: "#prices", label: t("landing.navPrices") }] : []),
-    ...(props.orgs ?? []),
+    ...(away
+      ? [{ href: "/", label: t("landing.navHome") }]
+      : [
+          { href: "#how", label: t("landing.navHow") },
+          ...(prints ? [{ href: "#prints", label: t("landing.navPrints") }] : []),
+        ]),
+    ...(pricing ? [{ href: `${at}#prices`, label: t("landing.navPrices") }] : []),
+    ...(orgs ?? []),
   ];
+  return { nav, cta };
+}
+
+type FrameProps = Pick<SignedOutProps, "siteName" | "locales" | "orgs" | "repository" | "credit" | "legal">;
+
+/**
+ * The homepage's header and footer around another page — `/agentic`, B2529.
+ * No sign-in state lives here: "Sign in" is a link to `/?start=1`, which
+ * opens the same form on `/` (B1905).
+ */
+export function LandingFrame({ children, ...props }: FrameProps & Doors & { children: ReactNode }) {
+  const { nav, cta } = useDoors(props, true);
+  return (
+    <div className="min-h-full bg-surface-base text-ink-body">
+      <Header {...props} nav={nav} cta={cta} />
+      {children}
+      <Footer {...props} />
+    </div>
+  );
+}
+
+export default function SignedOut(props: SignedOutProps) {
+  const { helperEnabled } = props;
+  const prints = props.postcards || props.photobook;
+  const { nav, cta } = useDoors({ ...props, prints, pricing: Boolean(props.pricing) });
 
   return (
     <div className="min-h-full bg-surface-base text-ink-body">
@@ -136,16 +178,16 @@ export default function SignedOut(props: SignedOutProps) {
           {prints && <Prints {...props} />}
           <How {...props} />
           <Trust />
+          {props.pricing}
+          <Faq {...props} cta={cta} />
           {/* The door to /agentic, for the reader who already has an agent
-              open or would rather run this themselves: after what addresses
-              everybody, before what it costs. */}
-          <div className={`${WRAP} pb-16`}>
+              open or would rather run this themselves: the last thing before
+              the footer, after everything that addresses everybody (B2529). */}
+          <div className={`${WRAP} pb-16 lg:pb-24`}>
             <div className="max-w-3xl">
               <AgenticTeaser />
             </div>
           </div>
-          {props.pricing}
-          <Faq {...props} cta={cta} />
         </main>
       )}
       <Footer {...props} />
@@ -166,13 +208,26 @@ export function Logo({ siteName }: { siteName: string }) {
   );
 }
 
+/** "Sign in": the form in place on `/`, a link to it anywhere else. */
+function SignIn({ onSignIn, className, children }: { onSignIn?: () => void; className: string; children: ReactNode }) {
+  return onSignIn ? (
+    <button type="button" onClick={onSignIn} className={className}>
+      {children}
+    </button>
+  ) : (
+    <Link href="/?start=1" className={className}>
+      {children}
+    </Link>
+  );
+}
+
 function Header({
   siteName,
   locales,
   onSignIn,
   nav,
   cta,
-}: SignedOutProps & { nav: NavLink[]; cta: NavLink | null }) {
+}: FrameProps & { onSignIn?: () => void; nav: NavLink[]; cta: NavLink | null }) {
   const { t } = useI18n();
   const navLink =
     "whitespace-nowrap text-[15px] font-semibold text-ink-strong hover:underline decoration-blue-500 decoration-2 underline-offset-4 rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
@@ -191,9 +246,9 @@ function Header({
           <ThemeSwitcher subtle />
           <LocaleSwitcher locales={locales} subtle />
         </div>
-        <button type="button" onClick={onSignIn} className={`${PILL_GHOST} ${PILL_SMALL}`}>
+        <SignIn onSignIn={onSignIn} className={`${PILL_GHOST} ${PILL_SMALL}`}>
           {t("landing.signIn")}
-        </button>
+        </SignIn>
         {cta && (
           // Wrapped: `hidden` on the pill itself loses to its own `inline-flex`.
           <span className="hidden sm:block">
@@ -474,7 +529,7 @@ function Faq(props: SignedOutProps & { cta: NavLink | null }) {
   );
 }
 
-function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: SignedOutProps) {
+function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: FrameProps & { onSignIn?: () => void }) {
   const { t } = useI18n();
   const link =
     "text-[15px] text-cream-50 hover:underline rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
@@ -495,9 +550,9 @@ function Footer({ siteName, onSignIn, orgs, repository, legal, credit }: SignedO
         </div>
         <div className="flex flex-col items-start gap-2">
           <p className={heading}>{t("landing.footerReaders")}</p>
-          <button type="button" onClick={onSignIn} className={link}>
+          <SignIn onSignIn={onSignIn} className={link}>
             {t("landing.footerSignIn")}
-          </button>
+          </SignIn>
         </div>
         {orgs && orgs.length > 0 && (
           <div className="flex flex-col items-start gap-2">

@@ -13,13 +13,17 @@ import {
 } from "lucide-react";
 import CopyLine from "@/components/CopyLine";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
+import { LandingFrame } from "@/components/landing/SignedOut";
+import { orgsNav } from "@paid/orgs/lib/nav";
 import { isEnabled } from "@/lib/capabilities";
+import { landingFlags } from "@/lib/landingMarkdown";
+import { hasLegal } from "@/lib/legal";
+import { installedLocales, requestLocale } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
 const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
 
 export function generateMetadata(): Metadata {
-  const site = serverSite();
   return {
     title: "Agentic",
     description:
@@ -46,9 +50,15 @@ export function generateMetadata(): Metadata {
  * or `postcards` are — the same rule `LandingPitch` follows — and the parts
  * that live in the separate, MIT-licensed Fernscout Helper say so, including
  * that its photo half wants a Mac.
+ *
+ * The header and footer are the homepage's own (`LandingFrame`, B2529) —
+ * in the reader's language, like every page's chrome — so this page has the
+ * same way home and the same doors as `/`.
  */
-export default function AgenticPage() {
+export default async function AgenticPage() {
   const site = serverSite();
+  const locale = await requestLocale();
+  const flags = landingFlags(locale);
   const base = site.url.replace(/\/$/, "");
   const docUrl = `${base}/documentation.txt`;
   const agentUrl = `${base}/skill/add-a-day.md`;
@@ -57,31 +67,24 @@ export default function AgenticPage() {
     `and the day-writing guide at ${agentUrl}. You will need an email address I control.`;
 
   const voice = isEnabled("transcription");
-  const photobook = isEnabled("photobook");
-  const postcards = isEnabled("postcards");
+  const { photobook, postcards } = flags;
 
   return (
-    <div className="min-h-full bg-surface-subtle">
-      <main lang="en" className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-16">
-        <nav className="flex items-center justify-between gap-4">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center font-mono text-xs uppercase tracking-[0.14em] text-ink-secondary hover:text-ink-strong"
-          >
-            {site.name}
-          </Link>
-          {site.repository && (
-            <a
-              href={site.repository}
-              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body underline decoration-blue-500 decoration-2 underline-offset-4 hover:text-ink-strong"
-            >
-              Source on GitHub
-            </a>
-          )}
-        </nav>
-
+    <LandingFrame
+      siteName={site.name}
+      locales={installedLocales()}
+      inviteCta={flags.inviteCta}
+      helperEnabled={flags.helperEnabled}
+      prints={flags.postcards || flags.photobook}
+      pricing={flags.credits}
+      orgs={orgsNav(locale)}
+      repository={site.repository}
+      credit={site.credit}
+      legal={hasLegal()}
+    >
+      <main lang="en" className="mx-auto max-w-3xl px-4 pb-16 pt-6 sm:px-6 sm:pb-24 sm:pt-10">
         {/* ——— Hero ——— */}
-        <header className="mt-8">
+        <header>
           <Kicker>For self-hosters, tinkerers and people with a terminal open</Kicker>
           <h1 className="mt-3 font-display text-4xl font-semibold leading-tight text-ink-strong sm:text-5xl">
             Your travel journal is a folder.
@@ -329,7 +332,7 @@ export default function AgenticPage() {
           </div>
         </section>
       </main>
-    </div>
+    </LandingFrame>
   );
 }
 

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
+import { Smartphone } from "lucide-react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { PRIMARY_BUTTON } from "@/components/LandingSections";
+import { TEXT_LINK } from "@/components/landing/styles";
 
 const LANGUAGES = ["en", "de", "hu"] as const;
 
@@ -22,8 +24,9 @@ const LANGUAGES = ["en", "de", "hu"] as const;
  *   unconfigured self-hosted clone renders — AGENTS.md's closed-by-default
  *   rule.
  *
- * Reused as-is by B2340's landing rebuild; mounted once here, right after
- * the hero's own buttons, so it can be seen before that lands.
+ * B2529: the first two are one quiet line under the hero's buttons — a
+ * phone, "Also for iPhone", and the link or the waitlist — not a pill that
+ * competes with them. The form opens in place of the line.
  */
 export default function AppWaitlistDoor({
   storeUrl,
@@ -42,34 +45,37 @@ export default function AppWaitlistDoor({
   const [done, setDone] = useState(false);
   const [wrong, setWrong] = useState<string | null>(null);
 
+  const line = (action: ReactNode) => (
+    <p className="flex flex-wrap items-center gap-x-2 text-[15px] text-ink-secondary">
+      <Smartphone className="h-4 w-4 flex-none" aria-hidden />
+      <span>{t("appWaitlist.line")}</span>
+      <span aria-hidden>·</span>
+      {action}
+    </p>
+  );
+  const action = `inline-flex min-h-11 items-center gap-1 ${TEXT_LINK}`;
+
   if (storeUrl) {
-    return (
-      <div className="mt-4">
-        <Link href={storeUrl} className={`w-full text-center sm:w-auto ${PRIMARY_BUTTON}`}>
-          {t("appWaitlist.storeCta")}
-        </Link>
-      </div>
+    return line(
+      <Link href={storeUrl} className={action}>
+        {t("appWaitlist.storeCta")}
+        <span aria-hidden>→</span>
+      </Link>,
     );
   }
 
   if (!waitlistAvailable) return null;
 
   if (done) {
-    return <p className="mt-4 text-sm text-ink-body">{t("appWaitlist.done")}</p>;
+    return <p className="text-sm text-ink-body">{t("appWaitlist.done")}</p>;
   }
 
   if (!open) {
-    return (
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="rounded-full border border-line-quiet px-4 py-2 text-sm font-semibold text-ink-strong
-                     transition-colors hover:border-ink-strong"
-        >
-          {t("appWaitlist.openCta")}
-        </button>
-      </div>
+    return line(
+      <button type="button" onClick={() => setOpen(true)} className={action}>
+        {t("appWaitlist.openCta")}
+        <span aria-hidden>→</span>
+      </button>,
     );
   }
 
@@ -97,7 +103,7 @@ export default function AppWaitlistDoor({
 
   return (
     <form
-      className="mt-4 flex flex-wrap items-end gap-3"
+      className="flex flex-wrap items-end gap-3"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
