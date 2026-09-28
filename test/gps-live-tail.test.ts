@@ -446,6 +446,14 @@ describe("mayReadLiveTrack — B2536", () => {
     }
   });
 
+  test("a guest trip's live setting never reaches a signed-in stranger or an anonymous reader — the gate asks who is reading, not only the setting", async () => {
+    const { mayReadLiveTrack } = await import("@/lib/tripGate");
+    for (const viewer of ["stranger", "anonymous"]) {
+      as(viewer);
+      expect(await mayReadLiveTrack(await trip(LIVE_ON))).toBe(false);
+    }
+  });
+
   test("a public trip is 24h-late for everyone but the owner — a traveller and an approved guest included, whatever guestsLive says", async () => {
     const { mayReadLiveTrack } = await import("@/lib/tripGate");
     for (const viewer of ["robin", "guest", "anonymous", "stranger"]) {

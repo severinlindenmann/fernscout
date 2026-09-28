@@ -379,7 +379,11 @@ export async function mayReadLiveTrack(trip: Trip): Promise<boolean> {
   if (await isRealOwner(trip.username)) return true;
   if (await isAdminNotOwner(trip.username)) return false;
   if (trip.visibility === "public") return false;
-  if (trip.visibility === "guest") return trip.guestsLive;
+  // Asked of the viewer here too, not left to the caller's own gate: the
+  // setting alone must never hand a stranger the live tail.
+  if (trip.visibility === "guest") {
+    return trip.guestsLive && ((await isTravellerOn(trip)) || (await isJournalGuest(trip.username)));
+  }
   // "private" — the only readers `mayReadTrip` admits at all are the
   // travellers (the owner is already handled above).
   return isTravellerOn(trip);
