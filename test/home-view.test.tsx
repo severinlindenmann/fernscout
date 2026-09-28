@@ -213,11 +213,11 @@ describe("the signed-in header", () => {
 
   test("an owner gets Studio, Readers and a tab bar, Prints only when printing exists", () => {
     const html = header([journal()]);
-    expect(html).toContain('href="/ana/studio"');
-    expect(html).toContain('href="/ana/studio/readers"');
-    expect(html).not.toContain("/ana/studio/orders");
+    expect(html).toContain('href="/@ana/studio"');
+    expect(html).toContain('href="/@ana/studio/readers"');
+    expect(html).not.toContain("/@ana/studio/orders");
     expect(html).toContain("safe-area-inset-bottom");
-    expect(header([journal()], true)).toContain('href="/ana/studio/orders"');
+    expect(header([journal()], true)).toContain('href="/@ana/studio/orders"');
   });
 
   test("a reader-only person gets the mark and the account, no owner doors", () => {

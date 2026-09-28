@@ -9,6 +9,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { Logo } from "@/components/landing/SignedOut";
+import { journalPath } from "@/lib/journalPath";
 
 /**
  * The signed-in `/` header and the owner's phone tab bar — B2519, the
@@ -33,11 +34,11 @@ function ownerDoors(
   const user = journals.find((j) => j.role === "owner")?.username;
   if (!user) return null;
   const home: Door = { href: "/", label: t("home.navHome"), icon: House, current: true };
-  const readers: Door = { href: `/${user}/studio/readers`, label: t("studio.hub.item.readers.title"), icon: Users };
-  const printsDoor: Door[] = prints ? [{ href: `/${user}/studio/orders`, label: t("landing.navPrints"), icon: BookOpen }] : [];
+  const readers: Door = { href: journalPath(user, "/studio/readers"), label: t("studio.hub.item.readers.title"), icon: Users };
+  const printsDoor: Door[] = prints ? [{ href: journalPath(user, "/studio/orders"), label: t("landing.navPrints"), icon: BookOpen }] : [];
   return {
-    nav: [home, { href: `/${user}/studio`, label: t("nav.studio"), icon: PenLine }, readers, ...printsDoor],
-    tabs: [home, { href: `/${user}/studio`, label: t("studio.hub.group.write"), icon: PenLine }, readers, ...printsDoor],
+    nav: [home, { href: journalPath(user, "/studio"), label: t("nav.studio"), icon: PenLine }, readers, ...printsDoor],
+    tabs: [home, { href: journalPath(user, "/studio"), label: t("studio.hub.group.write"), icon: PenLine }, readers, ...printsDoor],
   };
 }
 
