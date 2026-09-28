@@ -46,6 +46,10 @@ const street = vi.hoisted(() => ({
   getLayer: vi.fn(() => ({})),
   getZoom: vi.fn(() => 10),
   isStyleLoaded: () => true,
+  // Label-collision placement (B2560) projects each marker to a screen
+  // point; a fixed, spread-out stub is enough that this test's own markers
+  // never collide with each other.
+  project: vi.fn(({ 0: lng, 1: lat }: [number, number]) => ({ x: lng * 100, y: lat * 100 })),
   on: vi.fn(), off: vi.fn(), once: vi.fn(),
 }));
 vi.mock("@/components/map/StreetMap", () => ({

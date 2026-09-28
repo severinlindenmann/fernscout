@@ -107,6 +107,7 @@ export default function MapPageContent({
   over = false,
   hasDays = false,
   streetMap = null,
+  streetMapRegions = null,
 }: {
   places: PlaceView[];
   /** Every published day this reader may see, in order — B2537, including a
@@ -154,6 +155,16 @@ export default function MapPageContent({
    * and bounds still move, the tiles underneath do not.
    */
   streetMap?: { url: string; bounds: [[number, number], [number, number]] } | null;
+  /**
+   * Every region file this trip has (`streetMapRegionFiles`, lib/maps/dir.ts)
+   * — B2560. A region switch (`regionIndex` below) picks whichever of these
+   * covers the most of that region's own places, rather than always
+   * redrawing `streetMap`'s own main-region tiles under a moved frame.
+   * `null`/absent when the capability is off or nothing's been extracted;
+   * the map then keeps showing only `streetMap`'s single file, same as
+   * before this ticket.
+   */
+  streetMapRegions?: { url: string; bounds: [[number, number], [number, number]] }[] | null;
 }) {
   const { t, tn, locale, formatShortDate } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
@@ -237,9 +248,18 @@ export default function MapPageContent({
   // this to resync against.
   const [regionIndex, setRegionIndex] = useState(frame.mainRegionIndex);
 
+  // The `MapPlace`s the currently-showing region (or the whole tour) is
+  // actually made of — B2560. `frame.framePlaces` alone is only ever the
+  // *main* region's own places (or, for a tour, every non-home place), so a
+  // reader's region switch needs this instead: `applyStreetOverlay`'s own
+  // marker loop draws exactly this list, never a day-number-filtered guess
+  // at it (two different regions can share a day *number*, however
+  // unlikely, and that guess would draw the wrong region's place — see its
+  // own doc on `regionPlaces`).
+  const frameRegionPlaces = frame.isTour ? frame.framePlaces : (frame.regions[regionIndex]?.places ?? []);
   const regionDayNumbers = useMemo(
-    () => new Set((frame.isTour ? frame.framePlaces : frame.regions[regionIndex]?.places ?? []).map((p) => p.day)),
-    [frame, regionIndex],
+    () => new Set(frameRegionPlaces.map((p) => p.day)),
+    [frameRegionPlaces],
   );
   // A tour shows every place at once (docs/plans/2026-09-28-trip-maps —
   // "more than three regions ⇒ a tour, shown whole"); otherwise the map
@@ -252,6 +272,33 @@ export default function MapPageContent({
     [frame.isTour, places, regionDayNumbers, dayNumberByDate],
   );
   const onMainRegion = frame.isTour || regionIndex === frame.mainRegionIndex;
+
+  // Which region file's tiles to actually draw — B2560. `streetMap` alone is
+  // only ever the *main* region's file; switched onto another region (via a
+  // chip, see `regionChips` below), this picks whichever of `streetMapRegions`
+  // covers the most of that region's own places instead, so the streets
+  // under a region switch are that region's own, not the main region's moved
+  // frame. Falls back to `streetMap`'s own file when there's nothing to
+  // check bboxes against (a tour, no extra files, or nothing in bounds).
+  const activeStreetMap = useMemo(() => {
+    if (!streetMap) return null;
+    if (frame.isTour || !streetMapRegions || streetMapRegions.length === 0) return streetMap;
+    const currentRegionPlaces = frame.regions[regionIndex]?.places ?? [];
+    if (currentRegionPlaces.length === 0) return streetMap;
+    let best = streetMap;
+    let bestCount = -1;
+    for (const file of streetMapRegions) {
+      const [[minLng, minLat], [maxLng, maxLat]] = file.bounds;
+      const count = currentRegionPlaces.filter(
+        (p) => p.lng >= minLng && p.lng <= maxLng && p.lat >= minLat && p.lat <= maxLat,
+      ).length;
+      if (count > bestCount) {
+        bestCount = count;
+        best = file;
+      }
+    }
+    return best;
+  }, [streetMap, streetMapRegions, frame.isTour, frame.regions, regionIndex]);
   // The server only ever clipped a basemap around the main region (see
   // `basemapForRoute(framePoints(places))` in the page above this
   // component) — switched onto another region, that bundle would draw the
@@ -364,24 +411,39 @@ export default function MapPageContent({
   const regionChips = onMainRegion ? frame.chips : [];
 
   // The street map itself — a live `maplibregl.Map`, drawn onto imperatively
-  // by `applyStreetOverlay` rather than through JSX. `onReady` only fires
-  // once, at creation; every later change (a day selected, a region
-  // switched) re-runs the effect below against the same stored instance.
-  const streetMapRef = useRef<MapLibreMap | null>(null);
+  // by `applyStreetOverlay` rather than through JSX. A day selected re-runs
+  // the effect below against the same stored instance; a region switch
+  // (B2560) changes `activeStreetMap.url`, which remounts `StreetMap`
+  // entirely (see its own doc on why) and fires `onReady` again with a
+  // *different* `maplibregl.Map`.
+  //
+  // The redraw effect below keys off `streetMapInstance` itself, not a
+  // boolean — a remount fires `onReady` with a genuinely new object, so the
+  // effect re-runs even when nothing else it depends on changed in the same
+  // render. A boolean "ready" flag flipping true→true across a remount is a
+  // no-op update React skips entirely, which is exactly the render a region
+  // switch produces: `regionDayNumbers` already changed *before* the new map
+  // finishes mounting, so the redraw effect fires once against the
+  // about-to-be-destroyed old map, and never again against the new one,
+  // leaving it with no markers at all. The old markers were also `Marker`
+  // instances bound to that now-removed map — `streetMarkersRef` is cleared
+  // on every ready too, or a later redraw would reuse one whose `setLngLat`
+  // on the new map silently does nothing.
   const streetMarkersRef = useRef<Map<number, MapLibreMarker>>(new Map());
-  const [streetMapReady, setStreetMapReady] = useState(false);
+  const [streetMapInstance, setStreetMapInstance] = useState<MapLibreMap | null>(null);
   const onStreetMapReady = useCallback((map: MapLibreMap) => {
-    streetMapRef.current = map;
-    setStreetMapReady(true);
+    streetMarkersRef.current.clear();
+    setStreetMapInstance(map);
   }, []);
   useEffect(() => {
-    const map = streetMapRef.current;
-    if (!map || !streetMapReady) return;
+    const map = streetMapInstance;
+    if (!map) return;
     const redraw = applyStreetOverlay(
       map,
       {
         frame,
         regionDayNumbers,
+        regionPlaces: frameRegionPlaces,
         selectedDay: selectedDayNumber,
         accentHex: ACCENT_HEX[accent],
         onSelectDay: (day) => {
@@ -402,7 +464,17 @@ export default function MapPageContent({
     return () => {
       map.off("zoom", redraw);
     };
-  }, [streetMapReady, frame, regionDayNumbers, selectedDayNumber, accent, dateByDayNumber, toggleDay, sheetInset]);
+  }, [
+    streetMapInstance,
+    frame,
+    regionDayNumbers,
+    frameRegionPlaces,
+    selectedDayNumber,
+    accent,
+    dateByDayNumber,
+    toggleDay,
+    sheetInset,
+  ]);
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden lg:h-screen">
@@ -660,15 +732,15 @@ export default function MapPageContent({
 
         {/* The map — full-bleed under the info row, on every width. */}
         <div className="relative h-full min-h-0">
-          {streetMap ? (
+          {activeStreetMap ? (
             <StreetMap
               // The places where days happened, not the region file's own padded
               // box — that box is 15 km wider and lets a day sit on the edge.
-              bounds={plottableInRegion.length > 0 ? boundsFor(plottableInRegion) : streetMap.bounds}
+              bounds={plottableInRegion.length > 0 ? boundsFor(plottableInRegion) : activeStreetMap.bounds}
               // Clear of the header chips above and the legend (and, on a
               // phone, the day sheet) below.
               padding={{ top: 70, bottom: sheetInset + 56, left: 40, right: 40 }}
-              pmtilesUrl={streetMap.url}
+              pmtilesUrl={activeStreetMap.url}
               onReady={onStreetMapReady}
               className="h-full w-full"
             />

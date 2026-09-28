@@ -1,5 +1,5 @@
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
-import type { MapLine, TripFrame } from "./tripFrame";
+import type { MapLine, MapPlace, TripFrame } from "./tripFrame";
 
 /**
  * Draws a trip onto a live `StreetMap` (B2535) using B2534's own rules — the
@@ -42,8 +42,20 @@ const STREET_ZOOM_HIDE = 13;
 export type StreetOverlayOptions = {
   frame: TripFrame;
   /** This region's own day numbers — everything outside it is simply never
-   * drawn (the chip row stands for it instead). */
+   * drawn (the chip row stands for it instead). Lines are filtered by this
+   * (`frame.lines` is keyed by day number across the whole trip already);
+   * markers are not — see `regionPlaces`. */
   regionDayNumbers: Set<number>;
+  /**
+   * The actual places to draw markers for — B2560. Not re-derived from
+   * `regionDayNumbers` against a flattened pool of every region's places:
+   * two different regions can share a day *number* (a caller with an
+   * imperfect day mapping, or simply a coincidence), and filtering by number
+   * alone would then draw a place from the wrong region entirely. The
+   * caller already knows exactly which places belong to whichever region
+   * (or the whole tour) is showing, so it hands them over directly.
+   */
+  regionPlaces: readonly MapPlace[];
   /** `null` means "whole trip/region" — nothing muted, fit the region. */
   selectedDay: number | null;
   accentHex: string;
@@ -107,6 +119,55 @@ function ensureLineLayer(
   }
 }
 
+/** One marker's own label, already placed at a screen position — what
+ * `hiddenLabelDays` below tests for overlap. `x`/`y` are the label's own
+ * top-left screen corner (CSS px), not the marker's anchor point. */
+export type LabelBox = { day: number; x: number; y: number; width: number; height: number };
+
+/** A rough but stable label width in CSS px for a day marker's place name —
+ * the disc, the gap and the label pill's own padding, plus the name at the
+ * label's own 11px/600-weight font. Never measures the real DOM (that would
+ * need a layout pass per candidate before drawing anything), so this is an
+ * estimate, not a pixel-exact box — good enough to decide "would this
+ * obviously sit on top of that one", the only question collision hiding
+ * asks. ponytail: a fixed 6.2px/char average rather than real font metrics;
+ * upgrade to `canvas.measureText` if a name this misjudges actually
+ * mis-hides in practice. */
+function estimateLabelWidth(name: string): number {
+  const disc = 22;
+  const gap = 4;
+  const padding = 10;
+  const charWidth = 6.2;
+  return disc + gap + padding + name.length * charWidth;
+}
+
+/** The label height every marker draws at — the disc's own 22px is the
+ * taller of the two, so it also bounds the label's own box. */
+const LABEL_HEIGHT = 22;
+
+/**
+ * Which day numbers' labels to hide because an earlier-placed label already
+ * overlaps that spot — B2560. `boxes` must already be in placement order
+ * (the selected day first, then day order — the caller's own priority, this
+ * function only ever keeps what came first and hides what collides with
+ * it). The numbered disc itself is never hidden by this — only the text
+ * label beside it, so a crowded stretch of coast still shows every day's own
+ * dot, just not every name piled on top of the next.
+ */
+export function hiddenLabelDays(boxes: readonly LabelBox[]): Set<number> {
+  const placed: LabelBox[] = [];
+  const hidden = new Set<number>();
+  for (const box of boxes) {
+    if (placed.some((p) => boxesOverlap(box, p))) hidden.add(box.day);
+    else placed.push(box);
+  }
+  return hidden;
+}
+
+function boxesOverlap(a: LabelBox, b: LabelBox): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
 /** Bounding box, in `[[minLng,minLat],[maxLng,maxLat]]`, of a set of lng/lat
  * points — no projection needed, `fitBounds` does its own. */
 function boundsOf(points: readonly { lat: number; lng: number }[]): [[number, number], [number, number]] | null {
@@ -120,9 +181,16 @@ function boundsOf(points: readonly { lat: number; lng: number }[]): [[number, nu
 }
 
 export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions, markers: Map<number, MapLibreMarker>) {
-  const { frame, regionDayNumbers, selectedDay, accentHex, onSelectDay, padding } = opts;
+  const { frame, regionDayNumbers, selectedDay, accentHex, onSelectDay, padding, regionPlaces } = opts;
 
-  const places = frame.framePlaces.filter((p) => regionDayNumbers.has(p.day));
+  // The caller's own resolved list — see `StreetOverlayOptions.regionPlaces`'s
+  // own doc for why this isn't re-derived from `regionDayNumbers` here.
+  // `buildTripFrame` only ever fills `frame.framePlaces` with the *main*
+  // region's places (or, for a tour, every non-home place); a reader's
+  // region switch (`MapPageContent`'s own `regionIndex`) can select any
+  // other region, so the caller — which already knows which region is
+  // showing — hands over that region's own places directly (B2560).
+  const places = regionPlaces;
   const linesInRegion = frame.lines.filter(
     (l) => regionDayNumbers.has(l.fromDay) || regionDayNumbers.has(l.toDay),
   );
@@ -170,6 +238,25 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     // rebuilt, so a click mid-drag never targets a stale element.
     const Marker = await marker();
     const seen = new Set<number>();
+
+    // "The selected day wins" — its label is placed first, so it is the one
+    // every later, overlapping label loses to. Everything else keeps the
+    // day/trip order it was already drawn in.
+    const placementOrder = [...places].sort((a, b) => {
+      if (a.day === selectedDay) return -1;
+      if (b.day === selectedDay) return 1;
+      return a.day - b.day;
+    });
+    const labelBoxes: LabelBox[] = placementOrder.map((place) => {
+      const point = map.project([place.lng, place.lat]);
+      const width = estimateLabelWidth(place.name);
+      // Anchored the same way the marker's own DOM sits relative to its
+      // `setLngLat` point: vertically centred, immediately to the right of
+      // the disc — see the marker element's own flex row below.
+      return { day: place.day, x: point.x + 26, y: point.y - LABEL_HEIGHT / 2, width, height: LABEL_HEIGHT };
+    });
+    const hiddenLabels = hiddenLabelDays(labelBoxes);
+
     for (const place of places) {
       seen.add(place.day);
       const muted = selectedDay !== null && place.day !== selectedDay;
@@ -201,6 +288,8 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       el.onclick = () => onSelectDay(place.day);
       el.style.display = hide ? "none" : "";
       el.style.opacity = muted ? "0.4" : "1";
+      const label = el.querySelector<HTMLElement>(".fs-daymarker-label");
+      if (label) label.style.display = hiddenLabels.has(place.day) ? "none" : "";
       const disc = el.querySelector<HTMLElement>(".fs-daymarker-disc");
       if (disc) {
         const isSelected = place.day === selectedDay;

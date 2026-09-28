@@ -48,8 +48,10 @@ function currentScheme(): "light" | "dark" {
  * three change.
  *
  * No POI icons or peak labels (dropped in `paperFlavor.ts`), and no sprite:
- * nothing here ever draws one. Glyphs are the self-hosted Latin-range files
- * under `public/fonts/` — see that directory's own note on size.
+ * nothing here ever draws one. Glyphs come from `/api/maps/fonts/...`
+ * (`paperFlavor.ts`'s own doc comment says why), which falls back to the
+ * baked Latin-range files under `public/fonts/` for whatever range an
+ * operator hasn't downloaded the full set for.
  */
 const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap(
   { bounds, pmtilesUrl, padding = 32, className, onReady },
