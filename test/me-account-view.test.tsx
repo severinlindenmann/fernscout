@@ -165,8 +165,10 @@ describe("the home page, signed in", () => {
     expect(text).toContain("Continue"); // B2508: the signed-in home, not the pitch
     expect(text).not.toContain("Your devices");
     const toMe = [...host.querySelectorAll('a[href="/me"]')].map((a) => a.textContent);
-    // The chip (initial + word) and the sentence link under the list.
+    // The chip (initial + word) and the row card under the list — B2532
+    // turned the underlined sentence into a row, same shape as every other
+    // card on this page.
     expect(toMe).toContain("OAccount");
-    expect(toMe).toContain("Your account: devices and signing out");
+    expect(toMe).toContain("Your accountDevices, notifications, signing out");
   });
 });
