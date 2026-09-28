@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { basemapForRoute } from "@/lib/basemap";
 import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
-import { buildStoryProps, showsCountdown } from "@/lib/tripView";
+import { buildStoryProps, showsCountdown, tripTrackFor } from "@/lib/tripView";
 import { getPlan, getPlanPrivate, stopsForReaders } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
 import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
@@ -186,6 +186,10 @@ async function TripStoryBody({
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // gallery page.
   const photobook = await photobookEntryFor(trip);
+  // The trip's own recorded line — B2449. `index` is already this reader's
+  // date list (drafts and visibility applied by `buildStoryProps` above), the
+  // same set `tripTrackFor` filters `track.json` against.
+  const tripTrack = tripTrackFor(trip, index);
   return (
     <>
       <BlogStructuredData
@@ -205,6 +209,7 @@ async function TripStoryBody({
         basemap={basemap}
         locals={locals}
         photobook={photobook}
+        tripTrack={tripTrack}
         // B10 — who took this trip, visible on the page itself rather than
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}

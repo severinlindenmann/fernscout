@@ -88,6 +88,7 @@ export default function TripHero({
   photobook,
   travellerNames,
   track = [],
+  tripTrack = [],
 }: {
   stats: HeroStats;
   /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
@@ -134,6 +135,10 @@ export default function TripHero({
   /** The recorded route for the one day this permalink names — B2199. See
    * `TripMap`'s own doc for what it draws and why the frame ignores it. */
   track?: [number, number][][];
+  /** The whole trip's own recorded line — B2449, `tripTrackFor` in
+   * lib/tripView.ts. See `TripMap`'s own `tripTrack` doc: when present, it
+   * replaces the stop-to-stop hops. */
+  tripTrack?: [number, number][][];
 }) {
   const { t, tn, formatShortDate, localizedTrip } = useI18n();
   const { money } = useMoney();
@@ -443,6 +448,7 @@ export default function TripHero({
           basemap={basemap}
           locals={locals}
           track={track}
+          tripTrack={tripTrack}
           accent={active.trip.accent}
           live={live}
         />

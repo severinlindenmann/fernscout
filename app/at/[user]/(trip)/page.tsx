@@ -4,7 +4,7 @@ import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
-import { buildStoryProps } from "@/lib/tripView";
+import { buildStoryProps, tripTrackFor } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary, madeWithFor } from "@/lib/site";
@@ -80,6 +80,9 @@ async function CurrentStoryBody({
     // lib/prose.ts.
     locale: await requestLocale(),
   });
+  // The trip's own recorded line — B2449. See the mirrored call in
+  // app/[user]/trips/[trip]/page.tsx.
+  const tripTrack = tripTrackFor(trip, index);
   return (
     <>
       <BlogStructuredData
@@ -98,6 +101,7 @@ async function CurrentStoryBody({
         stats={stats}
         basemap={basemap}
         locals={locals}
+        tripTrack={tripTrack}
         // B10 — who took this trip, visible on the page itself rather than
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}
