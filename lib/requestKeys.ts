@@ -21,6 +21,11 @@ export const LOCALE_COOKIE = "fs.locale";
  * a layout and the pathname is not. */
 export const PATH_HEADER = "x-fernscout-path";
 
+/** The request's query string, `?…` or empty, carried beside `PATH_HEADER`
+ * for the one reader that rebuilds a whole address from it: the root 404,
+ * sending a journal's pre-`@` link on (`app/not-found.tsx`). */
+export const SEARCH_HEADER = "x-fernscout-search";
+
 /**
  * Which journal `/agent` opens on, for somebody who owns more than one — B984.
  *

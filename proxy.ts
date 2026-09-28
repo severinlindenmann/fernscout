@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { loadServerConfig } from "@/lib/config";
 import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, splitLanguagePath, splitMarkdownPath } from "@/lib/languagePaths";
-import { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER } from "@/lib/requestKeys";
+import { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER, SEARCH_HEADER } from "@/lib/requestKeys";
 import { formatRequestLine } from "@/lib/requestLog";
 import { journalTombstone, tripTombstone, type Tombstone } from "@/lib/tombstones";
 import { JOURNAL_ROUTE_ROOT, USERNAME_RE, journalPath, parseJournalPath } from "@/lib/journalPath";
@@ -286,6 +286,7 @@ export default function proxy(request: NextRequest) {
   // The public path, `@` included: this is what the root layout and the
   // pages read to learn whose journal is on show (`lib/locales.ts`).
   request.headers.set(PATH_HEADER, pathname);
+  request.headers.set(SEARCH_HEADER, request.nextUrl.search);
 
   const asked = request.nextUrl.searchParams.get("lang");
   const tag = asked?.trim().toLowerCase();
@@ -359,6 +360,17 @@ export const config = {
     "/(@.*)",
     "/(%40.*)",
     "/at/:path*",
+    // A journal's machine documents at their pre-`@` address — a feed reader
+    // subscribed before the move, an agent's saved link. Nothing is rewritten
+    // for them; they only need `PATH_HEADER`, so the root 404 can send them on
+    // to the `@` form (`app/not-found.tsx`). The extension exclusion above
+    // would otherwise keep the proxy from ever seeing them.
+    "/:user/documentation.txt",
+    "/:user/feed.xml",
+    "/:user/search-index.json",
+    "/:user/story.json",
+    "/:user/day/:slug([^/]+)\\.md",
+    "/:user/trips/:trip/day/:slug([^/]+)\\.md",
     // Added for request logging (B257), not for the 410 or the language
     // cookie. `/agent.md` (now a redirect — B311) and the instance's own
     // `/documentation.txt` are agent-facing documents the extension exclusion
