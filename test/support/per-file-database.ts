@@ -22,3 +22,21 @@ if (url.startsWith("sqlite:") && !url.includes(":memory:")) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-vitest-"));
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
 }
+
+/**
+ * B2552 — Postgres: every worker gets its own database, created by
+ * test/support/pg-workers.ts, so files run in parallel instead of one at a
+ * time. Rewrites POSTGRES_TEST_URL, and DATABASE_URL when it is the same
+ * URL (as on CI's postgres leg), from `<db>` to `<db>_w<VITEST_POOL_ID>`.
+ */
+const poolId = process.env.VITEST_POOL_ID;
+const perWorker = (value: string): string => {
+  const parsed = new URL(value);
+  parsed.pathname = `${parsed.pathname}_w${poolId}`;
+  return parsed.toString();
+};
+const pgUrl = process.env.POSTGRES_TEST_URL?.trim();
+if (pgUrl && poolId) {
+  process.env.POSTGRES_TEST_URL = perWorker(pgUrl);
+  if (url.trim() === pgUrl) process.env.DATABASE_URL = perWorker(pgUrl);
+}
