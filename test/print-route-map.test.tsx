@@ -12,9 +12,10 @@ import PrintRouteMap, { printLegend, type PrintStop } from "@/components/map/Pri
  */
 
 const STOPS: PrintStop[] = [
-  { key: "a", date: "2024-06-01", location: "Locarno", country: "Switzerland", lat: 46.1707, lng: 8.7943 },
+  { key: "a", day: 1, date: "2024-06-01", location: "Locarno", country: "Switzerland", lat: 46.1707, lng: 8.7943 },
   {
     key: "b",
+    day: 5,
     date: "2024-06-05",
     location: "Bangkok",
     country: "Thailand",
@@ -22,7 +23,7 @@ const STOPS: PrintStop[] = [
     lng: 100.5018,
     transport: { mode: "flight", from: "Locarno", to: "Bangkok" },
   },
-  { key: "c", date: "2024-06-10", location: "Chiang Mai", country: "Thailand", lat: 18.7883, lng: 98.9853 },
+  { key: "c", day: 10, date: "2024-06-10", location: "Chiang Mai", country: "Thailand", lat: 18.7883, lng: 98.9853 },
 ];
 
 function render(stops: PrintStop[] = STOPS) {
