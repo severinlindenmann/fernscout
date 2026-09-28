@@ -8,6 +8,7 @@
   },
   "visibility": "guest",
   "teaser": true,
+  "guestsLive": false,
   "accent": "coral",
   "cover": "/media/lisbon-2025/tram-28/01.jpg",
   "people": [
