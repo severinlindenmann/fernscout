@@ -190,6 +190,96 @@ included, still sees the same filtered, trimmed `readerTrack`; the owner's
 "Your route" section (below) is a different view onto a different question:
 not "what may a reader see" but "what did my phone actually record".
 
+## The live tail — B2536
+
+`track.json` never carries the last 24h, on purpose (`MIN_AGE_MS`). Some
+readers may still be shown it — the owner always, a trip's own named guests
+by default — and that line is derived and stored the same careful way
+`track.json` is, in a **second file**:
+
+```
+content/<user>/trips/<trip>/track-recent.json
+```
+
+Same shape as `track.json` (`Track`, `lib/gps/track.ts`), same rules — the
+trip's own private zones cut, 500 m straight-line trimmed off **both** ends
+of every run, so the newest point is never the exact current position —
+just the opposite time window: `[now - 24h, now]` instead of "older than
+24h". `deriveTripTail` (`lib/gps/api.ts`) runs inside `deriveTripTrack`
+itself, at exactly the same moments — an import, or the explicit
+`POST …/track` — so the two files can never disagree about what "this trip"
+means even though their time ranges never overlap. An empty result deletes
+the file, same reasoning as `track.json`'s own "nothing left to draw".
+
+**Who gets it is a serve-time decision, exactly like `track.json`'s own
+date filter, and it is the *same* function that decides both.**
+`readerTrack(user, trip, visibleDates, live)` (`lib/gps/track.ts`) takes one
+more argument: `live`, resolved by the caller from `mayReadLiveTrack(trip)`
+(`lib/tripGate.ts`) — never guessed at the call site. That function is keyed
+on the trip's own `visibility` (the way D6 actually decided it), not on who
+the reader is, past two exceptions:
+
+- **The journal's real owner** (`owner.email`, never the instance operator —
+  see below) — always live, on any trip, whatever its visibility or its own
+  `guestsLive` says.
+- **The instance operator (`FERNSCOUT_ADMIN_EMAIL`, B480) reading a journal
+  that is not their own** — never live, checked before every visibility
+  branch. B480 gives the operator every other owner-widening door on every
+  journal (reading, publishing, contacts, credits); this is the one it must
+  not, because what it protects is a person's real-time location rather
+  than their content.
+- **`public`** — never live for anyone but the owner. "At least 24h late" is
+  unconditional on a public trip: a traveller reading their own trip gets
+  the same delayed line a stranger does, because a public trip is the one
+  case where "who is asking" is not a question this function still asks.
+- **`guest`** — `trip.guestsLive` (`Trip`, `lib/types.ts`; `boolean`, absent
+  reads as `true`) decides it, for whoever reaches the trip at all: a named
+  guest of the journal or a traveller on this trip. Editable only in the
+  owner's own studio (`/@<user>/studio/trip/visibility`, asked only on a
+  `guest` trip — `private` has no readers to ask about and `public` is
+  24h-late for everyone regardless), and readable back over
+  `GET /api/v2/<user>/trips/<trip>` like `reminder` and every other plain
+  trip setting — a v2 `PATCH` may write it too, gated the same owner-only
+  way every other field on that document is.
+- **`private`** — live for whoever may actually read it: the people who
+  were there. There is no public or approved-guest reader of a `private`
+  trip to ask this question about; `mayReadTrip` refuses them before this
+  could ever be reached for them.
+
+**The tail is also refused once it has gone stale**, independent of who is
+asking: `readerTrack` only merges it in — and the map page's own "updated N
+min ago" copy (`liveTailStatus`, same file) only reports a number — when the
+file's own `generated` instant is itself under 24h old. Derivation only runs
+when something imports or explicitly re-derives (`deriveTripTrack`), so a
+trip nobody has touched in two days would otherwise go on answering "live"
+with a tail that quietly aged out from under it; the freshness check is what
+keeps that from happening, on top of, not instead of, the visibility rule
+above.
+
+**Three separate doors keep a bearer token off `track-recent.json`, named
+here so the claim is checked rather than asserted:**
+
+1. **No page a bearer token can reach ever asks for it live.** Every caller
+   of `readerTrack`'s `live` branch is a page rendered behind a browser
+   cookie — both map pages
+   (`app/at/[user]/(trip)/map/page.tsx`, `app/at/[user]/trips/[trip]/map/page.tsx`).
+   An agent token reaches `/api/…` and never a rendered page (AGENTS.md).
+   The export (`lib/exportZip.ts`) and the story build (`lib/tripView.ts`)
+   still call `readerTrack` with `live` left at its default `false`.
+2. **It is excluded from the sync manifest.** `lib/sync/manifest.ts`'s
+   `DERIVED_FILES` names it beside `track.json`, so `GET
+   /api/v2/{user}/sync/manifest` (a `write:content` bearer door) never lists
+   it and `GET /api/v2/{user}/sync/file` refuses to serve it even if asked
+   for by its exact path — one predicate, `inSync`, decides both, so the two
+   cannot drift apart.
+3. **It is excluded from every export.** `lib/exportZip.ts` skips
+   `track-recent.json` outright while walking a trip's own folder, in the
+   whole-journal export (`/@<user>/export.zip`), the mailed delete archive,
+   and the `open-to-link` scope alike — unlike `track.json`, which is
+   filtered and re-shipped, the tail is never shipped at all: it is a file
+   on somebody else's machine the moment it leaves, with no reader-facing
+   gate left to filter it through afterwards.
+
 ### Private zones
 
 `content/<user>/gps/exclude.json`:
@@ -238,6 +328,19 @@ map or geocoder wired in — the server's own geocoder
 (`POST /api/v2/geocode`) is bearer-only and the browser holds no token — so a
 zone's coordinates are typed in, or filled from the browser's own current
 position.
+
+**`writeZones` deletes every trip's `track-recent.json` the moment it
+runs — B2536 security review.** `track.json` is left for the next import or
+explicit `POST …/track` to pick a new zone up, as it always has been; the
+live tail cannot wait for that, because a reader with `mayReadLiveTrack`
+still true would go on seeing it in the meantime. A zone the owner just
+typed in cuts the live dot off from the moment they save it, not from the
+next time their phone happens to check in — deleted outright, not
+re-derived, so the honest interim answer is nothing drawn at all rather
+than a line computed against the zone that has not landed yet. The
+standalone purge (`purgeGpsHistory`, B1843 addendum, below) does the same:
+whole months of history disappearing from the store must not leave a tail
+still answering for fixes that no longer exist.
 
 **Any saved zone** is what `hasHomeZoneOrDeclined` (`lib/gps/api.ts`) looks
 for, whatever its label — "home", "Zuhause" and "otthon" are the same answer.

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { draftsVisibleTo, mayReadTrip } from "@/lib/tripGate";
+import { draftsVisibleTo, mayReadLiveTrack, mayReadTrip } from "@/lib/tripGate";
 import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
@@ -11,7 +11,7 @@ import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
-import { readerTrack } from "@/lib/gps/track";
+import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import { isOver } from "@/lib/tripTime";
@@ -169,15 +169,26 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   // covers every trip date regardless of publish state — `readerTrack` is what
   // actually keeps a draft day's or too-recent fix's segment off this page,
   // filtered to the exact dates `days` above already resolved for this reader.
+  const visibleDates = new Set(days.map((d) => d.date));
+  // B2536 — whether this viewer's own request may see the last 24h at all.
+  // The owner always does; a named guest does unless the trip's own
+  // `guestsLive` says 24h late; a public reader never does. Computed once
+  // and threaded through, never re-derived per marker.
+  const live = await mayReadLiveTrack(trip);
   const track =
-    readerTrack(trip.username, trip.id, new Set(days.map((d) => d.date)))?.segments.map(
-      (s) => s.points,
-    ) ?? [];
+    readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => s.points) ?? [];
+  // B2536 — the badge/dot copy, from the same filtered answer `readerTrack`
+  // just drew from: only when a tail segment actually survived for this
+  // reader's own visible dates, and only when the tail is still under 24h
+  // old itself (`liveTailStatus`'s own `tailIsLive`) — never a stale "N min
+  // ago" from a trip nobody has re-derived in days.
+  const liveTail = live ? liveTailStatus(trip.username, trip.id, visibleDates) : undefined;
   return (
     <MapPageContent
       places={places}
       plan={plan.stops}
       track={track}
+      liveTail={liveTail}
       reachedCount={plan.reachedCount}
       basemap={basemap}
       over={over}

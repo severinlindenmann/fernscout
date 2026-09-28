@@ -123,7 +123,7 @@ describe("a badge after text is its own word (B2093)", () => {
           <StudioBarProvider username="alex">
             <TripVisibilityFlow
               username="alex"
-              trip={{ id: "lisbon", title: "Lisbon", visibility: "public", listed: true, teaser: false }}
+              trip={{ id: "lisbon", title: "Lisbon", visibility: "public", listed: true, teaser: false, guestsLive: true }}
               visibilities={["private", "public", "guest"]}
               previews={{ public: preview, guest: preview, private: { ...preview, opens: false } } as never}
             />

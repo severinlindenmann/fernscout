@@ -373,6 +373,21 @@ const tripBase = z
      * plain optionals above.
      */
     reminder: z.strictObject({ channel: z.enum(REMINDER_CHANNELS) }).optional(),
+    /**
+     * Whether a named guest of this trip sees the live tail on its map, or
+     * only the same ≥24h `track.json` a stranger sees — B2536. Absent reads
+     * as `true` (live), the friendlier default; the owner always sees live
+     * and a public reader never does, whatever this says — it only ever
+     * answers the one question in between.
+     *
+     * Owner only, same reasoning as `reminder` just above: a trip-scoped
+     * token writes days into its trip, not who gets to watch where its
+     * owner is right now. That check lives in the route, same door.
+     *
+     * Not a declinable — a setting, like `reminder`, not a section the
+     * journal is owed an answer about.
+     */
+    guestsLive: z.boolean().optional(),
     declined: declinedMap(DECLINABLE_KEYS).optional(),
 
     // ── plain optional ──

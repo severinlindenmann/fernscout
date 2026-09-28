@@ -47,6 +47,7 @@ function fakeTrip(overrides: Partial<Trip> = {}): Trip {
     intro: "",
     visibility: "guest",
     costsVisibility: "public",
+    guestsLive: true,
     ...overrides,
   };
 }

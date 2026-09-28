@@ -112,8 +112,22 @@ export type SyncManifest = {
  */
 const BASE_MANIFEST_FILE = ".fernscout-sync.json";
 
-/** Derived server-side from a position history the client never holds. */
-const DERIVED_FILES = new Set(["track.json"]);
+/**
+ * Derived server-side from a position history the client never holds.
+ *
+ * `track-recent.json` (B2536) is the live tail, and it is the more sensitive
+ * of the two: unlike `track.json` it can carry a point from inside the last
+ * 24 hours, to a reader the trip's own live setting allows, drafts included
+ * (derivation covers every trip date). A sync manifest is served to whoever
+ * holds a `write:content` bearer token for the journal, and a mirror built
+ * from it is copied wholesale onto another machine — exactly the kind of
+ * "wrote a route to disk device 2" scenario `docs/gps.md` warns readers of
+ * `lib/gps/` to keep off any route. Both files stay out for the same
+ * reason `track.json` always did: syncing a *derivation* is a conflict with
+ * nothing worth keeping on either side, and this one especially must never
+ * leave the trip's own reader-facing gate.
+ */
+const DERIVED_FILES = new Set(["track.json", "track-recent.json"]);
 
 /**
  * Top-level directories under `content/<username>/` that a sync never walks.

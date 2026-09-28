@@ -305,6 +305,13 @@ describe("the rules that keep it private", () => {
     // The derived line is what a laptop copy gets; the history it came from
     // is what it must never get.
     fs.writeFileSync(path.join(trip, "track.json"), JSON.stringify({ segments: [] }));
+    // B2536 — the live tail is the more sensitive of the two derived files
+    // (it can carry a point from inside the last 24h), and a sync manifest
+    // must never offer it any more than it offers `track.json`.
+    fs.writeFileSync(
+      path.join(trip, "track-recent.json"),
+      JSON.stringify({ segments: [{ from: "x", day: "2026-06-22", points: [[47.38564, 8.21819], [47.3, 8.2]] }] }),
+    );
     appendFixes(USER, [{ t: Date.parse("2026-06-22T09:00:00Z"), lat: 47.38564, lon: 8.21819 }]);
 
     const { clearUserCache } = await import("@/lib/users");
@@ -326,6 +333,12 @@ describe("the rules that keep it private", () => {
     // above, so syncing it up at the thing that derives it is a conflict with
     // nothing on either side worth keeping (B1495 decision 3).
     expect(manifest.files.map((f) => f.path)).not.toContain("trips/algarve/track.json");
+    // B2536 — same reasoning, doubly so: `track-recent.json` can carry a
+    // point from inside the last 24h, to whichever reader the trip's own
+    // live setting allows, drafts included. A `write:content` bearer token
+    // reads this manifest; it must never learn the tail exists.
+    expect(manifest.files.map((f) => f.path)).not.toContain("trips/algarve/track-recent.json");
+    expect(serialised).not.toContain("track-recent.json");
   });
 
   test("no route reads a file the manifest refuses", async () => {
@@ -335,6 +348,8 @@ describe("the rules that keep it private", () => {
       "gps/2026-06.jsonl",
       "gps/exclude.json",
       "trips/algarve/track.json",
+      // B2536 — the live tail, refused the same way.
+      "trips/algarve/track-recent.json",
       // Shouted, because the filesystem under this is usually
       // case-insensitive: on APFS these resolve to the real files, so a
       // case-sensitive check would exclude them from the listing and then
@@ -342,6 +357,7 @@ describe("the rules that keep it private", () => {
       "GPS/2026-06.jsonl",
       "Gps/2026-06.jsonl",
       "trips/algarve/TRACK.json",
+      "trips/algarve/TRACK-RECENT.json",
       "postcards/a.pdf",
       "photobooks/b.pdf",
       "trips/algarve/.ingest.json",
@@ -401,6 +417,17 @@ describe("the rules that keep it private", () => {
         path.join(trip, "track.json"),
         JSON.stringify({ segments: [{ from: "2026-06-22T09:00:00.000Z", day: "2026-06-22", points: [[1, 1], [2, 2]] }] }),
       );
+      // B2536 — the live tail, on disk beside `track.json`. Never filtered
+      // and re-shipped the way `track.json` is above: it is skipped outright
+      // (see `lib/exportZip.ts`'s own `track-recent.json` branch).
+      fs.writeFileSync(
+        path.join(trip, "track-recent.json"),
+        JSON.stringify({
+          segments: [
+            { from: "2026-06-22T09:00:00.000Z", day: "2026-06-22", points: [[12.34567, 65.4321], [12.4, 65.5]] },
+          ],
+        }),
+      );
       appendFixes(USER, [{ t: Date.parse("2026-06-22T09:00:00Z"), lat: 47.38564, lon: 8.21819 }]);
 
       const { clearUserCache } = await import("@/lib/users");
@@ -414,6 +441,10 @@ describe("the rules that keep it private", () => {
       expect(zip).not.toContain("gps/");
       // The coordinate itself, in case a path ever changes shape.
       expect(zip).not.toContain("47.38564");
+      // B2536 — the tail file's own name and its coordinate, neither ever in
+      // an export.
+      expect(zip).not.toContain("track-recent.json");
+      expect(zip).not.toContain("12.34567");
     },
   );
 });

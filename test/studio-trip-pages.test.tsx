@@ -70,7 +70,7 @@ function render(node: ReactNode) {
 const preview = { id: "t", title: "Lisbon", status: "past", opens: true, publishedDays: 3, draftDays: 1, heldBackDays: 0, photoCount: 5, costsVisible: false };
 
 describe("Who may read this trip — one page (B2071)", () => {
-  const trip = { id: "lisbon", title: "Lisbon", visibility: "public", listed: true, teaser: false };
+  const trip = { id: "lisbon", title: "Lisbon", visibility: "public", listed: true, teaser: false, guestsLive: true };
   const previews = { public: preview, guest: preview, private: { ...preview, opens: false } } as never;
 
   test("the current answer carries its badge after a space, not glued on", () => {
@@ -94,7 +94,7 @@ describe("Who may read this trip — one page (B2071)", () => {
 });
 
 describe("What the audience does not see — B2130, B2132", () => {
-  const trip = { id: "lisbon", title: "Lisbon", visibility: "public", listed: true, teaser: false };
+  const trip = { id: "lisbon", title: "Lisbon", visibility: "public", listed: true, teaser: false, guestsLive: true };
   const theyDoNot = (el: HTMLElement) =>
     [...el.querySelectorAll("[data-they-do-not] li")].map((li) => li.textContent);
   const visibility = (p: typeof preview) =>

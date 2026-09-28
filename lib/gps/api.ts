@@ -10,12 +10,13 @@ import {
   isExcluded,
   readExcludeZones,
   readHomeDeclined,
+  tailForTrip,
   trackForTrip,
   writeExcludeZones,
   writeHomeDeclined,
   type ExcludeZone,
 } from "./enrich";
-import { deleteTrack, trackPointCount, writeTrack } from "./track";
+import { deleteTail, deleteTrack, trackPointCount, writeTail, writeTrack } from "./track";
 import { reverseGeocode } from "../ingest/geo";
 import { earliestTodayISO } from "../tripTime";
 import { zonedTimeToUtc } from "../timezone";
@@ -333,7 +334,19 @@ export function gpsMonthsHeld(username: string): string[] {
  * The standalone purge (B1843 addendum) — whole months by name, or every
  * month this journal holds. Bytes are actually removed (`deleteMonths`).
  * Already-drawn `trips/<trip>/track.json` files are a different, published
- * artefact and survive untouched.
+ * artefact and survive untouched — deleting the store changes nothing about
+ * a route already published, the same guarantee `docs/gps.md` states for
+ * `content/<user>/gps/` as a whole.
+ *
+ * **`track-recent.json` is the opposite case, and it does not survive —
+ * B2536 security review.** The live tail's whole claim is "this is the
+ * store as of the last 24h"; a purge that removes exactly the fixes it was
+ * built from leaves it answering for data that no longer exists, and a
+ * reader with `mayReadLiveTrack` still true would keep being shown it until
+ * the next import happened to re-derive it. Deleted outright for every
+ * trip, not re-derived: this is a security-adjacent action (an owner
+ * choosing to discard their own history), so the honest answer is nothing
+ * drawn at all until a real import re-derives it, never a stale one.
  */
 export function purgeGpsHistory(
   username: string,
@@ -345,6 +358,7 @@ export function purgeGpsHistory(
   // a purge result that lies about its own effect.
   const months = "all" in selection ? [...held] : selection.months.filter((m) => held.has(m));
   deleteMonths(username, months);
+  for (const trip of getTrips(username)) deleteTail(username, trip.id);
   return { monthsDeleted: months, monthsHeld: listMonths(username) };
 }
 
@@ -364,6 +378,7 @@ export function deriveTripTrack(
   trip: { id: string; start: string; end: string },
 ): { segments: number; points: number; zones: number; written: boolean } {
   const zones = readExcludeZones(username);
+  const zonedDates = dayTimezones(username, trip);
   // B2202 rework: derivation now covers every trip date, drafts included —
   // never inside the last 24h, though, so a fix nobody has even written a
   // day for yet still cannot reach a reader within the hour. Which dates a
@@ -373,7 +388,7 @@ export function deriveTripTrack(
     start: trip.start,
     end: trip.end,
     zones,
-    dayTimezones: dayTimezones(username, trip),
+    dayTimezones: zonedDates,
     maxEndMs: Date.now() - MIN_AGE_MS,
     trimMetres: TRIM_METRES,
   });
@@ -383,10 +398,46 @@ export function deriveTripTrack(
   // stale (B2202: staleness here is a safety gap, not a convenience).
   if (track.segments.length === 0) {
     deleteTrack(username, trip.id);
-    return { segments: 0, points: 0, zones: zones.length, written: false };
+  } else {
+    writeTrack(username, trip.id, track);
   }
-  writeTrack(username, trip.id, track);
+  // B2536 — the tail is derived at exactly this same moment, from the same
+  // zones and date windows, so the two files never drift about what "this
+  // trip" means even though they cover disjoint time ranges.
+  deriveTripTail(username, trip, zones, zonedDates);
+  if (track.segments.length === 0) return { segments: 0, points: 0, zones: zones.length, written: false };
   return { segments: track.segments.length, points, zones: zones.length, written: true };
+}
+
+/**
+ * The live tail — B2536. `track.json`'s exact opposite half: everything
+ * `deriveTripTrack` refuses (anything inside the last 24h) and nothing it
+ * keeps (anything older). Same zones, same per-date timezones, same 500 m
+ * end-trim — so a reader allowed to see it gets the same private-zone and
+ * "not at the front door" guarantees `track.json` gives everyone else.
+ * Written to `trips/<trip>/track-recent.json` (`lib/gps/track.ts`), read by
+ * nothing but `readerTrack`'s own `live` branch there. Called from
+ * `deriveTripTrack` so it runs at every moment a track is (re)derived —
+ * import, and the explicit `POST …/track` — never on its own.
+ */
+function deriveTripTail(
+  username: string,
+  trip: { id: string; start: string; end: string },
+  zones: ExcludeZone[],
+  zonedDates: Readonly<Record<string, string>>,
+): void {
+  const now = Date.now();
+  const tail = tailForTrip(username, {
+    start: trip.start,
+    end: trip.end,
+    zones,
+    dayTimezones: zonedDates,
+    trimMetres: TRIM_METRES,
+    sinceMs: now - MIN_AGE_MS,
+    nowMs: now,
+  });
+  if (tail.segments.length === 0) deleteTail(username, trip.id);
+  else writeTail(username, trip.id, tail);
 }
 
 /**
@@ -456,6 +507,14 @@ export function listZones(username: string): { zones: ExcludeZone[]; homeDecline
  * around this call answers the same `unreadable_zones` refusal `GET` does,
  * which is honest about what actually failed (the confirming read, not the
  * write) without leaking which write, if any, is now on disk.
+ *
+ * **Every trip's `track-recent.json` is deleted here too — B2536 security
+ * review.** `track.json` is left for the next explicit `POST …/track` or
+ * import to pick the new zone up, the same as it always has been; the live
+ * tail cannot wait for that, because a reader with `mayReadLiveTrack` true
+ * keeps seeing it in the meantime. A fresh zone the owner just typed in must
+ * cut the *live* dot off from the moment they save it, not from the next
+ * time their phone happens to check in.
  */
 export function writeZones(
   username: string,
@@ -464,6 +523,7 @@ export function writeZones(
 ): { zones: ExcludeZone[]; homeDeclined: boolean } {
   writeExcludeZones(username, zones);
   if (homeDeclined !== undefined) writeHomeDeclined(username, homeDeclined);
+  for (const trip of getTrips(username)) deleteTail(username, trip.id);
   return listZones(username);
 }
 

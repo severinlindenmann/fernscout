@@ -27,7 +27,7 @@ const NOT_FOR_AGENTS = {
     "PATCH /api/v2/{user}/trips/{trip}.",
 };
 
-const ALLOWED = ["visibility", "listed", "teaser"];
+const ALLOWED = ["visibility", "listed", "teaser", "guestsLive"];
 
 export async function PATCH(
   request: Request,

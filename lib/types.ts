@@ -645,6 +645,16 @@ export type Trip = {
   test?: boolean;
   costsVisibility: CostsVisibility;
   /**
+   * Whether a named guest of this trip sees the live tail on its map —
+   * B2536. Public readers never do, whatever this says (they see only the
+   * ≥24h `track.json`); the owner always does; this is the one question the
+   * owner actually answers, "or 24h late like everyone else". `true` (the
+   * default, and what an absent key reads as) means live. Read by
+   * `lib/tripGate.ts`'s `mayReadLiveTrack`, never by anything that draws a
+   * point itself.
+   */
+  guestsLive: boolean;
+  /**
    * What this trip keeps track of, and therefore what a day written into it
    * is asked for — B531. Every row on unless the file says otherwise, which
    * is why this is not optional here: `parseTracks` answers for a trip whose

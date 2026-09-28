@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { readFor, mayReadTrip } from "@/lib/tripGate";
+import { mayReadLiveTrack, readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
@@ -9,7 +9,7 @@ import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
-import { readerTrack } from "@/lib/gps/track";
+import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { getTrip, tripRef } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
 import RouteBoundary from "@/components/RouteBoundary";
@@ -92,6 +92,12 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   // `WorldMap`'s own client-side `base` calls the same `framePoints` on the
   // same `places` array, so the two keep agreeing.
   const basemap = basemapForRoute(places.length > 0 ? framePoints(places) : plan.stops);
+  // B2536 — same resolution the bare map page makes; see its own comment.
+  const live = await mayReadLiveTrack(trip);
+  const visibleDates = new Set(days.map((d) => d.date));
+  // The same filtered, freshness-checked answer `readerTrack` draws the dot
+  // from below — never a raw, unfiltered `readTail()`.
+  const liveTail = live ? liveTailStatus(trip.username, trip.id, visibleDates) : undefined;
   // B2535 — see the sibling route's own copy of this line.
   const streetMap = isEnabled("streetMaps") ? (primaryStreetMap(trip.username, trip.id) ?? null) : null;
   return (
@@ -102,10 +108,11 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
       // B665, and behind `mayReadTrip` in the page above like everything
       // else here.
       track={
-        readerTrack(trip.username, trip.id, new Set(days.map((d) => d.date)))?.segments.map(
+        readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map(
           (s) => s.points,
         ) ?? []
       }
+      liveTail={liveTail}
       reachedCount={plan.reachedCount}
       basemap={basemap}
       stats={{

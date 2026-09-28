@@ -254,6 +254,12 @@ function appendUserContent(
         if (track) archive.append(Buffer.from(`${JSON.stringify(track)}\n`), { name });
         continue;
       }
+      // B2536 — the live tail never leaves in an export, at any scope. It is
+      // not merely filtered like `track.json` above: it can carry a point
+      // from inside the last 24h, and an export is a file on a bearer
+      // token's own machine (or the mailed delete archive) with no
+      // reader-facing gate left to filter it through afterwards.
+      if (relative === "track-recent.json") continue;
       archive.file(file, { name });
     }
 

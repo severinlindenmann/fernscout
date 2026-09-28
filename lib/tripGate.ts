@@ -3,11 +3,13 @@ import type { Metadata } from "next";
 import { isOpenToLink, maySeeCosts } from "./access";
 import { resolveAccess } from "./auth/handshake";
 import { isEnabled } from "./capabilities";
+import { isAdminEmail } from "./admin";
 import { isJournalGuest, isOwner, journalReader } from "./contacts/session";
 import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import type { ReadOptions } from "./entries";
 import type { ReaderLevel } from "./photos";
 import type { Trip } from "./types";
+import { getUser } from "./users";
 
 /**
  * Whether the current request may read this trip.
@@ -294,6 +296,97 @@ export async function isGuestOf(trip: Trip): Promise<boolean> {
   if (await isOwner(trip.username)) return true;
   if (trip.visibility === "private") return false;
   return isJournalGuest(trip.username);
+}
+
+/**
+ * Whether the signed-in reader is the journal's own owner — never the
+ * instance operator (`FERNSCOUT_ADMIN_EMAIL`, B480), who `isOwner` also
+ * answers yes for on every journal.
+ *
+ * `mayReadLiveTrack` below is the one caller: an operator running the
+ * instance must not be able to see where every journal's owner physically
+ * is right now just by opening their trip. Every other owner-only door in
+ * this codebase intentionally widens to the operator (support, moderation,
+ * billing); this is the one place that must not, because what it protects
+ * is not the journal's content but a person's real-time location.
+ */
+async function isRealOwner(username: string): Promise<boolean> {
+  const user = getUser(username);
+  if (!user?.owner.email) return false;
+  const { email } = await resolveAccess(username);
+  return email === user.owner.email;
+}
+
+/**
+ * Whether the signed-in address is the operator, reading a journal that is
+ * not their own — B480's reach, narrowed back for exactly one question.
+ *
+ * `mayReadLiveTrack` refuses outright for this case, before any visibility
+ * branch runs: B480 gives the operator every *other* owner-widening door on
+ * every journal (reading, publishing, contacts, credits — "the lot," in its
+ * own words), and a `guest` trip's own default is live. Letting that default
+ * apply to the operator the same way it applies to an approved reader would
+ * mean any instance operator sees where the owner of any journal with the
+ * ordinary default physically is, on demand, on every journal they run —
+ * which is a different kind of fact than the rest of what B480 opens, and
+ * the one this ticket exists to keep closed. An admin reading their *own*
+ * journal is unaffected: `email === user.owner.email` there too, so this
+ * never fires for them.
+ */
+async function isAdminNotOwner(username: string): Promise<boolean> {
+  const user = getUser(username);
+  if (!user) return false;
+  const { email } = await resolveAccess(username);
+  return isAdminEmail(email) && email !== user.owner.email;
+}
+
+/**
+ * Whether this viewer may see the live tail — the last 24h of the trip's
+ * route, drawn as a "here now" dot — B2536.
+ *
+ * Keyed on the trip's own `visibility`, the way D6 actually decided it —
+ * **not** on who the reader is, past the owner exception:
+ *
+ * - The journal's real owner (never the instance operator — `isRealOwner`
+ *   above): always live, on any trip, whatever its visibility or its own
+ *   `guestsLive` says. They are looking at their own position.
+ * - The instance operator reading somebody ELSE's journal (`isAdminNotOwner`
+ *   above): never, on any trip — checked before every branch below, not
+ *   folded into any one of them, so it cannot quietly stop applying if a
+ *   branch is edited later. B480 already gives the operator every other
+ *   owner-widening door on every journal; this is the one it must not.
+ * - `public`: never live, for anyone but the owner — "at least 24h late" is
+ *   unconditional on a public trip, traveller or stranger alike, which is
+ *   the whole point of a trip anybody at all may open.
+ * - `guest`: `trip.guestsLive` (default `true`) decides it, for whoever
+ *   reaches the trip at all — a named guest of the journal or a traveller
+ *   on this trip. The one setting the studio's visibility flow writes.
+ * - `private`: live for whoever may actually read it — the people who were
+ *   there (`isTravellerOn`). There is no public or approved-guest reader of
+ *   a `private` trip to ask this question about; `mayReadTrip` refuses them
+ *   before this could ever be reached for them.
+ *
+ * The only caller of `lib/gps/track.ts`'s `readerTrack(…, live)` — every one
+ * of them a page rendered behind a browser cookie, never a bearer token
+ * (AGENTS.md: an agent token reaches `/api/…`, never a rendered page), which
+ * is what keeps a `write:gps` token, or any other scope, out of this branch.
+ * `track-recent.json` is additionally excluded from the sync manifest and
+ * every export (`lib/sync/manifest.ts`, `lib/exportZip.ts`) — see their own
+ * comments — so a bearer token reaches it through no door at all, not only
+ * not this one.
+ */
+export async function mayReadLiveTrack(trip: Trip): Promise<boolean> {
+  if (await isRealOwner(trip.username)) return true;
+  if (await isAdminNotOwner(trip.username)) return false;
+  if (trip.visibility === "public") return false;
+  // Asked of the viewer here too, not left to the caller's own gate: the
+  // setting alone must never hand a stranger the live tail.
+  if (trip.visibility === "guest") {
+    return trip.guestsLive && ((await isTravellerOn(trip)) || (await isJournalGuest(trip.username)));
+  }
+  // "private" — the only readers `mayReadTrip` admits at all are the
+  // travellers (the owner is already handled above).
+  return isTravellerOn(trip);
 }
 
 /**

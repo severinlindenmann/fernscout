@@ -39,7 +39,14 @@ status, or none, reads as a draft (`dayFromJson` in
 
 GPS history under `content/<user>/gps/` is never exposed, never copied into
 content, and never read by a new route. The public map uses only a derived,
-clipped `trips/<trip>/track.json`. `routeRecording` is the one flag that
+clipped `trips/<trip>/track.json`, never inside the last 24h. A second
+derived file, `track-recent.json`, carries only that last 24h and is keyed
+on the trip's own visibility: never for anyone but the journal's real owner
+on a `public` trip, `guestsLive` (default live) on a `guest` trip, the
+travellers on a `private` trip — the instance operator gets none of it on a
+journal that is not their own, whatever the trip says. Excluded from the
+sync manifest and every export; see `docs/gps.md`'s "The live tail" for the
+whole rule. `routeRecording` is the one flag that
 gates the recorder UI and two owner-cookie-only doors (a place-name
 suggestion for a new day, and the owner's own route on their own location
 page) — neither ever returns raw positions to a bearer token or a third

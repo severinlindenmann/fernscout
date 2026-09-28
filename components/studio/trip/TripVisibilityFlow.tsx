@@ -36,7 +36,18 @@ export default function TripVisibilityFlow({
   previews,
 }: {
   username: string;
-  trip: { id: string; title: string; visibility: string; listed: boolean; teaser: boolean };
+  trip: {
+    id: string;
+    title: string;
+    visibility: string;
+    listed: boolean;
+    teaser: boolean;
+    /** Whether a named guest sees the live tail on this trip's map, or only
+     * the same ≥24h line a stranger sees — B2536. Only asked about here on a
+     * `guest` trip; a `private` trip has no guests to ask about, and a
+     * `public` one is 24h-late for everyone regardless of this setting. */
+    guestsLive: boolean;
+  };
   /** `VISIBILITIES` from `lib/tripWrite.ts`, read server-side. */
   visibilities: readonly string[];
   /** One precomputed preview per candidate visibility. */
@@ -50,6 +61,10 @@ export default function TripVisibilityFlow({
   // default (the moved `TripVisibilityFor`'s two checkboxes, B1591).
   const [listed, setListed] = useState(trip.listed);
   const [teaser, setTeaser] = useState(trip.teaser);
+  // B2536 — asked only when `chosen === "guest"`: whether a named guest sees
+  // where the owner is right now, or the same 24h-late line everyone else
+  // does. Sent alongside visibility, same shape as `listed`/`teaser` above.
+  const [guestsLive, setGuestsLive] = useState(trip.guestsLive);
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -59,14 +74,22 @@ export default function TripVisibilityFlow({
   const preview = previews[chosen];
   const label = (v: string) => t(`studio.visibility.${v}.title` as TranslationKey);
   const unchanged =
-    chosen === current && (chosen === "public" ? listed === trip.listed : teaser === trip.teaser);
+    chosen === current &&
+    (chosen === "public" ? listed === trip.listed : teaser === trip.teaser) &&
+    (chosen === "guest" ? guestsLive === trip.guestsLive : true);
 
   async function commit() {
     setBusy(true);
     setError(null);
+    const body =
+      chosen === "public"
+        ? { visibility: chosen, listed }
+        : chosen === "guest"
+          ? { visibility: chosen, teaser, guestsLive }
+          : { visibility: chosen, teaser };
     const res = await fetch(
       `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(trip.id)}/visibility`,
-      { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(chosen === "public" ? { visibility: chosen, listed } : { visibility: chosen, teaser }) },
+      { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) },
     ).catch(() => null);
     setBusy(false);
     if (!res?.ok) {
@@ -146,6 +169,27 @@ export default function TripVisibilityFlow({
           </span>
         )}
       </label>
+
+      {chosen === "guest" && (
+        // B2536 — "who sees where you are". Only asked on a `guest` trip:
+        // `private` has no readers beyond the people who were there (already
+        // live), `public` is 24h late for everyone regardless of this flag.
+        <label className="mt-3 flex items-start gap-2.5 text-sm text-ink-body">
+          <input
+            type="checkbox"
+            checked={guestsLive}
+            disabled={confirming}
+            onChange={(e) => setGuestsLive(e.target.checked)}
+            className="mt-0.5 h-4 w-4 flex-none rounded border-line-strong"
+          />
+          <span>
+            {t("studio.tripVisibility.guestsLive")}
+            <span className="block text-xs text-ink-secondary">
+              {t("studio.tripVisibility.guestsLiveHint")}
+            </span>
+          </span>
+        </label>
+      )}
 
       {preview && (
         <section className="mt-4 rounded-2xl border border-line-strong bg-surface-subtle px-4 py-3 text-sm">

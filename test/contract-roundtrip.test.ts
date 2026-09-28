@@ -58,6 +58,9 @@ const TRIP_SAMPLES: Record<string, unknown> = {
   dates: { from: "2026-09-01", to: "2026-09-05" },
   visibility: "public",
   listed: false,
+  // B2536 — only ever consulted for a `guest` trip's readers, but round-trips
+  // fine on any visibility, so it is sent here rather than declared write-only.
+  guestsLive: false,
   /** D18. Presence is the switch, so there is no `enabled: true` beside it —
    * a sample carrying both would be describing a shape the schema refuses. */
   reminder: { channel: "mail" },

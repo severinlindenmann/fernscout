@@ -29,6 +29,7 @@ export default function MapPageContent({
   stats,
   plan = [],
   track = [],
+  liveTail,
   reachedCount = 0,
   basemap = null,
   over = false,
@@ -38,6 +39,15 @@ export default function MapPageContent({
   places: PlaceView[];
   /** This trip's own line, where the owner has derived one — see lib/gps/. */
   track?: [number, number][][];
+  /**
+   * Whether *this viewer's own request* may see the live tail, and how long
+   * ago it was last derived — B2536. Resolved server-side
+   * (`mayReadLiveTrack`, lib/tripGate.ts) from who is asking: the owner
+   * always, a named guest of the trip unless its own setting says 24h late,
+   * a public reader never. Absent means no dot — the honest default for a
+   * reader this was never computed for.
+   */
+  liveTail?: { minutesAgo: number };
   stats: { tripDays: number; places: number; countries: number; totalMedia: number };
   plan?: PlannedStop[];
   reachedCount?: number;
@@ -311,6 +321,18 @@ export default function MapPageContent({
             <p className="text-sm text-ink-secondary">
               {t(pastTense ? "map.subtitle" : "map.subtitlePlanned")}
             </p>
+            {liveTail && (
+              // B2536 — the data path is the point here; B2537 places this
+              // properly inside the redesigned page. Shown only to a viewer
+              // `mayReadLiveTrack` already said yes to — never a fabricated
+              // place name, only how long ago the tail was last derived.
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-strong">
+                <span className="h-2 w-2 rounded-full bg-yellow-400" aria-hidden />
+                {tn("map.liveUpdatedAgo", liveTail.minutesAgo, {
+                  count: String(liveTail.minutesAgo),
+                })}
+              </p>
+            )}
             {hasPlaces && (
               <button
                 onClick={() => {
