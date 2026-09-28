@@ -10,6 +10,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
+import { getMapDays } from "@/lib/map/mapDays";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
@@ -186,6 +187,7 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   return (
     <MapPageContent
       places={places}
+      days={getMapDays(tripId, read)}
       plan={plan.stops}
       track={track}
       liveTail={liveTail}

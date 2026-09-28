@@ -144,6 +144,15 @@ export function buildTripFrame(
   recorded: readonly RecordedSegment[] = [],
   opts: BuildOptions = {},
 ): TripFrame {
+  // A trip with no plottable places (nothing written yet, or a planned trip
+  // with only a route) has no region to be "main" — `pickMainRegion` would
+  // otherwise read `regions[0]` off an empty array. Every caller (a day
+  // list, a chip row) reads an empty result the same way it already reads
+  // "no places": nothing to draw.
+  if (places.length === 0) {
+    return { regions: [], mainRegionIndex: 0, isTour: false, globe: false, framePlaces: [], chips: [], lines: [] };
+  }
+
   // "Anything inside the home zone reads Home in every list, strip, chip and
   // card" — enforced once, here, so nothing downstream can leak a home
   // place's real name by forgetting to check the flag.

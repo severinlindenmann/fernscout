@@ -11,6 +11,7 @@ import { dictionaryFor } from "@/lib/locales";
 import type { PlaceView } from "@/components/WorldMap";
 import type { SiteSummary } from "@/lib/site";
 import type { PlaceEntry } from "@/lib/types";
+import type { MapDay } from "@/lib/map/mapDays";
 
 /**
  * The desktop map page's left-hand stop list (docs/plans/map-redesign.md §3
@@ -89,6 +90,22 @@ function place(overrides: Partial<PlaceView> & { entry?: Partial<PlaceEntry> } =
 
 const stats = { tripDays: 3, places: 2, countries: 1, totalMedia: 2 };
 
+/** The day list `MapPageContent` would derive from these places (B2537). */
+function daysFor(places: PlaceView[]): MapDay[] {
+  return places.map((p) => ({
+    date: p.firstDate,
+    slug: p.entries[0].slug,
+    location: p.location,
+    country: p.country,
+    countryCode: p.countryCode,
+    lat: p.lat,
+    lng: p.lng,
+    hasPlace: true,
+    mediaCount: p.mediaCount,
+    updates: p.entries.length,
+  }));
+}
+
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 
@@ -109,7 +126,7 @@ function render(places: PlaceView[]) {
         <SiteProvider value={site}>
           <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
             <TripListProvider trips={[]}>
-              <MapPageContent places={places} stats={stats} over hasDays />
+              <MapPageContent places={places} days={daysFor(places)} stats={stats} over hasDays />
             </TripListProvider>
           </CurrencyProvider>
         </SiteProvider>

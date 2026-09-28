@@ -13,18 +13,18 @@ import type { SiteSummary } from "@/lib/site";
 import type { PlaceEntry } from "@/lib/types";
 
 /**
- * `?stop=<key>` on the map page (B2426, Phase 2 item 1 of
- * docs/plans/map-redesign.md) — a shared link opens the same stop the reader
- * already sees and nothing more, and picking a stop keeps the URL in sync
- * without spamming the back stack or jumping the scroll position.
+ * `?day=<date>` on the map page (B2537, was `?stop=<key>` before this ticket
+ * moved the page's own selection from a merged-stay "place" to a calendar
+ * day) — a shared link opens the same day the reader already sees and
+ * nothing more, and picking a day keeps the URL in sync without spamming the
+ * back stack or jumping the scroll position.
  *
  * The privacy rule ("never select or reveal a stop the reader cannot already
  * see", AGENTS.md) is not a second check written here — it falls out of
  * matching only against `places`/`plottable`, the same reader-filtered array
- * the map and the sheet already draw from. A draft or hidden day's key was
- * never in that array to begin with (see `hasDraftPlaces`'s own doc in this
- * file), so it and a wholly made-up key are the same case below: neither
- * matches anything, and nothing is selected.
+ * the map and the sheet already draw from. A draft or hidden day's date was
+ * never in that array to begin with, so it and a wholly made-up date are the
+ * same case below: neither matches anything, and nothing is selected.
  */
 
 vi.mock("next/link", () => ({
@@ -57,7 +57,7 @@ const site = {
   hasAccessPanel: false,
 } as unknown as SiteSummary;
 
-function place(key: string, location: string, lat: number, lng: number): PlaceView {
+function place(key: string, location: string, date: string, lat: number, lng: number): PlaceView {
   return {
     key,
     location,
@@ -65,14 +65,14 @@ function place(key: string, location: string, lat: number, lng: number): PlaceVi
     countryCode: "CH",
     lat,
     lng,
-    firstDate: "2024-09-01",
-    lastDate: "2024-09-01",
+    firstDate: date,
+    lastDate: date,
     nights: 1,
     mediaCount: 1,
     entries: [
       {
         slug: key,
-        date: "2024-09-01",
+        date,
         location,
         country: "Switzerland",
         countryCode: "CH",
@@ -86,8 +86,8 @@ function place(key: string, location: string, lat: number, lng: number): PlaceVi
 // Far enough apart (68 km — the same Alps fixture as test/trip-map.test.tsx)
 // that they draw as two separate markers rather than one merged cluster.
 const places = [
-  place("furka", "Furka", 46.5713, 8.4113),
-  place("susten", "Susten", 46.7264, 8.4456),
+  place("furka-2024-09-01", "Furka", "2024-09-01", 46.5713, 8.4113),
+  place("susten-2024-09-02", "Susten", "2024-09-02", 46.7264, 8.4456),
 ];
 const stats = { tripDays: 2, places: 2, countries: 1, totalMedia: 2 };
 
@@ -138,42 +138,42 @@ function marker(el: HTMLElement, location: string): Element {
   return found;
 }
 
-describe("?stop= on load", () => {
-  test("selects the named stop", () => {
-    const el = render("?stop=susten");
+describe("?day= on load", () => {
+  test("selects the named day", () => {
+    const el = render("?day=2024-09-02");
     expect(marker(el, "Susten").getAttribute("aria-pressed")).toBe("true");
     expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("false");
   });
 
   /**
-   * The same case, mechanically, as a draft or hidden day's key: neither is
+   * The same case, mechanically, as a draft or hidden day's date: neither is
    * ever in `places` for a reader not allowed to see it, so this one test
    * covers both — see this file's own top comment.
    */
-  test("an unknown key selects nothing", () => {
-    const el = render("?stop=nonexistent");
+  test("an unknown date selects nothing", () => {
+    const el = render("?day=2099-01-01");
     // Neither stop is pressed — the page's own no-selection default
     // (`plottable[0]`, applied before this component ever reads the URL)
-    // is left standing, exactly as if `?stop=` had never been on the link.
+    // is left standing, exactly as if `?day=` had never been on the link.
     expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("true");
     expect(marker(el, "Susten").getAttribute("aria-pressed")).toBe("false");
   });
 
-  test("with no ?stop= at all, the page's own default stands", () => {
+  test("with no ?day= at all, the page's own default stands", () => {
     const el = render("");
     expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("true");
   });
 });
 
-describe("selecting a stop", () => {
-  test("replaces the URL with ?stop=<key>, without adding a history entry", () => {
+describe("selecting a day", () => {
+  test("replaces the URL with ?day=<date>, without adding a history entry", () => {
     const before = window.history.length;
     const el = render("");
     act(() => {
       marker(el, "Susten").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(marker(el, "Susten").getAttribute("aria-pressed")).toBe("true");
-    expect(window.location.search).toBe("?stop=susten");
+    expect(window.location.search).toBe("?day=2024-09-02");
     // `replaceState`, not `pushState` — Back still goes wherever Back went
     // before this tap, not to the previous selection.
     expect(window.history.length).toBe(before);

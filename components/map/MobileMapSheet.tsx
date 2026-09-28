@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
@@ -11,6 +11,7 @@ import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import { flagFor } from "@/lib/flags";
 import { googleMapsHref } from "@/lib/tripMap";
 import type { PlaceView } from "@/components/WorldMap";
+import type { MapDay } from "@/lib/map/mapDays";
 
 /** Peek, half, full — B2427 (docs/plans/map-redesign.md §3 Phase 2 item 2),
  * generalising `MobileDaySheet`'s (B2327) drag/snap logic through
@@ -25,8 +26,8 @@ const FULL = 2;
  * line, so a rounding pixel never tips it over. */
 const HALF_MAX_VH = 0.42;
 const FULL_MAX_VH = 0.86;
-/** The peek row: the stats grid plus the scrubber slot, a fixed content
- * height rather than a vh fraction — it doesn't grow with the screen.
+/** The peek row: the stats grid plus the day strip, a fixed content height
+ * rather than a vh fraction — it doesn't grow with the screen.
  * `MapPageContent` pads its own bottom by this same number so the page's
  * content never sits behind the sheet at rest — keep the two in sync. */
 const PEEK_PX = 176;
@@ -43,7 +44,7 @@ function useViewportHeight(): number {
 
 /** Whether this sheet is actually on screen — the wrapping div is
  * `lg:hidden`, and above that breakpoint the map keeps the desktop layout
- * (a stop list beside it) where nothing covers the map at all. Compared
+ * (a day list beside it) where nothing covers the map at all. Compared
  * against the same `lg` Tailwind breakpoint (1024px, unset in this app's
  * own theme) via `window.innerWidth` rather than measuring the DOM node, so
  * the reported inset lands on the sheet's own settled snap height rather
@@ -61,39 +62,34 @@ function useIsDesktop(): boolean {
 }
 
 export default function MobileMapSheet({
+  days,
   places,
   stats,
-  scrubberSlot,
   hrefForDay,
-  selectedKey,
-  onSelectKey,
+  selectedDate,
+  onSelectDate,
   onInsetChange,
 }: {
+  /** Every published day, in order, including one with no place at all
+   * (greyed — B2537). The strip at peek and the full list both read this
+   * rather than `places`, so a placeless day is never simply missing. */
+  days: MapDay[];
   places: PlaceView[];
   stats: { tripDays: number; places: number; countries: number; totalMedia: number };
-  /** Where B2428's time scrubber sits, at peek — the map page's own copy of
-   * it (`WorldMap`'s is desktop-only, `hidden lg:block`), reading and
-   * writing the same `selectedKey`/`onSelectKey` this sheet does. */
-  scrubberSlot?: ReactNode;
   hrefForDay: (slug: string) => string;
-  /** The map page's one selection (lifted to `MapPageContent`, reviewed
-   * after B2427's first pass) — a marker tap, the scrubber, or a stop here
-   * all land on this same key, and `WorldMap` applies it through its own
-   * `selectPlace`, so the camera follows exactly as a tap on the map itself
-   * would. */
-  selectedKey: string | null;
-  onSelectKey: (key: string) => void;
+  /** The map page's one selection, by calendar date — B2537 (was a place
+   * `key`; a date is what the day strip/list itself is keyed on, and it
+   * still resolves to a place through `firstDate`…`lastDate` for the map). */
+  selectedDate: string | null;
+  onSelectDate: (date: string | null) => void;
   /** B2517: called with how tall this sheet's *current snap* stands, in
    * CSS px, so `WorldMap` can frame the whole trip and a selected stop into
    * the part of the map above it rather than the box's full height. Fires
-   * with 0 wherever the sheet is not actually on screen — no places at all,
-   * or `lg` and up, where the desktop layout puts nothing over the map. Not
-   * the sheet's live, mid-drag height: framing follows the settled snap,
-   * the same "peek and half" the ticket names, not every animation frame of
-   * the spring between them. */
+   * with 0 wherever the sheet is not actually on screen — no days at all,
+   * or `lg` and up, where the desktop layout puts nothing over the map. */
   onInsetChange?: (px: number) => void;
 }) {
-  const { t, tn, locale, formatShortDate, formatStay } = useI18n();
+  const { t, tn, locale, formatShortDate } = useI18n();
   const reducedMotion = useReducedMotion();
   const vh = useViewportHeight();
   const isDesktop = useIsDesktop();
@@ -106,8 +102,8 @@ export default function MobileMapSheet({
   );
 
   useEffect(() => {
-    onInsetChange?.(places.length === 0 || isDesktop ? 0 : heights[snap]);
-  }, [onInsetChange, places.length, isDesktop, heights, snap]);
+    onInsetChange?.(days.length === 0 || isDesktop ? 0 : heights[snap]);
+  }, [onInsetChange, days.length, isDesktop, heights, snap]);
   const { height, bind } = useSnapDrag({
     heights,
     index: snap,
@@ -133,31 +129,33 @@ export default function MobileMapSheet({
   const dragMoved = useRef(false);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
 
-  // A new selection — a marker tapped on the map, the scrubber dragged (from
-  // either copy of it), or a stop picked here — opens the sheet to Half, so
-  // whichever surface drove it, the result is the same stop in view. Not on
-  // the very first render (the page's own default selection shouldn't pop
-  // the sheet open by itself), and not on a selection *clearing* (`null`
-  // only ever comes from the map's own close button, which shouldn't reopen
-  // a sheet that was closed).
-  const lastKey = useRef(selectedKey);
+  // A new selection — a marker tapped on the map, or a day picked here —
+  // opens the sheet to Half, so whichever surface drove it, the result is
+  // the same day in view. Not on the very first render (the page's own
+  // default selection shouldn't pop the sheet open by itself), and not on a
+  // selection *clearing* (`null` only ever comes from the map's own close
+  // button, which shouldn't reopen a sheet that was closed).
+  const lastDate = useRef(selectedDate);
   useEffect(() => {
-    if (selectedKey && selectedKey !== lastKey.current) setSnap(HALF);
-    lastKey.current = selectedKey;
-  }, [selectedKey]);
+    if (selectedDate && selectedDate !== lastDate.current) setSnap(HALF);
+    lastDate.current = selectedDate;
+  }, [selectedDate]);
 
-  if (places.length === 0) return null;
+  if (days.length === 0) return null;
 
   const selectedIndex = Math.max(
     0,
-    places.findIndex((p) => p.key === selectedKey),
+    days.findIndex((d) => d.date === selectedDate),
   );
-  const selected = places[selectedIndex];
+  const selectedDay = days[selectedIndex];
+  const selectedPlace = places.find(
+    (p) => selectedDay && selectedDay.date >= p.firstDate && selectedDay.date <= p.lastDate,
+  );
 
-  const goToStop = (place: PlaceView) => onSelectKey(place.key);
+  const goToDay = (day: MapDay) => onSelectDate(day.date);
 
   const cycleLabel =
-    snap === PEEK ? t("map.thisStop") : snap === HALF ? t("map.everyStop") : t("map.sheet.peek");
+    snap === PEEK ? t("map.thisStop") : snap === HALF ? t("map.everyDay") : t("map.sheet.peek");
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom,0px)] lg:hidden">
@@ -207,28 +205,62 @@ export default function MobileMapSheet({
                 <PeekStat label={tn("map.countries", stats.countries)} value={stats.countries} />
                 <PeekStat label={t("map.media")} value={stats.totalMedia} />
               </dl>
-              {scrubberSlot}
+              {/* The day strip — B2537, replacing the old time scrubber.
+                  "days along the bottom on a phone: a strip of date + place
+                  + update count." A day with no place still gets a row,
+                  greyed, so the strip is never quietly missing one. */}
+              <div
+                role="list"
+                aria-label={t("map.everyDay")}
+                className="flex gap-1.5 overflow-x-auto"
+              >
+                {days.map((day) => {
+                  const isSelected = day.date === selectedDate;
+                  return (
+                    <button
+                      key={day.date}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => goToDay(day)}
+                      className={`flex shrink-0 flex-col items-start gap-0.5 rounded-lg border px-2.5 py-1.5 text-left text-xs ${
+                        isSelected
+                          ? "border-ink-strong bg-surface-selected"
+                          : day.hasPlace
+                            ? "border-line-quiet bg-surface-raised"
+                            : "border-dashed border-line-quiet bg-surface-raised text-ink-secondary"
+                      }`}
+                    >
+                      <span className="font-semibold text-ink-strong">
+                        {formatShortDate(day.date)}
+                      </span>
+                      <span className="truncate">
+                        {day.hasPlace ? day.location : t("map.noPlaceGiven")}
+                      </span>
+                      <span className="text-[10px] text-ink-secondary">
+                        {day.mediaCount} {t("media.count")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
-          {snap === HALF && selected && (
+          {snap === HALF && selectedDay && (
             <div className="flex flex-col gap-2 pt-1">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-display text-base font-semibold text-ink-strong">
-                    {flagFor(selected.country, selected.countryCode)} {selected.location}
+                    {selectedDay.hasPlace
+                      ? `${flagFor(selectedDay.country, selectedDay.countryCode)} ${selectedDay.location}`
+                      : t("map.noPlaceGiven")}
                   </div>
-                  <div className="text-xs text-ink-secondary">
-                    {formatShortDate(selected.firstDate)}
-                    {selected.lastDate !== selected.firstDate && ` – ${formatShortDate(selected.lastDate)}`}
-                    {" · "}
-                    {formatStay(selected.nights)}
-                  </div>
+                  <div className="text-xs text-ink-secondary">{formatShortDate(selectedDay.date)}</div>
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
-                    onClick={() => goToStop(places[(selectedIndex - 1 + places.length) % places.length])}
+                    onClick={() => goToDay(days[(selectedIndex - 1 + days.length) % days.length])}
                     aria-label={t("tripMap.previousStop")}
                     className="flex h-9 w-9 items-center justify-center rounded-full border border-line-quiet text-ink-body"
                   >
@@ -236,7 +268,7 @@ export default function MobileMapSheet({
                   </button>
                   <button
                     type="button"
-                    onClick={() => goToStop(places[(selectedIndex + 1) % places.length])}
+                    onClick={() => goToDay(days[(selectedIndex + 1) % days.length])}
                     aria-label={t("tripMap.nextStop")}
                     className="flex h-9 w-9 items-center justify-center rounded-full border border-line-quiet text-ink-body"
                   >
@@ -245,97 +277,109 @@ export default function MobileMapSheet({
                 </div>
               </div>
 
-              {/* The day's own opening line — never invented, only what
-                  `PlaceEntry.headline` already carries for the reader's
-                  locale (falls back to whichever locale it has). */}
-              {(selected.entries[0]?.headline[locale] ??
-                Object.values(selected.entries[0]?.headline ?? {})[0]) && (
-                <p className="text-sm text-ink-body">
-                  {selected.entries[0].headline[locale] ?? Object.values(selected.entries[0].headline)[0]}
-                </p>
+              {selectedPlace && (
+                <>
+                  {(selectedPlace.entries[0]?.headline[locale] ??
+                    Object.values(selectedPlace.entries[0]?.headline ?? {})[0]) && (
+                    <p className="text-sm text-ink-body">
+                      {selectedPlace.entries[0].headline[locale] ??
+                        Object.values(selectedPlace.entries[0].headline)[0]}
+                    </p>
+                  )}
+
+                  {selectedPlace.entries.some((e) => (e.gallery ?? []).length > 0) && (
+                    <div className="flex gap-1.5 overflow-x-auto">
+                      {selectedPlace.entries
+                        .flatMap((e) => e.gallery ?? [])
+                        .slice(0, 8)
+                        .map((m) => (
+                          <span
+                            key={m.src}
+                            className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-md border border-line-quiet bg-surface-muted"
+                          >
+                            {m.type === "video" ? (
+                              <video
+                                src={m.src}
+                                poster={posterSrc(m.poster, POSTER_WIDTH.GRID)}
+                                preload={m.poster ? "none" : "metadata"}
+                                className="h-full w-full object-cover"
+                                muted
+                              />
+                            ) : (
+                              <Image
+                                src={m.src}
+                                loader={mediaLoader}
+                                alt={m.alt ?? m.caption ?? selectedPlace.location}
+                                fill
+                                sizes="64px"
+                                className="object-cover"
+                              />
+                            )}
+                          </span>
+                        ))}
+                    </div>
+                  )}
+
+                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold">
+                    <a
+                      href={hrefForDay(selectedPlace.entries[0].slug)}
+                      className="text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2"
+                    >
+                      {t("map.readDay")} →
+                    </a>
+                    <a
+                      href={googleMapsHref(selectedPlace)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-ink-secondary underline decoration-line-quiet underline-offset-2"
+                    >
+                      <MapPin className="h-3.5 w-3.5" aria-hidden />
+                      {t("tripMap.googleMaps")}
+                    </a>
+                  </div>
+                </>
               )}
 
-              {selected.entries.some((e) => e.gallery.length > 0) && (
-                <div className="flex gap-1.5 overflow-x-auto">
-                  {selected.entries
-                    .flatMap((e) => e.gallery)
-                    .slice(0, 8)
-                    .map((m) => (
-                      <span
-                        key={m.src}
-                        className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-md border border-line-quiet bg-surface-muted"
-                      >
-                        {m.type === "video" ? (
-                          <video
-                            src={m.src}
-                            poster={posterSrc(m.poster, POSTER_WIDTH.GRID)}
-                            preload={m.poster ? "none" : "metadata"}
-                            className="h-full w-full object-cover"
-                            muted
-                          />
-                        ) : (
-                          <Image
-                            src={m.src}
-                            loader={mediaLoader}
-                            alt={m.alt ?? m.caption ?? selected.location}
-                            fill
-                            sizes="64px"
-                            className="object-cover"
-                          />
-                        )}
-                      </span>
-                    ))}
-                </div>
-              )}
-
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold">
+              {!selectedPlace && (
                 <a
-                  href={hrefForDay(selected.entries[0].slug)}
-                  className="text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2"
+                  href={hrefForDay(selectedDay.slug)}
+                  className="text-sm font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2"
                 >
                   {t("map.readDay")} →
                 </a>
-                <a
-                  href={googleMapsHref(selected)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-ink-secondary underline decoration-line-quiet underline-offset-2"
-                >
-                  <MapPin className="h-3.5 w-3.5" aria-hidden />
-                  {t("tripMap.googleMaps")}
-                </a>
-              </div>
+              )}
             </div>
           )}
 
           {snap === FULL && (
             <ol className="divide-y divide-line-quiet">
-              {places.map((place) => (
-                <li key={place.key}>
+              {days.map((day) => (
+                <li key={day.date}>
                   <button
                     type="button"
                     onClick={() => {
                       // Explicit, not only the generic "a new selection opens
-                      // Half" effect below: re-tapping the stop already
+                      // Half" effect below: re-tapping the day already
                       // selected changes no key, so that effect wouldn't
                       // fire, and tapping a row in Full should always jump to
                       // Half.
-                      goToStop(place);
+                      goToDay(day);
                       setSnap(HALF);
                     }}
                     className="flex w-full items-center justify-between gap-3 py-3 text-left"
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-display text-sm font-semibold text-ink-strong">
-                        {flagFor(place.country, place.countryCode)} {place.location}
+                        {day.hasPlace
+                          ? `${flagFor(day.country, day.countryCode)} ${day.location}`
+                          : t("map.noPlaceGiven")}
                       </span>
                       <span className="block text-xs text-ink-secondary">
-                        {formatShortDate(place.firstDate)}
-                        {place.lastDate !== place.firstDate && ` – ${formatShortDate(place.lastDate)}`}
+                        {formatShortDate(day.date)}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs text-ink-secondary">
-                      {formatStay(place.nights)} · {place.mediaCount} {t("media.count")}
+                      {day.mediaCount} {t("media.count")}
                     </span>
                   </button>
                 </li>

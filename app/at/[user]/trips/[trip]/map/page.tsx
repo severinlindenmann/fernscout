@@ -8,6 +8,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
+import { getMapDays } from "@/lib/map/mapDays";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -103,6 +104,7 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   return (
     <MapPageContent
       places={places}
+      days={getMapDays(trip.ref, read)}
       plan={plan.stops}
       streetMap={streetMap}
       // B665, and behind `mayReadTrip` in the page above like everything
