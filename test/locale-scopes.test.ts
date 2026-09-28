@@ -216,22 +216,40 @@ describe("dictionaryFor with a scope", () => {
     const { clearLocaleCache, dictionaryFor } = await import("@/lib/locales");
     clearLocaleCache();
     const scopes = JSON.parse(read("lib/localeScopes.json")) as Record<string, { keys: string[] }>;
+    // B2551: with a real paid/ checkout mounted, lib/localeScopes.paid.json
+    // (gitignored, written by next.config.ts) has the real keys journal's
+    // files reach through paid/ instead of the committed stub markers, and
+    // dictionaryFor() prefers it — so the expected key list, here alone,
+    // follows it too when it exists.
+    const paidScopesFile = path.join(ROOT, "lib", "localeScopes.paid.json");
+    const paidScopes = fs.existsSync(paidScopesFile)
+      ? (JSON.parse(fs.readFileSync(paidScopesFile, "utf8")) as Record<string, { keys: string[] }>)
+      : null;
+    const journalKeys = paidScopes?.journal.keys ?? scopes.journal.keys;
     const english = dictionaryFor("en");
     const german = dictionaryFor("de");
 
     const journal = dictionaryFor("de", "journal");
-    // With the private `paid/` clone mounted, a scope that reaches a paid area
-    // ships the whole dictionary: the paid components' keys are not in the
-    // scan (lib/locales.ts, dictionaryFor).
-    const { PAID_AREAS } = await import("@paid/manifest");
-    const paidAreas: readonly string[] = PAID_AREAS;
-    if ((scopes.journal as { paid?: string[] }).paid?.some((area) => paidAreas.includes(area))) {
-      expect(journal).toBe(german);
-      return;
+    // Without a paid-scopes file, a scope that reaches a paid area (by the
+    // committed, stub-based markers) ships the whole dictionary: the paid
+    // components' keys are not in the scan (lib/locales.ts, dictionaryFor).
+    // With one, the real keys are known, so this no longer applies (B2551).
+    if (!paidScopes) {
+      const { PAID_AREAS } = await import("@paid/manifest");
+      const paidAreas: readonly string[] = PAID_AREAS;
+      if ((scopes.journal as { paid?: string[] }).paid?.some((area) => paidAreas.includes(area))) {
+        expect(journal).toBe(german);
+        return;
+      }
     }
-    expect(Object.keys(journal).sort()).toEqual([...scopes.journal.keys].sort());
-    for (const key of scopes.journal.keys) expect(journal[key]).toBe(german[key]);
-    expect(Object.keys(journal).length).toBeLessThan(Object.keys(english).length / 3);
+    expect(Object.keys(journal).sort()).toEqual([...journalKeys].sort());
+    for (const key of journalKeys) expect(journal[key]).toBe(german[key]);
+    // The 1/3 bound was calibrated against the committed, stub-based count
+    // (paid/ renders nothing, so it undercounts); with the real paid/ keys
+    // counted in (B2551), journal legitimately carries more (postcards and
+    // photobook touch reader-facing pages) — the invariant that actually
+    // matters is "still a real subset, not the whole dictionary".
+    expect(Object.keys(journal).length).toBeLessThan(paidScopes ? Object.keys(english).length : Object.keys(english).length / 3);
     // One object per (locale, scope), so a layout and a page asking for the
     // same one put it in the RSC payload once.
     expect(dictionaryFor("de", "journal")).toBe(journal);
@@ -243,7 +261,7 @@ describe("dictionaryFor with a scope", () => {
 
     // A language with no dictionary of its own reads English for every key.
     const croatian = dictionaryFor("hr", "journal");
-    for (const key of scopes.journal.keys) expect(croatian[key]).toBe(english[key]);
+    for (const key of journalKeys) expect(croatian[key]).toBe(english[key]);
   });
 
   it("follows an instance's own override of a scoped string", async () => {
@@ -256,13 +274,44 @@ describe("dictionaryFor with a scope", () => {
     expect(dictionaryFor("en", "root")[key]).toBe("Overridden");
   });
 
-  it("ships a scope whole when its files reach a paid area this build carries", async () => {
+  it("ships a scope whole when its files reach a paid area this build carries, absent a paid-scopes file", async () => {
     const scopes = JSON.parse(read("lib/localeScopes.json")) as Record<string, { paid: string[] }>;
     const [scope, { paid }] = Object.entries(scopes).find(([, s]) => s.paid.length > 0)!;
-    vi.resetModules();
-    vi.doMock("@paid/manifest", () => ({ PAID_AREAS: [paid[0]] }));
-    const { clearLocaleCache, dictionaryFor } = await import("@/lib/locales");
+    // B2551: this fallback only applies without lib/localeScopes.paid.json —
+    // set aside whatever a real paid/ checkout's own build left on disk, so
+    // this test exercises the fallback deterministically rather than by
+    // accident of whether something built here already.
+    const paidScopesFile = path.join(ROOT, "lib", "localeScopes.paid.json");
+    const setAside = fs.existsSync(paidScopesFile) ? fs.readFileSync(paidScopesFile) : null;
+    if (setAside) fs.rmSync(paidScopesFile);
+    try {
+      vi.resetModules();
+      vi.doMock("@paid/manifest", () => ({ PAID_AREAS: [paid[0]] }));
+      const { clearLocaleCache, clearPaidLocaleScopesCache, dictionaryFor } = await import("@/lib/locales");
+      clearPaidLocaleScopesCache();
+      clearLocaleCache();
+      expect(dictionaryFor("en", scope as never)).toBe(dictionaryFor("en"));
+    } finally {
+      if (setAside) fs.writeFileSync(paidScopesFile, setAside);
+    }
+  });
+
+  it("dictionaryDeltaFor ships only what the nested scope adds beyond its parent's", async () => {
+    const { clearLocaleCache, dictionaryFor, dictionaryDeltaFor } = await import("@/lib/locales");
     clearLocaleCache();
-    expect(dictionaryFor("en", scope as never)).toBe(dictionaryFor("en"));
+    const journal = dictionaryFor("de", "journal");
+    const studio = dictionaryFor("de", "studio");
+    const delta = dictionaryDeltaFor("de", "studio", "journal");
+    // Every key the delta carries really is in studio's own scope, and
+    // merging it back onto the parent covers every key studio needs (the
+    // merge may also carry journal-only keys studio's files never ask for —
+    // harmless, since nothing there calls t() with them).
+    for (const key of Object.keys(delta)) expect(studio[key]).toBe(delta[key]);
+    const merged: Record<string, string> = { ...journal, ...delta };
+    for (const key of Object.keys(studio)) expect(merged[key]).toBe(studio[key]);
+    // And it is genuinely smaller — the whole point of sending a delta.
+    expect(Object.keys(delta).length).toBeLessThan(Object.keys(studio).length);
+    // A scope asked as its own parent has nothing left to add.
+    expect(dictionaryDeltaFor("de", "journal", "journal")).toEqual({});
   });
 });
