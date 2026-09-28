@@ -90,6 +90,7 @@ export default function WorldMap({
   selectedKey: selectedKeyProp,
   onSelect: onSelectProp,
   stopCardFromLg = false,
+  fillHeight = false,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -142,6 +143,13 @@ export default function WorldMap({
    * (B2427), so the card over the map would repeat it and cover the map.
    * When set, that card appears from `lg` up only. */
   stopCardFromLg?: boolean;
+  /** The map page on a phone (B2426, Phase 2 item 1): the map fills the
+   * whole viewport under the header rather than sitting at whatever height
+   * its own aspect ratio would give it. Off everywhere else (the countdown,
+   * the studio's recorded-trips preview, and this same page from `lg` up,
+   * which keeps its own fixed-aspect box) — a caller that forgets it keeps
+   * the original, safer height-follows-content behaviour. */
+  fillHeight?: boolean;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -221,21 +229,27 @@ export default function WorldMap({
   );
 
   /**
-   * How wide this map is actually being drawn, in CSS pixels.
+   * How large this map is actually being drawn, in CSS pixels.
    *
    * Set after mount, and deliberately *not* during the server render: the
-   * initial value has to be identical on both sides or every size below becomes
-   * a hydration mismatch. 900 is a desktop map; a phone corrects it on the
-   * first frame.
+   * initial value has to be identical on both sides or every size below
+   * becomes a hydration mismatch. 900x450 is a desktop map's shape; a phone
+   * corrects it on the first frame.
+   *
+   * Both dimensions, not just the width (B2426) — `fillHeight` (the map
+   * page on a phone) hands this a box whose shape is the *remaining
+   * viewport*, not `base`'s own aspect, so `view` below has to grow to
+   * match it the same way `TripMap`'s own `frame` already does, or a
+   * portrait phone box would letterbox a landscape route.
    */
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [drawnWidth, setDrawnWidth] = useState(900);
+  const [drawn, setDrawn] = useState({ w: 900, h: 450 });
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
-      const w = entry.contentRect.width;
-      if (w > 0) setDrawnWidth(w);
+      const { width, height } = entry.contentRect;
+      if (width > 0 && height > 0) setDrawn({ w: width, h: height });
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -248,8 +262,17 @@ export default function WorldMap({
   const { zoom, pan, setZoom, setPan } = viewport;
 
   const view = useMemo(() => {
-    const w = base.w / zoom;
-    const h = base.h / zoom;
+    // Grown to the rendered box's own shape before dividing by zoom — a
+    // no-op wherever the box's aspect already follows `base`'s (every
+    // caller but the phone full-screen map, since elsewhere the SVG's own
+    // `h-auto` makes those the same number).
+    const aspect = drawn.w / drawn.h;
+    let baseW = base.w;
+    let baseH = base.h;
+    if (baseW / baseH < aspect) baseW = baseH * aspect;
+    else baseH = baseW / aspect;
+    const w = baseW / zoom;
+    const h = baseH / zoom;
     const baseCx = base.x + base.w / 2;
     const baseCy = base.y + base.h / 2;
     // 0 at zoom 1, approaching 1 as you zoom in.
@@ -257,7 +280,7 @@ export default function WorldMap({
     const cx = (focus ? baseCx + (focus.x - baseCx) * drift : baseCx) + pan.x;
     const cy = (focus ? baseCy + (focus.y - baseCy) * drift : baseCy) + pan.y;
     return { x: cx - w / 2, y: cy - h / 2, w, h };
-  }, [base, zoom, pan, focus]);
+  }, [base, zoom, pan, focus, drawn]);
   // Kept for gesture handlers that fire between renders (a pinch, a wheel
   // tick) — an effect, not a call in the render body, so nothing here ever
   // mutates a ref while rendering.
@@ -286,8 +309,8 @@ export default function WorldMap({
    * definition of "legible" that survives changing the screen.
    */
   const px = useCallback(
-    (pixels: number) => (pixels * view.w) / drawnWidth,
-    [view.w, drawnWidth],
+    (pixels: number) => (pixels * view.w) / drawn.w,
+    [view.w, drawn.w],
   );
 
   // Clustered against the radius the markers are actually drawn at, so the
@@ -356,9 +379,20 @@ export default function WorldMap({
   const hereNow = live && plottable.length > 0 ? plottable[plottable.length - 1] : null;
 
   return (
-    <div>
+    <div
+      className={
+        // `absolute inset-0`, not `h-full`: the caller's own box (B2426, the
+        // map page on a phone) gets its height from flex-grow, not a
+        // specified height, and a percentage-height child of a flex item
+        // does not reliably resolve two levels down through it in Chrome.
+        // Absolute positioning resolves against the nearest *positioned*
+        // ancestor's actual box regardless — the caller's own wrapper is
+        // already `relative` for exactly this.
+        fillHeight ? "absolute inset-0 flex flex-col lg:static lg:contents" : undefined
+      }
+    >
       <div
-        className="relative overflow-hidden rounded-2xl border border-line-quiet shadow-sm"
+        className={`relative overflow-hidden rounded-2xl border border-line-quiet shadow-sm${fillHeight ? " flex-1 lg:flex-none" : ""}`}
         style={{ backgroundColor: mapStyle.sea }}
       >
         {/* role="group", not role="img": img makes every descendant
@@ -372,7 +406,17 @@ export default function WorldMap({
           // page, where the map is the entire point of the screen. The pan and
           // zoom controls also need somewhere to be that is not on top of the
           // route.
-          className="block h-auto min-h-[340px] w-full cursor-grab touch-none outline-none active:cursor-grabbing sm:min-h-0"
+          //
+          // `fillHeight` (B2426): the map page on a phone, where the box is
+          // already the full remaining viewport height (`h-full`) rather than
+          // something this SVG should still be sizing for itself — `view`
+          // above already grew to match it, so `h-auto`'s own aspect-follows-
+          // content logic would fight that rather than agree with it.
+          className={
+            fillHeight
+              ? "block h-full w-full cursor-grab touch-none outline-none active:cursor-grabbing lg:h-auto"
+              : "block h-auto min-h-[340px] w-full cursor-grab touch-none outline-none active:cursor-grabbing sm:min-h-0"
+          }
           role="group"
           // The same question the heading above it asks (B54). A map showing
           // only a planned route must not announce itself as "where we've

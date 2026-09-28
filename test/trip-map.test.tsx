@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import TripMap from "@/components/TripMap";
+import TripProvider from "@/components/TripProvider";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import { frameRoute, kmForUnits, place } from "@/lib/mapFrame";
 import { areaKey, googleMapsHref, tripStops, type StopSource } from "@/lib/tripMap";
 import { mapAccent, mapStyle } from "@/lib/map/style";
+import type { Trip } from "@/lib/types";
 
 /**
  * The trip's overview map — B1911.
@@ -383,6 +385,82 @@ describe("Paper: selection, here-now and the route (B2421)", () => {
     expect(container!.textContent).not.toContain(
       "Connection between stops, not a recorded route",
     );
+  });
+});
+
+/**
+ * The full-screen control and a cooperative tap — B2426, Phase 2 item 1 of
+ * docs/plans/map-redesign.md. The chosen route is a plain navigation to the
+ * map page (reusing its own data rather than a second overlay), carrying
+ * whichever stop is selected here, so Back — the browser's own and the
+ * iPhone edge swipe B2324 wired up — closes it for free by landing on a real
+ * history entry.
+ */
+describe("the full-screen control", () => {
+  function renderWithTrip(days: StopSource[]) {
+    const trip = { username: "alex", id: "alps-2024" } as unknown as Trip;
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => {
+      root!.render(
+        <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+          <TripProvider trip={trip} isCurrent={false}>
+            <TripMap days={days} />
+          </TripProvider>
+        </LocaleProvider>,
+      );
+    });
+    return container!;
+  }
+
+  /** jsdom's own `location.assign` refuses `vi.spyOn` directly ("cannot
+   * redefine property") — the whole property is swapped instead, and put
+   * back after. */
+  function stubLocationAssign(): { assign: ReturnType<typeof vi.fn>; restore: () => void } {
+    const original = window.location;
+    const assign = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (window as any).location;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).location = { ...original, assign };
+    return {
+      assign,
+      restore: () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).location = original;
+      },
+    };
+  }
+
+  // `${location}-${date}` — the map page's own place key (`getPlaces`,
+  // lib/entries.ts), not this component's internal `${date}-${areaKey}` one
+  // (`tripStops`) — see `defaultFullscreen`'s own doc comment in TripMap.tsx.
+  const stops = tripStops(alps);
+
+  test("opens the map page with the selected stop, when a caller hands it no route of its own", () => {
+    const { assign, restore } = stubLocationAssign();
+    renderWithTrip(alps);
+    click(control("Full screen")!);
+    // The last stop (Luzern) is selected by default — see "selection, and
+    // where it sends the reader" above.
+    const luzern = stops[3];
+    expect(assign).toHaveBeenCalledWith(
+      `/alex/trips/alps-2024/map?stop=${encodeURIComponent(`${luzern.location}-${luzern.date}`)}`,
+    );
+    restore();
+  });
+
+  test("follows the reader's own selection, not always the last stop", () => {
+    const { assign, restore } = stubLocationAssign();
+    renderWithTrip(alps);
+    click(stopButtons()[0]); // Grimsel
+    click(control("Full screen")!);
+    const grimsel = stops[0];
+    expect(assign).toHaveBeenCalledWith(
+      `/alex/trips/alps-2024/map?stop=${encodeURIComponent(`${grimsel.location}-${grimsel.date}`)}`,
+    );
+    restore();
   });
 });
 
