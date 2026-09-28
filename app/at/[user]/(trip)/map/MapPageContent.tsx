@@ -554,7 +554,7 @@ export default function MapPageContent({
                         aria-hidden
                       />
                       {chip.label}
-                      {chip.days ? ` · ${tn("map.days", chip.days)}` : ""}
+                      {chip.days ? ` · ${chip.days} ${tn("map.days", chip.days)}` : ""}
                     </button>
                   );
                 })}
