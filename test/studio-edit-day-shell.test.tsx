@@ -145,7 +145,7 @@ describe("day/edit on the studio shell — B2073", () => {
     expect(form.querySelector('input[type="checkbox"]')).toBeNull();
     // It says where those live instead.
     const link = Array.from(container!.querySelectorAll("a")).find((a) => a.textContent?.includes("Trips"));
-    expect(link?.getAttribute("href")).toBe("/alex/studio/trip?trip=reise");
+    expect(link?.getAttribute("href")).toBe("/@alex/studio/trip?trip=reise");
   });
 
   test("an emptied title is refused under the title field, and Save stays disabled", async () => {

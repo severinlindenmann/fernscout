@@ -68,10 +68,10 @@ const chipOn = (el: HTMLElement, href: string) => el.querySelector(`a[href="${hr
 
 describe("fact chips", () => {
   const cases: [string, Partial<HubFacts>, string, string][] = [
-    ["drafts (B2140: on Publish a day)", { drafts: 2 }, "/alex/studio/day/publish", "2 drafts"],
-    ["plan countdown", { planStartsInDays: 34 }, "/alex/studio/plan/jp", "in 34 days"],
-    ["readers asking", { readersAsking: 1 }, "/alex/studio/readers", "1 asking"],
-    ["inbox", { inboxCount: 11, inboxBytes: 31 * 1024 * 1024 }, "/alex/studio/inbox", "11 files · 31 MB"],
+    ["drafts (B2140: on Publish a day)", { drafts: 2 }, "/@alex/studio/day/publish", "2 drafts"],
+    ["plan countdown", { planStartsInDays: 34 }, "/@alex/studio/plan/jp", "in 34 days"],
+    ["readers asking", { readersAsking: 1 }, "/@alex/studio/readers", "1 asking"],
+    ["inbox", { inboxCount: 11, inboxBytes: 31 * 1024 * 1024 }, "/@alex/studio/inbox", "11 files · 31 MB"],
   ];
 
   test.each(cases)("%s: a chip when non-zero, nothing at zero", async (_, facts, href, text) => {
@@ -82,13 +82,13 @@ describe("fact chips", () => {
   });
 
   test("a single draft reads in the singular and carries no date or age", async () => {
-    const chip = chipOn(await render({ ...FULL, facts: { ...NO_FACTS, drafts: 1 } }), "/alex/studio/day/publish");
+    const chip = chipOn(await render({ ...FULL, facts: { ...NO_FACTS, drafts: 1 } }), "/@alex/studio/day/publish");
     expect(chip).toBe("1 draft");
     expect(chip).not.toMatch(/\d{4}|ago|old|since|day|week|month/i);
   });
 
   test("a trip starting today shows no countdown chip", async () => {
-    expect(chipOn(await render({ ...FULL, facts: { ...NO_FACTS, planStartsInDays: 0 } }), "/alex/studio/plan/jp")).toBeNull();
+    expect(chipOn(await render({ ...FULL, facts: { ...NO_FACTS, planStartsInDays: 0 } }), "/@alex/studio/plan/jp")).toBeNull();
   });
 
   /** Each chip's number has one named source in `buildStudioHubModel`. */
@@ -123,7 +123,7 @@ describe("the Half done strip", () => {
       resumableImports: [
         { runId: "r1", createdAt: "2026-09-01T00:00:00.000Z", expiresAt: "2026-09-05T00:00:00.000Z", livePhotoCount: 4, daysLeftToTell: 1, stagedBytes: 12_000_000 },
       ],
-      postcardSuggestion: { dayTitle: "Zermatt", dayDate: "2026-09-12", tripTitle: "Alps", dayHref: "/alex/trips/alps/day/zermatt" },
+      postcardSuggestion: { dayTitle: "Zermatt", dayDate: "2026-09-12", tripTitle: "Alps", dayHref: "/@alex/trips/alps/day/zermatt" },
     });
     const s = strip(el)!;
     expect(s).not.toBeNull();
@@ -151,7 +151,7 @@ describe("the Half done strip", () => {
   test("names an untitled day by its date and trip, with no empty quotes", async () => {
     const el = await render({
       ...FULL,
-      postcardSuggestion: { dayTitle: null, dayDate: "2026-07-14", tripTitle: "Hungary 2026", dayHref: "/alex/trips/hu/day/2026-07-14" },
+      postcardSuggestion: { dayTitle: null, dayDate: "2026-07-14", tripTitle: "Hungary 2026", dayHref: "/@alex/trips/hu/day/2026-07-14" },
     });
     const s = strip(el)!;
     expect(s.textContent).toContain("14 July");
@@ -166,24 +166,24 @@ describe("B2134 — hub facts and layout", () => {
 
   test("an inbox under a megabyte reads in kilobytes", async () => {
     const el = await render({ ...FULL, facts: { ...NO_FACTS, inboxCount: 2, inboxBytes: 494 * 1024 } });
-    expect(chipOn(el, "/alex/studio/inbox")).toBe("2 files · 494 KB");
+    expect(chipOn(el, "/@alex/studio/inbox")).toBe("2 files · 494 KB");
   });
 
   test("the Credits & storage row carries the balance, an amber open purchase and storage", async () => {
     const el = await render({ ...FULL, account: { credits: 59.61, purchasesOpen: 1, storage: { usedBytes: 4 * GB, limitBytes: 10 * GB } } });
-    const chips = Array.from(el.querySelectorAll('a[href="/alex/studio/account"] [data-fact]'));
+    const chips = Array.from(el.querySelectorAll('a[href="/@alex/studio/account"] [data-fact]'));
     expect(chips.map((c) => c.textContent)).toEqual(["59.61 credits", "1 open", "4.0 of 10 GB"]);
     expect(chips.map((c) => c.hasAttribute("data-amber"))).toEqual([false, true, false]);
   });
 
   test("no balance, nothing open and no ceiling: no chips on that row", async () => {
     const el = await render(FULL);
-    expect(el.querySelectorAll('a[href="/alex/studio/account"] [data-fact]').length).toBe(0);
+    expect(el.querySelectorAll('a[href="/@alex/studio/account"] [data-fact]').length).toBe(0);
   });
 
   test("storage under a gigabyte keeps its own unit", async () => {
     const el = await render({ ...FULL, account: { credits: null, purchasesOpen: 0, storage: { usedBytes: 3 * 1024 ** 2, limitBytes: 10 * GB } } });
-    expect(el.querySelector('a[href="/alex/studio/account"] [data-fact]')?.textContent).toBe("3 MB of 10 GB");
+    expect(el.querySelector('a[href="/@alex/studio/account"] [data-fact]')?.textContent).toBe("3 MB of 10 GB");
   });
 
   // B2304 removed the floating phone-bar pill entirely — the hero's own
@@ -199,8 +199,8 @@ describe("B2134 — hub facts and layout", () => {
 
   test("Plan has no plan-readers row, and the trip row is called Trips", async () => {
     const el = await render(FULL);
-    expect(el.querySelector('#plan a[href="/alex/studio/trip/plan-readers"]')).toBeNull();
-    expect(el.querySelector('#plan a[href="/alex/studio/trip"]')?.querySelector("span span")?.textContent).toBe("Trips");
+    expect(el.querySelector('#plan a[href="/@alex/studio/trip/plan-readers"]')).toBeNull();
+    expect(el.querySelector('#plan a[href="/@alex/studio/trip"]')?.querySelector("span span")?.textContent).toBe("Trips");
   });
 
   test("group headers carry no row count", async () => {
@@ -212,19 +212,19 @@ describe("B2134 — hub facts and layout", () => {
 // B2160 — the Print rows count their own unfinished drafts.
 describe("draft chips on the Print rows", () => {
   const unfinished = [
-    { kind: "photobook" as const, trip: "alps", tripTitle: "Alps", href: "/alex/trips/alps/photobook", updatedAt: "2026-09-24T10:00:00Z" },
-    { kind: "photobook" as const, trip: "jp", tripTitle: "Japan", href: "/alex/trips/jp/photobook", updatedAt: "2026-09-21T10:00:00Z" },
-    { kind: "postcard" as const, id: "pc1", href: "/alex/postcards/pc1", recipients: [], updatedAt: "2026-09-19T10:00:00Z" },
+    { kind: "photobook" as const, trip: "alps", tripTitle: "Alps", href: "/@alex/trips/alps/photobook", updatedAt: "2026-09-24T10:00:00Z" },
+    { kind: "photobook" as const, trip: "jp", tripTitle: "Japan", href: "/@alex/trips/jp/photobook", updatedAt: "2026-09-21T10:00:00Z" },
+    { kind: "postcard" as const, id: "pc1", href: "/@alex/postcards/pc1", recipients: [], updatedAt: "2026-09-19T10:00:00Z" },
   ];
 
   test("each row counts only its own kind, nothing at zero", async () => {
     const el = await render({ ...FULL, print: { unfinished, recentOrders: [] } });
-    expect(chipOn(el, "/alex/studio/photobook")).toBe("2 drafts");
-    expect(chipOn(el, "/alex/studio/postcard")).toBe("1 draft");
+    expect(chipOn(el, "/@alex/studio/photobook")).toBe("2 drafts");
+    expect(chipOn(el, "/@alex/studio/postcard")).toBe("1 draft");
     act(() => root?.unmount());
     container?.remove();
     const empty = await render(FULL);
-    expect(chipOn(empty, "/alex/studio/photobook")).toBeNull();
-    expect(chipOn(empty, "/alex/studio/postcard")).toBeNull();
+    expect(chipOn(empty, "/@alex/studio/photobook")).toBeNull();
+    expect(chipOn(empty, "/@alex/studio/postcard")).toBeNull();
   });
 });

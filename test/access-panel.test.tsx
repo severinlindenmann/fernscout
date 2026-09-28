@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import MePageContent, { type ManagePanel } from "@/app/[user]/me/MePageContent";
+import MePageContent, { type ManagePanel } from "@/app/at/[user]/me/MePageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -30,7 +30,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/alex/me",
+  usePathname: () => "/@alex/me",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -43,7 +43,7 @@ const site = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   hasAccessPanel: true,
 } as unknown as SiteSummary;
 
@@ -56,7 +56,7 @@ const owner: Viewer = { email: "owner@example.test", owner: true, guest: false, 
 const ownerWithTrips: Viewer = {
   ...owner,
   trips: [
-    { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "owner", status: "past", end: "2025-01-01" },
+    { id: "bus-2026", title: "The bus year", href: "/@alex/trips/bus-2026", through: "owner", status: "past", end: "2025-01-01" },
   ],
 };
 
@@ -109,7 +109,7 @@ describe("the access panel, for somebody not signed in", () => {
   test("never offers a way to join uninvited", () => {
     for (const canSignIn of [true, false]) {
       const html = render({ canSignIn });
-      expect(html).not.toContain("/alex/join");
+      expect(html).not.toContain("/@alex/join");
       // The button that opened it. ("guestbook" itself still appears, in the
       // sentence explaining that this journal does not keep one.)
       expect(html).not.toContain("Sign the guestbook");
@@ -154,7 +154,7 @@ describe("the reason beside each trip", () => {
       email: "reader@example.test",
       owner,
       guest: false,
-      trips: [{ id: "t", title: "A trip", href: "/alex/trips/t", through, status: "past", end: "2025-01-01" }],
+      trips: [{ id: "t", title: "A trip", href: "/@alex/trips/t", through, status: "past", end: "2025-01-01" }],
     };
     return render({ viewer });
   }
@@ -188,10 +188,10 @@ describe("the access panel, for the owner", () => {
   test("no owner administration renders here any more — it moved to the studio", () => {
     for (const contactsEnabled of [true, false]) {
       const html = render({ viewer: owner, contactsEnabled });
-      expect(html).not.toContain('href="/alex/contacts"');
+      expect(html).not.toContain('href="/@alex/contacts"');
       expect(html).not.toContain("Manage who can read this");
       // The agent card's own button — B301/B2017: gone from `/me`, moved
-      // whole to `/alex/studio/agent`.
+      // whole to `/@alex/studio/agent`.
       expect(html).not.toContain(dictionaryFor("en")["me.handoverCreate"]);
     }
   });
@@ -228,7 +228,7 @@ describe("the way to the people, no longer offered on /me — B2017", () => {
         owner: false,
         guest: false,
         trips: [
-          { id: "bus-2026", title: "The bus year", href: "/alex/trips/bus-2026", through: "traveller", status: "past", end: "2025-01-01" },
+          { id: "bus-2026", title: "The bus year", href: "/@alex/trips/bus-2026", through: "traveller", status: "past", end: "2025-01-01" },
         ],
       },
     ];
@@ -346,7 +346,7 @@ describe("the details panel, inline", () => {
     const html = render({ viewer: reader, contactsEnabled: true, manage });
     expect(html).toContain("<details");
     expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
-    expect(html).not.toMatch(/href="\/alex\/c\//);
+    expect(html).not.toMatch(/href="\/@alex\/c\//);
   });
 
   test("renders the form in its own dictionary, independent of the page's", () => {
@@ -415,10 +415,10 @@ describe("what somebody on a trip is told they can write", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller", status: "past", end: "2025-01-01" },
+      { id: "asia-2025", title: "Asia 2025", href: "/@alex/trips/asia-2025", through: "traveller", status: "past", end: "2025-01-01" },
       // Readable, not writable — a public trip they were not on. It must not
       // acquire a prompt merely by being in the list.
-      { id: "open-road", title: "Open road", href: "/alex/trips/open-road", through: "public", status: "past", end: "2025-01-01" },
+      { id: "open-road", title: "Open road", href: "/@alex/trips/open-road", through: "public", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -427,7 +427,7 @@ describe("what somebody on a trip is told they can write", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest", status: "past", end: "2025-01-01" },
+      { id: "asia-2025", title: "Asia 2025", href: "/@alex/trips/asia-2025", through: "guest", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -459,7 +459,7 @@ describe("what somebody on a trip is told they can write", () => {
 
   test("gets a prompt naming the trip they were on, and only that trip", () => {
     const html = render({ viewer: buddy });
-    expect(html).toContain("https://example.test/alex/trips/asia-2025");
+    expect(html).toContain("https://example.test/@alex/trips/asia-2025");
     expect(html).toContain("&quot;trip&quot;:&quot;asia-2025&quot;");
     // The public trip is readable and not writable, so it belongs in the list
     // above and in no prompt — a code request for it is one the server
@@ -555,7 +555,7 @@ describe("the account page is not advertised on /me — B876", () => {
     // the menu entry is the way in, and a card whose only content is "this
     // lives elsewhere" is a whole card to say so.
     const html = render({ viewer: owner });
-    expect(html).not.toContain('href="/alex/account"');
+    expect(html).not.toContain('href="/@alex/account"');
   });
 
   test("and the figures are still not here", () => {
@@ -585,7 +585,7 @@ describe("the sessions-consent block — B1385", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "traveller", status: "past", end: "2025-01-01" },
+      { id: "asia-2025", title: "Asia 2025", href: "/@alex/trips/asia-2025", through: "traveller", status: "past", end: "2025-01-01" },
     ],
   };
 
@@ -594,7 +594,7 @@ describe("the sessions-consent block — B1385", () => {
     owner: false,
     guest: true,
     trips: [
-      { id: "asia-2025", title: "Asia 2025", href: "/alex/trips/asia-2025", through: "guest", status: "past", end: "2025-01-01" },
+      { id: "asia-2025", title: "Asia 2025", href: "/@alex/trips/asia-2025", through: "guest", status: "past", end: "2025-01-01" },
     ],
   };
 

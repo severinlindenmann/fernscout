@@ -267,7 +267,7 @@ describe("B2171 — the reminder's button and its web switch", () => {
     const text = [...eml.matchAll(/Content-Transfer-Encoding: base64\r?\n(?:[^\r\n]+\r?\n)*\r?\n([A-Za-z0-9+/=\r\n]+)/g)]
       .map((part) => Buffer.from(part[1].replace(/\s+/g, ""), "base64").toString("utf8"))
       .join("\n");
-    expect(text).toContain('href="https://example.test/ana/studio/day/new"');
+    expect(text).toContain('href="https://example.test/@ana/studio/day/new"');
     expect(text).not.toMatch(/\/agent(?![\w.-])/);
   });
 

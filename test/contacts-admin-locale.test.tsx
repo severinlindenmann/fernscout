@@ -12,7 +12,7 @@ import type { SiteSummary } from "@/lib/site";
 
 /**
  * B469 — the contacts admin page's own chrome must follow the reader's
- * chosen language, not the journal's default. `app/[user]/me/page.tsx`
+ * chosen language, not the journal's default. `app/at/[user]/me/page.tsx`
  * already draws this line (`uiLocale` from `requestLocale()`); this page did
  * not, and rendered `pickLocale(user.defaultLocale)` instead — a fact about
  * the journal, not about whoever is looking at the screen.
@@ -142,7 +142,7 @@ const site = {
 } as unknown as SiteSummary;
 
 async function render(): Promise<string> {
-  const { default: ContactsAdminPage } = await import("@/app/[user]/studio/readers/page");
+  const { default: ContactsAdminPage } = await import("@/app/at/[user]/studio/readers/page");
   const page = await ContactsAdminPage({
     params: Promise.resolve({ user: "alex" }),
     searchParams: Promise.resolve({}),

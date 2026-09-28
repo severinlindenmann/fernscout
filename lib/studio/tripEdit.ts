@@ -27,7 +27,7 @@ export function tripForEdit(username: string, tripId: string): Trip | undefined 
 }
 
 /** The fields `TripEditFlow` needs about the selected trip — a subset of
- *  `Trip`, the same shape `app/[user]/me/page.tsx` used to build for its own
+ *  `Trip`, the same shape `app/at/[user]/me/page.tsx` used to build for its own
  *  (now-removed) pencil editor. */
 export type TripEditPanel = {
   id: string;

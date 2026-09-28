@@ -144,7 +144,7 @@ describe("a day in, an entry out", () => {
 
   test("media paths stay trip-relative, with no username in them", async () => {
     // lib/entries.ts prefixes the owner at read time. A username written here
-    // would come out as /alice/media/alice/… on the page.
+    // would come out as /@alice/media/alice/… on the page.
     await run();
     const file = fs.readdirSync(path.join(tripDir(), "entries"))[0];
     const day = readDay(path.join(tripDir(), "entries", file));
@@ -198,7 +198,7 @@ describe("a day in, an entry out", () => {
     expect(entries[0].gallery).toHaveLength(3);
     // Read back, the owner is prefixed — which is the proof that what ingest
     // wrote was in the shape lib/entries.ts expects.
-    expect(entries[0].gallery[0].src).toMatch(new RegExp(`^/${USER}/media/${TRIP}/`));
+    expect(entries[0].gallery[0].src).toMatch(new RegExp(`^/@${USER}/media/${TRIP}/`));
   });
 });
 

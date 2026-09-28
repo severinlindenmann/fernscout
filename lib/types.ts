@@ -455,7 +455,7 @@ export type TripAccent = "sky" | "yellow" | "green" | "coral" | "navy";
  * The five palette hues from app/globals.css, as literals — moved here
  * (B2491 review) from `components/LifetimeMap.tsx`, which no longer draws
  * a route or a marker in any trip's accent (decision 1) and so no longer
- * has a reason to hold a hex literal at all; `app/[user]/trips/TripsIndexContent.tsx`'s
+ * has a reason to hold a hex literal at all; `app/at/[user]/trips/TripsIndexContent.tsx`'s
  * own card accent dot is the only remaining consumer. Plain hex on purpose:
  * this is an HTML `style` value, which a Tailwind class can't reach.
  */
@@ -629,7 +629,7 @@ export type Trip = {
    * `visibility === "public"`.
    *
    * True only where it means something: `parseTeaser` refuses it on a public
-   * trip, advertised or not. One consumer, `app/[user]/trips/page.tsx`, which
+   * trip, advertised or not. One consumer, `app/at/[user]/trips/page.tsx`, which
    * renders a card with a title, dates and a closed mark and nothing else —
    * no stats, no cover, no tagline, no route. Not the sitemap, not the feed,
    * not the switcher, and never a reading right.

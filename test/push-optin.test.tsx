@@ -58,7 +58,7 @@ describe("where notifications can be switched on", () => {
   });
 
   test("the reader's own page offers it, not only a trip's hero", () => {
-    const me = read("app/[user]/me/MePageContent.tsx");
+    const me = read("app/at/[user]/me/MePageContent.tsx");
     expect(me).toContain("<PushOptIn");
     expect(me).toContain("me.notifyTitle");
   });
@@ -73,7 +73,7 @@ describe("where notifications can be switched on", () => {
    * asserted; this pins the wiring, which is what a later edit would undo.
    */
   test("the page hands over the words rather than writing them around it", () => {
-    const me = read("app/[user]/me/MePageContent.tsx");
+    const me = read("app/at/[user]/me/MePageContent.tsx");
     expect(me).toMatch(/heading=\{\{\s*title: t\("me\.notifyTitle"\)/);
     // No section element of the page's own around it — that was the bug.
     expect(me).not.toMatch(/<section[^>]*>\s*<h2[^>]*>\s*\{t\("me\.notifyTitle"\)/);

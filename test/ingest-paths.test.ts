@@ -39,10 +39,10 @@ describe("ingest writes where the site reads", () => {
   });
 
   test("frontmatter src, once the owner is prefixed, is the URL the site serves", () => {
-    // lib/entries.ts turns "/media/<trip>/x.jpg" into "/<user>/media/<trip>/x.jpg"
+    // lib/entries.ts turns "/media/<trip>/x.jpg" into "/@<user>/media/<trip>/x.jpg"
     // at read time. That has to match what lib/media.ts would have produced.
     const written = frontmatterSrc(trip, path.join("day-one", "01.jpg"));
-    expect(`/${user}${written}`).toBe(mediaUrl(tripRef(user, trip), "day-one/01.jpg"));
+    expect(`/@${user}${written}`).toBe(mediaUrl(tripRef(user, trip), "day-one/01.jpg"));
   });
 
   test("frontmatter never contains the username", () => {

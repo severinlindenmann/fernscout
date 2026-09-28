@@ -24,10 +24,11 @@ import { getCurrentTrip, getTrips } from "./trips";
 import type { Entry, Trip } from "./types";
 import { getUser } from "./users";
 
+import { journalPath } from "./journalPath";
 /**
  * Full-text search, one index per user, built entirely at request time from
  * the filesystem — nothing here is a runtime service, and nothing outlives
- * the request. `app/[user]/search-index.json/route.ts` serves the JSON, and
+ * the request. `app/at/[user]/search-index.json/route.ts` serves the JSON, and
  * the browser does the searching itself against it with MiniSearch — see
  * components/SearchBox.tsx.
  *
@@ -71,7 +72,7 @@ function toDoc(trip: Trip, tripBase: string, entry: Entry): SearchDoc {
 }
 
 function tripBaseFor(username: string, trip: Trip, currentId: string | undefined): string {
-  return trip.id === currentId ? `/${username}` : `/${username}/trips/${trip.id}`;
+  return trip.id === currentId ? journalPath(username) : `${journalPath(username)}/trips/${trip.id}`;
 }
 
 /**
@@ -310,7 +311,7 @@ function journalPageDocs(username: string, reader: SearchLevel): SearchDoc[] {
     JOURNAL_DESTINATIONS,
     reader,
     "page:",
-    (path) => `/${username}${path}`,
+    (path) => `${journalPath(username)}${path}`,
   );
 }
 

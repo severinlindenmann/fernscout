@@ -68,7 +68,7 @@ function plantPhoto(file: string) {
 }
 
 async function fetchMedia(segments: string[]) {
-  const { GET } = await import("@/app/[user]/media/[...path]/route");
+  const { GET } = await import("@/app/at/[user]/media/[...path]/route");
   return GET(
     new Request(`https://example.test/${OWNER}/media/${segments.join("/")}`),
     { params: Promise.resolve({ user: OWNER, path: segments }) } as never,

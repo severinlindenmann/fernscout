@@ -6,6 +6,7 @@ import { ImageOff } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { UNDATED, type WaitingDays as Model } from "@/lib/studio/dayCards";
 
+import { journalPath } from "@/lib/journalPath";
 const SHOWN = 5;
 const LINK = "inline-flex min-h-11 items-center text-sm font-semibold text-ink-strong underline underline-offset-2";
 const PILL =
@@ -66,14 +67,14 @@ export default function WaitingDays({ username, model, canWrite }: { username: s
               {card.newTrip && cards[i - 1]?.newTrip?.start !== card.newTrip.start && (
                 <>
                   <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">{t("studio.hub.waiting.noTrip")}</span>
-                  <Link href={`/${username}/studio/trip/new?start=${card.newTrip.start}&end=${card.newTrip.end}`} className={LINK}>
+                  <Link href={`${journalPath(username)}/studio/trip/new?start=${card.newTrip.start}&end=${card.newTrip.end}`} className={LINK}>
                     {t("studio.hub.waiting.startTrip", { range: range(card.newTrip) })}
                   </Link>
                 </>
               )}
             </span>
             {canWrite && (
-              <Link href={`/${username}/studio/day/new?photos=${card.date}&from=hub`} className={PILL}>
+              <Link href={`${journalPath(username)}/studio/day/new?photos=${card.date}&from=hub`} className={PILL}>
                 {t("studio.hub.waiting.write")}
               </Link>
             )}
@@ -90,7 +91,7 @@ export default function WaitingDays({ username, model, canWrite }: { username: s
               </span>
               <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">{t("studio.hub.waiting.undatedHint")}</span>
             </span>
-            <Link href={`/${username}/studio/day/new?photos=${UNDATED}&from=hub`} className={PILL}>
+            <Link href={`${journalPath(username)}/studio/day/new?photos=${UNDATED}&from=hub`} className={PILL}>
               {t("studio.hub.waiting.chooseDay")}
             </Link>
           </li>

@@ -12,6 +12,7 @@ import { effectiveAudience } from "@/lib/photos";
 import type { Audience, PhotoVisibility, ReaderLevel } from "@/lib/photos";
 import type { TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * One vocabulary for "who may read this", at every level that has one — B1585.
  *
@@ -525,7 +526,7 @@ export function EntryVisibility({
       confirmLabel={t("me.tripWhoConfirm")}
       onSave={async (value) => {
         const response = await fetch(
-          `/${encodeURIComponent(trip.trip.username)}/trips/${encodeURIComponent(
+          `${journalPath(encodeURIComponent(trip.trip.username))}/trips/${encodeURIComponent(
             trip.trip.id,
           )}/day/${encodeURIComponent(entry.slug)}/edit`,
           {
@@ -639,7 +640,7 @@ export function TripVisibility() {
   // implementation now, and this badge is its second door.
   return (
     <Link
-      href={`/${encodeURIComponent(trip.trip.username)}/studio/trip/visibility?trip=${encodeURIComponent(trip.trip.id)}`}
+      href={`${journalPath(encodeURIComponent(trip.trip.username))}/studio/trip/visibility?trip=${encodeURIComponent(trip.trip.id)}`}
       prefetch={false}
       className="inline-block shrink-0"
     >

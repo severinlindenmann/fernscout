@@ -17,7 +17,7 @@ export type CountryVisit = {
   name: string;
   /**
    * Its SVG outline, resolved from `lib/worldCountries.json` **on the
-   * server** — see `app/[user]/trips/page.tsx`. Carried here rather than
+   * server** — see `app/at/[user]/trips/page.tsx`. Carried here rather than
    * looked up in the browser because the fill is the meaning of this map:
    * loading the country shapes client-side left the server render with no
    * countries in it at all, so a reader without JavaScript, and everyone's

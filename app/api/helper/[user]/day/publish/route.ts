@@ -8,6 +8,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 /**
@@ -116,6 +117,6 @@ export async function POST(
   return Response.json({
     ok: true,
     slug: published.slug,
-    url: `${serverSite().url}/${user}/trips/${tripId}/day/${published.slug}`,
+    url: `${serverSite().url}${journalPath(user)}/trips/${tripId}/day/${published.slug}`,
   });
 }

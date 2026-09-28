@@ -323,7 +323,7 @@ describe("every error code a route answers with is published", () => {
   /**
    * The cookie-only doors, for the dead-code direction ONLY — B1613.
    *
-   * `/api/helper/**` and the owner's own page routes under `app/[user]/` are
+   * `/api/helper/**` and the owner's own page routes under `app/at/[user]/` are
    * browser internals outside the published contract, so they are deliberately
    * NOT held to "every code you answer with must be documented" — that is what
    * `answered` is for, and widening it here would demand an `ERROR_CODES` entry
@@ -347,7 +347,7 @@ describe("every error code a route answers with is published", () => {
    */
   for (const file of [
     ...routeFiles("app/api/helper"),
-    ...routeFiles("app/[user]"),
+    ...routeFiles("app/at/[user]"),
     ...routeFiles("app/api/web"),
     ...routeFiles("app/api/contacts"),
   ]) {

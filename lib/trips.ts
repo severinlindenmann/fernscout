@@ -111,7 +111,7 @@ export function tripDir(ref: TripRef): string {
  */
 export function mediaWithOwner(src: unknown, owner: string | undefined): string {
   if (typeof src !== "string") return "";
-  return owner && src.startsWith("/media/") ? `/${owner}${src}` : src;
+  return owner && src.startsWith("/media/") ? `${journalPath(owner)}${src}` : src;
 }
 
 /**
@@ -140,6 +140,7 @@ export const MAX_TRIP_PEOPLE = 10;
 export { isEmail as isPersonEmail } from "./auth";
 import { isEmail } from "./auth";
 
+import { journalPath } from "./journalPath";
 /**
  * The `people:` block — who took this trip.
  *

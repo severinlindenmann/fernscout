@@ -5,7 +5,7 @@ import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/alex",
+  usePathname: () => "/@alex",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -196,7 +196,7 @@ describe("the trips index card", () => {
   test("the trip's last picture is the first image getAllMedia hands back", () => {
     buildTrip({ lastDayHasPhotos: true });
     expect(getAllMedia(REF).find((m) => m.type === "image")?.src).toBe(
-      `/${USER}/media/${TRIP}/market/04.jpg`,
+      `/@${USER}/media/${TRIP}/market/04.jpg`,
     );
   });
 
@@ -222,7 +222,7 @@ describe("the trips index card", () => {
     });
     forgetEntries(REF);
     expect(getAllMedia(REF).find((m) => m.type === "image")?.src).toBe(
-      `/${USER}/media/${TRIP}/arrival/01.jpg`,
+      `/@${USER}/media/${TRIP}/arrival/01.jpg`,
     );
   });
 });

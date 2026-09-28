@@ -22,7 +22,7 @@ import { looksLikeBot, visitorHash } from "./visitor";
  * currently ships none for this.
  *
  * Recording from the render works here because of a property of this codebase
- * that is worth stating: **`/[user]` is already dynamic**. `app/[user]/layout.tsx`
+ * that is worth stating: **`/[user]` is already dynamic**. `app/at/[user]/layout.tsx`
  * reads `cookies()`, so nothing under it is statically served and every open
  * is a real render. That also means the gallery — `/[user]/gallery`, its own
  * route — is countable without any client code at all, which is the question

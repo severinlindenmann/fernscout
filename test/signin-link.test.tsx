@@ -21,15 +21,15 @@ describe("the sign-in link", () => {
   });
 
   test("the url carries the language the mail was written in", () => {
-    expect(signInUrl("https://x.test", "ana", "TOKEN", "de")).toBe("https://x.test/ana/s/TOKEN?lang=de");
+    expect(signInUrl("https://x.test", "ana", "TOKEN", "de")).toBe("https://x.test/@ana/s/TOKEN?lang=de");
     // A regional tag ships no dictionary of its own; the base language does.
-    expect(signInUrl("https://x.test", "ana", "TOKEN", "de-CH")).toBe("https://x.test/ana/s/TOKEN?lang=de");
+    expect(signInUrl("https://x.test", "ana", "TOKEN", "de-CH")).toBe("https://x.test/@ana/s/TOKEN?lang=de");
     expect(identitySignInUrl("https://x.test", "TOKEN", "hu")).toBe("https://x.test/s/TOKEN?lang=hu");
   });
 
   test("no language, no parameter — and nothing invented is ever appended", () => {
-    expect(signInUrl("https://x.test", "ana", "TOKEN")).toBe("https://x.test/ana/s/TOKEN");
-    expect(signInUrl("https://x.test", "ana", "TOKEN", null)).toBe("https://x.test/ana/s/TOKEN");
-    expect(signInUrl("https://x.test", "ana", "TOKEN", "englishplease")).toBe("https://x.test/ana/s/TOKEN");
+    expect(signInUrl("https://x.test", "ana", "TOKEN")).toBe("https://x.test/@ana/s/TOKEN");
+    expect(signInUrl("https://x.test", "ana", "TOKEN", null)).toBe("https://x.test/@ana/s/TOKEN");
+    expect(signInUrl("https://x.test", "ana", "TOKEN", "englishplease")).toBe("https://x.test/@ana/s/TOKEN");
   });
 });

@@ -47,7 +47,7 @@ const exists = (file) =>
  * reference manifest is there too.
  *
  * The route is the directory path, which is how Next names it in the error —
- * `app/[user]/contacts` reads back as the route that will 500, so an operator
+ * `app/at/[user]/contacts` reads back as the route that will 500, so an operator
  * reading the deploy output knows which page to open.
  */
 async function pages(root) {

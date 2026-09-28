@@ -43,7 +43,7 @@ async function cookieFor(email: string): Promise<string> {
 }
 
 async function call(method: "GET" | "POST", bearer?: string) {
-  const route = await import("@/app/[user]/me/delete/route");
+  const route = await import("@/app/at/[user]/me/delete/route");
   const request = new Request(`https://example.test/${OWNER}/me/delete`, {
     method,
     headers: bearer ? { authorization: `Bearer ${bearer}` } : {},

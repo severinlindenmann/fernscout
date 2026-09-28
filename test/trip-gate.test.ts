@@ -22,7 +22,7 @@ import { routeImplementation } from "./support/openCore";
  */
 
 /** Both route groups that render a trip's own content. */
-const GATED_DIRS = ["app/[user]/(trip)", "app/[user]/trips/[trip]"];
+const GATED_DIRS = ["app/at/[user]/(trip)", "app/at/[user]/trips/[trip]"];
 
 function pagesUnder(dir: string): string[] {
   const root = path.join(process.cwd(), dir);

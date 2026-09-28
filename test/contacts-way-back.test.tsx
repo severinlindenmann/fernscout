@@ -14,7 +14,7 @@ import type { SiteSummary } from "@/lib/site";
  * This is the page the approval email links into, which is the one arrival with
  * no history behind it: a fresh tab from a mail client, on a phone, where the
  * browser's own back button points at nothing. It rendered a bare `<main>` and
- * was the only page under `app/[user]/` that did, so an owner who had just
+ * was the only page under `app/at/[user]/` that did, so an owner who had just
  * approved a guest had no exit but the URL bar.
  *
  * The assertions are on the header being *there* rather than on how it looks:
@@ -103,7 +103,7 @@ const site = {
 /** The page as the layout hands it over: the four providers, and no trip in
  * context — `/<user>/contacts` sits outside the `(trip)` group. */
 async function render(): Promise<string> {
-  const { default: ContactsAdminPage } = await import("@/app/[user]/studio/readers/page");
+  const { default: ContactsAdminPage } = await import("@/app/at/[user]/studio/readers/page");
   const page = await ContactsAdminPage({
     params: Promise.resolve({ user: "alex" }),
     searchParams: Promise.resolve({}),

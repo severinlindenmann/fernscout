@@ -6,6 +6,7 @@ import GuestSignIn from "@/components/GuestSignIn";
 import BackToJournal from "@/components/BackToJournal";
 import { useI18n } from "@/components/LocaleProvider";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * What a reader meets in front of a trip they may not read.
  *
@@ -74,7 +75,7 @@ export default function TripGate({
   /**
    * Who to name in "ask {owner} for an invite" — B2295. The owner's own
    * nickname, falling back to the journal's title and then the username,
-   * the same fallback `app/[user]/trips/page.tsx` already uses for the same
+   * the same fallback `app/at/[user]/trips/page.tsx` already uses for the same
    * field.
    */
   ownerName: string;
@@ -170,7 +171,7 @@ export default function TripGate({
               address *can* open, and carries the control for signing out and
               trying another one. */}
           <Link
-            href={`/${username}/me`}
+            href={`${journalPath(username)}/me`}
             className="mt-5 text-base text-ink-strong underline underline-offset-4"
           >
             {t("gate.refusedSeeAccess")}

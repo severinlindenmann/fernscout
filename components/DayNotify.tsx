@@ -7,6 +7,7 @@ import BusyButton from "@/components/BusyButton";
 import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
 import { formatCredits } from "@/lib/creditsFormat";
 
+import { journalPath } from "@/lib/journalPath";
 /** One channel the button would use, and what it would do there — B1024. */
 type Pending = { channel: "mail" | "whatsapp" | "sms"; count: number; cost: number };
 
@@ -29,7 +30,7 @@ type Status = {
  * it is to do it themselves, see what it costs first, and see afterwards
  * that it already went — so they never have to remember or ask.
  *
- * `app/[user]/trips/[trip]/day/[slug]/notify/route.ts` is the door: the
+ * `app/at/[user]/trips/[trip]/day/[slug]/notify/route.ts` is the door: the
  * owner's cookie only, refusing a bearer token outright, the same shape as
  * the postcard send button beside it.
  *
@@ -58,7 +59,7 @@ export default function DayNotify({
   slug: string;
 }) {
   const { t, tn } = useI18n();
-  const url = `/${username}/trips/${tripId}/day/${slug}/notify`;
+  const url = `${journalPath(username)}/trips/${tripId}/day/${slug}/notify`;
   const [status, setStatus] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
@@ -96,7 +97,7 @@ export default function DayNotify({
           needed: String(status.needed),
           balance: formatCredits(status.balance ?? 0),
         })}{" "}
-        <a className="font-semibold underline" href={`/${username}/me`}>
+        <a className="font-semibold underline" href={`${journalPath(username)}/me`}>
           {t("photobook.getCredits")}
         </a>
       </p>

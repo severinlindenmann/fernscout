@@ -6,7 +6,7 @@ import type { TranslationKey } from "./i18n";
 /**
  * The continent-switch views for the lifetime map (`components/LifetimeMap.tsx`)
  * — B2491, decisions 2–4. Computed **on the server**, once per request,
- * because a frame and its basemap are exactly what `app/[user]/trips/page.tsx`
+ * because a frame and its basemap are exactly what `app/at/[user]/trips/page.tsx`
  * already builds for the whole-journal map; a client-side continent switch
  * would need this file's own copy of `frameRoute`/`basemapFor` and the
  * country-shape data they read, none of which ships to the browser today

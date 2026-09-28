@@ -24,6 +24,7 @@ import {
 } from "@/components/guide/GuideParts";
 import { translate, type TranslationKey } from "@/lib/i18n";
 
+import { journalPath } from "@/lib/journalPath";
 type Step = "who" | "reach" | "code" | "address" | "notify" | "done";
 
 const ERRORS: Record<string, TranslationKey> = {
@@ -512,7 +513,7 @@ export default function JoinFlow({
       labelledBy="join-done"
       footer={
         status === "in" ? (
-          <a href={`/${owner}`} className={`${PRIMARY} grid place-items-center text-center`}>
+          <a href={journalPath(owner)} className={`${PRIMARY} grid place-items-center text-center`}>
             {t("guide.notify.open")}
           </a>
         ) : null

@@ -6,6 +6,7 @@ import { stripMarkdown } from "./markdownText";
 import { getTrips } from "./trips";
 import type { Entry } from "./types";
 
+import { journalPath } from "./journalPath";
 /**
  * One real, published day for the signed-out landing's hero — B2506.
  *
@@ -71,8 +72,8 @@ export function demoDay(locale: string): DemoDay | null {
     const photo = openPhoto(day)!;
     const other = days.find((e) => e !== day && openPhoto(e));
     return {
-      journalHref: `/${journal.username}`,
-      href: `/${journal.username}/trips/${trip.id}/day/${day.slug}`,
+      journalHref: journalPath(journal.username),
+      href: `${journalPath(journal.username)}/trips/${trip.id}/day/${day.slug}`,
       title: day.title,
       date: new Intl.DateTimeFormat(locale, {
         weekday: "long",

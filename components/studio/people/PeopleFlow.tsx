@@ -19,6 +19,7 @@ import type { PersonRow } from "./types";
 import StepBody from "@/components/studio/StepBody";
 import PeopleYouHave, { type KnownPerson } from "./PeopleYouHave";
 
+import { journalPath } from "@/lib/journalPath";
 /** The screens a person counts, in `?step=` (B2079). "bring" is one step
  *  whichever door it opens — the upload with its read-back, or typing names
  *  in — so the count reads 1, 2, 3, 4 on either path. Drawing and done are
@@ -713,7 +714,7 @@ export default function PeopleFlow({
             next={[
               {
                 title: t("studio.people.done.moreTitle"),
-                href: `/${username}/studio/people`,
+                href: `${journalPath(username)}/studio/people`,
                 label: t("studio.people.done.more"),
               },
               // A query, not only the fragment: the same path with just a
@@ -721,7 +722,7 @@ export default function PeopleFlow({
               // page whose list now holds them.
               {
                 title: t("studio.people.done.everyoneTitle"),
-                href: `/${username}/studio/people?everyone=1#people-you-have`,
+                href: `${journalPath(username)}/studio/people?everyone=1#people-you-have`,
                 label: t("studio.people.done.everyone"),
               },
             ]}

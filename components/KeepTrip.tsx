@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CloudCheck } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * "Save offline" — B2159, W43 §1.
  *
@@ -42,7 +43,7 @@ async function keptBytes(user: string, trip: string): Promise<number | null> {
     const name = (await caches.keys()).find((k) => k.startsWith("kept-") && k.endsWith(suffix));
     if (!name) return null;
     const held = await (await caches.open(name)).match(
-      `/${encodeURIComponent(user)}/trips/${encodeURIComponent(trip)}/keep.json`,
+      `${journalPath(encodeURIComponent(user))}/trips/${encodeURIComponent(trip)}/keep.json`,
     );
     const manifest = held ? await held.json() : null;
     return typeof manifest?.bytes === "number" ? manifest.bytes : 0;
@@ -164,7 +165,7 @@ export function KeptMark({ user, trip }: { user: string; trip: string }) {
   const label = t("keep.kept", { size: mb(state.bytes) });
   return (
     <Link
-      href={`/${encodeURIComponent(user)}/me#offline`}
+      href={`${journalPath(encodeURIComponent(user))}/me#offline`}
       prefetch={false}
       aria-label={label}
       title={label}

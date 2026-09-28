@@ -14,7 +14,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
  * - **The admin cookie is refused.** `isHelperOwner` true is not enough; the
  *   resolved address must equal `config.json`'s own `owner.email`.
  * - **A foreign Origin is refused on `DELETE`**, the same second layer
- *   `app/[user]/trips/[trip]/delete/route.ts` (B1559) puts behind
+ *   `app/at/[user]/trips/[trip]/delete/route.ts` (B1559) puts behind
  *   `sameSite: "lax"` for a cookie-only destructive call.
  */
 

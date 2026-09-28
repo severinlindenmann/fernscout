@@ -7,6 +7,7 @@ import { photosForDate } from "@/lib/extract/dayCount";
 import { useI18n } from "@/components/LocaleProvider";
 import type { RunManifest } from "@/lib/staging/manifest";
 
+import { journalPath } from "@/lib/journalPath";
 type RunResponse = { manifest: RunManifest; spentCredits?: number };
 
 /**
@@ -177,7 +178,7 @@ export default function ReadyScreen({
           this component makes itself: publishing stays a separate, worded
           consent, one day at a time. */}
       <Link
-        href={`/${encodeURIComponent(username)}/studio/day/publish`}
+        href={`${journalPath(encodeURIComponent(username))}/studio/day/publish`}
         className="inline-flex min-h-11 items-center justify-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
       >
         {t("studio.photos.ready.publish")}
@@ -190,7 +191,7 @@ export default function ReadyScreen({
        *  journal itself when nothing was committed. Nothing is published,
        *  changed or written by following it. */}
       <Link
-        href={manifest.tripId && days.length > 0 ? `/${username}/trips/${manifest.tripId}` : `/${username}`}
+        href={manifest.tripId && days.length > 0 ? `${journalPath(username)}/trips/${manifest.tripId}` : journalPath(username)}
         className="inline-flex min-h-11 items-center justify-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong"
       >
         {t("studio.photos.ready.keepAsDraft")}

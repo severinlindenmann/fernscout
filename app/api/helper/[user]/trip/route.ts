@@ -10,6 +10,7 @@ import { getUser } from "@/lib/users";
 import type { UserConfig } from "@/lib/config";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 /**
@@ -353,7 +354,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   // know.
   wrote(user, "create_trip", { id: created.id, title, start, end });
   return Response.json(
-    { ok: true, id: created.id, href: `/${encodeURIComponent(user)}/trips/${created.id}` },
+    { ok: true, id: created.id, href: `${journalPath(encodeURIComponent(user))}/trips/${created.id}` },
     { status: 201 },
   );
 }

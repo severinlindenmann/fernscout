@@ -198,21 +198,9 @@ const nextConfig: NextConfig = {
   // `lib/api/media.ts` and `lib/ingest/image.ts` load it too and had been
   // getting away with it.
   serverExternalPackages: ["better-sqlite3", "pg", "sharp"],
-  // Markdown twins: appending `.md` to a day page's URL serves its source. A
-  // route handler and a page cannot share a path, so the suffix is rewritten
-  // to a handler rather than routed directly.
-  //
-  // Both of a day's URLs, not just the short one. `/:user/day/:slug` is the
-  // current trip's day; every day also lives at
-  // `/:user/trips/:trip/day/:slug`, and that is the form the search index and
-  // the documentation identify entries by. Only the first was rewritten, so
-  // the documented `.md` URL 404'd for every trip but the current one — and
-  // the trip-scoped attempt fell through to the app and answered with the HTML
-  // 404 page, which is a bad thing to hand an agent in a loop.
-  //
-  // The trip-scoped rewrite goes first: `:trip/day/:slug` would otherwise be
-  // matched by nothing, but keeping the more specific pattern above the
-  // general one is how this file stays readable when a third form appears.
+  // Markdown twins (`/@anna/day/<slug>.md`) and every other journal path are
+  // rewritten in `proxy.ts`, which is where the `@` is read — see
+  // `lib/journalPath.ts`. There are no `rewrites()` here any more.
   /**
    * Old addresses that must converge rather than 404 — B1825 and B1826.
    *
@@ -247,25 +235,14 @@ const nextConfig: NextConfig = {
    */
   async redirects() {
     return [
-      { source: "/:user/extract", destination: "/:user/studio", statusCode: 301 },
-      { source: "/:user/extract/photos", destination: "/:user/studio/photos", statusCode: 301 },
-      { source: "/:user/extract/location", destination: "/:user/studio/location", statusCode: 301 },
-      { source: "/:user/extract/contacts", destination: "/:user/studio/people", statusCode: 301 },
-      { source: "/:user/studio/contacts", destination: "/:user/studio/people", statusCode: 301 },
-      { source: "/:user/extract/costs", destination: "/:user/studio/statement", statusCode: 301 },
+      { source: "/@:user/extract", destination: "/@:user/studio", statusCode: 301 },
+      { source: "/@:user/extract/photos", destination: "/@:user/studio/photos", statusCode: 301 },
+      { source: "/@:user/extract/location", destination: "/@:user/studio/location", statusCode: 301 },
+      { source: "/@:user/extract/contacts", destination: "/@:user/studio/people", statusCode: 301 },
+      { source: "/@:user/studio/contacts", destination: "/@:user/studio/people", statusCode: 301 },
+      { source: "/@:user/extract/costs", destination: "/@:user/studio/statement", statusCode: 301 },
       { source: "/docs/extract", destination: "/docs/helper", statusCode: 301 },
       { source: "/docs/guide/:guide(guest|creator|buddy)", destination: "/docs", statusCode: 301 },
-    ];
-  },
-  async rewrites() {
-    return [
-      { source: "/:user/trips/:trip/day/:slug.md", destination: "/api/md/:user/:trip/:slug" },
-      {
-        source: "/:user/trips/:trip/day/:slug([^/]+)\\.md",
-        destination: "/api/md/:user/:trip/:slug",
-      },
-      { source: "/:user/day/:slug.md", destination: "/api/md/:user/:slug" },
-      { source: "/:user/day/:slug([^/]+)\\.md", destination: "/api/md/:user/:slug" },
     ];
   },
   /**
@@ -301,7 +278,7 @@ const nextConfig: NextConfig = {
       },
       {
         // After the baseline, so it overrides it. See `mediaCsp`.
-        source: "/:user/media/:path*",
+        source: "/@:user/media/:path*",
         headers: [{ key: "Content-Security-Policy", value: mediaCsp }],
       },
       {
@@ -317,17 +294,17 @@ const nextConfig: NextConfig = {
         // `no-store` — this pins that default explicitly, so a framework
         // upgrade changing it cannot quietly leave either page cacheable on
         // a shared laptop, a corporate middlebox, or a browser's back button.
-        source: "/:user/contacts",
+        source: "/@:user/contacts",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
       {
         // B2092: the same page, moved into the studio. The old address above
         // only redirects now, but keeps its pin until nothing links to it.
-        source: "/:user/studio/readers",
+        source: "/@:user/studio/readers",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
       {
-        source: "/:user/me",
+        source: "/@:user/me",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
       {
@@ -338,7 +315,7 @@ const nextConfig: NextConfig = {
         // that may load its own remote assets. `no-referrer` here means
         // nothing this page loads carries any part of its URL onward, fragment
         // included.
-        source: "/:user/payment/:id/approve",
+        source: "/@:user/payment/:id/approve",
         headers: [
           { key: "Referrer-Policy", value: "no-referrer" },
           { key: "Cache-Control", value: "no-store" },
@@ -355,15 +332,15 @@ const nextConfig: NextConfig = {
         // token leaving in a `Referer` header, which is still the actual
         // leak this ticket closes; whether the token belongs in the path at
         // all is a separate, owner-level decision.
-        source: "/:user/delete/:token",
+        source: "/@:user/delete/:token",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
       {
-        source: "/:user/delete/:token/export.zip",
+        source: "/@:user/delete/:token/export.zip",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
       {
-        source: "/:user/invite/:kind/:token",
+        source: "/@:user/invite/:kind/:token",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
       // B2292. The welcome link's code is in the path (B1970 option (a)): it

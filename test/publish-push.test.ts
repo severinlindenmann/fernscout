@@ -218,7 +218,7 @@ describe("publishing a public day", () => {
     expect(sent[0].payload).toEqual({
       title: "Two Backpacks",
       body: "New day published: Lanterns of Hoi An",
-      url: `https://example.test/${OWNER}/trips/${TRIP}/day/${v2Slug}`,
+      url: `https://example.test/@${OWNER}/trips/${TRIP}/day/${v2Slug}`,
       tag: `day-${v2Slug}`,
     });
   });

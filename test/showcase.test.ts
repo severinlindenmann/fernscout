@@ -82,7 +82,7 @@ describe("a showcase journal asks one thing, not two", () => {
    */
   test("the layout still shows the bar to a showcase journal's readers", () => {
     const layout = fs.readFileSync(
-      path.join(process.cwd(), "app/[user]/layout.tsx"),
+      path.join(process.cwd(), "app/at/[user]/layout.tsx"),
       "utf8",
     );
     expect(layout).toMatch(/site\.showcase\.includes\(username\)/);

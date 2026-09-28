@@ -113,7 +113,7 @@ describe("a trip whose dates have passed", () => {
     // and `getCurrentTrip` falls back to the most recent past one. While it
     // read as upcoming it was neither current nor past, so the journal had no
     // current trip and this item did not exist at all.
-    expect(xml).toContain("https://t.test/alex/day/erster-tag");
+    expect(xml).toContain("https://t.test/@alex/day/erster-tag");
   });
 
   test("has its day in the search index", () => {

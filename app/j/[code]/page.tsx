@@ -18,6 +18,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import JoinFlow from "./JoinFlow";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 const LOOKUPS = { max: 30, windowMs: 15 * 60 * 1000 };
@@ -67,7 +68,7 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
 
   const owner = invite.owner;
   const locale = pickLocale(fromAcceptLanguage((await headers()).get("accept-language")), invite.locale, user.defaultLocale);
-  const home = { href: `/${owner}`, label: translateIn(locale, "err.goToJournal", { title: user.title }) };
+  const home = { href: journalPath(owner), label: translateIn(locale, "err.goToJournal", { title: user.title }) };
 
   // Following your own link is not a way of joining your own journal.
   if (await isOwner(owner)) {

@@ -5,7 +5,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import AgentPageContent from "@/app/[user]/studio/agent/AgentPageContent";
+import AgentPageContent from "@/app/at/[user]/studio/agent/AgentPageContent";
 import AgentKeys from "@/components/AgentKeys";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
@@ -43,7 +43,7 @@ describe("the agent page", () => {
   test("the intro sentence appears once", () => {
     // B2142: the page's lede is its own sentence now; the handover block's
     // intro paragraph stays off.
-    const page = fs.readFileSync(path.join(process.cwd(), "app/[user]/studio/agent/page.tsx"), "utf8");
+    const page = fs.readFileSync(path.join(process.cwd(), "app/at/[user]/studio/agent/page.tsx"), "utf8");
     expect(page).toMatch(/lede=\{translateIn\(locale, "studio\.permissions\.lede"\)\}/);
     const html = renderToStaticMarkup(
       <LocaleProvider locale="en" dictionary={en}>

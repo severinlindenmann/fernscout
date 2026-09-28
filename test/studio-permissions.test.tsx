@@ -4,7 +4,7 @@ import path from "node:path";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import AgentPageContent, { type PermissionRow } from "@/app/[user]/studio/agent/AgentPageContent";
+import AgentPageContent, { type PermissionRow } from "@/app/at/[user]/studio/agent/AgentPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 
@@ -85,7 +85,7 @@ describe("Permissions & keys", () => {
 
   test("no duplicate intro and no prompt block; Keys is collapsed", async () => {
     await mount();
-    const page = fs.readFileSync(path.join(process.cwd(), "app/[user]/studio/agent/page.tsx"), "utf8");
+    const page = fs.readFileSync(path.join(process.cwd(), "app/at/[user]/studio/agent/page.tsx"), "utf8");
     expect(page).toMatch(/lede=\{translateIn\(locale, "studio\.permissions\.lede"\)\}/);
     expect(container!.textContent).not.toContain(en["me.agentBody"]);
     expect(container!.querySelector("pre")).toBeNull();
@@ -118,7 +118,7 @@ describe("Permissions & keys", () => {
   });
 
   test("the page folds statement into the words row and names today's recipient", () => {
-    const page = fs.readFileSync(path.join(process.cwd(), "app/[user]/studio/agent/page.tsx"), "utf8");
+    const page = fs.readFileSync(path.join(process.cwd(), "app/at/[user]/studio/agent/page.tsx"), "utf8");
     expect(page).toMatch(/id: "words", granted: \(\["words", "statement"\] as const\)\.filter\(has\)/);
     expect(page).toMatch(/currentHelperProvider\("speech"\)/);
   });

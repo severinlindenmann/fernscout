@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
 import { siteRoot } from "./siteRoot";
+import { journalInPathname } from "./journalPath";
 import { loadServerConfig, loadUserConfig } from "./config";
 import { MAINTAINED_LOCALES, translate, type TranslationKey } from "./i18n";
 import { PAID_AREAS } from "@paid/manifest";
@@ -369,7 +370,7 @@ export function dictionariesFor(username: string, scope?: LocaleScope): Record<s
  * language is the right answer for the landing page and for a 404.
  */
 export function localeForPath(pathname: string | null | undefined): string {
-  const first = (pathname ?? "").split("/").filter(Boolean)[0];
+  const first = journalInPathname(pathname);
   if (!first) return instanceLocale();
   return userExists(first) ? defaultLocaleFor(first) : instanceLocale();
 }
@@ -416,7 +417,7 @@ function bestOffered(header: string | null | undefined, offered: string[]): stri
  * A reader's own choice, honoured only if the set in front of them offers it;
  * otherwise the device's own language, if the set offers one of those; and
  * only then the fallback the set comes with. Both callers below go through
- * it — the page body in `app/[user]/layout.tsx` and the `<title>` in every
+ * it — the page body in `app/at/[user]/layout.tsx` and the `<title>` in every
  * `generateMetadata` — because when they each had their own copy of the
  * expression the two copies disagreed (B140, B185): the body narrowed the
  * cookie to `user.locales` and the metadata narrowed it to `installedLocales()`,
@@ -468,7 +469,7 @@ export function readerLocaleForPath(
  * Whose journal a path is about — B921.
  *
  * It used to be the first segment and nothing else, which is right for
- * `/anna/day/…` and wrong for the places a journal's name is not first.
+ * `/@anna/day/…` and wrong for the places a journal's name is not first.
  * (The chat room's own `/agent/<user>/…` branch went with the room — B2173.)
  *
  * Invisible until somebody looked: `POST /api/helper/anna/ask` begins with `api`, so **every sentence the
@@ -480,8 +481,9 @@ export function readerLocaleForPath(
  * decide the language of pages that are not theirs.
  */
 function journalInPath(pathname: string | null | undefined): string | null {
+  const journal = journalInPathname(pathname);
+  if (journal) return userExists(journal) ? journal : null;
   const parts = (pathname ?? "").split("/").filter(Boolean);
-  if (parts[0] && userExists(parts[0])) return parts[0];
   // The doors: /api/helper/<user>/… and /api/v1/<user>/…
   if (parts[0] === "api" && (parts[1] === "helper" || parts[1] === "v1")) {
     return parts[2] && userExists(parts[2]) ? parts[2] : null;

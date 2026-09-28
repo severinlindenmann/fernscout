@@ -44,7 +44,7 @@ describe("B2234 — RecordButton refuses the tap below the price", () => {
     expect(el.querySelector("button")).toBeNull();
     expect(el.textContent).toContain("You have no credits left for this.");
     const link = el.querySelector("a");
-    expect(link?.getAttribute("href")).toBe("/alex/studio/account");
+    expect(link?.getAttribute("href")).toBe("/@alex/studio/account");
   });
 
   test("a zero balance shows the notice and no button, in the hero form", () => {

@@ -20,7 +20,7 @@ import { SAMPLE } from "./sample";
 import type { PreviewMap } from "./types";
 
 /** An obviously-fake link — never a real token, never a real username. */
-const SAMPLE_LINK = "https://fernscout.ch/example/s/k3x9";
+const SAMPLE_LINK = "https://fernscout.ch/@example/s/k3x9";
 const SAMPLE_USER = "example";
 const SAMPLE_EMAIL = "preview@example.invalid";
 

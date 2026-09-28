@@ -36,6 +36,7 @@ import { getUser } from "@/lib/users";
 import { phoneProofMode, smsFallbackOffered } from "@/lib/phoneVerify";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
+import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 const HOUR = 60 * 60 * 1000;
@@ -233,7 +234,7 @@ export async function POST(request: Request) {
     {
       ok: true,
       user: created.username,
-      url: `${serverSite().url}/${created.username}`,
+      url: `${serverSite().url}${journalPath(created.username)}`,
       ...(signIn
         ? {
             signIn,
@@ -244,7 +245,7 @@ export async function POST(request: Request) {
               "second, standing link to the same place.",
           }
         : {}),
-      documentation: `${serverSite().url}/${created.username}/documentation.txt`,
+      documentation: `${serverSite().url}${journalPath(created.username)}/documentation.txt`,
       // B855: the field that quietly commits the owner to writing everything
       // twice. Absent for a one-language journal, which owes nothing.
       ...(body.locales!.length > 1 ? { localesNote: SECOND_LANGUAGE_COMMITMENT } : {}),

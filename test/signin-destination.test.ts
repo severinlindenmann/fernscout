@@ -139,51 +139,51 @@ async function forceStored(value: string) {
 
 describe("the one-tap sign-in link", () => {
   test("signing in from a trip lands back on that trip", async () => {
-    const token = await askFrom(`/${OWNER}/trips/vietnam-2026`);
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}/trips/vietnam-2026`);
+    const token = await askFrom(`/@${OWNER}/trips/vietnam-2026`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}/trips/vietnam-2026`);
   });
 
   test("a day inside a gated trip is kept, not rounded up to the trip", async () => {
     // The gate renders in place of whatever page was asked for, so the reader
     // who clicked a link to one day should get that day back.
-    const token = await askFrom(`/${OWNER}/day/2026-08-25-hanoi`);
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}/day/2026-08-25-hanoi`);
+    const token = await askFrom(`/@${OWNER}/day/2026-08-25-hanoi`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}/day/2026-08-25-hanoi`);
   });
 
   test("signing in from /<user>/me still lands on the journal", async () => {
     // `/me` sends no destination at all — it is the page whose whole question
     // is "what can I see?", and the journal is the answer.
     const token = await askFrom();
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}`);
   });
 
   test.each([
     ["off-site", "https://evil.test/phish"],
     ["protocol-relative, so still off-site", "//evil.test/phish"],
-    ["another journal on this instance", `/${OTHER}/trips/theirs-2026`],
-    ["a climb out of the journal", `/${OWNER}/../${OTHER}/trips/theirs-2026`],
+    ["another journal on this instance", `/@${OTHER}/trips/theirs-2026`],
+    ["a climb out of the journal", `/@${OWNER}/../@${OTHER}/trips/theirs-2026`],
   ])(
     "a stored destination pointing %s is refused and lands on the journal",
     async (_label, crafted) => {
       const token = await askFrom();
       await forceStored(crafted);
-      expect(await follow(token)).toBe(`${SITE}/${OWNER}`);
+      expect(await follow(token)).toBe(`${SITE}/@${OWNER}`);
     },
   );
 
   test("a trip deleted while the mail sat unread lands on the journal, not a 404", async () => {
-    const token = await askFrom(`/${OWNER}/trips/vietnam-2026`);
+    const token = await askFrom(`/@${OWNER}/trips/vietnam-2026`);
     fs.rmSync(path.join(dir, OWNER, "trips", "vietnam-2026"), { recursive: true, force: true });
     clearUserCache();
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}`);
   });
 
   test("a spent link still goes to the page that can issue a new one", async () => {
-    const token = await askFrom(`/${OWNER}/trips/vietnam-2026`);
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}/trips/vietnam-2026`);
+    const token = await askFrom(`/@${OWNER}/trips/vietnam-2026`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}/trips/vietnam-2026`);
     // Second time: the link is burned, and the destination must not turn an
     // expired-link message into a silent bounce to the trip.
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}/me?signin=expired`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}/me?signin=expired`);
   });
 });
 
@@ -204,7 +204,7 @@ describe("the one-tap sign-in link", () => {
 describe("a machine that fetches the link does not spend it", () => {
   /** Everything a link-prefetcher does: a plain GET, following redirects. */
   async function fetchAsScanner(linkToken: string) {
-    const page = await import("@/app/[user]/s/[token]/page");
+    const page = await import("@/app/at/[user]/s/[token]/page");
     return page.default({
       params: Promise.resolve({ user: OWNER, token: linkToken }),
       searchParams: Promise.resolve({}),
@@ -232,7 +232,7 @@ describe("a machine that fetches the link does not spend it", () => {
   }
 
   test("the fetch leaves the link live, and the person still gets in", async () => {
-    const token = await askFrom(`/${OWNER}/trips/vietnam-2026`);
+    const token = await askFrom(`/@${OWNER}/trips/vietnam-2026`);
 
     // The scanner. It renders the page and touches nothing.
     await fetchAsScanner(token);
@@ -240,7 +240,7 @@ describe("a machine that fetches the link does not spend it", () => {
 
     // The owner, afterwards. This is the assertion the live instance failed
     // three times out of three.
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}/trips/vietnam-2026`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}/trips/vietnam-2026`);
     expect(await linkRowsConsumed()).toBe(1);
   });
 
@@ -275,9 +275,9 @@ describe("a machine that fetches the link does not spend it", () => {
 
   test("the link is still single use once a person has pressed it", async () => {
     const token = await askFrom();
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}`);
     // Second press: spent, and pointed at the page that can issue a fresh code.
-    expect(await follow(token)).toBe(`${SITE}/${OWNER}/me?signin=expired`);
+    expect(await follow(token)).toBe(`${SITE}/@${OWNER}/me?signin=expired`);
   });
 
   test("the page renders without checking the token, so it says nothing about it", async () => {

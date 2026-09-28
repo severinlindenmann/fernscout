@@ -30,6 +30,7 @@ import {
 import type { TranslationKey } from "@/lib/i18n";
 import type { DaySummary, PhotobookEntry } from "@/lib/types";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * The other ways into the reading, beside the one filled button — B989.
  *
@@ -121,7 +122,7 @@ export default function TripHero({
   /**
    * Present only for the journal's owner, on a journal with photobook and
    * credits switched on — B569. The server decides
-   * (`app/[user]/trips/[trip]/page.tsx`, via `paid/photobook/lib/photobook/entry.ts`); this
+   * (`app/at/[user]/trips/[trip]/page.tsx`, via `paid/photobook/lib/photobook/entry.ts`); this
    * component only renders what it was handed.
    */
   photobook?: PhotobookEntry;
@@ -387,7 +388,7 @@ export default function TripHero({
             {photobook && stats.totalMedia > 0 && (
               <div className="mt-5 border-t border-line-quiet pt-1">
                 <a
-                  href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
+                  href={`${journalPath(photobook.username)}/trips/${photobook.trip}/photobook`}
                   className="flex min-h-11 items-center justify-between gap-3 text-sm font-semibold text-ink-strong transition-colors hover:text-ink-body"
                 >
                   <span className="flex items-center gap-2">

@@ -9,6 +9,7 @@ import { isEnabled } from "../../../capabilities";
 import { listSessions } from "../../../auth";
 import { journalProfile } from "../../../journals";
 import { getUser } from "../../../users";
+import { journalPath } from "../../../journalPath";
 // Dynamic, not static — `../../sessions` imports `./consent`, which imports
 // `./model`, which reads `TOOLS` at module scope: a static import here closes
 // that into a cycle and `TOOLS` comes back empty. A call-time import breaks
@@ -229,7 +230,7 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
     properties: {},
     link: (username, _args, say) => ({
       text: say("agent.tool.buyCredits"),
-      href: `/${encodeURIComponent(username)}/studio/account`,
+      href: `${journalPath(encodeURIComponent(username))}/studio/account`,
       label: say("agent.tool.buyCreditsLabel"),
     }),
   },

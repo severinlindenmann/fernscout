@@ -11,6 +11,7 @@ import { SKILL_DOC_SLUGS, SKILL_DOC_SUMMARY, SKILL_DOC_TITLE } from "./skillDocM
 // kept in one place so they cannot come to disagree.
 import { PRIVATE_SHUTS_OUT_GUESTS, VISIBILITY_MEANING, VISIBILITY_NOT_A_LOCK, wrap } from "./agentCopy";
 
+import { journalPath } from "../journalPath";
 /**
  * The document an owner hands to their agent (decision 25).
  *
@@ -95,7 +96,7 @@ export function instanceDocumentation(): string {
     ...wrap(
       "**The owner, in their own studio.** For the journal's own owner, who " +
         "would rather write directly than dictate to an agent — sign in and " +
-        `edit at ${site.url}/<username>/studio: a day, a trip, an ` +
+        `edit at ${site.url}/@<username>/studio: a day, a trip, an ` +
         "invitation, composed through guided screens rather than a chat. No " +
         "API key, no token, no header of your own choosing — a browser " +
         "session the owner's own cookie opens, calling the same drafts-" +
@@ -177,7 +178,7 @@ export function instanceDocumentation(): string {
     "",
     ...wrap(
       "If neither is open to you: say so, plainly, and point the owner at " +
-        `their own studio, ${site.url}/<username>/studio, instead — a page ` +
+        `their own studio, ${site.url}/@<username>/studio, instead — a page ` +
         "only their own browser session can open, no API key required, " +
         "where they write directly rather than through you." +
         (helperOnWhatsapp
@@ -250,7 +251,7 @@ export function instanceDocumentation(): string {
     ...wrap(
       "There is no agent bearer door onto an invite any more. Letting somebody read a " +
         "journal, or write to one trip as a buddy, happens only from the owner's own browser, " +
-        "at /<user>/studio/readers.",
+        "at /@<user>/studio/readers.",
       78,
     ),
     "",
@@ -269,7 +270,7 @@ export function instanceDocumentation(): string {
       .filter(Boolean)
       .join(" — ");
     const marker = username === defaultUser ? " (served at the bare domain too)" : "";
-    lines.push(`- [${user.title}](${base()}/${username}/documentation.txt): ${note}${marker}`);
+    lines.push(`- [${user.title}](${base()}${journalPath(username)}/documentation.txt): ${note}${marker}`);
   }
 
   lines.push(
@@ -310,7 +311,7 @@ export function userDocumentation(username: string): string | null {
   const user = getUser(username);
   if (!user) return null;
 
-  const root = `${base()}/${username}`;
+  const root = `${base()}${journalPath(username)}`;
   const trips = getTrips(username).filter(isIndexable);
 
   const lines: string[] = [

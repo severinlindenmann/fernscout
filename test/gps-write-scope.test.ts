@@ -478,7 +478,7 @@ describe("the merge-time security review's findings (B2204, 2026-09-24)", () => 
   });
 
   test("GET /{user}/story.json?trip=... shows no draft day for it (403, private trip)", async () => {
-    const { GET } = await import("@/app/[user]/story.json/route");
+    const { GET } = await import("@/app/at/[user]/story.json/route");
     const response = await GET(
       new Request(`https://example.test/${OWNER}/story.json?trip=${TRIP}&from=0&to=1`, {
         headers: headers({ authorization: `Bearer ${await gpsToken()}` }),

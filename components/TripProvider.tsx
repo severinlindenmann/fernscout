@@ -5,6 +5,7 @@ import type { Trip } from "@/lib/types";
 import type { ReaderLevel } from "@/lib/photos";
 import type { Units } from "@/lib/units";
 
+import { journalPath } from "@/lib/journalPath";
 type Ctx = {
   trip: Trip;
   /** True when this trip is shown at the bare URLs. */
@@ -100,7 +101,7 @@ export default function TripProvider({
     // Every URL carries the owner now, so the base starts at the user and the
     // trip segment is added only for a trip that is not the current one.
     // Without this, every in-site link points at a path that no longer exists.
-    const userBase = `/${trip.username}`;
+    const userBase = journalPath(trip.username);
     const base = isCurrent ? userBase : `${userBase}/trips/${trip.id}`;
     return {
       trip,

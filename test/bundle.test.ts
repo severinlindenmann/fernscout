@@ -132,14 +132,14 @@ describe("route bundles", () => {
   });
 
   it("does not put map data in the costs page's bundle", () => {
-    const reached = staticallyReachable(g, "app/[user]/(trip)/costs/page.tsx");
+    const reached = staticallyReachable(g, "app/at/[user]/(trip)/costs/page.tsx");
     expect(reached.size).toBeGreaterThan(5);
     expect([...reached].filter((f) => f === LAND)).toEqual([]);
   });
 
   it("does not put map data in the story page's bundle either", () => {
     // The hero does draw a map — but after the page is readable, not before.
-    const reached = staticallyReachable(g, "app/[user]/(trip)/page.tsx");
+    const reached = staticallyReachable(g, "app/at/[user]/(trip)/page.tsx");
     expect(reached).toContain("components/TripMap.tsx");
     expect([...reached].filter((f) => f === LAND)).toEqual([]);
   });
@@ -148,9 +148,9 @@ describe("route bundles", () => {
     // lib/photobook/worldland.ts reads the same file from disk at render
     // time. That is a server path and must stay out of every page bundle.
     for (const entry of [
-      "app/[user]/(trip)/costs/page.tsx",
-      "app/[user]/(trip)/page.tsx",
-      "app/[user]/(trip)/map/page.tsx",
+      "app/at/[user]/(trip)/costs/page.tsx",
+      "app/at/[user]/(trip)/page.tsx",
+      "app/at/[user]/(trip)/map/page.tsx",
     ]) {
       expect(staticallyReachable(g, entry)).not.toContain("paid/photobook/lib/photobook/worldland.ts");
     }

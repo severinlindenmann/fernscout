@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import { tellWorkerSignedOut } from "@/lib/signedOut";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * What a signed-in reader may open, and the devices they are signed in on —
  * B411.
@@ -140,7 +141,7 @@ export function AdminJournals({ journals }: { journals: HomeJournal[] }) {
                 {journal.title}
               </span>
               <span className="font-mono text-xs text-ink-secondary">
-                /{journal.username} ·{" "}
+                {journalPath(journal.username)} ·{" "}
                 {tn("landing.trips", journal.trips.length, {
                   count: String(journal.trips.length),
                 })}

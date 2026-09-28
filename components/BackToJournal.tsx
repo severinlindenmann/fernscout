@@ -2,6 +2,7 @@
 
 import UpLink from "./UpLink";
 
+import { journalPath } from "@/lib/journalPath";
 /**
  * A way out, for the two pages that have no header.
  *
@@ -27,7 +28,7 @@ export default function BackToJournal({
 }) {
   return (
     <UpLink
-      href={`/${username}/trips`}
+      href={`${journalPath(username)}/trips`}
       label={journalTitle}
       className="inline-flex min-h-11 items-center gap-1.5 text-sm text-ink-secondary underline-offset-4
                  hover:text-ink-strong hover:underline focus-visible:outline-2

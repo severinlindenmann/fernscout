@@ -377,7 +377,7 @@ export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
    * about the first, and only by accident — `isPersonOnWith` treats the
    * owner's own address as always on every trip, and nothing put the
    * admin's anywhere. So the admin signed into a journal saw an empty trips
-   * page, and `app/[user]/trips/page.tsx` then explained it as `listed:
+   * page, and `app/at/[user]/trips/page.tsx` then explained it as `listed:
    * false`, which was not what had happened.
    *
    * Asked only when there is a closed trip on the list to decide about: a
