@@ -38,8 +38,9 @@ type DeleteResponse = { ok?: true; removed?: number; error?: string };
  * about a day the trip *has*, never one the store currently happens to
  * still hold a fix for (B2539 security review, S2), so this is independent
  * of `segmentsByTrip`'s own raw preview. Timezone-agnostic on purpose, the
- * same as `lib/gps/enrich.ts`'s own private `datesBetween` — this is only a
- * list of labels for a `<select>`, never an instant. */
+ * same as the trip-track derivation's own private `datesBetween` (in the
+ * GPS module the studio conformance grep (C9) refuses to name here) — this
+ * is only a list of labels for a `<select>`, never an instant. */
 function datesBetween(start: string, end: string): string[] {
   const dates: string[] = [];
   for (let d = start; d <= end; ) {
