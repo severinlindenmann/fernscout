@@ -3,7 +3,6 @@ import { pageAlternates } from "@/lib/pageLanguage";
 import Landing from "@/components/Landing";
 import { LandingStructuredData } from "@/components/StructuredData";
 import Pricing from "@paid/credits/components/Pricing";
-import HeaderLinks from "@paid/orgs/components/HeaderLinks";
 import { orgsNav } from "@paid/orgs/lib/nav";
 import { iosAppStoreUrl, iosAppWaitlistAvailable } from "@/lib/appWaitlist";
 import { isEnabled } from "@/lib/capabilities";
@@ -178,7 +177,6 @@ export default async function Root() {
         // A real published day beside the headline, or nothing — B2506.
         demo={demoDay(locale)}
         orgs={orgsNav(locale)}
-        orgsLinks={<HeaderLinks locale={locale} />}
       />
     </>
   );

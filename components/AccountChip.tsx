@@ -13,6 +13,9 @@ import { useI18n } from "@/components/LocaleProvider";
  * this browser is signed in as — the one thing on the chip that says *whose*
  * account it is, on a shared tablet.
  *
+ * Below `lg` the word goes to screen readers only (B2519): the signed-in
+ * header's nav needs the room, and the Owner-Phone board draws the letter.
+ *
  * Rendered only once the page knows somebody is signed in; the caller passes
  * the address from `/api/v2/me/home` and nothing else decides.
  */
@@ -22,9 +25,9 @@ export default function AccountChip({ email }: { email: string }) {
   return (
     <Link
       href="/me"
-      className="flex min-h-11 items-center gap-2 rounded-full border border-line-quiet bg-surface-raised py-1 pr-3.5 pl-1
-                 text-xs font-bold text-ink-strong transition-colors hover:border-line-ink
-                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      className={`flex min-h-11 items-center gap-2 rounded-full border border-line-quiet bg-surface-raised py-1 pr-3.5 pl-1
+                 max-lg:pr-1 text-xs font-bold text-ink-strong transition-colors hover:border-line-ink
+                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500`}
     >
       <span
         aria-hidden
@@ -32,7 +35,7 @@ export default function AccountChip({ email }: { email: string }) {
       >
         {initial}
       </span>
-      {t("meAccount.chip")}
+      <span className="max-lg:sr-only">{t("meAccount.chip")}</span>
     </Link>
   );
 }
