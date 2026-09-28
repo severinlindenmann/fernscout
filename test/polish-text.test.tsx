@@ -12,6 +12,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
  * every error code from the route reads as a sentence.
  */
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+
 const { default: PolishText } = await import("@/components/studio/day/PolishText");
 const { default: LocaleProvider } = await import("@/components/LocaleProvider");
 const { dictionaryFor } = await import("@/lib/locales");

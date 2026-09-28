@@ -9,6 +9,8 @@ import TripProvider from "@/components/TripProvider";
 import { dictionaryFor } from "@/lib/locales";
 import type { Day, DaySummary, Trip } from "@/lib/types";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
+
 /**
  * B844 put an ask box on the day page; B1007 through B1905 kept moving where
  * it pointed. **B2309 removed it outright**, on the owner's own word: a grid
