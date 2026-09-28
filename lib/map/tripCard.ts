@@ -140,9 +140,11 @@ export async function tripCardFor(
   return { card, recordedKm: totalKm(recorded) };
 }
 
-/** One day's own card, for a `/day/<slug>` permalink or a paged-to day's own
- * `<img>`. `null` for a day with no place of its own — the caller's cue to
- * draw nothing at all. See `tripCardFor`'s own note on `dayCardMeta`. */
+/** One day's own card — only the `/card.svg?day=…` route calls this
+ * (`app/at/[user]/card.svg/route.ts` and its `/trips/<id>` twin); a page
+ * itself never needs the render, only `isPlottable` on the day's own
+ * `DaySummary` to decide whether to point an `<img>` at it at all. `null`
+ * for a day with no place of its own. */
 export async function dayCardFor(
   trip: Trip,
   index: readonly DaySummary[],
@@ -170,15 +172,3 @@ export function tripCardMeta(trip: Trip, index: readonly DaySummary[]): CardMeta
   };
 }
 
-/** `dayCardFor` without the render — see `tripCardMeta`. */
-export function dayCardMeta(trip: Trip, index: readonly DaySummary[], date: string): CardMeta | null {
-  const places = placesFrom(index);
-  const day = index.findIndex((d) => d.date === date) + 1;
-  if (places.length === 0 || day <= 0) return null;
-  if (places.every((p) => p.day !== day)) return null;
-  return {
-    recordedKm: totalKm(recordedFrom(trip, index).filter((s) => s.day === day)),
-    usedStreet: hasStreetRegion(trip.username, trip.id),
-    query: `?day=${encodeURIComponent(date)}`,
-  };
-}
