@@ -8,6 +8,7 @@ import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { isEnabled } from "@/lib/capabilities";
 import { primaryStreetMap } from "@/lib/maps/dir";
+import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
@@ -153,7 +154,10 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   const over = isOver(trip, days);
   // Clipped here so the reader gets their own trip's worth of map rather than
   // the whole bundle — see the same two lines in the trip-scoped route.
-  const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
+  // B2534: framed on the places where days happened, never a far outlier —
+  // `WorldMap`'s own client-side `base` calls the same `framePoints` on the
+  // same `places` array, so the two keep agreeing.
+  const basemap = basemapForRoute(places.length > 0 ? framePoints(places) : plan.stops);
   // B2535: on only when the capability is on *and* something has been
   // extracted for this trip — `undefined` otherwise, which is what tells
   // `MapPageContent` to keep drawing the SVG map exactly as it does today.

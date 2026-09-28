@@ -195,10 +195,17 @@ describe("a long leg bends toward the nearer pole", () => {
 });
 
 describe("a trip across a continent", () => {
-  test("still frames the whole route", () => {
+  /**
+   * B2534: this fixture is now three single-day stops, each more than
+   * 300 km from the others, so each is its own region and — tied on one
+   * day apiece — the first visited (Bangkok) is "the" main region. That is
+   * the ticket's own fix: a trip is framed on the places most of it
+   * happened, not stretched to cover every far leg. More than three such
+   * regions is a tour and frames whole instead (`lib/map/tripFrame.ts`).
+   */
+  test("frames the main region, not every far leg", () => {
     const [, , w] = viewBox(render(continental));
-    // Bangkok to Tokyo is about 4,600 km.
-    expect(kmForUnits(w)).toBeGreaterThan(4600);
+    expect(kmForUnits(w)).toBeLessThan(500);
   });
 
   test("still draws a marker per stop when they are far apart", () => {
@@ -207,16 +214,23 @@ describe("a trip across a continent", () => {
 
   /**
    * Clustering is not gone, only measured against the drawing rather than the
-   * ground: two stops in the same city collapse, because their markers would
-   * otherwise sit on top of each other.
+   * ground: two markers close enough to sit on top of each other collapse
+   * however tight the frame gets.
+   *
+   * B2534: Bangkok no longer forces a continental frame around Tokyo on its
+   * own — a far, single-day outlier is framed out (`lib/map/tripFrame.ts`'s
+   * `framePoints`), which is the fix this ticket is about. Two points ~100 m
+   * apart still collapse at the tightest frame `frameRoute` ever draws, so
+   * this keeps testing clustering itself rather than the frame it used to
+   * lean on.
    */
   test("still collapses stops that would overlap", () => {
-    const sameCity = [
+    const sameSpot = [
       stop("Shibuya", 35.6595, 139.7005),
-      stop("Shinjuku", 35.6896, 139.7006),
+      stop("Shinjuku", 35.6604, 139.7005),
       stop("Bangkok", 13.7563, 100.5018),
     ];
-    expect(markers(render(sameCity)).length).toBeLessThan(sameCity.length);
+    expect(markers(render(sameSpot)).length).toBeLessThan(sameSpot.length);
   });
 });
 
@@ -308,16 +322,15 @@ describe("selection and clusters are never yellow (B2422)", () => {
   });
 
   test("a cluster is the navy cluster-fill token, not the old blue", () => {
-    // Bangkok forces a continental frame, the same technique
-    // "still collapses stops that would overlap" above uses, so Shibuya and
-    // Shinjuku actually collapse into one marker rather than the frame
-    // simply zooming in on the pair of them.
-    const sameCity = [
+    // Two points ~100 m apart, the same technique "still collapses stops
+    // that would overlap" above uses since B2534 (see its own comment) —
+    // close enough to collapse at any frame this component ever draws.
+    const sameSpot = [
       stop("Shibuya", 35.6595, 139.7005),
-      stop("Shinjuku", 35.6896, 139.7006),
+      stop("Shinjuku", 35.6604, 139.7005),
       stop("Bangkok", 13.7563, 100.5018),
     ];
-    const html = renderWith({ places: sameCity });
+    const html = renderWith({ places: sameSpot });
     expect(html).toContain("var(--map-cluster-fill)");
     expect(html).not.toContain('fill="#3b82f6"');
   });

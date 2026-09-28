@@ -8,6 +8,7 @@ import {
   place as placeIn,
   type Frame,
 } from "@/lib/mapFrame";
+import { framePoints } from "@/lib/map/tripFrame";
 import { mediaLoader } from "./mediaLoader";
 import { MAP_VIEWBOX } from "@/lib/mapProjection";
 import {
@@ -198,7 +199,6 @@ export default function TripMap({
     () => baseStops.map((s) => (photoByDate[s.date] ? { ...s, photo: photoByDate[s.date] } : s)),
     [baseStops, photoByDate],
   );
-  const orderOf = useMemo(() => new Map(stops.map((s, i) => [s.key, i + 1])), [stops]);
 
   // One stop is not an overview of anything: it opens where it is. Both
   // controls stay, and whole-trip bounds are then the same town-scale frame.
@@ -218,7 +218,11 @@ export default function TripMap({
   // selected would be a small lie about how it got there.
   const chosen = selectedKey !== null;
 
-  const whole = useMemo(() => frameRoute(stops), [stops]);
+  // B2534: fit the places where days happened, never a far outlier (a home
+  // leg, a side trip in its own region) — `lib/tripView.ts`'s own
+  // `basemapForRoute` call for this hero's basemap applies the same
+  // `framePoints` rule, so the two keep agreeing.
+  const whole = useMemo(() => frameRoute(framePoints(stops)), [stops]);
   const local = useMemo(() => (selected ? frameRoute([selected]) : whole), [selected, whole]);
   const base = view === "local" ? local : whole;
 
@@ -743,7 +747,7 @@ export default function TripMap({
                       x={cluster.x}
                       y={cluster.y}
                       src={photoSrc}
-                      order={orderOf.get(stop.key) ?? 1}
+                      order={stop.day}
                       selected={isSelected}
                       ariaLabel={label}
                       px={px}
@@ -753,7 +757,7 @@ export default function TripMap({
                     <StopMarker
                       x={cluster.x}
                       y={cluster.y}
-                      order={orderOf.get(stop.key) ?? 1}
+                      order={stop.day}
                       selected={isSelected}
                       ariaLabel={label}
                       px={px}
@@ -885,7 +889,7 @@ export default function TripMap({
                 )}
                 <span className="fs-map-stop-text">
                   <span className="fs-map-stop-name">
-                    {orderOf.get(stop.key) ?? i + 1} · {stop.location}
+                    {stop.day} · {stop.location}
                   </span>
                   <span className="fs-map-stop-meta">
                     {formatShortDate(stop.date)}
