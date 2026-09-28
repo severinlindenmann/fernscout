@@ -233,7 +233,7 @@ inferred" rule every v2 write follows.
 The studio's own copy of this door, `/api/web/<user>/gps/zones`, answers the
 owner's browser cookie instead of a bearer token — same domain functions
 (`lib/gps/api.ts`'s `listZones`/`writeZones`), same shape, no token minted or
-held anywhere for it. The studio section (`/<user>/studio/location`) has no
+held anywhere for it. The studio section (`/@<user>/studio/location`) has no
 map or geocoder wired in — the server's own geocoder
 (`POST /api/v2/geocode`) is bearer-only and the browser holds no token — so a
 zone's coordinates are typed in, or filled from the browser's own current
@@ -288,12 +288,12 @@ be exhaustive about what it refuses to give back:
 Reachable only from the studio's new-day page, under the owner's own browser
 cookie (`isHelperOwner`) — a bearer token, including a journal-wide agent
 token, is refused there by construction, the same as every other page under
-`/<user>/studio`. Behind `features.routeRecording`, off by default like every
+`/@<user>/studio`. Behind `features.routeRecording`, off by default like every
 optional capability; `/api/health` explains why it is off when it is.
 
 ## "Your route" — the owner's own recorded trips, B2226
 
-The studio's location page (`/<user>/studio/location`) grows a second
+The studio's location page (`/@<user>/studio/location`) grows a second
 section, "Your route", the owner's own view of what their phone or an import
 has actually recorded — one trip's list, a preview of its raw line, and a
 way to delete a trip's or a single day's recording. Three functions in

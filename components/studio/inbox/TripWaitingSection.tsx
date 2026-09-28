@@ -14,7 +14,7 @@ import { journalPath } from "@/lib/journalPath";
  * `lib/api/v2/media.ts`) sits on disk under `trips/<id>/media/`, referenced
  * by no day, and until this existed it was invisible anywhere in the studio:
  * `InboxHub.tsx`'s own "waiting" section only ever reads
- * `content/<user>/inbox/`, a different folder entirely.
+ * `content/@<user>/inbox/`, a different folder entirely.
  *
  * A **narrower** tile than `InboxTile.tsx`'s, on purpose. That component's
  * checkbox, bulk-select and move-sheet machinery are all built around files
@@ -32,7 +32,7 @@ import { journalPath } from "@/lib/journalPath";
  *
  * The thumbnail is the ordinary served media URL, not a dedicated thumbnail
  * route the way `InboxTile.tsx`'s is: the file already sits under
- * `trips/<id>/media/`, so `/<user>/media/<trip>/<file>?w=` is what
+ * `trips/<id>/media/`, so `/@<user>/media/<trip>/<file>?w=` is what
  * `app/at/[user]/media/[...path]/route.ts` already serves it as, and that route
  * answers it `private` until a gallery names it (`labelOf`) — an owner-only
  * cookie session (this page) reads it fine; nobody else can.

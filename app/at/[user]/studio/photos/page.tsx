@@ -11,8 +11,8 @@ import { getTrips } from "@/lib/trips";
 export const dynamic = "force-dynamic";
 
 /**
- * The guided camera-roll flow — B1751, moved here from `/<user>/extract` by
- * B1797, and from there to `/<user>/studio/photos` by B1825: the studio hub
+ * The guided camera-roll flow — B1751, moved here from `/@<user>/extract` by
+ * B1797, and from there to `/@<user>/studio/photos` by B1825: the studio hub
  * absorbed the import hub (spec.md's "the destination is /[user]/studio,
  * with the import flows under it"), and this is the one hub entry whose flow
  * already existed rather than being built fresh. `next.config.ts` 301s the

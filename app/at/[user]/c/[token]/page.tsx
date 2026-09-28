@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
- * "Your details" — `/{user}/c/<token>`, reachable with no login at all (C13).
+ * "Your details" — `/@{user}/c/<token>`, reachable with no login at all (C13).
  *
  * The link every mail footer carries. Change the language, correct the address,
  * stop the emails, or delete the record entirely. The token in the URL is the

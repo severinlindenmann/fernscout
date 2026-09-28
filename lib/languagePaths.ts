@@ -47,7 +47,7 @@ export function isPathLocale(value: string | undefined): value is PathLocale {
 export function splitLanguagePath(pathname: string): { locale: PathLocale; path: string } | null {
   const [, first, ...rest] = pathname.split("/");
   if (!isPathLocale(first)) return null;
-  const path = `/${rest.join("/")}`.replace(/\/+$/, "") || "/";
+  const path = `/${rest.join("/")}`.replace(/\/+$/, "") || "/"; // not a journal path: an app page
   return LANGUAGE_PAGES[path]?.includes(first) ? { locale: first, path } : null;
 }
 

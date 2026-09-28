@@ -28,7 +28,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/alex/studio/readers",
+  usePathname: () => "/@alex/studio/readers",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
   notFound: () => {
@@ -41,7 +41,7 @@ vi.mock("next/navigation", () => ({
 // journal's own default, "en", same as the fixture below.
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
-  headers: async () => ({ get: () => "/alex/studio/readers" }),
+  headers: async () => ({ get: () => "/@alex/studio/readers" }),
 }));
 
 // Everything the page reaches for on disk or in the database. The subject is
@@ -93,7 +93,7 @@ const site = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   signedIn: true,
   canSignIn: true,
   analyticsEnabled: false,
@@ -101,7 +101,7 @@ const site = {
 } as unknown as SiteSummary;
 
 /** The page as the layout hands it over: the four providers, and no trip in
- * context — `/<user>/contacts` sits outside the `(trip)` group. */
+ * context — `/@<user>/contacts` sits outside the `(trip)` group. */
 async function render(): Promise<string> {
   const { default: ContactsAdminPage } = await import("@/app/at/[user]/studio/readers/page");
   const page = await ContactsAdminPage({
@@ -128,7 +128,7 @@ describe("the owner's contacts page", () => {
     expect(html).toContain("<header");
     // The title in the header, linking home. `useTrip()` is null here, so
     // `PageHeader` falls back to `site.base` — the journal itself.
-    expect(html).toContain('href="/alex"');
+    expect(html).toContain('href="/@alex"');
   });
 
   test("the skip link the header renders has something to skip to", async () => {

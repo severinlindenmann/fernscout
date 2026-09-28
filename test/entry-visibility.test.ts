@@ -379,7 +379,7 @@ describe("the surfaces that walk every entry", () => {
 });
 
 /**
- * `/<user>/me` — B632's last bullet: a reader let into a trip that is only
+ * `/@<user>/me` — B632's last bullet: a reader let into a trip that is only
  * partly theirs has to be told that, or the row reads as "you can read this
  * trip" when part of it is still held back further than they have proved.
  */
@@ -398,7 +398,7 @@ describe("the photographs of a held-back update", () => {
     const { GET } = await import("@/app/at/[user]/media/[...path]/route");
     const segments = [tripId, slug, file];
     return GET(
-      new Request(`https://example.test/${OWNER}/media/${segments.join("/")}${query}`),
+      new Request(`https://example.test/@${OWNER}/media/${segments.join("/")}${query}`),
       { params: Promise.resolve({ user: OWNER, path: segments }) } as never,
     );
   }

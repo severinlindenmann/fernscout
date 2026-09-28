@@ -91,7 +91,7 @@ export const SCOPES = {
   docs: { layout: "app/docs/layout.tsx" },
   // `/legal` renders under its own provider in the reader's language.
   legal: { files: ["app/legal/page.tsx"] },
-  // `/<user>/c/<token>` in the contact's own language rather than the reader's.
+  // `/@<user>/c/<token>` in the contact's own language rather than the reader's.
   contactPage: { files: ["app/at/[user]/c/[token]/page.tsx"] },
   // `/x/<token>` — "never invite this address again" (B2442). No journal, no
   // login: the request's own language.

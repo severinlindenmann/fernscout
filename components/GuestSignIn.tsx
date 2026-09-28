@@ -8,7 +8,7 @@ import { useI18n } from "@/components/LocaleProvider";
  * The way back in, for somebody who has been here before.
  *
  * Until this existed there was none. A guest arrives through a token in an
- * email — `/{user}/i/<token>` or the manage link in a footer — and if that
+ * email — `/@{user}/i/<token>` or the manage link in a footer — and if that
  * email is gone, so is their access. The one page that exists to answer "what
  * can I see?" sent them to the guestbook to sign up again as though they were
  * a stranger, and on a journal with the guestbook switched off it sent them to
@@ -36,7 +36,7 @@ export default function GuestSignIn({
   /**
    * Where the *button in the mail* should land, when this form is standing in
    * front of a particular page. The trip gate passes the path the reader
-   * asked for; `/<user>/me` passes nothing, because the journal is already
+   * asked for; `/@<user>/me` passes nothing, because the journal is already
    * where somebody signing in there wants to be.
    *
    * Only the link needs it. Typing the six digits never leaves this page —

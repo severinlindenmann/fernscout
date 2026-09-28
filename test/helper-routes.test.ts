@@ -121,7 +121,7 @@ describe("the helper routes", () => {
   // B931 added `invite`, proposing a guest link; `invite/revoke` and
   // `invite-contact` followed. B2295 (one door for readers, B2291) removed
   // all three — letting somebody read the journal happens only from
-  // `/<user>/studio/readers`, never from here.
+  // `/@<user>/studio/readers`, never from here.
   // Thirty-two counted here at the time, and sixteen of them arrived in one
   // run — the conversation was given the rest of what the API door already
   // had. A trip's own settings (`trip/visibility`, `trip/people`,
@@ -208,7 +208,7 @@ describe("the helper routes", () => {
   // vCard and answers with what it found, and writes nothing. Same cookie,
   // same owner check as the fifty-nine before it.
   // `reader/grant` (B1833, D11) is gone (B2295, one door for readers,
-  // B2291/B2292): Add a person's own flow at `/<user>/studio/readers`
+  // B2291/B2292): Add a person's own flow at `/@<user>/studio/readers`
   // replaced it, and nothing else called it.
   // Sixty-two: `inbox/[id]/move` (B1990) — files a waiting item onto a day,
   // or takes it back off one, the owner-cookie door

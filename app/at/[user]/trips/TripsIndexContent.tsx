@@ -230,7 +230,7 @@ export default function TripsIndexContent({
           anyway: a promise to record everywhere its owner had been, under
           0 · 0 · 0 · 0, with everything that could have said more hidden
           because it had nothing to show. It looked finished and said nothing,
-          and it is the first page a new owner sees — `/<user>` redirects here.
+          and it is the first page a new owner sees — `/@<user>` redirects here.
           So the totals go, and the page says what is true instead (B76).
         */}
         {/*
@@ -375,7 +375,7 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
  * Three readers, not two. The **owner** of a genuinely empty journal needs the
  * one fact nobody can guess from looking: there is no button here, there never
  * will be (ROADMAP decision 24), and a trip is made by handing an agent the
- * prompt below. That instruction already existed on `/<user>/me`, in a panel a
+ * prompt below. That instruction already existed on `/@<user>/me`, in a panel a
  * person who has just created a journal has no reason to have opened — so it
  * is repeated here rather than linked to, from the same component, and this
  * is the page they land on.

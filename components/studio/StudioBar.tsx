@@ -46,7 +46,7 @@ const StudioBarContext = createContext<StudioBarContextValue | null>(null);
  * `ActionBar` themselves.
  *
  * The default, when no page has registered anything: a "Zurück zum Studio"
- * link to `/{user}/studio` (`studio.flow.backToStudio` — the exact string
+ * link to `/@{user}/studio` (`studio.flow.backToStudio` — the exact string
  * `PhotobookPick`, `InboxHub` and `PostcardFlow` already used for the same
  * link before this ticket). `extend` keeps that link and adds a page's own
  * actions beside it; `replace` shows only the page's own actions — the hub
@@ -56,7 +56,7 @@ const StudioBarContext = createContext<StudioBarContextValue | null>(null);
  *
  * B2069: a page drawn through `StudioPage` tells this provider its group
  * (`StudioBarPage`), and the back link returns to that group's anchor on the
- * hub (`/{user}/studio#plan`) rather than the top of it.
+ * hub (`/@{user}/studio#plan`) rather than the top of it.
  *
  * B2076: from `md` up the same bar is a static, right-aligned row under the
  * page's column — one element at every width, so the back link and the one

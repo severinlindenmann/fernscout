@@ -29,8 +29,8 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 /**
  * B1740 — which picture each surface shows.
  *
- * The owner saw a photograph on every card at `/<user>/trips` and none at all
- * on `/<user>/trips/<id>`, because the two read different things and the trip
+ * The owner saw a photograph on every card at `/@<user>/trips` and none at all
+ * on `/@<user>/trips/<id>`, because the two read different things and the trip
  * page read neither `trip.cover` nor the freshest photograph: it took the
  * *first* image of the landing day and nothing else.
  *

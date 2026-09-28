@@ -47,7 +47,7 @@ type TripHeader = { title: string };
  * fetched separately, from `GET .../trip?id=`, and its absence (a failed
  * fetch) never blocks the real days below from rendering.
  *
- * **"Edit" and "Keep editing" point at `/<user>/studio/day/edit` now, not
+ * **"Edit" and "Keep editing" point at `/@<user>/studio/day/edit` now, not
  * `/agent` — B1905.** The line above used to read "`/agent` is the
  * journal's only editor", which was true when this screen was written and
  * stopped being true once `EditDayFlow` shipped (B1831): with no `?slug=`

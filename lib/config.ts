@@ -414,7 +414,7 @@ export type ServerConfig = {
     };
     /**
      * Where the server at `host` stands, in the operator's own words — shown
-     * on `/<user>/me` as "Connected to the secure … web server <host> <where>".
+     * on `/@<user>/me` as "Connected to the secure … web server <host> <where>".
      *
      * `where` is a whole phrase ("in Europe") rather than a place name,
      * because a language inflects it: Hungarian says "Európában", not "in
@@ -705,7 +705,7 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
  *
  * **`whatsapp` is the same kind of switch, and joins it in B611.** The
  * journal-level key is reached from one place an owner can actually see — the
- * channels panel on `/<user>/me`, B463 — and there it reads as *stop sending
+ * channels panel on `/@<user>/me`, B463 — and there it reads as *stop sending
  * my days to WhatsApp*, exactly like mail. Read absence as "no" and every
  * journal that has never named it is muted, which is the state every journal
  * on this instance was in: the operator had paid for the number, the server

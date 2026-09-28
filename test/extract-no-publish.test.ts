@@ -44,7 +44,7 @@ function sourceFilesUnder(dir: string): string[] {
 }
 
 // B2169 — the flow may *link* to the studio's publish page
-// (`/<user>/studio/day/publish`, a page that asks the owner in words); it may
+// (`/@<user>/studio/day/publish`, a page that asks the owner in words); it may
 // not name the publish route (`.../days/<slug>/publish`) or its handler.
 const FORBIDDEN = [/(?<!studio\/)day\/publish/, /days\/[^"'`]*\/publish/, /publishDraft/, /publishDay/];
 

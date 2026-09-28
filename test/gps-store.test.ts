@@ -371,7 +371,7 @@ describe("the rules that keep it private", () => {
   test.each(["all", "open-to-link"] as const)(
     "a real %s export zip holds the trip's track and nothing from gps/",
     async (scope) => {
-      // Built rather than reasoned about: `/<user>/export.zip` is a plain GET
+      // Built rather than reasoned about: `/@<user>/export.zip` is a plain GET
       // for the open-to-link scope, so "the walk cannot reach it" is a claim
       // worth proving against actual archive entries.
       const trip = path.join(dir, USER, "trips", "algarve");

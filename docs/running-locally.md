@@ -134,7 +134,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000 npm run dev
 
 ## Opening an owner-only page
 
-`/<user>/contacts` (a redirect to `/<user>/studio/readers`), the postcard
+`/@<user>/contacts` (a redirect to `/@<user>/studio/readers`), the postcard
 preview and the credits page all answer 404, or refuse past sign-in, to
 everybody but the journal's owner, and `isOwner` has no development shortcut
 on purpose — an environment variable that makes you an owner is a thing that
@@ -270,8 +270,8 @@ is the failure this project cannot afford.
 > `/api/health` is the other half of that. It reports every capability's
 > resolved state and, when one is off, why. `contacts` is operator-only
 > (`OPERATOR_ONLY_FEATURES`) so it has only one answer, the server's; a
-> journal's own `config.json` never enters into it. `/<user>/contacts` is
-> always a redirect to `/<user>/studio/readers` regardless — it never 404s,
+> journal's own `config.json` never enters into it. `/@<user>/contacts` is
+> always a redirect to `/@<user>/studio/readers` regardless — it never 404s,
 > with or without the capability on.
 
 ### Getting an agent token

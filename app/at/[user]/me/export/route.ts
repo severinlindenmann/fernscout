@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  *
  * Cookie only, the same shape as the delete route beside it: an
  * `Authorization` header is refused before it is read. An agent already has
- * its own door — `GET /<user>/export.zip` with a bearer token — and does not
+ * its own door — `GET /@<user>/export.zip` with a bearer token — and does not
  * need this one.
  */
 const NOT_FOR_AGENTS = {

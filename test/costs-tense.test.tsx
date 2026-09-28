@@ -25,7 +25,7 @@ import { renderToStaticMarkup } from "react-dom/server";
  * declare against a start still ahead of it (B72); v2 retired the field
  * outright (decision "status/tracks retired", lib/trips.ts's `deriveStatus`)
  * — `current` is now purely a calendar fact, so that particular edge case no
- * longer exists to build. The planned wording at `/<user>/costs` still
+ * longer exists to build. The planned wording at `/@<user>/costs` still
  * belongs to one state only: no current trip at all, where the page redirects
  * to the trip list. The assertions below are about the pairing rather than
  * about a mismatch that can be observed on this route, and that is the honest
@@ -39,7 +39,7 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: () => (request.cookieLocale ? { value: request.cookieLocale } : undefined),
   }),
-  headers: async () => ({ get: () => "/alex/costs" }),
+  headers: async () => ({ get: () => "/@alex/costs" }),
 }));
 
 vi.mock("next/link", () => ({
@@ -49,7 +49,7 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("next/navigation", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
-  usePathname: () => "/alex/costs",
+  usePathname: () => "/@alex/costs",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -146,7 +146,7 @@ const site = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   hasAccessPanel: false,
 } as unknown as SiteSummary;
 

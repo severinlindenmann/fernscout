@@ -11,7 +11,7 @@ import { handoverPrompt } from "@/lib/api/agentCopy";
  *
  * There is no form on this site (ROADMAP decision 24, as amended by B283), so
  * this block *is* the interface for writing. It lived in one place — the owner
- * panel on `/<user>/me`, moved whole to `/<user>/studio/agent` by B2017 — a
+ * panel on `/@<user>/me`, moved whole to `/@<user>/studio/agent` by B2017 — a
  * page a new owner has no reason to have visited; B76 needed the same block
  * on the empty trip list. Extracted rather
  * than copied, because two copies of an instruction is one instruction and one

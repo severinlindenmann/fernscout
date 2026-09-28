@@ -29,7 +29,7 @@ vi.mock("next/dynamic", async () => {
  * B799 — the offer to show a day to somebody, on the day itself.
  *
  * B2295: this used to make a guest link itself; it is now a plain link to
- * `/<user>/studio/readers`, the one place the owner decided a person is let
+ * `/@<user>/studio/readers`, the one place the owner decided a person is let
  * in. Read from the source rather than rendered — same reason as before,
  * kept simple now that there is no fetch to avoid running.
  */

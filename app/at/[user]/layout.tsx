@@ -60,11 +60,11 @@ export async function generateMetadata({
        * The two machine readings of this journal — B879.
        *
        * `feed.xml` was served per journal and pointed at by nothing, so a feed
-       * reader looking at the page found none. `/<user>/documentation.txt` is
+       * reader looking at the page found none. `/@<user>/documentation.txt` is
        * this journal's own machine reading, and until this link an agent
        * handed a journal URL had to already know the convention to find it.
        *
-       * Per journal, not `/<user>/llms.txt`: the instance's own `/llms.txt`
+       * Per journal, not `/@<user>/llms.txt`: the instance's own `/llms.txt`
        * (B2487) is the index, and it points at `/documentation.txt`. A `rel="alternate"` is
        * discovery for somebody already holding the URL, without publishing a
        * well-known path for every prober on the internet.

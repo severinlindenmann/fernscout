@@ -8,7 +8,7 @@ import { clearUserCache } from "@/lib/users";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
- * What `/<user>/trips` sends a reader who may not open a teasered trip — B587.
+ * What `/@<user>/trips` sends a reader who may not open a teasered trip — B587.
  *
  * The page's props rather than its markup, because the promise is about the
  * *payload*: a locked card carries a title and two dates, and a cover, a

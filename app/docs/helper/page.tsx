@@ -50,7 +50,7 @@ export default async function HelperPage() {
         a retirement path (`docs/plans/2026-09-17-the-studio.md`); most of
         what a reader used to reach by talking to it is now a flow they can
         click through in the studio instead. This page names no journal, so
-        it cannot link straight at `/<user>/studio` the way an owner page
+        it cannot link straight at `/@<user>/studio` the way an owner page
         can — `/welcome` makes a journal and ends in its studio (B2170);
         somebody who already has one signs in from there.
       */}

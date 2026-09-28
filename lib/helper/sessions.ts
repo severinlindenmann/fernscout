@@ -18,7 +18,7 @@ import { helperConsent } from "./consent";
  * for every journal. That is a feature they asked for, not a study of them.
  *
  * **The operator may read them unless somebody says not to.** `sessions` in
- * `./consent.ts`, turned off on `/<user>/me`. It is on by default, which is a
+ * `./consent.ts`, turned off on `/@<user>/me`. It is on by default, which is a
  * decision and not an oversight — so the notice on the first message of a
  * conversation has to say that plainly rather than implying a permission
  * nobody gave. Turning it off deletes nothing and stops nothing being
@@ -132,7 +132,7 @@ export async function recordTurn(turn: TurnRecord): Promise<void> {
 /**
  * Whether the operator may read this journal's conversations — B976.
  *
- * The whole of what the control on `/<user>/me` turns off, and the reason the
+ * The whole of what the control on `/@<user>/me` turns off, and the reason the
  * notice on the first message can say truthfully that turning it off deletes
  * nothing: what changes is a reader, not a record.
  */

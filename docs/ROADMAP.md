@@ -46,11 +46,11 @@ anything still open is in §15.
 | 20 | Photo consent | Upheld | **Publish, remove on request**, stated in writing |
 | 21 | Currencies | **Superseded** | Was "configurable list, ECB reference rates fetched at build time." Replaced: the ECB snapshot is fetched at deploy time and refreshed nightly off the backup timer, not the build — see `docs/currencies.md` |
 | 22 | Trademark | Upheld | **Skipped for now** — personal site. Revisit on the triggers in §0.6 |
-| 23 | Multi-user | Upheld | **Built in from the start**, not deferred: `content/<username>/…`, URLs at `/<username>/…`, server config separate from user config (plan W22) |
-| 24 | Editing | **Superseded** | Was "the frontend has no editing UI, ever." Replaced by the studio (`/<user>/studio`): the owner writes in a browser now, with an agent or this instance's own assistant as an optional second way. The three amendments below are kept as history of how that happened. *Amended by B283: the browser still cannot write, and the second half is now narrower than it reads. The owner's own page issues a **20-minute `handover` credential** that can do exactly one thing — be exchanged, once, at `POST /api/auth/handover`, for an agent token of the agent's own.* *Amended again by B619: the owner's own page carries two forms — their own name, telephone and postal address, and the journal's own `title` and `tagline`, through a cookie-only write. Neither is content.* *Amended a third time by B681/B682: a web helper let somebody with no agent of their own write through the same v2 calls. That web room is itself now gone (B311); its job is the studio's own flows.* |
+| 23 | Multi-user | Upheld | **Built in from the start**, not deferred: `content/<username>/…`, URLs at `/@<username>/…`, server config separate from user config (plan W22) |
+| 24 | Editing | **Superseded** | Was "the frontend has no editing UI, ever." Replaced by the studio (`/@<user>/studio`): the owner writes in a browser now, with an agent or this instance's own assistant as an optional second way. The three amendments below are kept as history of how that happened. *Amended by B283: the browser still cannot write, and the second half is now narrower than it reads. The owner's own page issues a **20-minute `handover` credential** that can do exactly one thing — be exchanged, once, at `POST /api/auth/handover`, for an agent token of the agent's own.* *Amended again by B619: the owner's own page carries two forms — their own name, telephone and postal address, and the journal's own `title` and `tagline`, through a cookie-only write. Neither is content.* *Amended a third time by B681/B682: a web helper let somebody with no agent of their own write through the same v2 calls. That web room is itself now gone (B311); its job is the studio's own flows.* |
 | 25 | Agent doc name | Upheld | **`/documentation.txt`**, not `llms.txt` — named for the person handing over the link. `llms.txt` stays an off-by-default alias. Kept out of search with `X-Robots-Tag: noindex`, never a `robots.txt` rule (plan W23) |
 | 27 | No Docker | Upheld | **Native install on the VPS** — Node, Caddy, systemd, and Postgres only when a feature needs it. The backend is Next.js route handlers plus a Node worker; **no second framework** (§2.3) |
-| 26 | Landing page | Upheld | **A landing page at `/`** (or `/welcome` when a `defaultUser` owns the root): what this is, how to point an agent at it, and a link to the live `/example` user (plan W24) |
+| 26 | Landing page | Upheld | **A landing page at `/`** (or `/welcome` when a `defaultUser` owns the root): what this is, how to point an agent at it, and a link to the live `/@example` user (plan W24) |
 | 28 | Publishing | Upheld (amended) | **Publish is a separate, explicit call.** Decision 24 said browsers never edit; this says who publishes. What is written still arrives as a draft and cannot publish itself — the two calls exist so the owner can read a day back before anyone else — but putting it up is `PUT .../days/{slug}` followed by its own publish call, owner-only. Supersedes the older rule that a person publishes by deleting `status: draft` from a file (B28, restated B223; B224 dropped a confirmation handshake that never established consent) |
 ### 0.5 What "clean seams" concretely means
 
@@ -160,7 +160,7 @@ hand, for nothing.
 | --- | --- | --- |
 | **M1** | **Backups you have restored from at least once.** The highest-value item in this document. `scripts/backup.sh` and the restore procedure in `docs/runbook.md` exist; performing the restore is the part that is not code. | **S** |
 | **M11** | **Storage budget math.** 5 months × ~30 photos/day at 4 MB ≈ 18 GB of originals. Decide what is kept, at what size and where — retrofitting is a migration over hostel wifi. | **XS** |
-| **B5** | **CDN / image resizing at the edge.** `/<user>/media/…` resizes on the VPS, which is fine for family traffic and not for a hosted product. Object storage (B4) is what makes this a config change. | **M** |
+| **B5** | **CDN / image resizing at the edge.** `/@<user>/media/…` resizes on the VPS, which is fine for family traffic and not for a hosted product. Object storage (B4) is what makes this a config change. | **M** |
 
 **B9 shipped** — the `analytics` feature (a database, no third party) answers
 "is push actually used", from the studio's own "Visitors" page.
@@ -188,13 +188,13 @@ Everything downstream reads it: the digest picks `preferred_locale` per
 recipient, the postcard script selects contacts with an address, access control
 reads the grants. One form, one table, one place to revoke.
 
-**One link shape.** A personal link (`/<user>/i/<token>`) is one per person with
+**One link shape.** A personal link (`/@<user>/i/<token>`) is one per person with
 name and language baked in. There was a second — an open link, one per journal,
 pasted into a family group chat and falling back to `Accept-Language` — and
 B37 removed it. It granted nothing, which was the original argument for it, but
 it advertised a way in the owner had never offered: anybody who found a
 username was shown a form, and the owner was left approving strangers. The old
-address redirects to `/<user>/me`, and the endpoint behind the form now
+address redirects to `/@<user>/me`, and the endpoint behind the form now
 requires a live invite token.
 
 ### Still open here

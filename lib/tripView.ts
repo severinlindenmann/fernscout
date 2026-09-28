@@ -143,7 +143,7 @@ function windowFor(dayCount: number, centre: number): { from: number; to: number
  * Days `from`…`to` of a trip, in full.
  *
  * The story page's on-demand loader, and the only thing behind
- * `/<user>/story.json`. Returns fewer days than asked for at the ends of the
+ * `/@<user>/story.json`. Returns fewer days than asked for at the ends of the
  * trip rather than erroring — the caller is a reader paging, not an API
  * client.
  */

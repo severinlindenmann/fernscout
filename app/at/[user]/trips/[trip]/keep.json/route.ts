@@ -15,7 +15,7 @@ const WINDOW = 24;
 const WIDTHS = [640, 1200] as const;
 
 /**
- * `/<user>/trips/<trip>/keep.json` — everything a reader needs to read this
+ * `/@<user>/trips/<trip>/keep.json` — everything a reader needs to read this
  * trip with no signal, for the service worker to fetch ahead — B2158 (W43).
  *
  * The same gate as `story.json` and the pages: `mayReadTrip`, then
@@ -53,7 +53,7 @@ export async function GET(request: Request, { params }: RouteContext<"/at/[user]
     data.push(`${base}/story.json?trip=${encodeURIComponent(`${user}/${tripId}`)}&from=${from}&to=${from + WINDOW}`);
   }
 
-  // Served URLs, `/<user>/media/<trip>/…` — what `getDays` already hands
+  // Served URLs, `/@<user>/media/<trip>/…` — what `getDays` already hands
   // the pages (`mediaWithOwner`), so the address kept is the address asked.
   const urls = new Set<string>();
   for (const day of days) {

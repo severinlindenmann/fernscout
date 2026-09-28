@@ -318,7 +318,7 @@ const tripBase = z
      * B2297 (one door for readers, B2291/B2295): this is the byline only.
      * It grants nothing and mails nobody, whatever it says — write access to
      * a trip comes only from a buddy the owner granted at
-     * `/<user>/studio/readers`, a fact that lives in `trip_people`, not
+     * `/@<user>/studio/readers`, a fact that lives in `trip_people`, not
      * here. */
     people: z.array(person).min(1).max(MAX_TRIP_PEOPLE),
     /** Required on a closed trip (guest/private): may the trip's existence

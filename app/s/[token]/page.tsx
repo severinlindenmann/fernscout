@@ -12,7 +12,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 /**
  * The button in an identity sign-in email — B430.
  *
- * `/<user>/s/<token>` one level down is the same page for one journal; this is
+ * `/@<user>/s/<token>` one level down is the same page for one journal; this is
  * the instance-wide one, and it lives at the root because an identity belongs
  * to no journal. No collision is possible: `USERNAME_RE` needs at least two
  * characters, so nothing can ever be called `s`.

@@ -9,7 +9,7 @@ import { MAINTAINED_LOCALES } from "@/lib/i18n";
 /**
  * B199 — one accessible name carrying one thing.
  *
- * The agent-handover block on `/<user>/me` used to copy two values at once —
+ * The agent-handover block on `/@<user>/me` used to copy two values at once —
  * the address of the guide, and the address a sign-in code was sent to —
  * under a name that recited both, joined by a newline:
  *
@@ -27,7 +27,7 @@ import { MAINTAINED_LOCALES } from "@/lib/i18n";
  */
 
 const PROMPT = [
-  "This journal already exists at https://fernscout.ch/alex.",
+  "This journal already exists at https://fernscout.ch/@alex.",
   "Exchange this key for your own token:",
   "  POST https://fernscout.ch/api/auth/handover",
   "  Authorization: Bearer fs_handover_abc123",
@@ -92,7 +92,7 @@ describe("the minted prompt's copy control", () => {
  */
 describe("a copy control holding a single value", () => {
   test("still names the value it holds", () => {
-    const url = "https://fernscout.ch/alex/invite/guest/abc123";
+    const url = "https://fernscout.ch/@alex/invite/guest/abc123";
     const html = render(<CopyLine value={url} label="Copy link" copiedLabel="Copied" />);
     expect(names(html)).toEqual([`Copy link: ${url}`]);
   });

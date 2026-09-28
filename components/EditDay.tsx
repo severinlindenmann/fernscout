@@ -106,7 +106,7 @@ function changedFieldsAgainst(was: Entry, current: Record<string, unknown> | und
 /**
  * The owner correcting their own day, on the day — B980.
  *
- * "Correct or take down" used to be a link to `/agent/<user>`: the owner,
+ * "Correct or take down" used to be a link to `/agent/@<user>`: the owner,
  * standing on the day, with the sentence they wanted to fix in front of them,
  * was taken to another page which re-asked the day from the beginning through
  * a model. For "the time was 14:00, not 15:00" that is a conversation where a
@@ -130,7 +130,7 @@ function changedFieldsAgainst(was: Entry, current: Record<string, unknown> | und
  * effect of Save.
  *
  * Every word and every photograph write to
- * `/<user>/trips/<trip>/day/<slug>/edit`, the owner's cookie door onto the
+ * `/@<user>/trips/<trip>/day/<slug>/edit`, the owner's cookie door onto the
  * same validator and the same writer. One call per update actually changed —
  * a day with three updates where one word moved writes one file.
  *
@@ -558,7 +558,7 @@ export default function EditDay({
       return;
     }
 
-    // The day on screen came from `/<user>/story.json`, which this page fetched
+    // The day on screen came from `/@<user>/story.json`, which this page fetched
     // and holds in state; there is no server render to revalidate. Rather than
     // teach the pager to re-fetch one day, ask the browser for the page again —
     // it happens once, after a deliberate press, and it is the one thing that

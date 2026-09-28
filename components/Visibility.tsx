@@ -423,7 +423,7 @@ function readerBadge(
  *
  * The trip's own visibility is server-rendered into `TripProvider` and a
  * refresh would reach it — but a day is not: the story pager holds its days in
- * client state, fetched from `/<user>/story.json`, and `EditDay` already
+ * client state, fetched from `/@<user>/story.json`, and `EditDay` already
  * chose a full reload for exactly that reason. Two reload strategies for one
  * vocabulary is how one of them quietly stops working, and this happens once,
  * after a deliberate second press.

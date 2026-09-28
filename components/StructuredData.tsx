@@ -35,8 +35,8 @@ export function BlogStructuredData({
   /** One traveller per entry — never a joined string. Two people sharing a
    * trip are two `Person`s, not one with an ampersand in their name. */
   authors: string[];
-  /** Path the trip's days hang off — `/<user>` for the current trip, else
-   * `/<user>/trips/<id>`. The page's own canonical, in other words. */
+  /** Path the trip's days hang off — `/@<user>` for the current trip, else
+   * `/@<user>/trips/<id>`. The page's own canonical, in other words. */
   dayBase: string;
   /** The language the journal is written in. */
   inLanguage: string;

@@ -159,13 +159,13 @@ async function buddyTripFor(
  *
  * **The code stays, underneath, and that is not a formality.** A mail client
  * that mangles a long URL is a real failure with a real frequency, and the six
- * digits are what rescues it — the same reasoning `/{user}/s/{token}` gives
+ * digits are what rescues it — the same reasoning `/@{user}/s/{token}` gives
  * for keeping the code in the sign-in mail.
  *
  * `linkToken` is `issueCode`'s own — one row, one code, one link, so following
  * the button retires the code and vice versa. Guarded on
  * `isEnabled("auth", …)`, exactly as `sendApprovedMail` guards its own: a
- * journal with `contacts` on and `auth` off has no `/{user}/s/…` page, and a
+ * journal with `contacts` on and `auth` off has no `/@{user}/s/…` page, and a
  * button pointing at a 404 is worse than no button.
  */
 /**
@@ -512,7 +512,7 @@ export async function notifyOwnerOfRequest(
  * all: the gate, not the trip (B319). It now carries a **standing sign-in
  * link**, the exact mechanism the owner's own welcome mail has used since
  * `006-standing-link`: `issueStandingLink` mints a `guest`-kind row with no
- * time expiry, and `signInUrl` points it at `/{user}/s/{token}`, the page
+ * time expiry, and `signInUrl` points it at `/@{user}/s/{token}`, the page
  * B142 built so a mail scanner following the link cannot spend it before the
  * reader does — it only *shows* a button; pressing it is what redeems the
  * link. That is the property this letter needs: it may sit in an inbox for a
@@ -531,7 +531,7 @@ export async function notifyOwnerOfRequest(
  * every standing link.
  *
  * There is no longer a journal to guard against — B938. `contacts` declares
- * that it needs `auth`, so an instance without `/{user}/s/{token}` has no
+ * that it needs `auth`, so an instance without `/@{user}/s/{token}` has no
  * approval queue to send this from. The fallback that used to stand here
  * mailed the front page instead, which is the gate she had just been told she
  * was past.

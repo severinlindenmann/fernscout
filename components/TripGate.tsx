@@ -18,7 +18,7 @@ import { journalPath } from "@/lib/journalPath";
  * that came with it. What they have not lost is their e-mail address.
  *
  * So the gate asks for that instead, and reuses the flow that was already
- * running on `/<user>/me`: an address, a six-digit code and a one-tap link in
+ * running on `/@<user>/me`: an address, a six-digit code and a one-tap link in
  * the mail.
  *
  * **Signing in is not what opens the trip**, and that is the whole design.
@@ -54,7 +54,7 @@ import { journalPath } from "@/lib/journalPath";
  *   twice and conclude the site is broken. B2295 (one door for readers,
  *   B2291): there used to be a form here too — "ask to be let in", which
  *   wrote a request of its own. The owner decided
- *   `/<user>/studio/readers` is the only place a person is let in, so this is
+ *   `/@<user>/studio/readers` is the only place a person is let in, so this is
  *   now a sentence and nothing to press: it names the owner and says where an
  *   invite comes from.
  * - **sign-in switched off for this journal** — no form to show, so it says
@@ -110,7 +110,7 @@ export default function TripGate({
   /**
    * The page the reader actually asked for, which is this one: both gate
    * layouts render in place of the requested route, so the URL is still
-   * `/<user>/trips/<id>` or the day underneath it. Handing it to the form is
+   * `/@<user>/trips/<id>` or the day underneath it. Handing it to the form is
    * what makes the button in the mail come back here instead of dropping
    * somebody on a front page that does not mention the trip they clicked —
    * and a `guest` trip is never listed, so from the front page there is no
@@ -167,7 +167,7 @@ export default function TripGate({
                 ? t("gate.waitingBody", { email: signedInAs })
                 : t("gate.refusedBody", { email: signedInAs })}
           </p>
-          {/* Not a dead end. `/<user>/me` is the page that lists what this
+          {/* Not a dead end. `/@<user>/me` is the page that lists what this
               address *can* open, and carries the control for signing out and
               trying another one. */}
           <Link

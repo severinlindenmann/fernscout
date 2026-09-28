@@ -12,7 +12,7 @@ import type { SiteSummary } from "@/lib/site";
  * `HelperConsentList` — rendered directly since B2142 moved the owner's
  * studio page to its own switch rows (`test/studio-permissions.test.tsx`);
  * the component itself still serves a buddy's `/me`. Originally B723,
- * moved there from `/<user>/me`'s own owner block by B2017 (a buddy's single
+ * moved there from `/@<user>/me`'s own owner block by B2017 (a buddy's single
  * `sessions` row stays on `/me`, tested in `test/access-panel.test.tsx`).
  *
  * `docs/plans/2026-09-07-web-helper-agent.md` §6 asked for withdraw to live
@@ -26,7 +26,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/alex/studio/agent",
+  usePathname: () => "/@alex/studio/agent",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -39,7 +39,7 @@ const site = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   hasAccessPanel: true,
 } as unknown as SiteSummary;
 

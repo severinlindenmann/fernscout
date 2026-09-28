@@ -14,7 +14,7 @@ import type { SiteSummary } from "@/lib/site";
 /**
  * The first page a new journal's owner sees (B76).
  *
- * `/<user>` redirects to `/<user>/trips`, so an empty journal's trip list is
+ * `/@<user>` redirects to `/@<user>/trips`, so an empty journal's trip list is
  * the whole site for as long as it stays empty. It used to render a subtitle
  * promising a record of everywhere its owner had been, over four stat tiles
  * reading 0 · 0 · 0 · 0, and hide everything else — a page that looked
@@ -29,7 +29,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/alex/trips",
+  usePathname: () => "/@alex/trips",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -42,7 +42,7 @@ const site = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   // Both read by EmptyState via useSite() — see TripsIndexContent. Fixed for
   // every test in this file, including the two compared in the
   // byte-identity test, so neither can be the thing that makes them differ.
@@ -225,7 +225,7 @@ describe("and a stranger", () => {
   /**
    * The one thing the owner actually asked for: a way to request and enter a
    * code without leaving this page, reusing `GuestSignIn` — the same form the
-   * trip gate and `/<user>/me` already offer. Identified by its email field
+   * trip gate and `/@<user>/me` already offer. Identified by its email field
    * rather than by prose, since the prose is shared with the trip gate too.
    */
   test("offers the code-request form in place, without leaving the page", () => {

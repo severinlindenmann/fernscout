@@ -209,7 +209,7 @@ export type SiteSummary = {
    *
    * The header needs it (B44): the way back in is a door marked in words, and
    * a door is only drawn where there is a form behind it. On a journal with
-   * `auth` off, `/<user>/me` has nothing to press and says so, and a control
+   * `auth` off, `/@<user>/me` has nothing to press and says so, and a control
    * promising otherwise is the bug recorded at app/at/[user]/me/MePageContent.tsx.
    *
    * Deliberately journal-wide and viewer-independent: it comes from config and
@@ -223,7 +223,7 @@ export type SiteSummary = {
    * whether it is drawn. It is **not** `signedIn`: that is a guest session on
    * *this* journal, and a reader can hold one without holding an identity —
    * every session issued before B410, and every one issued by a journal's own
-   * `/<user>/me` form. Sending those readers to `/` would land them on the
+   * `/@<user>/me` form. Sending those readers to `/` would land them on the
    * public landing page having promised them "your journals".
    *
    * Deliberately not "does this reader have more than one journal". That would
@@ -284,7 +284,7 @@ export type SiteSummary = {
    */
   isOwner: boolean;
   /**
-   * Whether `/<user>/studio` — the studio — exists on this instance for this
+   * Whether `/@<user>/studio` — the studio — exists on this instance for this
    * journal — `features.extract`, resolved for this user by `isEnabled`.
    * B1797, renamed to the studio's own gate by B1825: the capability id kept
    * its name (nothing outside this file and `lib/capabilities.ts` reads it),

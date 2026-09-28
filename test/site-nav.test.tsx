@@ -243,7 +243,7 @@ describe("the access panel link", () => {
 /**
  * B44 — the door a reader who lost their invitation can actually see.
  *
- * The panel behind `/<user>/me` was written for the grandmother who opens the
+ * The panel behind `/@<user>/me` was written for the grandmother who opens the
  * journal once a month and has lost the mail she was let in with. Until this,
  * the only route to it was an unlabelled outline of a head: labels in this nav
  * start at `xl`, so on every phone and most laptops she was looking at six

@@ -351,7 +351,7 @@ export function signInUrl(base: string, username: string, linkToken: string, loc
  * Where an identity sign-in link points — B430.
  *
  * `/s/<token>`, at the root, because an identity belongs to no journal and so
- * has no `/<username>/` to live under. It cannot collide with one either:
+ * has no `/@<username>/` to live under. It cannot collide with one either:
  * `USERNAME_RE` needs at least two characters, so no journal can ever be
  * called `s`, and the static segment therefore shadows nothing.
  */
@@ -383,7 +383,7 @@ const NOWHERE = "https://fernscout.invalid";
  *    nowhere, and the result must still be on that base: a `..` segment, or
  *    the `%2e%2e` the URL parser also treats as one, can otherwise climb out
  *    of the journal after every string check has passed.
- * 2. **Is it inside this journal?** `/<username>` exactly, or `/<username>/…`
+ * 2. **Is it inside this journal?** `/@<username>` exactly, or `/@<username>/…`
  *    — or the one public page a guest code is sent from, `/j/<code>` or
  *    `/w/<code>`, a single segment and nothing below it.
  *    A username is a directory name and therefore a boundary, so one reader's
@@ -1388,7 +1388,7 @@ export async function markPhoneProven(
  * - **It cannot outlive a request.** `cache` reads a dispatcher off React's
  *   internals; Next installs one per request and it goes with the request.
  *   There is no module-level map here and there must never be one — a session
- *   revoked on `/<user>/me` has to stop working on the next page view, not on
+ *   revoked on `/@<user>/me` has to stop working on the next page view, not on
  *   the next deploy.
  * - **It cannot blur the wall between the two credentials.** `expected` is the
  *   second argument, and `cache` keys on *every* argument, so

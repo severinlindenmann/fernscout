@@ -17,7 +17,7 @@ import { journalPath } from "@/lib/journalPath";
  * The same `SignupWizard` `/agent` used to mount (B688), not a second signup
  * path: email and code, then name and address (and a proven phone number
  * where the instance asks for one), then the journal. It ends signed in on
- * `/<user>/studio`, whose "A new trip" card makes the first trip.
+ * `/@<user>/studio`, whose "A new trip" card makes the first trip.
  *
  * With `signup` off there is no form that cannot work: one sentence saying
  * so, and the instance-wide sign-in for somebody who already has a journal.

@@ -285,7 +285,7 @@ export default function MePageContent({
    * they had done something wrong.
    */
   signinNotice?: TranslationKey;
-  /** Whether `/<user>/about` exists for this reader — B10. Absent rather
+  /** Whether `/@<user>/about` exists for this reader — B10. Absent rather
    * than a link to a 404 — B74's rule, the same the studio hub's own
    * `analyticsEnabled` follows for its Visitors card. */
   hasAbout?: boolean;
@@ -524,7 +524,7 @@ export default function MePageContent({
               confirmed contact of this journal — that sentence is false: they
               were invited and approved, and an empty list here means every
               trip is closed to them regardless, not that nobody sent them
-              anything. `/<user>/trips` already told that reader the true
+              anything. `/@<user>/trips` already told that reader the true
               thing (`trips.hiddenSignedInBody`, B264/B278); this reuses the
               same sentence rather than inventing a third wording for the same
               fact. Said to the **owner** of a journal with no trips in it at
@@ -597,7 +597,7 @@ export default function MePageContent({
           instructions that do it, which is where the guide's words now live.
 
           **`/welcome`.** The reader this branch is for owns nothing yet, so
-          there is no `/<user>/studio` a link could name; `/welcome` is where
+          there is no `/@<user>/studio` a link could name; `/welcome` is where
           a journal is made from nothing (`SignupWizard`), ending in the studio
           of the journal it just made.
         */}

@@ -16,7 +16,7 @@ import { withoutDeclinedMedia, type DayFile } from "@/lib/api/v2/documents";
  * is genuinely new: nothing in the browser moved, split or merged a day
  * before this ticket. All three share one address convention, worth stating
  * once — a day's public permalink (`app/at/[user]/trips/[trip]/day/[slug]/
- * page.tsx`) is `/<user>/trips/<tripId>/day/<bareSlug>`, built from the
+ * page.tsx`) is `/@<user>/trips/<tripId>/day/<bareSlug>`, built from the
  * BARE slug (`entrySlugFromFile`, lib/entries.ts) and the trip id. The date
  * is only ever part of the on-disk *filename*
  * (`v2Slug`, `entries/YYYY-MM-DD-slug.json`) and never the URL. So:
@@ -201,7 +201,7 @@ export function moveDayTransactional(
   writeDayFile(username, to.tripId, newStem, toWrite);
   if (crossTrip || newStem !== fromStem) deleteDayFile(username, fromTripId, fromStem);
 
-  // The permalink is `/<user>/trips/<tripId>/day/<bareSlug>` — the date
+  // The permalink is `/@<user>/trips/<tripId>/day/<bareSlug>` — the date
   // never appears in it, so only a trip change ever moves the address a
   // published day already answers to (see this module's own doc comment).
   return { ok: true, addressChanged: crossTrip && stored.status === "published" };

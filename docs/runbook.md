@@ -747,7 +747,7 @@ gets read:
 
 **Method, path and user agent. Never an IP address, and never a query
 string** (B257). This server holds private journals, so a log of
-`/<user>/day/<slug>` sitting next to an address is already an identified
+`/@<user>/day/<slug>` sitting next to an address is already an identified
 reading history. If an operator needs client addresses for abuse work, that
 is a second, separately-named switch and a separate decision — not this one.
 

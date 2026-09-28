@@ -34,7 +34,7 @@ export type StopSource = {
    * `test/payload.test.tsx`), and a photo URL on every one of those would
    * grow that budget by roughly its own length per day, trip-length over
    * trip-length. `TripMap` fills this in itself, client-side, from
-   * `/<user>/story.json` — the same reader-gated route the story page
+   * `/@<user>/story.json` — the same reader-gated route the story page
    * already lazily pages through, so a photo here has already passed
    * `maySeePhoto`/`visible()` (`lib/entries.ts`) before it arrives.
    */

@@ -60,7 +60,7 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
   // `guest`: an invitation to the journal, and nothing else.
   //
   // `isJournalGuest` is the same call `resolveViewer` makes to decide what to
-  // *list* on `/<user>/me`, so a trip shown there under "what you can read" is
+  // *list* on `/@<user>/me`, so a trip shown there under "what you can read" is
   // a trip this returns true for. Before B41 the panel said yes and this said
   // no, and the reader met a password form for a password nobody had ever
   // sent them. B39 then removed the password, leaving this as the only door.
@@ -404,7 +404,7 @@ export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
     // `mayReadTrip` refuses before it asks anything else. Listing it here
     // would advertise a trip the switcher cannot open.
     if (trip.visibility === "private") return false;
-    // A guest of the journal: the same question the panel on `/<user>/me` asks
+    // A guest of the journal: the same question the panel on `/@<user>/me` asks
     // and the same one the gate asks, so the switcher, the panel and the gate
     // name one set of trips between them (B41, B45).
     return guest && owner === trip.username;

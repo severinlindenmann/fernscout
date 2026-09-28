@@ -11,7 +11,7 @@ import { buddyPrompt } from "@/lib/api/agentCopy";
  * person and a narrower grant. A buddy — named in a trip's `people:`, or
  * approved through a buddy link (B33) — may write days into that trip and may
  * hold a token scoped to it. Until this block existed, nothing they could
- * reach said so: the whole of `/{user}/me` that mentions writing sat inside
+ * reach said so: the whole of `/@{user}/me` that mentions writing sat inside
  * `{viewer.owner && …}`, and the details panel beside it told them the journal
  * was not theirs to edit. Their write access existed in the database and
  * nowhere in their experience.

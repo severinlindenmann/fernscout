@@ -750,7 +750,7 @@ async function writeUploads(
         fs.writeFileSync(path.join(staging, name), derivative.bytes);
         staged.push({ from: path.join(staging, name), to: path.join(mediaOut, name) });
         items.push({
-          // Trip-relative, never `/<user>/media/…`: the owner is prefixed at
+          // Trip-relative, never `/@<user>/media/…`: the owner is prefixed at
           // read time, which is what let the move to multi-user rewrite no
           // entry file. `attachGallery` (lib/api/entries.ts) writes this
           // straight into the entry's frontmatter, so it has to stay

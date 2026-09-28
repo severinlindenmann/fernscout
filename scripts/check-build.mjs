@@ -2,7 +2,7 @@
 // Is this build complete enough to serve? — B1429.
 //
 // On 2026-09-11 an ordinary deploy built, restarted, reported success, and
-// answered /api/health with `ok` while /<user>/contacts returned 500:
+// answered /api/health with `ok` while /@<user>/contacts returned 500:
 //
 //   Invariant: The client reference manifest for route "/[user]/contacts"
 //   does not exist. This is a bug in Next.js.

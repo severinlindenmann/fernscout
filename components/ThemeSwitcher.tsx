@@ -13,7 +13,7 @@ import {
 
 /**
  * Appearance, as a header chip — the only control for it since B1781 retired
- * the panel on `/<user>/me`.
+ * the panel on `/@<user>/me`.
  *
  * `subtle` is `LocaleSwitcher`'s prop and means the same thing here: on the
  * landing page the chip sits alone above the headline, where a bordered pill

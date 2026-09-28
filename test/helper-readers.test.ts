@@ -14,7 +14,7 @@ import { WEB_CALLER } from "./support/callers";
 /**
  * Two capabilities let onto the wizard's own door — B1051. `invite_guest`,
  * `invites` and `revoke_invite` used to live here too; B2295 (one door for
- * readers, B2291) removed them — the owner decided `/<user>/studio/readers`
+ * readers, B2291) removed them — the owner decided `/@<user>/studio/readers`
  * is the only place a person is let in or an invite link is made or revoked.
  * `tell_readers` is one tool for the two routes that announce a published
  * day, because a person says "tell them" and not which transport. `channels`

@@ -29,7 +29,7 @@ import { CODE_TTL_MINUTES } from "@/lib/auth";
  * list *with* it set is not "the invitation has not arrived", it is "every
  * trip is closed to you regardless". This file used to assert the opposite:
  * that a guest with `guest: true` still got the un-invited sentence. That was
- * the bug; the fix reuses `/<user>/trips`'s own sentence for the same reader
+ * the bug; the fix reuses `/@<user>/trips`'s own sentence for the same reader
  * (`trips.hiddenSignedInBody`) rather than inventing a third wording for it.
  */
 
@@ -39,7 +39,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/alex/me",
+  usePathname: () => "/@alex/me",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -52,7 +52,7 @@ const site = {
   startLocation: "X",
   baseCurrency: "CHF",
   locales: ["en"],
-  base: "/alex",
+  base: "/@alex",
   hasAccessPanel: true,
 } as unknown as SiteSummary;
 

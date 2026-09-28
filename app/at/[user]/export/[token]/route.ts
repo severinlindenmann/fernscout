@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  * itself.
  *
  * Always the whole journal (`createUserExportArchive(user, "all")`, no
- * `tripId`) — the same scope `/<user>/export.zip` serves an agent token, and
+ * `tripId`) — the same scope `/@<user>/export.zip` serves an agent token, and
  * `config.json` travels with it for the same reason that route's does: this
  * is the owner's own backup, not a narrowed copy for somebody else.
  */

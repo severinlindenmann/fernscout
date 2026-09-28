@@ -9,7 +9,7 @@ import path from "node:path";
  * The build completeness check (B1429).
  *
  * A deploy on 2026-09-11 built cleanly, restarted, reported success and
- * answered /api/health with `ok` while `/<user>/contacts` returned 500 —
+ * answered /api/health with `ok` while `/@<user>/contacts` returned 500 —
  * the page's client reference manifest was not in the build. Every gate was
  * looking somewhere else, and the page that broke was owner-only, so nothing
  * an unauthenticated smoke test could reach would have found it.

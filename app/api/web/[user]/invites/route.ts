@@ -3,7 +3,7 @@
 //
 // B2295 (one door for readers, B2291): the agent bearer door this used to
 // proxy for (`/api/v2/{user}/invites*`) is gone. The owner decided
-// `/<user>/studio/readers` is the only place a person is let in, so there is
+// `/@<user>/studio/readers` is the only place a person is let in, so there is
 // no agent-reachable equivalent any more — a bearer token is refused outright,
 // not pointed somewhere else. `isOwner` on the cookie only, then
 // `invitesListResponse`/`invitePutResponse` in `lib/contacts/invitesResponse`

@@ -16,7 +16,7 @@ import type { Trip } from "@/lib/types";
  * every link an owner ever copied from the address bar mid-story was one of
  * these.
  *
- * The fix threads the real permalink through instead: `/<user>/day/<slug>`
+ * The fix threads the real permalink through instead: `/@<user>/day/<slug>`
  * is a route of its own (`app/at/[user]/(trip)/day/[slug]/page.tsx`) that
  * already opens the story window centred on that day server-side — nothing
  * new needed there, and confirmed by `render` in
@@ -81,7 +81,7 @@ describe("trip.href builds the same path the day-permalink route answers", () =>
   }
 
   test("the current trip's day permalink has no /trips/<id> segment", () => {
-    // Matches app/at/[user]/(trip)/day/[slug]/page.tsx's own url: `/${user}/day/${slug}`.
+    // Matches app/at/[user]/(trip)/day/[slug]/page.tsx's own url: `/@${user}/day/${slug}`.
     expect(hrefFor({ username: "alex", id: "bangkok-2026" }, true, "/day/hoi-an")).toBe(
       "/@alex/day/hoi-an",
     );
@@ -89,7 +89,7 @@ describe("trip.href builds the same path the day-permalink route answers", () =>
 
   test("a past trip's day permalink carries its trip id", () => {
     // Matches app/at/[user]/trips/[trip]/day/[slug]/page.tsx's own url:
-    // `/${user}/trips/${trip.id}/day/${slug}`.
+    // `/@${user}/trips/${trip.id}/day/${slug}`.
     expect(hrefFor({ username: "alex", id: "bangkok-2026" }, false, "/day/hoi-an")).toBe(
       "/@alex/trips/bangkok-2026/day/hoi-an",
     );

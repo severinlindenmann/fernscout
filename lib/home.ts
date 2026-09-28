@@ -110,7 +110,7 @@ export function publicJournals(): PublicJournalSummary[] {
  * Every journal this address holds a role in.
  *
  * Nothing here decides what may be *read* — `tripsVisibleTo` does that, and it
- * is the same function `/<user>/me` renders from, so the home view and the
+ * is the same function `/@<user>/me` renders from, so the home view and the
  * per-journal panel cannot come to different answers about one trip. A journal
  * where the address turns out to see nothing but public trips is dropped: it
  * belongs in the public list, not in "yours".

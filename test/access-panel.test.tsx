@@ -632,7 +632,7 @@ describe("the sessions-consent block — B1385", () => {
  * reader guides, so otherwise the foot of the page has no link at all.
  *
  * B1905 moved that destination from `/agent` to `/?start=1` — this reader
- * owns no journal, so there is no `/<user>/studio` to send them to either;
+ * owns no journal, so there is no `/@<user>/studio` to send them to either;
  * see `MePageContent.tsx`'s own doc comment on the link. B2170 repointed it
  * again, to `/welcome`, where a journal is actually made from nothing.
  */

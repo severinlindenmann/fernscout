@@ -4,7 +4,7 @@ import type { MigrationDb } from "./types";
  * Where the sign-in link should land.
  *
  * The button in a sign-in mail always redirected to `/<username>`, and while
- * the form lived only on `/<user>/me` that was the right place. B39 put the
+ * the form lived only on `/@<user>/me` that was the right place. B39 put the
  * same form in front of every closed trip, so the ordinary path became: open
  * a link to a trip, meet the gate, ask for a code, tap the button — and arrive
  * on a front page that does not mention the trip you came for. A `guest` trip
@@ -22,7 +22,7 @@ import type { MigrationDb } from "./types";
  * Null for every row written before this migration, for every agent code —
  * an agent has no browser to land anywhere — and for the sign-in mails that
  * carry no destination at all: the digest footer, the contact mail, and the
- * form on `/<user>/me`, all of which should keep landing on the journal.
+ * form on `/@<user>/me`, all of which should keep landing on the journal.
  */
 export async function up(db: MigrationDb): Promise<void> {
   await db.schema.alterTable("login_codes").addColumn("link_dest", "text").execute();

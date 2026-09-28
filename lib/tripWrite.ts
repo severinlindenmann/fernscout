@@ -132,7 +132,7 @@ export type NewTrip = {
    * Whether a closed trip may say that it exists — B587.
    *
    * The mirror of `listed`: only meaningful on a `guest` or `private` trip,
-   * where it puts a locked card on `/<user>/trips` carrying the title, the
+   * where it puts a locked card on `/@<user>/trips` carrying the title, the
    * dates and nothing else. Refused on a public trip, where there is nothing
    * to tease and `listed` is the key that decides.
    */

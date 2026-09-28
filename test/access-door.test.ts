@@ -6,7 +6,7 @@ import type { FeatureName, UserConfig } from "@/lib/config";
  *
  * The door is drawn in `components/SiteNav.tsx` and rendered there, but what
  * decides whether it may be drawn at all is server config: a journal with
- * `features.auth` off has no form behind `/<user>/me`, and a control marked
+ * `features.auth` off has no form behind `/@<user>/me`, and a control marked
  * "Sign in" leading to a page that cannot serve one is the bug already
  * recorded at app/at/[user]/me/MePageContent.tsx.
  *
