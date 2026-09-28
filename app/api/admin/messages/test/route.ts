@@ -3,7 +3,7 @@ import { isInstanceAdmin } from "@/lib/adminGate";
 import { sendMailWith, transportName } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
 import { logMessage } from "@/lib/messages/log";
-import { composePreview, PREVIEW_LOCALES, type PreviewLocale } from "@/lib/messages/fixtures";
+import { composePreview, isPreviewable, PREVIEW_LOCALES, type PreviewLocale } from "@/lib/messages/fixtures";
 import { TEMPLATES, templateDef, type TemplateId } from "@/lib/messages/registry";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
@@ -50,6 +50,9 @@ export async function POST(request: Request) {
   const useLocale = PREVIEW_LOCALES.includes(locale) ? locale : "en";
   // The template's own composition (B2493), so the test is the real letter
   // with sample data; only the subject says it is a test.
+  if (!isPreviewable(template)) {
+    return Response.json({ error: "not_found", message: "This instance has no sender for that template." }, { status: 404 });
+  }
   const composed = await composePreview(template, useLocale);
   if (composed.channel !== "mail") {
     return Response.json({ error: "invalid_request", message: "Not a mail template." }, { status: 400 });

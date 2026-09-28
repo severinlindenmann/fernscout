@@ -7,10 +7,12 @@ import { translateIn } from "../locales";
 import { logMessage } from "../messages/log";
 import { ownerLocale } from "../messages/locale";
 import { sendMail, type SendResult } from "../mail";
-import { codeMail } from "../mail/codeMail";
+import { composeCodeMailContent } from "../mail/codeMail";
 import { inviteMail } from "../mail/inviteMail";
 import { letInMail } from "../mail/letInMail";
 import { renderMail } from "../mail/template";
+import type { Composition } from "../messages/previews/types";
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { serverSite } from "../site";
 import { getTrip, tripRef } from "../trips";
 import type { Locale } from "../types";
@@ -165,6 +167,35 @@ async function buddyTripFor(
  * journal with `contacts` on and `auth` off has no `/{user}/s/…` page, and a
  * button pointing at a 404 is worse than no button.
  */
+/**
+ * `code.mail`'s composition — B2493. Pure: `link` is already resolved (the
+ * `isEnabled`/`signInUrl` call stays in `sendCodeMail`, below), so this is
+ * the exact function a preview calls too.
+ */
+export function composeCodeMail(params: {
+  title: string;
+  locale: Locale;
+  code: string;
+  link?: string | null;
+  preapproved?: boolean;
+}): MailComposition {
+  const { title, locale, code, link = null, preapproved = false } = params;
+  return composeCodeMailContent({
+    template: "code.mail",
+    locale,
+    code,
+    place: title,
+    title: translateIn(locale, link ? "contact.mailCodeLinkTitle" : "contact.mailCodeTitle"),
+    purpose: link
+      ? translateIn(locale, preapproved ? "contact.mailCodeLinkBodyPreapproved" : "contact.mailCodeLinkBody")
+      : translateIn(locale, "contact.mailCodePurpose"),
+    url: link ?? undefined,
+    buttonText: link ? translateIn(locale, "contact.mailCodeButton") : undefined,
+    ignoreText: translateIn(locale, "contact.mailCodeIgnore"),
+    why: translateIn(locale, WHY_KEY.codeJournal, { site: title }),
+  });
+}
+
 export async function sendCodeMail(
   username: string,
   user: UserConfig,
@@ -185,24 +216,8 @@ export async function sendCodeMail(
   const link = linkToken && isEnabled("auth", username)
     ? signInUrl(baseUrl(), username, linkToken, locale)
     : null;
-  return sendMail(
-    codeMail({
-      template: "code.mail",
-      to,
-      locale,
-      code,
-      place: user.title,
-      title: translateIn(locale, link ? "contact.mailCodeLinkTitle" : "contact.mailCodeTitle"),
-      purpose: link
-        ? translateIn(locale, preapproved ? "contact.mailCodeLinkBodyPreapproved" : "contact.mailCodeLinkBody")
-        : translateIn(locale, "contact.mailCodePurpose"),
-      url: link ?? undefined,
-      buttonText: link ? translateIn(locale, "contact.mailCodeButton") : undefined,
-      ignoreText: translateIn(locale, "contact.mailCodeIgnore"),
-      why: footerFor(locale, user, "codeJournal"),
-      username,
-    }),
-  );
+  const { subject, content } = composeCodeMail({ title: user.title, locale, code, link, preapproved });
+  return sendMail(renderMail(to, subject, content, username));
 }
 
 /**
@@ -378,6 +393,72 @@ export async function sendWelcomeMail(
  * confirmation for the same address try again instead of the notice being
  * lost for good.
  */
+/**
+ * `notice.request`'s composition — B2493. Covers all three shapes
+ * `notifyOwnerOfRequest` sends: a plain reader confirming their address
+ * (`tripTitle` and `asked` both absent — the preview's main path), a buddy
+ * link asking for write access (`tripTitle` set — B349), and somebody who
+ * pressed "ask to be let in" in front of a closed trip (`asked: true` — B601).
+ */
+export function composeRequestMail(params: {
+  username: string;
+  title: string;
+  locale: Locale;
+  contactId: string;
+  name: string;
+  email: string;
+  tripTitle?: string | null;
+  asked?: boolean;
+}): MailComposition {
+  const { username, title, locale, contactId, name, email, tripTitle = null, asked = false } = params;
+  const bodyVars = { name, email, trip: tripTitle ?? "" };
+  const bodyKey = tripTitle
+    ? "contact.mailRequestBuddyBody"
+    : asked
+    ? "contact.mailRequestAskedBody"
+    : "contact.mailRequestBody";
+  // B362 — the subject calling this a follow request was the other half of
+  // what B349 fixed in the body; a buddy link is asking to write, not to
+  // follow.
+  const subjectKey = tripTitle
+    ? "contact.mailRequestBuddySubject"
+    : asked
+    ? "contact.mailRequestAskedSubject"
+    : "contact.mailRequestSubject";
+  return {
+    channel: "mail",
+    subject: translateIn(locale, subjectKey, { title, trip: tripTitle ?? "" }),
+    content: {
+      template: "notice.request",
+      preheader: translateIn(locale, bodyKey, bodyVars),
+      title: translateIn(locale, "contact.mailRequestTitle"),
+      blocks: [
+        {
+          kind: "paragraph",
+          // Name and address, and nothing else. Whether they asked for a
+          // postcard is on the overview page; where they live is not in a
+          // mail.
+          text: translateIn(locale, bodyKey, bodyVars),
+        },
+        // B800 — the other half of a sentence the reader is now told:
+        // "most people are let in within a day or two". Neither side used
+        // to be told *when*, so a reader could not tell "not yet" from
+        // "broken" and the owner had no sense that anybody was blocked on
+        // them. One line, in the owner's language, saying somebody is
+        // waiting on this.
+        { kind: "paragraph", text: translateIn(locale, "contact.mailRequestSoon") },
+        {
+          kind: "button",
+          text: translateIn(locale, "contact.mailRequestButton"),
+          href: `${baseUrl()}/${username}/studio/readers?contact=${encodeURIComponent(contactId)}`,
+        },
+      ],
+      why: translateIn(locale, WHY_KEY.owner, { site: title }),
+      locale,
+    },
+  };
+}
+
 export async function notifyOwnerOfRequest(
   username: string,
   user: UserConfig,
@@ -394,62 +475,24 @@ export async function notifyOwnerOfRequest(
   // row (`viaLabel()` in `ContactsAdmin.tsx`): which kind of link, and which
   // trip. Null for everyone else, and the sentence is unchanged for them.
   const trip = await buddyTripFor(username, contact);
-  const bodyVars = { name: contact.name ?? contact.email, email: contact.email, trip: trip?.title ?? "" };
   // B601 — somebody who pressed "ask to be let in" in front of a closed trip
   // did not "confirm their email address and would like to follow along":
   // they were already signed in, met a locked trip, and asked. Saying so is
   // what tells the owner whether this is a stranger who found the journal or
   // somebody they had already sent a link to.
   const asked = contact.createdVia === "asked";
-  const bodyKey = trip
-    ? "contact.mailRequestBuddyBody"
-    : asked
-    ? "contact.mailRequestAskedBody"
-    : "contact.mailRequestBody";
-  // B362 — the subject calling this a follow request was the other half of
-  // what B349 fixed in the body; a buddy link is asking to write, not to
-  // follow.
-  const subjectKey = trip
-    ? "contact.mailRequestBuddySubject"
-    : asked
-    ? "contact.mailRequestAskedSubject"
-    : "contact.mailRequestSubject";
+  const { subject, content } = composeRequestMail({
+    username,
+    title: user.title,
+    locale,
+    contactId: contact.id,
+    name: contact.name ?? contact.email,
+    email: contact.email,
+    tripTitle: trip?.title,
+    asked,
+  });
   try {
-    const result = await sendMail(
-      renderMail(
-        user.owner.email,
-        translateIn(locale, subjectKey, { title: user.title, trip: trip?.title ?? "" }),
-        {
-          template: "notice.request",
-          preheader: translateIn(locale, bodyKey, bodyVars),
-          title: translateIn(locale, "contact.mailRequestTitle"),
-          blocks: [
-            {
-              kind: "paragraph",
-              // Name and address, and nothing else. Whether they asked for a
-              // postcard is on the overview page; where they live is not in a
-              // mail.
-              text: translateIn(locale, bodyKey, bodyVars),
-            },
-            // B800 — the other half of a sentence the reader is now told:
-            // "most people are let in within a day or two". Neither side used
-            // to be told *when*, so a reader could not tell "not yet" from
-            // "broken" and the owner had no sense that anybody was blocked on
-            // them. One line, in the owner's language, saying somebody is
-            // waiting on this.
-            { kind: "paragraph", text: translateIn(locale, "contact.mailRequestSoon") },
-            {
-              kind: "button",
-              text: translateIn(locale, "contact.mailRequestButton"),
-              href: `${baseUrl()}/${username}/studio/readers?contact=${encodeURIComponent(contact.id)}`,
-            },
-          ],
-          why: footerFor(locale, user, "owner"),
-          locale,
-        },
-        username,
-      ),
-    );
+    const result = await sendMail(renderMail(user.owner.email, subject, content, username));
     // `sendMail` returns null rather than throwing when this server or this
     // journal has mail switched off — not a failure, but nothing was told
     // either. Reading that as "notified" would let `notified_at` lie.

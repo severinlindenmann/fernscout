@@ -15,6 +15,11 @@ export interface MapControlsProps {
   onFit?: () => void;
   onLayers?: () => void;
   onFullscreen?: () => void;
+  /** A class on the full-screen button's own wrapper only — a caller that
+   * wants it at one breakpoint but not another (B2430's desktop map page)
+   * without hiding the rest of the column. Absent leaves the button exactly
+   * as before, in flow with the others. */
+  fullscreenClassName?: string;
 }
 
 function ControlButton({
@@ -70,6 +75,9 @@ function FitIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* The centre dot is what tells "whole trip" apart from full screen,
+          which draws the same four corners. */}
+      <path d="M9 7a2 2 0 1 1 0 4a2 2 0 1 1 0-4Z" fill="currentColor" />
     </svg>
   );
 }
@@ -102,7 +110,14 @@ function FullscreenIcon() {
   );
 }
 
-export default function MapControls({ onZoomIn, onZoomOut, onFit, onLayers, onFullscreen }: MapControlsProps) {
+export default function MapControls({
+  onZoomIn,
+  onZoomOut,
+  onFit,
+  onLayers,
+  onFullscreen,
+  fullscreenClassName,
+}: MapControlsProps) {
   const { t } = useI18n();
 
   return (
@@ -128,9 +143,11 @@ export default function MapControls({ onZoomIn, onZoomOut, onFit, onLayers, onFu
         </ControlButton>
       )}
       {onFullscreen && (
-        <ControlButton label={t("map.fullscreen")} onClick={onFullscreen}>
-          <FullscreenIcon />
-        </ControlButton>
+        <div className={fullscreenClassName}>
+          <ControlButton label={t("map.fullscreen")} onClick={onFullscreen}>
+            <FullscreenIcon />
+          </ControlButton>
+        </div>
       )}
     </div>
   );

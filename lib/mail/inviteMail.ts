@@ -1,7 +1,10 @@
 import "server-only";
+import type { Composition } from "../messages/previews/types";
 import type { Locale } from "../types";
 import { renderMail, type MailBlock } from "./template";
 import type { Mail } from "./types";
+
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 
 /**
  * The one builder behind both Fernscout-sent invite mails — B2440 work item
@@ -29,15 +32,17 @@ export type InviteMailInput = {
   username?: string;
 };
 
-export function inviteMail(input: InviteMailInput): Mail {
+/** The pure half — B2493. `composeInviteMail`'s preview and `inviteMail`'s
+ * real send both build this same content; only `renderMail`'s `to` differs. */
+export function composeInviteMail(input: InviteMailInput): MailComposition {
   const blocks: MailBlock[] = [
     { kind: "paragraph", text: input.body },
     { kind: "button", text: input.buttonText, href: input.buttonUrl },
   ];
-  return renderMail(
-    input.to,
-    input.subject,
-    {
+  return {
+    channel: "mail",
+    subject: input.subject,
+    content: {
       template: "invite.mail",
       preheader: input.body,
       title: input.title,
@@ -46,6 +51,10 @@ export function inviteMail(input: InviteMailInput): Mail {
       manage: input.manage,
       locale: input.locale,
     },
-    input.username,
-  );
+  };
+}
+
+export function inviteMail(input: InviteMailInput): Mail {
+  const { subject, content } = composeInviteMail(input);
+  return renderMail(input.to, subject, content, input.username);
 }

@@ -18,8 +18,8 @@ import { checkOwnerEmailChange } from "@/lib/ownerEmailChange";
 import { revokeCodes, revokeSessionsForAddress } from "@/lib/auth";
 import { rateLimitFor, clientIp } from "@/lib/rateLimit";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
-import { translateIn } from "@/lib/locales";
 import { sendTransactional } from "@/lib/mail";
+import { composeOwnerEmailMovedMail } from "@/lib/mail/accountCodeCompositions";
 import { renderMail } from "@/lib/mail/template";
 import { serverSite } from "@/lib/site";
 import { readJsonBody } from "@/lib/api/jsonBody";
@@ -94,24 +94,15 @@ async function notifyOldOwnerAddress(
   const now = getUser(user);
   const locale = pickLocale(now?.locales[0], fromAcceptLanguage(request.headers.get("accept-language")));
   const site = serverSite();
-  const vars = { site: site.name, title: now?.title ?? user, newEmail };
   try {
+    const { subject, content } = composeOwnerEmailMovedMail({
+      locale,
+      siteName: site.name,
+      title: now?.title ?? user,
+      newEmail,
+    });
     await sendTransactional(
-      renderMail(
-        oldEmail,
-        translateIn(locale, "mail.ownerEmailMovedSubject", vars),
-        {
-          template: "notice.moved",
-          preheader: translateIn(locale, "mail.ownerEmailMovedPreheader", vars),
-          title: translateIn(locale, "mail.ownerEmailMovedTitle"),
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailMovedWhat", vars) },
-            { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailMovedRevoked", vars) },
-          ],
-          why: translateIn(locale, "mail.identityFooter", vars),
-        },
-        user,
-      ),
+      renderMail(oldEmail, subject, content, user),
       "the previous owner learning that the journal moved to a new address",
     );
   } catch (err) {

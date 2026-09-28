@@ -234,3 +234,73 @@ describe("B2211 — paddedFrameBox pads proportionally, not by a fixed number of
     expect(box.north - box.south).toBeGreaterThan(10);
   });
 });
+
+/**
+ * B2491 review. Russia's own border ring crosses the antimeridian, and the
+ * bake (`scripts/build-mapdata.mjs`'s `ringToShape`) used to cut it into
+ * subpaths there and close each one with a plain `Z` — an edge from that
+ * fragment's own last point back to its own first, which is rarely anywhere
+ * near it. `lib/mapClip.ts`'s Sutherland–Hodgman clip then faithfully
+ * clipped *that* chord too, and the visible result — found live, on
+ * `/severin/trips` — was a short diagonal line from Kamchatka to whichever
+ * corner of the frame's box the chord happened to cross.
+ *
+ * The fix unwraps the ring instead of cutting it (`unwrapLngs`/`shiftLng`
+ * in the bake), so it reaches this test as an ordinary, non-self-crossing
+ * polygon and the *existing* clip needs no change of its own. This asserts
+ * the outcome directly, against the real committed bundle, at the actual
+ * frame the bug was found on: no border/lake path this close to Russia's
+ * Far East has an edge — anywhere in it, including the one from its own
+ * last point back to its first — longer than a real coastline vertex
+ * spacing at this resolution ever is.
+ */
+describe("B2491 review — no antimeridian chord near Russia's Far East", () => {
+  /** Roughly Sea of Japan to Kamchatka — the region the wedge/line reached
+   * for on `/severin/trips`'s "Alle" and "Europe" (sic — the frame's own
+   * right edge) views. */
+  const kamchatka = frameRoute([
+    { lat: 43, lng: 135 },
+    { lat: 60, lng: 165 },
+  ]);
+
+  function maxEdgeSpan(paths: readonly string[]): number {
+    let max = 0;
+    for (const d of paths) {
+      for (const sub of d.split(/(?=M)/)) {
+        const pts = [...sub.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)].map((m) => [
+          Number(m[1]),
+          Number(m[2]),
+        ]);
+        if (pts.length < 2) continue;
+        for (let i = 1; i < pts.length; i++) max = Math.max(max, Math.abs(pts[i][0] - pts[i - 1][0]));
+        // The closing edge — the one a naive per-fragment `Z` got wrong.
+        max = Math.max(max, Math.abs(pts[0][0] - pts[pts.length - 1][0]));
+      }
+    }
+    return max;
+  }
+
+  test("no border, lake or river path near Russia's Far East has a chord-sized edge", () => {
+    const map = basemapFor(kamchatka)!;
+    expect(map).not.toBeNull();
+    // A real coastline vertex at this resolution is metres to a few km apart
+    // — nowhere close to the hundreds-of-units chord an antimeridian
+    // artifact draws. 50 units is generously below "chord", generously
+    // above "adjacent vertex".
+    expect(maxEdgeSpan(map.borders)).toBeLessThan(50);
+    expect(maxEdgeSpan(map.lakes)).toBeLessThan(50);
+    expect(maxEdgeSpan(map.rivers)).toBeLessThan(50);
+  });
+
+  test("a frame spanning the antimeridian itself still draws a clean coastline", () => {
+    // Alaska to Chukotka — a frame that straddles the seam directly, the
+    // case the shifted duplicate copies (`shiftLng`) exist for.
+    const strait = frameRoute([
+      { lat: 60, lng: -175 },
+      { lat: 68, lng: 175 },
+    ]);
+    const map = basemapFor(strait)!;
+    expect(map).not.toBeNull();
+    expect(maxEdgeSpan(map.borders)).toBeLessThan(50);
+  });
+});

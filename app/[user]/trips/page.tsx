@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { basemapFor } from "@/lib/basemap";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { getAllMedia, getPlaces, getTripStats } from "@/lib/entries";
-import { frameRoute } from "@/lib/mapFrame";
+import { unproject } from "@/lib/mapProjection.mjs";
+import { buildLifetimeViews, type VisitedCountry } from "@/lib/lifetimeMapViews";
 import { accentsFor, getMalformedTrips, getTrips } from "@/lib/trips";
 import { listableTrips, readFor, signedInAs } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
@@ -288,10 +288,11 @@ async function TripsIndexBody({ user }: { user: string }) {
   }
 
   /**
-   * Every visited country gets the map's own single "visited" tint now
-   * (B2423) — LifetimeMap reads it from `--map-visited`, so no per-country
-   * colour is resolved here any more. `lib/flagColours.ts` (B370, B375) is
-   * retired along with it.
+   * Every visited country gets its one fixed colour from the generated
+   * table now (B2491, `lib/countryColours.json`) — `LifetimeMap` reads it
+   * client-side by code, so nothing about colour is resolved here.
+   * `lib/flagColours.ts` (B370, B375) is retired along with the tint it
+   * replaced (B2423).
    */
   const visits = [...visitsByCode]
     .map(([code, trips]) => {
@@ -308,20 +309,50 @@ async function TripsIndexBody({ user }: { user: string }) {
             name: countryNames.get(code) ?? shape.name,
             path: shape.path,
             trips,
+            x: shape.x,
           }
         : null;
     })
     .filter((v): v is NonNullable<typeof v> => v !== null);
 
-  const routes = travelled.map((trip) => ({
-    id: trip.id,
-    title: trip.title,
-    accent: accents.get(trip.ref)!,
-    translations: trip.translations,
-    points: placesByTrip
-      .get(trip.ref)!
-      .map((p) => ({ lat: p.lat, lng: p.lng, location: p.location })),
-  }));
+  /**
+   * Framing points per visited country, for the continent-switch map's own
+   * per-view frames (B2491, `lib/lifetimeMapViews.ts`) — decision under
+   * "Framing": a country's *real stops* win when any readable trip actually
+   * reached it, and only a teaser-only country falls back to its main
+   * landmass's own corners (`mainBBox`, baked by
+   * `scripts/build-world-countries.mts`).
+   */
+  const pointsByCode = new Map<string, { lat: number; lng: number }[]>();
+  for (const trip of travelled) {
+    for (const p of placesByTrip.get(trip.ref) ?? []) {
+      if (!p.countryCode || !Number.isFinite(p.lat) || !Number.isFinite(p.lng)) continue;
+      const list = pointsByCode.get(p.countryCode) ?? [];
+      list.push({ lat: p.lat, lng: p.lng });
+      pointsByCode.set(p.countryCode, list);
+    }
+  }
+  const cornersByCode = new Map<string, { lat: number; lng: number }[]>();
+  for (const v of visits) {
+    const shape = worldCountries.find((c) => c.code === v.code);
+    if (!shape) continue;
+    const [minX, minY, maxX, maxY] = shape.mainBBox;
+    cornersByCode.set(v.code, [
+      unproject(minX, minY),
+      unproject(maxX, minY),
+      unproject(minX, maxY),
+      unproject(maxX, maxY),
+    ]);
+  }
+  const visitedCountries: VisitedCountry[] = visits.map((v) => {
+    const shape = worldCountries.find((c) => c.code === v.code)!;
+    return { code: v.code, continent: shape.continent, subregion: shape.subregion };
+  });
+  const { views, continents: continentButtons } = buildLifetimeViews(
+    visitedCountries,
+    pointsByCode,
+    cornersByCode,
+  );
 
   const cards = trips.map((trip) => {
     const stats = statsByTrip.get(trip.ref);
@@ -364,54 +395,13 @@ async function TripsIndexBody({ user }: { user: string }) {
     travelled.flatMap((t) => placesByTrip.get(t.ref)!.map((p) => p.country).filter(Boolean)),
   );
 
-  /**
-   * Where a teasered trip's countries sit, at country resolution — B600.
-   *
-   * The frame has to include a filled country or the fill is drawn off-screen,
-   * and the honest way to widen it is the country's *own* outline: a bounding
-   * box round the trip's actual stops would put the region somebody stayed in
-   * into a public page, which is exactly what this feature promised not to do.
-   * `project` is `(lng + 180) / 360 * 1000` and `(90 - lat) / 180 * 500`, so
-   * the inverse is two lines and needs no library.
-   */
-  const countryCorners = (path: string) => {
-    const nums = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-    const xs = nums.filter((_, i) => i % 2 === 0);
-    const ys = nums.filter((_, i) => i % 2 === 1);
-    if (xs.length === 0 || ys.length === 0) return [];
-    const lngs = [Math.min(...xs), Math.max(...xs)].map((x) => (x / 1000) * 360 - 180);
-    const lats = [Math.min(...ys), Math.max(...ys)].map((y) => 90 - (y / 500) * 180);
-    return lats.flatMap((lat) => lngs.map((lng) => ({ lat, lng })));
-  };
-  const lockedFramePoints = [
-    ...new Set(lockedCountries.map((c) => c.code)),
-  ].flatMap((code) => countryCorners(worldCountries.find((c) => c.code === code)?.path ?? ""));
-
-  // The frame the basemap is clipped to: everything the map will draw.
-  const framePoints = [...routes.flatMap((r) => r.points), ...lockedFramePoints];
-  const mapFrame = framePoints.length > 0 ? frameRoute(framePoints) : null;
-
   return (
     <TripsIndexContent
       trips={cards}
       locked={lockedCards}
-      // Frame only — a teasered trip's countries have to be inside the map or
-      // the fill is drawn off it. Country outlines, never the trip's stops.
-      framePoints={lockedFramePoints}
-      routes={routes}
       visits={visits}
-      userPath={`/${user}`}
-      // Every trip's points at once: the lifetime map frames all of them, so
-      // the clip has to cover all of them too.
-      //
-      // Guarded on the points the map will actually draw — the routes this
-      // reader may see, plus the outlines of any teasered trip's countries
-      // (B600), which is the same condition the map itself is drawn on
-      // (TripsIndexContent). A journal of trips that were never geotagged
-      // still gets a world map, and a basemap for it. A journal with nothing
-      // but upcoming trips draws no map, and was paying 160 KB of
-      // clipped-to-nothing world for it (B85).
-      basemap={mapFrame ? basemapFor(mapFrame) : null}
+      views={views}
+      continents={continentButtons}
       empty={empty}
       malformed={malformed}
       // The code-request form the empty state may show — see EmptyState.

@@ -14,6 +14,8 @@ import type { TranslationKey } from "./i18n";
 import { translateIn } from "./locales";
 import { sendTransactional } from "./mail";
 import { renderMail, type MailBlock } from "./mail/template";
+import type { Composition } from "./messages/previews/types";
+type MailComposition = Extract<Composition, { channel: "mail" }>;
 import { rateLimitFor } from "./rateLimit";
 import { release } from "./registry";
 import { serverSite } from "./site";
@@ -371,13 +373,17 @@ export function deletionExportUrl(base: string, username: string, token: string)
   return `${deletionUrl(base, username, token)}/export.zip`;
 }
 
-async function sendDeletionMail(input: {
+/**
+ * `notice.delete`'s composition — B2493. A whole-journal deletion
+ * (`summary.kind === "journal"`) is the main path this composes; a trip
+ * deletion swaps in `del.trip*` keys for the same shape — see the report.
+ */
+export function composeDeletionMail(input: {
   summary: DeletionSummary;
-  email: string;
   nickname: string;
   token: string;
   locale?: string;
-}): Promise<void> {
+}): MailComposition {
   const site = serverSite();
   const { summary } = input;
   const locale = input.locale ?? "en";
@@ -433,6 +439,27 @@ async function sendDeletionMail(input: {
     { kind: "paragraph", text: t("del.notYou") },
   ];
 
+  return {
+    channel: "mail",
+    subject: t(isJournal ? "del.journalSubject" : "del.tripSubject", counts),
+    content: {
+      template: "notice.delete",
+      preheader: t(isJournal ? "del.journalIntro" : "del.tripIntro", counts),
+      title: t(isJournal ? "del.journalTitle" : "del.tripTitle"),
+      blocks,
+      why: t("del.footer", counts),
+    },
+  };
+}
+
+async function sendDeletionMail(input: {
+  summary: DeletionSummary;
+  email: string;
+  nickname: string;
+  token: string;
+  locale?: string;
+}): Promise<void> {
+  const { subject, content } = composeDeletionMail(input);
   /**
    * Sent whatever the journal's own `features.mail.enabled` says.
    *
@@ -446,18 +473,7 @@ async function sendDeletionMail(input: {
    * silently. See `sendTransactional` in ./mail, and B60.
    */
   await sendTransactional(
-    renderMail(
-      input.email,
-      t(isJournal ? "del.journalSubject" : "del.tripSubject", counts),
-      {
-        template: "notice.delete",
-        preheader: t(isJournal ? "del.journalIntro" : "del.tripIntro", counts),
-        title: t(isJournal ? "del.journalTitle" : "del.tripTitle"),
-        blocks,
-        why: t("del.footer", counts),
-      },
-      summary.username,
-    ),
+    renderMail(input.email, subject, content, input.summary.username),
     "the confirmation link for a deletion the owner has already asked for",
   );
 }
@@ -566,14 +582,14 @@ function exportLinkUrl(base: string, username: string, token: string): string {
   return `${base.replace(/\/$/, "")}/${username}/export/${token}`;
 }
 
-async function sendExportMail(input: {
+/** `notice.export`'s composition — B2493. */
+export function composeExportMail(input: {
   username: string;
   title: string;
   nickname: string;
-  email: string;
   token: string;
   locale?: string;
-}): Promise<void> {
+}): MailComposition {
   const site = serverSite();
   const locale = input.locale ?? "en";
   const t = (key: TranslationKey, vars?: Record<string, string>) => translateIn(locale, key, vars);
@@ -592,13 +608,24 @@ async function sendExportMail(input: {
     { kind: "paragraph", text: t("exp.notYou") },
   ];
 
+  return {
+    channel: "mail",
+    subject: t("exp.subject", vars),
+    content: { template: "notice.export", preheader: t("exp.intro", vars), title: t("exp.title"), blocks, why: t("exp.footer", vars) },
+  };
+}
+
+async function sendExportMail(input: {
+  username: string;
+  title: string;
+  nickname: string;
+  email: string;
+  token: string;
+  locale?: string;
+}): Promise<void> {
+  const { subject, content } = composeExportMail(input);
   await sendTransactional(
-    renderMail(
-      input.email,
-      t("exp.subject", vars),
-      { template: "notice.export", preheader: t("exp.intro", vars), title: t("exp.title"), blocks, why: t("exp.footer", vars) },
-      input.username,
-    ),
+    renderMail(input.email, subject, content, input.username),
     "an export link the owner has already asked for",
   );
 }

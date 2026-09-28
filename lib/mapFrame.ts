@@ -213,13 +213,36 @@ export function frameSpanKm(frame: Frame): number {
   return kmForUnits(frame.w);
 }
 
+export type FrameOptions = {
+  /**
+   * Overrides `PAD_FRACTION` (0.35) — the lifetime map's continent/area
+   * views use ~10% (decision 2/"Framing",
+   * docs/plans/2026-09-27-reisen-continent-switch.md), a tight frame being
+   * the whole point of that view, where every other caller (TripMap,
+   * WorldMap, MiniMap, this page's own lifetime frame) keeps the wider
+   * default so their own framing is unchanged by B2491.
+   */
+  padFraction?: number;
+  /**
+   * Overrides the `MIN_SPAN_KM` floor with a span in **degrees** instead of
+   * kilometres — the lifetime map's per-view frames ask for "about 6°"
+   * directly (a single small country zoomed to a blur otherwise), and a
+   * degree span rather than a km one is what a continent/area view actually
+   * means: the same km floor is a wildly different zoom at the equator and
+   * near a pole.
+   */
+  minSpanDeg?: number;
+};
+
 /**
  * The frame a set of coordinates should be drawn in.
  *
  * Empty input frames the whole world, which is what a trip with no located
  * days or stops gets.
  */
-export function frameRoute(points: readonly Point[]): Frame {
+export function frameRoute(points: readonly Point[], opts: FrameOptions = {}): Frame {
+  const padFraction = opts.padFraction ?? PAD_FRACTION;
+  const minSpanUnits = opts.minSpanDeg !== undefined ? opts.minSpanDeg / DEG_PER_UNIT : unitsForKm(MIN_SPAN_KM);
   // A point with no coordinates is not a point. Left in, `Math.min`/`Math.max`
   // below carry `undefined` or `NaN` straight into `midLat`, and
   // `Math.max(0.2, NaN)` is `NaN` — not the 0.2 floor — so `lngScale` goes NaN
@@ -255,7 +278,7 @@ export function frameRoute(points: readonly Point[]): Frame {
   // Padding proportional to the route, off the larger axis so that a route
   // running mostly one way is not padded almost not at all across the other.
   const extent = Math.max(maxX - minX, maxY - minY);
-  const pad = Math.max(extent * PAD_FRACTION, unitsForKm(MIN_SPAN_KM) / 2);
+  const pad = Math.max(extent * padFraction, minSpanUnits / 2);
   minX -= pad;
   maxX += pad;
   minY -= pad;
@@ -266,9 +289,8 @@ export function frameRoute(points: readonly Point[]): Frame {
 
   // A single stop, or several in one town: still nothing to look at without a
   // floor, because the padding above is a fraction of nearly zero.
-  const floor = unitsForKm(MIN_SPAN_KM);
-  if (w < floor) w = floor;
-  if (h < floor) h = floor;
+  if (w < minSpanUnits) w = minSpanUnits;
+  if (h < minSpanUnits) h = minSpanUnits;
 
   // Grow the short axis to the shape the page is laid out for. Growing, never
   // cropping — every stop stays inside the frame.

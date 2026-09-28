@@ -363,23 +363,43 @@ elif [ -f "$STATE_FILE_PAID" ]; then
   DEPLOYED_PAID="$(tr -dc '0-9a-f' < "$STATE_FILE_PAID" | head -c 40)"
 fi
 
-# B1313: a checkout left on a detached HEAD — the state a hand-build recovery
-# leaves it in — fails `git pull --ff-only` with git's own "you are not
-# currently on a branch", which says nothing about deploy.sh or what to do
-# about it. Say both, and stop before anything else runs.
-if ! as_service git symbolic-ref -q HEAD >/dev/null; then
-  DETACHED_AT="$(as_service git rev-parse --short HEAD 2>/dev/null || echo '?')"
-  echo "ERROR: $APP_DIR is not on a branch (detached HEAD at ${DETACHED_AT})." >&2
-  echo "       Reattach it, but only if it has not diverged from the branch you deploy:" >&2
-  echo "         git merge-base --is-ancestor main HEAD && git checkout main" >&2
-  echo "       If that check fails, the branch has diverged — that is a person's decision," >&2
-  echo "       not this script's." >&2
-  exit 1
-fi
+# B2500: the pipeline that just tested a commit deploys that exact commit,
+# not whatever branch this checkout happens to track — so with DEPLOY_SHA set
+# there is no branch to be on and no fast-forward to reason about. This is
+# the CI wrapper's path (fernscout-deploy dev|prod <sha>); a person at the
+# keyboard still gets the branch behaviour below by leaving it unset.
+if [ -n "${DEPLOY_SHA:-}" ]; then
+  if ! [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "ERROR: DEPLOY_SHA '${DEPLOY_SHA}' is not a full 40-character hex commit SHA." >&2
+    exit 1
+  fi
+  log "fetching (DEPLOY_SHA set — deploying an explicit commit, not a branch)"
+  as_service git fetch --quiet origin
+  if ! as_service git cat-file -e "${DEPLOY_SHA}^{commit}" 2>/dev/null; then
+    echo "ERROR: DEPLOY_SHA ${DEPLOY_SHA:0:12} is not reachable after fetching origin." >&2
+    exit 1
+  fi
+  as_service git checkout --quiet --detach "$DEPLOY_SHA"
+  HEAD_SHA="$DEPLOY_SHA"
+else
+  # B1313: a checkout left on a detached HEAD — the state a hand-build recovery
+  # leaves it in — fails `git pull --ff-only` with git's own "you are not
+  # currently on a branch", which says nothing about deploy.sh or what to do
+  # about it. Say both, and stop before anything else runs.
+  if ! as_service git symbolic-ref -q HEAD >/dev/null; then
+    DETACHED_AT="$(as_service git rev-parse --short HEAD 2>/dev/null || echo '?')"
+    echo "ERROR: $APP_DIR is not on a branch (detached HEAD at ${DETACHED_AT})." >&2
+    echo "       Reattach it, but only if it has not diverged from the branch you deploy:" >&2
+    echo "         git merge-base --is-ancestor main HEAD && git checkout main" >&2
+    echo "       If that check fails, the branch has diverged — that is a person's decision," >&2
+    echo "       not this script's." >&2
+    exit 1
+  fi
 
-log "pulling"
-as_service git pull --ff-only
-HEAD_SHA="$(as_service git rev-parse HEAD)"
+  log "pulling"
+  as_service git pull --ff-only
+  HEAD_SHA="$(as_service git rev-parse HEAD)"
+fi
 
 if [ "$MODE" = full ]; then
   log "--full: every step, whatever changed"
@@ -575,7 +595,10 @@ fi
 # build-before-restart order exists for.
 if [ "$do_units" = 1 ]; then
   log "installing systemd units"
-  "$APP_DIR/scripts/install-units.sh"
+  # SERVICE is not exported above, so it is passed explicitly rather than
+  # relied on to leak through — install-units.sh has its own B1794 guard that
+  # refuses to touch /etc/systemd/system for anything but the prod service.
+  SERVICE="$SERVICE" "$APP_DIR/scripts/install-units.sh"
 else
   skip "units" "deploy/ unit files unchanged"
 fi

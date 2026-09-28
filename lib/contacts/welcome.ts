@@ -22,6 +22,7 @@ import { approveContact, confirmContactByOwner, getContact, type ContactRecord }
 import { parseLocale, pickLocale } from "./locale";
 import { sendWelcomeMail } from "./mail";
 import { isInviteSuppressed } from "./suppressions";
+import type { Composition, PreviewLocale } from "../messages/previews/types";
 
 /**
  * The welcome link and the four ways an owner tells somebody about it — B2292
@@ -323,6 +324,28 @@ type Message = {
   subject: string;
 };
 
+/**
+ * `invite.sms`'s composition — pure, B2493. Whether this is a buddy (on the
+ * trip) or an ordinary reader decides which of two texts it is — the same
+ * branch `messageFor` has always taken, just with the DB read (which trip)
+ * done by the caller rather than by this function.
+ */
+export function composeInviteSms(
+  input: { recipientName: string; ownerName: string; title: string; url: string; isBuddy: boolean },
+  locale: PreviewLocale,
+): Composition {
+  const vars = {
+    name: capText(input.recipientName, 40),
+    owner: capText(input.ownerName, 40),
+    title: capText(input.title, 60),
+    url: input.url,
+  };
+  return {
+    channel: "sms",
+    text: translateIn(locale, input.isBuddy ? "welcomeLink.textBuddy" : "welcomeLink.textReader", vars),
+  };
+}
+
 async function messageFor(owner: string, contact: ContactRecord, code: string): Promise<Message | null> {
   const user = getUser(owner);
   if (!user) return null;
@@ -335,10 +358,14 @@ async function messageFor(owner: string, contact: ContactRecord, code: string): 
     title: capText(trip ?? user.title, 60),
     url,
   };
+  const sms = composeInviteSms(
+    { recipientName: firstName(contact.name), ownerName: ownerShortName(user), title: trip ?? user.title, url, isBuddy: Boolean(trip) },
+    locale as PreviewLocale,
+  );
   return {
     locale,
     url,
-    text: translateIn(locale, trip ? "welcomeLink.textBuddy" : "welcomeLink.textReader", vars),
+    text: "text" in sms ? sms.text : "",
     subject: translateIn(locale, "welcomeLink.mailSubject", vars),
   };
 }
@@ -599,6 +626,22 @@ async function recordInvited(owner: string, contactId: string, channel: InviteCh
  * took it, or null when there was nothing to send on — never throws: the
  * approval already stands.
  */
+/**
+ * `invite.in.sms`'s composition — pure, B2493.
+ */
+export function composeInviteInSms(
+  input: { recipientName: string; ownerName: string; journalTitle: string; url: string },
+  locale: PreviewLocale,
+): Composition {
+  const vars = {
+    name: capText(input.recipientName, 40),
+    owner: capText(input.ownerName, 40),
+    title: capText(input.journalTitle, 60),
+    url: input.url,
+  };
+  return { channel: "sms", text: translateIn(locale, "welcomeLink.letInText", vars) };
+}
+
 export async function tellLetIn(owner: string, contact: ContactRecord): Promise<"email" | "sms" | null> {
   const user = getUser(owner);
   const code = user ? await welcomeCodeFor(owner, contact.id) : null;
@@ -611,7 +654,11 @@ export async function tellLetIn(owner: string, contact: ContactRecord): Promise<
     title: capText(user.title, 60),
     url,
   };
-  const text = translateIn(locale, "welcomeLink.letInText", vars);
+  const composedSms = composeInviteInSms(
+    { recipientName: firstName(contact.name), ownerName: ownerShortName(user), journalTitle: user.title, url },
+    locale as PreviewLocale,
+  );
+  const text = "text" in composedSms ? composedSms.text : "";
   try {
     if (contact.email.includes("@") && contact.confirmedAt && !mailDisabledReason(owner)) {
       const subject = translateIn(locale, "welcomeLink.letInSubject", vars);

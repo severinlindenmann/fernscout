@@ -9,6 +9,7 @@ import { DOCS_PAGES } from "./docs";
 import { hasLegal } from "./legal";
 import { SKILL_DOC_SLUGS, skillDocPath } from "./api/skillDocMeta";
 import { PAID_AREAS } from "@paid/manifest";
+import { isEnabled } from "./capabilities";
 
 /**
  * The sitemap, as an index of three — B2486.
@@ -60,6 +61,9 @@ export function pagesSitemap(): SitemapEntry[] {
   if (PAID_AREAS.includes("orgs")) {
     paths.push("/schools", "/schools/demo", "/tour-operators", "/tour-operators/demo");
   }
+  // The plans side by side — B2509. Only where this instance charges; the
+  // page itself is a 404 otherwise.
+  if (isEnabled("credits")) paths.push("/prices");
   if (hasLegal()) paths.push("/legal");
   return paths.map((path) => instancePage(base, path));
 }

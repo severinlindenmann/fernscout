@@ -1,7 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import LocaleProvider from "@/components/LocaleProvider";
-import { YourJournals, type HomeJournal } from "@/components/HomeJournals";
+import type { HomeJournal } from "@/components/HomeJournals";
+import SignedInHome from "@/components/home/SignedInHome";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
@@ -44,32 +45,32 @@ function journal(overrides: Partial<HomeJournal>): HomeJournal {
 function markup(journals: HomeJournal[], locale = "en"): string {
   return renderToStaticMarkup(
     <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
-      <YourJournals email="agent@example.test" journals={journals} />
+      <SignedInHome journals={journals} />
     </LocaleProvider>,
   );
 }
 
 describe("a title nobody sane typed (B493)", () => {
-  test("the trip link is capped and ellipsised rather than pushing the card wide", () => {
+  // B2508 moved the trip links from a wrapping row into a grid of cards; the
+  // rule is the same — the card ends the title in an ellipsis inside a
+  // `min-w-0` cell, and the whole title stays in `title=`.
+  test("a trip card's title is capped and ellipsised rather than pushing the grid wide", () => {
     const html = markup([
       journal({
         trips: [{ id: "x", title: UNBROKEN, href: "/ana/x", through: "owner" }],
       }),
     ]);
-    // `truncate` is only an ellipsis if something bounds the width, and in a
-    // `flex-wrap` row that something is `max-w-full` on both the item and the
-    // link — with `min-w-0`, without which a flex item refuses to shrink below
-    // its content and the card grows to 300 characters.
-    expect(html).toMatch(/class="[^"]*min-w-0[^"]*max-w-full[^"]*"/);
-    expect(html).toMatch(/class="[^"]*max-w-full truncate[^"]*"/);
-    // The whole title stays available to a person who wants it.
-    expect(html).toContain(`title="${UNBROKEN}"`);
+    expect(html).toMatch(/<li class="min-w-0">/);
+    expect(html).toMatch(new RegExp(`title="${UNBROKEN}" class="[^"]*truncate`));
   });
 
-  test("a journal's own title and tagline can break mid-word", () => {
-    const html = markup([journal({ title: UNBROKEN, tagline: UNBROKEN })]);
-    const breaks = html.match(/break-words/g) ?? [];
-    expect(breaks.length).toBeGreaterThanOrEqual(2);
+  test("the Continue title can break mid-word, a shared journal's name is cut short", () => {
+    const own = markup([journal({ trips: [{ id: "x", title: UNBROKEN, href: "/ana/x", through: "owner" }] })]);
+    expect(own).toMatch(/<h1[^>]*class="[^"]*break-words/);
+    const shared = markup([
+      journal({ role: "guest", title: UNBROKEN, trips: [{ id: "x", title: "t", href: "/ana/x", through: "guest" }] }),
+    ]);
+    expect(shared).toMatch(new RegExp(`class="[^"]*truncate[^"]*">${UNBROKEN}`));
   });
 });
 
@@ -89,12 +90,12 @@ describe("the operator's list (B494)", () => {
   test("their journals are rows under their own heading, not cards", () => {
     const html = markup([mine, ...theirs]);
     expect(html).toContain("Other journals on this server");
-    // The card's own furniture — the owner's hint and the trip links — belongs
-    // to the one journal that is actually theirs.
-    expect(html).toContain("Yours to publish");
-    // Counted by href, not by title: the link carries the title twice, once
-    // as text and once in the `title=` attribute B493 added.
-    expect(html.split('href="/ana/alps"').length - 1).toBe(1);
+    // The Continue card and the trip links belong to the one journal that
+    // is actually theirs: the operator's rows add no trip link of their own
+    // (the fixture's trips all point at /ana/alps).
+    expect(html).toContain("Continue");
+    const links = (h: string) => h.split('href="/ana/alps"').length - 1;
+    expect(links(html)).toBe(links(markup([mine])));
   });
 
   test("an operator with no journal of their own still gets the section", () => {
@@ -112,17 +113,13 @@ describe("the operator's list (B494)", () => {
 });
 
 /**
- * B1948 — the owner's hint named the studio in prose with nothing to click:
- * `home.ownerHint` and `HomeJournals.tsx` carried the sentence but no
- * `<Link>` into `/[user]/studio`. Split the sentence around the word so the
- * card gets one link, weighted like the trip links beside it rather than a
- * second call-to-action button.
+ * B1948 — the owner's way into their own studio is a link, not prose. B2508
+ * made it the Continue card's own button.
  */
-describe("the owner's hint links into their own studio (B1948)", () => {
-  test("the word 'studio' is a link to /[user]/studio", () => {
+describe("the owner's card links into their own studio (B1948)", () => {
+  test("Open the studio is a link to /[user]/studio", () => {
     const html = markup([journal({ username: "ana", role: "owner" })]);
-    expect(html).toContain('<a href="/ana/studio"');
-    expect(html).toMatch(/<a href="\/ana\/studio"[^>]*>studio<\/a>/);
+    expect(html).toMatch(/<a href="\/ana\/studio"[^>]*>Open the studio<\/a>/);
   });
 
   test("a reader or traveller on somebody else's journal gets no such link", () => {

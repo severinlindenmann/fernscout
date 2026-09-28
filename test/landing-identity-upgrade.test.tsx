@@ -112,7 +112,8 @@ describe("the root page's identity-upgrade retry", () => {
       "GET /api/v2/me/home",
     ]);
     expect(host.textContent).toContain("Two Backpacks");
-    expect(host.textContent).toContain("Signed in as");
+    // B2508: the owner's signed-in home opens on Continue.
+    expect(host.textContent).toContain("Continue");
   });
 
   test("a genuine stranger — the upgrade issues nothing — still sees the signed-out page", async () => {

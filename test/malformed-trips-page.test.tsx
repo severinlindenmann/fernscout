@@ -78,7 +78,6 @@ function render(
           <TripListProvider trips={[]}>
             <TripsIndexContent
               trips={over.trips ?? []}
-              routes={[]}
               lifetime={{ countries: 0, days: 0, photos: 0, trips: 0 }}
               empty={null}
               malformed={over.malformed ?? []}

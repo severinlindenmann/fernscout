@@ -12,7 +12,11 @@
 // coarse outline is indistinguishable and a twentieth of the weight.
 //
 // A one-off preprocessing step — `world-atlas` and `topojson-client` are
-// devDependencies and never ship to the browser. No network.
+// devDependencies and never ship to the browser. One network fetch, for
+// Natural Earth's own CONTINENT/SUBREGION fields (B2491): `world-atlas`'s
+// topology strips every property but `name`, so the continent switch's data
+// comes from the same admin-0 source `scripts/build-mapdata.mjs` already
+// fetches live, joined back onto this file's shapes by ISO 3166-1 code.
 // Run with: npm run build:worldcountries
 import fs from "node:fs";
 import path from "node:path";
@@ -20,6 +24,44 @@ import { feature } from "topojson-client";
 import topology from "world-atlas/countries-110m.json" with { type: "json" };
 import { project, MAP_VIEWBOX } from "../lib/mapProjection.mjs";
 import { COUNTRY_CODES } from "../lib/countryCodes";
+
+const NE_ADMIN0 =
+  "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson";
+
+/** ISO 3166-1 alpha-2 → Natural Earth's own CONTINENT/SUBREGION strings. */
+async function fetchContinents(): Promise<Record<string, { continent: string; subregion: string }>> {
+  const res = await fetch(NE_ADMIN0);
+  if (!res.ok) throw new Error(`Natural Earth admin-0 fetch failed: ${res.status}`);
+  const geo = (await res.json()) as {
+    features: {
+      properties: { ISO_A2?: string; ISO_A2_EH?: string; CONTINENT?: string; SUBREGION?: string };
+    }[];
+  };
+  const out: Record<string, { continent: string; subregion: string }> = {};
+  for (const f of geo.features) {
+    // Natural Earth's own `ISO_A2` is "-99" for France, Norway and Kosovo (a
+    // sovereignty placeholder) and a disputed-territory compound like
+    // "CN-TW" for Taiwan — neither is the plain alpha-2 this file keys on, so
+    // `ISO_A2_EH` ("de facto") is read instead whenever `ISO_A2` isn't one.
+    const iso2 = /^[A-Z]{2}$/;
+    const code = iso2.test(f.properties.ISO_A2 ?? "") ? f.properties.ISO_A2 : f.properties.ISO_A2_EH;
+    if (!code || !iso2.test(code)) continue;
+    out[code] = { continent: f.properties.CONTINENT ?? "", subregion: f.properties.SUBREGION ?? "" };
+  }
+  return out;
+}
+
+/**
+ * Manual continent/subregion for the handful of codes this file names that
+ * Natural Earth's `ISO_A2` join misses — the same split/alias cases
+ * `SPLITS`/`ALIASES` above already carry by hand, so they need the same
+ * treatment here rather than silently drawing with an empty continent.
+ */
+const CONTINENT_OVERRIDES: Record<string, { continent: string; subregion: string }> = {
+  // French Guiana: split off metropolitan France above; South America, not
+  // Western Europe.
+  GF: { continent: "South America", subregion: "South America" },
+};
 
 const ROOT = path.join(import.meta.dirname, "..");
 const OUT_FILE = path.join(ROOT, "lib", "worldCountries.json");
@@ -81,12 +123,41 @@ type CountryFeature = {
 };
 type Ring = [number, number][];
 
+/**
+ * Splits a ring wherever consecutive points cross the antimeridian, rather
+ * than drawing one path that wraps all the way round the world.
+ *
+ * `project()` puts ±180° at x = 0 and x = 1000 (`MAP_VIEWBOX.width`) alike —
+ * a fine seam for a route (`lib/mapFrame.ts`'s `unwrap` walks it the other
+ * way, keeping a route's own points continuous), but a *ring* that steps from
+ * 179.9° to −179.9° projects as a jump from x≈1000 straight to x≈0, and the
+ * closed path draws that jump as a solid horizontal line across the whole
+ * map. Fiji, Russia (two subpaths) and Antarctica all have rings like this at
+ * 1:110m. Splitting the ring at each such jump into separate closed subpaths
+ * keeps each one local; the straight edge this leaves at the split (rather
+ * than the ring's true wrap around the pole or across the date line) is
+ * invisible at world zoom, which is the only zoom this file is ever drawn at.
+ */
+function splitAntimeridian(ring: [number, number][]): [number, number][][] {
+  const JUMP = MAP_VIEWBOX.width / 2; // half the world — a smaller step is ordinary geometry, not a wrap.
+  const runs: [number, number][][] = [];
+  let current: [number, number][] = [];
+  for (const p of ring) {
+    if (current.length > 0 && Math.abs(p[0] - current[current.length - 1][0]) > JUMP) {
+      if (current.length >= 2) runs.push(current);
+      current = [];
+    }
+    current.push(p);
+  }
+  if (current.length >= 2) runs.push(current);
+  return runs.length > 0 ? runs : [ring];
+}
+
 function ringToPath(ring: Ring): string {
-  const pts = ring.map(([lng, lat]) => {
-    const [x, y] = project(lat, lng);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  return `M${pts.join(" L")} Z`;
+  const projected = ring.map(([lng, lat]) => project(lat, lng)) as [number, number][];
+  return splitAntimeridian(projected)
+    .map((run) => `M${run.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L")} Z`)
+    .join(" ");
 }
 
 const geo = feature(topology, topology.objects.countries) as { features: CountryFeature[] };
@@ -102,6 +173,17 @@ const out: {
   /** How wide the country is on the map, for ordering labels largest-first —
    * the big ones win a crowded frame, the way town labels already do. */
   w: number;
+  /**
+   * The bounding box, in projected units, of this country's **main
+   * landmass only** — its largest single ring, the same one the label sits
+   * on. B2491's per-country framing reads this rather than `path`'s full
+   * multi-polygon extent, so a country with a far-flung island (Ecuador and
+   * the Galápagos, Chile and Rapa Nui) is framed on the mainland a trip
+   * actually reached, not stretched to include land nobody visited.
+   */
+  mainBBox: [number, number, number, number];
+  continent: string;
+  subregion: string;
 }[] = [];
 const unmatched: string[] = [];
 
@@ -115,69 +197,105 @@ function centroidLng(polygon: Ring[]): number {
 /** Builds one country's path and label position from its usable polygons,
  * and pushes it — shared between a feature's main body and a part `SPLITS`
  * has pulled off under its own code. */
-function emit(code: string | null, name: string, usable: Ring[][]): void {
+function emit(
+  code: string | null,
+  name: string,
+  usable: Ring[][],
+  continents: Record<string, { continent: string; subregion: string }>,
+): void {
   const d = usable.map((rings) => rings.map(ringToPath).join(" ")).join(" ");
   if (!d) return;
 
   /**
-   * The label sits on the country's *largest* landmass, not on the mean of
-   * all of them. Averaging puts the United States' name in the Pacific
-   * between Alaska and Florida.
+   * The label — and the framing bounding box below — sit on the country's
+   * *largest* landmass, not the mean of all of them. Averaging puts the
+   * United States' name in the Pacific between Alaska and Florida.
    */
-  let best: { x: number; y: number; w: number } | null = null;
+  let best: { x: number; y: number; w: number; minX: number; maxX: number; minY: number; maxY: number } | null =
+    null;
   for (const rings of usable) {
-    const pts = rings[0].map(([lng, lat]) => project(lat, lng));
-    const xs = pts.map(([x]) => x);
-    const ys = pts.map(([, y]) => y);
-    const w = Math.max(...xs) - Math.min(...xs);
-    if (!best || w > best.w) {
-      best = {
-        x: (Math.min(...xs) + Math.max(...xs)) / 2,
-        y: (Math.min(...ys) + Math.max(...ys)) / 2,
-        w,
-      };
+    const projected = rings[0].map(([lng, lat]) => project(lat, lng)) as [number, number][];
+    // Same antimeridian split as `ringToPath` — otherwise Fiji or Russia's
+    // "largest landmass" bbox is the whole 1000-unit-wide world, not the
+    // island or peninsula that ring actually draws.
+    for (const pts of splitAntimeridian(projected)) {
+      const xs = pts.map(([x]) => x);
+      const ys = pts.map(([, y]) => y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const w = maxX - minX;
+      if (!best || w > best.w) {
+        best = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, w, minX, maxX, minY, maxY };
+      }
     }
   }
   if (!best) return;
 
-  out.push({ code, name, path: d, x: +best.x.toFixed(1), y: +best.y.toFixed(1), w: +best.w.toFixed(1) });
+  const region = (code && (CONTINENT_OVERRIDES[code] ?? continents[code])) || { continent: "", subregion: "" };
+
+  out.push({
+    code,
+    name,
+    path: d,
+    x: +best.x.toFixed(1),
+    y: +best.y.toFixed(1),
+    w: +best.w.toFixed(1),
+    mainBBox: [+best.minX.toFixed(1), +best.minY.toFixed(1), +best.maxX.toFixed(1), +best.maxY.toFixed(1)],
+    continent: region.continent,
+    subregion: region.subregion,
+  });
 }
 
-for (const f of geo.features) {
-  const name = f.properties?.name ?? "";
-  const code = COUNTRY_CODES[name.toLowerCase()] ?? ALIASES[name.toLowerCase()] ?? null;
-  // An unidentifiable country is still drawn — it is ground, not a hole in
-  // the map. It simply can never be filled as visited.
-  if (!code) unmatched.push(name);
+async function main() {
+  const continents = await fetchContinents();
 
-  const geom = f.geometry;
-  if (!geom) continue;
-  const polygons = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+  for (const f of geo.features) {
+    const name = f.properties?.name ?? "";
+    const code = COUNTRY_CODES[name.toLowerCase()] ?? ALIASES[name.toLowerCase()] ?? null;
+    // An unidentifiable country is still drawn — it is ground, not a hole in
+    // the map. It simply can never be filled as visited.
+    if (!code) unmatched.push(name);
 
-  // Every polygon of one country joins into a single path, so a country is one
-  // shape to fill, hover and click. Indonesia is not thirteen thousand
-  // countries, and a path per island would make it behave like them.
-  const usable = polygons.filter((rings) => rings[0] && rings[0].length >= 4);
+    const geom = f.geometry;
+    if (!geom) continue;
+    const polygons = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
 
-  const split = SPLITS[name.toLowerCase()];
-  if (split) {
-    const apart = usable.filter((rings) => centroidLng(rings) < split.maxLng);
-    const kept = usable.filter((rings) => centroidLng(rings) >= split.maxLng);
-    emit(split.code, split.name, apart);
-    emit(code, name, kept);
-    continue;
+    // Every polygon of one country joins into a single path, so a country is one
+    // shape to fill, hover and click. Indonesia is not thirteen thousand
+    // countries, and a path per island would make it behave like them.
+    const usable = polygons.filter((rings) => rings[0] && rings[0].length >= 4);
+
+    const split = SPLITS[name.toLowerCase()];
+    if (split) {
+      const apart = usable.filter((rings) => centroidLng(rings) < split.maxLng);
+      const kept = usable.filter((rings) => centroidLng(rings) >= split.maxLng);
+      emit(split.code, split.name, apart, continents);
+      emit(code, name, kept, continents);
+      continue;
+    }
+
+    emit(code, name, usable, continents);
   }
 
-  emit(code, name, usable);
+  fs.writeFileSync(OUT_FILE, JSON.stringify(out));
+
+  const named = out.filter((c) => c.code).length;
+  const noRegion = out.filter((c) => c.code && !c.continent).map((c) => c.code);
+  console.log(
+    `Wrote ${out.length} countries (${named} identified, ${out.length - named} unidentified) ` +
+      `at ${MAP_VIEWBOX.width}x${MAP_VIEWBOX.height} to ${path.relative(ROOT, OUT_FILE)}`,
+  );
+  if (unmatched.length > 0) {
+    console.log(`  no ISO code, drawn as plain ground: ${unmatched.join(", ")}`);
+  }
+  if (noRegion.length > 0) {
+    console.log(`  no continent/subregion match: ${noRegion.join(", ")}`);
+  }
 }
 
-fs.writeFileSync(OUT_FILE, JSON.stringify(out));
-
-const named = out.filter((c) => c.code).length;
-console.log(
-  `Wrote ${out.length} countries (${named} identified, ${out.length - named} unidentified) ` +
-    `at ${MAP_VIEWBOX.width}x${MAP_VIEWBOX.height} to ${path.relative(ROOT, OUT_FILE)}`,
-);
-if (unmatched.length > 0) {
-  console.log(`  no ISO code, drawn as plain ground: ${unmatched.join(", ")}`);
-}
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

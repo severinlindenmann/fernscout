@@ -93,6 +93,16 @@ describe("MapControls", () => {
     }
   });
 
+  test("a fullscreenClassName wraps only the full-screen button, for a caller that wants it at one breakpoint but not another (B2430)", () => {
+    renderControls("en", { onZoomIn: () => {}, onFullscreen: () => {}, fullscreenClassName: "hidden lg:block" });
+    const wrapper = container!.querySelector("button[aria-label='Full screen']")!.parentElement!;
+    expect(wrapper.className).toBe("hidden lg:block");
+    // The other button is untouched — still a direct child of the column,
+    // no wrapper class leaking onto it.
+    const zoomWrapper = container!.querySelector("button[aria-label='Zoom in']")!.parentElement!;
+    expect(zoomWrapper.className).toBe("flex flex-col gap-1.5");
+  });
+
   test("labels are real German, not the English fallback", () => {
     renderControls("de", {
       onZoomIn: () => {},

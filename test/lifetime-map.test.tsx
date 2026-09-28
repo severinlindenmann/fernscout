@@ -1,341 +1,388 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, test } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
-import LifetimeMap, { type TripRoute } from "@/components/LifetimeMap";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import LifetimeMap, { type CountryVisit } from "@/components/LifetimeMap";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
-import { frameRoute, place as placeIn } from "@/lib/mapFrame";
+import countries from "@/lib/worldCountries.json";
 
-// jsdom has no ResizeObserver, and the map measures its own rendered width
-// with one to size markers and routes in real screen pixels rather than a
-// fraction of the viewBox — the same reason `test/trip-map.test.tsx` stubs
-// one. This one is controllable (`fire`), so the "screen pixels" tests below
-// can simulate the SVG actually being laid out at a chosen width.
-let resizeCallback: ((entries: { contentRect: { width: number } }[]) => void) | null = null;
-class ControllableResizeObserver {
-  constructor(cb: (entries: { contentRect: { width: number } }[]) => void) {
-    resizeCallback = cb;
-  }
+/**
+ * B2491 rewrite. B2423's own interaction tests (route/marker sizing,
+ * decluttering, screen-pixel markers) no longer describe anything that
+ * exists — decision 1 removed every route, marker and per-trip legend from
+ * this map. What replaces them: pin/unpin by click and by keyboard, hover
+ * gated on `(hover: hover)`, and reduced motion skipping the glide/Einstieg
+ * entirely (Gotchas — headless/backgrounded rAF never fires either, so
+ * these tests never assert a mid-tween frame, only the instant and the
+ * settled end state).
+ */
+
+globalThis.ResizeObserver ??= class {
   observe() {}
-  disconnect() {
-    resizeCallback = null;
-  }
+  disconnect() {}
+} as unknown as typeof ResizeObserver;
+
+function shapeOf(code: string) {
+  const c = (countries as { code: string | null; name: string; path: string; x: number }[]).find(
+    (x) => x.code === code,
+  );
+  if (!c) throw new Error(`no ${code} in lib/worldCountries.json`);
+  return { code, name: c.name, path: c.path, x: c.x };
 }
-function fireResize(width: number) {
-  act(() => resizeCallback?.([{ contentRect: { width } }]));
-}
-globalThis.ResizeObserver ??= ControllableResizeObserver as unknown as typeof ResizeObserver;
+
+const CH: CountryVisit = { ...shapeOf("CH"), trips: [{ id: "alps-2024", title: "Alps 2024" }] };
+const TH: CountryVisit = { ...shapeOf("TH"), trips: [{ id: "asia-2023", title: "Asia 2023" }] };
 
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
+let matchMediaSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+/** Controls `(hover: hover)` / `(prefers-reduced-motion: reduce)` for the
+ * component's own `window.matchMedia` checks. */
+function stubMatchMedia({ hover = false, reducedMotion = false } = {}) {
+  const impl = (query: string) =>
+    ({
+      matches: query.includes("hover: hover") ? hover : query.includes("reduce") ? reducedMotion : false,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }) as unknown as MediaQueryList;
+  // jsdom has no matchMedia at all — define it fresh rather than spy on an
+  // undefined method the first time, then swap the implementation after.
+  if (typeof window.matchMedia !== "function") {
+    window.matchMedia = impl;
+  }
+  matchMediaSpy = vi.spyOn(window, "matchMedia").mockImplementation(impl);
+}
+
+beforeEach(() => {
+  stubMatchMedia({ reducedMotion: true }); // instant by default — no tween in flight to leak between tests
+});
 
 afterEach(() => {
   act(() => root?.unmount());
   container?.remove();
   root = undefined;
   container = undefined;
+  matchMediaSpy?.mockRestore();
 });
 
-function mount(routes: TripRoute[]) {
+function mount(props: Partial<React.ComponentProps<typeof LifetimeMap>> = {}) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   act(() => {
     root!.render(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-        <LifetimeMap routes={routes} />
+        <LifetimeMap visits={[CH, TH]} pinned={null} onPinnedChange={() => {}} {...props} />
       </LocaleProvider>,
     );
   });
   return container;
 }
 
-/**
- * B265. `app/[user]/trips/page.tsx` builds each route's `points` straight
- * from `getPlaces`, which returns a `Place` for a day with no coordinates too
- * (`lat`/`lng` are optional on an entry). That page is frozen mid-rewrite by
- * another session, so the guard against drawing one of those places as a
- * point on the lifetime map has to live here instead — this is the only
- * component between the raw list and the SVG.
- *
- * B2423 replaced the old "one pin per stop, no line between them" drawing
- * with "each trip is its own accent route plus one marker"
- * (docs/plans/map-redesign.md §1 "Reisen" row) — the pin-specific tests this
- * file used to hold (a pin's tip on the coordinate, one pin per stop, no
- * connecting line) no longer describe anything that exists; they are
- * replaced below by the route+marker equivalents.
- */
-
-const alps: TripRoute["points"] = [
-  { lat: 46.1161, lng: 8.2939, location: "Domodossola" },
-  { lat: 46.5614, lng: 8.3372, location: "Grimsel" },
-  { lat: 46.7297, lng: 8.4444, location: "Susten" },
-];
-
-function render(routes: TripRoute[]) {
-  return renderToStaticMarkup(
-    <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-      <LifetimeMap routes={routes} />
-    </LocaleProvider>,
+function countryGroup(el: HTMLElement, name: string): HTMLElement {
+  const el2 = [...el.querySelectorAll("g[aria-label]")].find((g) =>
+    (g.getAttribute("aria-label") ?? "").startsWith(name),
   );
+  if (!el2) throw new Error(`no country group for ${name}`);
+  return el2 as HTMLElement;
 }
 
-/** Two continents apart — the case that made a dot cover the coastline it
- * was meant to mark, because `size()` grows the marker with the frame. */
-const continental: TripRoute["points"] = [
-  { lat: 47.3769, lng: 8.5417, location: "Zurich" },
-  { lat: 13.7563, lng: 100.5018, location: "Bangkok" },
-];
-
-function viewBox(html: string): number[] {
-  const match = html.match(/viewBox="([-\d. ]+)"/);
-  return match![1].split(" ").map(Number);
-}
-
-/** Every trip marker is a `StopMarker` `<g aria-label="…">` holding a
- * `<circle>` head — one per trip, never one per stop. */
-function markerRadii(html: string, ariaLabel: string): number[] {
-  const escaped = ariaLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return [
-    ...html.matchAll(new RegExp(`<g aria-label="${escaped}"[^>]*><circle[^>]*r="([\\d.]+)"`, "g")),
-  ].map((m) => Number(m[1]));
-}
-
-/** A marker's own centre, in viewBox units — for checking two trips'
- * markers actually sit apart on screen. */
-function markerCentres(html: string, ariaLabel: string): { x: number; y: number }[] {
-  const escaped = ariaLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return [
-    ...html.matchAll(
-      new RegExp(`<g aria-label="${escaped}"[^>]*><circle cx="([-\\d.]+)" cy="([-\\d.]+)"`, "g"),
-    ),
-  ].map((m) => ({ x: Number(m[1]), y: Number(m[2]) }));
-}
-
-describe("a trip is its own route plus one marker (B2423)", () => {
-  const route: TripRoute = {
-    id: "alps-2024",
-    title: "Alps 2024",
-    accent: "sky",
-    points: [
-      { lat: 46.1161, lng: 8.2939, location: "Domodossola" },
-      { lat: 46.5614, lng: 8.3372, location: "Grimsel" },
-    ],
-  };
-
-  test("draws exactly one marker for a multi-stop trip", () => {
-    const html = render([route]);
-    expect(markerRadii(html, "Alps 2024")).toHaveLength(1);
+describe("pinning a country (decision 7)", () => {
+  test("clicking a country pins it", () => {
+    const onPinnedChange = vi.fn();
+    const el = mount({ onPinnedChange });
+    act(() => countryGroup(el, "Switzerland").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onPinnedChange).toHaveBeenCalledWith("CH");
   });
 
-  test("the marker sits on the trip's first plottable point", () => {
-    const html = render([route]);
-    const frame = frameRoute(route.points);
-    const [x, y] = placeIn(frame, route.points[0]);
-    expect(html).toMatch(new RegExp(`<circle cx="${x}" cy="${y}"`));
+  test("clicking the same country again clears the pin", () => {
+    const onPinnedChange = vi.fn();
+    const el = mount({ pinned: "CH", onPinnedChange });
+    act(() => countryGroup(el, "Switzerland").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onPinnedChange).toHaveBeenCalledWith(null);
   });
 
-  test("draws a route line between the trip's own stops", () => {
-    // Superseding B344's "no line" rule, which was about a line asserting a
-    // journey between *separate trips'* pins — never the case for a single
-    // trip's own stops, which RouteLine now draws the same way TripMap does.
-    expect(render([route])).toMatch(/<path d="M[\d.,]+ L[\d.,]+"/);
+  test("Enter on a focused country pins it, the same as a click", () => {
+    const onPinnedChange = vi.fn();
+    const el = mount({ onPinnedChange });
+    act(() =>
+      countryGroup(el, "Thailand").dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+      ),
+    );
+    expect(onPinnedChange).toHaveBeenCalledWith("TH");
   });
 
-  test("a marker is the same size on screen for a one-city journal and a two-continent one", () => {
-    const oneCity = render([route]);
-    const twoContinents = render([{ ...route, points: continental }]);
-    const cityBox = viewBox(oneCity);
-    const worldBox = viewBox(twoContinents);
-    // The radius is a viewBox-unit constant; what makes it the same *on
-    // screen* is that it stays the same fraction of a viewBox rendered at a
-    // fixed width — not that the raw units match.
-    const cityFraction = markerRadii(oneCity, "Alps 2024")[0] / cityBox[2];
-    const worldFraction = markerRadii(twoContinents, "Alps 2024")[0] / worldBox[2];
-    expect(worldFraction).toBeCloseTo(cityFraction, 6);
+  test("Escape clears a pinned country", () => {
+    const onPinnedChange = vi.fn();
+    mount({ pinned: "CH", onPinnedChange });
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    expect(onPinnedChange).toHaveBeenCalledWith(null);
   });
 
-  test("the legend still pairs each trip's accent with its title", () => {
-    const html = render([route]);
-    expect(html).toContain("Alps 2024");
-    expect(html).toContain("var(--map-accent-sky)"); // mapAccent("sky")
+  test("the ✕ button under the map clears the pin", () => {
+    const onPinnedChange = vi.fn();
+    const el = mount({ pinned: "CH", onPinnedChange });
+    const clear = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("✕"));
+    expect(clear).toBeTruthy();
+    act(() => clear!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onPinnedChange).toHaveBeenCalledWith(null);
   });
 
-  test("keeps its role=img and aria-label when nothing is filled", () => {
-    const html = render([route]);
-    expect(html).toContain('role="img"');
-    expect(html).toMatch(/aria-label="[^"]*Alps 2024[^"]*"/);
+  test("a pinned country renders a pulsing outline", () => {
+    const el = mount({ pinned: "CH" });
+    expect(countryGroup(el, "Switzerland").querySelector(".lifetime-map-pin-pulse")).not.toBeNull();
   });
 });
 
-describe("a trip with a day that has no coordinates", () => {
-  const route: TripRoute = {
-    id: "alps-2024",
-    title: "Alps 2024",
-    accent: "sky",
-    points: [...alps, { lat: undefined as unknown as number, lng: undefined as unknown as number, location: "Unrecorded" }],
-  };
-
-  test("does not put NaN through the lifetime map", () => {
-    expect(render([route])).not.toContain("NaN");
+describe("hover never pins (decision 8)", () => {
+  test("with (hover: hover), hovering shows a label but never calls onPinnedChange", () => {
+    stubMatchMedia({ hover: true, reducedMotion: true });
+    const onPinnedChange = vi.fn();
+    const el = mount({ onPinnedChange });
+    act(() =>
+      countryGroup(el, "Switzerland").dispatchEvent(
+        new MouseEvent("mouseenter", { bubbles: true, clientX: 10, clientY: 10 }),
+      ),
+    );
+    expect(el.textContent).toContain("Switzerland");
+    expect(onPinnedChange).not.toHaveBeenCalled();
   });
 
-  test("a route with nothing plottable still renders the whole world, not NaN, and draws no marker", () => {
-    const empty: TripRoute = {
-      id: "planned-only",
-      title: "Planned only",
-      accent: "coral",
-      points: [{ lat: undefined as unknown as number, lng: undefined as unknown as number, location: "Nowhere yet" }],
+  test("without (hover: hover) — a touch device — no hover handlers are attached at all", () => {
+    stubMatchMedia({ hover: false, reducedMotion: true });
+    const el = mount();
+    act(() =>
+      countryGroup(el, "Switzerland").dispatchEvent(
+        new MouseEvent("mouseenter", { bubbles: true, clientX: 10, clientY: 10 }),
+      ),
+    );
+    // No floating hover label appears — the map only shows the pinned/focus
+    // caption line, and neither is set here.
+    expect(el.querySelector(".pointer-events-none")).toBeNull();
+  });
+});
+
+describe("continent/area buttons never filter the cards (decision 13)", () => {
+  test("selecting a continent view does not touch the pinned country unless it falls outside it", () => {
+    const onPinnedChange = vi.fn();
+    const views = [
+      { id: "all", kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap: null },
+      { id: "Europe", kind: "continent" as const, continent: "Europe", labelKey: "trips.map.continent.europe" as const, countryCodes: ["CH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+      { id: "Asia", kind: "continent" as const, continent: "Asia", labelKey: "trips.map.continent.asia" as const, countryCodes: ["TH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+    ];
+    const continents = [
+      { continent: "Europe", labelKey: "trips.map.continent.europe" as const, count: 1, areas: [] },
+      { continent: "Asia", labelKey: "trips.map.continent.asia" as const, count: 1, areas: [] },
+    ];
+    const el = mount({ pinned: "CH", onPinnedChange, views, continents });
+    const button = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("Europe"));
+    act(() => button!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    // CH is still inside the Europe view, so the pin survives the switch.
+    expect(onPinnedChange).not.toHaveBeenCalled();
+  });
+
+  test("switching to a region without the pinned country clears it", () => {
+    const onPinnedChange = vi.fn();
+    const views = [
+      { id: "all", kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap: null },
+      { id: "Europe", kind: "continent" as const, continent: "Europe", labelKey: "trips.map.continent.europe" as const, countryCodes: ["CH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+      { id: "Asia", kind: "continent" as const, continent: "Asia", labelKey: "trips.map.continent.asia" as const, countryCodes: ["TH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+    ];
+    const continents = [
+      { continent: "Europe", labelKey: "trips.map.continent.europe" as const, count: 1, areas: [] },
+      { continent: "Asia", labelKey: "trips.map.continent.asia" as const, count: 1, areas: [] },
+    ];
+    const el = mount({ pinned: "CH", onPinnedChange, views, continents });
+    const button = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("Asia"));
+    act(() => button!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onPinnedChange).toHaveBeenCalledWith(null);
+  });
+});
+
+describe("fade outside the current selection (decision 6)", () => {
+  test("a country outside the current view is drawn at reduced opacity", () => {
+    const views = [
+      { id: "all", kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap: null },
+      { id: "Europe", kind: "continent" as const, continent: "Europe", labelKey: "trips.map.continent.europe" as const, countryCodes: ["CH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+      { id: "Asia", kind: "continent" as const, continent: "Asia", labelKey: "trips.map.continent.asia" as const, countryCodes: ["TH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+    ];
+    const continents = [
+      { continent: "Europe", labelKey: "trips.map.continent.europe" as const, count: 1, areas: [] },
+      { continent: "Asia", labelKey: "trips.map.continent.asia" as const, count: 1, areas: [] },
+    ];
+    const el = mount({ views, continents });
+    const button = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("Europe"));
+    act(() => button!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    const thPath = countryGroup(el, "Thailand").querySelector("path")!;
+    expect(Number(thPath.getAttribute("opacity"))).toBeLessThan(1);
+    const chPath = countryGroup(el, "Switzerland").querySelector("path")!;
+    expect(Number(chPath.getAttribute("opacity"))).toBe(1);
+  });
+});
+
+describe("the Einstieg swaps in the 'all' view's own basemap once it runs (decision 5)", () => {
+  test("under reduced motion the swap is instant, on mount", () => {
+    // stubMatchMedia's beforeEach default is reduced-motion, so the
+    // Einstieg's `animateTo` call takes its synchronous branch and the
+    // basemap is already in place by the first paint after mount — no rAF
+    // or timer to advance.
+    const basemap = {
+      borders: ["M9,9 L8,8 Z"],
+      admin1: [],
+      relief: [],
+      glaciers: [],
+      parks: [],
+      railroads: [],
+      roads: [],
+      lakes: [],
+      rivers: [],
+      peaks: [],
+      towns: [],
+      attribution: "",
     };
-    const html = render([route, empty]);
-    expect(html).not.toContain("NaN");
-    expect(markerRadii(html, "Planned only")).toHaveLength(0);
-  });
-});
-
-/**
- * The component draws exactly what it is handed — the actual filtering of a
- * private or unlisted trip happens upstream, in `listableTrips`
- * (`app/[user]/trips/page.tsx`), before a route or a visit ever reaches this
- * component's props. This is the contract that upstream filtering relies on:
- * a trip never passed here contributes nothing — no route, no marker, no
- * tint — to what a reader sees.
- */
-describe("a trip never handed to the map contributes nothing (B2423)", () => {
-  const visible: TripRoute = {
-    id: "alps-2024",
-    title: "Alps 2024",
-    accent: "sky",
-    points: alps,
-  };
-
-  test("a route this reader may not see, never passed in, draws no route, marker or mention", () => {
-    const html = render([visible]);
-    expect(html).not.toContain("Secret Trip");
-    expect(markerRadii(html, "Secret Trip")).toHaveLength(0);
-  });
-});
-
-/**
- * B2423 review. The first version reused the fraction-of-viewBox `size()`
- * this file's own pin tests already relied on — correct for those tiny pin
- * units, but wrong once applied to a normal-sized marker and a 4px route:
- * a lifetime map's frame swings from one country to six continents, so a
- * fraction of *that* viewBox is a wildly different number of real pixels
- * trip to trip, and at world scale the marker came out the size of a small
- * country. The fix measures the SVG's own rendered width with a
- * `ResizeObserver` (`components/WorldMap.tsx`'s own `px`, same reasoning),
- * so a marker or a route stroke is a constant number of *actual* screen
- * pixels — independent of how large an area the frame covers.
- */
-describe("markers and routes are sized in real screen pixels, not a fraction of the viewBox (B2423 review)", () => {
-  const compact: TripRoute = {
-    id: "compact",
-    title: "Compact trip",
-    accent: "sky",
-    points: [
-      { lat: 46.1161, lng: 8.2939, location: "Domodossola" },
-      { lat: 46.5614, lng: 8.3372, location: "Grimsel" },
-    ],
-  };
-
-  test("a marker's radius and a route's stroke width follow the measured render width", () => {
-    // The map's ground (`worldLand`) is drawn with a fixed `strokeWidth={1}`
-    // on its wrapping `<g>` — the one `stroke-width` in this markup that is
-    // *not* sized through `px()` — so it is dropped (`slice(1)`) before
-    // checking that everything else (the route's casing, its accent stroke,
-    // the marker's own ring) scales with the measured width.
-    function strokes(html: string): number[] {
-      return [...html.matchAll(/stroke-width="([\d.]+)"/g)].map((m) => Number(m[1])).slice(1);
-    }
-
-    const el = mount([compact]);
-    fireResize(900);
-    const wideRadius = markerRadii(el.innerHTML, "Compact trip")[0];
-    const wideStrokes = strokes(el.innerHTML);
-
-    fireResize(450);
-    const narrowRadius = markerRadii(el.innerHTML, "Compact trip")[0];
-    const narrowStrokes = strokes(el.innerHTML);
-
-    // Halving the measured width means each viewBox unit now covers *fewer*
-    // real pixels, so it takes *twice* the viewBox-unit size to draw the
-    // same real screen pixels — the old `/140` constant never looked at the
-    // measured width at all, so it could not do this.
-    expect(narrowRadius).toBeCloseTo(wideRadius * 2, 5);
-    expect(narrowStrokes.length).toBeGreaterThan(0);
-    expect(narrowStrokes.length).toBe(wideStrokes.length);
-    for (let i = 0; i < narrowStrokes.length; i++) {
-      expect(narrowStrokes[i]).toBeCloseTo(wideStrokes[i] * 2, 5);
-    }
+    const views = [
+      { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap },
+    ];
+    const el = mount({ views });
+    expect(el.innerHTML).toContain("M9,9 L8,8 Z");
   });
 
-  test("two trips with wildly different geographic extents draw the same size marker at the same measured width", () => {
-    // Two continents apart vs a few kilometres apart — the frame (`view.w`)
-    // is wildly different between these two, so the raw viewBox-unit radius
-    // attribute is expected to differ too (bigger frame, bigger raw unit).
-    // What must not differ is the *real* screen pixel size that raw radius
-    // and the measured width imply together — `raw * drawnWidth / view.w`.
-    function screenRadiusAt(route: TripRoute): number {
-      const el = mount([route]);
-      fireResize(900);
-      const html = el.innerHTML;
-      const raw = markerRadii(html, route.title)[0];
-      const vw = viewBox(html)[2];
-      act(() => root?.unmount());
-      container?.remove();
-      root = undefined;
-      container = undefined;
-      return (raw * 900) / vw;
-    }
+  /**
+   * Found while browser-testing this ticket on a real journal: the basemap
+   * bundle (`lib/basemap.ts`) still has its own antimeridian-wrapped border
+   * paths — the same jump-across-180° shape `scripts/build-world-countries.mts`
+   * now guards against in `lib/worldCountries.json`, but in a different,
+   * pre-existing dataset this ticket does not regenerate.
+   *
+   * Review found a first attempt (a whole-path bounding-box check) missed
+   * the real case on `/severin/trips` — a sea-coloured wedge from
+   * Kamchatka to the frame's corner, where only *one* edge inside an
+   * otherwise-local path jumped, so the path's overall bbox never got wide
+   * enough to trip that filter. `fixAntimeridian` checks every consecutive
+   * pair of points instead and splits at the jump, rather than judging the
+   * path as a whole.
+   */
+  test("splits a Fiji/Russia-style path that jumps the antimeridian along its whole length", () => {
+    const basemap = {
+      borders: [
+        "M0.0,296.0 L998.2,296.7 L996.5,297.3 Z", // the real shape found live
+        "M334.5,472.3 L333.7,473.7 L332.9,475.0 Z", // an ordinary short border, untouched
+      ],
+      admin1: [],
+      relief: [],
+      glaciers: [],
+      parks: [],
+      railroads: [],
+      roads: [],
+      lakes: [],
+      rivers: [],
+      peaks: [],
+      towns: [],
+      attribution: "",
+    };
+    const views = [
+      { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap },
+    ];
+    const el = mount({ views });
+    // The two ends never draw joined by one long edge across the world.
+    expect(el.innerHTML).not.toContain("M0.0,296.0 L998.2,296.7");
+    expect(el.innerHTML).toContain("M334.5,472.3 L333.7,473.7 L332.9,475 Z"); // fixAntimeridian re-serializes via Number(), which drops a trailing .0
+  });
 
-    const smallScreenRadius = screenRadiusAt(compact);
-    const worldScreenRadius = screenRadiusAt({
-      id: "worldwide",
-      title: "Worldwide trip",
-      accent: "coral",
-      points: continental,
+  test("splits a synthetic wedge — one bad jump inside an otherwise-local path", () => {
+    // A shape that stays within a small area (Kamchatka-sized) except for
+    // two edges that shoot to the far side of the projection and back —
+    // the case a whole-path bounding-box check cannot see, because the
+    // *rest* of the path keeps the overall bbox small.
+    const wedge = "M900,50 L920,60 L5,55 L8,58 L910,52 L905,48 Z";
+    const basemap = {
+      borders: [wedge],
+      admin1: [],
+      relief: [],
+      glaciers: [],
+      parks: [],
+      railroads: [],
+      roads: [],
+      lakes: [],
+      rivers: [],
+      peaks: [],
+      towns: [],
+      attribution: "",
+    };
+    const views = [
+      { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap },
+    ];
+    const el = mount({ views });
+    // Never one path joining x=920 straight to x=5, or x=8 straight to x=910.
+    expect(el.innerHTML).not.toContain("L920,60 L5,55");
+    expect(el.innerHTML).not.toContain("L8,58 L910,52");
+    // All three local runs either side of a jump still draw, each its own subpath.
+    expect(el.innerHTML).toContain("M900,50 L920,60 Z");
+    expect(el.innerHTML).toContain("M5,55 L8,58 Z");
+    expect(el.innerHTML).toContain("M910,52 L905,48 Z");
+  });
+
+  /**
+   * Found live, on a real journal: a continent view's glide starts with no
+   * basemap yet — it is still being fetched — and `animateTo`'s own
+   * completion used to unconditionally set the display basemap to whatever
+   * it was *called* with (`null`). On a local dev server the fetch nearly
+   * always resolves before the 700ms glide finishes, so the fetch's own
+   * `setDisplayBasemap` ran first and the glide's completion then
+   * overwrote it right back to `null` — the ground never updated, every
+   * time. `targetBasemapRef` is what both now read and write instead of a
+   * captured closure value.
+   */
+  test("a basemap fetch that resolves before the glide finishes is not overwritten back to null", async () => {
+    stubMatchMedia({ hover: false, reducedMotion: false }); // a real (short) glide, not the instant branch
+    const fetched = {
+      borders: ["M5,5 L6,6 Z"],
+      admin1: [],
+      relief: [],
+      glaciers: [],
+      parks: [],
+      railroads: [],
+      roads: [],
+      lakes: [],
+      rivers: [],
+      peaks: [],
+      towns: [],
+      attribution: "",
+    };
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue({ ok: true, json: async () => ({ basemap: fetched }) } as Response);
+
+    const views = [
+      { id: "all" as const, kind: "all" as const, countryCodes: ["CH", "TH"], frame: { x: 0, y: 0, w: 100, h: 60, lngScale: 1 }, basemap: null },
+      { id: "Europe" as const, kind: "continent" as const, continent: "Europe", labelKey: "trips.map.continent.europe" as const, countryCodes: ["CH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+      { id: "Asia" as const, kind: "continent" as const, continent: "Asia", labelKey: "trips.map.continent.asia" as const, countryCodes: ["TH"], frame: { x: 0, y: 0, w: 50, h: 30, lngScale: 1 }, basemap: null },
+    ];
+    const continents = [
+      { continent: "Europe", labelKey: "trips.map.continent.europe" as const, count: 1, areas: [] },
+      { continent: "Asia", labelKey: "trips.map.continent.asia" as const, count: 1, areas: [] },
+    ];
+    const el = mount({ views, continents });
+    const button = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("Europe"));
+
+    await act(async () => {
+      button!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      // Let the mocked fetch's promise chain resolve — this is the "fetch
+      // wins the race" case the bug needed. jsdom never fires a real
+      // requestAnimationFrame, so the glide's own forced-timeout is what
+      // eventually settles it (real timers here, not fake ones, since the
+      // component reads `performance.now()`/`setTimeout` directly).
+      await new Promise((r) => setTimeout(r, 20));
     });
-    expect(worldScreenRadius).toBeCloseTo(smallScreenRadius, 5);
-  });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 700 + 350)); // GLIDE_MS + the forced-timeout's own buffer
+    });
 
-  test("two trips whose markers would otherwise overlap are nudged apart", () => {
-    // The trip that made the case for this fix: two US trips whose real
-    // starting points are a few hundred kilometres apart, on a frame that
-    // also has to reach across the Pacific to Southeast Asia — nothing at
-    // that zoom. Reproduced here as a Zurich trip and a second trip that
-    // starts a short drive from Zurich, framed alongside a trip to Bangkok.
-    const zurich: TripRoute = {
-      id: "zurich",
-      title: "Zurich trip",
-      accent: "sky",
-      points: continental, // Zurich, Bangkok
-    };
-    const near: TripRoute = {
-      id: "near",
-      title: "Near trip",
-      accent: "coral",
-      points: [{ lat: 47.05, lng: 8.3, location: "Near Zurich" }],
-    };
-    const el = mount([zurich, near]);
-    fireResize(900);
-    const html = el.innerHTML;
-
-    // Without decluttering, the two would be much closer than the minimum
-    // gap this pass enforces — otherwise this test would prove nothing.
-    const vw = viewBox(html)[2];
-    const frame = frameRoute([...zurich.points, ...near.points]);
-    const [rawX1, rawY1] = placeIn(frame, zurich.points[0]);
-    const [rawX2, rawY2] = placeIn(frame, near.points[0]);
-    const rawDistancePx = (Math.hypot(rawX2 - rawX1, rawY2 - rawY1) * 900) / vw;
-    const minGapPx = 8 * 2.4; // MARKER_RADIUS_PX * the component's own factor
-    expect(rawDistancePx).toBeLessThan(minGapPx);
-
-    const zurichPos = markerCentres(html, "Zurich trip")[0];
-    const nearPos = markerCentres(html, "Near trip")[0];
-    const distancePx = (Math.hypot(zurichPos.x - nearPos.x, zurichPos.y - nearPos.y) * 900) / vw;
-    expect(distancePx).toBeGreaterThanOrEqual(minGapPx - 0.01);
+    expect(el.innerHTML).toContain("M5,5 L6,6 Z");
+    fetchSpy.mockRestore();
   });
 });

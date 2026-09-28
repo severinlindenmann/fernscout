@@ -62,6 +62,7 @@ export const TEMPLATES = {
   "notice.moved": { family: "notice", channel: "mail", kind: "owner address changed", audience: "owner" },
   "notice.storage": { family: "notice", channel: "mail", kind: "storage quota warning", audience: "owner" },
   "notice.waitlist": { family: "notice", channel: "mail", kind: "iOS waitlist confirmation", audience: "stranger" },
+  "notice.inviteRequest": { family: "notice", channel: "mail", kind: "invite request confirmation", audience: "stranger" },
   "notice.welcome": { family: "notice", channel: "mail", kind: "new owner welcome", audience: "owner" },
   "notice.expiryWarn": { family: "notice", channel: "mail", kind: "studio photo expiry warning", audience: "owner" },
   "notice.expiryFinal": { family: "notice", channel: "mail", kind: "studio photo expiry final notice", audience: "owner" },
@@ -267,6 +268,15 @@ export const FLOWS = [
       { id: "join", type: "trigger", label: "Visitor leaves their address", to: [{ id: "send" }] },
       { id: "send", type: "send", label: "Confirm", template: "notice.waitlist", to: [{ id: "stop" }] },
       { id: "stop", type: "stop", label: "On the list", to: [] },
+    ],
+  },
+  {
+    id: "inviteRequest",
+    label: "Invite requests",
+    nodes: [
+      { id: "ask", type: "trigger", label: "Stranger asks for an invite on a closed instance", to: [{ id: "send" }] },
+      { id: "send", type: "send", label: "Neutral confirmation", template: "notice.inviteRequest", to: [{ id: "stop" }] },
+      { id: "stop", type: "stop", label: "Waiting on the operator, in /admin", to: [] },
     ],
   },
   {

@@ -55,6 +55,8 @@ function run(
     analyze = "" as string | null,
     paidUnitRoot = undefined as string | undefined,
     unitSrc = UNIT_SRC,
+    service = undefined as string | undefined,
+    skipUnits = undefined as string | undefined,
   } = {},
 ): Run {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "fs-units-bin-"));
@@ -102,6 +104,10 @@ function run(
       // not exist in this open-edition checkout — the tests that care about
       // paid units point this at a fixture tree instead.
       ...(paidUnitRoot !== undefined ? { PAID_UNIT_ROOT: paidUnitRoot } : {}),
+      // Undefined leaves the script's own default (fernscout) — B1794's
+      // guard tests set this to a non-prod name instead.
+      ...(service !== undefined ? { SERVICE: service } : {}),
+      ...(skipUnits !== undefined ? { SKIP_UNITS: skipUnits } : {}),
     },
   });
 
@@ -359,5 +365,27 @@ describe("install-units.sh", () => {
     const dir = tempSystemdDir();
     run(dir);
     expect(fs.existsSync(path.join(dir, "Caddyfile"))).toBe(false);
+  });
+
+  // --- B1794: a second instance never touches /etc/systemd/system ---------
+
+  test("a non-prod SERVICE installs nothing and never calls systemctl", () => {
+    const dir = tempSystemdDir();
+    const res = run(dir, { service: "fernscout-dev" });
+
+    expect(res.status).toBe(0);
+    expect(res.stdout).toMatch(/skipping/);
+    expect(fs.readdirSync(dir)).toEqual([]);
+    expect(res.systemctl).toEqual([]);
+  });
+
+  test("SKIP_UNITS=1 skips even the prod service", () => {
+    const dir = tempSystemdDir();
+    const res = run(dir, { skipUnits: "1" });
+
+    expect(res.status).toBe(0);
+    expect(res.stdout).toMatch(/skipping/);
+    expect(fs.readdirSync(dir)).toEqual([]);
+    expect(res.systemctl).toEqual([]);
   });
 });
