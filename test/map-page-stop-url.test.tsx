@@ -318,3 +318,19 @@ test("mobile list repeat-click clears the day and returns to the collapsed strip
   expect(sheet.querySelector('[role="list"]')).not.toBeNull();
   expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("false");
 });
+
+// A tour (more than three regions) is shown whole on the world map, never on
+// one region's street file: framing the whole world on a street map padded
+// its bounds past 90° latitude and MapLibre threw (world-trip-2025, 29 Sep).
+test("a tour never picks a street map, even when region files exist", async () => {
+  const tour = [
+    place("rey", "Reykjavík", "2025-02-03", 64.15, -21.94),
+    place("nyc", "New York", "2025-02-08", 40.71, -74.0),
+    place("kyo", "Kyoto", "2025-02-14", 35.0, 135.77),
+    place("syd", "Sydney", "2025-02-26", -33.87, 151.21),
+    place("cpt", "Cape Town", "2025-03-05", -33.92, 18.42),
+  ];
+  const el = render("", { streetMap, places: tour });
+  await act(async () => {});
+  expect(el.querySelector("[data-street-map]")).toBeNull();
+});
