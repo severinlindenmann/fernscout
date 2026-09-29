@@ -1,0 +1,41 @@
+{
+  "title": "Bondi to Coogee",
+  "date": "2025-02-28",
+  "time": "08:30",
+  "timezone": "Australia/Sydney",
+  "location": "Bondi Beach",
+  "country": "Australia",
+  "countryCode": "AU",
+  "coordinates": {
+    "lat": -33.8915,
+    "lng": 151.2767
+  },
+  "content": "The coastal walk south from Bondi: past the Icebergs pool, over the headlands to Tamarama, Bronte and Clovelly, and down to Coogee, about six kilometres of cliff path.\n\nDemo day: the walk is a simulated route along the real path. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-28-bondi-to-coogee/6e2ef4227a76171b155bd78b82b51a0c.jpg",
+      "caption": "Photo: Maksym Kozlenko, CC BY-SA 3.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-28-bondi-to-coogee/2d03a6740857f475b0ecaaa6e62b38ae.jpg",
+      "caption": "Photo: Sgroey, CC BY 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-28-bondi-to-coogee/ba80415c76d8cff2251fd56b1ae9fe83.jpg",
+      "caption": "Photo: Redherring22, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "walk",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

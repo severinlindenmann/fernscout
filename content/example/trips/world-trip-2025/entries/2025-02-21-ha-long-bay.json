@@ -1,0 +1,43 @@
+{
+  "title": "Ha Long Bay",
+  "date": "2025-02-21",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "location": "Hạ Long",
+  "country": "Vietnam",
+  "countryCode": "VN",
+  "coordinates": {
+    "lat": 20.9101,
+    "lng": 107.1839
+  },
+  "content": "The limestone islands of Ha Long Bay, a UNESCO World Heritage Site since 1994, seen from a boat, and Sửng Sốt cave on Bồ Hòn island.\n\nDemo day with no recorded route. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-21-ha-long-bay/54123cc3ff4578e42dedd3a9b4220fbd.jpg",
+      "caption": "Photo: lumoplank, CC0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-21-ha-long-bay/85a4071456ae8a26ba78a2b4d5b7d1cf.jpg",
+      "caption": "Photo: Thomas Schoch, CC BY-SA 3.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-21-ha-long-bay/2a51c25647655eeddc463e9785d26511.jpg",
+      "caption": "Photo: Jakub Hałun, CC BY 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "boat",
+  "transportFrom": "Hạ Long",
+  "transportTo": "Sửng Sốt Cave",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in",
+    "time": "the hour is not part of this demo day"
+  },
+  "status": "published"
+}

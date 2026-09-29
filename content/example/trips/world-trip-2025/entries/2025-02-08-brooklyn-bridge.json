@@ -1,0 +1,43 @@
+{
+  "title": "Across the Brooklyn Bridge",
+  "date": "2025-02-08",
+  "time": "09:30",
+  "timezone": "America/New_York",
+  "location": "New York",
+  "country": "United States",
+  "countryCode": "US",
+  "coordinates": {
+    "lat": 40.7033,
+    "lng": -73.9894
+  },
+  "content": "From Brooklyn Bridge Park through DUMBO, where Washington Street frames the Manhattan Bridge, then over the Brooklyn Bridge's raised walkway into Manhattan at City Hall Park. The bridge opened in 1883 and was the first to cross the East River.\n\nDemo day: the walk is a simulated route along real streets. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-08-brooklyn-bridge/c6d8396ad8bb824094c0306f9ada88e4.jpg",
+      "caption": "Photo: Beraldo Leal, CC BY 2.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-08-brooklyn-bridge/64c151507a4107db8cc73320c51cae13.jpg",
+      "caption": "Photo: Jakub Hałun, CC BY 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-08-brooklyn-bridge/e7ad4ec7bb709206b437d25da66407be.jpg",
+      "caption": "Photo: Superbass, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "flight",
+  "transportFrom": "Reykjavík",
+  "transportTo": "New York",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

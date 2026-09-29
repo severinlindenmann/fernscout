@@ -1,0 +1,41 @@
+{
+  "title": "Arashiyama",
+  "date": "2025-02-15",
+  "time": "09:00",
+  "timezone": "Asia/Tokyo",
+  "location": "Kyoto",
+  "country": "Japan",
+  "countryCode": "JP",
+  "coordinates": {
+    "lat": 35.0157,
+    "lng": 135.6737
+  },
+  "content": "From Saga-Arashiyama station to Tenryū-ji, a Zen temple whose garden pond dates from the 14th century, through the bamboo grove behind it, and down to the Togetsukyō bridge over the Katsura river.\n\nDemo day: the walk is a simulated route along real streets. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-15-arashiyama/961fe57ce32332e3d4cb513abb3c841b.jpg",
+      "caption": "Photo: Basile Morin, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-15-arashiyama/c4d04562737064793ae709a4ab493d42.jpg",
+      "caption": "Photo: DimiTalen, CC0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-15-arashiyama/2f19fc7a90bca83566c975f77686cd6c.jpg",
+      "caption": "Photo: Celuici, CC BY-SA 3.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "walk",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

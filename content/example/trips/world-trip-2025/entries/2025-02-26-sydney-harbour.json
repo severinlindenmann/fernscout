@@ -1,0 +1,43 @@
+{
+  "title": "Sydney Harbour on foot",
+  "date": "2025-02-26",
+  "time": "09:00",
+  "timezone": "Australia/Sydney",
+  "location": "Sydney",
+  "country": "Australia",
+  "countryCode": "AU",
+  "coordinates": {
+    "lat": -33.8568,
+    "lng": 151.2153
+  },
+  "content": "Circular Quay to the Opera House, round the Royal Botanic Garden to Mrs Macquarie's Point, back through the city to The Rocks and over the Harbour Bridge's footway to Milsons Point.\n\nDemo day: the walk is a simulated route along real streets. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-26-sydney-harbour/f9a924ea2e57a94d067fe6743a7e8d03.jpg",
+      "caption": "Photo: Kgbo, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-26-sydney-harbour/c7d074897c3c6ff99a736cb1f1b44762.jpg",
+      "caption": "Photo: JJ Harrison (https://www.jjharrison.com.au/), CC BY-SA 3.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-26-sydney-harbour/4ea082e3658bc176d2793d80b3c01f1c.jpg",
+      "caption": "Photo: Whiteghost.ink, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "flight",
+  "transportFrom": "Hanoi",
+  "transportTo": "Sydney",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

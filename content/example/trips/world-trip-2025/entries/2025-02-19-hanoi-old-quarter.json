@@ -1,0 +1,43 @@
+{
+  "title": "Hanoi's Old Quarter",
+  "date": "2025-02-19",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "location": "Hanoi",
+  "country": "Vietnam",
+  "countryCode": "VN",
+  "coordinates": {
+    "lat": 21.0285,
+    "lng": 105.8542
+  },
+  "content": "Hoàn Kiếm Lake with the Turtle Tower on its islet, the streets of the Old Quarter north of it, and the stretch of railway where the line runs between the houses.\n\nDemo day with no recorded route: only the stop itself is on the map, the way a trip looks when somebody brings photographs and no location history. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-19-hanoi-old-quarter/976f0c826776d60fd6550ae0d5f3ea1d.jpg",
+      "caption": "Photo: P. Hughes, CC BY 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-19-hanoi-old-quarter/93d3d9a48aa95b0cbf897af018d6765a.jpg",
+      "caption": "Photo: Jakub Hałun, CC BY 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-19-hanoi-old-quarter/22518b5a1a80f292c472d7fd9d03f5b8.jpg",
+      "caption": "Photo: Kris Martyn, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "flight",
+  "transportFrom": "Osaka",
+  "transportTo": "Hanoi",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in",
+    "time": "the hour is not part of this demo day"
+  },
+  "status": "published"
+}

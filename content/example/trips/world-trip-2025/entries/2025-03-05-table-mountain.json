@@ -1,0 +1,43 @@
+{
+  "title": "Table Mountain",
+  "date": "2025-03-05",
+  "timezone": "Africa/Johannesburg",
+  "location": "Cape Town",
+  "country": "South Africa",
+  "countryCode": "ZA",
+  "coordinates": {
+    "lat": -33.9628,
+    "lng": 18.4098
+  },
+  "content": "Table Mountain above the City Bowl, the cableway that has run to its summit since 1929, and Lion's Head beside it.\n\nDemo day with no recorded route. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-03-05-table-mountain/e8b1bce38ff3356220801bd7211f1f22.jpg",
+      "caption": "Photo: Daniel Case, CC BY-SA 3.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-03-05-table-mountain/fe0365f1e4a813358a1ee6c6723696d2.jpg",
+      "caption": "Photo: Dietmar Rabich, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-03-05-table-mountain/83d261e01451a5bcef67789bf88018f5.jpg",
+      "caption": "Photo: Dietmar Rabich, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "flight",
+  "transportFrom": "Sydney",
+  "transportTo": "Cape Town",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in",
+    "time": "the hour is not part of this demo day"
+  },
+  "status": "published"
+}

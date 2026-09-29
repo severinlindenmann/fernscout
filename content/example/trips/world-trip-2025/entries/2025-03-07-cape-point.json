@@ -1,0 +1,43 @@
+{
+  "title": "Cape Point and Boulders Beach",
+  "date": "2025-03-07",
+  "timezone": "Africa/Johannesburg",
+  "location": "Cape Point",
+  "country": "South Africa",
+  "countryCode": "ZA",
+  "coordinates": {
+    "lat": -34.3568,
+    "lng": 18.4967
+  },
+  "content": "The old lighthouse at Cape Point, the sign at the Cape of Good Hope, and the African penguin colony at Boulders Beach near Simon's Town.\n\nDemo day with no recorded route. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-03-07-cape-point/a8401bb5fd797ed7e266102299eac18d.jpg",
+      "caption": "Photo: Dietmar Rabich, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-03-07-cape-point/0eed68f6b674ea8d883e52129b806790.jpg",
+      "caption": "Photo: Moheen Reeyad, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-03-07-cape-point/5b7a50a489db7b4e21fe7349a005fa8a.jpg",
+      "caption": "Photo: Satdeep Gill, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "car",
+  "transportFrom": "Cape Town",
+  "transportTo": "Cape Point",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in",
+    "time": "the hour is not part of this demo day"
+  },
+  "status": "published"
+}

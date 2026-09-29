@@ -1,0 +1,43 @@
+{
+  "title": "Fushimi Inari, up to Yotsutsuji",
+  "date": "2025-02-14",
+  "time": "08:00",
+  "timezone": "Asia/Tokyo",
+  "location": "Kyoto",
+  "country": "Japan",
+  "countryCode": "JP",
+  "coordinates": {
+    "lat": 34.9671,
+    "lng": 135.7727
+  },
+  "content": "Fushimi Inari Taisha, the head shrine of Inari, and the paths of vermilion torii that climb Mount Inari behind it. The Rōmon gate stands at the entrance; fox statues, Inari's messengers, are all over the mountain. Yotsutsuji crossing, about halfway up, looks out over south Kyoto.\n\nDemo day: the walk is a simulated route along the real paths. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-14-fushimi-inari/9832bc0e98be69f7f762d37e95e63f9e.jpg",
+      "caption": "Photo: Basile Morin, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-14-fushimi-inari/37d739463b2f153de6d9406366e6bcf6.jpg",
+      "caption": "Photo: DXR, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-14-fushimi-inari/fc78c0840c07f43f402df324b59329a5.jpg",
+      "caption": "Photo: Jakub Hałun, CC BY 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "flight",
+  "transportFrom": "New York",
+  "transportTo": "Osaka",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

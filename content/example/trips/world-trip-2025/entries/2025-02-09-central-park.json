@@ -1,0 +1,41 @@
+{
+  "title": "Central Park, south to north",
+  "date": "2025-02-09",
+  "time": "10:00",
+  "timezone": "America/New_York",
+  "location": "New York",
+  "country": "United States",
+  "countryCode": "US",
+  "coordinates": {
+    "lat": 40.774,
+    "lng": -73.9708
+  },
+  "content": "In at Columbus Circle, up the Mall under its elms to Bethesda Terrace and the fountain, across Bow Bridge and on to Belvedere Castle. The park was laid out by Olmsted and Vaux from 1858.\n\nDemo day: the walk is a simulated route along the park's real paths. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-09-central-park/8e6ddbf51fc81151a0c7b9f06a3a8c3d.jpg",
+      "caption": "Photo: Christian David, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-09-central-park/367eb66d3b19b94ca359657fed71aed1.jpg",
+      "caption": "Photo: Christian David, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-09-central-park/e5e7a5dabf7c2929c5e1c4337325293f.jpg",
+      "caption": "Photo: Jim.henderson, CC0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "walk",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}
