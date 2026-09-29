@@ -1,0 +1,38 @@
+{
+  "title": "Back in Zurich",
+  "date": "2025-03-10",
+  "timezone": "Europe/Zurich",
+  "location": "Zurich",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 47.3769,
+    "lng": 8.5417
+  },
+  "content": "The Grossmünster over the Limmat, and the old town from the Lindenhof.\n\nDemo day with no recorded route: the last flight home closes the loop on the globe. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-03-10-home-zurich/3bee7ba9b1e3b440755f61947e6bca9e.jpg",
+      "caption": "Photo: Jakub Hałun, CC BY 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-03-10-home-zurich/e1e5c3f48936ab7b23ac5b0e767b4287.jpg",
+      "caption": "Photo: Jakub Hałun, CC BY 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "flight",
+  "transportFrom": "Cape Town",
+  "transportTo": "Zurich",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in",
+    "time": "the hour is not part of this demo day"
+  },
+  "status": "published"
+}

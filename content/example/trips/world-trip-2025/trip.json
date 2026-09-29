@@ -1,0 +1,28 @@
+{
+  "id": "world-trip-2025",
+  "title": "Around the world in five weeks",
+  "tagline": "Seven stops on five continents — a demo of the globe view",
+  "dates": {
+    "from": "2025-02-03",
+    "to": "2025-03-10"
+  },
+  "visibility": "public",
+  "accent": "sky",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    }
+  ],
+  "intro": "A demo trip for the globe: Reykjavík, New York, Kyoto, Hanoi and Ha Long, Sydney, Cape Town and home to Zurich. Four of the stops carry a simulated recorded route along real streets; the other three have photographs and a place only. Every photograph is from Wikimedia Commons and credited in its caption.",
+  "declined": {
+    "rates": "a demo trip with no money on it",
+    "costs": "a demo trip with no money on it",
+    "plan": "the days themselves are the route",
+    "days": "days are written one at a time",
+    "translations": "this demo has not been translated yet",
+    "figures": "no travellers drawn for this demo",
+    "listed": "left to the journal's default"
+  }
+}

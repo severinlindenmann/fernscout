@@ -1,0 +1,43 @@
+{
+  "title": "The Golden Circle by car",
+  "date": "2025-02-04",
+  "time": "09:00",
+  "timezone": "Atlantic/Reykjavik",
+  "location": "Þingvellir",
+  "country": "Iceland",
+  "countryCode": "IS",
+  "coordinates": {
+    "lat": 64.2559,
+    "lng": -21.1299
+  },
+  "content": "The usual loop east of Reykjavík: Þingvellir, where the Almannagjá gorge runs along the edge of the North American plate and Iceland's parliament met in the open from 930; the Geysir field, where Strokkur erupts every few minutes; and Gullfoss, where the Hvítá drops in two steps into a canyon.\n\nDemo day: the drive is a simulated route along the real roads. Photographs from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-04-golden-circle/4e3a0a4b1561425b010bae0d53fd27f3.jpg",
+      "caption": "Photo: Diego Delso, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-04-golden-circle/bf9695086eb4989c6487ed0e0326fbe0.jpg",
+      "caption": "Photo: Andreas Tille, CC BY-SA 3.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-04-golden-circle/91cb7a19e75486f7abacd88a13de2b24.jpg",
+      "caption": "Photo: Diego Delso, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "car",
+  "transportFrom": "Reykjavík",
+  "transportTo": "Gullfoss",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

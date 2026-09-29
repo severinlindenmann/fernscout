@@ -1,0 +1,43 @@
+{
+  "title": "Reykjavík, from the church to the harbour",
+  "date": "2025-02-03",
+  "time": "10:30",
+  "timezone": "Atlantic/Reykjavik",
+  "location": "Reykjavík",
+  "country": "Iceland",
+  "countryCode": "IS",
+  "coordinates": {
+    "lat": 64.1466,
+    "lng": -21.9426
+  },
+  "content": "A walk from Hallgrímskirkja down Skólavörðustígur, along the Sæbraut shore path past the Sun Voyager sculpture, to Harpa and the Old Harbour. Hallgrímskirkja's tower is the city's best-known viewpoint; the harbour still works as a fishing and whale-watching port.\n\nThis is a demo day: the walk under the map is a simulated route along real streets, drawn to show what a recorded line looks like. The photographs are from Wikimedia Commons, credited in each caption.",
+  "media": [
+    {
+      "src": "/media/world-trip-2025/2025-02-03-reykjavik-old-harbour/1e60d18de0369594d04787318620b68e.jpg",
+      "caption": "Photo: Jakub Hałun, CC BY-SA 4.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-03-reykjavik-old-harbour/42284a7f39b12a0901fcf0653e088a62.jpg",
+      "caption": "Photo: Jakec, CC BY-SA 3.0, via Wikimedia Commons",
+      "type": "image"
+    },
+    {
+      "src": "/media/world-trip-2025/2025-02-03-reykjavik-old-harbour/e11790810d4d6cb1ee84f058da14bb71.jpg",
+      "caption": "Photo: Ypsilon from Finland, CC0, via Wikimedia Commons",
+      "type": "image"
+    }
+  ],
+  "transportMode": "flight",
+  "transportFrom": "Zurich",
+  "transportTo": "Reykjavík",
+  "test": true,
+  "declined": {
+    "weather": "not looked up for this demo day",
+    "tags": "no tags on this demo day",
+    "costs": "a demo day with no money on it",
+    "translations": "this demo has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}
