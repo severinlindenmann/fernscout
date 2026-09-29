@@ -2,29 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import StreetMap from "@/components/map/StreetMap";
+import { circlePolygon } from "@/lib/map/circle";
 import type { Map as MapLibreMap, GeoJSONSource } from "maplibre-gl";
 
 type Zone = { label: string; lat: number; lon: number; radiusM: number };
-
-/** A rough circle polygon in degrees, for drawing a private zone's radius on
- * a map — good enough at zone scale (tens of metres to a few km) where the
- * meridian/parallel distortion this ignores is well under a pixel.
- * ponytail: equirectangular approximation, not a geodesic circle; revisit if
- * zones ever grow toward `ZONE_LIMITS.maxRadiusM` at high latitude. */
-function circlePolygon(lat: number, lon: number, radiusM: number, steps = 48): GeoJSON.Feature {
-  const latDeg = radiusM / 111_320;
-  const lonDeg = radiusM / (111_320 * Math.cos((lat * Math.PI) / 180) || 1);
-  const coords: [number, number][] = [];
-  for (let i = 0; i <= steps; i++) {
-    const angle = (i / steps) * 2 * Math.PI;
-    coords.push([lon + lonDeg * Math.cos(angle), lat + latDeg * Math.sin(angle)]);
-  }
-  return { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [coords] } };
-}
 
 const ZONES_SOURCE = "gps-zones";
 const PENDING_SOURCE = "gps-zone-pending";
@@ -59,7 +45,29 @@ const LABEL = "text-sm font-semibold text-ink-strong";
  * Any saved zone is what `hasHomeZoneOrDeclined` (`lib/gps/api.ts`) looks
  * for when B2196/B2198's recorder decides whether it may arm at all.
  */
-export default function GpsZones({ username, streetMapsOn = false }: { username: string; streetMapsOn?: boolean }) {
+export default function GpsZones({
+  username,
+  streetMapsOn = false,
+  mode = "editor",
+  newPlaceHref,
+}: {
+  username: string;
+  streetMapsOn?: boolean;
+  /** B2563 T4 — `"overview"` is the routes overview's own compact card: a
+   * small labelled map with every zone hatched, name/radius/Remove rows and
+   * a link to `newPlaceHref` instead of an inline add form. `"editor"` (the
+   * default, and the whole of what this component was before T4) is the add
+   * form itself — kept unchanged so `places/new/page.tsx` renders exactly
+   * what the overview card used to inline. */
+  mode?: "editor" | "overview";
+  /** `mode="overview"` only — `places/new`'s own address. */
+  newPlaceHref?: string;
+  /** `places/new` only — where a successful add sends the owner back to
+   * (the overview, D9): a dedicated page has nowhere else worth staying on
+   * once the place is saved, unlike the overview card's own inline form
+   * before this ticket, which stayed put for adding a second one. */
+  afterAddHref?: string;
+}) {
   const { t } = useI18n();
   const router = useRouter();
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -77,6 +85,10 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
   const [radius, setRadius] = useState("500");
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState(false);
+  /** B2563 T4 — "Type coordinates instead": the map picker stays the
+   * default even with `streetMapsOn`, but typing a coordinate by hand is one
+   * tap away rather than only available when the map is off entirely. */
+  const [typeCoordinates, setTypeCoordinates] = useState(false);
 
   function load() {
     fetch(`/api/web/${encodeURIComponent(username)}/gps/zones`)
@@ -121,6 +133,12 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
 
   function onMapReady(map: import("maplibre-gl").Map) {
     mapRef.current = map;
+    // A scale bar — D9's own ask, cheap: maplibre ships one, and the map
+    // instance StreetMap hands back is already the real thing (this module
+    // only ever runs client-side), not a second dynamic import.
+    void import("maplibre-gl").then(({ ScaleControl }) => {
+      map.addControl(new ScaleControl({ unit: "metric" }), "bottom-right");
+    });
     map.on("load", () => {
       map.addSource(ZONES_SOURCE, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({
@@ -152,6 +170,31 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
     map.on("click", (e) => {
       setLat(e.lngLat.lat.toFixed(5));
       setLon(e.lngLat.lng.toFixed(5));
+    });
+  }
+
+  /** The overview card's own map — every zone hatched, nothing pending and
+   * no click handler: it is a small illustration of what is already saved,
+   * never a picker (that is `places/new`'s job, above). */
+  function onOverviewMapReady(map: import("maplibre-gl").Map) {
+    mapRef.current = map;
+    void import("maplibre-gl").then(({ ScaleControl }) => {
+      map.addControl(new ScaleControl({ unit: "metric" }), "bottom-right");
+    });
+    map.on("load", () => {
+      map.addSource(ZONES_SOURCE, { type: "geojson", data: zonesAsFeatureCollection(doc?.zones ?? []) });
+      map.addLayer({
+        id: `${ZONES_SOURCE}-fill`,
+        type: "fill",
+        source: ZONES_SOURCE,
+        paint: { "fill-color": "#c2410c", "fill-opacity": 0.15 },
+      });
+      map.addLayer({
+        id: `${ZONES_SOURCE}-line`,
+        type: "line",
+        source: ZONES_SOURCE,
+        paint: { "line-color": "#c2410c", "line-width": 2, "line-dasharray": [2, 2] },
+      });
     });
   }
 
@@ -243,6 +286,10 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
       zones: [...doc.zones, { label: label.trim(), lat: parsedLat, lon: parsedLon, radiusM: parsedRadius }],
     });
     if (ok) {
+      if (afterAddHref) {
+        router.push(afterAddHref);
+        return;
+      }
       setLabel("");
       setLat("");
       setLon("");
@@ -287,6 +334,92 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
 
   const atLimit = doc.zones.length >= doc.limits.maxZones;
 
+  const zoneRows = (
+    doc.zones.length === 0 ? (
+      <p className="mt-4 rounded-2xl bg-surface-subtle px-4 py-3 text-sm text-ink-secondary">
+        {t("studio.location.zones.empty")}
+      </p>
+    ) : (
+      <ul className="mt-4 space-y-3">
+        {doc.zones.map((zone) => (
+          <li key={`${zone.label}-${zone.lat}-${zone.lon}`} className="rounded-2xl border border-line-quiet bg-surface-raised p-4">
+            <p className="font-display text-base font-semibold text-ink-strong">{zone.label}</p>
+            <p className="text-sm text-ink-secondary">{t("studio.location.zones.radiusUnit", { radius: String(zone.radiusM) })}</p>
+            <BusyButton
+              busy={busy}
+              type="button"
+              onClick={() => setAsking(zone.label)}
+              aria-expanded={asking === zone.label}
+              className="mt-2 text-sm font-semibold text-ink-strong underline underline-offset-2 disabled:opacity-50"
+            >
+              {t("studio.location.zones.remove")}
+            </BusyButton>
+            {asking === zone.label && (
+              <div className="mt-3">
+                <ConfirmPanel
+                  label={t("studio.location.zones.remove")}
+                  question={t("studio.location.zones.removeQuestion", { label: zone.label })}
+                  confirmLabel={t("studio.location.zones.removeConfirm", { label: zone.label })}
+                  tone="destructive"
+                  busy={busy}
+                  onConfirm={() => void remove(zone)}
+                  onCancel={() => setAsking(null)}
+                />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  );
+
+  const declineRow = (
+    <>
+      <label className="mt-4 flex items-center gap-2 text-sm text-ink-strong">
+        <input
+          type="checkbox"
+          checked={doc.homeDeclined}
+          onChange={(e) => void toggleDecline(e.target.checked)}
+          disabled={busy}
+        />
+        {t("studio.location.zones.declineLabel")}
+      </label>
+      <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.zones.declineNote")}</p>
+    </>
+  );
+
+  if (mode === "overview") {
+    return (
+      <section className="mt-10">
+        <h2 className="font-display text-lg font-semibold text-ink-strong">{t("studio.location.zones.title")}</h2>
+        <p className="mt-2 text-sm text-ink-secondary">{t("studio.location.zones.overviewScope")}</p>
+        {streetMapsOn && doc.zones.length > 0 && (
+          <StreetMap
+            bounds={mapBounds}
+            pmtilesUrl="/api/maps/world.pmtiles"
+            onReady={onOverviewMapReady}
+            className="mt-4 h-40 w-full overflow-hidden rounded-xl border border-line-quiet"
+          />
+        )}
+        {zoneRows}
+        {newPlaceHref && (
+          <Link
+            href={newPlaceHref}
+            className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-ink-strong underline underline-offset-2"
+          >
+            {t("studio.location.zones.addPlaceLink")}
+          </Link>
+        )}
+        {declineRow}
+        {error && (
+          <p role="alert" className="mt-3 text-sm text-coral-600">
+            {error}
+          </p>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="mt-10">
       <h2 className="font-display text-lg font-semibold text-ink-strong">
@@ -294,47 +427,7 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
       </h2>
       <p className="mt-2 text-sm text-ink-secondary">{t("studio.location.zones.lede")}</p>
 
-      {doc.zones.length === 0 ? (
-        <p className="mt-4 rounded-2xl bg-surface-subtle px-4 py-3 text-sm text-ink-secondary">
-          {t("studio.location.zones.empty")}
-        </p>
-      ) : (
-        <ul className="mt-4 space-y-3">
-          {doc.zones.map((zone) => (
-            <li
-              key={`${zone.label}-${zone.lat}-${zone.lon}`}
-              className="rounded-2xl border border-line-quiet bg-surface-raised p-4"
-            >
-              <p className="font-display text-base font-semibold text-ink-strong">{zone.label}</p>
-              <p className="text-sm text-ink-secondary">
-                {t("studio.location.zones.radiusUnit", { radius: String(zone.radiusM) })}
-              </p>
-              <BusyButton
-                busy={busy}
-                type="button"
-                onClick={() => setAsking(zone.label)}
-                aria-expanded={asking === zone.label}
-                className="mt-2 text-sm font-semibold text-ink-strong underline underline-offset-2 disabled:opacity-50"
-              >
-                {t("studio.location.zones.remove")}
-              </BusyButton>
-              {asking === zone.label && (
-                <div className="mt-3">
-                  <ConfirmPanel
-                    label={t("studio.location.zones.remove")}
-                    question={t("studio.location.zones.removeQuestion", { label: zone.label })}
-                    confirmLabel={t("studio.location.zones.removeConfirm", { label: zone.label })}
-                    tone="destructive"
-                    busy={busy}
-                    onConfirm={() => void remove(zone)}
-                    onCancel={() => setAsking(null)}
-                  />
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {zoneRows}
 
       {atLimit ? (
         <p className="mt-4 text-sm text-ink-secondary">
@@ -353,7 +446,7 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
               required
             />
           </label>
-          {streetMapsOn ? (
+          {streetMapsOn && !typeCoordinates ? (
             <div className="space-y-2">
               <p className="text-sm text-ink-secondary">{t("studio.location.zones.mapHint")}</p>
               <StreetMap
@@ -370,6 +463,13 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
               {doc.zones.length > 0 && (
                 <p className="text-sm text-ink-secondary">{t("studio.location.zones.hatchedLegend")}</p>
               )}
+              <button
+                type="button"
+                onClick={() => setTypeCoordinates(true)}
+                className="text-sm font-semibold text-ink-strong underline underline-offset-2"
+              >
+                {t("studio.location.zones.typeCoordinatesLink")}
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -393,8 +493,18 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
                   required
                 />
               </label>
+              {streetMapsOn && (
+                <button
+                  type="button"
+                  onClick={() => setTypeCoordinates(false)}
+                  className="col-span-2 text-sm font-semibold text-ink-strong underline underline-offset-2"
+                >
+                  {t("studio.location.zones.useMapLink")}
+                </button>
+              )}
             </div>
           )}
+          <p className="text-sm text-ink-secondary">{t("studio.location.zones.boundaryNote")}</p>
           <label className="block">
             <span className={LABEL}>
               {t("studio.location.zones.radiusLabel")} — {t("studio.location.zones.radiusUnit", { radius })}
@@ -434,16 +544,7 @@ export default function GpsZones({ username, streetMapsOn = false }: { username:
         </form>
       )}
 
-      <label className="mt-4 flex items-center gap-2 text-sm text-ink-strong">
-        <input
-          type="checkbox"
-          checked={doc.homeDeclined}
-          onChange={(e) => void toggleDecline(e.target.checked)}
-          disabled={busy}
-        />
-        {t("studio.location.zones.declineLabel")}
-      </label>
-      <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.zones.declineNote")}</p>
+      {declineRow}
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-coral-600">

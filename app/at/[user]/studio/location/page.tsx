@@ -154,7 +154,12 @@ export default async function StudioLocationPage({
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
           {tripsSection}
           <section id="private-places" className="rounded-2xl border border-line-quiet bg-surface-raised p-4 [&>section]:mt-0">
-            <GpsZones username={user} streetMapsOn={streetMapsOn} />
+            <GpsZones
+              username={user}
+              streetMapsOn={streetMapsOn}
+              mode="overview"
+              newPlaceHref={`${journalPath(user)}/studio/location/places/new`}
+            />
           </section>
         </div>
 

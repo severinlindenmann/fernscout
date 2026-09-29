@@ -54,16 +54,26 @@ export default function TrackEditsPanel({
   tripId,
   days,
   hiddenDays,
+  canAdd = true,
 }: {
   username: string;
   tripId: string;
-  days: string[];
+  /** Only read by the add-stretch form's own day picker — ignored entirely
+   * when `canAdd` is false. */
+  days?: string[];
   /** B2544 — this trip's own days whose typed `coordinates` (never a
    * recorded GPS fix, so `deriveTrack`'s own hidden-spot cut never touches
    * them) fall inside one of the spots hidden below. Computed server-side,
    * `AS_AUTHOR`, so it always reflects the owner's real pin, whatever a
    * reader is shown. */
   hiddenDays?: { date: string; slug: string; location: string }[];
+  /** B2563 T3 — the trip page's own use of this component shrinks to "every
+   * edit on this trip, with Remove": the day page (`DayStretchEditor.tsx`)
+   * is the only place a spot or a stretch is added now, with its own map and
+   * range-bar UI. `false` here hides both add forms; the list and every
+   * remove button stay exactly as before. Defaults to `true` so nothing
+   * else that renders this component changes. */
+  canAdd?: boolean;
 }) {
   const { t, formatShortDate } = useI18n();
   const router = useRouter();
@@ -80,7 +90,7 @@ export default function TrackEditsPanel({
   const [spotLon, setSpotLon] = useState("");
   const [spotRadius, setSpotRadius] = useState("100");
 
-  const [stretchDate, setStretchDate] = useState(days[0] ?? "");
+  const [stretchDate, setStretchDate] = useState(days?.[0] ?? "");
   const [stretchFrom, setStretchFrom] = useState("");
   const [stretchTo, setStretchTo] = useState("");
   const [stretchLabel, setStretchLabel] = useState("");
@@ -308,7 +318,7 @@ export default function TrackEditsPanel({
           ))}
         </ul>
       )}
-      {spotsAtLimit ? (
+      {!canAdd ? null : spotsAtLimit ? (
         <p className="mt-2 text-sm text-ink-secondary">
           {t("studio.location.trackEdits.spotsLimitReached", { max: String(doc.limits.maxSpots) })}
         </p>
@@ -402,14 +412,14 @@ export default function TrackEditsPanel({
           ))}
         </ul>
       )}
-      {stretchesAtLimit && namedAtLimit ? (
+      {!canAdd ? null : stretchesAtLimit && namedAtLimit ? (
         <p className="mt-2 text-sm text-ink-secondary">{t("studio.location.trackEdits.stretchesLimitReached")}</p>
       ) : (
         <form onSubmit={(e) => void addStretch(e)} className="mt-2 space-y-2 rounded-xl bg-surface-subtle p-3">
           <label className="block">
             <span className={LABEL}>{t("studio.location.trackEdits.dateLabel")}</span>
             <select className={INPUT} value={stretchDate} onChange={(e) => setStretchDate(e.target.value)} required>
-              {days.map((d) => (
+              {(days ?? []).map((d) => (
                 <option key={d} value={d}>
                   {formatShortDate(d)}
                 </option>
