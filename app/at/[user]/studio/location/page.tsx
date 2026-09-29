@@ -7,8 +7,7 @@ import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
 import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
 import { getCurrentTrip, getTrips, tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
-import { ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
-import { hasHomeZoneOrDeclined } from "@/lib/gps/enrich";
+import { hasHomeZoneOrDeclined, ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
 import { AS_AUTHOR, getPlaces } from "@/lib/entries";
 import { basemapForRoute } from "@/lib/basemap";
 import { kmBetween } from "@/lib/mapFrame";
@@ -211,14 +210,14 @@ function TripRow({
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold text-ink-strong">
             {trip.title}
-            {recording && (
-              <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-800">
-                {translateIn(locale, "studio.location.route.recordingBadge")}
-              </span>
-            )}
-            {trip.hasPublishedTrack && (
-              <span className="ml-2 rounded-full bg-surface-subtle px-2 py-0.5 text-xs font-bold text-ink-secondary">
-                {translateIn(locale, "studio.location.route.publishedOnlyBadge")}
+            {" "}
+            {(recording || trip.hasPublishedTrack) && (
+              <span
+                className={`ml-2 rounded-full px-2 py-0.5 text-xs font-bold ${
+                  recording ? "bg-green-100 text-green-700" : "bg-surface-subtle text-ink-secondary"
+                }`}
+              >
+                {translateIn(locale, recording ? "studio.location.route.recordingBadge" : "studio.location.route.publishedOnlyBadge")}
               </span>
             )}
           </span>

@@ -34,6 +34,16 @@ function datesBetween(start: string, end: string): string[] {
   return dates;
 }
 
+/** B2563 T1 bug fix, as a pure function — a reader's day count is this
+ * view's own segments, never `trip.daysRecorded` (the owner's full
+ * recording): a private zone, a hidden stretch or an unpublished day can
+ * each leave a reader with fewer days than the owner recorded, and the old
+ * code showed the owner's count under the Readers switch too. Exported so
+ * `test/gps-route-page.test.ts` can prove the count directly. */
+export function readersDayCount(segments: LineSegment[]): number {
+  return new Set(segments.map((s) => s.day).filter((d): d is string => Boolean(d))).size;
+}
+
 function kmAlong(segments: LineSegment[]): number {
   let km = 0;
   for (const s of segments) {
@@ -99,11 +109,6 @@ export default async function TripPage({
 
   let segments: LineSegment[] = [];
   let positions: number;
-  // B2563 T1 bug fix — a reader's day count is this view's own segments, not
-  // `trip.daysRecorded` (the owner's full recording): a private zone, a
-  // hidden stretch or an unpublished day can each leave a reader with fewer
-  // days than the owner recorded, and the old code showed the owner's count
-  // under the Readers switch too.
   let daysShown: number;
   if (view === "mine") {
     segments = ownerTripLine(user, tripId)?.segments ?? [];
@@ -116,7 +121,7 @@ export default async function TripPage({
     segments =
       readerTrack(user, tripId, publicDates, false)?.segments.map((s) => ({ day: s.day, points: s.points })) ?? [];
     positions = segments.reduce((n, s) => n + s.points.length, 0);
-    daysShown = new Set(segments.map((s) => s.day).filter((d): d is string => Boolean(d))).size;
+    daysShown = readersDayCount(segments);
   }
   const km = kmAlong(segments);
   const allPoints = segments.flatMap((s) => s.points);
