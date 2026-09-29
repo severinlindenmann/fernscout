@@ -168,6 +168,11 @@ export const OPERATOR_ONLY_FEATURES = [
   // B2341. The landing page's own decision, not a journal's — nobody signs
   // into a journal to see this door.
   "iosApp",
+  // B2535. The operator extracts the tiles; a journal has nothing to opt into.
+  // Left per-journal, the day and trip cards (`lib/map/cardSvg.ts`, which ask
+  // with a username) drew no streets for any journal while the map page,
+  // asking the server alone, did.
+  "streetMaps",
 ] as const satisfies readonly FeatureName[];
 
 /**
