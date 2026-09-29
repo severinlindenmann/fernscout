@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
@@ -40,6 +40,24 @@ export default function RouteMenu({
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const root = useRef<HTMLDivElement>(null);
+
+  // Escape or a press outside closes the open menu.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [open]);
 
   async function confirmDelete() {
     setBusy(true);
@@ -61,7 +79,7 @@ export default function RouteMenu({
   }
 
   return (
-    <div className="relative">
+    <div ref={root} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
