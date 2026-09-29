@@ -28,6 +28,18 @@ export function stripState(homeReady: boolean, recording: RecordingState | null)
   return { kind: "recording" };
 }
 
+/** One tone per state, so what needs attention reads before a word does:
+ * green recording, grey off or not yet set up, cream waiting on the owner,
+ * coral silent. */
+const TONE: Record<StripState["kind"], { box: string; dot: string }> = {
+  recording: { box: "border-green-100 bg-green-100/60", dot: "bg-green-700" },
+  off: { box: "border-line-quiet bg-surface-neutral", dot: "bg-ink-faint" },
+  noReport: { box: "border-line-quiet bg-surface-neutral", dot: "bg-ink-faint" },
+  homeFirst: { box: "border-line-quiet bg-surface-subtle", dot: "bg-yellow-600" },
+  needsAlways: { box: "border-line-quiet bg-surface-subtle", dot: "bg-yellow-600" },
+  silentStale: { box: "border-coral-100 bg-coral-50", dot: "bg-coral-600" },
+};
+
 /** "3 minutes ago", "2 hours ago", "yesterday" — relative, never a bare
  * instant: the two times this strip shows (the phone's own last report and
  * the newest stored position) are meant to be compared at a glance, which an
@@ -83,7 +95,13 @@ export default function RecordingStrip({
   const newestAt = newestPosition ? formatAgo(newestPosition, locale) : undefined;
 
   return (
-    <section className="rounded-2xl border border-line-quiet bg-surface-raised p-4" data-testid="recording-strip" data-state={state.kind}>
+    <section
+      className={`flex gap-3 rounded-2xl border p-4 ${TONE[state.kind].box}`}
+      data-testid="recording-strip"
+      data-state={state.kind}
+    >
+      <span aria-hidden className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${TONE[state.kind].dot}`} />
+      <div className="min-w-0">
       {state.kind === "homeFirst" && (
         <>
           <p className="text-sm font-semibold text-ink-strong">{t("studio.record.needsHomeZone")}</p>
@@ -100,7 +118,7 @@ export default function RecordingStrip({
       )}
       {state.kind === "off" && (
         <>
-          <p className="text-sm font-semibold text-ink-strong">{t("studio.location.strip.off")}</p>
+          <p className="text-sm font-semibold text-ink-strong">{t("studio.location.strip.off")} · {trip.title}</p>
           <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.strip.changeOnPhone")}</p>
         </>
       )}
@@ -120,13 +138,14 @@ export default function RecordingStrip({
       )}
       {state.kind === "recording" && (
         <>
-          <p className="text-sm font-semibold text-ink-strong">{t("studio.location.strip.recording")}</p>
+          <p className="text-sm font-semibold text-ink-strong">{t("studio.location.strip.recording")} · {trip.title}</p>
           {reportedAt && <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.strip.reportedAt", { at: reportedAt })}</p>}
           {newestAt && (
             <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.strip.newestPosition", { at: newestAt })}</p>
           )}
         </>
       )}
+      </div>
     </section>
   );
 }

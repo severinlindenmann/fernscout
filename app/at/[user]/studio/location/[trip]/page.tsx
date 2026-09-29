@@ -211,7 +211,7 @@ export default async function TripPage({
           positions: String(positions),
         })}
       </p>
-      {modes.length > 0 && (
+      {view === "mine" && modes.length > 0 && (
         <p className="text-sm text-ink-secondary">
           {modes.map(([mode, v]) => `${v} km ${modeLabel(mode, t)}`).join(" · ")}
         </p>

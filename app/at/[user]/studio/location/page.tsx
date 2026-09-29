@@ -2,14 +2,12 @@ import Link from "next/link";
 import StudioPage from "@/components/studio/StudioPage";
 import GpsZones from "@/components/studio/location/GpsZones";
 import RecordingStrip from "@/components/studio/location/RecordingStrip";
-import WorldMap from "@/components/WorldMap";
+import TrackThumb from "@/components/studio/location/TrackThumb";
 import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
 import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
-import { getCurrentTrip, getTrips, tripRef } from "@/lib/trips";
+import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHomeZoneOrDeclined, ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
-import { AS_AUTHOR, getPlaces } from "@/lib/entries";
-import { basemapForRoute } from "@/lib/basemap";
 import { kmBetween } from "@/lib/mapFrame";
 import { journalPath } from "@/lib/journalPath";
 
@@ -147,15 +145,18 @@ export default async function StudioLocationPage({
     <StudioPage
       username={user}
       group="bringIn"
+      width="board"
       title={translateIn(locale, "studio.location.title")}
       lede={translateIn(locale, "studio.location.lede")}
     >
-      {stripSection}
-      {tripsSection}
-
-      <section id="private-places" className="rounded-2xl border border-line-quiet bg-surface-raised p-4">
-        <GpsZones username={user} streetMapsOn={streetMapsOn} />
-      </section>
+      <div className="flex flex-col gap-4">
+        {stripSection}
+        <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr] lg:items-start">
+          {tripsSection}
+          <section id="private-places" className="rounded-2xl border border-line-quiet bg-surface-raised p-4 [&>section]:mt-0">
+            <GpsZones username={user} streetMapsOn={streetMapsOn} />
+          </section>
+        </div>
 
       <div className="flex flex-wrap items-center gap-2 gap-x-6 border-t border-line-quiet pt-4 text-sm">
         <Link
@@ -174,6 +175,7 @@ export default async function StudioLocationPage({
         >
           {translateIn(locale, "studio.location.historyLink")}
         </Link>
+      </div>
       </div>
     </StudioPage>
   );
@@ -194,9 +196,6 @@ function TripRow({
   recording: boolean;
   locale: string;
 }) {
-  const ref = tripRef(username, trip.tripId);
-  const places = getPlaces(ref, AS_AUTHOR);
-  const basemap = basemapForRoute(places);
   const segments = trip.hasPublishedTrack ? [] : (ownerTripLine(username, trip.tripId)?.segments ?? []);
   const km = kmAlong(segments);
   const href = `${journalPath(username)}/studio/location/${encodeURIComponent(trip.tripId)}`;
@@ -204,16 +203,13 @@ function TripRow({
   return (
     <li>
       <Link href={href} className={`flex items-center gap-3 py-3 ${trip.hasPublishedTrack ? "opacity-60" : ""}`}>
-        <span className="h-12 w-16 shrink-0 overflow-hidden rounded-lg border border-line-quiet">
-          <WorldMap places={places} basemap={basemap} track={segments.map((s) => s.points)} />
-        </span>
+        <TrackThumb segments={segments.map((s) => s.points)} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-ink-strong">
-            {trip.title}
-            {" "}
+          <span className="flex items-center gap-2">
+            <span className="truncate font-semibold text-ink-strong">{trip.title}</span>{" "}
             {(recording || trip.hasPublishedTrack) && (
               <span
-                className={`ml-2 rounded-full px-2 py-0.5 text-xs font-bold ${
+                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
                   recording ? "bg-green-100 text-green-700" : "bg-surface-subtle text-ink-secondary"
                 }`}
               >
