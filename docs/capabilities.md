@@ -67,7 +67,7 @@ what it would generate.
 | `signup` | server-wide | — |
 | `sms` | server-wide | — |
 | `smsInbound` | server-wide | — |
-| `streetMaps` | per journal | — |
+| `streetMaps` | server-wide | — |
 | `transcription` | server-wide | — |
 | `weather` | server-wide | — |
 | `whatsapp` | per journal | hosted edition only |
