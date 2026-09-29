@@ -342,7 +342,7 @@ function datesBetween(start: string, end: string): string[] {
   return dates;
 }
 
-type DateWindow = { date: string; from: number; to: number };
+type DateWindow = { date: string; from: number; to: number; zoned: boolean };
 
 /** One local-midnight-to-local-midnight window per trip date — B2202 rework.
  * `tz` is the date's own day's `timezone`, when one was written, else UTC. */
@@ -351,6 +351,7 @@ function windowsFor(start: string, end: string, dayTimezones: Readonly<Record<st
     const tz = dayTimezones[date] ?? "UTC";
     return {
       date,
+      zoned: date in dayTimezones,
       from: zonedTimeToUtc(date, "00:00", tz).getTime(),
       to: zonedTimeToUtc(nextDate(date), "00:00", tz).getTime(),
     };
@@ -359,9 +360,14 @@ function windowsFor(start: string, end: string, dayTimezones: Readonly<Record<st
 
 /** Which trip date's window `t` falls in, or `undefined` when it is outside
  * every one of them (before the trip, after it, or in a gap this rework does
- * not expect between adjoining local-midnight windows). */
+ * not expect between adjoining local-midnight windows).
+ *
+ * A date with a day of its own wins over one without: the latter's UTC
+ * window overlaps a zoned neighbour's, and on world-trip-2025 an unwritten
+ * 13 Feb took Kyoto's whole morning of the 14th (08:15 JST is 23:15Z). */
 function dateOf(t: number, windows: DateWindow[]): string | undefined {
-  return windows.find((w) => t >= w.from && t < w.to)?.date;
+  const inside = (w: DateWindow) => t >= w.from && t < w.to;
+  return (windows.find((w) => w.zoned && inside(w)) ?? windows.find(inside))?.date;
 }
 
 /** Drop every point within `metres` of straight-line (haversine) distance of
