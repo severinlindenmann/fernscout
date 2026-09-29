@@ -1103,6 +1103,22 @@ export function ownerDayLine(username: string, tripId: string, date: string): Ow
   return { points, gapAfter, times, modes, timezone };
 }
 
+/**
+ * The private zone covering one point, if any — B2563 T5, the Positions
+ * tab's own "Hidden by" column. Never reads a position out of the store
+ * (no `readRange`, so this sits outside `test/gps-store.test.ts`'s
+ * "position-reading exports" list on purpose) and never hands back more
+ * than a zone's own label: `lat`/`lon` here are the day page's own already-
+ * disclosed-to-its-owner fix, not a fresh read of anything private. Returns
+ * `undefined` when no zone covers the point, and the zone's own `label`
+ * (never empty — `PUT /api/v2/{user}/gps/zones` requires one) when one does.
+ */
+export function zoneLabelFor(username: string, lat: number, lon: number): string | undefined {
+  const zones = readExcludeZones(username);
+  const zone = zones.find((z) => isExcluded({ t: 0, lat, lon }, [z]));
+  return zone?.label;
+}
+
 /** What `deleteTripRecording` answers with — counts, and whether the trip's
  *  own `track.json` still exists afterwards. Never a coordinate. */
 export type DeleteRecordingResult = {

@@ -167,6 +167,14 @@ describe("the two pages that carry addresses and credentials (B287)", () => {
     const cc = rule!.headers.find((h) => h.key.toLowerCase() === "cache-control")?.value;
     expect(cc).toContain("no-store");
   });
+
+  test("/@:user/studio/location/:trip/:date (the day page, positions tab included) is pinned no-store (B2563 T5)", async () => {
+    const all = await rules();
+    const rule = all.find((r) => r.source === "/@:user/studio/location/:trip/:date");
+    expect(rule, "next.config.ts must pin Cache-Control for the day page").toBeDefined();
+    const cc = rule!.headers.find((h) => h.key.toLowerCase() === "cache-control")?.value;
+    expect(cc).toContain("no-store");
+  });
 });
 
 describe("the credit-approval page carries no-referrer (B1635)", () => {

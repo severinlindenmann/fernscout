@@ -57,7 +57,10 @@ function kmAlong(segments: LineSegment[]): number {
   return km;
 }
 
-const MODE_KEYS: Record<string, TranslationKey> = {
+/** Shared with the day page's own Positions tab (`[date]/page.tsx`, B2563 T5)
+ *  — one mapping from the store's own mode string to its translation key,
+ *  never duplicated. */
+export const MODE_KEYS: Record<string, TranslationKey> = {
   on_foot: "studio.location.route.mode.onFoot",
   bike: "studio.location.route.mode.bike",
   car: "studio.location.route.mode.car",
@@ -222,7 +225,8 @@ export default async function TripPage({
   );
 }
 
-function modeLabel(mode: string, t: (key: TranslationKey, vars?: Record<string, string>) => string): string {
+/** Shared with the day page's own Positions tab (`[date]/page.tsx`, B2563 T5). */
+export function modeLabel(mode: string, t: (key: TranslationKey, vars?: Record<string, string>) => string): string {
   const key = MODE_KEYS[mode];
   return key ? t(key) : mode;
 }
