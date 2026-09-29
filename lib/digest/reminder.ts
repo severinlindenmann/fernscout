@@ -58,7 +58,7 @@ export function dueTrips(username: string, today: string = earliestTodayISO()): 
   );
 }
 
-/** Where this journal's own "already nudged today" fact lives — a marker
+/** Where this journal's own "already nudged" facts live — a marker
  *  file beside `content/<user>/whatsapp/.greeted/`'s own shape, because it is
  *  a fact about a send having happened rather than content of the journal
  *  itself, and it needs no database to be reliable across whichever backend
@@ -67,22 +67,50 @@ function markerFile(username: string): string {
   return path.join(userDir(username), ".reminder-sent.json");
 }
 
-/** At most one nudge per journal per day, whichever trip it was about — the
- *  ticket's own limit, read literally: a journal running two trips at once
- *  still gets one evening, not one per trip. */
-function alreadySentToday(username: string, today: string): boolean {
+/** `lastSentDate` keeps the one-per-journal-per-night rule; `trips` holds,
+ *  per trip ref, the nights it was nudged and how many days it had at the
+ *  first one (B2562). */
+type Marker = {
+  lastSentDate?: string;
+  trips?: Record<string, { sent: string[]; days: number }>;
+};
+
+function readMarker(username: string): Marker {
   try {
-    const raw = JSON.parse(fs.readFileSync(markerFile(username), "utf8")) as { lastSentDate?: unknown };
-    return raw.lastSentDate === today;
+    return JSON.parse(fs.readFileSync(markerFile(username), "utf8")) as Marker;
   } catch {
-    return false;
+    return {};
   }
 }
 
-function markSentToday(username: string, today: string): void {
+/** A trip hears about it twice, ever (B2562, the owner's rule): the first
+ *  night nothing is written, then — only if not a single day has been added
+ *  since, drafts included — once more a week later. Then never again. */
+const SECOND_NUDGE_AFTER_DAYS = 7;
+
+function nudgeAllowed(marker: Marker, trip: Trip, today: string): boolean {
+  const past = marker.trips?.[trip.ref];
+  if (!past || past.sent.length === 0) return true;
+  if (past.sent.length >= 2) return false;
+  const waited = (Date.parse(today) - Date.parse(past.sent[0])) / 86_400_000;
+  return waited >= SECOND_NUDGE_AFTER_DAYS && getDays(trip.ref, AS_AUTHOR).length <= past.days;
+}
+
+function markSent(username: string, marker: Marker, trip: Trip, today: string): void {
+  const past = marker.trips?.[trip.ref];
+  const next: Marker = {
+    lastSentDate: today,
+    trips: {
+      ...marker.trips,
+      [trip.ref]: {
+        sent: [...(past?.sent ?? []), today],
+        days: past?.days ?? getDays(trip.ref, AS_AUTHOR).length,
+      },
+    },
+  };
   const file = markerFile(username);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, `${JSON.stringify({ lastSentDate: today }, null, 2)}\n`, "utf8");
+  fs.writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`, "utf8");
 }
 
 type ReminderOutcome =
@@ -159,8 +187,13 @@ export type SweepResult = {
  * as if the dry run had not happened — the same contract `rates-refresh.mts`
  * and `notify.mts --dry-run` already keep.
  */
-export async function sweepReminders({ dryRun }: { dryRun: boolean }): Promise<SweepResult> {
-  const today = earliestTodayISO();
+export async function sweepReminders({
+  dryRun,
+  today = earliestTodayISO(),
+}: {
+  dryRun: boolean;
+  today?: string;
+}): Promise<SweepResult> {
   const result: SweepResult = { checked: 0, sent: 0, notified: [] };
 
   for (const username of getUsernames()) {
@@ -170,9 +203,11 @@ export async function sweepReminders({ dryRun }: { dryRun: boolean }): Promise<S
     const due = dueTrips(username, today);
     result.checked += due.length;
     if (due.length === 0) continue;
-    if (alreadySentToday(username, today)) continue;
+    const marker = readMarker(username);
+    if (marker.lastSentDate === today) continue;
 
-    const trip = due[0];
+    const trip = due.find((t) => nudgeAllowed(marker, t, today));
+    if (!trip) continue;
     if (dryRun) {
       result.notified.push([username, trip.ref, trip.reminder!.channel]);
       continue;
@@ -180,7 +215,7 @@ export async function sweepReminders({ dryRun }: { dryRun: boolean }): Promise<S
 
     const outcome = await sendReminder(username, user, trip);
     if (outcome.sent) {
-      markSentToday(username, today);
+      markSent(username, marker, trip, today);
       result.sent++;
       result.notified.push([username, trip.ref, outcome.channel]);
     }
