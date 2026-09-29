@@ -82,6 +82,13 @@ export default function DayLineMap({
   pendingSpot?: { lat: number; lon: number; radiusM: number } | null;
 }) {
   const mapRef = useRef<MapLibreMap | null>(null);
+  // `onReady` runs once, on mount, when the day page is usually not placing
+  // a spot yet; the click listener reads the current handler through this
+  // ref, so a handler handed in later is the one a tap reaches.
+  const onMapClickRef = useRef(onMapClick);
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
   const { solid, dashed } = toLines(points, gapAfter);
   const selectedLine =
     selected && selected[1] > selected[0] ? [points.slice(selected[0], selected[1] + 1)] : [];
@@ -127,9 +134,7 @@ export default function DayLineMap({
         paint: { "line-color": "#2563eb", "line-width": 2, "line-dasharray": [2, 2] },
       });
     });
-    if (onMapClick) {
-      map.on("click", (e) => onMapClick(e.lngLat.lat, e.lngLat.lng));
-    }
+    map.on("click", (e) => onMapClickRef.current?.(e.lngLat.lat, e.lngLat.lng));
   }
 
   // Re-draw whenever the data changes — `onReady` above only runs once, on
