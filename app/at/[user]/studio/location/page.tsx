@@ -151,7 +151,7 @@ export default async function StudioLocationPage({
     >
       <div className="flex flex-col gap-4">
         {stripSection}
-        <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr] lg:items-start">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
           {tripsSection}
           <section id="private-places" className="rounded-2xl border border-line-quiet bg-surface-raised p-4 [&>section]:mt-0">
             <GpsZones username={user} streetMapsOn={streetMapsOn} />
