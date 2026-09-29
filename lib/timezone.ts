@@ -25,6 +25,7 @@ import tzLookup from "tz-lookup";
  */
 const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
 const clockFormatters = new Map<string, Intl.DateTimeFormat>();
+const partsFormatters = new Map<string, Intl.DateTimeFormat>();
 
 function formatterFor(
   store: Map<string, Intl.DateTimeFormat>,
@@ -103,6 +104,34 @@ export function formatTimeInZone(date: string, time: string, zone: string, targe
       hourCycle: "h23",
     }),
   ).format(instant);
+}
+
+/**
+ * The reverse of `zonedTimeToUtc` — `instant`'s own wall clock in `zone`, as
+ * the `date`/`time` shape every stretch here is stored and submitted in
+ * (B2563 T3: a day page's range bar needs a recorded fix's own local `date`
+ * and `HH:mm` to draw a handle's `aria-valuetext` and to build the payload
+ * `writeTrackEdits` expects — never the browser's own zone, same rule
+ * `lib/gps/edits.ts`'s module doc gives for why a stretch is a wall clock).
+ */
+export function utcToZonedParts(instant: Date, zone: string): { date: string; time: string } {
+  const parts = Object.fromEntries(
+    formatterFor(partsFormatters, zone, () =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: zone,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    )
+      .formatToParts(instant)
+      .map((p) => [p.type, p.value]),
+  );
+  const hour = parts.hour === "24" ? "00" : parts.hour;
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${hour}:${parts.minute}` };
 }
 
 /**

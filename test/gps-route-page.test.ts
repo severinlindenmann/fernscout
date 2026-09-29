@@ -565,3 +565,42 @@ describe("B2563 T1 — the trip and day pages refuse anyone but the journal's re
     }
   });
 });
+
+describe("B2563 T4 — the new-private-place page refuses anyone but the journal's real owner", () => {
+  const placeParams = { params: Promise.resolve({ user: OWNER }) };
+
+  test("the owner's cookie opens it", async () => {
+    resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
+    const { default: NewPrivatePlacePage } = await import("@/app/at/[user]/studio/location/places/new/page");
+    await expect(NewPrivatePlacePage(placeParams as never)).resolves.toBeTruthy();
+  });
+
+  test("a signed-in stranger's cookie gets a 404", async () => {
+    resolveAccess.mockResolvedValue({ email: OTHER_EMAIL });
+    const { default: NewPrivatePlacePage } = await import("@/app/at/[user]/studio/location/places/new/page");
+    let digest = "";
+    try {
+      await NewPrivatePlacePage(placeParams as never);
+    } catch (err) {
+      digest = digestOf(err);
+    }
+    expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+  });
+
+  test("the operator's own admin cookie still gets a 404 — private zones are the owner's own settings", async () => {
+    process.env.FERNSCOUT_ADMIN_EMAIL = ADMIN_EMAIL;
+    try {
+      resolveAccess.mockResolvedValue({ email: ADMIN_EMAIL });
+      const { default: NewPrivatePlacePage } = await import("@/app/at/[user]/studio/location/places/new/page");
+      let digest = "";
+      try {
+        await NewPrivatePlacePage(placeParams as never);
+      } catch (err) {
+        digest = digestOf(err);
+      }
+      expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+    } finally {
+      delete process.env.FERNSCOUT_ADMIN_EMAIL;
+    }
+  });
+});

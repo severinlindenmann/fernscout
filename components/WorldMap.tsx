@@ -110,6 +110,7 @@ export default function WorldMap({
   bottomInset = 0,
   showTimeScrubber = true,
   dayNumbers,
+  frameHint,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -192,6 +193,13 @@ export default function WorldMap({
    * original behaviour: a marker's own 1-based position among *plottable*
    * places, which drifts from the calendar once an earlier day had no place. */
   dayNumbers?: Map<string, number>;
+  /** B2563 T3 — frame on these points instead of the world when there are no
+   * places and no planned route to frame on. The day page's `WorldMap`
+   * fallback (no `streetMaps`) has a recorded line but nothing in `places`
+   * (a day's own points are not stops); without this the frame fell through
+   * to `frameRoute([])`, the whole world, for one dot's worth of a day
+   * (D4). Draws no markers — only `base`/`focus` read it. */
+  frameHint?: readonly { lat: number; lng: number }[];
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -246,10 +254,12 @@ export default function WorldMap({
   // the whole world stand in. `lib/basemap.ts`'s server-side clip calls
   // `framePoints` on the same `places` array before framing it, so the two
   // keep agreeing the way the comment there already required.
-  const base = useMemo(
-    () => frameRoute(plottable.length > 0 ? framePoints(plottable) : plan),
-    [plottable, plan],
-  );
+  const base = useMemo(() => {
+    if (plottable.length > 0) return frameRoute(framePoints(plottable));
+    if (plan.length > 0) return frameRoute(plan);
+    if (frameHint && frameHint.length > 0) return frameRoute(framePoints(frameHint));
+    return frameRoute(plan);
+  }, [plottable, plan, frameHint]);
 
   // Where the stops actually are. Zooming in drifts the camera from the
   // route's bounding-box centre toward this, so you end up over the places

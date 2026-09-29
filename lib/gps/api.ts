@@ -1055,8 +1055,24 @@ const DAY_GAP_METRES = 600;
  * gap. `gapAfter[i]` is the join between `points[i]` and `points[i + 1]`, so
  * it always has one fewer entry than `points`. No thinning beyond what the
  * store itself already did on write (B665) — a single day's fixes are few
- * enough to draw as they are. */
-export type OwnerDayLine = { points: [number, number][]; gapAfter: boolean[] };
+ * enough to draw as they are.
+ *
+ * `times`/`modes` (B2563 T3) are the same fixes' own instant and phone-reported
+ * mode, parallel to `points` — not a new reader of the store, just this
+ * existing function no longer discarding two fields it already read, for the
+ * day page's own time-bar selection (a stretch's km/positions/mode) to work
+ * out client-side without a second door onto the store. `timezone` is the
+ * same day's own zone `localWindow` resolved this call's window from
+ * (`"UTC"` when the day carries none) — what the day page needs to show and
+ * submit a stretch's `from`/`to` as the wall clock `writeTrackEdits`
+ * expects, never the browser's own zone (see `./edits.ts`'s module doc). */
+export type OwnerDayLine = {
+  points: [number, number][];
+  gapAfter: boolean[];
+  times: number[];
+  modes: (TransportMode | undefined)[];
+  timezone: string;
+};
 
 /**
  * The owner's own raw line for one recorded day, with gap joins marked for a
@@ -1072,16 +1088,19 @@ export function ownerDayLine(username: string, tripId: string, date: string): Ow
   if (!trip) return null;
   if (!isRealDate(date) || date < trip.start || date > trip.end) return null;
   const zones = dayTimezones(username, trip);
+  const timezone = zones[date] ?? "UTC";
   const window = localWindow(date, zones[date]);
   const fixes = readRange(username, window.from, window.to - 1000).sort((a, b) => a.t - b.t);
   const points: [number, number][] = fixes.map((f) => [f.lat, f.lon]);
+  const times = fixes.map((f) => f.t);
+  const modes = fixes.map((f) => f.mode);
   const gapAfter: boolean[] = [];
   for (let i = 1; i < fixes.length; i++) {
     const dtMs = fixes[i].t - fixes[i - 1].t;
     const distM = metresBetween(fixes[i - 1], fixes[i]);
     gapAfter.push(dtMs > DAY_GAP_MS && distM > DAY_GAP_METRES);
   }
-  return { points, gapAfter };
+  return { points, gapAfter, times, modes, timezone };
 }
 
 /** What `deleteTripRecording` answers with — counts, and whether the trip's

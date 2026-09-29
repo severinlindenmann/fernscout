@@ -217,7 +217,7 @@ export default async function TripPage({
         </p>
       )}
 
-      <TrackEditsPanel username={user} tripId={tripId} days={dates} hiddenDays={hiddenDays} />
+      <TrackEditsPanel username={user} tripId={tripId} canAdd={false} hiddenDays={hiddenDays} />
     </StudioPage>
   );
 }

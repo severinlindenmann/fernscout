@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatTimeInZone, zonedTimeToUtc } from "@/lib/timezone";
+import { formatTimeInZone, utcToZonedParts, zonedTimeToUtc } from "@/lib/timezone";
 
 /**
  * lib/timezone.ts keeps one `Intl.DateTimeFormat` per zone rather than making
@@ -34,5 +34,15 @@ describe("zone conversions with reused formatters", () => {
   test("a zone Intl does not know throws every time, not only the first", () => {
     expect(() => zonedTimeToUtc("2024-07-15", "12:00", "Not/AZone")).toThrow(RangeError);
     expect(() => zonedTimeToUtc("2024-07-15", "12:00", "Not/AZone")).toThrow(RangeError);
+  });
+
+  test("utcToZonedParts is zonedTimeToUtc's own inverse", () => {
+    const instant = zonedTimeToUtc("2024-07-15", "12:00", "Europe/Zurich");
+    expect(utcToZonedParts(instant, "Europe/Zurich")).toEqual({ date: "2024-07-15", time: "12:00" });
+  });
+
+  test("utcToZonedParts reads midnight as 00:00, not 24:00", () => {
+    const instant = zonedTimeToUtc("2024-01-15", "00:00", "Europe/Zurich");
+    expect(utcToZonedParts(instant, "Europe/Zurich")).toEqual({ date: "2024-01-15", time: "00:00" });
   });
 });
