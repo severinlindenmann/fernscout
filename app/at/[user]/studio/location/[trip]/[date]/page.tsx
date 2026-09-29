@@ -69,7 +69,13 @@ export default async function DayPage({
   }
 
   return (
-    <StudioPage username={user} group="bringIn" title={date}>
+    <StudioPage
+      username={user}
+      group="bringIn"
+      title={new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
+        new Date(`${date}T00:00:00Z`),
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <Link
           href={`${tripBase}?day=${date}&view=${view}`}
