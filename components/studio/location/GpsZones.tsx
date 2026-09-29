@@ -50,6 +50,7 @@ export default function GpsZones({
   streetMapsOn = false,
   mode = "editor",
   newPlaceHref,
+  afterAddHref,
 }: {
   username: string;
   streetMapsOn?: boolean;
