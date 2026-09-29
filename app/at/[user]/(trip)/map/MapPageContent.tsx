@@ -282,10 +282,13 @@ export default function MapPageContent({
   // covers the most of that region's own places instead, so the streets
   // under a region switch are that region's own, not the main region's moved
   // frame. Falls back to `streetMap`'s own file when there's nothing to
-  // check bboxes against (a tour, no extra files, or nothing in bounds).
+  // check bboxes against (no extra files, or nothing in bounds). A tour gets
+  // none at all.
   const activeStreetMap = useMemo(() => {
-    if (!streetMap) return null;
-    if (frame.isTour || !streetMapRegions || streetMapRegions.length === 0) return streetMap;
+    // A tour is shown whole on the world map; one region's street file
+    // cannot frame the whole world (the bounds run past 90° latitude).
+    if (!streetMap || frame.isTour) return null;
+    if (!streetMapRegions || streetMapRegions.length === 0) return streetMap;
     const currentRegionPlaces = frame.regions[regionIndex]?.places ?? [];
     if (currentRegionPlaces.length === 0) return streetMap;
     let best = streetMap;
