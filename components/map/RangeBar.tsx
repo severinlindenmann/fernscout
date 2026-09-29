@@ -122,6 +122,13 @@ export default function RangeBar({
           style={{ backgroundColor: mapStyle.border }}
           aria-hidden
         />
+        {/* The selected span itself, highlighted between the two handles. */}
+        <div
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full"
+          style={{ left: `${fromPct}%`, width: `${Math.max(0, toPct - fromPct)}%`, backgroundColor: mapStyle.selectedFill }}
+          aria-hidden
+        />
+        {/* Gaps after the selection, so its fill never hides them. */}
         {gaps.map(([from, to], i) => (
           <div
             key={i}
@@ -130,12 +137,6 @@ export default function RangeBar({
             aria-hidden
           />
         ))}
-        {/* The selected span itself, highlighted between the two handles. */}
-        <div
-          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full"
-          style={{ left: `${fromPct}%`, width: `${Math.max(0, toPct - fromPct)}%`, backgroundColor: mapStyle.selectedFill }}
-          aria-hidden
-        />
         <div
           role="slider"
           tabIndex={0}

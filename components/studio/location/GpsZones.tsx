@@ -421,12 +421,11 @@ export default function GpsZones({
     );
   }
 
+  // Editor mode lives only on places/new, whose StudioPage already carries
+  // this title — a second heading here printed it twice.
   return (
-    <section className="mt-10">
-      <h2 className="font-display text-lg font-semibold text-ink-strong">
-        {t("studio.location.zones.title")}
-      </h2>
-      <p className="mt-2 text-sm text-ink-secondary">{t("studio.location.zones.lede")}</p>
+    <section>
+      <p className="text-sm text-ink-secondary">{t("studio.location.zones.lede")}</p>
 
       {zoneRows}
 

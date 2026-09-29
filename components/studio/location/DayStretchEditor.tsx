@@ -130,7 +130,13 @@ export default function DayStretchEditor({
     const res = await fetch(base, {
       method: "PUT",
       headers: { "content-type": "application/json", ...(etagRef.current ? { "if-match": etagRef.current } : {}) },
-      body: JSON.stringify(next),
+      // Exactly the three writable keys: callers spread the GET document,
+      // which also carries `limits`, and the strict write schema refuses it.
+      body: JSON.stringify({
+        hiddenSpots: next.hiddenSpots,
+        hiddenStretches: next.hiddenStretches,
+        namedStretches: next.namedStretches,
+      }),
     }).catch(() => null);
     setBusy(false);
     if (res?.status === 409) {
