@@ -77,6 +77,20 @@ afterEach(() => {
 });
 
 describe("deriveTrack — pure rules reworked by B2202", () => {
+  test("a date with a day of its own wins a fix over an overlapping date without one", () => {
+    // example/world-trip-2025: nothing written on 13 Feb, Kyoto (Asia/Tokyo)
+    // on the 14th. 2025-02-13T23:15Z is 08:15 on the 14th in Kyoto; a UTC
+    // window for the 13th overlapped Kyoto's and took the morning walk.
+    const start = Date.parse("2025-02-13T23:15:00Z");
+    const fixes: Fix[] = Array.from({ length: 5 }, (_, i) => ({ t: start + i * 60_000, lat: 34.97, lon: 135.77 + i * 0.001 }));
+    const track = deriveTrack(fixes, {
+      start: "2025-02-09",
+      end: "2025-02-15",
+      dayTimezones: { "2025-02-09": "America/New_York", "2025-02-14": "Asia/Tokyo" },
+    });
+    expect(track.segments.map((s) => s.day)).toEqual(["2025-02-14"]);
+  });
+
   test("a fix is tagged with the local date of the day's own timezone, not its UTC date", () => {
     // 2026-06-23T05:00:00Z is 2026-06-22T22:00 in America/Los_Angeles (PDT,
     // UTC-7) — an evening fix whose UTC calendar date is already the next day.
