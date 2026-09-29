@@ -60,7 +60,7 @@ test("Hide from readers sends only hiddenSpots, hiddenStretches and namedStretch
             [46.68, 8.25],
           ]}
           times={[t0, t0 + 600_000, t0 + 1_200_000]}
-          modes={["driving", "driving", "driving"]}
+          modes={["car", "car", "car"]}
           gapAfter={[false, false]}
           timezone="Europe/Zurich"
           streetMapsOn={false}
