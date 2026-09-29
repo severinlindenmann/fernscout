@@ -248,12 +248,28 @@ export default function DayStretchEditor({
     return acc ? [acc[0], i] : [i, i];
   }, null);
 
+  // D4: frame on the day's own line, not the trip's whole tile region.
+  const dayBounds = useMemo((): [[number, number], [number, number]] | null => {
+    if (points.length === 0) return null;
+    let minLat = Infinity, maxLat = -Infinity, minLon = Infinity, maxLon = -Infinity;
+    for (const [lat, lon] of points) {
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+    }
+    return [
+      [minLon, minLat],
+      [maxLon, maxLat],
+    ];
+  }, [points]);
+
   const map =
     region && streetMapsOn ? (
       <DayLineMap
         points={points}
         gapAfter={gapAfter}
-        bounds={region.bounds}
+        bounds={dayBounds ?? region.bounds}
         pmtilesUrl={region.url}
         className="h-64 w-full"
         selected={selectedIndices}
