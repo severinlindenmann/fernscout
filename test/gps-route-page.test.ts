@@ -436,3 +436,132 @@ describe("app/api/helper/[user]/gps/trip — the delete door", () => {
     expect(res.status).toBe(404);
   });
 });
+
+/** `redirect()`/`notFound()` report themselves by throwing; the kind is in
+ *  the digest — restated per file, the same trivial helper
+ *  `test/current-trip.test.ts` already keeps its own copy of. */
+function digestOf(err: unknown): string {
+  return typeof err === "object" && err !== null && "digest" in err ? String((err as { digest: unknown }).digest) : "";
+}
+
+describe("B2563 T1 — the routes overview's own trip ordering (D10)", () => {
+  const trip = (over: Partial<import("@/lib/gps/api").RecordedTrip>): import("@/lib/gps/api").RecordedTrip => ({
+    tripId: "x",
+    title: "X",
+    start: "2026-01-01",
+    end: "2026-01-02",
+    daysRecorded: 1,
+    tripDays: 1,
+    lastReceived: "2026-01-01T00:00:00Z",
+    hasPublishedTrack: false,
+    recording: null,
+    positions: 1,
+    ...over,
+  });
+
+  test("never more than pinned + 2 without ?all", async () => {
+    const { orderAndLimitTrips } = await import("@/app/at/[user]/studio/location/page");
+    const recorded = [
+      trip({ tripId: "a", start: "2026-01-01" }),
+      trip({ tripId: "b", start: "2026-02-01" }),
+      trip({ tripId: "c", start: "2026-03-01" }),
+      trip({ tripId: "d", start: "2026-04-01" }),
+    ];
+    const { visible, ordered, pinnedId } = orderAndLimitTrips(recorded, false);
+    expect(pinnedId).toBeUndefined();
+    expect(ordered.map((t) => t.tripId)).toEqual(["d", "c", "b", "a"]);
+    expect(visible).toHaveLength(3);
+    expect(visible.map((t) => t.tripId)).toEqual(["d", "c", "b"]);
+  });
+
+  test("the recording trip is pinned first, even when it is not the most recent", async () => {
+    const { orderAndLimitTrips } = await import("@/app/at/[user]/studio/location/page");
+    const recorded = [
+      trip({ tripId: "old", start: "2020-01-01", recording: { state: "recording", lastReport: "x" } }),
+      trip({ tripId: "new", start: "2026-01-01" }),
+    ];
+    const { visible, pinnedId } = orderAndLimitTrips(recorded, false);
+    expect(pinnedId).toBe("old");
+    expect(visible.map((t) => t.tripId)).toEqual(["old", "new"]);
+  });
+
+  test("?all=1 (showAll) lifts the limit", async () => {
+    const { orderAndLimitTrips } = await import("@/app/at/[user]/studio/location/page");
+    const recorded = [1, 2, 3, 4, 5].map((n) => trip({ tripId: `t${n}`, start: `2026-0${n}-01` }));
+    const { visible } = orderAndLimitTrips(recorded, true);
+    expect(visible).toHaveLength(5);
+  });
+});
+
+describe("B2563 T1 — the Readers view computes its own day count", () => {
+  test("fewer public segments than the owner's daysRecorded gives the smaller, honest count", async () => {
+    const { readersDayCount } = await import("@/app/at/[user]/studio/location/[trip]/page");
+    // The owner recorded three days; a private zone or an unpublished day
+    // left only two of them with a public segment — the bug this fixes
+    // showed "3" here, borrowed from `trip.daysRecorded`.
+    expect(
+      readersDayCount([
+        { day: "2026-01-01", points: [[0, 0]] },
+        { day: "2026-01-02", points: [[0, 0]] },
+      ]),
+    ).toBe(2);
+    expect(readersDayCount([])).toBe(0);
+  });
+});
+
+describe("B2563 T1 — the trip and day pages refuse anyone but the journal's real owner", () => {
+  const tripParams = { params: Promise.resolve({ user: OWNER, trip: TRIP_A }), searchParams: Promise.resolve({}) };
+  const dayParams = {
+    params: Promise.resolve({ user: OWNER, trip: TRIP_A, date: "2026-06-22" }),
+    searchParams: Promise.resolve({}),
+  };
+
+  beforeEach(() => {
+    appendFixes(OWNER, [{ t: Date.parse("2026-06-22T08:00:00Z"), lat: 13.75, lon: 100.49 }]);
+  });
+
+  test("the owner's cookie opens both pages", async () => {
+    resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
+    const { default: TripPage } = await import("@/app/at/[user]/studio/location/[trip]/page");
+    const { default: DayPage } = await import("@/app/at/[user]/studio/location/[trip]/[date]/page");
+    await expect(TripPage(tripParams as never)).resolves.toBeTruthy();
+    await expect(DayPage(dayParams as never)).resolves.toBeTruthy();
+  });
+
+  test("a signed-in stranger's cookie gets a 404 on both", async () => {
+    resolveAccess.mockResolvedValue({ email: OTHER_EMAIL });
+    const { default: TripPage } = await import("@/app/at/[user]/studio/location/[trip]/page");
+    const { default: DayPage } = await import("@/app/at/[user]/studio/location/[trip]/[date]/page");
+    let digest = "";
+    try {
+      await TripPage(tripParams as never);
+    } catch (err) {
+      digest = digestOf(err);
+    }
+    expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+    digest = "";
+    try {
+      await DayPage(dayParams as never);
+    } catch (err) {
+      digest = digestOf(err);
+    }
+    expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+  });
+
+  test("the operator's own admin cookie — which requireStudioOwner alone would admit — still gets a 404", async () => {
+    process.env.FERNSCOUT_ADMIN_EMAIL = ADMIN_EMAIL;
+    try {
+      resolveAccess.mockResolvedValue({ email: ADMIN_EMAIL });
+      const { default: TripPage } = await import("@/app/at/[user]/studio/location/[trip]/page");
+      let digest = "";
+      try {
+        await TripPage(tripParams as never);
+      } catch (err) {
+        digest = digestOf(err);
+      }
+      expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+    } finally {
+      delete process.env.FERNSCOUT_ADMIN_EMAIL;
+    }
+  });
+});

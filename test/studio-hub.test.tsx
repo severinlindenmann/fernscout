@@ -157,7 +157,7 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
   // ordinary card, same as every other not-yet-built flow.
   test("location carries no reason — it is an ordinary card, not a known-bug one", () => {
     const el = render(FULL_BASE);
-    expect(el.textContent).toContain("Your GPS history");
+    expect(el.textContent).toContain("Your routes");
     expect(el.textContent).not.toContain("our bug");
     expect(el.textContent).not.toMatch(/Android/i);
   });
