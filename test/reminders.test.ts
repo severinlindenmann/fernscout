@@ -251,6 +251,41 @@ describe("the nightly sweep (lib/digest/reminder.ts)", () => {
 });
 
 /**
+ * B2562 — twice per trip, ever: the first night nothing is written, then a
+ * week later only if nothing at all was added since, then never again.
+ */
+describe("B2562 — the nudge is sent twice at most", () => {
+  const mails = () =>
+    fs.existsSync(path.join(data, "mail", "ana")) ? fs.readdirSync(path.join(data, "mail", "ana")).length : 0;
+
+  test("night 1, silent nights 2–7, night 8, then nothing", async () => {
+    writeJournal("ana");
+    writeTrip("ana", "spain", TODAY, addDays(TODAY, 30), "mail");
+
+    const sentOn: number[] = [];
+    for (let night = 0; night < 20; night++) {
+      const result = await sweepReminders({ dryRun: false, today: addDays(TODAY, night) });
+      if (result.sent) sentOn.push(night);
+    }
+    expect(sentOn).toEqual([0, 7]);
+    expect(mails()).toBe(2);
+  });
+
+  test("any day written after the first nudge cancels the second", async () => {
+    writeJournal("ana");
+    writeTrip("ana", "spain", TODAY, addDays(TODAY, 30), "mail");
+
+    await sweepReminders({ dryRun: false, today: TODAY });
+    writeEntry("ana", "spain", addDays(TODAY, 2), "draft");
+    for (let night = 1; night < 20; night++) {
+      const result = await sweepReminders({ dryRun: false, today: addDays(TODAY, night) });
+      expect(result.sent).toBe(0);
+    }
+    expect(mails()).toBe(1);
+  });
+});
+
+/**
  * B2171 — the chat room the reminder's button used to open is retired. The
  * button opens the studio's Add a day for the journal the mail is about, and
  * the switch that used to live only in the chat is a Journal-settings switch
