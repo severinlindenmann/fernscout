@@ -1,6 +1,8 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { isHelperOwner } from "@/lib/helper/server";
+import { resolveAccess } from "@/lib/auth/handshake";
+import { getUser } from "@/lib/users";
 
 /**
  * The gate every page under `/@<user>/studio` shares — B1829, the same shape
@@ -24,4 +26,16 @@ import { isHelperOwner } from "@/lib/helper/server";
  */
 export async function requireStudioOwner(user: string): Promise<void> {
   if (!(await isHelperOwner(user))) notFound();
+}
+
+/**
+ * Whether the caller's cookie really is the journal's own owner — narrower
+ * than `requireStudioOwner`'s "may open this studio" grant, which also
+ * admits the operator's own admin address (AGENTS.md: GPS location history
+ * is metadata every `gps/` door refuses the admin, B2226 security review).
+ * Every page under `/studio/location` reads this in addition to, never
+ * instead of, `requireStudioOwner` before it reads the GPS store.
+ */
+export async function isJournalOwner(user: string): Promise<boolean> {
+  return (await resolveAccess(user)).email === getUser(user)?.owner.email;
 }

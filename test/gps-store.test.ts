@@ -565,28 +565,24 @@ describe("who may reach the owner-only, position-derived readers — security re
     return hits.sort();
   }
 
-  test("kmByMode is imported only by the studio location page", () => {
-    expect(importersOf("kmByMode")).toEqual(["app/at/[user]/studio/location/page.tsx"]);
+  test("kmByMode is imported only by the studio's trip page", () => {
+    expect(importersOf("kmByMode")).toEqual(["app/at/[user]/studio/location/[trip]/page.tsx"]);
   });
 
-  test("ownerTripLine is imported only by the studio's owner-cookie line route and the studio location page (B2540's trip cards)", () => {
+  test("ownerTripLine is imported only by the studio's owner-cookie line route, the routes overview (row facts, B2563) and the trip page", () => {
     expect([...importersOf("ownerTripLine")].sort()).toEqual(
       [
         "app/api/helper/[user]/gps/line/route.ts",
         "app/at/[user]/studio/location/page.tsx",
-        "components/studio/location/TripDetailView.tsx",
+        "app/at/[user]/studio/location/[trip]/page.tsx",
       ].sort(),
     );
   });
 
-  test("ownerDayLine is imported only by the studio's owner-cookie line route", () => {
+  test("ownerDayLine is imported only by the studio's owner-cookie line route and the day page (B2563 — moved off the trip page's own ?day=)", () => {
     expect([...importersOf("ownerDayLine")].sort()).toEqual(
-      ["app/api/helper/[user]/gps/line/route.ts", "components/studio/location/TripDetailView.tsx"].sort(),
+      ["app/api/helper/[user]/gps/line/route.ts", "app/at/[user]/studio/location/[trip]/[date]/page.tsx"].sort(),
     );
-  });
-
-  test("TripDetailView (a server component that reads the owner's raw line) is rendered only by the owner-gated studio location page", () => {
-    expect(importersOf("TripDetailView")).toEqual(["app/at/[user]/studio/location/page.tsx"]);
   });
 
   test("recordingState is imported nowhere under app/ or components/ — only recordedTrips (lib/gps/api.ts) ever calls it", () => {
