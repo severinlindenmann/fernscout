@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, expect, test } from "vitest";
-import { primaryStreetMap, resolveFontFile, resolveMapsFile, tripMapRegions } from "@/lib/maps/dir";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { coveringRegion, primaryStreetMap, resolveFontFile, resolveMapsFile, tripMapRegions, worldStreetMapUrl } from "@/lib/maps/dir";
 
 /** B2535 — the route's path safety and the index lookup `StreetMap` picks
  * a file from. */
@@ -135,4 +135,34 @@ test("resolveFontFile prefers MAPS_DIR/fonts, falls back to public/fonts, and re
   // A traversal attempt, or a malformed range, is refused outright.
   expect(resolveFontFile("../../etc", "0-255")).toBeNull();
   expect(resolveFontFile("Noto Sans Regular", "not-a-range")).toBeNull();
+});
+
+// B2566 — one street-level file for the whole world.
+describe("with a world file", () => {
+  const kyoto = { lat: 34.967, lng: 135.7727 };
+  const lisbon = { lat: 38.72, lng: -9.14 };
+  beforeEach(() => {
+    fs.writeFileSync(path.join(mapsDir, "world.pmtiles"), "x");
+    fs.writeFileSync(path.join(mapsDir, "planet.pmtiles"), "x");
+    fs.writeFileSync(path.join(mapsDir, "index.json"), JSON.stringify({
+      trips: { "alex/japan": [{ file: "trips/alex-japan-1.pmtiles", bbox: [135.3, 34.8, 136.1, 35.2] }] },
+    }));
+  });
+
+  test("a trip nobody cut a file for gets the world file", () => {
+    expect(tripMapRegions("alex", "portugal")?.map((r) => r.file)).toEqual(["planet.pmtiles"]);
+    expect(primaryStreetMap("alex", "portugal", [lisbon])?.url).toBe("/api/maps/planet.pmtiles");
+  });
+
+  test("a trip's own file still wins where it covers the places", () => {
+    expect(coveringRegion("alex", "japan", [kyoto])?.file).toBe("trips/alex-japan-1.pmtiles");
+    expect(coveringRegion("alex", "japan", [lisbon])?.file).toBe("planet.pmtiles");
+  });
+
+  test("the zone picker draws the world file at street level", () => {
+    expect(worldStreetMapUrl()).toBe("/api/maps/planet.pmtiles");
+    fs.rmSync(path.join(mapsDir, "planet.pmtiles"));
+    expect(worldStreetMapUrl()).toBe("/api/maps/world.pmtiles");
+    expect(tripMapRegions("alex", "portugal")).toBeUndefined();
+  });
 });

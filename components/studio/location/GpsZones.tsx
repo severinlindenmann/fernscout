@@ -48,12 +48,16 @@ const LABEL = "text-sm font-semibold text-ink-strong";
 export default function GpsZones({
   username,
   streetMapsOn = false,
+  streetMapUrl = "/api/maps/world.pmtiles",
   mode = "editor",
   newPlaceHref,
   afterAddHref,
 }: {
   username: string;
   streetMapsOn?: boolean;
+  /** The file the picker draws — `worldStreetMapUrl()` (lib/maps/dir.ts):
+   * street level when the operator has a world file (B2566), else z0–6. */
+  streetMapUrl?: string;
   /** B2563 T4 — `"overview"` is the routes overview's own compact card: a
    * small labelled map with every zone hatched, name/radius/Remove rows and
    * a link to `newPlaceHref` instead of an inline add form. `"editor"` (the
@@ -397,7 +401,7 @@ export default function GpsZones({
         {streetMapsOn && doc.zones.length > 0 && (
           <StreetMap
             bounds={mapBounds}
-            pmtilesUrl="/api/maps/world.pmtiles"
+            pmtilesUrl={streetMapUrl}
             onReady={onOverviewMapReady}
             className="mt-4 h-40 w-full overflow-hidden rounded-xl border border-line-quiet"
           />
@@ -451,7 +455,7 @@ export default function GpsZones({
               <p className="text-sm text-ink-secondary">{t("studio.location.zones.mapHint")}</p>
               <StreetMap
                 bounds={mapBounds}
-                pmtilesUrl="/api/maps/world.pmtiles"
+                pmtilesUrl={streetMapUrl}
                 onReady={onMapReady}
                 className="h-64 w-full overflow-hidden rounded-xl border border-line-quiet"
               />
