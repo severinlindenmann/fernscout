@@ -354,29 +354,9 @@ export default function MePageContent({
           for both: what a postcard or a message to *you* is addressed to.
         */}
         {contactsEnabled && (manage || viewer.owner) && (
+          // B2574 — no heading and no paragraph: the button says what this
+          // is, and the form it opens says the rest.
           <section className="mt-6">
-            <h2 className="font-display text-xl font-semibold text-ink-strong">
-              {t("me.details")}
-            </h2>
-            {/*
-              Three readers, because the shortest sentence is false to two of
-              them — B320, then B619 widened it to three. "Nothing else on
-              this site can be edited here — the journal is written by an
-              agent" is exactly right for a guest; said to somebody on a
-              trip it reads as a closed door they in fact hold a key to; said
-              to the owner both halves are false, so theirs says what the
-              details are actually good for — a card in their own letterbox,
-              a message on their own telephone.
-            */}
-            <p className="mt-2 text-lg leading-8 text-ink-body">
-              {t(
-                viewer.owner
-                  ? "me.detailsBodyOwner"
-                  : writableTrips.length > 0
-                    ? "me.detailsBodyTraveller"
-                    : "me.detailsBody",
-              )}
-            </p>
             {viewer.owner && (!manage || manage.token === "") ? (
               // No row yet — the owner's own equivalent of the traveller's
               // self-managed form below, but through the owner-only door

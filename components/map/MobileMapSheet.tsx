@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { useSnapDrag } from "@/components/SnapSheet";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
@@ -12,6 +12,18 @@ import { flagFor } from "@/lib/flags";
 import { googleMapsHref } from "@/lib/tripMap";
 import type { PlaceView } from "@/components/WorldMap";
 import type { MapDay } from "@/lib/map/mapDays";
+
+/** B2572 — the two things to do with a selected day, as buttons rather than
+ * underlined text: read it (primary), or find it in Google Maps. Shared with
+ * the desktop list in MapPageContent. */
+export const READ_DAY_BUTTON =
+  "inline-flex min-h-11 flex-1 basis-36 items-center justify-center gap-1.5 rounded-full border-2 border-navy-900 " +
+  "bg-yellow-400 px-4 text-sm font-bold text-navy-900 shadow-[0_2px_0_var(--color-navy-900)] transition-colors " +
+  "hover:bg-yellow-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
+export const MAPS_BUTTON =
+  "inline-flex min-h-11 flex-1 basis-36 items-center justify-center gap-1.5 rounded-full border-2 border-line-ink " +
+  "px-4 text-sm font-bold text-ink-strong transition-colors hover:bg-surface-subtle " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
 
 /** Peek, half, full — B2427 (docs/plans/map-redesign.md §3 Phase 2 item 2),
  * generalising `MobileDaySheet`'s (B2327) drag/snap logic through
@@ -313,33 +325,26 @@ export default function MobileMapSheet({
                     </div>
                   )}
 
-                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold">
-                    <a
-                      href={hrefForDay(selectedPlace.entries[0].slug)}
-                      className="text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2"
-                    >
-                      {t("map.readDay")} →
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <a href={hrefForDay(selectedPlace.entries[0].slug)} className={READ_DAY_BUTTON}>
+                      {t("map.readDay")}
+                      <ArrowRight className="h-4 w-4" aria-hidden />
                     </a>
-                    <a
-                      href={googleMapsHref(selectedPlace)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-ink-secondary underline decoration-line-quiet underline-offset-2"
-                    >
-                      <MapPin className="h-3.5 w-3.5" aria-hidden />
-                      {t("tripMap.googleMaps")}
+                    <a href={googleMapsHref(selectedPlace)} target="_blank" rel="noreferrer" className={MAPS_BUTTON}>
+                      <MapPin className="h-4 w-4" aria-hidden />
+                      {t("map.googleMapsShort")}
                     </a>
                   </div>
                 </>
               )}
 
               {!selectedPlace && (
-                <a
-                  href={hrefForDay(selectedDay.slug)}
-                  className="text-sm font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2"
-                >
-                  {t("map.readDay")} →
-                </a>
+                <div className="flex">
+                  <a href={hrefForDay(selectedDay.slug)} className={READ_DAY_BUTTON + " flex-none"}>
+                    {t("map.readDay")}
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </a>
+                </div>
               )}
             </div>
           )}

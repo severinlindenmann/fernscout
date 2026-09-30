@@ -37,6 +37,33 @@ function toGeoJSON(lines: [number, number][][]): GeoJSON.FeatureCollection {
   };
 }
 
+/** Half the smallest span the camera frames, in degrees (~500 m), so a line
+ * that barely moved does not zoom to the pavement. */
+const MIN_HALF_SPAN = 0.005;
+
+/** The camera frame for a line — B2576. The region's own bounds are the
+ * file's coverage, which for the world file (B2566) is the whole planet; the
+ * line is what the reader came to see. `bounds` only when there is no line. */
+export function lineFrame(
+  points: [number, number][],
+  bounds: [[number, number], [number, number]],
+): [[number, number], [number, number]] {
+  if (points.length === 0) return bounds;
+  const lats = points.map(([lat]) => lat);
+  const lons = points.map(([, lon]) => lon);
+  const pad = (lo: number, hi: number): [number, number] => {
+    const mid = (lo + hi) / 2;
+    const half = Math.max((hi - lo) / 2, MIN_HALF_SPAN);
+    return [mid - half, mid + half];
+  };
+  const [minLat, maxLat] = pad(Math.min(...lats), Math.max(...lats));
+  const [minLon, maxLon] = pad(Math.min(...lons), Math.max(...lons));
+  return [
+    [minLon, minLat],
+    [maxLon, maxLat],
+  ];
+}
+
 const SOLID_SOURCE = "day-line-solid";
 const DASHED_SOURCE = "day-line-gap";
 const SELECTED_SOURCE = "day-line-selected";
@@ -157,5 +184,5 @@ export default function DayLineMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points, gapAfter, selected, pendingSpot]);
 
-  return <StreetMap bounds={bounds} pmtilesUrl={pmtilesUrl} onReady={onReady} className={className} />;
+  return <StreetMap bounds={lineFrame(points, bounds)} pmtilesUrl={pmtilesUrl} onReady={onReady} className={className} />;
 }

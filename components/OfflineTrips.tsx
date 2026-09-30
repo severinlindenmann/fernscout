@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { Trash2 } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import ConfirmPanel from "./ConfirmPanel";
 import { KEPT_CHANGED, keptTripIds, mb, requestKeep, useKeptTrip } from "./KeepTrip";
@@ -161,7 +162,7 @@ function useControlled(): boolean {
  *  owner-only *Clear cache* already has (`clearKeptCaches`), asked here
  *  through a page confirmation rather than a browser dialog, and offered to
  *  every reader rather than only the owner in the app or PWA. */
-function ClearSavedTrips() {
+function ClearSavedTrips({ anyKept }: { anyKept: boolean }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "done"; freed: number }>({
@@ -177,11 +178,13 @@ function ClearSavedTrips() {
   }
 
   if (state.kind === "done") {
-    return <p className="mt-3 text-sm text-ink-secondary">{t("keep.clearDone", { size: mb(state.freed) })}</p>;
+    return <li className="px-4 py-3 text-sm text-ink-secondary">{t("keep.clearDone", { size: mb(state.freed) })}</li>;
   }
+  // B2575 — nothing kept, nothing to clear.
+  if (!anyKept) return null;
   if (open) {
     return (
-      <div className="mt-3">
+      <li className="px-4 py-3">
         <ConfirmPanel
           label={t("keep.clear")}
           question={t("keep.clearQuestion")}
@@ -192,17 +195,20 @@ function ClearSavedTrips() {
           onConfirm={() => void clear()}
           onCancel={() => setOpen(false)}
         />
-      </div>
+      </li>
     );
   }
   return (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      className="mt-3 min-h-11 text-sm font-semibold text-coral-600 underline underline-offset-2 hover:opacity-75"
-    >
-      {t("keep.clear")}
-    </button>
+    <li>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex min-h-14 w-full items-center gap-2 px-4 py-3 text-left text-base font-semibold text-coral-600 transition-colors hover:bg-surface-subtle"
+      >
+        <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+        {t("keep.clear")}
+      </button>
+    </li>
   );
 }
 
@@ -282,19 +288,19 @@ export default function OfflineTrips({ username, trips }: { username: string; tr
         {[...shown, ...stray].map((trip) => (
           <TripSwitch key={trip.id} user={username} trip={trip} />
         ))}
-      </ul>
-      <div className="mt-3 flex flex-wrap items-center gap-4">
         {!expanded && hiddenCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className="min-h-11 px-2 text-sm text-ink-secondary underline underline-offset-4 transition-colors hover:text-ink-strong"
-          >
-            {t("keep.showMore", { count: String(hiddenCount) })}
-          </button>
+          <li>
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="flex min-h-12 w-full items-center px-4 py-2 text-left text-sm text-ink-secondary underline underline-offset-4 transition-colors hover:text-ink-strong"
+            >
+              {t("keep.showMore", { count: String(hiddenCount) })}
+            </button>
+          </li>
         )}
-        <ClearSavedTrips />
-      </div>
+        <ClearSavedTrips anyKept={kept.size + stray.length > 0} />
+      </ul>
     </section>
   );
 }
