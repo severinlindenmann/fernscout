@@ -277,7 +277,8 @@ describe("the rules that keep it private", () => {
    * `export function` is inspected for whether *its own* body calls
    * `readRange`, and the answer has to be exactly this set, in source order.
    * `deriveTripTrack` and `deleteTripRecording` both reach the store too
-   * (through `trackForTrip`/`deleteRange`), but neither calls `readRange`
+   * (through `trackForTrip`/`deleteRange`, and since B2568 through the private
+   * `guessedTimezone`, which the next test pins), but neither calls `readRange`
    * itself and neither hands a coordinate back to its caller — only counts —
    * so they are correctly outside this list; `recordedTrips`,
    * `ownerTripLine` and `ownerDayLine` call `readRange` directly for exactly
@@ -301,6 +302,28 @@ describe("the rules that keep it private", () => {
       .filter((f) => /\breadRange\(/.test(f.body))
       .map((f) => f.name);
     expect(readers).toEqual(["placeForDay", "recordedTrips", "ownerTripLine", "kmByMode", "ownerDayLine"]);
+  });
+
+  /**
+   * B2568 — the export scan above cannot see a private helper, so a new
+   * non-exported function calling `readRange` would widen the store's
+   * readers unnoticed. `guessedTimezone` is the one allowed today: it turns
+   * a day's first fix into an IANA zone name for that day's local-midnight
+   * window and hands no coordinate or zone to any caller's output.
+   */
+  test("api.ts's only private helper reading positions is guessedTimezone", () => {
+    const file = path.join(process.cwd(), "lib", "gps", "api.ts");
+    const source = fs.readFileSync(file, "utf8");
+    const boundaries = [...source.matchAll(/^(?:export )?(?:async )?function (\w+)/gm)];
+    const privateReaders = boundaries
+      .map((m, i) => {
+        const start = m.index ?? 0;
+        const end = boundaries[i + 1]?.index ?? source.length;
+        return { name: m[1], exported: m[0].startsWith("export"), body: source.slice(start, end) };
+      })
+      .filter((f) => !f.exported && /\breadRange\(/.test(f.body))
+      .map((f) => f.name);
+    expect(privateReaders).toEqual(["guessedTimezone"]);
   });
 
   /**
