@@ -604,3 +604,61 @@ describe("B2563 T4 — the new-private-place page refuses anyone but the journal
     }
   });
 });
+
+describe("B2563 T5 — the day page's Positions tab (?tab=positions) refuses anyone but the journal's real owner", () => {
+  const dayParams = {
+    params: Promise.resolve({ user: OWNER, trip: TRIP_A, date: "2026-06-22" }),
+    searchParams: Promise.resolve({ tab: "positions" }),
+  };
+
+  beforeEach(() => {
+    appendFixes(OWNER, [{ t: Date.parse("2026-06-22T08:00:00Z"), lat: 13.75, lon: 100.49 }]);
+  });
+
+  test("the owner's cookie opens the positions tab", async () => {
+    resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
+    const { default: DayPage } = await import("@/app/at/[user]/studio/location/[trip]/[date]/page");
+    await expect(DayPage(dayParams as never)).resolves.toBeTruthy();
+  });
+
+  test("a signed-in stranger's cookie gets a 404 on the positions tab too — same gate as the map tab, checked before `tab` is even read", async () => {
+    resolveAccess.mockResolvedValue({ email: OTHER_EMAIL });
+    const { default: DayPage } = await import("@/app/at/[user]/studio/location/[trip]/[date]/page");
+    let digest = "";
+    try {
+      await DayPage(dayParams as never);
+    } catch (err) {
+      digest = digestOf(err);
+    }
+    expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+  });
+
+  test("the operator's own admin cookie still gets a 404 on the positions tab — GPS is refused to the admin (AGENTS.md)", async () => {
+    process.env.FERNSCOUT_ADMIN_EMAIL = ADMIN_EMAIL;
+    try {
+      resolveAccess.mockResolvedValue({ email: ADMIN_EMAIL });
+      const { default: DayPage } = await import("@/app/at/[user]/studio/location/[trip]/[date]/page");
+      let digest = "";
+      try {
+        await DayPage(dayParams as never);
+      } catch (err) {
+        digest = digestOf(err);
+      }
+      expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+    } finally {
+      delete process.env.FERNSCOUT_ADMIN_EMAIL;
+    }
+  });
+
+  test("a bearer token carries no weight here — this page never reads Authorization, only the cookie-resolved caller (AGENTS.md: agent tokens reach /api/**, not rendered owner pages)", async () => {
+    resolveAccess.mockResolvedValue({ email: null });
+    const { default: DayPage } = await import("@/app/at/[user]/studio/location/[trip]/[date]/page");
+    let digest = "";
+    try {
+      await DayPage(dayParams as never);
+    } catch (err) {
+      digest = digestOf(err);
+    }
+    expect(digest).toContain("NEXT_HTTP_ERROR_FALLBACK;404");
+  });
+});

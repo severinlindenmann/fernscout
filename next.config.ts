@@ -380,6 +380,19 @@ const nextConfig: NextConfig = {
         source: "/api/auth/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
+      {
+        // B2563 T5 — the day page's own Positions tab reads the raw GPS
+        // store's fixes for that one day (through `ownerDayLine`), the same
+        // owner-only sensitivity `/@:user/contacts` and `/@:user/me` are
+        // pinned for above: never held by a shared cache, a corporate
+        // middlebox, or a browser's back-forward cache once the owner has
+        // shown coordinates on a shared screen and navigated away. Pinned
+        // for the whole day page (`Map and edits` too), not only `?tab=`,
+        // since headers() cannot match a query string and this page is
+        // owner-GPS-sensitive on both of its tabs anyway.
+        source: "/@:user/studio/location/:trip/:date",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
     ];
   },
   images: {
