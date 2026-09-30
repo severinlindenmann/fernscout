@@ -11,7 +11,8 @@ import LinksList from "./LinksList";
 import ReaderPreview from "./ReaderPreview";
 import type { TripPreview } from "@/lib/studio/audiencePreview";
 import { ReaderGroup, type CardEnv, type GuestFormEnv } from "./ReaderCard";
-import { notOpenedYet, viaLabel, type AdminContact, type AdminInvite } from "./shared";
+import { GroupsBar, matchesFilter, type GroupFilter } from "./groups";
+import { notOpenedYet, viaLabel, type AdminContact, type AdminGroup, type AdminInvite } from "./shared";
 
 /**
  * Studio › Readers — **the only place a person is let in** (B2291, "Two
@@ -34,6 +35,7 @@ export default function ReadersAdmin({
   locales,
   dictionary,
   contacts,
+  groups = [],
   invites,
   trips = [],
   hasGuestTrip,
@@ -57,6 +59,8 @@ export default function ReadersAdmin({
   locales: string[];
   dictionary: Record<string, string>;
   contacts: AdminContact[];
+  /** TIX-6 — the owner's reader groups (labels for who is told). */
+  groups?: AdminGroup[];
   invites: AdminInvite[];
   /** The request the owner's approval mail was about — B319. */
   highlightId?: string;
@@ -80,6 +84,7 @@ export default function ReadersAdmin({
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<AdminContact | null>(null);
   const [notes, setNotes] = useState<CardEnv["notes"]>({});
+  const [filter, setFilter] = useState<GroupFilter>("all");
 
   const t = (key: TranslationKey, vars?: Record<string, string>) => translate(dictionary, key, vars);
   const tn = (key: TranslationKey, count: number, vars?: Record<string, string>) =>
@@ -146,9 +151,12 @@ export default function ReadersAdmin({
     }));
   }
 
+  // TIX-6 — the group chips narrow every list at once; the counts in each
+  // heading are what is shown, the chip counts say what is there in total.
+  const shown = (rows: AdminContact[]) => rows.filter((contact) => matchesFilter(contact, filter, groups));
   const split = splitReaders(contacts, ownEmail);
-  const invited = [...split.readingNow.filter(notOpenedYet), ...split.waitingOnThem];
-  const reading = split.readingNow.filter((contact) => !notOpenedYet(contact));
+  const invited = shown([...split.readingNow.filter(notOpenedYet), ...split.waitingOnThem]);
+  const reading = shown(split.readingNow.filter((contact) => !notOpenedYet(contact)));
 
   const guestFormEnv: GuestFormEnv = {
     fallbackLocale: locale,
@@ -180,6 +188,7 @@ export default function ReadersAdmin({
     highlightId,
     editingId: editing?.id ?? null,
     guestFormEnv: editing ? guestFormEnv : undefined,
+    groups,
   };
 
   // Put the highlighted request in view rather than merely marked — B319.
@@ -205,6 +214,7 @@ export default function ReadersAdmin({
           locales={locales}
           trips={trips}
           t={t}
+          groups={groups}
           onDone={refresh}
           journalTitle={journalTitle ?? username}
           siteName={siteName}
@@ -215,6 +225,7 @@ export default function ReadersAdmin({
           trips={trips}
           t={t}
           tn={tn}
+          groups={groups}
           onCreated={refresh}
           journalTitle={journalTitle ?? username}
           siteName={siteName}
@@ -222,15 +233,25 @@ export default function ReadersAdmin({
       </div>
       {preview.length > 0 && <ReaderPreview preview={preview} t={t} tn={tn} />}
 
-      <ReaderGroup title={t("contact.ownerPending")} rows={split.waitingOnYou} kind="asking" env={env} />
+      <GroupsBar
+        username={username}
+        groups={groups}
+        contacts={contacts.filter((contact) => contact.email !== ownEmail)}
+        filter={filter}
+        onFilter={setFilter}
+        t={t}
+        refresh={refresh}
+      />
+
+      <ReaderGroup title={t("contact.ownerPending")} rows={shown(split.waitingOnYou)} kind="asking" env={env} />
       <ReaderGroup title={t("readers.group.invited")} rows={invited} kind="invited" env={env} />
-      <ReaderGroup title={t("contact.ownerNotInvited")} rows={split.notInvited} kind="notInvited" env={env} />
+      <ReaderGroup title={t("contact.ownerNotInvited")} rows={shown(split.notInvited)} kind="notInvited" env={env} />
       <ReaderGroup
         title={t("readers.group.reading")}
         rows={reading}
         kind="reading"
         env={env}
-        empty={t("readers.group.readingEmpty")}
+        empty={filter === "all" ? t("readers.group.readingEmpty") : t("readers.groups.emptyFilter")}
       />
 
       <LinksList
@@ -240,6 +261,7 @@ export default function ReadersAdmin({
         trips={trips}
         t={t}
         tn={tn}
+        groups={groups}
         onStopped={refresh}
         journalTitle={journalTitle ?? username}
         siteName={siteName}

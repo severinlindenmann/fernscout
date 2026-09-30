@@ -24,6 +24,7 @@ import {
   sendPhoneProof,
   verifyGuestCode,
 } from "@/lib/contacts/guestCode";
+import { applyLinkGroup } from "@/lib/contacts/groups";
 import { countInviteUse } from "@/lib/contacts/invites";
 import { parseLocale, pickLocale } from "@/lib/contacts/locale";
 import { notifyOwnerOfRequest, sendCodeMail } from "@/lib/contacts/mail";
@@ -266,6 +267,9 @@ async function settle(
   const owner = invite.owner;
   const user = getUser(owner)!;
   const known = !(contact.createdVia === `invite:${invite.id}` && contact.status === "pending");
+  // TIX-6. The link's group, by `groupOnJoin`'s rule: new or ungrouped people
+  // go in; somebody already in another group is only asked about, never moved.
+  await applyLinkGroup(owner, contact.id, invite.groupId);
   const trip = invite.kind === "buddy" && invite.tripId ? getTrip(tripRef(owner, invite.tripId)) : null;
   if (trip) {
     if (await isPersonOn(trip, subject)) return { status: "in", known };

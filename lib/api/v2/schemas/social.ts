@@ -30,6 +30,10 @@ export const inviteWrite = z
     /** Absent = 30 days (server default) — never `null`; a link that never
      * expires is the shared password again, wearing a URL. */
     expiresAt: isoInstant.optional(),
+    /** TIX-6. The owner's reader group that people who join through this
+     * link go into — one of `reader_groups`, checked by the route. Absent or
+     * null = no group. A label for who is told; it lets nobody in. */
+    group: z.string().min(1).max(64).nullable().optional(),
   })
   .superRefine((val, ctx) => {
     if (val.kind === "buddy" && !val.trip) {
@@ -56,6 +60,8 @@ export const inviteDoc = z
     createdAt: isoInstant,
     revokedAt: isoInstant.nullable(),
     uses: z.number().int().nonnegative(),
+    /** TIX-6. Where joins through this link go, or null. */
+    group: z.string().nullable(),
     /** Present exactly once, in the create response — see route. */
     url: z.string().optional(),
   })

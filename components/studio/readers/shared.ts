@@ -65,6 +65,10 @@ export type AdminContact = {
   invitedAt?: string | null;
   /** B2292 — when their welcome link was first opened. */
   welcomeOpenedAt?: string | null;
+  /** TIX-6. The owner's own group for this person, or null. */
+  groupId?: string | null;
+  /** TIX-6. A group a link offered them while in another — Keep or Move. */
+  askedGroupId?: string | null;
 };
 
 /**
@@ -77,6 +81,9 @@ export type AdminContact = {
  * same row: `— · — · used 0 times`. One of them leads to somebody writing to a
  * trip, and this list is the only place either can be revoked.
  */
+/** TIX-6. One of the owner's reader groups. */
+export type AdminGroup = { id: string; name: string; color: number };
+
 export type AdminInvite = {
   id: string;
   /** What the link leads to. `personal` and `guest` end at reading; only
@@ -106,6 +113,8 @@ export type AdminInvite = {
   /** Still works: not stopped, not expired — decided on the server, where
    * the clock is (B2291). */
   live?: boolean;
+  /** TIX-6. Where people who join through this link go. */
+  groupId?: string | null;
 };
 
 /**
