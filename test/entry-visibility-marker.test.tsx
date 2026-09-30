@@ -59,9 +59,12 @@ describe("a held-back update, as the badge draws it", () => {
     expect(markup({ visibility: "guest", reader: "guest" })).toBe("");
   });
 
-  test("a traveller who is not the owner sees the marker, matching the label", () => {
-    expect(markup({ visibility: "guest", reader: "person" })).toContain("Guests");
-    expect(markup({ visibility: "private", reader: "person" })).toContain("Private");
+  // B632 showed a traveller the marker; B2570 made it the owner's only, on
+  // the owner's word — what a reader may see is decided before the update
+  // reaches them, and the word only told them which circle they were in.
+  test("a traveller who is not the owner sees no marker either", () => {
+    expect(markup({ visibility: "guest", reader: "person" })).toBe("");
+    expect(markup({ visibility: "private", reader: "person" })).toBe("");
   });
 });
 

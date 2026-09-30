@@ -729,6 +729,8 @@ export type TranslationKey =
   | "day.next"
   | "day.of"
   | "day.prev"
+  | "day.readWhole"
+  | "day.routeAndMap"
   | "day.today"
   | "day.updates"
   | "dayMail.button"

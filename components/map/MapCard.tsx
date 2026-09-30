@@ -27,6 +27,25 @@ function currentScheme(): "light" | "dark" {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+/** The reader's theme, followed live — the card is an `<img>` and cannot
+ *  read this page's stylesheet, so it has to be asked for by name. */
+function useScheme(): "light" | "dark" {
+  const [scheme, setScheme] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    const update = () => setScheme(currentScheme());
+    update();
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const observer = new MutationObserver(update);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    media.addEventListener("change", update);
+    return () => {
+      observer.disconnect();
+      media.removeEventListener("change", update);
+    };
+  }, []);
+  return scheme;
+}
+
 export default function MapCard({
   src,
   query = "",
@@ -50,20 +69,7 @@ export default function MapCard({
   usedStreet: boolean;
 }) {
   const { t } = useI18n();
-  const [scheme, setScheme] = useState<"light" | "dark">("light");
-
-  useEffect(() => {
-    const update = () => setScheme(currentScheme());
-    update();
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const observer = new MutationObserver(update);
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    media.addEventListener("change", update);
-    return () => {
-      observer.disconnect();
-      media.removeEventListener("change", update);
-    };
-  }, []);
+  const scheme = useScheme();
 
   const join = query ? "&" : "?";
   const imgSrc = `${src}${query}${join}theme=${scheme}`;
@@ -84,6 +90,61 @@ export default function MapCard({
         </Link>
       </div>
       {usedStreet && <p className="mt-1 text-xs text-ink-secondary">{t("mapCard.osmCredit")}</p>}
+    </div>
+  );
+}
+
+/**
+ * A day's map, as a row rather than a picture — B2570.
+ *
+ * The day card used to carry the full `MapCard` above: a street map the
+ * width of the card and about as tall as it is wide on a phone, so on most
+ * days it was the largest thing on the page and outweighed the photographs
+ * and the words. The owner wanted it to stop being the focus. This is the
+ * same image, the day's own `card.svg`, cut to a small square beside what
+ * it is — the leg that brought the day here, or the place — and still one
+ * tap from the whole map.
+ */
+export function MapRow({
+  src,
+  query,
+  mapHref,
+  detail,
+  usedStreet,
+}: {
+  /** `<trip base>/card.svg` — see `MapCard`. */
+  src: string;
+  /** `"?day=<date>"`. */
+  query: string;
+  mapHref: string;
+  /** "Car · Las Vegas → Springdale", or the place when there was no leg. */
+  detail?: string;
+  usedStreet: boolean;
+}) {
+  const { t } = useI18n();
+  const scheme = useScheme();
+  return (
+    <div className="mt-6">
+      <Link
+        href={mapHref}
+        className="flex max-w-md items-center gap-3 rounded-xl border border-line-faint p-2 hover:border-line-quiet"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- the same gated SVG route as MapCard's. */}
+        <img
+          src={`${src}${query}&theme=${scheme}`}
+          alt=""
+          loading="lazy"
+          className="h-13 w-13 shrink-0 rounded-lg bg-surface-subtle object-cover"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-ink-strong">{t("day.routeAndMap")}</span>
+          {detail && <span className="block truncate text-xs text-ink-secondary">{detail}</span>}
+        </span>
+        <span aria-hidden className="pr-1.5 text-lg text-ink-strong">
+          →
+        </span>
+      </Link>
+      {usedStreet && <p className="mt-1 text-[11px] text-ink-secondary">{t("mapCard.osmCredit")}</p>}
     </div>
   );
 }

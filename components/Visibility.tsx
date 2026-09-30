@@ -9,7 +9,7 @@ import VisibilityPopover from "./VisibilityPopover";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
 import { effectiveAudience } from "@/lib/photos";
-import type { Audience, PhotoVisibility, ReaderLevel } from "@/lib/photos";
+import type { Audience, PhotoVisibility } from "@/lib/photos";
 import type { TranslationKey } from "@/lib/i18n";
 
 import { journalPath } from "@/lib/journalPath";
@@ -402,23 +402,6 @@ function VisibilityControl({
 }
 
 /**
- * What a reader who is not the owner should see — the old B631/B632 rule,
- * unchanged and in one place now rather than duplicated in two components.
- *
- * `visible()` in lib/entries.ts has already dropped anything this reader may
- * not see; this only marks what survived, and only for somebody `readFor`
- * proved is on the trip. A guest sees nothing, which is why there is nothing
- * here to leak.
- */
-function readerBadge(
-  own: PhotoVisibility | undefined,
-  reader: ReaderLevel | undefined,
-): Audience | null {
-  if (!own || reader !== "person") return null;
-  return own;
-}
-
-/**
  * Why both wired controls reload the page rather than calling `router.refresh`.
  *
  * The trip's own visibility is server-rendered into `TripProvider` and a
@@ -453,10 +436,10 @@ function reload() {
 export function PhotoBadge({ own }: { own?: PhotoVisibility }) {
   const trip = useTrip();
   if (!trip) return null;
-  if (!trip.owner) {
-    const reader = readerBadge(own, trip.reader);
-    return reader ? <VisibilityBadge audience={reader} variant="overlay" /> : null;
-  }
+  // The owner's only — B2570. What a reader may see is decided before a
+  // photograph reaches them; a badge only told a traveller which circle it
+  // was in, and the owner asked for it to go.
+  if (!trip.owner) return null;
   // The day above the photograph is not in scope here — the trip gallery
   // mixes days — so the ceiling this can name is the trip's. An update that
   // holds itself back further shows that on its own heading, one line up.
@@ -486,14 +469,9 @@ export function EntryVisibility({
   // Null outside a `TripProvider`; there is no such caller today.
   if (!trip) return null;
 
-  if (!trip.owner) {
-    const own = readerBadge(entry.visibility, trip.reader);
-    return own ? (
-      <span className="ml-2 inline-block align-middle">
-        <VisibilityBadge audience={own} />
-      </span>
-    ) : null;
-  }
+  // The owner's only — B2570, as `PhotoBadge` above.
+  if (!trip) return null;
+  if (!trip.owner) return null;
 
   return (
     <span className="ml-2 inline-block align-middle">

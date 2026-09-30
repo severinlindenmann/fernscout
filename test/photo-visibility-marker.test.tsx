@@ -100,14 +100,14 @@ describe("a held-back photograph, as the gallery draws it", () => {
     expect(html).not.toContain("Private");
   });
 
-  test("a traveller sees the photograph, marked — and only that one", () => {
+  test("a traveller sees the photograph, unmarked — the badge is the owner's only (B2570)", () => {
     const html = markup("person");
     expect(html).toContain("02.jpg");
-    // Exactly one marker: the labelled photograph's, and not the unlabelled
-    // one beside it. B1585 changed what the *owner* sees and deliberately
-    // left this alone — somebody who was on the trip is not the owner, and a
-    // page full of "Public" pills is not theirs to be shown.
-    expect(html.match(/Private/g)).toHaveLength(1);
+    // B632 marked the held-back photograph for somebody who was on the trip.
+    // The owner asked on 30 Sep for these labels to be theirs alone: what a
+    // traveller may see is already decided by `getAllMedia`, and the word
+    // only told them which circle they were in.
+    expect(html).not.toContain("Private");
     expect(html).not.toContain("Public");
   });
 

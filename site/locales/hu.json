@@ -557,6 +557,8 @@
   "day.chooseDay": "Válassz napot",
   "day.hideDays": "Napok elrejtése",
   "day.label": "nap",
+  "day.readWhole": "Az egész nap elolvasása",
+  "day.routeAndMap": "Útvonal és térkép",
   "day.lastDay": "Utolsó nap",
   "day.next": "Következő nap",
   "day.of": "/",
