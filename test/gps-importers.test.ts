@@ -33,8 +33,12 @@ describe("google-timeline", () => {
       ],
     },
     {
-      startTime: "2026-06-22T08:00:00.000+02:00",
-      endTime: "2026-06-22T09:00:00.000+02:00",
+      // Two hours clear of the path segment above (which ends 07:00Z) —
+      // B2571's own `PATH_OVERRIDE_MS` would otherwise drop this fixture's
+      // activity start/end as redundant with a nearby real path point,
+      // which is not what this test is about.
+      startTime: "2026-06-22T10:00:00.000+02:00",
+      endTime: "2026-06-22T11:00:00.000+02:00",
       activity: {
         start: "geo:47.30000,8.30000",
         end: "geo:47.40000,8.40000",
@@ -58,7 +62,7 @@ describe("google-timeline", () => {
   });
 
   test("reads a local offset as the instant it is", () => {
-    expect(timeline.parse(file)[2].t).toBe(Date.parse("2026-06-22T06:00:00Z"));
+    expect(timeline.parse(file)[2].t).toBe(Date.parse("2026-06-22T08:00:00Z"));
   });
 
   test("maps Google's own guess at the mode to the shared vocabulary — B2541", () => {
@@ -124,6 +128,53 @@ describe("google-timeline", () => {
     expect(timeline.detect(file, "Timeline.json")).toBe(true);
     expect(timeline.detect("<gpx><trkpt/></gpx>", "track.gpx")).toBe(false);
   });
+
+  test("an activity's own coarse start/end is dropped when a real path fix already covers that instant — B2571", () => {
+    // Invented, shaped like the owner's own real export: a phone's Timeline
+    // writes two independent streams for the same stretch of time — dense
+    // per-minute `timelinePath` points, and a separately-computed `activity`
+    // segment describing Google's own guess at the leg. The owner's own
+    // export showed these disagree at the boundary: an `activity`'s own
+    // `start` coordinate can be far from home even though the concurrent
+    // path (and the driveway itself) say otherwise at that exact second —
+    // storing it at the segment's own `startTime` puts a point from later in
+    // the drive at the drive's start time, an out-and-back no real drive drew.
+    const bad = JSON.stringify([
+      {
+        // The real path: home, then a step every minute along the real drive.
+        startTime: "2026-06-22T05:00:00.000Z",
+        endTime: "2026-06-22T06:00:00.000Z",
+        timelinePath: [
+          { point: HOME, durationMinutesOffsetFromStartTime: "0" },
+          { point: "geo:47.10100,8.10100", durationMinutesOffsetFromStartTime: "1" },
+          { point: "geo:47.20000,8.20000", durationMinutesOffsetFromStartTime: "30" },
+        ],
+      },
+      {
+        // Google's own activity for the same drive, starting one second
+        // after the path's own first point — but its own `start` coordinate
+        // is far down the road, not at the driveway the path (and the
+        // moment itself) agree the drive left from.
+        startTime: "2026-06-22T05:00:01.000Z",
+        // Four minutes clear of the path's own last point (05:30Z) — kept,
+        // to show only the colliding `start` is dropped, not the whole leg.
+        endTime: "2026-06-22T05:34:00.000Z",
+        activity: {
+          start: "geo:47.34000,8.34000",
+          end: "geo:47.25000,8.25000",
+          topCandidate: { type: "driving" },
+        },
+      },
+    ]);
+    const out = timeline.parse(bad);
+    // Nothing at 47.34 (the activity's own, far-down-the-road "start") lands
+    // anywhere in the output — the real path fix a second earlier, at home,
+    // stands alone for that instant.
+    expect(out.some((f) => f.lat === 47.34)).toBe(false);
+    // The path itself, and the activity's own `end` (four minutes clear of
+    // any path point), still come through.
+    expect(out.map((f) => f.lat)).toEqual([47.1, 47.101, 47.2, 47.25]);
+  });
 });
 
 describe("google-timeline — Android's own shape (B1819)", () => {
@@ -143,8 +194,10 @@ describe("google-timeline — Android's own shape (B1819)", () => {
         ],
       },
       {
-        startTime: "2026-06-22T08:00:00.000+02:00",
-        endTime: "2026-06-22T09:00:00.000+02:00",
+        // Two hours clear of the path segment above — see the iOS fixture's
+        // own comment above for why.
+        startTime: "2026-06-22T10:00:00.000+02:00",
+        endTime: "2026-06-22T11:00:00.000+02:00",
         activity: {
           start: "47.30000°, 8.30000°",
           end: "47.40000°, 8.40000°",
