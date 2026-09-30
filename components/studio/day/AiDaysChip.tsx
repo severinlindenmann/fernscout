@@ -19,7 +19,7 @@ export type AiDaysStatus = { unlimited: true } | { unlimited: false; used: numbe
  */
 export type AiDaysUpgradeOffers = {
   passPrice: string;
-  passDays: string;
+  passDays: number;
   plusPrice: string;
 };
 
@@ -35,7 +35,7 @@ export default function AiDaysChip({
    *  drift from what this sheet says. */
   offers: AiDaysUpgradeOffers;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const native = useNativeShell();
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -69,7 +69,11 @@ export default function AiDaysChip({
                   <span>{t("plans.pass")}</span>
                   <span>{offers.passPrice}</span>
                 </div>
-                <p className="text-sm text-ink-body">{t("studio.day.aiDays.passBody", { days: offers.passDays })}</p>
+                <p className="text-sm text-ink-body">
+                  {t("studio.day.aiDays.passBody", {
+                    days: tn("studio.day.aiDays.days", offers.passDays, { count: String(offers.passDays) }),
+                  })}
+                </p>
               </div>
               <div className="flex flex-col gap-2 rounded-xl border border-line-quiet p-3.5">
                 <div className="flex justify-between font-semibold text-ink-strong">

@@ -108,7 +108,7 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
         status={aiStatus}
         offers={{
           passPrice: chf(PLANS.tripPass.priceChf),
-          passDays: String(PLANS.tripPass.days),
+          passDays: PLANS.tripPass.days,
           plusPrice: `${chf(PLANS.plus.priceChf)} / ${translateIn(locale, "plans.perYear")}`,
         }}
       />
