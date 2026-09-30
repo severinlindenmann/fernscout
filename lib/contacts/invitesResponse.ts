@@ -21,6 +21,7 @@ import {
   revokeInvite,
 } from "@/lib/contacts/invites";
 import { inviteSuppressedNote, mailFailedNote } from "@/lib/contacts/inviteMailNote";
+import { ownGroupId } from "@/lib/contacts/groups";
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendInviteMail } from "@/lib/contacts/mail";
 import { serverSite } from "@/lib/site";
@@ -84,13 +85,23 @@ export async function invitePutResponse(user: string, id: string, request: Reque
     tripTitle = trip.title;
   }
 
+  // TIX-6. Only one of this owner's own groups — an id from another journal,
+  // or one deleted meanwhile, is refused rather than stored.
+  const groupId = write.group ? await ownGroupId(user, write.group) : null;
+  if (write.group && !groupId) {
+    return fail("not_found", `"${user}" has no reader group "${write.group}".`, undefined, 404);
+  }
+
   const dryRun = readDryRun(request);
   if (dryRun === null) {
     return fail("invalid_request", "dryRun must be true, false, or absent.");
   }
   if (dryRun) {
     // No mail, no row — a preview cannot mint a token nobody will ever use.
-    return ok({ ...write, createdAt: new Date().toISOString(), revokedAt: null, uses: 0 }, { status: 201 });
+    return ok(
+      { ...write, group: groupId, createdAt: new Date().toISOString(), revokedAt: null, uses: 0 },
+      { status: 201 },
+    );
   }
 
   const created = await createInvite(user, {
@@ -101,6 +112,7 @@ export async function invitePutResponse(user: string, id: string, request: Reque
     locale: write.locale,
     expiresAt: write.expiresAt ?? inviteExpiry(),
     email: write.email ?? null,
+    groupId,
   });
   const stored = (await listInvites(user)).find((row) => row.id === created.id);
   if (!stored) return fail("invalid_request", "The invite could not be created.", undefined, 500);

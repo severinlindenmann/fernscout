@@ -120,6 +120,8 @@ export type Invite = {
    * nothing) is actually made.
    */
   email: string | null;
+  /** TIX-6. The reader group people who join through this link go into. */
+  groupId: string | null;
 };
 
 /**
@@ -211,6 +213,9 @@ export async function createInvite(
      * and always let this generate one. The caller has already checked the
      * id is free; this does not re-check. */
     id?: string;
+    /** TIX-6. A reader group of this owner's — the caller checked it with
+     * `ownGroupId`; this only records it. */
+    groupId?: string | null;
   },
 ): Promise<{ id: string; token: string; expiresAt: string | null }> {
   const { db } = await getDatabase();
@@ -242,6 +247,7 @@ export async function createInvite(
       revoked_at: null,
       uses: 0,
       email_key: input.email ? emailKeyOf(input.email) : null,
+      group_id: input.groupId ?? null,
     })
     .execute();
 
@@ -341,6 +347,7 @@ function toInvite(row: {
   revoked_at: string | null;
   uses: number;
   email_key: string | null;
+  group_id?: string | null;
 }): Invite {
   const kind = toKind(row.kind);
   return {
@@ -354,6 +361,7 @@ function toInvite(row: {
     revokedAt: row.revoked_at,
     uses: row.uses,
     email: row.email_key,
+    groupId: row.group_id ?? null,
   };
 }
 
