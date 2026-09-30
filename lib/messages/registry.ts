@@ -294,39 +294,28 @@ export const FLOWS = [
     nodes: [
       { id: "buy", type: "trigger", label: "Owner asks to buy credits", to: [{ id: "buyMail" }] },
       { id: "buyMail", type: "send", label: "Payment instructions", template: "notice.buy", to: [{ id: "approve" }] },
-      // `approve` is shared with the pass/Plus purchase below (B2593): the
-      // operator's own "grant this by hand" mail is one template either way
-      // (`op.grantApproval`). A credit purchase's approval always leads to a
-      // receipt; a plan's admin grant sends no mail of its own, so `approve`
-      // can also end the flow directly.
-      { id: "approve", type: "send", label: "Ask the operator to approve", template: "op.grantApproval", to: [{ id: "receipt" }, { id: "stop" }] },
+      { id: "approve", type: "send", label: "Ask the operator to approve", template: "op.grantApproval", to: [{ id: "receipt" }] },
       { id: "receipt", type: "send", label: "Receipt", template: "receipt.credits", to: [{ id: "stop" }] },
-      // B2593 — a pass or Plus purchase joins the same flow: the same two
-      // ways in as a credit pack (a real Stripe key, or no key and the
-      // operator's own approval), its own receipt once paid.
+      { id: "stop", type: "stop", label: "Balance updated", to: [] },
+    ],
+  },
+  // B2593 — a pass or Plus: paid through Stripe (a receipt), or with no
+  // Stripe key the operator's approval mail and a grant by hand from /admin.
+  {
+    id: "plans",
+    label: "Buying a pass or Plus",
+    nodes: [
       {
         id: "buyPlan",
         type: "trigger",
         label: "Owner buys a pass or subscribes to Plus",
-        to: [{ id: "planReceipt" }, { id: "approve" }],
+        to: [{ id: "planReceipt" }, { id: "planApprove" }],
       },
-      { id: "planReceipt", type: "send", label: "Plan receipt", template: "receipt.plan", to: [{ id: "stop" }] },
-      // A Plus renewal failing is not part of buying the plan — it is its own
-      // trigger, on the subscription already in force.
-      {
-        id: "renewalFailed",
-        type: "trigger",
-        label: "A Plus renewal payment fails",
-        to: [{ id: "failedMail" }],
-      },
-      {
-        id: "failedMail",
-        type: "send",
-        label: "Payment failed, grace started",
-        template: "notice.paymentFailed",
-        to: [{ id: "stop" }],
-      },
-      { id: "stop", type: "stop", label: "Balance or plan updated", to: [] },
+      { id: "planApprove", type: "send", label: "Ask the operator to grant it", template: "op.grantApproval", to: [{ id: "stop" }] },
+      { id: "planReceipt", type: "send", label: "Plan receipt", template: "receipt.plan", to: [{ id: "renewalFailed" }, { id: "stop" }] },
+      { id: "renewalFailed", type: "trigger", label: "Later, a Plus renewal payment fails", to: [{ id: "failedMail" }] },
+      { id: "failedMail", type: "send", label: "Payment failed, grace started", template: "notice.paymentFailed", to: [{ id: "stop" }] },
+      { id: "stop", type: "stop", label: "Plan updated", to: [] },
     ],
   },
   {
