@@ -100,7 +100,7 @@ export default function SmsThreads({
                   </span>
                   <span className="mt-0.5 block truncate text-sm text-ink-body">
                     {last.direction === "out" ? "You: " : ""}
-                    {last.body}
+                    {last.body || "(text not kept — B2589)"}
                   </span>
                 </button>
               </li>
@@ -121,7 +121,9 @@ export default function SmsThreads({
                     : "self-end rounded-br-md bg-action-strong text-on-action"
                 }`}
               >
-                <p className="whitespace-pre-wrap break-words text-base leading-7">{sms.body}</p>
+                <p className="whitespace-pre-wrap break-words text-base leading-7">
+                  {sms.body || "(text not kept)"}
+                </p>
                 <p className="mt-1 font-mono text-[11px] opacity-80">
                   {stamp(sms.createdAt)}
                   {sms.direction === "out" ? ` · from +${sms.from}` : ""}

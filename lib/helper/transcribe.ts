@@ -1,4 +1,5 @@
 import "server-only";
+import { NO_JOURNAL } from "../auth";
 import { loadServerConfig } from "../config";
 import { recordUsage } from "../usage";
 import type { SpeechLanguage } from "./speech";
@@ -196,26 +197,47 @@ export async function transcribeAudio(
   // Ask the provider not to retain this audio for model training — B1076.
   url.searchParams.set("mip_opt_out", "true");
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      authorization: `Token ${process.env.DEEPGRAM_API_KEY ?? ""}`,
-      "content-type": mediaType,
-    },
-    body: new Uint8Array(audio),
-  });
-  if (!response.ok) throw new Error(`deepgram: ${response.status}`);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        authorization: `Token ${process.env.DEEPGRAM_API_KEY ?? ""}`,
+        "content-type": mediaType,
+      },
+      body: new Uint8Array(audio),
+    });
+  } catch (error) {
+    // A network failure or an abort: nothing came back to measure, but
+    // Deepgram may already have billed the bytes it received before the
+    // connection dropped. `seconds: 0` is the honest floor, not a guess —
+    // B2589, "a failed or aborted call writes nothing" was the bug.
+    await recordDeepgramCall(owner, 0);
+    throw error;
+  }
 
-  const body = (await response.json()) as {
+  // Parsed whether the request succeeded or not: a refused request can still
+  // carry `metadata.duration` for the audio Deepgram read before refusing it,
+  // and a call that failed after being billed must not write nothing — B2589.
+  const body = (await response.json().catch(() => ({}))) as {
     metadata?: { duration?: number };
     results?: {
       channels?: { alternatives?: { transcript?: string; words?: DeepgramWord[] }[] }[];
     };
   };
+  const seconds = typeof body.metadata?.duration === "number" ? body.metadata.duration : 0;
+
+  if (!response.ok) {
+    await recordDeepgramCall(owner, seconds);
+    throw new Error(`deepgram: ${response.status}`);
+  }
+
   const alternative = body.results?.channels?.[0]?.alternatives?.[0];
   const text = alternative?.transcript;
-  if (typeof text !== "string") throw new Error("deepgram: no transcript in the answer");
-  const seconds = typeof body.metadata?.duration === "number" ? body.metadata.duration : 0;
+  if (typeof text !== "string") {
+    await recordDeepgramCall(owner, seconds);
+    throw new Error("deepgram: no transcript in the answer");
+  }
   const uncertainWord = leastConfidentWord(alternative?.words);
 
   // What the instance was billed — B746. Deepgram's own measured duration, not
@@ -223,15 +245,20 @@ export async function transcribeAudio(
   // against it. `recordUsage` never throws; the transcript survives whatever
   // this does. Only on the real backend: dry-run talks to nobody and is billed
   // for nothing.
-  if (owner) {
-    await recordUsage({
-      owner,
-      provider: "deepgram",
-      model: DEEPGRAM_MODEL,
-      operation: "transcribe",
-      seconds,
-    });
-  }
+  await recordDeepgramCall(owner, seconds);
 
   return { text: text.trim(), seconds, uncertainWord };
+}
+
+/** `*` (NO_JOURNAL) when nobody's journal this call was for — B2589; the
+ *  same deliberate attribution `lib/helper/model.ts`'s `book()` uses, so a
+ *  call with no owner cannot silently vanish from the bill again. */
+async function recordDeepgramCall(owner: string | undefined, seconds: number): Promise<void> {
+  await recordUsage({
+    owner: owner ?? NO_JOURNAL,
+    provider: "deepgram",
+    model: DEEPGRAM_MODEL,
+    operation: "transcribe",
+    seconds,
+  });
 }

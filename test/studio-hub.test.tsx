@@ -157,7 +157,7 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
   // ordinary card, same as every other not-yet-built flow.
   test("location carries no reason — it is an ordinary card, not a known-bug one", () => {
     const el = render(FULL_BASE);
-    expect(el.textContent).toContain("Your routes");
+    expect(el.textContent).toContain("GPX files & routes");
     expect(el.textContent).not.toContain("our bug");
     expect(el.textContent).not.toMatch(/Android/i);
   });
@@ -192,7 +192,7 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
     expect(withoutAnalytics.textContent).toContain("Credits & storage");
     expect(withoutAnalytics.textContent).toContain("Journal settings");
     expect(withoutAnalytics.textContent).toContain("Permissions & keys");
-    expect(withoutAnalytics.textContent).toContain("People");
+    expect(withoutAnalytics.textContent).toContain("Who was there");
     expect(withoutAnalytics.querySelector('a[href="/@alex/studio/journal"]')).not.toBeNull();
     expect(withoutAnalytics.querySelector('a[href="/@alex/studio/agent"]')).not.toBeNull();
     expect(withoutAnalytics.querySelector('a[href="/@alex/studio/readers"]')).not.toBeNull();
@@ -201,6 +201,13 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
     expect(visitorsOff?.textContent).toContain("Visits are not counted on this journal.");
     expect(visitorsOff?.textContent).toContain("off");
 
+    // B2600 — a second `render()` in the same test must unmount the first;
+    // otherwise its container leaks into `document.body` for the rest of
+    // the file's run, giving later tests a duplicate id (every group card
+    // carries a fixed one) that jsdom's ID-selector fast path resolves
+    // against the wrong, orphaned element.
+    act(() => root?.unmount());
+    container?.remove();
     const withAnalytics = render({ ...FULL_BASE, analyticsEnabled: true });
     const visitorsOn = withAnalytics.querySelector('a[href="/@alex/studio/visitors"]');
     expect(visitorsOn?.textContent).toBe("Visitors");
@@ -209,13 +216,21 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
   /** Export and delete — B1295/B1346, moved whole from `/[user]/me` by
    *  B2017 and made tiles by B2023: two buttons below every group, and
    *  nothing sends on the first press — each opens its own question. */
-  test("export and delete sit below every group as tiles that open a question", () => {
+  // B2600 — Export and Delete moved inside Journal & account, alongside the
+  // four disclosure toggles; every `aria-expanded` button on the page starts
+  // closed, and pressing either tile opens its own question, not the mail.
+  test("export and delete sit inside Journal & account as tiles that open a question", () => {
     const el = render(FULL_BASE);
     const tiles = Array.from(el.querySelectorAll("button[aria-expanded]"));
-    expect(tiles.map((b) => b.getAttribute("aria-expanded"))).toEqual(["false", "false"]);
+    expect(tiles.length).toBeGreaterThan(0);
+    expect(tiles.every((b) => b.getAttribute("aria-expanded") === "false")).toBe(true);
     expect(el.textContent).toContain("Export everything");
     expect(el.textContent).toContain("Delete this journal");
     expect(el.textContent).not.toContain("Send me the link");
+    const exportTile = Array.from(el.querySelectorAll<HTMLButtonElement>("#journal button")).find((b) => b.textContent?.includes("Export everything"))!;
+    act(() => exportTile.click());
+    expect(exportTile.getAttribute("aria-expanded")).toBe("true");
+    expect(el.textContent).toContain("Email me the download link");
   });
 });
 
@@ -331,8 +346,9 @@ describe("B1951 — the main card never calls a finished trip the trip you are o
   });
 });
 
-/** B2066 — the Desk: six group cards, one icon per row, one line per row. */
-describe("B2066 — the Desk", () => {
+/** B2600 — the Desk: Today's own card, then "Everything else"'s four cards,
+ *  one icon per row, one line per row. */
+describe("B2600 — the Desk", () => {
   const groupsOf = (el: HTMLElement) => Array.from(el.querySelectorAll("section[data-group]")).map((s) => s.id);
   const iconOf = (row: Element) =>
     Array.from(row.querySelector("svg")?.classList ?? []).find((c) => c.startsWith("lucide-") && c !== "lucide-icon");
@@ -344,10 +360,49 @@ describe("B2066 — the Desk", () => {
     ["empty journal", EMPTY_BASE],
   ];
 
-  test("the six groups render as cards in their fixed order, each with its own anchor", () => {
+  test("Today's own card, then the four 'Everything else' cards, in their fixed order, each with its own anchor", () => {
     const el = render({ ...FULL_BASE, planTrip: { id: "jp", title: "Japan" }, analyticsEnabled: true });
-    expect(groupsOf(el)).toEqual(["write", "plan", "people", "bringIn", "print", "journal"]);
+    expect(groupsOf(el)).toEqual(["write", "tripsPeople", "bringIn", "print", "journal"]);
+    // Trips & people is one card, but the two subpages it merged (Plan and
+    // People) still each get their own back-link anchor inside it.
     expect(el.querySelector("#plan")).not.toBeNull();
+    expect(el.querySelector("#people")).not.toBeNull();
+    expect(el.querySelector("#tripsPeople #plan")).not.toBeNull();
+    expect(el.querySelector("#tripsPeople #people")).not.toBeNull();
+  });
+
+  test("heading navigation reaches Today and Everything else, in that order", () => {
+    const el = render(FULL_BASE);
+    const headings = Array.from(el.querySelectorAll("h2")).map((h) => h.id);
+    expect(headings).toContain("h-today");
+    expect(headings).toContain("h-everything");
+    expect(headings.indexOf("h-today")).toBeLessThan(headings.indexOf("h-everything"));
+  });
+
+  test("the four 'Everything else' cards toggle open with a real button", () => {
+    const el = render(FULL_BASE);
+    const toggles = ["tripsPeople", "bringIn", "print", "journal"].map(
+      (group) => el.querySelector<HTMLButtonElement>(`#${group} > button[aria-expanded]`)!,
+    );
+    for (const toggle of toggles) {
+      expect(toggle).not.toBeNull();
+      expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    }
+    act(() => toggles[0].click());
+    expect(toggles[0].getAttribute("aria-expanded")).toBe("true");
+  });
+
+  test("Walking figures is not a hub row any more", () => {
+    const el = render(FULL_BASE);
+    expect(el.textContent).not.toContain("Walking figures");
+    expect(el.querySelector('a[href="/@alex/studio/figures"]')).toBeNull();
+  });
+
+  test("no href appears twice across Today, the groups and Journal & account", () => {
+    const el = render({ ...FULL_BASE, planTrip: { id: "jp", title: "Japan" }, analyticsEnabled: true });
+    const hrefs = Array.from(el.querySelectorAll("section[data-group] a[href]")).map((a) => a.getAttribute("href"));
+    expect(hrefs.length).toBeGreaterThan(10);
+    expect(new Set(hrefs).size).toBe(hrefs.length);
   });
 
   test.each(heroStates)("no lucide icon is used on two rows (%s)", (_, model) => {
@@ -582,11 +637,13 @@ describe("B2304 — the hero, chosen by state", () => {
 });
 
 /**
- * B2304 — during a trip only, at most three one-tap rows replace the full
- * "Waiting for your words" card list and the phone bar: photos waiting for
- * words on this trip, sharing a day, and a postcard when printing is on.
+ * B2304, trimmed by B2600 — during a trip only, the full "Waiting for your
+ * words" card list is replaced by at most one row: photos still waiting for
+ * words on this trip. Publish and A postcard used to ride along here too,
+ * duplicating Today's own card and Print's own row (B2580) — gone now that
+ * Today's card is unconditional.
  */
-describe("B2304 — during a trip, at most three rows", () => {
+describe("B2304/B2600 — during a trip, at most one shortcut row", () => {
   test("no full waiting-days card list renders during a trip", () => {
     const el = render({
       ...FULL_BASE,
@@ -613,13 +670,14 @@ describe("B2304 — during a trip, at most three rows", () => {
       },
     });
     const rows = el.querySelectorAll("[data-during-trip-rows] a");
-    // Waiting + Publish + A postcard (FULL_BASE has postcards on).
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(1);
     expect(rows[0].textContent).toContain("Photos waiting for words");
     expect(rows[0].textContent).toContain("2 days");
   });
 
-  test("all three rows can show at once, and no more than three ever do", () => {
+  // B2600 — Publish and A postcard no longer ride along here: Publish is
+  // always in Today's own card now, and A postcard only ever in Print.
+  test("neither Publish nor A postcard rides along in the shortcut row", () => {
     const el = render({
       ...FULL_BASE,
       facts: { ...FULL_BASE.facts, drafts: 2 },
@@ -629,25 +687,14 @@ describe("B2304 — during a trip, at most three rows", () => {
       },
     });
     const rows = Array.from(el.querySelectorAll("[data-during-trip-rows] a"));
-    expect(rows.length).toBe(3);
-    expect(rows.map((r) => r.textContent?.split("\n")[0])).toEqual([
-      expect.stringContaining("Photos waiting for words"),
-      expect.stringContaining("Publish"),
-      expect.stringContaining("A postcard"),
-    ]);
-    expect(el.querySelector("[data-during-trip-rows] [data-fact]")?.textContent).toBe("2 drafts");
+    expect(rows.length).toBe(1);
+    expect(rows[0].textContent).toContain("Photos waiting for words");
+    expect(el.querySelector("[data-during-trip-rows] [data-fact]")).toBeNull();
   });
 
-  test("printing off: no postcard row", () => {
-    const el = render({ ...FULL_BASE, cannotRun: { ...FULL_BASE.cannotRun, postcard: true } });
-    const rows = Array.from(el.querySelectorAll("[data-during-trip-rows] a"));
-    expect(rows.some((r) => r.textContent?.includes("A postcard"))).toBe(false);
-  });
-
-  test("nothing waiting for this trip: no waiting row, just share (and postcard)", () => {
+  test("nothing waiting for this trip: the shortcut is absent entirely", () => {
     const el = render(FULL_BASE);
-    const rows = Array.from(el.querySelectorAll("[data-during-trip-rows] a"));
-    expect(rows.some((r) => r.textContent?.includes("Photos waiting"))).toBe(false);
+    expect(el.querySelector("[data-during-trip-rows]")).toBeNull();
   });
 });
 
@@ -666,13 +713,16 @@ describe("B2304 — no floating pill on the hub", () => {
 });
 
 /**
- * B2304 — the filter field directly above the grid narrows it by title and
- * description, reading the exact rows `buildHubGroups` builds for the grid
- * itself so the two cannot drift apart.
+ * B2304, moved below the groups by B2600 — the filter field narrows
+ * "Everything else" by title and description, reading the exact rows
+ * `buildHubGroups` builds for the grid itself so the two cannot drift
+ * apart. Today's own card and Journal & account are never narrowed by it
+ * (see `StudioHub.tsx`) — only the three grid cards are.
  */
-describe("B2304 — the filter above the grid", () => {
+describe("B2304/B2600 — the filter, below the groups", () => {
   const t = (key: Parameters<typeof translate>[1], vars?: Record<string, string>) => translate(dictionaryFor("en"), key, vars);
   const tn = (key: Parameters<typeof plural>[1], count: number, vars?: Record<string, string>) => plural(dictionaryFor("en"), key, count, vars);
+  const gridSections = (el: HTMLElement) => Array.from(el.querySelectorAll("section[data-group]:not(#journal):not(#write)"));
 
   test("filterHubGroups narrows to rows matching title or description, derived from buildHubGroups itself", () => {
     const groups = buildHubGroups({ ...FULL_BASE, planTrip: { id: "jp", title: "Japan" } }, "alex", t, tn, "en");
@@ -687,7 +737,27 @@ describe("B2304 — the filter above the grid", () => {
     expect(filterHubGroups(groups, "")).toBe(groups);
   });
 
-  test("typing in the field narrows the rendered grid to the same rows", () => {
+  // The ticket's own acceptance, verbatim: typing "gpx" shows the GPX files
+  // & routes row.
+  test("typing 'gpx' in the filter shows the GPX files & routes row", () => {
+    const el = render(FULL_BASE);
+    const input = el.querySelectorAll<HTMLInputElement>("[data-hub-filter]")[0];
+    act(() => typeInto(input, "gpx"));
+    expect(el.textContent).toContain("GPX files & routes");
+  });
+
+  test("on phone the filter field sits after the grid and Journal & account, not above them", () => {
+    const el = render(FULL_BASE);
+    // Two instances share one query — desktop's beside "Everything else",
+    // phone's below everything (see `FilterInput`'s own doc comment); the
+    // phone one is the second in the document.
+    const inputs = el.querySelectorAll<HTMLInputElement>("[data-hub-filter]");
+    expect(inputs.length).toBe(2);
+    const journal = el.querySelector("#journal")!;
+    expect(journal.compareDocumentPosition(inputs[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test("typing in the field narrows the rendered grid to the same rows, and opens the matching cards", () => {
     const t2 = (key: Parameters<typeof translate>[1], vars?: Record<string, string>) => translate(dictionaryFor("en"), key, vars);
     const tn2 = (key: Parameters<typeof plural>[1], count: number, vars?: Record<string, string>) => plural(dictionaryFor("en"), key, count, vars);
     const groups = buildHubGroups(FULL_BASE, "alex", t2, tn2, "en");
@@ -696,20 +766,34 @@ describe("B2304 — the filter above the grid", () => {
     const el = render(FULL_BASE);
     const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
     act(() => typeInto(input, "photo"));
-    const titles = Array.from(el.querySelectorAll("section[data-group]:not(#journal) a[data-row]")).map(
+    const titles = Array.from(el.querySelectorAll("section[data-group]:not(#journal):not(#write) a[data-row]")).map(
       (a) => a.querySelector("[data-desc]")?.previousElementSibling?.querySelector("span")?.textContent ?? a.textContent,
     );
     expect(expected.length).toBeGreaterThan(0);
     for (const title of expected) expect(titles.some((t3) => t3?.includes(title))).toBe(true);
-    expect(el.querySelectorAll("section[data-group]:not(#journal) a[data-row]").length).toBe(expected.length);
+    expect(el.querySelectorAll("section[data-group]:not(#journal):not(#write) a[data-row]").length).toBe(expected.length);
+    // Every matching card's own toggle reads open.
+    for (const section of gridSections(el)) expect(section.querySelector("button[aria-expanded]")?.getAttribute("aria-expanded")).toBe("true");
   });
 
-  test("Journal stays visible even when nothing in the grid matches", () => {
+  test("Today's own card is never narrowed by the filter", () => {
     const el = render(FULL_BASE);
     const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
+    const before = el.querySelectorAll("#write a[data-row]").length;
     act(() => typeInto(input, "xyzzy-nothing-matches-this"));
-    expect(el.querySelectorAll("section[data-group]:not(#journal)").length).toBe(0);
+    expect(el.querySelectorAll("#write a[data-row]").length).toBe(before);
+  });
+
+  test("Journal & account hides when none of its rows match, and shows whole when one does", () => {
+    const el = render(FULL_BASE);
+    const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
+    const journalHrefsBefore = Array.from(el.querySelectorAll("#journal a[data-row]")).map((a) => a.getAttribute("href"));
+    act(() => typeInto(input, "xyzzy-nothing-matches-this"));
+    expect(gridSections(el).length).toBe(0);
+    expect(el.querySelector("#journal")).toBeNull();
+    act(() => typeInto(input, "visitors"));
     expect(el.querySelector("#journal")).not.toBeNull();
+    expect(Array.from(el.querySelectorAll("#journal a[data-row]")).map((a) => a.getAttribute("href"))).toEqual(journalHrefsBefore);
   });
 
   test("clearing the field restores the full grid", () => {
@@ -717,6 +801,7 @@ describe("B2304 — the filter above the grid", () => {
     const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
     act(() => typeInto(input, "photo"));
     act(() => typeInto(input, ""));
-    expect(el.querySelectorAll("section[data-group]:not(#journal)").length).toBe(5);
+    expect(gridSections(el).length).toBe(3);
   });
 });
+

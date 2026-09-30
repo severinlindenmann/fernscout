@@ -4,14 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CalendarPlus,
+  ChevronDown,
   Compass,
   Download,
   Images,
+  Library,
   Mailbox,
   MapPinned,
   Mic,
+  PackageOpen,
+  Printer,
   Search,
-  Send,
   Trash2,
   type LucideIcon,
 } from "lucide-react";
@@ -25,7 +28,18 @@ import { useStudioBar } from "@/components/studio/StudioBar";
 import StudioPage from "@/components/studio/StudioPage";
 import { formatStagedBytes } from "@/lib/validate/media";
 import { GROUP_HUE, type StudioGroup } from "@/lib/studio/groups";
-import { bringInFirstRows, buildHubGroups, filterHubGroups, journalRows, type Row } from "@/lib/studio/hubGroups";
+import {
+  bringInFirstRows,
+  buildHubGroups,
+  filterHubGroups,
+  journalRows,
+  peopleRows,
+  rowMatchesQuery,
+  todayRows,
+  tripsRows,
+  type EverythingGroup,
+  type Row,
+} from "@/lib/studio/hubGroups";
 import type { PostcardCard, ResumableImportSummary, StudioHubModel } from "@/lib/studio/hub";
 import type { TranslationKey } from "@/lib/i18n";
 import { daysUntil, readerTodayISO } from "@/lib/tripTime";
@@ -35,6 +49,17 @@ import { addDayExpiresOn, readAddDaySnapshot, type AddDaySnapshot } from "@/lib/
 
 import { journalPath } from "@/lib/journalPath";
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
+
+/** B2600 — "Everything else"'s four cards: a tinted icon, a title and (on
+ *  phone, where they open and close) one summary line. Independent of
+ *  `GROUP_HUE` (the per-subpage crumb, unchanged) — these are the hub's own
+ *  box titles, not a subpage's breadcrumb. */
+const EVERYTHING_CARD: Record<EverythingGroup | "journal", { hue: string; icon: LucideIcon; titleKey: TranslationKey; summaryKey: TranslationKey }> = {
+  tripsPeople: { hue: GROUP_HUE.plan.hue, icon: Compass, titleKey: "studio.hub.everything.tripsPeople", summaryKey: "studio.hub.everything.tripsPeople.summary" },
+  bringIn: { hue: GROUP_HUE.bringIn.hue, icon: PackageOpen, titleKey: "studio.hub.group.bringIn", summaryKey: "studio.hub.everything.bringIn.summary" },
+  print: { hue: GROUP_HUE.print.hue, icon: Printer, titleKey: "studio.hub.group.print", summaryKey: "studio.hub.everything.print.summary" },
+  journal: { hue: GROUP_HUE.journal.hue, icon: Library, titleKey: "studio.hub.everything.journalAccount", summaryKey: "studio.hub.everything.journalAccount.summary" },
+};
 
 type HeroModel = {
   href: string;
@@ -174,6 +199,38 @@ export default function StudioHub({
   );
   const groups = useMemo(() => filterHubGroups(allGroups, query), [allGroups, query]);
 
+  // B2600 — the four "Everything else" cards, closed by default on phone
+  // (never at desktop, see `EverythingCardShell`); typing into the filter
+  // opens whichever ones matched, without forcing a card the owner closed
+  // by hand shut again once they clear it.
+  const [openByHand, setOpenByHand] = useState<Set<string>>(() => new Set());
+  const toggleOpen = (key: string) =>
+    setOpenByHand((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  const todayRowsList = useMemo(() => (model.kind === "full" ? todayRows(model, username, t, tn) : []), [model, username, t, tn]);
+  const journalFullRows = useMemo(
+    () => (model.kind === "full" ? journalRows(username, t, tn, locale, model.analyticsEnabled, model.account) : []),
+    [model, username, t, tn, locale],
+  );
+  // B2600 — Trips & people's own unfiltered rows, kept apart so the card's
+  // two `#plan`/`#people` anchors each wrap only their own rows. Once a
+  // query narrows the grid the anchors are moot (nothing to scroll back to
+  // mid-search), so the filtered, merged list from `groups` renders instead.
+  const tripsOnlyRows = useMemo(() => (model.kind === "full" ? tripsRows(model, username, t, tn) : []), [model, username, t, tn]);
+  const peopleOnlyRows = useMemo(() => (model.kind === "full" ? peopleRows(model, username, t, tn) : []), [model, username, t, tn]);
+  const journalMatches = query.trim() !== "" && journalFullRows.some((row) => rowMatchesQuery(row, query));
+  const matchingKeys = useMemo(() => {
+    if (!query.trim()) return new Set<string>();
+    const s = new Set<string>(groups.map((g) => g.group));
+    if (journalMatches) s.add("journal");
+    return s;
+  }, [groups, query, journalMatches]);
+  const isOpen = (key: string) => openByHand.has(key) || matchingKeys.has(key);
+
   if (model.kind === "empty")
     return (
       <StudioPage username={username} back={false} width="wide" title={t("studio.hub.empty.title")} lede={t("studio.hub.empty.body")}>
@@ -195,27 +252,38 @@ export default function StudioHub({
 
   return (
     <StudioPage username={username} back={false} width="wide" title={t("studio.hub.title")}>
-      <Hero {...hero} />
-      {hero.altLink && (
-        <Link
-          href={hero.altLink.href}
-          data-hero-alt
-          className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-ink-strong underline underline-offset-2"
-        >
-          {hero.altLink.label}
-        </Link>
-      )}
+      <h2 id="h-today" className="mt-4 font-display text-lg font-semibold text-ink-strong">
+        {t("studio.hub.today.heading")}
+      </h2>
+      <div className="mt-2 grid grid-cols-1 items-start gap-3 md:grid-cols-2">
+        <div>
+          <Hero {...hero} />
+          {hero.altLink && (
+            <Link
+              href={hero.altLink.href}
+              data-hero-alt
+              className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-ink-strong underline underline-offset-2"
+            >
+              {hero.altLink.label}
+            </Link>
+          )}
+        </div>
+        <section id="write" data-group="write" className="rounded-2xl md:mt-4 border border-line-faint bg-surface-raised px-2.5 py-1.5">
+          <ul className="divide-y divide-line-faint">
+            {todayRowsList.map((row) => (
+              <li key={row.href}>
+                <HubRow row={row} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
       {duringTrip ? (
-        // B2304 — during a trip, at most three one-tap rows replace the
-        // full "Waiting for your words" card list and the plan notice:
-        // the owner's own complaint was everything showing at once.
-        <DuringTripRows
-          username={username}
-          waitingCount={waitingThisTripCount}
-          waitingFirstDate={waitingThisTrip?.date ?? null}
-          drafts={model.facts.drafts}
-          showPostcard={!model.cannotRun.postcard}
-        />
+        // B2600 — Publish and A postcard now live in Today's own card and in
+        // Print, so the only thing left worth a one-tap shortcut during a
+        // trip is photos still waiting for words on it; absent when there
+        // are none.
+        <DuringTripRows username={username} waitingCount={waitingThisTripCount} waitingFirstDate={waitingThisTrip?.date ?? null} />
       ) : (
         <>
           <WaitingDays username={username} model={model.waitingDays} canWrite />
@@ -224,108 +292,284 @@ export default function StudioHub({
         </>
       )}
       {halfDone}
-      <label className="relative mt-3 block">
-        <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-secondary" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("studio.hub.filter.placeholder")}
-          aria-label={t("studio.hub.filter.placeholder")}
-          data-hub-filter
-          className="min-h-11 w-full rounded-full border border-line-faint bg-surface-raised py-2 pl-9 pr-4 text-sm text-ink-strong
-                     placeholder:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-        />
-      </label>
-      <div className="mt-3 grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
+
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 id="h-everything" className="font-display text-lg font-semibold text-ink-strong">
+          {t("studio.hub.everything.heading")}
+        </h2>
+        <FilterInput value={query} onChange={setQuery} className="hidden md:block md:w-72" />
+      </div>
+      <div className="mt-3 grid grid-cols-1 items-start gap-3 md:grid-cols-3">
         {groups.map(({ group, rows }, i) => (
-          <GroupCard
-            key={group}
-            group={group}
-            rows={rows}
-            arriveIndex={i}
-            foot={group === "print" ? <RecentOrders username={username} orders={model.print.recentOrders} /> : undefined}
-          />
+          <EverythingCardShell key={group} group={group} open={isOpen(group)} onToggle={() => toggleOpen(group)} arriveIndex={i}>
+            {group === "tripsPeople" && !query.trim() ? (
+              <>
+                <ul id="plan" className="divide-y divide-line-faint">
+                  {tripsOnlyRows.map((row) => (
+                    <li key={row.href}>
+                      <HubRow row={row} />
+                    </li>
+                  ))}
+                </ul>
+                <ul id="people" className="divide-y divide-line-faint border-t border-line-faint">
+                  {peopleOnlyRows.map((row) => (
+                    <li key={row.href}>
+                      <HubRow row={row} />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <ul className="divide-y divide-line-faint">
+                {rows.map((row) => (
+                  <li key={row.href}>
+                    <HubRow row={row} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {group === "print" && <RecentOrders username={username} orders={model.print.recentOrders} />}
+          </EverythingCardShell>
         ))}
-        <JournalCard
+      </div>
+
+      {/* B2600 — a query that matches none of its rows hides it, like the other cards. */}
+      {(!query.trim() || journalMatches) && (
+        <JournalAccountSection
           username={username}
-          rows={journalRows(username, t, tn, locale, model.analyticsEnabled, model.account)}
+          rows={journalFullRows}
+          open={isOpen("journal")}
+          onToggle={() => toggleOpen("journal")}
           arriveIndex={groups.length}
         />
-      </div>
+      )}
+
+      <FilterInput value={query} onChange={setQuery} className="mt-3 md:hidden" />
     </StudioPage>
   );
 }
 
-/** B2304 — the during-trip hero's at-most-three rows: photos waiting for
- *  words on this trip, sharing a day, and a postcard when printing is on.
- *  A row is left out rather than shown disabled — each is only ever a real
- *  next step, never a door onto something switched off. */
+/** B2304, trimmed by B2600 — the during-trip hero's own one-tap row: photos
+ *  still waiting for words on this trip. Publish and A postcard used to
+ *  ride along here too, duplicating Today's own card and Print's own row
+ *  (B2580); absent entirely once nothing is waiting. */
 function DuringTripRows({
   username,
   waitingCount,
   waitingFirstDate,
-  drafts,
-  showPostcard,
 }: {
   username: string;
   waitingCount: number;
   waitingFirstDate: string | null;
-  drafts: number;
-  showPostcard: boolean;
 }) {
   const { t, tn } = useI18n();
-  const rows: { key: string; href: string; Icon: LucideIcon; title: string; detail: string; fact?: string }[] = [
-    ...(waitingCount > 0 && waitingFirstDate
-      ? [
-          {
-            key: "waiting",
-            href: `${journalPath(username)}/studio/day/new?photos=${waitingFirstDate}&from=hub`,
-            Icon: Images,
-            title: t("studio.hub.duringTrip.waiting.title"),
-            detail: tn("studio.hub.duringTrip.waiting.detail", waitingCount, { count: String(waitingCount) }),
-          },
-        ]
-      : []),
-    {
-      key: "share",
-      href: `${journalPath(username)}/studio/day/publish`,
-      Icon: Send,
-      title: t("studio.hub.item.publishDay.title"),
-      detail: t("studio.hub.item.publishDay.description"),
-      fact: drafts > 0 ? tn("studio.hub.fact.drafts", drafts, { count: String(drafts) }) : undefined,
-    },
-    ...(showPostcard
-      ? [
-          {
-            key: "postcard",
-            href: `${journalPath(username)}/studio/postcard`,
-            Icon: Mailbox,
-            title: t("studio.hub.item.postcard.title"),
-            detail: t("studio.hub.item.postcard.description"),
-          },
-        ]
-      : []),
-  ];
+  if (waitingCount === 0 || !waitingFirstDate) return null;
   return (
     <ul data-during-trip-rows className="mt-3 divide-y divide-line-faint rounded-2xl border border-line-faint bg-surface-raised px-2.5">
-      {rows.map((row) => (
-        <li key={row.key}>
-          <Link
-            href={row.href}
-            className="flex min-h-11 items-center gap-3 rounded-[10px] px-1.5 py-2 transition-colors hover:bg-surface-neutral
-                       focus-visible:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          >
-            <row.Icon className="h-5 w-5 flex-none text-ink-body" aria-hidden strokeWidth={2} />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-semibold leading-tight text-ink-strong">{row.title}</span>
-              <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">{row.detail}</span>
+      <li>
+        <Link
+          href={`${journalPath(username)}/studio/day/new?photos=${waitingFirstDate}&from=hub`}
+          className="flex min-h-11 items-center gap-3 rounded-[10px] px-1.5 py-2 transition-colors hover:bg-surface-neutral
+                     focus-visible:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          <Images className="h-5 w-5 flex-none text-ink-body" aria-hidden strokeWidth={2} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold leading-tight text-ink-strong">{t("studio.hub.duringTrip.waiting.title")}</span>
+            <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">
+              {tn("studio.hub.duringTrip.waiting.detail", waitingCount, { count: String(waitingCount) })}
             </span>
-            {row.fact && <Chip fact>{row.fact}</Chip>}
-          </Link>
-        </li>
-      ))}
+          </span>
+        </Link>
+      </li>
     </ul>
+  );
+}
+
+/** B2600 — the filter field (B2304): beside "Everything else" at desktop,
+ *  below the four cards on phone. Two instances share `value`/`onChange`
+ *  and only one is ever visible at a given width (`className` hides the
+ *  other), the same responsive-duplication the phone/desktop nav already
+ *  uses — typing into either updates the one shared query. */
+function FilterInput({ value, onChange, className }: { value: string; onChange: (value: string) => void; className: string }) {
+  const { t } = useI18n();
+  return (
+    <label className={`relative block ${className}`}>
+      <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-secondary" />
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={t("studio.hub.filter.placeholder")}
+        aria-label={t("studio.hub.filter.placeholder")}
+        data-hub-filter
+        className="min-h-11 w-full rounded-full border border-line-faint bg-surface-raised py-2 pl-9 pr-4 text-sm text-ink-strong
+                   placeholder:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      />
+    </label>
+  );
+}
+
+/**
+ * One of "Everything else"'s three disclosure cards — B2600. A real
+ * `<button aria-expanded>`, closed by default on phone (`open` decided by
+ * the caller); `md:block` on the rows always wins at desktop, so the three
+ * cards read as open cards there regardless of `open`'s own value.
+ */
+function EverythingCardShell({
+  group,
+  open,
+  onToggle,
+  arriveIndex,
+  children,
+}: {
+  group: EverythingGroup;
+  open: boolean;
+  onToggle: () => void;
+  /** B2325 — this card's position in the grid on first paint; `.fs-arrive`
+   *  in `app/globals.css` reads it back as `--i` for its stagger. */
+  arriveIndex: number;
+  children: React.ReactNode;
+}) {
+  const { t } = useI18n();
+  const { hue, icon: Icon, titleKey, summaryKey } = EVERYTHING_CARD[group];
+  return (
+    <section
+      id={group}
+      data-group={group}
+      className="fs-arrive scroll-mt-20 rounded-2xl border border-line-faint bg-surface-raised px-2.5 pb-1.5 pt-3"
+      style={{ "--i": arriveIndex } as React.CSSProperties}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        // B2600 — no rule under a closed card on phone; desktop always shows its rows.
+        className={`flex w-full items-center gap-2.5 border-b px-1 pb-2.5 text-left ${open ? "border-line-faint" : "border-transparent md:border-line-faint"}`}
+      >
+        <span
+          aria-hidden="true"
+          className="grid size-10 flex-none place-items-center rounded-[11px] border border-line-faint text-ink-strong"
+          style={{ background: `color-mix(in srgb, ${hue} 22%, var(--surface-raised))` }}
+        >
+          <Icon size={20} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-[19px] font-semibold text-ink-strong">{t(titleKey)}</span>
+          <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary md:hidden">{t(summaryKey)}</span>
+        </span>
+        <ChevronDown aria-hidden strokeWidth={2} className={`h-4 w-4 flex-none text-ink-secondary transition-transform md:hidden ${open ? "rotate-180" : ""}`} />
+      </button>
+      <div className={`${open ? "block" : "hidden"} md:block`}>{children}</div>
+    </section>
+  );
+}
+
+/**
+ * Journal & account — B2600. A fourth disclosure card on phone (same chrome
+ * as `EverythingCardShell`); one compact muted row of links and chips at
+ * desktop instead of a fourth grid card. One row of rows, not two — each
+ * link only ever renders once, styled differently per breakpoint by CSS
+ * alone (a stacked tile on phone, an inline chip at `md`), so no href is
+ * ever duplicated in the document the way two full re-renders would.
+ * Export and Delete keep exactly the ConfirmPanel/mail flow they always
+ * had — only where they sit on the page, and how they are drawn, changes.
+ */
+function JournalAccountSection({
+  username,
+  rows,
+  open,
+  onToggle,
+  arriveIndex,
+}: {
+  username: string;
+  rows: Row[];
+  open: boolean;
+  onToggle: () => void;
+  arriveIndex: number;
+}) {
+  const { t } = useI18n();
+  const [tileOpen, setTileOpen] = useState<"export" | "delete" | null>(null);
+  const { hue, icon: Icon, titleKey, summaryKey } = EVERYTHING_CARD.journal;
+  const toggleTile = (tile: "export" | "delete") => setTileOpen((prev) => (prev === tile ? null : tile));
+  const rowClass =
+    "flex min-h-11 items-center gap-2.5 rounded-[10px] px-1.5 py-2 text-left text-sm font-semibold transition-colors hover:bg-surface-subtle " +
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 " +
+    "md:inline-flex md:min-h-8 md:w-auto md:rounded-full md:px-1 md:py-0 md:hover:bg-transparent md:hover:underline";
+  return (
+    <section
+      id="journal"
+      data-group="journal"
+      className="fs-arrive mt-3 rounded-2xl border border-line-faint bg-surface-neutral px-2.5 pb-2.5 pt-3
+                 md:border md:bg-surface-neutral md:px-4 md:py-3"
+      style={{ "--i": arriveIndex } as React.CSSProperties}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className={`flex w-full items-center gap-2.5 border-b px-1 pb-2.5 text-left md:hidden ${open ? "border-line-faint" : "border-transparent"}`}
+      >
+        <span
+          aria-hidden="true"
+          className="grid size-10 flex-none place-items-center rounded-[11px] border border-line-faint text-ink-strong"
+          style={{ background: `color-mix(in srgb, ${hue} 40%, var(--surface-raised))` }}
+        >
+          <Icon size={20} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-[19px] font-semibold text-ink-strong">{t(titleKey)}</span>
+          <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">{t(summaryKey)}</span>
+        </span>
+        <ChevronDown aria-hidden strokeWidth={2} className={`h-4 w-4 flex-none text-ink-secondary transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <ul
+        className={`${open ? "flex" : "hidden"} md:flex flex-col divide-y divide-line-faint
+                    md:flex-row md:flex-wrap md:items-center md:divide-y-0 md:gap-x-5 md:gap-y-1.5`}
+      >
+        {rows.map((row) => {
+          const off = Boolean(row.reason);
+          return (
+            <li key={row.href} className="min-w-0 md:w-auto">
+              <Link href={row.href} data-row className={`${rowClass} ${off ? "text-ink-faint" : "text-ink-strong"}`}>
+                <row.Icon className="h-4 w-4 flex-none" aria-hidden strokeWidth={2} />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5">
+                    {row.title}
+                    {off ? (
+                      <Chip>{t("studio.hub.chip.off")}</Chip>
+                    ) : (
+                      row.factLine?.map((f) => (
+                        <Chip key={f.text} fact amber={f.amber}>
+                          {f.text}
+                        </Chip>
+                      ))
+                    )}
+                  </span>
+                  {/* The reason a row cannot run right now — kept on phone
+                      (acceptance §6); the compact desktop row leans on the
+                      "off" chip alone, the same way Print's own cards do. */}
+                  {row.reason && <span data-desc className="mt-0.5 block text-[12.5px] italic leading-snug text-ink-secondary md:hidden">{row.reason}</span>}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+        <li className="min-w-0 md:w-auto">
+          <button type="button" aria-expanded={tileOpen === "export"} onClick={() => toggleTile("export")} className={`${rowClass} text-ink-strong`}>
+            <Download className="h-4 w-4 flex-none" aria-hidden strokeWidth={2} />
+            {t("me.exportTitle")}
+          </button>
+        </li>
+        <li className="min-w-0 md:w-auto">
+          <button type="button" aria-expanded={tileOpen === "delete"} onClick={() => toggleTile("delete")} className={`${rowClass} text-coral-600`}>
+            <Trash2 className="h-4 w-4 flex-none" aria-hidden strokeWidth={2} />
+            {t("me.deleteTitle")}
+          </button>
+        </li>
+      </ul>
+      {tileOpen === "export" ? <ExportAccount key="export" username={username} open onClose={() => setTileOpen(null)} /> : null}
+      {tileOpen === "delete" ? <DeleteAccount key="delete" username={username} open onClose={() => setTileOpen(null)} /> : null}
+    </section>
   );
 }
 

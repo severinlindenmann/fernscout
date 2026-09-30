@@ -5,7 +5,8 @@ import BusyButton from "@/components/BusyButton";
 import type { Locale } from "@/lib/types";
 import { DOOR_PRIMARY, DOOR_SECONDARY } from "./AddPersonDoor";
 import ShareLink from "./ShareLink";
-import type { Count, Translate } from "./shared";
+import { GroupPicker } from "./groups";
+import type { AdminGroup, Count, Translate } from "./shared";
 
 const FIELD =
   "mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong";
@@ -31,6 +32,7 @@ export default function InviteLinkDoor({
   trips,
   t,
   tn,
+  groups = [],
   onCreated,
   journalTitle = username,
   siteName = "Fernscout",
@@ -40,6 +42,8 @@ export default function InviteLinkDoor({
   trips: { id: string; title: string }[];
   t: Translate;
   tn: Count;
+  /** TIX-6 — the owner's reader groups; the picker is absent while there are none. */
+  groups?: AdminGroup[];
   onCreated: () => void;
   /** The journal's own title — the share text's "{trip}" for a guest link
    *  (B2444); a buddy link uses the trip's own title instead. */
@@ -51,6 +55,7 @@ export default function InviteLinkDoor({
   const [tripId, setTripId] = useState(trips[0]?.id ?? "");
   const [note, setNote] = useState("");
   const [days, setDays] = useState<(typeof DAYS)[number]>(30);
+  const [groupId, setGroupId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
@@ -68,6 +73,7 @@ export default function InviteLinkDoor({
           ...(kind === "buddy" ? { trip: tripId } : {}),
           ...(note.trim() ? { name: note.trim() } : {}),
           expiresAt: new Date(Date.now() + days * 86_400_000).toISOString(),
+          ...(groupId ? { group: groupId } : {}),
         }),
       });
       const body = (await response.json().catch(() => null)) as
@@ -190,6 +196,15 @@ export default function InviteLinkDoor({
               </select>
             </label>
           </div>
+          <GroupPicker
+            groups={groups}
+            value={groupId}
+            onChange={setGroupId}
+            legend={t("readers.groups.linkLegend")}
+            hint={t("readers.groups.linkHint")}
+            noneLabel={t("readers.groups.none")}
+            name="link-group"
+          />
           <p className="text-sm text-ink-secondary">{t("readers.link.promise")}</p>
           {error && (
             <p role="alert" className="text-sm text-coral-600">

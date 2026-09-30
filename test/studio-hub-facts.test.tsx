@@ -139,10 +139,10 @@ describe("the Half done strip", () => {
     expect(s.textContent).toContain("A day you started, not finished");
     expect(s.textContent).toContain("4 photographs");
     expect(s.textContent).toContain("Zermatt");
-    // Under the hero, above the group cards.
+    // Under the hero and Today's own card, above "Everything else"'s grid.
     const hero = el.querySelector("a[data-hero]")!;
     expect(hero.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(s.compareDocumentPosition(el.querySelector("section[data-group]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(s.compareDocumentPosition(el.querySelector("#tripsPeople")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   // A day not yet named has `title: ""`, and the card used to print „“ for
@@ -197,15 +197,23 @@ describe("B2134 — hub facts and layout", () => {
     expect(dupes).toHaveLength(0);
   });
 
-  test("Plan has no plan-readers row, and the trip row is called Trips", async () => {
+  // B2600 — Plan's own rows moved into Trips & people's #plan anchor, and
+  // the trip row is renamed "Your trips" there.
+  test("Plan has no plan-readers row, and the trip row is called Your trips", async () => {
     const el = await render(FULL);
     expect(el.querySelector('#plan a[href="/@alex/studio/trip/plan-readers"]')).toBeNull();
-    expect(el.querySelector('#plan a[href="/@alex/studio/trip"]')?.querySelector("span span")?.textContent).toBe("Trips");
+    expect(el.querySelector('#plan a[href="/@alex/studio/trip"]')?.querySelector("span span")?.textContent).toBe("Your trips");
   });
 
-  test("group headers carry no row count", async () => {
+  // B2600 — card titles live on each disclosure's own button now, not an
+  // `<h2>` (only "Today" and "Everything else" are h2s); the rule still
+  // holds for them.
+  test("card titles carry no row count", async () => {
     const el = await render(FULL);
-    for (const h of Array.from(el.querySelectorAll("section[data-group] h2"))) expect(h.textContent).not.toMatch(/\d/);
+    for (const b of Array.from(el.querySelectorAll("section[data-group] > button"))) {
+      const title = b.querySelector(".font-display")?.textContent ?? "";
+      expect(title).not.toMatch(/\d/);
+    }
   });
 });
 

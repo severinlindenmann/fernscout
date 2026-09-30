@@ -39,9 +39,11 @@ function boundsFor(points: readonly { lat: number; lng: number }[]): [[number, n
   const maxLng = Math.max(...lngs);
   const padLat = Math.max((maxLat - minLat) * 0.35, 0.03);
   const padLng = Math.max((maxLng - minLng) * 0.35, 0.03);
+  // Clamped to what Web Mercator (and a globe's fit) can take — a padded
+  // tour across continents otherwise runs past the poles (B2604).
   return [
-    [minLng - padLng, minLat - padLat],
-    [maxLng + padLng, maxLat + padLat],
+    [Math.max(minLng - padLng, -180), Math.max(minLat - padLat, -85)],
+    [Math.min(maxLng + padLng, 180), Math.min(maxLat + padLat, 85)],
   ];
 }
 
@@ -286,8 +288,11 @@ export default function MapPageContent({
   // none at all.
   const activeStreetMap = useMemo(() => {
     // A tour is shown whole on the world map; one region's street file
-    // cannot frame the whole world (the bounds run past 90° latitude).
-    if (!streetMap || frame.isTour) return null;
+    // cannot frame the whole world (the bounds run past 90° latitude) —
+    // except a tour across continents, which opens on a globe (B2604) over
+    // the world underlay every street map carries, with its bounds clamped.
+    if (!streetMap || (frame.isTour && !frame.globe)) return null;
+    if (frame.isTour) return streetMap;
     if (!streetMapRegions || streetMapRegions.length === 0) return streetMap;
     const currentRegionPlaces = frame.regions[regionIndex]?.places ?? [];
     if (currentRegionPlaces.length === 0) return streetMap;
@@ -741,6 +746,7 @@ export default function MapPageContent({
               padding={{ top: 70, bottom: sheetInset + 56, left: 40, right: 40 }}
               pmtilesUrl={activeStreetMap.url}
               onReady={onStreetMapReady}
+              globe={frame.globe}
               className="h-full w-full"
             />
           ) : hasPlaces || plan.length > 0 || track.length > 0 ? (
