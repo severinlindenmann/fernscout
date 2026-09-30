@@ -204,3 +204,11 @@ export async function downloadFontRanges(dir: string): Promise<void> {
     }
   }
 }
+
+/** B2567: bytes that must be free before downloading a `remote`-byte file
+ * of which `partial` bytes already sit on disk from an earlier, broken run —
+ * the rest, plus 10% for the filesystem and everything else on the box. The
+ * old file keeps serving until the rename, so it is not counted as free. */
+export function bytesNeededFor(remote: number, partial: number): number {
+  return Math.max(0, remote - partial) + Math.ceil(remote * 0.1);
+}
