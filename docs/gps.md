@@ -312,15 +312,14 @@ PUT  /api/v2/<user>/gps/zones
 
 Owner only — a trip-scoped, guest, or narrower agent token (such as the
 recorder's own `write:gps`, B2204) is refused; a zone is journal-wide, not one
-trip's. `GET` answers with the zones exactly as the owner typed them, the
-decline flag (below), and the limits a caller needs before hitting them
-(`maxZones`, `radiusM.min`/`.max`). This is not the coordinate leak the rest
-of this document warns about: a zone is what the owner *entered* — a label, a
-place, a radius — never a position read out of the store. `PUT` replaces the
-whole zone list; sending `homeDeclined` alone changes only that flag, and
-leaving `zones` out is refused (`invalid_request`) rather than guessed as "no
-change" — the same "every accepted field is readable back, nothing is
-inferred" rule every v2 write follows.
+trip's. `GET` answers with the zones exactly as the owner typed them, and the
+limits a caller needs before hitting them (`maxZones`, `radiusM.min`/`.max`).
+This is not the coordinate leak the rest of this document warns about: a zone
+is what the owner *entered* — a label, a place, a radius — never a position
+read out of the store. `PUT` replaces the whole zone list; leaving `zones` out
+is refused (`invalid_request`) rather than guessed as "no change" — the same
+"every accepted field is readable back, nothing is inferred" rule every v2
+write follows.
 
 The studio's own copy of this door, `/api/web/<user>/gps/zones`, answers the
 owner's browser cookie instead of a bearer token — same domain functions
@@ -344,16 +343,15 @@ standalone purge (`purgeGpsHistory`, B1843 addendum, below) does the same:
 whole months of history disappearing from the store must not leave a tail
 still answering for fixes that no longer exist.
 
-**Any saved zone** is what `hasHomeZoneOrDeclined` (`lib/gps/api.ts`) looks
-for, whatever its label — "home", "Zuhause" and "otthon" are the same answer.
-B2196's recorder needs one yes-or-no answer before it may start at all —
-either a zone exists, or the owner has explicitly said they do not want one. The decline itself lives beside `exclude.json`, not
-inside it — `content/<user>/gps/home-declined.json`, `{"declined": true}` —
-because "the owner said no" is a different fact from "here is a place",
-recorded next to the array rather than folded into its one documented shape.
-Both files are under `gps/`, so both are covered by the same private-store
-rules as `exclude.json` itself: never exported, never reachable by any route
-under `app/` except through `lib/gps/api.ts`.
+**Recording no longer waits on a saved zone — B2568.** B2196's recorder used
+to refuse to arm until the owner had either saved one or explicitly declined
+(`hasHomeZoneOrDeclined`, the sibling `home-declined.json` file it read); the
+owner found being forced into that choice before they could record anything
+at all more annoying than useful, so both are gone. Private zones themselves
+are unchanged — still optional, still clip every route the moment one is
+saved (above) — only the arming gate is removed. A `home-declined.json` a
+journal wrote before this shipped is simply never read again; nothing deletes
+it, and nothing needs to.
 
 ## What it looks like
 
