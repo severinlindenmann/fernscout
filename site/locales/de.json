@@ -4634,5 +4634,8 @@
   "billing.aiDaysUnlimited": "KI: unbegrenzt (Abrechnung ist auf dieser Instanz deaktiviert)",
   "billing.storage": "{size} Speicherplatz",
   "billing.dryRunSent": "Anfrage gesendet — bitte den Betreiber, sie zu bestätigen.",
-  "billing.checkoutFailed": "Konnte nicht gestartet werden. Bitte erneut versuchen."
+  "billing.checkoutFailed": "Konnte nicht gestartet werden. Bitte erneut versuchen.",
+  "billing.managedByApple": "Verwaltet von Apple",
+  "billing.restorePurchases": "Käufe wiederherstellen",
+  "billing.restoreDone": "Erledigt."
 }

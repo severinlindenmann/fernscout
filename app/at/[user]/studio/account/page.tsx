@@ -161,6 +161,7 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
       aiDays: status.unlimited ? { unlimited: true } : { unlimited: false, used: status.used, allowed: status.allowed },
       storageGb: current.limits.storageGb,
       hasStripeSubscription: current.plan === "plus" && current.source === "stripe",
+      source: current.source,
     };
   }
 

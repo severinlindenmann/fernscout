@@ -4638,5 +4638,8 @@
   "billing.aiDaysUnlimited": "IA: illimitata (la fatturazione è disattivata su questa istanza)",
   "billing.storage": "{size} di spazio",
   "billing.dryRunSent": "Richiesta inviata — chiedi all'operatore di approvarla.",
-  "billing.checkoutFailed": "Impossibile avviare. Riprova."
+  "billing.checkoutFailed": "Impossibile avviare. Riprova.",
+  "billing.managedByApple": "Gestito da Apple",
+  "billing.restorePurchases": "Ripristina acquisti",
+  "billing.restoreDone": "Fatto."
 }

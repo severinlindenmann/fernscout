@@ -1,0 +1,62 @@
+{
+  "identifier" : "00000000-0000-0000-0000-000000000001",
+  "nonRenewingSubscriptions" : [
+    {
+      "displayPrice" : "22.00",
+      "familyShareable" : false,
+      "internalID" : "0000000000001",
+      "localizations" : [
+        {
+          "description" : "AI for 21 travel days within 45 days, one printed postcard included.",
+          "displayName" : "Trip pass",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "ch.fernscout.pass",
+      "referenceName" : "Trip pass",
+      "type" : "NonRenewingSubscription"
+    }
+  ],
+  "products" : [],
+  "settings" : {
+    "_disableDialogForFullyExpandableViewLayout" : false,
+    "_locale" : "en_US",
+    "_storefront" : "CHE",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000002",
+      "localizations" : [],
+      "name" : "Fernscout Plus",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "59.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "0000000000002",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "AI for 100 travel days a year, 3 printed postcards included, CHF 10 off every photobook.",
+              "displayName" : "Plus",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "ch.fernscout.plus.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Plus (yearly)",
+          "subscriptionGroupID" : "00000000-0000-0000-0000-000000000002",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

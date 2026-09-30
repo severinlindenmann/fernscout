@@ -4635,5 +4635,8 @@
   "billing.aiDaysUnlimited": "AI: korlátlan (ezen a példányon a számlázás ki van kapcsolva)",
   "billing.storage": "{size} tárhely",
   "billing.dryRunSent": "A kérés elküldve — kérd meg az üzemeltetőt, hogy hagyja jóvá.",
-  "billing.checkoutFailed": "Nem sikerült elindítani. Próbáld újra."
+  "billing.checkoutFailed": "Nem sikerült elindítani. Próbáld újra.",
+  "billing.managedByApple": "Az Apple kezeli",
+  "billing.restorePurchases": "Vásárlások visszaállítása",
+  "billing.restoreDone": "Kész."
 }

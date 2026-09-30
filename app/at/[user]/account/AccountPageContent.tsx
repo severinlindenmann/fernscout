@@ -561,11 +561,17 @@ export type PlanPanel = {
   storageGb: number;
   /** Only Plus, bought through Stripe, has a subscription to manage. */
   hasStripeSubscription: boolean;
+  /** `null` on Free (which has no entitlement row to name a source). An
+   *  `apple` plan is managed in the App Store, not here — B2598. */
+  source: "stripe" | "apple" | "admin" | null;
 };
 
 /** Buy a plan, or ask the operator to grant it when no Stripe key is
  *  configured (`dryRun`) — the same "ask, don't act" shape `BuyStorageButton`
- *  and `submitRequest` already take for credits. */
+ *  and `submitRequest` already take for credits.
+ *
+ *  Inside the iPhone shell this buys through StoreKit instead — Apple
+ *  3.1.3(b) forbids pointing an in-app button at a web checkout — B2598. */
 function BuyPlanButton({
   username,
   plan,
@@ -576,12 +582,26 @@ function BuyPlanButton({
   label: string;
 }) {
   const { t } = useI18n();
+  const native = useNativeShell();
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<"idle" | "failed" | "sent">("idle");
 
   async function buy() {
     setBusy(true);
     setState("idle");
+
+    if (native) {
+      const { buyApplePlan } = await import("@/components/nativeShell");
+      const result = await buyApplePlan(username, plan).catch(() => ({ ok: false as const, reason: "failed" as const }));
+      setBusy(false);
+      if (!result.ok) {
+        if (result.reason !== "cancelled") setState("failed");
+        return;
+      }
+      window.location.reload();
+      return;
+    }
+
     const response = await fetch(`/api/web/${username}/billing/checkout`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -625,6 +645,22 @@ function BuyPlanButton({
   );
 }
 
+/** An Apple-sourced plan is managed in the App Store, not here — B2598.
+ *  `itms-apps://apps.apple.com/account/subscriptions` opens Apple's own
+ *  subscription settings; outside the shell it still works (Safari hands it
+ *  to the App Store app), so no `useNativeShell` gate is needed here. */
+function ManagedByApple() {
+  const { t } = useI18n();
+  return (
+    <a
+      href="itms-apps://apps.apple.com/account/subscriptions"
+      className="inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-base"
+    >
+      {t("billing.managedByApple")}
+    </a>
+  );
+}
+
 /** The Customer Portal — cancel, update the card, see invoices. */
 function ManageSubscriptionButton({ username }: { username: string }) {
   const { t } = useI18n();
@@ -665,6 +701,7 @@ function ManageSubscriptionButton({ username }: { username: string }) {
 
 function YourPlanPanel({ username, plan }: { username: string; plan: PlanPanel }) {
   const { t } = useI18n();
+  const native = useNativeShell();
   const planTag = t(`plans.${plan.plan}` as "plans.free");
   const dateStr = plan.periodEnd ? plan.periodEnd.slice(0, 10) : null;
 
@@ -697,10 +734,46 @@ function YourPlanPanel({ username, plan }: { username: string; plan: PlanPanel }
 
       <div className="mt-4 flex flex-wrap gap-3">
         {plan.hasStripeSubscription && <ManageSubscriptionButton username={username} />}
+        {plan.source === "apple" && <ManagedByApple />}
         {plan.plan !== "plus" && <BuyPlanButton username={username} plan="plus" label={t("billing.buyPlus")} />}
         {plan.plan === "free" && <BuyPlanButton username={username} plan="pass" label={t("billing.buyPass")} />}
       </div>
+      {native && <RestoreApplePurchasesButton username={username} />}
     </div>
+  );
+}
+
+/** "Restore purchases" — App Store guideline 3.1.2: a purchase made on
+ *  another device (or after a reinstall) must be recoverable without a new
+ *  charge. Shown only in the shell, since it is meaningless on the web —
+ *  B2598. */
+function RestoreApplePurchasesButton({ username }: { username: string }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<"idle" | "done" | "failed">("idle");
+
+  async function restore() {
+    setBusy(true);
+    setState("idle");
+    try {
+      const { restoreApplePurchases } = await import("@/components/nativeShell");
+      await restoreApplePurchases(username);
+      setState("done");
+    } catch {
+      setState("failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <p className="mt-3 text-sm">
+      <button type="button" disabled={busy} onClick={restore} className="font-semibold text-ink-body underline decoration-line-strong underline-offset-2 hover:text-ink-strong disabled:opacity-50">
+        {t("billing.restorePurchases")}
+      </button>
+      {state === "done" && <span className="ml-2 text-ink-secondary">{t("billing.restoreDone")}</span>}
+      {state === "failed" && <span className="ml-2 text-coral-600">{t("billing.checkoutFailed")}</span>}
+    </p>
   );
 }
 

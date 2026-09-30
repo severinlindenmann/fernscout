@@ -4629,5 +4629,8 @@
   "billing.aiDaysUnlimited": "AI: unlimited (billing is off on this instance)",
   "billing.storage": "{size} of storage",
   "billing.dryRunSent": "Request sent — ask the operator to approve it.",
-  "billing.checkoutFailed": "Could not start this. Try again."
+  "billing.checkoutFailed": "Could not start this. Try again.",
+  "billing.managedByApple": "Managed by Apple",
+  "billing.restorePurchases": "Restore purchases",
+  "billing.restoreDone": "Done."
 }
