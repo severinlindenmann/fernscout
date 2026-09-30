@@ -227,7 +227,7 @@ export async function POST(
       await logMessage({
         template: "news.mail",
         flow: "newday",
-        channel,
+        channel: "mail",
         to: getUser(user)?.owner.email ?? user,
         owner: user,
         status: "skipped",
