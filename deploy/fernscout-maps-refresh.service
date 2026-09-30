@@ -1,0 +1,35 @@
+# One refresh of the street maps (B2567). Driven by
+# fernscout-maps-refresh.timer, not enabled directly.
+#
+# Both files come from the same Protomaps build (yesterday's, pinned once
+# here as MAPS_SOURCE), so the z0–6 underlay and the street-level world file
+# never mix schema versions. Each script writes beside the live file and
+# renames over it only once the new one checks out; a failure leaves the old
+# files serving and is mailed by the alert handler. maps:planet refuses to
+# start when the disk cannot hold the download. Card caches redraw on their
+# own: a file's mtime is part of their key.
+[Unit]
+Description=Fernscout street-map refresh
+After=network-online.target
+Wants=network-online.target
+OnFailure=fernscout-alert@%n.service
+
+[Service]
+Type=oneshot
+User=fernscout
+Group=fernscout
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/env
+ExecStart=/bin/sh -c 'export MAPS_SOURCE="https://build.protomaps.com/$(date -u -d yesterday +%%Y%%m%%d).pmtiles"; echo "build $MAPS_SOURCE"; /usr/bin/npm run -s maps:planet && /usr/bin/npm run -s maps:world'
+# A 130 GB download: minutes with aria2c, hours over plain curl.
+TimeoutStartSec=12h
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/fernscout
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout-maps-refresh

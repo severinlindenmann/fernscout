@@ -23,8 +23,12 @@ async function main() {
   fs.mkdirSync(dir, { recursive: true });
   const source = mapsSource();
   const out = path.join(dir, "world.pmtiles");
+  // Written beside the live file and renamed over it (B2567): the monthly
+  // refresh runs while the site serves this file.
+  const part = `${out}.new`;
   console.error(`Extracting z0–6 world from ${source} to ${out} …`);
-  runPmtilesExtract([source, out, "--maxzoom=6"]);
+  runPmtilesExtract([source, part, "--maxzoom=6"]);
+  fs.renameSync(part, out);
   await downloadFontRanges(dir);
   console.error(`Done. features.streetMaps can now be enabled once MAPS_DIR is set on the server.`);
 }
