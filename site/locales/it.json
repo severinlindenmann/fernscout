@@ -3261,6 +3261,7 @@
   "studio.location.positions.speedUnit": "{speed} km/h",
   "studio.location.positions.gap": "Nessuna posizione per {hours} h {minutes} min",
   "studio.location.positions.gapMinutes": "Nessuna posizione per {minutes} min",
+  "studio.location.positions.spike": "Accantonato: salto di {km} km in {seconds} s",
   "studio.location.positions.hiddenSpot": "Punto nascosto",
   "studio.location.positions.note": "Le posizioni salvate sono diradate, quindi non è ogni punto rilevato dal telefono. Il telefono non invia la precisione. Linea retta e velocità media si calcolano rispetto alla riga precedente.",
   "studio.location.positions.detail.modeFromPhone": "{mode}, secondo il telefono",

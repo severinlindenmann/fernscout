@@ -3263,6 +3263,7 @@
   "studio.location.positions.speedUnit": "{speed} km/h",
   "studio.location.positions.gap": "Nincs pozíció {hours} óra {minutes} percig",
   "studio.location.positions.gapMinutes": "Nincs pozíció {minutes} percig",
+  "studio.location.positions.spike": "Félretéve: {km} km-es ugrás {seconds} s alatt",
   "studio.location.positions.hiddenSpot": "Elrejtett hely",
   "studio.location.positions.note": "A tárolt pozíciók ritkítottak, tehát nem minden pontot mutatnak, amit a telefon rögzített. A telefon nem küld pontossági adatot. A légvonal és az átlagsebesség az előző sorhoz képest számolódik.",
   "studio.location.positions.detail.modeFromPhone": "{mode}, a telefon szerint",

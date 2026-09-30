@@ -3261,6 +3261,7 @@
   "studio.location.positions.speedUnit": "{speed} km/h",
   "studio.location.positions.gap": "Aucune position pendant {hours} h {minutes} min",
   "studio.location.positions.gapMinutes": "Aucune position pendant {minutes} min",
+  "studio.location.positions.spike": "Mis de côté : saut de {km} km en {seconds} s",
   "studio.location.positions.hiddenSpot": "Endroit masqué",
   "studio.location.positions.note": "Les positions enregistrées sont allégées, ce n'est donc pas chaque point relevé par le téléphone. Le téléphone n'envoie pas de précision. La ligne droite et la vitesse moyenne se calculent depuis la ligne précédente.",
   "studio.location.positions.detail.modeFromPhone": "{mode}, d'après le téléphone",

@@ -80,6 +80,21 @@ export default async function DayPage({
     }
   }
 
+  // B2568 — a fix `ownerLine.spike` flags is a one-point GPS glitch
+  // (`lib/gps/spikes.ts`): still stored, but left out of every drawn line,
+  // the day's own km and the range bar's selection stats. Two adjacent
+  // fixes either side of a removed spike are never more than the spike
+  // detector's own 60s neighbour window apart (`spikeIndices`), so joining
+  // them directly is never itself a real gap.
+  const cleanIndices = ownerLine ? ownerLine.points.map((_, i) => i).filter((i) => !ownerLine.spike[i]) : [];
+  const cleanPoints = cleanIndices.map((i) => ownerLine!.points[i]);
+  const cleanTimes = cleanIndices.map((i) => ownerLine!.times[i]);
+  const cleanModes = cleanIndices.map((i) => ownerLine!.modes[i]);
+  const cleanGapAfter = cleanIndices.slice(0, -1).map((i, j) => {
+    const next = cleanIndices[j + 1];
+    return next === i + 1 ? ownerLine!.gapAfter[i] : false;
+  });
+
   // B2563 T5 — built server-side, straight from `ownerLine`'s own arrays;
   // no new reader of the store (`ownerDayLine` already carries `times`/
   // `modes`), and `lib/gps/positionRows.ts`'s pure builder does the
@@ -98,6 +113,7 @@ export default async function DayPage({
       times: ownerLine.times,
       modes: ownerLine.modes,
       gapAfter: ownerLine.gapAfter,
+      spike: ownerLine.spike,
       placeFor: (lat, lon) => townNameFor(lat, lon, ""),
       hiddenByFor: (lat, lon) =>
         resolveHiddenBy(
@@ -117,6 +133,12 @@ export default async function DayPage({
             hours === 0
               ? t("studio.location.positions.gapMinutes", { minutes: String(Number(minutes)) })
               : t("studio.location.positions.gap", { hours: String(hours), minutes }),
+        };
+      }
+      if (row.kind === "spike") {
+        return {
+          kind: "spike",
+          label: t("studio.location.positions.spike", { km: row.km.toFixed(1), seconds: String(row.seconds) }),
         };
       }
       fixCount++;
@@ -198,8 +220,8 @@ export default async function DayPage({
       ) : tab === "positions" && ownerLine ? (
         <PositionsTable
           rows={positionRows}
-          points={ownerLine.points}
-          gapAfter={ownerLine.gapAfter}
+          points={cleanPoints}
+          gapAfter={cleanGapAfter}
           region={region}
           streetMapsOn={streetMapsOn}
           timezone={ownerLine.timezone}
@@ -211,10 +233,10 @@ export default async function DayPage({
           username={user}
           tripId={tripId}
           date={date}
-          points={ownerLine.points}
-          times={ownerLine.times}
-          modes={ownerLine.modes}
-          gapAfter={ownerLine.gapAfter}
+          points={cleanPoints}
+          times={cleanTimes}
+          modes={cleanModes}
+          gapAfter={cleanGapAfter}
           timezone={ownerLine.timezone}
           region={region}
           streetMapsOn={streetMapsOn}

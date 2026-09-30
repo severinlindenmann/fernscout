@@ -35,6 +35,7 @@ import {
   type TrackEdits,
 } from "./edits";
 import { recordingState, type RecordingState } from "./recorderState";
+import { spikeIndices } from "./spikes";
 import { reverseGeocode } from "../ingest/geo";
 import { earliestTodayISO } from "../tripTime";
 import { timezoneForCoordinates, zonedTimeToUtc } from "../timezone";
@@ -1084,13 +1085,19 @@ const DAY_GAP_METRES = 600;
  * same day's own zone `localWindow` resolved this call's window from
  * (`"UTC"` when the day carries none) — what the day page needs to show and
  * submit a stretch's `from`/`to` as the wall clock `writeTrackEdits`
- * expects, never the browser's own zone (see `./edits.ts`'s module doc). */
+ * expects, never the browser's own zone (see `./edits.ts`'s module doc).
+ * `spike` (B2568) flags a fix as a one-point GPS glitch — see
+ * `lib/gps/spikes.ts` — parallel to `points`, so a caller can leave that one
+ * index out of a drawn line or a km/stats sum without a second read of the
+ * store; the fix itself is never dropped from `points` here, only marked,
+ * since the store keeps every fix it was ever given (see `docs/gps.md`). */
 export type OwnerDayLine = {
   points: [number, number][];
   gapAfter: boolean[];
   times: number[];
   modes: (TransportMode | undefined)[];
   timezone: string;
+  spike: boolean[];
 };
 
 /**
@@ -1119,7 +1126,9 @@ export function ownerDayLine(username: string, tripId: string, date: string): Ow
     const distM = metresBetween(fixes[i - 1], fixes[i]);
     gapAfter.push(dtMs > DAY_GAP_MS && distM > DAY_GAP_METRES);
   }
-  return { points, gapAfter, times, modes, timezone };
+  const spikeAt = spikeIndices(fixes);
+  const spike = fixes.map((_, i) => spikeAt.has(i));
+  return { points, gapAfter, times, modes, timezone, spike };
 }
 
 /**

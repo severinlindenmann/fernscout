@@ -38,7 +38,20 @@ type PositionGapRow = {
   ms: number;
 };
 
-export type PositionRow = PositionFixRow | PositionGapRow;
+/** A fix `spikeIndices` (`lib/gps/spikes.ts`) flagged as a one-point GPS
+ *  glitch — B2568. Still identified by its own `index` (the fix is never
+ *  dropped from the store, only left out of the drawn line and the
+ *  distance/speed chain below), carrying the jump's own km and seconds
+ *  rather than a place, mode or "hidden by": none of those describe a fix
+ *  nobody actually visited. */
+type PositionSpikeRow = {
+  kind: "spike";
+  index: number;
+  km: number;
+  seconds: number;
+};
+
+export type PositionRow = PositionFixRow | PositionGapRow | PositionSpikeRow;
 
 /** Great-circle metres — restated rather than imported, the same call
  * `DayStretchEditor.tsx` and `lib/gps/edits.ts` each already make: nothing
@@ -57,20 +70,40 @@ export function buildPositionRows(input: {
   times: number[];
   modes: (TransportMode | undefined)[];
   gapAfter: boolean[];
+  /** `ownerDayLine`'s own `spike` array (B2568) — absent (every caller
+   *  before this ticket) treats every fix as real. */
+  spike?: boolean[];
   placeFor: (lat: number, lon: number) => string;
   hiddenByFor: (lat: number, lon: number, epochMs: number) => string | undefined;
 }): PositionRow[] {
-  const { points, times, modes, gapAfter, placeFor, hiddenByFor } = input;
+  const { points, times, modes, gapAfter, spike, placeFor, hiddenByFor } = input;
   const rows: PositionRow[] = [];
+  // The last row that was a real fix, not a spike — B2568: the distance/speed
+  // chain below skips a spike entirely, the same way it already skips across
+  // a gap, so the row after one is not shown jumping from a point nobody
+  // actually visited.
+  let lastRealIndex: number | undefined;
   for (let i = 0; i < points.length; i++) {
     const [lat, lon] = points[i];
+    if (spike?.[i]) {
+      const from = lastRealIndex !== undefined ? points[lastRealIndex] : points[i - 1];
+      const fromT = lastRealIndex !== undefined ? times[lastRealIndex] : times[i - 1];
+      rows.push({
+        kind: "spike",
+        index: i,
+        km: metresBetween({ lat: from[0], lon: from[1] }, { lat, lon }) / 1000,
+        seconds: Math.round((times[i] - fromT) / 1000),
+      });
+      if (gapAfter[i]) rows.push({ kind: "gap", afterIndex: i, ms: times[i + 1] - times[i] });
+      continue;
+    }
     const afterGap = i > 0 && gapAfter[i - 1];
     let distanceM: number | undefined;
     let speedKmh: number | undefined;
-    if (i > 0 && !afterGap) {
-      const [prevLat, prevLon] = points[i - 1];
+    if (lastRealIndex !== undefined && !afterGap) {
+      const [prevLat, prevLon] = points[lastRealIndex];
       distanceM = Math.round(metresBetween({ lat: prevLat, lon: prevLon }, { lat, lon }));
-      const hours = (times[i] - times[i - 1]) / 3_600_000;
+      const hours = (times[i] - times[lastRealIndex]) / 3_600_000;
       speedKmh = hours > 0 ? distanceM / 1000 / hours : 0;
     }
     rows.push({
@@ -85,6 +118,7 @@ export function buildPositionRows(input: {
       speedKmh,
       hiddenBy: hiddenByFor(lat, lon, times[i]),
     });
+    lastRealIndex = i;
     if (gapAfter[i]) rows.push({ kind: "gap", afterIndex: i, ms: times[i + 1] - times[i] });
   }
   return rows;

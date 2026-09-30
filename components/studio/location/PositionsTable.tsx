@@ -33,7 +33,10 @@ export type DisplayFixRow = {
   epochSeconds: number;
 };
 type DisplayGapRow = { kind: "gap"; label: string };
-export type DisplayRow = DisplayFixRow | DisplayGapRow;
+/** A fix `spikeIndices` flagged as a one-point GPS glitch (B2568) — already
+ *  localised into one line ("Set aside: 1.4 km jump in 1 s") server-side. */
+type DisplaySpikeRow = { kind: "spike"; label: string };
+export type DisplayRow = DisplayFixRow | DisplayGapRow | DisplaySpikeRow;
 
 export default function PositionsTable({
   rows,
@@ -115,8 +118,8 @@ export default function PositionsTable({
             </thead>
             <tbody>
               {rows.map((row, i) =>
-                row.kind === "gap" ? (
-                  <tr key={`gap-${i}`} className="bg-surface-subtle">
+                row.kind === "gap" || row.kind === "spike" ? (
+                  <tr key={`${row.kind}-${i}`} className="bg-surface-subtle">
                     <td colSpan={8} className="sticky left-0 px-3 py-2 text-left italic text-ink-secondary">
                       {row.label}
                     </td>
