@@ -351,15 +351,13 @@ describe("the details panel, inline", () => {
 
   test("renders the form in its own dictionary, independent of the page's", () => {
     const html = render({ viewer: reader, contactsEnabled: true, manage });
-    // The page around it stayed English (`me.details`, from `render()`'s
+    // The page around it stayed English (`me.editDetails`, from `render()`'s
     // fixed `LocaleProvider`) while the form inside it is the German
     // `manage.dictionary` — both present at once, proving one does not leak
     // into or override the other. `contact.name` rather than
-    // `contact.manageTitle`: the latter happens to read "Your details" in
-    // English too — the same string `me.details` already put on the page —
-    // so it can't tell "the form went German" apart from "it never left
-    // English" the way a label with no such coincidence can.
-    expect(html).toContain(dictionaryFor("en")["me.details"]);
+    // `contact.manageTitle`: a label with no English twin on the page tells
+    // "the form went German" apart from "it never left English".
+    expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
     expect(html).toContain(dictionaryFor("de")["contact.name"]);
     expect(html).not.toContain(`>${dictionaryFor("en")["contact.name"]}<`);
   });
@@ -375,9 +373,8 @@ describe("the details panel, inline", () => {
     const html = render({ viewer: owner, contactsEnabled: true, manage });
     expect(html).toContain('value="Fam. Peter"');
     expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
-    // The owner's own wording, not the guest's.
-    expect(html).toContain(dictionaryFor("en")["me.detailsBodyOwner"]);
-    expect(html).not.toContain(dictionaryFor("en")["me.detailsBody"]);
+    // B2574 — the button alone, no heading or paragraph above it.
+    expect(html).not.toContain("Sending to yourself costs nothing");
   });
 
   test("an owner with no row yet gets the add-my-details button instead of the form", () => {
@@ -388,7 +385,8 @@ describe("the details panel, inline", () => {
 
   test("nothing at all without contacts enabled, even for the owner", () => {
     const html = render({ viewer: owner, contactsEnabled: false });
-    expect(html).not.toContain(dictionaryFor("en")["me.details"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.editDetails"]);
+    expect(html).not.toContain(dictionaryFor("en")["me.detailsAddSelf"]);
   });
 });
 
@@ -491,15 +489,15 @@ describe("what somebody on a trip is told they can write", () => {
 
   test("no longer reads that nothing here can be edited", () => {
     const html = render({ viewer: buddy, contactsEnabled: true, manage: record });
-    expect(html).toContain(dictionaryFor("en")["me.detailsBodyTraveller"]);
-    expect(html).not.toContain(dictionaryFor("en")["me.detailsBody"]);
+    expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
+    expect(html).not.toContain("is written by an agent");
   });
 
-  test("a guest of the journal gets none of it, and the sentence is unchanged", () => {
+  test("a guest of the journal gets none of it, only their own details button", () => {
     const html = render({ viewer: guestOnly, contactsEnabled: true, manage: record });
     expect(html).not.toContain(dictionaryFor("en")["me.buddyTitle"]);
     expect(html).not.toContain("/api/auth/codes/redeem");
-    expect(html).toContain(dictionaryFor("en")["me.detailsBody"]);
+    expect(html).toContain(dictionaryFor("en")["me.editDetails"]);
   });
 
   test("and neither does a stranger, who has no address to ask for a code with", () => {
