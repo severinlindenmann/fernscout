@@ -41,7 +41,6 @@ export const PLANS = {
     renewalReminderDays: 30,
   },
   prints: {
-    whatsappPostcardRappen: 100,
     postcardRappen: 390,
     photobookFromPages: 28,
     photobookFromRappen: 3690,
