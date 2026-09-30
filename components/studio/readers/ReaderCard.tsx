@@ -211,6 +211,7 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
   /** TIX-6 — a label, not a door: no confirmation, re-read the page after. */
   async function saveGroup(body: Record<string, unknown>) {
     setGroupFailed(false);
+    // no-refresh: env.refresh() below is ReadersAdmin's own router.refresh().
     const response = await fetch(`/api/web/${encodeURIComponent(env.username)}/readers/group`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -262,7 +263,10 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
                 </button>
               )}
               {kind === "revoked" && group && (
-                <span className="ml-2 text-xs text-ink-secondary">{t("readers.groups.keeps", { group: group.name })}</span>
+                <>
+                  {" "}
+                  <span className="ml-2 text-xs text-ink-secondary">{t("readers.groups.keeps", { group: group.name })}</span>
+                </>
               )}
               {kind === "asking" && (
                 <button

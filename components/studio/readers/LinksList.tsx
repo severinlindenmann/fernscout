@@ -96,10 +96,13 @@ export default function LinksList({
                       </span>
                     )}
                     {linkGroup(invite) && (
-                      <span className="ml-2 inline-flex items-center gap-1.5 align-middle text-xs font-semibold text-ink-secondary">
-                        <GroupDot group={linkGroup(invite)} size={8} />
-                        {t("readers.groups.linkGoes", { group: linkGroup(invite)!.name })}
-                      </span>
+                      <>
+                        {" "}
+                        <span className="ml-2 inline-flex items-center gap-1.5 align-middle text-xs font-semibold text-ink-secondary">
+                          <GroupDot group={linkGroup(invite)} size={8} />
+                          {t("readers.groups.linkGoes", { group: linkGroup(invite)!.name })}
+                        </span>
+                      </>
                     )}
                   </p>
                   <p className="mt-0.5 text-sm text-ink-secondary">{facts.join(" · ")}</p>

@@ -4270,7 +4270,7 @@
   "readers.groups.pillLabel": "Gruppe von {name}: {group}. Ändern",
   "readers.groups.moveTo": "In eine Gruppe verschieben…",
   "readers.groups.keeps": "behält {group}",
-  "readers.groups.asked": "{name} hat nochmals über einen Link angefragt, der Leute in {offered} einsortiert. Jetzt ist {name} in {current}. Es ändert sich nichts, bis du entscheidest.",
+  "readers.groups.asked": "{name} hat nochmals über einen Link angefragt, der Leute in {offered} einsortiert. Im Moment in {current}. Es ändert sich nichts, bis du entscheidest.",
   "readers.groups.keep": "{group} behalten",
   "readers.groups.move": "Nach {group} verschieben",
   "readers.groups.linkLegend": "Alle, die beitreten, kommen in",
