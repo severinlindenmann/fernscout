@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { appendFixes, gpsDir } from "@/lib/gps/store";
+import { appendFixes, gpsDir, metresBetween } from "@/lib/gps/store";
 import { deriveTrack, readExcludeZones, excludeFile, trackForTrip } from "@/lib/gps/enrich";
 import { dayTrack, readTrack, trackFile, trackPointCount, writeTrack } from "@/lib/gps/track";
 import type { Fix } from "@/importers/gps/schema";
@@ -280,5 +280,23 @@ describe("a day's own part of the route (B2199)", () => {
   test("a date outside visibleDates draws nothing, even if the track has it", () => {
     // 2026-06-21 is on the file but not in what this reader may see.
     expect(dayTrack(USER, TRIP, VISIBLE, "2026-06-21")).toBeUndefined();
+  });
+});
+
+describe("dropping a spike never moves the 500 m end trim off where somebody slept (B2571 security review)", () => {
+  test("a stale fix next to the run's real first fix: nothing within 500 m of the real start is drawn", () => {
+    const KM = 1 / 111.2;
+    const t0 = Date.parse("2026-09-30T06:00:00Z");
+    const home = { lat: 47, lon: 8 };
+    const fixes = [
+      { t: t0 - 10 * 3_600_000, lat: 47 + 1.4 * KM, lon: 8 },
+      { t: t0, ...home },
+      { t: t0 + 1_000, lat: 47 + 1.4 * KM, lon: 8 },
+      ...Array.from({ length: 40 }, (_, i) => ({ t: t0 + (i + 1) * 30_000, lat: 47 - (i + 1) * 0.04 * KM, lon: 8 })),
+    ];
+    const track = deriveTrack(fixes, { start: "2026-09-30", end: "2026-09-30", trimMetres: 500, toleranceM: 0 });
+    const drawn = track.segments.flatMap((s) => s.points);
+    expect(drawn.length).toBeGreaterThan(0);
+    for (const [lat, lon] of drawn) expect(metresBetween(home, { lat, lon, t: 0 })).toBeGreaterThanOrEqual(500);
   });
 });
