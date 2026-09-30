@@ -1,5 +1,5 @@
 import "server-only";
-import { getDatabase, newId, nowIso } from "../db";
+import { getDatabase, getDatabaseOrNull, newId, nowIso } from "../db";
 
 /**
  * Reader groups — TIX-6. The owner's own labels ("Family", "Friends") for the
@@ -53,9 +53,11 @@ function cleanColor(raw: unknown, fallback: number): number {
   return typeof raw === "number" && Number.isInteger(raw) && raw >= 0 && raw < GROUP_COLORS ? raw : fallback;
 }
 
+/** Empty without a database — a file-backed instance has no readers to sort. */
 export async function listGroups(owner: string): Promise<ReaderGroup[]> {
-  const { db } = await getDatabase();
-  const rows = await db
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
     .selectFrom("reader_groups")
     .select(["id", "name", "color", "sort"])
     .where("owner_id", "=", owner)
