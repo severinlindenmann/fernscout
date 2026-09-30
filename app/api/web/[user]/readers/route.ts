@@ -1,5 +1,6 @@
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { addPersonByOwner } from "@/lib/contacts";
+import { ownGroupId, setContactGroup } from "@/lib/contacts/groups";
 import { parseLocale, pickLocale } from "@/lib/contacts/locale";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -51,6 +52,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
     buddyTripId = trip.id;
   }
 
+  // TIX-6. Optional, and only ever one of this owner's own groups.
+  const groupAsked = typeof body.group === "string" && body.group !== "";
+  const groupId = groupAsked ? await ownGroupId(user, body.group) : null;
+  if (groupAsked && !groupId) return Response.json({ error: "unknown_group" }, { status: 404, headers: PRIVATE });
+
   const result = await addPersonByOwner(user, {
     name,
     email: text(body.email) || null,
@@ -62,6 +68,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
     const status = result.error === "blocked_contact" || result.error === "conflict" ? 409 : 400;
     return Response.json({ error: result.error }, { status, headers: PRIVATE });
   }
+  if (groupId) await setContactGroup(user, result.contact.id, groupId);
   return Response.json(
     {
       ok: true,

@@ -63,6 +63,7 @@ export function inviteToDoc(invite: Invite): InviteDoc {
     createdAt: invite.createdAt,
     revokedAt: invite.revokedAt,
     uses: invite.uses,
+    group: invite.groupId,
   });
 }
 
