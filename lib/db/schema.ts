@@ -900,6 +900,36 @@ type NewsConsentTable = {
   consented_at: string;
 };
 
+/**
+ * Which plan an owner has, if any — B2590. See migration `051-entitlements`
+ * for the full reasoning; Free is the absence of a row here.
+ */
+type EntitlementsTable = {
+  id: string;
+  owner_id: string;
+  plan: string;
+  source: string;
+  provider_ref: string | null;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  period_start: string;
+  period_end: string;
+  created_at: string;
+};
+
+/**
+ * One AI day taken, per owner/trip/date — B2591. See migration `052-ai-days`.
+ */
+type AiDaysTable = {
+  id: string;
+  owner_id: string;
+  trip_id: string;
+  date: string;
+  first_used_at: string;
+  plan_period_start: string | null;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -935,6 +965,8 @@ export type Database = {
   invite_suppressions: InviteSuppressionsTable;
   message_switches: MessageSwitchesTable;
   news_consent: NewsConsentTable;
+  entitlements: EntitlementsTable;
+  ai_days: AiDaysTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -974,4 +1006,6 @@ export const TABLE_NAMES = [
   "invite_suppressions",
   "message_switches",
   "news_consent",
+  "entitlements",
+  "ai_days",
 ] as const satisfies readonly (keyof Database)[];

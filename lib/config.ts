@@ -80,6 +80,12 @@ export const FEATURE_NAMES = [
   // disk (`MAPS_DIR`'s world extract), not a key or an account. See
   // lib/capabilities.ts for the readable-world-file check.
   "streetMaps",
+  // B2590. Whether an owner has a plan (Free/pass/Plus) at all — see
+  // docs/billing.md. Off, or with paid/ absent, means unlimited: nothing is
+  // metered, the same "absent, not broken" posture every optional capability
+  // takes. On, it needs a database (the `entitlements` table records the
+  // plan; `ai_days` records usage) and fails closed on a read error.
+  "billing",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -173,6 +179,10 @@ export const OPERATOR_ONLY_FEATURES = [
   // with a username) drew no streets for any journal while the map page,
   // asking the server alone, did.
   "streetMaps",
+  // B2590. The instance's own decision to meter at all — the same posture as
+  // `credits` above: a plan is billed to the operator's own Stripe/Apple
+  // account, not chosen per journal.
+  "billing",
 ] as const satisfies readonly FeatureName[];
 
 /**
@@ -692,6 +702,10 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // trip map page never requests a tile — it draws the existing SVG map
   // unchanged. See lib/capabilities.ts for what turns this on.
   streetMaps: { enabled: false },
+  // B2590. Off by default like every optional capability, and off means
+  // `planOf()` reports every owner unlimited — nothing is metered. See
+  // docs/billing.md and lib/capabilities.ts.
+  billing: { enabled: false },
 };
 
 /**

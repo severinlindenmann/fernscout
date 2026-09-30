@@ -170,6 +170,11 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // `configuredEnv` below, since the second is a file check `env` alone can't
   // express — see the `streetMaps` branch there.
   streetMaps: { env: [], db: false },
+  // B2590. See docs/billing.md. No env of its own — a plan is granted by the
+  // Stripe/Apple credential `credits`' own PROVIDER_ENV-style checks live
+  // beside, or by an admin with a session, neither of which this capability
+  // gates — only the `entitlements`/`ai_days` tables it needs to record one.
+  billing: { env: [], db: true },
 };
 
 /** Transport and provider choices carry their own credential requirements.
