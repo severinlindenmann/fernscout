@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useTrip } from "@/components/TripProvider";
 import { useOptionalSite } from "@/components/SiteProvider";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import DayReactions from "./DayReactions";
 import PushPrompt from "./PushPrompt";
@@ -16,8 +16,9 @@ import TestNotice from "./TestNotice";
 import Prose from "./Prose";
 import { EntryVisibility } from "./Visibility";
 import Gallery from "./Gallery";
-import MapCard from "./map/MapCard";
+import { MapRow } from "./map/MapCard";
 import { useI18n } from "./LocaleProvider";
+import type { TranslationKey } from "@/lib/i18n";
 import { flagFor } from "@/lib/flags";
 import { isPlottable } from "@/lib/mapFrame";
 import { useMoney } from "./CurrencyProvider";
@@ -362,7 +363,7 @@ export function DayCard({
   // reader to somebody else's site — or to nothing at all.
   const trip = useTrip();
   const site = useOptionalSite();
-  const { t, formatLongDate } = useI18n();
+  const { t, formatLongDate, localized } = useI18n();
   const { spendParts } = useMoney();
   const [editing, setEditing] = useState(false);
   // The photograph the owner pressed "remove" on from the lightbox itself
@@ -370,6 +371,8 @@ export function DayCard({
   // `EditDay` so it opens already marked to go, and cleared when the panel
   // closes so a later, ordinary "Correct this day" starts from nothing.
   const [removing, setRemoving] = useState<string | undefined>(undefined);
+  // Which updates of a several-update day are open — the first, to begin with.
+  const [openRows, setOpenRows] = useState<Set<string>>(() => new Set([day.lead.slug]));
   // The owner's panel is its own chunk (see `EditDay` above); an owner is
   // the one reader who may press for it, so theirs is fetched now.
   const owner = trip?.canPublish === true;
@@ -391,158 +394,208 @@ export function DayCard({
   const isTest =
     (tripTest ?? trip?.trip.test === true) || day.entries.some((e) => e.test);
 
+  const leadText = localized(lead);
+  const weather = lead.weather ? (
+    // B325 — in the day's furniture, never in the prose.
+    <DayWeather
+      weather={lead.weather}
+      labels={weatherLabels(lead.weather, t, formatLongDate)}
+      units={trip?.units}
+    />
+  ) : null;
+  const spend =
+    cost > 0 ? (
+      <Link
+        href={trip ? trip.href("/costs") : "/"}
+        title={t("cost.today")}
+        className="group inline-flex items-baseline gap-1.5"
+      >
+        {/* What was actually paid leads — a reader can check it against a
+            receipt, unlike the converted figure (B544) — so it carries the
+            weight and the underline, and the conversion trails it, lighter
+            and smaller. */}
+        <span className="font-medium text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2 group-hover:decoration-coral-600">
+          {paidAndConverted.paid}
+        </span>
+        {paidAndConverted.converted && (
+          <span className="text-[11px] text-ink-secondary">{paidAndConverted.converted}</span>
+        )}
+      </Link>
+    ) : null;
+  // The leg that brought the day here, said once — beside the map it
+  // describes, not in the facts line as well (B2570).
+  const leg = summary.transport;
+  const mapDetail = leg
+    ? [
+        t(`studio.day.transport.${leg.mode}` as TranslationKey),
+        [leg.from, leg.to].filter(Boolean).join(" → "),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : (summary.mapName ?? summary.location);
+  const removePhoto = trip?.canPublish
+    ? (src: string) => {
+        setRemoving(src);
+        setEditing(true);
+      }
+    : undefined;
+  const Heading = titleIsPageHeading ? "h1" : "h2";
+
+  /*
+    B2570 — the day as the owner chose it on 30 Sep, from six drafts: the
+    photographs across the top; one small mono line saying which day and
+    when (the day number used to be a waymark in the corner); then the words.
+    A day with one update is a page: its title, the place, the measured
+    facts, the prose cut at about eight lines. A day with several is an
+    index: the place heads it and each update is a row — its time, its title
+    — that opens in place, the first one open. The street map that used to
+    fill the bottom half of the card is a row with a thumbnail now.
+
+    From `md` up the measured facts (weather, spend) sit in a narrow column
+    beside the words instead of on a line above them.
+  */
   const card = (
     <article
-      className={`rounded-2xl border bg-surface-raised p-5 shadow-sm sm:p-7 ${
+      className={`overflow-hidden rounded-2xl border bg-surface-raised shadow-sm ${
         allDraft || isTest ? "border-coral-600" : "border-line-quiet"
       }`}
     >
-      {isTest && <TestNotice />}
-      {allDraft && <DraftNotice canPublish={canPublish} />}
+      {(isTest || allDraft) && (
+        <div className="px-5 pt-5 sm:px-7">
+          {isTest && <TestNotice />}
+          {allDraft && <DraftNotice canPublish={canPublish} />}
+        </div>
+      )}
 
-      {/*
-        The day's own identity — the top of the page, not a header band.
+      {/* The lead update's photographs. A later update's own are inside its
+          row — pooled here they would stop saying which moment they are of. */}
+      <Gallery items={lead.gallery} onRemove={removePhoto} />
 
-        It began as one wrapping row of dot-separated fragments above the first
-        update's title, which put "Day 4", the date, the place, the weather and
-        the spend at one weight and all of them quieter than the h2 beneath —
-        so a day with two updates arrived as two stacked articles the reader
-        had to infer were one day. The first fix gave it a filled cream band,
-        and that solved the hierarchy by introducing a different problem: a
-        coloured block with a hard rule under it reads as a table header
-        bolted to the top of the card, which is the opposite of a page in a
-        journal.
-
-        So there is no band. The card is one sheet of paper, and the day is
-        established the way a diary establishes one — by what is at the top of
-        the page and how much room is left under it:
-
-        - **The place is the only headline.** Where you were is what a person
-          reads a day for; everything else here is smaller than it.
-        - **Everything measured shares one quiet line.** Date, weather, spend
-          and update count are unlike things, and giving each a chip is how a
-          diary page turns into a dashboard. One line, one voice, no separators
-          to make it look tabulated.
-        - **The ordinal sits in the corner under a painted yellow stroke.**
-          This product's mark is a Wanderweg waymark, and a waymark's whole job
-          is to say *you are at this point on the route* — which is what a day
-          number is. The accent appears once, on the one element that really is
-          a trail marker.
-      */}
-      <header className="relative mb-8">
-        {/* Only the headline reserves room for the marker (`pr-24`); the line
-            below clears it on height and needs the full width, because at
-            390px a reserved corner left it 250px and every item — date,
-            weather, spend — wrapped onto a row of its own. */}
-        <div className="absolute right-0 top-0 text-right">
-          <span
-            className="ml-auto block h-1 w-8 rounded-full bg-yellow-400"
-            aria-hidden
-          />
-          <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-secondary">
-            {t("day.label")} {dayIndex + 1}
+      <div className="p-5 sm:p-7">
+        <p className="font-mono text-[11px] tracking-[0.08em] text-ink-secondary">
+          <span className="uppercase">
+            {t("day.label")} {dayIndex + 1} · {formatLongDate(day.date)}
           </span>
-        </div>
-
-        <div className="pr-24 font-display text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
-          {flagFor(lead.country, lead.countryCode)} {lead.location}
-        </div>
-
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-secondary">
-          <span>{formatLongDate(day.date)}</span>
-          {/* B325 — in the day's furniture, never in the prose. `DayWeather`
-              renders nothing when the day has no reading. */}
-          {lead.weather && (
-            <DayWeather
-              weather={lead.weather}
-              labels={weatherLabels(lead.weather, t, formatLongDate)}
-              units={trip?.units}
-            />
-          )}
-          {cost > 0 && (
-            <Link
-              href={trip ? trip.href("/costs") : "/"}
-              title={t("cost.today")}
-              className="group inline-flex items-baseline gap-1.5"
-            >
-              {/* What was actually paid leads — a reader can check it against a
-                  receipt, unlike the converted figure (B544) — so it carries
-                  the weight and the underline, and the conversion trails it,
-                  lighter and smaller. Run together at one weight,
-                  `USD 131 ≈ CHF 115` reads as a single strange price rather
-                  than as one price said twice. */}
-              <span className="font-medium text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2 group-hover:decoration-coral-600">
-                {paidAndConverted.paid}
-              </span>
-              {paidAndConverted.converted && (
-                <span className="text-[11px] text-ink-secondary">
-                  {paidAndConverted.converted}
-                </span>
-              )}
-            </Link>
+          {!multi && lead.time && (
+            <>
+              {" · "}
+              <DualTime date={lead.date} time={lead.time} timezone={lead.timezone} />
+            </>
           )}
           {multi && (
-            <span>
+            <>
+              {" · "}
               {day.entries.length} {t("day.updates")}
-            </span>
+            </>
+          )}
+        </p>
+
+        <div className="md:flex md:gap-8">
+          <div className="min-w-0 md:flex-1">
+            {multi ? (
+              <div className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink-strong sm:text-3xl">
+                {flagFor(lead.country, lead.countryCode)} {lead.location}
+              </div>
+            ) : (
+              <>
+                <Heading className="mt-2 font-display text-2xl font-semibold leading-tight tracking-tight text-ink-strong sm:text-3xl">
+                  {leadText.title}
+                  <EntryVisibility entry={lead} />
+                </Heading>
+                <p className="mt-1 text-sm text-ink-secondary">
+                  {flagFor(lead.country, lead.countryCode)} {lead.location}
+                </p>
+              </>
+            )}
+
+            {(weather || spend) && (
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-secondary md:hidden">
+                {weather}
+                {spend}
+              </div>
+            )}
+
+            {multi ? (
+              <div className="mt-5 border-t border-line-faint">
+                {day.entries.map((entry, i) => (
+                  <UpdateRow
+                    key={entry.slug}
+                    entry={entry}
+                    prose={day.prose?.[entry.slug]}
+                    heading={i === 0 && titleIsPageHeading ? "h1" : "h2"}
+                    open={openRows.has(entry.slug)}
+                    onToggle={() =>
+                      setOpenRows((rows) => {
+                        const next = new Set(rows);
+                        if (!next.delete(entry.slug)) next.add(entry.slug);
+                        return next;
+                      })
+                    }
+                    photos={i > 0}
+                    onRemovePhoto={removePhoto}
+                  />
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* B305 — a day carried over from before B294 with no
+                    translation for this reader's language. */}
+                {leadText.fallbackNotice && (
+                  <p className="mt-4 text-xs italic text-ink-secondary">
+                    {t(leadText.fallbackNotice)}
+                  </p>
+                )}
+                <CutProse>
+                  <EntryText prose={day.prose?.[lead.slug]} content={leadText.content} />
+                </CutProse>
+              </>
+            )}
+
+            {/* This day's own map — B2538, D9, as a row since B2570. Absent
+                until the day has a place of its own. */}
+            {mapCard && (
+              <MapRow
+                src={trip?.href("/card.svg") ?? "/card.svg"}
+                query={mapCard.query}
+                mapHref={trip?.href("/map") ?? "/map"}
+                detail={mapDetail}
+                usedStreet={mapCard.usedStreet}
+              />
+            )}
+          </div>
+
+          {(weather || spend) && (
+            <aside className="mt-3 hidden w-40 shrink-0 space-y-3 border-l border-line-faint pl-6 text-sm text-ink-secondary md:block">
+              {weather && (
+                <div>
+                  <p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-muted">
+                    {t("studio.day.field.weather")}
+                  </p>
+                  {weather}
+                </div>
+              )}
+              {spend && (
+                <div>
+                  <p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-muted">
+                    {t("cost.today")}
+                  </p>
+                  {spend}
+                </div>
+              )}
+            </aside>
           )}
         </div>
-      </header>
-
-      {/* Several updates in one day are stops on one rail. Each stop draws the
-          segment down to the *next* one rather than the list drawing one line
-          behind all of them, so the rail ends at the last dot: a line trailing
-          past the final update reads as a day with more coming.
-
-          The reactions are inside this column rather than beside it, so they
-          line up with the prose on a day with two updates as well as on a day
-          with one. */}
-      <div className={multi ? "pl-6 sm:pl-7" : undefined}>
-        {day.entries.map((entry, i) => (
-          <UpdateBlock
-            key={entry.slug}
-            entry={entry}
-            prose={day.prose?.[entry.slug]}
-            branched={multi}
-            first={i === 0}
-            heading={i === 0 && titleIsPageHeading ? "h1" : "h2"}
-            last={i === day.entries.length - 1}
-            onRemovePhoto={
-              trip?.canPublish
-                ? (src) => {
-                    setRemoving(src);
-                    setEditing(true);
-                  }
-                : undefined
-            }
-          />
-        ))}
-
-        {/* This day's own still map — B2538, D9. Absent, not a card with
-            nothing drawn on it, until this day has a place of its own
-            (`mapCard` is `undefined` rather than an empty card for that
-            case — the caller's own `isPlottable` check). */}
-        {mapCard && (
-          <MapCard
-            src={trip?.href("/card.svg") ?? "/card.svg"}
-            query={mapCard.query}
-            usedStreet={mapCard.usedStreet}
-            mapHref={trip?.href("/map") ?? "/map"}
-          />
-        )}
 
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
-        <div className="mt-10 border-t border-line-quiet pt-4">
+        <div className="mt-8 border-t border-line-faint pt-3">
           <DayReactions daySlug={lead.slug} />
         </div>
 
         {/*
-          "Get the next day?" — B2464. Used to hang after every page's
-          content in the layout; now it renders here, the one place asking
-          it makes sense: the end of the newest published day of a trip
-          that is still going. `PushPrompt` itself still gates on
-          eligibility and engagement (browser support, dwell time) before it
-          shows anything.
+          "Get the next day?" — B2464. It renders here, the one place asking
+          it makes sense: the end of the newest published day of a trip that
+          is still going. `PushPrompt` itself still gates on eligibility and
+          engagement (browser support, dwell time) before it shows anything.
         */}
         {isNewestDay &&
           trip &&
@@ -626,94 +679,133 @@ function weatherLabels(
   };
 }
 
-function UpdateBlock({
+/** An update's prose — drawn on the server when it could be, parsed here
+ *  when it could not (see `lib/prose.ts`). */
+function EntryText({ prose, content }: { prose?: ProseNode; content: string }) {
+  return prose !== undefined ? <Prose tree={prose} /> : <EntryContent markdown={content} />;
+}
+
+/**
+ * A long day, cut — B2570. The owner asked for long text to be cut rather
+ * than to push the map, the reactions and the next day a screen further
+ * down. About eight lines show, faded at the bottom, and one button brings
+ * the rest; text that fits is left alone and gets no button. Measured
+ * rather than guessed from a character count, because a line's length is
+ * the reader's screen, not the writer's words.
+ */
+function CutProse({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDivElement>(null);
+  const [whole, setWhole] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || whole) return;
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 4);
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [whole]);
+
+  const cut = !whole && overflows;
+  const fade = "linear-gradient(to bottom, black 65%, transparent)";
+  return (
+    <div className="mt-5">
+      <div
+        ref={ref}
+        className={whole ? undefined : "max-h-[13.5rem] overflow-hidden"}
+        style={cut ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
+      >
+        {children}
+      </div>
+      {cut && (
+        <button
+          type="button"
+          onClick={() => setWhole(true)}
+          className="mt-1 min-h-11 text-sm font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-4 hover:decoration-coral-600"
+        >
+          {t("day.readWhole")}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * One update of a day that has several — B2570, replacing the rail of
+ * stacked updates. The row is its time and its title; it opens in place.
+ * The title is a heading with the button inside it, the disclosure pattern
+ * a screen reader already knows. The visibility control is the owner's only
+ * and sits outside the button, since it is a control of its own.
+ */
+function UpdateRow({
   entry,
   prose,
-  branched,
-  first,
   heading: Heading,
-  last,
+  open,
+  onToggle,
+  photos,
   onRemovePhoto,
 }: {
-  heading: "h1" | "h2";
   entry: Entry;
-  /** The prose, already rendered in this reader's language — see
-   *  `lib/prose.ts`. Absent, the markdown is rendered here instead. */
   prose?: ProseNode;
-  branched: boolean;
-  first: boolean;
-  /** The last stop of the day — draws a dot and no rail below it. */
-  last: boolean;
-  /** See `Gallery`'s `onRemove` — undefined for a reader who is not the
-   *  owner. */
+  heading: "h1" | "h2";
+  open: boolean;
+  onToggle: () => void;
+  /** False for the lead update, whose photographs are the card's cover. */
+  photos: boolean;
   onRemovePhoto?: (src: string) => void;
 }) {
   const { t, localized } = useI18n();
   const { title, content, fallbackNotice } = localized(entry);
+  const panel = `update-${entry.slug}`;
 
   return (
-    <div className={`relative ${first ? "" : "mt-10"}`}>
-      {/* This stop, and the rail running from it down to the next one. Only
-          on a day with more than one update: a single update is not a
-          sequence and gets neither. The segment overshoots by the gap between
-          blocks (`-bottom-10`, matching `mt-10`) so the line arrives exactly
-          at the next dot. */}
-      {branched && (
-        <>
-          <span
-            className="absolute -left-6 top-1.5 h-3 w-3 rounded-full bg-yellow-400 sm:-left-7"
-            aria-hidden
-          />
-          {!last && (
-            <span
-              className="absolute -bottom-10 -left-[19px] top-5 w-0.5 rounded-full bg-surface-selected sm:-left-[23px]"
-              aria-hidden
-            />
-          )}
-        </>
-      )}
-
-      {/* The time is the stop's label, so it leads rather than hiding under
-          the heading — on a two-update day it is the thing that says these
-          are two moments and not two days. */}
-      {entry.time && (
-        <div className="font-display text-xs font-semibold tracking-wide text-ink-secondary">
-          <DualTime date={entry.date} time={entry.time} timezone={entry.timezone} />
-        </div>
-      )}
-
-      {entry.draft && !first ? (
-        <div className="mt-1">
-          <span className="inline-block rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-on-bright">
+    <div className="border-b border-line-faint">
+      <div className="flex items-center gap-2">
+        <Heading className="min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            aria-controls={panel}
+            className="flex min-h-14 w-full items-center gap-3 py-2.5 text-left"
+          >
+            <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full bg-yellow-400" />
+            {entry.time && (
+              <span className="shrink-0 font-mono text-xs text-ink-secondary">
+                <DualTime date={entry.date} time={entry.time} timezone={entry.timezone} />
+              </span>
+            )}
+            <span className="min-w-0 flex-1 font-display text-lg font-semibold leading-snug tracking-tight text-ink-strong">
+              {title}
+            </span>
+            <span aria-hidden className="w-6 shrink-0 text-center text-xl text-ink-secondary">
+              {open ? "−" : "+"}
+            </span>
+          </button>
+        </Heading>
+        {entry.draft && (
+          <span className="shrink-0 rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-on-bright">
             {t("draft.badge")}
           </span>
-        </div>
-      ) : null}
-
-      {/* The visibility label rides with the title rather than sitting on a
-          line of its own above it. On its own row it read as a banner about
-          the day; beside the heading it reads as what it is — a note about
-          this update, attached to the update's name. The draft badge stays
-          where it was: "unfinished" is a state of the whole thing and is
-          meant to interrupt. */}
-      <Heading className="mb-4 mt-1 font-display text-2xl font-semibold tracking-tight text-ink-strong sm:text-3xl">
-        {title}
+        )}
         <EntryVisibility entry={entry} />
-      </Heading>
-
-      {/* B305 — a day carried over from before B294 that has no translation
-          for this reader's language. Quiet on purpose: unlike DraftNotice
-          and TestNotice this is a legacy-only path, not a caution, so it is
-          a line rather than a banner. */}
-      {fallbackNotice && (
-        <p className="mb-4 text-xs italic text-ink-secondary">{t(fallbackNotice)}</p>
-      )}
-
-      {prose !== undefined ? <Prose tree={prose} /> : <EntryContent markdown={content} />}
-
-      {entry.gallery.length > 0 && (
-        <div className="mt-7">
-          <Gallery items={entry.gallery} onRemove={onRemovePhoto} />
+      </div>
+      {open && (
+        <div id={panel} className="pb-6 pl-5.5">
+          {fallbackNotice && (
+            <p className="mb-3 text-xs italic text-ink-secondary">{t(fallbackNotice)}</p>
+          )}
+          <EntryText prose={prose} content={content} />
+          {photos && entry.gallery.length > 0 && (
+            <div className="mt-5">
+              <Gallery items={entry.gallery} onRemove={onRemovePhoto} inset />
+            </div>
+          )}
         </div>
       )}
     </div>

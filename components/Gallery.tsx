@@ -5,7 +5,6 @@ import Image from "next/image";
 import { Trash2 } from "lucide-react";
 import { mediaLoader, posterSrc } from "./mediaLoader";
 import { POSTER_WIDTH } from "@/lib/mediaSizes";
-import { motion } from "motion/react";
 import { useI18n } from "./LocaleProvider";
 import FullPhoto from "./FullPhoto";
 import { PhotoFrame } from "./PhotoFrame";
@@ -13,13 +12,29 @@ import Lightbox from "./Lightbox";
 import { PhotoBadge } from "./Visibility";
 import type { GalleryItem } from "@/lib/types";
 
-// Alternating tilt gives the polaroid grid a scattered, hand-placed feel
-// instead of a perfectly uniform AI-card grid.
-const TILTS = [-2.5, 1.5, -1, 2, -1.5, 1];
-
+/**
+ * A day's photographs as the story draws them — B2570.
+ *
+ * They were a scattered polaroid grid under the prose, every photograph its
+ * own tilted card. The owner found the day cluttered with that and a street
+ * map on top, and chose a cover instead: the photographs across the top of
+ * the card, edge to edge, at most three of them — one wide; two side by side;
+ * three or more as one big over two small, the third saying how many more
+ * there are. The rest are one tap away, in the same viewer as before.
+ *
+ * Captions moved into the viewer with them. On the card they were two lines
+ * of italic under a tile a third of a phone wide; in the viewer they are
+ * under the photograph they describe, at a size somebody can read.
+ *
+ * `inset` is the same layout inside a card rather than across its top —
+ * the photographs of a day's second or third update, drawn inside that
+ * update's own row (see `DayCard`), rounded because they no longer meet the
+ * card's edge.
+ */
 export default function Gallery({
   items,
   onRemove,
+  inset = false,
 }: {
   items: GalleryItem[];
   /**
@@ -33,6 +48,7 @@ export default function Gallery({
    * Absent for a reader who is not the owner.
    */
   onRemove?: (src: string) => void;
+  inset?: boolean;
 }) {
   const { t } = useI18n();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -51,22 +67,40 @@ export default function Gallery({
 
   if (items.length === 0) return null;
 
+  const shown = items.slice(0, 3);
+  const more = items.length - shown.length;
+  // Phone: the first tile spans both columns when there are three. From
+  // `sm` up the three become one tall tile on the left and two stacked on
+  // the right, inside a box of fixed height.
+  const layout =
+    shown.length === 1
+      ? "grid-cols-1"
+      : shown.length === 2
+        ? "grid-cols-2 sm:h-72"
+        : "grid-cols-2 sm:h-80 sm:grid-cols-3 sm:grid-rows-2";
+  const tileShape = (i: number) =>
+    shown.length === 1
+      ? "aspect-[16/9] sm:aspect-[2/1]"
+      : shown.length === 2
+        ? "aspect-[4/3] sm:aspect-auto sm:h-full"
+        : i === 0
+          ? "col-span-2 aspect-[16/9] sm:row-span-2 sm:aspect-auto sm:h-full"
+          : "aspect-[4/3] sm:aspect-auto sm:h-full";
+
   return (
     <div>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-5 py-2 sm:grid-cols-3">
-        {items.map((item, i) => (
-          <motion.button
+      <div
+        className={`grid ${layout} ${inset ? "gap-1.5 overflow-hidden rounded-xl" : "gap-[3px]"}`}
+      >
+        {shown.map((item, i) => (
+          <button
             key={item.src}
+            type="button"
             onClick={() => setOpenIndex(i)}
             aria-label={item.caption ?? t("a11y.openPhoto")}
-            initial={{ opacity: 0, y: 14, rotate: 0 }}
-            animate={{ opacity: 1, y: 0, rotate: TILTS[i % TILTS.length] }}
-            whileHover={{ rotate: 0, scale: 1.04, zIndex: 10 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ duration: 0.35, delay: i * 0.05, ease: "easeOut" }}
-            className="group relative rounded-sm border border-line-quiet bg-surface-raised p-2 pb-6 shadow-lg shadow-shadow-color/15"
+            className={`group relative block overflow-hidden bg-surface-muted ${tileShape(i)}`}
           >
-            <PhotoFrame className="relative block aspect-[4/3] overflow-hidden bg-surface-muted">
+            <PhotoFrame className="absolute inset-0 block">
               {(img) => (
                 <>
                   {item.type === "video" ? (
@@ -89,13 +123,11 @@ export default function Gallery({
                       loader={mediaLoader}
                       // What the photograph shows if anything has described it
                       // (B1867), else the caption, else empty — the button's
-                      // aria-label covers that last case. The caption drawn below
-                      // is `aria-hidden` so the two do not both reach a screen
-                      // reader; the same rule as the trip gallery's tiles (B522).
+                      // aria-label covers that last case.
                       alt={item.alt ?? item.caption ?? ""}
                       fill
-                      sizes="(max-width: 640px) 50vw, 33vw"
-                      className="object-cover"
+                      sizes={i === 0 ? "(max-width: 640px) 100vw, 66vw" : "(max-width: 640px) 50vw, 33vw"}
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     />
                   )}
                   {item.type === "video" && (
@@ -107,18 +139,12 @@ export default function Gallery({
                 </>
               )}
             </PhotoFrame>
-            {item.caption && (
-              <span
-                aria-hidden
-                // Two lines rather than one truncated: a tile is a third of
-                // the column on a phone, so almost every caption longer than
-                // four words was ending in an ellipsis that said nothing.
-                className="mt-1.5 line-clamp-2 block px-0.5 text-left font-display text-xs italic leading-snug text-ink-body"
-              >
-                {item.caption}
+            {i === shown.length - 1 && more > 0 && (
+              <span className="absolute inset-0 flex items-center justify-center bg-overlay-strong/45 font-display text-2xl font-semibold text-overlay-ink">
+                +{more}
               </span>
             )}
-          </motion.button>
+          </button>
         ))}
       </div>
 

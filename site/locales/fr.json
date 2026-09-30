@@ -557,6 +557,8 @@
   "day.chooseDay": "Choisir un jour",
   "day.hideDays": "Masquer les jours",
   "day.label": "Jour",
+  "day.readWhole": "Lire toute la journée",
+  "day.routeAndMap": "Itinéraire et carte",
   "day.lastDay": "Dernier jour",
   "day.next": "Jour suivant",
   "day.of": "sur",
