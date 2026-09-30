@@ -1,5 +1,6 @@
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { approveContact, getContact } from "@/lib/contacts";
+import { answerAskedGroup } from "@/lib/contacts/groups";
 import { tellLetIn } from "@/lib/contacts/welcome";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
 
@@ -34,6 +35,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   const contactId = typeof body?.contactId === "string" ? body.contactId : "";
   const contact = contactId ? await getContact(user, contactId) : null;
   if (!contact) return Response.json({ error: "no_contact" }, { status: 404, headers: PRIVATE });
+
+  // TIX-6. "Let in, keep Work" / "Let in, move to Family" — the owner's answer
+  // to a link that offered another group, given with the same press.
+  if (body?.asked === "keep" || body?.asked === "move") await answerAskedGroup(user, contact.id, body.asked);
 
   const placesRaw = body?.places as { onlyTrip?: unknown } | null | undefined;
   const places = placesRaw && placesRaw.onlyTrip === null ? { onlyTrip: null } : undefined;

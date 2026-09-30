@@ -199,6 +199,12 @@ type ContactsTable = {
   welcome_opened_at: string | null;
   /** B2293. When the person finished the welcome guide. See `042-onboarding-join-codes`. */
   onboarded_at: string | null;
+  /** TIX-6. The owner's own group for this person (`reader_groups.id`), or
+   * null. A label for who is told, never a grant — see `051-reader-groups`. */
+  group_id: string | null;
+  /** TIX-6. A group a link offered somebody who is already in another one,
+   * waiting for the owner's Keep or Move. Null otherwise. */
+  asked_group_id: string | null;
 };
 
 /**
@@ -257,6 +263,21 @@ type ContactInvitesTable = {
   join_code_hash: string | null;
   /** The same code, AES-256-GCM (`joinAad`), so the owner can show it again. */
   join_code_cipher: string | null;
+  /** TIX-6. Where people who join through this link go (`reader_groups.id`),
+   * or null. Applied when they ask; never lets anybody in by itself. */
+  group_id: string | null;
+};
+
+/** TIX-6. An owner's reader group — `051-reader-groups`. Owner-only; never
+ * shown to the people in it. */
+type ReaderGroupsTable = {
+  id: string;
+  owner_id: string;
+  name: string;
+  /** An index into the UI's validated palette, not a colour value. */
+  color: Generated<number>;
+  sort: Generated<number>;
+  created_at: string;
 };
 
 /**
@@ -906,6 +927,7 @@ export type Database = {
   login_codes: LoginCodesTable;
   contacts: ContactsTable;
   contact_invites: ContactInvitesTable;
+  reader_groups: ReaderGroupsTable;
   access_grants: AccessGrantsTable;
   trip_people: TripPeopleTable;
   push_subscriptions: PushSubscriptionsTable;

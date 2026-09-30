@@ -102,6 +102,12 @@ export type ContactRecord = {
   confirmedAt: string | null;
   approvedAt: string | null;
   lastSeenAt: string | null;
+  /** TIX-6. The owner's own group for this person, or null — a label for
+   * who is told, never a grant. Owner-only: never in anything a guest reads. */
+  groupId: string | null;
+  /** TIX-6. A group a link offered them while they were already in another,
+   * waiting for the owner's Keep or Move. */
+  askedGroupId: string | null;
 };
 
 export function normaliseEmail(email: string): string {
@@ -171,6 +177,9 @@ type ContactRow = {
   invited_at: string | null;
   welcome_opened_at: string | null;
   onboarded_at: string | null;
+  /** TIX-6 — optional so a row read before `051-reader-groups` ran still maps. */
+  group_id?: string | null;
+  asked_group_id?: string | null;
 };
 
 function toRecord(owner: string, row: ContactRow): ContactRecord {
@@ -201,6 +210,8 @@ function toRecord(owner: string, row: ContactRow): ContactRecord {
     confirmedAt: row.confirmed_at,
     approvedAt: row.approved_at,
     lastSeenAt: row.last_seen_at,
+    groupId: row.group_id ?? null,
+    askedGroupId: row.asked_group_id ?? null,
   };
 }
 
