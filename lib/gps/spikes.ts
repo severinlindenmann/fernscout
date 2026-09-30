@@ -10,8 +10,8 @@
  * the fix before to the fix after. A real train or flight fails the second
  * test: skipping one of its points is just as fast. Low-power bursts leave
  * minutes between most fixes, which the first test ignores. When two fixes in
- * a row both qualify (the stale one and the real one next to it), only the
- * one whose removal leaves the slower, more ordinary speed is set aside.
+ * a row both qualify (the stale one and the real one next to it), the one
+ * whose removal joins two fixes closer in time is set aside.
  */
 
 export type SpikeFix = { t: number; lat: number; lon: number };
@@ -67,11 +67,15 @@ export function spikeIndices(fixes: readonly SpikeFix[]): Set<number> {
     if (skipped <= MAX_SANE_KMH) score.set(i, skipped);
   }
   const spikes = new Set<number>();
-  for (const [i, s] of score) {
-    // Two in a row: keep only the one whose removal reads more ordinary.
-    const before = score.get(i - 1);
-    const after = score.get(i + 1);
-    if ((before !== undefined && before < s) || (after !== undefined && after <= s)) continue;
+  // Two in a row: drop the one whose removal joins two fixes closer in time,
+  // trusting fresh neighbours over one from hours earlier (a stale "last known
+  // position" repeats an old place); equal spans fall back to the slower,
+  // more ordinary joined speed.
+  const span = (i: number) => fixes[i + 1].t - fixes[i - 1].t;
+  const better = (a: number, b: number) => span(a) < span(b) || (span(a) === span(b) && score.get(a)! < score.get(b)!);
+  for (const i of score.keys()) {
+    if (score.has(i - 1) && better(i - 1, i)) continue;
+    if (score.has(i + 1) && !better(i, i + 1)) continue;
     spikes.add(i);
   }
   return spikes;

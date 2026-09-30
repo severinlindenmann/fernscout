@@ -46,6 +46,20 @@ describe("spikeIndices", () => {
     expect(spikeIndices(fixes).size).toBe(0);
   });
 
+  test("a stale 'last known position' right after a real fix: the stale one goes, not the real one", () => {
+    // P: somewhere 1.4 km north, ten hours earlier. H: the real fix. X: one
+    // second after H, repeating P's old position. Then a walk south from H.
+    const KM = 1 / 111.2;
+    const t0 = Date.parse("2026-09-30T06:00:00Z");
+    const fixes = [
+      { t: t0 - 10 * 3_600_000, lat: 47 + 1.4 * KM, lon: 8 },
+      { t: t0, lat: 47, lon: 8 },
+      { t: t0 + 1_000, lat: 47 + 1.4 * KM, lon: 8 },
+      ...Array.from({ length: 6 }, (_, i) => ({ t: t0 + (i + 1) * 30_000, lat: 47 - (i + 1) * 0.04 * KM, lon: 8 })),
+    ];
+    expect(spikeIndices(fixes)).toEqual(new Set([2]));
+  });
+
   test("a real train at 250 km/h, with sparse points, is not flagged", () => {
     const t0 = Date.parse("2026-09-30T08:00:00Z");
     // One fix every 5 minutes, ~20.8 km apart along a line — 250 km/h.

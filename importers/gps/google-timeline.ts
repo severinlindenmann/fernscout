@@ -65,7 +65,65 @@ function modeFromGoogle(type: unknown): TransportMode | undefined {
   return GOOGLE_MODES.get(type.toLowerCase());
 }
 
-function fixesFrom(segment: Record<string, unknown>): Fix[] {
+/**
+ * How close a synthesized `activity`/`visit` instant may be to a real
+ * `timelinePath` fix elsewhere in the export before it is dropped as
+ * redundant — B2571.
+ *
+ * A phone's Timeline export carries two independent streams for the same
+ * stretch of time: dense, per-minute `timelinePath` points, and coarser
+ * `activity`/`visit` segments describing Google's own interpretation of what
+ * happened. The owner's own export showed these do not agree at a segment's
+ * own boundary — an `activity` 67 minutes long, ending 50 km from where it
+ * started, whose own `start` coordinate sat 34 km into the drive rather than
+ * at the driveway the `timelinePath` (and the `visit` right before it) both
+ * agree the drive left from a few seconds earlier. Trusting `activity.start`
+ * literally at `startTime` stores a point from later in the drive at the
+ * drive's own start time — the out-and-back this ticket is named for.
+ * Three minutes covers a `timelinePath`'s own usual one-point-a-minute
+ * spacing with room to spare, without silently discarding an `activity`
+ * that genuinely bridges an hours-long stretch the path does not cover —
+ * exactly the case its own module doc above describes it for.
+ */
+const PATH_OVERRIDE_MS = 3 * 60_000;
+
+/** Whether a real `timelinePath` fix exists within `PATH_OVERRIDE_MS` of `t`
+ * — binary search, since a real export's path times run into the tens of
+ * thousands and this is asked once per `activity`/`visit` boundary. */
+function nearPathFix(t: number, sortedPathTimes: readonly number[]): boolean {
+  let lo = 0;
+  let hi = sortedPathTimes.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const v = sortedPathTimes[mid];
+    if (Math.abs(v - t) <= PATH_OVERRIDE_MS) return true;
+    if (v < t) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return false;
+}
+
+/** Every real `timelinePath` instant across the whole export, sorted — B2571.
+ * `activity`/`visit` segments are checked against this before their own
+ * coarse start/end/stay location is trusted as a fix at that exact instant. */
+function pathTimesFrom(segments: unknown[]): number[] {
+  const times: number[] = [];
+  for (const segment of segments) {
+    if (typeof segment !== "object" || segment === null) continue;
+    const row = segment as Record<string, unknown>;
+    const start = parseInstant(row.startTime);
+    const path = row.timelinePath;
+    if (start === undefined || !Array.isArray(path)) continue;
+    for (const step of path) {
+      if (typeof step !== "object" || step === null) continue;
+      const offset = Number((step as Record<string, unknown>).durationMinutesOffsetFromStartTime ?? 0);
+      times.push(start + (Number.isFinite(offset) ? offset : 0) * 60_000);
+    }
+  }
+  return times.sort((a, b) => a - b);
+}
+
+function fixesFrom(segment: Record<string, unknown>, sortedPathTimes: readonly number[]): Fix[] {
   const start = parseInstant(segment.startTime);
   const end = parseInstant(segment.endTime);
   if (start === undefined) return [];
@@ -94,8 +152,11 @@ function fixesFrom(segment: Record<string, unknown>): Fix[] {
         ? (candidate as Record<string, unknown>).type
         : undefined,
     );
-    if (from) out.push({ t: start, ...from, ...(mode ? { mode } : {}) });
-    if (to && end !== undefined) out.push({ t: end, ...to, ...(mode ? { mode } : {}) });
+    // A real path fix already this close to the boundary instant is the
+    // denser, more trustworthy source — see `PATH_OVERRIDE_MS` above.
+    if (from && !nearPathFix(start, sortedPathTimes)) out.push({ t: start, ...from, ...(mode ? { mode } : {}) });
+    if (to && end !== undefined && !nearPathFix(end, sortedPathTimes))
+      out.push({ t: end, ...to, ...(mode ? { mode } : {}) });
   }
 
   const visit = segment.visit;
@@ -110,7 +171,7 @@ function fixesFrom(segment: Record<string, unknown>): Fix[] {
           ? (location as Record<string, unknown>).latLng
           : location,
       );
-      if (at) out.push({ t: start, ...at });
+      if (at && !nearPathFix(start, sortedPathTimes)) out.push({ t: start, ...at });
     }
   }
 
@@ -142,10 +203,11 @@ const importer: GpsImporter = {
         : undefined;
     if (!Array.isArray(segments)) throw new Error("not a Timeline export");
 
+    const pathTimes = pathTimesFrom(segments);
     const out: Fix[] = [];
     for (const segment of segments) {
       if (typeof segment !== "object" || segment === null) continue;
-      for (const fix of fixesFrom(segment as Record<string, unknown>))
+      for (const fix of fixesFrom(segment as Record<string, unknown>, pathTimes))
         if (isSaneFix(fix)) out.push(fix);
     }
     return out;

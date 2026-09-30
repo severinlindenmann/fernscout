@@ -3,6 +3,7 @@ import path from "node:path";
 import { gpsDir, metresBetween, readRange } from "./store";
 import { zonedTimeToUtc } from "../timezone";
 import { isInHiddenSpot, isInStretch, type HiddenSpot, type ResolvedRange } from "./edits";
+import { spikeIndices } from "./spikes";
 import type { Track, TrackLabel, TrackSegment } from "./track";
 import type { Fix, TransportMode } from "../../importers/gps/schema";
 
@@ -332,18 +333,20 @@ function dateOf(t: number, windows: DateWindow[]): string | undefined {
  * that way — jitter around one spot never reaches 500 m no matter how long it
  * runs. A run left with nothing on one side collapses to nothing, same as a
  * lone fix. */
-function trimByDistance<T extends Fix>(points: T[], metres: number): T[][] {
+function trimByDistance<T extends Fix>(points: T[], metres: number, extraAnchors: Fix[] = []): T[][] {
   if (metres <= 0 || points.length < 2) return [points];
   // Both ends are where somebody likely slept, so they act as short-lived
   // private zones for the whole run: a day that walks back past the hotel
   // door at noon must not draw it either (second B2202 review). Every point
   // within `metres` of either end is dropped and the run breaks there.
-  const first = points[0];
-  const last = points[points.length - 1];
+  // `extraAnchors` (B2571): the run's first and last fix once spikes are
+  // left out, trimmed around as well, so dropping a spike never moves the
+  // trim off where somebody slept.
+  const anchors = [points[0], points[points.length - 1], ...extraAnchors];
   const pieces: T[][] = [];
   let piece: T[] = [];
   for (const p of points) {
-    if (metresBetween(first, p) < metres || metresBetween(last, p) < metres) {
+    if (anchors.some((a) => metresBetween(a, p) < metres)) {
       if (piece.length) pieces.push(piece);
       piece = [];
     } else piece.push(p);
@@ -375,7 +378,18 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
   const hiddenStretches = options.hiddenStretches ?? [];
   const namedStretches = options.namedStretches ?? [];
 
+  // Spikes (B2571, the rule the studio applies since B2568) are left out of
+  // what is drawn, but only *after* runs are built and trimmed: runs are
+  // built from every fix exactly as before, and the 500 m end trim anchors on
+  // both the raw ends and the ends once spikes are gone. Dropping a spike can
+  // therefore never show readers more than the unfiltered line did, even
+  // when the rule picks a real fix at a run's end (security review, B2571).
   const sorted = [...fixes].sort((a, b) => a.t - b.t);
+  const spikeSet = spikeIndices(sorted);
+  // Keyed by time and place: runs below hold copies of each fix.
+  const key = (f: Fix) => `${f.t},${f.lat},${f.lon}`;
+  const spikeKeys = new Set(sorted.filter((_, i) => spikeSet.has(i)).map(key));
+  const isSpike = (f: Fix) => spikeKeys.has(key(f));
 
   /** Whether `fix` belongs in the line at all — every cut this function
    * makes but the date window and the 24h cap, both of which govern what a
@@ -429,8 +443,12 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
     // A lone fix is a dot, and every dot on these maps is a day or a
     // photograph — something somebody wrote. One stray position is not that.
     if (run.length < 2) continue;
-    const pieces = options.trimMetres ? trimByDistance(run, options.trimMetres) : [run];
-    for (const trimmed of pieces) {
+    const clean = run.filter((f) => !isSpike(f));
+    const pieces = options.trimMetres
+      ? trimByDistance(run, options.trimMetres, clean.length ? [clean[0], clean[clean.length - 1]] : [])
+      : [run];
+    for (const piece of pieces) {
+      const trimmed = piece.filter((f) => !isSpike(f));
       if (trimmed.length < 2) continue;
       drawable.push(...trimmed);
       const kept = simplify(trimmed, tolerance);
