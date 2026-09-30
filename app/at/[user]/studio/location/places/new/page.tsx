@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import StudioPage from "@/components/studio/StudioPage";
 import GpsZones from "@/components/studio/location/GpsZones";
+import { worldStreetMapUrl } from "@/lib/maps/dir";
 import { journalPath } from "@/lib/journalPath";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
@@ -32,6 +33,7 @@ export default async function NewPrivatePlacePage({ params }: PageProps<"/at/[us
       <GpsZones
         username={user}
         streetMapsOn={streetMapsOn}
+        streetMapUrl={worldStreetMapUrl()}
         afterAddHref={`${journalPath(user)}/studio/location`}
       />
     </StudioPage>

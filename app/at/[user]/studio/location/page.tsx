@@ -1,6 +1,7 @@
 import Link from "next/link";
 import StudioPage from "@/components/studio/StudioPage";
 import GpsZones from "@/components/studio/location/GpsZones";
+import { worldStreetMapUrl } from "@/lib/maps/dir";
 import RecordingStrip from "@/components/studio/location/RecordingStrip";
 import TrackThumb from "@/components/studio/location/TrackThumb";
 import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
@@ -156,6 +157,7 @@ export default async function StudioLocationPage({
             <GpsZones
               username={user}
               streetMapsOn={streetMapsOn}
+              streetMapUrl={worldStreetMapUrl()}
               mode="overview"
               newPlaceHref={`${journalPath(user)}/studio/location/places/new`}
             />

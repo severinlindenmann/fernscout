@@ -115,7 +115,7 @@ const MAX_TILES = 16;
  * bands.
  */
 function chooseZoom(dLngDeg: number, widthPx: number, minZoom: number, maxZoom: number): number {
-  const tilesWanted = (widthPx / 256) * (360 / Math.max(dLngDeg, 1e-6));
+  const tilesWanted = (widthPx / 512) * (360 / Math.max(dLngDeg, 1e-6));
   const z = Math.round(Math.log2(Math.max(tilesWanted, 1)));
   return Math.min(maxZoom, Math.max(minZoom, z));
 }
@@ -194,10 +194,17 @@ export async function streetLayersForBbox(
           kind !== "highway" && kind !== "major_road" &&
           !(z >= 10 && kind === "medium_road")
         ) continue;
+        // A card is a picture, not a navigation map: footpaths and service
+        // ways were most of a city day card's weight once cards asked for
+        // their own frame (B2565 — central Kyoto at z13 came to 1.2 MB).
+        if (name === "roads" && (kind === "path" || kind === "other")) continue;
         const rings = feature.loadGeometry();
         const isPolygon = feature.type === 3;
         const isLine = feature.type === 2;
         if (!isPolygon && !isLine) continue;
+        // The water bucket is filled: a river drawn as a line there closes
+        // into a solid blue wedge (B2565). Water areas only.
+        if (name === "water" && !isPolygon) continue;
         // README: "aim < 150 kB". `landuse` at z15 is mostly individual
         // building parcels — a handful of trip stops came to thousands of
         // them (measured: 5,729 for one region), the overwhelming majority
@@ -249,6 +256,20 @@ function simplify(points: PixelPoint[], tolerance: number): PixelPoint[] {
 /** Paths use output pixels so a decimal place remains subpixel even for a
  * town-sized frame. The card maps them back with one group transform.
  * Polygon holes follow their exterior; dropping an exterior drops its holes. */
+/** Whether a shape's own box touches the card (0..w × 0..h), with a small
+ * margin so a road ending just outside still reaches the edge. */
+function overlapsFrame(points: PixelPoint[], w: number, h: number): boolean {
+  const m = 8;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x, y] of points) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  return maxX >= -m && minX <= w + m && maxY >= -m && minY <= h + m;
+}
+
 function ringsToPath(
   rings: { x: number; y: number }[][],
   z: number,
@@ -269,6 +290,11 @@ function ringsToPath(
       const [px, py] = place(frame, coord);
       return [(px - frame.x) * widthPx / frame.w, (py - frame.y) * widthPx / frame.w];
     });
+    // B2565: a tile covers more ground than the card; a shape wholly outside
+    // the card's own frame is bytes nobody sees. Lines only here — a polygon's
+    // holes follow its exterior, decided below.
+    const inside = overlapsFrame(points, widthPx, (frame.h / frame.w) * widthPx);
+    if (!close && !inside) continue;
     let isExterior = false;
     if (close) {
       const area = points.reduce((sum, p, i) => {
@@ -278,7 +304,7 @@ function ringsToPath(
       if (!area) continue;
       if (!exteriorSign) exteriorSign = Math.sign(area);
       isExterior = Math.sign(area) === exteriorSign;
-      if (isExterior) keepExterior = Math.abs(area) >= 2;
+      if (isExterior) keepExterior = Math.abs(area) >= 2 && inside;
       if (!keepExterior || Math.abs(area) < 2) continue;
       const first = points[0];
       const last = points[points.length - 1];
