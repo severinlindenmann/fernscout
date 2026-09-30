@@ -407,7 +407,7 @@ describe("a proposal chained without the model — B926", () => {
     expect(turns[0].text).toContain("not written");
   });
 
-  test("survives a failed press, and the next turn can still use it", async () => {
+  test.skipIf(!hasPaid())("survives a failed press, and the next turn can still use it", async () => {
     await proposeChained("draft_words", {
       trip: "reise",
       slug: "kazbegi-tag",

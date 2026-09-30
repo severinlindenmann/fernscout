@@ -12,6 +12,7 @@ import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildPrompt, SYSTEM_PROMPT } from "@/lib/helper/model";
 import { history } from "@/lib/helper/thread";
 import { createTrip } from "@/lib/tripWrite";
+import { hasPaid } from "./support/openCore";
 
 /**
  * The model layer — B684.
@@ -306,7 +307,7 @@ describe("what it costs", () => {
   });
 });
 
-describe("B2591 — AI days, with billing on", () => {
+describe.skipIf(!hasPaid())("B2591 — AI days, with billing on", () => {
   beforeEach(async () => {
     writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);

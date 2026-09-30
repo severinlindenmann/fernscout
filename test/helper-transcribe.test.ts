@@ -11,6 +11,7 @@ import { clearIdempotencyStore } from "@/lib/idempotency";
 import { clearLocaleCache } from "@/lib/locales";
 import { creditsForSeconds, speechLanguageFor } from "@/lib/helper/speech";
 import { DRY_RUN_TRANSCRIPT, leastConfidentWord, UNCERTAIN_WORD_CONFIDENCE } from "@/lib/helper/transcribe";
+import { hasPaid } from "./support/openCore";
 
 /**
  * Speech into text — B686.
@@ -332,7 +333,7 @@ describe("the ledger", () => {
   });
 });
 
-describe("B2591 — with billing on", () => {
+describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
   beforeEach(async () => {
     writeServerConfig({
       auth: { enabled: true },

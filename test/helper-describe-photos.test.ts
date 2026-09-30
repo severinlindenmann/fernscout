@@ -15,6 +15,7 @@ import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { paintJpeg } from "./support/pictures";
 import { writeTripFixture } from "./fixtures/content";
 import { dayToJson } from "@/lib/api/v2/documents";
+import { hasPaid } from "./support/openCore";
 
 /**
  * Photographs → captions — B687.
@@ -553,7 +554,7 @@ describe("bearer tokens", () => {
   });
 });
 
-describe("B2591 — AI days, with billing on", () => {
+describe.skipIf(!hasPaid())("B2591 — AI days, with billing on", () => {
   beforeEach(async () => {
     writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     await consent("photos");

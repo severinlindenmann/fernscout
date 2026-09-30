@@ -12,6 +12,7 @@ import { tripMediaDir } from "@/lib/media";
 import { storeInboxFile } from "@/lib/inbox";
 import { paintJpeg } from "./support/pictures";
 import { writeTripFixture } from "./fixtures/content";
+import { hasPaid } from "./support/openCore";
 
 /**
  * A group photograph → a proposed party, written nowhere — B1517.
@@ -331,7 +332,7 @@ describe("what it costs", () => {
   });
 });
 
-describe("B2591 — with billing on", () => {
+describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
   test("once the plan's AI days are used up, this is refused with 402 plan_limit", async () => {
     writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     const token = await ownerToken();
