@@ -71,20 +71,16 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
 
     (async () => {
       // maplibre-gl has no default export — named imports only.
-      const [{ Map, NavigationControl, addProtocol, setWorkerUrl }, { Protocol }, { paperStyle }] = await Promise.all([
+      const [{ Map, NavigationControl, setWorkerUrl }, { paperStyle }] = await Promise.all([
         import("maplibre-gl"),
-        import("pmtiles"),
         import("@/lib/map/paperFlavor"),
         import("maplibre-gl/dist/maplibre-gl.css"),
       ]);
       if (cancelled || !containerRef.current) return;
 
-      // Idempotent: `addProtocol` overwrites rather than erroring on a second
-      // call, but registering once per loaded module is simplest and cheap.
       // The bundler does not emit maplibre-gl 6's module worker; it is served
       // from app/api/maps/worker instead.
       setWorkerUrl("/api/maps/worker/maplibre-gl-worker.mjs");
-      addProtocol("pmtiles", new Protocol().tile);
 
       const created = new Map({
         container: containerRef.current,
