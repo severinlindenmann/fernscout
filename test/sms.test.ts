@@ -228,3 +228,42 @@ describe("the SMS fallback beside the inbound proof", () => {
     expect(((await refused.json()) as { error: string }).error).toBe("sms_disabled");
   });
 });
+
+describe("B2597 — no route sends an SMS except the owner's own checks", () => {
+  const ALLOWED = new Set([
+    // The owner's own signup/phone-verify code (this file's own B1316 suite).
+    "lib/phoneVerify/sms.ts",
+    // The instance operator's own admin panel (B1316) — not a reader or
+    // journal-owner channel, and not named in B2597's decision; left as is.
+    "app/api/admin/sms/route.ts",
+  ]);
+
+  function walk(dir: string, out: string[]): void {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (["node_modules", ".next", ".git", "test", "dist", "paid"].includes(entry.name)) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full, out);
+      else if (/\.(ts|tsx|mts)$/.test(entry.name) && !entry.name.endsWith(".test.ts")) out.push(full);
+    }
+  }
+
+  test("every literal sendSms( call site is one of the two allowed files", () => {
+    const root = path.join(__dirname, "..");
+    const files: string[] = [];
+    for (const top of ["app", "lib"]) walk(path.join(root, top), files);
+    const offenders: string[] = [];
+    for (const file of files) {
+      const rel = path.relative(root, file);
+      if (rel === "lib/sms/index.ts") continue; // sendSms's own definition, not a call site
+      const src = fs.readFileSync(file, "utf8");
+      if (/\bsendSms\(/.test(src) && !ALLOWED.has(rel)) offenders.push(rel);
+    }
+    expect(offenders, `unexpected sendSms caller(s): ${offenders.join(", ")}`).toEqual([]);
+  });
+});

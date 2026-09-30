@@ -1,10 +1,7 @@
 import { composeDayLetter, exampleDayLetter } from "../../digest/dayLetter";
 import { composeEveningNudge } from "../../digest/reminder";
 import { composeFirstTripMail, composeFirstTripPush } from "../../digest/firstTrip";
-import { composeDaySms } from "../../digest/daySms";
 import { composeDayPush } from "../../digest/dayPush";
-import { composeGuestCodeSms } from "../../contacts/guestCode";
-import { composeInviteSms, composeInviteInSms } from "../../contacts/welcome";
 import { composeSpendAlert } from "../../spendAlert";
 import { composeOperatorAlert } from "../../operatorAlert";
 import { composeDayWhatsappPreview } from "@paid/whatsapp/lib/digest/dayWhatsapp";
@@ -73,16 +70,6 @@ export const digestPreviews: PreviewMap = {
       piped: "",
     }),
 
-  "code.sms": (locale) => composeGuestCodeSms({ code: SAMPLE.code, journalTitle: SAMPLE.journal }, locale),
-
-  "invite.sms": (locale) =>
-    composeInviteSms(
-      { recipientName: SAMPLE.name, ownerName: SAMPLE.owner, title: SAMPLE.journal, url: SAMPLE_URL, isBuddy: false },
-      locale,
-    ),
-  "invite.in.sms": (locale) =>
-    composeInviteInSms({ recipientName: SAMPLE.name, ownerName: SAMPLE.owner, journalTitle: SAMPLE.journal, url: SAMPLE_URL }, locale),
-
   // `readers.share.text` is the owner's own share text, in the studio
   // (`components/studio/readers/ShareLink.tsx` / `InviteLinkDoor.tsx`) —
   // nothing composes it server-side to send; the studio reads the same key.
@@ -90,8 +77,6 @@ export const digestPreviews: PreviewMap = {
     channel: "share",
     text: translateIn(locale, "readers.share.text", { trip: SAMPLE.trip, site: SAMPLE.site }),
   }),
-
-  "news.sms": (locale) => composeDaySms({ tripTitle: SAMPLE.trip, dayTitle: SAMPLE.day, url: SAMPLE_URL, stopUrl: SAMPLE_URL }, locale),
 
   // The operator types this one themselves each time — there is no fixed
   // text to preview (`app/api/admin/sms/route.ts`: `body.body`, trimmed,

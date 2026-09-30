@@ -101,23 +101,10 @@ async function add(body: Record<string, unknown>) {
   return POST(post(`/api/web/${OWNER}/readers`, body), { params: Promise.resolve({ user: OWNER }) });
 }
 
-async function notify(contactId: string, channel: string) {
-  const { POST } = await import("@/app/api/web/[user]/readers/notify/route");
-  return POST(post(`/api/web/${OWNER}/readers/notify`, { contactId, channel }), {
-    params: Promise.resolve({ user: OWNER }),
-  });
-}
-
 async function addedId(body: Record<string, unknown>): Promise<string> {
   const res = await add(body);
   expect(res.status).toBe(200);
   return ((await res.json()) as { contact: { id: string } }).contact.id;
-}
-
-async function ledgerRows(): Promise<number> {
-  const { getDatabase } = await import("@/lib/db");
-  const { db } = await getDatabase();
-  return (await db.selectFrom("credit_ledger").select("id").execute()).length;
 }
 
 beforeAll(async () => {
@@ -173,7 +160,6 @@ afterAll(async () => {
 /** The six digits in a message — the first run of exactly six that is not
  * part of a colour (`#475569`) or a longer number. */
 const lastCode = (text: string) => text.match(/(?<![#\w])(\d{6})(?!\w)/)?.[1] ?? "";
-const codeTexted = (to: string) => lastCode(texts().filter((t) => t.to.replace(/\D/g, "") === to.replace(/\D/g, "")).at(-1)?.body ?? "");
 const codeMailed = (to: string) => lastCode(mails(to).at(-1) ?? "");
 
 async function step(code: string, body: Record<string, unknown>, headers: Record<string, string> = {}) {
@@ -185,25 +171,6 @@ async function joinStep(code: string, body: Record<string, unknown>) {
   const { POST } = await import("@/app/j/[code]/step/route");
   const res = await POST(post(`/j/${code}/step`, body), { params: Promise.resolve({ code }) });
   return { status: res.status, json: (await res.json()) as Record<string, unknown> };
-}
-async function guidePage(code: string) {
-  const { default: WelcomePage } = await import("@/app/w/[code]/page");
-  return WelcomePage({ params: Promise.resolve({ code }) } as never);
-}
-/** Where a server component redirected to, or null when it rendered. */
-async function redirectOf(render: () => Promise<unknown>): Promise<string | null> {
-  try {
-    await render();
-    return null;
-  } catch (err) {
-    const digest = (err as { digest?: string }).digest ?? "";
-    if (!digest.startsWith("NEXT_REDIRECT")) throw err;
-    return digest.split(";")[2];
-  }
-}
-async function welcomeCode(id: string) {
-  const { welcomeCodeFor } = await import("@/lib/contacts/welcome");
-  return (await welcomeCodeFor(OWNER, id))!;
 }
 async function contact(id: string) {
   const { getContact } = await import("@/lib/contacts");
@@ -369,38 +336,14 @@ describe("B2453 — a second channel and news consent on the join form", () => {
     return { code, id: (await getContactByEmail(OWNER, email))!.id };
   }
 
-  test("somebody who joined by email proves a mobile on the notify step and can tick SMS", async () => {
-    const { code, id } = await joinedByEmail("Mira Mobile", "mira@example.test", true);
-    const sent = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 12 34" });
-    expect(sent.json).toMatchObject({ ok: true });
-    const proved = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 12 34", code: codeTexted("+41795551234") });
-    expect(proved.status).toBe(200);
-    expect((await contact(id)).phoneProvenAt).not.toBeNull();
-    const saved = await joinStep(code, { action: "save", wantsSms: true });
-    expect(saved.status).toBe(200);
-    expect((await contact(id)).wantsSms).toBe(true);
-  });
-
-  test("a wrong code proves nothing", async () => {
-    const { code, id } = await joinedByEmail("Wanda Wrong", "wanda@example.test", true);
-    await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 99 88" });
-    const wrong = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 99 88", code: "000000" });
-    expect(wrong.status).toBe(401);
-    expect((await contact(id)).phoneProvenAt ?? null).toBeNull();
-  });
-
-  test("a request nobody has let in yet is never texted", async () => {
-    const { code } = await joinedByEmail("Stan Stranger", "stan@example.test");
-    const before = texts().length;
-    const refused = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 44 33" });
-    expect(refused.status).toBe(409);
-    expect(texts().length).toBe(before);
-  });
+  // B2597 retired the mobile-proof-by-SMS path (`sendPhoneProof`/
+  // `confirmPhoneProof`, and the mobile leg of "proof") along with reader
+  // sign-in by phone — three tests here that exercised it are gone with it.
 
   test("no session, no proof — the contact comes from the browser, never the body", async () => {
     const code = await newLink({ kind: "guest", name: "Group" });
     jar.cookies = {};
-    const refused = await joinStep(code, { action: "proof", kind: "sms", value: "+41 79 555 00 11" });
+    const refused = await joinStep(code, { action: "proof", kind: "email", value: "nobody@example.test" });
     expect(refused.status).toBe(401);
   });
 
@@ -430,23 +373,8 @@ describe("B2453 — a second channel and news consent on the join form", () => {
   });
 });
 
-describe("B2454 — somebody who joined by mobile can add an email on the notify step", () => {
-  test("the email is proved by its own code and becomes the contact's", async () => {
-    await signInOwner();
-    const code = await newLink({ kind: "guest", name: "Group" });
-    jar.cookies = {};
-    await joinStep(code, { action: "send", name: "Tomas Text", channel: "sms", value: "+41 79 555 77 66" });
-    const verified = await joinStep(code, { action: "verify", name: "Tomas Text", channel: "sms", value: "+41 79 555 77 66", code: codeTexted("+41795557766") });
-    expect(verified.status).toBe(200);
-    const sent = await joinStep(code, { action: "proof", kind: "email", value: "tomas@example.test" });
-    expect(sent.json).toMatchObject({ ok: true });
-    const proved = await joinStep(code, { action: "proof", kind: "email", value: "tomas@example.test", code: codeMailed("tomas@example.test") });
-    expect(proved.status).toBe(200);
-    const { getContactByEmail } = await import("@/lib/contacts");
-    const row = await getContactByEmail(OWNER, "tomas@example.test");
-    expect(row?.name).toBe("Tomas Text");
-  });
-});
+// B2454 ("somebody who joined by mobile can add an email") is gone with it:
+// B2597 retired joining by mobile entirely — the join link asks for an email.
 
 describe("B2503 — the confirm button in a join code mail carries on in the join guide", () => {
   test("pressing it lands back on /j/<code>, and the guide then files the request", async () => {

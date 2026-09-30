@@ -1054,7 +1054,7 @@ describe("credits — B366, and what B840 stopped charging for", () => {
     expect(mailFiles()).toHaveLength(3);
   });
 
-  test.skipIf(!hasPaid())("both channels are checked together — passing each alone is not enough", async () => {
+  test.skipIf(!hasPaid())("B2597 — a WhatsApp day announcement is retired: it costs nothing and sends nothing", async () => {
     // A bespoke server config for this one test: mail, whatsapp and credits
     // all switched on at once, which no other test in this file needs.
     fs.writeFileSync(
@@ -1084,13 +1084,12 @@ describe("credits — B366, and what B840 stopped charging for", () => {
       draft: true,
     });
 
-    // Twelve contacts opted into both channels. Since B840 the mail half of
-    // that costs nothing and the WhatsApp half still costs twelve, so the
-    // pre-flight's sum is 0 + 12 — which is the property this ticket calls
-    // out, unchanged: it adds the channels it was asked for before it
-    // publishes anything, rather than checking them one at a time and
-    // half-sending. A free channel contributing zero is a case worth holding
-    // down, because "free" and "not counted" are easy to confuse in a sum.
+    // Twelve contacts opted into both channels. Before B2597 this made the
+    // pre-flight's sum 0 (mail) + 12 (WhatsApp) and refused for want of
+    // credit. No plan reaches a reader on WhatsApp for a day announcement any
+    // more (`paid/whatsapp/lib/digest/dayWhatsapp.ts`), so the WhatsApp half
+    // now costs and sends nothing, whatever the operator's own capability
+    // says — an empty balance no longer stands in the way of publishing.
     for (let i = 0; i < 12; i++) {
       const email = `reader${i}@example.test`;
       await requestContact(OWNER, {
@@ -1108,7 +1107,7 @@ describe("credits — B366, and what B840 stopped charging for", () => {
       if (!confirmed.ok) throw new Error("confirmation failed");
       await approveContact(OWNER, confirmed.contact.id);
     }
-    await grant(OWNER, 8);
+    // No grant at all: if WhatsApp still charged, this would 402.
 
     const token = await agentToken();
     const result = await publish(token, "combined", slug, {
@@ -1116,16 +1115,11 @@ describe("credits — B366, and what B840 stopped charging for", () => {
       send_whatsapp: true,
     });
 
-    expect(result.status).toBe(402);
-    expect(result.body.error).toBe("no_credits");
-    // v2's `fail()` nests a refusal's structured facts under `details`,
-    // rather than splicing them onto the body's own top level.
-    const details = result.body.details as { needed: number; balance: number };
-    expect(details.needed).toBe(12);
-    expect(details.balance).toBe(8);
-    expect(
-      getEntryBySlug("alex/combined", slug, { includeDrafts: true })?.draft,
-    ).toBe(true);
-    expect(mailFiles()).toHaveLength(0);
+    expect(result.status).toBe(200);
+    expect(result.body.status).toBe("published");
+    const whatsapp = result.body.whatsapp as { attempted: boolean; reason?: string };
+    expect(whatsapp.attempted).toBe(false);
+    expect(whatsapp.reason).toBe("whatsapp_off");
+    expect(mailFiles()).toHaveLength(13); // owner plus the twelve readers
   });
 });

@@ -11,7 +11,6 @@ import {
   FIELD,
   Heading,
   LABEL,
-  PhoneArt,
   PostcardArt,
   PostcardIcon,
   PRIMARY,
@@ -94,7 +93,10 @@ export default function JoinFlow({
   }, [step]);
 
   const [name, setName] = useState("");
-  const [channel, setChannel] = useState<"email" | "sms">(caps.mail ? "email" : "sms");
+  // B2597: readers sign in by email only — `caps.sms` is always false now,
+  // kept as a prop only so this component degrades the same way it always
+  // did when a channel is unavailable.
+  const [channel] = useState<"email" | "sms">("email");
   const [value, setValue] = useState("");
   const [sentTo, setSentTo] = useState("");
   const [typed, setTyped] = useState("");
@@ -164,11 +166,6 @@ export default function JoinFlow({
     if (await call({ action: "save", address })) next();
   }
 
-  // B2453: a mobile added on the notify step itself, proved by its own code.
-  const [addedMobile, setAddedMobile] = useState<string | null>(null);
-  const [mobileValue, setMobileValue] = useState("");
-  const [mobileSent, setMobileSent] = useState<string | null>(null);
-  const [mobileCode, setMobileCode] = useState("");
   // B2504: ticked from the start, the owner's decision (27 Sep); unticking
   // records nothing, and "Stop news" on /me turns it off again.
   const [news, setNews] = useState(true);
@@ -191,19 +188,12 @@ export default function JoinFlow({
       setEmailSent(null);
     }
   }
-  async function sendMobileProof() {
-    const sent = await call({ action: "proof", kind: "sms", value: mobileValue });
-    if (sent) setMobileSent(String(sent.to ?? mobileValue));
-  }
-  async function confirmMobileProof() {
-    if (await call({ action: "proof", kind: "sms", value: mobileValue, code: mobileCode })) {
-      setAddedMobile(mobileSent ?? mobileValue);
-      setMobileSent(null);
-    }
-  }
-
   const provedEmail = knownEmail ?? (channel === "email" ? sentTo : null) ?? addedEmail;
-  const provedMobile = (channel === "sms" && !knownEmail ? sentTo : null) || addedMobile;
+  // B2597: readers sign in by email only — the SMS proof that used to make a
+  // mobile number usable for sign-in or WhatsApp is gone. A reader can still
+  // leave an unproved number for a WhatsApp postcard while their request
+  // waits (`typesMobile` below); there is no path left to a *proved* one.
+  const provedMobile: string | null = null;
   const ticks: Tick[] = ([
     caps.mail && {
       key: "wantsEmailDigest",
@@ -221,13 +211,6 @@ export default function JoinFlow({
       checked: wants.wantsWhatsapp ?? false,
       disabled: !provedMobile && status !== "waiting",
       icon: <PostcardIcon />,
-    },
-    caps.sms && {
-      key: "wantsSms",
-      label: t("guide.notify.sms"),
-      hint: provedMobile || t("guide.notify.needsMobile"),
-      checked: wants.wantsSms ?? false,
-      disabled: !provedMobile,
     },
     caps.postcards && {
       key: "wantsPostcard",
@@ -275,55 +258,34 @@ export default function JoinFlow({
   }
 
   if (step === "reach") {
-    const tabs = [caps.mail && ("email" as const), caps.sms && ("sms" as const)].filter(Boolean) as ("email" | "sms")[];
     return (
       <Screen
         labelledBy="join-reach"
         dots={dots}
         footer={
-          <BusyButton busy={busy} type="button" className={PRIMARY} disabled={!value.trim() || tabs.length === 0} onClick={send}>
+          <BusyButton busy={busy} type="button" className={PRIMARY} disabled={!value.trim() || !caps.mail} onClick={send}>
             {t("join.reach.send")}
           </BusyButton>
         }
       >
         <Heading id="join-reach">{t("join.reach.title", vars)}</Heading>
-        {tabs.length > 1 && (
-          <div role="tablist" aria-label={t("join.reach.title", vars)} className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-subtle p-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={channel === tab}
-                className={`min-h-11 rounded-xl text-base font-semibold ${channel === tab ? "bg-surface-raised text-ink-strong shadow-sm" : "text-ink-secondary"}`}
-                onClick={() => {
-                  setChannel(tab);
-                  setValue("");
-                  setError(null);
-                }}
-              >
-                {t(tab === "email" ? "join.reach.email" : "join.reach.mobile")}
-              </button>
-            ))}
-          </div>
-        )}
-        {tabs.length === 0 ? (
+        {!caps.mail ? (
           <p className="text-base text-ink-body">{t("guide.error.unavailable")}</p>
         ) : (
           <label className={LABEL}>
-            {t(channel === "email" ? "join.reach.emailLabel" : "join.reach.mobileLabel")}
+            {t("join.reach.emailLabel")}
             <input
               className={FIELD}
-              type={channel === "email" ? "email" : "tel"}
-              inputMode={channel === "email" ? "email" : "tel"}
-              autoComplete={channel === "email" ? "email" : "tel"}
-              placeholder={channel === "email" ? "name@example.com" : "+41 79 …"}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="name@example.com"
               value={value}
               onChange={(e) => setValue(e.target.value)}
             />
           </label>
         )}
-        <p className="text-sm text-ink-secondary">{t(tabs.includes("sms") ? "join.reach.hint" : "join.reach.hintEmail")}</p>
+        <p className="text-sm text-ink-secondary">{t("join.reach.hintEmail")}</p>
         <Alert text={error} />
       </Screen>
     );
@@ -340,9 +302,9 @@ export default function JoinFlow({
           </BusyButton>
         }
       >
-        {channel === "sms" ? <PhoneArt /> : <CodeArt />}
-        <Heading id="join-code">{t(channel === "email" ? "join.code.inbox" : "join.code.phone")}</Heading>
-        <p className="text-base text-ink-body">{t(channel === "email" ? "join.code.bodyEmail" : "join.code.bodySms", { to: sentTo })}</p>
+        <CodeArt />
+        <Heading id="join-code">{t("join.code.inbox")}</Heading>
+        <p className="text-base text-ink-body">{t("join.code.bodyEmail", { to: sentTo })}</p>
         <CodeField id="join-code-input" label={t("guide.code.label")} value={typed} onChange={setTyped} />
         <Alert text={error} />
         <button type="button" className={QUIET} onClick={() => setStep("reach")}>
@@ -456,39 +418,6 @@ export default function JoinFlow({
             <span className="text-sm font-normal text-ink-secondary">{t("join.notify.whatsappLater", vars)}</span>
           </label>
         )}
-        {caps.sms && !provedMobile && status === "waiting" && (
-          // A request nobody has let in yet is never texted (a code costs
-          // money, and a stranger must not be able to spend it) — say when.
-          <p className="text-sm text-ink-secondary">{t("join.notify.mobileLater", vars)}</p>
-        )}
-        {(caps.sms || caps.whatsapp) && !provedMobile && status === "in" && (
-          <div className="flex flex-col gap-2 rounded-2xl border-2 border-yellow-400 bg-surface-raised p-4">
-            <label className={LABEL}>
-              {t("join.notify.addMobile")}
-              <input
-                className={FIELD}
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={mobileValue}
-                onChange={(e) => setMobileValue(e.target.value)}
-              />
-            </label>
-            <span className="text-sm text-ink-secondary">{t("join.notify.addMobileHint")}</span>
-            {mobileSent ? (
-              <>
-                <CodeField id="join-mobile-code" label={t("guide.code.label")} value={mobileCode} onChange={setMobileCode} />
-                <BusyButton busy={busy} type="button" className={QUIET} disabled={mobileCode.length !== 6} onClick={confirmMobileProof}>
-                  {t("guide.code.confirm")}
-                </BusyButton>
-              </>
-            ) : (
-              <BusyButton busy={busy} type="button" className={QUIET} disabled={!mobileValue.trim()} onClick={sendMobileProof}>
-                {t("guide.check.sendProof")}
-              </BusyButton>
-            )}
-          </div>
-        )}
         {provedEmail && (
           <Ticks
             ticks={[
@@ -522,9 +451,7 @@ export default function JoinFlow({
       <WaitingArt />
       <Heading id="join-done">{status === "in" ? t("join.done.inTitle") : t("join.done.title")}</Heading>
       <p className="text-base text-ink-body">
-        {status === "in"
-          ? t("join.done.inBody", vars)
-          : t(channel === "sms" && !knownEmail ? "join.done.bodySms" : "join.done.bodyEmail", vars)}
+        {status === "in" ? t("join.done.inBody", vars) : t("join.done.bodyEmail", vars)}
       </p>
     </Screen>
   );
