@@ -23,6 +23,8 @@ import { writeTombstone } from "./tombstones";
 import { AS_AUTHOR, forgetEntries, getAllEntries } from "./entries";
 import { tripTrashDir } from "./dayTrash";
 import { getTrip, getTrips, parseTripRef, tripDir, tripRef } from "./trips";
+import { entitlementHistory } from "@paid/credits/lib/entitlements";
+import { cancelOwnerSubscription } from "@paid/credits/lib/plan-checkout";
 import { clearUserCache, getUser, userDir } from "./users";
 import { sql, type Kysely } from "kysely";
 
@@ -337,6 +339,24 @@ export async function requestDeletion(
       requested_by: options.sessionId ?? null,
     })
     .execute();
+
+  // Deleting the whole journal cancels a live Stripe subscription now, at the
+  // request — not when the delayed deletion actually completes days later
+  // (docs/billing.md's Decided rule, B2593). Never a trip delete: the plan
+  // belongs to the journal, not to one trip in it. Best-effort and outside
+  // the mail's own try/catch below — a Stripe hiccup must never turn into a
+  // deletion request the owner never sees.
+  if (target.kind === "journal") {
+    try {
+      const history = await entitlementHistory(target.username);
+      const live = history.find(
+        (e) => e.plan === "plus" && e.source === "stripe" && (e.status === "active" || e.status === "grace"),
+      );
+      if (live?.providerRef) await cancelOwnerSubscription(live.providerRef);
+    } catch (err) {
+      console.warn(`[deletions] could not cancel a Stripe subscription for ${target.username}:`, err);
+    }
+  }
 
   try {
     await sendDeletionMail({ summary, email, nickname: user.owner.nickname, token, locale: user.defaultLocale });

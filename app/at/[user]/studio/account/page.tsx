@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AccountPageContent, {
   type PaymentPanel,
+  type PlanPanel,
   type StoragePanel,
 } from "../../account/AccountPageContent";
 import StudioPage from "@/components/studio/StudioPage";
@@ -19,6 +20,8 @@ import { cleanupPlan } from "@/lib/storageCleanup";
 import { formatBytes, storageBreakdown, storageFor, worthShowing } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 import { stripeEnabled, stripeMode } from "@paid/credits/lib/stripe";
+import { entitlementHistory, planOf } from "@paid/credits/lib/entitlements";
+import { aiDaysStatus } from "@paid/credits/lib/aiDays";
 
 /**
  * Credits and storage — B821, moved whole here from `/[user]/account` by
@@ -140,9 +143,30 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
   const allOrders = await listAllOrders(user);
   const orders = { recent: allOrders.slice(0, 3), total: allOrders.length };
 
+  // "Your plan" — B2593. Absent when `billing` is off, the same "absent, not
+  // shown empty" rule `payment`/`storage` already follow.
+  let plan: PlanPanel | undefined;
+  if (isEnabled("billing")) {
+    const current = await planOf(user);
+    const status = await aiDaysStatus(user);
+    const live = current.unlimited
+      ? undefined
+      : (await entitlementHistory(user)).find(
+          (e) => (e.status === "active" || e.status === "grace") && e.plan === current.plan,
+        );
+    plan = {
+      plan: current.plan,
+      periodEnd: current.unlimited ? null : current.periodEnd,
+      cancelAtPeriodEnd: live?.cancelAtPeriodEnd ?? false,
+      aiDays: status.unlimited ? { unlimited: true } : { unlimited: false, used: status.used, allowed: status.allowed },
+      storageGb: current.limits.storageGb,
+      hasStripeSubscription: current.plan === "plus" && current.source === "stripe",
+    };
+  }
+
   return (
     <StudioPage username={user} group="journal" title={translateIn(await requestLocale(), "studio.hub.item.account.title")}>
-      <AccountPageContent username={user} storage={storage} payment={payment} orders={orders} />
+      <AccountPageContent username={user} storage={storage} payment={payment} orders={orders} plan={plan} />
     </StudioPage>
   );
 }

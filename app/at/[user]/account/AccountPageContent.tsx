@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
-import { Check, HardDrive, Mail, MessageCircle, Undo2, Wallet } from "lucide-react";
+import { Check, CreditCard, HardDrive, Mail, MessageCircle, Undo2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -544,6 +544,166 @@ export function groupSpent(
 
 /** What the Payment section needs — B367. `undefined` is credits switched
  * off; the page shows storage alone then, per B821's own acceptance line. */
+/**
+ * "Your plan" — B2593. A functional first version of the canvas board
+ * (`Account.dc.html`): plan, renewal/end date, the two meters that matter
+ * (AI days, storage), the portal link, and the two buy buttons. Absent
+ * (like `payment`/`storage`) rather than shown empty when `billing` is off
+ * — an "unlimited, forever" card on every instance that has not turned
+ * plans on would be noise, not news.
+ */
+export type PlanPanel = {
+  plan: "free" | "pass" | "plus";
+  /** `null` on Free, which has no period. */
+  periodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  aiDays: { unlimited: true } | { unlimited: false; used: number; allowed: number };
+  storageGb: number;
+  /** Only Plus, bought through Stripe, has a subscription to manage. */
+  hasStripeSubscription: boolean;
+};
+
+/** Buy a plan, or ask the operator to grant it when no Stripe key is
+ *  configured (`dryRun`) — the same "ask, don't act" shape `BuyStorageButton`
+ *  and `submitRequest` already take for credits. */
+function BuyPlanButton({
+  username,
+  plan,
+  label,
+}: {
+  username: string;
+  plan: "pass" | "plus";
+  label: string;
+}) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<"idle" | "failed" | "sent">("idle");
+
+  async function buy() {
+    setBusy(true);
+    setState("idle");
+    const response = await fetch(`/api/web/${username}/billing/checkout`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ plan }),
+    }).catch(() => null);
+    const body = await response?.json().catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      setState("failed");
+      return;
+    }
+    if (body?.url) {
+      window.location.href = body.url as string;
+      return;
+    }
+    // Dry run: no Stripe key, the operator was mailed — B2593.
+    setState("sent");
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={buy}
+        className="inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action transition-colors hover:bg-action-strong-hover disabled:opacity-50"
+      >
+        {label}
+      </button>
+      {state === "failed" && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("billing.checkoutFailed")}
+        </span>
+      )}
+      {state === "sent" && (
+        <span role="status" className="mt-1 block text-sm text-ink-secondary">
+          {t("billing.dryRunSent")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** The Customer Portal — cancel, update the card, see invoices. */
+function ManageSubscriptionButton({ username }: { username: string }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function open() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch(`/api/web/${username}/billing/portal`, { method: "POST" }).catch(() => null);
+    const body = await response?.json().catch(() => null);
+    setBusy(false);
+    if (!response?.ok || !body?.url) {
+      setFailed(true);
+      return;
+    }
+    window.location.href = body.url as string;
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={open}
+        className="inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-base disabled:opacity-50"
+      >
+        {t("billing.manage")}
+      </button>
+      {failed && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("billing.checkoutFailed")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function YourPlanPanel({ username, plan }: { username: string; plan: PlanPanel }) {
+  const { t } = useI18n();
+  const planTag = t(`plans.${plan.plan}` as "plans.free");
+  const dateStr = plan.periodEnd ? plan.periodEnd.slice(0, 10) : null;
+
+  return (
+    <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
+      <div className="flex items-center gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-ink-strong">
+          <CreditCard className="h-[18px] w-[18px]" aria-hidden="true" />
+        </span>
+        <h3 className="font-display text-lg font-semibold text-ink-strong">{t("billing.title")}</h3>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="font-display text-2xl font-semibold text-ink-strong">{planTag}</span>
+        {dateStr && (
+          <span className="text-sm text-ink-secondary">
+            {t(plan.cancelAtPeriodEnd ? "billing.ends" : "billing.renews", { date: dateStr })}
+          </span>
+        )}
+      </div>
+
+      <ul className="mt-3 space-y-1 text-sm text-ink-body">
+        <li>
+          {plan.aiDays.unlimited
+            ? t("billing.aiDaysUnlimited")
+            : t("billing.aiDaysLeft", { used: String(plan.aiDays.used), allowed: String(plan.aiDays.allowed) })}
+        </li>
+        <li>{t("billing.storage", { size: `${plan.storageGb} GB` })}</li>
+      </ul>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        {plan.hasStripeSubscription && <ManageSubscriptionButton username={username} />}
+        {plan.plan !== "plus" && <BuyPlanButton username={username} plan="plus" label={t("billing.buyPlus")} />}
+        {plan.plan === "free" && <BuyPlanButton username={username} plan="pass" label={t("billing.buyPass")} />}
+      </div>
+    </div>
+  );
+}
+
 export type PaymentPanel = {
   balance: number;
   emailRecipients: number;
@@ -575,6 +735,7 @@ export default function AccountPageContent({
   storage,
   payment,
   orders,
+  plan,
 }: {
   username: string;
   /** Absent only where the instance sets no ceiling. */
@@ -583,6 +744,8 @@ export default function AccountPageContent({
   payment?: PaymentPanel;
   /** The 3 most recent orders and the total count — B1452. */
   orders: { recent: OrderRow[]; total: number };
+  /** Absent when `billing` is off. */
+  plan?: PlanPanel;
 }) {
   const { t, tn } = useI18n();
   const site = useSite();
@@ -658,6 +821,8 @@ export default function AccountPageContent({
               </ul>
             </div>
           )}
+
+          {plan && <YourPlanPanel username={username} plan={plan} />}
 
           {payment && (
             <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
