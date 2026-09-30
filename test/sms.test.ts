@@ -114,11 +114,13 @@ describe("the Twilio webhook", () => {
 
     const rows = await listSms();
     expect(rows).toHaveLength(1);
+    // B2589: the text itself is never kept — only metadata. `listSms` still
+    // answers "what happened on this number", never "what did it say".
     expect(rows[0]).toMatchObject({
       direction: "in",
       from: "41760000009",
       to: "41766014649",
-      body: "Hello from a fixture",
+      body: "",
       providerSid: INBOUND.MessageSid,
     });
   });

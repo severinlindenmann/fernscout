@@ -35,6 +35,7 @@ import {
   journalDaily,
   type CostLine,
   type DailySpend,
+  type JournalRow,
 } from "@/lib/instanceCosts";
 import {
   allTombstones,
@@ -356,6 +357,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               <TakingsPanel money={money} paid={data.paid} days={days} />
             </div>
           </div>
+          <section className={`${CARD} lg:col-span-2`}>
+            <CostAndRevenue journals={data.journals} days={days} />
+          </section>
         </div>
       ),
     },
@@ -1225,6 +1229,71 @@ function TakingsPanel({ money, paid, days }: { money: Takings; paid: Payment[]; 
       {paid.length === 0 ? (
         <p className="mt-2 text-sm text-ink-body">Nothing was bought in this period.</p>
       ) : null}
+    </section>
+  );
+}
+
+/**
+ * Cost and revenue, per journal — B2589.
+ *
+ * The table the ticket's own admin draft sketched: what each journal cost in
+ * AI and speech calls, what its SMS and other metered sends came to, what it
+ * paid, and what is left over. Revenue reads only `payments` (credit
+ * purchases) today — `revenueRappenByOwner` in `lib/instanceCosts.ts` is
+ * where the plans and trip-pass tickets (B2590, B2593) add their own money
+ * without this row changing shape. A journal with nothing on either side
+ * over the period is left out — an all-zero row is not a fact worth a line.
+ */
+function CostAndRevenue({ journals, days }: { journals: JournalRow[]; days: number }) {
+  const rows = journals
+    .filter((row) => row.rappen > 0 || row.revenueRappen > 0)
+    .sort((a, b) => b.revenueRappen - b.rappen - (a.revenueRappen - a.rappen));
+
+  return (
+    <section>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">Cost and revenue per journal</h2>
+      <p className="mt-1 text-sm text-ink-body">
+        The last {days} days. Costs come from the usage log, priced at the moment of the call.
+        Revenue is credit purchases only, until plans and trip passes have their own tables.
+      </p>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-body">No journal moved any money in this period.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-line-quiet text-left text-xs font-semibold uppercase tracking-wide text-ink-body">
+                <th className="py-2 pr-3">Journal</th>
+                <th className="py-2 pr-3 text-right">AI cost</th>
+                <th className="py-2 pr-3 text-right">Speech</th>
+                <th className="py-2 pr-3 text-right">SMS, other</th>
+                <th className="py-2 pr-3 text-right">Paid us</th>
+                <th className="py-2 pr-3 text-right">Left</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line-faint font-mono">
+              {rows.map((row) => {
+                const left = row.revenueRappen - row.rappen;
+                return (
+                  <tr key={row.username}>
+                    <td className="py-2 pr-3 font-sans font-semibold text-ink-strong">{row.username}</td>
+                    <td className="py-2 pr-3 text-right">{formatChf(row.aiRappen)}</td>
+                    <td className="py-2 pr-3 text-right">{formatChf(row.speechRappen)}</td>
+                    <td className="py-2 pr-3 text-right">{formatChf(row.otherRappen)}</td>
+                    <td className="py-2 pr-3 text-right">{formatChf(row.revenueRappen)}</td>
+                    <td
+                      className={`py-2 pr-3 text-right font-semibold ${left < 0 ? "text-coral-600" : "text-green-700"}`}
+                    >
+                      {left >= 0 ? "+" : ""}
+                      {formatChf(left)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

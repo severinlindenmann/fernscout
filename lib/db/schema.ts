@@ -199,6 +199,12 @@ type ContactsTable = {
   welcome_opened_at: string | null;
   /** B2293. When the person finished the welcome guide. See `042-onboarding-join-codes`. */
   onboarded_at: string | null;
+  /** TIX-6. The owner's own group for this person (`reader_groups.id`), or
+   * null. A label for who is told, never a grant — see `051-reader-groups`. */
+  group_id: string | null;
+  /** TIX-6. A group a link offered somebody who is already in another one,
+   * waiting for the owner's Keep or Move. Null otherwise. */
+  asked_group_id: string | null;
 };
 
 /**
@@ -257,6 +263,21 @@ type ContactInvitesTable = {
   join_code_hash: string | null;
   /** The same code, AES-256-GCM (`joinAad`), so the owner can show it again. */
   join_code_cipher: string | null;
+  /** TIX-6. Where people who join through this link go (`reader_groups.id`),
+   * or null. Applied when they ask; never lets anybody in by itself. */
+  group_id: string | null;
+};
+
+/** TIX-6. An owner's reader group — `051-reader-groups`. Owner-only; never
+ * shown to the people in it. */
+type ReaderGroupsTable = {
+  id: string;
+  owner_id: string;
+  name: string;
+  /** An index into the UI's validated palette, not a colour value. */
+  color: Generated<number>;
+  sort: Generated<number>;
+  created_at: string;
 };
 
 /**
@@ -556,7 +577,7 @@ type UsageTable = {
   id: string;
   /** The username whose journal the request was made for. */
   owner_id: string;
-  /** `anthropic` | `deepgram`. The closed list is PROVIDERS in lib/usage.ts. */
+  /** `anthropic` | `deepgram` | `twilio`. The closed list is PROVIDERS in lib/usage.ts. */
   provider: string;
   /** The model or product billed — `claude-haiku-4-5`, `nova-3`. */
   model: string;
@@ -573,6 +594,13 @@ type UsageTable = {
   cache_creation_input_tokens: Generated<number>;
   /** Audio seconds, as the provider measured them. */
   seconds: Generated<number>;
+  /** The price, frozen at write time — `052-usage-cost-rappen` (B2589). Null
+   *  on a row written before that migration, or one this instance has no
+   *  price for; `priceUsage` (lib/instanceCosts.ts) falls back to computing
+   *  from `config.costs` only for a bucket that contains one of those. A
+   *  price the operator edits afterwards never touches a row that already
+   *  has a number here. */
+  cost_rappen: number | null;
   created_at: string;
 };
 
@@ -703,6 +731,9 @@ type SmsMessagesTable = {
   /** E.164 digits, no `+` — `toE164`'s shape. Empty for a dry-run send. */
   from_e164: string;
   to_e164: string;
+  /** Always empty since `053-sms-no-body` (B2589) — the table answers "what
+   *  happened on this number", never "what did it say". The column stays so
+   *  the row shape does not change underneath `lib/sms/store.ts`. */
   body: string;
   /** Twilio's message sid; null for a dry-run send. */
   provider_sid: string | null;
@@ -901,7 +932,7 @@ type NewsConsentTable = {
 };
 
 /**
- * Which plan an owner has, if any — B2590. See migration `051-entitlements`
+ * Which plan an owner has, if any — B2590. See migration `054-entitlements`
  * for the full reasoning; Free is the absence of a row here.
  */
 type EntitlementsTable = {
@@ -919,7 +950,7 @@ type EntitlementsTable = {
 };
 
 /**
- * One AI day taken, per owner/trip/date — B2591. See migration `052-ai-days`.
+ * One AI day taken, per owner/trip/date — B2591. See migration `055-ai-days`.
  */
 type AiDaysTable = {
   id: string;
@@ -936,6 +967,7 @@ export type Database = {
   login_codes: LoginCodesTable;
   contacts: ContactsTable;
   contact_invites: ContactInvitesTable;
+  reader_groups: ReaderGroupsTable;
   access_grants: AccessGrantsTable;
   trip_people: TripPeopleTable;
   push_subscriptions: PushSubscriptionsTable;

@@ -49,8 +49,11 @@ import * as instanceOwnerColumns from "./047-instance-owner-columns";
 import * as newsConsent from "./048-news-consent";
 import * as pushOwnerFlag from "./049-push-owner-flag";
 import * as inviteRequests from "./050-invite-requests";
-import * as entitlements from "./051-entitlements";
-import * as aiDays from "./052-ai-days";
+import * as readerGroups from "./051-reader-groups";
+import * as usageCostRappen from "./052-usage-cost-rappen";
+import * as smsNoBody from "./053-sms-no-body";
+import * as entitlements from "./054-entitlements";
+import * as aiDays from "./055-ai-days";
 
 /**
  * Every migration, listed by hand.
@@ -115,8 +118,11 @@ export const MIGRATIONS: Record<string, Migration> = {
   "048-news-consent": newsConsent,
   "049-push-owner-flag": pushOwnerFlag,
   "050-invite-requests": inviteRequests,
-  "051-entitlements": entitlements,
-  "052-ai-days": aiDays,
+  "051-reader-groups": readerGroups,
+  "052-usage-cost-rappen": usageCostRappen,
+  "053-sms-no-body": smsNoBody,
+  "054-entitlements": entitlements,
+  "055-ai-days": aiDays,
 };
 
 /**

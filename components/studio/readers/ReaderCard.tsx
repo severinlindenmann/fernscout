@@ -8,7 +8,8 @@ import { isMessageable } from "@/lib/phone";
 import type { Locale } from "@/lib/types";
 import { GuestForm } from "./GuestForm";
 import NotifyStep from "./NotifyStep";
-import type { AdminContact, Count, Translate } from "./shared";
+import { GroupDot, GroupPicker } from "./groups";
+import type { AdminContact, AdminGroup, Count, Translate } from "./shared";
 
 /**
  * The props `GuestForm` needs beyond the contact it is editing — B1094.
@@ -58,6 +59,8 @@ export type CardEnv = {
   highlightId?: string;
   editingId: string | null;
   guestFormEnv?: GuestFormEnv;
+  /** TIX-6 — the owner's reader groups; none means no pill and no chooser. */
+  groups?: AdminGroup[];
 };
 
 /** "24 September 2026", in the page's language, fixed to UTC so the server
@@ -83,7 +86,7 @@ const PRIMARY =
 const MENU_ITEM =
   "block min-h-11 w-full px-4 py-2 text-left text-sm font-semibold text-ink-strong hover:bg-surface-subtle";
 
-type Asking = "letin" | "decline" | "revoke" | "delete" | "notify" | "menu" | null;
+type Asking = "letin" | "decline" | "revoke" | "delete" | "notify" | "menu" | "group" | null;
 
 /** One person: who they are, what they may do, and what the owner can do
  * about it — every consequential action asks first (B2133, B2291). */
@@ -97,6 +100,10 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
   // B2459 — "Details" beside the name, asking cards only: closed by default.
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [copied, setCopied] = useState<"ok" | "failed" | null>(null);
+  const [groupFailed, setGroupFailed] = useState(false);
+  const groups = env.groups ?? [];
+  const group = groups.find((g) => g.id === contact.groupId) ?? null;
+  const offered = groups.find((g) => g.id === contact.askedGroupId) ?? null;
   const hasEmail = contact.email.includes("@");
   const displayName = contact.name ?? (hasEmail ? contact.email : (contact.phone ?? ""));
   const first = displayName.split(/\s+/)[0] ?? displayName;
@@ -201,6 +208,20 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
     }
   }
 
+  /** TIX-6 — a label, not a door: no confirmation, re-read the page after. */
+  async function saveGroup(body: Record<string, unknown>) {
+    setGroupFailed(false);
+    // no-refresh: env.refresh() below is ReadersAdmin's own router.refresh().
+    const response = await fetch(`/api/web/${encodeURIComponent(env.username)}/readers/group`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ contactId: contact.id, ...body }),
+    }).catch(() => null);
+    if (!response?.ok) setGroupFailed(true);
+    setAsking(null);
+    env.refresh();
+  }
+
   // An owner-added person still owes a proof; a row a link filed is a
   // request that never finished — nothing to send it again with.
   const canNotify = kind === "notInvited" || (kind === "invited" && contact.status === "active");
@@ -227,6 +248,26 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
               <span className="inline-block rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-ink-strong">
                 {role}
               </span>
+              {groups.length > 0 && kind !== "revoked" && (
+                <button
+                  type="button"
+                  aria-expanded={asking === "group"}
+                  aria-label={t("readers.groups.pillLabel", { name: displayName, group: group?.name ?? t("readers.groups.none") })}
+                  onClick={() => setAsking(asking === "group" ? null : "group")}
+                  className={`ml-2 inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 align-middle text-xs font-semibold ${
+                    group ? "border border-line-quiet bg-surface-base text-ink-strong" : "border border-dashed border-line-strong text-ink-secondary"
+                  }`}
+                >
+                  <GroupDot group={group} size={8} />
+                  {group?.name ?? t("readers.groups.none")}
+                </button>
+              )}
+              {kind === "revoked" && group && (
+                <>
+                  {" "}
+                  <span className="ml-2 text-xs text-ink-secondary">{t("readers.groups.keeps", { group: group.name })}</span>
+                </>
+              )}
               {kind === "asking" && (
                 <button
                   type="button"
@@ -351,8 +392,47 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
         </div>
       </div>
 
+      {offered && offered.id !== group?.id && (
+        <div className="mt-3 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
+          <p className="text-sm text-ink-body">
+            {t("readers.groups.asked", {
+              name: first,
+              offered: offered.name,
+              current: group?.name ?? t("readers.groups.none"),
+            })}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" className={GHOST} onClick={() => void saveGroup({ asked: "keep" })}>
+              {t("readers.groups.keep", { group: group?.name ?? t("readers.groups.none") })}
+            </button>
+            <button type="button" className={PRIMARY} onClick={() => void saveGroup({ asked: "move" })}>
+              {t("readers.groups.move", { group: offered.name })}
+            </button>
+          </div>
+        </div>
+      )}
+      {asking === "group" && (
+        <div className="mt-3 rounded-xl border border-line-quiet bg-surface-raised p-3">
+          <GroupPicker
+            groups={groups}
+            value={group?.id ?? null}
+            onChange={(id) => void saveGroup({ group: id })}
+            legend={t("readers.groups.pickFor", { name: first })}
+            noneLabel={t("readers.groups.none")}
+            name={`group-${contact.id}`}
+          />
+        </div>
+      )}
+      {groupFailed && (
+        <p role="alert" className="mt-2 text-sm text-coral-600">{t("contact.ownerActionFailed")}</p>
+      )}
       {asking === "menu" && (
         <div className="mt-3 overflow-hidden rounded-xl border border-line-quiet bg-surface-raised sm:ml-auto sm:w-64">
+          {groups.length > 0 && kind !== "revoked" && (
+            <button type="button" className={MENU_ITEM} onClick={() => setAsking("group")}>
+              {t("readers.groups.moveTo")}
+            </button>
+          )}
           <button type="button" className={MENU_ITEM} onClick={() => { close(); env.onEdit(contact); }}>
             {t("readers.menu.edit")}
           </button>

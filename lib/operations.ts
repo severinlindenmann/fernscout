@@ -31,6 +31,8 @@ const OPERATIONS = [
   // B1517 — one group photograph classified into a proposed party. Charged
   // once a call, whatever the party's size, the same shape as `describe_photos`.
   "travellers_from_photo",
+  // B2589 — one outbound SMS, Twilio or dry-run, passcode paths included.
+  "sms_send",
 ] as const;
 
 export type Operation = (typeof OPERATIONS)[number];
@@ -52,4 +54,5 @@ export const OPERATION_LABEL: Record<string, string> = {
   map_statement: "Reading a bank statement",
   find_in_journal: "Searching a journal",
   travellers_from_photo: "Drawing travellers from a photograph",
+  sms_send: "Sending an SMS",
 };

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReadersAdmin from "@/components/studio/readers/ReadersAdmin";
+import { listGroups } from "@/lib/contacts/groups";
 import type { AdminContact } from "@/components/studio/readers/shared";
 import StudioPage from "@/components/studio/StudioPage";
 import { isOpenToApprovedGuest } from "@/lib/access";
@@ -185,7 +186,11 @@ export default async function ContactsAdminPage({
     invitedVia: contact.invitedVia,
     invitedAt: contact.invitedAt,
     welcomeOpenedAt: contact.welcomeOpenedAt,
+    groupId: contact.groupId,
+    askedGroupId: contact.askedGroupId,
   }));
+  // TIX-6 — the owner's reader groups, labels only.
+  const groups = (await listGroups(username)).map(({ id, name, color }) => ({ id, name, color }));
 
   // B2293 — each live link's short `/j/` address.
   const invites = await withJoinUrls(username, model.invitations);
@@ -201,6 +206,7 @@ export default async function ContactsAdminPage({
         username={username}
         locale={locale}
         contacts={contacts}
+        groups={groups}
         // `listInvitesWithLinks` (B280): the owner may copy a link again.
         invites={invites}
         trips={trips.map((trip) => ({ id: trip.id, title: trip.title }))}

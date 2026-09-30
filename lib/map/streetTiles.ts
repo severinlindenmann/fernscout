@@ -16,7 +16,7 @@ const gunzip = promisify(zlib.gunzip);
  * path on disk). Only `getBytes`/`getKey` are ever called on a `Source`, so
  * this is the whole contract.
  */
-class NodeFileSource implements Source {
+export class NodeFileSource implements Source {
   constructor(private readonly file: string) {}
   getKey(): string {
     return this.file;
@@ -36,7 +36,7 @@ class NodeFileSource implements Source {
 /** `pmtiles`'s own default decompressor reaches for the browser's
  * `DecompressionStream`; Node 24 (this repo's `.nvmrc`) has that global too,
  * but `zlib.gunzip` is the same work with no stream plumbing. */
-async function nodeDecompress(buf: ArrayBuffer, compression: Compression): Promise<ArrayBuffer> {
+export async function nodeDecompress(buf: ArrayBuffer, compression: Compression): Promise<ArrayBuffer> {
   if (compression === Compression.None || compression === Compression.Unknown) return buf;
   if (compression !== Compression.Gzip) {
     throw new Error(`Unsupported PMTiles compression: ${compression}`);

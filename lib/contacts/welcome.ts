@@ -213,6 +213,8 @@ export type JoinInvite = {
   /** The address a mailed invite named (B319) — pre-approval, compared
    * against a proved address, never shown. */
   emailKey: string | null;
+  /** TIX-6. The reader group this link puts people in, or null. */
+  groupId: string | null;
 };
 
 /**
@@ -226,7 +228,7 @@ export async function resolveJoinCode(code: string): Promise<JoinInvite | null> 
   if (!handle) return null;
   const row = await handle.db
     .selectFrom("contact_invites")
-    .select(["owner_id", "id", "kind", "trip_id", "locale", "revoked_at", "expires_at", "email_key"])
+    .select(["owner_id", "id", "kind", "trip_id", "locale", "revoked_at", "expires_at", "email_key", "group_id"])
     .where("join_code_hash", "=", hashSecret(code))
     .executeTakeFirst();
   if (!row || row.revoked_at) return null;
@@ -239,6 +241,7 @@ export async function resolveJoinCode(code: string): Promise<JoinInvite | null> 
     tripId: kind === "buddy" ? row.trip_id : null,
     locale: parseLocale(row.locale),
     emailKey: row.email_key,
+    groupId: row.group_id ?? null,
   };
 }
 

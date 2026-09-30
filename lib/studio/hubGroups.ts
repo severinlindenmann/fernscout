@@ -12,7 +12,6 @@ import {
   MapPin,
   MapPinned,
   PenLine,
-  PersonStanding,
   Receipt,
   Scissors,
   Send,
@@ -23,7 +22,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { formatStagedBytes } from "@/lib/validate/media";
-import type { StudioGroup } from "@/lib/studio/groups";
 import type { HubAccount, StudioHubModel } from "@/lib/studio/hub";
 import type { UnfinishedPrint } from "@paid/printOrder/lib/orders";
 import type { TranslationKey } from "@/lib/i18n";
@@ -48,7 +46,13 @@ export type Row = {
   factLine?: { text: string; amber?: boolean }[];
 };
 
-export type HubGroup = { group: Exclude<StudioGroup, "journal">; rows: Row[] };
+/** B2600 — "Everything else"'s three open/disclosure cards. Trips & people
+ *  merges the old Plan and People groups (minus Walking figures, which left
+ *  the hub for Journal settings); Bring in and Print are unchanged. Journal
+ *  & account (the old "journal" group) is built separately by `journalRows`
+ *  — it renders as its own desktop row, not a card in this grid. */
+export type EverythingGroup = "tripsPeople" | "bringIn" | "print";
+export type HubGroup = { group: EverythingGroup; rows: Row[] };
 
 /** "4.0 of 10 GB" — the ceiling is whole gigabytes; used space under a
  *  gigabyte keeps its own unit ("3 MB of 10 GB"). */
@@ -120,10 +124,143 @@ export function bringInFirstRows(username: string, t: T): Row[] {
 }
 
 /**
- * The five group cards' rows (Write, Plan, People, Bring in, Print) — B2066,
- * unchanged by B2304's calmer top. Pulled into one function so the filter
- * field (B2304) reads exactly the rows the grid renders; the two cannot
- * drift apart because there is only one place this is built.
+ * Today's one list card (the old "write" group) — B2600. Change a day,
+ * Publish (drafts chip), Move or split a day (renamed from "Something is
+ * filed wrong"), plus the deleted-days and ended-trip rows Write already
+ * carried, conditionally, unchanged.
+ */
+export function todayRows(model: Extract<StudioHubModel, { kind: "full" }>, username: string, t: T, tn: TN): Row[] {
+  const { facts } = model;
+  const ended = model.addDayTrip && !model.addDayTrip.current ? model.addDayTrip : null;
+  return [
+    {
+      href: `${journalPath(username)}/studio/day/edit`,
+      Icon: PenLine,
+      title: t("studio.hub.item.changeDay.title"),
+      description: t("studio.hub.item.changeDay.description"),
+      reason: model.cannotRun.changeDay ? t("studio.hub.cannotRun.changeDay") : undefined,
+    },
+    {
+      href: `${journalPath(username)}/studio/day/publish`,
+      Icon: SendHorizontal,
+      title: t("studio.hub.item.publishDay.title"),
+      description: t("studio.hub.item.publishDay.description"),
+      // A neutral count, never aged or ranked: publishing is never nagged.
+      fact: facts.drafts > 0 ? tn("studio.hub.fact.drafts", facts.drafts, { count: String(facts.drafts) }) : undefined,
+    },
+    // B2259 — only while something is in it.
+    ...(facts.deleted
+      ? [
+          {
+            href: `${journalPath(username)}/studio/day/deleted`,
+            Icon: ArchiveRestore,
+            title: t("studio.hub.item.deleted.title"),
+            description: t("studio.hub.item.deleted.description"),
+            fact: tn("studio.hub.fact.deleted", facts.deleted, { count: String(facts.deleted) }),
+          },
+        ]
+      : []),
+    {
+      href: `${journalPath(username)}/studio/day/reshape?from=hub`,
+      Icon: Scissors,
+      title: t("studio.hub.item.reshapeDay.title"),
+      description: t("studio.hub.item.reshapeDay.description"),
+      reason: model.cannotRun.reshapeDay ? t("studio.hub.cannotRun.reshapeDay") : undefined,
+    },
+    // The hero leads with a new trip once none is current (B1951) —
+    // adding a day to the one that just ended stays reachable here,
+    // honestly labelled as ended.
+    ...(ended
+      ? [
+          {
+            href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(ended.id)}&from=hub`,
+            Icon: CalendarPlus,
+            title: t("studio.hub.item.addDayEnded.title", { trip: ended.title }),
+            description: t("studio.hub.item.addDayEnded.description", { trip: ended.title }),
+          },
+        ]
+      : []),
+  ];
+}
+
+/**
+ * Trips & people's two sub-lists (B2600 — the old Plan and People groups,
+ * merged into one card; Walking figures left for Journal settings). Kept
+ * apart, not concatenated, so the hub can still mark `#plan` and `#people`
+ * as two anchors inside the one card — every subpage that used to link back
+ * to either (`StudioPage group="plan"` / `group="people"`) still lands on
+ * its own rows, not just the top of a merged list.
+ */
+export function tripsRows(model: Extract<StudioHubModel, { kind: "full" }>, username: string, t: T, tn: TN): Row[] {
+  const { facts } = model;
+  const ended = model.addDayTrip && !model.addDayTrip.current ? model.addDayTrip : null;
+  return [
+    // Not twice: when the hero already is the new trip, the row goes.
+    ...(ended
+      ? []
+      : [
+          {
+            href: `${journalPath(username)}/studio/trip/new`,
+            Icon: Compass,
+            title: t("studio.hub.item.newTrip.title"),
+            description: t("studio.hub.item.newTrip.description"),
+          },
+        ]),
+    // Hidden outright, not greyed — nothing upcoming is nothing to plan.
+    ...(model.planTrip
+      ? [
+          {
+            href: `${journalPath(username)}/studio/plan/${model.planTrip.id}`,
+            Icon: MapPinned,
+            title: t("studio.hub.item.plan.title", { trip: model.planTrip.title }),
+            description: t("studio.hub.item.plan.description"),
+            fact: facts.planStartsInDays
+              ? tn("studio.hub.fact.startsIn", facts.planStartsInDays, { count: String(facts.planStartsInDays) })
+              : undefined,
+          },
+        ]
+      : []),
+    {
+      href: `${journalPath(username)}/studio/trip`,
+      Icon: SlidersHorizontal,
+      // B2600 — its own wording here ("Your trips"): the page's own title
+      // and every other reader of this key (EditDayFlow's breadcrumb, the
+      // nav destination list) keep "Trips".
+      title: t("studio.hub.item.tripEdit.hubTitle"),
+      description: t("studio.hub.item.tripEdit.description"),
+    },
+  ];
+}
+
+export function peopleRows(model: Extract<StudioHubModel, { kind: "full" }>, username: string, t: T, tn: TN): Row[] {
+  const { facts } = model;
+  return [
+    // B2133 — one row for the one readers page: inviting, answering who
+    // asks and who reads along all happen on /studio/readers.
+    {
+      href: `${journalPath(username)}/studio/readers`,
+      Icon: UserPlus,
+      title: t("studio.hub.item.readers.title"),
+      description: t("studio.hub.item.readers.description"),
+      fact: facts.readersAsking
+        ? tn("studio.hub.fact.asking", facts.readersAsking, { count: String(facts.readersAsking) })
+        : undefined,
+    },
+    {
+      href: `${journalPath(username)}/studio/people?from=hub`,
+      Icon: Users,
+      title: t("studio.hub.item.people.title"),
+      description: t("studio.hub.item.people.description"),
+    },
+  ];
+}
+
+/**
+ * The two open/disclosure cards in "Everything else" that are not Trips &
+ * people — B2066, unchanged rows by B2304's calmer top. Pulled into one
+ * function so the filter field (B2304) reads exactly the rows the grid
+ * renders; the two cannot drift apart because there is only one place this
+ * is built.
  */
 export function buildHubGroups(
   model: Extract<StudioHubModel, { kind: "full" }>,
@@ -133,123 +270,10 @@ export function buildHubGroups(
   locale: string,
 ): HubGroup[] {
   const { facts } = model;
-  const ended = model.addDayTrip && !model.addDayTrip.current ? model.addDayTrip : null;
   return [
     {
-      group: "write",
-      rows: [
-        {
-          href: `${journalPath(username)}/studio/day/edit`,
-          Icon: PenLine,
-          title: t("studio.hub.item.changeDay.title"),
-          description: t("studio.hub.item.changeDay.description"),
-          reason: model.cannotRun.changeDay ? t("studio.hub.cannotRun.changeDay") : undefined,
-        },
-        {
-          href: `${journalPath(username)}/studio/day/publish`,
-          Icon: SendHorizontal,
-          title: t("studio.hub.item.publishDay.title"),
-          description: t("studio.hub.item.publishDay.description"),
-          // A neutral count, never aged or ranked: publishing is never nagged.
-          fact: facts.drafts > 0 ? tn("studio.hub.fact.drafts", facts.drafts, { count: String(facts.drafts) }) : undefined,
-        },
-        // B2259 — only while something is in it.
-        ...(facts.deleted
-          ? [
-              {
-                href: `${journalPath(username)}/studio/day/deleted`,
-                Icon: ArchiveRestore,
-                title: t("studio.hub.item.deleted.title"),
-                description: t("studio.hub.item.deleted.description"),
-                fact: tn("studio.hub.fact.deleted", facts.deleted, { count: String(facts.deleted) }),
-              },
-            ]
-          : []),
-        {
-          href: `${journalPath(username)}/studio/day/reshape?from=hub`,
-          Icon: Scissors,
-          title: t("studio.hub.item.reshapeDay.title"),
-          description: t("studio.hub.item.reshapeDay.description"),
-          reason: model.cannotRun.reshapeDay ? t("studio.hub.cannotRun.reshapeDay") : undefined,
-        },
-        // The hero leads with a new trip once none is current (B1951) —
-        // adding a day to the one that just ended stays reachable here,
-        // honestly labelled as ended.
-        ...(ended
-          ? [
-              {
-                href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(ended.id)}&from=hub`,
-                Icon: CalendarPlus,
-                title: t("studio.hub.item.addDayEnded.title", { trip: ended.title }),
-                description: t("studio.hub.item.addDayEnded.description", { trip: ended.title }),
-              },
-            ]
-          : []),
-      ],
-    },
-    {
-      group: "plan",
-      rows: [
-        // Not twice: when the hero already is the new trip, the row goes.
-        ...(ended
-          ? []
-          : [
-              {
-                href: `${journalPath(username)}/studio/trip/new`,
-                Icon: Compass,
-                title: t("studio.hub.item.newTrip.title"),
-                description: t("studio.hub.item.newTrip.description"),
-              },
-            ]),
-        // Hidden outright, not greyed — nothing upcoming is nothing to plan.
-        ...(model.planTrip
-          ? [
-              {
-                href: `${journalPath(username)}/studio/plan/${model.planTrip.id}`,
-                Icon: MapPinned,
-                title: t("studio.hub.item.plan.title", { trip: model.planTrip.title }),
-                description: t("studio.hub.item.plan.description"),
-                fact: facts.planStartsInDays
-                  ? tn("studio.hub.fact.startsIn", facts.planStartsInDays, { count: String(facts.planStartsInDays) })
-                  : undefined,
-              },
-            ]
-          : []),
-        {
-          href: `${journalPath(username)}/studio/trip`,
-          Icon: SlidersHorizontal,
-          title: t("studio.hub.item.tripEdit.title"),
-          description: t("studio.hub.item.tripEdit.description"),
-        },
-      ],
-    },
-    {
-      group: "people",
-      rows: [
-        // B2133 — one row for the one readers page: inviting, answering who
-        // asks and who reads along all happen on /studio/readers.
-        {
-          href: `${journalPath(username)}/studio/readers`,
-          Icon: UserPlus,
-          title: t("studio.hub.item.readers.title"),
-          description: t("studio.hub.item.readers.description"),
-          fact: facts.readersAsking
-            ? tn("studio.hub.fact.asking", facts.readersAsking, { count: String(facts.readersAsking) })
-            : undefined,
-        },
-        {
-          href: `${journalPath(username)}/studio/people?from=hub`,
-          Icon: Users,
-          title: t("studio.hub.item.people.title"),
-          description: t("studio.hub.item.people.description"),
-        },
-        {
-          href: `${journalPath(username)}/studio/figures`,
-          Icon: PersonStanding,
-          title: t("studio.hub.item.figures.title"),
-          description: t("studio.hub.item.figures.description"),
-        },
-      ],
+      group: "tripsPeople",
+      rows: [...tripsRows(model, username, t, tn), ...peopleRows(model, username, t, tn)],
     },
     {
       group: "bringIn",
@@ -310,16 +334,20 @@ function normalize(s: string): string {
     .trim();
 }
 
-function matchesQuery(row: Row, query: string): boolean {
-  return normalize(row.title).includes(query) || normalize(row.description ?? row.reason ?? "").includes(query);
+/** Whether one row matches a raw (not yet normalized) filter query — B2600,
+ *  shared with Journal & account, which is never narrowed by the filter
+ *  (see `StudioHub.tsx`) but still opens on phone when it has a match. */
+export function rowMatchesQuery(row: Row, query: string): boolean {
+  const q = normalize(query);
+  if (!q) return true;
+  return normalize(row.title).includes(q) || normalize(row.description ?? row.reason ?? "").includes(q);
 }
 
 /** Narrows `groups` (from `buildHubGroups`) to the rows matching `query`,
  *  dropping a group entirely once none of its rows match — the filter field
- *  directly above the grid (B2304). An empty query returns `groups`
- *  unchanged. */
+ *  (B2304, moved below the groups on phone by B2600). An empty query
+ *  returns `groups` unchanged. */
 export function filterHubGroups(groups: HubGroup[], query: string): HubGroup[] {
-  const q = normalize(query);
-  if (!q) return groups;
-  return groups.map((g) => ({ ...g, rows: g.rows.filter((r) => matchesQuery(r, q)) })).filter((g) => g.rows.length > 0);
+  if (!query.trim()) return groups;
+  return groups.map((g) => ({ ...g, rows: g.rows.filter((r) => rowMatchesQuery(r, query)) })).filter((g) => g.rows.length > 0);
 }

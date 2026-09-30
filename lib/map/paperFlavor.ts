@@ -116,6 +116,12 @@ function oneLanguage<L extends { type: string; layout?: Record<string, unknown> 
   };
 }
 
+/** `/api/maps/x.pmtiles` → its TileJSON: tiles are looked up on the server and
+ * served as plain cacheable responses (B2601), not read through Range. */
+function tileJsonFor(pmtilesUrl: string): string {
+  return pmtilesUrl.replace(/^\/api\/maps\//, "/api/maps/tilejson/");
+}
+
 export function paperStyle(
   pmtilesUrl: string,
   scheme: "light" | "dark",
@@ -133,10 +139,10 @@ export function paperStyle(
     version: 8,
     glyphs: "/api/maps/fonts/{fontstack}/{range}.pbf",
     sources: {
-      world: { type: "vector", url: `pmtiles://${WORLD_URL}` },
+      world: { type: "vector", url: tileJsonFor(WORLD_URL) },
       protomaps: {
         type: "vector",
-        url: `pmtiles://${pmtilesUrl}`,
+        url: tileJsonFor(pmtilesUrl),
         attribution:
           '<a href="https://openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>',
       },
