@@ -5,7 +5,8 @@ import BusyButton from "@/components/BusyButton";
 import { LOCALE_LABEL } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 import NotifyStep from "./NotifyStep";
-import type { Translate } from "./shared";
+import { GroupPicker } from "./groups";
+import type { AdminGroup, Translate } from "./shared";
 
 /** Every refusal `POST /api/web/<user>/readers` answers, as its own sentence
  * — B2291: "already on the page" and "access was taken away" are different
@@ -43,6 +44,7 @@ export default function AddPersonDoor({
   locales,
   trips,
   t,
+  groups = [],
   onDone,
   journalTitle = username,
   siteName = "Fernscout",
@@ -52,6 +54,8 @@ export default function AddPersonDoor({
   locales: string[];
   trips: { id: string; title: string }[];
   t: Translate;
+  /** TIX-6 — the owner's reader groups; the picker is absent while there are none. */
+  groups?: AdminGroup[];
   onDone: () => void;
   /** The journal's own title — passed on to `NotifyStep`'s share text (B2444). */
   journalTitle?: string;
@@ -64,6 +68,7 @@ export default function AddPersonDoor({
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [language, setLanguage] = useState<string>(locale);
+  const [groupId, setGroupId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<{ id: string; updated: boolean } | null>(null);
@@ -97,6 +102,7 @@ export default function AddPersonDoor({
           email: email.trim() || undefined,
           phone: phone.trim() || undefined,
           locale: language,
+          ...(groupId ? { group: groupId } : {}),
         }),
       });
       const body = (await response.json().catch(() => null)) as
@@ -221,6 +227,15 @@ export default function AddPersonDoor({
               ))}
             </select>
           </label>
+          <GroupPicker
+            groups={groups}
+            value={groupId}
+            onChange={setGroupId}
+            legend={t("readers.groups.pick")}
+            hint={t("readers.groups.pickHint")}
+            noneLabel={t("readers.groups.none")}
+            name="add-person-group"
+          />
           {error && (
             <p role="alert" className="text-sm text-coral-600">
               {error}

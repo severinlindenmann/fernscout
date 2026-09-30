@@ -4,7 +4,8 @@ import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import type { Locale } from "@/lib/types";
 import ShareLink from "./ShareLink";
-import { tripLabel, type AdminInvite, type Count, type Translate } from "./shared";
+import { GroupDot } from "./groups";
+import { tripLabel, type AdminGroup, type AdminInvite, type Count, type Translate } from "./shared";
 
 /**
  * "Links you've shared" — B2291. Every group link still working: what it is
@@ -19,6 +20,7 @@ export default function LinksList({
   trips,
   t,
   tn,
+  groups = [],
   onStopped,
   journalTitle = username,
   siteName = "Fernscout",
@@ -29,6 +31,8 @@ export default function LinksList({
   trips: { id: string; title: string }[];
   t: Translate;
   tn: Count;
+  /** TIX-6 — to say where each link's joins go. */
+  groups?: AdminGroup[];
   onStopped: () => void;
   journalTitle?: string;
   siteName?: string;
@@ -39,6 +43,7 @@ export default function LinksList({
   const [failed, setFailed] = useState<string | null>(null);
 
   const live = invites.filter((invite) => invite.live);
+  const linkGroup = (invite: AdminInvite) => groups.find((group) => group.id === invite.groupId) ?? null;
   if (live.length === 0) return null;
 
   const until = (iso: string) =>
@@ -88,6 +93,12 @@ export default function LinksList({
                     {invite.name && (
                       <span className="inline-block rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-ink-strong">
                         {kind}
+                      </span>
+                    )}
+                    {linkGroup(invite) && (
+                      <span className="ml-2 inline-flex items-center gap-1.5 align-middle text-xs font-semibold text-ink-secondary">
+                        <GroupDot group={linkGroup(invite)} size={8} />
+                        {t("readers.groups.linkGoes", { group: linkGroup(invite)!.name })}
                       </span>
                     )}
                   </p>
