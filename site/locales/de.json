@@ -3264,6 +3264,7 @@
   "studio.location.positions.distanceUnit": "{distance} m",
   "studio.location.positions.speedUnit": "{speed} km/h",
   "studio.location.positions.gap": "Keine Positionen für {hours} Std {minutes} Min",
+  "studio.location.positions.gapMinutes": "Keine Positionen für {minutes} Min",
   "studio.location.positions.hiddenSpot": "Verborgene Stelle",
   "studio.location.positions.note": "Gespeicherte Positionen sind ausgedünnt, das ist also nicht jeder Punkt, den das Telefon erfasst hat. Das Telefon liefert keine Genauigkeit. Luftlinie und Ø-Tempo beziehen sich auf die vorherige Zeile.",
   "studio.location.positions.detail.modeFromPhone": "{mode}, laut Telefon",

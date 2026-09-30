@@ -3279,6 +3279,7 @@
   "studio.location.positions.distanceUnit": "{distance} m",
   "studio.location.positions.speedUnit": "{speed} km/h",
   "studio.location.positions.gap": "No positions for {hours} h {minutes} min",
+  "studio.location.positions.gapMinutes": "No positions for {minutes} min",
   "studio.location.positions.hiddenSpot": "Hidden spot",
   "studio.location.positions.note": "Stored positions are thinned, so this is not every fix the phone took. The phone sends no accuracy. Straight line and average speed come from the previous row.",
   "studio.location.positions.detail.modeFromPhone": "{mode}, from the phone",

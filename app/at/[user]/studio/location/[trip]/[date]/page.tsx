@@ -110,7 +110,13 @@ export default async function DayPage({
     positionRows = rawRows.map((row) => {
       if (row.kind === "gap") {
         const { hours, minutes } = gapDurationParts(row.ms);
-        return { kind: "gap", label: t("studio.location.positions.gap", { hours: String(hours), minutes }) };
+        return {
+          kind: "gap",
+          label:
+            hours === 0
+              ? t("studio.location.positions.gapMinutes", { minutes: String(Number(minutes)) })
+              : t("studio.location.positions.gap", { hours: String(hours), minutes }),
+        };
       }
       fixCount++;
       if (row.hiddenBy) hiddenCount++;

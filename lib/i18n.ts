@@ -3402,6 +3402,7 @@ export type TranslationKey =
   | "studio.location.positions.detail.storedAs"
   | "studio.location.positions.distanceUnit"
   | "studio.location.positions.gap"
+  | "studio.location.positions.gapMinutes"
   | "studio.location.positions.hiddenSpot"
   | "studio.location.positions.note"
   | "studio.location.positions.reveal.hide"
