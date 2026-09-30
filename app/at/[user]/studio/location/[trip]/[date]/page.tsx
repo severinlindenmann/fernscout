@@ -84,8 +84,8 @@ export default async function DayPage({
   // `modes`), and `lib/gps/positionRows.ts`'s pure builder does the
   // arithmetic so it stays unit-testable without a fixture. `readTrackEdits`/
   // `isInHiddenSpot` (`lib/gps/edits.ts`, app-importable) and `zoneLabelFor`
-  // (`lib/gps/api.ts`, never `lib/gps/enrich.ts` directly — nothing under
-  // `app/` may import that) resolve "Hidden by"; `townNameFor` never a raw
+  // (`lib/gps/api.ts`, which alone reaches the private-zone file this page
+  // may not open on its own) resolve "Hidden by"; `townNameFor` never a raw
   // coordinate, only its own fallback ("" here — a blank cell, not a
   // guess) when the offline geodata index has nothing for the point.
   let positionRows: DisplayRow[] = [];
