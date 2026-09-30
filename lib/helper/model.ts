@@ -7,6 +7,7 @@ import {
   type DateFormat,
   type Table,
 } from "@/importers/costs/mapping";
+import { NO_JOURNAL } from "../auth";
 import { isEnabled } from "../capabilities";
 import {
   ALT_TEXT_LIMIT,
@@ -161,16 +162,19 @@ function logUsage(
  * Book what the call consumed — B746.
  *
  * One helper rather than three copies, and it takes the whole response so a
- * call site cannot record the wrong half of it. `owner` is optional because
- * the tests in this file call these functions with no journal behind them;
- * with none, there is nothing to attribute and nothing is written.
+ * call site cannot record the wrong half of it. **`owner` is required** —
+ * B2589 closed the hole where a missing owner made this return silently and
+ * a call vanish from the bill with no trace. A call with genuinely no
+ * journal behind it (an operator script, a test) passes `NO_JOURNAL` ("*")
+ * explicitly at the call site: that is a deliberate attribution, not the
+ * absence of one.
  *
  * `recordUsage` never throws, so this needs no `try` of its own — see
  * property 1 in `lib/usage.ts`. The person has their answer by the time this
  * runs and must keep it whatever happens here.
  */
 async function book(
-  owner: string | undefined,
+  owner: string,
   operation: Operation,
   usage:
     | {
@@ -182,7 +186,6 @@ async function book(
     | undefined,
 ): Promise<void> {
   logUsage(operation, usage);
-  if (!owner) return;
   await recordUsage({
     owner,
     provider: "anthropic",
@@ -314,7 +317,7 @@ export async function describeImage(
   });
   // The same operation as the batch caption call it replaces: the same
   // capability, the same consent scope, the same price.
-  await book(owner, "describe_photos", response.usage);
+  await book(owner ?? NO_JOURNAL, "describe_photos", response.usage);
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -479,7 +482,7 @@ export async function classifyTravellers(image: PhotoImage, owner?: string): Pro
     ],
     output_config: { format: { type: "json_schema", schema: TRAVELLER_PHOTO_SCHEMA } },
   });
-  await book(owner, "travellers_from_photo", response.usage);
+  await book(owner ?? NO_JOURNAL, "travellers_from_photo", response.usage);
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -608,7 +611,7 @@ export async function writeDay(
       messages: [{ role: "user", content: notes.trim() }],
       output_config: { format: { type: "json_schema", schema: POLISH_SCHEMA } },
     });
-    await book(owner, "write_day", response.usage);
+    await book(owner ?? NO_JOURNAL, "write_day", response.usage);
     const text = response.content
       .map((block) => (block.type === "text" ? block.text : ""))
       .join("")
@@ -626,7 +629,7 @@ export async function writeDay(
     messages: [{ role: "user", content: buildPrompt(notes, facts) }],
     output_config: { format: { type: "json_schema", schema: SCHEMA } },
   });
-  await book(owner, "write_day", response.usage);
+  await book(owner ?? NO_JOURNAL, "write_day", response.usage);
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -772,7 +775,7 @@ export async function mapStatementColumns(sample: Table, owner?: string): Promis
     messages: [{ role: "user", content: buildStatementPrompt(sample) }],
     output_config: { format: { type: "json_schema", schema: STATEMENT_SCHEMA } },
   });
-  await book(owner, "map_statement", response.usage);
+  await book(owner ?? NO_JOURNAL, "map_statement", response.usage);
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -989,7 +992,7 @@ async function pickArea(
     messages,
     output_config: { format: { type: "json_schema", schema: pickAreaSchema(areas) } },
   });
-  await book(owner, "ask_thread", response.usage);
+  await book(owner ?? NO_JOURNAL, "ask_thread", response.usage);
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
     .join("")
@@ -3268,7 +3271,7 @@ export async function findInJournal(
     ],
     output_config: { format: { type: "json_schema", schema: FIND_SCHEMA } },
   });
-  await book(owner, "find_in_journal", response.usage);
+  await book(owner ?? NO_JOURNAL, "find_in_journal", response.usage);
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))

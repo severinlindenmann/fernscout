@@ -577,7 +577,7 @@ type UsageTable = {
   id: string;
   /** The username whose journal the request was made for. */
   owner_id: string;
-  /** `anthropic` | `deepgram`. The closed list is PROVIDERS in lib/usage.ts. */
+  /** `anthropic` | `deepgram` | `twilio`. The closed list is PROVIDERS in lib/usage.ts. */
   provider: string;
   /** The model or product billed — `claude-haiku-4-5`, `nova-3`. */
   model: string;
@@ -594,6 +594,13 @@ type UsageTable = {
   cache_creation_input_tokens: Generated<number>;
   /** Audio seconds, as the provider measured them. */
   seconds: Generated<number>;
+  /** The price, frozen at write time — `052-usage-cost-rappen` (B2589). Null
+   *  on a row written before that migration, or one this instance has no
+   *  price for; `priceUsage` (lib/instanceCosts.ts) falls back to computing
+   *  from `config.costs` only for a bucket that contains one of those. A
+   *  price the operator edits afterwards never touches a row that already
+   *  has a number here. */
+  cost_rappen: number | null;
   created_at: string;
 };
 
@@ -724,6 +731,9 @@ type SmsMessagesTable = {
   /** E.164 digits, no `+` — `toE164`'s shape. Empty for a dry-run send. */
   from_e164: string;
   to_e164: string;
+  /** Always empty since `053-sms-no-body` (B2589) — the table answers "what
+   *  happened on this number", never "what did it say". The column stays so
+   *  the row shape does not change underneath `lib/sms/store.ts`. */
   body: string;
   /** Twilio's message sid; null for a dry-run send. */
   provider_sid: string | null;

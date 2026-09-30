@@ -8,6 +8,8 @@ import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "@pai
 import { loadEcbRates } from "./rates";
 import { getUsernames } from "./users";
 import {
+  CACHE_READ_MULTIPLE,
+  CACHE_WRITE_MULTIPLE,
   usageByOwnerSince,
   usageDailyByOwnerSince,
   usageDailySince,
@@ -64,23 +66,49 @@ function thousands(n: number): string {
 }
 
 /**
- * Anthropic's published prompt-caching multiples of the base input price —
- * not a number this repo chose. A cache read is cheaper than a fresh token;
- * a cache write costs a little more, for the same reason a receipt costs a
- * little more than not writing one down. B1757.
- */
-const CACHE_READ_MULTIPLE = 0.1;
-const CACHE_WRITE_MULTIPLE = 1.25;
-
-/**
  * Price one provider's usage rows.
+ *
+ * **A bucket where every row already carries its own `cost_rappen`
+ * (`pricedRows === calls`) uses that sum as-is** — B2589. That is what makes
+ * a row's price a fact frozen at the moment of the call: this function
+ * changes what a bucket costs only for a bucket that still has at least one
+ * row from before `052-usage-cost-rappen`, which is exactly the rows a price
+ * change was never supposed to reach in the first place. A mixed bucket
+ * (some priced, some not) still recomputes the whole thing from today's
+ * config — imprecise for the handful of months that straddle the migration,
+ * honest for every one after it.
  *
  * Exported for the tests: this is the arithmetic the whole page rests on, and
  * it is checkable without a database.
  */
+/** The label and detail a bucket gets whether it is priced from `cost_rappen`
+ *  or computed from `config.costs` — kept in one place so the two paths in
+ *  `priceUsage` cannot describe the same row differently. */
+function labelAndDetail(total: UsageTotal): { label: string; detail: string } {
+  if (total.provider === "deepgram") {
+    return { label: `Deepgram · ${total.model} · ${total.operation}`, detail: `${(total.seconds / 60).toFixed(1)} min` };
+  }
+  if (total.provider === "twilio") {
+    return { label: `Twilio · SMS · ${total.operation}`, detail: `${total.calls} sent` };
+  }
+  const cached = total.cacheReadTokens + total.cacheCreationTokens;
+  return {
+    label: `Anthropic · ${total.model} · ${total.operation}`,
+    detail:
+      `${thousands(total.inputTokens)} in / ${thousands(total.outputTokens)} out` +
+      (cached > 0 ? ` (${thousands(cached)} cached)` : ""),
+  };
+}
+
 /** @public open core: paid/ uses this (tagged by open-core/split). */
 export function priceUsage(totals: UsageTotal[], costs = loadServerConfig().costs): CostLine[] {
   return totals.map((total) => {
+    // Every contributing row already carries its own frozen price: use the
+    // sum as-is, whatever provider it is. See the note above.
+    if (total.pricedRows > 0 && total.pricedRows === total.calls) {
+      return { ...labelAndDetail(total), calls: total.calls, rappen: rappenOf(total.costRappenKnown), unpriced: false };
+    }
+
     if (total.provider === "deepgram") {
       const perThousandMinutes = costs.transcriptionPerThousandMinutesRappen;
       const minutes = total.seconds / 60;
@@ -92,6 +120,22 @@ export function priceUsage(totals: UsageTotal[], costs = loadServerConfig().cost
         unpriced: perThousandMinutes === 0 && total.seconds > 0,
       };
     }
+
+    if (total.provider === "twilio") {
+      // Counted, never priced — same reasoning `sendCounts` gives for SMS:
+      // the number's rent is a fixed line, not a per-message rate this repo
+      // invents. A row here carries `cost_rappen` only when a future caller
+      // sets `UsageRecord.costRappen` explicitly, which the branch above
+      // already handles.
+      return {
+        label: `Twilio · SMS · ${total.operation}`,
+        detail: "counted — the number's rent is a fixed line",
+        calls: total.calls,
+        rappen: 0,
+        unpriced: false,
+      };
+    }
+
     const price = costs.models[total.model];
     const rappen = price
       ? rappenOf(
@@ -252,7 +296,7 @@ function fixedCosts(): CostLine[] {
   }));
 }
 
-type JournalRow = {
+export type JournalRow = {
   username: string;
   /** Null when credits are switched off instance-wide. */
   balance: number | null;
@@ -260,7 +304,42 @@ type JournalRow = {
   spent: number;
   /** What this journal's own model and audio calls cost over the period. */
   rappen: number;
+  /** `rappen`, split by what it was spent on — B2589, for /admin's
+   *  cost-and-revenue table. `other` is everything metered that is neither
+   *  Anthropic nor Deepgram (SMS today; print and WhatsApp are still counted
+   *  instance-wide only — see the note on `PROVIDERS` in lib/usage.ts). */
+  aiRappen: number;
+  speechRappen: number;
+  otherRappen: number;
+  /** What this journal paid the instance over the period — B2589. Reads
+   *  only `payments` (credit purchases) for now, the way the ticket that
+   *  added this column decided: `revenueRappenByOwner` below is the one
+   *  place B2590 (subscriptions) and B2593 (trip passes) extend once those
+   *  tables exist, without this row's shape changing. */
+  revenueRappen: number;
 };
+
+/**
+ * What each journal paid this instance, in rappen, over a list of already-
+ * fetched payments — B2589.
+ *
+ * **The extension point for B2590/B2593.** Today a journal's only way to pay
+ * is buying credits (`payments`), so that is the whole of this function.
+ * Once entitlements/plans and trip passes exist, whatever reads their own
+ * payment records folds into this same map before it is returned — every
+ * caller here (`journalRows`) already reads "revenue" as one number per
+ * owner and does not need to change.
+ */
+function revenueRappenByOwner(paid: Payment[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const payment of paid) {
+    // Same exclusion `takings()` makes: an admin grant is not money that
+    // came in, whatever it is filed as.
+    if (payment.method === "admin") continue;
+    out[payment.owner] = (out[payment.owner] ?? 0) + payment.amountRappen;
+  }
+  return out;
+}
 
 /**
  * Every journal, with what it holds and what it has cost — the question that
@@ -276,6 +355,7 @@ async function journalRows(since: string): Promise<JournalRow[]> {
   const handle = await getDatabaseOrNull();
   const byOwner = await usageByOwnerSince(since);
   const costs = loadServerConfig().costs;
+  const revenue = revenueRappenByOwner(await paymentsPaidSince(since));
 
   const ledger = new Map<string, { granted: number; spent: number }>();
   if (handle) {
@@ -307,7 +387,14 @@ async function journalRows(since: string): Promise<JournalRow[]> {
   return Promise.all(
     names.map(async (username) => {
       const totals = byOwner.find((entry) => entry.owner === username)?.totals ?? [];
-      const rappen = priceUsage(totals, costs).reduce((sum, line) => sum + line.rappen, 0);
+      const priced = priceUsage(totals, costs);
+      const rappen = priced.reduce((sum, line) => sum + line.rappen, 0);
+      const aiRappen = priced
+        .filter((_, i) => totals[i]?.provider === "anthropic")
+        .reduce((sum, line) => sum + line.rappen, 0);
+      const speechRappen = priced
+        .filter((_, i) => totals[i]?.provider === "deepgram")
+        .reduce((sum, line) => sum + line.rappen, 0);
       const entry = ledger.get(username);
       return {
         username,
@@ -315,6 +402,10 @@ async function journalRows(since: string): Promise<JournalRow[]> {
         granted: entry?.granted ?? 0,
         spent: entry?.spent ?? 0,
         rappen,
+        aiRappen,
+        speechRappen,
+        otherRappen: rappen - aiRappen - speechRappen,
+        revenueRappen: revenue[username] ?? 0,
       };
     }),
   );
@@ -346,7 +437,10 @@ export async function dailyCosts(since: string, days: number): Promise<DailySpen
 
   const byDate = new Map<string, Map<string, number>>();
   for (const row of rows) {
-    const priced = priceUsage([{ ...row, calls: 0 }], costs)[0];
+    // ponytail: the daily sparkline always reprices from today's config
+    // rather than tracking cost_rappen per day-bucket — a chart shape, not a
+    // bill, and the one place this instance still repriced after B2589.
+    const priced = priceUsage([{ ...row, calls: 0, costRappenKnown: 0, pricedRows: 0 }], costs)[0];
     const parts = byDate.get(row.date) ?? new Map<string, number>();
     parts.set(row.operation, (parts.get(row.operation) ?? 0) + priced.rappen);
     byDate.set(row.date, parts);
@@ -389,7 +483,10 @@ export async function journalDaily(
   for (const row of rows) {
     const at = index.get(row.date);
     if (at === undefined) continue;
-    const priced = priceUsage([{ ...row, operation: "", calls: 0 }], costs)[0];
+    const priced = priceUsage(
+      [{ ...row, operation: "", calls: 0, costRappenKnown: 0, pricedRows: 0 }],
+      costs,
+    )[0];
     if (priced.rappen === 0) continue;
     const line = (series[row.owner] ??= Array.from({ length: days }, () => 0));
     line[at] += priced.rappen;
