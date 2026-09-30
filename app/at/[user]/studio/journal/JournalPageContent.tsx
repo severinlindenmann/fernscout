@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { PersonStanding } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
 import { TELL_BY, type TellBy } from "@/lib/studio/speak";
+import { journalPath } from "@/lib/journalPath";
 
 const EYEBROW = "block font-mono text-[11px] font-medium uppercase tracking-[.06em] text-ink-secondary";
 const FIELD_INPUT =
@@ -461,6 +464,20 @@ export default function JournalPageContent({
           <p className={HINT}>{t("me.journalTellByHint")}</p>
         </fieldset>
       )}
+
+      {/* B2600 — Walking figures left the hub's own menu; this is now its
+          one door, alongside every other journal-wide setting. */}
+      <Link
+        href={`${journalPath(username)}/studio/figures`}
+        className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-line-strong bg-surface-raised px-4 py-3
+                   transition-colors hover:bg-surface-subtle"
+      >
+        <PersonStanding className="h-5 w-5 flex-none text-ink-body" aria-hidden strokeWidth={2} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-semibold text-ink-strong">{t("studio.hub.item.figures.title")}</span>
+          <span className="mt-0.5 block text-sm leading-6 text-ink-secondary">{t("studio.hub.item.figures.description")}</span>
+        </span>
+      </Link>
 
       {/* Facts, not fields — see the module comment. */}
       <div className="space-y-1.5 border-t border-line-quiet pt-4">
