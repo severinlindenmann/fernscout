@@ -4657,5 +4657,16 @@
   "billing.paymentFailed.title": "Un pagamento per Plus non è riuscito",
   "billing.paymentFailed.body": "Non è stato possibile addebitare il rinnovo del tuo abbonamento Plus. Il tuo piano resta attivo per altri {days} giorni — aggiorna la tua carta entro allora.",
   "billing.paymentFailed.cta": "Aggiorna la carta",
-  "billing.paymentFailed.footer": "Inviato perché un pagamento di rinnovo Plus non è riuscito."
+  "billing.paymentFailed.footer": "Inviato perché un pagamento di rinnovo Plus non è riuscito.",
+  "billing.title": "Il tuo piano",
+  "billing.buyPass": "Acquista un pass viaggio",
+  "billing.buyPlus": "Abbonati a Plus",
+  "billing.manage": "Gestisci l'abbonamento",
+  "billing.renews": "Si rinnova il {date}",
+  "billing.ends": "Termina il {date}",
+  "billing.aiDaysLeft": "{used} di {allowed} giorni IA utilizzati",
+  "billing.aiDaysUnlimited": "IA: illimitata (la fatturazione è disattivata su questa istanza)",
+  "billing.storage": "{size} di spazio",
+  "billing.dryRunSent": "Richiesta inviata — chiedi all'operatore di approvarla.",
+  "billing.checkoutFailed": "Impossibile avviare. Riprova."
 }

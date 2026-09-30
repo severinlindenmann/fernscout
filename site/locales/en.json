@@ -4648,5 +4648,16 @@
   "billing.paymentFailed.title": "A payment for Plus failed",
   "billing.paymentFailed.body": "The renewal payment for your Plus subscription could not be taken. Your plan keeps working for {days} more days — update your card before then to keep it.",
   "billing.paymentFailed.cta": "Update your card",
-  "billing.paymentFailed.footer": "Sent because a Plus renewal payment failed."
+  "billing.paymentFailed.footer": "Sent because a Plus renewal payment failed.",
+  "billing.title": "Your plan",
+  "billing.buyPass": "Buy a Trip pass",
+  "billing.buyPlus": "Subscribe to Plus",
+  "billing.manage": "Manage subscription",
+  "billing.renews": "Renews {date}",
+  "billing.ends": "Ends {date}",
+  "billing.aiDaysLeft": "{used} of {allowed} AI days used",
+  "billing.aiDaysUnlimited": "AI: unlimited (billing is off on this instance)",
+  "billing.storage": "{size} of storage",
+  "billing.dryRunSent": "Request sent — ask the operator to approve it.",
+  "billing.checkoutFailed": "Could not start this. Try again."
 }

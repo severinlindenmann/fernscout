@@ -4653,5 +4653,16 @@
   "billing.paymentFailed.title": "Eine Zahlung für Plus ist fehlgeschlagen",
   "billing.paymentFailed.body": "Die Verlängerungszahlung für dein Plus-Abo konnte nicht abgebucht werden. Dein Plan funktioniert noch {days} Tage weiter — aktualisiere bis dahin deine Karte.",
   "billing.paymentFailed.cta": "Karte aktualisieren",
-  "billing.paymentFailed.footer": "Gesendet, weil eine Plus-Verlängerungszahlung fehlgeschlagen ist."
+  "billing.paymentFailed.footer": "Gesendet, weil eine Plus-Verlängerungszahlung fehlgeschlagen ist.",
+  "billing.title": "Dein Plan",
+  "billing.buyPass": "Trip-Pass kaufen",
+  "billing.buyPlus": "Plus abonnieren",
+  "billing.manage": "Abo verwalten",
+  "billing.renews": "Verlängert sich am {date}",
+  "billing.ends": "Endet am {date}",
+  "billing.aiDaysLeft": "{used} von {allowed} KI-Tagen genutzt",
+  "billing.aiDaysUnlimited": "KI: unbegrenzt (Abrechnung ist auf dieser Instanz deaktiviert)",
+  "billing.storage": "{size} Speicherplatz",
+  "billing.dryRunSent": "Anfrage gesendet — bitte den Betreiber, sie zu bestätigen.",
+  "billing.checkoutFailed": "Konnte nicht gestartet werden. Bitte erneut versuchen."
 }

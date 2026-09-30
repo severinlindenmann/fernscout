@@ -4657,5 +4657,16 @@
   "billing.paymentFailed.title": "Un paiement pour Plus a échoué",
   "billing.paymentFailed.body": "Le paiement de renouvellement de votre abonnement Plus n'a pas pu être prélevé. Votre offre reste active {days} jours de plus — mettez à jour votre carte d'ici là.",
   "billing.paymentFailed.cta": "Mettre à jour votre carte",
-  "billing.paymentFailed.footer": "Envoyé car un paiement de renouvellement Plus a échoué."
+  "billing.paymentFailed.footer": "Envoyé car un paiement de renouvellement Plus a échoué.",
+  "billing.title": "Votre offre",
+  "billing.buyPass": "Acheter un pass voyage",
+  "billing.buyPlus": "S'abonner à Plus",
+  "billing.manage": "Gérer l'abonnement",
+  "billing.renews": "Se renouvelle le {date}",
+  "billing.ends": "Se termine le {date}",
+  "billing.aiDaysLeft": "{used} sur {allowed} jours IA utilisés",
+  "billing.aiDaysUnlimited": "IA : illimité (la facturation est désactivée sur cette instance)",
+  "billing.storage": "{size} de stockage",
+  "billing.dryRunSent": "Demande envoyée — demandez à l'opérateur de l'approuver.",
+  "billing.checkoutFailed": "Impossible de démarrer. Réessayez."
 }

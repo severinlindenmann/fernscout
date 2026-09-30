@@ -4654,5 +4654,16 @@
   "billing.paymentFailed.title": "Nem sikerült a Plus fizetése",
   "billing.paymentFailed.body": "A Plus előfizetésed megújítási díját nem sikerült levonni. A csomagod még {days} napig működik — addig frissítsd a kártyádat.",
   "billing.paymentFailed.cta": "Kártya frissítése",
-  "billing.paymentFailed.footer": "Azért kaptad, mert egy Plus megújítási fizetés nem sikerült."
+  "billing.paymentFailed.footer": "Azért kaptad, mert egy Plus megújítási fizetés nem sikerült.",
+  "billing.title": "A csomagod",
+  "billing.buyPass": "Utazási bérlet vásárlása",
+  "billing.buyPlus": "Előfizetés a Plus csomagra",
+  "billing.manage": "Előfizetés kezelése",
+  "billing.renews": "Megújul: {date}",
+  "billing.ends": "Lejár: {date}",
+  "billing.aiDaysLeft": "{used}/{allowed} AI-nap felhasználva",
+  "billing.aiDaysUnlimited": "AI: korlátlan (ezen a példányon a számlázás ki van kapcsolva)",
+  "billing.storage": "{size} tárhely",
+  "billing.dryRunSent": "A kérés elküldve — kérd meg az üzemeltetőt, hogy hagyja jóvá.",
+  "billing.checkoutFailed": "Nem sikerült elindítani. Próbáld újra."
 }
