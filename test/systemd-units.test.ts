@@ -120,6 +120,8 @@ const DIRECTIVES: Record<string, readonly Section[]> = {
   LogsDirectory: ["Service"],
   UMask: ["Service"],
   Nice: ["Service"],
+  // systemd.exec(5), like Nice= — the maps refresh (B2567) downloads at idle I/O.
+  IOSchedulingClass: ["Service"],
   KillMode: ["Service"],
   KillSignal: ["Service"],
   LimitNOFILE: ["Service"],

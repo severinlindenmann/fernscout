@@ -1,0 +1,13 @@
+# Monthly street-map refresh (B2567): OpenStreetMap moves on, and Protomaps
+# keeps its daily builds only a week, so the world file is re-downloaded
+# rather than patched.
+[Unit]
+Description=Monthly Fernscout street-map refresh
+
+[Timer]
+OnCalendar=*-*-02 04:30:00
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

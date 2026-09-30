@@ -17,13 +17,17 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { mapsSource, requirePmtilesBinary } from "./maps-lib.mts";
+import { bytesNeededFor, mapsSource, requirePmtilesBinary } from "./maps-lib.mts";
+
+function gb(bytes: number): string {
+  return `${(bytes / 1e9).toFixed(1)} GB`;
+}
 
 function onPath(bin: string): boolean {
   return spawnSync("sh", ["-c", `command -v ${bin}`]).status === 0;
 }
 
-function main() {
+async function main() {
   const dir = process.env.MAPS_DIR?.trim();
   if (!dir) {
     console.error("MAPS_DIR is not set. Point it at the folder your operator serves tiles from, then re-run.");
@@ -33,7 +37,23 @@ function main() {
   const source = mapsSource();
   const part = path.join(dir, "planet.pmtiles.download");
   const out = path.join(dir, "planet.pmtiles");
-  console.error(`Downloading ${source} to ${part} …`);
+  // B2567: never start what the disk cannot finish — a full disk would take
+  // the journals down with it, not only the map.
+  const head = await fetch(source, { method: "HEAD" });
+  const remote = Number(head.headers.get("content-length"));
+  if (!head.ok || !Number.isFinite(remote) || remote <= 0) {
+    console.error(`${source} answered ${head.status} with no size; not downloading.`);
+    process.exit(1);
+  }
+  const partial = fs.existsSync(part) ? fs.statSync(part).size : 0;
+  const stats = fs.statfsSync(dir);
+  const free = stats.bavail * stats.bsize;
+  const needed = bytesNeededFor(remote, partial);
+  if (free < needed) {
+    console.error(`Only ${gb(free)} free in ${dir}; ${source} needs ${gb(needed)}. Not downloading.`);
+    process.exit(1);
+  }
+  console.error(`Downloading ${source} (${gb(remote)}) to ${part} …`);
   if (onPath("aria2c")) {
     execFileSync("aria2c", ["-c", "-x16", "-s16", "-k16M", "--max-tries=0", "--retry-wait=5",
       "--console-log-level=warn", "--summary-interval=300", "-d", dir, "-o", path.basename(part), source], { stdio: "inherit" });
@@ -46,4 +66,4 @@ function main() {
   console.error(`Done: ${out}. Every map without a trip region now draws streets from it.`);
 }
 
-main();
+void main();
