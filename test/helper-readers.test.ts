@@ -228,7 +228,9 @@ describe("tell_readers", () => {
     expect(((await pressedAgain.json()) as { error: string }).error).toBe("already_sent");
   });
 
-  test("asking for whatsapp names its own reach and cost, separately from mail's", async () => {
+  // B2597 retired WhatsApp and SMS as reader channels — `tell_readers` no
+  // longer takes a `channel` argument at all, and always proposes mail.
+  test("a channel argument from an old client is simply ignored — mail is proposed either way", async () => {
     const { trip } = await writeAndPublishADay();
 
     const ran = await runTool(
@@ -238,11 +240,8 @@ describe("tell_readers", () => {
       say,
       "2026-09-07", [], "", WEB_CALLER
     );
-    // No template is configured for this server, so the honest count is
-    // zero — not the mail count, which is a different function reading a
-    // different list.
-    expect(ran.proposal?.sentence).toContain("agent.tool.tellReadersWhatsapp");
-    expect(ran.proposal?.fields.find((f) => f.name === "channel")?.value).toBe("whatsapp");
+    expect(ran.proposal?.sentence).toContain("agent.tool.tellReadersMail");
+    expect(ran.proposal?.fields.find((f) => f.name === "channel")).toBeUndefined();
   });
 });
 

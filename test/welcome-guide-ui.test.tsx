@@ -66,7 +66,9 @@ const base: GuideProps = {
     wantsSms: false,
     wantsPostcard: false,
   },
-  caps: { mail: true, sms: true, whatsapp: false, postcards: true },
+  // B2597: readers sign in by email only — `sms` is always false in practice
+  // (`app/w/[code]/page.tsx` forces it), kept here only as the prop shape.
+  caps: { mail: true, sms: false, whatsapp: false, postcards: true },
   dictionary: dict,
   locale: "en",
   locales: ["en"],
@@ -81,9 +83,10 @@ describe("the reader's guide", () => {
     expect(heading()).toBe(dict["guide.what.readerTitle"]);
     press(dict["guide.what.go"]);
     expect(heading()).toBe(fill("guide.check.title", { owner: "Ana" }));
-    // The owner-typed name, with That's right / Change; the missing mobile asked for.
+    // The owner-typed name, with That's right / Change. B2597: no mobile is
+    // ever asked for here any more — email is the only sign-in channel.
     expect(container!.textContent).toContain("Lena Brunner");
-    expect(container!.textContent).toContain(dict["guide.check.mobileMissing"]);
+    expect(container!.textContent).not.toContain(dict["guide.check.mobileMissing"]);
     press(dict["guide.check.next"]);
     expect(heading()).toBe(dict["guide.address.title"]);
     press(dict["guide.address.skip"]);
@@ -91,10 +94,8 @@ describe("the reader's guide", () => {
     const labels = Array.from(container!.querySelectorAll("label")).map((l) => l.textContent ?? "");
     // WhatsApp is off on this server: absent, not greyed out.
     expect(labels.some((l) => l.startsWith(dict["guide.notify.whatsapp"]))).toBe(false);
-    // SMS is on, but there is no number: shown disabled with its reason.
-    const sms = Array.from(container!.querySelectorAll("label")).find((l) => l.textContent?.startsWith(dict["guide.notify.sms"]))!;
-    expect(sms.textContent).toContain(dict["guide.notify.needsMobile"]);
-    expect(sms.querySelector("input")!.disabled).toBe(true);
+    // SMS is retired entirely (B2597): no such option, on or off.
+    expect(labels.some((l) => l.startsWith(dict["guide.notify.sms"]))).toBe(false);
     press(dict["guide.notify.open"]);
   });
 
@@ -168,7 +169,9 @@ describe("the reader's guide", () => {
 });
 
 describe("the join flow", () => {
-  test("whose journal, then email or mobile as tabs", () => {
+  // B2597: readers sign in by email only — the join link's mobile tab and its
+  // "code screen draws a phone for SMS" test are gone with it.
+  test("whose journal, then straight to an email field — no tabs any more", () => {
     mount(
       <JoinFlow
         code="2345678923"
@@ -178,7 +181,7 @@ describe("the join flow", () => {
         kind="guest"
         tripTitle={null}
         knownEmail={null}
-        caps={{ mail: true, sms: true, whatsapp: false, postcards: true }}
+        caps={{ mail: true, sms: false, whatsapp: false, postcards: true }}
         dictionary={dict}
         locale="en"
         locales={["en"]}
@@ -197,56 +200,8 @@ describe("the join flow", () => {
     });
     press(dict["join.who.go"]);
     expect(heading()).toBe(fill("join.reach.title", { owner: "Ana" }));
-    const tabs = Array.from(container!.querySelectorAll('[role="tab"]')).map((t) => t.textContent);
-    expect(tabs).toEqual([dict["join.reach.email"], dict["join.reach.mobile"]]);
-  });
-
-  test("B2455 — the code screen draws a phone for SMS, an envelope for email", async () => {
-    const fetchMock = vi.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({ to: "+41791234567" }),
-    } as Response);
-    mount(
-      <JoinFlow
-        code="2345678923"
-        owner="ana"
-        title="Two Backpacks"
-        ownerName="Ana"
-        kind="guest"
-        tripTitle={null}
-        knownEmail={null}
-        caps={{ mail: true, sms: true, whatsapp: false, postcards: false }}
-        dictionary={dict}
-        locale="en"
-        locales={["en"]}
-        addressLookupEnabled={false}
-      />,
-    );
-    press(dict["join.who.go"]);
-    const nameInput = container!.querySelector("input")!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
-    act(() => {
-      setter.call(nameInput, "Anna");
-      nameInput.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    press(dict["join.who.go"]);
-    // Mobile tab: sending a code shows the phone drawing, not the envelope.
-    press(dict["join.reach.mobile"]);
-    const mobileInput = container!.querySelector("input")!;
-    act(() => {
-      setter.call(mobileInput, "+41791234567");
-      mobileInput.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-    const sendButton = Array.from(container!.querySelectorAll("button")).find(
-      (b) => b.textContent?.trim() === dict["join.reach.send"],
-    )!;
-    await act(async () => {
-      sendButton.click();
-      await Promise.resolve();
-    });
-    expect(container!.querySelector('[data-testid="code-art-phone"]')).not.toBeNull();
-    expect(container!.querySelector('[data-testid="code-art-envelope"]')).toBeNull();
-    fetchMock.mockRestore();
+    expect(container!.querySelectorAll('[role="tab"]')).toHaveLength(0);
+    expect(container!.querySelector('input[type="email"]')).not.toBeNull();
   });
 
   test("B2504 — News from Fernscout starts ticked, and is sent as consent unless unticked", async () => {

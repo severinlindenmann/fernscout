@@ -7,8 +7,9 @@ import type { TranslationKey } from "@/lib/i18n";
 import { formatCredits } from "@/lib/creditsFormat";
 import ShareLink from "./ShareLink";
 
-type Channel = "email" | "sms" | "self";
-type Block = "no_email" | "no_mobile" | "mail_off" | "sms_off" | "unreachable" | "link_lost";
+// B2597: SMS retired as an invite channel — readers sign in by email only.
+type Channel = "email" | "self";
+type Block = "no_email" | "mail_off" | "link_lost";
 
 /** `GET /api/web/<user>/readers/notify` — `InviteOptions` in lib/contacts/welcome.ts. */
 type Options = {
@@ -25,20 +26,15 @@ type Sent = { channel: Channel; url: string; backend: string | null; charged: nu
 
 const LABEL: Record<Channel, TranslationKey> = {
   email: "notifyStep.email",
-  sms: "notifyStep.sms",
   self: "notifyStep.self",
 };
 const SEND: Record<Channel, TranslationKey> = {
   email: "notifyStep.send.email",
-  sms: "notifyStep.send.sms",
   self: "notifyStep.send.self",
 };
 const BLOCK: Record<Block, TranslationKey> = {
   no_email: "notifyStep.blocked.noEmail",
-  no_mobile: "notifyStep.blocked.noMobile",
   mail_off: "notifyStep.blocked.mailOff",
-  sms_off: "notifyStep.blocked.smsOff",
-  unreachable: "notifyStep.blocked.unreachable",
   link_lost: "notifyStep.blocked.linkLost",
 };
 const ERROR: Record<string, TranslationKey> = {

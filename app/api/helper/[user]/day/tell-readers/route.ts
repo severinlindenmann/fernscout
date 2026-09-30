@@ -1,11 +1,8 @@
 import { isTestContent } from "@/lib/access";
 import { mailSummary } from "@/lib/api/dayMail";
-import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { isEnabled } from "@/lib/capabilities";
 import { claimChannel, releaseChannelClaim } from "@/lib/digest/dayNotify";
 import { sendDayLetter } from "@/lib/digest/dayLetter";
-import { sendDayWhatsapp } from "@paid/whatsapp/lib/digest/dayWhatsapp";
-import { sendDaySms, smsSummary } from "@/lib/digest/daySms";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
@@ -19,19 +16,17 @@ export const dynamic = "force-dynamic";
 /**
  * The `tell_readers` press — B1051.
  *
- * The wizard's own door onto `POST .../send-mail` and `.../send-whatsapp`,
- * one route for the two the way the tool is one row for the two: a channel
- * field rather than a second path, because the conversation already asked
- * which and there is nothing left here for two routes to disagree about.
- * `sendDayLetter` and `sendDayWhatsapp` are the same functions those routes
- * call, so what actually goes out — and what it costs — is answered once,
- * not reimplemented for the wizard's own flow.
+ * `sendDayLetter` is the same function the day's own notify button calls, so
+ * what actually goes out is answered once, not reimplemented for the
+ * wizard's own flow. B2597: WhatsApp and SMS retired as reader channels —
+ * mail is the only one left, so `channel` is fixed rather than read from the
+ * conversation any more.
  *
  * **Owner only, and there is no companion's version of it** — the same
  * reasoning `send-mail`'s own comment gives: a trip-scoped token may write
- * days into its trip and must not be able to mail or message the journal's
- * whole readership. `isHelperOwner` is an owner check, not a write check, so
- * that is true here by construction rather than by a second gate.
+ * days into its trip and must not be able to mail the journal's whole
+ * readership. `isHelperOwner` is an owner check, not a write check, so that
+ * is true here by construction rather than by a second gate.
  */
 export async function POST(
   request: Request,
@@ -50,7 +45,9 @@ export async function POST(
   const body = (jsonBody.value) as Record<string, unknown> | null;
   const tripId = typeof body?.trip === "string" ? body.trip.trim() : "";
   const slug = typeof body?.slug === "string" ? body.slug.trim() : "";
-  const channel = body?.channel === "whatsapp" || body?.channel === "sms" ? body.channel : "mail";
+  // B2597: no plan sends WhatsApp or SMS to readers any more — mail is the
+  // only channel this door still sends on.
+  const channel = "mail" as const;
 
   const ref = tripRef(user, tripId);
   const trip = getTrip(ref);
@@ -103,66 +100,6 @@ export async function POST(
       { status: 409 },
     );
   };
-
-  // Branched fully in each arm, not merged into one `outcome` variable: the
-  // two outcome types share no `sent`/`failed` shape (an email versus a
-  // masked phone number), so a shared variable would only be reunited by a
-  // cast — and a cast here is exactly the kind of "trust me" this file's
-  // whole point is to avoid.
-  if (channel === "whatsapp") {
-    if (!(await claimChannel(user, trip.id, slug, "whatsapp"))) {
-      await logMessage({
-        template: "news.wa",
-        flow: "newday",
-        channel: "wa",
-        to: getUser(user)?.owner.email ?? user,
-        owner: user,
-        status: "skipped",
-        reason: "deduped",
-      });
-      return already();
-    }
-    const outcome = await sendDayWhatsapp(user, ref, slug);
-    if (!outcome.ok) {
-      await releaseChannelClaim(user, trip.id, slug, "whatsapp");
-      refused(user, "tell_readers", outcome.reason);
-      return Response.json(
-        { error: outcome.reason },
-        { status: outcome.reason === "no_credits" ? 402 : 400 },
-      );
-    }
-    const summary = whatsappSummary(outcome);
-    wrote(user, "tell_readers", { trip: tripId, slug, channel, ...summary });
-    return Response.json({ ok: true, slug, channel, ...summary });
-  }
-
-  if (channel === "sms") {
-    // B2292 — the same shape as WhatsApp above, one credit per paying reader.
-    if (!(await claimChannel(user, trip.id, slug, "sms"))) {
-      await logMessage({
-        template: "news.sms",
-        flow: "newday",
-        channel: "sms",
-        to: getUser(user)?.owner.email ?? user,
-        owner: user,
-        status: "skipped",
-        reason: "deduped",
-      });
-      return already();
-    }
-    const outcome = await sendDaySms(user, ref, slug);
-    if (!outcome.ok) {
-      await releaseChannelClaim(user, trip.id, slug, "sms");
-      refused(user, "tell_readers", outcome.reason);
-      return Response.json(
-        { error: outcome.reason },
-        { status: outcome.reason === "no_credits" ? 402 : 400 },
-      );
-    }
-    const summary = smsSummary(outcome);
-    wrote(user, "tell_readers", { trip: tripId, slug, channel, ...summary });
-    return Response.json({ ok: true, slug, channel, ...summary });
-  }
 
   if (!(await claimChannel(user, trip.id, slug, "mail"))) {
     await logMessage({
