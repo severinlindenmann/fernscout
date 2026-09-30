@@ -947,6 +947,23 @@ type EntitlementsTable = {
   period_start: string;
   period_end: string;
   created_at: string;
+  /** Set true by `customer.subscription.updated` when the owner cancels in
+   *  the portal — B2593. Context for the account page only; `planOf()`
+   *  still reads `status`/`ends_at`, unaffected by this flag. */
+  cancel_at_period_end: Generated<number>;
+  /** The single-use Stripe promotion code id minted for a pass, bound to
+   *  that purchase's upgrade-to-Plus offer — B2593. Null on every row that
+   *  never had one. */
+  upgrade_promo_id: string | null;
+};
+
+/**
+ * One Stripe customer per owner — B2593. See migration `056-stripe-customers`.
+ */
+type StripeCustomersTable = {
+  owner_id: string;
+  customer_id: string;
+  created_at: string;
 };
 
 /**
@@ -999,6 +1016,7 @@ export type Database = {
   news_consent: NewsConsentTable;
   entitlements: EntitlementsTable;
   ai_days: AiDaysTable;
+  stripe_customers: StripeCustomersTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1040,4 +1058,5 @@ export const TABLE_NAMES = [
   "news_consent",
   "entitlements",
   "ai_days",
+  "stripe_customers",
 ] as const satisfies readonly (keyof Database)[];
