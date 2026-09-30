@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import StudioPage from "@/components/studio/StudioPage";
 import WorldMap from "@/components/WorldMap";
+import DayLineMap from "@/components/studio/location/DayLineMap";
 import RouteMenu from "@/components/studio/location/RouteMenu";
 import TrackEditsPanel from "@/components/studio/location/TrackEditsPanel";
 import { journalPath } from "@/lib/journalPath";
@@ -15,6 +16,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { isHiddenPlace } from "@/lib/gps/edits";
 import { kmByMode, ownerTripLine, recordedTrips } from "@/lib/gps/api";
 import { readerTrack } from "@/lib/gps/track";
+import { primaryStreetMap } from "@/lib/maps/dir";
 import { earliestTodayISO } from "@/lib/tripTime";
 import { weekdayIndex } from "@/lib/studio/dayStrip";
 import { shortWeekdayName, type TranslationKey } from "@/lib/i18n";
@@ -44,6 +46,25 @@ function datesBetween(start: string, end: string): string[] {
  * `test/gps-route-page.test.ts` can prove the count directly. */
 export function readersDayCount(segments: LineSegment[]): number {
   return new Set(segments.map((s) => s.day).filter((d): d is string => Boolean(d))).size;
+}
+
+/** `segments` (each already a continuous run) flattened into the one
+ * `points`/`gapAfter` pair `DayLineMap` draws — B2568/B2566: a join between
+ * two segments is always a real gap (the two runs were broken apart for a
+ * reason — a private zone, a date boundary, a day with no positions in
+ * between), so only a join *within* one already-continuous segment is ever
+ * drawn solid. */
+function toLineAndGaps(segments: LineSegment[]): { points: [number, number][]; gapAfter: boolean[] } {
+  const points: [number, number][] = [];
+  const gapAfter: boolean[] = [];
+  segments.forEach((segment, si) => {
+    segment.points.forEach((point, pi) => {
+      points.push(point);
+      if (pi < segment.points.length - 1) gapAfter.push(false);
+    });
+    if (si < segments.length - 1 && segment.points.length > 0) gapAfter.push(true);
+  });
+  return { points, gapAfter };
 }
 
 function kmAlong(segments: LineSegment[]): number {
@@ -135,6 +156,13 @@ export default async function TripPage({
   // points `WorldMap`'s own `frameHint` below frames the client's camera on —
   // whenever there is nothing written to frame on instead.
   const basemap = basemapForRoute(places.length > 0 ? places : routePoints);
+  // B2566/B2568 — a real street map (the trip's own extracted region, or the
+  // world file once B2566 lands) stands in for the plain SVG map whenever
+  // one is available for this route; framed on the route's own points the
+  // same way `coveringRegion` picks among a trip's several regions.
+  const streetMapsOn = isEnabled("streetMaps");
+  const region = streetMapsOn ? primaryStreetMap(user, tripId, routePoints) : undefined;
+  const lineForMap = toLineAndGaps(segments);
   const modes = Object.entries(kmByMode(user, tripId)).filter(([, v]) => (v ?? 0) > 0);
 
   // B2568, item 6 — chips only for days that actually have a position in
@@ -202,9 +230,21 @@ export default async function TripPage({
       </div>
 
       {allPoints.length > 0 ? (
-        <div className="mt-3 overflow-hidden rounded-xl border border-line-quiet">
-          <WorldMap places={places} basemap={basemap} track={segments.map((s) => s.points)} frameHint={routePoints} />
-        </div>
+        region ? (
+          <div className="mt-3 h-64 overflow-hidden rounded-xl border border-line-quiet lg:h-96">
+            <DayLineMap
+              points={lineForMap.points}
+              gapAfter={lineForMap.gapAfter}
+              bounds={region.bounds}
+              pmtilesUrl={region.url}
+              className="h-full w-full"
+            />
+          </div>
+        ) : (
+          <div className="mt-3 overflow-hidden rounded-xl border border-line-quiet">
+            <WorldMap places={places} basemap={basemap} track={segments.map((s) => s.points)} frameHint={routePoints} />
+          </div>
+        )
       ) : (
         <p className="mt-3 text-sm text-ink-secondary">{t("studio.location.tripDetail.nothingToShow")}</p>
       )}
