@@ -26,6 +26,10 @@ export type SmsRecord = {
  * before — the UNIQUE constraint on the column, which is the whole inbound
  * dedupe (see 031-sms-messages). `onConflict` works on both dialects, so
  * a retry from Twilio is one no-op insert rather than a caught error.
+ *
+ * **The message's text never reaches this table** — `052-sms-no-body`
+ * (B2589). A caller still hands over `body`, for anything that logs or
+ * displays the send at the moment it happens; only metadata is kept.
  */
 export async function recordSms(row: {
   direction: SmsDirection;
@@ -43,7 +47,7 @@ export async function recordSms(row: {
       direction: row.direction,
       from_e164: row.from,
       to_e164: row.to,
-      body: row.body,
+      body: "",
       provider_sid: row.providerSid,
       created_at: nowIso(),
     })

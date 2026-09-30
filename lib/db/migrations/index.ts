@@ -49,6 +49,8 @@ import * as instanceOwnerColumns from "./047-instance-owner-columns";
 import * as newsConsent from "./048-news-consent";
 import * as pushOwnerFlag from "./049-push-owner-flag";
 import * as inviteRequests from "./050-invite-requests";
+import * as usageCostRappen from "./051-usage-cost-rappen";
+import * as smsNoBody from "./052-sms-no-body";
 
 /**
  * Every migration, listed by hand.
@@ -113,6 +115,8 @@ export const MIGRATIONS: Record<string, Migration> = {
   "048-news-consent": newsConsent,
   "049-push-owner-flag": pushOwnerFlag,
   "050-invite-requests": inviteRequests,
+  "051-usage-cost-rappen": usageCostRappen,
+  "052-sms-no-body": smsNoBody,
 };
 
 /**

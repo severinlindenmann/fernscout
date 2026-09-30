@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { NO_JOURNAL } from "../auth";
 import { isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { dataDir } from "../dataDir";
@@ -9,6 +10,7 @@ import { logMessage } from "../messages/log";
 import type { TemplateId } from "../messages/registry";
 import { isSwitchedOff } from "../messages/switches";
 import { maskNumber } from "../phone";
+import { recordUsage } from "../usage";
 import { recordSms } from "./store";
 
 /**
@@ -206,6 +208,19 @@ export async function sendSms(message: SmsMessage): Promise<SmsSendResult> {
     throw error;
   }
   await logMessage({ template: message.template, channel: "sms", to: message.to, owner: message.owner, status: "sent" });
+
+  // The per-owner row — B2589. `*` (NO_JOURNAL) deliberately when nobody's
+  // journal this send was for, the same convention `sms_messages` already
+  // uses; a passcode sent before signup is the common case. Only the real
+  // backend, never dry-run, which is billed for nothing.
+  if (result.backend === "twilio") {
+    await recordUsage({
+      owner: message.owner ?? NO_JOURNAL,
+      provider: "twilio",
+      model: "sms",
+      operation: "sms_send",
+    });
+  }
 
   try {
     const from = process.env.TWILIO_FROM_NUMBER ?? "";

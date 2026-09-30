@@ -1,5 +1,6 @@
 import "server-only";
 import { sql } from "kysely";
+import { loadServerConfig } from "./config";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
 import type { Operation } from "./operations";
 
@@ -38,9 +39,25 @@ import type { Operation } from "./operations";
  */
 
 /** Who is billed. A closed list; the column is text for the reason every
- *  other status column in this schema is. */
-const PROVIDERS = ["anthropic", "deepgram"] as const;
+ *  other status column in this schema is. `twilio` since B2589 — an SMS send
+ *  now leaves the same per-owner row an AI or speech call does. WhatsApp,
+ *  Stannp and Gelato are deliberately not here yet: they already have their
+ *  own instance-wide counters (`whatsapp_sends`, `print_orders`) that
+ *  `lib/instanceCosts.ts`'s `sendCounts`/`printCosts` read directly, and
+ *  adding a second row for the same send here would double-count it in
+ *  `Dashboard.totalRappen` without a matching change there — left for the
+ *  ticket that does that refactor rather than rushed in alongside this one. */
+const PROVIDERS = ["anthropic", "deepgram", "twilio"] as const;
 type Provider = (typeof PROVIDERS)[number];
+
+/**
+ * Anthropic's published prompt-caching multiples of the base input price —
+ * not a number this repo chose. Shared with `priceUsage` (lib/instanceCosts.ts)
+ * so a row priced at write time here and a row priced at read time there use
+ * exactly the same arithmetic — B1757, B2589.
+ */
+export const CACHE_READ_MULTIPLE = 0.1;
+export const CACHE_WRITE_MULTIPLE = 1.25;
 
 export type { Operation };
 
@@ -59,7 +76,46 @@ export type UsageRecord = {
    *  Separate from `inputTokens` since B1757. */
   cacheCreationTokens?: number;
   seconds?: number;
+  /**
+   * The price, when a future caller already knows it exactly — a WhatsApp
+   * send priced from `costs.whatsappPerMessageRappen`, a print order's own
+   * `cost_minor` converted to rappen (see the note on `PROVIDERS` above:
+   * neither is wired up yet). Anthropic and Deepgram never set this:
+   * `recordUsage` prices those two itself, from tokens/seconds and
+   * `config.costs`. Absent and no automatic price applies (twilio today)
+   * means the row is stored unpriced (`cost_rappen` null) — counted, not
+   * guessed.
+   */
+  costRappen?: number;
 };
+
+/** What one call cost, in rappen, frozen at the moment of this insert — or
+ *  `null` when this instance has no price for it. Exported for
+ *  `test/usage-cost.test.ts`, which checks the arithmetic without a
+ *  database. */
+export function callCostRappen(record: UsageRecord): number | null {
+  if (record.costRappen !== undefined) return Math.round(record.costRappen);
+  const costs = loadServerConfig().costs;
+  if (record.provider === "deepgram") {
+    const perThousandMinutes = costs.transcriptionPerThousandMinutesRappen;
+    if (!perThousandMinutes) return null;
+    const minutes = count(record.seconds) / 60;
+    return Math.round((minutes * perThousandMinutes) / 1000);
+  }
+  if (record.provider === "anthropic") {
+    const price = costs.models[record.model];
+    if (!price) return null;
+    return Math.round(
+      (count(record.inputTokens) * price.inputPerMillionRappen) / 1_000_000 +
+        (count(record.outputTokens) * price.outputPerMillionRappen) / 1_000_000 +
+        (count(record.cacheReadTokens) * price.inputPerMillionRappen * CACHE_READ_MULTIPLE) /
+          1_000_000 +
+        (count(record.cacheCreationTokens) * price.inputPerMillionRappen * CACHE_WRITE_MULTIPLE) /
+          1_000_000,
+    );
+  }
+  return null;
+}
 
 /** Whole, non-negative, and never NaN — a provider that answers with
  *  something unexpected records a zero rather than poisoning a SUM. */
@@ -94,6 +150,7 @@ export async function recordUsage(record: UsageRecord): Promise<void> {
         cache_read_input_tokens: count(record.cacheReadTokens),
         cache_creation_input_tokens: count(record.cacheCreationTokens),
         seconds: count(record.seconds),
+        cost_rappen: callCostRappen(record),
         created_at: nowIso(),
       })
       .execute();
@@ -118,6 +175,13 @@ export type UsageTotal = {
   cacheReadTokens: number;
   cacheCreationTokens: number;
   seconds: number;
+  /** The sum of every contributing row's own `cost_rappen` — B2589. Only
+   *  trustworthy when `pricedRows === calls`; see `priceUsage`
+   *  (lib/instanceCosts.ts), the one reader of this pair. */
+  costRappenKnown: number;
+  /** How many of `calls` actually carried a `cost_rappen` — the rest are
+   *  legacy rows from before B2589 and were never priced at write time. */
+  pricedRows: number;
 };
 
 /**
@@ -144,6 +208,10 @@ export async function usageSince(since: string, owner?: string): Promise<UsageTo
       fn.sum<number>("cache_read_input_tokens").as("cache_read_input_tokens"),
       fn.sum<number>("cache_creation_input_tokens").as("cache_creation_input_tokens"),
       fn.sum<number>("seconds").as("seconds"),
+      fn.sum<number>("cost_rappen").as("cost_rappen"),
+      // COUNT(column) ignores NULLs on both dialects — the rows this bucket
+      // actually has a frozen price for, out of `calls`.
+      fn.count<number>("cost_rappen").as("priced_rows"),
     ])
     .where("created_at", ">=", since)
     .groupBy(["provider", "model", "operation"])
@@ -164,6 +232,8 @@ export async function usageSince(since: string, owner?: string): Promise<UsageTo
     cacheReadTokens: Number(row.cache_read_input_tokens ?? 0),
     cacheCreationTokens: Number(row.cache_creation_input_tokens ?? 0),
     seconds: Number(row.seconds ?? 0),
+    costRappenKnown: Number(row.cost_rappen ?? 0),
+    pricedRows: Number(row.priced_rows ?? 0),
   }));
 }
 
@@ -193,6 +263,8 @@ export async function usageByOwnerSince(
       fn.sum<number>("cache_read_input_tokens").as("cache_read_input_tokens"),
       fn.sum<number>("cache_creation_input_tokens").as("cache_creation_input_tokens"),
       fn.sum<number>("seconds").as("seconds"),
+      fn.sum<number>("cost_rappen").as("cost_rappen"),
+      fn.count<number>("cost_rappen").as("priced_rows"),
     ])
     .where("created_at", ">=", since)
     .groupBy(["owner_id", "provider", "model", "operation"])
@@ -212,6 +284,8 @@ export async function usageByOwnerSince(
       cacheReadTokens: Number(row.cache_read_input_tokens ?? 0),
       cacheCreationTokens: Number(row.cache_creation_input_tokens ?? 0),
       seconds: Number(row.seconds ?? 0),
+      costRappenKnown: Number(row.cost_rappen ?? 0),
+      pricedRows: Number(row.priced_rows ?? 0),
     });
     byOwner.set(row.owner_id, list);
   }
