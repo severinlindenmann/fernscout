@@ -61,6 +61,35 @@ describe("buildPositionRows", () => {
     expect(rows[0]).toMatchObject({ place: "1,2", mode: "on_foot", hiddenBy: "Home" });
   });
 
+  test("a spike becomes its own row, and the fix after it measures from the last real fix", () => {
+    const rows = buildPositionRows({
+      points: [
+        [47.0, 8.0],
+        [47.013, 8.0], // the spike — ~1.4 km north, a second later
+        [47.0, 8.0], // back to the first point's own spot
+        [47.001, 8.0], // a real onward step, a minute after the spike
+      ],
+      times: [0, 1_000, 2_000, 62_000],
+      modes: [undefined, undefined, undefined, undefined],
+      gapAfter: [false, false, false],
+      spike: [false, true, false, false],
+      placeFor: () => "Somewhere",
+      hiddenByFor: () => undefined,
+    });
+    expect(rows).toHaveLength(4);
+    expect(rows[1]).toMatchObject({ kind: "spike", index: 1 });
+    const spike = rows[1] as { km: number; seconds: number };
+    expect(spike.km).toBeCloseTo(1.446, 2);
+    expect(spike.seconds).toBe(1);
+    // The fix at index 2 measures from index 0 (the last real fix), not from
+    // the spike at index 1.
+    const afterSpike = rows[2] as { distanceM?: number };
+    expect(afterSpike.distanceM).toBeLessThan(50);
+    // And the real onward step at index 3 still measures from index 2.
+    const onward = rows[3] as { distanceM?: number };
+    expect(onward.distanceM).toBeGreaterThan(50);
+  });
+
   test("epochSeconds is the store's own second-level instant, never re-derived", () => {
     const rows = buildPositionRows({
       points: [[1, 2]],

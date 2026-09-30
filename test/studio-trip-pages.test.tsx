@@ -231,7 +231,7 @@ describe("Record my route — native and capability gated (B2198)", () => {
   });
 
   test("absent on the web, even with the capability on", () => {
-    const el = render(<TripEditFlow username="alex" trips={trips} trip={panel} routeRecordingAvailable homeZoneReady />);
+    const el = render(<TripEditFlow username="alex" trips={trips} trip={panel} routeRecordingAvailable />);
     expect(el.querySelector("#section-route")).toBeNull();
   });
 
@@ -243,7 +243,7 @@ describe("Record my route — native and capability gated (B2198)", () => {
 
   test("present inside the shell with the capability on", () => {
     (window as unknown as { Capacitor?: unknown }).Capacitor = { isNativePlatform: () => true };
-    const el = render(<TripEditFlow username="alex" trips={trips} trip={panel} routeRecordingAvailable homeZoneReady />);
+    const el = render(<TripEditFlow username="alex" trips={trips} trip={panel} routeRecordingAvailable />);
     expect(el.querySelector("#section-route")).not.toBeNull();
     expect(el.querySelector("#section-route")?.textContent).toContain("Record my route");
   });

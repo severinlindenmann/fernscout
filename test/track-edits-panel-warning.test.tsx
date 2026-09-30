@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 const EMPTY_DOC = {
-  hiddenSpots: [],
+  hiddenSpots: [] as { id: string; lat: number; lon: number; radiusM: number }[],
   hiddenStretches: [],
   namedStretches: [],
   limits: { maxSpots: 20, maxStretches: 20, maxNamed: 20, radiusM: { min: 50, max: 5000 }, labelMax: 80 },
@@ -60,6 +60,24 @@ async function render(hiddenDays: { date: string; slug: string; location: string
   });
 }
 
+async function renderReadOnly(doc: typeof EMPTY_DOC) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({ ok: true, headers: new Headers({ etag: '"1"' }), json: async () => doc })),
+  );
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => {
+    root!.render(
+      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+        <TrackEditsPanel username="hs" tripId="hidden-spot-trip" canAdd={false} />
+      </LocaleProvider>,
+    );
+    await Promise.resolve();
+  });
+}
+
 describe("TrackEditsPanel own-pin warning — B2544", () => {
   test("renders a warning and a link to the day when its own pin is hidden", async () => {
     await render([{ date: "2026-09-01", slug: "at-the-hotel", location: "The Hotel" }]);
@@ -74,5 +92,30 @@ describe("TrackEditsPanel own-pin warning — B2544", () => {
   test("no warning when nothing is hidden", async () => {
     await render([]);
     expect(container!.querySelector('[role="alert"]')).toBeNull();
+  });
+});
+
+/**
+ * B2568, item 6 — the trip page's own read-only use (`canAdd={false}`) has no
+ * form to show, so an empty spot or stretch list is not worth a heading and
+ * an "empty" placeholder any more: one quiet line stands in when there is
+ * nothing at all, and a section only appears once it has something to list.
+ */
+describe("TrackEditsPanel read-only mode collapses to one line when empty — B2568", () => {
+  test("no edits at all: no headings, one quiet line", async () => {
+    await renderReadOnly(EMPTY_DOC);
+    expect(container!.textContent).toContain("Nothing set aside on this trip yet.");
+    expect(container!.textContent).not.toContain("Hidden spots");
+    expect(container!.textContent).not.toContain("Hidden and named stretches");
+  });
+
+  test("a hidden spot exists: its own section shows, the stretches section does not", async () => {
+    await renderReadOnly({
+      ...EMPTY_DOC,
+      hiddenSpots: [{ id: "s1", lat: 1, lon: 1, radiusM: 100 }],
+    });
+    expect(container!.textContent).toContain("Hidden spots");
+    expect(container!.textContent).not.toContain("Hidden and named stretches");
+    expect(container!.textContent).not.toContain("Nothing set aside on this trip yet.");
   });
 });

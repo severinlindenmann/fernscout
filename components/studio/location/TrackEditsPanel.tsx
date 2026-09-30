@@ -252,12 +252,26 @@ export default function TrackEditsPanel({
   const stretchesAtLimit = doc.hiddenStretches.length >= doc.limits.maxStretches;
   const namedAtLimit = doc.namedStretches.length >= doc.limits.maxNamed;
 
+  // B2568, item 6 — with no form to add one (`canAdd={false}`, the trip
+  // page's own read-only use of this component) an empty list is not worth a
+  // heading and an "empty" placeholder of its own: a spot section and a
+  // stretch section only show when there is something to show, and the
+  // explainer collapses to one quiet line when there is nothing at all.
+  const hasSpots = doc.hiddenSpots.length > 0;
+  const hasStretches = doc.hiddenStretches.length > 0 || doc.namedStretches.length > 0;
+  const showSpotsSection = canAdd || hasSpots;
+  const showStretchesSection = canAdd || hasStretches;
+
   return (
     <div className="mt-4 rounded-2xl border border-line-quiet p-4">
       <h3 className="font-display text-base font-semibold text-ink-strong">
         {t("studio.location.trackEdits.title")}
       </h3>
-      <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.trackEdits.lede")}</p>
+      <p className="mt-1 text-sm text-ink-secondary">
+        {showSpotsSection || showStretchesSection
+          ? t("studio.location.trackEdits.lede")
+          : t("studio.location.trackEdits.noneYet")}
+      </p>
 
       {/* B2544 — a day's own typed pin is never checked against a hidden
           spot the way the recorded line already is (`deriveTrack`), so a
@@ -286,6 +300,8 @@ export default function TrackEditsPanel({
       )}
 
       {/* Hidden spots */}
+      {showSpotsSection && (
+        <>
       <h4 className="mt-4 text-sm font-semibold text-ink-strong">{t("studio.location.trackEdits.spotsHeading")}</h4>
       {doc.hiddenSpots.length === 0 ? (
         <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.trackEdits.spotsEmpty")}</p>
@@ -355,8 +371,12 @@ export default function TrackEditsPanel({
           </BusyButton>
         </form>
       )}
+        </>
+      )}
 
       {/* Hidden and named stretches */}
+      {showStretchesSection && (
+        <>
       <h4 className="mt-4 text-sm font-semibold text-ink-strong">{t("studio.location.trackEdits.stretchesHeading")}</h4>
       {doc.hiddenStretches.length === 0 && doc.namedStretches.length === 0 ? (
         <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.trackEdits.stretchesEmpty")}</p>
@@ -460,6 +480,8 @@ export default function TrackEditsPanel({
             {busy ? t("studio.location.trackEdits.addingStretch") : t("studio.location.trackEdits.addStretch")}
           </BusyButton>
         </form>
+      )}
+        </>
       )}
 
       {error && (

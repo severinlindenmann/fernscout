@@ -1523,17 +1523,17 @@ function buildPaths(): Record<string, PathItem> {
     get: {
       summary: "The journal's private zones — a home, a place clipped out of every future track.",
       responses: {
-        ...jsonResponse(200, gpsZonesDoc, "the zones, the decline flag, the limits, and an ETag — send it back as If-Match on PUT"),
+        ...jsonResponse(200, gpsZonesDoc, "the zones, the limits, and an ETag — send it back as If-Match on PUT"),
         ...refusalResponses([...ownerRefusals, ref("unreadable_zones", 500)]),
       },
     },
     put: {
       summary:
         "Replace the zone list. Requires If-Match with the ETag GET last answered — refused without one, " +
-        "or with a stale one, as stale_document (409). Label a zone exactly \"home\" to arm the recorder's own gate (B2196/B2198).",
-      requestBody: jsonBody(gpsZonesWrite, "the whole zone list, and optionally homeDeclined"),
+        "or with a stale one, as stale_document (409). Zones are optional; the recorder never waits for one (B2568).",
+      requestBody: jsonBody(gpsZonesWrite, "the whole zone list"),
       responses: {
-        ...jsonResponse(200, gpsZonesDoc, "the zones, the decline flag, and the limits, as stored, with the new ETag"),
+        ...jsonResponse(200, gpsZonesDoc, "the zones and the limits, as stored, with the new ETag"),
         ...refusalResponses([
           ...ownerRefusals,
           ref("invalid_request", 400),

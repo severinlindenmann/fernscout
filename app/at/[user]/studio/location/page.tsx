@@ -8,7 +8,7 @@ import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
 import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
-import { hasHomeZoneOrDeclined, ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
+import { ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
 import { kmBetween } from "@/lib/mapFrame";
 import { journalPath } from "@/lib/journalPath";
 
@@ -135,7 +135,6 @@ export default async function StudioLocationPage({
         trip={stripTripMeta ? { id: stripTripMeta.id, title: stripTripMeta.title, start: stripTripMeta.start, end: stripTripMeta.end } : null}
         recording={stripEntry?.recording ?? null}
         newestPosition={newest}
-        homeReady={hasHomeZoneOrDeclined(user)}
       />
     );
   }

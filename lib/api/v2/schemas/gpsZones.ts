@@ -27,16 +27,11 @@ export type GpsZone = z.infer<typeof gpsZone>;
 
 export const gpsZonesWrite = z.strictObject({
   zones: z.array(gpsZone).max(ZONE_LIMITS.maxZones),
-  /** Absent leaves the stored decline exactly as it was — a `PUT` that sends
-   * only `zones` must not silently undo an earlier "no home zone, and I mean
-   * it". Present, it replaces it. */
-  homeDeclined: z.boolean().optional(),
 });
 export type GpsZonesWrite = z.infer<typeof gpsZonesWrite>;
 
 export const gpsZonesDoc = z.strictObject({
   zones: z.array(gpsZone),
-  homeDeclined: z.boolean(),
   limits: z.strictObject({
     maxZones: z.number(),
     radiusM: z.strictObject({ min: z.number(), max: z.number() }),

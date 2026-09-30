@@ -4,7 +4,6 @@ import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { tripEditPanel, tripForEdit, tripsForEdit } from "@/lib/studio/tripEdit";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { isEnabled } from "@/lib/capabilities";
-import { hasHomeZoneOrDeclined } from "@/lib/gps/api";
 
 export const dynamic = "force-dynamic";
 // B2549 — keep this page in the client Router Cache for 30s after a
@@ -52,7 +51,6 @@ export default async function StudioTripEditPage({
   // B2198 — read server-side, the same way `wordsAssistAvailable` is on the
   // add-a-day page: a capability the client never has to ask for.
   const routeRecordingAvailable = isEnabled("routeRecording", user);
-  const homeZoneReady = routeRecordingAvailable ? hasHomeZoneOrDeclined(user) : false;
 
   return (
     <StudioPage
@@ -74,7 +72,6 @@ export default async function StudioTripEditPage({
         trip={trip}
         section={typeof section === "string" ? section : undefined}
         routeRecordingAvailable={routeRecordingAvailable}
-        homeZoneReady={homeZoneReady}
       />
     </StudioPage>
   );

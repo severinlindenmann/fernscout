@@ -60,8 +60,7 @@ const PLACES = 5;
  *
  * Written from `GET`/`PUT /api/v2/<user>/gps/zones` since B2203 — the
  * "a shell only" era this comment used to describe a hosted owner could
- * never reach. Any saved zone, whatever its label, is what this repository's
- * recorder arms against — see `hasHomeZoneOrDeclined` below.
+ * never reach.
  */
 export type ExcludeZone = { label?: string; lat: number; lon: number; radiusM: number };
 
@@ -111,10 +110,9 @@ export function isExcluded(fix: Fix, zones: ExcludeZone[]): boolean {
  * yes/no `lib/map/tripFrame.ts`'s own `home` flag needed and never had (no
  * reader-facing caller could set it, so a trip starting at home still named
  * the home town). `exclude.json` carries no separate "home" marker on a zone
- * — the module doc above shows the shape, and `hasHomeZoneOrDeclined` already
- * treats *any* saved zone, whatever its label, as what the recorder arms
- * against. So every zone in the file is a home-equivalent private place for
- * this check too; there is nothing on disk to tell one apart from another.
+ * — the module doc above shows the shape, so every zone in the file is a
+ * home-equivalent private place for this check too; there is nothing on
+ * disk to tell one apart from another.
  *
  * Never returns the zone itself, only the answer. Fails closed: an
  * unreadable `exclude.json` must not crash the caller, and it must not let a
@@ -144,59 +142,13 @@ export function writeExcludeZones(username: string, zones: ExcludeZone[]): void 
   writeFileAtomic(excludeFile(username), JSON.stringify(zones, null, 2));
 }
 
-/**
- * Whether the owner has explicitly said "no home zone, and I know what that
- * means" — B2203's arming support for B2196/B2198's recorder, which needs to
- * refuse to start until it has one answer or the other. A sibling file next
- * to `exclude.json` rather than a field inside it: the array on disk is the
- * documented public shape of that file (see the module doc above), and a
- * decline is a different fact — not a place, nothing to draw — recorded
- * beside it instead of folded into the same document.
- */
-function homeDeclinedFile(username: string): string {
-  return path.join(gpsDir(username), "home-declined.json");
-}
-
-/** Fails closed the same way `readExcludeZones` does: an unreadable file
- * reads as "not declined", so the recorder still refuses to arm rather than
- * guessing consent from a file it could not parse. */
-export function readHomeDeclined(username: string): boolean {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(fs.readFileSync(homeDeclinedFile(username), "utf8"));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-    throw new Error(`${homeDeclinedFile(username)} is unreadable`);
-  }
-  return (raw as { declined?: unknown } | null)?.declined === true;
-}
-
-export function writeHomeDeclined(username: string, declined: boolean): void {
-  fs.mkdirSync(gpsDir(username), { recursive: true });
-  writeFileAtomic(homeDeclinedFile(username), JSON.stringify({ declined }));
-}
-
 /** Written whole and renamed, the same as `store.ts`'s `writeMonth`: a
- * reader (`readExcludeZones`/`readHomeDeclined`) must never see a half-written
+ * reader (`readExcludeZones`) must never see a half-written
  * file from a write that was interrupted partway through. */
 function writeFileAtomic(target: string, body: string): void {
   const temporary = `${target}.tmp`;
   fs.writeFileSync(temporary, body, "utf8");
   fs.renameSync(temporary, target);
-}
-
-/**
- * The one question a recording flow needs answered before it may start —
- * B2203, arming support for B2196/B2198/B2201's App Store gate. `true` means
- * either the owner has saved at least one zone — in whatever language they
- * name it — to clip their front door out
- * of every future track, or they have said outright that they do not want
- * one. `false` means recording must stay off: neither answer has been given
- * yet.
- */
-export function hasHomeZoneOrDeclined(username: string): boolean {
-  if (readHomeDeclined(username)) return true;
-  return readExcludeZones(username).length > 0;
 }
 
 /**

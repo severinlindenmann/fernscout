@@ -12,6 +12,7 @@ import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
 import { getPlaces } from "@/lib/entries";
 import { tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
+import { basemapForRoute } from "@/lib/basemap";
 import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { isRealDate, ownerDayLine, recordedTrips, zoneLabelFor } from "@/lib/gps/api";
@@ -79,6 +80,21 @@ export default async function DayPage({
     }
   }
 
+  // B2568 — a fix `ownerLine.spike` flags is a one-point GPS glitch
+  // (`lib/gps/spikes.ts`): still stored, but left out of every drawn line,
+  // the day's own km and the range bar's selection stats. Two adjacent
+  // fixes either side of a removed spike are never more than the spike
+  // detector's own 60s neighbour window apart (`spikeIndices`), so joining
+  // them directly is never itself a real gap.
+  const cleanIndices = ownerLine ? ownerLine.points.map((_, i) => i).filter((i) => !ownerLine.spike[i]) : [];
+  const cleanPoints = cleanIndices.map((i) => ownerLine!.points[i]);
+  const cleanTimes = cleanIndices.map((i) => ownerLine!.times[i]);
+  const cleanModes = cleanIndices.map((i) => ownerLine!.modes[i]);
+  const cleanGapAfter = cleanIndices.slice(0, -1).map((i, j) => {
+    const next = cleanIndices[j + 1];
+    return next === i + 1 ? ownerLine!.gapAfter[i] : false;
+  });
+
   // B2563 T5 — built server-side, straight from `ownerLine`'s own arrays;
   // no new reader of the store (`ownerDayLine` already carries `times`/
   // `modes`), and `lib/gps/positionRows.ts`'s pure builder does the
@@ -97,6 +113,7 @@ export default async function DayPage({
       times: ownerLine.times,
       modes: ownerLine.modes,
       gapAfter: ownerLine.gapAfter,
+      spike: ownerLine.spike,
       placeFor: (lat, lon) => townNameFor(lat, lon, ""),
       hiddenByFor: (lat, lon) =>
         resolveHiddenBy(
@@ -116,6 +133,12 @@ export default async function DayPage({
             hours === 0
               ? t("studio.location.positions.gapMinutes", { minutes: String(Number(minutes)) })
               : t("studio.location.positions.gap", { hours: String(hours), minutes }),
+        };
+      }
+      if (row.kind === "spike") {
+        return {
+          kind: "spike",
+          label: t("studio.location.positions.spike", { km: row.km.toFixed(1), seconds: String(row.seconds) }),
         };
       }
       fixCount++;
@@ -142,6 +165,15 @@ export default async function DayPage({
       hidden: String(hiddenCount),
     });
   }
+
+  // B2568 — the plain-map fallback (no street tile for this trip, or
+  // `streetMaps` off) used to pass `basemap={null}` unconditionally, which
+  // drew a black box instead of a map with borders and water under the day's
+  // own line. Derived once here, from the day's own points, and threaded into
+  // every plain-map caller below (`PositionsTable`, `DayStretchEditor`, and
+  // this page's own last-resort `WorldMap`) — those two are client
+  // components and cannot call `lib/basemap.ts` themselves.
+  const dayBasemap = points.length > 0 ? basemapForRoute(points.map(([lat, lng]) => ({ lat, lng }))) : null;
 
   const tabClass = (active: boolean) =>
     `min-h-11 rounded-t-lg border-b-2 px-3 text-sm font-semibold leading-[2.5rem] ${
@@ -188,25 +220,27 @@ export default async function DayPage({
       ) : tab === "positions" && ownerLine ? (
         <PositionsTable
           rows={positionRows}
-          points={ownerLine.points}
-          gapAfter={ownerLine.gapAfter}
+          points={cleanPoints}
+          gapAfter={cleanGapAfter}
           region={region}
           streetMapsOn={streetMapsOn}
           timezone={ownerLine.timezone}
           summary={positionsSummary}
+          basemap={dayBasemap}
         />
       ) : view === "mine" && ownerLine ? (
         <DayStretchEditor
           username={user}
           tripId={tripId}
           date={date}
-          points={ownerLine.points}
-          times={ownerLine.times}
-          modes={ownerLine.modes}
-          gapAfter={ownerLine.gapAfter}
+          points={cleanPoints}
+          times={cleanTimes}
+          modes={cleanModes}
+          gapAfter={cleanGapAfter}
           timezone={ownerLine.timezone}
           region={region}
           streetMapsOn={streetMapsOn}
+          basemap={dayBasemap}
         />
       ) : region ? (
         <div className="mt-3 h-64 overflow-hidden rounded-xl border border-line-quiet">
@@ -216,7 +250,7 @@ export default async function DayPage({
         <div className="mt-3 overflow-hidden rounded-xl border border-line-quiet">
           <WorldMap
             places={[]}
-            basemap={null}
+            basemap={dayBasemap}
             track={splitAtGaps(points, gapAfter)}
             frameHint={points.map(([lat, lng]) => ({ lat, lng }))}
             showTimeScrubber={false}

@@ -3405,9 +3405,8 @@ export type TranslationKey =
   | "studio.location.positions.gapMinutes"
   | "studio.location.positions.hiddenSpot"
   | "studio.location.positions.note"
-  | "studio.location.positions.reveal.hide"
-  | "studio.location.positions.reveal.show"
   | "studio.location.positions.speedUnit"
+  | "studio.location.positions.spike"
   | "studio.location.positions.summary"
   | "studio.location.positions.summary.one"
   | "studio.location.purge.all"
@@ -3493,6 +3492,7 @@ export type TranslationKey =
   | "studio.location.trackEdits.lede"
   | "studio.location.trackEdits.loadError"
   | "studio.location.trackEdits.lonLabel"
+  | "studio.location.trackEdits.noneYet"
   | "studio.location.trackEdits.ownPinWarningTitle"
   | "studio.location.trackEdits.radiusLabel"
   | "studio.location.trackEdits.remove"
@@ -3521,6 +3521,7 @@ export type TranslationKey =
   | "studio.location.tripDetail.mine"
   | "studio.location.tripDetail.nothingToShow"
   | "studio.location.tripDetail.readers"
+  | "studio.location.tripDetail.sparseNote"
   | "studio.location.tripDetail.stats"
   | "studio.location.tripDetail.stats.one"
   | "studio.location.tripDetail.whoSeesLink"
@@ -3534,8 +3535,6 @@ export type TranslationKey =
   | "studio.location.zones.adding"
   | "studio.location.zones.boundaryNote"
   | "studio.location.zones.conflict"
-  | "studio.location.zones.declineLabel"
-  | "studio.location.zones.declineNote"
   | "studio.location.zones.empty"
   | "studio.location.zones.error"
   | "studio.location.zones.hatchedLegend"
@@ -4230,7 +4229,6 @@ export type TranslationKey =
   | "studio.record.keepRecording"
   | "studio.record.lastUpload"
   | "studio.record.loading"
-  | "studio.record.needsHomeZone"
   | "studio.record.notThisTrip"
   | "studio.record.notice.allowButton"
   | "studio.record.notice.beforeTrip"
@@ -4255,7 +4253,6 @@ export type TranslationKey =
   | "studio.record.permission.stepWhileUsing"
   | "studio.record.permission.why"
   | "studio.record.recordingSince"
-  | "studio.record.setHomeZone"
   | "studio.record.stop"
   | "studio.record.stoppedOn"
   | "studio.record.switchLabel"
@@ -4876,6 +4873,13 @@ const SHORT_MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil
 export function shortMonthName(locale: string, index: number): string {
   if (locale === "fr") return SHORT_MONTHS_FR[index];
   return monthNames(locale)[index].slice(0, 3);
+}
+
+/** A weekday's short form for a date chip: `Mon`, `Mo` no — `Mon` (de too,
+ * "Montag" happens to slice the same way), `hét` (hu), `lun` (fr, it) — B2568,
+ * the routes trip page's own "Mon 28" day chips. */
+export function shortWeekdayName(locale: string, index: number): string {
+  return weekdayNames(locale)[index].slice(0, 3);
 }
 
 /**

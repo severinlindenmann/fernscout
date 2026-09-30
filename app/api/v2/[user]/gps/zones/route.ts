@@ -60,7 +60,7 @@ export async function zonesPutResponse(user: string, request: Request): Promise<
     return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(parsed.error), 400);
   }
 
-  let currentDoc: { zones: ReturnType<typeof listZones>["zones"]; homeDeclined: boolean; limits: typeof limits };
+  let currentDoc: { zones: ReturnType<typeof listZones>["zones"]; limits: typeof limits };
   try {
     currentDoc = { ...listZones(user), limits };
   } catch {
@@ -76,9 +76,9 @@ export async function zonesPutResponse(user: string, request: Request): Promise<
     return fail("stale_document", ERROR_CODES.stale_document, currentDoc, 409);
   }
 
-  let doc: { zones: ReturnType<typeof listZones>["zones"]; homeDeclined: boolean; limits: typeof limits };
+  let doc: { zones: ReturnType<typeof listZones>["zones"]; limits: typeof limits };
   try {
-    const result = writeZones(user, parsed.data.zones, parsed.data.homeDeclined);
+    const result = writeZones(user, parsed.data.zones);
     doc = { ...result, limits };
   } catch {
     // The write(s) above may have landed; it is the confirming read-back

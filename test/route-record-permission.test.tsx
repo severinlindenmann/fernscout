@@ -61,7 +61,7 @@ async function mount() {
   await act(async () => {
     root!.render(
       <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
-        <RouteRecordSection username="alex" trip={{ id: "reise", title: "Reise", start: "2026-10-01", end: "2026-10-10" }} homeZoneReady />
+        <RouteRecordSection username="alex" trip={{ id: "reise", title: "Reise", start: "2026-10-01", end: "2026-10-10" }} />
       </LocaleProvider>,
     );
   });

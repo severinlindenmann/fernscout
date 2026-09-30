@@ -7,11 +7,12 @@ import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
- * B2563 T5 — the Positions tab's own client island. Coordinates blurred by
- * default (D11: nothing copyable at a glance on a shared screen), the
- * "Show coordinates" toggle lifting the blur, and a row click filling the
- * detail card — the three behaviours a unit test on `lib/gps/positionRows.ts`
- * alone cannot prove, since they are DOM state, not arithmetic.
+ * B2563 T5 — the Positions tab's own client island. B2568 dropped the
+ * blur/"Show coordinates" toggle this file used to test (D11's own
+ * unnecessary friction on the owner's already-gated page); what is left here
+ * is coordinates shown plain, a row click filling the detail card, and a
+ * spike row rendering its own "Set aside" line — DOM state a unit test on
+ * `lib/gps/positionRows.ts` alone cannot prove.
  */
 
 // Same mocking `test/day-stretch-editor-save.test.tsx` already does for
@@ -44,6 +45,7 @@ const ROWS: DisplayRow[] = [
     epochSeconds: 1_726_210_920,
   },
   { kind: "gap", label: "No positions for 1 h 08 min" },
+  { kind: "spike", label: "Set aside: 1.4 km jump in 1 s" },
   {
     kind: "fix",
     index: 1,
@@ -85,27 +87,24 @@ function render() {
 }
 
 describe("PositionsTable", () => {
-  test("coordinates are blurred by default and the toggle reveals them", async () => {
+  test("coordinates render plain, with no blur and no reveal button", async () => {
     await render();
     const latCell = [...container!.querySelectorAll("td")].find((td) => td.textContent === "46.72000");
     expect(latCell).toBeDefined();
-    expect(latCell!.className).toContain("blur-sm");
-
-    const toggle = [...container!.querySelectorAll("button")].find(
-      (b) => b.textContent === dictionaryFor("en")["studio.location.positions.reveal.show"],
+    expect(latCell!.className).not.toContain("blur-sm");
+    const revealButton = [...container!.querySelectorAll("button")].find((b) =>
+      /show coordinates|hide coordinates/i.test(b.textContent ?? ""),
     );
-    expect(toggle).toBeDefined();
-    expect(toggle!.getAttribute("aria-pressed")).toBe("false");
+    expect(revealButton).toBeUndefined();
+  });
 
-    await act(async () => {
-      toggle!.click();
-      await Promise.resolve();
-    });
-
-    expect(toggle!.getAttribute("aria-pressed")).toBe("true");
-    expect(toggle!.textContent).toBe(dictionaryFor("en")["studio.location.positions.reveal.hide"]);
-    const latCellAfter = [...container!.querySelectorAll("td")].find((td) => td.textContent === "46.72000");
-    expect(latCellAfter!.className).not.toContain("blur-sm");
+  test("a spike row renders its own 'Set aside' line, never as a clickable fix", async () => {
+    await render();
+    const spikeRow = [...container!.querySelectorAll("tr")].find((tr) =>
+      tr.textContent === "Set aside: 1.4 km jump in 1 s",
+    );
+    expect(spikeRow).toBeDefined();
+    expect(spikeRow!.getAttribute("role")).not.toBe("button");
   });
 
   test("clicking a row fills the detail card with that row's own facts", async () => {
