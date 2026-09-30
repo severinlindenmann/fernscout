@@ -13,7 +13,6 @@ import {
   encryptAddress,
   encryptString,
   hasAnyDetail,
-  hasContactsKey,
   isPostable,
   normaliseAddress,
   phoneAad,
@@ -1509,33 +1508,10 @@ export async function addPersonByOwner(
   return { ok: true, outcome: added.outcome, contact: approved.contact };
 }
 
-/**
- * A brand-new contact whose first channel is a number an SMS code has just
- * proved — B2294 (c), the join link's visitor. Keyed and stamped proven,
- * created `pending`, granted nothing. Only `proveFirstPhone`
- * (`./guestCode.ts`) calls this, after `verifyCode` has succeeded.
- */
-export async function addContactWithProvenPhone(
-  owner: string,
-  input: Omit<AddContactInput, "email"> & { phone: string },
-): Promise<AddContactResult> {
-  return saveContact(owner, input, "proven");
-}
-
-/**
- * A number an SMS code has just proved for an existing contact — B2294 (b),
- * the signed-in reader adding their mobile. Takes the number's key from
- * whoever held it. The caller has redeemed the code (`confirmPhoneProof`).
- */
-export async function setProvenPhone(owner: string, contactId: string, tel: string): Promise<void> {
-  const { db } = await getDatabase();
-  await db
-    .updateTable("contacts")
-    .set({ ...(await phoneColumns(owner, contactId, tel, "proven")), updated_at: nowIso() })
-    .where("owner_id", "=", owner)
-    .where("id", "=", contactId)
-    .execute();
-}
+// B2597 retired the join link's phone channel and the signed-in reader's
+// "add a proven mobile" path (B2294 (b)/(c)) — `addContactWithProvenPhone`
+// and `setProvenPhone` had no caller left once `./guestCode.ts`'s
+// `proveFirstPhone`/`confirmPhoneProof` were removed.
 
 async function saveContact(
   owner: string,
@@ -1669,21 +1645,8 @@ export function contactKey(contact: { id: string; email: string }): string {
   return contact.email ? normaliseEmail(contact.email) : noEmailKey(contact.id);
 }
 
-/**
- * An SMS code just proved this number — stamp it on the contact it belongs
- * to (B2294). Leaves an earlier stamp alone, like `confirmed_at`.
- */
-export async function markContactPhoneProven(owner: string, digits: string): Promise<void> {
-  if (!hasContactsKey()) return;
-  const { db } = await getDatabase();
-  await db
-    .updateTable("contacts")
-    .set({ phone_proven_at: nowIso(), updated_at: nowIso() })
-    .where("owner_id", "=", owner)
-    .where("phone_key", "=", phoneKey(digits))
-    .where("phone_proven_at", "is", null)
-    .execute();
-}
+// B2597 retired `markContactPhoneProven` — no route stamps a proven phone
+// any more, since readers sign in by email only.
 
 /** The self-serve page: change anything, or leave. `stream`, when given,
  * asks the page to open scrolled to and highlighting that channel — B2442,

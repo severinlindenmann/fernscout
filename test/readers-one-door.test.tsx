@@ -64,7 +64,7 @@ const nina: AdminContact = {
   email: "",
   phone: "+41 79 123 45 12",
   createdVia: "owner",
-  invitedVia: "sms",
+  invitedVia: "email",
   invitedAt: "2026-09-25T06:00:00Z",
 };
 const imp: AdminContact = { ...base, id: "c-imp", name: "Imre Imported", email: "imre@example.test", status: "pending", confirmedAt: null, createdVia: "owner-import" };
@@ -192,7 +192,7 @@ describe("the page: two doors, then the groups", () => {
 
   test("an invited card says how it was sent, and offers the welcome link", () => {
     render([nina]);
-    expect(container!.textContent).toContain(fill("readers.line.sentVia", { channel: "SMS", date: "25 September 2026" }));
+    expect(container!.textContent).toContain(fill("readers.line.sentVia", { channel: dict["notifyStep.email"], date: "25 September 2026" }));
     button(dict["readers.copyWelcome"]);
     button(dict["readers.sendAgain"]);
   });

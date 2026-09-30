@@ -59,6 +59,14 @@ export const accountPreviews: PreviewMap = {
   "code.ownerEmail.mail": (locale) =>
     composeOwnerEmailCodeMail({ locale, code: SAMPLE.code, siteName: SAMPLE.site, title: SAMPLE.journal }),
 
+  // B2597: the owner's own signup/phone-verify text (`lib/phoneVerify/sms.ts`)
+  // — the only sender left for `code.sms` since readers sign in by email
+  // only now.
+  "code.sms": (locale) => ({
+    channel: "sms",
+    text: translateIn(locale, "code.phoneVerify", { code: SAMPLE.code, site: SAMPLE.site }),
+  }),
+
   "invite.mail": (locale) => {
     const vars = { title: SAMPLE.journal, nickname: SAMPLE.owner, trip: "" };
     return composeInviteMail({

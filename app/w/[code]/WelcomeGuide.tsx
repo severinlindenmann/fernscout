@@ -17,7 +17,6 @@ import {
   FIELD,
   Heading,
   LABEL,
-  PhoneArt,
   PostcardArt,
   PRIMARY,
   QUIET,
@@ -160,24 +159,20 @@ export default function WelcomeGuide(props: GuideProps) {
   }
 
   // ── 2 · the code ─────────────────────────────────────────────────────────
-  const [channel, setChannel] = useState<"email" | "sms">(
-    props.prove.preferred === "sms" && props.prove.mobile ? "sms" : props.prove.email ? "email" : "sms",
-  );
+  // B2597: readers sign in by email only — the SMS channel this used to
+  // offer as an alternative is gone.
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
-  const other: "email" | "sms" | null =
-    channel === "email" ? (props.prove.mobile && caps.sms ? "sms" : null) : props.prove.email ? "email" : null;
 
-  async function sendCode(using = channel) {
-    const sent = await call({ action: "send", channel: using });
+  async function sendCode() {
+    const sent = await call({ action: "send" });
     if (sent) {
-      setChannel(using);
       setSentTo(String(sent.to ?? ""));
       setTyped("");
     }
   }
   async function verify() {
-    if (!(await call({ action: "verify", channel, code: typed }))) return;
+    if (!(await call({ action: "verify", code: typed }))) return;
     if (onboarded || steps.indexOf("code") === steps.length - 1) {
       finish(props.landing);
       return;
@@ -190,7 +185,7 @@ export default function WelcomeGuide(props: GuideProps) {
   const d = props.details;
   const [name, setName] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
-  const missing: "email" | "sms" | null = !d ? null : !d.email ? "email" : !d.phone && caps.sms ? "sms" : null;
+  const missing: "email" | null = !d ? null : !d.email ? "email" : null;
   const [proofValue, setProofValue] = useState("");
   const [proofSent, setProofSent] = useState<string | null>(null);
   const [proofCode, setProofCode] = useState("");
@@ -249,13 +244,6 @@ export default function WelcomeGuide(props: GuideProps) {
       label: t("guide.notify.whatsapp"),
       hint: d?.phone ?? t("guide.notify.needsMobile"),
       checked: current.wantsWhatsapp,
-      disabled: !d?.phone,
-    },
-    caps.sms && {
-      key: "wantsSms",
-      label: t("guide.notify.sms"),
-      hint: d?.phone ?? t("guide.notify.needsMobile"),
-      checked: current.wantsSms,
       disabled: !d?.phone,
     },
     caps.postcards && {
@@ -318,7 +306,7 @@ export default function WelcomeGuide(props: GuideProps) {
   }
 
   if (step === "code") {
-    const to = channel === "email" ? props.prove.email : props.prove.mobile;
+    const to = props.prove.email;
     return (
       <Screen
         labelledBy="guide-code"
@@ -335,12 +323,10 @@ export default function WelcomeGuide(props: GuideProps) {
           )
         }
       >
-        {channel === "sms" ? <PhoneArt /> : <CodeArt />}
+        <CodeArt />
         <Heading id="guide-code">{sentTo ? t("guide.code.sentTitle") : t("guide.code.title")}</Heading>
         <p className="text-base text-ink-body">
-          {to
-            ? t(channel === "email" ? "guide.code.toEmail" : "guide.code.toMobile", { to: sentTo || to })
-            : t("guide.error.unavailable")}{" "}
+          {to ? t("guide.code.toEmail", { to: sentTo || to }) : t("guide.error.unavailable")}{" "}
           {kind === "buddy" ? t("guide.code.whyBuddy") : t("guide.code.why")}
         </p>
         {sentTo && <CodeField id="guide-code-input" label={t("guide.code.label")} value={typed} onChange={setTyped} />}
@@ -348,11 +334,6 @@ export default function WelcomeGuide(props: GuideProps) {
         {sentTo && (
           <button type="button" className={QUIET} disabled={busy} onClick={() => sendCode()}>
             {t("guide.code.again")}
-          </button>
-        )}
-        {other && (
-          <button type="button" className={QUIET} disabled={busy} onClick={() => sendCode(other)}>
-            {t(other === "sms" ? "guide.code.useSms" : "guide.code.useEmail")}
           </button>
         )}
       </Screen>
@@ -439,7 +420,7 @@ export default function WelcomeGuide(props: GuideProps) {
             </BusyButton>
             {missing && (
               <button type="button" className={QUIET} onClick={next}>
-                {t(missing === "sms" ? "guide.check.skipMobile" : "guide.check.skipEmail")}
+                {t("guide.check.skipEmail")}
               </button>
             )}
           </>
@@ -480,20 +461,20 @@ export default function WelcomeGuide(props: GuideProps) {
             {missing && (
               <div className="flex flex-col gap-2 rounded-2xl border-2 border-yellow-400 bg-surface-raised p-4">
                 <span className="text-xs font-bold uppercase tracking-wide text-ink-secondary">
-                  {t(missing === "sms" ? "guide.check.mobileMissing" : "guide.check.emailMissing")}
+                  {t("guide.check.emailMissing")}
                 </span>
                 <label className={LABEL}>
-                  {t(missing === "sms" ? "guide.check.mobileWhy" : "guide.check.emailWhy", vars)}
+                  {t("guide.check.emailWhy", vars)}
                   <input
                     className={FIELD}
-                    type={missing === "sms" ? "tel" : "email"}
-                    inputMode={missing === "sms" ? "tel" : "email"}
-                    autoComplete={missing === "sms" ? "tel" : "email"}
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
                     value={proofValue}
                     onChange={(e) => setProofValue(e.target.value)}
                   />
                 </label>
-                <span className="text-sm text-ink-secondary">{t(missing === "sms" ? "guide.check.mobileHint" : "guide.check.emailHint")}</span>
+                <span className="text-sm text-ink-secondary">{t("guide.check.emailHint")}</span>
                 {proofSent ? (
                   <>
                     <CodeField id="guide-proof-code" label={t("guide.code.label")} value={proofCode} onChange={setProofCode} />

@@ -245,7 +245,7 @@ describe("step 2 — telling them", () => {
       `Hello Nora - Ana has invited you to read "Two Backpacks", a travel journal. Start here: ${options.url}`,
     );
     expect(by.whatsapp).toBeUndefined();
-    expect(by.sms.blocked).toBe("no_mobile");
+    expect(by.sms).toBeUndefined();
     expect(by.self).toMatchObject({ blocked: null, cost: 0, preview: options.url });
     // Credits are off here: nothing costs anything.
     expect(options.channels.every((c) => c.cost === 0)).toBe(true);
@@ -259,7 +259,6 @@ describe("step 2 — telling them", () => {
     const body = (await res.json()) as { error: string; message?: string };
     expect(body.error).toBe("invalid_request");
     expect(body.message).toContain("email");
-    expect(body.message).toContain("sms");
     expect(body.message).toContain("self");
   });
 
@@ -277,24 +276,19 @@ describe("step 2 — telling them", () => {
     expect((await getContact(OWNER, id))?.invitedVia).toBe("email");
   });
 
-  test("sms: exactly one text carrying the same text as the preview; self sends nothing", async () => {
+  test("B2597 — SMS retired as an invite channel: refused with the accepted set, and nothing texted", async () => {
     const id = await addedId({ name: "Pia", phone: "+41 76 555 66 77", locale: "de" });
     const before = texts().length;
     const res = await notify(id, "sms");
-    expect(res.status).toBe(200);
-    const sent = (await res.json()) as { url: string; backend: string };
-    expect(sent.backend).toBe("dry-run");
-    const mine = texts().slice(before);
-    expect(mine).toEqual([
-      {
-        to: "41765556677",
-        body: `Hallo Pia - Ana lädt dich ein, "Two Backpacks" zu lesen, ein Reisetagebuch. Hier geht's los: ${sent.url}`,
-      },
-    ]);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string; message?: string };
+    expect(body.error).toBe("invalid_request");
+    expect(body.message).toContain("email");
+    expect(body.message).toContain("self");
+    expect(texts()).toHaveLength(before);
 
     const self = await notify(id, "self");
-    expect(((await self.json()) as { url: string }).url).toBe(sent.url);
-    expect(texts()).toHaveLength(before + 1);
+    expect(self.status).toBe(200);
   });
 
   test("a person added without an email can be sent one once an email is added", async () => {
@@ -308,9 +302,9 @@ describe("step 2 — telling them", () => {
   test("three sends an hour per person, across channels", async () => {
     const id = await addedId({ name: "Sam", email: "sam@example.test", phone: "+41 76 000 11 22" });
     expect((await notify(id, "email")).status).toBe(200);
-    expect((await notify(id, "sms")).status).toBe(200);
     expect((await notify(id, "email")).status).toBe(200);
-    const fourth = await notify(id, "sms");
+    expect((await notify(id, "email")).status).toBe(200);
+    const fourth = await notify(id, "email");
     expect(fourth.status).toBe(429);
     expect(((await fourth.json()) as { error: string }).error).toBe("rate_limited");
     // Showing the link is not a send.
@@ -417,22 +411,11 @@ describe("security review of B2292", () => {
     expect(n.status).toBe(403);
   });
 
-  test("L2: an ordinary invite is one GSM-7 segment, a long one stays short, and the text is the preview", async () => {
-    const gsm7 = /^[A-Za-z0-9 @£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./:;<=>?¡ÄÖÑÜ§¿äöñüà\n\r]*$/;
-    const id = await addedId({ name: "Ida", phone: "+41 76 123 00 01" });
-    const before = texts().length;
-    expect((await notify(id, "sms")).status).toBe(200);
-    const body = texts()[before].body;
-    expect(body).toMatch(gsm7);
-    expect(body.length).toBeLessThanOrEqual(160);
-
-    const long = await addedId({ name: "Wolfgang".repeat(20), phone: "+41 76 123 00 02" });
+  test("L2: a long invite's mail preview stays capped (B2597: SMS retired, so this is the mail body now)", async () => {
+    const long = await addedId({ name: "Wolfgang".repeat(20), phone: "+41 76 123 00 02", email: "wolfgang@example.test" });
     const { inviteOptions } = await import("@/lib/contacts/welcome");
-    const preview = (await inviteOptions(OWNER, long))!.channels.find((c) => c.channel === "sms")!.preview;
-    expect((await notify(long, "sms")).status).toBe(200);
-    const sent = texts().at(-1)!.body;
-    expect(sent).toBe(preview);
-    expect(sent.length).toBeLessThan(220);
+    const preview = (await inviteOptions(OWNER, long))!.channels.find((c) => c.channel === "email")!.preview;
+    expect(preview.length).toBeLessThan(220);
   });
 
   test("L3: without a contacts key a sent link is never replaced; a lost one is refused, not rotated", async () => {

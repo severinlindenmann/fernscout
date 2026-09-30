@@ -266,24 +266,8 @@ export function CodeArt() {
   );
 }
 
-/** The phone twin of `CodeArt`, for a code sent by SMS rather than email
- * (B2455) — same viewBox, stroke and badge conventions, a phone outline with
- * a message bubble instead of an envelope. */
-export function PhoneArt() {
-  return (
-    <svg viewBox="0 0 342 140" className="h-auto w-full" data-testid="code-art-phone" aria-hidden>
-      <rect width="342" height="140" rx="22" className="fill-surface-subtle" />
-      <rect x="141" y="14" width="60" height="112" rx="12" className="fill-surface-raised stroke-ink-strong" strokeWidth="2.5" />
-      <rect x="161" y="22" width="20" height="4" rx="2" className="fill-ink-strong" />
-      <rect x="149" y="52" width="44" height="20" rx="7" className="stroke-ink-strong" strokeWidth="2.5" fill="none" />
-      <circle cx="163" cy="62" r="2.5" className="fill-ink-strong" />
-      <circle cx="171" cy="62" r="2.5" className="fill-ink-strong" />
-      <circle cx="179" cy="62" r="2.5" className="fill-ink-strong" />
-      <circle cx="244" cy="28" r="18" className="fill-yellow-400 stroke-ink-strong" strokeWidth="2.5" />
-      <path d="M236 28h16" className="stroke-navy-900" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-}
+// B2597 retired `PhoneArt` (the SMS twin of `CodeArt`, B2455) along with the
+// SMS sign-in code it illustrated — readers sign in by email only now.
 
 /** B2505: a stamped card, the size of a line of text — beside "WhatsApp ·
  * digital postcards" on the notify step. */

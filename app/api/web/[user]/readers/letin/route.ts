@@ -11,11 +11,10 @@ export const dynamic = "force-dynamic";
  * under "Access taken away" (B2291).
  *
  * `approveContact` is still the only thing that writes a grant, and it still
- * refuses a person who proved nothing. Afterwards the person is told on the
- * channel they proved (B2291 "Group-link visitor"): email, or an SMS when a
- * number is all they proved. Both free — a transactional note, like a code.
- * The message carries their welcome link, which lands them on "what you can
- * do" and then in.
+ * refuses a person who proved nothing. Afterwards the person is told by email
+ * (B2291 "Group-link visitor"; B2597 retired the SMS half) — free, a
+ * transactional note, like a code. The message carries their welcome link,
+ * which lands them on "what you can do" and then in.
  *
  * `places` is optional and passed straight through to `approveContact` —
  * B2461's "Let read only" sends `{ onlyTrip: null }` so a request that also

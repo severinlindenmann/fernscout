@@ -58,12 +58,6 @@ function writeConfigs() {
   );
 }
 
-function texts(): { to: string; body: string }[] {
-  const smsDir = path.join(dir, "sms");
-  if (!fs.existsSync(smsDir)) return [];
-  return fs.readdirSync(smsDir).sort().map((f) => JSON.parse(fs.readFileSync(path.join(smsDir, f), "utf8")));
-}
-
 /** Every mail to `to`, decoded enough to search for a link. */
 function mails(to: string): string[] {
   const mailDir = path.join(dir, "mail", OWNER);
@@ -111,12 +105,6 @@ async function addedId(body: Record<string, unknown>): Promise<string> {
   const res = await add(body);
   expect(res.status).toBe(200);
   return ((await res.json()) as { contact: { id: string } }).contact.id;
-}
-
-async function ledgerRows(): Promise<number> {
-  const { getDatabase } = await import("@/lib/db");
-  const { db } = await getDatabase();
-  return (await db.selectFrom("credit_ledger").select("id").execute()).length;
 }
 
 beforeAll(async () => {
@@ -172,7 +160,6 @@ afterAll(async () => {
 /** The six digits in a message — the first run of exactly six that is not
  * part of a colour (`#475569`) or a longer number. */
 const lastCode = (text: string) => text.match(/(?<![#\w])(\d{6})(?!\w)/)?.[1] ?? "";
-const codeTexted = (to: string) => lastCode(texts().filter((t) => t.to.replace(/\D/g, "") === to.replace(/\D/g, "")).at(-1)?.body ?? "");
 const codeMailed = (to: string) => lastCode(mails(to).at(-1) ?? "");
 
 async function step(code: string, body: Record<string, unknown>, headers: Record<string, string> = {}) {
@@ -220,8 +207,8 @@ describe("the welcome guide — a forwarded link reaches nothing past the code",
     expect(page).toContain("fe•••@example.test");
 
     expect((await step(code, { action: "save", name: "Someone else", done: true })).status).toBe(401);
-    expect((await step(code, { action: "proof", kind: "sms", value: "+41 79 000 00 01" })).status).toBe(401);
-    expect((await step(code, { action: "verify", channel: "email", code: "000000" })).status).toBe(401);
+    expect((await step(code, { action: "proof", kind: "email", value: "someone@example.test" })).status).toBe(401);
+    expect((await step(code, { action: "verify", code: "000000" })).status).toBe(401);
     expect(jar.cookies).toEqual({});
     const after = await contact(id);
     expect(after.name).toBe("Fern Forward");
@@ -229,63 +216,54 @@ describe("the welcome guide — a forwarded link reaches nothing past the code",
   });
 
   test("a code from another contact's channel does not open this guide", async () => {
-    const mine = await addedId({ name: "Mo", phone: "+41 79 555 01 01" });
-    const theirs = await addedId({ name: "Other", phone: "+41 79 555 01 02" });
+    const mine = await addedId({ name: "Mo", email: "mo@example.test" });
+    const theirs = await addedId({ name: "Other", email: "other@example.test" });
     const code = await welcomeCode(mine);
     jar.cookies = {};
-    // A valid code for the *other* person's number, spent through my link.
-    expect((await step(await welcomeCode(theirs), { action: "send", channel: "sms" })).status).toBe(200);
-    const res = await step(code, { action: "verify", channel: "sms", code: codeTexted("+41795550102") });
+    // A valid code for the *other* person's address, spent through my link.
+    expect((await step(await welcomeCode(theirs), { action: "send" })).status).toBe(200);
+    const res = await step(code, { action: "verify", code: codeMailed("other@example.test") });
     expect(res.status).toBe(401);
     expect(jar.cookies).toEqual({});
   });
 });
 
 describe("the welcome guide — the reader's six screens", () => {
-  test("code by SMS, confirm, add an email with one code, address, ticks — read back; then it runs once", async () => {
-    const id = await addedId({ name: "Rita Reader", phone: "+41 79 666 11 22" });
+  test("code by email, address, ticks — read back; then it runs once", async () => {
+    const id = await addedId({ name: "Rita Reader", email: "rita@example.test" });
     const code = await welcomeCode(id);
     jar.cookies = {};
 
-    // 2 — the code, to the number the owner typed.
-    const sent = await step(code, { action: "send", channel: "sms" });
+    // 2 — the code, to the address the owner typed. B2597: email only now,
+    // no SMS channel and no separate "add an email" proof step needed.
+    const sent = await step(code, { action: "send" });
     expect(sent.status).toBe(200);
-    expect(String(sent.json.to)).not.toContain("666 11");
-    expect((await step(code, { action: "verify", channel: "sms", code: "000000" })).status).toBe(401);
-    expect((await step(code, { action: "verify", channel: "sms", code: codeTexted("+41796661122") })).status).toBe(200);
+    expect(String(sent.json.to)).not.toContain("rita@example.test");
+    expect((await step(code, { action: "verify", code: "000000" })).status).toBe(401);
+    expect((await step(code, { action: "verify", code: codeMailed("rita@example.test") })).status).toBe(200);
     expect(jar.cookies.fs_session).toBeTruthy();
     expect((await contact(id)).welcomeOpenedAt).not.toBeNull();
-    expect((await contact(id)).phoneProvenAt).not.toBeNull();
 
     // Signed in now: the page hands over what the owner typed.
     const page = JSON.stringify(await guidePage(code));
     expect(page).toContain('"name":"Rita Reader"');
-    expect(page).toContain('"phoneProven":true');
 
-    // 4 — the missing email, proved with one code.
-    expect((await step(code, { action: "proof", kind: "email", value: "rita@example.test" })).status).toBe(200);
-    expect((await step(code, { action: "proof", kind: "email", value: "rita@example.test", code: "111111" })).status).toBe(401);
-    const proved = await step(code, { action: "proof", kind: "email", value: "rita@example.test", code: codeMailed("rita@example.test") });
-    expect(proved.status).toBe(200);
-    expect((await contact(id)).email).toBe("rita@example.test");
-    // …and the name changed on the same screen.
+    // …the name changed on the same screen.
     expect((await step(code, { action: "save", name: "Rita R." })).status).toBe(200);
 
     // 5 — the address; 6 — the ticks, and done.
     const address = { line1: "Bahnhofstrasse 12", postcode: "8001", city: "Zürich", country: "CH" };
     expect((await step(code, { action: "save", address })).status).toBe(200);
-    const done = await step(code, { action: "save", wantsEmailDigest: true, wantsSms: true, wantsPostcard: true, done: true });
+    const done = await step(code, { action: "save", wantsEmailDigest: true, wantsPostcard: true, done: true });
     expect(done.status).toBe(200);
 
     const back = await contact(id);
     expect(back.name).toBe("Rita R.");
     expect(back.postalAddress).toMatchObject(address);
-    // The number is still the one the SMS code proved: a self write never
-    // touches it.
-    expect(back.phone).toBe("+41 79 666 11 22");
     expect(back.wantsEmailDigest).toBe(true);
-    expect(back.wantsSms).toBe(true);
     expect(back.wantsPostcard).toBe(true);
+    // Never asked any more (B2597): SMS is not a choice this guide offers.
+    expect(back.wantsSms).toBe(false);
     expect(back.onboardedAt).not.toBeNull();
 
     // Runs once: the next visit goes straight to the journal — to the newest
@@ -355,26 +333,9 @@ describe("the join flow at /j/ — asking, never access", () => {
     expect(mails(OWNER_EMAIL).some((m) => m.includes("Anna Keller"))).toBe(true);
   });
 
-  test("mobile: a proved number becomes a request, nothing granted", async () => {
-    const link = await newLink();
-    jar.cookies = {};
-    expect((await joinStep(link.code, { action: "send", name: "Moe Mobile", channel: "sms", value: "+41 78 123 45 67" })).status).toBe(200);
-    const ok = await joinStep(link.code, {
-      action: "verify",
-      name: "Moe Mobile",
-      channel: "sms",
-      value: "+41 78 123 45 67",
-      code: codeTexted("+41781234567"),
-    });
-    expect(ok.status).toBe(200);
-    expect(ok.json.status).toBe("waiting");
-    const { getContactByEmail } = await import("@/lib/contacts");
-    const moe = (await getContactByEmail(OWNER, "+41781234567"))!;
-    expect(moe.status).toBe("pending");
-    expect(moe.phoneProvenAt).not.toBeNull();
-    const { hasReadGrant } = await import("@/lib/grants");
-    expect(await hasReadGrant(OWNER, moe.id)).toBe(false);
-  });
+  // B2597 retired joining by mobile — the join link asks for an email now,
+  // and "email: name, code, address, ticks" above already proves a proved
+  // address becomes a request with nothing granted.
 
   test("a stopped link joins nobody", async () => {
     const link = await newLink();

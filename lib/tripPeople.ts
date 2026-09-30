@@ -24,9 +24,9 @@ import { subjectLookup } from "./contacts/crypto";
  *
  * **`peopleOf` is the access list, by address.** The owner, plus whoever
  * holds a *granted* `trip_people` place, keyed on `email_key` — the shape
- * `lib/digest/dayLetter.ts`, `paid/whatsapp/lib/digest/dayWhatsapp.ts` and
- * `lib/digest/daySms.ts` (day-update mail/WhatsApp/SMS) and
- * `lib/studio/publishDay.ts` (who a private day reaches) all need, since
+ * `lib/digest/dayLetter.ts`, `paid/whatsapp/lib/digest/dayWhatsapp.ts`
+ * (day-update mail/WhatsApp; B2597 retired the SMS half, `lib/digest/daySms.ts`)
+ * and `lib/studio/publishDay.ts` (who a private day reaches) all need, since
  * every one of them is already working from a list of contacts by email. A
  * bare `people:` entry is never in it.
  *

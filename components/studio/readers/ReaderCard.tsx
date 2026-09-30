@@ -171,7 +171,10 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
         ? contact.invitedVia === "self"
           ? t("readers.line.sharedYourself", { date: longDate(contact.invitedAt, locale) })
           : t("readers.line.sentVia", {
-              channel: t(`notifyStep.${contact.invitedVia as "email" | "whatsapp" | "sms"}`),
+              // B2597: email is the only Fernscout-sent invite channel left
+              // besides `self` (handled above) — `notifyStep.email` is the
+              // one label this can ever need for a contact invited from now on.
+              channel: t("notifyStep.email"),
               date: longDate(contact.invitedAt, locale),
             })
         : contact.status === "active"

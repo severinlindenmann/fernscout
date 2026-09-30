@@ -2,20 +2,11 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { setGuestSessionCookies } from "@/lib/auth/identityCookie";
 import { isEnabled } from "@/lib/capabilities";
-import { whatsappCountryCode } from "@/lib/contactNumber";
 import { approveContact, manageTokenFor, updateContactSelf, type SelfUpdate } from "@/lib/contacts";
-import {
-  confirmEmailProof,
-  confirmPhoneProof,
-  sendEmailProof,
-  sendGuestCode,
-  sendPhoneProof,
-  verifyGuestCode,
-} from "@/lib/contacts/guestCode";
+import { confirmEmailProof, sendEmailProof, sendGuestCode, verifyGuestCode } from "@/lib/contacts/guestCode";
 import { preapprovedEmailFor } from "@/lib/contacts/invites";
 import { journalReader } from "@/lib/contacts/session";
 import { markOnboarded, markWelcomeOpened, resolveWelcomeCode } from "@/lib/contacts/welcome";
-import { phoneSubject, toE164 } from "@/lib/phone";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -32,15 +23,13 @@ const answer = (body: unknown, status = 200) => Response.json(body, { status, he
  * `POST /w/<code>/step` — every write the welcome guide makes (B2293).
  *
  * **The link grants nothing, and neither does this route by itself.** Before
- * the person proves the channel the owner typed, the only things it does are
- * send that channel a code (`send`) and redeem one (`verify`): the subject is
- * built here from the contact the code names — never from the request — so a
- * forwarded link reaches exactly as far as screen 2. Everything after (`save`,
- * `proof`) asks the session: the contact behind `journalReader` must be the
- * one this code names, and its id comes from that session, never the body
- * (B2294's rule). A self write never makes a phone a sign-in number: the
- * address is saved without its `tel`, and a number is only ever proved with
- * `sendPhoneProof` / `confirmPhoneProof`.
+ * the person proves their email, the only things it does are send a code
+ * (`send`) and redeem one (`verify`): the subject is built here from the
+ * contact the code names — never from the request — so a forwarded link
+ * reaches exactly as far as screen 2. Everything after (`save`, `proof`) asks
+ * the session: the contact behind `journalReader` must be the one this code
+ * names, and its id comes from that session, never the body (B2294's rule).
+ * B2597: readers sign in by email only now — no phone channel, no SMS.
  */
 export async function POST(request: Request, { params }: RouteContext<"/w/[code]/step">) {
   if (foreignOrigin(request)) return answer(FOREIGN_ORIGIN_REFUSAL, 403);
@@ -57,19 +46,17 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
   if (!jsonBody.ok) return jsonBody.response;
   const body = (jsonBody.value ?? {}) as Record<string, unknown>;
   const text = (key: string) => (typeof body[key] === "string" ? (body[key] as string).trim() : "");
-  const channel = body.channel === "sms" ? "sms" : "email";
 
   switch (body.action) {
     case "send": {
-      const sent = await sendGuestCode(owner, contact.id, channel, { ip, destination: `/w/${code}` });
+      const sent = await sendGuestCode(owner, contact.id, { ip, destination: `/w/${code}` });
       // Asking for the code is the first thing only a person does here, so it
       // is what counts as opening the link (B2368).
       if (sent.ok) await markWelcomeOpened(owner, contact.id);
       return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, sent.reason === "rate_limited" ? 429 : 409);
     }
     case "verify": {
-      const digits = contact.phone ? toE164(contact.phone, whatsappCountryCode()) : null;
-      const subject = channel === "sms" ? (digits ? phoneSubject(digits) : null) : contact.email.includes("@") ? contact.email : null;
+      const subject = contact.email.includes("@") ? contact.email : null;
       const session = subject ? await verifyGuestCode(owner, subject, text("code"), request.headers.get("accept-language")) : null;
       // The code must have been for *this* contact: a session for anybody
       // else (another contact's number, say) is not this guide's to open.
@@ -102,13 +89,6 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
     case "proof": {
       const value = text("value");
       const given = text("code");
-      if (body.kind === "sms") {
-        if (!given) {
-          const sent = await sendPhoneProof(owner, self.id, value, { ip });
-          return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, 409);
-        }
-        return (await confirmPhoneProof(owner, self.id, value, given)) ? answer({ ok: true }) : answer({ error: "invalid_code" }, 401);
-      }
       if (!given) {
         const sent = await sendEmailProof(owner, self.id, value, {});
         return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, 409);
