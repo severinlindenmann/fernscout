@@ -17,7 +17,7 @@ import type { AdminContact, AdminGroup, Translate } from "./shared";
  * order — a group's `color` is an index into it, never a raw colour. */
 const PALETTE = Object.values(CATEGORY_STYLE).map((style) => style.color);
 
-export function groupColor(color: number): string {
+function groupColor(color: number): string {
   return PALETTE[color % PALETTE.length];
 }
 

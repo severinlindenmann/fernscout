@@ -19,9 +19,9 @@ import { getDatabase, newId, nowIso } from "../db";
  * that the filter chips stay one scrollable row. */
 export const GROUP_LIMIT = 20;
 /** Characters in a group's name. */
-export const GROUP_NAME_MAX = 30;
+const GROUP_NAME_MAX = 30;
 /** How many colours the UI's palette has; `color` is an index into it. */
-export const GROUP_COLORS = 6;
+const GROUP_COLORS = 6;
 
 export type ReaderGroup = {
   id: string;
@@ -215,7 +215,7 @@ export async function answerAskedGroup(owner: string, contactId: string, answer:
  * in `asked_group_id` for the owner, because a link that has been forwarded
  * must never be a way to re-sort the people already reading.
  */
-export function groupOnJoin(
+function groupOnJoin(
   offered: string | null,
   existing: { group_id: string | null; asked_group_id: string | null } | null,
 ): { group_id?: string | null; asked_group_id?: string | null } {
