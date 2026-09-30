@@ -980,7 +980,7 @@ type AiDaysTable = {
 
 /**
  * How many of a plan's included prints an owner has claimed in one plan
- * period — B2594/B2595. See migration `058-print-included-usage`.
+ * period — B2594/B2595. See migration `059-print-included-usage`.
  */
 type PrintIncludedUsageTable = {
   owner_id: string;
