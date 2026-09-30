@@ -15,7 +15,9 @@ import { isEnabled } from "@/lib/capabilities";
 import { isHiddenPlace } from "@/lib/gps/edits";
 import { kmByMode, ownerTripLine, recordedTrips } from "@/lib/gps/api";
 import { readerTrack } from "@/lib/gps/track";
-import type { TranslationKey } from "@/lib/i18n";
+import { earliestTodayISO } from "@/lib/tripTime";
+import { weekdayIndex } from "@/lib/studio/dayStrip";
+import { shortWeekdayName, type TranslationKey } from "@/lib/i18n";
 
 type LineSegment = { day?: string; points: [number, number][] };
 
@@ -104,7 +106,6 @@ export default async function TripPage({
   const locale = await requestLocale();
   const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) => translateIn(locale, key, vars);
   const ref = tripRef(user, tripId);
-  const dates = datesBetween(trip.start, trip.end);
   const base = `${journalPath(user)}/studio/location`;
 
   const places = view === "mine" ? getPlaces(ref, AS_AUTHOR) : getPlaces(ref, { includeDrafts: false });
@@ -135,6 +136,19 @@ export default async function TripPage({
   // whenever there is nothing written to frame on instead.
   const basemap = basemapForRoute(places.length > 0 ? places : routePoints);
   const modes = Object.entries(kmByMode(user, tripId)).filter(([, v]) => (v ?? 0) > 0);
+
+  // B2568, item 6 — chips only for days that actually have a position in
+  // this view (a reader's own chips come from `segments`, which is already
+  // the public-only line above), never a future date, and never a bare
+  // ISO string: "Mon 28", the same short-weekday-plus-day shape a date chip
+  // uses everywhere else in the studio.
+  const recordedDates = new Set(segments.map((s) => s.day).filter((d): d is string => Boolean(d)));
+  const today = earliestTodayISO();
+  const dayDates = datesBetween(trip.start, trip.end).filter((d) => recordedDates.has(d) && d <= today);
+  const dayChipLabel = (date: string) => {
+    const dayOfMonth = Number(date.slice(8, 10));
+    return `${shortWeekdayName(locale, weekdayIndex(date))} ${dayOfMonth}`;
+  };
 
   const hiddenDays = getDays(ref, AS_AUTHOR)
     .filter(
@@ -195,31 +209,38 @@ export default async function TripPage({
         <p className="mt-3 text-sm text-ink-secondary">{t("studio.location.tripDetail.nothingToShow")}</p>
       )}
 
-      <h3 className="mt-4 text-sm font-semibold text-ink-strong">{t("studio.location.tripDetail.daysHeading")}</h3>
-      <ul className="mt-2 flex flex-wrap gap-2">
-        {dates.map((d) => (
-          <li key={d}>
-            <Link
-              href={`${base}/${encodeURIComponent(tripId)}/${d}?view=${view}`}
-              data-testid={`day-link-${d}`}
-              aria-current={day === d ? "true" : undefined}
-              className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm font-semibold ${
-                day === d ? "border-yellow-400 bg-yellow-100 text-yellow-950" : "border-line-strong text-ink-strong"
-              }`}
-            >
-              {d}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {dayDates.length > 0 && (
+        <>
+          <h3 className="mt-4 text-sm font-semibold text-ink-strong">{t("studio.location.tripDetail.daysHeading")}</h3>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {dayDates.map((d) => (
+              <li key={d}>
+                <Link
+                  href={`${base}/${encodeURIComponent(tripId)}/${d}?view=${view}`}
+                  data-testid={`day-link-${d}`}
+                  aria-current={day === d ? "true" : undefined}
+                  className={`inline-flex min-h-11 items-center rounded-full border px-3 text-sm font-semibold ${
+                    day === d ? "border-yellow-400 bg-yellow-100 text-yellow-950" : "border-line-strong text-ink-strong"
+                  }`}
+                >
+                  {dayChipLabel(d)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
-      <p className="mt-3 text-sm text-ink-secondary">
-        {translatePluralIn(locale, "studio.location.tripDetail.stats", daysShown, {
-          days: String(daysShown),
-          km: km.toFixed(1),
-          positions: String(positions),
-        })}
-      </p>
+      <div className="mt-3 space-y-1">
+        <p className="text-sm text-ink-secondary">
+          {translatePluralIn(locale, "studio.location.tripDetail.stats", daysShown, {
+            days: String(daysShown),
+            km: km.toFixed(1),
+            positions: String(positions),
+          })}
+        </p>
+        <p className="text-sm text-ink-secondary">{t("studio.location.tripDetail.sparseNote")}</p>
+      </div>
       {view === "mine" && modes.length > 0 && (
         <p className="text-sm text-ink-secondary">
           {modes.map(([mode, v]) => `${v} km ${modeLabel(mode, t)}`).join(" · ")}

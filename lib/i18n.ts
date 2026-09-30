@@ -3492,6 +3492,7 @@ export type TranslationKey =
   | "studio.location.trackEdits.lede"
   | "studio.location.trackEdits.loadError"
   | "studio.location.trackEdits.lonLabel"
+  | "studio.location.trackEdits.noneYet"
   | "studio.location.trackEdits.ownPinWarningTitle"
   | "studio.location.trackEdits.radiusLabel"
   | "studio.location.trackEdits.remove"
@@ -3520,6 +3521,7 @@ export type TranslationKey =
   | "studio.location.tripDetail.mine"
   | "studio.location.tripDetail.nothingToShow"
   | "studio.location.tripDetail.readers"
+  | "studio.location.tripDetail.sparseNote"
   | "studio.location.tripDetail.stats"
   | "studio.location.tripDetail.stats.one"
   | "studio.location.tripDetail.whoSeesLink"
@@ -4871,6 +4873,13 @@ const SHORT_MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil
 export function shortMonthName(locale: string, index: number): string {
   if (locale === "fr") return SHORT_MONTHS_FR[index];
   return monthNames(locale)[index].slice(0, 3);
+}
+
+/** A weekday's short form for a date chip: `Mon`, `Mo` no — `Mon` (de too,
+ * "Montag" happens to slice the same way), `hét` (hu), `lun` (fr, it) — B2568,
+ * the routes trip page's own "Mon 28" day chips. */
+export function shortWeekdayName(locale: string, index: number): string {
+  return weekdayNames(locale)[index].slice(0, 3);
 }
 
 /**
