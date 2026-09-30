@@ -6,9 +6,7 @@ import {
   verifyCode,
 } from "@/lib/auth";
 import { setGuestSessionCookies, setIdentityCookie } from "@/lib/auth/identityCookie";
-import { getContactByEmail, markContactPhoneProven, setContactLocaleIfEmpty } from "@/lib/contacts";
-import { whatsappCountryCode } from "@/lib/contactNumber";
-import { phoneSubject, subjectPhone, toE164 } from "@/lib/phone";
+import { getContactByEmail, setContactLocaleIfEmpty } from "@/lib/contacts";
 import { isEnabled } from "@/lib/capabilities";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -56,24 +54,10 @@ export async function POST(request: Request) {
   if (req.scope && req.for !== "write") {
     return fail("invalid_request", 'scope is only meaningful when "for" is "write".');
   }
-  /**
-   * B2294: a guest's mobile number, for `for: "read"` only. It becomes the
-   * code's subject, `+<digits>` (`phoneSubject`) — the same string the code
-   * was issued under — and from here on is spent exactly like an address.
-   */
-  let email: string;
-  if (req.phone !== undefined) {
-    const digits = toE164(req.phone, whatsappCountryCode());
-    if (req.email !== undefined || req.for !== "read" || !digits || !req.code) {
-      return fail("invalid_request", ERROR_CODES.invalid_request);
-    }
-    email = phoneSubject(digits);
-  } else {
-    if (req.email === undefined || !isEmail(req.email) || !req.code) {
-      return fail("invalid_request", ERROR_CODES.invalid_request);
-    }
-    email = req.email;
+  if (!isEmail(req.email) || !req.code) {
+    return fail("invalid_request", ERROR_CODES.invalid_request);
   }
+  const email = req.email;
 
   if (req.for === "signup") {
     if (!isEnabled("signup")) return fail("signup_disabled", ERROR_CODES.signup_disabled, undefined, 404);
@@ -135,9 +119,7 @@ export async function POST(request: Request) {
 
   if (req.for === "read") {
     // The journal session, and an identity because this code proved the
-    // address or number — B410. A proved number is stamped on its contact.
-    const digits = subjectPhone(email);
-    if (digits) await markContactPhoneProven(owner, digits);
+    // address — B410.
     // "Last used" (W44 D7) for the reader chain — only now the code proved
     // who this is, and only when the contact has no language yet.
     const contact = await getContactByEmail(owner, email);

@@ -162,7 +162,7 @@ describe("B2366 — a code mail's promise matches whether the owner already deci
     if (!added.ok) throw new Error("addPersonByOwner failed in test setup");
     expect(added.contact.status).toBe("active");
 
-    const sent = await sendGuestCode(OWNER, added.contact.id, "email", { ip: "203.0.113.9" });
+    const sent = await sendGuestCode(OWNER, added.contact.id, { ip: "203.0.113.9" });
     expect(sent.ok).toBe(true);
 
     const mail = lastMailTo("eve@example.test");
@@ -179,7 +179,7 @@ describe("B2366 — a code mail's promise matches whether the owner already deci
     if (!added.ok) throw new Error("addContact failed in test setup");
     expect(added.contact.status).toBe("pending");
 
-    const sent = await sendGuestCode(OWNER, added.contact.id, "email", { ip: "203.0.113.10" });
+    const sent = await sendGuestCode(OWNER, added.contact.id, { ip: "203.0.113.10" });
     expect(sent.ok).toBe(true);
 
     const mail = lastMailTo("fred@example.test");
@@ -201,7 +201,7 @@ describe("B2368 — the masked address is the same everywhere it is shown", () =
     const added = await addPersonByOwner(OWNER, { name: "Gia Guest", email: "giulia@example.test", locale: "en" });
     if (!added.ok) throw new Error("addPersonByOwner failed in test setup");
 
-    const sent = await sendGuestCode(OWNER, added.contact.id, "email", { ip: "203.0.113.11" });
+    const sent = await sendGuestCode(OWNER, added.contact.id, { ip: "203.0.113.11" });
     expect(sent.ok && sent.to).toBe(maskEmail("giulia@example.test"));
     expect(sent.ok && sent.to).toBe("gi•••@example.test");
   });
