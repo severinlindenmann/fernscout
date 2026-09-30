@@ -24,6 +24,9 @@ type StreetMapProps = {
    * loading — the same escape hatch `ref` gives, for a caller that would
    * rather not hold a ref. */
   onReady?: (map: import("maplibre-gl").Map) => void;
+  /** Open on a globe rather than a flat map — a trip across continents
+   * (`TripFrame.globe`, B2604). MapLibre flattens it as the reader zooms in. */
+  globe?: boolean;
 };
 
 /** How long the OpenStreetMap credit shows as a pill before folding into the
@@ -35,6 +38,11 @@ function currentScheme(): "light" | "dark" {
   const attr = document.documentElement.getAttribute("data-theme");
   if (attr === "light" || attr === "dark") return attr;
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+/** The projection rides in the style, so a theme's `setStyle` keeps it. */
+function withProjection<S extends object>(style: S, globe: boolean): S {
+  return globe ? { ...style, projection: { type: "globe" } } : style;
 }
 
 /**
@@ -54,7 +62,7 @@ function currentScheme(): "light" | "dark" {
  * operator hasn't downloaded the full set for.
  */
 const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap(
-  { bounds, pmtilesUrl, padding = 32, className, onReady },
+  { bounds, pmtilesUrl, padding = 32, className, onReady, globe = false },
   ref,
 ) {
   const { locale, t } = useI18n();
@@ -88,7 +96,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
 
       const created = new Map({
         container: containerRef.current,
-        style: paperStyle(pmtilesUrl, currentScheme(), locale),
+        style: withProjection(paperStyle(pmtilesUrl, currentScheme(), locale), globe),
         bounds,
         fitBoundsOptions: { padding },
         attributionControl: false,
@@ -108,7 +116,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
     // file appearing, a locale switch) that remounting the whole map is the
     // simplest correct behaviour — no diffing of an already-loaded style.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pmtilesUrl, locale]);
+  }, [pmtilesUrl, locale, globe]);
 
   // The dark/light *scheme* can change without `locale` changing (the OS
   // theme flips, or the reader's own in-app choice does) — kept separate
@@ -119,7 +127,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
       const map = mapRef.current;
       if (!map) return;
       const { paperStyle } = await import("@/lib/map/paperFlavor");
-      map.setStyle(paperStyle(pmtilesUrl, currentScheme(), locale));
+      map.setStyle(withProjection(paperStyle(pmtilesUrl, currentScheme(), locale), globe));
     };
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const observer = new MutationObserver(apply);
@@ -129,7 +137,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
       observer.disconnect();
       media.removeEventListener("change", apply);
     };
-  }, [pmtilesUrl, locale]);
+  }, [pmtilesUrl, locale, globe]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setCreditFolded(true), CREDIT_PILL_MS);

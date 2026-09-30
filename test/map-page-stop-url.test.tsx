@@ -53,9 +53,13 @@ const street = vi.hoisted(() => ({
   on: vi.fn(), off: vi.fn(), once: vi.fn(),
 }));
 vi.mock("@/components/map/StreetMap", () => ({
-  default: function StreetMapMock({ onReady }: { onReady: (map: MapLibreMap) => void }) {
+  default: function StreetMapMock({ onReady, globe, bounds }: {
+    onReady: (map: MapLibreMap) => void;
+    globe?: boolean;
+    bounds: [[number, number], [number, number]];
+  }) {
     useEffect(() => onReady(street as unknown as MapLibreMap), [onReady]);
-    return <div data-street-map />;
+    return <div data-street-map data-globe={globe ? "" : undefined} data-bounds={JSON.stringify(bounds)} />;
   },
 }));
 vi.mock("maplibre-gl", () => ({
@@ -319,10 +323,25 @@ test("mobile list repeat-click clears the day and returns to the collapsed strip
   expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("false");
 });
 
-// A tour (more than three regions) is shown whole on the world map, never on
-// one region's street file: framing the whole world on a street map padded
-// its bounds past 90° latitude and MapLibre threw (world-trip-2025, 29 Sep).
-test("a tour never picks a street map, even when region files exist", async () => {
+// A tour (more than three regions) within one continent is shown whole on
+// the world map, never on one region's street file.
+test("a tour on one continent never picks a street map, even when region files exist", async () => {
+  const tour = [
+    place("lis", "Lisbon", "2025-02-03", 38.72, -9.14),
+    place("par", "Paris", "2025-02-08", 48.86, 2.35),
+    place("rom", "Rome", "2025-02-14", 41.9, 12.5),
+    place("ber", "Berlin", "2025-02-20", 52.52, 13.4),
+    place("sto", "Stockholm", "2025-02-26", 59.33, 18.07),
+  ];
+  const el = render("", { streetMap, places: tour });
+  await act(async () => {});
+  expect(el.querySelector("[data-street-map]")).toBeNull();
+});
+
+// A tour across continents opens the street map on a globe (B2604). Framing
+// the whole world once padded its bounds past 90° latitude and MapLibre threw
+// (world-trip-2025, 29 Sep) — the bounds are clamped inside Web Mercator's.
+test("a tour across continents opens on a globe, its bounds inside the poles", async () => {
   const tour = [
     place("rey", "Reykjavík", "2025-02-03", 64.15, -21.94),
     place("nyc", "New York", "2025-02-08", 40.71, -74.0),
@@ -332,5 +351,11 @@ test("a tour never picks a street map, even when region files exist", async () =
   ];
   const el = render("", { streetMap, places: tour });
   await act(async () => {});
-  expect(el.querySelector("[data-street-map]")).toBeNull();
+  const map = el.querySelector("[data-street-map]") as HTMLElement;
+  expect(map.hasAttribute("data-globe")).toBe(true);
+  const [[west, south], [east, north]] = JSON.parse(map.dataset.bounds!);
+  expect(south).toBeGreaterThanOrEqual(-85);
+  expect(north).toBeLessThanOrEqual(85);
+  expect(west).toBeGreaterThanOrEqual(-180);
+  expect(east).toBeLessThanOrEqual(180);
 });
