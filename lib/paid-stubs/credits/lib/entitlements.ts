@@ -37,6 +37,8 @@ export type Entitlement = {
   periodStart: string;
   periodEnd: string;
   createdAt: string;
+  cancelAtPeriodEnd: boolean;
+  upgradePromoId: string | null;
 };
 
 const UNLIMITED_LIMITS: PlanLimits = {
