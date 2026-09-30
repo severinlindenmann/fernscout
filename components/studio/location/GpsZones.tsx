@@ -20,7 +20,6 @@ function zonesAsFeatureCollection(zones: Zone[]): GeoJSON.FeatureCollection {
 }
 type ZonesDoc = {
   zones: Zone[];
-  homeDeclined: boolean;
   limits: { maxZones: number; radiusM: { min: number; max: number } };
 };
 
@@ -42,8 +41,7 @@ const LABEL = "text-sm font-semibold text-ink-strong";
  * nothing here holds a token) — coordinates are typed in, or filled from the
  * browser's own idea of where it is right now.
  *
- * Any saved zone is what `hasHomeZoneOrDeclined` (`lib/gps/api.ts`) looks
- * for when B2196/B2198's recorder decides whether it may arm at all.
+ * Recording no longer waits on a saved zone — see B2568.
  */
 export default function GpsZones({
   username,
@@ -217,7 +215,7 @@ export default function GpsZones({
           [30, 60],
         ];
 
-  async function put(next: { zones: Zone[]; homeDeclined?: boolean }): Promise<boolean> {
+  async function put(next: { zones: Zone[] }): Promise<boolean> {
     setBusy(true);
     setError(undefined);
     setSaved(false);
@@ -304,11 +302,6 @@ export default function GpsZones({
     await put({ zones: doc.zones.filter((z) => z !== zone) });
   }
 
-  async function toggleDecline(next: boolean) {
-    if (!doc) return;
-    await put({ zones: doc.zones, homeDeclined: next });
-  }
-
   if (!doc) {
     if (loadError) {
       return (
@@ -374,21 +367,6 @@ export default function GpsZones({
     )
   );
 
-  const declineRow = (
-    <>
-      <label className="mt-4 flex items-center gap-2 text-sm text-ink-strong">
-        <input
-          type="checkbox"
-          checked={doc.homeDeclined}
-          onChange={(e) => void toggleDecline(e.target.checked)}
-          disabled={busy}
-        />
-        {t("studio.location.zones.declineLabel")}
-      </label>
-      <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.zones.declineNote")}</p>
-    </>
-  );
-
   if (mode === "overview") {
     return (
       <section className="mt-10">
@@ -411,7 +389,6 @@ export default function GpsZones({
             {t("studio.location.zones.addPlaceLink")}
           </Link>
         )}
-        {declineRow}
         {error && (
           <p role="alert" className="mt-3 text-sm text-coral-600">
             {error}
@@ -543,8 +520,6 @@ export default function GpsZones({
           </BusyButton>
         </form>
       )}
-
-      {declineRow}
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-coral-600">

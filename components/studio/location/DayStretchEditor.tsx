@@ -11,6 +11,7 @@ import RangeBar from "@/components/map/RangeBar";
 import { selectionStats } from "@/lib/map/rangeBar";
 import { utcToZonedParts } from "@/lib/timezone";
 import type { TransportMode } from "@/importers/gps/schema";
+import type { Basemap } from "@/lib/basemap";
 
 // Never `import { EDIT_LIMITS } from "@/lib/gps/edits"` here — that module
 // also carries `node:fs`/`node:path` (its own doc comment says why it is
@@ -69,6 +70,7 @@ export default function DayStretchEditor({
   timezone,
   region,
   streetMapsOn,
+  basemap = null,
 }: {
   username: string;
   tripId: string;
@@ -80,6 +82,9 @@ export default function DayStretchEditor({
   timezone: string;
   region?: { bounds: [[number, number], [number, number]]; url: string };
   streetMapsOn: boolean;
+  /** Server-derived from the day's own points (B2568) — see the same note on
+   *  `PositionsTable`'s own `basemap` prop. */
+  basemap?: Basemap | null;
 }) {
   const { t, formatShortDate } = useI18n();
   const router = useRouter();
@@ -279,7 +284,7 @@ export default function DayStretchEditor({
     ) : (
       <WorldMap
         places={[]}
-        basemap={null}
+        basemap={basemap}
         track={[points]}
         frameHint={points.map(([lat, lng]) => ({ lat, lng: lng }))}
         showTimeScrubber={false}

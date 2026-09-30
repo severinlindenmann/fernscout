@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import DayLineMap from "@/components/studio/location/DayLineMap";
 import WorldMap from "@/components/WorldMap";
 import { useI18n } from "@/components/LocaleProvider";
+import { useState } from "react";
+import type { Basemap } from "@/lib/basemap";
 
 /**
  * One recorded day's own stored positions — B2563 T5, D11. Built server-side
@@ -12,12 +13,8 @@ import { useI18n } from "@/components/LocaleProvider";
  * and blurs — it never touches the store or a translation key that needs a
  * raw `TransportMode`.
  *
- * **Coordinates are blurred by default** (D11: no CSV, nothing copyable at a
- * glance on a shared screen) — a CSS `blur` filter plus `select-none` on
- * every cell and the detail card's own lat/lon and "stored as" line, lifted
- * only by the "Show coordinates" toggle below. Never written to the URL,
- * `console`, or any storage — this component holds the reveal flag in plain
- * React state and nothing else.
+ * Coordinates are shown plain — B2568 dropped the earlier blur/reveal toggle
+ * as unnecessary friction on the owner's own already-gated page.
  */
 export type DisplayFixRow = {
   kind: "fix";
@@ -46,6 +43,7 @@ export default function PositionsTable({
   streetMapsOn,
   timezone,
   summary,
+  basemap = null,
 }: {
   rows: DisplayRow[];
   points: [number, number][];
@@ -54,11 +52,15 @@ export default function PositionsTable({
   streetMapsOn: boolean;
   timezone: string;
   summary: string;
+  /** Server-derived from the day's own points (B2568) — this is a client
+   *  component and cannot call `lib/basemap.ts` (`server-only`, `node:fs`)
+   *  itself, so the plain-map fallback below would otherwise always draw a
+   *  black box when `streetMapsOn` is off or this trip has no street tile. */
+  basemap?: Basemap | null;
 }) {
   const { t } = useI18n();
   const fixRows = rows.filter((r): r is DisplayFixRow => r.kind === "fix");
   const [selected, setSelected] = useState<number | null>(fixRows[0]?.index ?? null);
-  const [revealed, setRevealed] = useState(false);
 
   const selectedRow = fixRows.find((r) => r.index === selected);
 
@@ -75,7 +77,7 @@ export default function PositionsTable({
     ) : (
       <WorldMap
         places={[]}
-        basemap={null}
+        basemap={basemap}
         track={[points]}
         frameHint={points.map(([lat, lng]) => ({ lat, lng }))}
         showTimeScrubber={false}
@@ -85,19 +87,11 @@ export default function PositionsTable({
   return (
     <div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          aria-pressed={revealed}
-          onClick={() => setRevealed((v) => !v)}
-          className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
-        >
-          {revealed ? t("studio.location.positions.reveal.hide") : t("studio.location.positions.reveal.show")}
-        </button>
         <span className="text-sm text-ink-secondary">{summary}</span>
       </div>
 
       <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className={`overflow-x-auto rounded-xl border border-line-quiet ${revealed ? "" : "select-none"}`}>
+        <div className="overflow-x-auto rounded-xl border border-line-quiet">
           <table className="w-full text-sm md:min-w-[560px]">
             <thead>
               <tr className="border-b border-line-quiet text-left text-ink-secondary">
@@ -145,12 +139,8 @@ export default function PositionsTable({
                     }`}
                   >
                     <td className="px-3 py-2 tabular-nums">{row.timeLabel}</td>
-                    <td className={`px-3 py-2 tabular-nums ${revealed ? "" : "blur-sm"} hidden md:table-cell`}>
-                      {row.lat.toFixed(5)}
-                    </td>
-                    <td className={`px-3 py-2 tabular-nums ${revealed ? "" : "blur-sm"} hidden md:table-cell`}>
-                      {row.lon.toFixed(5)}
-                    </td>
+                    <td className="hidden px-3 py-2 tabular-nums md:table-cell">{row.lat.toFixed(5)}</td>
+                    <td className="hidden px-3 py-2 tabular-nums md:table-cell">{row.lon.toFixed(5)}</td>
                     <td className="whitespace-nowrap px-3 py-2">{row.modeLabel ?? "–"}</td>
                     <td className="px-3 py-2">{row.place}</td>
                     <td className="hidden px-3 py-2 tabular-nums md:table-cell">{row.distanceLabel ?? "–"}</td>
@@ -180,7 +170,7 @@ export default function PositionsTable({
               </p>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
                 <dt className="text-ink-secondary">{t("studio.location.positions.columns.lat")}, {t("studio.location.positions.columns.lon")}</dt>
-                <dd className={`text-ink-body tabular-nums ${revealed ? "" : "blur-sm select-none"}`}>
+                <dd className="text-ink-body tabular-nums">
                   {selectedRow.lat.toFixed(5)}, {selectedRow.lon.toFixed(5)}
                 </dd>
                 <dt className="text-ink-secondary">{t("studio.location.positions.columns.mode")}</dt>
@@ -203,7 +193,7 @@ export default function PositionsTable({
                         })}
                 </dd>
                 <dt className="text-ink-secondary">{t("studio.location.positions.detail.storedAs")}</dt>
-                <dd className={`min-w-0 break-all font-mono text-xs text-ink-body ${revealed ? "" : "blur-sm select-none"}`}>
+                <dd className="min-w-0 break-all font-mono text-xs text-ink-body">
                   [{selectedRow.epochSeconds},{selectedRow.lat.toFixed(5)},{selectedRow.lon.toFixed(5)}
                   {selectedRow.storedMode ? `,"${selectedRow.storedMode}"` : ""}]
                 </dd>

@@ -108,7 +108,6 @@ export default async function TripPage({
   const base = `${journalPath(user)}/studio/location`;
 
   const places = view === "mine" ? getPlaces(ref, AS_AUTHOR) : getPlaces(ref, { includeDrafts: false });
-  const basemap = basemapForRoute(places);
 
   let segments: LineSegment[] = [];
   let positions: number;
@@ -128,6 +127,13 @@ export default async function TripPage({
   }
   const km = kmAlong(segments);
   const allPoints = segments.flatMap((s) => s.points);
+  const routePoints = allPoints.map(([lat, lng]) => ({ lat, lng }));
+  // B2568 — "Daily Updates" (and any trip with no written days) has an empty
+  // `places`, so framing the basemap on it drew nothing at all (the world
+  // map, not even borders). Falls back to the route's own bounds — the same
+  // points `WorldMap`'s own `frameHint` below frames the client's camera on —
+  // whenever there is nothing written to frame on instead.
+  const basemap = basemapForRoute(places.length > 0 ? places : routePoints);
   const modes = Object.entries(kmByMode(user, tripId)).filter(([, v]) => (v ?? 0) > 0);
 
   const hiddenDays = getDays(ref, AS_AUTHOR)
@@ -183,7 +189,7 @@ export default async function TripPage({
 
       {allPoints.length > 0 ? (
         <div className="mt-3 overflow-hidden rounded-xl border border-line-quiet">
-          <WorldMap places={places} basemap={basemap} track={segments.map((s) => s.points)} />
+          <WorldMap places={places} basemap={basemap} track={segments.map((s) => s.points)} frameHint={routePoints} />
         </div>
       ) : (
         <p className="mt-3 text-sm text-ink-secondary">{t("studio.location.tripDetail.nothingToShow")}</p>

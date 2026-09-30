@@ -12,6 +12,7 @@ import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
 import { getPlaces } from "@/lib/entries";
 import { tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
+import { basemapForRoute } from "@/lib/basemap";
 import { primaryStreetMap } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { isRealDate, ownerDayLine, recordedTrips, zoneLabelFor } from "@/lib/gps/api";
@@ -143,6 +144,15 @@ export default async function DayPage({
     });
   }
 
+  // B2568 — the plain-map fallback (no street tile for this trip, or
+  // `streetMaps` off) used to pass `basemap={null}` unconditionally, which
+  // drew a black box instead of a map with borders and water under the day's
+  // own line. Derived once here, from the day's own points, and threaded into
+  // every plain-map caller below (`PositionsTable`, `DayStretchEditor`, and
+  // this page's own last-resort `WorldMap`) — those two are client
+  // components and cannot call `lib/basemap.ts` themselves.
+  const dayBasemap = points.length > 0 ? basemapForRoute(points.map(([lat, lng]) => ({ lat, lng }))) : null;
+
   const tabClass = (active: boolean) =>
     `min-h-11 rounded-t-lg border-b-2 px-3 text-sm font-semibold leading-[2.5rem] ${
       active ? "border-yellow-400 text-ink-strong" : "border-transparent text-ink-secondary hover:text-ink-strong"
@@ -194,6 +204,7 @@ export default async function DayPage({
           streetMapsOn={streetMapsOn}
           timezone={ownerLine.timezone}
           summary={positionsSummary}
+          basemap={dayBasemap}
         />
       ) : view === "mine" && ownerLine ? (
         <DayStretchEditor
@@ -207,6 +218,7 @@ export default async function DayPage({
           timezone={ownerLine.timezone}
           region={region}
           streetMapsOn={streetMapsOn}
+          basemap={dayBasemap}
         />
       ) : region ? (
         <div className="mt-3 h-64 overflow-hidden rounded-xl border border-line-quiet">
@@ -216,7 +228,7 @@ export default async function DayPage({
         <div className="mt-3 overflow-hidden rounded-xl border border-line-quiet">
           <WorldMap
             places={[]}
-            basemap={null}
+            basemap={dayBasemap}
             track={splitAtGaps(points, gapAfter)}
             frameHint={points.map(([lat, lng]) => ({ lat, lng }))}
             showTimeScrubber={false}

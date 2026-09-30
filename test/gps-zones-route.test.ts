@@ -157,7 +157,6 @@ describe("GET/PUT /api/v2/{user}/gps/zones", { shuffle: false }, () => {
     const { status, body } = await getZones(token);
     expect(status).toBe(200);
     expect(body.zones).toEqual([]);
-    expect(body.homeDeclined).toBe(false);
     expect(body.limits).toEqual({ maxZones: 20, radiusM: { min: 50, max: 5000 } });
   });
 
@@ -179,15 +178,6 @@ describe("GET/PUT /api/v2/{user}/gps/zones", { shuffle: false }, () => {
     });
     expect(status).toBe(400);
     expect(body.error).toBe("invalid_request");
-  });
-
-  test("homeDeclined round-trips, and a PUT of zones alone does not silently undo it", async () => {
-    const token = await tokenFor(OWNER_EMAIL);
-    const declined = await putZones(token, { zones: [], homeDeclined: true });
-    expect(declined.body.homeDeclined).toBe(true);
-
-    const kept = await putZones(token, { zones: [{ label: "Office", lat: 2, lon: 2, radiusM: 200 }] });
-    expect(kept.body.homeDeclined).toBe(true);
   });
 
   test("a trip-scoped token is refused — a zone is journal-wide, not one trip's", async () => {
@@ -228,7 +218,7 @@ describe("GET/PUT /api/v2/{user}/gps/zones", { shuffle: false }, () => {
     expect(body.error).toBe("stale_document");
     // The refusal carries the document actually on disk, so a caller can
     // read it and retry with a matching If-Match.
-    expect(body.details).toMatchObject({ zones: expect.any(Array), homeDeclined: expect.any(Boolean) });
+    expect(body.details).toMatchObject({ zones: expect.any(Array) });
   });
 
   test("PUT with a stale If-Match is refused, a fresh one is accepted", async () => {
@@ -292,27 +282,6 @@ describe("GET/PUT /api/v2/{user}/gps/zones", { shuffle: false }, () => {
     } finally {
       fs.writeFileSync(file, "[]");
     }
-  });
-});
-
-describe("hasHomeZoneOrDeclined — the arming question B2196/B2198 will ask", () => {
-  test("false with neither a home zone nor a decline", async () => {
-    const { hasHomeZoneOrDeclined } = await import("@/lib/gps/api");
-    expect(hasHomeZoneOrDeclined("nobody-yet")).toBe(false);
-  });
-
-  test("true once any zone is saved, whatever it is called", async () => {
-    const token = await tokenFor(OWNER_EMAIL);
-    await putZones(token, { zones: [{ label: "Zuhause", lat: 3, lon: 3, radiusM: 100 }] });
-    const { hasHomeZoneOrDeclined } = await import("@/lib/gps/api");
-    expect(hasHomeZoneOrDeclined(OWNER)).toBe(true);
-  });
-
-  test("true once the owner has declined, even with no zone at all", async () => {
-    const token = await tokenFor(OWNER_EMAIL);
-    await putZones(token, { zones: [], homeDeclined: true });
-    const { hasHomeZoneOrDeclined } = await import("@/lib/gps/api");
-    expect(hasHomeZoneOrDeclined(OWNER)).toBe(true);
   });
 });
 

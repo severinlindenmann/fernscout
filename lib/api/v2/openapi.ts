@@ -1531,7 +1531,7 @@ function buildPaths(): Record<string, PathItem> {
       summary:
         "Replace the zone list. Requires If-Match with the ETag GET last answered — refused without one, " +
         "or with a stale one, as stale_document (409). Label a zone exactly \"home\" to arm the recorder's own gate (B2196/B2198).",
-      requestBody: jsonBody(gpsZonesWrite, "the whole zone list, and optionally homeDeclined"),
+      requestBody: jsonBody(gpsZonesWrite, "the whole zone list"),
       responses: {
         ...jsonResponse(200, gpsZonesDoc, "the zones, the decline flag, and the limits, as stored, with the new ETag"),
         ...refusalResponses([

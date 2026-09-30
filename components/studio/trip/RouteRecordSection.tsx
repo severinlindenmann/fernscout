@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import {
@@ -19,7 +18,6 @@ import {
   type RouteRecordStatus,
 } from "@/components/nativeShell";
 
-import { journalPath } from "@/lib/journalPath";
 const EYEBROW = "font-mono text-xs uppercase tracking-wide text-ink-secondary";
 const BUTTON = "mt-3 min-h-11 rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong hover:bg-surface-subtle disabled:opacity-50";
 
@@ -54,11 +52,9 @@ function Switch({ on, disabled, busy, label, onChange }: { on: boolean; disabled
 export default function RouteRecordSection({
   username,
   trip,
-  homeZoneReady,
 }: {
   username: string;
   trip: { id: string; title: string; start: string; end: string };
-  homeZoneReady: boolean;
 }) {
   const native = useNativeShell();
   const { t, locale } = useI18n();
@@ -231,25 +227,17 @@ export default function RouteRecordSection({
 
       {!status && <p className="mt-3 text-sm text-ink-secondary">{t("studio.record.loading")}</p>}
 
-      {status?.state === "off" &&
-        (homeZoneReady ? (
-          <div className="mt-3">
-            <div className="flex items-center gap-4">
-              <Switch on={false} busy={busy} label={t("studio.record.switchLabel")} onChange={startRecording} />
-              <span className="text-sm text-ink-strong">{t("studio.record.switchLabel")}</span>
-            </div>
-            <button type="button" disabled={busy} onClick={() => void decline()} className={BUTTON}>
-              {t("studio.record.notThisTrip")}
-            </button>
+      {status?.state === "off" && (
+        <div className="mt-3">
+          <div className="flex items-center gap-4">
+            <Switch on={false} busy={busy} label={t("studio.record.switchLabel")} onChange={startRecording} />
+            <span className="text-sm text-ink-strong">{t("studio.record.switchLabel")}</span>
           </div>
-        ) : (
-          <p className="mt-3 text-sm text-ink-secondary">
-            {t("studio.record.needsHomeZone")}{" "}
-            <Link href={`${journalPath(username)}/studio/location`} className="font-semibold text-ink-strong underline underline-offset-2">
-              {t("studio.record.setHomeZone")}
-            </Link>
-          </p>
-        ))}
+          <button type="button" disabled={busy} onClick={() => void decline()} className={BUTTON}>
+            {t("studio.record.notThisTrip")}
+          </button>
+        </div>
+      )}
 
       {status?.state === "declined" && <p className="mt-3 text-sm text-ink-secondary">{t("studio.record.declinedNote")}</p>}
 

@@ -15,14 +15,11 @@ import {
 } from "./store";
 import {
   deriveTrack,
-  hasHomeZoneOrDeclined,
   isExcluded,
   readExcludeZones,
-  readHomeDeclined,
   tailForTrip,
   trackForTrip,
   writeExcludeZones,
-  writeHomeDeclined,
   type ExcludeZone,
 } from "./enrich";
 import { deleteTail, deleteTrack, readTrack, trackPointCount, writeTail, writeTrack } from "./track";
@@ -40,7 +37,7 @@ import {
 import { recordingState, type RecordingState } from "./recorderState";
 import { reverseGeocode } from "../ingest/geo";
 import { earliestTodayISO } from "../tripTime";
-import { zonedTimeToUtc } from "../timezone";
+import { timezoneForCoordinates, zonedTimeToUtc } from "../timezone";
 
 /** No fix ever reaches a reader less than this long after it was made —
  * B2202, so a public trip never shows a stranger where the owner is right
@@ -58,13 +55,48 @@ const TRIM_METRES = 500;
  * windows use this; a date absent from the map is bounded in UTC. Read at
  * `AS_AUTHOR` deliberately: a draft's own timezone is still the true local
  * time of the fixes made that day, and hiding it would only make the window
- * wrong, not safer — the reader-facing filter is `readerTrack`, not this. */
-function dayTimezones(username: string, trip: { id: string }): Record<string, string> {
+ * wrong, not safer — the reader-facing filter is `readerTrack`, not this.
+ *
+ * B2568 — a trip date with no written day's own `timezone` (the whole of
+ * "Daily Updates": a trip recorded but never written up at all) no longer
+ * falls all the way back to UTC. `guessedTimezone` below reads that date's
+ * own recorded fixes and asks `timezoneForCoordinates` where its earliest one
+ * sits — stable and derived, never a journal setting, so nobody has to open
+ * the studio just to fix a clock. Best-effort: a date with no fix of its own
+ * yet, or an unreadable store, is left out of the map exactly as before, and
+ * every caller's own `?? "UTC"` still covers that case. */
+function dayTimezones(username: string, trip: { id: string; start: string; end: string }): Record<string, string> {
   const zones: Record<string, string> = {};
   for (const entry of getAllEntries(tripRef(username, trip.id), AS_AUTHOR)) {
     if (entry.timezone) zones[entry.date] = entry.timezone;
   }
+  for (let date = trip.start; date <= trip.end; date = nextDate(date)) {
+    if (zones[date]) continue;
+    const guess = guessedTimezone(username, date);
+    if (guess) zones[date] = guess;
+  }
   return zones;
+}
+
+/** The IANA zone of a date's own earliest recorded fix — B2568. `date` is
+ * read as a plain UTC calendar day (the only bound available before a
+ * timezone is known at all); good enough for a first-fix lookup, since the
+ * point is only to name the place the day started, not to draw its window
+ * (`windowsFor`, `./enrich.ts`, does that once this answer is in hand). Fails
+ * soft: an unreadable store, or nothing recorded that day, both answer
+ * `undefined` rather than throwing, so a caller mid-derivation is never
+ * broken by a lookup that only ever improves on UTC. */
+function guessedTimezone(username: string, date: string): string | undefined {
+  let fixes: Fix[];
+  try {
+    fixes = readRange(username, Date.parse(`${date}T00:00:00Z`), Date.parse(`${date}T23:59:59.999Z`));
+  } catch {
+    return undefined;
+  }
+  if (fixes.length === 0) return undefined;
+  let earliest = fixes[0];
+  for (const fix of fixes) if (fix.t < earliest.t) earliest = fix;
+  return timezoneForCoordinates(earliest.lat, earliest.lon);
 }
 
 /**
@@ -590,20 +622,11 @@ export const ZONE_LIMITS = {
 export type { ExcludeZone };
 
 /** `GET`'s whole answer. */
-export function listZones(username: string): { zones: ExcludeZone[]; homeDeclined: boolean } {
-  return { zones: readExcludeZones(username), homeDeclined: readHomeDeclined(username) };
+export function listZones(username: string): { zones: ExcludeZone[] } {
+  return { zones: readExcludeZones(username) };
 }
 
-/** `PUT`'s whole answer — replaces the zone list, and updates the decline
- * flag only when the caller actually sent one, so a `PUT` of zones alone
- * never silently un-declines a home the owner already said no to.
- *
- * Both files are written before either is read back: an unreadable
- * `home-declined.json` after a perfectly good zones write must not surface
- * as a generic 500 that looks like nothing happened — the route's own catch
- * around this call answers the same `unreadable_zones` refusal `GET` does,
- * which is honest about what actually failed (the confirming read, not the
- * write) without leaking which write, if any, is now on disk.
+/** `PUT`'s whole answer — replaces the zone list.
  *
  * **Every trip's `track-recent.json` is deleted here too — B2536 security
  * review.** `track.json` is left for the next explicit `POST …/track` or
@@ -616,15 +639,11 @@ export function listZones(username: string): { zones: ExcludeZone[]; homeDecline
 export function writeZones(
   username: string,
   zones: ExcludeZone[],
-  homeDeclined?: boolean,
-): { zones: ExcludeZone[]; homeDeclined: boolean } {
+): { zones: ExcludeZone[] } {
   writeExcludeZones(username, zones);
-  if (homeDeclined !== undefined) writeHomeDeclined(username, homeDeclined);
   for (const trip of getTrips(username)) deleteTail(username, trip.id);
   return listZones(username);
 }
-
-export { hasHomeZoneOrDeclined };
 
 export { EDIT_LIMITS };
 export type { TrackEdits } from "./edits";

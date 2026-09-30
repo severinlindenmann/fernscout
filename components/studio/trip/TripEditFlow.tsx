@@ -159,7 +159,6 @@ export default function TripEditFlow({
   trip,
   section,
   routeRecordingAvailable,
-  homeZoneReady,
 }: {
   username: string;
   trips: { id: string; title: string }[];
@@ -173,8 +172,6 @@ export default function TripEditFlow({
    *  section itself also checks `useNativeShell()`, so a browser never sees
    *  it, capability on or off. */
   routeRecordingAvailable?: boolean;
-  /** `hasHomeZoneOrDeclined(user)` — B2203's arming question. */
-  homeZoneReady?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -324,7 +321,6 @@ export default function TripEditFlow({
         <RouteRecordSection
           username={username}
           trip={{ id: trip.id, title: trip.title, start: trip.start, end: trip.end }}
-          homeZoneReady={homeZoneReady ?? false}
         />
       )}
 
