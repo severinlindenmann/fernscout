@@ -88,11 +88,12 @@ export const TEMPLATES = {
   "receipt.photobook": { family: "receipt", channel: "mail", kind: "photobook order receipt", audience: "owner", paid: true },
 
   // -- sms (open core) ------------------------------------------------------
-  "code.sms": { family: "code", channel: "sms", kind: "sign-in / phone-verify code", audience: "reader" },
+  // B2597: readers sign in by email only, and no plan sends a reader an SMS
+  // any more — `code.sms` survives only as the owner's own signup/phone-verify
+  // code (`lib/phoneVerify/sms.ts`); `invite.sms`, `invite.in.sms` and
+  // `news.sms` had no other call site and are gone.
+  "code.sms": { family: "code", channel: "sms", kind: "phone-verify code", audience: "owner" },
   "invite.share": { family: "invite", channel: "share", kind: "invite the owner shares", audience: "reader" },
-  "invite.sms": { family: "invite", channel: "sms", kind: "invite to a reader", audience: "reader" },
-  "invite.in.sms": { family: "invite", channel: "sms", kind: "you're in", audience: "reader" },
-  "news.sms": { family: "news", channel: "sms", kind: "day published", audience: "reader" },
   "op.sms": { family: "operator", channel: "sms", kind: "operator text to the owner", audience: "owner" },
 
   // -- whatsapp (paid) --------------------------------------------------------
@@ -145,15 +146,15 @@ export const FLOWS = [
         id: "ask",
         type: "trigger",
         label: "Somebody asks for a code",
+        // B2597 — readers sign in by email only; the "Reader, by phone" leg
+        // is gone.
         to: [
           { id: "sendMail", label: "Reader, by email" },
-          { id: "sendSms", label: "Reader, by phone" },
           { id: "sendOwner", label: "Owner or agent" },
           { id: "sendIdentity", label: "Anywhere on this instance" },
         ],
       },
       { id: "sendMail", type: "send", label: "Send the code", template: "code.mail", to: [{ id: "redeem" }] },
-      { id: "sendSms", type: "send", label: "Text the code", template: "code.sms", to: [{ id: "redeem" }] },
       { id: "sendOwner", type: "send", label: "Send the code", template: "code.journal.mail", to: [{ id: "redeem" }] },
       { id: "sendIdentity", type: "send", label: "Send the code", template: "code.identity.mail", to: [{ id: "redeem" }] },
       { id: "redeem", type: "check", label: "Code redeemed within its window?", to: [{ id: "stop" }] },
@@ -168,14 +169,13 @@ export const FLOWS = [
         id: "start",
         type: "trigger",
         label: "Owner presses invite for a person",
+        // B2597 — SMS retired as an invite channel.
         to: [
           { id: "mail", label: "Email" },
-          { id: "sms", label: "SMS" },
           { id: "share", label: "Owner's own share sheet" },
         ],
       },
       { id: "mail", type: "send", label: "Send the invite", template: "invite.mail", to: [{ id: "stop" }] },
-      { id: "sms", type: "send", label: "Text the invite", template: "invite.sms", to: [{ id: "stop" }] },
       { id: "share", type: "send", label: "Log that the owner shared it themselves", template: "invite.share", to: [{ id: "stop" }] },
       { id: "stop", type: "stop", label: "Waiting for them to open it", to: [] },
     ],
@@ -187,9 +187,9 @@ export const FLOWS = [
       { id: "ask", type: "trigger", label: "Somebody asks on a group link", to: [{ id: "code" }] },
       { id: "code", type: "send", label: "Send the code", template: "code.mail", to: [{ id: "notify" }] },
       { id: "notify", type: "send", label: "Tell the owner", template: "notice.request", to: [{ id: "approve" }] },
-      { id: "approve", type: "check", label: "Owner lets them in", to: [{ id: "mail", label: "They have a confirmed email" }, { id: "sms", label: "Only a proven phone" }] },
+      // B2597 — readers sign in by email only; there is no phone leg left.
+      { id: "approve", type: "check", label: "Owner lets them in", to: [{ id: "mail", label: "Confirmed email" }] },
       { id: "mail", type: "send", label: "Tell them they're in", template: "invite.in.mail", to: [{ id: "stop" }] },
-      { id: "sms", type: "send", label: "Text them they're in", template: "invite.in.sms", to: [{ id: "stop" }] },
       { id: "stop", type: "stop", label: "They can read", to: [] },
     ],
   },
@@ -197,9 +197,11 @@ export const FLOWS = [
     id: "newday",
     label: "A day is published",
     nodes: [
-      { id: "publish", type: "trigger", label: "Owner publishes a day", to: [{ id: "mail", label: "Email" }, { id: "sms", label: "SMS" }, { id: "wa", label: "WhatsApp" }, { id: "push", label: "App push" }] },
+      // B2597 — SMS retired; WhatsApp stays registered (the Meta sender and
+      // inbound webhook are kept for Fernscout's own future marketing) but
+      // `sendDayWhatsapp` refuses every day announcement outright now.
+      { id: "publish", type: "trigger", label: "Owner publishes a day", to: [{ id: "mail", label: "Email" }, { id: "wa", label: "WhatsApp (retired, B2597)" }, { id: "push", label: "App push" }] },
       { id: "mail", type: "send", label: "Mail readers who chose email", template: "news.mail", to: [{ id: "stop" }] },
-      { id: "sms", type: "send", label: "Text readers who chose SMS", template: "news.sms", to: [{ id: "stop" }] },
       { id: "wa", type: "send", label: "WhatsApp readers who chose it", template: "news.wa", to: [{ id: "stop" }] },
       { id: "push", type: "send", label: "Push readers who chose it", template: "news.push", to: [{ id: "stop" }] },
       { id: "stop", type: "stop", label: "Readers notified", to: [] },

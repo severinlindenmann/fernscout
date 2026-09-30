@@ -15,15 +15,7 @@ import {
   type ContactRecord,
   type SelfUpdate,
 } from "@/lib/contacts";
-import {
-  confirmEmailProof,
-  confirmPhoneProof,
-  proveFirstPhone,
-  sendEmailProof,
-  sendFirstPhoneCode,
-  sendPhoneProof,
-  verifyGuestCode,
-} from "@/lib/contacts/guestCode";
+import { confirmEmailProof, sendEmailProof, verifyGuestCode } from "@/lib/contacts/guestCode";
 import { applyLinkGroup } from "@/lib/contacts/groups";
 import { countInviteUse } from "@/lib/contacts/invites";
 import { parseLocale, pickLocale } from "@/lib/contacts/locale";
@@ -52,18 +44,19 @@ const answer = (body: unknown, status = 200) => Response.json(body, { status, he
  * invite link").
  *
  * **Joining is asking.** Every path here ends at a `pending` contact whose
- * channel is proved, and the owner's Let in (`approveContact`) is still the
+ * address is proved, and the owner's Let in (`approveContact`) is still the
  * only thing that opens anything. A mailed invite from before the rebuild
  * (B319) is the one exception it always was: proving *exactly* the address
- * the owner typed lets that person in.
+ * the owner typed lets that person in. B2597: readers sign in by email only
+ * — no phone channel, no SMS.
  *
- * - `send` `{ name, channel: "email" | "sms", value, locale }` — mails or
- *   texts a code, within the usual code budgets; writes nothing about anybody.
+ * - `send` `{ name, value, locale }` — mails a code, within the usual code
+ *   budgets; writes nothing about anybody.
  * - `verify` `{ …, code }` — proves it; only now is a request filed (a new
  *   person) or a buddy place asked for (somebody already here, whose stored
  *   details are never touched). Signs this browser in (an identity opens
  *   nothing by itself) and tells the owner. `known: true` means the person
- *   was already on the page: the flow skips the address and channel screens.
+ *   was already on the page: the flow skips the address screen.
  * - `join` `{ name, locale }` — somebody already signed in with an email on
  *   this instance: no second code.
  * - `save` `{ address?, wants… }` — the person's own details, from their
@@ -88,18 +81,13 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
   const text = (key: string) => (typeof body[key] === "string" ? (body[key] as string).trim() : "");
   const name = text("name").slice(0, 120);
   const locale = pickLocale(parseLocale(text("locale")), invite.locale, user.defaultLocale);
-  const channel = body.channel === "sms" ? "sms" : "email";
   const value = text("value");
 
   switch (body.action) {
     case "send": {
       // **Writes nothing about anybody** (security review F1): a code goes to
-      // the channel typed, and only a proved channel files a request.
+      // the address typed, and only a proved address files a request.
       if (!name) return answer({ error: "invalid_name" }, 400);
-      if (channel === "sms") {
-        const sent = await sendFirstPhoneCode(owner, value, { ip, locale });
-        return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, sent.reason === "rate_limited" ? 429 : 400);
-      }
       const email = normaliseEmail(value);
       if (!isEmail(email)) return answer({ error: "invalid_email" }, 400);
       if (mailDisabledReason(owner)) return answer({ error: "unavailable" }, 503);
@@ -111,13 +99,6 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       return answer({ ok: true, to: email });
     }
     case "verify": {
-      if (channel === "sms") {
-        const proved = await proveFirstPhone(owner, value, text("code"), { name, locale, createdVia: `invite:${invite.id}` });
-        if (!proved) return answer({ error: "invalid_code" }, 401);
-        if (proved.contact.status === "blocked") return answer({ ok: true, status: "waiting", known: true });
-        await setGuestSessionCookies(proved.token, proved.subject, request.headers.get("user-agent"));
-        return answer({ ok: true, ...(await settle(invite, proved.contact, proved.subject, null)) });
-      }
       const email = normaliseEmail(value);
       const session = isEmail(email) ? await verifyGuestCode(owner, email, text("code"), request.headers.get("accept-language")) : null;
       if (!session) return answer({ error: "invalid_code" }, 401);
@@ -143,13 +124,6 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       if (!self || self.status === "blocked") return answer({ error: "not_signed_in" }, 401);
       if (!filedByThisLink(self, invite)) return answer({ error: "already_known" }, 409);
       const given = text("code");
-      if (body.kind === "sms") {
-        if (!given) {
-          const sent = await sendPhoneProof(owner, self.id, value, { ip, locale });
-          return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, 409);
-        }
-        return (await confirmPhoneProof(owner, self.id, value, given)) ? answer({ ok: true }) : answer({ error: "invalid_code" }, 401);
-      }
       if (!given) {
         const sent = await sendEmailProof(owner, self.id, value, { locale });
         return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, 409);

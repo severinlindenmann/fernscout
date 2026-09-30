@@ -2,8 +2,6 @@ import "server-only";
 import type { Tool } from "../types";
 import { isEnabled } from "../../../capabilities";
 import { mailWouldReach } from "../../../digest/dayLetter";
-import { whatsappWouldCost, whatsappWouldReach } from "@paid/whatsapp/lib/digest/dayWhatsapp";
-import { smsWouldCost, smsWouldReach } from "../../../digest/daySms";
 import { DAY_ARGS } from "../args";
 import { resolveDay, tripIdFor } from "../resolve";
 
@@ -42,16 +40,13 @@ export const READERS_TOOLS: readonly Tool[] = [
   },
   {
     /**
-     * Announcing a day that is already on the site — B1051. `send-mail` and
-     * `send-whatsapp` are two routes in `/api/v1` because mail is free and
-     * WhatsApp spends credits and Meta invoices per message; they are **one**
-     * tool here because a person says "tell them", not which transport, and
-     * the prompt budget cannot carry two rows that differ in one field.
+     * Announcing a day that is already on the site — B1051. B2597 retired
+     * WhatsApp and SMS as reader channels (no plan includes either any more),
+     * so this tells by mail — the only channel left, and free.
      *
-     * **Reach and cost are read from the same functions the routes send
-     * with** (`mailWouldReach`, `whatsappWouldReach`, `whatsappWouldCost`) —
-     * never a hand-rolled count, which is exactly the duplication those
-     * functions' own doc comments warn against.
+     * **Reach is read from the same function the route sends with**
+     * (`mailWouldReach`) — never a hand-rolled count, which is exactly the
+     * duplication that function's own doc comment warns against.
      *
      * Refuses a day still in draft: `publish_day` puts a day on the site,
      * this tells people about it, and the two must not be reachable out of
@@ -60,20 +55,11 @@ export const READERS_TOOLS: readonly Tool[] = [
     name: "tell_readers",
     kind: "write",
     renders: "confirm",
-    describe:
-      "Propose announcing a published day — by mail (free), WhatsApp or SMS (spend credits). Refused for a day still in draft: publish it first. Ask which channel if they did not say; default to mail.",
-    properties: {
-      ...DAY_ARGS,
-      channel: {
-        type: "string",
-        description: "mail, whatsapp or sms. Leave out only when they truly did not say.",
-      },
-    },
+    describe: "Propose announcing a published day by mail (free). Refused for a day still in draft: publish it first.",
+    properties: { ...DAY_ARGS },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/tell-readers`,
     propose: async (username, args, say) => {
       const found = resolveDay(username, args);
-      const channel: "mail" | "whatsapp" | "sms" =
-        args.channel === "whatsapp" || (args.channel === "sms" && isEnabled("sms")) ? args.channel : "mail";
 
       if (found?.entry.draft) {
         return {
@@ -85,35 +71,15 @@ export const READERS_TOOLS: readonly Tool[] = [
         };
       }
 
-      const reach = found
-        ? channel === "whatsapp"
-          ? await whatsappWouldReach(username, found.trip.ref, found.entry.slug)
-          : channel === "sms"
-            ? await smsWouldReach(username, found.trip.ref, found.entry.slug)
-            : await mailWouldReach(username, found.trip.ref, found.entry.slug)
-        : 0;
-      const cost = !found
-        ? 0
-        : channel === "whatsapp"
-          ? await whatsappWouldCost(username, found.trip.ref, found.entry.slug)
-          : channel === "sms"
-            ? await smsWouldCost(username, found.trip.ref, found.entry.slug)
-            : 0;
+      const reach = found ? await mailWouldReach(username, found.trip.ref, found.entry.slug) : 0;
 
       const sentence = !found
         ? say("agent.tool.publishNoDay")
-        : channel !== "mail"
-          ? say(channel === "sms" ? "agent.tool.tellReadersSms" : "agent.tool.tellReadersWhatsapp", {
-              date: found.entry.date,
-              title: found.entry.title,
-              count: String(reach),
-              credits: String(cost),
-            })
-          : say("agent.tool.tellReadersMail", {
-              date: found.entry.date,
-              title: found.entry.title,
-              count: String(reach),
-            });
+        : say("agent.tool.tellReadersMail", {
+            date: found.entry.date,
+            title: found.entry.title,
+            count: String(reach),
+          });
 
       return {
         sentence,
@@ -122,16 +88,6 @@ export const READERS_TOOLS: readonly Tool[] = [
         fields: [
           { name: "trip", value: tripIdFor(username, args, found), fixed: true },
           { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
-          {
-            name: "channel",
-            value: channel,
-            options: [
-              { value: "mail", label: say("agent.tool.channelMail") },
-              { value: "whatsapp", label: say("agent.tool.channelWhatsapp") },
-              // B2292 — only where this server can text at all.
-              ...(isEnabled("sms") ? [{ value: "sms", label: say("agent.tool.channelSms") }] : []),
-            ],
-          },
         ],
       };
     },

@@ -82,7 +82,10 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const hasEmail = contact.email.includes("@");
   const caps = {
     mail: !mailDisabledReason(owner),
-    sms: isEnabled("sms"),
+    // B2597: readers sign in by email only — no SMS channel here, whatever
+    // this instance's own SMS transport (`isEnabled("sms")`) is set up for
+    // elsewhere (the owner's own phone check).
+    sms: false,
     whatsapp: isEnabled("whatsapp") && !hasSwitchedOff("whatsapp", owner),
     postcards: isEnabled("postcards", owner),
   };

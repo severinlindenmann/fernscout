@@ -12,11 +12,10 @@ export const dynamic = "force-dynamic";
  * what it costs, the balance, and the exact message the person would get.
  * Sends nothing.
  *
- * `POST { contactId, channel: "email" | "sms" | "self" }` sends on that one
- * channel. SMS takes one credit on this press and gives it back when the
- * send fails; a short balance is refused (402) with nothing charged. `self`
- * sends nothing and answers the link. WhatsApp retired as an invite
- * channel, B2339.
+ * `POST { contactId, channel: "email" | "self" }` sends on that one channel.
+ * Email is free; `self` sends nothing and answers the link. WhatsApp retired
+ * as an invite channel, B2339; SMS the same way, B2597 — readers sign in by
+ * email only now.
  */
 export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/readers/notify">) {
   const { user } = await params;

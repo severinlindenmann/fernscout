@@ -2,7 +2,6 @@ import { isTestContent } from "@/lib/access";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { isOwner } from "@/lib/contacts/session";
 import { mailSummary } from "@/lib/api/dayMail";
-import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import {
   channelEnabled,
   claimChannel,
@@ -11,12 +10,6 @@ import {
   type NotifyChannel,
 } from "@/lib/digest/dayNotify";
 import { mailWouldReach, sendDayLetter } from "@/lib/digest/dayLetter";
-import {
-  sendDayWhatsapp,
-  whatsappWouldCost,
-  whatsappWouldReach,
-} from "@paid/whatsapp/lib/digest/dayWhatsapp";
-import { sendDaySms, smsSummary, smsWouldCost, smsWouldReach } from "@/lib/digest/daySms";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { logMessage } from "@/lib/messages/log";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -89,26 +82,16 @@ async function statusFor(owner: string, tripParam: string, slug: string): Promis
   if (entry.draft) return { error: "not_published" };
   if (isTestContent(trip, entry)) return { error: "test_content" };
 
-  const CHANNELS: NotifyChannel[] = ["mail", "whatsapp", "sms"];
+  // B2597: no plan sends WhatsApp or SMS to readers any more — this button
+  // announces a day by mail only. (Push happens on its own at publish time,
+  // `app/api/v2/.../publish/route.ts`, not through this claim/send door.)
+  const CHANNELS: NotifyChannel[] = ["mail"];
   const reachable = CHANNELS.some((c) => channelEnabled(c, owner));
   const already = await notifiedChannelsFor(owner, trip.id, slug);
   const pending = CHANNELS.filter((c) => !already.has(c) && channelEnabled(c, owner));
 
-  // Mail was a term in this sum until B840; a letter costs nothing now, so
-  // what the button quotes is the WhatsApp half or nothing at all.
   const detailed: PendingChannel[] = await Promise.all(
-    pending.map(async (channel) =>
-      channel === "whatsapp"
-        ? {
-            channel,
-            count: await whatsappWouldReach(owner, ref, slug),
-            cost: await whatsappWouldCost(owner, ref, slug),
-          }
-        : channel === "sms"
-          ? // B2292 — one credit per paying recipient, like WhatsApp.
-            { channel, count: await smsWouldReach(owner, ref, slug), cost: await smsWouldCost(owner, ref, slug) }
-          : { channel, count: await mailWouldReach(owner, ref, slug), cost: 0 },
-    ),
+    pending.map(async (channel) => ({ channel, count: await mailWouldReach(owner, ref, slug), cost: 0 })),
   );
   const needed = detailed.reduce((sum, c) => sum + c.cost, 0);
   const balance = creditsEnabled() ? await balanceOf(owner) : null;
@@ -242,9 +225,9 @@ export async function POST(
       // Another request (or the automatic publish-time send) already won
       // this channel's claim — nothing to send, nothing to report.
       await logMessage({
-        template: channel === "mail" ? "news.mail" : channel === "sms" ? "news.sms" : "news.wa",
+        template: "news.mail",
         flow: "newday",
-        channel: channel === "whatsapp" ? "wa" : channel,
+        channel,
         to: getUser(user)?.owner.email ?? user,
         owner: user,
         status: "skipped",
@@ -253,19 +236,9 @@ export async function POST(
       continue;
     }
 
-    if (channel === "mail") {
-      const outcome = await sendDayLetter(user, status.ref, slug);
-      if (!outcome.ok) await releaseChannelClaim(user, status.trip.id, slug, channel);
-      result.mail = mailSummary(outcome);
-    } else if (channel === "sms") {
-      const outcome = await sendDaySms(user, status.ref, slug);
-      if (!outcome.ok) await releaseChannelClaim(user, status.trip.id, slug, channel);
-      result.sms = smsSummary(outcome);
-    } else {
-      const outcome = await sendDayWhatsapp(user, status.ref, slug);
-      if (!outcome.ok) await releaseChannelClaim(user, status.trip.id, slug, channel);
-      result.whatsapp = whatsappSummary(outcome);
-    }
+    const outcome = await sendDayLetter(user, status.ref, slug);
+    if (!outcome.ok) await releaseChannelClaim(user, status.trip.id, slug, channel);
+    result.mail = mailSummary(outcome);
   }
 
   return Response.json({ ok: true, ...result });

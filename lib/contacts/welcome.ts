@@ -1,28 +1,24 @@
 import "server-only";
 import crypto from "node:crypto";
 import { hashSecret } from "../auth";
-import { isEnabled } from "../capabilities";
-import { balanceOf, creditsEnabled, refund, spend } from "../credits";
+import { balanceOf, refund, spend } from "../credits";
 import { formatChf } from "../creditsFormat";
 import { creditsInRappen } from "@paid/credits/lib/credits/pricing";
 import { getDatabase, getDatabaseOrNull, newId, nowIso } from "../db";
 import { translateIn } from "../locales";
 import { mailDisabledReason } from "../mail";
 import { logMessage } from "../messages/log";
-import { toE164 } from "../phone";
 import { rateLimitFor } from "../rateLimit";
 import { serverSite } from "../site";
-import { sendSms, smsUnreachable, SmsSwitchedOffError } from "../sms";
 import { getTrip, tripRef } from "../trips";
 import type { Locale } from "../types";
 import { getUser } from "../users";
-import { whatsappCountryCode } from "../contactNumber";
 import { decryptString, encryptString, hasContactsKey } from "./crypto";
 import { approveContact, confirmContactByOwner, getContact, type ContactRecord } from "./index";
 import { parseLocale, pickLocale } from "./locale";
 import { sendWelcomeMail } from "./mail";
 import { isInviteSuppressed } from "./suppressions";
-import type { Composition, PreviewLocale } from "../messages/previews/types";
+import type { PreviewLocale } from "../messages/previews/types";
 
 /**
  * The welcome link and the four ways an owner tells somebody about it — B2292
@@ -259,23 +255,21 @@ export async function markOnboarded(owner: string, contactId: string): Promise<v
 
 // ─── Channels ──────────────────────────────────────────────────────────────
 
-export type InviteChannel = "email" | "sms" | "self";
+export type InviteChannel = "email" | "self";
 // B2444 (W44 D4) — "self" first: sharing it yourself is the preferred
-// invite, Fernscout-sent email/SMS stay as the alternative underneath.
-export const INVITE_CHANNELS: readonly InviteChannel[] = ["self", "email", "sms"];
+// invite, Fernscout-sent email stays as the alternative underneath.
+// B2597: SMS retired as an invite channel — readers sign in by email only.
+export const INVITE_CHANNELS: readonly InviteChannel[] = ["self", "email"];
 
 /** Why a channel cannot be used for this person, or null when it can. */
 type ChannelBlock =
   | "no_email"
-  | "no_mobile"
   | "mail_off"
-  | "sms_off"
-  | "unreachable"
   /** The link was shown once and this server kept only its hash (no
    * contacts key): there is nothing to send or copy, and it is not quietly
    * replaced (L3). */
   | "link_lost"
-  /** B2442 — this address (or number) asked never to be invited again. */
+  /** B2442 — this address asked never to be invited again. */
   | "suppressed";
 
 /** The trip a buddy was added to — the newest place they hold or asked for. */
@@ -307,7 +301,7 @@ function firstName(name: string | null): string {
  * few SMS segments rather than two dozen; ASCII so the ending does not force
  * a whole text into UCS-2.
  */
-export function capText(value: string, max: number): string {
+function capText(value: string, max: number): string {
   const flat = value.replace(/\s+/g, " ").trim();
   return flat.length <= max ? flat : `${flat.slice(0, max - 3).trimEnd()}...`;
 }
@@ -328,25 +322,21 @@ type Message = {
 };
 
 /**
- * `invite.sms`'s composition — pure, B2493. Whether this is a buddy (on the
- * trip) or an ordinary reader decides which of two texts it is — the same
- * branch `messageFor` has always taken, just with the DB read (which trip)
- * done by the caller rather than by this function.
+ * The invite's own wording — pure, B2493. Whether this is a buddy (on the
+ * trip) or an ordinary reader decides which of two texts it is. Shared by
+ * the mail body and the studio's own preview.
  */
-export function composeInviteSms(
+function inviteText(
   input: { recipientName: string; ownerName: string; title: string; url: string; isBuddy: boolean },
   locale: PreviewLocale,
-): Composition {
+): string {
   const vars = {
     name: capText(input.recipientName, 40),
     owner: capText(input.ownerName, 40),
     title: capText(input.title, 60),
     url: input.url,
   };
-  return {
-    channel: "sms",
-    text: translateIn(locale, input.isBuddy ? "welcomeLink.textBuddy" : "welcomeLink.textReader", vars),
-  };
+  return translateIn(locale, input.isBuddy ? "welcomeLink.textBuddy" : "welcomeLink.textReader", vars);
 }
 
 async function messageFor(owner: string, contact: ContactRecord, code: string): Promise<Message | null> {
@@ -361,42 +351,32 @@ async function messageFor(owner: string, contact: ContactRecord, code: string): 
     title: capText(trip ?? user.title, 60),
     url,
   };
-  const sms = composeInviteSms(
+  const text = inviteText(
     { recipientName: firstName(contact.name), ownerName: ownerShortName(user), title: trip ?? user.title, url, isBuddy: Boolean(trip) },
     locale as PreviewLocale,
   );
   return {
     locale,
     url,
-    text: "text" in sms ? sms.text : "",
+    text,
     subject: translateIn(locale, "welcomeLink.mailSubject", vars),
   };
 }
 
-function smsDigits(contact: ContactRecord): string | null {
-  return contact.phone ? toE164(contact.phone, whatsappCountryCode()) : null;
-}
-
-/** B2442 — checked before any Fernscout-sent invite, mail or SMS: `self`
- * sends nothing, so it is never suppressed. */
+/** B2442 — checked before any Fernscout-sent invite: `self` sends nothing,
+ * so it is never suppressed. */
 async function blockFor(owner: string, contact: ContactRecord, channel: InviteChannel): Promise<ChannelBlock | null> {
   if (channel === "self") return null;
-  if (channel === "email") {
-    if (!contact.email.includes("@")) return "no_email";
-    if (mailDisabledReason(owner)) return "mail_off";
-    return (await isInviteSuppressed(contact.email)) ? "suppressed" : null;
-  }
-  const digits = smsDigits(contact);
-  if (!isEnabled("sms")) return "sms_off";
-  if (!digits) return "no_mobile";
-  if (smsUnreachable(digits)) return "unreachable";
-  return (await isInviteSuppressed(digits)) ? "suppressed" : null;
+  if (!contact.email.includes("@")) return "no_email";
+  if (mailDisabledReason(owner)) return "mail_off";
+  return (await isInviteSuppressed(contact.email)) ? "suppressed" : null;
 }
 
-/** What one message on this channel costs — 1 credit for SMS where this
- * instance charges at all (D5), nothing otherwise. */
-function costOf(channel: InviteChannel): number {
-  return channel === "sms" && creditsEnabled() ? 1 : 0;
+/** What sending an invite costs — nothing, whatever the channel: email is
+ * free and `self` sends nothing (B2597: SMS, the one paid channel, is
+ * retired). */
+function costOf(): number {
+  return 0;
 }
 
 export type InviteOptions = {
@@ -447,7 +427,7 @@ export async function inviteOptions(owner: string, contactId: string): Promise<I
     channels: await Promise.all(
       INVITE_CHANNELS.map(async (channel) => ({
         channel,
-        cost: costOf(channel),
+        cost: costOf(),
         blocked: message ? await blockFor(owner, contact, channel) : "link_lost",
         preview: !message ? "" : channel === "self" ? message.url : message.text,
       })),
@@ -497,11 +477,10 @@ export type InviteSendResult =
  * Tell this person about their welcome link on one channel — the owner's
  * press, and the only thing here that sends or charges.
  *
- * SMS takes one credit before the message leaves and gives it back when the
- * send throws; a short balance sends nothing and charges nothing. Email is
- * free and never touches the ledger. `self` sends nothing and returns the
- * link. Offered only while the link has not been opened. WhatsApp retired as
- * an invite channel, B2339.
+ * Email is free and never touches the ledger. `self` sends nothing and
+ * returns the link. Offered only while the link has not been opened.
+ * WhatsApp retired as an invite channel, B2339; SMS retired the same way,
+ * B2597 — readers sign in by email only now.
  */
 export async function sendInvite(
   owner: string,
@@ -524,9 +503,9 @@ export async function sendInvite(
   const blocked = await blockFor(owner, contact, channel);
   if (blocked === "suppressed") {
     await logMessage({
-      template: channel === "email" ? "invite.mail" : "invite.sms",
-      channel: channel === "email" ? "mail" : "sms",
-      to: channel === "email" ? contact.email : (smsDigits(contact) ?? contact.email),
+      template: "invite.mail",
+      channel: "mail",
+      to: contact.email,
       owner,
       status: "skipped",
       reason: "suppressed",
@@ -538,7 +517,7 @@ export async function sendInvite(
   }
   if (!rateLimitFor("invite-send-journal", owner, DAILY_LIMIT).ok) return { ok: false, reason: "daily_limit" };
 
-  const cost = costOf(channel);
+  const cost = costOf();
   const ref = `invite/${contactId}/${newId()}`;
   if (!(await spend(owner, cost, "invite", ref))) {
     return { ok: false, reason: "no_credits", balance: await balanceOf(owner) };
@@ -548,13 +527,6 @@ export async function sendInvite(
   try {
     backend = await deliver(owner, contact, channel, message);
   } catch (err) {
-    if (err instanceof SmsSwitchedOffError) {
-      // Distinguishable from a transport failure (M1): nothing went out
-      // because the operator turned this kind off, not because the send
-      // itself failed. Whatever it cost still comes back either way.
-      if (cost > 0) await refund(owner, cost, ref);
-      return { ok: false, reason: "switched_off", balance: await balanceOf(owner) };
-    }
     console.error(`[invite] ${channel} to contact ${contactId} failed:`, err instanceof Error ? err.message : err);
   }
   if (backend === null) {
@@ -597,18 +569,13 @@ async function letInImported(owner: string, contact: ContactRecord): Promise<voi
 async function deliver(
   owner: string,
   contact: ContactRecord,
-  channel: Exclude<InviteChannel, "self">,
+  _channel: Exclude<InviteChannel, "self">,
   message: Message,
 ): Promise<string | null> {
-  if (channel === "email") {
-    const user = getUser(owner);
-    if (!user) return null;
-    const sent = await sendWelcomeMail(owner, user, contact, message, "invite.mail");
-    return sent?.transport ?? null;
-  }
-  const to = smsDigits(contact);
-  if (!to) return null;
-  return (await sendSms({ to, body: message.text, template: "invite.sms", owner })).backend;
+  const user = getUser(owner);
+  if (!user) return null;
+  const sent = await sendWelcomeMail(owner, user, contact, message, "invite.mail");
+  return sent?.transport ?? null;
 }
 
 async function recordInvited(owner: string, contactId: string, channel: InviteChannel): Promise<void> {
@@ -622,33 +589,17 @@ async function recordInvited(owner: string, contactId: string, channel: InviteCh
 }
 
 /**
- * The owner let this person in (B2291 "Group-link visitor"): tell them on the
- * channel they proved — email when their address is confirmed, otherwise an
- * SMS to a number they proved. Free either way (a transactional note, like a
- * code; D4). The message carries their welcome link. Returns the channel that
- * took it, or null when there was nothing to send on — never throws: the
- * approval already stands.
+ * The owner let this person in (B2291 "Group-link visitor"): tell them by
+ * email, when their address is confirmed. Free (a transactional note, like a
+ * code; D4). The message carries their welcome link. Returns `"email"` when
+ * it went out, or null when there was nothing to send on — never throws: the
+ * approval already stands. B2597: SMS retired here too.
  */
-/**
- * `invite.in.sms`'s composition — pure, B2493.
- */
-export function composeInviteInSms(
-  input: { recipientName: string; ownerName: string; journalTitle: string; url: string },
-  locale: PreviewLocale,
-): Composition {
-  const vars = {
-    name: capText(input.recipientName, 40),
-    owner: capText(input.ownerName, 40),
-    title: capText(input.journalTitle, 60),
-    url: input.url,
-  };
-  return { channel: "sms", text: translateIn(locale, "welcomeLink.letInText", vars) };
-}
-
-export async function tellLetIn(owner: string, contact: ContactRecord): Promise<"email" | "sms" | null> {
+export async function tellLetIn(owner: string, contact: ContactRecord): Promise<"email" | null> {
   const user = getUser(owner);
   const code = user ? await welcomeCodeFor(owner, contact.id) : null;
   if (!user || !code) return null;
+  if (!contact.email.includes("@") || !contact.confirmedAt || mailDisabledReason(owner)) return null;
   const locale = pickLocale(contact.locale);
   const url = welcomeUrl(code);
   const vars = {
@@ -657,21 +608,10 @@ export async function tellLetIn(owner: string, contact: ContactRecord): Promise<
     title: capText(user.title, 60),
     url,
   };
-  const composedSms = composeInviteInSms(
-    { recipientName: firstName(contact.name), ownerName: ownerShortName(user), journalTitle: user.title, url },
-    locale as PreviewLocale,
-  );
-  const text = "text" in composedSms ? composedSms.text : "";
+  const text = translateIn(locale, "welcomeLink.letInText", vars);
   try {
-    if (contact.email.includes("@") && contact.confirmedAt && !mailDisabledReason(owner)) {
-      const subject = translateIn(locale, "welcomeLink.letInSubject", vars);
-      if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject }, "invite.in.mail")) return "email";
-    }
-    const digits = contact.phoneProvenAt ? smsDigits(contact) : null;
-    if (digits && isEnabled("sms") && !smsUnreachable(digits)) {
-      await sendSms({ to: digits, body: text, template: "invite.in.sms", owner });
-      return "sms";
-    }
+    const subject = translateIn(locale, "welcomeLink.letInSubject", vars);
+    if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject }, "invite.in.mail")) return "email";
   } catch (err) {
     console.error(`[invite] telling contact ${contact.id} they are in failed:`, err instanceof Error ? err.message : err);
   }
