@@ -565,7 +565,7 @@ export function DayCard({
           </div>
 
           {(weather || spend) && (
-            <aside className="mt-3 hidden w-40 shrink-0 space-y-3 border-l border-line-faint pl-6 text-sm text-ink-secondary md:block">
+            <aside className="mt-3 hidden w-44 shrink-0 space-y-3 border-l border-line-faint pl-6 text-sm text-ink-secondary md:block">
               {weather && (
                 <div>
                   <p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-ink-muted">
@@ -689,7 +689,7 @@ function EntryText({ prose, content }: { prose?: ProseNode; content: string }) {
  * A long day, cut — B2570. The owner asked for long text to be cut rather
  * than to push the map, the reactions and the next day a screen further
  * down. About eight lines show, faded at the bottom, and one button brings
- * the rest; text that fits is left alone and gets no button. Measured
+ * the rest; text that fits, or nearly does, is left alone. Measured
  * rather than guessed from a character count, because a line's length is
  * the reader's screen, not the writer's words.
  */
@@ -702,7 +702,10 @@ function CutProse({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const el = ref.current;
     if (!el || whole) return;
-    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 4);
+    // Cut only what is worth cutting: a text a line or two past the cap
+    // would lose three words behind a button, which is worse than showing
+    // them. Past half as much again, it is cut.
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight * 1.5);
     measure();
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
@@ -739,7 +742,7 @@ function CutProse({ children }: { children: React.ReactNode }) {
  * stacked updates. The row is its time and its title; it opens in place.
  * The title is a heading with the button inside it, the disclosure pattern
  * a screen reader already knows. The visibility control is the owner's only
- * and sits outside the button, since it is a control of its own.
+ * and sits under the button, since it is a control of its own.
  */
 function UpdateRow({
   entry,
@@ -765,7 +768,7 @@ function UpdateRow({
 
   return (
     <div className="border-b border-line-faint">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center">
         <Heading className="min-w-0 flex-1">
           <button
             type="button"
@@ -775,21 +778,31 @@ function UpdateRow({
             className="flex min-h-14 w-full items-center gap-3 py-2.5 text-left"
           >
             <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full bg-yellow-400" />
-            {entry.time && (
-              <span className="shrink-0 font-mono text-xs text-ink-secondary">
-                <DualTime date={entry.date} time={entry.time} timezone={entry.timezone} />
+            {/* The time above the title rather than beside it: for a reader
+                in another zone it is two clocks, and beside the title those
+                took half the row. */}
+            <span className="min-w-0 flex-1">
+              {entry.time && (
+                <span className="block font-mono text-xs text-ink-secondary">
+                  <DualTime date={entry.date} time={entry.time} timezone={entry.timezone} />
+                </span>
+              )}
+              <span className="block font-display text-lg font-semibold leading-snug tracking-tight text-ink-strong">
+                {title}
               </span>
-            )}
-            <span className="min-w-0 flex-1 font-display text-lg font-semibold leading-snug tracking-tight text-ink-strong">
-              {title}
             </span>
             <span aria-hidden className="w-6 shrink-0 text-center text-xl text-ink-secondary">
               {open ? "−" : "+"}
             </span>
           </button>
         </Heading>
+      </div>
+      {/* Under the title rather than beside it, where on a phone it took
+          the room the title needed. Empty for a reader — the visibility
+          control is the owner's only — and then drawn not at all. */}
+      <div className="-mt-1 flex flex-wrap items-center gap-2 pb-2.5 pl-5.5 empty:hidden">
         {entry.draft && (
-          <span className="shrink-0 rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-on-bright">
+          <span className="rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-on-bright">
             {t("draft.badge")}
           </span>
         )}
