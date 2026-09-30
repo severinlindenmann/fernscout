@@ -784,12 +784,14 @@ describe("B2304/B2600 — the filter, below the groups", () => {
     expect(el.querySelectorAll("#write a[data-row]").length).toBe(before);
   });
 
-  test("Journal & account stays visible, unfiltered, even when nothing in the grid matches", () => {
+  test("Journal & account hides when none of its rows match, and shows whole when one does", () => {
     const el = render(FULL_BASE);
     const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
     const journalHrefsBefore = Array.from(el.querySelectorAll("#journal a[data-row]")).map((a) => a.getAttribute("href"));
     act(() => typeInto(input, "xyzzy-nothing-matches-this"));
     expect(gridSections(el).length).toBe(0);
+    expect(el.querySelector("#journal")).toBeNull();
+    act(() => typeInto(input, "visitors"));
     expect(el.querySelector("#journal")).not.toBeNull();
     expect(Array.from(el.querySelectorAll("#journal a[data-row]")).map((a) => a.getAttribute("href"))).toEqual(journalHrefsBefore);
   });

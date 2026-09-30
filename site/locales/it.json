@@ -963,7 +963,7 @@
   "studio.hub.duringTrip.waiting.title": "Foto in attesa di parole",
   "studio.hub.duringTrip.waiting.detail": "{count} giorni hanno foto e ancora niente di scritto.",
   "studio.hub.duringTrip.waiting.detail.one": "{count} giorno ha foto e ancora niente di scritto.",
-  "studio.hub.filter.placeholder": "Cerca in Viaggi e persone, Importa, Stampa, Diario e account",
+  "studio.hub.filter.placeholder": "Cerca, ad es. GPX o lettori",
   "studio.hub.halfDone.more": "+{count} altri",
   "studio.hub.halfDone.more.one": "+{count} altro",
   "studio.hub.newTrip.cta": "Inizia un viaggio",

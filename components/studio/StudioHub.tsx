@@ -268,7 +268,7 @@ export default function StudioHub({
             </Link>
           )}
         </div>
-        <section id="write" data-group="write" className="rounded-2xl border border-line-faint bg-surface-raised px-2.5 py-1.5">
+        <section id="write" data-group="write" className="rounded-2xl md:mt-4 border border-line-faint bg-surface-raised px-2.5 py-1.5">
           <ul className="divide-y divide-line-faint">
             {todayRowsList.map((row) => (
               <li key={row.href}>
@@ -333,13 +333,16 @@ export default function StudioHub({
         ))}
       </div>
 
-      <JournalAccountSection
-        username={username}
-        rows={journalFullRows}
-        open={isOpen("journal")}
-        onToggle={() => toggleOpen("journal")}
-        arriveIndex={groups.length}
-      />
+      {/* B2600 — a query that matches none of its rows hides it, like the other cards. */}
+      {(!query.trim() || journalMatches) && (
+        <JournalAccountSection
+          username={username}
+          rows={journalFullRows}
+          open={isOpen("journal")}
+          onToggle={() => toggleOpen("journal")}
+          arriveIndex={groups.length}
+        />
+      )}
 
       <FilterInput value={query} onChange={setQuery} className="mt-3 md:hidden" />
     </StudioPage>
@@ -436,7 +439,13 @@ function EverythingCardShell({
       className="fs-arrive scroll-mt-20 rounded-2xl border border-line-faint bg-surface-raised px-2.5 pb-1.5 pt-3"
       style={{ "--i": arriveIndex } as React.CSSProperties}
     >
-      <button type="button" aria-expanded={open} onClick={onToggle} className="flex w-full items-center gap-2.5 border-b border-line-faint px-1 pb-2.5 text-left">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        // B2600 — no rule under a closed card on phone; desktop always shows its rows.
+        className={`flex w-full items-center gap-2.5 border-b px-1 pb-2.5 text-left ${open ? "border-line-faint" : "border-transparent md:border-line-faint"}`}
+      >
         <span
           aria-hidden="true"
           className="grid size-10 flex-none place-items-center rounded-[11px] border border-line-faint text-ink-strong"
@@ -498,7 +507,7 @@ function JournalAccountSection({
         type="button"
         aria-expanded={open}
         onClick={onToggle}
-        className="flex w-full items-center gap-2.5 border-b border-line-faint px-1 pb-2.5 text-left md:hidden"
+        className={`flex w-full items-center gap-2.5 border-b px-1 pb-2.5 text-left md:hidden ${open ? "border-line-faint" : "border-transparent"}`}
       >
         <span
           aria-hidden="true"
