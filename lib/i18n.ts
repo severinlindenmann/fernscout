@@ -3218,6 +3218,7 @@ export type TranslationKey =
   | "studio.hub.item.statement.description"
   | "studio.hub.item.statement.title"
   | "studio.hub.item.tripEdit.description"
+  | "studio.hub.item.tripEdit.hubTitle"
   | "studio.hub.item.tripEdit.title"
   | "studio.hub.item.visitors.title"
   | "studio.hub.newTrip.cta"

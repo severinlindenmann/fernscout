@@ -223,7 +223,10 @@ export function tripsRows(model: Extract<StudioHubModel, { kind: "full" }>, user
     {
       href: `${journalPath(username)}/studio/trip`,
       Icon: SlidersHorizontal,
-      title: t("studio.hub.item.tripEdit.title"),
+      // B2600 — its own wording here ("Your trips"): the page's own title
+      // and every other reader of this key (EditDayFlow's breadcrumb, the
+      // nav destination list) keep "Trips".
+      title: t("studio.hub.item.tripEdit.hubTitle"),
       description: t("studio.hub.item.tripEdit.description"),
     },
   ];
