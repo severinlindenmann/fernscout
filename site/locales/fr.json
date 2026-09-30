@@ -4644,5 +4644,18 @@
   "studio.location.strip.silent": "Silencieux",
   "studio.location.strip.silentBody": "Ouvre l'appli une fois — les positions en attente arriveront ensuite. Toujours silencieux ? Désactive puis réactive l'enregistrement.",
   "studio.location.strip.noReport.title": "Aucun signal pour l'instant",
-  "studio.location.strip.noReport.body": "Installe l'appli, ouvre ce voyage et active « Enregistrer mon trajet »."
+  "studio.location.strip.noReport.body": "Installe l'appli, ouvre ce voyage et active « Enregistrer mon trajet ».",
+  "billing.receipt.subject": "Votre {plan} est actif",
+  "billing.receipt.preheader": "{amount} — merci.",
+  "billing.receipt.title": "Merci — votre {plan} est actif",
+  "billing.receipt.body": "Votre paiement de {amount} a bien été reçu, votre {plan} est maintenant actif.",
+  "billing.receipt.reference": "Référence {id} · {date}",
+  "billing.receipt.viewAccount": "Votre offre",
+  "billing.receipt.footer": "Envoyé car une offre a été achetée pour votre journal. Conservez ceci comme reçu.",
+  "billing.paymentFailed.subject": "Un paiement Plus a échoué",
+  "billing.paymentFailed.preheader": "Votre carte a été refusée. Vous avez {days} jours pour la mettre à jour.",
+  "billing.paymentFailed.title": "Un paiement pour Plus a échoué",
+  "billing.paymentFailed.body": "Le paiement de renouvellement de votre abonnement Plus n'a pas pu être prélevé. Votre offre reste active {days} jours de plus — mettez à jour votre carte d'ici là.",
+  "billing.paymentFailed.cta": "Mettre à jour votre carte",
+  "billing.paymentFailed.footer": "Envoyé car un paiement de renouvellement Plus a échoué."
 }
