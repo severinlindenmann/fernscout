@@ -1619,6 +1619,7 @@
   "me.deleteButton": "Supprimer ce journal",
   "me.deleteConfirm": "M’envoyer le lien de suppression",
   "me.deleteFailed": "Ça n’a pas marché, et rien n’a été supprimé. Recharge la page et réessaie.",
+  "me.deleteAppleManaged": "Supprimer ce journal n’annule pas ton abonnement App Store. Annule-le séparément dans Réglages > ton nom > Abonnements sur ton iPhone.",
   "me.deleteQuestion": "Demander la suppression de « {title} » ? {trips} voyages, {days} journées et {files} fichiers ({size}) disparaîtraient. Cela envoie seulement le lien — rien n’est encore supprimé.",
   "me.deleteSent": "Le lien est en route vers {email}. Il fonctionne une seule fois, pendant {minutes} minutes, et rien n’est supprimé tant que tu n’as pas appuyé sur le bouton de cet e-mail.",
   "me.deleteTitle": "Supprimer ce journal",

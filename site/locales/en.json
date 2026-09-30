@@ -1619,6 +1619,7 @@
   "me.deleteButton": "Delete this journal",
   "me.deleteConfirm": "Email me the deletion link",
   "me.deleteFailed": "That did not work, and nothing has been deleted. Reload the page and try again.",
+  "me.deleteAppleManaged": "Deleting this journal does not cancel your App Store subscription. Cancel it separately in Settings > your name > Subscriptions on your iPhone.",
   "me.deleteQuestion": "Ask to delete “{title}”? {trips} trips, {days} days and {files} files ({size}) would go. This only sends the link — nothing is deleted yet.",
   "me.deleteSent": "The link is on its way to {email}. It works once, for {minutes} minutes, and nothing is deleted until you press the button in that mail.",
   "me.deleteTitle": "Delete this journal",

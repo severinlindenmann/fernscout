@@ -2993,6 +2993,7 @@
       "me.buyOnTheWebsite",
       "me.buyTestMode",
       "me.cancel",
+      "me.deleteAppleManaged",
       "me.deleteBody",
       "me.deleteButton",
       "me.deleteConfirm",

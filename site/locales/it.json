@@ -1619,6 +1619,7 @@
   "me.deleteButton": "Elimina questo diario",
   "me.deleteConfirm": "Mandami il link di eliminazione",
   "me.deleteFailed": "Non ha funzionato, e non è stato eliminato nulla. Ricarica la pagina e riprova.",
+  "me.deleteAppleManaged": "Eliminare questo diario non annulla il tuo abbonamento App Store. Annullalo separatamente in Impostazioni > il tuo nome > Abbonamenti sul tuo iPhone.",
   "me.deleteQuestion": "Chiedere di eliminare «{title}»? Verrebbero eliminati {trips} viaggi, {days} giorni e {files} file ({size}). Per ora viene solo inviato il link: non viene ancora eliminato nulla.",
   "me.deleteSent": "Il link è in arrivo a {email}. Funziona una sola volta, per {minutes} minuti, e non viene eliminato nulla finché non premi il pulsante in quella mail.",
   "me.deleteTitle": "Elimina questo diario",

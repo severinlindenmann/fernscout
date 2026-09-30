@@ -1416,6 +1416,7 @@ export type TranslationKey =
   | "me.consentProvider"
   | "me.dataLede"
   | "me.dataTitle"
+  | "me.deleteAppleManaged"
   | "me.deleteBody"
   | "me.deleteButton"
   | "me.deleteConfirm"
