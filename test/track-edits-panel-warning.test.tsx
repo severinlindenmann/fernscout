@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 const EMPTY_DOC = {
-  hiddenSpots: [],
+  hiddenSpots: [] as { id: string; lat: number; lon: number; radiusM: number }[],
   hiddenStretches: [],
   namedStretches: [],
   limits: { maxSpots: 20, maxStretches: 20, maxNamed: 20, radiusM: { min: 50, max: 5000 }, labelMax: 80 },
