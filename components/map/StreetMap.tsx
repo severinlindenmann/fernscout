@@ -76,23 +76,20 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
   useEffect(() => {
     let cancelled = false;
     let map: import("maplibre-gl").Map | undefined;
+    const warm = new AbortController();
 
     (async () => {
       // maplibre-gl has no default export — named imports only.
-      const [{ Map, NavigationControl, addProtocol, setWorkerUrl }, { Protocol }, { paperStyle }] = await Promise.all([
+      const [{ Map, NavigationControl, setWorkerUrl }, { paperStyle }] = await Promise.all([
         import("maplibre-gl"),
-        import("pmtiles"),
         import("@/lib/map/paperFlavor"),
         import("maplibre-gl/dist/maplibre-gl.css"),
       ]);
       if (cancelled || !containerRef.current) return;
 
-      // Idempotent: `addProtocol` overwrites rather than erroring on a second
-      // call, but registering once per loaded module is simplest and cheap.
       // The bundler does not emit maplibre-gl 6's module worker; it is served
       // from app/api/maps/worker instead.
       setWorkerUrl("/api/maps/worker/maplibre-gl-worker.mjs");
-      addProtocol("pmtiles", new Protocol().tile);
 
       const created = new Map({
         container: containerRef.current,
@@ -100,15 +97,32 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
         bounds,
         fitBoundsOptions: { padding },
         attributionControl: false,
+        // B2602: no 300 ms fade on every new tile, a cache big enough to pan
+        // back without reloading, and parent tiles kept while zooming so the
+        // map never flashes blank.
+        fadeDuration: 0,
+        maxTileCacheSize: 512,
+        cancelPendingTileRequestsWhileZooming: false,
       });
       created.addControl(new NavigationControl({ showCompass: false }), "top-right");
       map = created;
       mapRef.current = created;
       onReady?.(created);
+
+      // B2603: once the first view has settled, fetch this area's tiles for
+      // the next two zoom levels into the browser's cache.
+      created.once("idle", async () => {
+        const source = created.getSource("protomaps") as { tiles?: string[] } | undefined;
+        const template = source?.tiles?.[0];
+        if (!template || cancelled) return;
+        const { warmupUrls, warmTiles } = await import("@/lib/map/tileWarmup");
+        void warmTiles(warmupUrls(template, bounds, created.getZoom()), warm.signal);
+      });
     })();
 
     return () => {
       cancelled = true;
+      warm.abort();
       map?.remove();
       mapRef.current = null;
     };
