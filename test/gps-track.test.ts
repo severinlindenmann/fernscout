@@ -287,7 +287,7 @@ describe("dropping a spike never moves the 500 m end trim off where somebody sle
   test("a stale fix next to the run's real first fix: nothing within 500 m of the real start is drawn", () => {
     const KM = 1 / 111.2;
     const t0 = Date.parse("2026-09-30T06:00:00Z");
-    const home = { lat: 47, lon: 8 };
+    const home = { t: 0, lat: 47, lon: 8 };
     const fixes = [
       { t: t0 - 10 * 3_600_000, lat: 47 + 1.4 * KM, lon: 8 },
       { t: t0, ...home },
