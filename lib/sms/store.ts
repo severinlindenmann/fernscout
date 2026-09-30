@@ -27,7 +27,7 @@ export type SmsRecord = {
  * dedupe (see 031-sms-messages). `onConflict` works on both dialects, so
  * a retry from Twilio is one no-op insert rather than a caught error.
  *
- * **The message's text never reaches this table** — `052-sms-no-body`
+ * **The message's text never reaches this table** — `053-sms-no-body`
  * (B2589). A caller still hands over `body`, for anything that logs or
  * displays the send at the moment it happens; only metadata is kept.
  */

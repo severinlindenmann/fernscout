@@ -594,7 +594,7 @@ type UsageTable = {
   cache_creation_input_tokens: Generated<number>;
   /** Audio seconds, as the provider measured them. */
   seconds: Generated<number>;
-  /** The price, frozen at write time — `051-usage-cost-rappen` (B2589). Null
+  /** The price, frozen at write time — `052-usage-cost-rappen` (B2589). Null
    *  on a row written before that migration, or one this instance has no
    *  price for; `priceUsage` (lib/instanceCosts.ts) falls back to computing
    *  from `config.costs` only for a bucket that contains one of those. A
@@ -731,7 +731,7 @@ type SmsMessagesTable = {
   /** E.164 digits, no `+` — `toE164`'s shape. Empty for a dry-run send. */
   from_e164: string;
   to_e164: string;
-  /** Always empty since `052-sms-no-body` (B2589) — the table answers "what
+  /** Always empty since `053-sms-no-body` (B2589) — the table answers "what
    *  happened on this number", never "what did it say". The column stays so
    *  the row shape does not change underneath `lib/sms/store.ts`. */
   body: string;

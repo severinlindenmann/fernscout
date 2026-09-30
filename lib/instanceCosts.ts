@@ -72,7 +72,7 @@ function thousands(n: number): string {
  * (`pricedRows === calls`) uses that sum as-is** — B2589. That is what makes
  * a row's price a fact frozen at the moment of the call: this function
  * changes what a bucket costs only for a bucket that still has at least one
- * row from before `051-usage-cost-rappen`, which is exactly the rows a price
+ * row from before `052-usage-cost-rappen`, which is exactly the rows a price
  * change was never supposed to reach in the first place. A mixed bucket
  * (some priced, some not) still recomputes the whole thing from today's
  * config — imprecise for the handful of months that straddle the migration,
