@@ -9,6 +9,7 @@ import { cardPalette, type CardPalette } from "./cardPalette";
 import { buildTripFrame, linesForDay, placesForDay, type Chip, type MapLine, type MapPlace, type TripFrame } from "./tripFrame";
 import { streetLayersForBbox, type StreetLayers } from "./streetTiles";
 import { readCachedCardSvg, writeCachedCardSvg } from "./cardCache";
+import { unproject } from "../mapProjection.mjs";
 
 /**
  * The server-rendered trip/day preview card — B2538.
@@ -118,7 +119,7 @@ function regionAbsolutePath(relFile: string): string {
 
 function cacheKey(...parts: unknown[]): string {
   // Rendering changes must invalidate SVGs already cached on disk.
-  return crypto.createHash("sha256").update(JSON.stringify(["street-pixels-v2", ...parts])).digest("hex").slice(0, 32);
+  return crypto.createHash("sha256").update(JSON.stringify(["street-pixels-v3", ...parts])).digest("hex").slice(0, 32);
 }
 
 async function renderAndCache(
@@ -189,11 +190,31 @@ async function streetLayers(
   // listed, which for a trip that starts at home is the home region's file.
   const region = coveringRegion(user, tripId, points);
   if (!region) return null;
+  // Tiles for what this card shows, not the whole region file: from the
+  // region's own box, MAX_TILES ran out on its west edge before reaching a
+  // day in the middle (world-trip-2025's Kyoto card drew no streets).
+  const bbox = frameBboxWithin(frame, region.bbox);
+  if (!bbox) return null;
   try {
-    return await streetLayersForBbox(regionAbsolutePath(region.file), region.bbox, frame, width);
+    return await streetLayersForBbox(regionAbsolutePath(region.file), bbox, frame, width);
   } catch {
     return null;
   }
+}
+
+/** The frame's own lng/lat box, clipped to `within`; `null` when they do
+ * not overlap. `frame.x` is in latitude-corrected units, hence `/ lngScale`. */
+export function frameBboxWithin(
+  frame: Frame,
+  within: readonly [number, number, number, number],
+): [number, number, number, number] | null {
+  const nw = unproject(frame.x / frame.lngScale, frame.y);
+  const se = unproject((frame.x + frame.w) / frame.lngScale, frame.y + frame.h);
+  const west = Math.max(nw.lng, within[0]);
+  const south = Math.max(se.lat, within[1]);
+  const east = Math.min(se.lng, within[2]);
+  const north = Math.min(nw.lat, within[3]);
+  return west < east && south < north ? [west, south, east, north] : null;
 }
 
 function placesToPoints(places: readonly MapPlace[]): Point[] {
@@ -260,12 +281,12 @@ function renderSvg(opts: {
       parts.push(`</g>`);
     }
     if (street.roads.length > 0) {
-      parts.push(`<g fill="none" stroke="${palette.roadCasing}" stroke-width="${px(2.4) / scale}" stroke-linecap="round">`);
-      for (const d of street.roads) parts.push(`<path d="${d}"/>`);
-      parts.push(`</g>`);
-      parts.push(`<g fill="none" stroke="${palette.road}" stroke-width="${px(1.1) / scale}" stroke-linecap="round">`);
-      for (const d of street.roads) parts.push(`<path d="${d}"/>`);
-      parts.push(`</g>`);
+      // One path, drawn twice (casing, then road) — B2565: written out twice
+      // it was half of a city card's weight. Safe as an id: a card is only
+      // ever shown as its own <img>, never inlined into a page.
+      parts.push(`<defs><path id="roads" d="${street.roads.join("")}"/></defs>`);
+      parts.push(`<use href="#roads" fill="none" stroke="${palette.roadCasing}" stroke-width="${px(2.4) / scale}" stroke-linecap="round"/>`);
+      parts.push(`<use href="#roads" fill="none" stroke="${palette.road}" stroke-width="${px(1.1) / scale}" stroke-linecap="round"/>`);
     }
     parts.push(`</g>`);
   }
