@@ -200,7 +200,7 @@ describe("MobileMapSheet", () => {
     const html = el.innerHTML;
     expect(html).toContain("Alpha Town");
     expect(html).toContain("Read this day"); // map.readDay
-    expect(html).toContain("Open in Google Maps"); // tripMap.googleMaps
+    expect(html).toContain(">Google Maps</a>"); // map.googleMapsShort, B2572
     expect(el.querySelectorAll("img, video").length).toBe(0);
     expect(el.querySelector("p")).toBeNull(); // the headline paragraph
   });
