@@ -955,6 +955,15 @@ type EntitlementsTable = {
    *  that purchase's upgrade-to-Plus offer — B2593. Null on every row that
    *  never had one. */
   upgrade_promo_id: string | null;
+  /** The `period_end` the 30-day renewal reminder was last sent for — B2608.
+   *  Compared against the *current* `period_end`, not a plain timestamp, so
+   *  the same reminder fires again after each renewal. Null until sent once. */
+  renewal_reminder_period_end: string | null;
+  /** When "your Trip pass ends in N days" was sent — B2608. One-shot: a pass
+   *  never renews, so a plain timestamp (not a period) is enough. */
+  pass_ending_sent_at: string | null;
+  /** When "your Trip pass has ended" was sent — B2608. Same one-shot shape. */
+  pass_ended_sent_at: string | null;
 };
 
 /**
