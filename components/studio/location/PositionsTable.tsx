@@ -96,9 +96,9 @@ export default function PositionsTable({
         <span className="text-sm text-ink-secondary">{summary}</span>
       </div>
 
-      <div className="mt-3 grid gap-4 lg:grid-cols-[1fr_320px]">
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className={`overflow-x-auto rounded-xl border border-line-quiet ${revealed ? "" : "select-none"}`}>
-          <table className="w-full min-w-[560px] text-sm">
+          <table className="w-full text-sm md:min-w-[560px]">
             <thead>
               <tr className="border-b border-line-quiet text-left text-ink-secondary">
                 <th className="px-3 py-2 font-semibold">{t("studio.location.positions.columns.time")}</th>
@@ -123,7 +123,7 @@ export default function PositionsTable({
               {rows.map((row, i) =>
                 row.kind === "gap" ? (
                   <tr key={`gap-${i}`} className="bg-surface-subtle">
-                    <td colSpan={8} className="px-3 py-2 text-center text-ink-secondary">
+                    <td colSpan={8} className="sticky left-0 px-3 py-2 text-left italic text-ink-secondary">
                       {row.label}
                     </td>
                   </tr>

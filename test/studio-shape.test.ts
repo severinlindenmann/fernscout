@@ -25,6 +25,7 @@ const WIDER: Record<string, { width: "board" | "wide"; reason: string }> = {
   "photobook/page.tsx": { width: "board", reason: "the trip chooser's cards read as a board of books, not a form" },
   "visitors/page.tsx": { width: "wide", reason: "a chart: a bar per day over up to 90 days" },
   "readers/page.tsx": { width: "board", reason: "the two doors side by side, then a card per person (B2291)" },
+  "location/[trip]/[date]/page.tsx": { width: "wide", reason: "a day's positions table of eight columns beside its map and detail card (B2563)" },
   "location/page.tsx": { width: "board", reason: "trips beside private places at desktop, each card with its own map (B2563)" },
 };
 
