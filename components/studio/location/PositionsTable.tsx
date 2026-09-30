@@ -35,7 +35,7 @@ export type DisplayFixRow = {
   hiddenBy?: string;
   epochSeconds: number;
 };
-export type DisplayGapRow = { kind: "gap"; label: string };
+type DisplayGapRow = { kind: "gap"; label: string };
 export type DisplayRow = DisplayFixRow | DisplayGapRow;
 
 export default function PositionsTable({

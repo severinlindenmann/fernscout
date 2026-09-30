@@ -12,7 +12,7 @@ import type { TransportMode } from "@/importers/gps/schema";
  * which is the only caller.
  */
 
-export type PositionFixRow = {
+type PositionFixRow = {
   kind: "fix";
   /** Index into the day's own fixes — stable row identity for row selection. */
   index: number;
@@ -31,7 +31,7 @@ export type PositionFixRow = {
   hiddenBy?: string;
 };
 
-export type PositionGapRow = {
+type PositionGapRow = {
   kind: "gap";
   /** Row index (into the fix list) this gap follows. */
   afterIndex: number;
