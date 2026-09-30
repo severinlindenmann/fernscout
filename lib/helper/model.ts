@@ -62,11 +62,6 @@ import {
  *  wrote it, and the model id lives in this file and nowhere else. */
 export const HELPER_MODEL = "claude-haiku-4-5";
 
-/** What one write-up costs, in credits. Lives in `./credits.ts` (pure,
- *  client-safe) since B2186 so the wizard can show the price before the tap;
- *  re-exported here for every caller that already imports it from this file. */
-export { WRITE_DAY_CREDITS } from "./credits";
-
 /** Who the words are going to, said in the consent panel and in `/api/health`. */
 export const HELPER_PROVIDER = "Anthropic";
 
