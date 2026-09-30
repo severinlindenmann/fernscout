@@ -143,12 +143,35 @@ function readIndex(): MapsIndex | null {
  * if any — the client picks among these rather than guessing a filename.
  * `undefined` (no entry, or `MAPS_DIR` unset) is the ordinary case for a
  * trip nobody has extracted yet, and callers fall back to the drawn map.
+ * With a world file (B2566) it is never undefined: that file is appended.
  */
 export function tripMapRegions(user: string, tripId: string): MapRegion[] | undefined {
   const index = readIndex();
   const key = `${user}/${tripId}`;
-  const regions = index?.trips[key];
-  return regions && regions.length > 0 ? regions : undefined;
+  const regions = index?.trips[key] ?? [];
+  // B2566: the world file comes last, so a trip's own file wins wherever it
+  // covers as many places (`pickCoveringRegion` needs strictly more) and the
+  // world file covers every place no extract was ever cut for.
+  const planet = planetRegion();
+  const all = planet ? [...regions, planet] : regions;
+  return all.length > 0 ? all : undefined;
+}
+
+/** `MAPS_DIR/planet.pmtiles` — one street-level file for the whole world
+ * (`npm run maps:planet`, B2566). Web Mercator stops at ±85.0511°. */
+const PLANET_FILE = "planet.pmtiles";
+
+function planetRegion(): MapRegion | undefined {
+  const dir = mapsDir();
+  if (!dir || !fs.existsSync(path.join(dir, PLANET_FILE))) return undefined;
+  return { file: PLANET_FILE, bbox: [-180, -85.0511, 180, 85.0511] };
+}
+
+/** The file a map with no trip behind it (the studio's private-zone picker)
+ * draws: the world file at street level when there is one, else the z0–6
+ * underlay every street-map instance has. */
+export function worldStreetMapUrl(): string {
+  return mapsFileUrl(planetRegion()?.file ?? "world.pmtiles");
 }
 
 /** The URL `components/map/StreetMap.tsx` fetches a region file from. */

@@ -132,6 +132,20 @@ Buying credits is hosted edition only, through `@paid/credits`; the ledger
 | Feature | Needs | Off means |
 | --- | --- | --- |
 | `routeRecording` | nothing of its own, and a journal must switch it on for itself | the iPhone app records no GPS history, and the two owner-cookie doors that read it back (a place name for a day, the owner's own recorded route) stay closed |
+| `streetMaps` | `MAPS_DIR` with a readable `world.pmtiles` (`npm run maps:world`) | every map is the drawn SVG map; no street tiles anywhere |
+
+Street detail comes from one of two sources, both OpenStreetMap data cut
+from a Protomaps build (credited on every map and card):
+
+- **`npm run maps:planet`** puts the whole world at street level in
+  `MAPS_DIR/planet.pmtiles` — about 120 GB, resumable, needs the same again
+  free while it downloads. Every trip, day and place then has streets with
+  nothing else to run. What fernscout.ch uses.
+- **`npm run maps:trip -- <user> <trip>`** cuts just one trip's regions
+  (tens to hundreds of MB each) — for a small instance without the disk.
+  Run by hand; a trip without one shows the drawn map.
+
+Where both exist, a trip's own file wins where it covers the trip's places.
 
 ## Hosted edition only
 

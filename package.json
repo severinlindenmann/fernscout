@@ -47,6 +47,7 @@
     "export": "tsx --conditions=react-server scripts/export.mts",
     "maps:world": "tsx --conditions=react-server scripts/maps-world.mts",
     "maps:trip": "tsx --conditions=react-server scripts/maps-trip.mts",
+    "maps:planet": "tsx --conditions=react-server scripts/maps-planet.mts",
     "rates:update": "tsx --conditions=react-server scripts/rates-refresh.mts",
     "timezone:update": "tsx --conditions=react-server scripts/timezone-update.mts",
     "rates:fill": "tsx --conditions=react-server scripts/rates-fill.mts",
