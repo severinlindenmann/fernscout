@@ -1046,7 +1046,10 @@ export function kmByMode(username: string, tripId: string): Partial<Record<Trans
   const zones = dayTimezones(username, trip);
   const from = localWindow(trip.start, zones[trip.start]).from;
   const to = localWindow(trip.end, zones[trip.end]).to;
-  const fixes = readRange(username, from, to);
+  // Spikes left out, the same as the drawn line and its km (B2568).
+  const raw = readRange(username, from, to);
+  const spikes = spikeIndices(raw);
+  const fixes = raw.filter((_, i) => !spikes.has(i));
   const totals: Partial<Record<TransportMode, number>> = {};
   for (let i = 1; i < fixes.length; i++) {
     const a = fixes[i - 1];

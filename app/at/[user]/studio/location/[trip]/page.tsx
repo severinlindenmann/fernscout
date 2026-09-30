@@ -279,7 +279,7 @@ export default async function TripPage({
             positions: String(positions),
           })}
         </p>
-        <p className="text-sm text-ink-secondary">{t("studio.location.tripDetail.sparseNote")}</p>
+        {positions > 0 && <p className="text-sm text-ink-secondary">{t("studio.location.tripDetail.sparseNote")}</p>}
       </div>
       {view === "mine" && modes.length > 0 && (
         <p className="text-sm text-ink-secondary">
