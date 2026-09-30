@@ -102,10 +102,10 @@ export default function PositionsTable({
             <thead>
               <tr className="border-b border-line-quiet text-left text-ink-secondary">
                 <th className="px-3 py-2 font-semibold">{t("studio.location.positions.columns.time")}</th>
-                <th className={`px-3 py-2 font-semibold ${revealed ? "" : "blur-sm"} hidden md:table-cell`}>
+                <th className="hidden px-3 py-2 font-semibold md:table-cell">
                   {t("studio.location.positions.columns.lat")}
                 </th>
-                <th className={`px-3 py-2 font-semibold ${revealed ? "" : "blur-sm"} hidden md:table-cell`}>
+                <th className="hidden px-3 py-2 font-semibold md:table-cell">
                   {t("studio.location.positions.columns.lon")}
                 </th>
                 <th className="px-3 py-2 font-semibold">{t("studio.location.positions.columns.mode")}</th>
@@ -151,7 +151,7 @@ export default function PositionsTable({
                     <td className={`px-3 py-2 tabular-nums ${revealed ? "" : "blur-sm"} hidden md:table-cell`}>
                       {row.lon.toFixed(5)}
                     </td>
-                    <td className="px-3 py-2">{row.modeLabel ?? "–"}</td>
+                    <td className="whitespace-nowrap px-3 py-2">{row.modeLabel ?? "–"}</td>
                     <td className="px-3 py-2">{row.place}</td>
                     <td className="hidden px-3 py-2 tabular-nums md:table-cell">{row.distanceLabel ?? "–"}</td>
                     <td className="hidden px-3 py-2 tabular-nums md:table-cell">{row.speedLabel ?? "–"}</td>
@@ -203,7 +203,7 @@ export default function PositionsTable({
                         })}
                 </dd>
                 <dt className="text-ink-secondary">{t("studio.location.positions.detail.storedAs")}</dt>
-                <dd className={`font-mono text-xs text-ink-body ${revealed ? "" : "blur-sm select-none"}`}>
+                <dd className={`min-w-0 break-all font-mono text-xs text-ink-body ${revealed ? "" : "blur-sm select-none"}`}>
                   [{selectedRow.epochSeconds},{selectedRow.lat.toFixed(5)},{selectedRow.lon.toFixed(5)}
                   {selectedRow.storedMode ? `,"${selectedRow.storedMode}"` : ""}]
                 </dd>
