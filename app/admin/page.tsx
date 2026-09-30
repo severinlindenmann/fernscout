@@ -5,6 +5,7 @@ import AppWaitlist from "./AppWaitlist";
 import InviteRequests from "./InviteRequests";
 import Invites from "./Invites";
 import AdminGrant from "@paid/credits/routes/admin/AdminGrant";
+import AdminPlanGrant from "@paid/credits/routes/admin/AdminPlanGrant";
 import AdminRefund from "@paid/credits/routes/admin/AdminRefund";
 import Journals from "./Journals";
 import MessageOwner from "./MessageOwner";
@@ -1406,6 +1407,7 @@ function JournalPanel({
 
       <Purchases username={username} payments={payments} settled={settled.length} bought={bought} />
       <AdminGrant journal={username} />
+      <AdminPlanGrant journal={username} />
       <MessageOwner username={username} />
     </div>
   );

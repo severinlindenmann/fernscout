@@ -9,6 +9,7 @@ import {
 } from "@/lib/helper/speech";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { spendAndTranscribe } from "@/lib/helper/transcribeSpend";
+import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { defaultLocaleFor } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -142,8 +143,11 @@ export async function POST(
   const runId = RUN_ID_RE.test(run) ? run : undefined;
   const outcome = await spendAndTranscribe(user, audio, mediaType, language, claimed, runId);
   if (!outcome.ok) {
-    const status =
-      outcome.error === "no_credits" ? 402 : outcome.error === "recording_too_long" ? 400 : 502;
+    if (outcome.error === "plan_limit") {
+      const gate = await mayUseAi(user);
+      if (!gate.ok) return Response.json(gate.refusal, { status: 402 });
+    }
+    const status = outcome.error === "recording_too_long" ? 400 : 502;
     return Response.json({ error: outcome.error }, { status });
   }
 

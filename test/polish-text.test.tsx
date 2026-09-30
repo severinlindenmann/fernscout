@@ -100,28 +100,26 @@ describe("visibility", () => {
     expect(container.textContent).toBe("");
   });
 
-  test("shows the link with the price once there is enough text", async () => {
+  test("shows the link once there is enough text", async () => {
     await mount();
     expect(container.textContent).toContain("Polish my text");
-    expect(container.textContent).toContain("0.05");
   });
 
-  // B2254 — pricing is paid-only code; a build without it hands `priceChf`
-  // as `null` rather than computing a wrong CHF 0.00, and the link shows
-  // the credit price alone.
-  test("shows the link with no CHF line when priceChf is null", async () => {
+  // B2254/B2591 — a build with no plan gate at all (`priceChf` null is now
+  // the only shape the link ever renders) shows the same plain link.
+  test("shows the same plain link when priceChf is null", async () => {
     await mount({ priceChf: null });
-    expect(container.textContent).toContain("Polish my text · 0.05");
-    expect(container.textContent).not.toContain("CHF");
+    expect(container.textContent).toContain("Polish my text");
   });
 
-  // B2234 — a balance below the price is said before the tap, not after a
-  // refused fetch: no button, no fetch, just the notice and a way out.
-  test("a balance below the price shows a notice instead of the tap", async () => {
-    await mount({ credits: 0.01 });
+  // B2591 — the plan is checked before the tap, not after a refused fetch:
+  // no button, no fetch, just the notice and a way out. `credits` is now the
+  // plan's own yes/no, fed through the same "below the price" comparison.
+  test("no AI days left shows a notice instead of the tap", async () => {
+    await mount({ credits: 0 });
     expect(container.querySelector("button")).toBeNull();
-    expect(container.textContent).toContain("You have no credits left for this.");
-    const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent?.trim() === "Add credits");
+    expect(container.textContent).toContain("Your AI days for this plan are used up.");
+    const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent?.trim() === "See plans");
     expect(link?.getAttribute("href")).toBe("/@alex/studio/account");
   });
 });
@@ -129,14 +127,14 @@ describe("visibility", () => {
 describe("the tap", () => {
   test("calls write-day with mode: polish and the owner's own text", async () => {
     await mount();
-    await click("Polish my text · 0.05 (about CHF 0.01)");
+    await click("Polish my text");
     expect(lastBody).toMatchObject({ trip: "reise", notes: LONG_TEXT, mode: "polish" });
   });
 
   test("shows a side-by-side preview and never overwrites without a tap", async () => {
     const onUse = vi.fn();
     await mount({ onUse });
-    await click("Polish my text · 0.05 (about CHF 0.01)");
+    await click("Polish my text");
     expect(container.textContent).toContain("Your words");
     expect(container.textContent).toContain("Polished");
     expect(container.textContent).toContain("Tidied prose.");
@@ -146,7 +144,7 @@ describe("the tap", () => {
   test("Use this calls onUse with the polished text", async () => {
     const onUse = vi.fn();
     await mount({ onUse });
-    await click("Polish my text · 0.05 (about CHF 0.01)");
+    await click("Polish my text");
     await click("Use this");
     expect(onUse).toHaveBeenCalledWith("Tidied prose.");
   });
@@ -154,7 +152,7 @@ describe("the tap", () => {
   test("Keep mine discards the preview without calling onUse", async () => {
     const onUse = vi.fn();
     await mount({ onUse });
-    await click("Polish my text · 0.05 (about CHF 0.01)");
+    await click("Polish my text");
     await click("Keep mine");
     expect(onUse).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain("Tidied prose.");
@@ -165,29 +163,29 @@ describe("errors", () => {
   test("polish_added_facts reads as the specific sentence", async () => {
     writeDayResponse = () => Response.json({ error: "polish_added_facts" }, { status: 422 });
     await mount();
-    await click("Polish my text · 0.05 (about CHF 0.01)");
-    expect(container.textContent).toContain("That polish added something you didn't write, so it was not used. Nothing was charged.");
+    await click("Polish my text");
+    expect(container.textContent).toContain("That polish added something you didn't write, so it was not used.");
   });
 
   test("notes_too_long reads as its own sentence, with the cap", async () => {
     writeDayResponse = () => Response.json({ error: "notes_too_long", maxChars: 12000 }, { status: 413 });
     await mount();
-    await click("Polish my text · 0.05 (about CHF 0.01)");
+    await click("Polish my text");
     expect(container.textContent).toContain("That's more than 12000 characters — the most one polish takes.");
   });
 
-  test("no_credits reads as its own sentence", async () => {
-    writeDayResponse = () => Response.json({ error: "no_credits" }, { status: 402 });
+  test("plan_limit reads as its own sentence", async () => {
+    writeDayResponse = () => Response.json({ error: "plan_limit" }, { status: 402 });
     await mount();
-    await click("Polish my text · 0.05 (about CHF 0.01)");
-    expect(container.textContent).toContain("You're out of credits for this.");
+    await click("Polish my text");
+    expect(container.textContent).toContain("Your AI days for this plan are used up.");
   });
 
-  test("no_credits offers a way out to the account page", async () => {
-    writeDayResponse = () => Response.json({ error: "no_credits" }, { status: 402 });
+  test("plan_limit offers a way out to the account page", async () => {
+    writeDayResponse = () => Response.json({ error: "plan_limit" }, { status: 402 });
     await mount();
-    await click("Polish my text · 0.05 (about CHF 0.01)");
-    const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent?.trim() === "Add credits");
+    await click("Polish my text");
+    const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent?.trim() === "See plans");
     expect(link).toBeDefined();
     expect(link?.getAttribute("href")).toBe("/@alex/studio/account");
   });
@@ -195,7 +193,7 @@ describe("errors", () => {
   test("no other error code offers the credits link", async () => {
     writeDayResponse = () => Response.json({ error: "model_failed" }, { status: 502 });
     await mount();
-    await click("Polish my text · 0.05 (about CHF 0.01)");
+    await click("Polish my text");
     expect(container.querySelector("a")).toBeNull();
   });
 
@@ -211,7 +209,7 @@ describe("errors", () => {
     test(`${c.code} reads as its own sentence`, async () => {
       writeDayResponse = () => Response.json({ error: c.code }, { status: c.status });
       await mount();
-      await click("Polish my text · 0.05 (about CHF 0.01)");
+      await click("Polish my text");
       expect(container.textContent).toContain(c.contains);
     });
   }
@@ -219,7 +217,7 @@ describe("errors", () => {
   test("a dropped connection reads as something rather than nothing", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
     await mount();
-    await click("Polish my text · 0.05 (about CHF 0.01)");
+    await click("Polish my text");
     expect(container.textContent).toContain("That could not be polished. Your own words are still right here.");
   });
 });

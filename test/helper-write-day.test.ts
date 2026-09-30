@@ -6,12 +6,13 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant, spend } from "@/lib/credits";
+import { balanceOf, grant } from "@/lib/credits";
 import { resetRateLimitsForTests } from "@/lib/rateLimit";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildPrompt, SYSTEM_PROMPT } from "@/lib/helper/model";
 import { history } from "@/lib/helper/thread";
 import { createTrip } from "@/lib/tripWrite";
+import { hasPaid } from "./support/openCore";
 
 /**
  * The model layer — B684.
@@ -228,11 +229,12 @@ describe("what it costs", () => {
     await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
   });
 
-  // B2186 repriced this from 1 credit to 0.05 — a whole credit for one
-  // Haiku call on a paragraph cost the operator well under a cent.
-  test("0.05 credit per write-up", async () => {
-    await call();
-    expect(await balanceOf("alex")).toBe(9.95);
+  // B2591 — write-day no longer spends credits; it takes an AI day instead
+  // (a separate describe block below), and a journal's balance never moves.
+  test("nothing is spent — the balance never moves", async () => {
+    const done = await read(await call());
+    expect(done.status).toBe(200);
+    expect(await balanceOf("alex")).toBe(10);
   });
 
   // B2223 — a flat price over a per-token cost needs a ceiling on the input.
@@ -294,21 +296,52 @@ describe("what it costs", () => {
     expect(again.status).toBe(200);
     expect(again.body).toEqual(first.body);
     expect(writeDay).toHaveBeenCalledTimes(1);
-    expect(await balanceOf("alex")).toBe(9.95);
+    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("a failed model call gives the credit back", async () => {
+  test("a failed model call spends nothing, and takes no AI day", async () => {
     writeDay.mockRejectedValueOnce(new Error("provider is unhappy"));
     const failed = await read(await call());
     expect(failed.status).toBe(502);
     expect(await balanceOf("alex")).toBe(10);
   });
+});
 
-  test("an empty balance refuses rather than writing for free", async () => {
-    expect(await spend("alex", 10, "helper", "drain-for-test")).toBe(true);
-    const broke = await read(await call());
-    expect(broke.status).toBe(402);
-    expect(await balanceOf("alex")).toBe(0);
+describe.skipIf(!hasPaid())("B2591 — AI days, with billing on", () => {
+  beforeEach(async () => {
+    writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
+    await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
+  });
+
+  test("the first draft on a date takes the day; polishing the same date again takes nothing more", async () => {
+    const first = await read(await call({ idempotency_key: "d1" }));
+    expect(first.status).toBe(200);
+    const again = await read(await call({ mode: "polish", idempotency_key: "d2" }));
+    expect(again.status).toBe(200);
+    const { getDatabase } = await import("@/lib/db");
+    const rows = await (await getDatabase()).db.selectFrom("ai_days").selectAll().execute();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ owner_id: "alex", trip_id: "a-trip", date: "2026-05-04" });
+  });
+
+  test("a failed model call takes no day", async () => {
+    writeDay.mockRejectedValueOnce(new Error("provider is unhappy"));
+    const failed = await read(await call());
+    expect(failed.status).toBe(502);
+    const { getDatabase } = await import("@/lib/db");
+    const rows = await (await getDatabase()).db.selectFrom("ai_days").selectAll().execute();
+    expect(rows).toHaveLength(0);
+  });
+
+  test("Free's tenth date is the last one; the eleventh is refused with 402 plan_limit", async () => {
+    for (let day = 1; day <= 10; day++) {
+      const date = `2026-05-${String(day).padStart(2, "0")}`;
+      const done = await read(await call({ date, idempotency_key: `day-${day}` }));
+      expect(done.status).toBe(200);
+    }
+    const eleventh = await read(await call({ date: "2026-05-11", idempotency_key: "day-11" }));
+    expect(eleventh.status).toBe(402);
+    expect(eleventh.body).toMatchObject({ error: "plan_limit", limit: "aiDays", used: 10, allowed: 10, plan: "free" });
   });
 });
 

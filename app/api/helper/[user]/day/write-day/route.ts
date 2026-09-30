@@ -1,7 +1,7 @@
 import { isEnabled } from "@/lib/capabilities";
-import { refund, spend } from "@/lib/credits";
+import { checkAiDay, recordAiDay } from "@paid/credits/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { HELPER_PROVIDER, WRITE_DAY_CREDITS, writeDay, type DayFacts, type WriteDayMode } from "@/lib/helper/model";
+import { HELPER_PROVIDER, writeDay, type DayFacts, type WriteDayMode } from "@/lib/helper/model";
 import { checkPolishForAddedFacts } from "@/lib/helper/polishGuard";
 import { WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/credits";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
@@ -80,8 +80,8 @@ export async function POST(
     refused(user, "draft_words", "no_notes");
     return Response.json({ error: "no_notes" }, { status: 400 });
   }
-  // B2223 — a flat price over an input the operator pays for per token needs
-  // a ceiling. Both modes, before consent and before the spend.
+  // B2223 — a flat cost to the operator per input token needs a ceiling.
+  // Both modes, before consent and before the AI-day gate.
   if (notes.length > WRITE_DAY_NOTES_MAX_CHARS) {
     refused(user, "draft_words", "notes_too_long");
     return Response.json(
@@ -94,8 +94,8 @@ export async function POST(
     );
   }
   // B2223 review F2: the facts go into the prompt beside the notes, so they
-  // are bounded too, and also before any spend. `date` is optional (the
-  // polish link sends none), but when it is sent it has to be a date.
+  // are bounded too, and also before the AI-day gate. `date` is optional
+  // (the polish link sends none), but when it is sent it has to be a date.
   const date = text(body.date);
   if (date !== "" && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     refused(user, "draft_words", "invalid_date");
@@ -123,8 +123,8 @@ export async function POST(
   const mode: WriteDayMode = text(body.mode) === "polish" ? "polish" : "draft";
 
   // Before the first model call ever made for this journal, and before the
-  // spend — a charge for a call that consent would have refused is a charge
-  // for nothing. Not recorded as a press refusal: consent, like the
+  // AI-day gate — a day taken for a call that consent would have refused
+  // is a day taken for nothing. Not recorded as a press refusal: consent, like the
   // capability switch above, is a gate on whether the wizard may speak to a
   // model at all, not a press failing on what it asked for.
   if (!hasHelperConsent(user, "words")) {
@@ -153,20 +153,23 @@ export async function POST(
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
   }
 
-  const ledgerRef = `${user}/${tripId}/${facts.date}`;
-  if (!(await spend(user, WRITE_DAY_CREDITS, "helper", ledgerRef))) {
-    refused(user, "draft_words", "no_credits");
-    return Response.json({ error: "no_credits" }, { status: 402 });
+  // B2591 — checked before the model call, so a refusal never pays for one:
+  // an AI day is spent by the *first* draft, polish or photo description on
+  // a date, and this date may already have spent it (free) or the plan may
+  // have none left (refused).
+  const gate = await checkAiDay(user, tripId, facts.date);
+  if (!gate.ok) {
+    refused(user, "draft_words", "plan_limit");
+    return Response.json(gate.refusal, { status: 402 });
   }
 
   let written;
   try {
     written = await writeDay(notes, facts, user, mode);
   } catch {
-    // The credit bought nothing, so it is given back. Nothing about the
-    // failure is passed on: what a provider says when it is unhappy is not
+    // "A failed AI call uses no day" — nothing was recorded yet, so there is
+    // nothing to give back. What a provider says when it is unhappy is not
     // something to render on somebody's phone.
-    await refund(user, WRITE_DAY_CREDITS, ledgerRef);
     refused(user, "draft_words", "model_failed");
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
@@ -184,11 +187,14 @@ export async function POST(
   if (mode === "polish") {
     const guard = checkPolishForAddedFacts(notes, written.prose);
     if (!guard.ok) {
-      await refund(user, WRITE_DAY_CREDITS, ledgerRef);
       refused(user, "draft_words", "polish_added_facts");
       return Response.json({ error: "polish_added_facts" }, { status: 422 });
     }
   }
+
+  // Only now — the model answered, and (in polish mode) the guard accepted
+  // it — is the date's AI day actually recorded.
+  await recordAiDay(user, tripId, facts.date);
 
   /**
    * The title and the prose, and not the warnings — B945.
@@ -213,7 +219,7 @@ export async function POST(
   const answer = {
     ok: true,
     draft,
-    spent: WRITE_DAY_CREDITS,
+    aiDay: facts.date || null,
     provider: HELPER_PROVIDER,
   };
   /**
@@ -231,7 +237,7 @@ export async function POST(
    * Without them here, "that looks good, save it" left the model with
    * nothing to put in `set_day_words`'s `content` but its own memory of a
    * paragraph it never actually held — so it called `draft_words` again
-   * instead, re-offering the same card and spending a second credit. Putting
+   * instead, re-offering the same card and asking the model again. Putting
    * the drafted title and prose in the note is what makes "save it" a call
    * the model can actually make, with the words they read rather than a
    * paraphrase of them.

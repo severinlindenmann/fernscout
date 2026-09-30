@@ -3,7 +3,8 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { isEnabled } from "@/lib/capabilities";
 import { creditsForPhotos } from "@/lib/helper/credits";
-import { ledgerHasRef, refund, spend } from "@/lib/credits";
+import { ledgerHasRef } from "@/lib/credits";
+import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { describeImage, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { describedRunFile, rememberRunFile } from "@/lib/extract/described";
@@ -28,8 +29,7 @@ function stagedPath(user: string, runId: string, photoId: string): string {
 }
 
 /**
- * Caption every photograph still in the run — the credits screen's paid
- * path, B1751 Task 4.1.
+ * Caption every photograph still in the run — B1751 Task 4.1.
  *
  * **Written into the manifest, not into a real day.** The photographs here
  * are still staged — nothing has been committed yet — so a caption this
@@ -37,33 +37,24 @@ function stagedPath(user: string, runId: string, photoId: string): string {
  * edit already lands (`PATCH .../studio/run`). `commitDay`
  * (`lib/extract/commit.ts`) carries a row's caption across through
  * `updateInboxMeta` once the day is built, so nothing further is needed to
- * make a paid-for caption reach the real gallery — but it also means the
- * caption is only as durable as the run: if the run expires before the
- * person commits, the caption goes with the staged files it describes, and
- * the credits that paid for it are not returned. That is the owner's own
- * decision, and it is why the credits screen says so above the spend button
- * rather than after it.
+ * make a caption reach the real gallery — but it also means the caption is
+ * only as durable as the run: if the run expires before the person commits,
+ * the caption goes with the staged files it describes.
  *
  * **`ref` is `extract:<runId>:<photoSetHash>`** — Ruling R4, widened by
- * B1751 Task 4.3's R30. A run can now be reopened (this very task is what
- * makes that possible), and `ledgerHasRef`'s idempotency check used to be
- * keyed on the run alone: correct only while nothing could add photographs
- * to a run that had already been paid to describe. `photoSetHash` is a
- * stable hash of the live photo ids actually being described — order
- * independent, since only the *set* changed is meant to matter — so a
- * genuine double-tap on the same set still matches the same ref and is
- * still refused for free, while adding photographs and enriching again
- * produces a different ref and a real, second charge. `extract:<runId>`
- * stays the ref's prefix on purpose: `spentOnRun` in `lib/staging/expiry.ts`
- * reads the ledger by that prefix (not by exact match, since Task 4.3) to
- * tell somebody how many credits they are about to lose, and a ref that
- * stopped starting with it would make that warning silently report zero.
+ * B1751 Task 4.3's R30, kept for `ledgerHasRef`'s idempotency check even
+ * though B2591 removed the charge it used to guard: a real row for this
+ * exact (owner, reason, ref) would mean a retry of the same set, answered
+ * from what is already on the manifest rather than run again — see the
+ * check just below for why nothing writes that row any more, and
+ * `describedRunFile`'s own per-photo cache for the guard that still holds
+ * regardless. `photoSetHash` is a stable hash of the live photo ids actually
+ * being described — order independent, since only the *set* changed is
+ * meant to matter.
  *
- * Charged, then refunded on failure — the same order and the same reason
- * `day/describe-photos` already uses: the credit is spent before the model
- * is asked, because a call that never returns must not have been free, and
- * refunded when the model throws, because a credit that bought nothing is
- * not spent.
+ * **B2591 — no AI day of its own.** This needs an active plan or unused
+ * Free days (`mayUseAi`, `@paid/credits/lib/aiDays.ts`) but takes nothing;
+ * nothing is charged or given back any more.
  */
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -111,8 +102,7 @@ export async function POST(
 
   // What is already described — by an earlier enrich, or by this run's one
   // free sample — is answered from beside the file and never sent again
-  // (B1866), so only the rest is priced. All cached is zero credits and no
-  // spend at all.
+  // (B1866), so only the rest ever reaches the model or the AI-day gate.
   const uncached = live.filter(
     (photo) =>
       !describedRunFile(user, runId, photo.id, stagedPath(user, runId, photo.id), locales),
@@ -121,14 +111,11 @@ export async function POST(
   const ref = `extract:${runId}:${photoSetHash(live.map((p) => p.id))}`;
 
   // A double-tap — a slow connection, a phone that has not visibly
-  // responded yet — must not charge twice. `ledgerHasRef` is the same
-  // idempotency check `storage/route.ts` already uses for its own purchase:
-  // a real row for this exact (owner, reason, ref) already exists, so this
-  // is a retry of a spend that already happened, not a new one. Answered as
-  // the same successful shape the first call gave, computed from what is
-  // actually on the manifest now, rather than a 402 or a second charge —
-  // a retry of a purchase that went through should look like the purchase
-  // it was, not like a failure that invites a third attempt.
+  // responded yet — is answered from what is already on the manifest
+  // rather than run again. `ledgerHasRef` never actually matches any more
+  // (B2591 removed the write it used to check for), so this is dead in
+  // practice; `describedRunFile`'s own per-photo cache is what still keeps
+  // a genuine double-tap from reaching the model a second time.
   //
   // **This checks per PHOTO SET, not per RUN — B1751 Task 4.3, R30.** A
   // legitimate second `enrich` on the same run, after the person resumed it
@@ -141,8 +128,12 @@ export async function POST(
     return Response.json({ ok: true, spent: credits, captioned, provider: HELPER_PROVIDER });
   }
 
-  if (credits > 0 && !(await spend(user, credits, "helper", ref))) {
-    return Response.json({ error: "no_credits" }, { status: 402 });
+  // B2591 — "enrich" takes no AI day of its own; it just needs an active
+  // plan or unused Free days, the same gate `ask`, `transcribe`, `statement`
+  // and the two "people from a photo" routes share.
+  if (credits > 0) {
+    const gate = await mayUseAi(user);
+    if (!gate.ok) return Response.json(gate.refusal, { status: 402 });
   }
 
   try {
@@ -180,9 +171,9 @@ export async function POST(
       if (failed) throw (failed as PromiseRejectedResult).reason;
     }
     // Every photograph that needed sending failed to resize: the model was
-    // never asked anything, so the spend above bought nothing. Thrown, not
-    // returned directly, so it takes the same refund path a model failure
-    // already does — one policy, whichever reason nothing got described.
+    // never asked anything. Thrown, not returned directly, so it takes the
+    // same "caught below" path a model failure already does — one policy,
+    // whichever reason nothing got described.
     if (uncached.length > 0 && sent === 0) {
       throw new Error("every photograph failed to resize");
     }
@@ -192,13 +183,10 @@ export async function POST(
     const answer = { ok: true, spent: credits, captioned, provider: HELPER_PROVIDER };
     return Response.json(answer);
   } catch {
-    // The credit bought nothing; give it back — the whole spend, because the
-    // spend was priced whole; a photograph described before the throw is
-    // cached now and is free on the retry. The same stance
-    // `day/describe-photos` takes, and for the same reason: what a provider
-    // says when it is unhappy is not something to render on somebody's
-    // phone.
-    if (credits > 0) await refund(user, credits, ref);
+    // Nothing was charged, so there is nothing to give back — a photograph
+    // described before the throw is cached now and is free on the retry, the
+    // same stance `day/describe-photos` takes. What a provider says when it
+    // is unhappy is not something to render on somebody's phone.
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
 }

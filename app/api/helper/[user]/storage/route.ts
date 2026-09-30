@@ -1,5 +1,7 @@
 import { creditsEnabled, ledgerHasRef, spend } from "@/lib/credits";
 import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS } from "@paid/credits/lib/credits/pricing";
+import { isEnabled } from "@/lib/capabilities";
+import { planOf } from "@paid/credits/lib/entitlements";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
 import { storageFor } from "@/lib/storageQuota";
@@ -38,6 +40,29 @@ export async function POST(
   if (!creditsEnabled()) {
     refused(user, "buy_room", "credits_disabled");
     return Response.json({ error: "credits_disabled" }, { status: 404 });
+  }
+
+  // B2591/B2590 — buying room with credits is the pre-plan mechanism, and
+  // none of the three plans sell extra storage that way any more: pass has
+  // "no add-on" at all, and Plus's +10 GB is priced in francs, not credits
+  // (not yet built — the flow this refuses to). Refused rather than left to
+  // quietly keep spending a currency the plan it names does not use.
+  if (isEnabled("billing")) {
+    const plan = await planOf(user);
+    if (!plan.unlimited) {
+      const usage = await storageFor(user);
+      return Response.json(
+        {
+          error: "plan_limit",
+          limit: "storage",
+          used: Math.round(usage.usedBytes / 1024 ** 3),
+          allowed: plan.limits.storageGb,
+          plan: plan.plan,
+          upgradeUrl: "/prices",
+        },
+        { status: 402 },
+      );
+    }
   }
 
   const jsonBody = await readJsonBody(request);

@@ -250,13 +250,13 @@ describe("consent is per scope", () => {
 });
 
 describe("what it costs", () => {
-  test("one credit, once, and a retry under the same key is free", async () => {
+  test("nothing is spent, and a retry under the same key still answers once", async () => {
     await consentTo("statement");
     const id = stage("export.csv", STATEMENT);
     await POST(json("/api/helper/owner/statement", { inbox: id, idempotency_key: "k" }), params);
-    expect(await balanceOf("owner")).toBe(9);
+    expect(await balanceOf("owner")).toBe(10);
     await POST(json("/api/helper/owner/statement", { inbox: id, idempotency_key: "k" }), params);
-    expect(await balanceOf("owner")).toBe(9);
+    expect(await balanceOf("owner")).toBe(10);
     expect(mapStatementColumns).toHaveBeenCalledTimes(1);
   });
 
@@ -468,6 +468,6 @@ describe("a statement with a preamble line", () => {
     await POST(json("/api/helper/owner/statement", body), params);
     await POST(json("/api/helper/owner/statement", body), params);
     expect(mapStatementColumns).toHaveBeenCalledTimes(1);
-    expect(await balanceOf("owner")).toBe(9);
+    expect(await balanceOf("owner")).toBe(10);
   });
 });

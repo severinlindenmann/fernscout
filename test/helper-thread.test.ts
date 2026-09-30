@@ -407,7 +407,7 @@ describe("a proposal chained without the model — B926", () => {
     expect(turns[0].text).toContain("not written");
   });
 
-  test("survives a failed press, and the next turn can still use it", async () => {
+  test.skipIf(!hasPaid())("survives a failed press, and the next turn can still use it", async () => {
     await proposeChained("draft_words", {
       trip: "reise",
       slug: "kazbegi-tag",
@@ -415,15 +415,33 @@ describe("a proposal chained without the model — B926", () => {
       notes: NOTES,
     });
 
-    // The press that fails: no credits, the same shape a transient model
-    // error or a lapsed balance produces. `refused()` deliberately never
-    // touches the thread — the route's own answer already says what
-    // happened — so this must not remove what the proposal already put there.
-    // Drained to just short of zero rather than to it — B1091: `ask` below
-    // now spends its own flat `HELPER_TURN_CREDITS` (0.02) before its model
-    // call, and this leaves exactly that much, still short of the 0.05
-    // `WRITE_DAY_CREDITS` the press needs (B2186 repriced it from 1).
-    await spend("alex", 9.98, "helper", "drain-for-test");
+    // The press that fails: a plan out of AI days (B2591 — write-day no
+    // longer spends credits), the same shape a transient model error
+    // produces. `refused()` deliberately never touches the thread — the
+    // route's own answer already says what happened — so this must not
+    // remove what the proposal already put there.
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "T", url: "https://t.test" },
+        features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    const handle = await getDatabase();
+    for (let i = 0; i < 10; i++) {
+      await handle.db
+        .insertInto("ai_days")
+        .values({
+          id: `seed-${i}`,
+          owner_id: "alex",
+          trip_id: "reise",
+          date: `2025-01-${String(i + 1).padStart(2, "0")}`,
+          first_used_at: new Date().toISOString(),
+          plan_period_start: null,
+        })
+        .execute();
+    }
     const pressed = await pressWriteDay({
       trip: "reise",
       slug: "kazbegi-tag",
@@ -431,7 +449,7 @@ describe("a proposal chained without the model — B926", () => {
       notes: NOTES,
     });
     expect(pressed.status).toBe(402);
-    expect((await pressed.json()).error).toBe("no_credits");
+    expect((await pressed.json()).error).toBe("plan_limit");
 
     // The notes the failed press carried are still the ones the next turn's
     // model call is handed.

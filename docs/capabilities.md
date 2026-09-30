@@ -50,6 +50,7 @@ what it would generate.
 | `analytics` | server-wide | — |
 | `applePush` | server-wide | — |
 | `auth` | server-wide | — |
+| `billing` | server-wide | — |
 | `contacts` | server-wide | — |
 | `costs` | server-wide | — |
 | `credits` | server-wide | — |

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { COSTS_IMPORTERS } from "@/importers/costs";
 import { applyMapping, checkMapping, statementSample } from "@/importers/costs/mapping";
 import { isEnabled } from "@/lib/capabilities";
-import { refund, spend } from "@/lib/credits";
+import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { HELPER_PROVIDER, mapStatementColumns, STATEMENT_CREDITS } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
@@ -117,16 +117,15 @@ export async function POST(
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
   }
 
-  const ledgerRef = `${user}/statement/${found.entry.id}`;
-  if (!(await spend(user, STATEMENT_CREDITS, "helper", ledgerRef))) {
-    return Response.json({ error: "no_credits" }, { status: 402 });
-  }
+  // B2591 — "statement" takes no AI day of its own; it needs an active plan
+  // or unused Free days.
+  const gate = await mayUseAi(user);
+  if (!gate.ok) return Response.json(gate.refusal, { status: 402 });
 
   let read;
   try {
     read = await mapStatementColumns(sample, user);
   } catch {
-    await refund(user, STATEMENT_CREDITS, ledgerRef);
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
 

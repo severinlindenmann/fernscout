@@ -33,6 +33,7 @@ function polishErrorFor(
     case "polish_added_facts":
       return { message: t("studio.day.polish.error.addedFacts") };
     case "no_credits":
+    case "plan_limit":
       return { message: t("studio.day.polish.error.noCredits"), creditsLink: true };
     case "model_failed":
       return { message: t("studio.day.polish.error.modelFailed") };

@@ -52,6 +52,8 @@ import * as inviteRequests from "./050-invite-requests";
 import * as readerGroups from "./051-reader-groups";
 import * as usageCostRappen from "./052-usage-cost-rappen";
 import * as smsNoBody from "./053-sms-no-body";
+import * as entitlements from "./054-entitlements";
+import * as aiDays from "./055-ai-days";
 
 /**
  * Every migration, listed by hand.
@@ -119,6 +121,8 @@ export const MIGRATIONS: Record<string, Migration> = {
   "051-reader-groups": readerGroups,
   "052-usage-cost-rappen": usageCostRappen,
   "053-sms-no-body": smsNoBody,
+  "054-entitlements": entitlements,
+  "055-ai-days": aiDays,
 };
 
 /**

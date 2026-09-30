@@ -18,7 +18,16 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 const cap = vi.hoisted(() => ({ enabled: true }));
 vi.mock("@/lib/capabilities", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/capabilities")>();
-  return { ...actual, isEnabled: (name: string) => (name === "extract" ? cap.enabled : true) };
+  return {
+    ...actual,
+    // `billing` (B2590) resolves for real rather than the blanket `true`
+    // every other name gets: this file's own quota test relies on the
+    // *config's* media.perUserBytes, and a config with no `features.billing`
+    // at all must read as billing off, the same as any other unconfigured
+    // capability does for a real caller — not as "on" because this mock
+    // never anticipated it.
+    isEnabled: (name: string) => (name === "extract" ? cap.enabled : name === "billing" ? actual.isEnabled(name) : true),
+  };
 });
 vi.mock("@/lib/helper/server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/helper/server")>();
