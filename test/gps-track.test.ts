@@ -290,7 +290,7 @@ describe("dropping a spike never moves the 500 m end trim off where somebody sle
     const home = { t: 0, lat: 47, lon: 8 };
     const fixes = [
       { t: t0 - 10 * 3_600_000, lat: 47 + 1.4 * KM, lon: 8 },
-      { t: t0, ...home },
+      { t: t0, lat: 47, lon: 8 },
       { t: t0 + 1_000, lat: 47 + 1.4 * KM, lon: 8 },
       ...Array.from({ length: 40 }, (_, i) => ({ t: t0 + (i + 1) * 30_000, lat: 47 - (i + 1) * 0.04 * KM, lon: 8 })),
     ];
