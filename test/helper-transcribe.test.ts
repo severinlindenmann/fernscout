@@ -6,7 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant, spend } from "@/lib/credits";
+import { balanceOf, grant } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { clearLocaleCache } from "@/lib/locales";
 import { creditsForSeconds, speechLanguageFor } from "@/lib/helper/speech";
@@ -275,86 +275,46 @@ describe("consent", () => {
   });
 });
 
+// B2591 — transcription no longer spends or refunds credits; it needs an
+// active plan or unused Free days (checked with `billing` on, a separate
+// describe block below), and takes no AI day of its own.
 describe("the ledger", () => {
   beforeEach(async () => {
     await consent();
   });
 
-  test("a twelve-second recording costs one hundredth of a credit", async () => {
-    const done = await read(await call());
-    expect(done.body.spent).toBe(0.01);
-    expect(await balanceOf("alex")).toBe(9.99);
-  });
-
-  // B2186 acceptance: a 90-second (started-minute) recording debits the new
-  // 0.05-credit-a-minute rate — 1.5 minutes rounded up to the hundredth.
-  test("a ninety-second recording debits the new rate", async () => {
-    const done = await read(await call({ seconds: 90 }));
-    expect(done.body.spent).toBe(0.08);
-    expect(await balanceOf("alex")).toBe(9.92);
-  });
-
-  test("a six-minute recording costs less than a third of a credit", async () => {
+  test("nothing is spent, whatever the length", async () => {
     const done = await read(await call({ seconds: 361 }));
-    expect(done.body.spent).toBe(0.31);
-    expect(await balanceOf("alex")).toBe(9.69);
+    expect(done.body.spent).toBe(0);
+    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("a retry under one idempotency key charges once", async () => {
+  test("a retry under one idempotency key still calls the provider once", async () => {
     const first = await read(await call());
     const again = await read(await call());
     expect(again.body).toEqual(first.body);
     expect(transcribeAudio).toHaveBeenCalledTimes(1);
-    expect(await balanceOf("alex")).toBe(9.99);
+    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("a failed provider call gives the credit back", async () => {
+  test("a failed provider call spends nothing", async () => {
     transcribeAudio.mockRejectedValueOnce(new Error("deepgram is unhappy"));
     const failed = await read(await call());
     expect(failed.status).toBe(502);
     expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("a longer recording than was claimed is charged for what the provider measured", async () => {
-    transcribeAudio.mockResolvedValueOnce({ text: "A long one.", seconds: 700 });
-    const done = await read(await call({ seconds: 2 }));
-    // 700s at twenty minutes to the credit, rounded up to the hundredth.
-    expect(done.body.spent).toBe(0.59);
-    expect(await balanceOf("alex")).toBe(9.41);
-  });
-
-  test("a recording longer than the ceiling is refused before any spend", async () => {
+  test("a recording longer than the ceiling is refused, whatever was claimed", async () => {
     const refused = await read(await call({ seconds: 1200 }));
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("recording_too_long");
     expect(await balanceOf("alex")).toBe(10);
   });
 
-  // B1550 — the top-up charge used to fail open: when the provider measured
-  // far more than the caller claimed and the balance could not cover the
-  // difference, the old code quietly kept the floor charge and handed back
-  // the transcript anyway. A caller claiming 0 (or lying) must not be able to
-  // buy a full transcription for a hundredth of a credit.
-  test("a caller who claims 0 seconds and Deepgram measures 10 minutes is refused, not handed a transcript, when the balance holds only the floor", async () => {
-    // Spend the balance down to just the one-hundredth floor a 0-second claim
-    // costs, so the top-up for 600 measured seconds cannot be afforded.
-    expect(await spend("alex", 9.99, "transcription", "drain-for-test")).toBe(true);
-    expect(await balanceOf("alex")).toBe(0.01);
-
-    transcribeAudio.mockResolvedValueOnce({ text: "Ten minutes of speech.", seconds: 600 });
-    const refused = await read(await call({ seconds: 0 }));
-    expect(refused.status).toBe(402);
-    expect(refused.body.error).toBe("no_credits");
-    expect(refused.body.text).toBeUndefined();
-    // The floor that was pre-charged comes back — nobody is left charged for
-    // words they never received.
-    expect(await balanceOf("alex")).toBe(0.01);
-  });
-
   // The measured ceiling is enforced even when nobody claimed anything past
   // it: MAX_SPEECH_SECONDS is a promise about what this instance will pay
   // Deepgram for, not only about what a caller is honest enough to claim.
-  test("a provider measuring past the ceiling is refused, and the floor charge is refunded", async () => {
+  test("a provider measuring past the ceiling is refused, whatever was claimed", async () => {
     transcribeAudio.mockResolvedValueOnce({ text: "A very long one.", seconds: 1200 });
     const refused = await read(await call({ seconds: 12 }));
     expect(refused.status).toBe(400);
@@ -362,13 +322,58 @@ describe("the ledger", () => {
     expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("an honest short recording still transcribes and charges only the floor", async () => {
+  test("an honest short recording transcribes for nothing", async () => {
     transcribeAudio.mockResolvedValueOnce({ text: "Hi.", seconds: 3 });
     const done = await read(await call({ seconds: 0 }));
     expect(done.status).toBe(200);
     expect(done.body.text).toBe("Hi.");
-    expect(done.body.spent).toBe(0.01);
-    expect(await balanceOf("alex")).toBe(9.99);
+    expect(done.body.spent).toBe(0);
+    expect(await balanceOf("alex")).toBe(10);
+  });
+});
+
+describe("B2591 — with billing on", () => {
+  beforeEach(async () => {
+    writeServerConfig({
+      auth: { enabled: true },
+      credits: { enabled: true },
+      transcription: { enabled: true, backend: "dry-run" },
+      billing: { enabled: true },
+    });
+    await consent();
+  });
+
+  test("once the plan's AI days are used up, transcription is refused with 402 plan_limit", async () => {
+    const { grantPlan } = await import("@paid/credits/lib/entitlements");
+    const now = Date.now();
+    await grantPlan({
+      owner: "alex",
+      plan: "pass",
+      source: "admin",
+      startsAt: new Date(now - 1000).toISOString(),
+      endsAt: new Date(now + 100_000).toISOString(),
+      periodStart: new Date(now - 1000).toISOString(),
+      periodEnd: new Date(now + 100_000).toISOString(),
+    });
+    const { getDatabase } = await import("@/lib/db");
+    const handle = await getDatabase();
+    for (let i = 0; i < 21; i++) {
+      await handle.db
+        .insertInto("ai_days")
+        .values({
+          id: `seed-${i}`,
+          owner_id: "alex",
+          trip_id: "t",
+          date: `2025-01-${String(i + 1).padStart(2, "0")}`,
+          first_used_at: new Date(now - 1000).toISOString(),
+          plan_period_start: new Date(now - 1000).toISOString(),
+        })
+        .execute();
+    }
+    const refused = await read(await call());
+    expect(refused.status).toBe(402);
+    expect(refused.body).toMatchObject({ error: "plan_limit", limit: "aiDays", used: 21, allowed: 21, plan: "pass" });
+    expect(transcribeAudio).not.toHaveBeenCalled();
   });
 });
 
@@ -380,31 +385,25 @@ describe("the ledger", () => {
  * because the figure was zero. The run the recording belongs to now rides on
  * the ledger ref, so the figure can be true.
  */
+// B2591 — nothing is spent any more, so `spentOnRun` (the import's own
+// "credits spent" figure, B1803) reads zero regardless of the run named;
+// this now just proves the `run` field is still accepted and answered.
 describe("a recording made inside an import run", () => {
   beforeEach(async () => {
     await consent();
   });
 
-  test("is charged against that run, so the import's own credits row can name it", async () => {
-    const { spentOnRun } = await import("@/lib/staging/expiry");
+  test("still transcribes when a run id is given", async () => {
     const done = await read(await call({ run: "run-1" }));
-    expect(done.body.spent).toBe(0.01);
-    expect(await spentOnRun("alex", "run-1")).toBe(0.01);
+    expect(done.status).toBe(200);
+    expect(done.body.spent).toBe(0);
   });
 
-  test("a recording outside any run is charged to nobody's run", async () => {
-    const { spentOnRun } = await import("@/lib/staging/expiry");
-    await read(await call());
-    expect(await spentOnRun("alex", "run-1")).toBe(0);
-  });
-
-  test("a refunded recording is not reported as spent", async () => {
-    const { spentOnRun } = await import("@/lib/staging/expiry");
+  test("a failed provider call inside a run spends nothing", async () => {
     transcribeAudio.mockRejectedValueOnce(new Error("deepgram is unhappy"));
     const failed = await read(await call({ run: "run-1" }));
     expect(failed.status).toBe(502);
     expect(await balanceOf("alex")).toBe(10);
-    expect(await spentOnRun("alex", "run-1")).toBe(0);
   });
 });
 

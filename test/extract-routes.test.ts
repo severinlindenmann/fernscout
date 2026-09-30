@@ -724,16 +724,9 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     // creditsForPhotos(2) === Math.ceil(2 / PHOTOS_PER_CREDIT) === 1.
     expect(body.spent).toBe(1);
     expect(body.captioned).toBe(2);
-    expect(await balanceOf("alex")).toBe(9);
-
-    // R4, widened by R30 — the ref starts with `extract:<runId>:`, the same
-    // prefix the nightly expiry warning reads the ledger by (it no longer
-    // matches the run id alone, since a resumed run can be enriched more
-    // than once).
-    const ledger = await ledgerFor("alex", 10);
-    expect(
-      ledger.some((row) => row.ref?.startsWith(`extract:${runId}:`) && row.reason === "helper"),
-    ).toBe(true);
+    // B2591 — nothing is spent any more; the ledger it used to land in is
+    // untouched.
+    expect(await balanceOf("alex")).toBe(10);
 
     const { readManifest } = await import("@/lib/staging/manifest");
     const after = readManifest("alex", runId);
@@ -758,13 +751,10 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     const second = await call();
     expect(second.status).toBe(200);
 
-    // The assertion that matters is on the ledger, not on either response —
-    // a response-only check would pass against an implementation that
-    // charged twice and merely replayed the first body.
-    const ledger = await ledgerFor("alex", 10);
-    const spends = ledger.filter((row) => row.ref?.startsWith(`extract:${runId}:`) && row.reason === "helper");
-    expect(spends).toHaveLength(1);
-    expect(await balanceOf("alex")).toBe(9);
+    // B2591 — nothing is spent, so the guarantee that matters is on the model
+    // calls, not a ledger: a double-tap must still describe each photograph
+    // only once, from its own per-photo cache (`describedRunFile`).
+    expect(await balanceOf("alex")).toBe(10);
 
     // The mocked model was called once per photograph on the first request —
     // the second request never reached it at all.
@@ -812,13 +802,8 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     expect(secondBody.captioned).toBe(2);
     expect(secondBody.spent).toBe(1);
     expect(helperModel.describeImage).toHaveBeenCalledTimes(1);
-
-    const ledger = await ledgerFor("alex", 10);
-    const spends = ledger.filter((row) => row.ref?.startsWith(`extract:${runId}:`) && row.reason === "helper");
-    // Two distinct refs (one per photo set), two real charges.
-    expect(spends).toHaveLength(2);
-    expect(new Set(spends.map((row) => row.ref)).size).toBe(2);
-    expect(await balanceOf("alex")).toBe(8);
+    // B2591 — nothing is spent any more.
+    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a photograph the free sample already described is not sent or paid for again — B1866", async () => {
@@ -849,10 +834,13 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     expect(helperModel.describeImage).toHaveBeenCalledTimes(2);
     // Priced on that one photograph — the sampled one is not bought twice.
     expect(body.spent).toBe(1);
-    expect(await balanceOf("alex")).toBe(9);
+    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("refuses without enough credits, and captions nothing", async () => {
+  // B2591 — with no plan enforcement at all (billing off, the default in
+  // this suite), enrich runs with no credits granted: nothing is charged for
+  // it any more.
+  test("runs with no credits granted at all, since nothing is charged", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     await stagedManifest(runId, ["a.jpg"]);
 
@@ -861,12 +849,14 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
       new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId }) }),
       { params: Promise.resolve({ user: "alex" }) },
     );
-    expect(res.status).toBe(402);
+    expect(res.status).toBe(200);
 
     const { readManifest } = await import("@/lib/staging/manifest");
     const after = readManifest("alex", runId);
-    expect(after?.photos.every((p) => !p.caption)).toBe(true);
+    expect(after?.photos.every((p) => Boolean(p.caption))).toBe(true);
   });
+
+
 
   test("a spend that buys nothing is given back", async () => {
     const { grant, balanceOf } = await import("@/lib/credits");

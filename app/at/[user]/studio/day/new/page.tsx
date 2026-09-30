@@ -9,6 +9,9 @@ import { balanceOf } from "@/lib/credits";
 import { formatChf } from "@/lib/creditsFormat";
 import { creditsInRappen } from "@paid/credits/lib/credits/pricing";
 import { WRITE_DAY_CREDITS } from "@/lib/helper/credits";
+import { aiDaysStatus, mayUseAi } from "@paid/credits/lib/aiDays";
+import AiDaysChip from "@/components/studio/day/AiDaysChip";
+import { PLANS, chf } from "@paid/credits/lib/plans";
 import { MINUTES_PER_CREDIT } from "@/lib/helper/speech";
 import { getTrips } from "@/lib/trips";
 import { journalCurrencies } from "@/lib/rates";
@@ -64,10 +67,17 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
   // broken) with its capability off.
   const weatherAvailable = isEnabled("weather", user);
   const speechEnabled = isEnabled("transcription", user);
-  // B2234 — the owner's balance, read once and shared by "Polish my text"
-  // and the spoken questions: both say a price before the tap, and both
-  // refuse it before the tap rather than after a 402, from the same number.
+  // B2234 — the owner's balance, read once and shared by the spoken
+  // questions' own price-before-the-tap check (transcription still spends
+  // credits; B2591 did not touch it).
   const credits = wordsAssistAvailable || speechEnabled ? await balanceOf(user) : null;
+  // B2591 — write-day no longer spends credits for "Polish my text", so its
+  // own gate now asks the plan (`mayUseAi`) rather than a balance. Fed
+  // through the same `credits < WRITE_DAY_CREDITS` comparison `PolishText`
+  // already made (nothing there had to change): a positive sentinel when AI
+  // is available, `0` when the plan has none left.
+  const polishAiAvailable = wordsAssistAvailable ? (await mayUseAi(user)).ok : false;
+  const polishCredits = wordsAssistAvailable ? (polishAiAvailable ? WRITE_DAY_CREDITS : 0) : null;
   const speech = speechEnabled
     ? {
         consented: hasHelperConsent(user, "speech"),
@@ -86,14 +96,28 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
     await Promise.all(getTrips(user).map(async (t) => [t.id, (await namesOnTrip(t)).slice(1).filter(Boolean)] as const)),
   );
 
+  // B2591 — the "AI days X of Y" chip, canvas draft "Studio: AI days used
+  // up" (board Wall.dc.html). Absent with `billing` off or an unlimited
+  // plan (`aiDaysStatus` reports `{unlimited: true}` in both cases).
+  const aiStatus = await aiDaysStatus(user);
+
   return (
     <StudioPage username={user} group="write" title={translateIn(locale, "studio.day.title")} lede={translateIn(locale, "studio.day.lede")}>
+      <AiDaysChip
+        username={user}
+        status={aiStatus}
+        offers={{
+          passPrice: chf(PLANS.tripPass.priceChf),
+          passDays: String(PLANS.tripPass.days),
+          plusPrice: `${chf(PLANS.plus.priceChf)} / ${translateIn(locale, "plans.perYear")}`,
+        }}
+      />
       <AddDayFlow
         username={user}
         trips={trips}
         writtenDatesByTrip={writtenDatesByTrip}
         proposal={proposal}
-        polishCredits={wordsAssistAvailable ? credits : null}
+        polishCredits={polishCredits}
         // B2254 — computed here, not in `PolishText` (a client component):
         // pricing is paid-only code after the open-core split, and a public
         // build must show no price rather than a wrong CHF 0.00.

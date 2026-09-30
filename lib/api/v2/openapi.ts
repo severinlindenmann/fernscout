@@ -1665,7 +1665,7 @@ function buildPaths(): Record<string, PathItem> {
           ref("invalid_json", 400),
           ref("unknown_inbox_file", 400),
           ref("not_this_trip", 400),
-          ref("no_credits", 402),
+          ref("plan_limit", 402),
           ref("model_failed", 502),
         ]),
       },

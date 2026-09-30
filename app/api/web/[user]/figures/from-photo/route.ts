@@ -13,10 +13,10 @@
 // the model as bytes in the request; nothing here writes it to disk.
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
-import { refund, spend } from "@/lib/credits";
+import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { filterPhotoProposal } from "@/lib/figures/creator";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { classifyTravellers, HELPER_PROVIDER, TRAVELLERS_FROM_PHOTO_CREDITS, type PhotoImage } from "@/lib/helper/model";
+import { classifyTravellers, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { resizedBuffer } from "@/lib/media";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
@@ -86,30 +86,22 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   }
   const photo: PhotoImage = { base64: image.toString("base64"), mediaType: "image/webp" };
 
-  const ledgerRef = `${user}/figures/from-photo`;
-  if (!(await spend(user, TRAVELLERS_FROM_PHOTO_CREDITS, "travellers_from_photo", ledgerRef))) {
-    return Response.json({ error: "no_credits" }, { status: 402 });
-  }
+  // B2591 — "people from a photo" takes no AI day of its own; it needs an
+  // active plan or unused Free days.
+  const gate = await mayUseAi(user);
+  if (!gate.ok) return Response.json(gate.refusal, { status: 402 });
 
   try {
     const results = await classifyTravellers(photo, user);
     if (results.length === 0) {
-      // "No charge / a plain message when no face" (B2021's ticket, one
-      // step past the trip-scoped route this borrows the model call from,
-      // which has no equivalent refund): there is nothing here for the
-      // owner to review, so spending a credit on it would be charging for
-      // an empty answer.
-      await refund(user, TRAVELLERS_FROM_PHOTO_CREDITS, ledgerRef);
-      return Response.json({ ok: true, figures: [], spent: 0, provider: HELPER_PROVIDER });
+      return Response.json({ ok: true, figures: [], provider: HELPER_PROVIDER });
     }
     return Response.json({
       ok: true,
       figures: results.map((r, position) => ({ position, ...filterPhotoProposal(r) })),
-      spent: TRAVELLERS_FROM_PHOTO_CREDITS,
       provider: HELPER_PROVIDER,
     });
   } catch {
-    await refund(user, TRAVELLERS_FROM_PHOTO_CREDITS, ledgerRef);
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
 }

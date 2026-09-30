@@ -161,6 +161,7 @@ export const ERROR_CODES = {
   provider_unavailable:
     "The provider could not be reached, or refused the request — Stripe for a payment, Gelato for a photobook print. Nothing was charged. Read this response's own `message`: it says whether the failure is transient (retrying is reasonable) or the provider refused this server's own account (retrying will not help; this needs the operator).",
   no_credits: "This journal has no credits left for that.",
+  plan_limit: "This journal's plan has no more AI travel days (or storage) left in its current period. `used`, `allowed`, `plan` and `upgradeUrl` on the response say which limit and where to upgrade.",
   not_for_agents:
     "This spends the owner's money and is done by the owner, from their own page — a token is refused here whatever it is scoped to. Nothing was charged. Report what is needed and let them decide.",
   bad_token: "The single-use token in the body does not verify.",

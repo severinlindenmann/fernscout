@@ -3,12 +3,12 @@
 // plumbing. Domain logic (classifyTravellers) is unchanged.
 //
 // Not ported: the idempotency-key replay guard v1 carried
-// (lib/idempotency.ts). No other v2 route that spends credits uses it —
+// (lib/idempotency.ts). No other v2 route that charges credits uses it —
 // POST .../days/{slug}/send charges for WhatsApp the same way, with no
 // idempotency key — so this stays consistent with the rest of the v2
 // surface rather than being the one route that reaches for a mechanism no
 // sibling route uses. Add it back here (and to `send`) together if a
-// retried spend turns out to matter in practice.
+// retried charge turns out to matter in practice.
 //
 // The response shape also differs from v1's: v2 figures are a named
 // journal-level library (PUT /api/v2/{user}/figures/{id}) referenced by a
@@ -20,14 +20,9 @@ import { outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { isEnabled } from "@/lib/capabilities";
-import { refund, spend } from "@/lib/credits";
+import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import {
-  classifyTravellers,
-  HELPER_PROVIDER,
-  TRAVELLERS_FROM_PHOTO_CREDITS,
-  type PhotoImage,
-} from "@/lib/helper/model";
+import { classifyTravellers, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { findInboxFile } from "@/lib/inbox";
 import { resizedBuffer, resizedCopy, resolveMediaFile } from "@/lib/media";
 import { mediaKey } from "@/lib/photos";
@@ -175,9 +170,11 @@ export async function POST(
   }
   const photo: PhotoImage = { base64: image.toString("base64"), mediaType: "image/webp" };
 
-  const ledgerRef = `${user}/${trip}/from-photo`;
-  if (!(await spend(user, TRAVELLERS_FROM_PHOTO_CREDITS, "travellers_from_photo", ledgerRef))) {
-    return fail("no_credits", ERROR_CODES.no_credits, undefined, 402);
+  // B2591 — "people from a photo" takes no AI day of its own; it needs an
+  // active plan or unused Free days.
+  const aiGate = await mayUseAi(user);
+  if (!aiGate.ok) {
+    return fail("plan_limit", ERROR_CODES.plan_limit, aiGate.refusal, 402);
   }
 
   try {
@@ -188,7 +185,6 @@ export async function POST(
       figures: results.map((r, index) => ({ position: index, figure: r.figure, unanswerable: r.unanswerable })),
       party,
       preview: renderPartySvg(party),
-      spent: TRAVELLERS_FROM_PHOTO_CREDITS,
       provider: HELPER_PROVIDER,
       note:
         "Nothing was written. Show this to the owner and, for each figure they agree looks " +
@@ -199,7 +195,6 @@ export async function POST(
         "are left for a person to fill in rather than guessed.",
     });
   } catch {
-    await refund(user, TRAVELLERS_FROM_PHOTO_CREDITS, ledgerRef);
     return fail("model_failed", ERROR_CODES.model_failed, undefined, 502);
   }
 }

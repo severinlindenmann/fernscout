@@ -236,7 +236,7 @@ describe("what it costs", () => {
     const done = await read(await call());
     expect(done.status).toBe(200);
     expect(done.body.spent).toBe(2);
-    expect(await balanceOf("alex")).toBe(8);
+    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a retry under the same idempotency key spends once", async () => {
@@ -247,7 +247,7 @@ describe("what it costs", () => {
     expect(again.body).toEqual(first.body);
     // Twelve photographs, twelve calls, and the replay adds none.
     expect(describeImage).toHaveBeenCalledTimes(12);
-    expect(await balanceOf("alex")).toBe(8);
+    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a failed model call refunds the credit", async () => {
@@ -366,7 +366,7 @@ describe("a photograph is described once", () => {
     expect(first.status).toBe(200);
     expect(first.body.spent).toBe(1);
     expect(first.body.cached).toBe(0);
-    expect(await balanceOf("alex")).toBe(9);
+    expect(await balanceOf("alex")).toBe(10);
 
     const again = await read(await from("198.51.100.1", "cache-second"));
     expect(again.status).toBe(200);
@@ -376,7 +376,7 @@ describe("a photograph is described once", () => {
     expect(again.body.spent).toBe(0);
     expect(again.body.cached).toBe(2);
     // Nothing further was taken — no second spend, and no refund either.
-    expect(await balanceOf("alex")).toBe(9);
+    expect(await balanceOf("alex")).toBe(10);
     // And the captions are the same ones, read back out of the sidecars.
     expect(again.body.captions).toEqual(first.body.captions);
     // The day's gallery sees the new alt text at once: the entry cache is
@@ -419,7 +419,7 @@ describe("a photograph is described once", () => {
     expect(retry.body.spent).toBe(1);
     // Two failed-or-succeeded calls on the first request, one on the retry.
     expect(describeImage).toHaveBeenCalledTimes(3);
-    expect(await balanceOf("alex")).toBe(9);
+    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a derivative replaced in place is described again", async () => {
@@ -550,5 +550,54 @@ describe("bearer tokens", () => {
     );
     expect(refused.status).toBe(404);
     expect(refused.body.error).toBe("not_your_journal");
+  });
+});
+
+describe("B2591 — AI days, with billing on", () => {
+  beforeEach(async () => {
+    writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
+    await consent("photos");
+  });
+
+  test("describing a day's photos takes that date's AI day", async () => {
+    await writeDayWithPhotos(2);
+    const request = json({ trip: TRIP, slug: SLUG, idempotency_key: "ai-day-1" });
+    request.headers.set("x-forwarded-for", "203.0.113.51");
+    const done = await read(await POST(request, params));
+    expect(done.status).toBe(200);
+    const { getDatabase } = await import("@/lib/db");
+    const rows = await (await getDatabase()).db.selectFrom("ai_days").selectAll().execute();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ owner_id: "alex", trip_id: TRIP, date: "2026-05-04" });
+  });
+
+  test("once the plan's AI days are gone, describing photos is refused with 402 plan_limit", async () => {
+    const { grantPlan } = await import("@paid/credits/lib/entitlements");
+    // A pass exhausted by nine days already taken elsewhere, one left.
+    const now = Date.now();
+    await grantPlan({
+      owner: "alex",
+      plan: "pass",
+      source: "admin",
+      startsAt: new Date(now - 1000).toISOString(),
+      endsAt: new Date(now + 100_000).toISOString(),
+      periodStart: new Date(now - 1000).toISOString(),
+      periodEnd: new Date(now + 100_000).toISOString(),
+    });
+    const { getDatabase } = await import("@/lib/db");
+    const handle = await getDatabase();
+    for (let i = 0; i < 21; i++) {
+      await handle.db
+        .insertInto("ai_days")
+        .values({ id: `seed-${i}`, owner_id: "alex", trip_id: TRIP, date: `2025-01-${String(i + 1).padStart(2, "0")}`, first_used_at: new Date(now - 1000).toISOString(), plan_period_start: new Date(now - 1000).toISOString() })
+        .execute();
+    }
+    await writeDayWithPhotos(2);
+    const request = json({ trip: TRIP, slug: SLUG, idempotency_key: "ai-day-2" });
+    request.headers.set("x-forwarded-for", "203.0.113.52");
+    const refused = await read(await POST(request, params));
+    expect(refused.status).toBe(402);
+    expect(refused.body).toMatchObject({ error: "plan_limit", limit: "aiDays", used: 21, allowed: 21, plan: "pass" });
+    expect(describeImage).not.toHaveBeenCalled();
   });
 });

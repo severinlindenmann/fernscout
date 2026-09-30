@@ -301,8 +301,11 @@ describe("proposed, never written", () => {
   });
 });
 
+// B2591 — "people from a photo" no longer spends or refunds credits; it
+// needs an active plan or unused Free days (checked with `billing` on, a
+// separate describe block below) and takes no AI day of its own.
 describe("what it costs", () => {
-  test("one call costs the flat price, whatever the party size", async () => {
+  test("nothing is spent, whatever the party size", async () => {
     const token = await ownerToken();
     await consent();
     classifyTravellers.mockResolvedValueOnce([
@@ -313,12 +316,10 @@ describe("what it costs", () => {
     const src = await writeTripPhoto("day-one");
     const done = await trip(token, { gallery: src });
     expect(done.status).toBe(200);
-    const { TRAVELLERS_FROM_PHOTO_CREDITS } = await import("@/lib/helper/model");
-    expect(done.body.spent).toBe(TRAVELLERS_FROM_PHOTO_CREDITS);
-    expect(await balanceOf(OWNER)).toBe(10 - TRAVELLERS_FROM_PHOTO_CREDITS);
+    expect(await balanceOf(OWNER)).toBe(10);
   });
 
-  test("a failed model call refunds the credit", async () => {
+  test("a failed model call spends nothing", async () => {
     classifyTravellers.mockRejectedValueOnce(new Error("provider is unhappy"));
     const token = await ownerToken();
     await consent();
@@ -328,17 +329,46 @@ describe("what it costs", () => {
     expect(failed.body.error).toBe("model_failed");
     expect(await balanceOf(OWNER)).toBe(10);
   });
+});
 
-  test("no credits left refuses before the model is ever called", async () => {
+describe("B2591 — with billing on", () => {
+  test("once the plan's AI days are used up, this is refused with 402 plan_limit", async () => {
+    writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     const token = await ownerToken();
     await consent();
-    const { spend } = await import("@/lib/credits");
-    // Spend the balance to zero first.
-    expect(await spend(OWNER, 10, "helper", "drain")).toBe(true);
+    const { grantPlan } = await import("@paid/credits/lib/entitlements");
+    const now = Date.now();
+    await grantPlan({
+      owner: OWNER,
+      plan: "pass",
+      source: "admin",
+      startsAt: new Date(now - 1000).toISOString(),
+      endsAt: new Date(now + 100_000).toISOString(),
+      periodStart: new Date(now - 1000).toISOString(),
+      periodEnd: new Date(now + 100_000).toISOString(),
+    });
+    const { getDatabase } = await import("@/lib/db");
+    const handle = await getDatabase();
+    for (let i = 0; i < 21; i++) {
+      await handle.db
+        .insertInto("ai_days")
+        .values({
+          id: `seed-${i}`,
+          owner_id: OWNER,
+          trip_id: "t",
+          date: `2025-01-${String(i + 1).padStart(2, "0")}`,
+          first_used_at: new Date(now - 1000).toISOString(),
+          plan_period_start: new Date(now - 1000).toISOString(),
+        })
+        .execute();
+    }
     const src = await writeTripPhoto("day-one");
     const refused = await trip(token, { gallery: src });
     expect(refused.status).toBe(402);
-    expect(refused.body.error).toBe("no_credits");
+    expect(refused.body).toMatchObject({
+      error: "plan_limit",
+      details: { limit: "aiDays", used: 21, allowed: 21, plan: "pass" },
+    });
     expect(classifyTravellers).not.toHaveBeenCalled();
   });
 });

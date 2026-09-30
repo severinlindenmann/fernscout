@@ -1,7 +1,7 @@
 import path from "node:path";
 import { isEnabled } from "@/lib/capabilities";
 import { creditsForPhotos, DESCRIBE_PHOTO_WIDTH } from "@/lib/helper/credits";
-import { refund, spend } from "@/lib/credits";
+import { checkAiDay, recordAiDay } from "@paid/credits/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { describeImage, HELPER_MODEL, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
@@ -39,10 +39,10 @@ export const dynamic = "force-dynamic";
  *
  * **A photograph is described once.** The answer is kept in the photograph's
  * own sidecar under `described` (B1866), keyed on the hash of the derivative
- * that was actually sent; a second ask for the same day reads it back, sends
- * nothing and spends nothing. Credits are priced on the photographs with no
- * stored answer, so a day of twelve where eleven are already described costs
- * one credit's worth of one picture rather than two of twelve.
+ * that was actually sent; a second ask for the same day reads it back and
+ * sends nothing to the model. The AI-day gate below only runs when there is
+ * something new to send, so a day of twelve where eleven are already
+ * described checks nothing and a repeat ask never touches the plan.
  *
  * **A derivative goes to the model, never the original.** `resizedCopy` is
  * the same resize the browser's own gallery reads through
@@ -106,9 +106,9 @@ export async function POST(
     .filter(({ item }) => item.type === "image");
   if (photoEntries.length === 0) return Response.json({ error: "no_photos" }, { status: 400 });
 
-  // Before the spend, and before consent even: naming photographs is the
-  // bigger promise, and a person who has only ever agreed to "your words"
-  // must be asked again — B687's whole reason for existing.
+  // Before the AI-day gate, and before consent even: naming photographs is
+  // the bigger promise, and a person who has only ever agreed to "your
+  // words" must be asked again — B687's whole reason for existing.
   if (!hasHelperConsent(user, "photos")) {
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
@@ -150,13 +150,14 @@ export async function POST(
   }
   const cached = described.size;
 
-  // Priced on what actually has to be sent. All cached is zero, and zero is
-  // not a spend at all: a ledger row for nothing would be a lie about the
-  // balance, and `spend` would refuse the fraction anyway.
+  // B2591 — checked before the model call whenever there is actually
+  // something new to send; all-cached needs no gate. Checked, not
+  // recorded, until the model call below succeeds — "a failed AI call
+  // uses no day".
   const credits = creditsForPhotos(uncached.length);
-  const ledgerRef = `${user}/${tripId}/${slug}`;
-  if (credits > 0 && !(await spend(user, credits, "helper", ledgerRef))) {
-    return Response.json({ error: "no_credits" }, { status: 402 });
+  if (uncached.length > 0) {
+    const gate = await checkAiDay(user, tripId, entry.date);
+    if (!gate.ok) return Response.json(gate.refusal, { status: 402 });
   }
 
   try {
@@ -169,8 +170,8 @@ export async function POST(
     // failure returns quietly rather than throwing (one bad file must not
     // fail the whole day), so a whole batch of resize failures would
     // otherwise leave the loop below running to completion with nothing
-    // described and nothing thrown: the spend above would stand for a
-    // request that asked the model nothing.
+    // described and nothing thrown, reporting success for a request that
+    // asked the model nothing.
     let sent = 0;
     for (let i = 0; i < uncached.length; i += POOL) {
       const results = await Promise.allSettled(
@@ -188,14 +189,15 @@ export async function POST(
       );
       // `allSettled` rather than `all` so a sibling that also fails does not
       // become an unhandled rejection; the first failure is still the one
-      // this request answers with, and the refund below is unconditional.
+      // this request answers with.
       const failed = results.find((r) => r.status === "rejected");
       if (failed) throw (failed as PromiseRejectedResult).reason;
     }
     // Every photograph that needed sending failed to resize: the model was
-    // never asked anything, so the spend above bought nothing. Thrown, not
-    // returned directly, so it takes the same refund path a model failure
-    // already does — one policy, whichever reason nothing got described.
+    // never asked anything. Thrown, not returned directly, so it takes the
+    // same "caught below" path a model failure already does — one policy,
+    // whichever reason nothing got described, and no AI day is recorded
+    // either way.
     if (uncached.length > 0 && sent === 0) {
       throw new Error("every photograph failed to resize");
     }
@@ -204,6 +206,7 @@ export async function POST(
     // unchanged day would otherwise stay invisible until the day is next
     // edited or the process restarts.
     if (uncached.length > 0) forgetEntries(ref);
+    if (uncached.length > 0) await recordAiDay(user, tripId, entry.date);
 
     // Every gallery item gets a row — a video is never sent for description
     // (nothing should be invented from a poster frame), but it is named
@@ -226,13 +229,11 @@ export async function POST(
     await remember(key, fingerprint, answer);
     return Response.json(answer);
   } catch {
-    // The credit bought nothing; give it back. The whole spend goes back even
-    // when some photographs were described before the throw, because the
-    // spend was priced whole — and those photographs are cached now, so the
-    // retry pays for the ones that are genuinely still missing and nothing
-    // more. What a provider says when it is unhappy is not something to
-    // render on somebody's phone.
-    if (credits > 0) await refund(user, credits, ledgerRef);
+    // Nothing was recorded yet — "a failed AI call uses no day" — and those
+    // photographs that were described before the throw are cached now, so a
+    // retry only asks the model for the ones genuinely still missing. What a
+    // provider says when it is unhappy is not something to render on
+    // somebody's phone.
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
 }

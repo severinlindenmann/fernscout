@@ -1,5 +1,5 @@
 import "server-only";
-import { refund, spend } from "../credits";
+import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { creditsForSeconds, MAX_SPEECH_SECONDS } from "./speech";
 import type { SpeechLanguage } from "./speech";
 import { transcribeAudio } from "./transcribe";
@@ -31,8 +31,15 @@ import type { UncertainWord } from "./transcribe";
 /** What this refused, or what it produced. */
 export type TranscribeOutcome =
   | { ok: true; text: string; seconds: number; spent: number; uncertainWord?: UncertainWord }
-  | { ok: false; error: "no_credits" | "transcription_failed" | "recording_too_long"; cost: number };
+  | { ok: false; error: "plan_limit" | "transcription_failed" | "recording_too_long"; cost: number };
 
+/**
+ * B2591 — transcription takes no AI day of its own; it needs an active plan
+ * or unused Free days, checked once before the call, and nothing is spent or
+ * refunded any more. `spent` on a success is kept, at `0`, purely so callers
+ * that still read it (the route, the WhatsApp door) do not need a second
+ * shape — it is never charged.
+ */
 export async function spendAndTranscribe(
   username: string,
   audio: Buffer,
@@ -40,26 +47,19 @@ export async function spendAndTranscribe(
   language: SpeechLanguage,
   claimedSeconds: number,
   /** The staging run this recording was made inside, when there is one —
-   *  B1803 final review, finding 4. It only changes the ledger ref: an
-   *  import's own "Credits spent" row reads `spentOnRun`, which matches
-   *  `extract:<runId>` and `extract:<runId>:…`, so without the run on the
-   *  ref every voice answer in an import was money charged that the import
-   *  could not account for, and the row hid itself showing nothing. The
-   *  shape is checked by the route that supplies it. */
+   *  kept for callers that still pass it; nothing here reads it any more
+   *  now that there is no ledger ref to key it into. */
   runId?: string,
 ): Promise<TranscribeOutcome> {
+  void runId;
   const credits = creditsForSeconds(claimedSeconds);
-  const seconds = Math.ceil(claimedSeconds);
-  const ledgerRef = runId ? `extract:${runId}:speech:${seconds}s` : `${username}/speech/${seconds}s`;
-  if (!(await spend(username, credits, "transcription", ledgerRef))) {
-    return { ok: false, error: "no_credits", cost: credits };
-  }
+  const gate = await mayUseAi(username);
+  if (!gate.ok) return { ok: false, error: "plan_limit", cost: credits };
 
   let transcript;
   try {
     transcript = await transcribeAudio(audio, mediaType, language, username);
   } catch {
-    await refund(username, credits, ledgerRef);
     return { ok: false, error: "transcription_failed", cost: credits };
   }
 
@@ -67,37 +67,16 @@ export async function spendAndTranscribe(
   // the only thing that has actually measured the recording is Deepgram's own
   // answer. So the ceiling this instance promised (B686's `MAX_SPEECH_SECONDS`)
   // applies to what was *measured*, not only to what was claimed, and a
-  // recording past it is refused here too rather than paid for and returned.
+  // recording past it is refused here too.
   if (transcript.seconds > MAX_SPEECH_SECONDS) {
-    await refund(username, credits, ledgerRef);
     return { ok: false, error: "recording_too_long", cost: credits };
-  }
-
-  // What the provider measured beats what the caller claimed, when it is
-  // longer — see app/api/helper/[user]/transcribe/route.ts's own comment on
-  // this, word for word the same reasoning. This is where the whole thing was
-  // failing open: a caller who claims 0 seconds is pre-charged only the floor,
-  // and when the top-up for what Deepgram actually measured cannot be
-  // afforded, the old code quietly kept the floor charge and handed back the
-  // full transcript anyway — the operator ate the rest of the Deepgram bill.
-  // Fail closed instead: no top-up, no transcript, and the floor itself comes
-  // back so nobody is left charged for words they never received.
-  let spent = credits;
-  const measured = creditsForSeconds(transcript.seconds);
-  if (transcript.seconds > 0 && measured > credits) {
-    const topUpOk = await spend(username, measured - credits, "transcription", ledgerRef);
-    if (!topUpOk) {
-      await refund(username, credits, ledgerRef);
-      return { ok: false, error: "no_credits", cost: measured };
-    }
-    spent = measured;
   }
 
   return {
     ok: true,
     text: transcript.text,
     seconds: transcript.seconds,
-    spent,
+    spent: 0,
     uncertainWord: transcript.uncertainWord,
   };
 }
