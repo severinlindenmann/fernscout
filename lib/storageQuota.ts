@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { countSpends } from "./credits";
+import { isEnabled } from "./capabilities";
+import { planOf } from "@paid/credits/lib/entitlements";
 import { loadUserConfig, serverMediaCeiling } from "./config";
 import { mediaOriginalsRoot } from "./media";
 import { getUser, userDir } from "./users";
@@ -152,14 +154,22 @@ export function storageBreakdown(username: string): StorageRow[] {
 }
 
 /**
- * This journal's own ceiling, or the instance's where it has none to read.
+ * This journal's own ceiling — from its plan where `billing` is on
+ * (B2590: Free 2 GB, pass and Plus 10 GB), or the instance's configured
+ * number otherwise.
  *
  * A journal whose `config.json` is missing or malformed still occupies disk,
  * and the answer to "how much may it hold" is then the instance's own number
  * rather than an exception out of an upload. Same tolerance, and the same
  * reasoning, as `serverMediaCeiling` has for a missing server config.
  */
-function configuredLimit(username: string): number | null {
+async function configuredLimit(username: string): Promise<number | null> {
+  if (isEnabled("billing")) {
+    const plan = await planOf(username);
+    if (!plan.unlimited && Number.isFinite(plan.limits.storageGb)) {
+      return plan.limits.storageGb * 1024 ** 3;
+    }
+  }
   try {
     return loadUserConfig(username).media.perUserBytes;
   } catch {
@@ -171,7 +181,7 @@ function configuredLimit(username: string): number | null {
 export async function storageFor(username: string): Promise<StorageUsage> {
   const usedBytes = journalBytes(username);
   const purchased = await purchasedBytes(username);
-  const configured = configuredLimit(username);
+  const configured = await configuredLimit(username);
   const limitBytes = configured === null ? null : configured + purchased;
   return {
     usedBytes,

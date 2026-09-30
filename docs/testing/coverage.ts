@@ -120,4 +120,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   iosApp: {
     todo: "B2341. test/app-waitlist.test.ts covers the route; no persona flow drives the landing page's waitlist door yet.",
   },
+  billing: {
+    todo: "B2590/B2591. planOf(), the entitlements/ai_days tables, the admin plan-grant panel and the AI-day refusal path are unit-tested; no persona flow drives a plan upgrade end to end yet.",
+  },
 };
