@@ -3,6 +3,7 @@ import path from "node:path";
 import { gpsDir, metresBetween, readRange } from "./store";
 import { zonedTimeToUtc } from "../timezone";
 import { isInHiddenSpot, isInStretch, type HiddenSpot, type ResolvedRange } from "./edits";
+import { spikeIndices } from "./spikes";
 import type { Track, TrackLabel, TrackSegment } from "./track";
 import type { Fix, TransportMode } from "../../importers/gps/schema";
 
@@ -375,7 +376,14 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
   const hiddenStretches = options.hiddenStretches ?? [];
   const namedStretches = options.namedStretches ?? [];
 
-  const sorted = [...fixes].sort((a, b) => a.t - b.t);
+  // Spikes left out before anything else runs (date windows, zones, gaps,
+  // trim, simplify) — the same rule the studio already applies
+  // (`ownerDayLine`/`kmByMode`, `./api.ts`, B2568), now the one place every
+  // reader-facing derivation (`trackForTrip` for `track.json`, `tailForTrip`
+  // for `track-recent.json`) shares it too, since both call this function.
+  const allSorted = [...fixes].sort((a, b) => a.t - b.t);
+  const spikes = spikeIndices(allSorted);
+  const sorted = allSorted.filter((_, i) => !spikes.has(i));
 
   /** Whether `fix` belongs in the line at all — every cut this function
    * makes but the date window and the 24h cap, both of which govern what a

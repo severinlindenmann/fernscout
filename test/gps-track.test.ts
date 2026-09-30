@@ -140,6 +140,60 @@ describe("deriving a trip's line", () => {
   });
 });
 
+describe("spikes are dropped before the line is drawn (B2571)", () => {
+  test("a stale fix (1.4 km behind the next one, one second earlier, 5 min from the fix before) draws no out-and-back", () => {
+    const t0 = Date.parse("2026-06-22T08:00:00Z");
+    const KM = 1 / 111.2;
+    const fixes: Fix[] = [
+      // Real line: 0 -> 7.15 -> 7.49 -> 7.79 km, five minutes then seconds apart.
+      { t: t0, lat: 47, lon: 8 },
+      { t: t0 + 300_000, lat: 47 + 5.71 * KM, lon: 8 },
+      // The stale wake-up fix, one second before the real one after it, 1.44
+      // km behind — the 30 Sep shape from B2568's own module doc.
+      { t: t0 + 300_000 + 60_000, lat: 47 + (7.15 - 1.44) * KM, lon: 8 },
+      { t: t0 + 300_000 + 61_000, lat: 47 + 7.15 * KM, lon: 8 },
+      { t: t0 + 300_000 + 74_000, lat: 47 + 7.49 * KM, lon: 8 },
+      { t: t0 + 300_000 + 85_000, lat: 47 + 7.79 * KM, lon: 8 },
+    ];
+    const track = deriveTrack(fixes, DATES);
+    const points = track.segments.flatMap((s) => s.points);
+    // No backtrack: latitude only ever increases along the drawn line.
+    for (let i = 1; i < points.length; i++) expect(points[i][0]).toBeGreaterThanOrEqual(points[i - 1][0]);
+    expect(points.some(([lat]) => Math.abs(lat - (47 + (7.15 - 1.44) * KM)) < 1e-6)).toBe(false);
+  });
+
+  // A slight curve, not a straight line, so Douglas-Peucker (toleranceM: 0)
+  // has a real reason to keep every point — a perfectly straight run of
+  // collinear points would legitimately simplify away, which is a drawing
+  // rule and not what these two are testing (that a genuinely fast, densely
+  // sampled leg is never treated as a spike).
+  test("a high-speed train (320 km/h, every 10 s) keeps every point", () => {
+    const t0 = Date.parse("2026-06-22T08:00:00Z");
+    const KM = 1 / 111.2;
+    const fixes: Fix[] = Array.from({ length: 8 }, (_, i) => ({
+      t: t0 + i * 10_000,
+      lat: 47 + (320 / 3600) * 10 * i * KM,
+      lon: 8 + i * i * 0.0001,
+    }));
+    const track = deriveTrack(fixes, { ...DATES, toleranceM: 0 });
+    const points = track.segments.flatMap((s) => s.points);
+    expect(points).toHaveLength(fixes.length);
+  });
+
+  test("a flight (850 km/h, every 20 s) keeps every point", () => {
+    const t0 = Date.parse("2026-06-22T08:00:00Z");
+    const KM = 1 / 111.2;
+    const fixes: Fix[] = Array.from({ length: 8 }, (_, i) => ({
+      t: t0 + i * 20_000,
+      lat: 47 + (850 / 3600) * 20 * i * KM,
+      lon: 8 + i * i * 0.0001,
+    }));
+    const track = deriveTrack(fixes, { ...DATES, toleranceM: 0 });
+    const points = track.segments.flatMap((s) => s.points);
+    expect(points).toHaveLength(fixes.length);
+  });
+});
+
 describe("private zones", () => {
   test("no file means no zones", () => {
     expect(readExcludeZones(USER)).toEqual([]);
