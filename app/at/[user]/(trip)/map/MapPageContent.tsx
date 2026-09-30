@@ -7,7 +7,7 @@ import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard, MapPin, ArrowUp } from "lucide-react";
+import { Clapperboard, MapPin, ArrowUp, ArrowRight } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -18,7 +18,7 @@ import { ACCENT_HEX, type PlannedStop } from "@/lib/types";
 import { buildTripFrame, type MapPlace, type MapLine, type RecordedSegment } from "@/lib/map/tripFrame";
 import { applyStreetOverlay } from "@/lib/map/streetOverlay";
 import type { MapDay } from "@/lib/map/mapDays";
-import MobileMapSheet from "@/components/map/MobileMapSheet";
+import MobileMapSheet, { MAPS_BUTTON, READ_DAY_BUTTON } from "@/components/map/MobileMapSheet";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
 import { POSTER_WIDTH } from "@/lib/mediaSizes";
 
@@ -659,21 +659,14 @@ export default function MapPageContent({
                               ))}
                           </div>
                         )}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm font-semibold">
-                          <a
-                            href={href(`/day/${place.entries[0].slug}`)}
-                            className="text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
-                          >
-                            {t("map.readDay")} →
+                        <div className="flex flex-wrap gap-2">
+                          <a href={href(`/day/${place.entries[0].slug}`)} className={READ_DAY_BUTTON}>
+                            {t("map.readDay")}
+                            <ArrowRight className="h-4 w-4" aria-hidden />
                           </a>
-                          <a
-                            href={googleMapsHref(place)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-ink-secondary underline decoration-line-quiet underline-offset-2"
-                          >
-                            <MapPin className="h-3.5 w-3.5" aria-hidden />
-                            {t("tripMap.googleMaps")}
+                          <a href={googleMapsHref(place)} target="_blank" rel="noreferrer" className={MAPS_BUTTON}>
+                            <MapPin className="h-4 w-4" aria-hidden />
+                            {t("map.googleMapsShort")}
                           </a>
                         </div>
                       </div>

@@ -76,12 +76,18 @@ export default function MapCard({
 
   return (
     <div className="mt-4">
-      <Link href={mapHref} className="block overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
+      <Link href={mapHref} className="relative block overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
         {/* eslint-disable-next-line @next/next/no-img-element -- a same-origin,
             reader-gated SVG route, not an optimisable photograph; Next's own
             image optimiser cannot pass a request with no cookies through the
             gate anyway (the same reasoning lib/media.ts's own doc gives). */}
         <img src={imgSrc} alt="" loading="lazy" className="block h-auto w-full" />
+        {/* B2573 — the credit sits on the map it credits, bottom-left. */}
+        {usedStreet && (
+          <span className="absolute bottom-1.5 left-1.5 rounded bg-surface-raised/80 px-1.5 py-0.5 text-[10px] leading-none text-ink-secondary">
+            {t("mapCard.osmCredit")}
+          </span>
+        )}
       </Link>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
         {factsLine ? <p className="text-ink-secondary">{factsLine}</p> : <span />}
@@ -89,7 +95,6 @@ export default function MapCard({
           {t("mapCard.openMap")}
         </Link>
       </div>
-      {usedStreet && <p className="mt-1 text-xs text-ink-secondary">{t("mapCard.osmCredit")}</p>}
     </div>
   );
 }
