@@ -2,8 +2,8 @@ import { describe, expect, test } from "vitest";
 import { spikeIndices, spikeJump } from "@/lib/gps/spikes";
 
 /**
- * B2568 — the 30 Sep GPS spike (08:03:59 jumped 1.44 km in 1 s, then jumped
- * straight back) set aside rather than drawn, without also catching a real
+ * B2568 — GPS spikes like the 30 Sep one (a stale fix 1.44 km behind the real
+ * one a second later) set aside rather than drawn, without also catching a real
  * train or flight's own genuinely high speed.
  */
 describe("spikeIndices", () => {
@@ -16,6 +16,34 @@ describe("spikeIndices", () => {
       { t: t0 + 2_000, lat: 47.0, lon: 8.0 },
     ];
     expect(spikeIndices(fixes)).toEqual(new Set([1]));
+  });
+
+  test("the real 30 Sep sequence: the stale 08:03:58 fix is set aside, not the real one a second later", () => {
+    // Distances along one road as measured from the stored fixes (km from
+    // the 07:58:58 fix): 08:03:58 sat 1.44 km behind the 08:03:59 fix it
+    // preceded by one second; the real line runs 0 → 7.15 → 7.49 → 7.79 km.
+    const t0 = Date.parse("2026-09-30T05:58:58Z");
+    const KM = 1 / 111.2; // degrees of latitude per km
+    const at = (sec: number, km: number) => ({ t: t0 + sec * 1000, lat: 47 + km * KM, lon: 8 });
+    const fixes = [at(0, 0), at(300, 5.71), at(301, 7.15), at(314, 7.49), at(325, 7.79)];
+    expect(spikeIndices(fixes)).toEqual(new Set([1]));
+    const jump = spikeJump(fixes, 1);
+    expect(jump?.seconds).toBe(1);
+    expect(jump?.km).toBeCloseTo(1.44, 1);
+  });
+
+  test("a densely sampled flight (a fix every 20 s at 850 km/h) is not flagged", () => {
+    const t0 = Date.parse("2026-09-30T08:00:00Z");
+    const KM = 1 / 111.2;
+    const fixes = Array.from({ length: 8 }, (_, i) => ({ t: t0 + i * 20_000, lat: 47 + ((850 / 3600) * 20 * i) * KM, lon: 8 }));
+    expect(spikeIndices(fixes).size).toBe(0);
+  });
+
+  test("a high-speed train sampled every 10 s at 320 km/h is not flagged", () => {
+    const t0 = Date.parse("2026-09-30T08:00:00Z");
+    const KM = 1 / 111.2;
+    const fixes = Array.from({ length: 8 }, (_, i) => ({ t: t0 + i * 10_000, lat: 47 + ((320 / 3600) * 10 * i) * KM, lon: 8 }));
+    expect(spikeIndices(fixes).size).toBe(0);
   });
 
   test("a real train at 250 km/h, with sparse points, is not flagged", () => {
