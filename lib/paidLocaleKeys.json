@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "5e0202acdec0a5810e9fd971f98b87858f005d7c",
+  "generatedFrom": "b4b6c9945894fc55a16e526748e82941769baf3c",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -231,12 +231,8 @@
     "photobook.first.describe.noModel",
     "photobook.first.describe.one",
     "photobook.first.describe.price",
-    "photobook.first.describe.receipt",
-    "photobook.first.describe.receipt.one",
     "photobook.first.describe.receiptDays",
     "photobook.first.describe.receiptDays.one",
-    "photobook.first.describe.short.confirm",
-    "photobook.first.describe.short.confirm.one",
     "photobook.first.describe.skipNext",
     "photobook.first.describe.working",
     "photobook.first.describeChip",

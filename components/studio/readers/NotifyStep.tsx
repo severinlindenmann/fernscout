@@ -202,6 +202,11 @@ export default function NotifyStep({
         setError(t(key, { name }));
         return;
       }
+      // no-refresh: this step stays open to show what was sent; both callers
+      // (ReaderCard, AddPersonDoor) wire `onLater` — pressed next, whether to
+      // decline or once this screen's "Done" is pressed — to their own
+      // router.refresh(), which is when the page behind this step needs to
+      // be current, not mid-step.
       setSent(json);
     } catch {
       setError(t("notifyStep.error.generic"));
