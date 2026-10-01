@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import BusyButton from "@/components/BusyButton";
 import { CreditCard, HardDrive } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,31 +9,25 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useNativeShell } from "@/components/nativeShell";
 import { useSite } from "@/components/SiteProvider";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
-import { formatChf } from "@/lib/creditsFormat";
 import type { TranslationKey } from "@/lib/i18n";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
 
 /**
- * Credits and storage, on their own page — B821.
+ * Storage and plan, on their own page — B821, B2593.
  *
  * Moved whole from `/[user]/me`, which held them among the contact form, the
- * journal's own title, the device list and the access panel. They are the
- * two questions an owner asks most often and most urgently — how much can I
- * still spend, how much room is left — and the only two on that page that
- * answer with a number rather than a form. B821 left a card on `/me` pointing
- * here; B876 removed it — the menu entry is the way in, and a card whose only
- * content is "this lives elsewhere" is a whole card to say so. The figures
- * live here and nowhere else, because two live copies of a balance is how
- * they disagree.
+ * journal's own title, the device list and the access panel. B821 left a
+ * card on `/me` pointing here; B876 removed it — the menu entry is the way
+ * in, and a card whose only content is "this lives elsewhere" is a whole
+ * card to say so. The credit balance this page also once showed was deleted
+ * whole in B2592 — plans replaced it, and `plan` is this page's own answer
+ * to "what am I paying for" now.
  *
  * Owner-only — `app/at/[user]/studio/account/page.tsx` (`requireStudioOwner`,
  * B2016) 404s for anybody else, the same gate `/me` uses. This file kept its
  * address under `app/at/[user]/account/` rather than moving with the route: the
  * component is the same one either way, and `app/at/[user]/account/page.tsx` is
- * now only a redirect to the studio address. `payment` is absent (not zero)
- * when credits are switched off; the page is then storage alone rather than
- * a broken half, exactly the
- * B74 rule the rest of `/me` already followed for these two panels.
+ * now only a redirect to the studio address.
  */
 
 /**
@@ -49,93 +42,6 @@ import type { OrderRow } from "@paid/printOrder/lib/orders";
  * `router.refresh()` rather than local state, because the numbers beside it —
  * what a day costs now — are the server's and are exactly what changed.
  * Optimism here would show a total that the next navigation contradicts.
- */
-function ChannelSwitch({
-  username,
-  channel,
-  label,
-  enabled,
-}: {
-  username: string;
-  channel: "mail" | "whatsapp";
-  label: string;
-  enabled: boolean;
-}) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function toggle() {
-    setBusy(true);
-    setFailed(false);
-    const response = await fetch(`/api/web/${username}/channels`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ [channel]: !enabled }),
-    }).catch(() => null);
-    setBusy(false);
-    if (!response?.ok) {
-      setFailed(true);
-      return;
-    }
-    router.refresh();
-  }
-
-  return (
-    <span className="inline-flex shrink-0 items-center gap-2">
-      {/* The word beside it is gone — B471. `role="switch"` with `aria-checked`
-          announces on or off to a screen reader, and the control says it to
-          everybody else; repeating it in text cost the width that made the
-          switch wrap under the channel's name on a phone. The failure line
-          stays, because that one is not visible in the control. */}
-      {failed && (
-        <span className="text-sm text-coral-600">
-          {t("me.paymentChannelFailed")}
-        </span>
-      )}
-      {/* Not a `BusyButton` — B867 deliberately stops here. This is a 24px
-          switch, and there is nowhere in it for a spinner to go that is not on
-          top of the thing it is reporting about. `disabled` still stops the
-          second press, which is the half that matters. */}
-      <button
-        type="button"
-        role="switch"
-        aria-checked={enabled}
-        aria-label={label}
-        disabled={busy}
-        onClick={toggle}
-        // Off is `navy-500` rather than the `navy-200` the card's rules use:
-        // a border at 1.3:1 on white is a rule, not a control, and this one
-        // has to look pressable while it is off. `navy-500` is the palette's
-        // border-and-label ink (5.51:1 on white) — see apply-the-brand.
-        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-50 ${
-          enabled ? "border-action-strong bg-action-strong" : "border-line-prominent bg-surface-raised"
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full transition-[left] ${
-            enabled ? "left-[22px] bg-surface-raised" : "left-0.5 bg-line-prominent"
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-    </span>
-  );
-}
-
-/**
- * Five more gigabytes, for fifty credits — B661.
- *
- * A button rather than the tiers dialog above it, because there is one thing
- * to buy and one price. It spends immediately: `PUT
- * /api/web/<user>/storage/purchases/<id>` takes the credits and the
- * extension exists from that moment, so the confirmation is the browser's
- * own — there is no second page to go to and nothing to come back and
- * finish. `router.refresh()` is what redraws the figure above it from the
- * server. The id is generated here, client-side, and only ever used once —
- * it exists so a retried request cannot double-spend, not because the
- * browser needs to remember it afterwards.
  */
 /**
  * Give the space back — B664, asked in the page since B668.
@@ -317,60 +223,13 @@ export type StoragePanel = {
   percent: number | null;
   rows: { key: string; label: string; human: string; share: number }[];
   reclaimable: { human: string; files: number; hasStagedFiles: boolean };
-  canBuy: boolean;
-  buyCredits: number;
 };
 
-/**
- * Ledger reasons the owner sees, grouped — B1784.
- *
- * `lib/credits.ts` keeps one reason per door because that is what an operator
- * reconciles a supplier bill against; an owner reading her own account wants
- * "where did my credits go", and four AI doors she cannot tell apart is four
- * lines of noise. Anything not listed falls into `other`, so the next reason
- * added to the ledger cannot put a raw translation key on this page again —
- * which is exactly how `ask_thread` got there.
- */
-const SPENT_GROUPS: Record<string, string> = {
-  helper: "ai",
-  transcription: "ai",
-  ask_thread: "ai",
-  find_in_journal: "ai",
-  travellers_from_photo: "ai",
-  day_mail: "messages",
-  day_whatsapp: "messages",
-  day_sms: "messages",
-  invite: "messages",
-  digest: "messages",
-  postcard: "postcard",
-  photobook: "photobook",
-  photobook_print: "photobook",
-  storage: "storage",
-  refunded: "refunded",
-};
-
-export function groupSpent(
-  spent: { reason: string; credits: number }[],
-): { group: string; credits: number }[] {
-  const totals = new Map<string, number>();
-  for (const { reason, credits } of spent) {
-    const group = SPENT_GROUPS[reason] ?? "other";
-    totals.set(group, (totals.get(group) ?? 0) + credits);
-  }
-  return [...totals]
-    // Credits carry hundredths (B987), so a sum of two of them can land on
-    // 0.30000000000000004 in binary floating point.
-    .map(([group, credits]) => ({ group, credits: Math.round(credits * 100) / 100 }))
-    .sort((a, b) => b.credits - a.credits);
-}
-
-/** What the Payment section needs — B367. `undefined` is credits switched
- * off; the page shows storage alone then, per B821's own acceptance line. */
 /**
  * "Your plan" — B2593. A functional first version of the canvas board
  * (`Account.dc.html`): plan, renewal/end date, the two meters that matter
  * (AI days, storage), the portal link, and the two buy buttons. Absent
- * (like `payment`/`storage`) rather than shown empty when `billing` is off
+ * (like `storage`) rather than shown empty when `billing` is off
  * — an "unlimited, forever" card on every instance that has not turned
  * plans on would be noise, not news.
  */
@@ -602,44 +461,15 @@ function RestoreApplePurchasesButton({ username }: { username: string }) {
   );
 }
 
-export type PaymentPanel = {
-  balance: number;
-  emailRecipients: number;
-  whatsappRecipients: number;
-  channels: { mail: boolean | null; whatsapp: boolean | null };
-  postcardCredits: number | null;
-  transactions: PaymentRow[];
-  /** What credits have gone on, biggest first — B860. Empty when the journal
-   *  has never spent one. */
-  spent: { reason: string; credits: number }[];
-  /** B2090: card payments go to Stripe's test mode (a `sk_test_` key), so
-   *  no real money moves — said once under the buy button. */
-  cardTestMode?: boolean;
-};
-
-/** One row of the transaction history. `amount` is a preformatted CHF string
- * (server-side, from the pricing table) so the component never does money
- * arithmetic. */
-type PaymentRow = {
-  id: string;
-  credits: number;
-  amount: string;
-  status: "pending" | "requested" | "paid" | "refunded";
-  createdAt: string;
-};
-
 export default function AccountPageContent({
   username,
   storage,
-  payment,
   orders,
   plan,
 }: {
   username: string;
   /** Absent only where the instance sets no ceiling. */
   storage?: StoragePanel;
-  /** Absent when credits are switched off. */
-  payment?: PaymentPanel;
   /** The 3 most recent orders and the total count — B1452. */
   orders: { recent: OrderRow[]; total: number };
   /** Absent when `billing` is off. */
@@ -724,9 +554,9 @@ export default function AccountPageContent({
             </div>
           )}
 
-          {!storage && !payment && (
+          {!storage && !plan && (
             // Neither figure has anything behind it — no ceiling configured
-            // and credits switched off. Rare (an instance normally sets one
+            // and billing switched off. Rare (an instance normally sets one
             // or the other), but a page with two absent cards and no
             // explanation reads as broken rather than as "nothing to show".
             <p className="rounded-2xl border border-line-quiet bg-surface-raised p-5 text-base leading-7 text-ink-body sm:p-6">

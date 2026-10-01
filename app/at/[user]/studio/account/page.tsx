@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AccountPageContent, {
-  type PaymentPanel,
   type PlanPanel,
   type StoragePanel,
 } from "../../account/AccountPageContent";
@@ -57,11 +56,7 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
   const journal = getUser(user);
   if (!journal) notFound();
 
-  /**
-   * Storage — B664/B821. Outside the `balance !== null` branch below on
-   * purpose: how full a journal is has nothing to do with whether this
-   * instance charges for sends. Only `canBuy` depends on that.
-   */
+  /** Storage — B664/B821. */
   let storage: StoragePanel | undefined;
   const usage = await storageFor(user);
   if (usage.limitBytes !== null) {
@@ -95,23 +90,14 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
         files: worthShowing(reclaimable.bytes) ? reclaimable.files : 0,
         hasStagedFiles: reclaimable.stagedFiles > 0,
       },
-      // No credit-funded add-on any more — B2592. Plus's own +10 GB is
-      // priced in francs through Stripe, not built on this page yet.
-      canBuy: false,
-      buyCredits: 0,
     };
   }
-
-  // The credit account panel is gone (B2592) — `payment` stays permanently
-  // absent, the same "absent, not shown empty" rule `storage`/`plan` follow
-  // when their own capability is off.
-  const payment: PaymentPanel | undefined = undefined;
 
   const allOrders = await listAllOrders(user);
   const orders = { recent: allOrders.slice(0, 3), total: allOrders.length };
 
   // "Your plan" — B2593. Absent when `billing` is off, the same "absent, not
-  // shown empty" rule `payment`/`storage` already follow.
+  // shown empty" rule `storage` already follows.
   let plan: PlanPanel | undefined;
   if (isEnabled("billing")) {
     const current = await planOf(user);
@@ -138,7 +124,7 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
 
   return (
     <StudioPage username={user} group="journal" title={translateIn(await requestLocale(), "studio.hub.item.account.title")}>
-      <AccountPageContent username={user} storage={storage} payment={payment} orders={orders} plan={plan} />
+      <AccountPageContent username={user} storage={storage} orders={orders} plan={plan} />
     </StudioPage>
   );
 }
