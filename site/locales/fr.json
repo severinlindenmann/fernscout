@@ -4068,8 +4068,6 @@
   "studio.day.speak.q.met": "Qui as-tu rencontré ?",
   "studio.day.speak.q.funny": "Quelque chose de drôle ou de surprenant ?",
   "studio.day.speak.hint": "Raconte-le comme tu le raconterais à un ami. Tu pourras changer chaque mot ensuite.",
-  "studio.day.speak.price": "{price} crédit par minute (environ {money})",
-  "studio.day.speak.priceNoMoney": "{price} crédit par minute",
   "studio.day.speak.ratherTalk": "Tu préfères parler ? Réponds à quelques questions à voix haute",
   "studio.day.speak.answerLabel": "Tes mots. Corrige tout ce qui n’est pas juste.",
   "studio.day.speak.typeLabel": "Ou écris-le ici",

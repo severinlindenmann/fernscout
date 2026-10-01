@@ -4068,8 +4068,6 @@
   "studio.day.speak.q.met": "Wen hast du getroffen?",
   "studio.day.speak.q.funny": "Etwas Lustiges oder Überraschendes?",
   "studio.day.speak.hint": "Erzähl es, wie du es einer Freundin erzählen würdest. Jedes Wort kannst du nachher ändern.",
-  "studio.day.speak.price": "{price} Credit pro Minute (etwa {money})",
-  "studio.day.speak.priceNoMoney": "{price} Credit pro Minute",
   "studio.day.speak.ratherTalk": "Lieber sprechen? Ein paar Fragen laut beantworten",
   "studio.day.speak.answerLabel": "Deine Worte. Korrigier, was nicht stimmt.",
   "studio.day.speak.typeLabel": "Oder tipp es hier",

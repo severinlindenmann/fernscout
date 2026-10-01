@@ -30,7 +30,7 @@ const { default: LocaleProvider } = await import("@/components/LocaleProvider");
 const { dictionaryFor } = await import("@/lib/locales");
 
 const TODAY = "2025-11-10";
-const SPEECH = { consented: true, provider: "dry-run", credits: 3, priceChf: "CHF 0.01" };
+const SPEECH = { consented: true, provider: "dry-run", aiAvailable: true };
 const en = dictionaryFor("en");
 
 let root: Root | undefined;
@@ -147,7 +147,6 @@ describe("a day by voice — B2194", () => {
     await mount();
 
     expect(heading()).toBe(en["studio.day.speak.q.how"]);
-    expect(text()).toContain("0.05 credit a minute");
     await say("Tired but hapy.");
     const box = () => container.querySelector<HTMLTextAreaElement>("#studio-speak-answer")!;
     expect(box().value).toBe("Tired but hapy.");
@@ -224,20 +223,14 @@ describe("a day by voice — B2194", () => {
     expect(spoken).toEqual([{ text: en["studio.day.speak.q.how"], lang: "en" }]);
   });
 
-  test("with an insufficient balance the price line goes quiet — B2234", async () => {
-    props = { speech: { ...SPEECH, credits: 0 }, tellBy: "speak" };
+  // B2592 — SpeakFlow no longer prints a per-minute price line at all
+  // (there is no per-minute charge left to name); whether the mic itself is
+  // offered with no AI days left is RecordButton's own property, covered by
+  // its own tests — the mock above stands in for it here.
+  test("mentions no credit, with a plan that has AI days or without", async () => {
+    props = { speech: { ...SPEECH, aiAvailable: false }, tellBy: "speak" };
     await mount();
-    expect(text()).not.toContain("credit a minute");
-  });
-
-  // B2288 — `priceChf` is computed server-side (pricing is paid-only code
-  // after the open-core split); `null` (a public build) shows the credit
-  // price alone rather than a wrong CHF 0.00.
-  test("with priceChf null the price line shows no CHF — B2288", async () => {
-    props = { speech: { ...SPEECH, priceChf: null }, tellBy: "speak" };
-    await mount();
-    expect(text()).toContain("0.05 credit a minute");
-    expect(text()).not.toContain("CHF");
+    expect(text()).not.toContain("credit");
   });
 });
 

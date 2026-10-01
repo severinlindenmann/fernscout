@@ -4069,8 +4069,6 @@
   "studio.day.speak.q.met": "Kivel találkoztál?",
   "studio.day.speak.q.funny": "Valami vicces vagy meglepő?",
   "studio.day.speak.hint": "Meséld el úgy, ahogy egy barátodnak mondanád. Utána minden szót megváltoztathatsz.",
-  "studio.day.speak.price": "{price} kredit percenként (kb. {money})",
-  "studio.day.speak.priceNoMoney": "{price} kredit percenként",
   "studio.day.speak.ratherTalk": "Inkább beszélnél? Válaszolj néhány kérdésre hangosan",
   "studio.day.speak.answerLabel": "A szavaid. Javítsd ki, ami nem stimmel.",
   "studio.day.speak.typeLabel": "Vagy írd ide",

@@ -121,10 +121,6 @@ export default function SpeakFlow({
       : t(`studio.day.speak.q.${step}`);
   const answer = answers[step] ?? "";
   const last = index === total - 1;
-  // B2234/B2591 — the same gate `RecordButton`'s own `aiAvailable` prop
-  // refuses the tap on; the plan-days line below goes quiet with it rather
-  // than naming a plan already said to be out of days.
-  const aiDaysUsedUp = speech.aiAvailable === false;
 
   function next(a: Partial<Record<SpeakQuestion, string>>) {
     setQueuedNotice(false);
@@ -205,9 +201,6 @@ export default function SpeakFlow({
           <p role="status" className="mt-1 text-center text-sm text-cream-50">
             {t("studio.day.speak.queued")}
           </p>
-        )}
-        {!aiDaysUsedUp && !queuedNotice && (
-          <p className="mt-1 text-center text-sm text-cream-50">{t("studio.day.speak.price")}</p>
         )}
       </div>
 

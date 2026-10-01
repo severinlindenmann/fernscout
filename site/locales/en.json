@@ -4083,8 +4083,6 @@
   "studio.day.speak.q.met": "Who did you meet?",
   "studio.day.speak.q.funny": "Anything funny or surprising?",
   "studio.day.speak.hint": "Tell it like you would tell a friend. You can change every word afterwards.",
-  "studio.day.speak.price": "{price} credit a minute (about {money})",
-  "studio.day.speak.priceNoMoney": "{price} credit a minute",
   "studio.day.speak.ratherTalk": "Rather talk? Answer a few questions by voice",
   "studio.day.speak.answerLabel": "Your words. Correct anything that is not right.",
   "studio.day.speak.typeLabel": "Or type it here",

@@ -3014,8 +3014,6 @@ export type TranslationKey =
   | "studio.day.speak.finish"
   | "studio.day.speak.hint"
   | "studio.day.speak.next"
-  | "studio.day.speak.price"
-  | "studio.day.speak.priceNoMoney"
   | "studio.day.speak.q.ate"
   | "studio.day.speak.q.did"
   | "studio.day.speak.q.didPhotos"
