@@ -96,6 +96,40 @@ Only three places ever insert or update an `entitlements` row, all through
    already uses.
 3. **The Apple endpoint**, the same shape, once B2598 adds in-app purchase.
 
+## Apple in-app purchase: environments
+
+Every StoreKit transaction and App Store Server Notification carries its own
+`environment` field (`Production`, `Sandbox` or `Xcode`) inside the signed
+payload — genuinely Apple-signed in the Sandbox case, a TestFlight or
+sandbox-tester purchase is cryptographically indistinguishable from a real
+one except for that field. `paid/billing/lib/apple/verify-purchase.ts` and
+`notifications.ts` (B2633) refuse any transaction or notification whose
+`environment` is not on this instance's own allowlist — `environment` is
+required everywhere it is read; an absent field is a refusal, never a pass.
+
+- **`APPLE_ENVIRONMENTS`** (comma-separated; `lib/apple/environments.ts`).
+  Unset, empty, or holding nothing recognised means **Production only** —
+  the default, and what fernscout.ch must keep. `/api/health`'s `billing`
+  capability reports the instance's actual answer.
+- **Production and Sandbox** both verify against Apple's real root,
+  `APPLE_ROOT_CA_G3_PEM` (`paid/billing/lib/apple/roots.ts`) — Apple signs
+  both with the same chain, only the `environment` field tells them apart.
+- **`Xcode`** (the Simulator's local StoreKit test certificate, which has no
+  path to Apple's real root at all) verifies only against a separately
+  pinned root, **`APPLE_XCODE_ROOT_PEM`** — set on dev, never in production.
+  Without it, an `Xcode`-environment transaction is refused outright even
+  when `Xcode` is on the allowlist.
+
+**Dev** (testing both ways the owner asked for, 2026-10-01): set
+`APPLE_ENVIRONMENTS=Production,Sandbox,Xcode` and `APPLE_XCODE_ROOT_PEM` (the
+PEM Xcode's own StoreKit configuration signs with) to exercise the Simulator
+against dev. A real sandbox tester (e.g. `tester@severin.io`) needs only
+`Sandbox` on the allowlist — their purchases already chain to Apple's real
+root.
+
+**Production (fernscout.ch) must stay Production-only** — leave
+`APPLE_ENVIRONMENTS` unset there, and never set `APPLE_XCODE_ROOT_PEM`.
+
 `paid/test/credits.test.ts`'s plan-grant allowlist enforces this
 mechanically, the same way it already enforces "only sanctioned code grants
 credits".

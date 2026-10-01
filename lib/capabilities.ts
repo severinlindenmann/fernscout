@@ -3,6 +3,7 @@ import path from "node:path";
 import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES, loadServerConfig, type FeatureName } from "./config";
 import { getUser } from "./users";
 import { addressLookupEndpoints } from "./addressLookup";
+import { allowedAppleEnvironments } from "./apple/environments";
 import { reviewLoginNote } from "./auth/reviewLogin";
 import { PAID_AREAS } from "@paid/manifest";
 
@@ -359,6 +360,18 @@ function addressLookupNote(name: FeatureName): string | undefined {
 }
 
 /**
+ * B2633. `billing` being on says nothing about which Apple environments an
+ * in-app purchase or notification may claim — that is `APPLE_ENVIRONMENTS`,
+ * checked in `paid/billing/lib/apple/`, and this is where an operator finds
+ * out the instance's actual answer rather than discovering it from a
+ * Sandbox tester's receipt.
+ */
+function appleEnvironmentsNote(name: FeatureName): string | undefined {
+  if (name !== "billing") return undefined;
+  return `Apple in-app purchases and notifications are accepted from: ${allowedAppleEnvironments().join(", ")}`;
+}
+
+/**
  * Who this instance will actually take, which `enabled: true` does not say.
  *
  * Since B1693 `signup` has no `enabled` switch: it is on wherever the server
@@ -661,6 +674,7 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
     applePushNote(name, feature) ??
     backendDryRunNote(name, feature) ??
     addressLookupNote(name) ??
+    appleEnvironmentsNote(name) ??
     signupNote(name, feature) ??
     iosAppNote(name, feature) ??
     (name === "auth" ? reviewLoginNote() : undefined);
