@@ -20,6 +20,7 @@
 		B2330A000000000000000002 /* MediaUploadPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2330A000000000000000001 /* MediaUploadPlugin.swift */; };
 		B2330A000000000000000004 /* MediaUploadSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2330A000000000000000003 /* MediaUploadSession.swift */; };
 		B2598A000000000000000002 /* AppleIAPPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2598A000000000000000001 /* AppleIAPPlugin.swift */; };
+		B2657A000000000000000002 /* InAppCheckoutPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2657A000000000000000001 /* InAppCheckoutPlugin.swift */; };
 		B2196A000000000000000011 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B2196A000000000000000007 /* InfoPlist.strings */; };
 		B2175A000000000000000015 /* ShareInbox.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2175A000000000000000002 /* ShareInbox.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
@@ -50,6 +51,7 @@
 		B2330A000000000000000001 /* MediaUploadPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaUploadPlugin.swift; sourceTree = "<group>"; };
 		B2330A000000000000000003 /* MediaUploadSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaUploadSession.swift; sourceTree = "<group>"; };
 		B2598A000000000000000001 /* AppleIAPPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIAPPlugin.swift; sourceTree = "<group>"; };
+		B2657A000000000000000001 /* InAppCheckoutPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppCheckoutPlugin.swift; sourceTree = "<group>"; };
 		B2598A000000000000000003 /* Fernscout.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Fernscout.storekit; sourceTree = "<group>"; };
 		B2196A000000000000000008 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B2196A000000000000000009 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -121,6 +123,7 @@
 				B2330A000000000000000003 /* MediaUploadSession.swift */,
 				B2598A000000000000000001 /* AppleIAPPlugin.swift */,
 				B2598A000000000000000003 /* Fernscout.storekit */,
+				B2657A000000000000000001 /* InAppCheckoutPlugin.swift */,
 				B2175A00000000000000000F /* App.entitlements */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -290,6 +293,7 @@
 				B2330A000000000000000002 /* MediaUploadPlugin.swift in Sources */,
 				B2330A000000000000000004 /* MediaUploadSession.swift in Sources */,
 				B2598A000000000000000002 /* AppleIAPPlugin.swift in Sources */,
+				B2657A000000000000000002 /* InAppCheckoutPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

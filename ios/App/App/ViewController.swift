@@ -26,6 +26,7 @@ class ViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(LocationRecorderPlugin())
         bridge?.registerPluginInstance(ServerChoicePlugin())
         bridge?.registerPluginInstance(MediaUploadPlugin())
+        bridge?.registerPluginInstance(InAppCheckoutPlugin())
         // B2655 — never registered, so no in-app purchase could ever start.
         if #available(iOS 15.0, *) {
             bridge?.registerPluginInstance(AppleIAPPlugin())
