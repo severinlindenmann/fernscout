@@ -23,7 +23,7 @@ import { buildStoryProps } from "@/lib/tripView";
 import { createTrip } from "@/lib/tripWrite";
 import { getTrips } from "@/lib/trips";
 import { clearUserCache } from "@/lib/users";
-import { writeDayFixture, writeTripFixture } from "./fixtures/content";
+import { writeDayFixture } from "./fixtures/content";
 
 /**
  * B2640 — "Zeit pro Land" showed the stored free-text country ("Spanien") in
