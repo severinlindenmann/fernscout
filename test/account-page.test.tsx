@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import AccountPageContent, { type StoragePanel } from "@/app/at/[user]/account/AccountPageContent";
+import AccountPageContent, { type PlanPanel, type StoragePanel } from "@/app/at/[user]/account/AccountPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -43,7 +43,7 @@ const site = {
   base: "/alex",
 } as unknown as SiteSummary;
 
-function render(over: { storage?: StoragePanel } = {}) {
+function render(over: { storage?: StoragePanel; plan?: PlanPanel } = {}) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <SiteProvider value={site}>
@@ -52,6 +52,7 @@ function render(over: { storage?: StoragePanel } = {}) {
             <AccountPageContent
               username="alex"
               storage={over.storage}
+              plan={over.plan}
               orders={{ recent: [], total: 0 }}
             />
           </TripListProvider>
@@ -111,5 +112,118 @@ describe("neither panel", () => {
   test("says something rather than rendering two empty cards", () => {
     const html = render({});
     expect(html).toContain(dictionaryFor("en")["me.accountCardBody"]);
+  });
+
+  test("names no balance or credits — B2622", () => {
+    const html = render({});
+    expect(html.toLowerCase()).not.toContain("balance");
+    expect(html.toLowerCase()).not.toContain("credit");
+  });
+});
+
+/**
+ * "Your plan" — B2622's rework to the approved board. First on the page
+ * (above the orders card), with meters for AI days, storage and included
+ * postcards, the photobook discount, a cancel link only for a live Stripe
+ * subscription, and no credit-era wording anywhere.
+ */
+describe("the plan panel", () => {
+  const plusRenewing: PlanPanel = {
+    plan: "plus",
+    periodEnd: "2027-09-30T00:00:00.000Z",
+    cancelAtPeriodEnd: false,
+    renews: true,
+    aiDays: { unlimited: false, used: 34, allowed: 100 },
+    storageGb: 10,
+    hasStripeSubscription: true,
+    source: "stripe",
+    postcards: { used: 2, allowed: 3 },
+    bookDiscountRappen: 1000,
+  };
+
+  test("shows the plan name first, ahead of the orders card", () => {
+    const html = render({
+      plan: plusRenewing,
+      storage: {
+        used: "4.1 GB",
+        limit: "10.0 GB",
+        percent: 41,
+        rows: [],
+        reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false },
+      },
+    });
+    expect(html.indexOf("Your plan")).toBeLessThan(html.indexOf("Storage"));
+    expect(html).toContain("Plus");
+    expect(html).toContain("Active");
+    expect(html).toContain("Renews 2027-09-30");
+  });
+
+  test("meters AI days, storage, postcards and the photobook discount", () => {
+    const html = render({
+      plan: plusRenewing,
+      storage: {
+        used: "4.1 GB",
+        limit: "10.0 GB",
+        percent: 41,
+        rows: [],
+        reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false },
+      },
+    });
+    expect(html).toContain("34 of 100");
+    expect(html).toContain("4.1 GB of 10.0 GB");
+    expect(html).toContain("1 of 3 left");
+    expect(html).toContain("CHF 10.00 off each");
+  });
+
+  test("a live Stripe subscription gets a cancel link and what it means", () => {
+    const html = render({ plan: plusRenewing });
+    expect(html).toContain("Cancel Plus");
+    expect(html).toContain("runs until 2027-09-30");
+    expect(html).toContain("Payment method and receipts");
+  });
+
+  test("a plan heading toward its end — no subscription, no cancel link — explains what ending means", () => {
+    const pass: PlanPanel = {
+      plan: "pass",
+      periodEnd: "2026-11-01T00:00:00.000Z",
+      cancelAtPeriodEnd: false,
+      renews: false,
+      aiDays: { unlimited: false, used: 3, allowed: 21 },
+      storageGb: 10,
+      hasStripeSubscription: false,
+      source: "stripe",
+      postcards: { used: 0, allowed: 1 },
+      bookDiscountRappen: 0,
+    };
+    const html = render({ plan: pass });
+    expect(html).not.toContain("Cancel");
+    expect(html).toContain("Ending");
+    expect(html).toContain("Ends 2026-11-01");
+    expect(html).toContain("ends on 2026-11-01");
+    expect(html).not.toContain("off each"); // no photobook discount on the pass
+  });
+
+  test("Free offers both buy buttons and no renew/end date", () => {
+    const free: PlanPanel = {
+      plan: "free",
+      periodEnd: null,
+      cancelAtPeriodEnd: false,
+      renews: false,
+      aiDays: { unlimited: false, used: 2, allowed: 10 },
+      storageGb: 2,
+      hasStripeSubscription: false,
+      source: null,
+      postcards: null,
+      bookDiscountRappen: 0,
+    };
+    const html = render({ plan: free });
+    expect(html).toContain("Buy a Trip pass");
+    expect(html).toContain("Subscribe to Plus");
+    expect(html).not.toContain("Renews");
+    expect(html).not.toContain("Ends ");
+  });
+
+  test("is absent when billing is off", () => {
+    expect(render({})).not.toContain("Your plan");
   });
 });

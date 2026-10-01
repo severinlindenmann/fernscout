@@ -4,6 +4,7 @@ import LocaleProvider from "@/components/LocaleProvider";
 import { YourDevices, type HomeDevice, type HomeJournal, type HomeTrip } from "@/components/HomeJournals";
 import SignedInHome, { pickContinue } from "@/components/home/SignedInHome";
 import SignedInHeader from "@/components/home/SignedInHeader";
+import { PlanStatusCard } from "@/app/me/AccountPage";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
@@ -227,5 +228,66 @@ describe("the signed-in header", () => {
     expect(html).toContain('href="/me"');
     expect(html).not.toContain('href="/admin"');
     expect(header([journal({ role: "guest" })], true, true)).toContain('href="/admin"');
+  });
+});
+
+/**
+ * `/me`'s compact plan card — B2622. Deliberately small: plan, renews/ends,
+ * AI days left, and a button to the full "Your plan" panel on the studio
+ * account page — not the meters and buy/cancel buttons that live there.
+ */
+describe("the /me plan status card", () => {
+  type CardJournal = Parameters<typeof PlanStatusCard>[0]["journal"];
+  const owned = (plan: CardJournal["plan"]): CardJournal => ({
+    ...journal(),
+    role: "owner",
+    plan,
+  });
+
+  test("names the plan, the renewal date and the AI days left, and links to the account page", () => {
+    const html = render(
+      <PlanStatusCard
+        journal={owned({
+          plan: "plus",
+          periodEnd: "2027-09-30T00:00:00.000Z",
+          cancelAtPeriodEnd: false,
+          renews: true,
+          aiDays: { unlimited: false, used: 34, allowed: 100 },
+          storageGb: 10,
+          hasStripeSubscription: true,
+          source: "stripe",
+          postcards: { used: 2, allowed: 3 },
+          bookDiscountRappen: 1000,
+        })}
+      />,
+    );
+    expect(html).toContain("Plus");
+    expect(html).toContain("Renews 2027-09-30");
+    expect(html).toContain("34 of 100 AI days used");
+    expect(html).toContain('href="/@ana/studio/account"');
+    expect(html).toContain("Manage your plan");
+  });
+
+  test("Free has no renew/end date but still says the AI days left", () => {
+    const html = render(
+      <PlanStatusCard
+        journal={owned({
+          plan: "free",
+          periodEnd: null,
+          cancelAtPeriodEnd: false,
+          renews: false,
+          aiDays: { unlimited: false, used: 2, allowed: 10 },
+          storageGb: 2,
+          hasStripeSubscription: false,
+          source: null,
+          postcards: null,
+          bookDiscountRappen: 0,
+        })}
+      />,
+    );
+    expect(html).toContain("Free");
+    expect(html).not.toContain("Renews");
+    expect(html).not.toContain("Ends ");
+    expect(html).toContain("2 of 10 AI days used");
   });
 });

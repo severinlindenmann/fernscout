@@ -6,14 +6,12 @@ import AccountPageContent, {
 } from "../../account/AccountPageContent";
 import StudioPage from "@/components/studio/StudioPage";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
-import { isEnabled } from "@/lib/capabilities";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { listAllOrders } from "@paid/printOrder/lib/orders";
 import { cleanupPlan } from "@/lib/storageCleanup";
 import { formatBytes, storageBreakdown, storageFor, worthShowing } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
-import { entitlementHistory, planOf } from "@paid/credits/lib/entitlements";
-import { aiDaysStatus } from "@paid/credits/lib/aiDays";
+import { planSummaryFor } from "@/lib/billingSummary";
 
 /**
  * Storage and plan — B821, moved whole here from `/[user]/account` by
@@ -97,30 +95,9 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
   const orders = { recent: allOrders.slice(0, 3), total: allOrders.length };
 
   // "Your plan" — B2593. Absent when `billing` is off, the same "absent, not
-  // shown empty" rule `storage` already follows.
-  let plan: PlanPanel | undefined;
-  if (isEnabled("billing")) {
-    const current = await planOf(user);
-    const status = await aiDaysStatus(user);
-    const live = current.unlimited
-      ? undefined
-      : (await entitlementHistory(user)).find(
-          (e) => (e.status === "active" || e.status === "grace") && e.plan === current.plan,
-        );
-    plan = {
-      plan: current.plan,
-      periodEnd: current.unlimited ? null : current.periodEnd,
-      cancelAtPeriodEnd: live?.cancelAtPeriodEnd ?? false,
-      renews:
-        current.plan === "plus" &&
-        (current.source === "stripe" || current.source === "apple") &&
-        !(live?.cancelAtPeriodEnd ?? false),
-      aiDays: status.unlimited ? { unlimited: true } : { unlimited: false, used: status.used, allowed: status.allowed },
-      storageGb: current.limits.storageGb,
-      hasStripeSubscription: current.plan === "plus" && current.source === "stripe",
-      source: current.source,
-    };
-  }
+  // shown empty" rule `storage` already follows. `planSummaryFor` is the one
+  // place this is read — `/me`'s own plan card (B2622) asks it too.
+  const plan: PlanPanel | undefined = await planSummaryFor(user);
 
   return (
     <StudioPage username={user} group="journal" title={translateIn(await requestLocale(), "studio.hub.item.account.title")}>
