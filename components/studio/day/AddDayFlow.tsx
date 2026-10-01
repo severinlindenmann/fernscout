@@ -25,6 +25,7 @@ import SpeakFlow, { RatherTalk, TellByChoice } from "@/components/studio/day/Spe
 import type { TellBy } from "@/lib/studio/speak";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
+import { splitIntoParts, type DayPart } from "@/lib/studio/dayParts";
 import { slugify } from "@/lib/slug";
 
 import { journalPath } from "@/lib/journalPath";
@@ -109,6 +110,10 @@ const FIELD = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border border-line-
 const TIME_FIELD = `${FIELD} appearance-none py-2.5 leading-6 [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:min-h-[1.5em]`;
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-ink-secondary";
 const LINK = "min-h-11 text-left text-sm font-semibold text-ink-body underline underline-offset-2";
+// B2627 — the inline split offer's own two buttons: normal buttons, never
+// the bar (the bar belongs to `StepPrimary`, one registrant at a time).
+const SPLIT_PRIMARY = "min-h-11 flex-1 rounded-full bg-action-strong px-4 text-base font-semibold text-on-action";
+const SPLIT_SECONDARY = "min-h-11 rounded-full border border-line-strong px-4 text-base font-semibold text-ink-strong hover:bg-surface-subtle";
 
 /**
  * "Add a day" — one page since B2188 (it was six screens and an eleven-row
@@ -136,6 +141,7 @@ export default function AddDayFlow({
   initialPhotos,
   currencies = [],
   asPart = null,
+  onSplit,
 }: {
   username: string;
   trips: { id: string; title: string; start: string; end: string }[];
@@ -187,8 +193,20 @@ export default function AddDayFlow({
     secondEntry: boolean;
     label: string;
     assistant: boolean;
+    /** B2627 — words typed in the composer before it was split into parts,
+     *  kept for this part alone (the flow hands them to part 1 only). */
+    initialContent?: string;
     onSaved: (saved: { slug: string; trip: string; date: string }) => void;
   } | null;
+  /**
+   * B2627 — offered when this instance is the plain composer (no `asPart`,
+   * or `asPart.photoIds` not yet narrowed to one part) and its own chosen
+   * photographs fall into two or more parts by the same rule a waiting-day
+   * card already offers. Called with those parts and the words typed so
+   * far; the flow (`DayFlow`) takes it from there — this composer never
+   * splits by itself.
+   */
+  onSplit?: (parts: DayPart[], content: string) => void;
 }) {
   const { t, tn, formatLongDate } = useI18n();
   const router = useRouter();
@@ -239,7 +257,10 @@ export default function AddDayFlow({
   const [mismatchKept, setMismatchKept] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(asPart?.initialContent ?? "");
+  // B2627 — "Keep it one day" dismisses the inline split offer for exactly
+  // this set of chosen photographs; picking a different photo brings it back.
+  const [splitDismissedFor, setSplitDismissedFor] = useState<string | null>(null);
 
   // The place, once the owner has said anything about it (changed, removed,
   // taken the route's suggestion). Until then it is read off the photographs.
@@ -445,6 +466,20 @@ export default function AddDayFlow({
 
   /** What will be written: the list's own order, deduplicated by id. */
   const chosenPhotos = (inboxItems ?? []).filter((i) => selectedIds.includes(i.id));
+
+  // B2627 — the composer's own chosen photographs, offered as parts the same
+  // way a waiting-day card already is. Never while this instance is already
+  // one part of that flow (`asPart.photoIds` narrowed), never with no
+  // `onSplit` to hand the choice to, and never while any chosen photograph
+  // is still an offline-queued placeholder with no real `takenAt` to split
+  // on yet.
+  const pendingChosen = chosenPhotos.some((i) => i.id in pendingPhotoUrls);
+  const splitCandidate =
+    !asPart?.photoIds && onSplit && !pendingChosen
+      ? splitIntoParts(chosenPhotos.map((i) => ({ id: i.id, takenAt: i.takenAt, lat: i.lat, lon: i.lon }))).parts
+      : [];
+  const chosenSignature = selectedIds.slice().sort().join(",");
+  const offerSplitHere = splitCandidate.length >= 2 && splitDismissedFor !== chosenSignature;
 
   // ── the facts, each with where it came from ─────────────────────────
   const fromPhotos = dateFromPhotos(chosenPhotos);
@@ -1170,6 +1205,38 @@ export default function AddDayFlow({
 
       {show("words") && (
         <div className="mt-4">
+          {offerSplitHere && (
+            <div className="mb-4 rounded-2xl border border-line-strong bg-surface-raised p-4">
+              <h2 className="font-display text-lg font-semibold text-ink-strong">
+                {tn("studio.flow.splitTitle", splitCandidate.length, { count: String(splitCandidate.length) })}
+              </h2>
+              <ol className="mt-2 space-y-1 text-sm text-ink-body">
+                {splitCandidate.map((p, i) => (
+                  <li key={i}>
+                    {tn("studio.flow.partLine", p.ids.length, {
+                      index: String(i + 1),
+                      range: [p.from, p.to].filter(Boolean).join("–") || "—",
+                      count: String(p.ids.length),
+                    })}
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-2 text-xs text-ink-secondary">{t("studio.flow.splitWhy")}</p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" className={SPLIT_SECONDARY} onClick={() => setSplitDismissedFor(chosenSignature)}>
+                  {t("studio.flow.splitNo")}
+                </button>
+                <button type="button" className={SPLIT_PRIMARY} onClick={() => {
+                    // The one-day draft is not left behind to be offered
+                    // back later: the parts carry these photos and words now.
+                    reset();
+                    onSplit!(splitCandidate, content);
+                  }}>
+                  {tn("studio.flow.splitYes", splitCandidate.length, { count: String(splitCandidate.length) })}
+                </button>
+              </div>
+            </div>
+          )}
           <label htmlFor="studio-day-words" className={part === "words" ? "block font-display text-lg font-semibold text-ink-strong" : LABEL}>
             {t("studio.day.whatHappened.heading")}
           </label>
