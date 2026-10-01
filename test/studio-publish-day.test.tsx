@@ -117,7 +117,10 @@ describe("PublishDayFlow", () => {
     root = undefined;
   });
 
-  async function mount(chosen: PublishRow | null, extra: { blank?: string[]; readers?: string[] | null } = {}) {
+  async function mount(
+    chosen: PublishRow | null,
+    extra: { blank?: string[]; chosenBlank?: string[]; readers?: string[] | null; also?: (PublishRow & { blank: string[] })[] } = {},
+  ) {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -165,6 +168,37 @@ describe("PublishDayFlow", () => {
       expect.objectContaining({ method: "POST", body: "{}" }),
     ]);
     expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is published.");
+  });
+
+  test("the done screen survives the refresh that drops the day from the drafts", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
+    await mount(ROW);
+    await act(async () => [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day")!.click());
+    // What router.refresh() does to the page: the published day is no longer a draft.
+    await act(async () => {
+      root!.render(
+        <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
+          <StudioBarProvider username={OWNER}>
+            <PublishDayFlow username={OWNER} rows={[]} chosen={null} missing={false} takeDown={false} />
+          </StudioBarProvider>
+        </LocaleProvider>,
+      );
+    });
+    expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is published.");
+  });
+
+  test("TIX-2: the other parts go up first, quietly, each declining only its own blanks", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const second = { ...ROW, slug: "open-2", time: "11:20", blank: ["costs", "tags"] };
+    await mount(ROW, { blank: ["costs", "location", "tags"], chosenBlank: ["location"], also: [second] });
+    expect(container!.querySelector("[data-also]")!.textContent).toContain("11:20 · Open");
+    await act(async () => [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish all 2 parts")!.click());
+    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    expect(calls.map(([url, init]) => [url, JSON.parse(init.body as string)])).toEqual([
+      ["/api/web/alex/trips/alps/days/open-2/publish", { declineOpen: ["costs", "tags"] }],
+      ["/api/web/alex/trips/alps/days/open/publish", { declineOpen: ["location"] }],
+    ]);
   });
 
   test("B2192: the confirm names the blanks and the readers, and the tap sends exactly those blanks", async () => {

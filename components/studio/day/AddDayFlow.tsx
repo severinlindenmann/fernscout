@@ -124,12 +124,13 @@ export default function AddDayFlow({
   polishAiAvailable = null,
   routeRecordingAvailable = false,
   weatherAvailable = false,
-  speech = null,
+  speech: speechProp = null,
   readersByTrip = {},
   initialTripId,
   tellBy = null,
   initialPhotos,
   currencies = [],
+  asPart = null,
 }: {
   username: string;
   trips: { id: string; title: string; start: string; end: string }[];
@@ -163,12 +164,32 @@ export default function AddDayFlow({
   initialPhotos?: string;
   /** B2233 — `journalCurrencies`, base first, for a cost line. */
   currencies?: string[];
+  /**
+   * TIX-2 — this composer writes one part of a longer flow (`DayFlow`). Its
+   * photos are exactly `photoIds`, its time starts at `time` (the part's
+   * first photo), a later part of the same date goes in as a second entry,
+   * and saving hands the new day to `onSaved` instead of showing the saved
+   * screen. Polish moves to the flow's check step; the microphone follows the
+   * owner's assistant choice; the first-run steps and the "how do you like to
+   * tell it" question belong to the flow, not to each part.
+   */
+  asPart?: {
+    key: string;
+    photoIds: string[] | null;
+    time: string;
+    secondEntry: boolean;
+    label: string;
+    assistant: boolean;
+    onSaved: (saved: { slug: string; trip: string; date: string }) => void;
+  } | null;
 }) {
   const { t, tn, formatLongDate } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const todayIso = proposal?.today ?? new Date().toISOString().slice(0, 10);
-  const firstRun = Object.values(writtenDatesByTrip).every((dates) => dates.length === 0);
+  const firstRun = !asPart && Object.values(writtenDatesByTrip).every((dates) => dates.length === 0);
+  // TIX-2 — inside the flow, the microphone is the assistant's: off, it is absent.
+  const speech = asPart && !asPart.assistant ? null : speechProp;
   const proposedToday = proposal?.trip.status === "current" ? proposal.today : "";
 
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -176,8 +197,8 @@ export default function AddDayFlow({
   const [tripOverride, setTripOverride] = useState("");
   const [dateOverride, setDateOverride] = useState("");
   const [collision, setCollision] = useState<ExistingDayOnDate | null>(null);
-  const [time, setTime] = useState("");
-  const [confirmedSecondEntry, setConfirmedSecondEntry] = useState(false);
+  const [time, setTime] = useState(asPart?.time ?? "");
+  const [confirmedSecondEntry, setConfirmedSecondEntry] = useState(asPart?.secondEntry ?? false);
 
   const [inboxItems, setInboxItems] = useState<InboxMediaItem[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -240,12 +261,12 @@ export default function AddDayFlow({
   const [tellByNow, setTellByNow] = useState(tellBy);
   const [spoken, setSpoken] = useState(false);
   const mode = params.get("mode");
-  const askTellBy = !!speech && tellByNow === null && mode === null;
-  const speaking = !!speech && (mode === "speak" || (mode !== "type" && tellByNow === "speak"));
+  const askTellBy = !asPart && !!speech && tellByNow === null && mode === null;
+  const speaking = !asPart && !!speech && (mode === "speak" || (mode !== "type" && tellByNow === "speak"));
 
   const dirty = content.trim() !== "" || title.trim() !== "" || dateOverride !== "" || tripOverride !== "";
   const { step, index, total, go, reset } = useStep(FIRST_RUN, {
-    flowId: addDayFlowId(username),
+    flowId: asPart ? `${addDayFlowId(username)}:${asPart.key}` : addDayFlowId(username),
     draft: {
       // `step` is what the hub's strip reads: a page nobody has typed on is
       // not "half done".
@@ -329,9 +350,11 @@ export default function AddDayFlow({
       .then((json: { media?: InboxMediaItem[] }) => {
         const items = oldestFirst(json.media ?? []);
         setInboxItems((prev) => mergeById(items, prev ?? []));
-        if (initialPhotos) {
+        if (asPart?.photoIds || initialPhotos) {
           photosInit.current = true;
-          const card = photosInGroup(items, initialPhotos).map((i) => i.id);
+          const card = asPart?.photoIds
+            ? items.filter((i) => asPart.photoIds!.includes(i.id)).map((i) => i.id)
+            : photosInGroup(items, initialPhotos!).map((i) => i.id);
           setSelectedIds(card);
           setOwnIds(card);
           setDateOverride("");
@@ -570,7 +593,14 @@ export default function AddDayFlow({
         return;
       }
       // B2058 — the route answers with the v2 day id (`<date>-<slug>`).
-      setCreatedSlug(json.slug.startsWith(`${date}-`) ? json.slug.slice(date.length + 1) : json.slug);
+      const created = json.slug.startsWith(`${date}-`) ? json.slug.slice(date.length + 1) : json.slug;
+      if (asPart) {
+        reset();
+        router.refresh();
+        asPart.onSaved({ slug: created, trip: tripId, date });
+        return;
+      }
+      setCreatedSlug(created);
       setOutcome("saved");
       reset();
       // B2549 — the studio's own lists and the trip page have one more day.
@@ -797,7 +827,12 @@ export default function AddDayFlow({
     setMismatchKept(false);
     setDateOverride(d);
   };
-  const { own: dayPhotos, others: waitingPhotos } = splitDayPhotos(inboxItems ?? [], date, new Set([...selectedIds, ...ownIds]));
+  const split = splitDayPhotos(inboxItems ?? [], date, new Set([...selectedIds, ...ownIds]));
+  // TIX-2 — a part shows its own photographs; the rest of the date's wait
+  // under "Add more", so a tap never moves one into the wrong part by accident.
+  const inPart = (i: InboxMediaItem) => !asPart?.photoIds || asPart.photoIds.includes(i.id) || selectedIds.includes(i.id) || ownIds.includes(i.id);
+  const dayPhotos = split.own.filter(inPart);
+  const waitingPhotos = [...split.own.filter((i) => !inPart(i)), ...split.others];
   const shownPhotos = showAllPhotos ? dayPhotos : dayPhotos.slice(0, 8);
   const tile = (item: InboxMediaItem) => {
     const on = selectedIds.includes(item.id);
@@ -1089,19 +1124,22 @@ export default function AddDayFlow({
               />
             )}
           </div>
-          <p className="mt-1 text-xs text-ink-secondary">
-            {t("studio.day.whatHappened.nothingInvented")}
-          </p>
-          {/* B2236 — the quiet way back to Speak once it isn't the answer. */}
-          <RatherTalk username={username} speech={speech} tellBy={tellByNow} />
-          {/* B2190 — "Polish my text", directly under the box it rewrites. */}
-          <PolishText
-            username={username}
-            trip={tripId}
-            text={content}
-            onUse={setContent}
-            aiAvailable={polishAiAvailable}
-          />
+          <p className="mt-1 text-xs text-ink-secondary">{t("studio.day.whatHappened.nothingInvented")}</p>
+          {!asPart && (
+            <>
+              {/* B2236 — the quiet way back to Speak once it isn't the answer. */}
+              <RatherTalk username={username} speech={speech} tellBy={tellByNow} />
+              {/* B2190 — "Polish my text", directly under the box it rewrites.
+                  TIX-2: inside the flow it is the check step's job. */}
+              <PolishText
+                username={username}
+                trip={tripId}
+                text={content}
+                onUse={setContent}
+                aiAvailable={polishAiAvailable}
+              />
+            </>
+          )}
           {part === "words" && <StepPrimary onClick={() => go("save")} label={t("studio.day.firstRun.toSave")} />}
         </div>
       )}
@@ -1150,7 +1188,7 @@ export default function AddDayFlow({
             disabled={!tripId || !date || extras.costs.some(lineProblem)}
             tone="bg-yellow-400 text-yellow-950"
             onClick={save}
-            label={t("studio.day.save")}
+            label={asPart?.label ?? t("studio.day.save")}
           />
         </>
       )}

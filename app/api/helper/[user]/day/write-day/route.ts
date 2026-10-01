@@ -1,8 +1,8 @@
 import { isEnabled } from "@/lib/capabilities";
 import { checkAiDay, recordAiDay } from "@paid/credits/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { HELPER_PROVIDER, writeDay, type DayFacts, type WriteDayMode } from "@/lib/helper/model";
-import { checkPolishForAddedFacts } from "@/lib/helper/polishGuard";
+import { HELPER_PROVIDER, suggestTitles, writeDay, type DayFacts, type WriteDayMode } from "@/lib/helper/model";
+import { checkPolishForAddedFacts, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
 import { WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/credits";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { note, refused } from "@/lib/helper/thread";
@@ -117,10 +117,12 @@ export async function POST(
     }
   }
 
-  // `polish` (B2190) reworks the owner's own already-written text; anything
+  // `polish` (B2190) reworks the owner's own already-written text; `titles`
+  // (TIX-2) suggests up to two short titles from the notes alone. Anything
   // else — including no field at all, which is every existing caller,
   // WhatsApp's `draft_words` included — keeps the original `draft` behaviour.
-  const mode: WriteDayMode = text(body.mode) === "polish" ? "polish" : "draft";
+  const modeField = text(body.mode);
+  const mode: WriteDayMode = modeField === "polish" ? "polish" : modeField === "titles" ? "titles" : "draft";
 
   // Before the first model call ever made for this journal, and before the
   // AI-day gate — a day taken for a call that consent would have refused
@@ -161,6 +163,28 @@ export async function POST(
   if (!gate.ok) {
     refused(user, "draft_words", "plan_limit");
     return Response.json(gate.refusal, { status: 402 });
+  }
+
+  // `titles` (TIX-2) is its own short branch: no draft/polish prose, no
+  // thread note (the same reasoning `polish` already gives — this is a
+  // one-shot side-by-side preview, not a proposal the model could chain
+  // into `set_day_words`). Suggested, never kept on its own say-so: each
+  // title is also checked here against `titleIsGroundedInNotes`
+  // (`lib/helper/polishGuard.ts`) and dropped if it fails, the prompt in
+  // `TITLES_SYSTEM_PROMPT` being the first line and not the guard.
+  if (mode === "titles") {
+    let suggested: string[];
+    try {
+      suggested = await suggestTitles(notes, facts, user);
+    } catch {
+      refused(user, "draft_words", "model_failed");
+      return Response.json({ error: "model_failed" }, { status: 502 });
+    }
+    await recordAiDay(user, tripId, facts.date);
+    const titles = suggested.filter((t) => titleIsGroundedInNotes(notes, t));
+    const answer = { ok: true, titles, aiDay: facts.date || null, provider: HELPER_PROVIDER };
+    await remember(key, fingerprint, answer);
+    return Response.json(answer);
   }
 
   let written;

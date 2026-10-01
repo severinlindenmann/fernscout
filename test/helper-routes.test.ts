@@ -253,8 +253,14 @@ describe("the helper routes", () => {
   // `storage/cleanup` and from `account` above) was deleted whole in
   // B2592 — whatever it answered duplicated `account`'s own storage figure,
   // and B2592 left `account` as the one route for it.
-  test("there are sixty-four of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(64);
+  // Sixty-five and sixty-six: `day/read-receipt` and `day/travel` — TIX-2's
+  // add-a-day flow. `read-receipt` reads a printed total/currency/label off
+  // one photograph (never writing a cost on its own); `travel` sums
+  // recorded kilometres by mode for one part of a day, built on
+  // `ownerDayLine` so it adds no new reader of the GPS store. Same cookie,
+  // same owner check as the sixty-four before them.
+  test("there are sixty-six of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(66);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

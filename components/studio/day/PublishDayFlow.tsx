@@ -59,7 +59,9 @@ export default function PublishDayFlow({
   missing,
   takeDown,
   tell = null,
+  also = [],
   blank = [],
+  chosenBlank = blank,
   readers = null,
 }: {
   username: string;
@@ -71,8 +73,12 @@ export default function PublishDayFlow({
   /** TIX-6 — who this day could reach, by reader group, and what the owner
    *  chose last time on this trip. Null on the take-down list. */
   tell?: (TellProps & { choice: { groups: string[] | null; mail: boolean } | null }) | null;
+  /** TIX-2 — more parts of the chosen date, going up together with it. */
+  also?: (PublishRow & { blank: string[] })[];
   /** B2192 — the chosen draft's declinables still blank (`blankFieldsOf`). */
   blank?: string[];
+  /** TIX-2 — the chosen part's own blanks when `blank` covers several parts. */
+  chosenBlank?: string[];
   /** B2192 — its readers by name (`readersOf`); `null` where it is "anyone". */
   readers?: string[] | null;
 }) {
@@ -82,7 +88,9 @@ export default function PublishDayFlow({
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [done, setDone] = useState(false);
+  // The row as it was published: after the refresh the server no longer
+  // lists it as a draft, so `chosen` comes back empty.
+  const [done, setDone] = useState<PublishRow | null>(null);
   // B2259 — the row whose "Delete…" is asking, and the one just deleted.
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleted, setDeleted] = useState<PublishRow | null>(null);
@@ -118,18 +126,35 @@ export default function PublishDayFlow({
     const url = `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(row.tripId)}/days/${encodeURIComponent(row.slug)}/${takeDown ? "unpublish" : "publish"}`;
     // The blanks this sheet named — the server checks each is really blank.
     // `visibility` is never sent: the studio does not answer it by leaving it.
-    const declineOpen = takeDown ? [] : blank.filter((field) => field !== "visibility");
+    const declineOpen = takeDown ? [] : chosenBlank.filter((field) => field !== "visibility");
     const body = JSON.stringify({
       ...(declineOpen.length > 0 ? { declineOpen } : {}),
       ...(!takeDown && tell ? { tell: { groups: tellGroups, mail: tellMail && (counts?.mailable ?? 0) > 0 } } : {}),
     });
+    // TIX-2 — the other parts of this date go up first and tell nobody; the
+    // chosen one goes last and tells whoever was picked, once — its day page
+    // shows every part of the date.
+    for (const extra of takeDown ? [] : also) {
+      const quiet = await fetch(
+        `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(extra.tripId)}/days/${encodeURIComponent(extra.slug)}/publish`,
+        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+          ...(extra.blank.some((f) => f !== "visibility") ? { declineOpen: extra.blank.filter((f) => f !== "visibility") } : {}),
+          ...(tell ? { tell: { groups: [], mail: false } } : {}),
+        }) },
+      ).catch(() => null);
+      if (!quiet?.ok) {
+        setBusy(false);
+        router.refresh();
+        return setError(t("studio.publish.failed"));
+      }
+    }
     const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }).catch(() => null);
     setBusy(false);
     if (response?.ok) {
       // B2549 — the day's own page (and the drafts/published lists) have to
       // stop showing its pre-publish state.
       router.refresh();
-      return setDone(true);
+      return setDone(row);
     }
     setError(response?.status === 422 ? t("studio.publish.incomplete") : t("studio.publish.failed"));
   }
@@ -152,13 +177,13 @@ export default function PublishDayFlow({
     );
   }
 
-  if (chosen && done) {
+  if (done) {
     return (
       <DoneScreen
         username={username}
-        done={t(takeDown ? "studio.publish.doneDown" : "studio.publish.done", { title: nameOf(chosen) })}
+        done={t(takeDown ? "studio.publish.doneDown" : "studio.publish.done", { title: nameOf(done) })}
         next={[
-          { title: nameOf(chosen), href: dayHref(chosen), label: t("studio.day.done.openDay") },
+          { title: nameOf(done), href: dayHref(done), label: t("studio.day.done.openDay") },
           {
             title: t(takeDown ? "studio.publish.anotherDown" : "studio.publish.another"),
             href: listHref,
@@ -194,6 +219,16 @@ export default function PublishDayFlow({
         <p className="text-sm text-ink-secondary">
           {chosen.tripTitle} · {formatLongDate(chosen.date)} · {tn("studio.publish.photos", chosen.photos, { count: String(chosen.photos) })}
         </p>
+        {also.length > 0 && (
+          <div data-also={also.length} className="mt-2 text-sm text-ink-body">
+            <p className="font-semibold text-ink-strong">{tn("studio.publish.parts", also.length + 1, { count: String(also.length + 1) })}</p>
+            <ul className="mt-1 list-disc pl-5">
+              {[chosen, ...also].map((row) => (
+                <li key={row.slug}>{[row.time, nameOf(row)].filter(Boolean).join(" · ")}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <Link href={dayHref(chosen)} className="mt-2 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
           {t("studio.publish.preview")}
         </Link>
@@ -238,15 +273,15 @@ export default function PublishDayFlow({
                 disabled
                 className="mt-3 min-h-11 cursor-not-allowed rounded-full bg-surface-neutral-strong px-5 text-base font-semibold text-ink-secondary"
               >
-                {t(takeDown ? "edit.takeDownConfirm" : "studio.publish.confirm")}
+                {(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
               </button>
               <p className="mt-2 text-sm text-ink-secondary">{t("studio.publish.offline")}</p>
             </div>
           ) : (
             <ConfirmPanel
-              label={t(takeDown ? "edit.takeDown" : "studio.publish.confirm")}
+              label={takeDown ? t("edit.takeDown") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm")}
               question={t(takeDown ? "edit.takeDownQuestion" : "studio.publish.question", { title: nameOf(chosen) })}
-              confirmLabel={t(takeDown ? "edit.takeDownConfirm" : "studio.publish.confirm")}
+              confirmLabel={(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
               busyLabel={t(takeDown ? "studio.publish.busyDown" : "studio.publish.busy")}
               tone={takeDown ? "destructive" : "commit"}
               busy={busy}

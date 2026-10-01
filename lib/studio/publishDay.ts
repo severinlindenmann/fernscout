@@ -27,6 +27,8 @@ export type PublishRow = {
   slug: string;
   title: string;
   date: string;
+  /** "HH:MM" when the entry has one — tells apart several parts of one date. */
+  time?: string;
   photos: number;
   audience: PublishAudience;
 };
@@ -51,6 +53,7 @@ export function daysToPublish(username: string, status: "draft" | "published"): 
         // Empty when untitled — the flow says the long date, never an ISO string.
         title: entry.title || "",
         date: entry.date,
+        ...(entry.time ? { time: entry.time } : {}),
         photos: entry.gallery.length,
         audience: narrowest,
       });

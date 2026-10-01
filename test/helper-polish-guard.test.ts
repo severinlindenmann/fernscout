@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkPolishForAddedFacts } from "@/lib/helper/polishGuard";
+import { checkPolishForAddedFacts, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
 
 describe("checkPolishForAddedFacts", () => {
   it("accepts reordering, punctuation and casing fixes", () => {
@@ -123,5 +123,44 @@ describe("checkPolishForAddedFacts", () => {
     const input = "őrs mellett sétáltunk sokáig";
     const output = "Őrs mellett sétáltunk sokáig.";
     expect(checkPolishForAddedFacts(input, output)).toEqual({ ok: true });
+  });
+});
+
+// TIX-2 — the guard behind `mode: "titles"` on write-day, owner decision
+// 2026-10-01: a title is dropped unless every content word in it already
+// appears, by stem, in the notes.
+describe("titleIsGroundedInNotes", () => {
+  it("accepts a title built only from the notes' own words", () => {
+    const notes = "Bus to the pass, three hours. Ate at the shack by the barrier.";
+    expect(titleIsGroundedInNotes(notes, "Bus to the pass")).toBe(true);
+  });
+
+  it("accepts reordering and casing changes", () => {
+    const notes = "we walked along the old harbour wall at dusk";
+    expect(titleIsGroundedInNotes(notes, "The Old Harbour Wall")).toBe(true);
+  });
+
+  it("rejects a title carrying a word the notes never had", () => {
+    const notes = "we walked along the old harbour wall at dusk";
+    expect(titleIsGroundedInNotes(notes, "An unforgettable evening")).toBe(false);
+  });
+
+  it("rejects a title naming a place the notes never named", () => {
+    const notes = "the old town was lovely, we wandered for hours";
+    expect(titleIsGroundedInNotes(notes, "A day in Zurich")).toBe(false);
+  });
+
+  it("ignores short connector words on both sides", () => {
+    const notes = "bus to the pass";
+    expect(titleIsGroundedInNotes(notes, "To the pass")).toBe(true);
+  });
+
+  it("tolerates inflection the way the polish guard does (stem matching)", () => {
+    const notes = "we stopped at grahams for lunch";
+    expect(titleIsGroundedInNotes(notes, "Lunch at Graham's")).toBe(true);
+  });
+
+  it("an empty title is trivially grounded", () => {
+    expect(titleIsGroundedInNotes("anything at all", "")).toBe(true);
   });
 });
