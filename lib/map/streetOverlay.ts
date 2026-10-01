@@ -287,7 +287,19 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         markers.set(place.day, mk);
       }
       const el = mk.getElement();
-      el.onclick = () => onSelectDay(place.day);
+      el.onclick = () => {
+        // Zoomed out past a place's own stops, a tap frames them all first
+        // (Reykjavík's two days, say); a tap once they're framed, or on a
+        // lone stop, opens the day — B2643.
+        const nearby = frame.regions.find((r) => r.places.some((p) => p.day === place.day))?.places ?? [];
+        const box = nearby.length > 1 ? boundsOf(nearby) : null;
+        const fitZoom = box ? map.cameraForBounds(box, { padding, maxZoom: 15 })?.zoom : undefined;
+        if (box && fitZoom !== undefined && map.getZoom() < fitZoom - 1) {
+          map.fitBounds(box, { padding, maxZoom: 15, duration: 600 });
+        } else {
+          onSelectDay(place.day);
+        }
+      };
       el.style.display = hide ? "none" : "";
       el.style.opacity = muted ? "0.4" : "1";
       const label = el.querySelector<HTMLElement>(".fs-daymarker-label");

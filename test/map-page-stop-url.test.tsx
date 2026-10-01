@@ -42,6 +42,8 @@ vi.mock("next/navigation", () => ({
 // Keep the real street overlay; replace only MapLibre's WebGL boundary.
 const street = vi.hoisted(() => ({
   fitBounds: vi.fn(),
+  // A camera already at the fit's own zoom — a tap opens the day (B2643).
+  cameraForBounds: vi.fn(() => ({ zoom: 10 })),
   setPadding: vi.fn(),
   getSource: vi.fn(() => ({ setData: vi.fn() })),
   getLayer: vi.fn(() => ({})),
@@ -368,4 +370,21 @@ test("the street map's camera keeps clear of the day sheet", async () => {
   render("", { streetMap });
   await act(async () => {});
   expect(street.setPadding).toHaveBeenCalledWith({ top: 0, right: 0, left: 0, bottom: expect.any(Number) });
+});
+
+// Zoomed out past a place's stops, a tap frames them first; once framed, a
+// tap opens the day (B2643).
+test("a tap on a stop zoomed far out frames its nearby stops before opening the day", async () => {
+  const el = render("", { streetMap, places });
+  await act(async () => {});
+  const furka = el.querySelector('[data-street-map] button[aria-label="Furka"]') as HTMLElement;
+  street.fitBounds.mockClear();
+  street.cameraForBounds.mockReturnValueOnce({ zoom: 14 });
+  click(furka);
+  await act(async () => {});
+  expect(window.location.search).toBe("");
+  expect(street.fitBounds).toHaveBeenCalledTimes(1);
+  click(furka);
+  await act(async () => {});
+  expect(window.location.search).toBe("?day=2024-09-01");
 });
