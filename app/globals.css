@@ -20,6 +20,17 @@
 @source "../paid/billing";
 /* The answer pages (B2489), same arrangement. */
 @source "../paid/guides";
+/* B2659 — the postcard and photobook composers, and the shared order view
+   they both feed (`OrderListItem`, the orders list), render real
+   `className`s too and were missing from this allowlist entirely: any
+   utility class not *also* typed verbatim somewhere under `app/` or
+   `components/` silently compiled to nothing, which is why the postcard
+   write step's "What it says" legend (`text-[0.62rem]`, found nowhere else
+   in the app) rendered at the browser's default font size and sat on top of
+   the message instead of on the card's own border. */
+@source "../paid/postcard";
+@source "../paid/photobook";
+@source "../paid/printOrder";
 @plugin "@tailwindcss/typography";
 
 :root {

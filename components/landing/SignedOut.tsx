@@ -6,6 +6,7 @@ import { Terminal } from "lucide-react";
 import AppWaitlistDoor from "@/components/AppWaitlistDoor";
 import { AgentBlock, LandingSteps } from "@/components/LandingSections";
 import { useI18n } from "@/components/LocaleProvider";
+import { useNativeShell } from "@/components/nativeShell";
 import { posterSrc } from "@/components/mediaLoader";
 import type { DemoDay } from "@/lib/demoDay";
 import { landingFaq, landingHero, landingHow, landingPrints, landingTrust } from "@/lib/landingContent";
@@ -140,7 +141,10 @@ export default function SignedOut(props: SignedOutProps) {
 function Hero(props: SignedOutProps & { cta: NavLink | null }) {
   const { demo, appStoreUrl, appWaitlistAvailable, cta } = props;
   const { t } = useI18n();
-  const hero = landingHero(t, props);
+  // B2659 — "no app" is false for a reader who opened this page inside the
+  // iPhone shell itself; `landingHero` picks the app-aware lede for them.
+  const nativeShell = useNativeShell();
+  const hero = landingHero(t, { ...props, nativeShell });
   const points = hero.points;
   return (
     <section
