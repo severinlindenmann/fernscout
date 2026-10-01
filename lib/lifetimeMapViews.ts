@@ -1,4 +1,4 @@
-import { frameRoute, type Frame, type Point } from "./mapFrame";
+import { DEG_PER_UNIT, frameRoute, type Frame, type Point } from "./mapFrame";
 import { basemapFor, type Basemap } from "./basemap";
 import { CONTINENT_KEY, SUBREGION_KEY } from "./mapRegions";
 import type { TranslationKey } from "./i18n";
@@ -22,8 +22,17 @@ const VIEW_MIN_SPAN_DEG = 6;
 /** A continent or area button is a continent-scale ask: one country there,
  * framed on a single city's stops, would otherwise fill the box with one
  * stretch of coastline (B2652). Still framed on real stops, never on the
- * country's whole outline. */
-const REGION_VIEW_MIN_SPAN_DEG = 25;
+ * country's whole outline. Applied by growing the finished frame about its
+ * centre, not as `frameRoute`'s `minSpanDeg` — that one also floors the
+ * padding on each side, which would widen every multi-country view too. */
+const REGION_VIEW_MIN_HEIGHT = 25 / DEG_PER_UNIT;
+
+function atLeastRegion(frame: Frame): Frame {
+  if (frame.h >= REGION_VIEW_MIN_HEIGHT) return frame;
+  const k = REGION_VIEW_MIN_HEIGHT / frame.h;
+  const w = frame.w * k;
+  return { ...frame, x: frame.x + (frame.w - w) / 2, y: frame.y + (frame.h - REGION_VIEW_MIN_HEIGHT) / 2, w, h: REGION_VIEW_MIN_HEIGHT };
+}
 
 export type LifetimeView = {
   /** "all", a continent's English name, or `${continent}\u0000${subregion}`. */
@@ -81,10 +90,10 @@ export function buildLifetimeViews(
   pointsByCode: ReadonlyMap<string, Point[]>,
   cornersByCode: ReadonlyMap<string, Point[]>,
 ): { views: LifetimeView[]; continents: ContinentButton[] } {
-  const frameFor = (codes: readonly string[], minSpanDeg = VIEW_MIN_SPAN_DEG): Frame =>
+  const frameFor = (codes: readonly string[]): Frame =>
     frameRoute(framePointsFor(codes, pointsByCode, cornersByCode), {
       padFraction: VIEW_PAD_FRACTION,
-      minSpanDeg,
+      minSpanDeg: VIEW_MIN_SPAN_DEG,
     });
 
   const allCodes = visited.map((v) => v.code);
@@ -115,7 +124,7 @@ export function buildLifetimeViews(
         labelKey,
         continent,
         countryCodes: codes,
-        frame: frameFor(codes, REGION_VIEW_MIN_SPAN_DEG),
+        frame: atLeastRegion(frameFor(codes)),
         basemap: null,
       });
     }
@@ -152,7 +161,7 @@ export function buildLifetimeViews(
           continent,
           subregion,
           countryCodes: areaCodes,
-          frame: frameFor(areaCodes, REGION_VIEW_MIN_SPAN_DEG),
+          frame: atLeastRegion(frameFor(areaCodes)),
           basemap: null,
         });
       }
