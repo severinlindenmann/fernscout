@@ -539,7 +539,6 @@ export type TranslationKey =
   | "billing.paymentFailed.title"
   | "billing.photobookDiscount"
   | "billing.photobooksLabel"
-  | "billing.plusCheckoutSubmitText"
   | "billing.postcardsLabel"
   | "billing.postcardsLeft"
   | "billing.receipt.body"
