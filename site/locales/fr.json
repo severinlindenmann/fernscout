@@ -1958,7 +1958,6 @@
   "photobook.read.heading": "Ton livre, de bout en bout",
   "photobook.read.open": "Lire tout le livre",
   "photobook.read.order": "Commander ce livre",
-  "photobook.receipt.about": "environ {money}",
   "photobook.receipt.body": "{trip} — {pages} pages, {cover}, {size}. Le livre entier est un seul PDF, avec la couverture en première page, comme le veut un imprimeur.",
   "photobook.receipt.bodyVolumes": "{trip} — {pages} pages en {volumes} volumes, {cover}, {size}. Chaque volume est un seul PDF, avec la couverture en première page, comme le veut un imprimeur.",
   "photobook.receipt.cost": "{total}.",

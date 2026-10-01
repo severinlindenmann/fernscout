@@ -2058,7 +2058,6 @@ export type TranslationKey =
   | "photobook.read.open"
   | "photobook.read.order"
   | "photobook.read.phoneHint"
-  | "photobook.receipt.about"
   | "photobook.receipt.body"
   | "photobook.receipt.bodyVolumes"
   | "photobook.receipt.cost"

@@ -94,10 +94,10 @@ describe("H2 — an empty journal", () => {
    *  link out of Journal into People's "Manage readers" row, which the empty
    *  state does not carry (hero + Bring in + Journal, exactly), and keeps
    *  Visitors in the list greyed with its reason rather than absent. */
-  test("the whole Journal group renders, not only Credits & storage", () => {
+  test("the whole Journal group renders, not only Plan & storage", () => {
     const el = render(EMPTY_BASE);
     expect(el.textContent).toContain("Journal");
-    expect(el.textContent).toContain("Credits & storage");
+    expect(el.textContent).toContain("Plan & storage");
     expect(el.textContent).toContain("Journal settings");
     expect(el.textContent).toContain("Permissions & keys");
     expect(el.textContent).toContain("Visitors");
@@ -180,7 +180,7 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
   });
 
   /**
-   * D8 — B2016 gave the Journal group its Credits & storage card, moved
+   * D8 — B2016 gave the Journal group its Plan & storage card, moved
    * whole from the old `/account` nav tab; B2017 widens it with journal
    * settings, the agent card, visitors (gated on `analyticsEnabled`) and
    * people, plus a quiet export/delete pair below every group — the whole
@@ -189,7 +189,7 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
   test("D8 — journal settings, the agent card and people all have a card; visitors follows analyticsEnabled", () => {
     const withoutAnalytics = render(FULL_BASE);
     expect(withoutAnalytics.textContent).toContain("Journal");
-    expect(withoutAnalytics.textContent).toContain("Credits & storage");
+    expect(withoutAnalytics.textContent).toContain("Plan & storage");
     expect(withoutAnalytics.textContent).toContain("Journal settings");
     expect(withoutAnalytics.textContent).toContain("Permissions & keys");
     expect(withoutAnalytics.textContent).toContain("Who was there");

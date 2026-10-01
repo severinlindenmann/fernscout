@@ -1744,7 +1744,6 @@
   "photobook.read.heading": "A könyved elejétől a végéig",
   "photobook.read.open": "Olvasd el az egész könyvet",
   "photobook.read.order": "Megrendelem ezt a könyvet",
-  "photobook.receipt.about": "körülbelül {money}",
   "photobook.receipt.body": "{trip} — {pages} oldal, {cover}, {size}. Az egész könyv egyetlen PDF, a borítóval az első oldalon, ahogy a nyomda kéri.",
   "photobook.receipt.bodyVolumes": "{trip} — {pages} oldal {volumes} kötetben, {cover}, {size}. Minden kötet egyetlen PDF, a borítóval az első oldalon, ahogy a nyomda kéri.",
   "photobook.receipt.cost": "{total}.",
