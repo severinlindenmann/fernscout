@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildNarratedCut, firstSentence, slideNeedsTravelInterlude } from "@/lib/narratedCut";
+import { buildNarratedCut, firstSentence, slideNeedsTravelInterlude, travelFlightMs } from "@/lib/narratedCut";
 import type { PlaceEntry } from "@/lib/types";
 
 function entry(overrides: Partial<PlaceEntry>): PlaceEntry {
@@ -176,5 +176,22 @@ describe("slideNeedsTravelInterlude", () => {
   test("out of range indexes never need one", () => {
     expect(slideNeedsTravelInterlude([0, 1], -1)).toBe(false);
     expect(slideNeedsTravelInterlude([0, 1], 2)).toBe(false);
+  });
+});
+
+// B2619: the old fixed 2 s interlude cut a 5.2 s flight off before it landed.
+describe("travelFlightMs", () => {
+  const budapest = { lat: 47.4979, lng: 19.0402 };
+  test("a second stop in the same town gets no map step", () => {
+    expect(travelFlightMs(budapest, { lat: 47.52, lng: 19.06 })).toBeNull();
+  });
+  test("longer hops get longer, bounded flights", () => {
+    expect(travelFlightMs(budapest, { lat: 47.33, lng: 19.03 })).toBe(2500); // ~19 km, Szigethalom
+    expect(travelFlightMs(budapest, { lat: 46.95, lng: 17.89 })).toBe(3500); // ~104 km, Balatonfüred
+    expect(travelFlightMs(budapest, { lat: 47.56, lng: 7.59 })).toBe(4500); // ~860 km, Basel
+  });
+  test("a place without coordinates gets no map step", () => {
+    expect(travelFlightMs(budapest, { lat: null, lng: null })).toBeNull();
+    expect(travelFlightMs(undefined, budapest)).toBeNull();
   });
 });

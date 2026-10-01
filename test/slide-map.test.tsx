@@ -224,3 +224,19 @@ describe("no hex literal in SlideMap (docs/plans/map-redesign.md §3, Phase 1 it
     expect(source).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 });
+
+// B2619: a travel step mounts on the place it leaves, not on the destination
+// or the whole world — the flight then pulls out and lands on the destination.
+describe("a travel step's camera (B2619)", () => {
+  test("starts on the place it leaves and ends on the one it reaches", () => {
+    const transformOf = (html: string) => html.match(/<g[^>]*style="[^"]*transform:([^;"]+)/)?.[1];
+    const leaving = renderToStaticMarkup(<SlideMap places={alps} activeIndex={0} travelling={false} />);
+    const arriving = renderToStaticMarkup(<SlideMap places={alps} activeIndex={1} travelling={false} />);
+    const flight = renderToStaticMarkup(
+      <SlideMap places={alps} activeIndex={1} fromIndex={0} flightMs={2500} travelling />,
+    );
+    expect(transformOf(flight)).toBeDefined();
+    expect(transformOf(flight)).toBe(transformOf(leaving));
+    expect(transformOf(flight)).not.toBe(transformOf(arriving));
+  });
+});
