@@ -214,8 +214,12 @@ an eine der beiden geschickt.
 Anfrage an den Transkriptionsdienst und wird verworfen, wenn die Anfrage
 endet; keine Kopie landet auf diesem Server, in einem Backup oder in einem
 Export. Der Text bleibt, weil der Text das ist, worum gebeten wurde. Beide
-Dienste werden nur für diese eine Anfrage genutzt, und keiner wird gebeten,
-etwas aufzubewahren oder damit zu trainieren.
+Dienste werden nur für diese eine Anfrage genutzt, und keiner trainiert seine
+Modelle damit. Anthropic löscht das Gesendete innert 30 Tagen und behält eine
+Anfrage nur länger, wenn sie wegen Missbrauchs markiert wird, um sie zu prüfen.
+Deepgram wird bei jeder Aufnahme gebeten, sie weder zu behalten noch daraus zu
+lernen (sein Opt-out aus der Modellverbesserung); das ist Deepgrams eigenes
+Versprechen, das dieser Server nicht prüfen kann.
 
 ## Die iPhone-App {#iphone}
 

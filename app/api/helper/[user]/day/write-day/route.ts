@@ -2,7 +2,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { checkAiDay, recordAiDay } from "@paid/billing/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { HELPER_PROVIDER, suggestTitles, writeDay, type DayFacts, type WriteDayMode } from "@/lib/helper/model";
-import { checkPolishForAddedFacts, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
+import { checkPolishForAddedFacts, keepTypedWhereAccentsGuessed, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
 import { WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/limits";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { note, refused } from "@/lib/helper/thread";
@@ -214,6 +214,9 @@ export async function POST(
       refused(user, "draft_words", "polish_added_facts");
       return Response.json({ error: "polish_added_facts" }, { status: 422 });
     }
+    // B2630 — a word whose accents were guessed into a different word goes
+    // back to exactly what was typed.
+    written = { ...written, prose: keepTypedWhereAccentsGuessed(notes, written.prose) };
   }
 
   // Only now — the model answered, and (in polish mode) the guard accepted
