@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "0013c58c2e8609b017a427f2412c8e4cdef1a88c",
+  "generatedFrom": "d3617dee116168e20db9faf682027ad015103370",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -226,8 +226,8 @@
     "photobook.first.describe.consent.question.one",
     "photobook.first.describe.failed",
     "photobook.first.describe.goNext",
+    "photobook.first.describe.noAiDays",
     "photobook.first.describe.noConsent",
-    "photobook.first.describe.noCredits",
     "photobook.first.describe.noModel",
     "photobook.first.describe.one",
     "photobook.first.describe.price",
@@ -269,7 +269,6 @@
     "photobook.making.routeOff",
     "photobook.making.textFits",
     "photobook.making.textTight",
-    "photobook.noCredits",
     "photobook.noPhotos",
     "photobook.noRoom",
     "photobook.openInBrowser",
@@ -417,6 +416,7 @@
     "photobook.pass.undo",
     "photobook.pay",
     "photobook.payTotal",
+    "photobook.planShort",
     "photobook.print.chooseLabel",
     "photobook.print.context.accepted",
     "photobook.print.context.inProduction",
