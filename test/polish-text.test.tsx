@@ -56,8 +56,7 @@ function tree(props: Partial<React.ComponentProps<typeof PolishText>> = {}) {
         trip="reise"
         text={LONG_TEXT}
         onUse={props.onUse ?? (() => {})}
-        credits={props.credits ?? 3}
-        priceChf={"priceChf" in props ? (props.priceChf ?? null) : "CHF 0.01"}
+        aiAvailable={"aiAvailable" in props ? (props.aiAvailable ?? null) : true}
         {...props}
       />
     </LocaleProvider>
@@ -95,8 +94,8 @@ describe("visibility", () => {
     expect(container.textContent).toBe("");
   });
 
-  test("renders nothing when credits is null", async () => {
-    await mount({ credits: null });
+  test("renders nothing when aiAvailable is null", async () => {
+    await mount({ aiAvailable: null });
     expect(container.textContent).toBe("");
   });
 
@@ -105,18 +104,10 @@ describe("visibility", () => {
     expect(container.textContent).toContain("Polish my text");
   });
 
-  // B2254/B2591 — a build with no plan gate at all (`priceChf` null is now
-  // the only shape the link ever renders) shows the same plain link.
-  test("shows the same plain link when priceChf is null", async () => {
-    await mount({ priceChf: null });
-    expect(container.textContent).toContain("Polish my text");
-  });
-
   // B2591 — the plan is checked before the tap, not after a refused fetch:
-  // no button, no fetch, just the notice and a way out. `credits` is now the
-  // plan's own yes/no, fed through the same "below the price" comparison.
+  // no button, no fetch, just the notice and a way out.
   test("no AI days left shows a notice instead of the tap", async () => {
-    await mount({ credits: 0 });
+    await mount({ aiAvailable: false });
     expect(container.querySelector("button")).toBeNull();
     expect(container.textContent).toContain("Your AI days for this plan are used up.");
     const link = Array.from(container.querySelectorAll("a")).find((a) => a.textContent?.trim() === "See plans");
