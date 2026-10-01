@@ -73,14 +73,69 @@ export async function buildPolarstepsExportZip(): Promise<Buffer> {
   return bufferPromise;
 }
 
-/** A ZIP with one entry whose name escapes the folder it is in — the
- * refusal B2662's acceptance line names. */
-export async function buildTraversalZip(): Promise<Buffer> {
-  const archive = new ZipArchive({ zlib: { level: 9 } });
-  const bufferPromise = streamToBuffer(archive);
-  archive.append(Buffer.from("nope"), { name: "../../etc/evil.txt" });
-  await archive.finalize();
-  return bufferPromise;
+/**
+ * A ZIP with one entry whose name escapes the folder it is in — the
+ * refusal B2662's acceptance line names. `archiver` itself sanitises a
+ * `../` name before it ever reaches a zip entry (confirmed: it rewrites
+ * `"../../etc/evil.txt"` to `"etc/evil.txt"`), which is correct of a
+ * writer but useless for testing a *reader*'s own guard against one built
+ * by something less careful. So this is a hand-built, minimal, stored-only
+ * ZIP — no `archiver`, no compression, no CRC checked by anything that
+ * reads it — just the three records `lib/zip/readZip.ts` actually parses:
+ * one local file header, one central directory entry, one
+ * end-of-central-directory record.
+ */
+export function buildTraversalZip(): Buffer {
+  const name = Buffer.from("../secret.txt", "utf8");
+  const data = Buffer.from("nope");
+
+  const local = Buffer.alloc(30);
+  local.writeUInt32LE(0x04034b50, 0);
+  local.writeUInt16LE(20, 4); // version needed
+  local.writeUInt16LE(0, 6); // flags
+  local.writeUInt16LE(0, 8); // compression: stored
+  local.writeUInt16LE(0, 10); // time
+  local.writeUInt16LE(0, 12); // date
+  local.writeUInt32LE(0, 14); // crc32 — unchecked by this reader
+  local.writeUInt32LE(data.length, 18);
+  local.writeUInt32LE(data.length, 22);
+  local.writeUInt16LE(name.length, 26);
+  local.writeUInt16LE(0, 28);
+
+  const localRecord = Buffer.concat([local, name, data]);
+
+  const central = Buffer.alloc(46);
+  central.writeUInt32LE(0x02014b50, 0);
+  central.writeUInt16LE(20, 4); // version made by
+  central.writeUInt16LE(20, 6); // version needed
+  central.writeUInt16LE(0, 8); // flags
+  central.writeUInt16LE(0, 10); // compression: stored
+  central.writeUInt16LE(0, 12);
+  central.writeUInt16LE(0, 14);
+  central.writeUInt32LE(0, 16); // crc32
+  central.writeUInt32LE(data.length, 20);
+  central.writeUInt32LE(data.length, 24);
+  central.writeUInt16LE(name.length, 28);
+  central.writeUInt16LE(0, 30); // extra length
+  central.writeUInt16LE(0, 32); // comment length
+  central.writeUInt16LE(0, 34); // disk number
+  central.writeUInt16LE(0, 36); // internal attrs
+  central.writeUInt32LE(0, 38); // external attrs
+  central.writeUInt32LE(0, 42); // local header offset
+
+  const centralRecord = Buffer.concat([central, name]);
+
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(1, 8); // entries on this disk
+  eocd.writeUInt16LE(1, 10); // total entries
+  eocd.writeUInt32LE(centralRecord.length, 12);
+  eocd.writeUInt32LE(localRecord.length, 16); // central directory offset
+  eocd.writeUInt16LE(0, 20);
+
+  return Buffer.concat([localRecord, centralRecord, eocd]);
 }
 
 /** A ZIP with one JSON entry that inflates far past any real trip.json —
