@@ -373,7 +373,7 @@ function PlanOptionTile({
   return (
     <div className="flex-1 rounded-xl border border-line-quiet bg-surface-base p-4">
       {tag && (
-        <span className="inline-flex rounded-full bg-yellow-200 px-2.5 py-0.5 text-xs font-bold text-ink-strong">
+        <span className="inline-flex rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-bold text-ink-strong">
           {tag}
         </span>
       )}
