@@ -6,8 +6,6 @@ import { fail, ok, readJson } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser } from "@/lib/api/v2/auth";
 import { mayActAsOwner, mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { isTestContent } from "@/lib/access";
-import { balanceOf } from "@/lib/credits";
-import { formatCredits } from "@/lib/creditsFormat";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { readTripFile, readDayFile } from "@/lib/api/v2/store";
 // v1's own summaries, not a second copy — B1620. The inline pair this
@@ -19,7 +17,7 @@ import { mailSummary } from "@/lib/api/dayMail";
 import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { v1Slug } from "@/lib/api/v2/days";
 import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
-import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@paid/whatsapp/lib/digest/dayWhatsapp";
+import { sendDayWhatsapp, type DayWhatsappOutcome } from "@paid/whatsapp/lib/digest/dayWhatsapp";
 import type { Trip } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -72,21 +70,6 @@ export async function POST(
     return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(parsed.error), 400);
   }
   const { channels } = parsed.data;
-
-  if (channels.includes("whatsapp")) {
-    const balance = await balanceOf(user);
-    if (balance !== null) {
-      const needed = await whatsappWouldCost(user, `${user}/${tripId}`, v1Slug(slug)).catch(() => 1);
-      if (needed > balance) {
-        return fail(
-          "no_credits",
-          `Sending this day would take ${needed} credit(s); this journal has ${formatCredits(balance)} left. Nothing was sent.`,
-          { needed, balance },
-          402,
-        );
-      }
-    }
-  }
 
   const ref = `${user}/${tripId}`;
   const result: Record<string, unknown> = { ok: true, slug };
