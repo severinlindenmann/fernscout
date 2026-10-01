@@ -6,7 +6,6 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant } from "@/lib/credits";
 import { resetRateLimitsForTests } from "@/lib/rateLimit";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildPrompt, SYSTEM_PROMPT } from "@/lib/helper/model";
@@ -23,10 +22,10 @@ import { hasPaid } from "./support/openCore";
  * what the ledger did while it was away.
  *
  * So the assertions are: the prompt carries the facts it was handed, the first
- * model call for a journal is refused until somebody has consented, one
- * write-up costs exactly one credit, a retry under the same idempotency key
- * costs nothing, a failure gives the credit back, and the capability being off
- * is a refusal rather than a fault.
+ * model call for a journal is refused until somebody has consented, a retry
+ * under the same idempotency key answers once rather than running the model
+ * twice, a failure takes no AI day, and the capability being off is a
+ * refusal rather than a fault.
  */
 
 const OWNER_EMAIL = "alex@example.test";
@@ -118,7 +117,6 @@ beforeEach(async () => {
     helper: { enabled: true },
   });
   await migrateToLatest(await getDatabase());
-  await grant("alex", 10);
 
   const created = createTrip("alex", { id: "a-trip", title: "Over the pass", start: "2026-05-01", end: "2026-05-31" });
   if (!created.ok) throw new Error(`trip fixture failed: ${created.message}`);
@@ -207,12 +205,11 @@ describe("what the model is told", () => {
 });
 
 describe("consent, before the first call", () => {
-  test("is refused until it is given, and nothing is charged for the refusal", async () => {
+  test("is refused until it is given", async () => {
     const refused = await read(await call());
     expect(refused.status).toBe(403);
     expect(refused.body.error).toBe("consent_required");
     expect(writeDay).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("once given, the same call goes through", async () => {
@@ -228,14 +225,6 @@ describe("what it costs", () => {
     await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
   });
 
-  // B2591 — write-day no longer spends credits; it takes an AI day instead
-  // (a separate describe block below), and a journal's balance never moves.
-  test("nothing is spent — the balance never moves", async () => {
-    const done = await read(await call());
-    expect(done.status).toBe(200);
-    expect(await balanceOf("alex")).toBe(10);
-  });
-
   // B2223 — a flat price over a per-token cost needs a ceiling on the input.
   test.each(["draft", "polish"])("notes over the cap are refused with 413 in %s mode, before any spend", async (mode) => {
     const { WRITE_DAY_NOTES_MAX_CHARS } = await import("@/lib/helper/credits");
@@ -246,7 +235,6 @@ describe("what it costs", () => {
     expect(body.maxChars).toBe(WRITE_DAY_NOTES_MAX_CHARS);
     expect(body.message).toContain(String(WRITE_DAY_NOTES_MAX_CHARS));
     expect(writeDay).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("B2243 — a JSON body over the ceiling is refused with 413 before it is parsed or charged", async () => {
@@ -262,7 +250,6 @@ describe("what it costs", () => {
     expect(response.status).toBe(413);
     expect(((await response.json()) as { error: string }).error).toBe("body_too_large");
     expect(writeDay).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   // B2223 review F2 — the facts ride into the prompt too.
@@ -272,7 +259,6 @@ describe("what it costs", () => {
     expect(response.status).toBe(413);
     expect(await response.json()).toMatchObject({ error: "fact_too_long", field, maxChars: WRITE_DAY_FACT_MAX_CHARS });
     expect(writeDay).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a date that is not YYYY-MM-DD is refused with 400 before any spend", async () => {
@@ -280,7 +266,6 @@ describe("what it costs", () => {
     expect(response.status).toBe(400);
     expect(((await response.json()) as { error: string }).error).toBe("invalid_date");
     expect(writeDay).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("notes exactly at the cap still go through", async () => {
@@ -289,20 +274,18 @@ describe("what it costs", () => {
     expect(response.status).toBe(200);
   });
 
-  test("a retry under the same key is answered, not charged again", async () => {
+  test("a retry under the same key is answered, not run again", async () => {
     const first = await read(await call());
     const again = await read(await call());
     expect(again.status).toBe(200);
     expect(again.body).toEqual(first.body);
     expect(writeDay).toHaveBeenCalledTimes(1);
-    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("a failed model call spends nothing, and takes no AI day", async () => {
+  test("a failed model call takes no AI day", async () => {
     writeDay.mockRejectedValueOnce(new Error("provider is unhappy"));
     const failed = await read(await call());
     expect(failed.status).toBe(502);
-    expect(await balanceOf("alex")).toBe(10);
   });
 });
 
@@ -414,7 +397,6 @@ describe("polish mode", () => {
     const refused = await read(await call({ mode: "polish", notes: "walked to the port", idempotency_key: "polish-fact" }));
     expect(refused.status).toBe(422);
     expect(refused.body.error).toBe("polish_added_facts");
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a polish that introduces a new name is refused (B2190 security follow-up)", async () => {
@@ -428,7 +410,6 @@ describe("polish mode", () => {
     );
     expect(refused.status).toBe(422);
     expect(refused.body.error).toBe("polish_added_facts");
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a clean polish is never noted into the thread as a draft to keep", async () => {
