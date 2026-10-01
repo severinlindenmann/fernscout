@@ -153,7 +153,7 @@ export default function DayFlow(
                 ? t("studio.flow.consentBody", { words: providers.words, speech: providers.speech })
                 : t("studio.flow.consentBodyNoSpeech", { words: providers.words })}
             </p>
-            <a href="/legal" className="mt-2 inline-block min-h-11 font-semibold text-ink-strong underline underline-offset-2">
+            <a href="/legal#ai" className="mt-2 inline-block min-h-11 font-semibold text-ink-strong underline underline-offset-2">
               {t("studio.flow.consentLink")}
             </a>
             <p className="text-xs text-ink-secondary">{t("studio.flow.consentOnce")}</p>
