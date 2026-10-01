@@ -4147,6 +4147,7 @@ export type TranslationKey =
   | "studio.publish.busyDown"
   | "studio.publish.cancel"
   | "studio.publish.confirm"
+  | "studio.publish.confirmParts"
   | "studio.publish.done"
   | "studio.publish.doneDown"
   | "studio.publish.failed"

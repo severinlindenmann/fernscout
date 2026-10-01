@@ -969,6 +969,7 @@
   "studio.publish.tellNoReaders": "Nobody yet: no reader has app notifications or email on.",
   "studio.publish.question": "Publish “{title}”? You can take it down later; that removes it from the site, not from anyone who has already read it.",
   "studio.publish.confirm": "Publish this day",
+  "studio.publish.confirmParts": "Publish all {count} parts",
   "studio.publish.offline": "Publishing needs a connection — try again once you are back online.",
   "studio.publish.busy": "Publishing…",
   "studio.publish.busyDown": "Taking it down…",

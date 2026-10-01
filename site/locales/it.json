@@ -969,6 +969,7 @@
   "studio.publish.tellNoReaders": "Ancora nessuno: nessun lettore ha attivato notifiche o e-mail.",
   "studio.publish.question": "Pubblicare «{title}»? Potrai toglierlo più tardi: questo lo rimuove dal sito, non da chi l’ha già letto.",
   "studio.publish.confirm": "Pubblica questo giorno",
+  "studio.publish.confirmParts": "Pubblica tutte le {count} parti",
   "studio.publish.offline": "La pubblicazione ha bisogno di una connessione — riprova quando sei di nuovo online.",
   "studio.publish.busy": "Pubblicazione…",
   "studio.publish.busyDown": "Rimozione in corso…",

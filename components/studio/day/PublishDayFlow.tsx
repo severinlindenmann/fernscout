@@ -88,7 +88,9 @@ export default function PublishDayFlow({
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [done, setDone] = useState(false);
+  // The row as it was published: after the refresh the server no longer
+  // lists it as a draft, so `chosen` comes back empty.
+  const [done, setDone] = useState<PublishRow | null>(null);
   // B2259 — the row whose "Delete…" is asking, and the one just deleted.
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleted, setDeleted] = useState<PublishRow | null>(null);
@@ -152,7 +154,7 @@ export default function PublishDayFlow({
       // B2549 — the day's own page (and the drafts/published lists) have to
       // stop showing its pre-publish state.
       router.refresh();
-      return setDone(true);
+      return setDone(row);
     }
     setError(response?.status === 422 ? t("studio.publish.incomplete") : t("studio.publish.failed"));
   }
@@ -175,13 +177,13 @@ export default function PublishDayFlow({
     );
   }
 
-  if (chosen && done) {
+  if (done) {
     return (
       <DoneScreen
         username={username}
-        done={t(takeDown ? "studio.publish.doneDown" : "studio.publish.done", { title: nameOf(chosen) })}
+        done={t(takeDown ? "studio.publish.doneDown" : "studio.publish.done", { title: nameOf(done) })}
         next={[
-          { title: nameOf(chosen), href: dayHref(chosen), label: t("studio.day.done.openDay") },
+          { title: nameOf(done), href: dayHref(done), label: t("studio.day.done.openDay") },
           {
             title: t(takeDown ? "studio.publish.anotherDown" : "studio.publish.another"),
             href: listHref,
@@ -271,15 +273,15 @@ export default function PublishDayFlow({
                 disabled
                 className="mt-3 min-h-11 cursor-not-allowed rounded-full bg-surface-neutral-strong px-5 text-base font-semibold text-ink-secondary"
               >
-                {t(takeDown ? "edit.takeDownConfirm" : "studio.publish.confirm")}
+                {(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? t("studio.publish.confirmParts", { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
               </button>
               <p className="mt-2 text-sm text-ink-secondary">{t("studio.publish.offline")}</p>
             </div>
           ) : (
             <ConfirmPanel
-              label={t(takeDown ? "edit.takeDown" : "studio.publish.confirm")}
+              label={takeDown ? t("edit.takeDown") : also.length > 0 ? t("studio.publish.confirmParts", { count: String(also.length + 1) }) : t("studio.publish.confirm")}
               question={t(takeDown ? "edit.takeDownQuestion" : "studio.publish.question", { title: nameOf(chosen) })}
-              confirmLabel={t(takeDown ? "edit.takeDownConfirm" : "studio.publish.confirm")}
+              confirmLabel={(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? t("studio.publish.confirmParts", { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
               busyLabel={t(takeDown ? "studio.publish.busyDown" : "studio.publish.busy")}
               tone={takeDown ? "destructive" : "commit"}
               busy={busy}

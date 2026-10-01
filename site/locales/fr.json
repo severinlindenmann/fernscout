@@ -969,6 +969,7 @@
   "studio.publish.tellNoReaders": "Personne pour l’instant : aucun lecteur n’a activé les notifications ou l’e-mail.",
   "studio.publish.question": "Publier « {title} » ? Tu pourras le retirer plus tard ; cela l’enlève du site, mais pas chez ceux qui l’ont déjà lu.",
   "studio.publish.confirm": "Publier ce jour",
+  "studio.publish.confirmParts": "Publier les {count} parties",
   "studio.publish.offline": "La publication a besoin d’une connexion — réessaie une fois de retour en ligne.",
   "studio.publish.busy": "Publication…",
   "studio.publish.busyDown": "Retrait…",
