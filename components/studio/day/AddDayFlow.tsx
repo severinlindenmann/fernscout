@@ -516,6 +516,8 @@ export default function AddDayFlow({
     // silently skipped for a place suggestion that only ever asked once.
     if (!online || !routeRecordingAvailable || !tripId || !date || !placeEmpty || placeSuggestionDismissed || placeAskedFor.current === key) return;
     placeAskedFor.current = key;
+    // B2646 — a suggestion for the previous trip or date never lingers.
+    setPlaceSuggestion(null);
     let cancelled = false;
     fetch(`/api/helper/${encodeURIComponent(username)}/day/place?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -538,6 +540,10 @@ export default function AddDayFlow({
     if (!placeSuggestion) return;
     editPlace({ location: placeSuggestion.name, country: placeSuggestion.country });
     setPlaceSuggestionDismissed(true);
+    // B2646 — "Use it" is the whole answer: the panel closes and focus
+    // returns to the place chip, which now names the place.
+    setSheet(null);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-chip="place"]')?.focus());
   }
 
   // ── the write ───────────────────────────────────────────────────────
@@ -833,6 +839,23 @@ export default function AddDayFlow({
   const inPart = (i: InboxMediaItem) => !asPart?.photoIds || asPart.photoIds.includes(i.id) || selectedIds.includes(i.id) || ownIds.includes(i.id);
   const dayPhotos = split.own.filter(inPart);
   const waitingPhotos = [...split.own.filter((i) => !inPart(i)), ...split.others];
+  // B2646 — the route's place suggestion, shown once: inside the place
+  // panel while it is open, as its own card otherwise.
+  const suggestionCard = placeSuggestion && !placeSuggestionDismissed && placeEmpty ? (
+            <div className="mt-3 rounded-xl border border-action-strong bg-surface-subtle px-4 py-3">
+              <p className="text-sm text-ink-body">
+                {t("studio.day.where.suggestion.body", { name: placeSuggestion.name, country: placeSuggestion.country })}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" onClick={acceptPlaceSuggestion} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-raised">
+                  {t("studio.day.where.suggestion.use")}
+                </button>
+                <button type="button" onClick={() => setPlaceSuggestionDismissed(true)} className="min-h-11 rounded-full px-4 text-sm font-semibold text-ink-secondary">
+                  {t("studio.day.where.suggestion.dismiss")}
+                </button>
+              </div>
+            </div>
+  ) : null;
   const shownPhotos = showAllPhotos ? dayPhotos : dayPhotos.slice(0, 8);
   const tile = (item: InboxMediaItem) => {
     const on = selectedIds.includes(item.id);
@@ -1037,25 +1060,12 @@ export default function AddDayFlow({
             )}
           </div>
 
-          {placeSuggestion && !placeSuggestionDismissed && placeEmpty && (
-            <div className="mt-3 rounded-xl border border-action-strong bg-surface-subtle px-4 py-3">
-              <p className="text-sm text-ink-body">
-                {t("studio.day.where.suggestion.body", { name: placeSuggestion.name, country: placeSuggestion.country })}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button type="button" onClick={acceptPlaceSuggestion} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-raised">
-                  {t("studio.day.where.suggestion.use")}
-                </button>
-                <button type="button" onClick={() => setPlaceSuggestionDismissed(true)} className="min-h-11 rounded-full px-4 text-sm font-semibold text-ink-secondary">
-                  {t("studio.day.where.suggestion.dismiss")}
-                </button>
-              </div>
-            </div>
-          )}
+          {sheet !== "place" && suggestionCard}
 
           {sheet === "place" && (
             <div className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
-              <p className="text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
+              {suggestionCard}
+              <p className="mt-2 text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
               <label className={`mt-3 ${LABEL}`}>
                 {t("studio.day.where.placeLabel")}
                 <input type="text" name="location" value={place.location} onChange={(e) => editPlace({ location: e.target.value })} className={FIELD} />
