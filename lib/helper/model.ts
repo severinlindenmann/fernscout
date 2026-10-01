@@ -667,13 +667,9 @@ export async function writeDay(
  * row here. One request for the whole file, whatever its length, and the rows
  * nobody sampled never leave the machine at all.
  *
- * It is one credit for the same reason it is one request: the price is the
- * call, not the file, so a longer statement does not cost more.
+ * One request for the whole file, whatever its length, is also why it takes
+ * no AI day of its own (B2591) — the price is the call, not the file.
  * ---------------------------------------------------------------------- */
-
-/** What reading a statement's columns costs. One call, one credit, whatever
- *  the file's length — the button says so before the tap. */
-export const STATEMENT_CREDITS = 1;
 
 /**
  * The mapping prompt. Like the two above it, **this is the product.**

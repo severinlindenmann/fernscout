@@ -4,7 +4,7 @@ import { applyMapping, checkMapping, statementSample } from "@/importers/costs/m
 import { isEnabled } from "@/lib/capabilities";
 import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { HELPER_PROVIDER, mapStatementColumns, STATEMENT_CREDITS } from "@/lib/helper/model";
+import { HELPER_PROVIDER, mapStatementColumns } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { findInboxFile } from "@/lib/inbox";
@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  * nothing to do with any trip, and sending it row by row would be both a bill
  * and a disclosure nobody asked for. What leaves is the sample; what comes
  * back is a mapping; `applyMapping` reads the rest here, in a `for` loop, for
- * nothing. One credit for a statement of any length, because it is one call.
+ * nothing. One call for a statement of any length.
  *
  * Its own consent scope, for the same reason `speech` has one (B686): a person
  * who agreed to send the sentence they typed has said nothing about their
@@ -35,8 +35,7 @@ export const dynamic = "force-dynamic";
  * writing is a second call with a person in between.
  *
  * The gates run cheapest first, like `../day/write-day`: owner, capability,
- * rate limit, consent, then the credit, then the model — the only one that can
- * fail after money has moved, which is what the refund is for.
+ * rate limit, consent, then the AI-day check, then the model.
  */
 
 /** Fifteen minutes. Somebody has one statement, not twenty. */
@@ -86,20 +85,20 @@ export async function POST(
 
   // **The Regelwerk first.** A bank one of `importers/costs/` already knows by
   // heart needs no mapping and no model: the parser is right, free and
-  // instant, and asking anyway would be charging a credit for an answer the
+  // instant, and asking anyway would spend an AI day for an answer the
   // repository already had. Only a statement nothing recognises reaches the
   // gates below.
   const known = COSTS_IMPORTERS.find((importer) =>
     importer.detect(text.slice(0, 64 * 1024), found.entry.filename),
   );
   if (known) {
-    return Response.json({ ok: true, format: known.id, label: known.label, spent: 0 });
+    return Response.json({ ok: true, format: known.id, label: known.label });
   }
 
   const sample = statementSample(text, PREVIEW_ROWS, skipLines);
   if (!sample || sample.rows.length === 0) {
-    // Refused before the credit: there is nothing in this file for a model to
-    // read, and charging for that would be charging for a wrong answer.
+    // Refused before the AI-day check: there is nothing in this file for a
+    // model to read.
     return Response.json({ error: "not_a_table" }, { status: 400 });
   }
 
@@ -145,7 +144,6 @@ export async function POST(
     // Applied by code, to the sample only, so the person sees what the mapping
     // *does* rather than what it claims.
     preview: problems.length === 0 ? applyMapping(rejoin(sample), read.mapping) : [],
-    spent: STATEMENT_CREDITS,
     provider: HELPER_PROVIDER,
   };
   await remember(key, fingerprint, answer);

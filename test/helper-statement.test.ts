@@ -6,7 +6,6 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildStatementPrompt, STATEMENT_SYSTEM_PROMPT } from "@/lib/helper/model";
 import { applyMapping, readTable, statementSample, type ColumnMapping } from "@/importers/costs/mapping";
@@ -140,7 +139,6 @@ beforeEach(async () => {
     helper: { enabled: true },
   });
   await migrateToLatest(await getDatabase());
-  await grant("owner", 10);
 
   const created = createTrip("owner", { id: "the-islands", title: "The islands", start: "2026-03-01", end: "2026-03-31" });
   if (!created.ok) throw new Error(`trip fixture failed: ${created.message}`);
@@ -244,28 +242,24 @@ describe("consent is per scope", () => {
     expect(refused.status).toBe(403);
     expect(refused.body.error).toBe("consent_required");
     expect(mapStatementColumns).not.toHaveBeenCalled();
-    expect(await balanceOf("owner")).toBe(10);
   });
 });
 
-describe("what it costs", () => {
-  test("nothing is spent, and a retry under the same key still answers once", async () => {
+describe("one call, however many retries", () => {
+  test("a retry under the same key still answers once", async () => {
     await consentTo("statement");
     const id = stage("export.csv", STATEMENT);
     await POST(json("/api/helper/owner/statement", { inbox: id, idempotency_key: "k" }), params);
-    expect(await balanceOf("owner")).toBe(10);
     await POST(json("/api/helper/owner/statement", { inbox: id, idempotency_key: "k" }), params);
-    expect(await balanceOf("owner")).toBe(10);
     expect(mapStatementColumns).toHaveBeenCalledTimes(1);
   });
 
-  test("a model that fails gives the credit back", async () => {
+  test("a model that fails is reported cleanly", async () => {
     await consentTo("statement");
     mapStatementColumns.mockRejectedValue(new Error("no"));
     const id = stage("export.csv", STATEMENT);
     const failed = await read(await POST(json("/api/helper/owner/statement", { inbox: id }), params));
     expect(failed.status).toBe(502);
-    expect(await balanceOf("owner")).toBe(10);
   });
 
   test("the capability off is a 404, not a fault", async () => {
@@ -307,7 +301,6 @@ describe("a location export", () => {
     const id = stage("history.jsonl", TRACK);
     const done = await read(await importRoute(json("/api/helper/owner/import", { inbox: id }), params));
     expect(done.status).toBe(200);
-    expect(await balanceOf("owner")).toBe(10);
   });
 });
 
@@ -327,7 +320,6 @@ describe("costs reach the days", () => {
     expect(dry.status).toBe(200);
     expect(dry.body.read).toBe(5);
     expect(mapStatementColumns).not.toHaveBeenCalled();
-    expect(await balanceOf("owner")).toBe(10);
 
     // No day is written yet, so the row is filed to the trip itself rather
     // than attached to the nearest day it can find.
@@ -467,6 +459,5 @@ describe("a statement with a preamble line", () => {
     await POST(json("/api/helper/owner/statement", body), params);
     await POST(json("/api/helper/owner/statement", body), params);
     expect(mapStatementColumns).toHaveBeenCalledTimes(1);
-    expect(await balanceOf("owner")).toBe(10);
   });
 });
