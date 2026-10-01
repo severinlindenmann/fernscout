@@ -12,15 +12,11 @@ import { pick, stateOf, whenWords, type JournalView } from "@/app/admin/Journals
 function journal(
   username: string,
   rappen: number,
-  balance: number | null,
   lastWroteAt: string | null = null,
 ): JournalView {
   return {
     username,
     rappen,
-    balance,
-    spent: 0,
-    granted: 0,
     lastWroteAt,
     disk: "0 B",
     full: null,
@@ -29,9 +25,9 @@ function journal(
 }
 
 const ROWS = [
-  journal("ana", 100, 50, "2026-09-01T00:00:00.000Z"),
-  journal("bo", 900, 5, "2026-06-01T00:00:00.000Z"),
-  journal("cartography", 400, null),
+  journal("ana", 100, "2026-09-01T00:00:00.000Z"),
+  journal("bo", 900, "2026-06-01T00:00:00.000Z"),
+  journal("cartography", 400),
 ];
 
 describe("the journal list", () => {
@@ -51,11 +47,8 @@ describe("the journal list", () => {
     ]);
   });
 
-  test("sorts by name and by balance", () => {
+  test("sorts by name", () => {
     expect(pick(ROWS, "", "name").map((row) => row.username)).toEqual(["ana", "bo", "cartography"]);
-    // A journal with no credits on this instance sorts as zero rather than
-    // being dropped: it is still a journal the operator has to see.
-    expect(pick(ROWS, "", "balance").map((row) => row.username)).toEqual(["cartography", "bo", "ana"]);
   });
 
   test("searches anywhere in the name, and ignoring case", () => {
@@ -109,10 +102,10 @@ describe("how a journal reads", () => {
 describe("the filters and the export", () => {
   const now = Date.parse("2026-09-25T00:00:00.000Z");
   const rows: JournalView[] = [
-    { ...journal("fresh", 0, 50, "2026-09-24T00:00:00.000Z"), granted: 100 },
-    { ...journal("low", 0, 5, "2026-07-01T00:00:00.000Z"), granted: 100 },
-    { ...journal("never", 0, 0, null), granted: 0 },
-    { ...journal("full, \"quoted\"", 1234, null, "2026-01-01T00:00:00.000Z"), full: 0.9 },
+    journal("fresh", 0, "2026-09-24T00:00:00.000Z"),
+    journal("low", 0, "2026-07-01T00:00:00.000Z"),
+    journal("never", 0, null),
+    { ...journal("full, \"quoted\"", 1234, "2026-01-01T00:00:00.000Z"), full: 0.9 },
   ];
 
   test("each state filter keeps its own rows", async () => {
@@ -125,10 +118,9 @@ describe("the filters and the export", () => {
     expect(names("all")).toHaveLength(4);
   });
 
-  test("needs a look is a low balance or a full disk, and never 'was never granted any'", async () => {
+  test("needs a look is a full disk — B2592 dropped the low-balance half", async () => {
     const { matches } = await import("@/app/admin/Journals");
     expect(rows.filter((row) => matches(row, "look", now)).map((row) => row.username)).toEqual([
-      "low",
       'full, "quoted"',
     ]);
   });
