@@ -27,6 +27,7 @@ export const PLANS = {
     postcardPriceRappen: 350,
     upgradeWindowDays: 60,
     upgradeCouponChf: 19,
+    endingReminderDays: 5,
   },
   plus: {
     priceChf: 49,

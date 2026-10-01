@@ -56,6 +56,7 @@ import * as entitlements from "./054-entitlements";
 import * as aiDays from "./055-ai-days";
 import * as stripeCustomers from "./056-stripe-customers";
 import * as entitlementSubscriptionColumns from "./057-entitlement-subscription-columns";
+import * as planReminderSends from "./058-plan-reminder-sends";
 
 /**
  * Every migration, listed by hand.
@@ -127,6 +128,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "055-ai-days": aiDays,
   "056-stripe-customers": stripeCustomers,
   "057-entitlement-subscription-columns": entitlementSubscriptionColumns,
+  "058-plan-reminder-sends": planReminderSends,
 };
 
 /**
