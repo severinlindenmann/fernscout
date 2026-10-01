@@ -33,6 +33,10 @@ export const LANGUAGE_PAGES: Readonly<Record<string, readonly PathLocale[]>> = {
   "/schools/demo": ALL,
   "/tour-operators": ALL,
   "/tour-operators/demo": ALL,
+  // /switch (B2663) — Polarsteps-first; hu reads it at the root address via
+  // requestLocale()'s cookie/Accept-Language fallback, same as the orgs
+  // pages, since PATH_LOCALES itself stays de/fr/it.
+  "/switch": ALL,
   // The imprint is written in English and German only (site/legal/).
   "/legal": ["de"],
   ...Object.fromEntries(GUIDE_PATHS.map((p) => [p, ALL])),
@@ -90,6 +94,7 @@ export const MARKDOWN_PAGES: readonly string[] = [
   "/schools/demo",
   "/tour-operators",
   "/tour-operators/demo",
+  "/switch",
   ...GUIDE_PATHS,
 ];
 
