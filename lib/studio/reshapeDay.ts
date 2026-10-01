@@ -126,11 +126,13 @@ export async function referenceSweep(username: string, tripId: string, bareSlug:
   for (const order of photobookOrders.filter((o) => o.payload.trip === ref)) {
     const touched = photobookPhotoRefs(order.payload.options).filter((src) => src.includes(mediaPrefix));
     if (touched.length === 0) continue;
-    // `"submitted"` is claimed but not yet rendered — the eventual build
-    // reads these paths off disk. Anything past that (`"built"`, `"failed"`,
-    // a later print step) already produced its PDF or gave up; either way
-    // nothing left to read again.
-    const rendered = order.status !== "submitted";
+    // `"awaiting_payment"` (B2595: claimed, priced, waiting on Stripe or the
+    // operator) and `"submitted"` (paid, claimed for the build) are both
+    // claimed but not yet rendered — the eventual build reads these paths
+    // off disk. Anything past that (`"built"`, `"failed"`, a later print
+    // step) already produced its PDF or gave up; either way nothing left to
+    // read again.
+    const rendered = order.status !== "awaiting_payment" && order.status !== "submitted";
     rows.push({
       what: `A photobook order (${order.status}) names ${touched.length} photograph${touched.length === 1 ? "" : "s"} from this day.`,
       consequence: rendered

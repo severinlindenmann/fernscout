@@ -540,6 +540,18 @@ else
   log "WARNING: the gap-nudge sweep failed — tonight's backup is unaffected"
 fi
 
+# --- 0a3. The plan-reminder sweep (B2608) -----------------------------------
+# Same reasoning as the gap-nudge sweep just above: the renewal reminder (30
+# days before a Plus renews), "pass ends in N days" and "pass ended", each
+# sent at most once per entitlement (paid/credits/lib/plan-reminders.ts).
+# Never fatal for the same reason.
+log "checking for plan reminders due tonight"
+if (cd "$APP_DIR" && npm run --silent plan-reminders:send); then
+  log "plan-reminder sweep done"
+else
+  log "WARNING: the plan-reminder sweep failed — tonight's backup is unaffected"
+fi
+
 # --- 0b2. The camera-roll-import expiry sweep (B1751, task 0.5) -----------
 # Same reasoning as the reminder sweep just above: warns 24 hours before a
 # staged import run is deleted, and sends the one final notice for a run
