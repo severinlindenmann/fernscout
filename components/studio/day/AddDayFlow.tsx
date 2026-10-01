@@ -101,7 +101,11 @@ function dateFromPhotos(photos: InboxMediaItem[]): { date: string; count: number
 
 const CHIP =
   "inline-flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-surface-raised px-3 text-left text-sm text-ink-strong hover:bg-surface-subtle";
-const FIELD = "mt-1 block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body";
+// 16px on phones: iOS zooms the page into any field set smaller (B2647).
+const FIELD = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border border-line-strong bg-surface-base px-3 text-base text-ink-body sm:text-sm";
+// B2647 — iOS draws a time input at its own width and height, past its box;
+// drop the native look so it sizes like every other field.
+const TIME_FIELD = `${FIELD} appearance-none [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:min-h-[1.5em]`;
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-ink-secondary";
 const LINK = "min-h-11 text-left text-sm font-semibold text-ink-body underline underline-offset-2";
 
@@ -779,7 +783,7 @@ export default function AddDayFlow({
         )}
         <label className={`mt-2 ${LABEL}`}>
           {t("studio.day.collision.timeLabel")}
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD} />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={TIME_FIELD} />
         </label>
         <StepPrimary
           busy={busy}
@@ -1193,21 +1197,24 @@ export default function AddDayFlow({
               <span className="font-semibold text-ink-strong">{t("studio.day.details.summary")}</span>
               <span className="text-xs text-ink-secondary">{t("studio.day.details.hint")}</span>
             </summary>
-            <label className={`mt-2 ${LABEL}`}>
-              {t("studio.day.whatHappened.titleLabel")}
-              <input
-                type="text"
-                name="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("studio.day.whatHappened.titlePlaceholder")}
-                className={FIELD}
-              />
-            </label>
-            <label className={`mt-3 mb-2 ${LABEL}`}>
-              {t("studio.day.field.time")}
-              <input type="time" name="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD} />
-            </label>
+            {/* B2647 — title and time on one row, the time a fixed narrow column. */}
+            <div className="mt-2 mb-2 grid grid-cols-[minmax(0,1fr)_7.5rem] gap-3">
+              <label className={`min-w-0 ${LABEL}`}>
+                {t("studio.day.whatHappened.titleLabel")}
+                <input
+                  type="text"
+                  name="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t("studio.day.whatHappened.titlePlaceholder")}
+                  className={FIELD}
+                />
+              </label>
+              <label className={`min-w-0 ${LABEL}`}>
+                {t("studio.day.field.time")}
+                <input type="time" name="time" value={time} onChange={(e) => setTime(e.target.value)} className={TIME_FIELD} />
+              </label>
+            </div>
             {/* B2233 — costs, how you travelled, tags; blank stays blank.
                 Mounted only while open: the collapsed page has no dropdown. */}
             {detailsOpen && (

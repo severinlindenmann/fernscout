@@ -44,7 +44,8 @@ export function extrasToWrite(v: DayExtrasValue): { costs?: object[]; transportM
 }
 
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-ink-secondary";
-const FIELD = "mt-1 block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body";
+// The composer's own field look (AddDayFlow FIELD): 16px on phones, B2647.
+const FIELD = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border border-line-strong bg-surface-base px-3 text-base text-ink-body sm:text-sm";
 const LINK = "min-h-11 text-left text-sm font-semibold text-ink-body underline underline-offset-2";
 
 /**
