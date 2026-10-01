@@ -4608,7 +4608,6 @@
   "billing.tileAiDaysWindow": "{days} AI days in {window} days",
   "billing.tilePostcards": "{count} postcards",
   "billing.tilePostcards.one": "1 postcard",
-  "billing.plusCheckoutSubmitText": "Plus renews automatically every year. Cancel anytime from your journal's studio — no fees, no call needed.",
   "plans.cellPlusPayTwint": "Card or TWINT, yearly",
   "agent.speechAiDaysUsedUp": "Your AI days for this plan are used up.",
   "photobook.first.describe.receiptDays": "{count} photographs described.",

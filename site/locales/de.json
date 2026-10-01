@@ -4613,7 +4613,6 @@
   "billing.tileAiDaysWindow": "{days} KI-Reisetage in {window} Tagen",
   "billing.tilePostcards": "{count} Postkarten",
   "billing.tilePostcards.one": "1 Postkarte",
-  "billing.plusCheckoutSubmitText": "Plus verlängert sich automatisch jedes Jahr. Kündige jederzeit im Studio deines Journals — keine Gebühren, kein Anruf nötig.",
   "plans.cellPlusPayTwint": "Karte oder TWINT, jährlich",
   "agent.speechAiDaysUsedUp": "Deine KI-Tage für diesen Plan sind aufgebraucht.",
   "photobook.first.describe.receiptDays": "{count} Fotos beschrieben.",
