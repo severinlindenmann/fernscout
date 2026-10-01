@@ -41,7 +41,6 @@ function mount(people: { id: string; name: string | null; email: string; trips: 
             trips={[{ id: "alps", title: "Alps" }]}
             defaultTripId="alps"
             photoConsent={false}
-            photoCredits={0}
             people={people}
           />
         </StudioBarProvider>

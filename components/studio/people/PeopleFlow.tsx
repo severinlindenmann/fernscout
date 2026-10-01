@@ -74,7 +74,6 @@ export default function PeopleFlow({
   defaultTripId,
   initialName,
   photoConsent,
-  photoCredits,
   people,
 }: {
   username: string;
@@ -90,7 +89,6 @@ export default function PeopleFlow({
    *  door is absent from the DOM rather than merely disabled when it is
    *  off. */
   photoConsent: boolean;
-  photoCredits: number;
   /** Who is already here (B2088) — the flow's own filed contacts and anyone
    *  on a trip, read server-side. Absent when contacts are off: there is
    *  nothing to list or edit then. */
@@ -654,7 +652,6 @@ export default function PeopleFlow({
           initial={null}
           person={{ name: drawingPerson.name, email: drawingPerson.email }}
           photoConsent={photoConsent}
-          photoCredits={photoCredits}
           existingIds={Object.values(figuresByEmail).map((f) => f.id)}
           onSaved={(saved) => {
             setFiguresByEmail((prev) => (saved.person ? { ...prev, [saved.person]: saved } : prev));
