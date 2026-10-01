@@ -197,7 +197,8 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
   const activeLines = selectedDay
     ? linesInRegion.filter((l) => l.kind !== "flight" && (l.fromDay === selectedDay || l.toDay === selectedDay))
     : linesInRegion;
-  const mutedLines = selectedDay ? linesInRegion.filter((l) => !activeLines.includes(l)) : [];
+  // A flight is overview-only, never even muted on a day's own view.
+  const mutedLines = selectedDay ? linesInRegion.filter((l) => l.kind !== "flight" && !activeLines.includes(l)) : [];
 
   const draw = async () => {
     ensureLineLayer(map, "fs-lines-muted", lineToGeoJSON(mutedLines), {

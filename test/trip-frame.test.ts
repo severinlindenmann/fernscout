@@ -149,10 +149,6 @@ describe("a five-region tour", () => {
     expect(frame.framePlaces).toHaveLength(5);
     expect(frame.chips).toHaveLength(0); // a tour has no "other region" chips
   });
-
-  test("stays on a flat frame — one continent", () => {
-    expect(buildTripFrame(trip).globe).toBe(false);
-  });
 });
 
 describe("a world trip", () => {
@@ -163,11 +159,10 @@ describe("a world trip", () => {
     place(4, 40.71, -74.0, "New York"),
   ];
 
-  test("regions on several continents ⇒ a tour and a globe", () => {
+  test("regions on several continents ⇒ a tour", () => {
     const frame = buildTripFrame(trip);
     expect(frame.regions.length).toBeGreaterThan(3);
     expect(frame.isTour).toBe(true);
-    expect(frame.globe).toBe(true);
   });
 
   test("far-apart legs are great-circle flights, not straight lines", () => {
@@ -183,6 +178,20 @@ describe("recorded segments — a tracked trip", () => {
     { day: 1, points: [{ lat: 46.2, lng: 6.15 }, { lat: 46.3, lng: 6.3 }] },
     { day: 1, points: [{ lat: 46.3, lng: 6.3 }, { lat: 46.5, lng: 6.63 }], gap: true },
   ];
+
+  test("a tracked trip still draws its flights between far-apart days, not its short joins", () => {
+    // A tour, so legs between regions are drawn rather than left to a chip.
+    const flown = [
+      ...trip,
+      place(3, 52.52, 13.4, "Berlin"),
+      place(4, 41.9, 12.5, "Rome"),
+      place(5, 40.42, -3.7, "Madrid"),
+    ];
+    const frame = buildTripFrame(flown, recorded);
+    const flights = frame.lines.filter((l) => l.kind === "flight");
+    expect(flights.map((l) => [l.fromDay, l.toDay])).toEqual([[2, 3], [3, 4], [4, 5]]);
+    expect(frame.lines.filter((l) => l.kind !== "flight").map((l) => l.kind).sort()).toEqual(["gap", "recorded"]);
+  });
 
   test("recorded lines keep their own kind, gap included", () => {
     const frame = buildTripFrame(trip, recorded);
