@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars -- a stub keeps the real signature and ignores its arguments */
 // Public stub: printed orders are not included in this build.
+import type { TranslationKey } from "@/lib/i18n";
+
 export type OrderRow = {
   id: string;
   kind: "postcard" | "photobook";
   status: string;
   displayStatus: { tone: "navy" | "yellow" | "green" | "coral" } & (
-    | { labelKey: string }
+    | { labelKey: TranslationKey }
     | { rawLabel: string }
   );
   createdAt: string;
