@@ -356,6 +356,7 @@ function BuyPlanButton({
 function PlanOptionTile({
   username,
   plan,
+  name,
   tag,
   price,
   cadence,
@@ -364,6 +365,7 @@ function PlanOptionTile({
 }: {
   username: string;
   plan: "pass" | "plus";
+  name: string;
   tag?: string;
   price: string;
   cadence: string;
@@ -372,12 +374,15 @@ function PlanOptionTile({
 }) {
   return (
     <div className="flex-1 rounded-xl border border-line-quiet bg-surface-base p-4">
-      {tag && (
-        <span className="inline-flex rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-bold text-ink-strong">
-          {tag}
-        </span>
-      )}
-      <p className="mt-2 flex items-baseline gap-1.5">
+      <p className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-display text-lg font-semibold text-ink-strong">{name}</span>
+        {tag && (
+          <span className="inline-flex rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-bold text-ink-strong">
+            {tag}
+          </span>
+        )}
+      </p>
+      <p className="mt-1 flex items-baseline gap-1.5">
         <span className="font-display text-xl font-semibold text-ink-strong">{price}</span>
         <span className="text-sm text-ink-secondary">{cadence}</span>
       </p>
@@ -664,6 +669,7 @@ function YourPlanPanel({
           <PlanOptionTile
             username={username}
             plan="plus"
+            name={t("plans.plus")}
             tag={t("billing.tilePlusTag")}
             price={chf(planOptions.plus.priceChf)}
             cadence={t("billing.tilePlusCadence")}
@@ -680,6 +686,7 @@ function YourPlanPanel({
             <PlanOptionTile
               username={username}
               plan="pass"
+              name={t("plans.pass")}
               price={chf(planOptions.pass.priceChf)}
               cadence={t("billing.tilePassCadence", { days: String(planOptions.pass.days) })}
               facts={[
