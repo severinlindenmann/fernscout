@@ -79,7 +79,7 @@ import {
   SKIN,
 } from "../../travellers/vocabulary";
 import { BOOK_SIZES, COVER_TYPES } from "@paid/photobook/lib/photobook/spec";
-import { HELPER_PROVIDER, TRAVELLERS_FROM_PHOTO_CREDITS } from "../../helper/model";
+import { HELPER_PROVIDER } from "../../helper/model";
 import { IMPORT_KINDS } from "../../gps/api";
 import { PAID_AREAS } from "@paid/manifest";
 import { CODE_TTL_MINUTES, GPS_TOKEN_TTL_DAYS, HANDOVER_TTL_MINUTES } from "../../auth";
@@ -622,7 +622,6 @@ const fromPhotoResult = z.strictObject({
   ),
   party: z.array(figureAppearance),
   preview: z.string(),
-  spent: z.literal(TRAVELLERS_FROM_PHOTO_CREDITS),
   provider: z.literal(HELPER_PROVIDER),
   note: z.string(),
 });

@@ -65,12 +65,6 @@ export const HELPER_MODEL = "claude-haiku-4-5";
 /** Who the words are going to, said in the consent panel and in `/api/health`. */
 export const HELPER_PROVIDER = "Anthropic";
 
-/** What one call to `POST .../travellers/from-photo` costs — B1517. Priced
- *  per call rather than per face: a group photo of a whole family is the
- *  point, and charging by the figure would tax exactly the case this exists
- *  for. */
-export const TRAVELLERS_FROM_PHOTO_CREDITS = 2;
-
 /**
  * The system prompt. **This is the product.**
  *

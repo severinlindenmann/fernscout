@@ -610,7 +610,7 @@ type HelperSessionsTable = {
  *
  * `id` is the caller's own composed key (`<owner> <tool> <supplied>`), not a
  * generated one: the row is found by what the caller sent. Durable because the
- * helper's metered routes spend a credit and write nothing to disk, so the
+ * helper's metered routes spend an AI day and write nothing to disk, so the
  * filesystem is no backstop for them and a restart used to mean a second
  * charge for the same words.
  */

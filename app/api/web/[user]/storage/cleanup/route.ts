@@ -1,7 +1,7 @@
 // Take the generated output off the disk — B1622, phase 2 step 4 (money.md
 // §2.6), moved unchanged from app/api/v1/[user]/storage/cleanup/route.ts.
-// Owner's own session only, never a token — the same line
-// .../storage/purchases draws for spending credits, for the same reason.
+// Owner's own session only, never a token — the same line the billing
+// checkout routes draw for spending money, for the same reason.
 import { isOwner } from "@/lib/contacts/session";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { cleanupPlan, runCleanup } from "@/lib/storageCleanup";

@@ -11,9 +11,9 @@ rather than about anybody's journal.
 
 **Wants:** to see what the instance is costing — model calls, transcription
 minutes, sends, print orders — against the price list in `site/config.json`'s
-`costs` block, and every journal's credit balance and ledger. Also to vet
+`costs` block, and every journal's payments and plan. Also to vet
 fulfilment events crossing the operator-only capabilities: `logging`,
-`credits`, `photobook`, `postcards`, `helper`, `transcription`, `sms`,
+`photobook`, `postcards`, `helper`, `transcription`, `sms`,
 `smsInbound` (the whole of
 `OPERATOR_ONLY_FEATURES` in `lib/config.ts`) — capabilities no journal ever
 had a vote on.
