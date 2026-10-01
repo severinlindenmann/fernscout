@@ -282,7 +282,8 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         // it to be markup.
         label.textContent = place.name;
         el.append(disc, label);
-        mk = new Marker({ element: el }).setLngLat([place.lng, place.lat]).addTo(map);
+        // On the globe's far side a stop hides rather than showing through.
+        mk = new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([place.lng, place.lat]).addTo(map);
         markers.set(place.day, mk);
       }
       const el = mk.getElement();
