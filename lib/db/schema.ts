@@ -987,6 +987,16 @@ type AiDaysTable = {
   plan_period_start: string | null;
 };
 
+/**
+ * How many of a plan's included prints an owner has claimed in one plan
+ * period — B2594/B2595. See migration `059-print-included-usage`.
+ */
+type PrintIncludedUsageTable = {
+  owner_id: string;
+  period_key: string;
+  used: Generated<number>;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -1026,6 +1036,7 @@ export type Database = {
   entitlements: EntitlementsTable;
   ai_days: AiDaysTable;
   stripe_customers: StripeCustomersTable;
+  print_included_usage: PrintIncludedUsageTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1068,4 +1079,5 @@ export const TABLE_NAMES = [
   "entitlements",
   "ai_days",
   "stripe_customers",
+  "print_included_usage",
 ] as const satisfies readonly (keyof Database)[];
