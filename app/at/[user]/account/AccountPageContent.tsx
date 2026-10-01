@@ -8,6 +8,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import { useNativeShell } from "@/components/nativeShell";
 import { useSite } from "@/components/SiteProvider";
+import type { PlanSummary } from "@/lib/billingSummary";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
 
@@ -225,29 +226,18 @@ export type StoragePanel = {
 };
 
 /**
- * "Your plan" — B2593. A functional first version of the canvas board
- * (`Account.dc.html`): plan, renewal/end date, the two meters that matter
- * (AI days, storage), the portal link, and the two buy buttons. Absent
- * (like `storage`) rather than shown empty when `billing` is off
- * — an "unlimited, forever" card on every instance that has not turned
- * plans on would be noise, not news.
+ * "Your plan" — B2593, reworked to the approved board (`Account.dc.html`)
+ * by B2622: plan name and status, the renew/end sentence, meters for AI
+ * days, storage and included postcards, the photobook discount, the
+ * storage add-on, the portal (payment method and receipts), and — only for
+ * a live Stripe subscription — a cancel link with what it means. Absent
+ * (like `storage`) rather than shown empty when `billing` is off — an
+ * "unlimited, forever" card on every instance that has not turned plans on
+ * would be noise, not news. The shape is `PlanSummary`'s own
+ * (`lib/billingSummary.ts`), which `/me`'s compact plan card (B2622) reads
+ * the same way.
  */
-export type PlanPanel = {
-  plan: "free" | "pass" | "plus";
-  /** `null` on Free, which has no period. */
-  periodEnd: string | null;
-  cancelAtPeriodEnd: boolean;
-  /** Only a paid Plus that is not cancelled renews; a pass, an admin grant
-   *  and a cancelled Plus end on `periodEnd`. */
-  renews: boolean;
-  aiDays: { unlimited: true } | { unlimited: false; used: number; allowed: number };
-  storageGb: number;
-  /** Only Plus, bought through Stripe, has a subscription to manage. */
-  hasStripeSubscription: boolean;
-  /** `null` on Free (which has no entitlement row to name a source). An
-   *  `apple` plan is managed in the App Store, not here — B2598. */
-  source: "stripe" | "apple" | "admin" | null;
-};
+export type PlanPanel = PlanSummary;
 
 /** Buy a plan, or ask the operator to grant it when no Stripe key is
  *  configured (`dryRun`) — the same "ask, don't act" shape every panel on
@@ -344,7 +334,9 @@ function ManagedByApple() {
   );
 }
 
-/** The Customer Portal — cancel, update the card, see invoices. */
+/** The Customer Portal — payment method and receipts (B2622's board gives
+ *  this its own button; cancelling is `CancelPlanButton`'s, a portal
+ *  session of its own below). */
 function ManageSubscriptionButton({ username }: { username: string }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
@@ -382,7 +374,135 @@ function ManageSubscriptionButton({ username }: { username: string }) {
   );
 }
 
-function YourPlanPanel({ username, plan }: { username: string; plan: PlanPanel }) {
+/** "Cancel Plus" — B2622. A second portal session, this one opened straight
+ *  into Stripe's own cancel flow (`cancel: true` on the same route, which
+ *  asks the portal for `flow_data.type: "subscription_cancel"`) rather than
+ *  the general dashboard `ManageSubscriptionButton` opens: a link that says
+ *  "cancel" takes the owner directly to cancelling, not to a menu they have
+ *  to find it in. Only ever shown for a live Stripe subscription — an Apple
+ *  plan cancels in the App Store (`ManagedByApple`), and a pass or an admin
+ *  grant has no subscription to cancel at all. */
+function CancelPlanButton({ username, label }: { username: string; label: string }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function open() {
+    setBusy(true);
+    setFailed(false);
+    const response = await fetch(`/api/web/${username}/billing/portal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ cancel: true }),
+    }).catch(() => null);
+    const body = await response?.json().catch(() => null);
+    setBusy(false);
+    if (!response?.ok || !body?.url) {
+      setFailed(true);
+      return;
+    }
+    window.location.href = body.url as string;
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={open}
+        className="min-h-11 text-base font-semibold text-ink-body underline decoration-line-strong underline-offset-2 hover:text-ink-strong disabled:opacity-50"
+      >
+        {label}
+      </button>
+      {failed && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("billing.checkoutFailed")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** "Add 10 GB" — Plus only, B2622's board. No checkout exists for this yet
+ *  (`docs/billing.md`'s +10 GB/year is priced but nothing grants it): rather
+ *  than take a real Stripe payment for a add-on this build cannot actually
+ *  switch on, this asks the operator the same "ask, don't act" way the dry
+ *  run of `BuyPlanButton` already does when no Stripe key is configured —
+ *  here, always, since there is nowhere downstream yet for a paid session to
+ *  land. `ponytail:` a real checkout + webhook + storage-grant column is the
+ *  upgrade once that is actually wanted; filing it is this ticket's own
+ *  report, not a silent gap. */
+function StorageAddonButton({ username, label }: { username: string; label: string }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<"idle" | "failed" | "sent">("idle");
+
+  async function ask() {
+    setBusy(true);
+    setState("idle");
+    const response = await fetch(`/api/web/${username}/billing/storage-addon`, { method: "POST" }).catch(() => null);
+    setBusy(false);
+    setState(response?.ok ? "sent" : "failed");
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={ask}
+        className="inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-base disabled:opacity-50"
+      >
+        {label}
+      </button>
+      {state === "sent" && (
+        <span role="status" className="mt-1 block text-sm text-ink-secondary">
+          {t("billing.dryRunSent")}
+        </span>
+      )}
+      {state === "failed" && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("billing.checkoutFailed")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** One meter row — a label, a figure, and a bar when there is a share to
+ *  draw. Used for AI days and for storage, the same shape `StorageBar`
+ *  already draws for the breakdown below, kept small here since this is a
+ *  summary, not the breakdown itself. */
+function MeterRow({ label, value, percent }: { label: string; value: string; percent?: number }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between text-sm">
+        <span className="font-semibold text-ink-strong">{label}</span>
+        <span className="text-ink-body">{value}</span>
+      </div>
+      {percent !== undefined && (
+        <div className="h-2 w-full overflow-hidden rounded-full bg-surface-selected">
+          <div
+            className="h-2 rounded-full bg-ink-strong"
+            style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function YourPlanPanel({
+  username,
+  plan,
+  storage,
+}: {
+  username: string;
+  plan: PlanPanel;
+  /** Shares the one ceiling `storage` already reads below, for the meter —
+   *  absent where the instance sets no ceiling, same as `storage` itself. */
+  storage?: StoragePanel;
+}) {
   const { t } = useI18n();
   const native = useNativeShell();
   const planTag = t(`plans.${plan.plan}` as "plans.free");
@@ -397,30 +517,82 @@ function YourPlanPanel({ username, plan }: { username: string; plan: PlanPanel }
         <h3 className="font-display text-lg font-semibold text-ink-strong">{t("billing.title")}</h3>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="font-display text-2xl font-semibold text-ink-strong">{planTag}</span>
         {dateStr && (
-          <span className="text-sm text-ink-secondary">
-            {t(plan.renews ? "billing.renews" : "billing.ends", { date: dateStr })}
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+              plan.renews ? "bg-green-100 text-green-700" : "bg-surface-selected text-ink-body"
+            }`}
+          >
+            {t(plan.renews ? "billing.statusActive" : "billing.statusEnding")}
           </span>
         )}
       </div>
+      {dateStr && (
+        <p className="mt-1 text-sm text-ink-secondary">
+          {t(plan.renews ? "billing.renews" : "billing.ends", { date: dateStr })}
+        </p>
+      )}
 
-      <ul className="mt-3 space-y-1 text-sm text-ink-body">
-        <li>
-          {plan.aiDays.unlimited
-            ? t("billing.aiDaysUnlimited")
-            : t("billing.aiDaysLeft", { used: String(plan.aiDays.used), allowed: String(plan.aiDays.allowed) })}
-        </li>
-        <li>{t("billing.storage", { size: `${plan.storageGb} GB` })}</li>
-      </ul>
+      <div className="mt-4 space-y-4">
+        <MeterRow
+          label={t("billing.aiDaysMeterLabel")}
+          value={
+            plan.aiDays.unlimited
+              ? t("billing.aiDaysUnlimited")
+              : t("billing.aiDaysUsedOf", { used: String(plan.aiDays.used), allowed: String(plan.aiDays.allowed) })
+          }
+          percent={plan.aiDays.unlimited ? undefined : (plan.aiDays.used / Math.max(1, plan.aiDays.allowed)) * 100}
+        />
+        {storage && (
+          <MeterRow
+            label={t("me.storageTitle")}
+            value={t("billing.storageMeterValue", { used: storage.used, limit: storage.limit ?? "" })}
+            percent={storage.percent ?? undefined}
+          />
+        )}
+        {plan.postcards && (
+          <div className="flex items-baseline justify-between text-sm">
+            <span className="font-semibold text-ink-strong">{t("billing.postcardsLabel")}</span>
+            <span className="text-ink-body">
+              {t("billing.postcardsLeft", {
+                left: String(Math.max(0, plan.postcards.allowed - plan.postcards.used)),
+                allowed: String(plan.postcards.allowed),
+              })}
+            </span>
+          </div>
+        )}
+        {plan.bookDiscountRappen > 0 && (
+          <div className="flex items-baseline justify-between text-sm">
+            <span className="font-semibold text-ink-strong">{t("billing.photobooksLabel")}</span>
+            <span className="text-ink-body">
+              {t("billing.photobookDiscount", { amount: `CHF ${(plan.bookDiscountRappen / 100).toFixed(2)}` })}
+            </span>
+          </div>
+        )}
+      </div>
 
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-5 flex flex-wrap gap-3">
+        {plan.plan === "plus" && <StorageAddonButton username={username} label={t("billing.addStorage")} />}
         {plan.hasStripeSubscription && <ManageSubscriptionButton username={username} />}
         {plan.source === "apple" && <ManagedByApple />}
         {plan.plan !== "plus" && <BuyPlanButton username={username} plan="plus" label={t("billing.buyPlus")} />}
         {plan.plan === "free" && <BuyPlanButton username={username} plan="pass" label={t("billing.buyPass")} />}
       </div>
+
+      {plan.hasStripeSubscription && plan.renews && (
+        <div className="mt-4">
+          <CancelPlanButton username={username} label={t("billing.cancel", { plan: planTag })} />
+        </div>
+      )}
+
+      {dateStr && (
+        <p className="mt-3 text-sm leading-6 text-ink-secondary">
+          {t(plan.renews ? "billing.cancelExplain" : "billing.endsExplain", { plan: planTag, date: dateStr })}
+        </p>
+      )}
+
       {native && <RestoreApplePurchasesButton username={username} />}
     </div>
   );
@@ -481,9 +653,13 @@ export default function AccountPageContent({
     <>
 
         <div className="mt-6 space-y-4">
+          {/* Your plan, first — B2622's board. What an owner pays for and
+              what it buys them, ahead of everything else on this page. */}
+          {plan && <YourPlanPanel username={username} plan={plan} storage={storage} />}
+
           {orders.recent.length > 0 && (
-            // B1452. At the top — what an owner asks most right after a
-            // purchase is "did it go through", not their balance.
+            // B1452. Next — what an owner asks most often right after a
+            // purchase is "did it go through".
             <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-display text-lg font-semibold text-ink-strong">
@@ -506,9 +682,6 @@ export default function AccountPageContent({
               </ul>
             </div>
           )}
-
-          {plan && <YourPlanPanel username={username} plan={plan} />}
-
 
           {storage && (
             <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">

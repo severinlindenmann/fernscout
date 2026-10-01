@@ -65,6 +65,51 @@ function RoleRow({ journal }: { journal: MineJournal }) {
 }
 
 /**
+ * A compact plan status card for the journal this address owns — B2622.
+ *
+ * `/me` is about the person across every journal, not one journal's own
+ * detail — the full "Your plan" panel (meters, the portal, cancelling) lives
+ * on the studio account page, and this is deliberately smaller than that:
+ * plan, renews/ends, AI days left, and a button that leads there. Absent
+ * when there is nothing to own, or when `billing` is off (`journal.plan` is
+ * then absent too, the same "absent, not shown empty" rule the studio page
+ * follows).
+ */
+function PlanStatusCard({ journal }: { journal: MineJournal & { plan: NonNullable<MineJournal["plan"]> } }) {
+  const { t } = useI18n();
+  const plan = journal.plan;
+  const planTag = t(`plans.${plan.plan}` as "plans.free");
+  const dateStr = plan.periodEnd ? plan.periodEnd.slice(0, 10) : null;
+
+  return (
+    <section aria-labelledby="account-plan" className="mt-10 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
+      <h2 id="account-plan" className="font-display text-xl font-semibold text-ink-strong">
+        {t("meAccount.planTitle")}
+      </h2>
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="font-display text-lg font-semibold text-ink-strong">{planTag}</span>
+        {dateStr && (
+          <span className="text-sm text-ink-secondary">
+            {t(plan.renews ? "billing.renews" : "billing.ends", { date: dateStr })}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-sm text-ink-body">
+        {plan.aiDays.unlimited
+          ? t("billing.aiDaysUnlimited")
+          : t("billing.aiDaysLeft", { used: String(plan.aiDays.used), allowed: String(plan.aiDays.allowed) })}
+      </p>
+      <Link
+        href={`${journal.href}/studio/account`}
+        className={`mt-3 inline-block text-sm font-semibold text-ink-strong ${LINK}`}
+      >
+        {t("meAccount.planCta")}
+      </Link>
+    </section>
+  );
+}
+
+/**
  * Sign out everywhere — `DELETE /api/v2/me/devices`.
  *
  * Asks first, in a panel rather than a browser dialog, because on the phone
@@ -228,6 +273,8 @@ export default function AccountPage({
                 </p>
               )}
             </section>
+
+            {owned?.plan && <PlanStatusCard journal={{ ...owned, plan: owned.plan }} />}
 
             <YourDevices
               devices={home.devices}

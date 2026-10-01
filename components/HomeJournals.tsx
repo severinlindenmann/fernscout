@@ -4,6 +4,7 @@ import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import type { PlanSummary } from "@/lib/billingSummary";
 import { tellWorkerSignedOut } from "@/lib/signedOut";
 
 import { journalPath } from "@/lib/journalPath";
@@ -45,6 +46,9 @@ export type HomeJournal = {
   href: string;
   role: "admin" | "owner" | "traveller" | "guest";
   trips: HomeTrip[];
+  /** This journal's own plan — B2622, present only for the address that
+   *  owns it and only when `billing` is on. See `lib/home.ts`'s own field. */
+  plan?: PlanSummary;
 };
 
 /** A journal the address holds a role in of its own — everything but `admin`,

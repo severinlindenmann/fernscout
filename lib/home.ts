@@ -1,6 +1,7 @@
 import "server-only";
 import { isIndexable } from "./access";
 import { isAdminEmail } from "./admin";
+import { planSummaryFor, type PlanSummary } from "./billingSummary";
 import { getContactByEmail } from "./contacts";
 import { getAllEntries } from "./entries";
 import { hasReadGrant } from "./grants";
@@ -60,6 +61,11 @@ export type HomeJournal = {
   role: HomeRole;
   /** The trips this address may open here, each with its own reason. */
   trips: ViewerTrip[];
+  /** This journal's own plan, for the address that owns it — B2622, read by
+   *  `/me`'s compact plan card the same way the studio account page reads
+   *  it. Absent for every role but `owner` (an operator browsing somebody
+   *  else's journal gets `admin`, never this) and when `billing` is off. */
+  plan?: PlanSummary;
 };
 
 export type PublicJournalSummary = {
@@ -179,6 +185,11 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
      */
     if (trips.length === 0 && !named) continue;
 
+    // B2622 — only for the address that really owns this journal, and only
+    // one lookup per page view: the loop otherwise runs once per journal
+    // this instance has, not once per journal the address owns.
+    const plan = role === "owner" ? await planSummaryFor(username) : undefined;
+
     out.push({
       username,
       title: user.title,
@@ -186,6 +197,7 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
       href: journalPath(username),
       role,
       trips,
+      ...(plan ? { plan } : {}),
     });
   }
 
