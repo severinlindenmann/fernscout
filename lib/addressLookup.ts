@@ -190,6 +190,10 @@ export type GeocodeCandidate = {
   country: string;
   countryCode?: string;
   adminRegion?: string;
+  /** Photon's own `state` — a canton, a Land, a state — never the
+   * county/city it falls back to, which is what `adminRegion` above does for
+   * a display label. B2640: `Day.region` wants this field or nothing. */
+  region?: string;
   lat: number;
   lon: number;
   type?: string;
@@ -243,6 +247,7 @@ function geocodeCandidate(feature: PhotonPlaceFeature): GeocodeCandidate | null 
   const country = (p.country ?? "").trim();
   const countryCode = (p.countrycode ?? "").trim().toUpperCase();
   const adminRegion = uniqueParts([p.state ?? "", p.county ?? "", p.district ?? "", p.city ?? ""])[0] ?? "";
+  const region = (p.state ?? "").trim();
   const displayName = uniqueParts([p.name ?? "", p.city ?? "", p.district ?? "", adminRegion, country]).join(", ");
   if (displayName === "" || country === "") return null;
 
@@ -255,6 +260,9 @@ function geocodeCandidate(feature: PhotonPlaceFeature): GeocodeCandidate | null 
     lon,
     ...(countryCode ? { countryCode } : {}),
     ...(adminRegion ? { adminRegion } : {}),
+    // Photon's own `state`, never the county/city `adminRegion` falls back
+    // to above — B2640.
+    ...(region ? { region } : {}),
     ...(type ? { type } : {}),
   };
 }
@@ -281,6 +289,7 @@ function mergeCandidates(existing: GeocodeCandidate, candidate: GeocodeCandidate
     ...existing,
     ...(existing.countryCode ? {} : candidate.countryCode ? { countryCode: candidate.countryCode } : {}),
     ...(existing.adminRegion ? {} : candidate.adminRegion ? { adminRegion: candidate.adminRegion } : {}),
+    ...(existing.region ? {} : candidate.region ? { region: candidate.region } : {}),
     ...(existing.type ? {} : candidate.type ? { type: candidate.type } : {}),
   };
 }
