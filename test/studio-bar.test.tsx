@@ -216,3 +216,22 @@ describe("the short-screen wrapper's viewport unit", () => {
     expect(wrapper.className).not.toContain("dvh");
   });
 });
+
+/**
+ * B2661 — a sticky element only moves inside its parent. The bar's parent
+ * (kept for the outbox pill) is exactly the bar's height, so that parent is
+ * what must stick on a phone; otherwise the bar sits at the page's end,
+ * cut off by the iPhone app's top inset and never sticky on a long page.
+ */
+describe("the bar sticks to the screen's bottom on a phone", () => {
+  test("its wrapper is the sticky element, with the showcase offset", () => {
+    const el = render(
+      <StudioPage username="alex" group="plan" title="A new trip">
+        <StepPrimary label="Onwards" onClick={() => {}} />
+      </StudioPage>,
+    );
+    const button = [...el.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Onwards")!;
+    const wrapper = button.parentElement!.parentElement!;
+    expect(wrapper.className.split(/\s+/)).toEqual(expect.arrayContaining(["max-md:sticky", "max-md:bottom-[var(--fs-showcase-bar,0px)]"]));
+  });
+});
