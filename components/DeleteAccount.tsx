@@ -6,7 +6,7 @@ import { useI18n } from "@/components/LocaleProvider";
 
 import { journalPath } from "@/lib/journalPath";
 /** What `GET /@<user>/me/delete` counted off the disk, for the question below. */
-type Inventory = { title: string; trips: number; days: number; files: number; size: string };
+type Inventory = { title: string; trips: number; days: number; files: number; size: string; appleManaged?: boolean };
 
 /**
  * Leaving, from the page that is already about this reader — B1346.
@@ -106,6 +106,14 @@ export default function DeleteAccount({
         </p>
       ) : inventory ? (
         <div className="mt-4">
+          {inventory.appleManaged && (
+            // Apple 5.1.1(v) — deleting the journal never cancels an App
+            // Store subscription, so this is said before the question below,
+            // not left to be discovered as a charge that keeps coming.
+            <p role="status" className="mb-3 text-sm leading-6 text-ink-secondary">
+              {t("me.deleteAppleManaged")}
+            </p>
+          )}
           <ConfirmPanel
             label={t("me.deleteButton")}
             question={t("me.deleteQuestion", {

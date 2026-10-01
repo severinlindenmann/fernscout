@@ -1620,6 +1620,7 @@
   "me.deleteButton": "Tagebuch löschen",
   "me.deleteConfirm": "Schick mir den Löschlink",
   "me.deleteFailed": "Das hat nicht geklappt, gelöscht wurde nichts. Lade die Seite neu und versuch es noch einmal.",
+  "me.deleteAppleManaged": "Das Löschen dieses Journals kündigt dein App-Store-Abo nicht. Kündige es separat unter Einstellungen > dein Name > Abonnements auf deinem iPhone.",
   "me.deleteQuestion": "Löschung von „{title}“ anfragen? {trips} Reisen, {days} Tage und {files} Dateien ({size}) wären weg. Jetzt wird nur der Link verschickt — gelöscht ist noch nichts.",
   "me.deleteSent": "Der Link ist unterwegs an {email}. Er gilt einmal und {minutes} Minuten lang; gelöscht wird erst, wenn du in dieser E-Mail auf den Knopf drückst.",
   "me.deleteTitle": "Tagebuch löschen",
@@ -4671,5 +4672,8 @@
   "billing.aiDaysUnlimited": "KI: unbegrenzt (Abrechnung ist auf dieser Instanz deaktiviert)",
   "billing.storage": "{size} Speicherplatz",
   "billing.dryRunSent": "Anfrage gesendet — bitte den Betreiber, sie zu bestätigen.",
-  "billing.checkoutFailed": "Konnte nicht gestartet werden. Bitte erneut versuchen."
+  "billing.checkoutFailed": "Konnte nicht gestartet werden. Bitte erneut versuchen.",
+  "billing.managedByApple": "Verwaltet von Apple",
+  "billing.restorePurchases": "Käufe wiederherstellen",
+  "billing.restoreDone": "Erledigt."
 }

@@ -61,6 +61,10 @@
     // repository, outside knip's graph) and by the stub that stands in for it,
     // so from inside this repository nothing seems to use them.
     "lib/whatsappTypes.ts",
+    // Open core: `appAccountTokenFor` (B2598) is called only from paid/'s own
+    // Apple routes (`verify-purchase`, `account-token`), outside knip's graph
+    // — the same shape `lib/whatsappTypes.ts` is here for.
+    "lib/apple/accountToken.ts",
     // The suite, and the fixtures it reaches for.
     "test/**/*.test.{ts,tsx}",
     "test/fixtures/**/*.{ts,tsx}",

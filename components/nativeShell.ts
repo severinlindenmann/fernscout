@@ -559,3 +559,83 @@ export function serverChoiceError(error: unknown): ServerChoiceError {
   const code = (error as { code?: unknown } | null)?.code;
   return code === "invalid" || code === "notFernscout" || code === "recording" ? code : "unreachable";
 }
+
+/**
+ * StoreKit 2 in-app purchase — B2598. Apple 3.1.3(b): the app must sell the
+ * same plans the web sells, through Apple's own purchase, so the upgrade
+ * sheet and `/prices` reach this instead of `/api/web/[user]/billing/checkout`
+ * whenever `isNativeShell()`. The plugin hands back an unfinished
+ * transaction; `finishApplePurchase` is only called once the server has
+ * verified and granted it (`verifyApplePurchase`), so a dropped network call
+ * in between leaves StoreKit still holding the transaction to retry.
+ */
+/** Mirrors `paid/credits/lib/apple/products.ts` — public App Store product
+ *  ids, not a secret, so duplicating the two strings here is cheaper than a
+ *  round trip just to learn them. */
+export const APPLE_PRODUCT_IDS = { pass: "ch.fernscout.pass", plus: "ch.fernscout.plus.yearly" } as const;
+
+export type AppleProduct = { id: string; displayName: string; displayPrice: string };
+type ApplePurchaseOutcome =
+  | { transactionJws: string; transactionId: string }
+  | { cancelled: true }
+  | { pending: true };
+type AppleIAPPlugin = {
+  loadProducts(options: { productIds: string[] }): Promise<{ products: AppleProduct[] }>;
+  purchase(options: { productId: string; appAccountToken: string }): Promise<ApplePurchaseOutcome>;
+  restorePurchases(): Promise<{ transactions: string[] }>;
+  finishTransaction(options: { transactionId: string }): Promise<void>;
+};
+const AppleIAP = registerPlugin<AppleIAPPlugin>("AppleIAP");
+
+export function loadAppleProducts(productIds: string[]): Promise<AppleProduct[]> {
+  return AppleIAP.loadProducts({ productIds }).then((r) => r.products);
+}
+
+async function ownerAppAccountToken(username: string): Promise<string> {
+  const response = await fetch(`/api/web/${encodeURIComponent(username)}/apple/account-token`);
+  if (!response.ok) throw new Error(`account-token ${response.status}`);
+  const { token } = (await response.json()) as { token: string };
+  return token;
+}
+
+/** Verifies a purchase's transaction server-side and grants the plan — the
+ *  same call a purchase and a restore both make, since a restored
+ *  transaction the server has already granted is simply idempotent. */
+async function verifyApplePurchase(username: string, transactionJws: string): Promise<{ ok: boolean; plan?: "pass" | "plus" }> {
+  const response = await fetch(`/api/web/${encodeURIComponent(username)}/apple/verify-purchase`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ transactionJws }),
+  });
+  if (!response.ok) return { ok: false };
+  const body = (await response.json()) as { ok: true; plan: "pass" | "plus" };
+  return body;
+}
+
+export type BuyApplePlanResult = { ok: true; plan: "pass" | "plus" } | { ok: false; reason: "cancelled" | "pending" | "failed" };
+
+/** Buys `plan` for `username` end to end: mint the account token, call
+ *  StoreKit, hand the signed transaction to the server, and only then tell
+ *  StoreKit the purchase is finished. */
+export async function buyApplePlan(username: string, plan: "pass" | "plus"): Promise<BuyApplePlanResult> {
+  const appAccountToken = await ownerAppAccountToken(username);
+  const outcome = await AppleIAP.purchase({ productId: APPLE_PRODUCT_IDS[plan], appAccountToken });
+  if ("cancelled" in outcome) return { ok: false, reason: "cancelled" };
+  if ("pending" in outcome) return { ok: false, reason: "pending" };
+  const verified = await verifyApplePurchase(username, outcome.transactionJws);
+  if (!verified.ok) return { ok: false, reason: "failed" };
+  await AppleIAP.finishTransaction({ transactionId: outcome.transactionId }).catch(() => undefined);
+  return { ok: true, plan: verified.plan ?? plan };
+}
+
+/** "Restore purchases" — replays every current entitlement's transaction
+ *  through the same verify call, which is a no-op for one already granted. */
+export async function restoreApplePurchases(username: string): Promise<number> {
+  const { transactions } = await AppleIAP.restorePurchases();
+  let granted = 0;
+  for (const jws of transactions) {
+    const result = await verifyApplePurchase(username, jws);
+    if (result.ok) granted++;
+  }
+  return granted;
+}

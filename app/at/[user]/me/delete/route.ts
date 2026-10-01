@@ -1,5 +1,7 @@
 import { isOwner } from "@/lib/contacts/session";
+import { isEnabled } from "@/lib/capabilities";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion, summarise } from "@/lib/deletions";
+import { planOf } from "@paid/credits/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 
@@ -44,12 +46,17 @@ export async function GET(request: Request, { params }: RouteContext<"/at/[user]
   if (!summary) {
     return Response.json({ error: "no_such_journal" }, { status: 404 });
   }
+  // Apple 5.1.1(v): an owner deleting their journal must be told how to
+  // cancel an active App Store subscription, since deleting the journal
+  // itself never touches the App Store side of it — B2598.
+  const appleManaged = isEnabled("billing") && (await planOf(user)).source === "apple";
   return Response.json({
     title: summary.title,
     trips: summary.trips,
     days: summary.days,
     files: summary.files,
     size: humanBytes(summary.bytes),
+    appleManaged,
   });
 }
 
