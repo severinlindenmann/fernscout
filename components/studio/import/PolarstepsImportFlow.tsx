@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import BusyButton from "@/components/BusyButton";
@@ -42,7 +43,8 @@ type TripLog = { folder: string; title: string; status: "importing" | "done" | "
  * one `LocationFlow` already uses for any other location history.
  */
 export default function PolarstepsImportFlow({ username }: { username: string }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState(false);
   const [readError, setReadError] = useState<string | null>(null);
@@ -115,6 +117,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
       form.append("files", new File([bytes as BlobPart], name));
     }
     form.append("source", "polarsteps");
+    // no-refresh: one batch of a step's media mid-import; runImport refreshes once at the end.
     await fetch(`${journalPath(username)}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(slug)}/photos`, {
       method: "POST",
       body: form,
@@ -126,10 +129,12 @@ export default function PolarstepsImportFlow({ username }: { username: string })
     const text = await readZipEntryText(file, discovered.locationsEntry, { maxBytes: LOCATIONS_JSON_MAX_BYTES });
     const form = new FormData();
     form.append("files", new File([text], "locations.json", { type: "application/json" }));
+    // no-refresh: stages locations.json in the inbox; runImport refreshes once at the end.
     const staged = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, { method: "POST", body: form });
     const stagedJson = (await staged.json().catch(() => null)) as { items?: { id: string }[] } | null;
     const inboxId = stagedJson?.items?.[0]?.id;
     if (!staged.ok || !inboxId) return;
+    // no-refresh: writes positions to gps/ only; runImport refreshes once at the end.
     await fetch(`/api/helper/${encodeURIComponent(username)}/import`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -148,6 +153,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
     const lines: string[] = [];
     for (const discovered of chosen) {
       const text = await readZipEntryText(file, discovered.entry, { maxBytes: TRIP_JSON_MAX_BYTES });
+      // no-refresh: a dry run writes nothing.
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/polarsteps`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -155,7 +161,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
       });
       const body = (await res.json().catch(() => null)) as { ok?: true; days?: { date: string }[]; title?: string } | null;
       if (res.ok && body?.days) {
-        lines.push(t("studio.polarsteps.preview.line", { title: body.title ?? discovered.trip.name, count: String(body.days.length) }));
+        lines.push(tn("studio.polarsteps.preview.line", body.days.length, { title: body.title ?? discovered.trip.name, count: String(body.days.length) }));
       }
     }
     setPreviewText(lines.join(" "));
@@ -173,6 +179,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
 
     for (const discovered of chosen) {
       const text = await readZipEntryText(file!, discovered.entry, { maxBytes: TRIP_JSON_MAX_BYTES });
+      // no-refresh: one trip of several; router.refresh() runs once after the loop below.
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/polarsteps`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -206,6 +213,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
       setLogs((prev) => prev.map((l) => (l.folder === discovered.folder ? { ...l, status: "done", tripId } : l)));
     }
     setRunning(false);
+    router.refresh();
   }
 
   return (
@@ -262,7 +270,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
       {confirming && (
         <ConfirmPanel
           label={t("studio.polarsteps.importButton")}
-          question={t("studio.polarsteps.confirm.question", { count: String(selected.size) })}
+          question={tn("studio.polarsteps.confirm.question", selected.size, { count: String(selected.size) })}
           details={`${previewText ?? ""} ${t("studio.polarsteps.notImported")}`.trim()}
           confirmLabel={t("studio.polarsteps.confirm.button")}
           onConfirm={() => void runImport()}
@@ -284,7 +292,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
                 </p>
               )}
               {l.status === "duplicate" && <p className="text-ink-secondary">{t("studio.polarsteps.log.duplicate")}</p>}
-              {l.status === "refused" && <p className="text-coral-600">{l.message ?? t("studio.polarsteps.log.refused")}</p>}
+              {l.status === "refused" && <p role="alert" className="text-coral-600">{l.message ?? t("studio.polarsteps.log.refused")}</p>}
             </li>
           ))}
         </ul>

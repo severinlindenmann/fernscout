@@ -19,7 +19,7 @@ describe("readZip — the synthetic Polarsteps export", () => {
     expect(names).toContain("trip/alpine-loop_5001/locations.json");
     expect(names).toContain("trip/tokyo-nights_5002/trip.json");
     expect(names).toContain(
-      "trip/alpine-loop_5001/ferry-at-dawn_11/photos/aaaa1111-0000-0000-0000-000000000001_bbbb2222-0000-0000-0000-000000000002.jpg.jpg",
+      "trip/alpine-loop_5001/ferry-at-dawn_11/photos/aaaaaaaa-feed-face-beef-aaaaaaaaaaaa_bbbbbbbb-feed-face-beef-bbbbbbbbbbbb.jpg.jpg",
     );
     expect(names.some((n) => n.endsWith("/"))).toBe(false);
   });

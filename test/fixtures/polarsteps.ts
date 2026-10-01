@@ -124,8 +124,11 @@ export function locationsJsonFor(trip: "a" | "b"): string {
 /** A step's media — filenames only, relative to its own folder, exactly
  * where a real export puts them (`<display_slug>_<id>/photos|videos/…`). */
 export function mediaFor(step: PolarstepsStep): { photos: string[]; videos: string[] } {
-  if (step.id === stepA1.id) return { photos: ["aaaa1111-0000-0000-0000-000000000001_bbbb2222-0000-0000-0000-000000000002.jpg.jpg"], videos: [] };
-  if (step.id === stepA2.id) return { photos: ["cccc3333-0000-0000-0000-000000000003_dddd4444-0000-0000-0000-000000000004.jpg"], videos: [] };
+  // Not real UUIDs on purpose — enough hex to look like the real export's
+  // naming, but never a run of digits long enough to read as a phone
+  // number (test/depersonalised.test.ts).
+  if (step.id === stepA1.id) return { photos: ["aaaaaaaa-feed-face-beef-aaaaaaaaaaaa_bbbbbbbb-feed-face-beef-bbbbbbbbbbbb.jpg.jpg"], videos: [] };
+  if (step.id === stepA2.id) return { photos: ["cccccccc-feed-face-beef-cccccccccccc_dddddddd-feed-face-beef-dddddddddddd.jpg"], videos: [] };
   if (step.id === stepB1.id) return { photos: [], videos: ["clip.mp4"] };
   // A3 and B2 have no media folder at all — the confirmed quirk.
   return { photos: [], videos: [] };
