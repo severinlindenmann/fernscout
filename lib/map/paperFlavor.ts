@@ -96,8 +96,8 @@ const WORLD_LAYER_IDS = new Set(["background", "earth", "water", "boundaries_cou
  * (`app/api/maps/fonts/[stack]/[range]/route.ts`), never the baked
  * `public/fonts/` URL directly — that route already falls back to
  * `public/fonts/` for whatever range an operator hasn't downloaded, so this
- * one URL covers both. No `sprite` at all, since every icon this style might
- * have drawn is the one layer just dropped.
+ * one URL covers both. No `sprite` at all: the POI layer is dropped and every
+ * other icon is taken out by `withoutIcons` (B2624).
  */
 /**
  * One name per label, in the reader's own language where the data has it,
@@ -114,6 +114,23 @@ function oneLanguage<L extends { type: string; layout?: Record<string, unknown> 
       "text-field": ["coalesce", ["get", `name:${lang}`], ["get", "name:en"], ["get", "name"]],
     },
   };
+}
+
+/**
+ * Takes every icon out of a layer — B2624. The style has no sprite, so an
+ * `icon-image` can never load; asking for one anyway logged a MapLibre
+ * warning per image on every page with a street map. A layer that is only
+ * an icon (one-way arrows) is dropped; one with text (road numbers, town
+ * names) keeps its text, which is all it ever drew.
+ */
+function withoutIcons<L extends { type: string; layout?: Record<string, unknown>; paint?: Record<string, unknown> }>(
+  layer: L,
+): L | null {
+  if (layer.type !== "symbol" || !layer.layout || !("icon-image" in layer.layout)) return layer;
+  if (!("text-field" in layer.layout)) return null;
+  const strip = (o?: Record<string, unknown>) =>
+    o && Object.fromEntries(Object.entries(o).filter(([k]) => !k.startsWith("icon-")));
+  return { ...layer, layout: strip(layer.layout), paint: strip(layer.paint) };
 }
 
 /** `/api/maps/x.pmtiles` → its TileJSON: tiles are looked up on the server and
@@ -134,7 +151,8 @@ export function paperStyle(
     .map((l) => ({ ...l, id: `${l.id}-world` }));
   const regionLayers = layers("protomaps", flavor, opts)
     .filter((l) => l.id !== POI_LAYER_ID && !WORLD_LAYER_IDS.has(l.id))
-    .map((l) => oneLanguage(l, opts.lang));
+    .map((l) => withoutIcons(oneLanguage(l, opts.lang)))
+    .filter((l) => l !== null);
   return {
     version: 8,
     glyphs: "/api/maps/fonts/{fontstack}/{range}.pbf",

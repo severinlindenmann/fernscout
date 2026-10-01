@@ -287,7 +287,7 @@ export const manifest: ManifestItem[] = [
   {
     id: "D8",
     claim:
-      "(reversed by B2016, then B2017) The hub's Journal group carries Credits & storage, journal settings, the agent card, visitors (gated on analyticsEnabled) and people, with export and delete as quiet text below every group.",
+      "(reversed by B2016, then B2017) The hub's Journal group carries Plan & storage, journal settings, the agent card, visitors (gated on analyticsEnabled) and people, with export and delete as quiet text below every group.",
     proof: {
       kind: "test",
       name:

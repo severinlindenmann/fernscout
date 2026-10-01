@@ -571,7 +571,7 @@ export default function RecordButton({
           href="/prices"
           className={`text-sm font-semibold underline underline-offset-2 ${hero ? "text-cream-50" : "text-ink-strong"}`}
         >
-          {t("studio.day.polish.error.noCredits.link")}
+          {t("studio.day.polish.error.aiDaysUsed.link")}
         </Link>
       </div>
     );

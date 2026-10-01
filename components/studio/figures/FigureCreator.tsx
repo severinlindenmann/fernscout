@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
-import { formatCredits } from "@/lib/creditsFormat";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import StepBody from "@/components/studio/StepBody";
@@ -118,7 +117,6 @@ export default function FigureCreator({
   initial,
   person,
   photoConsent,
-  photoCredits,
   existingIds,
   onSaved,
   onCancel,
@@ -138,7 +136,6 @@ export default function FigureCreator({
    *  false, not merely disabled (the ticket's own acceptance line). */
   photoConsent: boolean;
   /** What "Describe and propose" costs, named before it runs. */
-  photoCredits: number;
   /** Every id already in this journal's library, so a new figure never
    *  collides with one already saved. */
   existingIds: string[];
@@ -523,7 +520,7 @@ export default function FigureCreator({
                   busyLabel={t("studio.figures.photo.busy")}
                   disabled={!photoFile || !online}
                   onClick={() => void proposeFromPhoto()}
-                  label={t("studio.figures.photo.propose", { credits: formatCredits(photoCredits) })}
+                  label={t("studio.figures.photo.propose")}
                 />
                 {/* B2330 — needs a live model call; greyed (via `disabled`
                     above) with one line why, rather than a tap that only

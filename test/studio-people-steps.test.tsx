@@ -41,7 +41,6 @@ function tree() {
           trips={[{ id: "alps", title: "Alps" }]}
           defaultTripId="alps"
           photoConsent={false}
-          photoCredits={0}
         />
       </StudioBarProvider>
     </LocaleProvider>

@@ -32,7 +32,7 @@ function polishErrorFor(
     case "polish_added_facts":
       return { message: t("studio.day.polish.error.addedFacts") };
     case "plan_limit":
-      return { message: t("studio.day.polish.error.noCredits"), planLink: true };
+      return { message: t("studio.day.polish.error.aiDaysUsed"), planLink: true };
     case "model_failed":
       return { message: t("studio.day.polish.error.modelFailed") };
     case "too_many_requests":
@@ -91,9 +91,9 @@ export default function PolishText({
     return (
       <div className="mt-2">
         <p className="text-sm text-ink-secondary">
-          {t("studio.day.polish.noCreditsBeforeTap")}{" "}
+          {t("studio.day.polish.aiDaysUsedBeforeTap")}{" "}
           <Link href={`${journalPath(username)}/studio/account`} className="font-semibold underline underline-offset-2">
-            {t("studio.day.polish.error.noCredits.link")}
+            {t("studio.day.polish.error.aiDaysUsed.link")}
           </Link>
         </p>
       </div>
@@ -179,7 +179,7 @@ export default function PolishText({
                 <>
                   {" "}
                   <Link href={`${journalPath(username)}/studio/account`} className="font-semibold underline underline-offset-2">
-                    {t("studio.day.polish.error.noCredits.link")}
+                    {t("studio.day.polish.error.aiDaysUsed.link")}
                   </Link>
                 </>
               )}

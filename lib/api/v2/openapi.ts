@@ -354,6 +354,8 @@ const photobookOrderDoc = z.strictObject({
   coverType: z.enum(COVER_TYPES),
   pages: z.number().int().nonnegative(),
   volumes: z.number().int().positive(),
+  // A historical field name (B2617 deleted the credits display) — the
+  // owner's whole price, in rappen, the same figure the receipt shows.
   credits: z.number().int().nonnegative(),
   files: z.array(z.string()),
   createdAt: z.string(),
