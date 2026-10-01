@@ -225,3 +225,23 @@ export function checkPolishForAddedFacts(input: string, output: string): PolishG
 
   return { ok: true };
 }
+
+/**
+ * Does every real word in `title` already appear, by stem, in `notes`? The
+ * guard behind `mode: "titles"` on `write-day` — TIX-2, owner decision
+ * 2026-10-01. Unlike `checkPolishForAddedFacts` above, which only watches
+ * numbers, units, pronouns and capitalised words because a polish only ever
+ * rewords existing sentences, a suggested title is free invention risk on
+ * every word it contains, so this checks all of them. Short connector words
+ * (two characters or fewer — "a", "to", "in", "és", "de", …) are skipped;
+ * the point is content words, not grammar.
+ */
+export function titleIsGroundedInNotes(notes: string, title: string): boolean {
+  const known = wordStems(notes);
+  for (const match of title.matchAll(WORD_PATTERN)) {
+    const word = match[0];
+    if (normalise(word).length <= 2) continue;
+    if (!known.has(stem(word))) return false;
+  }
+  return true;
+}

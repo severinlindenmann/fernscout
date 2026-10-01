@@ -1026,12 +1026,17 @@ export function ownerTripLine(username: string, tripId: string): OwnerTripLine |
   return { segments: track.segments.map((s) => ({ day: s.day, points: s.points })) };
 }
 
+/** One point with its own reported mode — all `sumKmByMode` below needs,
+ *  whether it came straight from a raw `Fix` (`kmByMode`) or from
+ *  `ownerDayLine`'s parallel `points`/`modes` arrays (`travelForPartOfDay`). */
+type ModeSample = { lat: number; lon: number; mode?: TransportMode };
+
 /**
- * Kilometres of this trip's own recorded route, by transport mode — B2541,
- * the studio's "km by mode" line. Reads the same raw, unfiltered fixes
- * `ownerTripLine` does (no private-zone cut, no 24h cap, no end-trim — this
- * is the owner's own history, not a reader's view of it) and sums the
- * straight-line distance between consecutive fixes that share a known mode.
+ * Kilometres between consecutive samples that share a known mode — the one
+ * sum `kmByMode` and `travelForPartOfDay` both do, factored out so there is
+ * one rule for "a mode-less fix, or a boundary between two different modes,
+ * contributes nothing" rather than two copies of it (B2541; widened for
+ * TIX-2's "travel for a part of a day").
  *
  * ponytail: a fix with no mode, or a boundary between two different modes,
  * contributes nothing to any total rather than being split or guessed —
@@ -1039,6 +1044,26 @@ export function ownerTripLine(username: string, tripId: string): OwnerTripLine |
  * to, and honest about what the data actually says. Upgrade path, if it
  * ever matters: attribute an unmodalled gap to whichever mode is nearest in
  * time on either side.
+ */
+function sumKmByMode(samples: readonly ModeSample[]): Partial<Record<TransportMode, number>> {
+  const totals: Partial<Record<TransportMode, number>> = {};
+  for (let i = 1; i < samples.length; i++) {
+    const a = samples[i - 1];
+    const b = samples[i];
+    if (!a.mode || a.mode !== b.mode) continue;
+    totals[a.mode] =
+      (totals[a.mode] ?? 0) +
+      metresBetween({ t: 0, lat: a.lat, lon: a.lon }, { t: 0, lat: b.lat, lon: b.lon }) / 1000;
+  }
+  return totals;
+}
+
+/**
+ * Kilometres of this trip's own recorded route, by transport mode — B2541,
+ * the studio's "km by mode" line. Reads the same raw, unfiltered fixes
+ * `ownerTripLine` does (no private-zone cut, no 24h cap, no end-trim — this
+ * is the owner's own history, not a reader's view of it) and sums the
+ * straight-line distance between consecutive fixes that share a known mode.
  */
 export function kmByMode(username: string, tripId: string): Partial<Record<TransportMode, number>> {
   const trip = getTrip(tripRef(username, tripId));
@@ -1050,17 +1075,62 @@ export function kmByMode(username: string, tripId: string): Partial<Record<Trans
   const raw = readRange(username, from, to);
   const spikes = spikeIndices(raw);
   const fixes = raw.filter((_, i) => !spikes.has(i));
-  const totals: Partial<Record<TransportMode, number>> = {};
-  for (let i = 1; i < fixes.length; i++) {
-    const a = fixes[i - 1];
-    const b = fixes[i];
-    if (!a.mode || a.mode !== b.mode) continue;
-    totals[a.mode] = (totals[a.mode] ?? 0) + metresBetween(a, b) / 1000;
-  }
+  const totals = sumKmByMode(fixes);
   for (const mode of Object.keys(totals) as TransportMode[]) {
     totals[mode] = Math.round((totals[mode] ?? 0) * 10) / 10;
   }
   return totals;
+}
+
+/** `undefined`: no such trip, or `date` is not one of its days (the route
+ *  answers 404). `null`: the trip has recorded positions for the part of the
+ *  day asked about, but under half a kilometre of it carries a mode — not
+ *  worth naming. Otherwise the mode with the most recorded kilometres in
+ *  that window, and how many. Never a point, a coordinate or a time. */
+export type PartOfDayTravel = { mode: TransportMode; km: number } | null | undefined;
+
+/**
+ * "What did we do in this part of the day?" — TIX-2's add-a-day flow asking
+ * for one stretch's travel, e.g. the morning before lunch. Deliberately
+ * built on `ownerDayLine` rather than a fresh `readRange` — `test/gps-store
+ * .test.ts` pins `api.ts`'s position-reading exports to exactly five
+ * functions, and this is a sixth consumer of the day's fixes, not a sixth
+ * reader of the store. `from`/`to` are the day's own wall-clock `HH:MM`,
+ * resolved against the day's own timezone (`ownerDayLine`'s `timezone`) the
+ * same way `localWindow` resolves a whole day; omitted, each end is simply
+ * the start or the end of the day's own line.
+ */
+export function travelForPartOfDay(
+  username: string,
+  tripId: string,
+  date: string,
+  from?: string,
+  to?: string,
+): PartOfDayTravel {
+  const day = ownerDayLine(username, tripId, date);
+  if (!day) return undefined;
+  const start = from ? zonedTimeToUtc(date, from, day.timezone).getTime() : -Infinity;
+  const end = to ? zonedTimeToUtc(date, to, day.timezone).getTime() : Infinity;
+  const samples: ModeSample[] = [];
+  for (let i = 0; i < day.points.length; i++) {
+    if (day.spike[i]) continue;
+    const t = day.times[i];
+    if (t < start || t > end) continue;
+    const [lat, lon] = day.points[i];
+    samples.push({ lat, lon, mode: day.modes[i] });
+  }
+  const totals = sumKmByMode(samples);
+  let bestMode: TransportMode | null = null;
+  let bestKm = 0;
+  for (const mode of Object.keys(totals) as TransportMode[]) {
+    const km = totals[mode] ?? 0;
+    if (km > bestKm) {
+      bestKm = km;
+      bestMode = mode;
+    }
+  }
+  if (!bestMode || bestKm < 0.5) return null;
+  return { mode: bestMode, km: Math.round(bestKm * 10) / 10 };
 }
 
 /** How long with nothing received, *and* how far the next fix turns out to be
