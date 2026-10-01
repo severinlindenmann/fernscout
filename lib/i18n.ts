@@ -3174,6 +3174,8 @@ export type TranslationKey =
   | "studio.hub.fact.startsIn"
   | "studio.hub.fact.startsIn.one"
   | "studio.hub.fact.storage"
+  | "studio.hub.filter.clear"
+  | "studio.hub.filter.empty"
   | "studio.hub.filter.placeholder"
   | "studio.hub.group.bringIn"
   | "studio.hub.group.journal"

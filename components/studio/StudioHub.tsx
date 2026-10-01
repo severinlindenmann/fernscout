@@ -16,6 +16,7 @@ import {
   Printer,
   Search,
   Trash2,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import DeleteAccount from "@/components/DeleteAccount";
@@ -250,34 +251,43 @@ export default function StudioHub({
     : null;
   const waitingThisTripCount = duringTrip ? (model.waitingDays?.cards.filter((c) => c.trip?.id === model.addDayTrip!.id).length ?? 0) : 0;
 
+  const searching = query.trim() !== "";
+  const nothingMatched = searching && groups.length === 0 && !journalMatches;
+
   return (
     <StudioPage username={username} back={false} width="wide" title={t("studio.hub.title")}>
-      <h2 id="h-today" className="mt-4 font-display text-lg font-semibold text-ink-strong">
-        {t("studio.hub.today.heading")}
-      </h2>
-      <div className="mt-2 grid grid-cols-1 items-start gap-3 md:grid-cols-2">
-        <div>
-          <Hero {...hero} />
-          {hero.altLink && (
-            <Link
-              href={hero.altLink.href}
-              data-hero-alt
-              className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-ink-strong underline underline-offset-2"
-            >
-              {hero.altLink.label}
-            </Link>
-          )}
-        </div>
-        <section id="write" data-group="write" className="rounded-2xl md:mt-4 border border-line-faint bg-surface-raised px-2.5 py-1.5">
-          <ul className="divide-y divide-line-faint">
-            {todayRowsList.map((row) => (
-              <li key={row.href}>
-                <HubRow row={row} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
+      <FilterInput value={query} onChange={setQuery} className="mt-4" />
+
+      {!searching && (
+        <>
+          <h2 id="h-today" className="mt-4 font-display text-lg font-semibold text-ink-strong">
+            {t("studio.hub.today.heading")}
+          </h2>
+          <div className="mt-2 grid grid-cols-1 items-start gap-3 md:grid-cols-2">
+            <div>
+              <Hero {...hero} />
+              {hero.altLink && (
+                <Link
+                  href={hero.altLink.href}
+                  data-hero-alt
+                  className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-ink-strong underline underline-offset-2"
+                >
+                  {hero.altLink.label}
+                </Link>
+              )}
+            </div>
+            <section id="write" data-group="write" className="rounded-2xl md:mt-4 border border-line-faint bg-surface-raised px-2.5 py-1.5">
+              <ul className="divide-y divide-line-faint">
+                {todayRowsList.map((row) => (
+                  <li key={row.href}>
+                    <HubRow row={row} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        </>
+      )}
       {duringTrip ? (
         // B2600 — Publish and A postcard now live in Today's own card and in
         // Print, so the only thing left worth a one-tap shortcut during a
@@ -297,44 +307,53 @@ export default function StudioHub({
         <h2 id="h-everything" className="font-display text-lg font-semibold text-ink-strong">
           {t("studio.hub.everything.heading")}
         </h2>
-        <FilterInput value={query} onChange={setQuery} className="hidden md:block md:w-72" />
       </div>
-      <div className="mt-3 grid grid-cols-1 items-start gap-3 md:grid-cols-3">
-        {groups.map(({ group, rows }, i) => (
-          <EverythingCardShell key={group} group={group} open={isOpen(group)} onToggle={() => toggleOpen(group)} arriveIndex={i}>
-            {group === "tripsPeople" && !query.trim() ? (
-              <>
-                <ul id="plan" className="divide-y divide-line-faint">
-                  {tripsOnlyRows.map((row) => (
+      {groups.length > 0 && (
+        <div className="mt-3 grid grid-cols-1 items-start gap-3 md:grid-cols-3">
+          {groups.map(({ group, rows }, i) => (
+            <EverythingCardShell key={group} group={group} open={isOpen(group)} onToggle={() => toggleOpen(group)} arriveIndex={i}>
+              {group === "tripsPeople" && !searching ? (
+                <>
+                  <ul id="plan" className="divide-y divide-line-faint">
+                    {tripsOnlyRows.map((row) => (
+                      <li key={row.href}>
+                        <HubRow row={row} />
+                      </li>
+                    ))}
+                  </ul>
+                  <ul id="people" className="divide-y divide-line-faint border-t border-line-faint">
+                    {peopleOnlyRows.map((row) => (
+                      <li key={row.href}>
+                        <HubRow row={row} />
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <ul className="divide-y divide-line-faint">
+                  {rows.map((row) => (
                     <li key={row.href}>
                       <HubRow row={row} />
                     </li>
                   ))}
                 </ul>
-                <ul id="people" className="divide-y divide-line-faint border-t border-line-faint">
-                  {peopleOnlyRows.map((row) => (
-                    <li key={row.href}>
-                      <HubRow row={row} />
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <ul className="divide-y divide-line-faint">
-                {rows.map((row) => (
-                  <li key={row.href}>
-                    <HubRow row={row} />
-                  </li>
-                ))}
-              </ul>
-            )}
-            {group === "print" && <RecentOrders username={username} orders={model.print.recentOrders} />}
-          </EverythingCardShell>
-        ))}
-      </div>
+              )}
+              {group === "print" && <RecentOrders username={username} orders={model.print.recentOrders} />}
+            </EverythingCardShell>
+          ))}
+        </div>
+      )}
+
+      {/* B2641 — a query matching nothing anywhere (not even Journal &
+          account) gets its own line instead of a silently empty grid. */}
+      {nothingMatched && (
+        <p data-filter-empty className="mt-3 text-sm text-ink-secondary">
+          {t("studio.hub.filter.empty", { query })}
+        </p>
+      )}
 
       {/* B2600 — a query that matches none of its rows hides it, like the other cards. */}
-      {(!query.trim() || journalMatches) && (
+      {(!searching || journalMatches) && (
         <JournalAccountSection
           username={username}
           rows={journalFullRows}
@@ -343,8 +362,6 @@ export default function StudioHub({
           arriveIndex={groups.length}
         />
       )}
-
-      <FilterInput value={query} onChange={setQuery} className="mt-3 md:hidden" />
     </StudioPage>
   );
 }
@@ -385,15 +402,16 @@ function DuringTripRows({
   );
 }
 
-/** B2600 — the filter field (B2304): beside "Everything else" at desktop,
- *  below the four cards on phone. Two instances share `value`/`onChange`
- *  and only one is ever visible at a given width (`className` hides the
- *  other), the same responsive-duplication the phone/desktop nav already
- *  uses — typing into either updates the one shared query. */
-function FilterInput({ value, onChange, className }: { value: string; onChange: (value: string) => void; className: string }) {
+/** B2641 — one filter field, directly under the studio title at every
+ *  width (the old desktop/phone pair, each hidden at the other's width and
+ *  sitting below "Everything else", is gone — the owner wanted search at
+ *  the top). A non-empty query hides Today's hero/write section (below)
+ *  and narrows "Everything else" and Journal & account to matching rows,
+ *  opened; the (x) clears it back to the unfiltered page. */
+function FilterInput({ value, onChange, className }: { value: string; onChange: (value: string) => void; className?: string }) {
   const { t } = useI18n();
   return (
-    <label className={`relative block ${className}`}>
+    <label className={`relative block ${className ?? ""}`}>
       <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-secondary" />
       <input
         type="search"
@@ -402,9 +420,23 @@ function FilterInput({ value, onChange, className }: { value: string; onChange: 
         placeholder={t("studio.hub.filter.placeholder")}
         aria-label={t("studio.hub.filter.placeholder")}
         data-hub-filter
-        className="min-h-11 w-full rounded-full border border-line-faint bg-surface-raised py-2 pl-9 pr-4 text-sm text-ink-strong
-                   placeholder:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        className={`min-h-11 w-full rounded-full border border-line-faint bg-surface-raised py-2 pl-9 text-sm text-ink-strong
+                   placeholder:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
+                     value ? "pr-10" : "pr-4"
+                   }`}
       />
+      {value !== "" && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label={t("studio.hub.filter.clear")}
+          data-hub-filter-clear
+          className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-ink-secondary
+                     transition-colors hover:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          <X aria-hidden className="h-4 w-4" strokeWidth={2} />
+        </button>
+      )}
     </label>
   );
 }
