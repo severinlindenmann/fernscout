@@ -21,7 +21,7 @@ export const MONEY_TOOLS: readonly Tool[] = [
     kind: "read",
     renders: "say",
     describe:
-      "What a trip has cost so far, not the journal's own credits (account): total, preparation, daily average, largest categories, budget (may be absent — say so). `notInTheTotal` is unconverted money: if not empty, say how much.",
+      "What a trip has cost so far, not the journal's own disk space (account): total, preparation, daily average, largest categories, budget (may be absent — say so). `notInTheTotal` is unconverted money: if not empty, say how much.",
     properties: TRIP_ARG,
     run: async (username, args) => {
       const trip = resolveTrip(username, args.trip);

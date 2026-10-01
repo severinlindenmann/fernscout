@@ -6,7 +6,6 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { grant, spend } from "@/lib/credits";
 import { forget, history, remember } from "@/lib/helper/thread";
 import { TOOLS, runTool, toolSchemas } from "@/lib/helper/tools";
 import { threadSystemPrompt } from "@/lib/helper/model";
@@ -199,7 +198,6 @@ beforeEach(async () => {
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
-  await grant("alex", 10);
   await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
 });
 
@@ -226,20 +224,18 @@ describe("the four German sentences that used to come back unknown", () => {
     expect(answered.body.looked).toEqual([]);
   });
 
-  test('"was kostet das" runs the account tool and answers from what it read', async () => {
+  test('"wie viel platz habe ich noch" runs the account tool and answers from what it read', async () => {
     create
       .mockResolvedValueOnce(calls("account"))
-      .mockResolvedValueOnce(says("Du hast noch 10 Credits. Fragen kostet nichts."));
-    const answered = await read(await ask("was kostet das"));
+      .mockResolvedValueOnce(says("Du nutzt noch wenig Speicherplatz."));
+    const answered = await read(await ask("wie viel platz habe ich noch"));
     expect(answered.body.looked).toEqual(["account"]);
-    expect(String(answered.body.answer)).toContain("10 Credits");
-    // The tool actually ran, and its answer went back to the model. 9.98
-    // rather than the granted 10 — B1091: this turn's own flat
-    // `HELPER_TURN_CREDITS` (0.02) was already spent, before the model was
-    // ever called, so the balance the tool reads back is the true one.
+    expect(String(answered.body.answer)).toContain("Speicherplatz");
+    // The tool actually ran, and its answer — disk space, since B2592
+    // (there is no balance left to ask about) — went back to the model.
     const back = (sent[1].messages as { role: string; content: unknown }[])[2];
     const result = (back.content as { content: string }[])[0].content;
-    expect(JSON.parse(result)).toMatchObject({ credits: 9.98 });
+    expect(JSON.parse(result)).toMatchObject({ used: expect.any(String) });
   });
 
   test('"ich war in lissabon" is answered without anything being written down', async () => {
@@ -407,7 +403,7 @@ describe("a proposal chained without the model — B926", () => {
     expect(turns[0].text).toContain("not written");
   });
 
-  test.skipIf(!hasPaid())("survives a failed press, and the next turn can still use it", async () => {
+  test("survives a failed press, and the next turn can still use it", async () => {
     await proposeChained("draft_words", {
       trip: "reise",
       slug: "kazbegi-tag",
@@ -415,41 +411,20 @@ describe("a proposal chained without the model — B926", () => {
       notes: NOTES,
     });
 
-    // The press that fails: a plan out of AI days (B2591 — write-day no
-    // longer spends credits), the same shape a transient model error
-    // produces. `refused()` deliberately never touches the thread — the
-    // route's own answer already says what happened — so this must not
-    // remove what the proposal already put there.
-    fs.writeFileSync(
-      path.join(dir, "config.json"),
-      JSON.stringify({
-        site: { name: "T", url: "https://t.test" },
-        features: { auth: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } },
-      }),
-    );
-    clearConfigCache();
-    const handle = await getDatabase();
-    for (let i = 0; i < 10; i++) {
-      await handle.db
-        .insertInto("ai_days")
-        .values({
-          id: `seed-${i}`,
-          owner_id: "alex",
-          trip_id: "reise",
-          date: `2025-01-${String(i + 1).padStart(2, "0")}`,
-          first_used_at: new Date().toISOString(),
-          plan_period_start: null,
-        })
-        .execute();
-    }
+    // The press that fails: a transient model error, the same shape a plan
+    // out of AI days (B2591) produces — either way `refused()` deliberately
+    // never touches the thread (the route's own answer already says what
+    // happened), so this must not remove what the proposal already put
+    // there.
+    create.mockRejectedValueOnce(new Error("provider is unhappy"));
     const pressed = await pressWriteDay({
       trip: "reise",
       slug: "kazbegi-tag",
       date: "2026-05-01",
       notes: NOTES,
     });
-    expect(pressed.status).toBe(402);
-    expect((await pressed.json()).error).toBe("plan_limit");
+    expect(pressed.status).toBe(502);
+    expect((await pressed.json()).error).toBe("model_failed");
 
     // The notes the failed press carried are still the ones the next turn's
     // model call is handed.
@@ -518,8 +493,6 @@ describe("the tools", () => {
       // everything still missing, propose the real entry once nothing is.
       "assemble_day",
       "attach_files",
-      // B1042 — the journal's own account, read out and now writable too.
-      "buy_room",
       // B1051 — the two switches that decide whether either channel below
       // can send anything at all.
       "channels",
@@ -563,7 +536,6 @@ describe("the tools", () => {
         .map((tool) => tool.name)
         .sort(),
     ).toEqual([
-      "buy_credits",
       // B2295 (one door for readers, B2291) — hands over Studio › Readers,
       // the one place a person is let in; issues nothing itself.
       "invite_to_read",
@@ -571,11 +543,11 @@ describe("the tools", () => {
   });
 
   /**
-   * B782 — "how much have I spent" answered with the app's own credit
-   * balance, no different from a question about a trip's money. Both tools'
+   * B782 — "how much have I spent" answered with the app's own disk-space
+   * figure, no different from a question about a trip's money. Both tools'
    * own descriptions now say which question they answer and name the other,
    * so the model asked about a journey's spend is pointed at trip_costs
-   * rather than left to guess from "credits" alone.
+   * rather than left to guess from "account" alone.
    */
   test("account and trip_costs each say which question they answer, and name the other — B782", () => {
     const account = TOOLS.find((tool) => tool.name === "account")!;
@@ -583,7 +555,7 @@ describe("the tools", () => {
     expect(account.describe).toContain("trip_costs");
     expect(account.describe.toLowerCase()).toContain("not a trip's money");
     expect(tripCosts.describe).toContain("account");
-    expect(tripCosts.describe.toLowerCase()).toContain("not the journal's own credits");
+    expect(tripCosts.describe.toLowerCase()).toContain("not the journal's own disk space");
   });
 
   test("every one of them runs, and none of them changes anything", async () => {
