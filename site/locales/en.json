@@ -1914,6 +1914,7 @@
   "photobook.option.vehicles": "Draw the bus, the train, the car",
   "photobook.orderHeading": "Order this book",
   "photobook.orderNext": "Pressing this builds the book and sends it to the printer. You get the book as one PDF — here and by email.",
+  "photobook.orderNextSample": "Pressing this builds the book — this instance is not set to print real books, so it stays a draft and nothing is sent to a printer. You still get the book as one PDF — here and by email.",
   "photobook.order.step.proof": "Print file",
   "photobook.proof.check": "Check the print file",
   "photobook.proof.again": "Build it again",

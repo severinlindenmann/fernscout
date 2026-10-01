@@ -1687,6 +1687,7 @@
   "photobook.option.vehicles": "A busz, a vonat, az autó lerajzolva",
   "photobook.orderHeading": "A könyv megrendelése",
   "photobook.orderNext": "Ennek megnyomása elkészíti a könyvet, és elküldi a nyomdának. A könyvet egyetlen PDF-ként kapod meg — itt és e-mailben.",
+  "photobook.orderNextSample": "Ennek megnyomása elkészíti a könyvet — ez a szerver nem nyomtat valódi könyveket, így vázlat marad, és semmi nem megy a nyomdának. A könyvet így is megkapod egyetlen PDF-ként — itt és e-mailben.",
   "photobook.order.step.proof": "Nyomdai fájl",
   "photobook.proof.check": "Nyomdai fájl ellenőrzése",
   "photobook.proof.again": "Újraépítés",

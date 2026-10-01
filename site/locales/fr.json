@@ -1914,6 +1914,7 @@
   "photobook.option.vehicles": "Dessiner le bus, le train, la voiture",
   "photobook.orderHeading": "Commander ce livre",
   "photobook.orderNext": "Ce bouton fabrique le livre et l’envoie à l’imprimeur. Tu reçois le livre sous forme d’un PDF — ici et par e-mail.",
+  "photobook.orderNextSample": "Ce bouton fabrique le livre — cette instance n’imprime pas de vrais livres, il reste donc à l’état de brouillon et rien n’est envoyé à l’imprimeur. Tu reçois quand même le livre sous forme d’un PDF — ici et par e-mail.",
   "photobook.order.step.proof": "Fichier d’impression",
   "photobook.proof.check": "Vérifier le fichier d’impression",
   "photobook.proof.again": "Le refaire",

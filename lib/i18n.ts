@@ -1975,6 +1975,7 @@ export type TranslationKey =
   | "photobook.order.step.see"
   | "photobook.orderHeading"
   | "photobook.orderNext"
+  | "photobook.orderNextSample"
   | "photobook.page.desc.analytics"
   | "photobook.page.desc.chapter"
   | "photobook.page.desc.costs"

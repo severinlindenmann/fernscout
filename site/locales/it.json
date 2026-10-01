@@ -1914,6 +1914,7 @@
   "photobook.option.vehicles": "Disegna l’autobus, il treno, l’auto",
   "photobook.orderHeading": "Ordina questo libro",
   "photobook.orderNext": "Premendo qui il libro viene creato e inviato alla tipografia. Ricevi il libro come un unico PDF — qui e via email.",
+  "photobook.orderNextSample": "Premendo qui il libro viene creato — questa istanza non stampa libri veri, quindi resta una bozza e non viene inviato nulla alla tipografia. Ricevi comunque il libro come un unico PDF — qui e via email.",
   "photobook.order.step.proof": "File di stampa",
   "photobook.proof.check": "Controlla il file di stampa",
   "photobook.proof.again": "Rigeneralo",

@@ -1914,6 +1914,7 @@
   "photobook.option.vehicles": "Bus, Zug und Auto zeichnen",
   "photobook.orderHeading": "Dieses Buch bestellen",
   "photobook.orderNext": "Ein Druck darauf baut das Buch und gibt es in den Druck. Das Buch bekommst du als eine PDF — hier und per Mail.",
+  "photobook.orderNextSample": "Ein Druck darauf baut das Buch — diese Instanz druckt keine echten Bücher, es bleibt beim Entwurf, und nichts geht an eine Druckerei. Das Buch bekommst du trotzdem als eine PDF — hier und per Mail.",
   "photobook.order.step.proof": "Druckdatei",
   "photobook.proof.check": "Druckdatei prüfen",
   "photobook.proof.again": "Neu bauen",
