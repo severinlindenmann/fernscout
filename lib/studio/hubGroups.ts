@@ -70,9 +70,6 @@ function storageFact({ usedBytes, limitBytes }: { usedBytes: number; limitBytes:
  */
 export function journalRows(username: string, t: T, tn: TN, locale: string, analyticsEnabled: boolean, account: HubAccount): Row[] {
   const factLine = [
-    ...(account.credits !== null
-      ? [{ text: `${new Intl.NumberFormat(locale).format(account.credits)} ${tn("me.paymentUnit", account.credits)}` }]
-      : []),
     ...(account.purchasesOpen
       ? [{ text: tn("studio.hub.fact.purchasesOpen", account.purchasesOpen, { count: String(account.purchasesOpen) }), amber: true }]
       : []),
