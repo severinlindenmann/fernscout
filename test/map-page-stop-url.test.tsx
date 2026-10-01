@@ -42,6 +42,7 @@ vi.mock("next/navigation", () => ({
 // Keep the real street overlay; replace only MapLibre's WebGL boundary.
 const street = vi.hoisted(() => ({
   fitBounds: vi.fn(),
+  setPadding: vi.fn(),
   getSource: vi.fn(() => ({ setData: vi.fn() })),
   getLayer: vi.fn(() => ({})),
   getZoom: vi.fn(() => 10),
@@ -358,4 +359,13 @@ test("a tour across continents opens on a globe, its bounds inside the poles", a
   expect(north).toBeLessThanOrEqual(85);
   expect(west).toBeGreaterThanOrEqual(-180);
   expect(east).toBeLessThanOrEqual(180);
+});
+
+// The phone's day sheet is the map's own padding, so a zoom-out keeps the
+// globe in the part of the map still showing, not behind the sheet (B2618).
+test("the street map's camera keeps clear of the day sheet", async () => {
+  street.setPadding.mockClear();
+  render("", { streetMap });
+  await act(async () => {});
+  expect(street.setPadding).toHaveBeenCalledWith({ top: 0, right: 0, left: 0, bottom: expect.any(Number) });
 });
