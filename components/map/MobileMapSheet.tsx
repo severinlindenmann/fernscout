@@ -219,21 +219,24 @@ export default function MobileMapSheet({
                   bottom on a phone: a strip of date + place + update count."
                   A day with no place still gets a row, greyed, so the strip
                   is never quietly missing one. */}
+              <div className="flex gap-1.5">
+              {/* Pinned beside the strip, not in it: the list is the days,
+                  and this stays in reach however far the days scroll. */}
+              {onPlay && (
+                <button
+                  type="button"
+                  onClick={() => onPlay()}
+                  className="flex shrink-0 flex-col items-start justify-center gap-1 rounded-lg border-2 border-navy-900 bg-yellow-400 px-2.5 py-1.5 text-left text-xs font-bold text-navy-900"
+                >
+                  <Clapperboard className="h-4 w-4" aria-hidden />
+                  {t("show.start")}
+                </button>
+              )}
               <div
                 role="list"
                 aria-label={t("map.everyDay")}
-                className="flex gap-1.5 overflow-x-auto"
+                className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto"
               >
-                {onPlay && (
-                  <button
-                    type="button"
-                    onClick={() => onPlay()}
-                    className="flex shrink-0 flex-col items-start justify-center gap-1 rounded-lg border-2 border-navy-900 bg-yellow-400 px-2.5 py-1.5 text-left text-xs font-bold text-navy-900"
-                  >
-                    <Clapperboard className="h-4 w-4" aria-hidden />
-                    {t("show.start")}
-                  </button>
-                )}
                 {days.map((day) => {
                   const isSelected = day.date === selectedDate;
                   return (
@@ -262,6 +265,7 @@ export default function MobileMapSheet({
                     </button>
                   );
                 })}
+              </div>
               </div>
             </div>
           )}
