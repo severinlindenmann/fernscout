@@ -217,7 +217,8 @@ const SlideStreetMap = forwardRef<SlideStreetMapHandle, Props>(function SlideStr
             disc.textContent = String(i + 1);
             const label = document.createElement("span");
             label.style.cssText =
-              "display:none;font:700 15px/1.2 var(--font-display,system-ui),sans-serif;color:#f2ecdd;text-shadow:0 0 3px #0e2231,0 0 6px #0e2231;white-space:nowrap;";
+              "display:none;font:700 15px/1.2 var(--font-display,system-ui),sans-serif;color:#f2ecdd;white-space:nowrap;";
+            label.style.textShadow = "0 0 3px #0e2231, 0 0 6px #0e2231";
             // `textContent`, never `innerHTML` — a place name is the owner's
             // own text.
             label.textContent = p.location;
