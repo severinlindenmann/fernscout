@@ -208,14 +208,19 @@ is still worth knowing about: nothing is issued, so `login_codes` stays empty
 and no `[mail]` line is printed even when the response looks like a refusal
 you can read past.
 
-To spend credits locally, grant some. `npm run credits` is the hosted
-edition's own CLI (`paid/credits/scripts/grant-credits.ts`) and prints
-"not included in this build" and exits 0 here — `lib/credits.ts`'s own
-`grant(owner, n)` is the open function behind it:
+To test a plan locally (with `billing` on and `paid/` present), grant one
+directly — the same call `POST /api/web/admin/plan-grants` makes, which
+needs a signed-in instance admin:
 
 ```bash
 npx tsx --conditions=react-server -e \
-  'import("./lib/credits.ts").then(m => m.grant("example", 500))'
+  'import("@paid/credits/lib/entitlements.ts").then(m => m.grantPlan({
+     owner: "example", plan: "pass", source: "admin", providerRef: null,
+     startsAt: new Date().toISOString(),
+     endsAt: new Date(Date.now() + 45 * 86_400_000).toISOString(),
+     periodStart: new Date().toISOString(),
+     periodEnd: new Date(Date.now() + 45 * 86_400_000).toISOString(),
+   }))'
 ```
 
 ## Testing the agent surface

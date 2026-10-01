@@ -157,7 +157,7 @@ describe("every mail builder's strings render without a leftover {placeholder}",
     // derivation broke rather than the mails got fixed.
     const files = new Set(uses.map((use) => use.file));
     expect(files).toContain(path.join("lib", "contacts", "mail.ts"));
-    if (fs.existsSync(path.join(ROOT, "paid"))) expect(files).toContain(path.join("paid", "credits", "lib", "credits", "receipt.ts"));
+    if (fs.existsSync(path.join(ROOT, "paid"))) expect(files).toContain(path.join("paid", "credits", "lib", "billing-notices.ts"));
     expect(files.size).toBeGreaterThanOrEqual(10);
     expect(uses.length).toBeGreaterThan(100);
   });

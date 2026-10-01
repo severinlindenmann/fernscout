@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { CreditCard, HardDrive } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,6 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useNativeShell } from "@/components/nativeShell";
 import { useSite } from "@/components/SiteProvider";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
-import type { TranslationKey } from "@/lib/i18n";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
 
 /**
@@ -475,7 +474,7 @@ export default function AccountPageContent({
   /** Absent when `billing` is off. */
   plan?: PlanPanel;
 }) {
-  const { t, tn } = useI18n();
+  const { t } = useI18n();
   const site = useSite();
 
   return (
