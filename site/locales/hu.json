@@ -1273,6 +1273,7 @@
   "map.noPlaceGiven": "Nincs megadva helyszín",
   "map.osmCredit": "© OpenStreetMap közreműködői",
   "map.osmCreditInfo": "Térképadatok forrása",
+  "map.placeHidden": "A helyszín nem nyilvános",
   "map.places": "helyszín",
   "map.planned": "Tervezett útvonal",
   "map.plannedFromDrafts": "· ezek egy része piszkozat, csak te látod",

@@ -1500,6 +1500,7 @@
   "map.noPlaceGiven": "No place given",
   "map.osmCredit": "© OpenStreetMap contributors",
   "map.osmCreditInfo": "Map data credit",
+  "map.placeHidden": "Place kept private",
   "map.places": "places",
   "map.planned": "Planned route",
   "map.plannedFromDrafts": "· some of these are drafts, visible only to you",

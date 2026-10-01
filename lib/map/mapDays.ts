@@ -37,6 +37,11 @@ export type MapDay = {
   /** B2543 — this day's own pin falls inside the owner's home zone;
    * `location`/`country` are already the localized "Home" string. */
   home?: boolean;
+  /** B2634 — this day has a real place, deliberately withheld from the map
+   * (`isHiddenPlace`), distinct from a day that gave no place at all. Both
+   * leave `hasPlace: false`, but a reader-facing "no place given" is wrong
+   * for this one — it has a place, just not a public one. */
+  hidden?: boolean;
 };
 
 export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
@@ -76,6 +81,7 @@ export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
       updates: day.entries.length,
       draft: lead.draft,
       home: home || undefined,
+      hidden: hidden || undefined,
     };
   });
 }

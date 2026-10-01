@@ -1500,6 +1500,7 @@
   "map.noPlaceGiven": "Kein Ort angegeben",
   "map.osmCredit": "© OpenStreetMap-Mitwirkende",
   "map.osmCreditInfo": "Kartendaten-Hinweis",
+  "map.placeHidden": "Ort nicht öffentlich",
   "map.places": "Orte",
   "map.planned": "Geplante Route",
   "map.plannedFromDrafts": "· einige davon sind Entwürfe, nur für dich sichtbar",

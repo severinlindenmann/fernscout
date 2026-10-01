@@ -92,11 +92,13 @@ function daysFor(places: PlaceView[]): MapDay[] {
  */
 function Harness({
   places,
+  days,
   initialDate,
   reportedDates,
   exposeSetter,
 }: {
   places: PlaceView[];
+  days: MapDay[];
   initialDate: string | null;
   reportedDates: (string | null)[];
   exposeSetter: (fn: (d: string | null) => void) => void;
@@ -105,7 +107,7 @@ function Harness({
   exposeSetter(setSelectedDate);
   return (
     <MobileMapSheet
-      days={daysFor(places)}
+      days={days}
       places={places}
       hrefForDay={(slug) => `/day/${slug}`}
       selectedDate={selectedDate}
@@ -117,7 +119,11 @@ function Harness({
   );
 }
 
-function render(places: PlaceView[], initialDate: string | null = places[0]?.firstDate ?? null) {
+function render(
+  places: PlaceView[],
+  initialDate: string | null = places[0]?.firstDate ?? null,
+  days: MapDay[] = daysFor(places),
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -128,6 +134,7 @@ function render(places: PlaceView[], initialDate: string | null = places[0]?.fir
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
         <Harness
           places={places}
+          days={days}
           initialDate={initialDate}
           reportedDates={reportedDates}
           exposeSetter={(fn) => {
@@ -270,6 +277,176 @@ describe("MobileMapSheet", () => {
       const { el } = render([place()], "2024-05-01");
       // Same date the sheet started with — no external tap has happened.
       expect(el.textContent).not.toContain("Read this day");
+    });
+  });
+
+  describe("no selected day (B2634)", () => {
+    test("the handle skips Half entirely — Peek goes straight to Full", () => {
+      const { el } = render([place()], null);
+      const h = handle(el);
+      expect(el.textContent).not.toContain("Read this day"); // Peek
+      act(() => h.click());
+      expect(el.querySelector("ol")).not.toBeNull(); // Full, not Half
+      expect(el.textContent).not.toContain("Read this day");
+    });
+
+    test("Full cycles straight back to Peek, never through an empty Half", () => {
+      const { el } = render([place()], null);
+      const h = handle(el);
+      act(() => h.click()); // -> Full
+      act(() => h.click()); // -> Peek
+      expect(el.querySelector("ol")).toBeNull();
+      expect(el.textContent).not.toContain("Read this day");
+    });
+
+    test("a placeless day with no gallery and no headline still has a title and a read button, not a blank panel", () => {
+      const days: MapDay[] = [
+        {
+          date: "2024-05-01",
+          slug: "2024-05-01-untitled",
+          location: "",
+          country: "",
+          lat: NaN,
+          lng: NaN,
+          hasPlace: false,
+          mediaCount: 0,
+          updates: 1,
+        },
+      ];
+      const { el } = render([], "2024-05-01", days);
+      act(() => handle(el).click()); // -> Half (reachable: a day IS selected)
+      expect(el.textContent).toContain("No place given"); // map.noPlaceGiven
+      expect(el.textContent).toContain("Read this day");
+    });
+
+    test("a hidden place reads as withheld, not as no place given", () => {
+      const days: MapDay[] = [
+        {
+          date: "2024-05-01",
+          slug: "2024-05-01-hidden",
+          location: "A secret valley",
+          country: "Alphaland",
+          lat: NaN,
+          lng: NaN,
+          hasPlace: false,
+          hidden: true,
+          mediaCount: 0,
+          updates: 1,
+        },
+      ];
+      const { el } = render([], "2024-05-01", days);
+      act(() => handle(el).click());
+      expect(el.textContent).toContain("Place kept private"); // map.placeHidden
+      expect(el.textContent).not.toContain("No place given");
+    });
+  });
+
+  describe("the selected day's own entry, not always the place's first (B2634)", () => {
+    test("a two-day stay at one place shows the second day's own headline, photos and read link", () => {
+      const stay = place({
+        key: "alpha",
+        firstDate: "2024-05-01",
+        lastDate: "2024-05-02",
+        entries: [
+          {
+            slug: "2024-05-01-alpha",
+            date: "2024-05-01",
+            location: "Alpha Town",
+            country: "Alphaland",
+            gallery: [{ src: "/media/day1.jpg", type: "image" }],
+            headline: { en: "Arriving in Alpha Town." },
+          },
+          {
+            slug: "2024-05-02-alpha",
+            date: "2024-05-02",
+            location: "Alpha Town",
+            country: "Alphaland",
+            gallery: [{ src: "/media/day2.jpg", type: "image" }],
+            headline: { en: "A second day here." },
+          },
+        ],
+      });
+      const days: MapDay[] = [
+        {
+          date: "2024-05-01",
+          slug: "2024-05-01-alpha",
+          location: "Alpha Town",
+          country: "Alphaland",
+          countryCode: "al",
+          lat: 1,
+          lng: 2,
+          hasPlace: true,
+          mediaCount: 1,
+          updates: 1,
+        },
+        {
+          date: "2024-05-02",
+          slug: "2024-05-02-alpha",
+          location: "Alpha Town",
+          country: "Alphaland",
+          countryCode: "al",
+          lat: 1,
+          lng: 2,
+          hasPlace: true,
+          mediaCount: 1,
+          updates: 1,
+        },
+      ];
+      const { el } = render([stay], "2024-05-02", days);
+      act(() => handle(el).click()); // -> Half, on the second day
+
+      expect(el.textContent).toContain("A second day here.");
+      expect(el.textContent).not.toContain("Arriving in Alpha Town.");
+
+      const img = el.querySelector("img")!;
+      expect(img.getAttribute("src")).toBe("/media/day2.jpg");
+
+      const readLink = Array.from(el.querySelectorAll("a")).find((a) =>
+        a.textContent?.includes("Read this day"),
+      )!;
+      expect(readLink.getAttribute("href")).toBe("/day/2024-05-02-alpha");
+    });
+  });
+
+  describe("tapping a photo in the sheet opens it full screen (B2635)", () => {
+    test("a thumbnail is a real button, and tapping it opens the Lightbox on that photo", async () => {
+      const withPhoto = place({
+        entries: [
+          {
+            slug: "2024-05-01-alpha",
+            date: "2024-05-01",
+            location: "Alpha Town",
+            country: "Alphaland",
+            gallery: [{ src: "/media/a.jpg", type: "image", caption: "A quiet lake" }],
+            headline: {},
+          },
+        ],
+      });
+      const { el } = render([withPhoto]);
+      act(() => handle(el).click()); // -> Half
+
+      const thumb = el.querySelector<HTMLButtonElement>('button[aria-label="A quiet lake"]')!;
+      expect(thumb.tagName).toBe("BUTTON"); // not an inert <span>
+
+      // Not open yet: the Lightbox portal renders nothing until tapped.
+      expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+
+      act(() => thumb.click());
+
+      const dialog = document.body.querySelector('[role="dialog"]')!;
+      expect(dialog).not.toBeNull();
+      expect(dialog.querySelector("img")?.getAttribute("src")).toBe("/media/a.jpg");
+
+      const closeButton = dialog.querySelector<HTMLButtonElement>('button[aria-label="Close"]')!;
+      await act(async () => {
+        closeButton.click();
+        // `AnimatePresence`'s exit is a real animation; give it a tick
+        // rather than asserting the DOM gone the instant `onClose` fires.
+        await new Promise((r) => setTimeout(r, 50));
+      });
+      expect(document.body.querySelector('[role="dialog"]')).toBeNull();
+      // Closing the viewer leaves the sheet itself exactly where it was.
+      expect(el.textContent).toContain("Read this day");
     });
   });
 });
