@@ -95,6 +95,18 @@ export async function POST(
       { status: 400 },
     );
 
+  // B2662 — the Polarsteps import screen uploads a step's own media to its
+  // day through this same door rather than a second one, and marks it so:
+  // the bytes are the owner's own and arrive over their own cookie exactly
+  // like any other photo here, but they are Polarsteps' compressed export
+  // copy, never the camera's original (`SidecarSource` in `lib/sidecar.ts`).
+  // This is not "accepted from a caller" in the sense `source` elsewhere is
+  // refused for — there is no bearer token on this route at all (`guard`
+  // above refuses one outright) and the owner is asserting a fact about
+  // their own upload within their own authenticated session, the same trust
+  // this door already extends by hard-coding `"web"` below for everyone else.
+  const polarsteps = form?.get("source") === "polarsteps";
+
   const uploads: UploadCandidate[] = [];
   for (const file of files) {
     uploads.push({
@@ -104,7 +116,7 @@ export async function POST(
       // (B1864). No `uploadedBy`: this door knows only that the caller is the
       // owner, from a browser, and a name it did not resolve is one it would
       // be inventing.
-      source: "web",
+      source: polarsteps ? "polarsteps" : "web",
     });
   }
 

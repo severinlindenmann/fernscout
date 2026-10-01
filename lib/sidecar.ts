@@ -212,12 +212,19 @@ export type Sidecar = {
 /**
  * Which door the bytes came through.
  *
+ * `"polarsteps"` (B2432/B2662) is the one value that is also a claim about
+ * the bytes themselves, not just the door: Polarsteps' own export
+ * re-encodes every photograph before handing it over, so a photo carrying
+ * this source is a compressed copy, never the original the traveller's
+ * camera wrote. The studio shows that plainly rather than letting a reader
+ * assume a gallery photo is print-resolution.
+ *
  * `lib/api/v2/schemas/media.ts` restates this list for the response contract,
  * because a schema file may not import a runtime array from a `server-only`
  * module (see `PURCHASE_STATUSES` there for the same constraint). Keep the
  * two matching.
  */
-type SidecarSource = "web" | "api" | "helper" | "whatsapp" | "import" | "sync";
+type SidecarSource = "web" | "api" | "helper" | "whatsapp" | "import" | "sync" | "polarsteps";
 
 /** One sidecar, or null if it is missing or malformed. A half-answer is never
  * returned: a hand-edited file that no longer parses is absent, not partial. */

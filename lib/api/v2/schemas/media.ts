@@ -95,7 +95,7 @@ export const mediaIntent = z
  * (the same constraint `PURCHASE_STATUSES` in ./money.ts is under). Keep the
  * two matching.
  */
-const MEDIA_SOURCES = ["web", "api", "helper", "whatsapp", "import", "sync"] as const;
+const MEDIA_SOURCES = ["web", "api", "helper", "whatsapp", "import", "sync", "polarsteps"] as const;
 
 export const mediaItem = z.strictObject({
   src: z.string(),

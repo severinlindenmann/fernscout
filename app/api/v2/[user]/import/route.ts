@@ -29,6 +29,7 @@ import {
   isRefusal,
   type ImportKind,
 } from "@/lib/gps/api";
+import { importPolarsteps, isPolarstepsRefusal } from "@/lib/polarsteps/api";
 import { gpsStateReport } from "@/lib/api/v2/schemas/gps";
 import { writeRecorderState } from "@/lib/gps/recorderState";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -205,14 +206,42 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
 
   // A `contacts` read is a report, not a write — it never touches disk, with
   // or without dryRun, so a full journal must not be refused it (B1571).
+  // `polarsteps` writes a trip and its days, not the gps store, and those
+  // are tiny JSON documents compared to the export's own media (which lands
+  // through the ordinary media door and its own quota check) — so it is
+  // excluded from this gps-store quota the same way `contacts` is, for the
+  // same reason: nothing here is the thing the quota actually bounds.
   // `gps` genuinely writes to the journal's own store below, and stays
   // gated; its own `withStorageQuota` call re-checks under lock regardless.
-  if (!dryRun && chosenKind !== "contacts") {
+  if (!dryRun && chosenKind !== "contacts" && chosenKind !== "polarsteps") {
     const refusal = await storageRefusal(user, Buffer.byteLength(text));
     if (refusal) return fail("storage_full", refusal, undefined, 400);
   }
 
   const format = typeof body.format === "string" ? body.format : undefined;
+
+  if (chosenKind === "polarsteps") {
+    // Owner only — the gate above already refuses a `write:gps` token here
+    // (it is not `kind: "gps"`), same as every other kind this door reads.
+    const result = importPolarsteps(user, text, { dryRun });
+    if (isPolarstepsRefusal(result)) {
+      const code =
+        result.refusal === "contract"
+          ? "unreadable"
+          : result.refusal === "duplicate"
+            ? "trip_exists"
+            : "invalid_entry";
+      return fail(code, result.message, result.problems, 400);
+    }
+    return ok({
+      ...result,
+      next: dryRun
+        ? "Nothing was written. Send the same call without ?dryRun to create the trip."
+        : "The trip and its days are drafts — nothing is published. Upload each step's own " +
+          "photographs and videos to the day named in `stepDays`, and send `locations.json` " +
+          `separately as \`kind: "gps"\` — never through this door.`,
+    });
+  }
 
   if (chosenKind === "contacts") {
     // A vCard is read and reported, never written by itself — dryRun
