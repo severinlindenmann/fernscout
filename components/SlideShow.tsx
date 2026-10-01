@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { mediaLoader, posterSrc } from "./mediaLoader";
 import { POSTER_WIDTH } from "@/lib/mediaSizes";
@@ -38,7 +38,13 @@ import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
 import { isPlottable, frameRoute, type Frame } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { flagFor } from "@/lib/flags";
-import { buildNarratedCut, slideNeedsTravelInterlude, type NarratedCutSlide } from "@/lib/narratedCut";
+import {
+  buildNarratedCut,
+  slideNeedsTravelInterlude,
+  travelFlightMs,
+  TRAVEL_REST_MS,
+  type NarratedCutSlide,
+} from "@/lib/narratedCut";
 import DualTime from "./DualTime";
 import { useWakeLock } from "./useWakeLock";
 import { useI18n } from "./LocaleProvider";
@@ -68,9 +74,6 @@ const MIN_DWELL_S = 3;
 const MAX_DWELL_S = 15;
 const FULL_TRAVEL_MS = 5200;
 const FULL_MEDIA_MS = 6500;
-
-// How long a Highlights travel interlude shows before the next day's slide.
-const INTERLUDE_MS = 2000;
 
 // Controls fade out this long after the last pointer/key activity, so a show
 // left running on a TV isn't sitting under a permanent overlay of buttons.
@@ -273,7 +276,13 @@ export default function SlideShow({
   // A Highlights travel interlude pending between the current slide and the
   // next — see the autoplay effect below for how it's driven. `null` means
   // no interlude is showing.
-  const [interlude, setInterlude] = useState<{ toIndex: number; toPlaceIndex: number } | null>(null);
+  const [interlude, setInterlude] = useState<{
+    toIndex: number;
+    fromPlaceIndex: number;
+    toPlaceIndex: number;
+    /** The flight itself, already scaled by the speed setting (B2619). */
+    flightMs: number;
+  } | null>(null);
   // Every "Every photo" video starts muted (iOS autoplay requires it). The
   // stored index rides along with the flag so a step change resets it to
   // muted by simple derivation — no effect or ref needed, since a stale
@@ -335,7 +344,9 @@ export default function SlideShow({
   // the last photo. A video step is driven by its own `ended` effect below
   // instead — it does nothing here.
   useEffect(() => {
-    if (!isPlaying || isVideoStep) return;
+    // A pending interlude owns the clock until it commits (B2619) — without
+    // this, a pause/resume during it re-armed this timer as well.
+    if (!isPlaying || isVideoStep || interlude) return;
     const advanceTo = Math.min(index + 1, total);
     timerRef.current = setTimeout(() => {
       // A travel interlude between two Highlights slides at different
@@ -347,9 +358,19 @@ export default function SlideShow({
       // know interludes exist.
       if (cut === "narrated" && !reducedMotion && advanceTo < total) {
         const toPlaceIndex = narratedPlaceIndexes[advanceTo];
-        if (slideNeedsTravelInterlude(narratedPlaceIndexes, advanceTo) && toPlaceIndex !== undefined) {
-          setInterlude({ toIndex: advanceTo, toPlaceIndex });
-          return;
+        const fromPlaceIndex = narratedPlaceIndexes[advanceTo - 1];
+        if (
+          slideNeedsTravelInterlude(narratedPlaceIndexes, advanceTo) &&
+          toPlaceIndex !== undefined &&
+          fromPlaceIndex !== undefined
+        ) {
+          // Long enough for the flight to land, from the distance (B2619);
+          // a hop within the same town gets none — the corner map covers it.
+          const flight = travelFlightMs(places[fromPlaceIndex], places[toPlaceIndex]);
+          if (flight !== null) {
+            setInterlude({ toIndex: advanceTo, fromPlaceIndex, toPlaceIndex, flightMs: flight * dwellScale });
+            return;
+          }
         }
       }
       setIndex(advanceTo);
@@ -357,19 +378,20 @@ export default function SlideShow({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [index, isPlaying, duration, total, cut, reducedMotion, narratedPlaceIndexes, isVideoStep]);
+  }, [index, isPlaying, duration, total, cut, reducedMotion, narratedPlaceIndexes, isVideoStep, interlude, places, dwellScale]);
 
-  // Once a pending interlude has had its ~2s on screen, commit the advance
-  // it was standing in for — a new setTimeout, not a continuation of the one
-  // above, so the interlude's own duration is independent of `dwellSeconds`.
+  // Once a pending interlude's flight has landed and rested on the
+  // destination, commit the advance it was standing in for (B2619). Paused,
+  // it holds; on resume it waits its full time again rather than tracking
+  // what was left.
   useEffect(() => {
-    if (!interlude) return;
+    if (!interlude || !isPlaying) return;
     const id = setTimeout(() => {
       setIndex(interlude.toIndex);
       setInterlude(null);
-    }, INTERLUDE_MS);
+    }, interlude.flightMs + TRAVEL_REST_MS * dwellScale);
     return () => clearTimeout(id);
-  }, [interlude]);
+  }, [interlude, isPlaying, dwellScale]);
 
   // "Every photo" video steps advance on the video's own `ended` event
   // rather than the fixed timer above — a clip that runs long shouldn't get
@@ -757,6 +779,8 @@ export default function SlideShow({
             <SlideMap
               places={places}
               activeIndex={interlude.toPlaceIndex}
+              fromIndex={interlude.fromPlaceIndex}
+              flightMs={interlude.flightMs}
               travelling
               basemap={basemap}
               accent={accent}
@@ -1483,10 +1507,17 @@ export function SlideMap({
   travelling,
   basemap = null,
   accent = "navy",
+  fromIndex,
+  flightMs,
 }: {
   places: PlaceView[];
   activeIndex: number;
   travelling: boolean;
+  /** With `flightMs`, a one-off travel step (B2619): the camera starts on
+   * this place, pulls out to show the whole leg, and lands on
+   * `activeIndex` — rather than mounting at the target, or at the world. */
+  fromIndex?: number;
+  flightMs?: number;
   /** Server-clipped to this trip's own frame (`lib/basemap.ts`), the same
    * prop `WorldMap` draws on this page — replaces the 1:110m coastline
    * (B2424). Null (the bundle not built, or an empty route) falls back to
@@ -1507,34 +1538,58 @@ export function SlideMap({
   // is `dynamic(..., { ssr: false })`, so there is no server-rendered value
   // to disagree with.
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [containerSize, setContainerSize] = useState({ width: 1280, height: 720 });
-  useEffect(() => {
+  // Null until measured (B2619). The camera group is keyed on it, so the
+  // measurement remounts it rather than animating there: a 176px corner map
+  // or a fresh interlude used to fly in from a guessed 1280×720 — or from
+  // the whole world — and was cut off long before it arrived. Measured in a
+  // layout effect, so the guess is never painted in a browser.
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
+  useLayoutEffect(() => {
     const el = svgRef.current;
     if (!el) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      if (width > 0 && height > 0) setContainerSize({ width, height });
-    });
+    const measure = (width: number, height: number) => {
+      if (width > 0 && height > 0)
+        setContainerSize((prev) => (prev && prev.width === width && prev.height === height ? prev : { width, height }));
+    };
+    const rect = el.getBoundingClientRect();
+    measure(rect.width, rect.height);
+    const observer = new ResizeObserver(([entry]) => measure(entry.contentRect.width, entry.contentRect.height));
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  const size = containerSize ?? { width: 1280, height: 720 };
 
-  const frame = useMemo(
-    () => frameRoute(activeLegPoints(places, activeIndex, travelling)),
-    [places, activeIndex, travelling],
+  // The group transform for a camera framed on `points` — `cameraFor`'s
+  // zoom, frame centre (`lngScale` undone) and where that centre lands on
+  // screen (`safeBox()`'s own centre, not the viewBox's).
+  const cameraOf = useCallback(
+    (points: PlaceView[]) => {
+      const c = cameraFor(frameRoute(points), size.width, size.height);
+      return { x: c.cx - c.targetX * c.zoom, y: c.cy - c.targetY * c.zoom, scale: c.zoom };
+    },
+    [size.width, size.height],
   );
-  // zoom, targetX/Y (the frame's centre, `lngScale` undone) and cx/cy (where
-  // that centre lands on screen — `safeBox()`'s own centre, not the
-  // viewBox's) — see `cameraFor`'s doc comment.
-  const { zoom, targetX, targetY, cx, cy } = cameraFor(frame, containerSize.width, containerSize.height);
+  const from = fromIndex !== undefined ? places[fromIndex] : undefined;
+  const flight = useMemo(
+    () =>
+      travelling && flightMs && from
+        ? [cameraOf([from]), cameraOf([from, places[activeIndex]]), cameraOf([places[activeIndex]])]
+        : null,
+    [travelling, flightMs, from, places, activeIndex, cameraOf],
+  );
+  const target = useMemo(
+    () => (flight ? flight[2] : cameraOf(activeLegPoints(places, activeIndex, travelling))),
+    [flight, cameraOf, places, activeIndex, travelling],
+  );
+  // The zoom actually on screen right now, so markers and labels keep their
+  // screen size while a flight pulls out and back in.
+  const [liveZoom, setLiveZoom] = useState<number | null>(null);
+  const zoom = liveZoom ?? target.scale;
   // Only for the active stop's own label, below, to flip sides near the
   // safe box's own right edge — the same "would this name run off the
   // edge" question `TripMap`'s own `runsOff` asks, against this map's own
   // safe box rather than its frame.
-  const safe = useMemo(
-    () => safeBox(visibleWindow(containerSize.width, containerSize.height)),
-    [containerSize.width, containerSize.height],
-  );
+  const safe = useMemo(() => safeBox(visibleWindow(size.width, size.height)), [size.width, size.height]);
 
   // Screen pixels, the same convention `px` in `WorldMap`/`TripMap` uses —
   // simplified for this map's own fixed viewBox (see the class doc comment):
@@ -1558,12 +1613,24 @@ export function SlideMap({
     >
       <rect width={MAP_VIEWBOX.width} height={MAP_VIEWBOX.height} fill={mapStyle.sea} />
       <motion.g
-        animate={{
-          x: cx - targetX * zoom,
-          y: cy - targetY * zoom,
-          scale: zoom,
+        key={containerSize ? "measured" : "guess"}
+        // Mounted at its target rather than animated in from nothing — only
+        // a later change of target flies (the "every photo" tour's map). A
+        // travel step instead plays from its first keyframe (B2619).
+        initial={flight ? flight[0] : false}
+        animate={
+          flight
+            ? { x: flight.map((c) => c.x), y: flight.map((c) => c.y), scale: flight.map((c) => c.scale) }
+            : target
+        }
+        transition={
+          flight && flightMs
+            ? { duration: flightMs / 1000, times: [0, 0.5, 1], ease: "easeInOut" }
+            : { duration: FULL_TRAVEL_MS / 1000, ease: [0.4, 0, 0.2, 1] }
+        }
+        onUpdate={(latest) => {
+          if (typeof latest.scale === "number") setLiveZoom(latest.scale);
         }}
-        transition={{ duration: FULL_TRAVEL_MS / 1000, ease: [0.4, 0, 0.2, 1] }}
         // Motion's default `transform-box: fill-box` for an SVG element makes
         // `originX`/`originY` relative to this group's own rendered content —
         // its bounding box, not the SVG's origin (and Motion recomputes
@@ -1706,9 +1773,15 @@ export function SlideMap({
           return (
             <motion.g
               key={`veh-${activeIndex}`}
-              initial={{ x: from[0], y: from[1] }}
-              animate={{ x: to[0], y: to[1] }}
-              transition={{ duration: FULL_TRAVEL_MS / 1000, ease: [0.45, 0, 0.35, 1] }}
+              initial={{ x: from[0], y: from[1], opacity: 1 }}
+              // Fades as it arrives rather than parking on the stop's own
+              // number for the rest the map holds there (B2619).
+              animate={{ x: to[0], y: to[1], opacity: [1, 1, 0] }}
+              transition={{
+                duration: (flightMs ?? FULL_TRAVEL_MS) / 1000,
+                ease: [0.45, 0, 0.35, 1],
+                opacity: { duration: (flightMs ?? FULL_TRAVEL_MS) / 1000, times: [0, 0.9, 1] },
+              }}
             >
               <g transform={vehicleHeadingTransform(angle)}>
                 <circle r={px(5.5)} fill={mapStyle.hereNow} stroke={mapStyle.hereNowHalo} strokeWidth={px(1)} />
