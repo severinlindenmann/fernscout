@@ -647,6 +647,8 @@ CHANGE THE SURFACE, NEVER THE MEANING. Fix a typo, fix casing, add the punctuati
 
 Never translate. Write in the same language they wrote in. If they mixed two, follow the one they mostly used.
 
+Text typed without accents (a phone keyboard, "kotornyok", "uton"): put back an accent only where the word is unmistakable. When the letters could be more than one word, or you are not sure which word they meant, leave that word exactly as they typed it — a missing accent is better than the wrong word.
+
 Write in their voice, not a better one: keep first person only if they already used it, plain sentences, no travel-brochure adjectives, no summing-up final line about what the day meant. You are correcting their spelling and grammar, not narrating their day for them.
 
 Return only the corrected text — no title, no commentary, nothing else.`;

@@ -473,6 +473,68 @@ describe("AddDayFlow, one page — B2188", () => {
   });
 });
 
+describe("B2627 — a long day's photos picked inside the composer are offered as parts too", () => {
+  const LONG_DAY: Item[] = [
+    { ...A, id: "m1", filename: "m1.jpg", takenAt: "2025-11-05T09:00:00" },
+    { ...A, id: "m2", filename: "m2.jpg", takenAt: "2025-11-05T09:30:00", uploadedAt: "2025-11-10T10:00:02.000Z" },
+    { ...A, id: "a1", filename: "a1.jpg", takenAt: "2025-11-05T13:00:00", uploadedAt: "2025-11-10T10:00:03.000Z" },
+  ];
+
+  test("choosing them offers the same split, with the words typed so far", async () => {
+    inbox = LONG_DAY;
+    const onSplit = vi.fn();
+    props = { onSplit };
+    await mount();
+    await chooseEveryWaitingPhoto();
+    expect(text()).toContain("This day looks like 2 parts");
+    expect(text()).toContain("Part 1: 09:00–09:30 · 2 photos");
+    expect(text()).toContain("Part 2: 13:00–13:00 · 1 photo");
+
+    type(container.querySelector("textarea") as HTMLTextAreaElement, "A long one, two places.");
+    await flush();
+    await click("Write it in 2 parts");
+    expect(onSplit).toHaveBeenCalledTimes(1);
+    const [parts, content] = onSplit.mock.calls[0] as [{ ids: string[] }[], string];
+    expect(parts.map((p) => p.ids)).toEqual([["m1", "m2"], ["a1"]]);
+    expect(content).toBe("A long one, two places.");
+    // The one-day draft is cleared: the parts carry these photos and words now.
+    expect(sessionStorage.getItem(addDayStorageKey("alex"))).toBeNull();
+  });
+
+  test("Keep it one day dismisses it for this exact set of photos, not forever", async () => {
+    inbox = LONG_DAY;
+    props = { onSplit: vi.fn() };
+    await mount();
+    await chooseEveryWaitingPhoto();
+    expect(text()).toContain("This day looks like 2 parts");
+    await click("Keep it one day");
+    expect(text()).not.toContain("This day looks like 2 parts");
+    // Save privately still works, as one entry with every chosen photo.
+    await click("Save privately");
+    expect((commitBody as unknown as { mediaInboxIds: string[] }).mediaInboxIds).toEqual(["m1", "m2", "a1"]);
+  });
+
+  test("never offered a second time inside one part of the flow already", async () => {
+    const onSplit = vi.fn();
+    props = {
+      onSplit,
+      asPart: {
+        key: "part-1",
+        photoIds: LONG_DAY.map((i) => i.id),
+        time: "09:00",
+        secondEntry: false,
+        label: "Next part",
+        assistant: false,
+        onSaved: vi.fn(),
+      },
+    };
+    inbox = LONG_DAY;
+    await mount();
+    expect(text()).not.toContain("This day looks like");
+    expect(onSplit).not.toHaveBeenCalled();
+  });
+});
+
 describe("AddDayFlow, first run — B2188 (C inside A)", () => {
   test("an owner with no day yet sees the same page one part at a time", async () => {
     props = { writtenDatesByTrip: { reise: [], andere: [] } };

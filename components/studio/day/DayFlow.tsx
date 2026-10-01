@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { useStudioBar } from "@/components/studio/StudioBar";
-import { splitIntoParts } from "@/lib/studio/dayParts";
+import { splitIntoParts, type DayPart } from "@/lib/studio/dayParts";
 import { photosInGroup } from "@/lib/studio/dayCards";
 import AddDayFlow from "./AddDayFlow";
 import DayCheck from "./DayCheck";
@@ -61,6 +61,12 @@ export default function DayFlow(
   const [busy, setBusy] = useState(false);
   const [inbox, setInbox] = useState<InboxMediaItem[] | null>(null);
   const [split, setSplit] = useState<boolean | null>(null);
+  // B2627 — parts offered and chosen from inside the composer itself, rather
+  // than from a waiting-day card's inbox; `composerWords` is whatever the
+  // owner had already typed when they chose "Write it in N parts", carried
+  // into part 1 only.
+  const [composerParts, setComposerParts] = useState<DayPart[] | null>(null);
+  const [composerWords, setComposerWords] = useState("");
   const [index, setIndex] = useState(0);
   const [saved, setSaved] = useState<Saved[]>([]);
   const [checking, setChecking] = useState(false);
@@ -82,8 +88,9 @@ export default function DayFlow(
     return splitIntoParts(photos.map((p) => ({ id: p.id, takenAt: p.takenAt, lat: p.lat, lon: p.lon }))).parts;
   }, [inbox, composer.initialPhotos]);
   const offerSplit = parts.length >= 2 && split === null;
-  const usingParts = split === true && parts.length >= 2;
-  const total = usingParts ? parts.length : 1;
+  const usingParts = (split === true && parts.length >= 2) || composerParts !== null;
+  const activeParts = composerParts ?? parts;
+  const total = usingParts ? activeParts.length : 1;
 
   async function choose(next: Assistant) {
     setBusy(true);
@@ -199,7 +206,7 @@ export default function DayFlow(
     );
   }
 
-  const part = usingParts ? parts[index] : null;
+  const part = usingParts ? activeParts[index] : null;
   return (
     <>
       {(assistantPossible || aiDays) && (
@@ -229,7 +236,7 @@ export default function DayFlow(
       )}
       {usingParts && (
         <ol aria-label={t("studio.flow.partsLabel")} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {parts.map((p, i) => (
+          {activeParts.map((p, i) => (
             <li
               key={i}
               aria-current={i === index ? "step" : undefined}
@@ -255,6 +262,10 @@ export default function DayFlow(
           secondEntry: usingParts && index > 0,
           label: usingParts && index < total - 1 ? t("studio.flow.next") : t("studio.flow.check"),
           assistant: assistant === "on",
+          // B2627 — words typed in the composer before the split only ride
+          // into part 1; later parts start blank, as the waiting-card split
+          // already does for every part.
+          initialContent: composerParts && index === 0 ? composerWords : undefined,
           onSaved: (day) => {
             setSaved((prev) => [...prev, day]);
             if (usingParts && index < total - 1) setIndex(index + 1);
@@ -263,6 +274,10 @@ export default function DayFlow(
               router.refresh();
             }
           },
+        }}
+        onSplit={(newParts, content) => {
+          setComposerParts(newParts);
+          setComposerWords(content);
         }}
       />
     </>

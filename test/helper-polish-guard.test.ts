@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkPolishForAddedFacts, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
+import { checkPolishForAddedFacts, keepTypedWhereAccentsGuessed, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
 
 describe("checkPolishForAddedFacts", () => {
   it("accepts reordering, punctuation and casing fixes", () => {
@@ -178,5 +178,17 @@ describe("accents are spelling, not facts", () => {
   it("grounds an accented title in accent-less notes", () => {
     expect(titleIsGroundedInNotes(notes, "Korlát nélkül")).toBe(true);
     expect(titleIsGroundedInNotes(notes, "Napfelkelte")).toBe(false);
+  });
+});
+
+describe("B2630 — accents guessed into another word go back to what was typed", () => {
+  const typed = "napkeltekor a bryce canyonban voltunk a kotornyok narancssargak lettek";
+  it("keeps restored accents on the same letters and reverts a guessed word", () => {
+    expect(keepTypedWhereAccentsGuessed(typed, "Napkeltekor a Bryce Canyonban voltunk, a kötörnök narancssárgák lettek.")).toBe(
+      "Napkeltekor a Bryce Canyonban voltunk, a kotornyok narancssárgák lettek.",
+    );
+  });
+  it("leaves a tidy without accents alone", () => {
+    expect(keepTypedWhereAccentsGuessed("teh hoodoos went orange", "The hoodoos went orange.")).toBe("The hoodoos went orange.");
   });
 });
