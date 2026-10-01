@@ -2666,6 +2666,8 @@ export type TranslationKey =
   | "studio.check.keepMine"
   | "studio.check.lede"
   | "studio.check.ledePlain"
+  | "studio.check.lookingAt"
+  | "studio.check.lookingAt.one"
   | "studio.check.looksGood"
   | "studio.check.noTitle"
   | "studio.check.noWords"

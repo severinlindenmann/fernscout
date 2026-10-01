@@ -72,9 +72,8 @@ export default function DayCheck({ username, saved, assistant }: { username: str
     return { ok: !!response?.ok && !!json?.ok, json, status: response?.status ?? 0 };
   }
 
-  // Read each part back as the server wrote it, then ask the assistant about
-  // each in turn, so the first part's suggestions are there to read while the
-  // rest are still coming.
+  // Read each part back as the server wrote it, then ask the assistant
+  // about all of them; each part shows its suggestions as they arrive.
   useEffect(() => {
     if (started.current) return;
     started.current = true;
@@ -91,31 +90,40 @@ export default function DayCheck({ username, saved, assistant }: { username: str
         setIdeas(saved.map(() => ({ status: "done" })));
         return;
       }
-      for (let i = 0; i < saved.length; i++) {
-        const entry = read[i];
-        const day = saved[i];
-        setIdeas((prev) => prev.map((s, at) => (at === i ? { status: "working" } : s)));
-        const next: Suggestions = { status: "done" };
-        if (entry && words(entry.content) > 0) {
-          const polish = await post("day/write-day", { trip: day.trip, notes: entry.content, mode: "polish", date: day.date });
-          const prose = (polish.json?.draft as { prose?: string } | undefined)?.prose;
-          if (polish.ok && prose && prose.trim() !== entry.content.trim()) next.tidied = prose;
-          else if (!polish.ok) next.failure = polish.status === 402 ? "studio.check.planLimit" : "studio.check.failed";
-          const titles = await post("day/write-day", { trip: day.trip, notes: entry.content, mode: "titles", date: day.date });
-          if (titles.ok && Array.isArray(titles.json?.titles)) {
-            next.titles = (titles.json.titles as unknown[]).filter((v): v is string => typeof v === "string" && v.trim() !== "");
-          }
-        }
-        if (entry && entry.gallery.some((p) => p.type === "image")) {
-          const described = await post("day/describe-photos", { trip: day.trip, slug: day.slug });
-          const list = described.json?.captions as { src: string; caption?: string; skipped?: string }[] | undefined;
-          if (described.ok && list) {
-            next.captions = Object.fromEntries(list.filter((c) => c.caption && !c.skipped).map((c) => [c.src, c.caption!]));
-          }
-        }
-        if (next.failure && !next.tidied && !next.titles?.length && !next.captions) next.status = "failed";
-        setIdeas((prev) => prev.map((s, at) => (at === i ? next : s)));
-      }
+      // Every part at once, and each part's three questions at once, each
+      // shown as it lands (captions take longest); the AI day is counted once
+      // per date however many calls share it.
+      const merge = (i: number, patch: Partial<Suggestions>) =>
+        setIdeas((prev) => prev.map((s, at) => (at === i ? { ...s, ...patch } : s)));
+      await Promise.all(
+        saved.map(async (day, i) => {
+          const entry = read[i];
+          merge(i, { status: "working" });
+          const hasWords = !!entry && words(entry.content) > 0;
+          const polish = hasWords
+            ? post("day/write-day", { trip: day.trip, notes: entry.content, mode: "polish", date: day.date }).then((r) => {
+                const prose = (r.json?.draft as { prose?: string } | undefined)?.prose;
+                if (r.ok && prose && prose.trim() !== entry!.content.trim()) merge(i, { tidied: prose });
+                else if (!r.ok) merge(i, { failure: r.status === 402 ? "studio.check.planLimit" : "studio.check.failed" });
+              })
+            : null;
+          const titles = hasWords
+            ? post("day/write-day", { trip: day.trip, notes: entry.content, mode: "titles", date: day.date }).then((r) => {
+                if (r.ok && Array.isArray(r.json?.titles)) {
+                  merge(i, { titles: (r.json.titles as unknown[]).filter((v): v is string => typeof v === "string" && v.trim() !== "") });
+                }
+              })
+            : null;
+          const captions = entry?.gallery.some((p) => p.type === "image")
+            ? post("day/describe-photos", { trip: day.trip, slug: day.slug }).then((r) => {
+                const list = r.json?.captions as { src: string; caption?: string; skipped?: string }[] | undefined;
+                if (r.ok && list) merge(i, { captions: Object.fromEntries(list.filter((c) => c.caption && !c.skipped).map((c) => [c.src, c.caption!])) });
+              })
+            : null;
+          await Promise.all([polish, titles, captions]);
+          merge(i, { status: "done" });
+        }),
+      );
     })();
   }, [assistant, saved, user]);
 
@@ -235,12 +243,14 @@ export default function DayCheck({ username, saved, assistant }: { username: str
                 </p>
                 {s.status === "working" && (
                   <p role="status" className="text-sm text-ink-secondary">
-                    {tn("studio.check.workingOn", images.length, { count: String(images.length) })}
+                    {s.tidied !== undefined || s.titles !== undefined
+                      ? tn("studio.check.lookingAt", images.length, { count: String(images.length) })
+                      : tn("studio.check.workingOn", images.length, { count: String(images.length) })}
                   </p>
                 )}
                 {s.status === "waiting" && assistant && <p className="text-sm text-ink-faint">{t("studio.check.waiting")}</p>}
 
-                {titleChoices.length > 0 || s.status === "done" ? (
+                {titleChoices.length > 0 || s.titles || s.status === "done" ? (
                   <fieldset>
                     <legend className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">{t("studio.check.titleLabel")}</legend>
                     <div className="mt-1 flex flex-wrap gap-2">

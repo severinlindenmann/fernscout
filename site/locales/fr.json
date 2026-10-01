@@ -3823,6 +3823,8 @@
   "studio.check.working": "L’assistant travaille…",
   "studio.check.workingOn": "Met tes mots en forme et regarde {count} photos…",
   "studio.check.workingOn.one": "Met tes mots en forme et regarde 1 photo…",
+  "studio.check.lookingAt": "Regarde {count} photos…",
+  "studio.check.lookingAt.one": "Regarde 1 photo…",
   "studio.check.waiting": "En attente…",
   "studio.check.titleLabel": "Titre",
   "studio.check.noTitle": "Pas de titre",

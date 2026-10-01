@@ -462,8 +462,8 @@ const TRAVELLER_PHOTO_SCHEMA = {
   type: "object",
   properties: {
     figures: {
+      // No maxItems: structured outputs refuse it (400); the slice after parsing caps it.
       type: "array",
-      maxItems: MAX_FIGURES,
       items: {
         type: "object",
         properties: {
@@ -737,7 +737,8 @@ Each title is a few words, at most ${TITLE_LIMIT_CHARS} characters, no punctuati
 
 const TITLES_SCHEMA = {
   type: "object",
-  properties: { titles: { type: "array", items: { type: "string" }, maxItems: TITLE_MAX_COUNT } },
+  // No maxItems: structured outputs refuse it (400); the slice below caps the count.
+  properties: { titles: { type: "array", items: { type: "string" } } },
   required: ["titles"],
   additionalProperties: false,
 } as const;

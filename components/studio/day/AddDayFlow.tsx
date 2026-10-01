@@ -827,7 +827,12 @@ export default function AddDayFlow({
     setMismatchKept(false);
     setDateOverride(d);
   };
-  const { own: dayPhotos, others: waitingPhotos } = splitDayPhotos(inboxItems ?? [], date, new Set([...selectedIds, ...ownIds]));
+  const split = splitDayPhotos(inboxItems ?? [], date, new Set([...selectedIds, ...ownIds]));
+  // TIX-2 — a part shows its own photographs; the rest of the date's wait
+  // under "Add more", so a tap never moves one into the wrong part by accident.
+  const inPart = (i: InboxMediaItem) => !asPart?.photoIds || asPart.photoIds.includes(i.id) || selectedIds.includes(i.id) || ownIds.includes(i.id);
+  const dayPhotos = split.own.filter(inPart);
+  const waitingPhotos = [...split.own.filter((i) => !inPart(i)), ...split.others];
   const shownPhotos = showAllPhotos ? dayPhotos : dayPhotos.slice(0, 8);
   const tile = (item: InboxMediaItem) => {
     const on = selectedIds.includes(item.id);

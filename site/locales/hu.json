@@ -3828,6 +3828,8 @@
   "studio.check.working": "Az asszisztens dolgozik…",
   "studio.check.workingOn": "Rendbe teszi a szavaidat és megnéz {count} fotót…",
   "studio.check.workingOn.one": "Rendbe teszi a szavaidat és megnéz 1 fotót…",
+  "studio.check.lookingAt": "Megnéz {count} fotót…",
+  "studio.check.lookingAt.one": "Megnéz 1 fotót…",
   "studio.check.waiting": "Várakozik…",
   "studio.check.titleLabel": "Cím",
   "studio.check.noTitle": "Nincs cím",

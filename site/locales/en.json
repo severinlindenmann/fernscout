@@ -3838,6 +3838,8 @@
   "studio.check.working": "The assistant is working…",
   "studio.check.workingOn": "Tidying your words and looking at {count} photos…",
   "studio.check.workingOn.one": "Tidying your words and looking at 1 photo…",
+  "studio.check.lookingAt": "Looking at {count} photos…",
+  "studio.check.lookingAt.one": "Looking at 1 photo…",
   "studio.check.waiting": "Waiting…",
   "studio.check.titleLabel": "Title",
   "studio.check.noTitle": "No title",
