@@ -10,7 +10,7 @@
  * nothing that reaches a network, a disk or a journal.
  */
 
-export type PolarstepsLocation = {
+type PolarstepsLocation = {
   /** A place name, or null — a step taken at sea often has neither. */
   name: string | null;
   /** The country's name, or null. Never a code; `country_code` is that. */
@@ -61,7 +61,7 @@ export type PolarstepsTrip = {
 
 /** A day's worth of steps, grouped by the **local** date `start_time` falls
  * on in each step's own `timezone_id` — never UTC, never the trip's. */
-export type PolarstepsDay = {
+type PolarstepsDay = {
   date: string;
   steps: PolarstepsStep[];
 };
@@ -74,26 +74,7 @@ export type ParsedPolarstepsTrip = {
    *  gap in the trip is a gap, not a blank day. */
   days: PolarstepsDay[];
   /** The first and last local date among `days` — `""` for a trip with no
-   *  steps at all, which `checkPolarstepsTrip` below flags. */
+   *  steps at all (the API schema refuses one before it gets here). */
   start: string;
   end: string;
 };
-
-/**
- * **Run this against your own parse.** Same contract as `gps/`'s
- * `checkGpsImporter`: bring the shape above, call this, fix what it lists.
- */
-export function checkPolarstepsTrip(parsed: ParsedPolarstepsTrip): string[] {
-  const problems: string[] = [];
-  if (!parsed.title.trim()) problems.push("the trip has no name");
-  if (parsed.days.length === 0) {
-    problems.push("no steps at all — every step was skipped, or the export holds none");
-  }
-  for (let i = 1; i < parsed.days.length; i++) {
-    if (parsed.days[i].date <= parsed.days[i - 1].date) {
-      problems.push(`days are not sorted or contain a duplicate date at index ${i}`);
-      break;
-    }
-  }
-  return problems;
-}

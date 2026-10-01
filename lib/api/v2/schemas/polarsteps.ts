@@ -47,5 +47,3 @@ export const polarstepsTripSchema = z.strictObject({
   end_date: z.string().optional(),
   all_steps: z.array(polarstepsStep).min(1),
 });
-
-export type PolarstepsTripBody = z.infer<typeof polarstepsTripSchema>;

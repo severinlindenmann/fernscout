@@ -1,7 +1,6 @@
 import type { ParsedPolarstepsTrip, PolarstepsStep, PolarstepsTrip } from "./schema";
 
-export { checkPolarstepsTrip } from "./schema";
-export type { ParsedPolarstepsTrip, PolarstepsDay, PolarstepsLocation, PolarstepsStep, PolarstepsTrip } from "./schema";
+export type { ParsedPolarstepsTrip, PolarstepsStep, PolarstepsTrip } from "./schema";
 
 /** `step.start_time`'s own local calendar date, in `step.timezone_id` —
  * never UTC. `Intl` resolves the real historical offset for the zone at

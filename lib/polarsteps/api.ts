@@ -21,14 +21,14 @@ import type { DayWeather } from "@/lib/weather";
  * ever wondering whether it was missed by accident.
  */
 
-export const POLARSTEPS_NOT_IMPORTED = [
+const POLARSTEPS_NOT_IMPORTED = [
   "comments",
   "followers",
   "buddies",
   "full-resolution photographs — Polarsteps' own export re-encodes them",
 ] as const;
 
-export type PolarstepsDayOutcome = {
+type PolarstepsDayOutcome = {
   date: string;
   steps: number;
   /** Present only on a real run — the day this date's steps were written
@@ -125,7 +125,7 @@ function dayWeather(steps: PolarstepsStep[]): DayWeather | undefined {
   };
 }
 
-export function previewPolarsteps(parsed: ParsedPolarstepsTrip): PolarstepsImportOutcome {
+function previewPolarsteps(parsed: ParsedPolarstepsTrip): PolarstepsImportOutcome {
   return {
     kind: "polarsteps",
     title: parsed.title,
@@ -144,7 +144,7 @@ export function previewPolarsteps(parsed: ParsedPolarstepsTrip): PolarstepsImpor
  * `createDraft` both only ever write `status: "draft"` content, same as
  * every other door onto this journal.
  */
-export function writePolarstepsTrip(username: string, parsed: ParsedPolarstepsTrip): PolarstepsImportOutcome | PolarstepsImportRefusal {
+function writePolarstepsTrip(username: string, parsed: ParsedPolarstepsTrip): PolarstepsImportOutcome | PolarstepsImportRefusal {
   const tripId = fernscoutTripId(parsed);
 
   const created = createTrip(username, {
