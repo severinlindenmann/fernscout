@@ -19,6 +19,11 @@ import type { TranslationKey } from "./i18n";
 const VIEW_PAD_FRACTION = 0.1;
 /** "about 6°" — decision under "Framing". */
 const VIEW_MIN_SPAN_DEG = 6;
+/** A continent or area button is a continent-scale ask: one country there,
+ * framed on a single city's stops, would otherwise fill the box with one
+ * stretch of coastline (B2652). Still framed on real stops, never on the
+ * country's whole outline. */
+const REGION_VIEW_MIN_SPAN_DEG = 25;
 
 export type LifetimeView = {
   /** "all", a continent's English name, or `${continent}\u0000${subregion}`. */
@@ -76,10 +81,10 @@ export function buildLifetimeViews(
   pointsByCode: ReadonlyMap<string, Point[]>,
   cornersByCode: ReadonlyMap<string, Point[]>,
 ): { views: LifetimeView[]; continents: ContinentButton[] } {
-  const frameFor = (codes: readonly string[]): Frame =>
+  const frameFor = (codes: readonly string[], minSpanDeg = VIEW_MIN_SPAN_DEG): Frame =>
     frameRoute(framePointsFor(codes, pointsByCode, cornersByCode), {
       padFraction: VIEW_PAD_FRACTION,
-      minSpanDeg: VIEW_MIN_SPAN_DEG,
+      minSpanDeg,
     });
 
   const allCodes = visited.map((v) => v.code);
@@ -110,7 +115,7 @@ export function buildLifetimeViews(
         labelKey,
         continent,
         countryCodes: codes,
-        frame: frameFor(codes),
+        frame: frameFor(codes, REGION_VIEW_MIN_SPAN_DEG),
         basemap: null,
       });
     }
@@ -147,7 +152,7 @@ export function buildLifetimeViews(
           continent,
           subregion,
           countryCodes: areaCodes,
-          frame: frameFor(areaCodes),
+          frame: frameFor(areaCodes, REGION_VIEW_MIN_SPAN_DEG),
           basemap: null,
         });
       }
