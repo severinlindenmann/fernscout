@@ -713,13 +713,15 @@ describe("B2304 — no floating pill on the hub", () => {
 });
 
 /**
- * B2304, moved below the groups by B2600 — the filter field narrows
- * "Everything else" by title and description, reading the exact rows
- * `buildHubGroups` builds for the grid itself so the two cannot drift
- * apart. Today's own card and Journal & account are never narrowed by it
- * (see `StudioHub.tsx`) — only the three grid cards are.
+ * B2304, moved to the top by B2641 — one filter field directly under the
+ * studio title at every width. An empty query leaves the page unchanged;
+ * a non-empty one hides the hero/Today/write section and narrows
+ * "Everything else" (reading the exact rows `buildHubGroups` builds for the
+ * grid itself, so the two cannot drift apart) and Journal & account to
+ * matching rows, opened — down to a "no matches" line when nothing
+ * anywhere matches.
  */
-describe("B2304/B2600 — the filter, below the groups", () => {
+describe("B2304/B2641 — the filter, at the top", () => {
   const t = (key: Parameters<typeof translate>[1], vars?: Record<string, string>) => translate(dictionaryFor("en"), key, vars);
   const tn = (key: Parameters<typeof plural>[1], count: number, vars?: Record<string, string>) => plural(dictionaryFor("en"), key, count, vars);
   const gridSections = (el: HTMLElement) => Array.from(el.querySelectorAll("section[data-group]:not(#journal):not(#write)"));
@@ -735,26 +737,30 @@ describe("B2304/B2600 — the filter, below the groups", () => {
   test("an empty query changes nothing", () => {
     const groups = buildHubGroups(FULL_BASE, "alex", t, tn, "en");
     expect(filterHubGroups(groups, "")).toBe(groups);
+    const el = render(FULL_BASE);
+    expect(el.querySelector("#h-today")).not.toBeNull();
+    expect(el.querySelector("a[data-hero]")).not.toBeNull();
+    expect(el.querySelector("#write")).not.toBeNull();
+  });
+
+  test("there is exactly one filter field, directly under the studio title", () => {
+    const el = render(FULL_BASE);
+    const inputs = el.querySelectorAll<HTMLInputElement>("[data-hub-filter]");
+    expect(inputs.length).toBe(1);
+    const h1 = el.querySelector("h1")!;
+    // The field follows the title and precedes everything it can filter.
+    expect(h1.compareDocumentPosition(inputs[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const today = el.querySelector("#h-today")!;
+    expect(inputs[0].compareDocumentPosition(today) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   // The ticket's own acceptance, verbatim: typing "gpx" shows the GPX files
   // & routes row.
   test("typing 'gpx' in the filter shows the GPX files & routes row", () => {
     const el = render(FULL_BASE);
-    const input = el.querySelectorAll<HTMLInputElement>("[data-hub-filter]")[0];
+    const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
     act(() => typeInto(input, "gpx"));
     expect(el.textContent).toContain("GPX files & routes");
-  });
-
-  test("on phone the filter field sits after the grid and Journal & account, not above them", () => {
-    const el = render(FULL_BASE);
-    // Two instances share one query — desktop's beside "Everything else",
-    // phone's below everything (see `FilterInput`'s own doc comment); the
-    // phone one is the second in the document.
-    const inputs = el.querySelectorAll<HTMLInputElement>("[data-hub-filter]");
-    expect(inputs.length).toBe(2);
-    const journal = el.querySelector("#journal")!;
-    expect(journal.compareDocumentPosition(inputs[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   test("typing in the field narrows the rendered grid to the same rows, and opens the matching cards", () => {
@@ -776,12 +782,15 @@ describe("B2304/B2600 — the filter, below the groups", () => {
     for (const section of gridSections(el)) expect(section.querySelector("button[aria-expanded]")?.getAttribute("aria-expanded")).toBe("true");
   });
 
-  test("Today's own card is never narrowed by the filter", () => {
+  // B2641 — searching is now about finding a flow, not browsing Today's
+  // own card; a non-empty query hides the hero and the write list entirely.
+  test("a non-empty query hides the hero, the Today heading and the write section", () => {
     const el = render(FULL_BASE);
     const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
-    const before = el.querySelectorAll("#write a[data-row]").length;
-    act(() => typeInto(input, "xyzzy-nothing-matches-this"));
-    expect(el.querySelectorAll("#write a[data-row]").length).toBe(before);
+    act(() => typeInto(input, "photo"));
+    expect(el.querySelector("a[data-hero]")).toBeNull();
+    expect(el.querySelector("#h-today")).toBeNull();
+    expect(el.querySelector("#write")).toBeNull();
   });
 
   test("Journal & account hides when none of its rows match, and shows whole when one does", () => {
@@ -796,12 +805,35 @@ describe("B2304/B2600 — the filter, below the groups", () => {
     expect(Array.from(el.querySelectorAll("#journal a[data-row]")).map((a) => a.getAttribute("href"))).toEqual(journalHrefsBefore);
   });
 
-  test("clearing the field restores the full grid", () => {
+  // B2641's own empty state: nothing anywhere matches.
+  test("a query matching nothing anywhere shows the empty state, quoting the query", () => {
     const el = render(FULL_BASE);
     const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
+    act(() => typeInto(input, "xyzzy-nothing-matches-this"));
+    const empty = el.querySelector("[data-filter-empty]");
+    expect(empty).not.toBeNull();
+    expect(empty!.textContent).toContain("xyzzy-nothing-matches-this");
+  });
+
+  test("the empty state is absent once something (even only Journal & account) matches", () => {
+    const el = render(FULL_BASE);
+    const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
+    act(() => typeInto(input, "visitors"));
+    expect(el.querySelector("[data-filter-empty]")).toBeNull();
+  });
+
+  test("a clear (x) button appears once typing starts and restores the full page", () => {
+    const el = render(FULL_BASE);
+    const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
+    expect(el.querySelector("[data-hub-filter-clear]")).toBeNull();
     act(() => typeInto(input, "photo"));
-    act(() => typeInto(input, ""));
+    const clear = el.querySelector<HTMLButtonElement>("[data-hub-filter-clear]")!;
+    expect(clear).not.toBeNull();
+    act(() => clear.click());
+    expect(input.value).toBe("");
     expect(gridSections(el).length).toBe(3);
+    expect(el.querySelector("#h-today")).not.toBeNull();
+    expect(el.querySelector("[data-hub-filter-clear]")).toBeNull();
   });
 });
 

@@ -903,6 +903,8 @@
   "studio.hub.duringTrip.waiting.detail": "{count} napnak van fotója, és még semmi nincs megírva.",
   "studio.hub.duringTrip.waiting.detail.one": "{count} napnak van fotója, és még semmi nincs megírva.",
   "studio.hub.filter.placeholder": "Keresés, pl. GPX vagy olvasók",
+  "studio.hub.filter.empty": "Nincs találat erre: „{query}”.",
+  "studio.hub.filter.clear": "Keresés törlése",
   "studio.hub.halfDone.more": "+{count} további",
   "studio.hub.halfDone.more.one": "+{count} további",
   "studio.hub.item.addDayEnded.title": "Nap hozzáadása ehhez: {trip}",
