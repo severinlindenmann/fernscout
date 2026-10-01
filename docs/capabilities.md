@@ -53,7 +53,6 @@ what it would generate.
 | `billing` | server-wide | — |
 | `contacts` | server-wide | — |
 | `costs` | server-wide | — |
-| `credits` | server-wide | — |
 | `extract` | per journal | — |
 | `helper` | server-wide | — |
 | `iosApp` | server-wide | — |

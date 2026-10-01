@@ -121,7 +121,6 @@ export const accountPreviews: PreviewMap = {
         days: 12,
         files: 214,
         bytes: 512_000_000,
-        credits: 5,
       },
       nickname: SAMPLE.owner,
       token: "k3x9",

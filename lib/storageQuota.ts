@@ -2,14 +2,12 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 
-import { countSpends } from "./credits";
 import { isEnabled } from "./capabilities";
 import { planOf } from "@paid/credits/lib/entitlements";
 import { loadUserConfig, serverMediaCeiling } from "./config";
 import { mediaOriginalsRoot } from "./media";
 import { getUser, userDir } from "./users";
 import { getTrips, tripDir } from "./trips";
-import { EXTRA_STORAGE_BYTES } from "@paid/credits/lib/credits/pricing";
 import { sendTransactional } from "./mail";
 import { renderMail } from "./mail/template";
 import type { Composition } from "./messages/previews/types";
@@ -103,16 +101,16 @@ export function formatBytes(n: number): string {
 }
 
 /**
- * What this journal has bought, counted from the ledger it was charged on.
- *
- * No table and no column of its own: `credit_ledger` is append-only and is
- * already the record of every purchase, so counting `storage` rows is reading
- * the receipt rather than keeping a tally beside it — the same reasoning as
- * the walk above. A refund does not reverse one; extensions are sold as
- * lifetime and there is no route that unsells them.
+ * What this journal bought in extra room on top of its plan — B661, retired
+ * by B2592. The credit-funded "+5 GB" purchase this once counted
+ * (`credit_ledger`'s own `storage` rows) is gone with the credit system;
+ * Plus's own +10 GB add-on is priced in francs and already folded into
+ * `configuredLimit`'s own `plan.limits.storageGb` above. Always zero now —
+ * kept as a function, not inlined, so a franc-priced extension (once one
+ * exists) has one place to add its own count.
  */
-async function purchasedBytes(username: string): Promise<number> {
-  return (await countSpends(username, "storage")) * EXTRA_STORAGE_BYTES;
+async function purchasedBytes(_username: string): Promise<number> {
+  return 0;
 }
 
 /**

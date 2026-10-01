@@ -4671,5 +4671,8 @@
   "billing.managedByApple": "Managed by Apple",
   "billing.restorePurchases": "Restore purchases",
   "billing.restoreDone": "Done.",
-  "plans.cellPlusPayTwint": "Card or TWINT, yearly"
+  "plans.cellPlusPayTwint": "Card or TWINT, yearly",
+  "agent.speechAiDaysUsedUp": "Your AI days for this plan are used up.",
+  "photobook.first.describe.receiptDays": "{count} photographs described.",
+  "photobook.first.describe.receiptDays.one": "1 photograph described."
 }

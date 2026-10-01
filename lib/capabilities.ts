@@ -3,7 +3,6 @@ import path from "node:path";
 import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES, loadServerConfig, type FeatureName } from "./config";
 import { getUser } from "./users";
 import { addressLookupEndpoints } from "./addressLookup";
-import { stripeMode, stripeProblem } from "@paid/credits/lib/stripe";
 import { reviewLoginNote } from "./auth/reviewLogin";
 import { PAID_AREAS } from "@paid/manifest";
 
@@ -103,10 +102,6 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // the relief layer has nowhere else it ever draws.
   mapRelief: { env: [], db: false, needs: { photobook: "the relief layer only ever draws on a photobook's route map" } },
   logging: { env: [], db: false },
-  // B366. The balance and its ledger are rows, so charging without a database
-  // would be a number nobody could decrement — and `spend` refusing every
-  // send is the safe reading of that, not a silent free-for-all.
-  credits: { env: [], db: true },
   // B399. See configuredEnv() for the provider-specific half — `photon`
   // needs nothing, which is the whole point of defaulting to it.
   addressLookup: { env: [], db: false },
@@ -320,37 +315,6 @@ function dryRunNote(name: FeatureName, feature: Record<string, unknown>): string
   return feature.live === true
     ? `features.photobook.live is true — ${provider} PRINTS real books, and real money moves`
     : `features.photobook.live is not set — ${provider} validates the order as a draft and prints nothing`;
-}
-
-/**
- * `credits` is on, but which world is it charging in — B792.
- *
- * The capability is about whether a journal is *metered*, and that is true
- * with or without a way to pay: an instance with no Stripe key still spends
- * credits on sends, it just settles a purchase by the operator approving a
- * mail by hand (B425). So this is a note rather than a reason, exactly like
- * `dry-run` printing.
- *
- * The mode comes from the key's own prefix and nothing else, which is the
- * whole of B792's switch — see `paid/credits/lib/stripe.ts`. Printing it here is what makes
- * "is production actually taking money" a question `/api/health` answers,
- * rather than one somebody guesses at from a deploy log.
- */
-function paymentProviderNote(name: FeatureName): string | undefined {
-  if (name !== "credits") return undefined;
-  const mode = stripeMode();
-  if (!mode) {
-    return (
-      `no payment provider is configured (${stripeProblem()}) — a credit purchase ` +
-      `is approved by hand by the operator instead (see B425)`
-    );
-  }
-  if (stripeProblem()) {
-    return `Stripe is half-configured (${stripeProblem()}) — purchases fall back to the operator approving by hand`;
-  }
-  return mode === "test"
-    ? "payments settle through Stripe in TEST mode — no real money moves, and no card is ever charged"
-    : "payments settle through Stripe in LIVE mode — real money moves";
 }
 
 /**
@@ -697,7 +661,6 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
     applePushNote(name, feature) ??
     backendDryRunNote(name, feature) ??
     addressLookupNote(name) ??
-    paymentProviderNote(name) ??
     signupNote(name, feature) ??
     iosAppNote(name, feature) ??
     (name === "auth" ? reviewLoginNote() : undefined);

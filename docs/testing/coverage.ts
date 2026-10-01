@@ -82,10 +82,6 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
     flows: ["operator-check-admin-dashboard"],
     interfaces: ["admin"],
   },
-  credits: {
-    flows: ["owner-established-spend-credits"],
-    interfaces: ["ui", "api"],
-  },
   addressLookup: {
     flows: ["owner-established-address-lookup"],
     interfaces: ["ui"],

@@ -103,7 +103,6 @@ async function band() {
     troubles: troubleRows,
     journals: report.journals,
     ceiling: loadServerConfig().media.perUserBytes,
-    balances: data.journals,
   });
 }
 

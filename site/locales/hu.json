@@ -4677,5 +4677,8 @@
   "billing.managedByApple": "Az Apple kezeli",
   "billing.restorePurchases": "Vásárlások visszaállítása",
   "billing.restoreDone": "Kész.",
-  "plans.cellPlusPayTwint": "Kártya vagy TWINT, évente"
+  "plans.cellPlusPayTwint": "Kártya vagy TWINT, évente",
+  "agent.speechAiDaysUsedUp": "Elfogytak a csomagodhoz tartozó AI-napok.",
+  "photobook.first.describe.receiptDays": "{count} fénykép leírva.",
+  "photobook.first.describe.receiptDays.one": "1 fénykép leírva."
 }

@@ -537,7 +537,6 @@ const KIND_LABEL: Record<Attend["kind"], string> = {
   fault: "Fault",
   backup: "Backup",
   disk: "Disk",
-  credits: "Credits",
 };
 
 /**
@@ -550,7 +549,6 @@ function whereFixed(item: Attend): { href: string; label: string } | null {
     const name = item.id.slice("disk:".length);
     return { href: `#journals/${encodeURIComponent(name)}`, label: "Open journal" };
   }
-  if (item.kind === "credits") return { href: "#journals", label: "See journals" };
   return { href: "#instance", label: item.kind === "backup" ? "See backups" : "See instance" };
 }
 

@@ -119,9 +119,6 @@
     "logging": {
       "enabled": false
     },
-    "credits": {
-      "enabled": false
-    },
     "addressLookup": {
       "enabled": false,
       "provider": "photon"

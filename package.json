@@ -57,7 +57,6 @@
     "migrate:users": "node scripts/migrate-users.ts",
     "migrate:owner": "node scripts/migrate-owner.ts",
     "ingest": "tsx --conditions=react-server scripts/ingest.mts",
-    "credits": "tsx --conditions=react-server scripts/paid.mts credits/scripts/grant-credits.ts",
     "registry": "tsx --conditions=react-server scripts/registry.ts",
     "i18n:keys": "node scripts/i18n-keys.mjs",
     "docs:capabilities": "tsx --conditions=react-server scripts/build-capabilities-doc.mts",

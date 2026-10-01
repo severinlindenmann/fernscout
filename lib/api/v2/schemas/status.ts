@@ -53,9 +53,6 @@ export const instanceStatus = z.strictObject({
       gps_history: z.array(z.string()),
     }),
   }),
-  /** What paid actions cost, in credits — from the operator's own costs
-   * block, so an agent can say a price before proposing a postcard. */
-  pricing: z.record(z.string(), z.number().nonnegative()),
   /**
    * The source names a caller may never write — B1783.
    *
@@ -79,16 +76,6 @@ export const instanceStatus = z.strictObject({
 /** Where this journal and this token stand right now. */
 export const journalStatus = z.strictObject({
   journal: z.string(),
-  /** The journal's credit balance. Nothing an agent holds can raise it.
-   * Not an integer: since B987 a balance is stored in hundredths and
-   * `balanceOf` hands back the fraction, so `.int()` here answered 500 on
-   * every journal whose balance had ever been part-spent (B1756).
-   * Nullable: null means "not this token's business" — a trip-scoped token
-   * (a buddy) is on the trip, not the books; the owner's spending is not
-   * theirs to see. B1611 narrowed this after the field shipped required,
-   * matching v1's `journalStatus`, which nulled it the same way. See
-   * 06-contract-deltas.md. */
-  credits: z.number().nullable(),
   /** Days waiting for a person to read back and ask to publish — `title` so
    * an agent can say which one without a GET per row (00-decisions.md,
    * "drafts+title+test"), `test` so it can tell content nobody lived from

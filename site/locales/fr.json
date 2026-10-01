@@ -4680,5 +4680,8 @@
   "billing.managedByApple": "Géré par Apple",
   "billing.restorePurchases": "Restaurer les achats",
   "billing.restoreDone": "Terminé.",
-  "plans.cellPlusPayTwint": "Carte ou TWINT, chaque année"
+  "plans.cellPlusPayTwint": "Carte ou TWINT, chaque année",
+  "agent.speechAiDaysUsedUp": "Vos jours d'IA pour ce plan sont épuisés.",
+  "photobook.first.describe.receiptDays": "{count} photos décrites.",
+  "photobook.first.describe.receiptDays.one": "1 photo décrite."
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
-import { Check, CreditCard, HardDrive, Mail, MessageCircle, Undo2, Wallet } from "lucide-react";
+import { CreditCard, HardDrive } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -10,8 +10,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useNativeShell } from "@/components/nativeShell";
 import { useSite } from "@/components/SiteProvider";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
-import { formatChf, formatCredits } from "@/lib/creditsFormat";
-import { CREDIT_STEP, EXTRA_STORAGE_CREDITS, MAX_CREDITS, MIN_CREDITS, discountFor, discountLabel, priceRappen } from "@paid/credits/lib/credits/pricing";
+import { formatChf } from "@/lib/creditsFormat";
 import type { TranslationKey } from "@/lib/i18n";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
 
@@ -138,65 +137,6 @@ function ChannelSwitch({
  * it exists so a retried request cannot double-spend, not because the
  * browser needs to remember it afterwards.
  */
-function BuyStorageButton({ username }: { username: string }) {
-  const { t } = useI18n();
-  const router = useRouter();
-  const [asking, setAsking] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  async function buy() {
-    setBusy(true);
-    setFailed(false);
-    const response = await fetch(
-      `/api/web/${username}/storage/purchases/${crypto.randomUUID()}`,
-      { method: "PUT" },
-    ).catch(() => null);
-    setBusy(false);
-    if (response?.ok) {
-      setAsking(false);
-      router.refresh();
-    } else setFailed(true);
-  }
-
-  if (asking) {
-    return (
-      <ConfirmPanel
-        label={t("me.storageBuy", { credits: formatCredits(EXTRA_STORAGE_CREDITS) })}
-        question={t("me.storageBuyConfirm", {
-          credits: formatCredits(EXTRA_STORAGE_CREDITS),
-        })}
-        confirmLabel={t("me.storageBuyGo")}
-        busyLabel={t("me.storageBuyBusy")}
-        busy={busy}
-        error={failed ? t("me.storageBuyFailed") : undefined}
-        onConfirm={buy}
-        onCancel={() => setAsking(false)}
-      />
-    );
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          setFailed(false);
-          setAsking(true);
-        }}
-        className="inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-base"
-      >
-        {t("me.storageBuy", { credits: formatCredits(EXTRA_STORAGE_CREDITS) })}
-      </button>
-      {failed && (
-        <span role="status" className="mt-1 block text-sm text-coral-600">
-          {t("me.storageBuyFailed")}
-        </span>
-      )}
-    </>
-  );
-}
-
 /**
  * Give the space back — B664, asked in the page since B668.
  *
@@ -365,124 +305,6 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
 }
 
 /**
- * Choose an amount and start a purchase — B854.
- *
- * It was two fixed buttons, and every amount that was not one of them was
- * unbuyable. Now it is a slider over `MIN_CREDITS`..`MAX_CREDITS`, and the
- * price under it moves as the thumb does.
- *
- * **`<input type="range">`, not a slider component.** It is keyboard operable
- * (arrows, Home, End), it is what a phone already knows how to drag, and it
- * costs nothing to ship. The only thing worth adding is what the platform
- * cannot know — `aria-valuetext`, so a screen reader hears "120 credits, CHF
- * 22.75" rather than the bare number 120.
- *
- * The price shown is `priceRappen`, the same function the route charges from,
- * so what somebody reads on the slider is what the transaction is filed for.
- */
-function BuyCreditsPanel({ username, cardTestMode }: { username: string; cardTestMode?: boolean }) {
-  const { t, tn } = useI18n();
-  const router = useRouter();
-  const [credits, setCredits] = useState(50);
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<"failed" | null>(null);
-
-  async function buy() {
-    setBusy(true);
-    setResult(null);
-    const response = await fetch(
-      `/api/web/${username}/purchases/${crypto.randomUUID()}`,
-      {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        // The amount, never the price: the server prices it. See the route.
-        body: JSON.stringify({ credits }),
-      },
-    ).catch(() => null);
-    setBusy(false);
-
-    if (response?.ok) {
-      // The purchase created a pending transaction; go to its payment page.
-      // The same link was emailed too, so this can be finished later — B405.
-      const body = (await response.json().catch(() => null)) as {
-        paymentUrl?: string;
-      } | null;
-      if (body?.paymentUrl) {
-        router.push(body.paymentUrl);
-        return;
-      }
-      setResult("failed");
-    } else {
-      setResult("failed");
-    }
-  }
-
-  return (
-    /**
-     * Inline, always visible, anchored — B1319. This was a popover behind a
-     * "Buy credits" press: the one thing the page exists for, hidden until
-     * a second decision. The room's own "Guthaben kaufen" links straight to
-     * `#buy`, and the slider, the price and the button are simply there.
-     */
-    <div id="buy" className="mt-4 scroll-mt-24 rounded-xl border border-line-quiet bg-surface-base px-4 py-3 sm:px-5 sm:py-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-        {t("me.buyDialogTitle")}
-      </p>
-      <p className="mt-2 flex items-baseline justify-between gap-3">
-        <span className="font-display text-2xl font-semibold tabular-nums text-ink-strong">
-          {formatCredits(credits)} {tn("me.paymentUnit", credits)}
-        </span>
-        <span className="font-display text-2xl font-semibold tabular-nums text-ink-strong">
-          {formatChf(priceRappen(credits))}
-        </span>
-      </p>
-      <label className="mt-1 block">
-        <span className="sr-only">{t("me.buyDialogAmount")}</span>
-        <input
-          type="range"
-          min={MIN_CREDITS}
-          max={MAX_CREDITS}
-          step={CREDIT_STEP}
-          value={credits}
-          onChange={(event) => setCredits(Number(event.target.value))}
-          // What the platform cannot work out: a screen reader would
-          // otherwise announce "120" with no unit and no price.
-          aria-valuetext={`${formatCredits(credits)} ${tn("me.paymentUnit", credits)}, ${formatChf(
-            priceRappen(credits),
-          )}`}
-          className="h-11 w-full accent-yellow-400"
-        />
-      </label>
-      <p className="text-sm text-ink-secondary">
-        {discountFor(credits) > 0
-          ? t("me.buyDialogDiscount", { discount: discountLabel(credits) })
-          : t("me.buyDialogNoDiscount", {
-              from: String(MIN_CREDITS),
-              to: String(MAX_CREDITS),
-            })}
-      </p>
-      <BusyButton
-        type="button"
-        busy={busy}
-        onClick={() => buy()}
-        className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-6"
-        busyLabel={t("me.buyDialogBusy")}
-      >
-        {t("me.buyDialogBuyAmount", {
-          price: formatChf(priceRappen(credits)),
-        })}
-      </BusyButton>
-      {cardTestMode && <p className="mt-2 text-sm text-ink-secondary">{t("me.buyTestMode")}</p>}
-      {result && (
-        <span role="status" className="mt-1 block text-sm text-coral-600">
-          {t("me.paymentBuyFailed")}
-        </span>
-      )}
-    </div>
-  );
-}
-
-/**
  * How full this journal is, and what is filling it — B661, B664.
  *
  * `limit` is null where the instance sets no ceiling, and then there is
@@ -570,7 +392,7 @@ export type PlanPanel = {
 };
 
 /** Buy a plan, or ask the operator to grant it when no Stripe key is
- *  configured (`dryRun`) — the same "ask, don't act" shape `BuyStorageButton`
+ *  configured (`dryRun`) — the same "ask, don't act" shape every panel on this page
  *  and `submitRequest` already take for credits.
  *
  *  Inside the iPhone shell this buys through StoreKit instead — Apple
@@ -826,48 +648,6 @@ export default function AccountPageContent({
   const { t, tn } = useI18n();
   const site = useSite();
 
-  /**
-   * Inside the iPhone shell nothing is bought — B2126, decided as D5.
-   * Credits are a digital good, and App Store guideline 3.1.1 makes an
-   * in-app purchase of them Apple's In-App Purchase or nothing; 3.1.3
-   * forbids pointing at the website's checkout from inside the app. So the
-   * balance shows, the slider and the storage purchase do not, and one
-   * sentence says where credits come from — with no link and no price.
-   * Prints are physical goods and keep their checkout (D10).
-   *
-   */
-  const native = useNativeShell();
-
-  const CHANNELS = payment
-    ? ([
-        {
-          key: "mail",
-          icon: Mail,
-          labelKey: "me.paymentChannelEmail",
-          recipients: payment.emailRecipients,
-          // B840 — email to a reader the owner approved by hand costs a
-          // hundredth of a Rappen to deliver, and is no longer charged for.
-          // The row still says how many people it reaches, because that is
-          // the number the owner is actually asking about.
-          costs: false,
-        },
-        {
-          key: "whatsapp",
-          icon: MessageCircle,
-          labelKey: "me.paymentChannelWhatsapp",
-          recipients: payment.whatsappRecipients,
-          // Meta invoices per message, so this one does.
-          costs: true,
-        },
-      ] as const)
-    : [];
-
-  const dayCost = CHANNELS.reduce(
-    (total, { key, recipients, costs }) =>
-      total + (costs && payment?.channels[key] ? recipients : 0),
-    0,
-  );
-
   return (
     <>
 
@@ -900,217 +680,6 @@ export default function AccountPageContent({
 
           {plan && <YourPlanPanel username={username} plan={plan} />}
 
-          {payment && (
-            <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-ink-strong">
-                  <Wallet className="h-[18px] w-[18px]" aria-hidden="true" />
-                </span>
-                <h3 className="font-display text-lg font-semibold text-ink-strong">
-                  {t("me.paymentTitle")}
-                </h3>
-              </div>
-
-              <div className="mt-4 sm:flex sm:items-stretch sm:gap-4">
-                <div className="flex flex-col justify-center rounded-xl border border-line-quiet bg-surface-base px-5 py-4 sm:w-44 sm:shrink-0">
-                  <span className="font-display text-4xl font-semibold tabular-nums tracking-tight text-ink-strong">
-                    {formatCredits(payment.balance)}
-                  </span>
-                  <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-                    {tn("me.paymentUnit", payment.balance)}
-                  </span>
-                  {payment.balance === 0 && (
-                    <span className="mt-2 text-sm leading-6 text-coral-600">
-                      {t("me.paymentBalanceEmpty")}
-                    </span>
-                  )}
-                </div>
-
-                {CHANNELS.some(({ recipients }) => recipients > 0) ? (
-                <div className="mt-4 sm:mt-0 sm:flex-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-                    {t("me.paymentEstimateTitle")}
-                  </p>
-                  <ul className="mt-2 border-t border-line-quiet">
-                    {CHANNELS.map(
-                      ({ key, icon: Icon, labelKey, recipients, costs }) => {
-                        const on = payment.channels[key];
-                        if (on === null) return null;
-                        return (
-                          <li
-                            className="border-b border-line-quiet py-2.5"
-                            key={key}
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <span className="flex items-center gap-2 text-base text-ink-strong">
-                                  <Icon
-                                    className="h-4 w-4 shrink-0 text-ink-secondary"
-                                    aria-hidden="true"
-                                  />
-                                  {t(labelKey)}
-                                </span>
-                                <span className="mt-0.5 block text-sm text-ink-secondary">
-                                  {tn("me.paymentUpTo", recipients, {
-                                    count: String(recipients),
-                                  })}
-                                  {" · "}
-                                  <span
-                                    className={
-                                      on
-                                        ? "font-semibold text-ink-strong"
-                                        : undefined
-                                    }
-                                  >
-                                    {costs ? (
-                                      <>
-                                        {on ? recipients : 0}{" "}
-                                        {tn(
-                                          "me.paymentUnit",
-                                          on ? recipients : 0,
-                                        )}
-                                      </>
-                                    ) : (
-                                      t("me.paymentFree")
-                                    )}
-                                  </span>
-                                </span>
-                              </div>
-                              <ChannelSwitch
-                                username={username}
-                                channel={key}
-                                label={t(labelKey)}
-                                enabled={on}
-                              />
-                            </div>
-                            {/* B1434: the photograph-reaches-Meta-first fact B372 put on
-                                the reader's own tick box, before B1396 removed it from
-                                there — read once here, by the owner switching the
-                                channel on, rather than per reader. */}
-                            {key === "whatsapp" && on && (
-                              <p className="mt-2 text-sm leading-6 text-ink-secondary">
-                                {t("me.whatsappPhotoDisclosure")}
-                              </p>
-                            )}
-                          </li>
-                        );
-                      },
-                    )}
-                  </ul>
-                  <p className="flex items-baseline justify-between gap-3 py-2.5 text-base font-semibold text-ink-strong">
-                    <span>{t("me.paymentDayTotal")}</span>
-                    <span className="tabular-nums">{formatCredits(dayCost)}</span>
-                  </p>
-                  <p className="mt-2.5 text-sm leading-6 text-ink-secondary">
-                    {t("me.paymentPrices")}
-                    {payment.postcardCredits !== null && (
-                      <>
-                        {" "}
-                        {t("me.paymentPostcardPrice", {
-                          credits: formatCredits(payment.postcardCredits),
-                        })}
-                      </>
-                    )}
-                  </p>
-                </div>
-                ) : (
-                  <p className="mt-4 text-sm leading-6 text-ink-secondary sm:mt-0 sm:flex-1 sm:self-center">
-                    {t("me.paymentPrices")}
-                  </p>
-                )}
-              </div>
-
-              {native ? (
-                <p className="mt-4 text-sm leading-6 text-ink-secondary">{t("me.buyOnTheWebsite")}</p>
-              ) : (
-                <BuyCreditsPanel username={username} cardTestMode={payment.cardTestMode} />
-              )}
-
-              {payment.spent.length > 0 && (
-                <div className="mt-5 border-t border-line-quiet pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-                    {t("me.spentTitle")}
-                  </p>
-                  <ul className="mt-2 divide-y divide-line-quiet">
-                    {groupSpent(payment.spent).map(({ group, credits }) => (
-                      <li
-                        key={group}
-                        className="flex items-baseline justify-between gap-3 py-2"
-                      >
-                        <span className="min-w-0 text-base text-ink-strong">
-                          {t(`me.spentReason.${group}` as TranslationKey)}
-                        </span>
-                        <span className="shrink-0 tabular-nums text-ink-body">
-                          {formatCredits(credits)} {tn("me.paymentUnit", credits)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  {/* B2090: its own row, and only when an AI row is there
-                      to explain — it read as a footnote to whatever row
-                      happened to be last. */}
-                  {groupSpent(payment.spent).some(({ group }) => group === "ai") && (
-                    <p className="border-t border-line-quiet pt-2.5 text-sm leading-6 text-ink-secondary">
-                      {t("me.spentAiNote")}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {payment.transactions.length > 0 && (
-                <div className="mt-5 border-t border-line-quiet pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-                    {t("me.txHistoryTitle")}
-                  </p>
-                  <ul className="mt-2 divide-y divide-line-quiet">
-                    {payment.transactions.map((tx) => (
-                      <li
-                        key={tx.id}
-                        className="flex items-center justify-between gap-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-base text-ink-strong">
-                            {formatCredits(tx.credits)} {tn("me.paymentUnit", tx.credits)} ·{" "}
-                            {tx.amount}
-                          </p>
-                          <p className="text-sm tabular-nums text-ink-secondary">
-                            {tx.createdAt.slice(0, 10)}
-                          </p>
-                        </div>
-                        {tx.status === "refunded" ? (
-                          // No link: there is nothing left to pay, and the
-                          // money is on its way back. B878.
-                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-neutral-strong px-3 py-1 text-sm font-semibold text-ink-body">
-                            <Undo2 className="h-4 w-4" aria-hidden="true" />
-                            {t("me.txRefunded")}
-                          </span>
-                        ) : tx.status === "paid" ? (
-                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-700">
-                            <Check className="h-4 w-4" aria-hidden="true" />
-                            {t("me.txPaid")}
-                          </span>
-                        ) : tx.status === "requested" ? (
-                          <Link
-                            href={`${site.base}/payment/${tx.id}`}
-                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-base px-3 py-1 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
-                          >
-                            {t("me.txAwaiting")}
-                          </Link>
-                        ) : (
-                          <Link
-                            href={`${site.base}/payment/${tx.id}`}
-                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-coral-300 bg-coral-300/15 px-3 py-1 text-sm font-semibold text-coral-600 transition-colors hover:bg-coral-300/30"
-                          >
-                            {t("me.txPay")}
-                          </Link>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
 
           {storage && (
             <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
@@ -1137,16 +706,13 @@ export default function AccountPageContent({
 
               {storage.rows.length > 0 && <StorageBar rows={storage.rows} />}
 
-              {(storage.reclaimable.files > 0 || storage.canBuy) && (
+              {storage.reclaimable.files > 0 && (
                 <div className="mt-5 border-t border-line-quiet pt-4">
                   <div className="flex flex-wrap items-center gap-3">
-                    {storage.reclaimable.files > 0 && (
-                      <CleanupButton
-                        username={username}
-                        reclaimable={storage.reclaimable}
-                      />
-                    )}
-                    {storage.canBuy && !native && <BuyStorageButton username={username} />}
+                    <CleanupButton
+                      username={username}
+                      reclaimable={storage.reclaimable}
+                    />
                   </div>
                   {storage.reclaimable.files > 0 && (
                     <p className="mt-2 text-sm leading-6 text-ink-secondary">
