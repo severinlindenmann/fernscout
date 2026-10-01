@@ -94,6 +94,13 @@ function stepText(step: PolarstepsStep): string {
   return [...new Set(parts)].join("\n\n");
 }
 
+/** The day's title — its steps' own names, in order, each once. Absent when
+ * no step has one; never a placeholder. */
+function dayTitle(steps: PolarstepsStep[]): string | undefined {
+  const names = [...new Set(steps.map((s) => s.display_name?.trim()).filter((s): s is string => !!s))];
+  return names.length ? names.join(" · ").slice(0, 200) : undefined;
+}
+
 /** The day's place — the first step that actually names one. A step at sea
  * (`country_code: "00"`) never contributes a country; its coordinates are
  * real but "00" is not a country code and nothing downstream reads it as
@@ -172,9 +179,17 @@ function writePolarstepsTrip(username: string, parsed: ParsedPolarstepsTrip): Po
 
   for (const day of parsed.days) {
     const place = dayPlace(day.steps);
-    const text = day.steps.map(stepText).filter(Boolean).join("\n\n");
+    // The step names are the owner's own titles in Polarsteps, so they title
+    // the day; one step's name is then not repeated in its text, while a day
+    // of several steps keeps each name above its own words.
+    const title = dayTitle(day.steps);
+    const text =
+      day.steps.length === 1
+        ? (day.steps[0].description?.trim() ?? "")
+        : day.steps.map(stepText).filter(Boolean).join("\n\n");
     const result = createDraft(ref, {
       date: day.date,
+      ...(title ? { title } : {}),
       content: text || NO_PROSE,
       location: place.location,
       country: place.country,

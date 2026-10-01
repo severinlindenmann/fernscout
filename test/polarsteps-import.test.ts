@@ -163,6 +163,10 @@ describe("POST /api/v2/<user>/import, kind polarsteps", () => {
     const bergenFile = fs.readdirSync(entriesDir).find((f) => f.startsWith("2026-04-16"))!;
     const bergenDay = JSON.parse(fs.readFileSync(path.join(entriesDir, bergenFile), "utf8"));
     expect(bergenDay.content).toContain("Walked along the quay.");
+    // The step's own name titles the day and is not repeated in its text.
+    expect(bergenDay.title).toBe("Bergen harbour");
+    expect(bergenDay.content).not.toContain("Bergen harbour");
+    expect(bergenFile).not.toMatch(/^2026-04-16-2026-04-16/);
     expect(bergenDay.location).toBe("Bergen");
     expect(bergenDay.country).toBe("Norway");
     expect(bergenDay.weather).toEqual({ tempMax: 14, source: "polarsteps", recordedAt: new Date(tripA.all_steps[2].start_time * 1000).toISOString() });
