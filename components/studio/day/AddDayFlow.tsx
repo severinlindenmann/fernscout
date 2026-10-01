@@ -967,7 +967,13 @@ export default function AddDayFlow({
           {!date && (
             <div data-date-ask className="mt-2 flex flex-wrap gap-2">
               {proposedToday && (
-                <button type="button" onClick={() => pickDate(proposedToday)} className="min-h-11 rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action">
+                <button
+                  type="button"
+                  onClick={() => {
+                    pickDate(proposedToday);
+                    setSheet(null);
+                  }}
+                  className="min-h-11 rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action">
                   {t("studio.day.date.useToday", { date: formatLongDate(proposedToday) })}
                 </button>
               )}

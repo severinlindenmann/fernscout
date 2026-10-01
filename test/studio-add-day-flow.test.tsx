@@ -233,6 +233,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await click("Use today, Monday, 10 November");
     expect(dateChip()).toContain("10 November");
     expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('[data-chip="date"]')!.getAttribute("aria-expanded")).toBe("false");
   });
 
   describe("B2193 — a hub day card opens the page with exactly that day's photographs", () => {
