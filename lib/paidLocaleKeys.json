@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "42e566de9e13f9d7df4df647b9589b7c0cee3e8f",
+  "generatedFrom": "0013c58c2e8609b017a427f2412c8e4cdef1a88c",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -584,8 +584,6 @@
     "postcard.page.alreadySent",
     "postcard.page.back",
     "postcard.page.backFirstOf",
-    "postcard.page.balance",
-    "postcard.page.buy",
     "postcard.page.cropHint",
     "postcard.page.cropReset",
     "postcard.page.cropSaving",
@@ -624,7 +622,6 @@
     "postcard.page.sendOne",
     "postcard.page.sendWarning",
     "postcard.page.sendWarningSample",
-    "postcard.page.short",
     "postcard.page.signInBody",
     "postcard.page.signed",
     "postcard.page.smallPhoto",
