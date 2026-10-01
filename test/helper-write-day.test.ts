@@ -35,10 +35,11 @@ const { resolveAccess } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth/handshake", () => ({ resolveAccess }));
 
-const { writeDay } = vi.hoisted(() => ({ writeDay: vi.fn() }));
+const { writeDay, suggestTitles } = vi.hoisted(() => ({ writeDay: vi.fn(), suggestTitles: vi.fn() }));
 vi.mock("@/lib/helper/model", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/helper/model")>()),
   writeDay,
+  suggestTitles,
 }));
 
 const { POST } = await import("@/app/api/helper/[user]/day/write-day/route");
@@ -95,6 +96,8 @@ beforeEach(async () => {
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
   writeDay.mockReset();
   writeDay.mockResolvedValue({ title: "The pass", prose: "The bus took three hours.", warnings: [] });
+  suggestTitles.mockReset();
+  suggestTitles.mockResolvedValue(["Bus to the pass"]);
   clearIdempotencyStore();
   // Each test starts with a fresh bucket: the route's 20-per-15-minutes brake
   // is per IP and in-memory, so it otherwise counts every call in this file.
@@ -424,6 +427,56 @@ describe("polish mode", () => {
     await call({ idempotency_key: "still-draft" });
     const notes = (await history("alex")).filter((turn) => turn.role === "note");
     expect(notes.find((turn) => turn.text.includes("drafted:"))).toBeDefined();
+  });
+});
+
+/**
+ * `mode: "titles"` — TIX-2, owner decision 2026-10-01. The route-level
+ * tests here mock `suggestTitles` itself, so they say nothing about the real
+ * prompt; `test/helper-polish-guard.test.ts` covers `titleIsGroundedInNotes`
+ * directly. This checks the wiring: `writeDay` is never called in this mode,
+ * a title with a word not in the notes is dropped rather than the whole
+ * request failing, the AI day is still spent, and nothing goes into the
+ * thread.
+ */
+describe("titles mode", () => {
+  beforeEach(async () => {
+    await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
+  });
+
+  test("calls suggestTitles, not writeDay, and answers with the titles", async () => {
+    const answered = await read(await call({ mode: "titles" }));
+    expect(answered.status).toBe(200);
+    expect(suggestTitles).toHaveBeenCalledWith(NOTES, expect.anything(), "alex");
+    expect(writeDay).not.toHaveBeenCalled();
+    expect(answered.body).toMatchObject({ ok: true, titles: ["Bus to the pass"], provider: "Anthropic" });
+    expect(answered.body).not.toHaveProperty("draft");
+  });
+
+  test("a title whose content word is not in the notes is dropped, the rest kept", async () => {
+    suggestTitles.mockResolvedValue(["Bus to the pass", "An unforgettable mountain adventure"]);
+    const answered = await read(await call({ mode: "titles" }));
+    expect(answered.status).toBe(200);
+    expect(answered.body.titles).toEqual(["Bus to the pass"]);
+  });
+
+  test("every suggested title failing the guard still answers 200 with an empty list", async () => {
+    suggestTitles.mockResolvedValue(["A magical day in paradise"]);
+    const answered = await read(await call({ mode: "titles" }));
+    expect(answered.status).toBe(200);
+    expect(answered.body.titles).toEqual([]);
+  });
+
+  test("a failed model call is a 502 and takes no AI day", async () => {
+    suggestTitles.mockRejectedValueOnce(new Error("provider is unhappy"));
+    const failed = await read(await call({ mode: "titles" }));
+    expect(failed.status).toBe(502);
+  });
+
+  test("nothing is noted into the thread", async () => {
+    const before = (await history("alex")).length;
+    await call({ mode: "titles", idempotency_key: "titles-note" });
+    expect((await history("alex")).length).toBe(before);
   });
 });
 
