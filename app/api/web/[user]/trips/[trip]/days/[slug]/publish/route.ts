@@ -30,6 +30,7 @@ import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { tripRef } from "@/lib/trips";
 import { isOwner } from "@/lib/contacts/session";
+import { contactsInGroups, saveTellChoice } from "@/lib/digest/tellChoice";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,18 @@ const SHARED_BLANK_REASON =
 
 const NOT_FROM_THE_STUDIO: ReadonlySet<string> = new Set(["visibility", "status"]);
 
-const shareBody = z.object({ declineOpen: z.array(z.string()).max(DAY_DECLINABLE_KEYS.length).optional() });
+const shareBody = z.object({
+  declineOpen: z.array(z.string()).max(DAY_DECLINABLE_KEYS.length).optional(),
+  /**
+   * TIX-6 — who is told. `groups`: reader-group ids and `"none"`, or null for
+   * everyone; `mail`: email them as well as the app notification. Absent =
+   * the old behaviour (app notification to everyone, no mail). Group ids are
+   * resolved to people here, on the server, against this owner's own groups.
+   */
+  tell: z
+    .object({ groups: z.array(z.string().min(1).max(64)).max(25).nullable(), mail: z.boolean() })
+    .optional(),
+});
 
 const NOT_FOR_AGENTS = {
   error: "not_for_agents",
@@ -101,6 +113,22 @@ export async function POST(
     await fillDayWeatherQuietly(tripRef(user, tripId), stem);
   }
 
-  const body = JSON.stringify(declineOpen.length > 0 ? { declineTracked: declineOpen } : {});
-  return applyPublish(new Request(request.url, { method: "POST", body }), user, tripId, stem, SHARED_BLANK_REASON);
+  const tell = parsed.data.tell;
+  const onlyContacts = tell?.groups ? await contactsInGroups(user, tell.groups) : undefined;
+  const body = JSON.stringify({
+    ...(declineOpen.length > 0 ? { declineTracked: declineOpen } : {}),
+    ...(tell?.mail ? { sendMail: true } : {}),
+  });
+  const response = await applyPublish(
+    new Request(request.url, { method: "POST", body }),
+    user,
+    tripId,
+    stem,
+    SHARED_BLANK_REASON,
+    onlyContacts,
+  );
+  // Remembered only once it actually went up — the next day of this trip
+  // offers the same people again.
+  if (tell && response.ok) await saveTellChoice(user, tripId, { groups: tell.groups, mail: tell.mail });
+  return response;
 }

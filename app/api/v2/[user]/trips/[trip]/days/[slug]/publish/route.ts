@@ -98,6 +98,10 @@ export async function applyPublish(
   /** What `declined.<field>` says for each `declineTracked` field — the
    *  studio's door (B2192) says what actually happened there. */
   declineReason = "declined at publish (declineTracked)",
+  /** TIX-6 — the studio's "who is told": tell only these readers (contact ids
+   *  of the chosen reader groups). Absent = everyone, as every other caller
+   *  (the v2 door, agents) has always had it. Narrows mail and push alike. */
+  onlyContacts?: ReadonlySet<string>,
 ): Promise<Response> {
   const trip = readTripFile(user, tripId);
   if (!trip) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
@@ -204,7 +208,7 @@ export async function applyPublish(
      * wins the claim ever calls `sendDayLetter`.
      */
     if (await claimChannel(user, tripId, v1Slug(slug), "mail")) {
-      const outcome = await sendDayLetter(user, ref, v1Slug(slug));
+      const outcome = await sendDayLetter(user, ref, v1Slug(slug), { onlyContacts });
       if (!outcome.ok) await releaseChannelClaim(user, tripId, v1Slug(slug), "mail");
       mail = mailSummary(outcome);
     } else {
@@ -277,7 +281,7 @@ export async function applyPublish(
     const pushUrl = `${serverSite().url}${journalPath(user)}/trips/${tripId}/day/${slug}`;
     const owner = getUser(user);
     afterResponse("publish-push", async () => {
-      const recipients = await subscribersFor(pushTrip, pushEntry);
+      const recipients = await subscribersFor(pushTrip, pushEntry, onlyContacts);
       if (recipients.length === 0) return;
 
       const byLocale = new Map<string, StoredSubscription[]>();

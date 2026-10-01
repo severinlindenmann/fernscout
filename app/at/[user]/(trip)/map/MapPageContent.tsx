@@ -287,11 +287,9 @@ export default function MapPageContent({
   // check bboxes against (no extra files, or nothing in bounds). A tour gets
   // none at all.
   const activeStreetMap = useMemo(() => {
-    // A tour is shown whole on the world map; one region's street file
-    // cannot frame the whole world (the bounds run past 90° latitude) —
-    // except a tour across continents, which opens on a globe (B2604) over
-    // the world underlay every street map carries, with its bounds clamped.
-    if (!streetMap || (frame.isTour && !frame.globe)) return null;
+    // A tour is framed whole over the world underlay every street map
+    // carries, its bounds clamped inside the poles (B2604, B2618).
+    if (!streetMap) return null;
     if (frame.isTour) return streetMap;
     if (!streetMapRegions || streetMapRegions.length === 0) return streetMap;
     const currentRegionPlaces = frame.regions[regionIndex]?.places ?? [];
@@ -746,7 +744,7 @@ export default function MapPageContent({
               padding={{ top: 70, bottom: sheetInset + 56, left: 40, right: 40 }}
               pmtilesUrl={activeStreetMap.url}
               onReady={onStreetMapReady}
-              globe={frame.globe}
+              globe
               className="h-full w-full"
             />
           ) : hasPlaces || plan.length > 0 || track.length > 0 ? (

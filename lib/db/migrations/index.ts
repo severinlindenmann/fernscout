@@ -59,6 +59,7 @@ import * as entitlementSubscriptionColumns from "./057-entitlement-subscription-
 import * as planReminderSends from "./058-plan-reminder-sends";
 import * as printIncludedUsage from "./059-print-included-usage";
 import * as dropCredits from "./060-drop-credits";
+import * as tellChoices from "./061-tell-choices";
 
 /**
  * Every migration, listed by hand.
@@ -133,6 +134,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "058-plan-reminder-sends": planReminderSends,
   "059-print-included-usage": printIncludedUsage,
   "060-drop-credits": dropCredits,
+  "061-tell-choices": tellChoices,
 };
 
 /**

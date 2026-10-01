@@ -82,3 +82,11 @@ export async function grantPlan(_input: GrantPlanInput): Promise<GrantPlanResult
 export async function endEntitlement(_owner: string, _id: string): Promise<boolean> {
   return false;
 }
+
+export async function entitlementById(_owner: string, _id: string): Promise<Entitlement | null> {
+  return null;
+}
+
+export async function extendAdminGrant(_owner: string, _id: string, _days: number): Promise<boolean> {
+  return false;
+}
