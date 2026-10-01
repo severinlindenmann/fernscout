@@ -37,9 +37,9 @@ const SNOOZE_MS = 24 * 60 * 60 * 1000;
  * not sent, for the same reason the level is not: a caller that could name
  * its own `until` could snooze an alarm for a decade.
  *
- * Outside `/api/v1/` deliberately, like `/api/web/admin/grants`: it takes the
- * operator's cookie only, there is no bearer-token path to it, and to anybody
- * who is not the operator this route does not exist.
+ * Outside `/api/v1/` deliberately, like `/api/web/admin/plan-grants`: it
+ * takes the operator's cookie only, there is no bearer-token path to it, and
+ * to anybody who is not the operator this route does not exist.
  */
 export async function POST(request: Request) {
   if (!(await isInstanceAdmin())) {
