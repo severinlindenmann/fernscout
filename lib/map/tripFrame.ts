@@ -101,13 +101,6 @@ export type TripFrame = {
   /** More than three regions with at least one non-home place ⇒ the whole
    * trip is shown, not just the main region. */
   isTour: boolean;
-  /** A heuristic, not a geometric fact: true once a tour's own places are
-   * far enough apart that no single continent plausibly holds them all.
-   * ponytail: a distance threshold, not real continent geometry — good
-   * enough to pick globe vs. flat, wrong only for a deliberately odd route
-   * (e.g. Alaska to Siberia); upgrade to real continent polygons if that
-   * ever shows up in a real trip. */
-  globe: boolean;
   /** The places the frame itself should be fit to — feed these into
    * `frameRoute` (`lib/mapFrame.ts`) for the actual projected `Frame`; this
    * module does not duplicate that geometry. */
@@ -121,10 +114,6 @@ const REGION_KM = 300;
 
 /** A leg longer than this, or crossing a region boundary, is a flight. */
 const FLIGHT_KM = 600;
-
-/** A tour's own places have to spread further than this before the map
- * opens on a globe rather than a flat frame — see `TripFrame.globe`. */
-const GLOBE_KM = 3500;
 
 export type BuildOptions = {
   /** Selects only the trip's photo-only join behaviour even when a recorded
@@ -150,7 +139,7 @@ export function buildTripFrame(
   // list, a chip row) reads an empty result the same way it already reads
   // "no places": nothing to draw.
   if (places.length === 0) {
-    return { regions: [], mainRegionIndex: 0, isTour: false, globe: false, framePlaces: [], chips: [], lines: [] };
+    return { regions: [], mainRegionIndex: 0, isTour: false, framePlaces: [], chips: [], lines: [] };
   }
 
   // "Anything inside the home zone reads Home in every list, strip, chip and
@@ -163,7 +152,6 @@ export function buildTripFrame(
   const mainRegion = regions[mainRegionIndex];
   const nonHomeRegions = regions.filter((r) => !r.home);
   const isTour = nonHomeRegions.length > 3;
-  const globe = isTour && spansContinents(nonHomeRegions);
 
   const framePlaces = isTour ? all.filter((p) => !p.home) : mainRegion.places;
   const inFrame = new Set(framePlaces.map(placeId));
@@ -192,15 +180,21 @@ export function buildTripFrame(
   ];
 
   const regionOf = regionFinder(regions);
-  const rawLines = (opts.tracked ?? recorded.length > 0)
-    ? recordedLines(recorded)
-    : photoJoinLines(all);
+  const tracked = opts.tracked ?? recorded.length > 0;
+  const rawLines = tracked ? recordedLines(recorded) : photoJoinLines(all);
   const withFlights = rawLines.map((line) => toFlightIfFar(line, regionOf));
+  // A recording rarely spans the flight itself (B2618): on a tracked trip the
+  // joins between days still draw, but only the ones far enough to be flights.
+  if (tracked) {
+    withFlights.push(
+      ...photoJoinLines(all).map((line) => toFlightIfFar(line, regionOf)).filter((line) => line.kind === "flight"),
+    );
+  }
   // "Legs that leave the region shown are not drawn inside it; the chip
   // stands for them" — a single-region view only, never a tour.
   const lines = isTour ? withFlights : withFlights.filter((line) => bothEndsIn(line, regionOf, mainRegionIndex));
 
-  return { regions, mainRegionIndex, isTour, globe, framePlaces, chips, lines };
+  return { regions, mainRegionIndex, isTour, framePlaces, chips, lines };
 }
 
 /** A `MapPlace`'s identity for set membership — day number is unique per
@@ -234,18 +228,6 @@ function pickMainRegion(regions: readonly Region[]): number {
     if (regions[i].days > regions[best].days) best = i;
   }
   return best;
-}
-
-/** Whether a tour's own (non-home) regions are spread further apart than one
- * continent plausibly holds — see `TripFrame.globe`. */
-function spansContinents(nonHomeRegions: readonly Region[]): boolean {
-  const centres = nonHomeRegions.map((r) => centroid(r.places));
-  for (let i = 0; i < centres.length; i++) {
-    for (let j = i + 1; j < centres.length; j++) {
-      if (kmBetween(centres[i], centres[j]) > GLOBE_KM) return true;
-    }
-  }
-  return false;
 }
 
 function centroid(points: readonly Point[]): Point {

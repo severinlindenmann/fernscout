@@ -24,8 +24,8 @@ type StreetMapProps = {
    * loading — the same escape hatch `ref` gives, for a caller that would
    * rather not hold a ref. */
   onReady?: (map: import("maplibre-gl").Map) => void;
-  /** Open on a globe rather than a flat map — a trip across continents
-   * (`TripFrame.globe`, B2604). MapLibre flattens it as the reader zooms in. */
+  /** Draw on MapLibre's globe: a sphere zoomed out, the flat street map from
+   * z12 (B2604, B2618). */
   globe?: boolean;
 };
 
