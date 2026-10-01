@@ -44,18 +44,21 @@ export default function AiDaysChip({
   const atLimit = status.used >= status.allowed;
   const showSheet = open || (atLimit && !dismissed);
 
+  // B2649 — a quiet counter beside the assistant switch, in the same
+  // wrapping row; its sheet takes the row's whole width below it.
   return (
-    <div className="mb-2">
+    <>
       <button
         type="button"
+        aria-expanded={showSheet}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex min-h-8 items-center rounded-full bg-yellow-100 px-3 py-1 font-mono text-xs font-bold text-yellow-900"
+        className={`inline-flex min-h-11 items-center px-1 text-xs underline-offset-2 hover:underline ${atLimit ? "font-semibold text-coral-600" : "text-ink-secondary"}`}
       >
-        {t("studio.day.aiDays.chip", { used: String(status.used), allowed: String(status.allowed) })}
+        {t("studio.day.aiDays.count", { used: String(status.used), allowed: String(status.allowed) })}
       </button>
 
       {showSheet && (
-        <div className="mt-2 flex flex-col gap-3 rounded-2xl border border-line-strong bg-surface-raised p-5">
+        <div className="mt-1 flex w-full basis-full flex-col gap-3 rounded-2xl border border-line-strong bg-surface-raised p-5">
           <h3 className="font-display text-lg font-semibold text-ink-strong">
             {atLimit
               ? t("studio.day.aiDays.usedUpTitle", { allowed: String(status.allowed) })
@@ -106,6 +109,6 @@ export default function AiDaysChip({
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }

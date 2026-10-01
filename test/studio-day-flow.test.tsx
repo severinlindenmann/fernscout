@@ -195,6 +195,33 @@ describe("the assistant is asked once, with its consent", () => {
   });
 });
 
+describe("B2649 — the assistant switch", () => {
+  test("a switch, On with a green dot; Off saves and shows Off", async () => {
+    props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
+    await mount();
+    await click(dict["studio.flow.splitNo"]);
+    const sw = document.querySelector('[role="switch"]') as HTMLButtonElement;
+    expect(sw.getAttribute("aria-checked")).toBe("true");
+    expect(sw.textContent).toContain(dict["studio.flow.switchOn"]);
+    await act(async () => sw.click());
+    await flush();
+    expect(sent("/studio/assistant", "PATCH").at(-1)!.body).toEqual({ assistant: "off" });
+    expect(document.querySelector('[role="switch"]')!.getAttribute("aria-checked")).toBe("false");
+  });
+
+  test("a choice that did not save stays as it was and says so", async () => {
+    props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
+    await mount();
+    await click(dict["studio.flow.splitNo"]);
+    const base = globalThis.fetch as unknown as (url: string, init?: RequestInit) => Promise<Response>;
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => (url.includes("/studio/assistant") ? new Response("{}", { status: 500 }) : base(url, init))));
+    await act(async () => (document.querySelector('[role="switch"]') as HTMLButtonElement).click());
+    await flush();
+    expect(document.querySelector('[role="switch"]')!.getAttribute("aria-checked")).toBe("true");
+    expect(text()).toContain(dict["studio.flow.choiceFailed"]);
+  });
+});
+
 describe("a long day in parts, then Check your day, then publish", () => {
   test("three parts: each saved as its own draft, later ones as second entries at their own time", async () => {
     props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
