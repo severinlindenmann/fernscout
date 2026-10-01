@@ -7,6 +7,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import { DeleteDayConfirm } from "@/components/DeleteDay";
 import { useI18n } from "@/components/LocaleProvider";
 import DoneScreen from "@/components/studio/DoneScreen";
+import TellWho, { tellCounts, type TellProps } from "@/components/studio/day/TellWho";
 import { useOnline } from "@/components/studio/useOnline";
 import type { TranslationKey } from "@/lib/i18n";
 import type { PublishRow } from "@/lib/studio/publishDay";
@@ -57,7 +58,7 @@ export default function PublishDayFlow({
   chosen,
   missing,
   takeDown,
-  canTell,
+  tell = null,
   blank = [],
   readers = null,
 }: {
@@ -67,8 +68,9 @@ export default function PublishDayFlow({
   /** `?day=` named something that is not in `rows` (already published, gone). */
   missing: boolean;
   takeDown: boolean;
-  /** Whether mail or WhatsApp is switched on, so the day's page can tell readers. */
-  canTell: boolean;
+  /** TIX-6 — who this day could reach, by reader group, and what the owner
+   *  chose last time on this trip. Null on the take-down list. */
+  tell?: (TellProps & { choice: { groups: string[] | null; mail: boolean } | null }) | null;
   /** B2192 — the chosen draft's declinables still blank (`blankFieldsOf`). */
   blank?: string[];
   /** B2192 — its readers by name (`readersOf`); `null` where it is "anyone". */
@@ -84,6 +86,15 @@ export default function PublishDayFlow({
   // B2259 — the row whose "Delete…" is asking, and the one just deleted.
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleted, setDeleted] = useState<PublishRow | null>(null);
+  // TIX-6 — last time's pick on this trip, minus any group deleted since.
+  const known = new Set([...(tell?.groups.map((g) => g.id) ?? []), "none"]);
+  const [tellGroups, setTellGroups] = useState<string[] | null>(() => {
+    const remembered = tell?.choice?.groups ?? null;
+    if (remembered === null || (tell?.groups.length ?? 0) === 0) return null;
+    return remembered.filter((key) => known.has(key));
+  });
+  const [tellMail, setTellMail] = useState<boolean>(tell?.choice?.mail ?? false);
+  const counts = tell ? tellCounts(tell, tellGroups, tellMail) : null;
 
   const base = `${journalPath(encodeURIComponent(username))}/studio/day/publish`;
   const listHref = takeDown ? `${base}?list=published` : base;
@@ -108,7 +119,10 @@ export default function PublishDayFlow({
     // The blanks this sheet named — the server checks each is really blank.
     // `visibility` is never sent: the studio does not answer it by leaving it.
     const declineOpen = takeDown ? [] : blank.filter((field) => field !== "visibility");
-    const body = JSON.stringify(declineOpen.length > 0 ? { declineOpen } : {});
+    const body = JSON.stringify({
+      ...(declineOpen.length > 0 ? { declineOpen } : {}),
+      ...(!takeDown && tell ? { tell: { groups: tellGroups, mail: tellMail && (counts?.mailable ?? 0) > 0 } } : {}),
+    });
     const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }).catch(() => null);
     setBusy(false);
     if (response?.ok) {
@@ -197,7 +211,13 @@ export default function PublishDayFlow({
             </div>
             <div>
               <dt className="font-semibold text-ink-strong">{t("studio.publish.tellTitle")}</dt>
-              <dd>{t(canTell ? "studio.publish.tell" : "studio.publish.tellOff")}</dd>
+              <dd>
+                {tell ? (
+                  <TellWho tell={tell} selected={tellGroups} onSelect={setTellGroups} mail={tellMail} onMail={setTellMail} />
+                ) : (
+                  t("studio.publish.tellOffServer")
+                )}
+              </dd>
             </div>
           </dl>
         )}
@@ -235,6 +255,13 @@ export default function PublishDayFlow({
               onCancel={() => router.push(listHref)}
               cancelLabel={takeDown ? undefined : t("studio.publish.cancel")}
             >
+              {!takeDown && counts && (
+                <p data-tell-told={counts.told} className="mt-2 text-sm leading-6 text-ink-body">
+                  {counts.told > 0
+                    ? tn("studio.publish.tellSummary", counts.told, { count: String(counts.told) })
+                    : t("studio.publish.tellNobody")}
+                </p>
+              )}
               {!takeDown && blank.length > 0 && (
                 <div data-blank={blank.join(" ")} className="mt-2 space-y-1 text-sm leading-6 text-ink-body">
                   <p>{t("studio.publish.blank", { fields: list(sentence) })}</p>
