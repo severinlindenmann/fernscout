@@ -1,3 +1,4 @@
+import { kmBetween } from "./mapFrame";
 import type { GalleryItem, PlaceEntry } from "./types";
 
 /** One day, told in a single slide: where we were and the day's best shot. */
@@ -110,6 +111,29 @@ export function slideNeedsTravelInterlude(
   const prev = placeIndexes[index - 1];
   const cur = placeIndexes[index];
   return prev !== undefined && cur !== undefined && prev !== cur;
+}
+
+/** How long the map rests on the destination once a travel step has landed — B2619. */
+export const TRAVEL_REST_MS = 800;
+
+type MaybePoint = { lat?: number | null; lng?: number | null } | undefined;
+
+/**
+ * How long a travel step's flight takes between two places, at 1x speed, or
+ * null when the hop is too short to be worth a map of its own — B2619. The
+ * old fixed 2 s interlude cut a 5.2 s camera flight off at 38%, before it
+ * ever reached the place. Bounded steps rather than a speed: a 900 km flight
+ * should not take six times a 150 km drive. Under 5 km (a second stop in the
+ * same town) the slide's own corner map is enough.
+ */
+export function travelFlightMs(from: MaybePoint, to: MaybePoint): number | null {
+  if (!Number.isFinite(from?.lat) || !Number.isFinite(from?.lng)) return null;
+  if (!Number.isFinite(to?.lat) || !Number.isFinite(to?.lng)) return null;
+  const km = kmBetween(from as { lat: number; lng: number }, to as { lat: number; lng: number });
+  if (km < 5) return null;
+  if (km < 100) return 2500;
+  if (km < 500) return 3500;
+  return 4500;
 }
 
 /**

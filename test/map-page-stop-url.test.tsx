@@ -323,9 +323,9 @@ test("mobile list repeat-click clears the day and returns to the collapsed strip
   expect(marker(el, "Furka").getAttribute("aria-pressed")).toBe("false");
 });
 
-// A tour (more than three regions) within one continent is shown whole on
-// the world map, never on one region's street file.
-test("a tour on one continent never picks a street map, even when region files exist", async () => {
+// A tour (more than three regions) within one continent gets the street map
+// too, on the same globe every trip map uses (B2618).
+test("a tour on one continent opens the street map on the globe", async () => {
   const tour = [
     place("lis", "Lisbon", "2025-02-03", 38.72, -9.14),
     place("par", "Paris", "2025-02-08", 48.86, 2.35),
@@ -335,7 +335,7 @@ test("a tour on one continent never picks a street map, even when region files e
   ];
   const el = render("", { streetMap, places: tour });
   await act(async () => {});
-  expect(el.querySelector("[data-street-map]")).toBeNull();
+  expect(el.querySelector("[data-street-map]")!.hasAttribute("data-globe")).toBe(true);
 });
 
 // A tour across continents opens the street map on a globe (B2604). Framing

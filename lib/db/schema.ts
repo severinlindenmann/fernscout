@@ -952,6 +952,16 @@ type AiDaysTable = {
  * How many of a plan's included prints an owner has claimed in one plan
  * period — B2594/B2595. See migration `059-print-included-usage`.
  */
+/** TIX-6 phase 2 — who the owner told last time, per trip (`061-tell-choices`). */
+type TellChoicesTable = {
+  owner_id: string;
+  trip_id: string;
+  /** JSON array of group ids and `"none"`, or null for everyone. */
+  groups: string | null;
+  mail: Generated<number>;
+  updated_at: string;
+};
+
 type PrintIncludedUsageTable = {
   owner_id: string;
   period_key: string;
@@ -996,6 +1006,7 @@ export type Database = {
   ai_days: AiDaysTable;
   stripe_customers: StripeCustomersTable;
   print_included_usage: PrintIncludedUsageTable;
+  tell_choices: TellChoicesTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by

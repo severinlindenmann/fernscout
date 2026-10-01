@@ -140,9 +140,20 @@ type DayLetterRecipient = {
   /** Null for the owner's own copy — there is nothing to unsubscribe from
    * one's own journal. */
   manageToken: string | null;
+  /** TIX-6 — the contact this copy goes to; null for the owner's own. */
+  contactId: string | null;
 };
 
-async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRecipient[]> {
+/**
+ * Who gets a letter about this trip. `only` (TIX-6) narrows the readers to
+ * the people the owner chose to tell — reader groups, resolved to contact ids
+ * by the caller. It only ever removes people; the owner's own copy stays.
+ */
+async function recipientsFor(
+  trip: Trip,
+  user: UserConfig,
+  only: ReadonlySet<string> | null = null,
+): Promise<DayLetterRecipient[]> {
   const owner = trip.username;
   const [contacts, granted, travellers] = await Promise.all([
     listContacts(owner),
@@ -166,11 +177,13 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
       showCosts: true,
       reader: "person",
       manageToken: null,
+      contactId: null,
     });
   }
 
   for (const contact of contacts) {
     if (contact.status !== "active") continue;
+    if (only && !only.has(contact.id)) continue;
     // The opt-in this is measured against, per the owner's decision on
     // B345: one switch, not two. A reader who turned the digest off asked
     // for no more letters, this one included.
@@ -197,6 +210,7 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<DayLetterRec
       showCosts: mayMailCosts(trip, isTraveller, isGrantHolder),
       reader: isTraveller ? "person" : "guest",
       manageToken: manageTokenFor(owner, contact.id),
+      contactId: contact.id,
     });
   }
 
@@ -551,9 +565,22 @@ export type DayLetterOutcome =
  * hand — none exists today — is not forced to invent one.
  */
 export async function mailWouldReach(owner: string, ref: string, slug?: string): Promise<number> {
+  return (await reachedBy(owner, ref, slug)).length;
+}
+
+/**
+ * TIX-6 — the readers (never the owner) a letter about this day would reach,
+ * by contact id: the studio's publish step counts them per reader group.
+ * The same rules as `mailWouldReach`, because it is the same list.
+ */
+export async function mailReachesContacts(owner: string, ref: string, slug: string): Promise<string[]> {
+  return (await reachedBy(owner, ref, slug)).flatMap((r) => (r.contactId ? [r.contactId] : []));
+}
+
+async function reachedBy(owner: string, ref: string, slug?: string): Promise<DayLetterRecipient[]> {
   const user = getUser(owner);
   const trip = getTrip(ref);
-  if (!user || !trip) return 0;
+  if (!user || !trip) return [];
   const recipients = await recipientsFor(trip, user);
   if (slug !== undefined) {
     // `AS_AUTHOR`, not the closed default — this is the owner asking about
@@ -564,23 +591,25 @@ export async function mailWouldReach(owner: string, ref: string, slug?: string):
     const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
     // A day that does not exist has no send and therefore reaches nobody; the
     // route has already answered 404 for it long before this.
-    if (!entry) return 0;
-    if (isTestContent(trip, entry)) return 0;
+    if (!entry) return [];
+    if (isTestContent(trip, entry)) return [];
     // B632 — the same narrowing a page applies, applied to who gets a letter:
     // a recipient the day's own label refuses is a recipient whose inbox this
     // day does not reach, and saying otherwise here would be the leak.
-    return recipients.filter((r) => maySeePhoto(entry.visibility, r.reader)).length;
+    return recipients.filter((r) => maySeePhoto(entry.visibility, r.reader));
   } else if (trip.test === true) {
-    return 0;
+    return [];
   }
-  return recipients.length;
+  return recipients;
 }
 
 export async function sendDayLetter(
   owner: string,
   ref: string,
   slug: string,
-  options: { resend?: boolean } = {},
+  /** `onlyContacts` (TIX-6): tell just these readers — the owner's chosen
+   *  reader groups, as contact ids. Absent = every reader, as before. */
+  options: { resend?: boolean; onlyContacts?: ReadonlySet<string> } = {},
 ): Promise<DayLetterOutcome> {
   const user = getUser(owner);
   const trip = getTrip(ref);
@@ -607,7 +636,7 @@ export async function sendDayLetter(
   // Filtered here, once, rather than inside `recipientsFor` (which has no
   // entry to ask about) or left to `photoAttachment` (which only ever
   // answers for one picture, never for whether a copy goes out at all).
-  const recipients = (await recipientsFor(trip, user)).filter((r) =>
+  const recipients = (await recipientsFor(trip, user, options.onlyContacts ?? null)).filter((r) =>
     maySeePhoto(entry.visibility, r.reader),
   );
 

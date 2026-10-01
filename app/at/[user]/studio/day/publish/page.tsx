@@ -1,6 +1,8 @@
 import PublishDayFlow from "@/components/studio/day/PublishDayFlow";
+import { listGroups } from "@/lib/contacts/groups";
+import { getTellChoice, tellAudience } from "@/lib/digest/tellChoice";
 import StudioPage from "@/components/studio/StudioPage";
-import { isEnabled } from "@/lib/capabilities";
+import { tripRef } from "@/lib/trips";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { blankFieldsOf, daysToPublish, readersOf } from "@/lib/studio/publishDay";
@@ -36,6 +38,15 @@ export default async function StudioPublishDayPage({
   // B2192 — the share sheet names what is still blank and who will read it.
   const blank = chosen && !takeDown ? blankFieldsOf(user, chosen) : [];
   const readers = chosen && !takeDown ? await readersOf(user, chosen) : null;
+  // TIX-6 — who this day would reach, by reader group, and last time's pick.
+  const tell =
+    chosen && !takeDown
+      ? {
+          ...(await tellAudience(user, tripRef(user, chosen.tripId), chosen.slug)),
+          groups: (await listGroups(user)).map(({ id, name, color }) => ({ id, name, color })),
+          choice: await getTellChoice(user, chosen.tripId),
+        }
+      : null;
 
   const locale = await requestLocale();
   return (
@@ -51,7 +62,7 @@ export default async function StudioPublishDayPage({
         chosen={chosen}
         missing={Boolean(asked) && !chosen}
         takeDown={takeDown}
-        canTell={isEnabled("mail") || isEnabled("whatsapp")}
+        tell={tell}
         blank={blank}
         readers={readers}
       />
