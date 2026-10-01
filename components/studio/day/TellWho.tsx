@@ -15,8 +15,8 @@ import { GroupDot } from "@/components/studio/readers/groups";
  * its visibility, said in the line above this one.
  */
 
-export type TellGroup = { id: string; name: string; color: number };
-export type TellPersonView = { group: string; push: boolean; mail: boolean };
+type TellGroup = { id: string; name: string; color: number };
+type TellPersonView = { group: string; push: boolean; mail: boolean };
 export type TellProps = {
   groups: TellGroup[];
   people: TellPersonView[];

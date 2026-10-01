@@ -19,7 +19,7 @@ import { mailReachesContacts } from "./dayLetter";
  */
 
 /** `"none"` stands for readers in no group (or in one since deleted). */
-export const NO_GROUP = "none";
+const NO_GROUP = "none";
 
 /** `groups: null` is everyone — the old behaviour, and the default. */
 export type TellChoice = { groups: string[] | null; mail: boolean };
@@ -76,7 +76,7 @@ export async function contactsInGroups(owner: string, groups: readonly string[])
 }
 
 /** One reader this day could reach, and how. */
-export type TellPerson = { group: string; push: boolean; mail: boolean };
+type TellPerson = { group: string; push: boolean; mail: boolean };
 
 export type TellAudience = {
   people: TellPerson[];
