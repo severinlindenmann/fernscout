@@ -359,6 +359,10 @@ const photobookOrderDoc = z.strictObject({
   files: z.array(z.string()),
   createdAt: z.string(),
   updatedAt: z.string(),
+  // B2669 — why `status` is "failed": a cancelled order or an expired
+  // Checkout Session (nothing ever charged), or a build that genuinely
+  // failed (refunded). Absent on every order that has not failed.
+  failure: z.string().optional(),
   print: z
     .strictObject({
       contactId: z.string(),
