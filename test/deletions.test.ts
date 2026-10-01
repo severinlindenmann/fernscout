@@ -7,7 +7,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest } from "next/server";
 import proxy from "@/proxy";
 import { clearConfigCache } from "@/lib/config";
-import { grant } from "@/lib/credits";
 import { clearUserCache, getUser, userExists } from "@/lib/users";
 import { closeDatabase, getDatabase, TABLE_NAMES } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
@@ -62,24 +61,6 @@ function serverConfig(): void {
       },
     }),
   );
-}
-
-/** B374: `serverConfig` plus the one switch its tests need to turn. */
-function serverConfigWithCredits(enabled: boolean): void {
-  fs.writeFileSync(
-    path.join(dir, "config.json"),
-    JSON.stringify({
-      site: { name: "Testbed", url: "https://t.test" },
-      users: { reserved: ["admin"] },
-      features: {
-        signup: { inviteOnly: false },
-        auth: { enabled: true },
-        mail: { enabled: true, transport: "file" },
-        credits: { enabled },
-      },
-    }),
-  );
-  clearConfigCache();
 }
 
 beforeEach(async () => {
@@ -713,10 +694,10 @@ describe("deleting a journal", () => {
     expect(order?.owner_id).not.toBe(user);
     expect(order?.owner_id).toMatch(/^deleted:/);
 
-    // A later journal that takes this exact username back starts at zero —
-    // it does not inherit a stranger's balance or history. (Reclaiming a
-    // deleted name normally needs an operator to remove the tombstone by
-    // hand — B92 — which is exactly what this simulates.)
+    // A later journal that takes this exact username back starts fresh — it
+    // does not inherit a stranger's history. (Reclaiming a deleted name
+    // normally needs an operator to remove the tombstone by hand — B92 —
+    // which is exactly what this simulates.)
     clearTombstone(user);
     const again = createJournal({
       username: user,
@@ -726,14 +707,6 @@ describe("deleting a journal", () => {
       ownerNickname: "Later",
     });
     expect(again).toMatchObject({ ok: true });
-    const creditsRow = await db.selectFrom("credits").select("balance").where("owner_id", "=", user).executeTakeFirst();
-    expect(creditsRow).toBeUndefined();
-    const ledgerRows = await db
-      .selectFrom("credit_ledger")
-      .select("id")
-      .where("owner_id", "=", user)
-      .execute();
-    expect(ledgerRows).toHaveLength(0);
   });
 
   test("leaves a tombstone, keeps the name, and answers 410 on the old URLs", async () => {
@@ -984,89 +957,6 @@ describe("the mail is the gate", () => {
     expect(row?.token_hash).not.toBe(token);
     expect(row?.requested_by).toBe(asking.id);
     expect(userExists(user)).toBe(true);
-  });
-});
-
-/**
- * B374 — a balance dies with the journal, silently, unless the mail and the
- * page both say so before the button.
- */
-describe("credits are named before they are lost", () => {
-  async function renderedPage(user: string, token: string): Promise<string> {
-    const rendered = await DeletePage({
-      params: Promise.resolve({ user, token }),
-      searchParams: Promise.resolve({}),
-    });
-    return renderToStaticMarkup(rendered as Parameters<typeof renderToStaticMarkup>[0]);
-  }
-
-  test("a balance of 180 is named in the mail and on the page", async () => {
-    const user = makeJournal();
-    makeTrip(user);
-    serverConfigWithCredits(true);
-    await grant(user, 180, "test");
-
-    const asked = await requestDeletion({ kind: "journal", username: user });
-    expect(asked.ok).toBe(true);
-    expect(mailBody(user)).toContain("180");
-
-    const token = takeToken(user);
-    expect(await renderedPage(user, token)).toContain("180");
-  });
-
-  test("B2059: a balance of 49950 reads 49’950 in the mail and on the page", async () => {
-    const user = makeJournal();
-    makeTrip(user);
-    serverConfigWithCredits(true);
-    await grant(user, 49950, "test");
-
-    const asked = await requestDeletion({ kind: "journal", username: user });
-    expect(asked.ok).toBe(true);
-    expect(mailBody(user)).toContain("49’950 unspent credits");
-
-    const token = takeToken(user);
-    expect(await renderedPage(user, token)).toContain("49’950");
-  });
-
-  test("a balance of zero says nothing about credits", async () => {
-    const user = makeJournal();
-    makeTrip(user);
-    serverConfigWithCredits(true);
-    // No grant: the journal's balance is zero, the same as every journal
-    // starts with.
-
-    await requestDeletion({ kind: "journal", username: user });
-    expect(mailBody(user)).not.toMatch(/credit/i);
-
-    const token = takeToken(user);
-    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
-  });
-
-  test("credits switched off says nothing, even over a balance granted before the switch", async () => {
-    const user = makeJournal();
-    makeTrip(user);
-    serverConfigWithCredits(true);
-    await grant(user, 50, "test");
-    serverConfigWithCredits(false);
-
-    await requestDeletion({ kind: "journal", username: user });
-    expect(mailBody(user)).not.toMatch(/credit/i);
-
-    const token = takeToken(user);
-    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
-  });
-
-  test("deleting a trip never mentions credits — a trip destroys none", async () => {
-    const user = makeJournal();
-    const trip = makeTrip(user);
-    serverConfigWithCredits(true);
-    await grant(user, 90, "test");
-
-    await requestDeletion({ kind: "trip", username: user, tripId: trip });
-    expect(mailBody(user)).not.toMatch(/credit/i);
-
-    const token = takeToken(user);
-    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
   });
 });
 
