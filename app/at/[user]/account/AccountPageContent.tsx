@@ -11,6 +11,7 @@ import { useSite } from "@/components/SiteProvider";
 import type { PlanSummary } from "@/lib/billingSummary";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
+import { PLANS, chf } from "@paid/billing/lib/plans";
 
 /**
  * Storage and plan, on their own page — B821, B2593.
@@ -221,6 +222,10 @@ export type StoragePanel = {
   used: string;
   limit: string | null;
   percent: number | null;
+  /** How far over the limit, formatted from bytes — set only once `percent`
+   *  has actually passed 100, never guessed from the rounded percent.
+   *  B2636. */
+  excess: string | null;
   rows: { key: string; label: string; human: string; share: number }[];
   reclaimable: { human: string; files: number; hasStagedFiles: boolean };
 };
@@ -314,6 +319,53 @@ function BuyPlanButton({
           {t("billing.dryRunSent")}
         </span>
       )}
+    </div>
+  );
+}
+
+/**
+ * One plan to buy, as a tile rather than a bare button — B2638's board. Price
+ * and facts are the caller's own (read straight from `PLANS`, real or its
+ * public stub), so this draws nothing and decides nothing about what a plan
+ * costs; it only lays it out, with the buy button inside rather than below
+ * the pair.
+ */
+function PlanOptionTile({
+  username,
+  plan,
+  tag,
+  price,
+  cadence,
+  facts,
+  buyLabel,
+}: {
+  username: string;
+  plan: "pass" | "plus";
+  tag?: string;
+  price: string;
+  cadence: string;
+  facts: string[];
+  buyLabel: string;
+}) {
+  return (
+    <div className="flex-1 rounded-xl border border-line-quiet bg-surface-base p-4">
+      {tag && (
+        <span className="inline-flex rounded-full bg-yellow-200 px-2.5 py-0.5 text-xs font-bold text-ink-strong">
+          {tag}
+        </span>
+      )}
+      <p className="mt-2 flex items-baseline gap-1.5">
+        <span className="font-display text-xl font-semibold text-ink-strong">{price}</span>
+        <span className="text-sm text-ink-secondary">{cadence}</span>
+      </p>
+      <ul className="mt-2 space-y-1 text-sm text-ink-body">
+        {facts.map((fact) => (
+          <li key={fact}>{fact}</li>
+        ))}
+      </ul>
+      <div className="mt-3">
+        <BuyPlanButton username={username} plan={plan} label={buyLabel} />
+      </div>
     </div>
   );
 }
@@ -503,7 +555,7 @@ function YourPlanPanel({
    *  absent where the instance sets no ceiling, same as `storage` itself. */
   storage?: StoragePanel;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const native = useNativeShell();
   const planTag = t(`plans.${plan.plan}` as "plans.free");
   const dateStr = plan.periodEnd ? plan.periodEnd.slice(0, 10) : null;
@@ -577,9 +629,49 @@ function YourPlanPanel({
         {plan.plan === "plus" && <StorageAddonButton username={username} label={t("billing.addStorage")} />}
         {plan.hasStripeSubscription && <ManageSubscriptionButton username={username} />}
         {plan.source === "apple" && <ManagedByApple />}
-        {plan.plan !== "plus" && <BuyPlanButton username={username} plan="plus" label={t("billing.buyPlus")} />}
-        {plan.plan === "free" && <BuyPlanButton username={username} plan="pass" label={t("billing.buyPass")} />}
       </div>
+
+      {/* The two plans still open to buy, as tiles rather than bare buttons
+          — B2638's board: name, price, cadence, three facts and the buy
+          button inside each, Plus first. */}
+      {plan.plan !== "plus" && (
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <PlanOptionTile
+            username={username}
+            plan="plus"
+            tag={t("billing.tilePlusTag")}
+            price={chf(PLANS.plus.priceChf)}
+            cadence={t("billing.tilePlusCadence")}
+            facts={[
+              t("billing.tileAiDaysYear", { days: String(PLANS.plus.aiDays) }),
+              `${PLANS.plus.storageGb} GB`,
+              tn("billing.tilePostcards", PLANS.plus.includedPostcards, {
+                count: String(PLANS.plus.includedPostcards),
+              }),
+            ]}
+            buyLabel={t("billing.buyPlus")}
+          />
+          {plan.plan === "free" && (
+            <PlanOptionTile
+              username={username}
+              plan="pass"
+              price={chf(PLANS.tripPass.priceChf)}
+              cadence={t("billing.tilePassCadence", { days: String(PLANS.tripPass.days) })}
+              facts={[
+                t("billing.tileAiDaysWindow", {
+                  days: String(PLANS.tripPass.aiDays),
+                  window: String(PLANS.tripPass.days),
+                }),
+                `${PLANS.tripPass.storageGb} GB`,
+                tn("billing.tilePostcards", PLANS.tripPass.includedPostcards, {
+                  count: String(PLANS.tripPass.includedPostcards),
+                }),
+              ]}
+              buyLabel={t("billing.buyPass")}
+            />
+          )}
+        </div>
+      )}
 
       {plan.hasStripeSubscription && plan.renews && (
         <div className="mt-4">
@@ -700,8 +792,28 @@ export default function AccountPageContent({
                   limit: storage.limit ?? "",
                 })}
               </p>
-              {storage.percent !== null && storage.percent >= 90 && (
-                <p className="mt-1 text-sm leading-6 text-coral-600">
+              {/* Three states — B2636: a journal at 4.0 of 2.0 GB used to
+                  read "nearly full" like one at 1.9 of 2.0, though uploads
+                  are already refused (`withStorageQuota`/`storageRefusal` in
+                  `lib/storageQuota.ts` refuse any write that would take
+                  `usedBytes` past `limitBytes`). "Voll" only fires once that
+                  is actually true, with the real excess from bytes; "Fast
+                  voll" stays a forward-looking warning for 90–99%, where
+                  nothing is refused yet. */}
+              {storage.percent !== null && storage.percent >= 100 && (
+                <>
+                  <p className="mt-1 text-sm leading-6 text-coral-600">
+                    {t("me.storageFull", { excess: storage.excess ?? "" })}
+                  </p>
+                  {plan && plan.plan !== "plus" && (
+                    <div className="mt-2">
+                      <BuyPlanButton username={username} plan="plus" label={t("billing.buyPlus")} />
+                    </div>
+                  )}
+                </>
+              )}
+              {storage.percent !== null && storage.percent >= 90 && storage.percent < 100 && (
+                <p className="mt-1 text-sm leading-6 text-amber-700">
                   {t("me.storageNearlyFull")}
                 </p>
               )}

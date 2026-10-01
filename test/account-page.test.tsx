@@ -67,6 +67,7 @@ describe("the storage card", () => {
     used: "4.2 GB",
     limit: "5.0 GB",
     percent: 84,
+    excess: null,
     rows: [
       { key: "trip:bus-2026", label: "The bus year", human: "3.0 GB", share: 60 },
       { key: "photobooks", label: "Photobooks", human: "1.0 GB", share: 20 },
@@ -105,6 +106,62 @@ describe("the storage card", () => {
 
   test("is absent when storage is not handed down at all", () => {
     expect(render({})).not.toContain("4.2 GB");
+  });
+
+  // B2636 — a journal at 4.0 of 2.0 GB used to still read "Nearly full",
+  // although `withStorageQuota`/`storageRefusal` (`lib/storageQuota.ts`)
+  // already refuse every write that would push `usedBytes` past
+  // `limitBytes`. Three states now: below 90% nothing, 90–99% the same
+  // forward-looking "nearly full" warning, 100%+ "Full" with the real
+  // excess read from bytes.
+  describe("three states, including exactly 100% and past it — B2636", () => {
+    test("90–99%: 'nearly full', no claim that anything is refused yet", () => {
+      const html = render({ storage: { ...storage, percent: 99, excess: null } });
+      expect(html).toContain("Nearly full");
+      expect(html).not.toContain("Full.");
+    });
+
+    test("exactly 100%: 'Full', not 'nearly full'", () => {
+      const html = render({
+        storage: { ...storage, used: "5.0 GB", percent: 100, excess: "0 KB" },
+      });
+      expect(html).toContain("Full.");
+      expect(html).not.toContain("Nearly full");
+    });
+
+    test("past 100%: 'Full' and the real excess, from bytes", () => {
+      const html = render({
+        storage: { ...storage, used: "6.1 GB", percent: 122, excess: "1.1 GB" },
+      });
+      expect(html).toContain("Full.");
+      expect(html).toContain("1.1 GB");
+      expect(html).not.toContain("Nearly full");
+    });
+
+    test("offers one more way to buy Plus once full, only when billing is on", () => {
+      const free: PlanPanel = {
+        plan: "free",
+        periodEnd: null,
+        cancelAtPeriodEnd: false,
+        renews: false,
+        aiDays: { unlimited: false, used: 2, allowed: 10 },
+        storageGb: 2,
+        hasStripeSubscription: false,
+        source: null,
+        postcards: null,
+        bookDiscountRappen: 0,
+      };
+      const notFull: StoragePanel = { ...storage, percent: 41, excess: null };
+      const full: StoragePanel = { ...storage, used: "6.1 GB", percent: 122, excess: "1.1 GB" };
+      const count = (html: string) => html.split("Subscribe to Plus").length - 1;
+
+      // The plan panel's own tile already offers Plus to a Free owner — the
+      // storage card's own full-state CTA is the *second* one.
+      expect(count(render({ storage: notFull, plan: free }))).toBe(1);
+      expect(count(render({ storage: full, plan: free }))).toBe(2);
+      // No plan at all (billing off) — nothing for the storage card to offer.
+      expect(render({ storage: full })).not.toContain("Subscribe to Plus");
+    });
   });
 });
 
@@ -148,6 +205,7 @@ describe("the plan panel", () => {
         used: "4.1 GB",
         limit: "10.0 GB",
         percent: 41,
+        excess: null,
         rows: [],
         reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false },
       },
@@ -165,6 +223,7 @@ describe("the plan panel", () => {
         used: "4.1 GB",
         limit: "10.0 GB",
         percent: 41,
+        excess: null,
         rows: [],
         reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false },
       },
@@ -225,5 +284,60 @@ describe("the plan panel", () => {
 
   test("is absent when billing is off", () => {
     expect(render({})).not.toContain("Your plan");
+  });
+
+  // B2638 — the two buy buttons used to carry no price at all; Stripe was
+  // the only place one appeared, after a click. The tiles' price, cadence
+  // and facts come straight from `PLANS`, so this pins them against the one
+  // place a price actually lives rather than against a second, copied
+  // number.
+  describe("the two plan tiles — B2638", () => {
+    const free: PlanPanel = {
+      plan: "free",
+      periodEnd: null,
+      cancelAtPeriodEnd: false,
+      renews: false,
+      aiDays: { unlimited: false, used: 2, allowed: 10 },
+      storageGb: 2,
+      hasStripeSubscription: false,
+      source: null,
+      postcards: null,
+      bookDiscountRappen: 0,
+    };
+
+    test("show both prices and facts before any click, read from PLANS", async () => {
+      const { PLANS, chf } = await import("@paid/billing/lib/plans");
+      const html = render({ plan: free });
+
+      expect(html).toContain(chf(PLANS.plus.priceChf));
+      expect(html).toContain(String(PLANS.plus.aiDays));
+      expect(html).toContain(`${PLANS.plus.storageGb} GB`);
+      expect(html).toContain(String(PLANS.plus.includedPostcards));
+
+      expect(html).toContain(chf(PLANS.tripPass.priceChf));
+      expect(html).toContain(String(PLANS.tripPass.days));
+      expect(html).toContain(String(PLANS.tripPass.aiDays));
+      expect(html).toContain(`${PLANS.tripPass.storageGb} GB`);
+    });
+
+    test("Plus is first and carries an audience tag, not 'Recommended'", () => {
+      const html = render({ plan: free });
+      expect(html.indexOf("For every trip")).toBeLessThan(html.indexOf("Buy a Trip pass"));
+      expect(html).not.toContain("Recommended");
+    });
+
+    test("a pass owner sees only the Plus tile — no second pass to buy", () => {
+      const pass: PlanPanel = { ...free, plan: "pass" };
+      const html = render({ plan: pass });
+      expect(html).toContain("Subscribe to Plus");
+      expect(html).not.toContain("Buy a Trip pass");
+    });
+
+    test("a Plus owner sees neither tile", () => {
+      const plus: PlanPanel = { ...free, plan: "plus" };
+      const html = render({ plan: plus });
+      expect(html).not.toContain("Subscribe to Plus");
+      expect(html).not.toContain("Buy a Trip pass");
+    });
   });
 });

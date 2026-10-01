@@ -65,6 +65,9 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
       used: formatBytes(usage.usedBytes),
       limit: formatBytes(limit),
       percent,
+      // How far over, in words — only ever set once `usedBytes` has actually
+      // passed `limit` — B2636's "X GB über dem Limit".
+      excess: usage.usedBytes > limit ? formatBytes(usage.usedBytes - limit) : null,
       // A breakdown of a kilobyte is a bar with nothing visible in it and a
       // legend of near-zero rows — B1270. The floor is in bytes, not the
       // rounded percent: a purchase raises the ceiling, and a journal that
