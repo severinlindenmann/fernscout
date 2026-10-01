@@ -639,3 +639,50 @@ export async function restoreApplePurchases(username: string): Promise<number> {
   }
   return granted;
 }
+
+/**
+ * A Stripe Checkout Session opened inside the app rather than handed to
+ * Safari — B2657.
+ *
+ * Safari is a separate app with its own cookie jar. A postcard or photobook
+ * checkout that opened there used to redirect back to this site's own
+ * success/cancel page signed out, even though the studio tab one screen
+ * behind it still was — and the studio tab itself never heard the checkout
+ * finish at all, since nothing crossed back into this page's own React
+ * state. `ios/App/App/InAppCheckoutPlugin.swift` is a small modal sheet
+ * around a `WKWebView` configured with this app's own default website data
+ * store (`WKWebsiteDataStore.default()`), the same store the Capacitor
+ * bridge's own WebView already uses — so the owner's session cookie is
+ * already there the moment Stripe redirects back, same site, same jar.
+ *
+ * `returnPrefix` is the on-origin URL the native side watches every
+ * navigation for (the checkout's own `success_url`/`cancel_url`, without
+ * its query string); the sheet dismisses itself the instant a navigation's
+ * URL starts with it and resolves with the full URL actually reached. The
+ * caller does nothing with that URL itself — the point of returning it at
+ * all is only that the promise *resolved*, meaning the sheet is gone and
+ * whatever the checkout did is already on the server; every caller follows
+ * up with its own `router.refresh()` (or starts polling, in
+ * `PostcardSend.tsx`'s case) exactly as if the browser's own
+ * `window.location.href` had landed there.
+ *
+ * Plain web pages, and every call site outside the shell, never reach this
+ * — `isNativeShell()` gates every caller before it does.
+ */
+type InAppCheckoutPlugin = {
+  open(options: { url: string; returnPrefix: string }): Promise<{ url?: string }>;
+};
+const InAppCheckout = registerPlugin<InAppCheckoutPlugin>("InAppCheckout");
+
+export async function openCheckoutInApp(checkoutUrl: string, returnPrefix: string): Promise<string | null> {
+  try {
+    const { url } = await InAppCheckout.open({ url: checkoutUrl, returnPrefix });
+    return url || null;
+  } catch {
+    // The sheet itself failed to open, or the owner dismissed it by hand
+    // (the plugin resolves with no `url` for that, but a reject is treated
+    // the same way) — either way nothing was charged, and the caller's own
+    // `router.refresh()` shows whatever is actually true.
+    return null;
+  }
+}
