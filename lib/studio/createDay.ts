@@ -9,6 +9,9 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { autoVisibilityDecline } from "@/lib/studio/declinables";
+import { isEnabled } from "@/lib/capabilities";
+import { reversePlace } from "@/lib/addressLookup";
+import { defaultLocaleFor } from "@/lib/locales";
 
 /**
  * "Add a day", written as one transaction — B1830, C2.
@@ -57,6 +60,12 @@ export type CreateDayInput = {
   content?: string;
   location?: string;
   country?: string;
+  /** A sub-national division — canton, Land, state, regione — B2640. Absent
+   *  on every caller today; filled below from `reversePlace`'s own `region`
+   *  when `lat`/`lng` are given and this journal's `addressLookup` is on, the
+   *  same way `weather: true` below is serviced after the write rather than
+   *  asked for by a caller that has no reason to know the field exists. */
+  region?: string;
   lat?: number;
   lng?: number;
   /** Ids already resolved against the inbox — the caller (the route) is
@@ -132,6 +141,7 @@ export async function createDayTransactional(username: string, input: CreateDayI
     ...(input.time ? { time: input.time } : {}),
     ...(input.location ? { location: input.location } : {}),
     ...(input.country ? { country: input.country } : {}),
+    ...(input.region ? { region: input.region } : {}),
     ...(input.lat !== undefined ? { lat: input.lat } : {}),
     ...(input.lng !== undefined ? { lng: input.lng } : {}),
     ...(input.weather ? { weather: true } : {}),
@@ -161,6 +171,20 @@ export async function createDayTransactional(username: string, input: CreateDayI
   // lookup could not answer, which is the honest state either way.
   if (input.weather) {
     await fillDayWeatherQuietly(ref, written.slug).catch(() => undefined);
+  }
+
+  // B2640 — this flow's own place came from a photograph's EXIF, a route
+  // suggestion or a typed name, never from `reversePlace` itself, so the
+  // region a reverse-geocode lookup would answer (Photon's `state`) never
+  // reached the day. Serviced quietly here, the same shape as weather just
+  // above: only when a position is on the day, this journal's own lookup is
+  // on, and the caller did not already name one.
+  if (!input.region && input.lat !== undefined && input.lng !== undefined && isEnabled("addressLookup", username)) {
+    const place = await reversePlace(input.lat, input.lng, defaultLocaleFor(username)).catch(() => null);
+    if (place?.region) {
+      const stored = readDayFile(username, input.tripId, slug);
+      if (stored && !stored.region) writeDayFile(username, input.tripId, slug, { ...stored, region: place.region });
+    }
   }
 
   // Correction 1 — the real, free-text declines, checked against the same

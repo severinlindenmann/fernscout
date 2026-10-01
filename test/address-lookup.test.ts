@@ -225,6 +225,7 @@ describe("reverseUrl", () => {
           country: "Switzerland",
           countryCode: "CH",
           adminRegion: "Aargau",
+          region: "Aargau",
           lat: 47.463,
           lon: 8.216,
           type: "village",
@@ -355,6 +356,7 @@ describe("reverseUrl", () => {
           country: "Switzerland",
           countryCode: "CH",
           adminRegion: "Aargau",
+          region: "Aargau",
           lat: 47.463,
           lon: 8.216,
           type: "village",
@@ -367,6 +369,32 @@ describe("reverseUrl", () => {
           type: "village",
         },
       ]);
+    });
+
+    // B2640 — `region` is Photon's own `state`, never the county/city
+    // `adminRegion` falls back to: a hit named only by a `district` (no
+    // `state` anywhere) has an `adminRegion` but no `region`.
+    test("adminRegion can come from a district with no region to go with it", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                features: [
+                  {
+                    properties: { name: "Hausen", district: "Rheinfelden", country: "Switzerland", countrycode: "ch" },
+                    geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                  },
+                ],
+              }),
+            ),
+        ),
+      );
+
+      const results = await geocodePlace("Hausen", "de");
+      expect(results?.[0]?.adminRegion).toBe("Rheinfelden");
+      expect(results?.[0]?.region).toBeUndefined();
     });
   });
 
@@ -422,5 +450,58 @@ describe("reverseUrl", () => {
     const place = await reversePlace(47.36, 8.54, "de");
     expect(place).toEqual({ location: "Zürich", country: "Schweiz", countryCode: "CH" });
     expect(requested.startsWith("https://geo.example/backward")).toBe(true);
+  });
+
+  // B2640 — Photon's `state` (a canton, a Land, a state) used to be dropped
+  // on the floor; the trip hero's "time per region" card needs it.
+  test("reversePlace carries Photon's state through as region", async () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "F", url: "https://example.test" },
+        users: { reserved: [] },
+        features: { addressLookup: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            features: [
+              { properties: { city: "Zürich", state: "Zürich", country: "Schweiz", countrycode: "CH" } },
+            ],
+          }),
+        ),
+      ),
+    );
+
+    const place = await reversePlace(47.36, 8.54, "de");
+    expect(place).toEqual({ location: "Zürich", country: "Schweiz", countryCode: "CH", region: "Zürich" });
+  });
+
+  test("reversePlace leaves region absent when the provider names none", async () => {
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "F", url: "https://example.test" },
+        users: { reserved: [] },
+        features: { addressLookup: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(JSON.stringify({ features: [{ properties: { city: "Tokyo", country: "Japan", countrycode: "JP" } }] })),
+      ),
+    );
+
+    const place = await reversePlace(35.68, 139.69, "en");
+    expect(place).toEqual({ location: "Tokyo", country: "Japan", countryCode: "JP" });
+    expect(place).not.toHaveProperty("region");
   });
 });

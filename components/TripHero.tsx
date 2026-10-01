@@ -19,6 +19,7 @@ import { StackedShareBar, BarList } from "./charts/Charts";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
 import { flagFor } from "@/lib/flags";
+import { countryNameFor, regionWordKey } from "@/lib/countries";
 import { useSite } from "@/components/SiteProvider";
 import { useMoney } from "./CurrencyProvider";
 import {
@@ -61,6 +62,10 @@ export type HeroStats = {
     nights: number;
     amount: number;
   }[];
+  /** Nights per region — B2640. Only drawn when `byCountry` names exactly
+   * one country: a region's vocabulary (canton, Land, state) belongs to
+   * that one country, not to a trip that crossed a border. */
+  byRegion?: { region: string; nights: number }[];
   /**
    * Spend `totalSpend` and `spendPerDay` had to leave out, for want of a
    * rate — same list the costs page's own totals carry. B353: a total built
@@ -122,7 +127,7 @@ export default function TripHero({
    * JSON-LD. Absent for a trip nobody is credited on. */
   travellerNames?: string;
 }) {
-  const { t, tn, formatShortDate, localizedTrip } = useI18n();
+  const { t, tn, formatShortDate, localizedTrip, locale } = useI18n();
   const { money } = useMoney();
   const site = useSite();
   const flag = flagFor(current.country, current.countryCode);
@@ -506,32 +511,55 @@ export default function TripHero({
       )}
 
       {/* Time per country — days, not money: spend per country already has
-          its own card on the costs page. B2308. */}
+          its own card on the costs page. B2308.
+          One country and at least two named regions (B2640) swaps the whole
+          card for "Time per <canton/Land/state>": a single country's own bar
+          at 100% of one says nothing (the line below it, unchanged), but a
+          country split into regions has something to show after all. */}
       {stats.byCountry && stats.byCountry.length > 0 && (
         <section className="rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
-          <h2 className="mb-3 font-display text-base font-semibold text-ink-strong">
-            {t("hero.timePerCountry")}
-          </h2>
-          {stats.byCountry.length === 1 ? (
-            // One country drawn as a bar at 100% of one says nothing — a
-            // single line instead of an empty-looking track.
-            <p className="text-sm font-medium text-ink-strong">
-              {`${flagFor(stats.byCountry[0].country, stats.byCountry[0].countryCode)} ${stats.byCountry[0].country} · ${stats.byCountry[0].nights} ${
-                stats.byCountry[0].nights === 1 ? t("stay.day") : t("stay.days")
-              }`}
-            </p>
-          ) : (
-            <BarList
-              rows={[...stats.byCountry]
-                .sort((a, b) => b.nights - a.nights)
-                .map((c) => ({
-                  key: c.country,
-                  label: `${flagFor(c.country, c.countryCode)} ${c.country}`,
-                  value: c.nights,
+          {stats.byCountry.length === 1 && (stats.byRegion?.length ?? 0) >= 2 ? (
+            <>
+              <h2 className="mb-3 font-display text-base font-semibold text-ink-strong">
+                {t("hero.timePerRegion", { word: t(regionWordKey(stats.byCountry[0].countryCode ?? "")) })}
+              </h2>
+              <BarList
+                rows={stats.byRegion!.map((r) => ({
+                  key: r.region,
+                  label: r.region,
+                  value: r.nights,
                 }))}
-              format={(n) => `${n} ${n === 1 ? t("stay.day") : t("stay.days")}`}
-              accent={CATEGORY_STYLE.accommodation.color}
-            />
+                format={(n) => `${n} ${n === 1 ? t("stay.day") : t("stay.days")}`}
+                accent={CATEGORY_STYLE.accommodation.color}
+              />
+            </>
+          ) : (
+            <>
+              <h2 className="mb-3 font-display text-base font-semibold text-ink-strong">
+                {t("hero.timePerCountry")}
+              </h2>
+              {stats.byCountry.length === 1 ? (
+                // One country drawn as a bar at 100% of one says nothing — a
+                // single line instead of an empty-looking track.
+                <p className="text-sm font-medium text-ink-strong">
+                  {`${flagFor(stats.byCountry[0].country, stats.byCountry[0].countryCode)} ${countryNameFor(stats.byCountry[0].countryCode ?? "", locale, stats.byCountry[0].country)} · ${stats.byCountry[0].nights} ${
+                    stats.byCountry[0].nights === 1 ? t("stay.day") : t("stay.days")
+                  }`}
+                </p>
+              ) : (
+                <BarList
+                  rows={[...stats.byCountry]
+                    .sort((a, b) => b.nights - a.nights)
+                    .map((c) => ({
+                      key: c.country,
+                      label: `${flagFor(c.country, c.countryCode)} ${countryNameFor(c.countryCode ?? "", locale, c.country)}`,
+                      value: c.nights,
+                    }))}
+                  format={(n) => `${n} ${n === 1 ? t("stay.day") : t("stay.days")}`}
+                  accent={CATEGORY_STYLE.accommodation.color}
+                />
+              )}
+            </>
           )}
         </section>
       )}
