@@ -559,7 +559,6 @@ export type TranslationKey =
   | "billing.restorePurchases"
   | "billing.statusActive"
   | "billing.statusEnding"
-  | "billing.storage"
   | "billing.storageMeterValue"
   | "billing.title"
   | "code.phoneVerify"

@@ -75,7 +75,7 @@ function RoleRow({ journal }: { journal: MineJournal }) {
  * then absent too, the same "absent, not shown empty" rule the studio page
  * follows).
  */
-function PlanStatusCard({ journal }: { journal: MineJournal & { plan: NonNullable<MineJournal["plan"]> } }) {
+export function PlanStatusCard({ journal }: { journal: MineJournal & { plan: NonNullable<MineJournal["plan"]> } }) {
   const { t } = useI18n();
   const plan = journal.plan;
   const planTag = t(`plans.${plan.plan}` as "plans.free");
