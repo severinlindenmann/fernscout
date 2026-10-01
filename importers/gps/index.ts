@@ -3,6 +3,7 @@ import googleTimeline from "./google-timeline";
 import googleRecords from "./google-records";
 import gpx from "./gpx";
 import fixes from "./fixes";
+import polarsteps from "./polarsteps";
 
 /**
  * Every position importer, in one list — and the list is why this file exists
@@ -24,4 +25,4 @@ import fixes from "./fixes";
  * Order is the order `detect` is tried in. Put a stricter format above a
  * looser one.
  */
-export const GPS_IMPORTERS: GpsImporter[] = [googleTimeline, googleRecords, gpx, fixes];
+export const GPS_IMPORTERS: GpsImporter[] = [googleTimeline, googleRecords, gpx, polarsteps, fixes];

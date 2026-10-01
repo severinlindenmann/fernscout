@@ -592,6 +592,27 @@ const contactsImportResult = z.strictObject({
   withEmail: z.number().int().nonnegative(),
   next: z.string(),
 });
+// B2432 — a Polarsteps trip.json: a draft trip and its draft days (preview
+// under ?dryRun, written otherwise). `tripId`/`stepDays` are absent on a
+// dry run, since nothing was written to point them at.
+const polarstepsDay = z.strictObject({
+  date: z.string(),
+  steps: z.number().int().nonnegative(),
+  slug: z.string().optional(),
+});
+const polarstepsImportResult = z.strictObject({
+  kind: z.literal("polarsteps"),
+  tripId: z.string().optional(),
+  title: z.string(),
+  tagline: z.string().optional(),
+  start: z.string(),
+  end: z.string(),
+  days: z.array(polarstepsDay),
+  stepDays: z.record(z.string(), z.string()).optional(),
+  notImported: z.array(z.string()),
+  dryRun: z.boolean(),
+  next: z.string(),
+});
 
 // ── the same photograph twice (B1103) ─────────────────────────────────────
 const duplicateMediaItem = z.strictObject({
@@ -998,9 +1019,13 @@ function buildPaths(): Record<string, PathItem> {
     },
     post: {
       summary:
-        "Import a location history (`kind: \"gps\"`, stored as read) or a phone's address book " +
+        "Import a location history (`kind: \"gps\"`, stored as read), a phone's address book " +
         '(`kind: "contacts"`, read and reported — nothing is written until the agreed rows are ' +
-        "sent to POST .../contacts/import). Send ?dryRun to preview. JSON `{kind, format?, inbox|text}`, or multipart with `file`. " +
+        'sent to POST .../contacts/import), or one trip from a Polarsteps export ' +
+        '(`kind: "polarsteps"`, `text` is one trip.json — a draft trip and one draft day per ' +
+        "local date; `locations.json` from the same export goes through this door too, as " +
+        '`kind: "gps"`, never through `polarsteps`). Send ?dryRun to preview. JSON ' +
+        "`{kind, format?, inbox|text}`, or multipart with `file`. " +
         'Owner only, with one exception (B2204): a `write:gps` token — minted at ' +
         "POST /api/auth/{user}/gps-token — may call this too, and only this, and only for " +
         '`kind: "gps"` with `dryRun` false or absent; its response has no `extent`. Everything ' +
@@ -1023,8 +1048,10 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(
           200,
-          z.union([gpsImportResult, contactsImportResult]),
-          "a gps import, stored (or previewed under ?dryRun) — or a contacts import, read and reported, never written",
+          z.union([gpsImportResult, contactsImportResult, polarstepsImportResult]),
+          "a gps import, stored (or previewed under ?dryRun) — a contacts import, read and " +
+            "reported, never written — or a polarsteps import, a draft trip and days (or " +
+            "previewed under ?dryRun)",
         ),
         ...refusalResponses([
           ...ownerRefusals,
