@@ -1,6 +1,6 @@
 import "server-only";
-import { planFaq, planPoint, printPriceRows } from "@paid/credits/lib/plans";
-import { pricingMarkdown } from "@paid/credits/lib/markdown";
+import { planFaq, planPoint, printPriceRows } from "@paid/billing/lib/plans";
+import { pricingMarkdown } from "@paid/billing/lib/markdown";
 import { orgsNav } from "@paid/orgs/lib/nav";
 import { isEnabled } from "./capabilities";
 import { inviteRequestAvailable } from "./inviteRequest";
@@ -15,17 +15,17 @@ import { serverSite } from "./site";
  * the capabilities and the plans, the same answer for `app/page.tsx` and for
  * the Markdown below.
  */
-export function landingFlags(locale: string): LandingFlags & { credits: boolean; printPrices: { label: string; price: string }[] } {
-  const credits = isEnabled("billing");
+export function landingFlags(locale: string): LandingFlags & { billingEnabled: boolean; printPrices: { label: string; price: string }[] } {
+  const billingEnabled = isEnabled("billing");
   return {
     helperEnabled: isEnabled("helper"),
     postcards: isEnabled("postcards"),
     photobook: isEnabled("photobook"),
     inviteCta: inviteRequestAvailable() ? "request" : "welcome",
-    credits,
-    planPoint: credits ? planPoint(locale) : null,
-    planFaq: credits ? planFaq(locale) : [],
-    printPrices: credits ? printPriceRows(locale) : [],
+    billingEnabled,
+    planPoint: billingEnabled ? planPoint(locale) : null,
+    planFaq: billingEnabled ? planFaq(locale) : [],
+    printPrices: billingEnabled ? printPriceRows(locale) : [],
   };
 }
 
@@ -78,7 +78,7 @@ export function landingMarkdown(locale: string): string {
     landingTrust(t)
       .map((card) => `### ${card.title}\n\n${card.body}${card.link ? ` [${card.link}](${href("/docs")})` : ""}`)
       .join("\n\n"),
-    f.credits && pricingMarkdown(locale),
+    f.billingEnabled && pricingMarkdown(locale),
     `## ${faq.title}`,
     mdFaq(faq.items),
     orgs.length > 0 && mdList(orgs.map((o) => `[${o.label}](${href(o.href)})`)),

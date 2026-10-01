@@ -79,7 +79,7 @@ export default function TripStory({
   card?: CardMeta | null;
   /**
    * Present only for the journal's owner, on a journal with photobook and
-   * credits switched on — B569. See `TripHero`, which is the only place this
+   * billing switched on — B569. See `TripHero`, which is the only place this
    * is rendered.
    */
   photobook?: PhotobookEntry;

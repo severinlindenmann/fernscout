@@ -9,7 +9,7 @@ import { contentRoot } from "./contentRoot";
 import { getDatabaseOrNull } from "./db";
 import { collectStatus, type StatusReport } from "./statusReport";
 import { contentRootProblem, getUsernames } from "./users";
-import { type Payment } from "@paid/credits/lib/payments";
+import { type Payment } from "@paid/billing/lib/payments";
 import { type Tombstone } from "./tombstones";
 
 /**

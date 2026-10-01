@@ -1,1 +1,1 @@
-export { default, generateMetadata } from "@paid/credits/routes/prices/page";
+export { default, generateMetadata } from "@paid/billing/routes/prices/page";

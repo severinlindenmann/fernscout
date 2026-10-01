@@ -24,7 +24,7 @@ import "server-only";
  *
  * What it opens, once set, is everything `isOwner` opens, on every journal:
  * drafts, `private` trips, publishing, the contacts page with its home
- * addresses, invites, credits. There is no narrower rung, deliberately — a
+ * addresses, invites, billing. There is no narrower rung, deliberately — a
  * half-admin would be a second access model to keep in agreement with the
  * first, and AGENTS.md has the record of what that costs.
  *

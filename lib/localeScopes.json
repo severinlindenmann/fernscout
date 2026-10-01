@@ -1,7 +1,7 @@
 {
   "root": {
     "paid": [
-      "credits",
+      "billing",
       "guides",
       "orgs",
       "photobook"
@@ -308,7 +308,7 @@
   },
   "admin": {
     "paid": [
-      "credits"
+      "billing"
     ],
     "keys": [
       "agent.answerLookUpWeather",
@@ -1115,7 +1115,7 @@
       "plans.cellFreePostcards",
       "plans.cellFreeTools",
       "plans.cellOpsAgreed",
-      "plans.cellOpsCredit",
+      "plans.cellOpsDiscount",
       "plans.cellOpsFor",
       "plans.cellOpsTrips",
       "plans.cellPassPay",
@@ -1130,7 +1130,7 @@
       "plans.cellPlusStorage",
       "plans.cellPlusTools",
       "plans.cellSchoolsAgreed",
-      "plans.cellSchoolsCredit",
+      "plans.cellSchoolsDiscount",
       "plans.cellSchoolsFor",
       "plans.cellSchoolsTrips",
       "plans.compare",
@@ -3226,7 +3226,7 @@
       "plans.cellFreePostcards",
       "plans.cellFreeTools",
       "plans.cellOpsAgreed",
-      "plans.cellOpsCredit",
+      "plans.cellOpsDiscount",
       "plans.cellOpsFor",
       "plans.cellOpsTrips",
       "plans.cellPassPay",
@@ -3241,7 +3241,7 @@
       "plans.cellPlusStorage",
       "plans.cellPlusTools",
       "plans.cellSchoolsAgreed",
-      "plans.cellSchoolsCredit",
+      "plans.cellSchoolsDiscount",
       "plans.cellSchoolsFor",
       "plans.cellSchoolsTrips",
       "plans.compare",
@@ -5272,7 +5272,7 @@
   },
   "docs": {
     "paid": [
-      "credits",
+      "billing",
       "photobook",
       "postcard",
       "printOrder"

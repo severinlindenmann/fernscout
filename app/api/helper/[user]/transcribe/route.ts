@@ -9,7 +9,7 @@ import {
 } from "@/lib/helper/speech";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { spendAndTranscribe } from "@/lib/helper/transcribeSpend";
-import { mayUseAi } from "@paid/credits/lib/aiDays";
+import { mayUseAi } from "@paid/billing/lib/aiDays";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { defaultLocaleFor } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -39,7 +39,7 @@ export const dynamic = "force-dynamic";
  */
 
 /** Fifteen minutes, and more holds than a person on a bus makes. A brake on a
- *  script; the credit is the quota. */
+ *  script; the AI day is the quota. */
 const LIMIT = { max: 30, windowMs: 15 * 60 * 1000 };
 
 /** What a browser's `MediaRecorder` actually produces, plus what a phone

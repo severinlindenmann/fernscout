@@ -9,19 +9,20 @@ import type { Operation } from "./operations";
  *
  * ## What this is not
  *
- * It is not `lib/credits.ts`. That file is what a *journal* is charged, in
- * credits, and it is a price the owner agreed to before the button. This file
- * is what the *instance* is billed, in tokens and seconds, and nobody agreed
- * to it because nobody chose it — a day written from four sentences and one
- * written from four hundred cost the same single credit and very different
- * money. Neither number can be derived from the other, which is the whole
- * reason both exist.
+ * It is not `paid/billing/lib/aiDays.ts`. That module is what a *journal* is
+ * charged against — a plan's AI-day allowance, a count the owner can see and
+ * a limit they agreed to by picking a plan. This file is what the *instance*
+ * is billed, in tokens and seconds, and nobody agreed to it because nobody
+ * chose it — a day written from four sentences and one written from four
+ * hundred cost the same single AI day and very different money. Neither
+ * number can be derived from the other, which is the whole reason both
+ * exist.
  *
  * ## Two properties it is arranged around
  *
  * **1. Recording must never cost somebody their day.** Every write here is
  * called after the provider has already answered and is wrapped so that a
- * failure is swallowed. The person has spent a credit and is owed their
+ * failure is swallowed. The person has spent an AI day and is owed their
  * write-up; losing it because an accounting insert hit a closed database
  * would be trading the product for the bookkeeping. A dropped row means the
  * operator's total is a little low for a month, which is recoverable, and the
@@ -130,8 +131,8 @@ function count(value: unknown): number {
  * sites, so a fifth call site added next year cannot forget it: the whole
  * body is inside a `try`. Without a database — a fresh clone, a test, a
  * checkout with no `DATABASE_URL` — this is a no-op, which is the same shape
- * `spend` and `balanceOf` take when credits are off, and for the same reason:
- * a disabled capability is absent rather than broken.
+ * billing's own database reads take when billing is off, and for the same
+ * reason: a disabled capability is absent rather than broken.
  */
 export async function recordUsage(record: UsageRecord): Promise<void> {
   try {

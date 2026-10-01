@@ -1,6 +1,6 @@
 /**
  * The signed-out landing's two buttons and its mono kicker — B2506. Shared
- * with `paid/credits` (the pricing cards and `/prices`), so the page and its
+ * with `paid/billing` (the pricing cards and `/prices`), so the page and its
  * price list draw one button, not two that drift.
  *
  * Yellow is the waymark: `navy-900` text on `yellow-400` in both themes, with

@@ -274,16 +274,16 @@ export async function GET(request: Request) {
         { enabled: boolean; reason?: string; stillSent?: string }
       > = {};
       for (const name of FEATURE_NAMES) {
-        // `logging` and `credits` have no per-journal opt-in — they are the
-        // operator's decision alone, made once for the whole instance
-        // (`logging` B257, `credits` B366: the money lands on the operator's
-        // card, not the journal's). A journal that has never mentioned either
-        // must never appear here as though it had narrowed something.
-        // `resolveCapabilities(username)` narrows every capability a journal's
-        // config does not set to `true`, and neither of these is a journal's
-        // to set — so without this skip both would show up as narrowed for
-        // every journal, every time, contradicting the server-level answer
-        // above (`credits` was B397: reported off per-journal while live).
+        // Every name in `OPERATOR_ONLY_FEATURES` has no per-journal opt-in —
+        // it is the operator's decision alone, made once for the whole
+        // instance (`logging` B257; the printing and messaging capabilities
+        // spend the operator's own account, not the journal's). A journal
+        // that has never mentioned one of these must never appear here as
+        // though it had narrowed something. `resolveCapabilities(username)`
+        // narrows every capability a journal's config does not set to
+        // `true`, and none of these is a journal's to set — so without this
+        // skip they would all show up as narrowed for every journal, every
+        // time, contradicting the server-level answer above.
         if ((OPERATOR_ONLY_FEATURES as readonly string[]).includes(name)) continue;
         const state = resolved[name];
         if (state.enabled === capabilities[name].enabled) continue;

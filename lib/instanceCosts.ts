@@ -2,7 +2,7 @@ import "server-only";
 import { loadServerConfig } from "./config";
 import { getDatabaseOrNull } from "./db";
 import { crossRate } from "./currency";
-import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "@paid/credits/lib/payments";
+import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "@paid/billing/lib/payments";
 import { loadEcbRates } from "./rates";
 import { getUsernames } from "./users";
 import {

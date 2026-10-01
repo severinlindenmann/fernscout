@@ -21,8 +21,8 @@ import { writeTombstone } from "./tombstones";
 import { AS_AUTHOR, forgetEntries, getAllEntries } from "./entries";
 import { tripTrashDir } from "./dayTrash";
 import { getTrip, getTrips, parseTripRef, tripDir, tripRef } from "./trips";
-import { entitlementHistory } from "@paid/credits/lib/entitlements";
-import { cancelOwnerSubscription } from "@paid/credits/lib/plan-checkout";
+import { entitlementHistory } from "@paid/billing/lib/entitlements";
+import { cancelOwnerSubscription } from "@paid/billing/lib/plan-checkout";
 import { clearUserCache, getUser, userDir } from "./users";
 import { sql, type Kysely } from "kysely";
 

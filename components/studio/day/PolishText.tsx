@@ -6,7 +6,7 @@ import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
-import { WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/credits";
+import { WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/limits";
 import type { TranslationKey } from "@/lib/i18n";
 
 import { journalPath } from "@/lib/journalPath";

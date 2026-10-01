@@ -2,7 +2,7 @@ import "server-only";
 import { serverSite } from "@/lib/site";
 
 /**
- * A second layer behind `sameSite: "lax"` on the doors that spend credits at
+ * A second layer behind `sameSite: "lax"` on the doors that spend money at
  * a printer or delete a trip from the owner's cookie alone — B1559. Those
  * routes (postcard send, photobook order, trip delete) have no CSRF token and
  * rely entirely on the cookie attribute; a same-site subdomain hosting user

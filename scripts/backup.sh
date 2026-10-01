@@ -543,7 +543,7 @@ fi
 # --- 0a3. The plan-reminder sweep (B2608) -----------------------------------
 # Same reasoning as the gap-nudge sweep just above: the renewal reminder (30
 # days before a Plus renews), "pass ends in N days" and "pass ended", each
-# sent at most once per entitlement (paid/credits/lib/plan-reminders.ts).
+# sent at most once per entitlement (paid/billing/lib/plan-reminders.ts).
 # Never fatal for the same reason.
 log "checking for plan reminders due tonight"
 if (cd "$APP_DIR" && npm run --silent plan-reminders:send); then

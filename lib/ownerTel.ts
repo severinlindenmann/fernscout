@@ -7,7 +7,7 @@ import { getUser } from "./users";
  *
  * `owner.email` stays in `config.json` (it is the journal's own ownership
  * claim); `owner.tel` is a notification channel and moved to a database row,
- * one per journal, alongside `contacts` and `credits`. See
+ * one per journal, alongside `contacts` and `entitlements`. See
  * `lib/db/migrations/034-owner-tel.ts` for the shape and the reasoning.
  *
  * **A number already on disk keeps working with no migration script.** A

@@ -67,7 +67,7 @@ asks for the same information without them.
 | **Request log** — the page asked for, the time, the browser's name; no IP address | To run and defend the server | Legitimate interest | 14 days |
 | **Copies of mail this site sent** | To see why a sign-in code did not arrive | Legitimate interest | Two days, never backed up |
 | **iPhone app waitlist** — an email address, and the language you asked for | So we can tell you once the app is on the App Store | Consent | Until the app is released, or you ask us to remove it |
-| **Payments, credits and print orders** | Bookkeeping | Contract, and the law (Swiss bookkeeping rules) | Ten years; see [Deleting](#deleting) |
+| **Payments, plans and print orders** | Bookkeeping | Contract, and the law (Swiss bookkeeping rules) | Ten years; see [Deleting](#deleting) |
 | **Encrypted backups** of all of the above | So a broken disk does not end a journal | Legitimate interest | 14 days on the server, 7 days in the second copy |
 
 **Only the owner of a journal talks to the helper** — on the web because
@@ -149,7 +149,7 @@ still has to say who it uses if it turns the same feature on.
 | Your browser's push service (Google, Mozilla or Apple) | Depends on the browser | A browser asked to be notified | An encrypted message it cannot read, and a device address |
 | **Anthropic PBC** | United States | This instance's helper is on and the owner used it, after saying yes — see [AI and voice](#ai) | What the owner gave it for that one request |
 | **Deepgram Inc.** | Processed in the EU (US company) | This instance's transcription is on and the owner spoke to the helper, or sent a voice note | The recording, and its language |
-| **Stripe** — hosted edition only | Ireland, and the United States | Somebody bought credits | The amount, the email address for the receipt, and the journal's name as a reference. Card details are typed on Stripe's own page, never on this one |
+| **Stripe** — hosted edition only | Ireland, and the United States | Somebody bought a plan, a pass or a print | The amount, the email address for the receipt, and the journal's name as a reference. Card details are typed on Stripe's own page, never on this one |
 | **[Postcard printer]** — hosted edition only | [Country] | Somebody sent a printed postcard | The postcard's picture and message, and the recipient's name and postal address |
 | **[Photobook printer]** — hosted edition only | [Country] | Somebody ordered a printed photobook | The book, and the recipient's name, postal address and email address |
 | **Amazon Web Services** (open elevation data) — hosted edition only | United States | A photobook with a relief map was made | Which map tiles are needed, which shows roughly where the trip went — nothing about a person |

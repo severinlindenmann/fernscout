@@ -139,7 +139,7 @@ paid_feature_requested() {
     const fs = require("fs");
     try {
       const c = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-      const names = ["photobook", "postcards", "whatsapp", "whatsappInbound", "credits"];
+      const names = ["photobook", "postcards", "whatsapp", "whatsappInbound", "billing"];
       const requested = names.some((n) => c?.features?.[n]?.enabled === true);
       process.exit(requested ? 0 : 1);
     } catch {

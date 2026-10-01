@@ -66,7 +66,7 @@ export function instanceDocumentation(): string {
   const users = listedUsernames();
   const defaultUser = getDefaultUsername();
   // Whether this instance's own helper can actually be reached over
-  // WhatsApp — the model needs `helper` (credits, an Anthropic key),
+  // WhatsApp — the model needs `helper` (an Anthropic key),
   // sending a reply needs `whatsapp`, and receiving the owner's message
   // needs `whatsappInbound`. All three, the same ceiling
   // `lib/capabilities.ts` already enforces at boot for each on its own; this
@@ -122,8 +122,8 @@ export function instanceDocumentation(): string {
       ? wrap(
           `**A messenger, at ${whatsappNumberForDisplay()}.** ` +
             "Text it and a model turn answers, on this instance's own assistant, " +
-            "spending the journal's credits — one message, one turn, never the " +
-            "owner's own credits. It can start a journal from nothing or add to " +
+            "spending the journal's own AI days — one message, one turn, never the " +
+            "owner's own. It can start a journal from nothing or add to " +
             "one that already exists, and it writes through the same drafts-" +
             "then-publish calls as the other two. What it cannot do is anything " +
             "this document already says no agent can finish alone, or reach a " +

@@ -320,7 +320,7 @@ function journalPageDocs(username: string, reader: SearchLevel): SearchDoc[] {
  *
  * Costs and weather each need the capability *and* something behind it on
  * this trip, which is what `analyticsCardsFor` already answers for the hub;
- * the photobook needs the owner, its capability and credits, the three
+ * the photobook needs the owner, its capability and billing, the three
  * questions `photobookEntryFor` asks. Read options are threaded so a draft-only
  * budget counts for the owner and for nobody else.
  */

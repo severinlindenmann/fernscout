@@ -42,7 +42,7 @@ export type DayReadiness = {
    *  thread expires after 24 hours: without a durable record, a dropped
    *  thread re-asks a question somebody already declined, and `draftWords` —
    *  the prose a paid write-up composes — would disappear with it, so the
-   *  credit that bought it bought nothing. A dropped thread should cost
+   *  AI day that bought it bought nothing. A dropped thread should cost
    *  turns, never state. */
   funnel: FunnelState;
 };
@@ -85,7 +85,7 @@ export type FunnelState = {
   taughtRung?: number;
   /** Prose a paid write-up composed. This is the field the whole ticket
    *  exists for: composing into the thread and writing nothing durable meant
-   *  a write-up somebody paid for died with the thread — the credit bought
+   *  a write-up somebody paid for died with the thread — the AI day bought
    *  nothing once the thread expired. */
   draftWords?: { title: string; prose: string };
 };

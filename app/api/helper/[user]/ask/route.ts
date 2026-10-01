@@ -1,5 +1,5 @@
 import { isEnabled } from "@/lib/capabilities";
-import { mayUseAi } from "@paid/credits/lib/aiDays";
+import { mayUseAi } from "@paid/billing/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
 import { refusalFor, sayIn } from "@/lib/helper/intents";
@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  * A sentence in, a conversation out — B685, B889, B900, and B1091.
  *
  * **No AI day of its own — B2591.** This needs an active plan or unused
- * Free days (`mayUseAi`, `@paid/credits/lib/aiDays.ts`), checked once before
+ * Free days (`mayUseAi`, `@paid/billing/lib/aiDays.ts`), checked once before
  * the model is ever called; a turn refused for want of a plan never reaches
  * a model at all. `lib/rateLimit.ts` is the brake beneath that, for the same
  * reasons it always was.

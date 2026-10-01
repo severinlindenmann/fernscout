@@ -80,7 +80,7 @@ export const journalPatch = base.partial();
 
 /**
  * What every GET answers: the editable document plus the server-owned
- * identity. The live numbers — storage, drafts, trips, credits — live on
+ * identity. The live numbers — storage, drafts, trips — live on
  * GET /{user}/status, so one fact has one address.
  */
 export const journalDoc = z.object({

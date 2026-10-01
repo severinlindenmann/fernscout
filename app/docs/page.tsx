@@ -14,7 +14,7 @@ import {
   Plus,
   Users,
 } from "lucide-react";
-import Pricing from "@paid/credits/components/Pricing";
+import Pricing from "@paid/billing/components/Pricing";
 import { Band, PageTitle } from "@/components/landing/kit";
 import { isEnabled } from "@/lib/capabilities";
 import { pageAlternates } from "@/lib/pageLanguage";
@@ -384,7 +384,7 @@ export default async function DocsPage() {
       {/*
         The same table the landing page carries, and deliberately the same
         component rather than a second page under `DOCS_PAGES` — one price
-        list, two places it is asked for. Absent where credits are off. B840.
+        list, two places it is asked for. Absent where billing is off. B840.
       */}
       {isEnabled("billing") && <Pricing locale={locale} />}
     </>

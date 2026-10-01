@@ -230,7 +230,7 @@ describe("what it costs", () => {
 
   // B2223 — a flat price over a per-token cost needs a ceiling on the input.
   test.each(["draft", "polish"])("notes over the cap are refused with 413 in %s mode, before any spend", async (mode) => {
-    const { WRITE_DAY_NOTES_MAX_CHARS } = await import("@/lib/helper/credits");
+    const { WRITE_DAY_NOTES_MAX_CHARS } = await import("@/lib/helper/limits");
     const response = await call({ mode, notes: "a".repeat(WRITE_DAY_NOTES_MAX_CHARS + 1) });
     expect(response.status).toBe(413);
     const body = (await response.json()) as { error: string; message: string; maxChars: number };
@@ -257,7 +257,7 @@ describe("what it costs", () => {
 
   // B2223 review F2 — the facts ride into the prompt too.
   test.each(["location", "country", "from", "to"])("a %s over the cap is refused with 413 before any spend", async (field) => {
-    const { WRITE_DAY_FACT_MAX_CHARS } = await import("@/lib/helper/credits");
+    const { WRITE_DAY_FACT_MAX_CHARS } = await import("@/lib/helper/limits");
     const response = await call({ [field]: "p".repeat(WRITE_DAY_FACT_MAX_CHARS + 1) });
     expect(response.status).toBe(413);
     expect(await response.json()).toMatchObject({ error: "fact_too_long", field, maxChars: WRITE_DAY_FACT_MAX_CHARS });
@@ -272,7 +272,7 @@ describe("what it costs", () => {
   });
 
   test("notes exactly at the cap still go through", async () => {
-    const { WRITE_DAY_NOTES_MAX_CHARS } = await import("@/lib/helper/credits");
+    const { WRITE_DAY_NOTES_MAX_CHARS } = await import("@/lib/helper/limits");
     const response = await call({ notes: "a".repeat(WRITE_DAY_NOTES_MAX_CHARS) });
     expect(response.status).toBe(200);
   });

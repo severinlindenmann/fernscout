@@ -49,9 +49,9 @@ describe("paid capabilities", () => {
     expect(() => assertCapabilities()).toThrow(`features.${name} is enabled but it is not included in this build`);
   });
 
-  test("the helper and transcription no longer need credits", () => {
+  test("transcription needs no billing capability", () => {
     enable("transcription");
     const speech = resolveCapabilities().transcription;
-    expect(speech.enabled ? "" : speech.reason).not.toContain("features.credits");
+    expect(speech.enabled ? "" : speech.reason).not.toContain("features.billing");
   });
 });

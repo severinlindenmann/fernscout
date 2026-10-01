@@ -297,7 +297,7 @@ describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
   });
 
   test("once the plan's AI days are used up, transcription is refused with 402 plan_limit", async () => {
-    const { grantPlan } = await import("@paid/credits/lib/entitlements");
+    const { grantPlan } = await import("@paid/billing/lib/entitlements");
     const now = Date.now();
     await grantPlan({
       owner: "alex",

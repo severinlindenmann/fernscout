@@ -20,7 +20,7 @@ import { outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { isEnabled } from "@/lib/capabilities";
-import { mayUseAi } from "@paid/credits/lib/aiDays";
+import { mayUseAi } from "@paid/billing/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { classifyTravellers, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { findInboxFile } from "@/lib/inbox";

@@ -12,7 +12,7 @@ import type { MigrationDb } from "./types";
  * `active` to `grace` (a failed Plus renewal, 7 days) to `ended` or
  * `refunded`; an older event never overwrites a newer state, because every
  * write here is a single conditional UPDATE keyed on the current status
- * (the `claimProviderPayment` pattern, `paid/credits/lib/payments.ts`).
+ * (the `claimProviderPayment` pattern, `paid/billing/lib/payments.ts`).
  *
  * `period_start`/`period_end` are the AI-day counting window: for a Trip
  * pass, the same 45 days as `starts_at`/`ends_at`; for Plus, the current

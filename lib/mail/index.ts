@@ -550,9 +550,9 @@ export function mailDisabledReason(username?: string): "server" | "journal" | nu
  * - **operator alerts** about the machine (`scripts/alert.mts`), which are not
  *   the journal writing to anybody; they are the box saying its backup failed,
  *   and B64 is what silence there costs;
- * - **a credit purchase inquiry** (B368), which mails the owner about a tier
- *   they just asked for on their own page and must not itself cost a credit —
- *   charging to ask for more credits is the lockout this list exists to avoid.
+ * - **a plan or add-on purchase approval** (`paid/billing/lib/billing-notices.ts`),
+ *   which mails the owner about a plan or add-on they just asked for on their
+ *   own page and must not itself depend on mail they have switched off.
  *
  * What they have in common: each is addressed to somebody exercising control
  * of the journal, and withholding it removes control rather than granting it.

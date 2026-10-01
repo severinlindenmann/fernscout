@@ -31,7 +31,7 @@ reads a plan, refers back to this file rather than repeating it.
   postcard. Meta's number stays for Fernscout's own opted-in marketing. No
   SMS codes for readers; readers sign in by email.
 
-`PLANS` in `paid/credits/lib/plans.ts` is the one place these numbers live in
+`PLANS` in `paid/billing/lib/plans.ts` is the one place these numbers live in
 code — the homepage, `/prices` and every limit below read from it, so a
 change here and a change there cannot disagree.
 
@@ -44,7 +44,7 @@ change here and a change there cannot disagree.
   invoice or subscription id, or an Apple transaction id) is unique on the
   `entitlements` table, so one payment can never grant two plans. State
   changes are single conditional updates — the `claimProviderPayment`
-  pattern in `paid/credits/lib/payments.ts` — so an older event can never
+  pattern in `paid/billing/lib/payments.ts` — so an older event can never
   overwrite a newer state, and there is no separate events table to reconcile
   against this one.
 - **Fail closed, but only when billing is actually metering.** With the
@@ -86,7 +86,7 @@ change here and a change there cannot disagree.
 ## Who may write a plan
 
 Only three places ever insert or update an `entitlements` row, all through
-`grantPlan`/`endEntitlement` in `paid/credits/lib/entitlements.ts`:
+`grantPlan`/`endEntitlement` in `paid/billing/lib/entitlements.ts`:
 
 1. **The admin plan-grant route** (`/api/web/admin/plan-grants`, behind the
    operator's own session) — for testers and the App Store reviewer.

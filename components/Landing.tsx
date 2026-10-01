@@ -113,10 +113,10 @@ export default function Landing({
    * B2508's "Travelling yourself soon?" card links to `/welcome` only then. */
   signupEnabled?: boolean;
   /** The pricing table, rendered by the page and handed over — B840. A server
-   * component (`paid/credits/components/Pricing.tsx`) because every price it prints is
+   * component (`paid/billing/components/Pricing.tsx`) because every price it prints is
    * read from the `server-only` module that charges it, which is why it
    * arrives as an element rather than as data. `null` on an instance with
-   * credits switched off, where nothing costs anything. */
+   * billing switched off, where nothing costs anything. */
   pricing?: ReactNode;
   /** The same two doors as data, for the signed-out nav and footer — B2506.
    * Empty in a public build. */
@@ -125,8 +125,8 @@ export default function Landing({
   demo?: DemoDay | null;
   /** Which door the primary button opens — see `SignedOut`. */
   inviteCta?: InviteCta;
-  /** Plan facts and today's print prices, as data from `paid/credits` —
-   * absent in a public build or with credits off. B2506. */
+  /** Plan facts and today's print prices, as data from `paid/billing` —
+   * absent in a public build or with billing off. B2506. */
   planPoint?: string | null;
   planFaq?: { q: string; a: string }[];
   printPrices?: { label: string; price: string }[];

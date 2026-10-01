@@ -28,7 +28,7 @@ anything still open is in §15.
 | 2 | Data model | Upheld | **Files canonical + Postgres index** |
 | 3 | Licence | Upheld (amended) | **Apache-2.0 + separate trademark policy** since the open-core split (2026-09-25): hosted-only features live in a private repository instead of behind a licence clause. Was PolyForm Shield 1.0.0 before that, and AGPL-3.0 until B652 |
 | 4 | Name | Upheld | **`Fernscout`, on `fernscout.ch`** (§11) |
-| 5 | Hosted product | **Superseded** | Was "deferred — keep the seams clean, decide after the trip." Replaced by the 2026-09-25 open-core split: the hosted product exists now, as `paid/` (photobook, postcards, WhatsApp, Stripe credits), reached through `@paid/*` — see §12 and `docs/capabilities.md` |
+| 5 | Hosted product | **Superseded** | Was "deferred — keep the seams clean, decide after the trip." Replaced by the 2026-09-25 open-core split: the hosted product exists now, as `paid/` (photobook, postcards, WhatsApp, Stripe billing), reached through `@paid/*` — see §12 and `docs/capabilities.md` |
 | 6 | Audience | Upheld | **~20–50 readers, most will never install anything → email is the product** |
 | 7 | Currency | Upheld | **Local currency in, CHF out, per-trip rates, reader-selectable display currency** |
 | 8 | Photobook | Upheld | **Script-first, for me — but must handle low volume (5–10 recipients), books *and* postcards** |
@@ -336,7 +336,7 @@ shipped in W01/W25 — see [`docs/branding/BRAND.md`](branding/BRAND.md) and the
 **Live** — decision 5 is superseded (above): the open-core split shipped this
 as the private `paid/` repository, reached from the app only through
 `@paid/*`. Signup (`features.signup`), plans and Stripe billing
-(`@paid/credits`), storage quotas (`lib/storageQuota.ts`),
+(`@paid/billing`), storage quotas (`lib/storageQuota.ts`),
 and delete/export on request (`lib/contacts/index.ts`, `npm run export`) are
 all built — **L2** and **L5** below, done. What is still open is the
 positioning and go-to-market work, not the platform.

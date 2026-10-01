@@ -110,7 +110,7 @@ export default function StatementFlow({
   const [skipLines, setSkipLines] = useState(0);
 
   // C2✗ — the manual mapping a person points at for a bank nothing here
-  // recognises. Free: no model, no credit (see the apply route's own note).
+  // recognises. Free: no model, no AI day (see the apply route's own note).
   const [header, setHeader] = useState<string[]>([]);
   const [sample, setSample] = useState<string[][]>([]);
   const [dateCol, setDateCol] = useState("");

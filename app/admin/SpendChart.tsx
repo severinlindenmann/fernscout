@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { SERIES } from "./Charts";
-import { formatChf } from "@/lib/creditsFormat";
+import { formatChf } from "@/lib/money";
 import { OPERATION_LABEL } from "@/lib/operations";
 import type { DailySpend } from "@/lib/instanceCosts";
 

@@ -161,7 +161,7 @@ export const JOURNAL_DESTINATIONS: SearchDestination[] = [
   { destination: STUDIO_DESTINATION, level: "owner" },
   // B2019 — one row per card the hub itself draws (`components/studio/
   // StudioHub.tsx`'s `journalGroupItems` plus the `groups` array), so
-  // "postcard", "rename" or "credits" finds the flow and not only the hub
+  // "postcard", "rename" or "billing" finds the flow and not only the hub
   // page that lists it. Each label is the hub's own `studio.hub.item.*`
   // key — one string serves both. Not gated on a capability: the hub's own
   // doc comment on `requireStudioOwner` (`lib/studio/pageGate.ts`) says why

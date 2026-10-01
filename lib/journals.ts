@@ -829,8 +829,8 @@ export function setJournalFeatures(
   // key would leave a flag in the file that nothing reads, and answering `ok`
   // to "turn my photobook off" while the button stays is worse than refusing.
   // The operator's `site/config.json` is the only place. B611; the two
-  // printers joined `logging` and `credits` there, and this refusal is what
-  // stops the response promising a change that did not happen.
+  // printers joined `logging` there, and this refusal is what stops the
+  // response promising a change that did not happen.
   const refused = wanted.find(([name]) =>
     (OPERATOR_ONLY_FEATURES as readonly string[]).includes(name),
   );

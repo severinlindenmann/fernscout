@@ -204,7 +204,7 @@ describe("what the owner may do with it", () => {
    * with different consequences, and belongs to `PATCH /config`. */
   test("no other capability can be reached through this route", async () => {
     const token = await ownerToken();
-    for (const channel of ["auth", "contacts", "credits", "postcards"]) {
+    for (const channel of ["auth", "contacts", "billing", "postcards"]) {
       const result = await apiPatch({ [channel]: false }, token);
       expect(result.status).toBe(400);
     }

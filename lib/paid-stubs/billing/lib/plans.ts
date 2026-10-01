@@ -14,7 +14,7 @@ export function planFaq(_locale: string): { q: string; a: string }[] {
 // The announced numbers themselves stay available even without paid/: they
 // are public (the business plan, not a secret), and `AiDaysChip`'s upgrade
 // offer reads them the same way the real build does — see
-// paid/credits/lib/plans.ts for what each field means.
+// paid/billing/lib/plans.ts for what each field means.
 export const PLANS = {
   free: { priceChf: 0, storageGb: 2, aiDays: 10 },
   tripPass: {

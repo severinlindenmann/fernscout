@@ -15,7 +15,7 @@
  * Run through `tsx --conditions=react-server` (see package.json), because the
  * modules it reaches are `server-only`.
  */
-import { formatChf } from "../lib/creditsFormat";
+import { formatChf } from "../lib/money";
 import { checkSpendAlert } from "../lib/spendAlert";
 
 async function main(): Promise<void> {

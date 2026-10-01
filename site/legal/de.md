@@ -70,7 +70,7 @@ Schweizer Recht verlangt dieselben Angaben ohne sie.
 | **Anfrage-Log** — die aufgerufene Seite, die Zeit, der Name des Browsers; keine IP-Adresse | Um den Server zu betreiben und zu schützen | Berechtigtes Interesse | 14 Tage |
 | **Kopien der Mails, die diese Seite verschickt hat** | Um herauszufinden, warum ein Anmeldecode nicht ankam | Berechtigtes Interesse | Zwei Tage, nie im Backup |
 | **Warteliste für die iPhone-App** — eine E-Mail-Adresse und die gewünschte Sprache | Damit wir dich benachrichtigen können, sobald die App im App Store ist | Einwilligung | Bis die App erscheint, oder bis du uns bittest, den Eintrag zu entfernen |
-| **Zahlungen, Credits und Druckaufträge** | Buchhaltung | Vertrag und Gesetz (Schweizer Buchführungspflicht) | Zehn Jahre; siehe [Löschen](#deleting) |
+| **Zahlungen, Abos und Druckaufträge** | Buchhaltung | Vertrag und Gesetz (Schweizer Buchführungspflicht) | Zehn Jahre; siehe [Löschen](#deleting) |
 | **Verschlüsselte Backups** von allem oben | Damit eine kaputte Festplatte kein Journal beendet | Berechtigtes Interesse | 14 Tage auf dem Server, 7 Tage in der zweiten Kopie |
 
 **Nur der Besitzer eines Journals spricht mit dem Helfer** — im Web, weil dafür
@@ -159,7 +159,7 @@ muss, wen er nutzt, falls er dieselbe Funktion einschaltet.
 | Der Push-Dienst deines Browsers (Google, Mozilla oder Apple) | Je nach Browser | Ein Browser will benachrichtigt werden | Eine verschlüsselte Nachricht, die er nicht lesen kann, und eine Geräteadresse |
 | **Anthropic PBC** | USA | Der Helfer dieser Instanz ist eingeschaltet und der Besitzer hat ihn genutzt, nachdem er zugestimmt hat — siehe [KI und Stimme](#ai) | Was der Besitzer ihm für diese eine Anfrage gegeben hat |
 | **Deepgram Inc.** | Verarbeitung in der EU (Unternehmen in den USA) | Die Transkription dieser Instanz ist eingeschaltet und der Besitzer hat mit dem Helfer gesprochen oder eine Sprachnachricht geschickt | Die Aufnahme und ihre Sprache |
-| **Stripe** — nur gehostete Ausgabe | Irland und USA | Jemand hat Credits gekauft | Den Betrag, die E-Mail-Adresse für die Quittung und den Namen des Journals als Referenz. Kartendaten gibst du auf Stripes eigener Seite ein, nie auf dieser |
+| **Stripe** — nur gehostete Ausgabe | Irland und USA | Jemand hat ein Abo, einen Pass oder einen Druck gekauft | Den Betrag, die E-Mail-Adresse für die Quittung und den Namen des Journals als Referenz. Kartendaten gibst du auf Stripes eigener Seite ein, nie auf dieser |
 | **[Postkarten-Drucker]** — nur gehostete Ausgabe | [Land] | Jemand hat eine gedruckte Postkarte verschickt | Bild und Text der Postkarte sowie Name und Postadresse der Empfängerin oder des Empfängers |
 | **[Fotobuch-Drucker]** — nur gehostete Ausgabe | [Land] | Jemand hat ein gedrucktes Fotobuch bestellt | Das Buch sowie Name, Postadresse und E-Mail-Adresse der Empfängerin oder des Empfängers |
 | **Amazon Web Services** (offene Höhendaten) — nur gehostete Ausgabe | USA | Ein Fotobuch mit Reliefkarte wurde erstellt | Welche Kartenkacheln gebraucht werden — daraus lässt sich ungefähr ablesen, wo die Reise war, aber nichts über eine Person |

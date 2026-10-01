@@ -629,7 +629,7 @@ describe("the run and day routes with the capability on", () => {
  * The sample and enrich routes — B1751 Task 4.1.
  *
  * A real database, unlike every other describe block in this file: enrich's
- * AI-day gate (`mayUseAi`, `@paid/credits/lib/aiDays.ts`) refuses outright
+ * AI-day gate (`mayUseAi`, `@paid/billing/lib/aiDays.ts`) refuses outright
  * with no database configured, so a real sqlite file is what lets the
  * success and refusal paths actually run rather than both reading as "no
  * database configured". Nothing here is charged any more (B2592 deleted the

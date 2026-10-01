@@ -17,7 +17,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 export const dynamic = "force-dynamic";
 
 /**
- * The mapping, applied — B689, and **no model, no credit, no provider.**
+ * The mapping, applied — B689, and **no model, no AI day, no provider.**
  *
  * Two presses live here, and neither of them talks to anything:
  *
@@ -136,7 +136,7 @@ export async function POST(
   } else if (body.mapping === undefined) {
     // B1822, spec §7.7 — "an unrecognised bank reaches the same decide step
     // through the generic column mapping … it is never a dead end." No
-    // model and no credit: the header is free, and it is all a person needs
+    // model and no AI day: the header is free, and it is all a person needs
     // to point at four columns themselves.
     const table = readTable(text, skipLines);
     if (!table) return Response.json({ error: "not_a_table" }, { status: 400 });

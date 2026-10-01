@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  *
  * Used to also carry a credit balance and a month's spend (B1208) — removed
  * with the credit system in B2592; billing is a plan now
- * (`@paid/credits/lib/entitlements.ts`), not a per-journal balance.
+ * (`@paid/billing/lib/entitlements.ts`), not a per-journal balance.
  */
 export async function GET(
   request: Request,

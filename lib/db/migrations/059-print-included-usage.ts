@@ -11,7 +11,7 @@ import type { MigrationDb } from "./types";
  * postcard orders reserved in the same instant cannot both read "one left"
  * and both claim it. `period_key` is the caller's own string (a pass's
  * `plan.periodStart`, or a photobook order has none) so this table knows
- * nothing about what it is counting; `paid/credits/lib/print-usage.ts` is the
+ * nothing about what it is counting; `paid/billing/lib/print-usage.ts` is the
  * one place that decides what a period is.
  */
 export async function up(db: MigrationDb): Promise<void> {

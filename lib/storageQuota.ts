@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { isEnabled } from "./capabilities";
-import { planOf } from "@paid/credits/lib/entitlements";
+import { planOf } from "@paid/billing/lib/entitlements";
 import { loadUserConfig, serverMediaCeiling } from "./config";
 import { mediaOriginalsRoot } from "./media";
 import { getUser, userDir } from "./users";
@@ -305,7 +305,7 @@ export async function storageRefusal(
  * a trip-scoped agent's refusal is an API error nobody else ever sees — so the
  * notice goes to the address in the journal's own `config.json` and nowhere
  * else. Transactional: it is about their own account, and a journal must not
- * be unable to say it is full because it is out of credits.
+ * be unable to say it is full because mail is switched off.
  *
  * ponytail: the once-a-day is the in-memory rate limiter, so a restart lets
  * one more notice through. That is the right way round — the failure is a

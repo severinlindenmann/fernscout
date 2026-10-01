@@ -331,7 +331,7 @@ describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
     writeConfig({ auth: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     const token = await ownerToken();
     await consent();
-    const { grantPlan } = await import("@paid/credits/lib/entitlements");
+    const { grantPlan } = await import("@paid/billing/lib/entitlements");
     const now = Date.now();
     await grantPlan({
       owner: OWNER,

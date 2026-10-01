@@ -43,7 +43,7 @@ export default async function PageShell({
       inviteCta={flags.inviteCta}
       helperEnabled={flags.helperEnabled}
       prints={flags.postcards || flags.photobook}
-      pricing={flags.credits}
+      pricing={flags.billingEnabled}
       orgs={orgs}
       repository={site.repository}
       credit={site.credit}

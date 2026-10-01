@@ -59,16 +59,12 @@ export const postcardOrderDoc = z.object({
   /** `/@{user}/postcards/{id}` — where the owner looks and presses Send. */
   url: z.string(),
   /**
-   * Named `credits` for history — B2594 moved the postcard till off the
-   * credit ledger entirely (`docs/billing.md`: "there is no credit balance").
-   * `each`/`total` are rappen now, priced from the owner's plan
-   * (`paid/postcard/lib/postcard/pricing.ts`) rather than a fixed constant,
-   * and `balance` is always `null`: there is no balance left to report.
+   * `each`/`total`, in rappen, priced from the owner's plan
+   * (`paid/postcard/lib/postcard/pricing.ts`) rather than a fixed constant.
    */
-  credits: z.strictObject({
+  price: z.strictObject({
     each: z.number(),
     total: z.number(),
-    balance: z.number().nullable(),
   }),
   expiresAt: z.string(),
   createdAt: z.string(),

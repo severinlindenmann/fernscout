@@ -55,7 +55,7 @@ export const AREAS = [
   },
   {
     key: "journal",
-    describe: "the journal itself: the account, its settings, storage, keys, credits, past conversations",
+    describe: "the journal itself: the account, its settings, storage, keys, billing, past conversations",
     tools: JOURNAL_TOOLS,
   },
   {
@@ -84,7 +84,7 @@ export const TOOLS: readonly Tool[] = AREAS.flatMap((area) => area.tools);
  * reading it back, drafting and polishing its words, and publishing it.
  * `money`, `readers`, `journal` and `printed` stay reachable only from the
  * web door — a cookie, not a phone number, is the trust level "who can read
- * this trip" or "spend credits" needs.
+ * this trip" or "spend an AI day" needs.
  *
  * This is the *prompt-size* narrowing (`pickArea`'s candidates and
  * `switch_area`'s enum read it) — the actual boundary is `runTool`'s own

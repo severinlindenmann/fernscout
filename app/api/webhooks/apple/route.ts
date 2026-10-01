@@ -1,1 +1,1 @@
-export { POST } from "@paid/credits/routes/api/webhooks/apple/route";
+export { POST } from "@paid/billing/routes/api/webhooks/apple/route";

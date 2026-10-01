@@ -294,7 +294,7 @@ function firstName(name: string | null): string {
 
 /**
  * At most `max` characters, "..." when cut — security review L2. Every
- * variable in a text message is capped, so one credit buys one message of a
+ * variable in a text message is capped, so one send stays one message of a
  * few SMS segments rather than two dozen; ASCII so the ending does not force
  * a whole text into UCS-2.
  */

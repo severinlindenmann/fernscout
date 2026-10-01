@@ -401,7 +401,7 @@ describe("the studio in the index — B1964", () => {
 /**
  * B2019 — the studio's own flows, not only the hub page that lists them.
  * One row per card `components/studio/StudioHub.tsx` draws, so "postcard",
- * "rename" or "credits" finds the flow itself.
+ * "rename" or "billing" finds the flow itself.
  */
 describe("the studio's flows in the index — B2019", () => {
   test("the owner's search finds a flow by its hub label", async () => {

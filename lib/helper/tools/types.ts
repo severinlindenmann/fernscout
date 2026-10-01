@@ -68,7 +68,7 @@ type Proposed = {
    *
    * `start_day` chains to `draft_words` when somebody gave it a day's worth of
    * notes, and to nothing when they did not: offering to write up an empty day
-   * would be a card asking to spend a credit on nothing.
+   * would be a card asking to spend an AI day on nothing.
    */
   next?: { tool: string; from: Record<string, string> };
 };

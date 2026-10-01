@@ -41,7 +41,7 @@ Four things, and two of them are optional.
 | --- | --- | --- |
 | **Node** | The Next.js server — API routes, server rendering, the data layer | always |
 | **Caddy** | TLS and reverse proxy, automatic Let's Encrypt | always |
-| Postgres | Accounts, contacts, sessions, jobs | only once a capability with `db: true` is on — `auth`, `contacts`, `analytics`, `credits`, `smsInbound`, `photobook`, `postcards` and several more (see `docs/capabilities.md`); SQLite is also accepted, in production as much as locally |
+| Postgres | Accounts, contacts, sessions, jobs | only once a capability with `db: true` is on — `auth`, `contacts`, `analytics`, `billing`, `smsInbound`, `photobook`, `postcards` and several more (see `docs/capabilities.md`); SQLite is also accepted, in production as much as locally |
 | Worker | Background jobs — digests, push, print rendering | only once something enqueues work |
 
 **The public site needs the first two.** That is the prototype tier
@@ -879,7 +879,7 @@ other than your own.
 Unset, a failed run still mails the default journal's `owner.email`, so a
 broken backup always reaches somebody. A *successful* run carries the instance
 status report — every journal by name, unlisted ones included, with its guest
-count, credit balance and size — and that is withheld unless this variable
+count and size — and that is withheld unless this variable
 names an operator. `owner.email` is a journal's own file: on a shared instance
 the person who happens to own the default journal is not the person running
 the box, and one edit to that field would otherwise redirect the roster
