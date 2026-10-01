@@ -286,7 +286,6 @@ export type TranslationKey =
   | "agent.speechConsentShort"
   | "agent.speechDenied"
   | "agent.speechHold"
-  | "agent.speechHoldNoPrice"
   | "agent.speechHow"
   | "agent.speechHowToggle"
   | "agent.speechLanguage"
