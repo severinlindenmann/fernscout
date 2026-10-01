@@ -6,7 +6,7 @@ import { basemapForRoute, type Basemap } from "../basemap";
 import { coveringRegion, tripMapRegions } from "../maps/dir";
 import { frameRoute, place, type Frame, type Point } from "../mapFrame";
 import { cardPalette, type CardPalette } from "./cardPalette";
-import { buildTripFrame, linesForDay, placesForDay, type Chip, type MapLine, type MapPlace, type TripFrame } from "./tripFrame";
+import { buildTripFrame, linesForDay, placesForDay, type MapLine, type MapPlace, type TripFrame } from "./tripFrame";
 import { streetLayersForBbox, type StreetLayers } from "./streetTiles";
 import { readCachedCardSvg, writeCachedCardSvg } from "./cardCache";
 import { unproject } from "../mapProjection.mjs";
@@ -118,8 +118,10 @@ function regionAbsolutePath(relFile: string): string {
 }
 
 function cacheKey(...parts: unknown[]): string {
-  // Rendering changes must invalidate SVGs already cached on disk.
-  return crypto.createHash("sha256").update(JSON.stringify(["street-pixels-v3", ...parts])).digest("hex").slice(0, 32);
+  // Rendering changes must invalidate SVGs already cached on disk. Bump the
+  // tag (B2639: clustered discs, sans labels, no chips, thinner track) so an
+  // old, cluttered card already on disk re-renders instead of serving stale.
+  return crypto.createHash("sha256").update(JSON.stringify(["clustered-sans-v4", ...parts])).digest("hex").slice(0, 32);
 }
 
 async function renderAndCache(
@@ -170,7 +172,6 @@ async function renderAndCache(
     basemap,
     lines,
     places: dayPlaces,
-    chips: day === undefined ? tripFrame.chips : [],
     selectedDay: day,
     palette: cardPalette(scheme),
   });
@@ -226,6 +227,17 @@ const DAY_RADIUS = 12;
 /** ~30px across — the same prototype's `.stop.sel .n`. */
 const DAY_RADIUS_SELECTED = 15;
 
+/** B2639 — a real sans stack with system fallbacks, so a label or a day
+ * number reads in the brand's own face rather than the serif an `<img>`'s
+ * detached SVG document defaults to with no font-family of its own. The
+ * attribute is single-quoted (valid SVG/XML) so "Segoe UI"'s own double
+ * quotes survive. */
+const FONT_ATTR = `font-family='Plus Jakarta Sans, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif'`;
+
+/** Labels past this many clamp to first/last plus the busiest stops —
+ * "no more than ~4" (B2639). */
+const MAX_LABELS = 4;
+
 function renderSvg(opts: {
   frame: Frame;
   width: number;
@@ -234,11 +246,10 @@ function renderSvg(opts: {
   basemap: Basemap | null;
   lines: readonly MapLine[];
   places: readonly MapPlace[];
-  chips: readonly Chip[];
   selectedDay?: number;
   palette: CardPalette;
 }): string {
-  const { frame, width, street, basemap, lines, places, chips, selectedDay, palette } = opts;
+  const { frame, width, street, basemap, lines, places, selectedDay, palette } = opts;
   const px = (n: number) => (n * frame.w) / width;
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -303,8 +314,10 @@ function renderSvg(opts: {
       const selected = selectedDay === undefined || line.fromDay === selectedDay || line.toDay === selectedDay;
       const opacity = selected ? 1 : 0.35;
       if (line.kind === "recorded") {
-        parts.push(`<path d="${d}" stroke="#fff" stroke-width="${px(5)}" opacity="${opacity}"/>`);
-        parts.push(`<path d="${d}" stroke="${palette.selectedFill}" stroke-width="${px(3)}" opacity="${opacity}"/>`);
+        // B2639: thinner — a 5px/3px halo+line read as a thick ribbon at
+        // card size; 3px/1.6px is still a clearly visible track.
+        parts.push(`<path d="${d}" stroke="#fff" stroke-width="${px(3)}" opacity="${opacity}"/>`);
+        parts.push(`<path d="${d}" stroke="${palette.selectedFill}" stroke-width="${px(1.6)}" opacity="${opacity}"/>`);
       } else if (line.kind === "gap") {
         parts.push(`<path d="${d}" stroke="${palette.plannedLeg}" stroke-width="${px(2)}" stroke-dasharray="${px(2)} ${px(3)}" opacity="${opacity}"/>`);
       } else if (line.kind === "photo-join") {
@@ -316,81 +329,142 @@ function renderSvg(opts: {
     parts.push(`</g>`);
   }
 
-  // Day-number markers — prototype-reader.html's own "card"/"daycard" style:
-  // white disc, a navy ring, the number in navy; only the *selected* day
-  // (a day card's own place) is the bigger, filled-navy/white-number
-  // version — on the trip overview (`selectedDay` unset) every marker is
-  // the plain one, none of them a false "selection". ~24px across at a
-  // 390px render, per `UI_WIDTH`.
-  for (const p of places) {
-    const [x, y] = place(frame, p);
-    const isSelected = selectedDay !== undefined && p.day === selectedDay;
+  // Day markers — prototype-reader.html's own "card"/"daycard" style: white
+  // disc, a navy ring, the number in navy; only the *selected* day (a day
+  // card's own place) is the bigger, filled-navy/white-number version — on
+  // the trip overview (`selectedDay` unset) every marker is the plain one,
+  // none of them a false "selection". ~24px across at a 390px render, per
+  // `UI_WIDTH`. B2639: two or more days whose markers would overlap (a
+  // multi-day stay in one town) merge into a single pill showing the day
+  // *count*, never a false range — `clusterMarkers` below.
+  const clusters = clusterMarkers(frame, places, px(DAY_RADIUS * 2));
+  for (const cluster of clusters) {
+    const merged = cluster.days.length > 1;
+    const isSelected = !merged && selectedDay !== undefined && cluster.days[0] === selectedDay;
     const r = isSelected ? DAY_RADIUS_SELECTED : DAY_RADIUS;
     const fill = isSelected ? palette.accentNavy : "#fff";
     const ring = isSelected ? "#fff" : palette.accentNavy;
     const textFill = isSelected ? "#fff" : palette.accentNavy;
+    const label = merged ? String(cluster.days.length) : String(cluster.days[0]);
+    const text = `<text x="${cluster.x}" y="${cluster.y}" text-anchor="middle" dominant-baseline="central" font-size="${px(11)}" font-weight="700" fill="${textFill}" ${FONT_ATTR}>${label}</text>`;
+    if (!merged) {
+      // A single day — the plain disc, unchanged.
+      parts.push(
+        `<g><circle cx="${cluster.x}" cy="${cluster.y}" r="${px(r)}" fill="${fill}" stroke="${ring}" stroke-width="${px(2.5)}"/>${text}</g>`,
+      );
+      continue;
+    }
+    // Two or more days whose markers would overlap merge into a pill with a
+    // day count — never a false day range (B2639). A two-digit count widens
+    // it rather than squeezing into a circle sized for one digit.
+    const w = Math.max(px(r * 2), label.length * px(11) + px(10));
     parts.push(
       `<g>` +
-        `<circle cx="${x}" cy="${y}" r="${px(r)}" fill="${fill}" stroke="${ring}" stroke-width="${px(2.5)}"/>` +
-        `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="${px(11)}" font-weight="700" fill="${textFill}">${p.day}</text>` +
+        `<title>${esc(cluster.days.length + " days")}</title>` +
+        `<rect x="${cluster.x - w / 2}" y="${cluster.y - px(r)}" width="${w}" height="${px(r * 2)}" rx="${px(r)}" fill="${palette.accentNavy}" stroke="#fff" stroke-width="${px(2.5)}"/>` +
+        `<text x="${cluster.x}" y="${cluster.y}" text-anchor="middle" dominant-baseline="central" font-size="${px(11)}" font-weight="700" fill="#fff" ${FONT_ATTR}>${label}</text>` +
         `</g>`,
     );
   }
 
-  // Town-level place labels, next to their marker, with a light halo so they
-  // read over any layer underneath — collision-avoided: a place that would
-  // overlap an already-placed label is simply left unlabelled, tried in
-  // priority order (the selected day first, on a day card; trip order,
-  // which is day order, otherwise) so "the selected/first day wins" a tie.
+  // Town-level place labels, next to their marker, with a dark halo so they
+  // read over any layer underneath — collision-avoided against both markers
+  // and earlier labels, and never past the frame edge. At most `MAX_LABELS`:
+  // the stay with the most days at each cluster, but the first and last day
+  // of the trip are always candidates (never dropped for a merely busier
+  // middle stop) — B2639. A day card (`selectedDay` set) only ever has the
+  // one place `placesForDay` already filtered to, so this still reduces to
+  // "label it" there.
   {
-    const priority = selectedDay === undefined ? places : [...places].sort((a, b) => (a.day === selectedDay ? -1 : b.day === selectedDay ? 1 : 0));
-    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
+    const labelClusters = selectedDay === undefined ? labelPriority(clusters) : clusters;
+    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [
+      // Every marker is itself a no-go zone for a later label.
+      ...clusters.map((c) => {
+        const r = px(selectedDay !== undefined && c.days[0] === selectedDay ? DAY_RADIUS_SELECTED : DAY_RADIUS);
+        return { x0: c.x - r, x1: c.x + r, y0: c.y - r, y1: c.y + r };
+      }),
+    ];
     const labelH = px(13);
     const gapX = px(DAY_RADIUS + 4);
-    for (const p of priority) {
-      if (!p.name) continue;
-      const [mx, my] = place(frame, p);
-      const label = esc(p.name);
+    let shown = 0;
+    for (const cluster of labelClusters) {
+      if (shown >= MAX_LABELS) break;
+      if (!cluster.name) continue;
+      const label = esc(cluster.name);
       const w = label.length * px(6.2);
-      const x0 = mx + gapX;
+      const x0 = cluster.x + gapX;
       const x1 = x0 + w;
-      const y0 = my - labelH / 2;
-      const y1 = my + labelH / 2;
+      const y0 = cluster.y - labelH / 2;
+      const y1 = cluster.y + labelH / 2;
+      const offFrame = x1 > frame.x + frame.w || x0 < frame.x || y0 < frame.y || y1 > frame.y + frame.h;
+      if (offFrame) continue;
       const collides = placed.some((b) => x0 < b.x1 && x1 > b.x0 && y0 < b.y1 && y1 > b.y0);
       if (collides) continue;
       placed.push({ x0, x1, y0, y1 });
+      shown++;
       parts.push(
-        `<text x="${x0}" y="${my}" dominant-baseline="central" font-size="${px(11.5)}" font-weight="600" ` +
+        `<text x="${x0}" y="${cluster.y}" dominant-baseline="central" font-size="${px(11.5)}" font-weight="600" ${FONT_ATTR} ` +
           `fill="${palette.labelTown}" stroke="${palette.labelStopHalo}" stroke-width="${px(3)}" paint-order="stroke">${label}</text>`,
       );
     }
   }
 
-  // Chips — a row along the top edge, evenly spaced in bearing order.
-  // ponytail: spaced evenly rather than exactly at each bearing's own
-  // position along the edge; the rule only requires "never over a place",
-  // which even spacing already satisfies. Upgrade to true bearing-mapped x
-  // if a design review wants the chips visually pointing more precisely.
-  if (chips.length > 0) {
-    const sorted = [...chips].sort((a, b) => a.bearingDeg - b.bearingDeg);
-    const margin = frame.w * 0.08;
-    const usable = frame.w - margin * 2;
-    sorted.forEach((chip, i) => {
-      const x = frame.x + margin + (usable * (i + 0.5)) / sorted.length;
-      const y = frame.y + px(14);
-      const label = esc(chip.label + (chip.days ? ` +${chip.days}` : ""));
-      const w = Math.max(px(24), label.length * px(6.5));
-      parts.push(
-        `<g>` +
-          `<rect x="${x - w / 2}" y="${y - px(10)}" width="${w}" height="${px(20)}" rx="${px(10)}" fill="${palette.legChipFill}" stroke="${palette.legChipBorder}" stroke-width="${px(1)}"/>` +
-          `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="${px(9.5)}" fill="${palette.legChipIcon}">${label}</text>` +
-          `</g>`,
-      );
-    });
-  }
+  // No region chips on this card (B2639) — the full map (`WorldMap.tsx`)
+  // still draws `TripFrame.chips` itself; the preview reads cleaner without
+  // a "Basel +1" tile that looked like a place count.
 
   parts.push(`</svg>`);
   return parts.join("");
+}
+
+/** One or more `MapPlace`s whose markers would overlap, merged into a
+ * single point to draw — B2639. */
+type MarkerCluster = {
+  x: number;
+  y: number;
+  /** Every day in this cluster, sorted — `days[0]` is its earliest. */
+  days: number[];
+  /** The earliest day's own name, for the label — a merged pill's days are
+   * (per `clusterMarkers`'s own doc) always the same stop. */
+  name: string;
+};
+
+/** Single-linkage clustering on *pixel* distance (frame units at the card's
+ * own `px()` scale): two day markers whose centres are closer than one
+ * diameter apart would visually overlap, so B2639 merges them into one pill
+ * showing the day count rather than letting them stack unreadably. Order
+ * follows first appearance (trip/day order), same as `tripFrame.ts`'s own
+ * `clusterRegions` — this is the same rule one zoom level in. */
+function clusterMarkers(frame: Frame, places: readonly MapPlace[], diameter: number): MarkerCluster[] {
+  const groups: { x: number; y: number; days: number[]; name: string }[][] = [];
+  for (const p of places) {
+    const [x, y] = place(frame, p);
+    const item = { x, y, days: [p.day], name: p.name };
+    const hit = groups.find((g) => g.some((o) => Math.hypot(o.x - x, o.y - y) < diameter));
+    if (hit) hit.push(item);
+    else groups.push([item]);
+  }
+  return groups.map((g) => ({
+    x: g.reduce((s, i) => s + i.x, 0) / g.length,
+    y: g.reduce((s, i) => s + i.y, 0) / g.length,
+    days: g.flatMap((i) => i.days).sort((a, b) => a - b),
+    name: g[0].name,
+  }));
+}
+
+/** Label candidate order for a trip overview — "no more than ~4, by days
+ * spent, plus first/last" (B2639). The cluster holding the trip's first day
+ * and the one holding its last day are always candidates, ahead of a merely
+ * busier middle stop; everything else follows by day count, most first. */
+function labelPriority(clusters: readonly MarkerCluster[]): MarkerCluster[] {
+  if (clusters.length <= 1) return [...clusters];
+  const firstDay = Math.min(...clusters.flatMap((c) => c.days));
+  const lastDay = Math.max(...clusters.flatMap((c) => c.days));
+  const isFirst = (c: MarkerCluster) => c.days.includes(firstDay);
+  const isLast = (c: MarkerCluster) => c.days.includes(lastDay);
+  const forced = clusters.filter((c) => isFirst(c) || isLast(c));
+  const rest = clusters.filter((c) => !isFirst(c) && !isLast(c)).sort((a, b) => b.days.length - a.days.length);
+  return [...forced, ...rest];
 }
 
 function pathFor(line: MapLine, frame: Frame): string | null {

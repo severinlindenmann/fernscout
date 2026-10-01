@@ -65,7 +65,10 @@ type Region = {
   home: boolean;
 };
 
-export type Chip = {
+// B2639 — no longer exported: the card (`lib/map/cardSvg.ts`) stopped
+// drawing region chips on the preview, and nothing else outside this module
+// ever consumed `TripFrame.chips`'s own element type by name.
+type Chip = {
   kind: "far" | "region";
   /** The place a "far" chip names, or an "region" chip's first place. */
   place: MapPlace;
