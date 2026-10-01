@@ -164,3 +164,19 @@ describe("titleIsGroundedInNotes", () => {
     expect(titleIsGroundedInNotes("anything at all", "")).toBe(true);
   });
 });
+
+// TIX-2 persona round — Hungarian typed without accents. Putting the accents
+// back is spelling, not a new fact; a new name still is.
+describe("accents are spelling, not facts", () => {
+  const notes = "delben a 12es uton autoztunk egy gerincen korlat nelkul";
+  it("lets a tidy that restores accents through", () => {
+    expect(checkPolishForAddedFacts(notes, "Délben a 12-es úton autóztunk, egy gerincen, korlát nélkül.")).toEqual({ ok: true });
+  });
+  it("still refuses a name the notes never had", () => {
+    expect(checkPolishForAddedFacts(notes, "Délben Péterrel a 12-es úton autóztunk.").ok).toBe(false);
+  });
+  it("grounds an accented title in accent-less notes", () => {
+    expect(titleIsGroundedInNotes(notes, "Korlát nélkül")).toBe(true);
+    expect(titleIsGroundedInNotes(notes, "Napfelkelte")).toBe(false);
+  });
+});

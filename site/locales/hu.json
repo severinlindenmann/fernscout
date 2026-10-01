@@ -2430,7 +2430,7 @@
   "studio.publish.tellNoReaders": "Még senki: egy olvasónak sincs bekapcsolva az értesítés vagy az e-mail.",
   "studio.publish.question": "Közzéteszed: „{title}”? Később le is veheted; akkor lekerül az oldalról, de aki már olvasta, az olvasta.",
   "studio.publish.confirm": "Közzéteszem ezt a napot",
-  "studio.publish.confirmParts": "Mind a(z) {count} rész közzététele",
+  "studio.publish.confirmParts": "Mind a {count} rész közzététele",
   "studio.publish.confirmParts.one": "1 rész közzététele",
   "studio.publish.offline": "A megosztáshoz kapcsolat kell — próbáld újra, ha újra online vagy.",
   "studio.publish.busy": "Közzététel…",
