@@ -13,7 +13,7 @@ import { tripA, tripB } from "./fixtures/polarsteps";
 describe("discoverPolarstepsTrips", () => {
   test("finds both trips with their step, photo, video and GPS counts", async () => {
     const buf = await buildPolarstepsExportZip();
-    const file = new Blob([buf]);
+    const file = new Blob([new Uint8Array(buf)]);
     const entries = await readZipEntries(file);
     const { trips, anyUnreadable } = await discoverPolarstepsTrips(file, entries, { countGps: true });
 
@@ -47,7 +47,7 @@ describe("discoverPolarstepsTrips", () => {
 
   test("skips counting GPS points when not asked", async () => {
     const buf = await buildPolarstepsExportZip();
-    const file = new Blob([buf]);
+    const file = new Blob([new Uint8Array(buf)]);
     const entries = await readZipEntries(file);
     const { trips } = await discoverPolarstepsTrips(file, entries);
     expect(trips.every((t) => t.gpsPoints === undefined)).toBe(true);

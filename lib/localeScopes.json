@@ -4,7 +4,8 @@
       "billing",
       "guides",
       "orgs",
-      "photobook"
+      "photobook",
+      "switch"
     ],
     "keys": [
       "agent.why",
