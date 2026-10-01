@@ -198,3 +198,21 @@ describe("the bar's back link carries the page's group", () => {
     expect(back.getAttribute("href")).toBe("/@alex/studio");
   });
 });
+
+/**
+ * B2661 — the short-screen wrapper (B2137) must size itself with `svh`, not
+ * `dvh`. A WKWebView can report `100dvh` larger than the actually visible
+ * frame on a route's first paint and only correct it on the next scroll
+ * (there is no browser chrome to collapse, unlike mobile Safari); a wrapper
+ * sized to that too-tall reading pushes the sticky `ActionBar` below the
+ * fold until a scroll forces the recalculation. `svh` is never read larger
+ * than the true viewport, so the bar is never placed past its edge.
+ */
+describe("the short-screen wrapper's viewport unit", () => {
+  test("uses svh, never dvh", () => {
+    const el = render(<PlainPage />);
+    const wrapper = el.querySelector('[class*="min-h-"]') as HTMLElement;
+    expect(wrapper.className).toContain("min-h-[100svh]");
+    expect(wrapper.className).not.toContain("dvh");
+  });
+});

@@ -6,6 +6,7 @@ import {
   countryNameFor,
   filterCountryList,
   flagOf,
+  regionWordKey,
   resolveCountry,
 } from "@/lib/countries";
 import CountryField from "@/components/CountryField";
@@ -28,6 +29,27 @@ describe("countryNameFor — a reader's own name for a code (B2511)", () => {
 
   test("falls back to the content's own text when there is no code", () => {
     expect(countryNameFor("", "en", "Elbonia")).toBe("Elbonia");
+  });
+});
+
+describe("regionWordKey — a country's own word for its first-level division (B2640)", () => {
+  test("names the country's own convention, not a generic word", () => {
+    expect(regionWordKey("CH")).toBe("region.kanton");
+    expect(regionWordKey("de")).toBe("region.bundesland"); // case-insensitive
+    expect(regionWordKey("AT")).toBe("region.bundesland");
+    expect(regionWordKey("US")).toBe("region.state");
+    expect(regionWordKey("BR")).toBe("region.state");
+    expect(regionWordKey("MX")).toBe("region.state");
+    expect(regionWordKey("AU")).toBe("region.state");
+    expect(regionWordKey("IN")).toBe("region.state");
+    expect(regionWordKey("IT")).toBe("region.regione");
+    expect(regionWordKey("FR")).toBe("region.regionFr");
+    expect(regionWordKey("ES")).toBe("region.comunidadAutonoma");
+  });
+
+  test("falls back to the generic word for every other country", () => {
+    expect(regionWordKey("JP")).toBe("region.generic");
+    expect(regionWordKey("")).toBe("region.generic");
   });
 });
 

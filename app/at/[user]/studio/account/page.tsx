@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AccountPageContent, {
+  type PlanOptionFacts,
   type PlanPanel,
   type StoragePanel,
 } from "../../account/AccountPageContent";
@@ -12,6 +13,7 @@ import { cleanupPlan } from "@/lib/storageCleanup";
 import { formatBytes, storageBreakdown, storageFor, worthShowing } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 import { planSummaryFor } from "@/lib/billingSummary";
+import { PLANS } from "@paid/billing/lib/plans";
 
 /**
  * Storage and plan — B821, moved whole here from `/[user]/account` by
@@ -65,6 +67,9 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
       used: formatBytes(usage.usedBytes),
       limit: formatBytes(limit),
       percent,
+      // How far over, in words — only ever set once `usedBytes` has actually
+      // passed `limit` — B2636's "X GB über dem Limit".
+      excess: usage.usedBytes > limit ? formatBytes(usage.usedBytes - limit) : null,
       // A breakdown of a kilobyte is a bar with nothing visible in it and a
       // legend of near-zero rows — B1270. The floor is in bytes, not the
       // rounded percent: a purchase raises the ceiling, and a journal that
@@ -99,9 +104,30 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
   // place this is read — `/me`'s own plan card (B2622) asks it too.
   const plan: PlanPanel | undefined = await planSummaryFor(user);
 
+  // The two buy tiles' own numbers — B2638. Read here, not by
+  // `AccountPageContent` (a client component): see that file's own `chf()`
+  // comment for why `@paid/billing/lib/plans` cannot cross into its bundle.
+  const planOptions: PlanOptionFacts | undefined = plan
+    ? {
+        plus: {
+          priceChf: PLANS.plus.priceChf,
+          aiDays: PLANS.plus.aiDays,
+          storageGb: PLANS.plus.storageGb,
+          includedPostcards: PLANS.plus.includedPostcards,
+        },
+        pass: {
+          priceChf: PLANS.tripPass.priceChf,
+          days: PLANS.tripPass.days,
+          aiDays: PLANS.tripPass.aiDays,
+          storageGb: PLANS.tripPass.storageGb,
+          includedPostcards: PLANS.tripPass.includedPostcards,
+        },
+      }
+    : undefined;
+
   return (
     <StudioPage username={user} group="journal" title={translateIn(await requestLocale(), "studio.hub.item.account.title")}>
-      <AccountPageContent username={user} storage={storage} orders={orders} plan={plan} />
+      <AccountPageContent username={user} storage={storage} orders={orders} plan={plan} planOptions={planOptions} />
     </StudioPage>
   );
 }

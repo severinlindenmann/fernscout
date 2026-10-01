@@ -241,6 +241,13 @@ const dayBase = z
      * and the name is one the server can place (B1907) — what a book prints
      * its chapter titles from, in the book's own language. */
     countryCode: z.string().length(2).optional(),
+    /** A sub-national division — canton, Land, state, regione — named the
+     * same way `country` is: free text the owner or a reverse-geocode
+     * lookup (`reversePlace`'s own `region`, from Photon's `state`) supplied,
+     * never guessed. Plain optional, not required-or-declined (B2640): most
+     * days will never carry one, and a day with no region says nothing about
+     * it rather than declining a question nobody asked. */
+    region: z.string().optional(),
     transportMode: z.enum(TRANSPORT_MODES).optional(),
     tags: z.array(z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(30)).max(10).optional(),
     /** title+content in the journal's other languages, keyed by locale.

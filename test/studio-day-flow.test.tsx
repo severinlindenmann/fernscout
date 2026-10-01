@@ -195,6 +195,29 @@ describe("the assistant is asked once, with its consent", () => {
   });
 });
 
+test("a part saved without words reads as no words and is never sent to be tidied", async () => {
+  props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
+  const base = globalThis.fetch as unknown as (url: string, init?: RequestInit) => Promise<Response>;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const r = await base(url, init);
+      if (url.includes("/day?") && (init?.method ?? "GET") === "GET") {
+        const json = (await r.json()) as { preview: { day: { entries: { content: string }[] } } };
+        json.preview.day.entries[0].content = "…";
+        return Response.json(json);
+      }
+      return r;
+    }),
+  );
+  await mount();
+  await click(dict["studio.flow.splitNo"]);
+  await click(dict["studio.flow.check"]);
+  await flush();
+  expect(text()).toContain(dict["studio.check.noWords"]);
+  expect(sent("/day/write-day")).toHaveLength(0);
+});
+
 describe("B2649 — the assistant switch", () => {
   test("a switch, On with a green dot; Off saves and shows Off", async () => {
     props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
@@ -274,5 +297,50 @@ describe("a long day in parts, then Check your day, then publish", () => {
     await click(dict["studio.check.looksGood"]);
     expect(sent("/api/helper/alex/day", "PATCH")).toHaveLength(0);
     expect(pushed.at(-1)).toBe("/@alex/studio/day/publish?day=part-1&trip=utah");
+  });
+});
+
+describe("B2627 — a long day's photos picked inside the composer, not from a waiting-day card", () => {
+  test("offered the same way, Write it in N parts leads to part tabs with each part's own photos and time", async () => {
+    // No `?photos=<date>`: the composer's own effect, not DayFlow's inbox
+    // read, auto-chooses today's photographs — the same long day, this time
+    // picked inside the plain composer.
+    props = {
+      initialPhotos: undefined,
+      assistantChoice: "on",
+      consents: { words: true, photos: true, speech: true },
+      proposal: { trip: { id: "utah", title: "Utah", status: "current" }, reasonKey: "studio.day.which.reasonCurrent", today: "2025-09-07" },
+    };
+    await mount();
+    expect(text()).toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
+    expect(text()).toContain("Part 1: 06:02–07:40");
+
+    await click(dict["studio.flow.splitYes"].replace("{count}", "3"));
+    expect(text()).toContain(dict["studio.flow.partHeading"].replace("{index}", "1").replace("{total}", "3"));
+    // Part 1's own photos only — "3 chosen" (b1, b2, b3), not all eight.
+    expect(text()).toContain("3 chosen");
+    expect(text()).toContain("06:02");
+
+    await click(dict["studio.flow.next"]);
+    await click(dict["studio.flow.next"]);
+    await click(dict["studio.flow.check"]);
+    const saves = sent("/day/new");
+    expect(saves.map((s) => s.body?.mediaInboxIds)).toEqual([["b1", "b2", "b3"], ["e1", "e2"], ["c1", "c2", "c3"]]);
+    expect(saves.map((s) => s.body?.time)).toEqual(["06:02", "11:20", "16:15"]);
+  });
+
+  test("Keep it one day dismisses the offer for this set of photos", async () => {
+    props = {
+      initialPhotos: undefined,
+      assistantChoice: "on",
+      consents: { words: true, photos: true, speech: true },
+      proposal: { trip: { id: "utah", title: "Utah", status: "current" }, reasonKey: "studio.day.which.reasonCurrent", today: "2025-09-07" },
+    };
+    await mount();
+    expect(text()).toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
+    await click(dict["studio.flow.splitNo"]);
+    expect(text()).not.toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
+    // Still the plain composer, one entry: no parts offered a second time.
+    expect(document.querySelector('[aria-label="Parts of this day"]')).toBeNull();
   });
 });

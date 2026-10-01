@@ -304,6 +304,7 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
               nights: c.nights,
               amount: c.amount,
             })),
+            byRegion: costs.byRegion,
             // What totalSpend/spendPerDay above had to leave out — B353.
             unconverted: costs.unconverted,
           }
@@ -316,6 +317,7 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
               nights: c.nights,
               amount: 0,
             })),
+            byRegion: costs.byRegion,
           }),
     },
   };

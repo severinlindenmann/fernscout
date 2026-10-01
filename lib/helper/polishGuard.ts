@@ -247,3 +247,54 @@ export function titleIsGroundedInNotes(notes: string, title: string): boolean {
   }
   return true;
 }
+
+function bare(word: string): string {
+  return normalise(word);
+}
+
+function distance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cur = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+  }
+  return row[b.length];
+}
+
+/**
+ * B2630 — a tidy that put accents back AND changed the letters guessed a
+ * word: "kotornyok" (rock towers, typed without accents) came back as
+ * "kötörnök", which is not what they meant and not a word. Any output word
+ * that gained an accent but no longer matches a typed word once its accents
+ * are dropped goes back to the typed word it came from (the nearest one,
+ * same first letter). Accents restored on the same letters stay.
+ */
+export function keepTypedWhereAccentsGuessed(input: string, output: string): string {
+  const typed = Array.from(input.matchAll(WORD_PATTERN), (m) => m[0]);
+  const typedBare = new Set(typed.map(bare));
+  return output.replace(WORD_PATTERN, (word) => {
+    const plain = bare(word);
+    const gainedAccent = word.normalize("NFD") !== word.normalize("NFD").replace(/\p{M}/gu, "");
+    if (!gainedAccent || typedBare.has(plain)) return word;
+    let best: string | null = null;
+    let bestDistance = Infinity;
+    for (const candidate of typed) {
+      const c = bare(candidate);
+      if (c[0] !== plain[0]) continue;
+      const d = distance(c, plain);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = candidate;
+      }
+    }
+    if (!best || bestDistance > 3) return word;
+    // Keep the tidy's own capital at the start of a sentence.
+    return /^\p{Lu}/u.test(word) ? best.charAt(0).toUpperCase() + best.slice(1) : best;
+  });
+}
+

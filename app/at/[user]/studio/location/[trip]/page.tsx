@@ -86,6 +86,8 @@ function kmAlong(segments: LineSegment[]): number {
 export const MODE_KEYS: Record<string, TranslationKey> = {
   on_foot: "studio.location.route.mode.onFoot",
   bike: "studio.location.route.mode.bike",
+  // B2651 — the phone records trains and buses as "car" too (iOS motion has
+  // no train), so the label names all three rather than asserting a car.
   car: "studio.location.route.mode.car",
   bus: "studio.location.route.mode.bus",
   train: "studio.location.route.mode.train",
