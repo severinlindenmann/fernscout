@@ -497,6 +497,8 @@ describe("B2627 — a long day's photos picked inside the composer are offered a
     const [parts, content] = onSplit.mock.calls[0] as [{ ids: string[] }[], string];
     expect(parts.map((p) => p.ids)).toEqual([["m1", "m2"], ["a1"]]);
     expect(content).toBe("A long one, two places.");
+    // The one-day draft is cleared: the parts carry these photos and words now.
+    expect(sessionStorage.getItem(addDayStorageKey("alex"))).toBeNull();
   });
 
   test("Keep it one day dismisses it for this exact set of photos, not forever", async () => {

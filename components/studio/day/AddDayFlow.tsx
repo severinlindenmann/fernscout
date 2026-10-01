@@ -1226,7 +1226,12 @@ export default function AddDayFlow({
                 <button type="button" className={SPLIT_SECONDARY} onClick={() => setSplitDismissedFor(chosenSignature)}>
                   {t("studio.flow.splitNo")}
                 </button>
-                <button type="button" className={SPLIT_PRIMARY} onClick={() => onSplit!(splitCandidate, content)}>
+                <button type="button" className={SPLIT_PRIMARY} onClick={() => {
+                    // The one-day draft is not left behind to be offered
+                    // back later: the parts carry these photos and words now.
+                    reset();
+                    onSplit!(splitCandidate, content);
+                  }}>
                   {tn("studio.flow.splitYes", splitCandidate.length, { count: String(splitCandidate.length) })}
                 </button>
               </div>
