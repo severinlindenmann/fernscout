@@ -4617,6 +4617,7 @@
   "billing.tileAiDaysWindow": "{days} giorni IA in {window} giorni",
   "billing.tilePostcards": "{count} cartoline",
   "billing.tilePostcards.one": "1 cartolina",
+  "billing.plusCheckoutSubmitText": "Plus si rinnova automaticamente ogni anno. Annulla in qualsiasi momento dallo studio del tuo diario — senza costi, senza chiamate.",
   "plans.cellPlusPayTwint": "Carta o TWINT, ogni anno",
   "agent.speechAiDaysUsedUp": "I tuoi giorni di IA per questo piano sono esauriti.",
   "photobook.first.describe.receiptDays": "{count} foto descritte.",

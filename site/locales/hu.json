@@ -4614,6 +4614,7 @@
   "billing.tileAiDaysWindow": "{days} MI-utazási nap {window} nap alatt",
   "billing.tilePostcards": "{count} képeslap",
   "billing.tilePostcards.one": "1 képeslap",
+  "billing.plusCheckoutSubmitText": "A Plus minden évben automatikusan megújul. Bármikor lemondhatod a naplód studiójából — díj és telefonhívás nélkül.",
   "plans.cellPlusPayTwint": "Kártya vagy TWINT, évente",
   "agent.speechAiDaysUsedUp": "Elfogytak a csomagodhoz tartozó AI-napok.",
   "photobook.first.describe.receiptDays": "{count} fénykép leírva.",

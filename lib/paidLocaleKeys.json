@@ -47,6 +47,7 @@
     "billing.paymentFailed.preheader",
     "billing.paymentFailed.subject",
     "billing.paymentFailed.title",
+    "billing.plusCheckoutSubmitText",
     "billing.receipt.body",
     "billing.receipt.footer",
     "billing.receipt.preheader",
