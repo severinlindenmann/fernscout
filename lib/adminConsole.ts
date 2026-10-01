@@ -6,8 +6,6 @@ import { readBackupStatus, type BackupStatus } from "./backupStatus";
 import { basemapProblem } from "./basemap";
 import { resolveCapabilities } from "./capabilities";
 import { contentRoot } from "./contentRoot";
-import { creditsFromUnits } from "./creditsFormat";
-import { MIN_CREDITS } from "@paid/credits/lib/credits/pricing";
 import { getDatabaseOrNull } from "./db";
 import { collectStatus, type StatusReport } from "./statusReport";
 import { contentRootProblem, getUsernames } from "./users";
@@ -136,47 +134,6 @@ export function takingsBreakdown(paid: Payment[], awaiting: Payment[]): Takings 
 /* ------------------------------------------------------------------ *
  * One query for the whole instance, rather than one per journal
  * ------------------------------------------------------------------ */
-
-/**
- * Why every journal spent what it spent, in one query — B996.
- *
- * The console renders all thirty-five journal panels on the server so that
- * opening one costs no request. `spentByReason(owner)` would therefore be
- * thirty-five round trips for a page nobody has scrolled yet, and
- * `listPayments(owner)` another thirty-five. Both are the same `GROUP BY` with
- * the owner left in, so both are one query — which is the whole difference
- * between a page that opens and a page you wait for.
- *
- * Refunds of purchases are left out for the same reason `spentByReason` leaves
- * them out: giving money back is not a thing the journal spent credits on.
- *
- * **Hundredths in the table, credits out** — the same boundary `balanceOf` and
- * `spentByReason` are, since B987. A sum of `delta` read straight out is a
- * hundred times what a person would say.
- */
-export async function spendByReasonAll(): Promise<Record<string, { reason: string; credits: number }[]>> {
-  const handle = await getDatabaseOrNull();
-  if (!handle) return {};
-  try {
-    const rows = await handle.db
-      .selectFrom("credit_ledger")
-      .select(({ fn }) => ["owner_id", "reason", fn.sum<number>("delta").as("total")])
-      .where("delta", "<", 0)
-      .where("reason", "!=", "purchase_refund")
-      .groupBy(["owner_id", "reason"])
-      .execute();
-    const found: Record<string, { reason: string; credits: number }[]> = {};
-    for (const row of rows) {
-      const credits = creditsFromUnits(Math.abs(Number(row.total ?? 0)));
-      if (credits === 0) continue;
-      (found[row.owner_id] ??= []).push({ reason: row.reason, credits });
-    }
-    for (const list of Object.values(found)) list.sort((a, b) => b.credits - a.credits);
-    return found;
-  } catch {
-    return {};
-  }
-}
 
 /** Every journal's purchases, newest first, in one query — see above. */
 export async function paymentsByOwner(): Promise<Record<string, Payment[]>> {
@@ -942,7 +899,7 @@ export type Attend = {
    */
   id: string;
   /** The kind, which is also the order these are shown in. */
-  kind: "approve" | "fault" | "backup" | "disk" | "credits";
+  kind: "approve" | "fault" | "backup" | "disk";
   title: string;
   detail: string;
   /** The right-hand stamp: how long it has been like this. */
@@ -966,7 +923,7 @@ export type Attend = {
  *  afternoon's worth. */
 const DISK_FULL = 0.9;
 
-const ORDER: Attend["kind"][] = ["approve", "fault", "backup", "disk", "credits"];
+const ORDER: Attend["kind"][] = ["approve", "fault", "backup", "disk"];
 
 /** Whole days between then and now, for a stamp rather than a duration. */
 function daysSince(when: string | null, now: Date): number | null {
@@ -989,8 +946,8 @@ function daysSince(when: string | null, now: Date): number | null {
  *
  * Pure, over what the page already fetched, so it costs no query and is
  * checkable without a database or a browser. It **shows and never acts**:
- * `lib/credits.ts`'s property 1 stands, and the token that approves a purchase
- * sits in a mailbox precisely so that it is not in a browser tab.
+ * the token that approves a purchase sits in a mailbox precisely so that it
+ * is not in a browser tab.
  *
  * Ordered by kind rather than by age. A purchase is somebody's money today and
  * a stale backup is only ever bad news later; sorting by how long each had
@@ -1003,7 +960,6 @@ export function attention(input: {
   troubles: Trouble[];
   journals: StatusReport["journals"];
   ceiling: number | null;
-  balances: { username: string; balance: number | null; granted: number }[];
   now?: Date;
 }): Attend[] {
   const now = input.now ?? new Date();
@@ -1084,27 +1040,6 @@ export function attention(input: {
         age: "measured",
       });
     }
-  }
-
-  // Granted-and-nearly-spent rather than merely low: a journal that was never
-  // given anything has not run out of anything, and saying it had would be an
-  // alarm about somebody who has done nothing.
-  const empty = input.balances.filter(
-    (row) => row.balance !== null && row.granted > 0 && row.balance < MIN_CREDITS,
-  );
-  if (empty.length > 0) {
-    const named = empty.slice(0, 4).map((row) => row.username).join(", ");
-    found.push({
-      id: "credits",
-      // How many are under the floor. One more journal running out is a new
-      // person who cannot send, and shows through an acknowledgement of the
-      // ones before them.
-      level: empty.length,
-      kind: "credits",
-      title: `${empty.length} ${empty.length === 1 ? "journal has" : "journals have"} less than one purchase's worth left`,
-      detail: `${named}${empty.length > 4 ? ` and ${empty.length - 4} more` : ""} · under ${MIN_CREDITS} credits, which is the smallest amount anybody can buy.`,
-      age: "now",
-    });
   }
 
   return found.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind));
