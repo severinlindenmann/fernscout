@@ -176,6 +176,19 @@ export async function findActiveContactId(
 export async function subscribersFor(
   trip: Trip,
   entry?: { test?: boolean; visibility?: PhotoVisibility },
+  /** TIX-6 — tell only these readers (the owner's chosen reader groups, as
+   *  contact ids). It only ever narrows: the owner's own devices stay, and an
+   *  anonymous subscriber, who is in no group, is left out. */
+  onlyContacts?: ReadonlySet<string>,
+): Promise<StoredSubscription[]> {
+  const subs = await everySubscriberFor(trip, entry);
+  if (!onlyContacts) return subs;
+  return subs.filter((sub) => sub.isOwner === true || (sub.contactId != null && onlyContacts.has(sub.contactId)));
+}
+
+async function everySubscriberFor(
+  trip: Trip,
+  entry?: { test?: boolean; visibility?: PhotoVisibility },
 ): Promise<StoredSubscription[]> {
   // Nobody lived it, so nobody is told about it — checked before `isOpenToLink`,
   // because a test trip is usually `public` and would sail past it (B70).
