@@ -63,6 +63,7 @@ export default function TellWho({
   const choices = [...tell.groups.map((g) => ({ key: g.id, name: g.name, group: g as TellGroup | null })), { key: NO_GROUP, name: t("readers.groups.none"), group: null }];
 
   if (!tell.pushOn && !tell.mailOn) return <p>{t("studio.publish.tellOffServer")}</p>;
+  if (tell.people.length === 0 && tell.anonymousPush === 0) return <p>{t("studio.publish.tellNoReaders")}</p>;
 
   return (
     <div className="space-y-2">

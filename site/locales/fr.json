@@ -966,6 +966,7 @@
   "studio.publish.tellSummary": "Publier prévient {count} personnes.",
   "studio.publish.tellSummary.one": "Publier prévient 1 personne.",
   "studio.publish.tellNobody": "Publier ne prévient personne : personne parmi ton choix n’a activé les notifications ou l’e-mail.",
+  "studio.publish.tellNoReaders": "Personne pour l’instant : aucun lecteur n’a activé les notifications ou l’e-mail.",
   "studio.publish.question": "Publier « {title} » ? Tu pourras le retirer plus tard ; cela l’enlève du site, mais pas chez ceux qui l’ont déjà lu.",
   "studio.publish.confirm": "Publier ce jour",
   "studio.publish.offline": "La publication a besoin d’une connexion — réessaie une fois de retour en ligne.",

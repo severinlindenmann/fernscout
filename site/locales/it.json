@@ -966,6 +966,7 @@
   "studio.publish.tellSummary": "Pubblicando avvisi {count} persone.",
   "studio.publish.tellSummary.one": "Pubblicando avvisi 1 persona.",
   "studio.publish.tellNobody": "Pubblicando non avvisi nessuno: nessuno tra quelli scelti ha attivato notifiche o email.",
+  "studio.publish.tellNoReaders": "Ancora nessuno: nessun lettore ha attivato notifiche o e-mail.",
   "studio.publish.question": "Pubblicare «{title}»? Potrai toglierlo più tardi: questo lo rimuove dal sito, non da chi l’ha già letto.",
   "studio.publish.confirm": "Pubblica questo giorno",
   "studio.publish.offline": "La pubblicazione ha bisogno di una connessione — riprova quando sei di nuovo online.",

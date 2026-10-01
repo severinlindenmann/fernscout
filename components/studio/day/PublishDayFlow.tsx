@@ -61,6 +61,7 @@ export default function PublishDayFlow({
   tell = null,
   also = [],
   blank = [],
+  chosenBlank = blank,
   readers = null,
 }: {
   username: string;
@@ -73,9 +74,11 @@ export default function PublishDayFlow({
    *  chose last time on this trip. Null on the take-down list. */
   tell?: (TellProps & { choice: { groups: string[] | null; mail: boolean } | null }) | null;
   /** TIX-2 — more parts of the chosen date, going up together with it. */
-  also?: PublishRow[];
+  also?: (PublishRow & { blank: string[] })[];
   /** B2192 — the chosen draft's declinables still blank (`blankFieldsOf`). */
   blank?: string[];
+  /** TIX-2 — the chosen part's own blanks when `blank` covers several parts. */
+  chosenBlank?: string[];
   /** B2192 — its readers by name (`readersOf`); `null` where it is "anyone". */
   readers?: string[] | null;
 }) {
@@ -121,7 +124,7 @@ export default function PublishDayFlow({
     const url = `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(row.tripId)}/days/${encodeURIComponent(row.slug)}/${takeDown ? "unpublish" : "publish"}`;
     // The blanks this sheet named — the server checks each is really blank.
     // `visibility` is never sent: the studio does not answer it by leaving it.
-    const declineOpen = takeDown ? [] : blank.filter((field) => field !== "visibility");
+    const declineOpen = takeDown ? [] : chosenBlank.filter((field) => field !== "visibility");
     const body = JSON.stringify({
       ...(declineOpen.length > 0 ? { declineOpen } : {}),
       ...(!takeDown && tell ? { tell: { groups: tellGroups, mail: tellMail && (counts?.mailable ?? 0) > 0 } } : {}),
@@ -132,7 +135,10 @@ export default function PublishDayFlow({
     for (const extra of takeDown ? [] : also) {
       const quiet = await fetch(
         `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(extra.tripId)}/days/${encodeURIComponent(extra.slug)}/publish`,
-        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(tell ? { tell: { groups: [], mail: false } } : {}) },
+        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+          ...(extra.blank.some((f) => f !== "visibility") ? { declineOpen: extra.blank.filter((f) => f !== "visibility") } : {}),
+          ...(tell ? { tell: { groups: [], mail: false } } : {}),
+        }) },
       ).catch(() => null);
       if (!quiet?.ok) {
         setBusy(false);
@@ -216,7 +222,7 @@ export default function PublishDayFlow({
             <p className="font-semibold text-ink-strong">{tn("studio.publish.parts", also.length + 1, { count: String(also.length + 1) })}</p>
             <ul className="mt-1 list-disc pl-5">
               {[chosen, ...also].map((row) => (
-                <li key={row.slug}>{nameOf(row)}</li>
+                <li key={row.slug}>{[row.time, nameOf(row)].filter(Boolean).join(" · ")}</li>
               ))}
             </ul>
           </div>

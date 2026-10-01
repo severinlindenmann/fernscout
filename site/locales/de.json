@@ -966,6 +966,7 @@
   "studio.publish.tellSummary": "Beim Veröffentlichen bekommen {count} Personen Bescheid.",
   "studio.publish.tellSummary.one": "Beim Veröffentlichen bekommt 1 Person Bescheid.",
   "studio.publish.tellNobody": "Beim Veröffentlichen bekommt niemand Bescheid: Bei niemandem, den du gewählt hast, sind App-Benachrichtigungen oder E-Mail an.",
+  "studio.publish.tellNoReaders": "Noch niemand: Kein Leser hat App-Mitteilungen oder E-Mail an.",
   "studio.publish.question": "„{title}“ veröffentlichen? Du kannst ihn später wieder herunternehmen; dann ist er von der Seite weg, nicht aber bei denen, die ihn schon gelesen haben.",
   "studio.publish.confirm": "Diesen Tag veröffentlichen",
   "studio.publish.offline": "Zum Veröffentlichen brauchst du eine Verbindung — versuch es erneut, sobald du wieder online bist.",

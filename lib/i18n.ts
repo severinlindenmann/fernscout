@@ -4186,6 +4186,7 @@ export type TranslationKey =
   | "studio.publish.tellGroupsLabel"
   | "studio.publish.tellMail"
   | "studio.publish.tellMail.one"
+  | "studio.publish.tellNoReaders"
   | "studio.publish.tellNobody"
   | "studio.publish.tellOffServer"
   | "studio.publish.tellPush"

@@ -966,6 +966,7 @@
   "studio.publish.tellSummary": "Publishing tells {count} people.",
   "studio.publish.tellSummary.one": "Publishing tells 1 person.",
   "studio.publish.tellNobody": "Publishing tells nobody: nobody you chose has app notifications or email on.",
+  "studio.publish.tellNoReaders": "Nobody yet: no reader has app notifications or email on.",
   "studio.publish.question": "Publish “{title}”? You can take it down later; that removes it from the site, not from anyone who has already read it.",
   "studio.publish.confirm": "Publish this day",
   "studio.publish.offline": "Publishing needs a connection — try again once you are back online.",
