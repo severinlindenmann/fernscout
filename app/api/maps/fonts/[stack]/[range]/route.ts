@@ -16,10 +16,13 @@ import { resolveFontFile } from "@/lib/maps/dir";
  * pmtiles/worker routes are — nothing here is reachable unless that
  * capability is already on.
  */
-const EMPTY_HEADERS = {
+const HEADERS = {
   "Content-Type": "application/x-protobuf",
   "Cache-Control": "public, max-age=86400",
 };
+/** An empty answer is kept only briefly: a range downloaded later, or a
+ * fixed route (B2642), should not wait a day to reach a reader. */
+const EMPTY_HEADERS = { ...HEADERS, "Cache-Control": "public, max-age=300" };
 
 export async function GET(
   _request: Request,
@@ -36,7 +39,7 @@ export async function GET(
   try {
     const body = fs.readFileSync(file);
     return new Response(new Uint8Array(body), {
-      headers: { ...EMPTY_HEADERS, "Content-Length": String(body.byteLength) },
+      headers: { ...HEADERS, "Content-Length": String(body.byteLength) },
     });
   } catch {
     return new Response(new Uint8Array(), { status: 200, headers: EMPTY_HEADERS });

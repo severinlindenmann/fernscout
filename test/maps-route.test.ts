@@ -142,6 +142,8 @@ test("glyph route: an unknown range answers an empty 200, never a 404", async ()
   expect(res.status).toBe(200);
   expect(res.headers.get("content-type")).toBe("application/x-protobuf");
   expect(await res.arrayBuffer()).toEqual(new ArrayBuffer(0));
+  // Short-lived, so a range added later is not hidden behind a cached blank.
+  expect(res.headers.get("cache-control")).toBe("public, max-age=300");
 });
 
 test("glyph route: never serves outside MAPS_DIR/fonts or public/fonts", async () => {
