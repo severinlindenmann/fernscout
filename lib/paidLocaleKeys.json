@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "dc1a7326cb6965b30428fd8b71c714e49750222d",
+  "generatedFrom": "fb06ed63e78fb915dc9e07bd190450c0c3f4b430",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -358,6 +358,7 @@
     "photobook.order.step.see",
     "photobook.orderHeading",
     "photobook.orderNext",
+    "photobook.orderNextSample",
     "photobook.page.desc.analytics",
     "photobook.page.desc.chapter",
     "photobook.page.desc.costs",

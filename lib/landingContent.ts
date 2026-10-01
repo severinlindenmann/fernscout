@@ -18,6 +18,16 @@ export type LandingFlags = {
   inviteCta: "request" | "welcome";
   planPoint?: string | null;
   planFaq?: { q: string; a: string }[];
+  /**
+   * Reading this page from inside the iPhone shell — B2659. The server (and
+   * `lib/landingMarkdown.ts`'s plain-text export, which never runs inside
+   * anything) has no way to know and defaults to `false`;
+   * `SignedOut.tsx`'s own `Hero` is the one caller that asks `useNativeShell()`
+   * and can say `true`. "No app" is the lede's actual selling point on the
+   * web — false, not merely untrue-to-nobody, for somebody reading it
+   * inside the very app it denies having.
+   */
+  nativeShell?: boolean;
 };
 
 export type Item = { title: string; body: string };
@@ -26,7 +36,15 @@ export function landingHero(t: LandingT, f: LandingFlags) {
   return {
     kicker: t("landing.heroKicker"),
     title: t("landing.hero"),
-    lede: t(f.photobook ? "landing.ledeBook" : "landing.lede"),
+    lede: t(
+      f.nativeShell
+        ? f.photobook
+          ? "landing.ledeBookApp"
+          : "landing.ledeApp"
+        : f.photobook
+          ? "landing.ledeBook"
+          : "landing.lede",
+    ),
     points: [f.planPoint, t("landing.pointPrivate"), t("landing.pointExport")].filter((p): p is string => Boolean(p)),
   };
 }
