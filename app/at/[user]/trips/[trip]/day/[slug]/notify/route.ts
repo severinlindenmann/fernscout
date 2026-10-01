@@ -1,5 +1,4 @@
 import { isTestContent } from "@/lib/access";
-import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { isOwner } from "@/lib/contacts/session";
 import { mailSummary } from "@/lib/api/dayMail";
 import {
@@ -34,17 +33,16 @@ export const dynamic = "force-dynamic";
  * - **The owner's cookie only.** `isOwner` is called *without* the request —
  *   the same difference that matters on the postcard route — and a request
  *   carrying `Authorization` is refused outright rather than falling through.
- * - **Quotes before it spends.** `GET` answers what pressing the button would
- *   cost and what is left after, without sending anything; `POST` refuses
- *   outright, spending nothing, if the balance is short of that.
+ * - **Quotes before it sends.** `GET` answers what pressing the button
+ *   would do, without sending anything.
  */
 
 type StatusError = "unknown_trip" | "unknown_day" | "not_published" | "test_content";
 
 /** One channel a press of the button would use, and what it would do — B1024.
  *  Before this the route answered with bare channel names, so the panel could
- *  quote a price and could not say who was about to be written to. */
-type PendingChannel = { channel: NotifyChannel; count: number; cost: number };
+ *  not say who was about to be written to. */
+type PendingChannel = { channel: NotifyChannel; count: number };
 
 type Status =
   | { error: StatusError }
@@ -57,19 +55,13 @@ type Status =
        * reachable at all; the two are told apart by `reachable` below.
        *
        * Each carries what pressing the button would do on that channel —
-       * B1024. `count` is how many messages go out, `cost` is what they come
-       * to; for WhatsApp the two differ by the owner's own free copy, which
-       * is a message nobody is charged for. The panel needs both, and the
-       * server has already worked both out to answer `needed`. */
+       * B1024. `count` is how many messages go out. */
       pending: PendingChannel[];
       /** Whether any channel is configured for this journal at all — false
        * means there is nothing this button could ever do, whatever is
        * notified, and the page should show no button rather than a dead
        * one. */
       reachable: boolean;
-      needed: number;
-      balance: number | null;
-      short: boolean;
     };
 
 async function statusFor(owner: string, tripParam: string, slug: string): Promise<Status> {
@@ -91,20 +83,10 @@ async function statusFor(owner: string, tripParam: string, slug: string): Promis
   const pending = CHANNELS.filter((c) => !already.has(c) && channelEnabled(c, owner));
 
   const detailed: PendingChannel[] = await Promise.all(
-    pending.map(async (channel) => ({ channel, count: await mailWouldReach(owner, ref, slug), cost: 0 })),
+    pending.map(async (channel) => ({ channel, count: await mailWouldReach(owner, ref, slug) })),
   );
-  const needed = detailed.reduce((sum, c) => sum + c.cost, 0);
-  const balance = creditsEnabled() ? await balanceOf(owner) : null;
 
-  return {
-    ref,
-    trip,
-    pending: detailed,
-    reachable,
-    needed,
-    balance,
-    short: balance !== null && needed > balance,
-  };
+  return { ref, trip, pending: detailed, reachable };
 }
 
 const NOT_FOR_AGENTS = {
@@ -120,7 +102,7 @@ function statusCode(reason: StatusError): number {
 }
 
 /**
- * This answer is one owner's, and it carries their balance — B1042.
+ * This answer is one owner's — B1042.
  *
  * The same header every other owner-only route under `app/at/[user]/` sends, and
  * it was the only one not sending it. The omission was invisible until the
@@ -159,9 +141,6 @@ export async function GET(
       reachable: status.reachable,
       alreadySent: status.reachable && status.pending.length === 0,
       pending: status.pending,
-      needed: status.needed,
-      balance: status.balance,
-      short: status.short,
     },
     { headers: PRIVATE },
   );
@@ -191,29 +170,13 @@ export async function POST(
     return Response.json({ ok: true, alreadySent: true });
   }
 
-  // The precheck — B366's rule restated for one button: refuse before
-  // spending anything, never discover the shortfall mid-send.
-  if (status.short) {
-    return Response.json(
-      {
-        error: "no_credits",
-        needed: status.needed,
-        balance: status.balance,
-        message:
-          `Sending this day would take ${status.needed} credit(s); this journal has ` +
-          `${status.balance} left. Nothing was sent.`,
-      },
-      { status: 402 },
-    );
-  }
-
   /*
    * Claim each channel before sending it — the double-press guard.
    *
    * Two POSTs a heartbeat apart both run `statusFor` above and both see
-   * "mail" as pending, both pass the credit precheck, and both would
-   * otherwise call `sendDayLetter` — spending twice and mailing the whole
-   * readership twice, which is exactly the failure this button exists to
+   * "mail" as pending, and both would otherwise call `sendDayLetter` —
+   * mailing the whole readership twice, which is exactly the failure this
+   * button exists to
    * rule out (`lib/digest/dayNotify.ts`'s `claimChannel` doc comment has the
    * full reasoning, and it is `claimForSend` in `paid/postcard/lib/postcard/orders.ts`'s
    * own pattern). Only the request that wins the claim on a given channel

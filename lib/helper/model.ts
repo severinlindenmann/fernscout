@@ -66,9 +66,9 @@ export const HELPER_MODEL = "claude-haiku-4-5";
 export const HELPER_PROVIDER = "Anthropic";
 
 /** What one call to `POST .../travellers/from-photo` costs — B1517. Priced
- *  per call rather than per face, the same as `WRITE_DAY_CREDITS`: a group
- *  photo of a whole family is the point, and charging by the figure would
- *  tax exactly the case this exists for. */
+ *  per call rather than per face: a group photo of a whole family is the
+ *  point, and charging by the figure would tax exactly the case this exists
+ *  for. */
 export const TRAVELLERS_FROM_PHOTO_CREDITS = 2;
 
 /**
@@ -667,13 +667,9 @@ export async function writeDay(
  * row here. One request for the whole file, whatever its length, and the rows
  * nobody sampled never leave the machine at all.
  *
- * It is one credit for the same reason it is one request: the price is the
- * call, not the file, so a longer statement does not cost more.
+ * One request for the whole file, whatever its length, is also why it takes
+ * no AI day of its own (B2591) — the price is the call, not the file.
  * ---------------------------------------------------------------------- */
-
-/** What reading a statement's columns costs. One call, one credit, whatever
- *  the file's length — the button says so before the tap. */
-export const STATEMENT_CREDITS = 1;
 
 /**
  * The mapping prompt. Like the two above it, **this is the product.**
@@ -1056,7 +1052,7 @@ WHAT YOU STILL CANNOT DO, AND WHAT TO SAY INSTEAD
 
 - Deleting a day, a trip or the whole journal: not from here at all, and there is no tool for it. Deleting a journal or a trip finishes in their email — the server sends a single-use link to a page with a button, and only that button deletes. Taking a day off the site is not deleting: that is unpublish_day, and nothing is lost by it.
 - Receiving a file. add_photos tells them to send it here in the conversation, where it waits until a day is named; remove_photo takes one back off again.
-- Finishing anything that costs money or reaches a printer. propose_postcards writes a real order that is still waiting, and photobook hands over the maker's own page; both end at a button on their journal, not here. buy_credits is a link for the same reason.
+- Finishing anything that costs money or reaches a printer. propose_postcards writes a real order that is still waiting, and photobook hands over the maker's own page; both end at a button on their journal, not here.
 
 WHAT YOU MUST NEVER DO
 
@@ -1908,11 +1904,6 @@ function datesIn(value: unknown): string[] {
   return [];
 }
 
-/** A sentence that is *about* the journal's own credits \u2014 English, German,
- *  Hungarian \u2014 B1029. Gates `VAGUE_CREDITS_RETRY` to answers that actually
- *  raise the subject, so `account`'s other figure (storage) never trips it. */
-const CREDITS_WORD = /\bcredits?\b|\bguthaben\b|\bkredit\w*\b|\begyenleg\w*\b/i;
-
 /**
  * True when this text states what something adds up to.
  *
@@ -2165,20 +2156,6 @@ const MISDATED_RETRY = `Stop. Your last answer named a date that nothing this tu
 const DROPPED_RETRY = `Stop. Look at their message again — it asked for more than one thing, and your answer only shows what happened with one of them. Nothing said what became of the rest: whether you did it, correctly refused it, or have not gotten to it yet.
 
 Answer again with every part: keep what you already did (or rightly refused) for the first, and now either act on the rest with a tool or say plainly that you have not gotten to it yet. Never let part of what somebody asked disappear without a word — they asked more than one thing and have no way to know whether the rest was refused, forgotten, or still coming.`;
-
-/**
- * What the model is told when it spoke about credits without saying how
- * many, on a turn that read the exact number — B1029.
- *
- * `account` had already answered with a real figure; the sentence about it
- * was still vague ("you have credits remaining"). Not false, only vaguer
- * than the truth the turn was holding — the same shape B963's `INVENTED_RETRY`
- * guards from the other side (a figure with no source), mirrored here for a
- * figure with a source that went unused.
- */
-const VAGUE_CREDITS_RETRY = `Stop. Your last answer talked about their credits without saying how many, and account gave you the exact number this turn. A vaguer answer than the one you actually have is not a kindness — say the figure.
-
-Answer again with the number account returned, plainly.`;
 
 /**
  * A date format, which is never something to say to a person — B1041.
@@ -2491,17 +2468,6 @@ export async function answerInThread(
    */
   let postcardRecipientsEmpty = false;
   /**
-   * The exact credit figure `account` returned this turn, so a vague answer
-   * about it can be checked against the number the turn actually read —
-   * B1029.
-   *
-   * `undefined` when `account` was not called this turn — nothing to check
-   * an answer against. `null` when it was called and this journal is not
-   * metered (`credits: null`) — there is no figure to have withheld. A
-   * number otherwise: the one `account` actually returned.
-   */
-  let accountCredits: number | null | undefined;
-  /**
    * Whether `read_day` was read this turn and the day it found carries
    * neither a caption nor a coordinate — B1563.
    *
@@ -2707,10 +2673,6 @@ export async function answerInThread(
           // here, and is said about money, was invented.
           for (const number of numbersIn(result)) counted.push(number);
         }
-        if (call.name === "account") {
-          const said = result as { credits?: unknown } | null;
-          accountCredits = typeof said?.credits === "number" ? said.credits : null;
-        }
         if (call.name === "postcard_recipients") {
           const said = result as { available?: boolean; recipients?: unknown[] } | null;
           postcardRecipientsEmpty = said?.available === true && (said.recipients?.length ?? 0) === 0;
@@ -2801,8 +2763,8 @@ export async function answerInThread(
   /**
    * Figures in a sentence, next to a currency — B963.
    *
-   * Only currency-adjacent numbers, so a date, a day count or a credit balance
-   * is not mistaken for money.
+   * Only currency-adjacent numbers, so a date or a day count is not mistaken
+   * for money.
    */
   function moneyIn(text: string): number[] {
     const found: number[] = [];
@@ -2832,8 +2794,7 @@ export async function answerInThread(
     | "misdated"
     | "dropped"
     | "fields"
-    | "list"
-    | "vague" {
+    | "list" {
     // B1237 — checked first and unconditionally on WhatsApp, because a
     // screen or a page is never there on this channel whether or not a
     // proposal is. Every other claim below is checked against what the turn
@@ -2953,25 +2914,6 @@ export async function answerInThread(
       if (misdated.length > 0) return "misdated";
     }
     /**
-     * A figure `account` actually returned, said about with no digit at all
-     * instead of plainly — B1029. Gated on the answer talking about credits,
-     * so this never fires on a turn that called `account` for its storage
-     * figures alone and had no reason to name a balance.
-     *
-     * **No digit at all, not a wrong one.** A number close to but not equal
-     * to what `account` returned is a different fault this ticket did not
-     * ask for (there is no tolerance for rounding the way B963's money check
-     * has one, and a turn's own flat per-turn spend means the true balance
-     * moves by a fraction between the read and the sentence — see
-     * `test/helper-thread.test.ts`'s own "10 Credits" vs. `9.98` case).
-     * Catching *that* would need the same tolerance `INVENTED_RETRY` already
-     * has for money; this check is only for the answer that named no number
-     * whatsoever.
-     */
-    if (accountCredits !== undefined && accountCredits !== null && CREDITS_WORD.test(answer) && !/\d/.test(answer)) {
-      return "vague";
-    }
-    /**
      * A question that rode along with a change and never got an answer —
      * B952. Checked against what this turn did, not against the answer's own
      * words: a write tool fired, a fact-seeking word was in what they typed,
@@ -3078,7 +3020,6 @@ export async function answerInThread(
     invented: INVENTED_RETRY,
     misdated: MISDATED_RETRY,
     dropped: DROPPED_RETRY,
-    vague: VAGUE_CREDITS_RETRY,
   };
   /**
    * What is said when the model could not be made to say something true.
@@ -3110,7 +3051,6 @@ export async function answerInThread(
     // B1161 — the rows are already drawn, so the honest fallback is the
     // shortest sentence there is: look at them.
     list: "agent.theListIsAbove",
-    vague: "agent.hasTheFigure",
   } as const;
 
   const wrong = amiss();

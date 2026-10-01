@@ -67,7 +67,7 @@ beforeEach(() => {
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
+      features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
   writeTripFixture("alex", {

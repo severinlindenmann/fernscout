@@ -46,7 +46,6 @@ export const FEATURE_NAMES = [
   "postcards",
   "photobook",
   "logging",
-  "credits",
   "addressLookup",
   "weather",
   "analytics",
@@ -95,12 +94,12 @@ export type FeatureName = (typeof FEATURE_NAMES)[number];
  * the operator, for the whole instance. Every reader of a journal's `features`
  * has to skip the raw per-journal flag for exactly these and ask
  * `resolveCapabilities()` instead; exported so that skip is written once
- * rather than as a repeated `name === "logging" || name === "credits"`. See
+ * rather than as a repeated `name === "logging"` check. See
  * `journalFeatures()` in lib/journals.ts, which is the one place that builds
  * the map itself — B408, B607.
  *
- * `logging` (B257) and `credits` (B366) were the first two, and are not
- * per-journal *questions* at all. **`photobook` and `postcards` join them in
+ * `logging` (B257) was the first, and is not a per-journal *question* at
+ * all. **`photobook` and `postcards` join it in
  * B611**, which is a stronger claim: they are questions, they were asked of
  * the journal, and asking was wrong. They spend the operator's money at a
  * printer, so a journal has nothing to consent to — and the cost of asking was
@@ -123,7 +122,6 @@ export type FeatureName = (typeof FEATURE_NAMES)[number];
  */
 export const OPERATOR_ONLY_FEATURES = [
   "logging",
-  "credits",
   "photobook",
   "postcards",
   // B684. The same claim the two printing capabilities make, one supplier
@@ -179,9 +177,8 @@ export const OPERATOR_ONLY_FEATURES = [
   // with a username) drew no streets for any journal while the map page,
   // asking the server alone, did.
   "streetMaps",
-  // B2590. The instance's own decision to meter at all — the same posture as
-  // `credits` above: a plan is billed to the operator's own Stripe/Apple
-  // account, not chosen per journal.
+  // B2590. The instance's own decision to meter at all — a plan is billed
+  // to the operator's own Stripe/Apple account, not chosen per journal.
   "billing",
 ] as const satisfies readonly FeatureName[];
 
@@ -468,12 +465,12 @@ export type ServerConfig = {
      */
     showcase: string[];
     /**
-     * The instance admin who approves credit purchases while there is no
+     * The instance admin who approves a purchase by hand while there is no
      * payment provider (B425). The accept link for every purchase is mailed
      * here and nowhere else — never to the buying journal's owner, because an
-     * owner who could approve their own purchase would mint free credits. An
+     * owner who could approve their own purchase would mint a free print. An
      * address, not a secret, so it lives here; absent means purchases record a
-     * request that only the CLI (`npm run credits -- grant`) can then fulfil.
+     * request only an operator with a shell can then fulfil.
      */
     operatorEmail?: string;
   };
@@ -495,7 +492,7 @@ export type ServerConfig = {
    * cost of nothing, which is honest — an invented default price would read
    * as a measurement.
    *
-   * All money is in **rappen**, integer, the same rule `paid/credits/lib/credits/pricing.ts`
+   * All money is in **rappen**, integer, the same rule `paid/photobook/lib/photobook/checkoutPricing.ts`
    * keeps: never a float for money.
    */
   costs: CostConfig;
@@ -623,19 +620,6 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // opt-in (B257), so this is never narrowed by a user's own config.json —
   // see the exclusion in app/api/health/route.ts.
   logging: { enabled: false },
-  // B366. Server-only, like `logging` above and for a sharper reason: this
-  // decides whether a send is charged, and the money lands on the operator's
-  // card rather than the journal's. A per-journal opt-in would mean nobody is
-  // charged until they ask to be; a per-journal opt-out would let a journal
-  // decline the bill for sends it still makes. So it is never asked with a
-  // username — see `creditsEnabled()` in lib/credits.ts.
-  //
-  // Off means today's behaviour exactly — no debit, no refusal, no
-  // panel — because a fresh clone of this repository starts every journal at
-  // zero credits, and a clone that cannot send a single letter is a broken
-  // checkout rather than a business model. The operator switches it on where
-  // sends are actually being paid for.
-  credits: { enabled: false },
   // B399. Off by default like every optional capability, and the one
   // provider that needs no key (`photon`, no signup at all) is the default —
   // AGENTS.md's rule that nothing here may require a paid account to
@@ -658,17 +642,16 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // instance the imprint used to describe: no row is written, the page is not
   // there, and nothing about a reader is hashed, because the hash is only
   // computed on the recording path. A journal opts in for itself — unlike
-  // `logging` and `credits`, which are the operator's alone, this is the
+  // `logging`, which is the operator's alone, this is the
   // owner's question about their own readers, and the answer is theirs to
   // decline. Needs a database: these are rows, and a journal with no
   // DATABASE_URL gets no page rather than an empty one.
   analytics: { enabled: false },
   // B684. Off by default like every optional capability, and off means the
   // wizard exactly as B682 shipped it: the button to write a day up is simply
-  // not there, and every other step still works with no model and no credits.
-  // Needs `ANTHROPIC_API_KEY`, a database and `credits` — see
-  // lib/capabilities.ts for why the last of those is a requirement rather
-  // than a nicety.
+  // not there, and every other step still works with no model.
+  // Needs `ANTHROPIC_API_KEY` and a database — see
+  // lib/capabilities.ts.
   helper: { enabled: false },
   // B686. Off by default like every optional capability, and off means no
   // record button anywhere: the wizard and the ask box take typed words
@@ -1128,7 +1111,7 @@ export function parseServerConfig(raw: unknown): ServerConfig {
 }
 
 /** A whole, non-negative number of rappen, or a recorded problem. Money is
- *  never a float here, for the reason `paid/credits/lib/credits/pricing.ts` gives. */
+ *  never a float here, for the reason `paid/photobook/lib/photobook/checkoutPricing.ts` gives. */
 function rappen(value: unknown, where: string, problems: string[]): number {
   if (value === undefined) return 0;
   if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {

@@ -1,9 +1,6 @@
 import "server-only";
-import { createHash } from "node:crypto";
 import path from "node:path";
 import { isEnabled } from "@/lib/capabilities";
-import { creditsForPhotos } from "@/lib/helper/credits";
-import { ledgerHasRef } from "@/lib/credits";
 import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { describeImage, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
@@ -41,31 +38,14 @@ function stagedPath(user: string, runId: string, photoId: string): string {
  * only as durable as the run: if the run expires before the person commits,
  * the caption goes with the staged files it describes.
  *
- * **`ref` is `extract:<runId>:<photoSetHash>`** — Ruling R4, widened by
- * B1751 Task 4.3's R30, kept for `ledgerHasRef`'s idempotency check even
- * though B2591 removed the charge it used to guard: a real row for this
- * exact (owner, reason, ref) would mean a retry of the same set, answered
- * from what is already on the manifest rather than run again — see the
- * check just below for why nothing writes that row any more, and
- * `describedRunFile`'s own per-photo cache for the guard that still holds
- * regardless. `photoSetHash` is a stable hash of the live photo ids actually
- * being described — order independent, since only the *set* changed is
- * meant to matter.
- *
  * **B2591 — no AI day of its own.** This needs an active plan or unused
  * Free days (`mayUseAi`, `@paid/credits/lib/aiDays.ts`) but takes nothing;
- * nothing is charged or given back any more.
+ * nothing is charged or given back. `describedRunFile`'s own per-photo
+ * cache is what keeps a genuine double-tap from reaching the model a second
+ * time (B1751 Task 4.3's R30).
  */
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-/** Order-independent, so adding a photo and dropping it again lands back on
- *  the same ref rather than minting a new one for nothing. 12 hex characters
- *  is short of a full sha256 on purpose — this only has to distinguish sets
- *  within one run, not stand alone as an identifier. */
-function photoSetHash(photoIds: string[]): string {
-  return createHash("sha256").update([...photoIds].sort().join(",")).digest("hex").slice(0, 12);
 }
 
 export async function POST(
@@ -92,8 +72,7 @@ export async function POST(
   const extended = extendOnTouch(manifest, new Date());
   const current = extended ?? manifest;
 
-  // Every photograph still in the run and not dropped — the same population
-  // the credits screen priced when it showed this button.
+  // Every photograph still in the run and not dropped.
   const live = current.photos.filter((p) => p.kind === "image" && !p.dropped);
   if (live.length === 0) return Response.json({ error: "no_photos" }, { status: 400 });
 
@@ -107,31 +86,13 @@ export async function POST(
     (photo) =>
       !describedRunFile(user, runId, photo.id, stagedPath(user, runId, photo.id), locales),
   );
-  const credits = creditsForPhotos(uncached.length);
-  const ref = `extract:${runId}:${photoSetHash(live.map((p) => p.id))}`;
-
-  // A double-tap — a slow connection, a phone that has not visibly
-  // responded yet — is answered from what is already on the manifest
-  // rather than run again. `ledgerHasRef` never actually matches any more
-  // (B2591 removed the write it used to check for), so this is dead in
-  // practice; `describedRunFile`'s own per-photo cache is what still keeps
-  // a genuine double-tap from reaching the model a second time.
-  //
-  // **This checks per PHOTO SET, not per RUN — B1751 Task 4.3, R30.** A
-  // legitimate second `enrich` on the same run, after the person resumed it
-  // and added more photographs, hashes to a different `ref` and is charged
-  // and captioned for real. A true double-tap — same run, same live photos —
-  // hashes to the same `ref` it did the first time and is still answered for
-  // free, from what is already on the manifest.
-  if (await ledgerHasRef(user, "helper", ref)) {
-    const captioned = live.filter((p) => Boolean(p.caption)).length;
-    return Response.json({ ok: true, spent: credits, captioned, provider: HELPER_PROVIDER });
-  }
 
   // B2591 — "enrich" takes no AI day of its own; it just needs an active
   // plan or unused Free days, the same gate `ask`, `transcribe`, `statement`
-  // and the two "people from a photo" routes share.
-  if (credits > 0) {
+  // and the two "people from a photo" routes share. Only checked when there
+  // is something new to send — `describedRunFile`'s own per-photo cache is
+  // what keeps a genuine double-tap from reaching the model a second time.
+  if (uncached.length > 0) {
     const gate = await mayUseAi(user);
     if (!gate.ok) return Response.json(gate.refusal, { status: 402 });
   }
@@ -180,7 +141,7 @@ export async function POST(
 
     writeManifest(user, current);
 
-    const answer = { ok: true, spent: credits, captioned, provider: HELPER_PROVIDER };
+    const answer = { ok: true, captioned, provider: HELPER_PROVIDER };
     return Response.json(answer);
   } catch {
     // Nothing was charged, so there is nothing to give back — a photograph

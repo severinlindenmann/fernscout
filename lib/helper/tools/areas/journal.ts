@@ -1,15 +1,11 @@
 import "server-only";
 import type { Tool } from "../types";
-import { balanceOf, creditsEnabled } from "../../../credits";
-import { formatChf } from "../../../creditsFormat";
-import { creditsInRappen, EXTRA_STORAGE_CREDITS } from "@paid/credits/lib/credits/pricing";
 import { formatBytes, storageFor } from "../../../storageQuota";
 import { cleanupPlan } from "../../../storageCleanup";
 import { isEnabled } from "../../../capabilities";
 import { listSessions } from "../../../auth";
 import { journalProfile } from "../../../journals";
 import { getUser } from "../../../users";
-import { journalPath } from "../../../journalPath";
 // Dynamic, not static — `../../sessions` imports `./consent`, which imports
 // `./model`, which reads `TOOLS` at module scope: a static import here closes
 // that into a cycle and `TOOLS` comes back empty. A call-time import breaks
@@ -19,7 +15,7 @@ async function sessionsOf(username: string) {
 }
 
 /**
- * The journal's own account — credits and room.
+ * The journal's own account — room on disk.
  *
  * One area of the registry — B1042. The tools were a nine-hundred-line array
  * in a single file, which is a file two people cannot edit at once and nobody
@@ -39,18 +35,17 @@ function live(row: { kind: string; revokedAt: string | null; expiresAt: string }
 
 export const JOURNAL_TOOLS: readonly Tool[] = [
   {
-    /** Credits and disk in one answer — the two questions about the account
-     *  itself, which nobody asks one at a time. */
+    /** Disk space used — the one question about the account itself a plan
+     *  does not already answer in the studio's own AI-days chip. */
     name: "account",
     kind: "read",
     renders: "say",
     describe:
-      "This journal's own account: credits left and disk space used. Credits pay for model, captions, transcription and printing, not a trip's money (trip_costs). A null balance means nothing is charged. Bytes only — never where anything is.",
+      "This journal's own disk space used, not a trip's money (trip_costs). Bytes only — never where anything is.",
     properties: {},
     run: async (username) => {
       const usage = await storageFor(username);
       return {
-        credits: await balanceOf(username),
         used: formatBytes(usage.usedBytes),
         limit: usage.limitBytes === null ? null : formatBytes(usage.limitBytes),
         left: usage.remainingBytes === null ? null : formatBytes(usage.remainingBytes),
@@ -125,38 +120,6 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
     },
   },
   {
-    /** The one thing an owner can buy for the journal itself — B661. Spends
-     *  credits, so the cost and the balance are said before the press,
-     *  never after. */
-    name: "buy_room",
-    kind: "write",
-    renders: "confirm",
-    describe: "Buy 5 GB more room for this journal. Spends credits — say the cost and the balance first.",
-    properties: {},
-    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/storage`,
-    propose: async (username, _args, say) => {
-      const price = formatChf(creditsInRappen(EXTRA_STORAGE_CREDITS));
-      return {
-        ...(!creditsEnabled() ? { refuse: "agent.tool.creditsOff" } : {}),
-        sentence: say("agent.tool.buyRoom", { credits: String(EXTRA_STORAGE_CREDITS), price }),
-        accept: say("agent.tool.buyRoomAccept"),
-        done: say("agent.tool.buyRoomDone"),
-        // Minted once, here, and carried through the press as a fixed field
-        // (B1107) rather than read back from the model — a retried press
-        // reuses this same proposal and so this same id, which is what lets
-        // the route (B1659) tell a double-submit from a second purchase.
-        fields: [{ name: "id", value: crypto.randomUUID(), fixed: true }],
-        preview: [
-          say("agent.tool.buyRoomPreview", {
-            credits: String(EXTRA_STORAGE_CREDITS),
-            price,
-            balance: String((await balanceOf(username)) ?? 0),
-          }),
-        ],
-      };
-    },
-  },
-  {
     /** What can write here — B283's list, read out rather than only shown on
      *  `/[user]/me`. Never the tokens themselves: only hashes are stored, so
      *  there is nothing here to leak, and an id is what revoking needs. */
@@ -215,24 +178,6 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
         fields: [{ name: "id", value: id, fixed: true }],
       };
     },
-  },
-  {
-    /**
-     * Where credits are bought — B368. A link, never a call this makes
-     * itself: `POST .../credits/purchase` files a pending transaction and
-     * mails a payment link, and nothing reachable from a conversation may
-     * grant a credit (`lib/credits.ts` property 1). Hand over the page.
-     */
-    name: "buy_credits",
-    kind: "link",
-    renders: "link",
-    describe: "Where to buy more credits. Hands over the page only — nothing here spends money or adds credits.",
-    properties: {},
-    link: (username, _args, say) => ({
-      text: say("agent.tool.buyCredits"),
-      href: `${journalPath(encodeURIComponent(username))}/studio/account`,
-      label: say("agent.tool.buyCreditsLabel"),
-    }),
   },
   {
     /**

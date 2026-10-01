@@ -6,7 +6,6 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { grant } from "@/lib/credits";
 import { resetRateLimitsForTests } from "@/lib/rateLimit";
 import { TOOLS } from "@/lib/helper/tools";
 import { forget, history, wrote } from "@/lib/helper/thread";
@@ -128,7 +127,7 @@ beforeEach(async () => {
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
+      features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
   fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
@@ -160,7 +159,6 @@ beforeEach(async () => {
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
-  await grant("alex", 10);
   await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
 });
 
@@ -1419,50 +1417,6 @@ describe("a compound message caught by the pre-model destroy refusal", () => {
     expect(create).not.toHaveBeenCalled();
     expect(String(answered.body.answer)).toContain("Deleting is not something this conversation can do");
     expect(String(answered.body.answer)).not.toContain("only got to part");
-  });
-});
-
-describe("a vague answer where account already read the exact figure", () => {
-  test("is caught, and a retry that names the number reaches her", async () => {
-    create
-      .mockResolvedValueOnce(calls("account", {}))
-      .mockResolvedValueOnce(says("You have credits remaining."))
-      .mockResolvedValueOnce(says("You have 9.98 credits remaining."));
-    const answered = await read(await ask("how many credits do I have left?"));
-
-    expect(create).toHaveBeenCalledTimes(3);
-    expect(String(answered.body.answer)).toBe("You have 9.98 credits remaining.");
-  });
-
-  test("said twice, she is told plainly that the figure was withheld rather than a second vague brush-off", async () => {
-    create
-      .mockResolvedValueOnce(calls("account", {}))
-      .mockResolvedValueOnce(says("You have credits remaining."))
-      .mockResolvedValueOnce(says("You still have credits remaining."));
-    const answered = await read(await ask("how many credits do I have left?"));
-
-    expect(create).toHaveBeenCalledTimes(3);
-    expect(String(answered.body.answer)).toContain("I actually do have that number");
-  });
-
-  test("account read for something else entirely (storage) is left alone", async () => {
-    create
-      .mockResolvedValueOnce(calls("account", {}))
-      .mockResolvedValueOnce(says("You have plenty of storage left."));
-    const answered = await read(await ask("how much storage am I using?"));
-
-    expect(create).toHaveBeenCalledTimes(2);
-    expect(String(answered.body.answer)).toBe("You have plenty of storage left.");
-  });
-
-  test("an answer that already names the figure is left alone", async () => {
-    create
-      .mockResolvedValueOnce(calls("account", {}))
-      .mockResolvedValueOnce(says("You have 9.98 credits remaining."));
-    const answered = await read(await ask("how many credits do I have left?"));
-
-    expect(create).toHaveBeenCalledTimes(2);
-    expect(String(answered.body.answer)).toBe("You have 9.98 credits remaining.");
   });
 });
 

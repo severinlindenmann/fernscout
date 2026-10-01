@@ -1,5 +1,4 @@
 import "server-only";
-import { ledgerFor } from "../credits";
 import { translateIn } from "../locales";
 import { ownerLocale } from "../messages/locale";
 import { sendMail } from "../mail";
@@ -13,7 +12,6 @@ import { listRuns, writeManifest, type RunManifest } from "./manifest";
 import { WARN_AFTER_MS, WARNED_GRACE_MS, EXTENSION_MS, resumeExpiryState } from "./resumeState";
 import { effectiveDate } from "../extract/dayCount";
 import { daysLeftToTell } from "../extract/group";
-import { formatCredits } from "../creditsFormat";
 
 export { WARN_AFTER_MS, WARNED_GRACE_MS, EXTENSION_MS, resumeExpiryState };
 export type { ResumeExpiryState } from "./resumeState";
@@ -90,32 +88,6 @@ export function extendOnTouch(run: RunManifest, now: Date): RunManifest | null {
  *  sending or stamping anything. */
 export type ExpirySweepResult = { warned: string[]; finalNotices: string[] };
 
-/** Every credit this run has actually cost, read from the ledger by its own
- *  `extract:<runId>` ref — never a number carried on the manifest, because
- *  the ledger is the one place that can't drift from what was really spent.
- *
- *  **Prefix, not exact match — R30.** `POST .../studio/enrich` folds a hash
- *  of the described photo set onto the end of the ref (`extract:<runId>:<hash>`)
- *  so that resuming a run and describing photographs it did not already pay
- *  for is a second, real spend rather than a silently refused duplicate. A
- *  run enriched more than once therefore has more than one ledger row under
- *  this prefix, and every one of them is money this warning owes the person
- *  an account of. `${ref}:` (with the trailing colon) is what stops
- *  `extract:run-1` from also matching `extract:run-10:…`. */
-export async function spentOnRun(owner: string, runId: string): Promise<number> {
-  const ref = `extract:${runId}`;
-  const rows = await ledgerFor(owner, 1000);
-  // Every row under the prefix, refunds included — B1803 final review,
-  // finding 4. Voice answers now ride on this ref too
-  // (`extract:<runId>:speech:<n>s`, from `lib/helper/transcribeSpend.ts`),
-  // and a transcription whose provider call failed is refunded under the
-  // same ref: counting only the negative rows would report money the person
-  // already has back as money they spent.
-  return rows
-    .filter((row) => row.ref === ref || Boolean(row.ref?.startsWith(`${ref}:`)))
-    .reduce((sum, row) => sum - row.delta, 0);
-}
-
 /** A photo counts as "used" once it belongs to a day this run has already
  *  committed — the same day that stays when the run itself goes, so its
  *  photographs are not part of what the notice threatens.
@@ -147,17 +119,15 @@ export function unusedPhotoCount(run: RunManifest): number {
   }).length;
 }
 
-/** `notice.expiryWarn`'s composition — B2493. `spentCredits` is already
- * read from the ledger (`spentOnRun`) — pure otherwise. */
+/** `notice.expiryWarn`'s composition — B2493. Pure. */
 export function composeExpiryWarnMail(params: {
   locale: string;
   siteTitle: string;
   photoCount: number;
   started: string;
   daysLeft: number;
-  spentCredits: number;
 }): MailComposition {
-  const { locale, siteTitle, photoCount, started, daysLeft, spentCredits } = params;
+  const { locale, siteTitle, photoCount, started, daysLeft } = params;
   const blocks: MailBlock[] = [
     {
       kind: "paragraph",
@@ -168,12 +138,6 @@ export function composeExpiryWarnMail(params: {
       }),
     },
   ];
-  if (spentCredits > 0) {
-    blocks.push({
-      kind: "paragraph",
-      text: translateIn(locale, "studio.photos.expiry.spent", { credits: formatCredits(spentCredits) }),
-    });
-  }
   const subject = translateIn(locale, "studio.photos.expiry.warn.subject");
   return {
     channel: "mail",
@@ -196,7 +160,6 @@ async function sendExpiryMail(username: string, user: UserConfig, run: RunManife
   if (!user.owner.email) return false;
   const locale = await ownerLocale(username, user.owner.email!, user.defaultLocale);
   const daysLeft = daysLeftToTell(run);
-  const spent = await spentOnRun(run.owner, run.runId);
   try {
     const { subject, content } = composeExpiryWarnMail({
       locale,
@@ -204,7 +167,6 @@ async function sendExpiryMail(username: string, user: UserConfig, run: RunManife
       photoCount: run.photos.length,
       started: run.createdAt.slice(0, 10),
       daysLeft,
-      spentCredits: spent,
     });
     const result = await sendMail(renderMail(user.owner.email, subject, content, username));
     return result !== null;
@@ -220,21 +182,14 @@ export function composeExpiryFinalMail(params: {
   locale: string;
   siteTitle: string;
   unusedPhotoCount: number;
-  spentCredits: number;
 }): MailComposition {
-  const { locale, siteTitle, unusedPhotoCount: count, spentCredits } = params;
+  const { locale, siteTitle, unusedPhotoCount: count } = params;
   const blocks: MailBlock[] = [
     {
       kind: "paragraph",
       text: translateIn(locale, "studio.photos.expiry.final.body", { count: String(count) }),
     },
   ];
-  if (spentCredits > 0) {
-    blocks.push({
-      kind: "paragraph",
-      text: translateIn(locale, "studio.photos.expiry.spent", { credits: formatCredits(spentCredits) }),
-    });
-  }
   const subject = translateIn(locale, "studio.photos.expiry.final.subject");
   return {
     channel: "mail",
@@ -255,13 +210,11 @@ export function composeExpiryFinalMail(params: {
 async function sendFinalNoticeMail(username: string, user: UserConfig, run: RunManifest): Promise<boolean> {
   if (!user.owner.email) return false;
   const locale = await ownerLocale(username, user.owner.email!, user.defaultLocale);
-  const spent = await spentOnRun(run.owner, run.runId);
   try {
     const { subject, content } = composeExpiryFinalMail({
       locale,
       siteTitle: user.title,
       unusedPhotoCount: unusedPhotoCount(run),
-      spentCredits: spent,
     });
     const result = await sendMail(renderMail(user.owner.email, subject, content, username));
     return result !== null;

@@ -1,30 +1,22 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AccountPageContent, {
-  type PaymentPanel,
   type PlanPanel,
   type StoragePanel,
 } from "../../account/AccountPageContent";
 import StudioPage from "@/components/studio/StudioPage";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
-import { optedInCounts, listContacts } from "@/lib/contacts";
-import { getOwnerTel } from "@/lib/ownerTel";
-import { balanceOf, creditsEnabled, spentByReason } from "@/lib/credits";
-import { formatChf } from "@/lib/creditsFormat";
-import { EXTRA_STORAGE_CREDITS, POSTCARD_CREDITS } from "@paid/credits/lib/credits/pricing";
 import { isEnabled } from "@/lib/capabilities";
-import { listPayments } from "@paid/credits/lib/payments";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { listAllOrders } from "@paid/printOrder/lib/orders";
 import { cleanupPlan } from "@/lib/storageCleanup";
 import { formatBytes, storageBreakdown, storageFor, worthShowing } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
-import { stripeEnabled, stripeMode } from "@paid/credits/lib/stripe";
 import { entitlementHistory, planOf } from "@paid/credits/lib/entitlements";
 import { aiDaysStatus } from "@paid/credits/lib/aiDays";
 
 /**
- * Credits and storage — B821, moved whole here from `/[user]/account` by
+ * Storage and plan — B821, moved whole here from `/[user]/account` by
  * B2016, so the studio is the one place an owner administers the journal.
  * `AccountPageContent` is unchanged; only the gate and the address move
  * (`lib/studio/pageGate.ts`'s `requireStudioOwner`, the same one every other
@@ -64,11 +56,7 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
   const journal = getUser(user);
   if (!journal) notFound();
 
-  /**
-   * Storage — B664/B821. Outside the `balance !== null` branch below on
-   * purpose: how full a journal is has nothing to do with whether this
-   * instance charges for sends. Only `canBuy` depends on that.
-   */
+  /** Storage — B664/B821. */
   let storage: StoragePanel | undefined;
   const usage = await storageFor(user);
   if (usage.limitBytes !== null) {
@@ -102,41 +90,6 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
         files: worthShowing(reclaimable.bytes) ? reclaimable.files : 0,
         hasStagedFiles: reclaimable.stagedFiles > 0,
       },
-      // Offered whenever this instance charges at all — B1745. B1270 gated
-      // this on `percent >= 90` so a near-empty journal was not sold 5 GB;
-      // that also stopped an owner buying room ahead of a large import, which
-      // is the case they actually have. The purchase route never had the gate.
-      canBuy: creditsEnabled(),
-      buyCredits: EXTRA_STORAGE_CREDITS,
-    };
-  }
-
-  let payment: PaymentPanel | undefined;
-  const balance = await balanceOf(user);
-  if (balance !== null) {
-    const counts = optedInCounts(await listContacts(user), {
-      email: journal.owner.email,
-      tel: (await getOwnerTel(user))?.tel ?? null,
-    });
-    const transactions = (await listPayments(user)).map((tx) => ({
-      id: tx.id,
-      credits: tx.credits,
-      amount: formatChf(tx.amountRappen),
-      status: tx.status,
-      createdAt: tx.createdAt,
-    }));
-    const channelState = (name: "mail" | "whatsapp") =>
-      isEnabled(name) ? journal.features[name].enabled : null;
-
-    payment = {
-      balance,
-      spent: await spentByReason(user),
-      transactions,
-      emailRecipients: counts.email,
-      whatsappRecipients: counts.whatsapp,
-      channels: { mail: channelState("mail"), whatsapp: channelState("whatsapp") },
-      postcardCredits: isEnabled("postcards", user) ? POSTCARD_CREDITS : null,
-      cardTestMode: stripeEnabled() && stripeMode() === "test",
     };
   }
 
@@ -144,7 +97,7 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
   const orders = { recent: allOrders.slice(0, 3), total: allOrders.length };
 
   // "Your plan" — B2593. Absent when `billing` is off, the same "absent, not
-  // shown empty" rule `payment`/`storage` already follow.
+  // shown empty" rule `storage` already follows.
   let plan: PlanPanel | undefined;
   if (isEnabled("billing")) {
     const current = await planOf(user);
@@ -171,7 +124,7 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
 
   return (
     <StudioPage username={user} group="journal" title={translateIn(await requestLocale(), "studio.hub.item.account.title")}>
-      <AccountPageContent username={user} storage={storage} payment={payment} orders={orders} plan={plan} />
+      <AccountPageContent username={user} storage={storage} orders={orders} plan={plan} />
     </StudioPage>
   );
 }

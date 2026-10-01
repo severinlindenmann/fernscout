@@ -53,7 +53,6 @@ what it would generate.
 | `billing` | server-wide | — |
 | `contacts` | server-wide | — |
 | `costs` | server-wide | — |
-| `credits` | server-wide | — |
 | `extract` | per journal | — |
 | `helper` | server-wide | — |
 | `iosApp` | server-wide | — |
@@ -123,10 +122,10 @@ bank or card statements. Statement reading (`/studio/statement` and
 `POST /api/v2/{user}/statements`) needs no feature flag in v2 at all — it is
 reachable whenever a journal's owner is signed in.
 
-With `credits` on, the assistant's calls are metered against a journal's
-balance. With it off, the assistant is the operator's own and unmetered.
-Buying credits is hosted edition only, through `@paid/credits`; the ledger
-(`lib/credits.ts`) and spending from it are open.
+With `billing` on, the assistant's calls are metered against a journal's
+plan (`entitlements`/`ai_days`, `@paid/credits/lib/entitlements.ts` and
+`@paid/credits/lib/aiDays.ts` — hosted edition only). With it off, the
+assistant is the operator's own and unmetered.
 
 ### Location
 

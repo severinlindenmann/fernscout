@@ -6,10 +6,9 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { clearLocaleCache } from "@/lib/locales";
-import { creditsForSeconds, speechLanguageFor } from "@/lib/helper/speech";
+import { speechLanguageFor } from "@/lib/helper/speech";
 import { DRY_RUN_TRANSCRIPT, leastConfidentWord, UNCERTAIN_WORD_CONFIDENCE } from "@/lib/helper/transcribe";
 import { hasPaid } from "./support/openCore";
 
@@ -126,11 +125,9 @@ beforeEach(async () => {
   writeJournal(["en"]);
   writeServerConfig({
     auth: { enabled: true },
-    credits: { enabled: true },
     transcription: { enabled: true, backend: "dry-run" },
   });
   await migrateToLatest(await getDatabase());
-  await grant("alex", 10);
 });
 
 afterEach(async () => {
@@ -140,39 +137,6 @@ afterEach(async () => {
   delete process.env.DATABASE_URL;
   delete process.env.DEEPGRAM_API_KEY;
   fs.rmSync(dir, { recursive: true, force: true });
-});
-
-describe("what a recording costs", () => {
-  // B987 gave this a grain finer than a whole credit; B2186 repriced the
-  // rate itself to 0.05 credit a minute (twenty minutes to the credit) —
-  // the owner's own complaint that a write-up cost too much, answered the
-  // same way for speech.
-  test("twenty minutes is one credit, and the rate is unchanged either side of it", () => {
-    expect(creditsForSeconds(1200)).toBe(1);
-    expect(creditsForSeconds(2400)).toBe(2);
-    expect(creditsForSeconds(3600)).toBe(3);
-  });
-
-  test("a short recording costs a fraction, not a whole credit", () => {
-    expect(creditsForSeconds(1)).toBe(0.01);
-    expect(creditsForSeconds(3)).toBe(0.01);
-    expect(creditsForSeconds(6)).toBe(0.01);
-    expect(creditsForSeconds(61)).toBe(0.06);
-  });
-
-  test("any recording at all costs something — a charge of nothing cannot be audited", () => {
-    expect(creditsForSeconds(0.4)).toBe(0.01);
-    expect(creditsForSeconds(0)).toBe(0.01);
-    expect(creditsForSeconds(-1)).toBe(0.01);
-  });
-
-  test("is always a whole number of hundredths, which is what `spend` requires", () => {
-    for (const seconds of [0.4, 7, 59.5, 240.2, 631]) {
-      const credits = creditsForSeconds(seconds);
-      expect(Number.isInteger(Math.round(credits * 100))).toBe(true);
-      expect(Math.abs(Math.round(credits * 100) - credits * 100)).toBeLessThan(1e-6);
-    }
-  });
 });
 
 describe("which language is asked for", () => {
@@ -215,7 +179,6 @@ describe("which language is asked for", () => {
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("unsupported_language");
     expect(transcribeAudio).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 });
 
@@ -225,13 +188,11 @@ describe("consent", () => {
     expect(refused.status).toBe(403);
     expect(refused.body.error).toBe("consent_required");
     expect(transcribeAudio).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("consenting to words or photographs is not consent to send a voice", async () => {
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       helper: { enabled: true },
       transcription: { enabled: true, backend: "dry-run" },
     });
@@ -260,7 +221,6 @@ describe("consent", () => {
     process.env.DEEPGRAM_API_KEY = "not-a-real-key";
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       transcription: { enabled: true, backend: "deepgram" },
     });
 
@@ -279,15 +239,14 @@ describe("consent", () => {
 // B2591 — transcription no longer spends or refunds credits; it needs an
 // active plan or unused Free days (checked with `billing` on, a separate
 // describe block below), and takes no AI day of its own.
-describe("the ledger", () => {
+describe("no plan or balance stands between a recording and its transcript", () => {
   beforeEach(async () => {
     await consent();
   });
 
-  test("nothing is spent, whatever the length", async () => {
+  test("a recording within the ceiling still transcribes, whatever its length", async () => {
     const done = await read(await call({ seconds: 361 }));
-    expect(done.body.spent).toBe(0);
-    expect(await balanceOf("alex")).toBe(10);
+    expect(done.status).toBe(200);
   });
 
   test("a retry under one idempotency key still calls the provider once", async () => {
@@ -295,21 +254,18 @@ describe("the ledger", () => {
     const again = await read(await call());
     expect(again.body).toEqual(first.body);
     expect(transcribeAudio).toHaveBeenCalledTimes(1);
-    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("a failed provider call spends nothing", async () => {
+  test("a failed provider call is reported cleanly", async () => {
     transcribeAudio.mockRejectedValueOnce(new Error("deepgram is unhappy"));
     const failed = await read(await call());
     expect(failed.status).toBe(502);
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a recording longer than the ceiling is refused, whatever was claimed", async () => {
     const refused = await read(await call({ seconds: 1200 }));
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("recording_too_long");
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   // The measured ceiling is enforced even when nobody claimed anything past
@@ -320,7 +276,6 @@ describe("the ledger", () => {
     const refused = await read(await call({ seconds: 12 }));
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("recording_too_long");
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("an honest short recording transcribes for nothing", async () => {
@@ -328,8 +283,6 @@ describe("the ledger", () => {
     const done = await read(await call({ seconds: 0 }));
     expect(done.status).toBe(200);
     expect(done.body.text).toBe("Hi.");
-    expect(done.body.spent).toBe(0);
-    expect(await balanceOf("alex")).toBe(10);
   });
 });
 
@@ -337,7 +290,6 @@ describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
   beforeEach(async () => {
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       transcription: { enabled: true, backend: "dry-run" },
       billing: { enabled: true },
     });
@@ -378,17 +330,9 @@ describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
   });
 });
 
-/**
- * B1803 final review, finding 4 — "Credits spent" on the import's own last
- * screen read `spentOnRun`, which matches `extract:<runId>` refs only, while
- * every transcription in that import was written under `<user>/speech/<n>s`.
- * Twenty questions answered by voice, twenty charges, and the row hid itself
- * because the figure was zero. The run the recording belongs to now rides on
- * the ledger ref, so the figure can be true.
- */
-// B2591 — nothing is spent any more, so `spentOnRun` (the import's own
-// "credits spent" figure, B1803) reads zero regardless of the run named;
-// this now just proves the `run` field is still accepted and answered.
+// B1803 — the `run` field (which run this recording was made inside, for a
+// staging import) is still accepted and answered; B2592 removed the credit
+// ledger that used to key a "spent on this run" figure off it.
 describe("a recording made inside an import run", () => {
   beforeEach(async () => {
     await consent();
@@ -397,14 +341,12 @@ describe("a recording made inside an import run", () => {
   test("still transcribes when a run id is given", async () => {
     const done = await read(await call({ run: "run-1" }));
     expect(done.status).toBe(200);
-    expect(done.body.spent).toBe(0);
   });
 
-  test("a failed provider call inside a run spends nothing", async () => {
+  test("a failed provider call inside a run is reported cleanly", async () => {
     transcribeAudio.mockRejectedValueOnce(new Error("deepgram is unhappy"));
     const failed = await read(await call({ run: "run-1" }));
     expect(failed.status).toBe(502);
-    expect(await balanceOf("alex")).toBe(10);
   });
 });
 
@@ -518,7 +460,6 @@ describe("what the deepgram backend asks for", () => {
     process.env.DEEPGRAM_API_KEY = "dummy-key";
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       transcription: { enabled: true, backend: "deepgram" },
     });
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -561,7 +502,6 @@ describe("which Deepgram host the audio goes to — B2472", () => {
     process.env.DEEPGRAM_API_KEY = "dummy-key";
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       transcription: { enabled: true, backend: "deepgram" },
     });
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -597,16 +537,14 @@ describe("which Deepgram host the audio goes to — B2472", () => {
 
 describe("with the capability off", () => {
   test("the route answers 404 rather than failing", async () => {
-    writeServerConfig({ auth: { enabled: true }, credits: { enabled: true } });
+    writeServerConfig({ auth: { enabled: true }, });
     const refused = await read(await call());
     expect(refused.status).toBe(404);
     expect(refused.body.error).toBe("transcription_unavailable");
     expect(transcribeAudio).not.toHaveBeenCalled();
   });
 
-  // Open core (open-core/split): B686 kept transcription off while credits
-  // were off; it no longer needs them.
-  test("it comes on while credits are off, the way the helper does", async () => {
+  test("it comes on with no other capability switched on", async () => {
     writeServerConfig({
       auth: { enabled: true },
       transcription: { enabled: true, backend: "dry-run" },

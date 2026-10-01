@@ -8,8 +8,6 @@ export const MAX_CREDITS = 500;
 export const CREDIT_STEP = 10;
 export const BUYER_METHODS = ["twint", "card"] as const;
 export const POSTCARD_CREDITS = 20;
-export const EXTRA_STORAGE_CREDITS = 50;
-export const EXTRA_STORAGE_BYTES = 5 * 1024 ** 3;
 
 export function discountFor(_credits: number): number {
   return 0;

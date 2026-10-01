@@ -1,7 +1,6 @@
 import "server-only";
 import { listTrash } from "@/lib/dayTrash";
 import { isEnabled } from "@/lib/capabilities";
-import { balanceOf } from "@/lib/credits";
 import { listAllOrders, listUnfinished, type OrderRow, type UnfinishedPrint } from "@paid/printOrder/lib/orders";
 import { listPayments } from "@paid/credits/lib/payments";
 import { storageFor } from "@/lib/storageQuota";
@@ -169,11 +168,11 @@ export type HubFacts = {
   deleted?: number;
 };
 
-/** B2134 — the Credits & storage row's chips, from the same reads the
- *  account page makes: `balanceOf` (`null` when this instance does not
- *  charge), its transaction list's "awaiting approval" rows, `storageFor`. */
+/** B2134 — the account row's chips: its purchase history's "awaiting
+ *  approval" rows (a postcard, a photobook or a plan still waiting on the
+ *  dry-run operator-approval path) and `storageFor`. Credits removed in
+ *  B2592. */
 export type HubAccount = {
-  credits: number | null;
   purchasesOpen: number;
   storage: { usedBytes: number; limitBytes: number } | null;
 };
@@ -183,10 +182,9 @@ export type HubAccount = {
 type HubPrint = { unfinished: UnfinishedPrint[]; recentOrders: OrderRow[] };
 
 async function hubAccount(username: string): Promise<HubAccount> {
-  const [credits, payments, usage] = await Promise.all([balanceOf(username), listPayments(username), storageFor(username)]);
+  const [payments, usage] = await Promise.all([listPayments(username), storageFor(username)]);
   return {
-    credits,
-    purchasesOpen: credits === null ? 0 : payments.filter((p) => p.status === "requested").length,
+    purchasesOpen: payments.filter((p) => p.status === "requested").length,
     storage: usage.limitBytes === null ? null : { usedBytes: usage.usedBytes, limitBytes: usage.limitBytes },
   };
 }

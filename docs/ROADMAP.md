@@ -335,8 +335,8 @@ shipped in W01/W25 — see [`docs/branding/BRAND.md`](branding/BRAND.md) and the
 
 **Live** — decision 5 is superseded (above): the open-core split shipped this
 as the private `paid/` repository, reached from the app only through
-`@paid/*`. Signup (`features.signup`), credits and Stripe billing
-(`lib/credits.ts`, `@paid/credits`), storage quotas (`lib/storageQuota.ts`),
+`@paid/*`. Signup (`features.signup`), plans and Stripe billing
+(`@paid/credits`), storage quotas (`lib/storageQuota.ts`),
 and delete/export on request (`lib/contacts/index.ts`, `npm run export`) are
 all built — **L2** and **L5** below, done. What is still open is the
 positioning and go-to-market work, not the platform.

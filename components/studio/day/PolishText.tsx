@@ -6,8 +6,7 @@ import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
-import { formatCredits } from "@/lib/creditsFormat";
-import { WRITE_DAY_CREDITS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/credits";
+import { WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/credits";
 import type { TranslationKey } from "@/lib/i18n";
 
 import { journalPath } from "@/lib/journalPath";
@@ -22,19 +21,18 @@ function wordCount(text: string): number {
 
 /** One sentence per code `write-day/route.ts` can answer with — B2184's
  *  pattern, reused here for `mode: "polish"`. Anything the route does not
- *  name falls back to the generic line. `creditsLink` mirrors B2184's old
+ *  name falls back to the generic line. `planLink` mirrors B2184's old
  *  assist UI (`AddDayFlow.tsx`, `assistErrorFor`), removed in B2188 — B2224
- *  restores the "Add credits" way out for `no_credits` here. */
+ *  restores a "See plans" way out for a plan limit here. */
 function polishErrorFor(
   t: (key: TranslationKey, vars?: Record<string, string>) => string,
   code: string | undefined,
-): { message: string; creditsLink?: boolean } {
+): { message: string; planLink?: boolean } {
   switch (code) {
     case "polish_added_facts":
       return { message: t("studio.day.polish.error.addedFacts") };
-    case "no_credits":
     case "plan_limit":
-      return { message: t("studio.day.polish.error.noCredits"), creditsLink: true };
+      return { message: t("studio.day.polish.error.noCredits"), planLink: true };
     case "model_failed":
       return { message: t("studio.day.polish.error.modelFailed") };
     case "too_many_requests":
@@ -65,34 +63,31 @@ export default function PolishText({
   trip,
   text,
   onUse,
-  credits,
-  priceChf,
+  aiAvailable,
 }: {
   username: string;
   trip: string;
   text: string;
   onUse: (polished: string) => void;
-  credits: number | null;
-  /** "about CHF x.xx" for the tap, computed server-side (B2254 — pricing is
-   *  paid-only code after the open-core split, so this component never
-   *  imports it). `null` when pricing is unavailable (a public build): the
-   *  link then shows the credit price alone rather than a wrong CHF 0.00. */
-  priceChf: string | null;
+  /** Whether the plan still has an AI day or turn to spend on this —
+   *  `null` means "not offered at all" (helper off, or no consent). */
+  aiAvailable: boolean | null;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const online = useOnline();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<{ message: string; creditsLink?: boolean } | null>(null);
+  const [error, setError] = useState<{ message: string; planLink?: boolean } | null>(null);
   const [polished, setPolished] = useState<string | null>(null);
 
-  if (credits === null || wordCount(text) < MIN_WORDS) return null;
+  if (aiAvailable === null || wordCount(text) < MIN_WORDS) return null;
 
-  // B2234 — say so before the tap rather than after a refused fetch: the
-  // owner already knows their balance (it is the page's own `polishCredits`,
-  // read server-side), so there is nothing to ask the route to find out.
-  if (credits < WRITE_DAY_CREDITS) {
+  // B2234/B2591 — say so before the tap rather than after a refused fetch:
+  // the owner already knows the plan's status (it is the page's own
+  // `polishAiAvailable`, read server-side), so there is nothing to ask the
+  // route to find out.
+  if (!aiAvailable) {
     return (
       <div className="mt-2">
         <p className="text-sm text-ink-secondary">
@@ -126,9 +121,10 @@ export default function PolishText({
       }
       setPolished(json.draft.prose);
       setOpen(true);
-      // B2549 — this just spent credits; router.refresh() re-renders server
-      // components (the balance shown elsewhere) without touching the client
-      // state this form's own words live in, so nothing being typed is lost.
+      // B2549 — this just used an AI day; router.refresh() re-renders server
+      // components (the AI-days chip shown elsewhere) without touching the
+      // client state this form's own words live in, so nothing being typed
+      // is lost.
       router.refresh();
     } catch {
       setError(polishErrorFor(t, undefined));
@@ -156,9 +152,7 @@ export default function PolishText({
   if (!online) {
     return (
       <p className="mt-2 text-sm text-ink-secondary opacity-60">
-        {priceChf === null
-          ? t("studio.day.polish.linkNoPrice", { price: formatCredits(WRITE_DAY_CREDITS) })
-          : t("studio.day.polish.link", { price: formatCredits(WRITE_DAY_CREDITS), money: priceChf })}
+        {t("studio.day.polish.link")}
         <br />
         {t("studio.day.polish.offline")}
       </p>
@@ -173,9 +167,7 @@ export default function PolishText({
         onClick={requestPolish}
         className="min-h-11 text-sm font-semibold text-ink-strong underline underline-offset-2"
       >
-        {priceChf === null
-          ? t("studio.day.polish.linkNoPrice", { price: formatCredits(WRITE_DAY_CREDITS) })
-          : t("studio.day.polish.link", { price: formatCredits(WRITE_DAY_CREDITS), money: priceChf })}
+        {t("studio.day.polish.link")}
       </BusyButton>
 
       {open && (
@@ -183,7 +175,7 @@ export default function PolishText({
           {error && (
             <p role="alert" className="text-sm text-coral-600">
               {error.message}
-              {error.creditsLink && (
+              {error.planLink && (
                 <>
                   {" "}
                   <Link href={`${journalPath(username)}/studio/account`} className="font-semibold underline underline-offset-2">

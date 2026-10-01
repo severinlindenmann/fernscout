@@ -45,13 +45,13 @@ function baseManifest(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function stub(manifest: Record<string, unknown>, spentCredits = 0) {
+function stub(manifest: Record<string, unknown>) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/studio/run")) {
-        return { ok: true, json: async () => ({ manifest, spentCredits }) } as Response;
+        return { ok: true, json: async () => ({ manifest }) } as Response;
       }
       throw new Error(`unexpected fetch: ${url}`);
     }),
@@ -90,7 +90,6 @@ describe("ReadyScreen", () => {
           { date: "2026-06-02", answered: [] },
         ],
       }),
-      12,
     );
     await render();
 
@@ -100,8 +99,6 @@ describe("ReadyScreen", () => {
     expect(container!.textContent).toContain("2");
     expect(container!.textContent).toContain("Held back");
     expect(container!.textContent).toContain("1 private");
-    expect(container!.textContent).toContain("Credits used");
-    expect(container!.textContent).toContain("12");
   });
 
   test("says 'Saved as a draft', never that anything was published", async () => {

@@ -155,7 +155,6 @@ export async function POST(
     ok: true,
     text: outcome.text,
     language,
-    spent: outcome.spent,
     provider: speechProvider(),
     // The check-the-wording screen's own highlight (B1803 Task 3.4) —
     // absent whenever nothing was measured confident enough to flag, never

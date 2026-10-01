@@ -451,49 +451,10 @@ type DeletionRequestsTable = {
 };
 
 /**
- * One row per journal, holding the number that decides whether a letter is
- * sent — B366.
- *
- * `owner_id` is the username and the primary key, which is load-bearing
- * rather than tidy: the debit is a single conditional `UPDATE … WHERE
- * owner_id = ? AND balance >= ?` and a second row for the same journal would
- * halve that guard without anything failing. See `016-credits` for why the
- * balance is a column at all rather than a `SUM()` over the ledger.
- *
- * A journal with no row here has a balance of zero, which is what every
- * journal starts with. Nothing back-fills.
- */
-type CreditsTable = {
-  owner_id: string;
-  balance: Generated<number>;
-  updated_at: string;
-};
-
-/**
- * Where every credit came from and went — append-only, never updated, never
- * deleted except with the journal itself.
- *
- * `delta` is signed: positive for a grant or a refund, negative for a spend.
- * One signed column rather than a kind plus an unsigned amount, so the audit
- * (`SUM(delta)` against `credits.balance`) cannot be got wrong by forgetting
- * a sign at one call site.
- */
-type CreditLedgerTable = {
-  id: string;
-  owner_id: string;
-  delta: number;
-  /** `grant` | `day_mail` | `day_whatsapp` | `digest` | `refund`. */
-  reason: string;
-  /** `<username>/<trip-id>/<slug>` for a spend, null for a grant. */
-  ref: string | null;
-  note: string | null;
-  created_at: string;
-};
-
-/**
  * One row: this channel has already told readers about this day — B633.
- * See `022-day-notifications` for why this exists beside `credit_ledger`
- * rather than being read off it.
+ * The credit system `022-day-notifications`'s own doc comment once compared
+ * this to (`credits`/`credit_ledger`, B366) was dropped by B2592 — see
+ * `060-drop-credits.ts`.
  */
 type DayNotificationsTable = {
   id: string;
@@ -568,10 +529,10 @@ type AnalyticsEventsTable = {
 /**
  * One call to a paid provider, and what it consumed — B746.
  *
- * See `023-usage` for why this exists beside `credit_ledger` rather than
- * being read off it: the ledger records what a journal was *charged*, this
- * records what the instance was *billed*, and the two are different numbers
- * in different units.
+ * This records what the instance was *billed* by the provider — a different
+ * number, in different units, from anything a journal's own plan metered
+ * (`entitlements`/`ai_days`; the credit ledger this once compared itself to
+ * was dropped by B2592, see `060-drop-credits.ts`).
  */
 type UsageTable = {
   id: string;
@@ -1012,8 +973,6 @@ export type Database = {
   tracking_points: TrackingPointsTable;
   print_orders: PrintOrdersTable;
   deletion_requests: DeletionRequestsTable;
-  credits: CreditsTable;
-  credit_ledger: CreditLedgerTable;
   payments: PaymentsTable;
   analytics_events: AnalyticsEventsTable;
   day_notifications: DayNotificationsTable;
@@ -1055,8 +1014,6 @@ export const TABLE_NAMES = [
   "tracking_points",
   "print_orders",
   "deletion_requests",
-  "credits",
-  "credit_ledger",
   "payments",
   "analytics_events",
   "day_notifications",

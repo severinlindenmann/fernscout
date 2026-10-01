@@ -46,7 +46,7 @@ describe("the footer", () => {
     ["code", "code.mail"],
     ["invite", "invite.mail"],
     ["news", "news.mail"],
-    ["receipt", "receipt.credits"],
+    ["receipt", "receipt.plan"],
     ["notice", "notice.storage"],
     ["operator", "op.alert"],
   ])("%s: a localized 'why you got this' line, always", (_name, template) => {

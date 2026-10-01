@@ -61,10 +61,10 @@ serves any trip at the explicit one. Both render the same components.
 | `lib/ingest/` | a folder of camera files → EXIF, clustering, resizing, entry JSON |
 | `lib/mail/` · `lib/digest/` · `lib/push.ts` | reaching readers: `.eml` files or SMTP, the nightly digest, web push |
 | `lib/contacts/` | one contact record behind invites, digests and postal addresses — reader and buddy links alike |
-| `lib/paid-stubs/` | the public stand-ins for `@paid/*` — photobook and postcard PDF generation, the credits ledger's Stripe half and WhatsApp live only in the private repository; a plain clone builds and runs with each one simply absent |
+| `lib/paid-stubs/` | the public stand-ins for `@paid/*` — photobook and postcard PDF generation, billing's Stripe half and WhatsApp live only in the private repository; a plain clone builds and runs with each one simply absent |
 | `lib/capabilities.ts` | which optional features are on, and why one is off — see `/api/health` |
 | `lib/helper/` | the model behind the studio's assistant: `model.ts` holds the net that checks what it *said* against what the turn actually *did*, `tools/` are the calls it may make, `consent.ts` and `undo.ts` guard publish and delete |
-| `lib/admin.ts` · `lib/credits.ts` | the one address that sees instance-wide cost and balance (`FERNSCOUT_ADMIN_EMAIL`), and the credit ledger — buying credits with Stripe is `@paid/credits`, hosted edition only |
+| `lib/admin.ts` · `lib/instanceCosts.ts` | the one address that sees instance-wide cost (`FERNSCOUT_ADMIN_EMAIL`) — a journal's own plan and AI days are `@paid/credits/lib/entitlements.ts` and `@paid/credits/lib/aiDays.ts`, hosted edition only |
 | `app/content-model.json` | the file shape a journal must have — published so `fernscout-helper` and anything else written against this instance stops copying it by hand |
 | `importers/` · `lib/gps/` · `lib/inbox.ts` | MIT-licensed parsers turning somebody's location/cost export into plain rows; the GPS history store itself, reachable from three doors under `app/` and no others — see `docs/gps.md`; and files waiting on a day to attach to |
 

@@ -1,10 +1,9 @@
 /**
- * What speech costs, and which language it is transcribed in — B686.
+ * Which language speech is transcribed in — B686.
  *
- * Pure and client-safe (no `server-only`), for the same reason
- * `./credits.ts` is: the record button has to say the price before the hold,
- * from the seconds it is counting, and the route that actually spends has to
- * compute the identical number. One function, so the two cannot drift.
+ * Pure and client-safe (no `server-only`): the record button and the route
+ * that actually transcribes both need the same language rule, so it lives
+ * here rather than being computed twice.
  *
  * **The language is the whole design of this ticket, and it is not detected.**
  * Deepgram's automatic detection (`language=multi`) covers ten languages;
@@ -43,24 +42,6 @@ export const SPEECH_LANGUAGE_LABEL: Record<SpeechLanguage, string> = {
   it: "Italiano",
 };
 
-/**
- * One credit per twenty **started** minutes (0.05 credit a minute), and the
- * number lives here only — the same shape `PHOTOS_PER_CREDIT` has in
- * `./credits.ts`, so the button and the route cannot disagree about the
- * price.
- *
- * It was a credit a minute until the owner priced it on 2026-09-07 (five
- * minutes to the credit, ~9x over Deepgram's $0.0043/minute), then repriced
- * again by B2186 on 2026-09-24, in the same pass that dropped a write-up from
- * a whole credit to 0.05: CHF 0.01 a minute (0.05 credit × CHF 0.20) is
- * roughly 2.3x Deepgram's own cost rather than 9x, matching the owner's
- * "transcription 0.05/min" decision rather than defending the old margin.
- *
- * Credits have been fractional to the hundredth since B987 — this is a plain
- * price, not a rounding compromise.
- */
-const SECONDS_PER_CREDIT = 1200;
-
 /** How long one hold may be. Longer than the five-minute video cap (B670)
  *  because the price ladder above expects recordings past five minutes; past
  *  this somebody is dictating a book rather than talking about a day. */
@@ -70,25 +51,6 @@ export const MAX_SPEECH_SECONDS = 900;
  *  thing a caller controls and the duration is a thing a caller *says*. Five
  *  minutes of Opus at 32 kbit/s is about 1.2 MB, so this is generous. */
 export const MAX_AUDIO_BYTES = 16 * 1024 * 1024;
-
-/**
- * What a recording of this many seconds costs, in credits — B987.
- *
- * **By the second, rounded up to the hundredth**, which is the smallest thing
- * this product can charge for: a six-second question costs two hundredths
- * rather than the same charge as a full started minute of dictation. The
- * provider meters by the second and so, now, does this.
- *
- * The floor is one hundredth, so a recording of any length at all costs
- * something: a charge of nothing is a charge nobody can audit.
- */
-export function creditsForSeconds(seconds: number): number {
-  if (!Number.isFinite(seconds) || seconds <= 0) return 0.01;
-  return Math.max(1, Math.ceil((seconds * 100) / SECONDS_PER_CREDIT)) / 100;
-}
-
-/** The price to print on the button before the hold, in minutes. */
-export const MINUTES_PER_CREDIT = SECONDS_PER_CREDIT / 60;
 
 /**
  * One language tag, narrowed to a code the transcriber actually supports.

@@ -6,11 +6,10 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import type { Say } from "@/lib/helper/intents";
 import { runTool } from "@/lib/helper/tools";
-import { history } from "@/lib/helper/thread";
+import { forget, history } from "@/lib/helper/thread";
 import { storeInboxFile } from "@/lib/inbox";
 import { getTrips } from "@/lib/trips";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
@@ -26,9 +25,9 @@ import { WEB_CALLER } from "./support/callers";
  *
  * What is asserted is the discipline: a write proposes and the journal is
  * untouched, the press is a second call to a route that already existed, the
- * proposal is remembered so "no, the 14th" has something to correct, the door
- * charges a flat credit a turn and nothing more (B1091), and a bearer token
- * gets nowhere near it.
+ * proposal is remembered so "no, the 14th" has something to correct, a
+ * retried turn under the same idempotency key answers once rather than
+ * running the model twice, and a bearer token gets nowhere near it.
  */
 
 const OWNER_EMAIL = "alex@example.test";
@@ -100,6 +99,11 @@ beforeEach(async () => {
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
   answerInThread.mockReset();
   clearIdempotencyStore();
+  // `history()`/`remember()` are an in-memory map keyed on username, not
+  // reset by a fresh CONTENT_DIR/DATABASE_URL the way everything else here
+  // is — a conversation from an earlier test in this file otherwise leaks
+  // into the next one's "alex".
+  forget("alex");
 
   fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
@@ -117,13 +121,12 @@ beforeEach(async () => {
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
+      features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
-  await grant("alex", 10);
   await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
 });
 
@@ -301,39 +304,14 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     });
   });
 
-  describe("what it costs", () => {
-    // B1091: a flat `HELPER_TURN_CREDITS` (0.02) a turn, under its own
-    // `ask_thread` ledger reason — the door is no longer free, and this file's
-    // own module doc above is corrected to say so.
-    test("a flat credit a turn, and nothing more for whatever the turn does", async () => {
-      answerInThread.mockImplementation(turnCalling("account", {}, "Ten credits."));
-      await ask("how much storage do I have");
-      await ask("and again");
-      expect(await balanceOf("alex")).toBeCloseTo(9.96, 5);
-      const rows = await ledgerFor("alex");
-      expect(rows.filter((row) => row.reason === "ask_thread")).toHaveLength(2);
-      expect(rows).toHaveLength(3); // the grant, and two turns
-    });
-
-    test("proposing a write costs the same flat turn credit, however many times", async () => {
-      answerInThread.mockImplementation(
-        turnCalling("draft_words", { notes: "we walked to the harbour" }),
-      );
-      await ask("write up yesterday");
-      await ask("no, the day before");
-      await ask("actually leave it");
-      // Three turns, none of which pressed the proposal — pressing (and its
-      // own price) is a separate route this file never calls.
-      expect(await balanceOf("alex")).toBeCloseTo(9.94, 5);
-    });
-
+  describe("idempotency", () => {
     /**
      * B1663 — a double-tap, a flaky connection or a client retry must not
-     * spend the credit or run the model twice. `write-day`'s own idempotency
-     * test is the model for this one: a supplied key that repeats gets the
-     * first turn's answer back, verbatim, and the model is asked once.
+     * run the model twice. `write-day`'s own idempotency test is the model
+     * for this one: a supplied key that repeats gets the first turn's
+     * answer back, verbatim, and the model is asked once.
      */
-    test("a retry under the same idempotency key is answered once, not charged again", async () => {
+    test("a retry under the same idempotency key is answered once, not run again", async () => {
       answerInThread.mockImplementation(turnCalling("account", {}, "Ten credits."));
       const call = async () =>
         read(
@@ -351,7 +329,6 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(again.status).toBe(200);
       expect(again.body).toEqual(first.body);
       expect(answerInThread).toHaveBeenCalledTimes(1);
-      expect(await balanceOf("alex")).toBeCloseTo(9.98, 5);
     });
   });
 
@@ -368,7 +345,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
         path.join(dir, "config.json"),
         JSON.stringify({
           site: { name: "T", url: "https://t.test" },
-          features: { auth: { enabled: true }, credits: { enabled: true } },
+          features: { auth: { enabled: true }, },
         }),
       );
       clearConfigCache();

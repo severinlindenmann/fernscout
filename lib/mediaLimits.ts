@@ -50,9 +50,10 @@ export type MediaLimits = {
    * upload failing. `null` still parses, for an instance that would rather
    * take the risk.
    *
-   * An owner may buy past it, 5 GB at a time and for good — see
-   * `EXTRA_STORAGE_CREDITS`. Those bytes are added on top of this number
-   * rather than replacing it, so the server's ceiling still means something.
+   * A plan's own storage allowance sits on top of this number rather than
+   * replacing it, so the server's ceiling still means something — the
+   * credit-funded "+5 GB" purchase this once also described was deleted
+   * whole in B2592.
    */
   perUserBytes: number | null;
   /**

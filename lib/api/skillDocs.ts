@@ -408,9 +408,7 @@ function addADay(): string {
       "of — only a field the day has neither filled in nor already declined; naming any other " +
       "refuses the whole call with `400` and `details.refused`, nothing written. " +
       "`sendMail`/`sendWhatsapp` each default to absent, since publishing fifteen days " +
-      "must never default to fifteen letters. Ask before setting either to `true`. A `402` " +
-      "means the balance cannot cover the send — the day stays a draft and nothing is sent; " +
-      "hand over a `PUT /api/v2/{user}/purchases/{id}` link rather than retrying. A " +
+      "must never default to fifteen letters. Ask before setting either to `true`. A " +
       "`409 stale_document` means the day changed while the publish was checked; nothing was " +
       "published or sent — read it again and ask before publishing what is there now.",
     "`POST " + path + "/unpublish` takes the day down — reversible, nothing deleted. " +
@@ -561,8 +559,8 @@ function sendPostcards(): string {
       }) +
       "\n```",
     "**This charges nothing and prints nothing.** It writes a proposal and answers with a " +
-      "`url` on the response document. The owner opens that page, sees the card laid out, its " +
-      "cost and their balance, and presses one button — the only thing in this system that " +
+      "`url` on the response document. The owner opens that page, sees the card laid out and " +
+      "its price, and presses one button — the only thing in this system that " +
       "puts a card in the post. Hand over the URL and say a preview is waiting; do not say the " +
       "cards have been sent.",
     "`GET /api/v2/{user}/postcards/orders/{id}` reads its status back later. " +

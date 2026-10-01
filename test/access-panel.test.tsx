@@ -557,10 +557,9 @@ describe("the account page is not advertised on /me — B876", () => {
   });
 
   test("and the figures are still not here", () => {
-    // The reason the panels moved at all: two live copies of a balance is how
+    // The reason the panel moved at all: two live copies of a figure is how
     // they disagree.
     const html = render({ viewer: owner });
-    expect(html).not.toContain(dictionaryFor("en")["me.paymentTitle"]);
     expect(html).not.toContain(dictionaryFor("en")["me.storageTitle"]);
   });
 });

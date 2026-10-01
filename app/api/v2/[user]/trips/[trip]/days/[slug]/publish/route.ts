@@ -24,8 +24,6 @@ import { publishNotice } from "@/lib/api/entries";
 import { isTestContent } from "@/lib/access";
 import { afterResponse } from "@/lib/afterResponse";
 import { isEnabled } from "@/lib/capabilities";
-import { balanceOf } from "@/lib/credits";
-import { formatCredits } from "@/lib/creditsFormat";
 import { subscribersFor } from "@/lib/push";
 import { localeForSubscriber, sendPush } from "@/lib/push/send";
 import { composeDayPush } from "@/lib/digest/dayPush";
@@ -39,7 +37,7 @@ import { missingAtPublish, v1Slug } from "@/lib/api/v2/days";
 import { claimChannel, releaseChannelClaim } from "@/lib/digest/dayNotify";
 import { logMessage } from "@/lib/messages/log";
 import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
-import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@paid/whatsapp/lib/digest/dayWhatsapp";
+import { sendDayWhatsapp, type DayWhatsappOutcome } from "@paid/whatsapp/lib/digest/dayWhatsapp";
 import type { Trip } from "@/lib/types";
 import type { StoredSubscription } from "@/lib/repos/types";
 
@@ -166,28 +164,9 @@ export async function applyPublish(
     return ok({ ok: true, written: false, dryRun: true, note: "Nothing was written. This body would be accepted." });
   }
 
-  // The credits pre-flight — advisory, not the guard (see lib/digest/dayWhatsapp.ts
-  // for the one that actually holds the line). Best-effort: a day this
-  // server cannot yet read a real cost estimate for (B1598) is charged the
-  // one-message floor rather than nothing.
-  if (sendWhatsappRequested) {
-    const balance = await balanceOf(user);
-    if (balance !== null) {
-      const needed = await whatsappWouldCost(user, `${user}/${tripId}`, v1Slug(slug)).catch(() => 1);
-      if (needed > balance) {
-        return fail(
-          "no_credits",
-          `Sending this day would take ${needed} credit(s); this journal has ${formatCredits(balance)} left. Nothing was published.`,
-          { needed, balance },
-          402,
-        );
-      }
-    }
-  }
-
-  // B2245's mirror — the body and the credits check were awaited since `day`
-  // was read, and a correction saved meanwhile would be published over by
-  // the older text. Re-read synchronously right before the write (nothing
+  // B2245's mirror — the body was awaited since `day` was read, and a
+  // correction saved meanwhile would be published over by the older text.
+  // Re-read synchronously right before the write (nothing
   // can interleave between this and `writeDayFile`) and refuse on any change.
   if (JSON.stringify(readDayFile(user, tripId, slug)) !== JSON.stringify(day)) {
     return fail(

@@ -628,11 +628,12 @@ describe("the run and day routes with the capability on", () => {
 /**
  * The sample and enrich routes — B1751 Task 4.1.
  *
- * A real database, unlike every other describe block in this file: the
- * enrich route spends and refunds through `lib/credits.ts`, which refuses
- * outright with nowhere to record a ledger row (see its own doc comment),
- * so a real sqlite file is what lets the success and refusal paths actually
- * run rather than both reading as "no database configured".
+ * A real database, unlike every other describe block in this file: enrich's
+ * AI-day gate (`mayUseAi`, `@paid/credits/lib/aiDays.ts`) refuses outright
+ * with no database configured, so a real sqlite file is what lets the
+ * success and refusal paths actually run rather than both reading as "no
+ * database configured". Nothing here is charged any more (B2592 deleted the
+ * credit ledger this once also read and wrote).
  */
 describe("the sample and enrich routes — B1751 Task 4.1", () => {
   let dbDir: string;
@@ -691,26 +692,7 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     expect((await call()).status).toBe(409);
   });
 
-  test("the sample never touches the credit ledger", async () => {
-    const { runId } = (await (await startRun()).json()) as { runId: string };
-    const [staged] = await stagedManifest(runId, ["a.jpg"]);
-    const { balanceOf } = await import("@/lib/credits");
-
-    const { POST } = await import("@/app/api/helper/[user]/studio/sample/route");
-    await POST(
-      new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId, photoId: staged.id }) }),
-      { params: Promise.resolve({ user: "alex" }) },
-    );
-
-    // No grant either — a journal with nothing at all still gets its sample,
-    // because nothing is spent.
-    expect(await balanceOf("alex")).toBe(0);
-  });
-
-  test("spending credits captions every live photograph, at the ref the expiry warning reads", async () => {
-    const { grant, ledgerFor, balanceOf } = await import("@/lib/credits");
-    await grant("alex", 10, "test");
-
+  test("enrich captions every live photograph, at the ref the expiry warning reads", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     await stagedManifest(runId, ["a.jpg", "b.jpg"]);
 
@@ -720,23 +702,15 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
       { params: Promise.resolve({ user: "alex" }) },
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { spent: number; captioned: number };
-    // creditsForPhotos(2) === Math.ceil(2 / PHOTOS_PER_CREDIT) === 1.
-    expect(body.spent).toBe(1);
+    const body = (await res.json()) as { captioned: number };
     expect(body.captioned).toBe(2);
-    // B2591 — nothing is spent any more; the ledger it used to land in is
-    // untouched.
-    expect(await balanceOf("alex")).toBe(10);
 
     const { readManifest } = await import("@/lib/staging/manifest");
     const after = readManifest("alex", runId);
     expect(after?.photos.every((p) => p.caption === "A quiet street.")).toBe(true);
   });
 
-  test("a double-tap on the same run charges once, not twice", async () => {
-    const { grant, ledgerFor, balanceOf } = await import("@/lib/credits");
-    await grant("alex", 10, "test");
-
+  test("a double-tap on the same run describes each photograph once, not twice", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     await stagedManifest(runId, ["a.jpg", "b.jpg"]);
 
@@ -751,20 +725,14 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     const second = await call();
     expect(second.status).toBe(200);
 
-    // B2591 — nothing is spent, so the guarantee that matters is on the model
-    // calls, not a ledger: a double-tap must still describe each photograph
-    // only once, from its own per-photo cache (`describedRunFile`).
-    expect(await balanceOf("alex")).toBe(10);
-
+    // A double-tap must still describe each photograph only once, from its
+    // own per-photo cache (`describedRunFile`).
     // The mocked model was called once per photograph on the first request —
     // the second request never reached it at all.
     expect(helperModel.describeImage).toHaveBeenCalledTimes(2);
   });
 
-  test("R30 — resuming a run and adding photographs charges again for the new ones, not free and not a double refusal", async () => {
-    const { grant, ledgerFor, balanceOf } = await import("@/lib/credits");
-    await grant("alex", 10, "test");
-
+  test("R30 — resuming a run and adding photographs describes the new ones, not free and not a double refusal", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     await stagedManifest(runId, ["a.jpg"]);
 
@@ -793,23 +761,17 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     await stagedManifest(runId, ["b.jpg"]);
     const second = await call();
     expect(second.status).toBe(200);
-    const secondBody = (await second.json()) as { captioned: number; spent: number };
+    const secondBody = (await second.json()) as { captioned: number };
     // Every live photograph is captioned — but only the new one is sent to
-    // the model and paid for, since B1866: the first is answered from the
-    // block kept beside its file. The point under test is unchanged, that
-    // this call actually ran the model and charged rather than being
-    // answered from the first call's idempotency row.
+    // the model, since B1866: the first is answered from the block kept
+    // beside its file. The point under test is unchanged, that this call
+    // actually ran the model rather than being answered from the first
+    // call's idempotency row.
     expect(secondBody.captioned).toBe(2);
-    expect(secondBody.spent).toBe(1);
     expect(helperModel.describeImage).toHaveBeenCalledTimes(1);
-    // B2591 — nothing is spent any more.
-    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("a photograph the free sample already described is not sent or paid for again — B1866", async () => {
-    const { grant, balanceOf } = await import("@/lib/credits");
-    await grant("alex", 10, "test");
-
+  test("a photograph the free sample already described is not sent again — B1866", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     const [sampled] = await stagedManifest(runId, ["a.jpg", "b.jpg"]);
 
@@ -827,20 +789,16 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
       { params: Promise.resolve({ user: "alex" }) },
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { captioned: number; spent: number };
+    const body = (await res.json()) as { captioned: number };
     // Both photographs come back captioned; only the one nobody had looked
     // at yet was sent to the model.
     expect(body.captioned).toBe(2);
     expect(helperModel.describeImage).toHaveBeenCalledTimes(2);
-    // Priced on that one photograph — the sampled one is not bought twice.
-    expect(body.spent).toBe(1);
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   // B2591 — with no plan enforcement at all (billing off, the default in
-  // this suite), enrich runs with no credits granted: nothing is charged for
-  // it any more.
-  test("runs with no credits granted at all, since nothing is charged", async () => {
+  // this suite), enrich runs unconditionally.
+  test("runs with no plan or balance to check at all", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     await stagedManifest(runId, ["a.jpg"]);
 
@@ -856,11 +814,7 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     expect(after?.photos.every((p) => Boolean(p.caption))).toBe(true);
   });
 
-
-
-  test("a spend that buys nothing is given back", async () => {
-    const { grant, balanceOf } = await import("@/lib/credits");
-    await grant("alex", 10, "test");
+  test("a failed describe captions nothing and fails cleanly", async () => {
     helperModel.describeImage.mockRejectedValueOnce(new Error("boom"));
 
     const { runId } = (await (await startRun()).json()) as { runId: string };
@@ -872,14 +826,11 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
       { params: Promise.resolve({ user: "alex" }) },
     );
     expect(res.status).toBe(502);
-    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("every photograph failing to resize is given back too — B1795", async () => {
-    const { grant, balanceOf } = await import("@/lib/credits");
+  test("every photograph failing to resize fails cleanly too — B1795", async () => {
     const { putStagedFile } = await import("@/lib/staging/store");
     const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
-    await grant("alex", 10, "test");
 
     const { runId } = (await (await startRun()).json()) as { runId: string };
     // Real bytes, but not a real JPEG — `resizedCopy` returns null for these
@@ -897,7 +848,6 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     );
     expect(res.status).toBe(502);
     expect(helperModel.describeImage).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 });
 

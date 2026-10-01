@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Download, ExternalLink, X } from "lucide-react";
 import { formatChf } from "@/lib/creditsFormat";
-import { formatCredits } from "@/lib/creditsFormat";
 import { Meter, Sparkline } from "./Charts";
 import { goTo, useHash } from "./Shell";
 
@@ -12,9 +11,6 @@ import { journalPath } from "@/lib/journalPath";
 export type JournalView = {
   username: string;
   rappen: number;
-  balance: number | null;
-  spent: number;
-  granted: number;
   /** This journal's metered spend, one entry per day of the window — B996.
    *  Absent for a journal that spent nothing, which draws no line at all. */
   series?: number[];
@@ -38,7 +34,7 @@ export type JournalView = {
   panel: ReactNode;
 };
 
-export type Order = "recent" | "cost" | "name" | "balance" | "disk";
+export type Order = "recent" | "cost" | "name" | "disk";
 
 /** `recent` is first and is the default since B1181: most journals spend
  *  nothing, so a list sorted by cost puts three real rows above a tail of
@@ -47,7 +43,6 @@ const ORDERS: { value: Order; label: string }[] = [
   { value: "recent", label: "Last wrote" },
   { value: "cost", label: "Costliest" },
   { value: "name", label: "By name" },
-  { value: "balance", label: "Lowest balance" },
   { value: "disk", label: "Fullest disk" },
 ];
 
@@ -62,9 +57,7 @@ export function pick<T extends JournalView>(rows: T[], query: string, order: Ord
     .sort((a, b) =>
       order === "name"
         ? a.username.localeCompare(b.username)
-        : order === "balance"
-          ? (a.balance ?? 0) - (b.balance ?? 0)
-          : order === "disk"
+        : order === "disk"
             ? (b.full ?? 0) - (a.full ?? 0)
             : order === "recent"
               ? // Newest first, and a journal that has never written anything
@@ -132,16 +125,14 @@ const FILTERS: { value: Filter; label: string }[] = [
 /**
  * Which rows a filter keeps. Exported for the tests.
  *
- * "Needs a look" is the two things the attention band also raises about a
+ * "Needs a look" is the one thing the attention band also raises about a
  * journal, drawn from the same numbers the row shows: a disk past 85% of its
- * ceiling, and a balance under a tenth of everything it was ever granted. A
- * journal that was never granted anything is not low — it was never given any.
+ * ceiling.
  */
 export function matches(row: JournalView, filter: Filter, now = Date.now()): boolean {
   if (filter === "all") return true;
   if (filter === "look") {
-    const low = row.balance !== null && row.granted > 0 && row.balance / row.granted < 0.1;
-    return low || (row.full ?? 0) > 0.85;
+    return (row.full ?? 0) > 0.85;
   }
   const word = stateOf(row.lastWroteAt, now).word;
   return filter === "never" ? word === "never started" : word === filter;
@@ -166,9 +157,6 @@ export function toCsv(rows: JournalView[], days: number, now = Date.now()): stri
     "days",
     "readers",
     "disk",
-    "balance_credits",
-    "spent_credits",
-    "granted_credits",
     `metered_chf_${days}d`,
   ];
   const lines = rows.map((row) =>
@@ -180,23 +168,12 @@ export function toCsv(rows: JournalView[], days: number, now = Date.now()): stri
       row.days,
       row.readers,
       row.disk,
-      row.balance === null ? null : formatCredits(row.balance),
-      formatCredits(row.spent),
-      formatCredits(row.granted),
       (row.rappen / 100).toFixed(2),
     ]
       .map(cell)
       .join(","),
   );
   return [head.join(","), ...lines].join("\n") + "\n";
-}
-
-/** The two smaller facts under a name, in one place so the row and the panel
- *  cannot come to disagree about them. */
-function credits(journal: JournalView): string {
-  const held =
-    journal.balance === null ? "no credits on this instance" : `${formatCredits(journal.balance)} credits`;
-  return `${held} · ${formatCredits(journal.spent)} spent of ${formatCredits(journal.granted)} granted`;
 }
 
 /**
@@ -309,11 +286,10 @@ export default function Journals({ rows, days }: { rows: JournalView[]; days: nu
         </div>
 
         <div className="mt-3 overflow-hidden rounded-3xl border border-line-quiet bg-surface-raised">
-          <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_6rem_10rem] border-b border-line-quiet bg-surface-neutral md:grid">
+          <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_10rem] border-b border-line-quiet bg-surface-neutral md:grid">
             {header("name", "Journal")}
             {header("recent", "Last wrote")}
             {header("disk", "Disk")}
-            {header("balance", "Balance", "text-right")}
             {header("cost", `Spend · ${days}d`, "text-right")}
           </div>
           {shown.length === 0 ? (
@@ -329,7 +305,7 @@ export default function Journals({ rows, days }: { rows: JournalView[]; days: nu
                       type="button"
                       aria-pressed={on}
                       onClick={() => goTo(`journals/${journal.username}`, false)}
-                      className={`grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-3 text-left md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_6rem_10rem] md:items-center md:px-0 md:py-2.5 ${
+                      className={`grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-3 text-left md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_10rem] md:items-center md:px-0 md:py-2.5 ${
                         on ? "bg-surface-subtle" : "hover:bg-surface-neutral"
                       }`}
                     >
@@ -369,15 +345,6 @@ export default function Journals({ rows, days }: { rows: JournalView[]; days: nu
                           <Meter fraction={journal.full} tone={journal.full > 0.85 ? "alert" : "navy"} />
                         ) : null}
                       </span>
-                      <span
-                        className={`hidden text-right font-mono text-sm md:block md:px-3 ${
-                          journal.balance !== null && journal.granted > 0 && journal.balance / journal.granted < 0.1
-                            ? "text-coral-600"
-                            : "text-ink-strong"
-                        }`}
-                      >
-                        {journal.balance === null ? "—" : formatCredits(journal.balance)}
-                      </span>
                     </button>
                   </li>
                 );
@@ -395,8 +362,7 @@ export default function Journals({ rows, days }: { rows: JournalView[]; days: nu
         <Panel journal={opened} days={days} onClose={() => goTo("journals", false)} />
       ) : (
         <aside className="hidden rounded-3xl border border-dashed border-line-strong p-6 text-sm text-ink-body lg:sticky lg:top-6 lg:block">
-          Pick a journal to see its disk, what its credits went on, its purchases and its conversations — and to
-          grant credits or write to its owner.
+          Pick a journal to see its disk, its purchases and its conversations — and to write to its owner.
         </aside>
       )}
     </div>
@@ -471,7 +437,6 @@ function Panel({ journal, days, onClose }: { journal: JournalView; days: number;
               </div>
             ))}
           </div>
-          <p className="mt-3 font-mono text-xs text-ink-body">{credits(journal)}</p>
           <p className="mt-0.5 font-mono text-sm text-ink-strong">
             {formatChf(journal.rappen)} metered in {days} days
           </p>

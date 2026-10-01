@@ -4,7 +4,6 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { POST } from "@/app/api/v2/journals/route";
 import { clearConfigCache } from "@/lib/config";
-import { balanceOf } from "@/lib/credits";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { NO_JOURNAL, issueCode, markPhoneProven, resolveSession, verifyCode } from "@/lib/auth";
@@ -15,11 +14,11 @@ import { checkVerification, startVerification } from "@/lib/phoneVerify";
  *
  * `test/journals-rate-limit.test.ts` covers the hourly cap: five journals an
  * hour from one address. That budget is spent per-hour, so an address that
- * simply waits out each window can keep making journals — and each one mints
- * `SIGNUP_CREDIT_GRANT` credits — forever, at five an hour. `CREATED_DAILY`
- * in the route is the second budget that catches exactly that: it shares the
- * same event (a successful creation) but counts over a day instead of an
- * hour, so spacing creations out to dodge the hourly cap still runs into it.
+ * simply waits out each window can keep making journals — forever, at five
+ * an hour. `CREATED_DAILY` in the route is the second budget that catches
+ * exactly that: it shares the same event (a successful creation) but counts
+ * over a day instead of an hour, so spacing creations out to dodge the
+ * hourly cap still runs into it.
  *
  * Real time cannot be waited out in a test, so the clock is faked: each batch
  * of five journals is followed by advancing just past an hour, which resets
@@ -84,7 +83,7 @@ beforeEach(async () => {
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
       users: { reserved: [] },
-      features: { signup: { inviteOnly: false }, auth: { enabled: true }, credits: { enabled: true } },
+      features: { signup: { inviteOnly: false }, auth: { enabled: true }, },
     }),
   );
   clearConfigCache();
@@ -141,14 +140,12 @@ describe("the daily budget on journal creation", () => {
   /**
    * The acceptance line the ticket asks for explicitly: a fix here must not
    * refuse an honest, first-time signup. A single journal from a fresh
-   * address, nowhere near either budget, still succeeds and still gets the
-   * signup grant.
+   * address, nowhere near either budget, still succeeds.
    */
-  test("an honest first-time signup from a fresh address still succeeds and still gets its grant", async () => {
+  test("an honest first-time signup from a fresh address still succeeds", async () => {
     const token = await signupToken();
     const res = await create("203.0.113.99", token, "first-timer");
     expect(res.status).toBe(201);
     expect(getUser("first-timer")).not.toBeNull();
-    expect(await balanceOf("first-timer")).toBeGreaterThan(0);
   });
 });

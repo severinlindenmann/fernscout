@@ -22,7 +22,6 @@
  */
 import fs from "node:fs";
 
-import { balanceOf, creditsEnabled } from "./credits";
 import { contactsWithReadGrant } from "./grants";
 import { getDays } from "./entries";
 import { getTrips } from "./trips";
@@ -43,16 +42,14 @@ export type JournalRow = {
   drafts: number;
   contacts: number;
   guests: number;
-  credits: number | null;
   bytes: number;
 };
 
 export type StatusReport = {
   site: string;
   journals: JournalRow[];
-  /** Whether contacts, guests and credits could be counted at all. */
+  /** Whether contacts and guests could be counted at all. */
   hasDatabase: boolean;
-  creditsEnabled: boolean;
   listedCount: number;
   disk: { free: number; total: number } | null;
   /** Sections that could not be read, each named. Never thrown. */
@@ -82,10 +79,9 @@ export async function collectStatus(): Promise<StatusReport> {
 
   const listed = new Set(await section("listed journals", () => listedUsernames(), []));
   const usernames = await section("journals", () => getUsernames(), []);
-  const credits = await section("credits", () => creditsEnabled(), false);
 
   /**
-   * Contacts, guests and credits all live in the database, and an instance
+   * Contacts and guests both live in the database, and an instance
    * without one is the ordinary case rather than a fault — the prototype tier
    * is the same app with the flags off (docs/runbook.md). Asked once, so a
    * laptop gets one sentence instead of two error lines per journal saying the
@@ -106,7 +102,6 @@ export async function collectStatus(): Promise<StatusReport> {
       drafts: 0,
       contacts: 0,
       guests: 0,
-      credits: null,
       bytes: 0,
     };
     journals.push(
@@ -150,10 +145,6 @@ export async function collectStatus(): Promise<StatusReport> {
             drafts,
             contacts: contacts.length,
             guests: withGrant.size,
-            credits:
-              credits && hasDatabase
-                ? await section(`${username} credits`, () => balanceOf(username), null)
-                : null,
             bytes: journalBytes(username),
           };
         },
@@ -181,7 +172,6 @@ export async function collectStatus(): Promise<StatusReport> {
     site,
     journals,
     hasDatabase,
-    creditsEnabled: credits,
     listedCount: listed.size,
     disk,
     problems,
@@ -227,9 +217,6 @@ export function statusColumns(report: StatusReport): { head: string; of: (row: J
     { head: "draft", of: (r) => String(r.drafts) },
   ];
   if (report.hasDatabase) columns.push({ head: "guests", of: (r) => String(r.guests) });
-  if (report.creditsEnabled && report.hasDatabase) {
-    columns.push({ head: "credits", of: (r) => String(r.credits ?? "—") });
-  }
   columns.push({ head: "size", of: (r) => formatBytes(r.bytes) });
   return columns;
 }
@@ -237,8 +224,7 @@ export function statusColumns(report: StatusReport): { head: string; of: (row: J
 /** What is switched off, said once rather than as a column of zeroes. */
 export function statusNotes(report: StatusReport): string[] {
   return [
-    !report.hasDatabase ? "no database on this instance — contacts, guests and credits are not counted" : "",
-    report.hasDatabase && !report.creditsEnabled ? "credits are switched off" : "",
+    !report.hasDatabase ? "no database on this instance — contacts and guests are not counted" : "",
   ].filter(Boolean);
 }
 

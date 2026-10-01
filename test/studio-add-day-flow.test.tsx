@@ -434,7 +434,7 @@ describe("AddDayFlow, one page — B2188", () => {
     expect(text()).not.toContain("Nothing at all was written");
   });
 
-  test("Polish my text sits under the box when the page hands it a balance, and is absent on null", async () => {
+  test("Polish my text sits under the box when the page hands it an available plan, and is absent on null", async () => {
     const words = "We walked along the river all morning and then ate far too many pastries by the tower.";
     await mount();
     type(container.querySelector("textarea") as HTMLTextAreaElement, words);
@@ -443,7 +443,7 @@ describe("AddDayFlow, one page — B2188", () => {
 
     act(() => root!.unmount());
     container.remove();
-    props = { polishCredits: 5 };
+    props = { polishAiAvailable: true };
     await mount();
     expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toBe(words);
     expect(text()).toContain("Polish my text");

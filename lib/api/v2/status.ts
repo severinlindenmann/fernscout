@@ -16,8 +16,6 @@ import { describeScope } from "../../auth";
 import { resolveCapabilities } from "../../capabilities";
 import { RESERVED_SOURCES } from "../../weather";
 import { FEATURE_NAMES, type FeatureName } from "../../config";
-import { balanceOf } from "../../credits";
-import { POSTCARD_CREDITS } from "@paid/credits/lib/credits/pricing";
 import { MAX_IMPORT_ROWS } from "../../contacts/importRows";
 import { COSTS_FORMATS } from "@/importers/costs";
 import { importFormats } from "../../gps/api";
@@ -82,11 +80,6 @@ export function buildInstanceStatus(): InstanceStatus {
       videoFormats: [...VIDEO_FORMATS],
       importFormats: { bank_export: bankExport, gps_history: gpsHistory },
     },
-    // Fixed per-send prices only — `lib/helper/credits.ts`'s per-photo and
-    // per-second model prices are usage-priced, not a single figure a caller
-    // could quote ahead of a call, so they are left out rather than reported
-    // as one number that is only ever true by coincidence.
-    pricing: { email: 1, whatsapp: 1, postcard: POSTCARD_CREDITS },
     // Imported rather than typed, so adding a second archive changes this
     // answer with no second edit — the same rule `/api/health` follows for
     // the same list (B1580, B1783).
@@ -101,8 +94,6 @@ export function buildInstanceStatus(): InstanceStatus {
  * `journalStatus` (`lib/api/status.ts`): a trip-scoped token sees its own
  * trip's drafts and no others.
  *
- * `credits` is null for a trip-scoped token (B1611) — a buddy is on the
- * trip, not the books, and the balance is money that is the owner's alone.
  * `describeScope` already draws the owner/trip line for `token`; this reuses
  * it rather than re-deriving scope a second way.
  *
@@ -132,8 +123,6 @@ export async function buildJournalStatus(user: string, session: Session): Promis
 
   return {
     journal: user,
-    // null for a trip-scoped token — the balance is not a buddy's business.
-    credits: token.scope === "owner" ? ((await balanceOf(user)) ?? 0) : null,
     drafts,
     trips: trips.map((t) => ({ id: t.id, title: t.title })),
     storage: { usedBytes: storage.usedBytes, maxBytes: storage.limitBytes },

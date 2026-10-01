@@ -1,7 +1,5 @@
 import "server-only";
 import { loadServerConfig } from "./config";
-import { balanceOf } from "./credits";
-import { creditsFromUnits } from "./creditsFormat";
 import { getDatabaseOrNull } from "./db";
 import { crossRate } from "./currency";
 import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "@paid/credits/lib/payments";
@@ -24,13 +22,14 @@ import {
  * spending, which is content a journal owns. This is the operator's bill for
  * running the server, which no journal can see.
  *
- * The arithmetic layer over `lib/usage.ts`, `print_orders`, `day_notifications`
- * and `credit_ledger`. Nothing here writes anything, and nothing here is
+ * The arithmetic layer over `lib/usage.ts`, `print_orders` and
+ * `day_notifications`. Nothing here writes anything, and nothing here is
  * reachable from a journal's own pages: `/admin` is the only caller, and
  * `lib/admin.ts` is what gates it.
  *
- * **Money is integer rappen throughout**, the rule `paid/credits/lib/credits/pricing.ts`
- * sets. Token prices are quoted per million and audio per thousand minutes, so
+ * **Money is integer rappen throughout**, the rule
+ * `paid/photobook/lib/photobook/checkoutPricing.ts` sets. Token prices are
+ * quoted per million and audio per thousand minutes, so
  * every multiplication here divides afterwards and rounds once, at the end —
  * rounding each row to the rappen before summing would lose most of a bill
  * made of thousands of fractional-rappen calls.
@@ -298,10 +297,6 @@ function fixedCosts(): CostLine[] {
 
 export type JournalRow = {
   username: string;
-  /** Null when credits are switched off instance-wide. */
-  balance: number | null;
-  granted: number;
-  spent: number;
   /** What this journal's own model and audio calls cost over the period. */
   rappen: number;
   /** `rappen`, split by what it was spent on — B2589, for /admin's
@@ -342,46 +337,14 @@ function revenueRappenByOwner(paid: Payment[]): Record<string, number> {
 }
 
 /**
- * Every journal, with what it holds and what it has cost — the question that
- * follows the total.
- *
- * `granted` and `spent` are read from `credit_ledger` over **all time**, not
- * the period: "this journal has spent 40 of the 50 it was given" is the
- * sentence an operator wants, and a period-limited version of it answers a
- * question nobody asked. The money column is the period, because that is what
- * the total at the top is.
+ * Every journal, with what it has cost — the question that follows the
+ * total. The money column is the period, because that is what the total at
+ * the top is.
  */
 async function journalRows(since: string): Promise<JournalRow[]> {
-  const handle = await getDatabaseOrNull();
   const byOwner = await usageByOwnerSince(since);
   const costs = loadServerConfig().costs;
   const revenue = revenueRappenByOwner(await paymentsPaidSince(since));
-
-  const ledger = new Map<string, { granted: number; spent: number }>();
-  if (handle) {
-    const rows = await handle.db
-      .selectFrom("credit_ledger")
-      .select(({ fn }) => ["owner_id", fn.sum<number>("delta").as("total")])
-      .groupBy(["owner_id"])
-      .execute();
-    // One pass, signed deltas split back apart: the ledger stores a signed
-    // number precisely so a sign cannot be forgotten at a call site, so the
-    // split happens here at read time rather than in a second column.
-    const signed = await handle.db
-      .selectFrom("credit_ledger")
-      .select(({ fn }) => ["owner_id", fn.sum<number>("delta").as("total")])
-      .where("delta", ">", 0)
-      .groupBy(["owner_id"])
-      .execute();
-    for (const row of rows) {
-      const positive = signed.find((s) => s.owner_id === row.owner_id);
-      // The ledger stores hundredths since B987; this page is read by a
-      // person, so it stops being one here.
-      const granted = creditsFromUnits(Number(positive?.total ?? 0));
-      const net = creditsFromUnits(Number(row.total ?? 0));
-      ledger.set(row.owner_id, { granted, spent: granted - net });
-    }
-  }
 
   const names = getUsernames();
   return Promise.all(
@@ -395,12 +358,8 @@ async function journalRows(since: string): Promise<JournalRow[]> {
       const speechRappen = priced
         .filter((_, i) => totals[i]?.provider === "deepgram")
         .reduce((sum, line) => sum + line.rappen, 0);
-      const entry = ledger.get(username);
       return {
         username,
-        balance: await balanceOf(username),
-        granted: entry?.granted ?? 0,
-        spent: entry?.spent ?? 0,
         rappen,
         aiRappen,
         speechRappen,

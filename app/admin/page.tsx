@@ -4,9 +4,7 @@ import { AckButton, SnoozeButton, UnhideButton } from "./Acks";
 import AppWaitlist from "./AppWaitlist";
 import InviteRequests from "./InviteRequests";
 import Invites from "./Invites";
-import AdminGrant from "@paid/credits/routes/admin/AdminGrant";
 import AdminPlanGrant from "@paid/credits/routes/admin/AdminPlanGrant";
-import AdminRefund from "@paid/credits/routes/admin/AdminRefund";
 import Journals from "./Journals";
 import MessageOwner from "./MessageOwner";
 import MessagesPanel from "./messages/MessagesPanel";
@@ -26,8 +24,6 @@ import { isEnabled } from "@/lib/capabilities";
 import { countMessages } from "@/lib/messages/log";
 import { listSwitches } from "@/lib/messages/switches";
 import { listSms } from "@/lib/sms/store";
-import { creditsEnabled } from "@/lib/credits";
-import { formatCredits } from "@/lib/creditsFormat";
 import { formatChf } from "@/lib/creditsFormat";
 import {
   dailyCosts,
@@ -49,7 +45,6 @@ import {
   signupDates,
   signupsByWeek,
   snapshot,
-  spendByReasonAll,
   takingsBreakdown,
   troubles,
   type Activity,
@@ -161,7 +156,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     healthNow,
     troubleRows,
     paidTwice,
-    byReason,
     purchases,
     weeksOfDays,
     sends,
@@ -179,7 +173,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     health(),
     troubles(from),
     paymentsPaidSince(ago(days * 2)),
-    spendByReasonAll(),
     paymentsByOwner(),
     Promise.resolve(daysByWeek(WEEKS)),
     sendsByWeek(WEEKS),
@@ -191,7 +184,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     listInviteRequests(),
   ]);
 
-  const metered = creditsEnabled();
   const costs = loadServerConfig().costs;
   // B1316 — the SMS section's own reads. `listSms` is empty with no database,
   // so a checkout with neither capability shows an explained-empty panel.
@@ -230,7 +222,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     troubles: troubleRows,
     journals: report.journals,
     ceiling,
-    balances: data.journals,
   });
 
   // What the operator has already answered — B1203. The sweep runs against the
@@ -373,15 +364,10 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       primary: true,
       panel: (
         <>
-          {!metered ? (
-            <p className="mt-4 text-sm text-ink-body">
-              Credits are switched off on this instance, so there are no balances to show.
-            </p>
-          ) : null}
           {/* The rows, their search, filters and sort live in `Journals`;
               what is behind one is rendered here, on the server, and handed
               over as the panel that opens. Every query that feeds those
-              panels is instance-wide and made once — see `spendByReasonAll`. */}
+              panels is instance-wide and made once. */}
           <Journals
             days={days}
             rows={data.journals.map((journal) => {
@@ -389,9 +375,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
               return {
                 username: journal.username,
                 rappen: journal.rappen,
-                balance: journal.balance,
-                spent: journal.spent,
-                granted: journal.granted,
                 series: series[journal.username],
                 lastWroteAt: activity[journal.username]?.lastWroteAt ?? null,
                 disk: `${formatBytes(status?.bytes ?? 0)}${ceiling ? ` of ${formatBytes(ceiling)}` : ""}`,
@@ -405,7 +388,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
                     username={journal.username}
                     status={status}
                     ceiling={ceiling}
-                    reasons={byReason[journal.username] ?? []}
                     payments={purchases[journal.username] ?? []}
                     helper={helper.find((one) => one.owner === journal.username)}
                   />
@@ -555,7 +537,6 @@ const KIND_LABEL: Record<Attend["kind"], string> = {
   fault: "Fault",
   backup: "Backup",
   disk: "Disk",
-  credits: "Credits",
 };
 
 /**
@@ -568,7 +549,6 @@ function whereFixed(item: Attend): { href: string; label: string } | null {
     const name = item.id.slice("disk:".length);
     return { href: `#journals/${encodeURIComponent(name)}`, label: "Open journal" };
   }
-  if (item.kind === "credits") return { href: "#journals", label: "See journals" };
   return { href: "#instance", label: item.kind === "backup" ? "See backups" : "See instance" };
 }
 
@@ -1318,21 +1298,18 @@ function JournalPanel({
   username,
   status,
   ceiling,
-  reasons,
   payments,
   helper,
 }: {
   username: string;
   status: StatusRow | undefined;
   ceiling: number | null;
-  reasons: { reason: string; credits: number }[];
   payments: Payment[];
   /** This journal's own conversations — B1181, moved down here from the
    *  instance-wide list it used to be a row of. Absent for a journal that has
    *  never used the helper, which is not the same as one that used it badly. */
   helper: SessionStats | undefined;
 }) {
-  const spent = reasons.reduce((sum, row) => sum + row.credits, 0);
   const settled = payments.filter((one) => one.status === "paid");
   const bought = settled.reduce((sum, one) => sum + one.amountRappen, 0);
 
@@ -1352,27 +1329,6 @@ function JournalPanel({
             fraction={status.bytes / ceiling}
             tone={status.bytes / ceiling > 0.9 ? "alert" : "navy"}
           />
-        </div>
-      ) : null}
-
-      {reasons.length > 0 ? (
-        <div className="px-4 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-            Credits went on
-          </p>
-          <ul className="mt-1 space-y-1.5">
-            {reasons.map((row) => (
-              <li key={row.reason}>
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm text-ink-strong">{REASON_LABEL[row.reason] ?? row.reason}</span>
-                  <span className="font-mono text-sm text-ink-strong">
-                    {formatCredits(row.credits)}
-                  </span>
-                </div>
-                <Meter fraction={row.credits / Math.max(spent, 1)} />
-              </li>
-            ))}
-          </ul>
         </div>
       ) : null}
 
@@ -1405,30 +1361,12 @@ function JournalPanel({
         </div>
       ) : null}
 
-      <Purchases username={username} payments={payments} settled={settled.length} bought={bought} />
-      <AdminGrant journal={username} />
+      <Purchases payments={payments} settled={settled.length} bought={bought} />
       <AdminPlanGrant journal={username} />
       <MessageOwner username={username} />
     </div>
   );
 }
-
-/** The ledger's own vocabulary, in the operator's words. Unknown reasons fall
- *  through to their own name rather than disappearing. */
-const REASON_LABEL: Record<string, string> = {
-  day_mail: "Announcing a day by email",
-  day_whatsapp: "Announcing a day on WhatsApp",
-  day_sms: "Announcing a day by SMS",
-  invite: "Welcome messages (WhatsApp / SMS)",
-  digest: "A digest",
-  postcard: "Printed postcards",
-  photobook: "Photobooks",
-  photobook_print: "Printing a photobook",
-  storage: "Extra disk",
-  helper: "The helper",
-  transcription: "Transcribing speech",
-  refunded: "Given back (failed calls)",
-};
 
 /**
  * One journal's purchases, and the only place a refund can be recorded — B878.
@@ -1443,12 +1381,10 @@ const REASON_LABEL: Record<string, string> = {
  * reads, and the total is the part that was being looked for.
  */
 function Purchases({
-  username,
   payments,
   settled,
   bought,
 }: {
-  username: string;
   payments: Payment[];
   settled: number;
   bought: number;
@@ -1469,7 +1405,7 @@ function Purchases({
           <li key={payment.id} className="py-2">
             <div className="flex items-baseline justify-between gap-3">
               <span className="min-w-0 break-words text-sm text-ink-strong">
-                {payment.credits} credits
+                {payment.credits} credits (historical — this instance no longer sells credits)
               </span>
               <span className="shrink-0 font-mono text-sm text-ink-strong">
                 {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}
@@ -1479,14 +1415,6 @@ function Purchases({
               {payment.status}
               {` · ${(payment.paidAt ?? payment.createdAt).slice(0, 10)}`}
             </p>
-            {payment.status === "paid" ? (
-              <AdminRefund
-                username={username}
-                payment={payment.id}
-                amount={formatChf(payment.amountRappen)}
-                credits={payment.credits}
-              />
-            ) : null}
           </li>
         ))}
       </ul>

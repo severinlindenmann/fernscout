@@ -52,10 +52,6 @@ export const ERROR_CODES = {
   unknown_contact: "No contact of that id in this journal.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
   unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
-  unknown_payment: "No payment of that id.",
-  invalid_amount:
-    "Not a number of credits this server sells — out of range, not a whole number, or off the " +
-    "step. The refusal names the three bounds.",
   no_such_device: "No device of that id on this account.",
   foreign_origin:
     "This request's Origin is not this site. A cookie-only door that ends sessions answers only " +
@@ -151,7 +147,6 @@ export const ERROR_CODES = {
   contacts_disabled: "This server has contacts off, so invitations and approvals are unavailable.",
   postcards_disabled: "This server has postcards off.",
   photobook_disabled: "This journal does not have photobooks switched on. /api/health says which capabilities are on and why.",
-  credits_disabled: "This server has credits off.",
   mail_disabled: "This server cannot send mail, so anything that would have been mailed has not been.",
   mail_failed: "The mail could not be sent. Nothing else about the call failed; tell the person, and do not retry in a loop.",
   sms_disabled: "This server cannot send SMS. Use the WhatsApp confirmation instead; nothing was issued.",
@@ -160,16 +155,13 @@ export const ERROR_CODES = {
   no_database: "This capability stores data and this server has no database configured.",
   provider_unavailable:
     "The provider could not be reached, or refused the request — Stripe for a payment, Gelato for a photobook print. Nothing was charged. Read this response's own `message`: it says whether the failure is transient (retrying is reasonable) or the provider refused this server's own account (retrying will not help; this needs the operator).",
-  no_credits: "This journal has no credits left for that.",
   plan_limit: "This journal's plan has no more AI travel days (or storage) left in its current period. `used`, `allowed`, `plan` and `upgradeUrl` on the response say which limit and where to upgrade.",
   not_for_agents:
     "This spends the owner's money and is done by the owner, from their own page — a token is refused here whatever it is scoped to. Nothing was charged. Report what is needed and let them decide.",
-  bad_token: "The single-use token in the body does not verify.",
-  bad_method: "That payment method is not one this server takes.",
   too_many_requests: "Too many of these too quickly. `retryAfter` says how long to wait — wait it out rather than retrying immediately.",
   helper_unavailable: "This journal has no model-backed features switched on. /api/health says which capabilities are on and why.",
   consent_required: "This journal has not agreed to send photographs to a model. That is asked for on the journal's own page, not by an agent — an owner has to say yes to this themselves.",
-  model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
+  model_failed: "The model call failed. Nothing was written and no AI day was spent; retrying is reasonable.",
   weather_disabled:
     "`weather: true` asks this server to look the day up in a public archive, and the weather capability is off for this journal — no lookup would happen at all. Nothing was written, rather than storing a request nobody will service. Send the day without the field; /api/health says whether this server provides weather at all. A reading somebody actually took goes in `weather` as an object with its own `source` — never one you believe.",
   address_lookup_disabled:

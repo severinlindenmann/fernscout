@@ -20,7 +20,7 @@ import { serverSite } from "@/lib/site";
  */
 function markdownFor(path: string, locale: string): string | null {
   if (path === "/") return landingMarkdown(locale);
-  if (path === "/prices") return isEnabled("credits") ? pricesMarkdown(locale) : null;
+  if (path === "/prices") return isEnabled("billing") ? pricesMarkdown(locale) : null;
   if (path.startsWith("/guides/")) return guideMarkdown(path, locale);
   return orgsMarkdown(path, locale);
 }

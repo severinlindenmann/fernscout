@@ -96,7 +96,7 @@ beforeAll(async () => {
     JSON.stringify({
       site: { name: "R", url: "https://example.test", defaultUser: OWNER },
       users: { reserved: [] },
-      features: { auth: { enabled: true }, credits: { enabled: true } },
+      features: { auth: { enabled: true }, },
     }),
   );
   fs.mkdirSync(path.join(dir, OWNER, "trips"), { recursive: true });
@@ -110,7 +110,7 @@ beforeAll(async () => {
       baseCurrency: "CHF",
       displayCurrencies: ["CHF"],
       units: "metric",
-      features: { auth: { enabled: true }, credits: { enabled: true } },
+      features: { auth: { enabled: true }, },
     }),
   );
   writeTrip("owner-only-trip");
@@ -182,7 +182,6 @@ describe("GET /api/v2/status", () => {
     expect((body.media as Record<string, unknown>).kinds).toEqual(
       expect.arrayContaining(["photo", "bank_export", "gps_history", "document"]),
     );
-    expect(body.pricing).toBeTruthy();
   });
 
   /**
@@ -257,46 +256,10 @@ describe("GET /api/v2/{user}/status", () => {
     expect((body.token as { scope: string; trip?: string }).trip).toBe("shared-trip");
   });
 
-  /**
-   * B1611 — a trip-scoped token (a buddy) is on the trip, not the books.
-   * The owner's balance is money that is the owner's alone; the field is
-   * `null` rather than the real number for a scope that is not "owner".
-   */
-  test("a trip-scoped token gets no credit balance", async () => {
-    const token = await tripToken(BUDDY, "shared-trip");
-    const { status, body } = await journalStatus(token);
-    expect(status, JSON.stringify(body)).toBe(200);
-    expect(body.credits).toBeNull();
-
-    const { status: ownerStatus, body: ownerBody } = await journalStatus(await ownerToken());
-    expect(ownerStatus, JSON.stringify(ownerBody)).toBe(200);
-    expect(typeof ownerBody.credits).toBe("number");
-  });
-
   test("refuses a token for a different journal", async () => {
     const { status, body } = await journalStatus("not-a-real-token");
     expect(status).toBe(401);
     expect(body.error).toBe("invalid_token");
-  });
-
-  /**
-   * B1756 — a balance with a fraction is an ordinary balance. A credit is
-   * stored in hundredths and `balanceOf` divides on the way out (B987), so
-   * any journal that has ever part-spent one carries a fractional number
-   * here. `journalStatus` declared `credits` an integer, and `.parse` threw
-   * on it — a 500 with an empty body on the very first call the handover
-   * prompt tells an agent to make, which reads to that agent as a route
-   * that no longer exists. The live instance answered this way for every
-   * request until the schema was widened.
-   */
-  test("a balance carrying a fraction is a 200, not a 500", async () => {
-    const { grant, spend } = await import("@/lib/credits");
-    await grant(OWNER, 3, "welcome");
-    await spend(OWNER, 0.25, "helper", "b1756");
-
-    const { status, body } = await journalStatus(await ownerToken());
-    expect(status, JSON.stringify(body)).toBe(200);
-    expect(body.credits).toBe(2.75);
   });
 
   /**

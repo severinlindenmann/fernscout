@@ -6,7 +6,6 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { tripMediaDir } from "@/lib/media";
 import { storeInboxFile } from "@/lib/inbox";
@@ -23,7 +22,7 @@ import { hasPaid } from "./support/openCore";
  * assertable, and what this exercises, is everything around it — that
  * nothing is written, that an out-of-vocabulary or self-reported-unanswered
  * value is computed rather than trusted, that a photograph has to already be
- * this journal's own, and that credits are charged once and refunded on
+ * this journal's own, and that the real behavior is unchanged on
  * failure.
  */
 
@@ -137,10 +136,9 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } });
+  writeConfig({ auth: { enabled: true }, helper: { enabled: true } });
   writeTrip();
   await migrateToLatest(await getDatabase());
-  await grant(OWNER, 10);
 });
 
 afterEach(async () => {
@@ -159,11 +157,10 @@ describe("consent and the capability", () => {
     expect(refused.status).toBe(403);
     expect(refused.body.error).toBe("consent_required");
     expect(classifyTravellers).not.toHaveBeenCalled();
-    expect(await balanceOf(OWNER)).toBe(10);
   });
 
   test("with the helper capability off, refuses rather than failing", async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, });
     const token = await ownerToken();
     await consent();
     const src = await writeTripPhoto("day-one");
@@ -187,7 +184,6 @@ describe("the photograph has to already be this journal's own", () => {
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("not_this_trip");
     expect(classifyTravellers).not.toHaveBeenCalled();
-    expect(await balanceOf(OWNER)).toBe(10);
   });
 
   test("a gallery src that does not exist is refused", async () => {
@@ -305,8 +301,8 @@ describe("proposed, never written", () => {
 // B2591 — "people from a photo" no longer spends or refunds credits; it
 // needs an active plan or unused Free days (checked with `billing` on, a
 // separate describe block below) and takes no AI day of its own.
-describe("what it costs", () => {
-  test("nothing is spent, whatever the party size", async () => {
+describe("no plan or balance stands in the way", () => {
+  test("a photo with several people still describes them all", async () => {
     const token = await ownerToken();
     await consent();
     classifyTravellers.mockResolvedValueOnce([
@@ -317,10 +313,9 @@ describe("what it costs", () => {
     const src = await writeTripPhoto("day-one");
     const done = await trip(token, { gallery: src });
     expect(done.status).toBe(200);
-    expect(await balanceOf(OWNER)).toBe(10);
   });
 
-  test("a failed model call spends nothing", async () => {
+  test("a failed model call is reported cleanly", async () => {
     classifyTravellers.mockRejectedValueOnce(new Error("provider is unhappy"));
     const token = await ownerToken();
     await consent();
@@ -328,13 +323,12 @@ describe("what it costs", () => {
     const failed = await trip(token, { gallery: src });
     expect(failed.status).toBe(502);
     expect(failed.body.error).toBe("model_failed");
-    expect(await balanceOf(OWNER)).toBe(10);
   });
 });
 
 describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
   test("once the plan's AI days are used up, this is refused with 402 plan_limit", async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     const token = await ownerToken();
     await consent();
     const { grantPlan } = await import("@paid/credits/lib/entitlements");

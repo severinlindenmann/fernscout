@@ -415,7 +415,6 @@ describe("status", () => {
           videoFormats: ["video/mp4"],
           importFormats: { bank_export: ["revolut-csv"], gps_history: ["gpx", "google-timeline"] },
         },
-        pricing: { postcard: 3, "storage-5gb": 10 },
         // B1783: the source names a caller may never write. Required rather
         // than optional, because a client that has to cope with its absence
         // is a client that hardcodes the name instead.
@@ -425,7 +424,6 @@ describe("status", () => {
     expect(
       journalStatus.safeParse({
         journal: "example",
-        credits: 12,
         drafts: [{ trip: "alps-2026", slug: "2026-09-21-grindelwald", title: "Grindelwald" }],
         trips: [{ id: "alps-2026", title: "Alps by rail" }],
         storage: { usedBytes: 123_456, maxBytes: 5_000_000_000 },

@@ -12,7 +12,6 @@ import {
 import { translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
-import { formatCredits } from "@/lib/creditsFormat";
 
 import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
@@ -99,16 +98,6 @@ export default async function DeletePage({ params }: PageProps<"/at/[user]/delet
       <p className="mt-3 text-lg leading-8 text-ink-body">
         {t(isJournal ? "del.journalWhatGoes" : "del.tripWhatGoes", vars)}
       </p>
-      {/* Absent when credits are off or the balance is zero — a "you will
-          lose 0 credits" line is noise on every self-hosted install that has
-          never turned charging on (B74, restated for money by B374). Never
-          rendered for a trip: deleting one destroys no credits. */}
-      {isJournal && typeof summary.credits === "number" && summary.credits > 0 && (
-        <p className="mt-3 text-lg leading-8 text-ink-body">
-          {t("del.credits", { ...vars, credits: formatCredits(summary.credits) })}
-        </p>
-      )}
-
       <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">
         {t("del.exportHeading")}
       </h2>

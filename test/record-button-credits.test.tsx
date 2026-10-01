@@ -7,10 +7,10 @@ import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 
 /**
- * B2234 — a balance below what even the shortest recording costs is said
- * before the tap, in both of the two forms that say a price at all: the
- * plain price-line button and the question screen's `hero` mic. `undefined`
- * (no host passes `credits`) changes nothing — every existing caller stays
+ * B2234/B2591 — a plan with no AI days left is said before the tap, in both
+ * of the two non-`compact` forms: the plain button and the question
+ * screen's `hero` mic. `undefined`/`null` (no host passes `aiAvailable`) is
+ * "not checked here" and changes nothing — every existing caller stays
  * exactly as it was.
  */
 
@@ -38,44 +38,29 @@ function render(props: Partial<React.ComponentProps<typeof RecordButton>> = {}) 
   return container!;
 }
 
-describe("B2234 — RecordButton refuses the tap below the price", () => {
-  test("a zero balance shows the notice and no button, in the plain price-line form", () => {
-    const el = render({ credits: 0 });
+describe("B2234/B2591 — RecordButton refuses the tap with no AI days left", () => {
+  test("aiAvailable: false shows the notice and no button, in the plain form", () => {
+    const el = render({ aiAvailable: false });
     expect(el.querySelector("button")).toBeNull();
-    expect(el.textContent).toContain("You have no credits left for this.");
+    expect(el.textContent).toContain("Your AI days for this plan are used up.");
     const link = el.querySelector("a");
-    expect(link?.getAttribute("href")).toBe("/@alex/studio/account");
+    expect(link?.getAttribute("href")).toBe("/prices");
   });
 
-  test("a zero balance shows the notice and no button, in the hero form", () => {
-    const el = render({ credits: 0, hero: true, hold: false });
+  test("aiAvailable: false shows the notice and no button, in the hero form", () => {
+    const el = render({ aiAvailable: false, hero: true, hold: false });
     expect(el.querySelector("button")).toBeNull();
-    expect(el.textContent).toContain("You have no credits left for this.");
+    expect(el.textContent).toContain("Your AI days for this plan are used up.");
   });
 
-  test("a balance that covers the floor shows the button as normal", () => {
-    const el = render({ credits: 1 });
+  test("aiAvailable: true shows the button as normal", () => {
+    const el = render({ aiAvailable: true });
     expect(el.querySelector("button")).not.toBeNull();
-    expect(el.textContent).not.toContain("You have no credits left for this.");
+    expect(el.textContent).not.toContain("Your AI days for this plan are used up.");
   });
 
-  test("no credits prop (every existing caller) changes nothing", () => {
+  test("no aiAvailable prop (every existing caller) changes nothing", () => {
     const el = render({});
     expect(el.querySelector("button")).not.toBeNull();
-  });
-});
-
-// B2288 — `priceChf` is computed server-side (pricing is paid-only code
-// after the open-core split); this component never imports it itself.
-describe("B2288 — the plain price-line form takes its price as a prop", () => {
-  test("priceChf set shows the CHF price", () => {
-    const el = render({ priceChf: "CHF 0.01" });
-    expect(el.textContent).toContain("about CHF 0.01");
-  });
-
-  test("priceChf null (a public build) shows the credit price alone, no CHF", () => {
-    const el = render({ priceChf: null });
-    expect(el.textContent).not.toContain("CHF");
-    expect(el.textContent).toContain("Hold to talk");
   });
 });

@@ -7,7 +7,6 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { requestContact, confirmContact, approveContact } from "@/lib/contacts";
 import { issueCode } from "@/lib/auth";
-import { balanceOf } from "@/lib/credits";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
@@ -15,10 +14,12 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
  *
  * `test/day-mail.test.ts` already pins everything about what a letter
  * contains and who it reaches; this is only the owner's own door onto it:
- * that it is cookie-only, that it quotes a cost and a balance before
- * spending anything, that a short balance spends nothing, and that a day
- * once sent stops offering the button — the one record nothing else in the
- * codebase kept (see `022-day-notifications`).
+ * that it is cookie-only, that it quotes who it reaches before sending, and
+ * that a day once sent stops offering the button — the one record nothing
+ * else in the codebase kept (see `022-day-notifications`). B2597 retired
+ * every paid channel (WhatsApp, SMS) this button could reach — mail is free,
+ * so there is no cost or balance left to quote either (B2592 deleted the
+ * credit ledger this file once also checked).
  */
 
 const OWNER = "alex";
@@ -31,7 +32,7 @@ let isOwnerMock: ReturnType<typeof vi.fn>;
 
 vi.mock("@/lib/contacts/session", () => ({ isOwner: vi.fn() }));
 
-function writeServerConfig(opts: { credits?: boolean } = {}) {
+function writeServerConfig() {
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -41,7 +42,6 @@ function writeServerConfig(opts: { credits?: boolean } = {}) {
         auth: { enabled: true },
         contacts: { enabled: true },
         mail: { enabled: true, transport: "file" },
-        ...(opts.credits !== undefined ? { credits: { enabled: opts.credits } } : {}),
       },
     }),
   );
@@ -222,12 +222,8 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
         ok: true,
         reachable: true,
         alreadySent: false,
-        pending: [{ channel: "mail", count: 2, cost: 0 }],
+        pending: [{ channel: "mail", count: 2 }],
       });
-      // Credits are off by default (test/credits.test.ts), so nothing is
-      // billed and the balance question does not even apply.
-      expect(before.balance).toBeNull();
-      expect(before.short).toBe(false);
 
       const sent = await (await POST(req("POST"), paramsFor("day-one"))).json();
       expect(sent.ok).toBe(true);
@@ -271,28 +267,4 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     });
   });
 
-  describe("an empty balance — B840", () => {
-    test("a mail-only announcement quotes nothing and goes out anyway", async () => {
-      writeServerConfig({ credits: true });
-      // No grant at all: a journal with no `credits` row has a balance of
-      // zero, which is what every journal starts with (`lib/credits.ts`). This
-      // used to quote one credit, answer 402 and send nothing.
-      await addReader();
-      writeEntry({ slug: "day-one" });
-
-      const { GET, POST } = await route();
-
-      const status = await (await GET(req("GET"), paramsFor("day-one"))).json();
-      expect(status).toMatchObject({ ok: true, needed: 0, balance: 0, short: false });
-
-      const response = await POST(req("POST"), paramsFor("day-one"));
-      expect(response.status).toBe(200);
-
-      // Sent, and still nothing charged: the reader and the owner both got one.
-      expect(await balanceOf(OWNER)).toBe(0);
-      expect(mailFiles()).toHaveLength(2);
-      const still = await (await GET(req("GET"), paramsFor("day-one"))).json();
-      expect(still.alreadySent).toBe(true);
-    });
-  });
 });

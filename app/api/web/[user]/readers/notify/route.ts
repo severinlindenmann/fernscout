@@ -6,11 +6,10 @@ export const dynamic = "force-dynamic";
 
 /**
  * Step 2 of "Add a person", and every "Resend" / "Send again" on a card —
- * B2292 (B2291 "Credits").
+ * B2292.
  *
  * `GET ?contactId=` answers what each channel would do: usable or why not,
- * what it costs, the balance, and the exact message the person would get.
- * Sends nothing.
+ * and the exact message the person would get. Sends nothing.
  *
  * `POST { contactId, channel: "email" | "self" }` sends on that one channel.
  * Email is free; `self` sends nothing and answers the link. WhatsApp retired
@@ -29,7 +28,6 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
 
 const STATUS: Record<string, number> = {
   no_contact: 404,
-  no_credits: 402,
   rate_limited: 429,
   daily_limit: 429,
   send_failed: 502,
@@ -61,10 +59,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
 
   const result = await sendInvite(user, contactId, channel);
   if (!result.ok) {
-    return Response.json(
-      { error: result.reason, ...(result.balance !== undefined ? { balance: result.balance } : {}) },
-      { status: STATUS[result.reason] ?? 409, headers: PRIVATE },
-    );
+    return Response.json({ error: result.reason }, { status: STATUS[result.reason] ?? 409, headers: PRIVATE });
   }
   return Response.json(result, { headers: PRIVATE });
 }

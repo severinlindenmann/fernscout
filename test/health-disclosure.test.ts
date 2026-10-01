@@ -171,24 +171,24 @@ describe("what a stranger is told", () => {
   });
 
   test("a server-only capability is never narrowed per journal — B397", async () => {
-    // Turn credits on at the server. It has no per-journal opt-in
-    // (`creditsEnabled()` asks without a username), so no journal config sets
-    // it — which used to make `resolveCapabilities(username)` report it as
-    // "not enabled by <user>" and list it as narrowed for every journal, a
-    // live-billed journal included. `logging` is skipped for the same reason;
-    // this proves `credits` now is too.
+    // Turn billing on at the server. It has no per-journal opt-in (it is
+    // asked without a username), so no journal config sets it — which used
+    // to make `resolveCapabilities(username)` report it as "not enabled by
+    // <user>" and list it as narrowed for every journal, a live-billed
+    // journal included. `logging` is skipped for the same reason; this
+    // proves `billing` (the credit system's B2592 replacement) is too.
     fs.writeFileSync(
       path.join(dir, "config.json"),
       JSON.stringify({
         site: { name: "R", url: "https://example.test", defaultUser: PUBLIC_JOURNAL },
         users: { reserved: [] },
-        features: { mail: { enabled: true, transport: "file" }, credits: { enabled: true } },
+        features: { mail: { enabled: true, transport: "file" }, billing: { enabled: true } },
       }),
     );
-    // Credits needs a database to count as enabled at the server level; without
-    // one the server answer and the per-journal answer would both be "off" and
-    // the skip would never be exercised.
-    process.env.DATABASE_URL = `sqlite:${path.join(dir, "health-credits.sqlite")}`;
+    // Billing needs a database to count as enabled at the server level;
+    // without one the server answer and the per-journal answer would both be
+    // "off" and the skip would never be exercised.
+    process.env.DATABASE_URL = `sqlite:${path.join(dir, "health-billing.sqlite")}`;
     // Read as the operator: since B473 an unentitled caller has no `journals`
     // block to inspect, and the claim here is about what that block contains.
     process.env.HEALTH_TOKEN = TOKEN;
@@ -200,11 +200,11 @@ describe("what a stranger is told", () => {
     try {
       const body = await (await health(operator())).json();
       // The public journal still appears (it narrowed `mail`), but no
-      // journal's block ever mentions credits — a whole-object check, because
+      // journal's block ever mentions billing — a whole-object check, because
       // the next field added is the one that reintroduces the leak.
       expect(body.journals[PUBLIC_JOURNAL]?.mail.enabled).toBe(false);
-      expect(JSON.stringify(body.journals)).not.toContain("credits");
-      if (fs.existsSync(path.join(process.cwd(), "paid"))) expect(body.capabilities.credits.enabled).toBe(true);
+      expect(JSON.stringify(body.journals)).not.toContain("billing");
+      if (fs.existsSync(path.join(process.cwd(), "paid"))) expect(body.capabilities.billing.enabled).toBe(true);
     } finally {
       await closeDatabase();
       delete process.env.DATABASE_URL;

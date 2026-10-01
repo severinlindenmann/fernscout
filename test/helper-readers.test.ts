@@ -76,7 +76,6 @@ beforeEach(async () => {
         helper: { enabled: true },
         contacts: { enabled: true },
         mail: { enabled: true },
-        credits: { enabled: true },
       },
     }),
   );

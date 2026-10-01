@@ -1,6 +1,6 @@
 import path from "node:path";
 import { isEnabled } from "@/lib/capabilities";
-import { creditsForPhotos, DESCRIBE_PHOTO_WIDTH } from "@/lib/helper/credits";
+import { DESCRIBE_PHOTO_WIDTH } from "@/lib/helper/credits";
 import { checkAiDay, recordAiDay } from "@paid/credits/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { describeImage, HELPER_MODEL, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
@@ -52,7 +52,7 @@ export const dynamic = "force-dynamic";
  */
 
 /** Ten write-ups' worth of photographs would already be an unusual day; this
- *  is a brake on a script, not the quota — the credit is the quota. */
+ *  is a brake on a script, not the quota — the AI-day gate is the quota. */
 const LIMIT = { max: 10, windowMs: 15 * 60 * 1000 };
 
 /** How many photographs are described at once. */
@@ -154,7 +154,6 @@ export async function POST(
   // something new to send; all-cached needs no gate. Checked, not
   // recorded, until the model call below succeeds — "a failed AI call
   // uses no day".
-  const credits = creditsForPhotos(uncached.length);
   if (uncached.length > 0) {
     const gate = await checkAiDay(user, tripId, entry.date);
     if (!gate.ok) return Response.json(gate.refusal, { status: 402 });
@@ -222,7 +221,6 @@ export async function POST(
     const answer = {
       ok: true,
       captions: bySrc,
-      spent: credits,
       cached,
       provider: HELPER_PROVIDER,
     };

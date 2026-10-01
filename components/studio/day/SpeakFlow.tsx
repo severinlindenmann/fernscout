@@ -9,7 +9,6 @@ import StepPrimary from "@/components/studio/StepPrimary";
 import StepBody from "@/components/studio/StepBody";
 import StepIndicator from "@/components/extract/StepIndicator";
 import { useOnline } from "@/components/studio/useOnline";
-import { MINUTES_PER_CREDIT, creditsForSeconds } from "@/lib/helper/speech";
 import { useStep } from "@/lib/studio/useStep";
 import { assembleSpokenDay, SPEAK_QUESTIONS, type SpeakQuestion, type TellBy } from "@/lib/studio/speak";
 import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
@@ -75,10 +74,10 @@ export default function SpeakFlow({
    *  can be queued against a date the owner will recognise once it comes
    *  back transcribed, rather than needing the day itself to exist yet. */
   date: string;
-  /** `credits` is `null` when the host does not know the balance (helper's
-   *  own gate is off) — B2234, the same "unknown means unchecked" `null`
-   *  `RecordButton`'s own `credits` prop takes. */
-  speech: { consented: boolean; provider: string; credits: number | null; priceChf: string | null };
+  /** `aiAvailable` is `null` when the host does not know the plan's AI-day
+   *  status (helper's own gate is off) — B2234/B2591, the same "unknown
+   *  means unchecked" `null` `RecordButton`'s own `aiAvailable` prop takes. */
+  speech: { consented: boolean; provider: string; aiAvailable: boolean | null };
   /** A real fact from the chosen photographs — how many carry this place —
    *  or `null`. Only ever cited, never used to suggest an answer. */
   photoFact: { count: number; place: string } | null;
@@ -122,18 +121,6 @@ export default function SpeakFlow({
       : t(`studio.day.speak.q.${step}`);
   const answer = answers[step] ?? "";
   const last = index === total - 1;
-  const price = new Intl.NumberFormat(locale).format(1 / MINUTES_PER_CREDIT);
-  // B2288 — computed server-side (`speech.priceChf`), same pattern as
-  // `PolishText`'s own price (B2254): pricing is paid-only code after the
-  // open-core split, so this component never imports it. `null` on a public
-  // build or whenever pricing is unavailable, and the line below goes quiet
-  // with it rather than showing a wrong CHF 0.00.
-  const money = speech.priceChf;
-  // B2234 — the same floor `RecordButton`'s own `credits` prop refuses the
-  // tap on; the price line below is the button's, so it goes quiet with it
-  // rather than quoting a price beside a notice that there is nothing to pay
-  // it with.
-  const insufficientCredits = speech.credits != null && speech.credits < creditsForSeconds(0);
 
   function next(a: Partial<Record<SpeakQuestion, string>>) {
     setQueuedNotice(false);
@@ -204,7 +191,7 @@ export default function SpeakFlow({
           username={username}
           consented={speech.consented}
           provider={speech.provider}
-          credits={speech.credits}
+          aiAvailable={speech.aiAvailable}
           hero
           hold={false}
           onText={(said) => setAnswers((prev) => ({ ...prev, [step]: prev[step] ? `${prev[step]} ${said}` : said }))}
@@ -213,13 +200,6 @@ export default function SpeakFlow({
         {queuedNotice && (
           <p role="status" className="mt-1 text-center text-sm text-cream-50">
             {t("studio.day.speak.queued")}
-          </p>
-        )}
-        {!insufficientCredits && !queuedNotice && (
-          <p className="mt-1 text-center text-sm text-cream-50">
-            {money == null
-              ? t("studio.day.speak.priceNoMoney", { price })
-              : t("studio.day.speak.price", { price, money })}
           </p>
         )}
       </div>
@@ -268,7 +248,7 @@ export function RatherTalk({
   tellBy,
 }: {
   username: string;
-  speech: { consented: boolean; provider: string; credits: number | null; priceChf: string | null } | null;
+  speech: { consented: boolean; provider: string; aiAvailable: boolean | null } | null;
   tellBy: TellBy | null;
 }) {
   const { t } = useI18n();

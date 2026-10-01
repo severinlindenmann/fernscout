@@ -1,6 +1,6 @@
 import "server-only";
 import { mayUseAi } from "@paid/credits/lib/aiDays";
-import { creditsForSeconds, MAX_SPEECH_SECONDS } from "./speech";
+import { MAX_SPEECH_SECONDS } from "./speech";
 import type { SpeechLanguage } from "./speech";
 import { transcribeAudio } from "./transcribe";
 import type { UncertainWord } from "./transcribe";
@@ -30,15 +30,13 @@ import type { UncertainWord } from "./transcribe";
 
 /** What this refused, or what it produced. */
 export type TranscribeOutcome =
-  | { ok: true; text: string; seconds: number; spent: number; uncertainWord?: UncertainWord }
-  | { ok: false; error: "plan_limit" | "transcription_failed" | "recording_too_long"; cost: number };
+  | { ok: true; text: string; seconds: number; uncertainWord?: UncertainWord }
+  | { ok: false; error: "plan_limit" | "transcription_failed" | "recording_too_long" };
 
 /**
  * B2591 — transcription takes no AI day of its own; it needs an active plan
  * or unused Free days, checked once before the call, and nothing is spent or
- * refunded any more. `spent` on a success is kept, at `0`, purely so callers
- * that still read it (the route, the WhatsApp door) do not need a second
- * shape — it is never charged.
+ * refunded any more.
  */
 export async function spendAndTranscribe(
   username: string,
@@ -52,15 +50,15 @@ export async function spendAndTranscribe(
   runId?: string,
 ): Promise<TranscribeOutcome> {
   void runId;
-  const credits = creditsForSeconds(claimedSeconds);
+  void claimedSeconds;
   const gate = await mayUseAi(username);
-  if (!gate.ok) return { ok: false, error: "plan_limit", cost: credits };
+  if (!gate.ok) return { ok: false, error: "plan_limit" };
 
   let transcript;
   try {
     transcript = await transcribeAudio(audio, mediaType, language, username);
   } catch {
-    return { ok: false, error: "transcription_failed", cost: credits };
+    return { ok: false, error: "transcription_failed" };
   }
 
   // A caller can claim anything — 0, a negative number, nothing at all — and
@@ -69,14 +67,13 @@ export async function spendAndTranscribe(
   // applies to what was *measured*, not only to what was claimed, and a
   // recording past it is refused here too.
   if (transcript.seconds > MAX_SPEECH_SECONDS) {
-    return { ok: false, error: "recording_too_long", cost: credits };
+    return { ok: false, error: "recording_too_long" };
   }
 
   return {
     ok: true,
     text: transcript.text,
     seconds: transcript.seconds,
-    spent: 0,
     uncertainWord: transcript.uncertainWord,
   };
 }

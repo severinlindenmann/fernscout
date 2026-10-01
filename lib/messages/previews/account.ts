@@ -121,7 +121,6 @@ export const accountPreviews: PreviewMap = {
         days: 12,
         files: 214,
         bytes: 512_000_000,
-        credits: 5,
       },
       nickname: SAMPLE.owner,
       token: "k3x9",
@@ -159,11 +158,10 @@ export const accountPreviews: PreviewMap = {
       photoCount: 24,
       started: "2026-09-01",
       daysLeft: 24,
-      spentCredits: 3,
     }),
 
   "notice.expiryFinal": (locale) =>
-    composeExpiryFinalMail({ locale, siteTitle: SAMPLE.journal, unusedPhotoCount: 8, spentCredits: 3 }),
+    composeExpiryFinalMail({ locale, siteTitle: SAMPLE.journal, unusedPhotoCount: 8 }),
 
   "notice.operatorMessage": () =>
     composeOperatorMessageMail({
