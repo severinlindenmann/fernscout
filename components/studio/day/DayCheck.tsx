@@ -6,6 +6,7 @@ import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { useStudioBar } from "@/components/studio/StudioBar";
 import { journalPath } from "@/lib/journalPath";
+import { NO_PROSE } from "@/lib/helper/draft";
 
 /**
  * "Check your day" — TIX-2, the step after the last part is saved.
@@ -41,6 +42,13 @@ const PRIMARY =
   "min-h-11 flex-1 rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 disabled:opacity-50";
 const SECONDARY =
   "min-h-11 rounded-full border border-line-strong px-4 text-base font-semibold text-ink-strong hover:bg-surface-subtle";
+
+/** The owner's own words, with "…" (NO_PROSE, a day saved without words)
+ *  read as none: it is shown as no words and never sent to be tidied. */
+function ownWords(entry: Entry | null): string {
+  const text = entry?.content ?? "";
+  return text.trim() === NO_PROSE ? "" : text;
+}
 
 function words(text: string): number {
   return text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -99,7 +107,7 @@ export default function DayCheck({ username, saved, assistant }: { username: str
         saved.map(async (day, i) => {
           const entry = read[i];
           merge(i, { status: "working" });
-          const hasWords = !!entry && words(entry.content) > 0;
+          const hasWords = !!entry && words(ownWords(entry)) > 0;
           const polish = hasWords
             ? post("day/write-day", { trip: day.trip, notes: entry.content, mode: "polish", date: day.date }).then((r) => {
                 const prose = (r.json?.draft as { prose?: string } | undefined)?.prose;
@@ -220,7 +228,7 @@ export default function DayCheck({ username, saved, assistant }: { username: str
         {saved.map((day, i) => {
           const entry = entries[i];
           const s = ideas[i];
-          const own = entry?.content ?? "";
+          const own = ownWords(entry);
           const showTidied = !!s.tidied && !keepMine[i];
           const text = showTidied ? s.tidied! : own;
           const images = entry?.gallery.filter((p) => p.type === "image") ?? [];
