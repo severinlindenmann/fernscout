@@ -11,7 +11,18 @@ import { useSite } from "@/components/SiteProvider";
 import type { PlanSummary } from "@/lib/billingSummary";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
-import { PLANS, chf } from "@paid/billing/lib/plans";
+
+/** `CHF 49`. `PLANS` itself (`@paid/billing/lib/plans`) carries other,
+ *  server-only imports behind it (`translateIn` -> `lib/locales.ts` ->
+ *  `lib/users.ts` -> `better-sqlite3`) that break this client component's
+ *  bundle the moment anything here imports that module — so the page
+ *  (`app/at/[user]/studio/account/page.tsx`, a server component) reads
+ *  `PLANS` itself and hands down only the plain numbers in `planOptions`.
+ *  `chf()` is the one line worth keeping in sync with it rather than
+ *  re-triggering that import for a one-liner. */
+function chf(amount: number): string {
+  return `CHF ${amount}`;
+}
 
 /**
  * Storage and plan, on their own page — B821, B2593.
@@ -243,6 +254,18 @@ export type StoragePanel = {
  * the same way.
  */
 export type PlanPanel = PlanSummary;
+
+/**
+ * The plain numbers behind the two buy tiles — B2638. Read from `PLANS`
+ * (`@paid/billing/lib/plans`) by the page (a server component), never by
+ * this file: see `chf()`'s own comment for why that import cannot cross
+ * into a client bundle. Present exactly when `plan` is, same as `plan`
+ * itself.
+ */
+export type PlanOptionFacts = {
+  plus: { priceChf: number; aiDays: number; storageGb: number; includedPostcards: number };
+  pass: { priceChf: number; days: number; aiDays: number; storageGb: number; includedPostcards: number };
+};
 
 /** Buy a plan, or ask the operator to grant it when no Stripe key is
  *  configured (`dryRun`) — the same "ask, don't act" shape every panel on
@@ -548,12 +571,14 @@ function YourPlanPanel({
   username,
   plan,
   storage,
+  planOptions,
 }: {
   username: string;
   plan: PlanPanel;
   /** Shares the one ceiling `storage` already reads below, for the meter —
    *  absent where the instance sets no ceiling, same as `storage` itself. */
   storage?: StoragePanel;
+  planOptions: PlanOptionFacts;
 }) {
   const { t, tn } = useI18n();
   const native = useNativeShell();
@@ -640,13 +665,13 @@ function YourPlanPanel({
             username={username}
             plan="plus"
             tag={t("billing.tilePlusTag")}
-            price={chf(PLANS.plus.priceChf)}
+            price={chf(planOptions.plus.priceChf)}
             cadence={t("billing.tilePlusCadence")}
             facts={[
-              t("billing.tileAiDaysYear", { days: String(PLANS.plus.aiDays) }),
-              `${PLANS.plus.storageGb} GB`,
-              tn("billing.tilePostcards", PLANS.plus.includedPostcards, {
-                count: String(PLANS.plus.includedPostcards),
+              t("billing.tileAiDaysYear", { days: String(planOptions.plus.aiDays) }),
+              `${planOptions.plus.storageGb} GB`,
+              tn("billing.tilePostcards", planOptions.plus.includedPostcards, {
+                count: String(planOptions.plus.includedPostcards),
               }),
             ]}
             buyLabel={t("billing.buyPlus")}
@@ -655,16 +680,16 @@ function YourPlanPanel({
             <PlanOptionTile
               username={username}
               plan="pass"
-              price={chf(PLANS.tripPass.priceChf)}
-              cadence={t("billing.tilePassCadence", { days: String(PLANS.tripPass.days) })}
+              price={chf(planOptions.pass.priceChf)}
+              cadence={t("billing.tilePassCadence", { days: String(planOptions.pass.days) })}
               facts={[
                 t("billing.tileAiDaysWindow", {
-                  days: String(PLANS.tripPass.aiDays),
-                  window: String(PLANS.tripPass.days),
+                  days: String(planOptions.pass.aiDays),
+                  window: String(planOptions.pass.days),
                 }),
-                `${PLANS.tripPass.storageGb} GB`,
-                tn("billing.tilePostcards", PLANS.tripPass.includedPostcards, {
-                  count: String(PLANS.tripPass.includedPostcards),
+                `${planOptions.pass.storageGb} GB`,
+                tn("billing.tilePostcards", planOptions.pass.includedPostcards, {
+                  count: String(planOptions.pass.includedPostcards),
                 }),
               ]}
               buyLabel={t("billing.buyPass")}
@@ -729,6 +754,7 @@ export default function AccountPageContent({
   storage,
   orders,
   plan,
+  planOptions,
 }: {
   username: string;
   /** Absent only where the instance sets no ceiling. */
@@ -737,6 +763,8 @@ export default function AccountPageContent({
   orders: { recent: OrderRow[]; total: number };
   /** Absent when `billing` is off. */
   plan?: PlanPanel;
+  /** Present exactly when `plan` is — B2638's tiles. */
+  planOptions?: PlanOptionFacts;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -747,7 +775,9 @@ export default function AccountPageContent({
         <div className="mt-6 space-y-4">
           {/* Your plan, first — B2622's board. What an owner pays for and
               what it buys them, ahead of everything else on this page. */}
-          {plan && <YourPlanPanel username={username} plan={plan} storage={storage} />}
+          {plan && planOptions && (
+            <YourPlanPanel username={username} plan={plan} storage={storage} planOptions={planOptions} />
+          )}
 
           {orders.recent.length > 0 && (
             // B1452. Next — what an owner asks most often right after a

@@ -1,12 +1,36 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import AccountPageContent, { type PlanPanel, type StoragePanel } from "@/app/at/[user]/account/AccountPageContent";
+import AccountPageContent, {
+  type PlanOptionFacts,
+  type PlanPanel,
+  type StoragePanel,
+} from "@/app/at/[user]/account/AccountPageContent";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import { dictionaryFor } from "@/lib/locales";
 import type { SiteSummary } from "@/lib/site";
+import { PLANS } from "@paid/billing/lib/plans";
+
+// The page (a server component) computes this from `PLANS` — see
+// `AccountPageContent.tsx`'s own `chf()` comment for why this file cannot
+// import `@paid/billing/lib/plans` directly. Built once here, the same way.
+const planOptions: PlanOptionFacts = {
+  plus: {
+    priceChf: PLANS.plus.priceChf,
+    aiDays: PLANS.plus.aiDays,
+    storageGb: PLANS.plus.storageGb,
+    includedPostcards: PLANS.plus.includedPostcards,
+  },
+  pass: {
+    priceChf: PLANS.tripPass.priceChf,
+    days: PLANS.tripPass.days,
+    aiDays: PLANS.tripPass.aiDays,
+    storageGb: PLANS.tripPass.storageGb,
+    includedPostcards: PLANS.tripPass.includedPostcards,
+  },
+};
 
 /**
  * Storage, on its own page — B821. The credit balance panel this page also
@@ -53,6 +77,7 @@ function render(over: { storage?: StoragePanel; plan?: PlanPanel } = {}) {
               username="alex"
               storage={over.storage}
               plan={over.plan}
+              planOptions={over.plan ? planOptions : undefined}
               orders={{ recent: [], total: 0 }}
             />
           </TripListProvider>
