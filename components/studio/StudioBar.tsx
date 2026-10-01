@@ -199,7 +199,12 @@ export default function StudioBarProvider({
     <StudioBarContext.Provider value={value}>
       <div className="max-md:flex max-md:min-h-[100svh] max-md:flex-col">
       <div className="max-md:flex-1">{children}</div>
-      <div className="relative">
+      {/* B2661 — this wrapper, not the bar inside it, is what sticks: a
+          sticky element only moves within its parent, and this one was
+          exactly the bar's height (B2329 added it for the outbox pill), so
+          the bar sat at the page's end — cut by the top inset in the iPhone
+          app, and never sticky on a long page. Desktop keeps its static row. */}
+      <div className="relative z-20 max-md:sticky max-md:bottom-[var(--fs-showcase-bar,0px)]">
         <OutboxPill
           username={username}
           online={outbox.online}
