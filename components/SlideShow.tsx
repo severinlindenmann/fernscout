@@ -1773,9 +1773,15 @@ export function SlideMap({
           return (
             <motion.g
               key={`veh-${activeIndex}`}
-              initial={{ x: from[0], y: from[1] }}
-              animate={{ x: to[0], y: to[1] }}
-              transition={{ duration: (flightMs ?? FULL_TRAVEL_MS) / 1000, ease: [0.45, 0, 0.35, 1] }}
+              initial={{ x: from[0], y: from[1], opacity: 1 }}
+              // Fades as it arrives rather than parking on the stop's own
+              // number for the rest the map holds there (B2619).
+              animate={{ x: to[0], y: to[1], opacity: [1, 1, 0] }}
+              transition={{
+                duration: (flightMs ?? FULL_TRAVEL_MS) / 1000,
+                ease: [0.45, 0, 0.35, 1],
+                opacity: { duration: (flightMs ?? FULL_TRAVEL_MS) / 1000, times: [0, 0.9, 1] },
+              }}
             >
               <g transform={vehicleHeadingTransform(angle)}>
                 <circle r={px(5.5)} fill={mapStyle.hereNow} stroke={mapStyle.hereNowHalo} strokeWidth={px(1)} />
