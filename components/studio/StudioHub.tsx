@@ -1005,7 +1005,7 @@ function RecentOrders({ username, orders }: { username: string; orders: OrderRow
             >
               {[
                 t(`orders.kind.${order.kind}` as TranslationKey),
-                t(`orders.status.${order.status}` as TranslationKey),
+                "labelKey" in order.displayStatus ? t(order.displayStatus.labelKey) : order.displayStatus.rawLabel,
                 formatShortDate(order.createdAt.slice(0, 10)),
               ].join(" · ")}
             </Link>

@@ -4,6 +4,10 @@ export type OrderRow = {
   id: string;
   kind: "postcard" | "photobook";
   status: string;
+  displayStatus: { tone: "navy" | "yellow" | "green" | "coral" } & (
+    | { labelKey: string }
+    | { rawLabel: string }
+  );
   createdAt: string;
   chf: string;
 };
