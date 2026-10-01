@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import LocaleProvider from "@/components/LocaleProvider";
-import { YourDevices, type HomeDevice, type HomeJournal, type HomeTrip, type MineJournal } from "@/components/HomeJournals";
+import { YourDevices, type HomeDevice, type HomeJournal, type HomeTrip } from "@/components/HomeJournals";
 import SignedInHome, { pickContinue } from "@/components/home/SignedInHome";
 import SignedInHeader from "@/components/home/SignedInHeader";
 import { PlanStatusCard } from "@/app/me/AccountPage";
@@ -237,8 +237,10 @@ describe("the signed-in header", () => {
  * account page — not the meters and buy/cancel buttons that live there.
  */
 describe("the /me plan status card", () => {
-  const owned = (plan: NonNullable<MineJournal["plan"]>): MineJournal => ({
+  type CardJournal = Parameters<typeof PlanStatusCard>[0]["journal"];
+  const owned = (plan: CardJournal["plan"]): CardJournal => ({
     ...journal(),
+    role: "owner",
     plan,
   });
 
