@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import CreditsScreen, { commitReadyDays } from "@/components/extract/CreditsScreen";
+import { commitReadyDays } from "@/components/extract/commitReadyDays";
 import DayBoard from "@/components/extract/DayBoard";
 import FoundStep from "@/components/extract/FoundStep";
 import IntroStep from "@/components/extract/IntroStep";
@@ -29,11 +29,9 @@ type Run = { runId: string; expiresAt: string };
  *
  * "Done for now" (`onLeave`/`onLeaveBoard`) no longer ends the flow by
  * itself — B1751 Task 4.1. Every answer and edit is already saved by the
- * time it fires, so nothing is at risk, but there is still a decision this
- * instance may have to offer: `CreditsScreen`, shown only when `credits`
- * actually charges for anything (`GET .../account`'s own `credits: null`
- * meaning it does not). With it off, the ready days are committed for free
- * straight away and the flow ends the same way it always did.
+ * time it fires, so nothing is at risk; the ready days are then committed
+ * for free (B2592 removed the paid "spend to caption extra photos" screen
+ * this step used to offer) and the flow ends.
  *
  * `left` is the flow's real end — B1751 Task 4.2. `PreviewScreen` is what
  * it shows: the days this run actually finished, each a link to its own
@@ -112,20 +110,12 @@ export default function ExtractFlow({
   // "Done for now", pressed on the board — B1751 Task 2.3. Everything is
   // already saved by the time this fires, so leaving needs no confirmation.
   const [left, setLeft] = useState(false);
-  // Whether the board has been left and, if so, this journal's own balance —
-  // `null` means either "not looked yet" or "this instance charges for
-  // nothing" (`balanceOf`'s own two meanings for null, B366). Fetched only
-  // once the board is actually left, not up front: nobody needs to know a
-  // price before they have finished telling their days. `undefined` is "not
-  // fetched yet", `null` is "fetched, and this instance has no such number".
   const [atBoardEnd, setAtBoardEnd] = useState(false);
   // "Who came" (S8a, B1803 Task 3.6) — asked once, right after the board,
-  // before either the credits screen or the free build path. `true` the
-  // moment "Save who came" (or its own retry) has actually saved, never
-  // before — the free-build effect below waits on this the same way it
-  // already waits on `credits`.
+  // before the free build path. `true` the moment "Save who came" (or its
+  // own retry) has actually saved, never before — the free-build effect
+  // below waits on this.
   const [partyDone, setPartyDone] = useState(false);
-  const [credits, setCredits] = useState<number | null | undefined>(undefined);
   // Toggles between `ReadyScreen` (the flow's real terminal screen once
   // `left` is true) and `PreviewScreen`, the way the design's own back
   // arrow does — B1803 Task 3.7. Reset is never needed: once `left` is
@@ -170,19 +160,17 @@ export default function ExtractFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Once the board is left, and only then, build the free days it left
-  // ready — no capability check of its own; `commitReadyDays` is the same
-  // free path `CreditsScreen`'s own free button calls, and `credits === null`
-  // (fetched by `onLeaveBoard`) is what says nobody is going to be asked for
-  // money on top of it, so there is nothing here for a screen to show.
+  // Once the board is left, and only then, build the ready days for free —
+  // B2592 removed the paid "spend to caption extra photos" screen that used
+  // to decide this step.
   useEffect(() => {
-    if (atBoardEnd && partyDone && credits === null && run) {
+    if (atBoardEnd && partyDone && run) {
       commitReadyDays(username, run.runId)
         .then(() => setLeft(true))
         .catch(() => setLeft(true));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atBoardEnd, partyDone, credits]);
+  }, [atBoardEnd, partyDone]);
 
   /**
    * The one call this shell makes before deciding whether to start a fresh
@@ -329,24 +317,11 @@ export default function ExtractFlow({
     setPendingWillExtend(null);
   }
 
-  /**
-   * "Done for now" on the board leads here rather than straight to `left` —
-   * B1751 Task 4.1. What this instance charges decides what happens next:
-   * `credits: null` (`/api/helper/[user]/account`, itself reading
-   * `balanceOf`'s own null-means-off) skips the credits screen entirely
-   * (see the effect above), and a real number renders `CreditsScreen`.
-   */
-  async function onLeaveBoard() {
+  /** "Done for now" on the board leads here rather than straight to `left`
+   *  — B1751 Task 4.1 — so `WhoCameScreen` and the free-build effect above
+   *  still run before the flow ends. */
+  function onLeaveBoard() {
     setAtBoardEnd(true);
-    try {
-      const res = await fetch(`/api/helper/${encodeURIComponent(username)}/account`);
-      const json = (await res.json().catch(() => null)) as { credits?: number | null } | null;
-      setCredits(json && typeof json.credits === "number" ? json.credits : null);
-    } catch {
-      // No balance to show is the same as "this instance charges for
-      // nothing" from here — the free path still has to work.
-      setCredits(null);
-    }
   }
 
   return (
@@ -452,11 +427,7 @@ export default function ExtractFlow({
         <WhoCameScreen username={username} runId={run.runId} onDone={() => setPartyDone(true)} onBack={() => setAtBoardEnd(false)} />
       )}
 
-      {atBoardEnd && partyDone && !left && run && credits !== undefined && credits !== null && (
-        <CreditsScreen username={username} runId={run.runId} credits={credits} onDone={() => setLeft(true)} />
-      )}
-
-      {atBoardEnd && partyDone && !left && (credits === undefined || credits === null) && (
+      {atBoardEnd && partyDone && !left && (
         <p className="mt-4 text-sm text-ink-secondary">{t("studio.photos.flow.building")}</p>
       )}
 

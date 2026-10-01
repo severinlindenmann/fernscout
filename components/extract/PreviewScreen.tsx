@@ -424,7 +424,7 @@ export function committedDays(manifest: RunManifest): DayRow[] {
 }
 
 /** Every dated group this run never finished — still has an open question,
- *  so `commitReadyDays` (`CreditsScreen.tsx`) skipped it on purpose rather
+ *  so `commitReadyDays` skipped it on purpose rather
  *  than committing a day nobody told a story about. Named here, not invented
  *  away: the person sees exactly what was left and why, never a day that
  *  looks finished when it is not. */

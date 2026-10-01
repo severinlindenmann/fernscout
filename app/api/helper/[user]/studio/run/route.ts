@@ -5,7 +5,7 @@ import { questionsForDay, type Question } from "@/lib/extract/questions";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { geodataAvailable, reverseGeocode } from "@/lib/ingest/geo";
 import { PHOTO_VISIBILITIES, parsePhotoVisibility } from "@/lib/photos";
-import { extendOnTouch, spentOnRun } from "@/lib/staging/expiry";
+import { extendOnTouch } from "@/lib/staging/expiry";
 import { DATE_RE, readManifest, writeManifest, type DayRow, type RunManifest } from "@/lib/staging/manifest";
 import { removeRun } from "@/lib/staging/store";
 import { captionProblem } from "@/lib/validate/media";
@@ -82,12 +82,7 @@ export async function GET(
   const current = extended ?? manifest;
 
   const { groups, questions } = groupsAndQuestions(current);
-  // The Ready screen's own "Credits spent" row (S10b, B1803 Task 3.7) —
-  // read from the ledger by this run's own ref prefix, never a number kept
-  // on the manifest itself, so it cannot drift from what was actually
-  // charged.
-  const spentCredits = await spentOnRun(user, current.runId);
-  return Response.json({ manifest: current, groups, questions, spentCredits });
+  return Response.json({ manifest: current, groups, questions });
 }
 
 export async function PATCH(

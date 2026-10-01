@@ -159,11 +159,10 @@ export const accountPreviews: PreviewMap = {
       photoCount: 24,
       started: "2026-09-01",
       daysLeft: 24,
-      spentCredits: 3,
     }),
 
   "notice.expiryFinal": (locale) =>
-    composeExpiryFinalMail({ locale, siteTitle: SAMPLE.journal, unusedPhotoCount: 8, spentCredits: 3 }),
+    composeExpiryFinalMail({ locale, siteTitle: SAMPLE.journal, unusedPhotoCount: 8 }),
 
   "notice.operatorMessage": () =>
     composeOperatorMessageMail({

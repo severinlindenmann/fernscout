@@ -5,9 +5,7 @@ import path from "node:path";
 import { hashSecret } from "./auth";
 import { isEnabled } from "./capabilities";
 import { clearConfigCache } from "./config";
-import { balanceOf } from "./credits";
 import { contentRoot } from "./contentRoot";
-import { formatCredits } from "./creditsFormat";
 import { getDatabase, TABLE_NAMES } from "./db";
 import type { Database } from "./db/schema";
 import type { TranslationKey } from "./i18n";
@@ -78,16 +76,6 @@ export type DeletionSummary = {
   days: number;
   files: number;
   bytes: number;
-  /**
-   * The journal's own credit balance (B366), at the moment of asking.
-   * `null` means credits are switched off on this server — a different fact
-   * from a balance of zero, and the two must not be rendered the same way
-   * (B374). Only ever set for `kind: "journal"`: deleting a trip destroys no
-   * credits (`credits` and `credit_ledger` carry no `trip_id`, so the per-table
-   * sweep in `deleteTrip` below never reaches them), so nothing here
-   * computes it for that case.
-   */
-  credits?: number | null;
 };
 
 function nowIso(): string {
@@ -201,23 +189,14 @@ export function summarise(
   };
 }
 
-/**
- * `summarise`, plus the one fact it cannot carry because it is a database
- * read and `summarise` is a synchronous walk of the disk.
- *
- * Kept separate rather than folded into `summarise` itself: the tombstone
- * notice and the per-table sweep both call `summarise` for a title alone,
- * long after there is a journal left to hold a balance, and making every one
- * of those callers `await` a query they never look at would be a cost paid
- * everywhere for a fact needed in exactly two places — the mail and the page.
- */
-async function summariseWithCredits(
+/** `summarise`, kept `async` for its two callers below — a deletion summary
+ *  used to also carry the journal's credit balance (B366), read here from
+ *  the database; removed with the credit system in B2592. */
+async function summariseForDeletion(
   target: DeletionTarget,
   opts?: { ignoreTombstone?: boolean },
 ): Promise<DeletionSummary | null> {
-  const summary = summarise(target, opts);
-  if (!summary || summary.kind !== "journal") return summary;
-  return { ...summary, credits: await balanceOf(summary.username) };
+  return summarise(target, opts);
 }
 
 export type DeletionRequested = {
@@ -253,7 +232,7 @@ export async function requestDeletion(
     };
   }
 
-  const summary = await summariseWithCredits(target);
+  const summary = await summariseForDeletion(target);
   if (!summary) {
     return {
       ok: false,
@@ -424,20 +403,10 @@ export function composeDeletionMail(input: {
     minutes: DELETION_TTL_MINUTES,
   };
 
-  // Absent rather than a "0 credits" line, on a server with credits switched
-  // off or a journal that never held any — B74's rule, restated for money
-  // instead of a currency total. See the type's doc comment on why this is
-  // only ever set for a journal.
-  const creditsLine: MailBlock[] =
-    typeof summary.credits === "number" && summary.credits > 0
-      ? [{ kind: "paragraph", text: t("del.credits", { ...counts, credits: formatCredits(summary.credits) }) }]
-      : [];
-
   const blocks: MailBlock[] = [
     { kind: "paragraph", text: t(isJournal ? "del.journalIntro" : "del.tripIntro", counts) },
     { kind: "heading", text: t("del.whatGoesHeading") },
     { kind: "paragraph", text: t(isJournal ? "del.journalWhatGoes" : "del.tripWhatGoes", counts) },
-    ...creditsLine,
     // Above the delete button, on purpose. Somebody about to remove five years
     // of writing should be handed a copy without having to think of it.
     { kind: "heading", text: t("del.exportHeading") },
@@ -742,7 +711,7 @@ export async function resolveDeletionToken(
   // (B1175) — a step throwing after that point must not make a resumable
   // deletion look like a link to nothing, which is the one case a tombstone
   // is not answering "is it gone" for.
-  const summary = await summariseWithCredits(target, { ignoreTombstone: true });
+  const summary = await summariseForDeletion(target, { ignoreTombstone: true });
   // The target went away between the mail and the click — deleted by hand, or
   // by a second link. There is nothing left to confirm.
   if (!summary) return { ok: false, reason: "gone" };
@@ -892,11 +861,10 @@ async function bestEffort(label: string, username: string, fn: () => void | Prom
 /**
  * The two tables `deleteJournal` keeps rather than sweeps — B2316.
  *
- * Both record real money changing hands (a Stripe purchase of credits, a
- * postcard or photobook sent to a print provider) rather than this
- * instance's own bookkeeping, and Swiss law (OR 958f) asks an operator to
- * keep that for ten years. `credits` and `credit_ledger` are not on this
- * list; see the comment where `deleteJournal` skips these two.
+ * Both record real money changing hands (a plan purchase, a postcard or
+ * photobook sent to a print provider) rather than this instance's own
+ * bookkeeping, and Swiss law (OR 958f) asks an operator to keep that for
+ * ten years.
  */
 const KEPT_MONEY_TABLES = ["payments", "print_orders"] as const;
 
@@ -907,21 +875,20 @@ const KEPT_MONEY_TABLES = ["payments", "print_orders"] as const;
  *
  * `owner_id` itself is rewritten rather than kept — not because it is
  * personal (a username plausibly is, but it is already public and this row
- * is operator-only) but because it is a **live key**: `credits.balance` and
- * every credit route look a journal up by this exact string, and a name this
- * deletion frees (`isDeletedUsername`/`forgetTombstone`, `docs/gps.md`'s
- * sibling story for journals) can be claimed by an unrelated person later.
- * Without this, that new owner's very first balance check or admin listing
- * would silently pick up a stranger's kept payment history by matching on
- * `owner_id = <the username they just chose>`. The tombstone value below can
- * never collide with a real username (`SAFE_NAME` in `lib/tombstones.ts`
- * allows no colons), so it is inert to every lookup that is not reading the
- * ten-year record on purpose.
+ * is operator-only) but because it is a **live key**: an entitlements lookup
+ * and every print-order route look a journal up by this exact string, and a
+ * name this deletion frees (`isDeletedUsername`/`forgetTombstone`,
+ * `docs/gps.md`'s sibling story for journals) can be claimed by an unrelated
+ * person later. Without this, that new owner's very first plan check or
+ * admin listing would silently pick up a stranger's kept payment history by
+ * matching on `owner_id = <the username they just chose>`. The tombstone
+ * value below can never collide with a real username (`SAFE_NAME` in
+ * `lib/tombstones.ts` allows no colons), so it is inert to every lookup that
+ * is not reading the ten-year record on purpose.
  *
  * `payments.approve_token_hash` is cleared for the same reason: it is a live
- * bearer credential that, followed after this rename, would `grant()`
- * credits onto whatever `credits` row now answers to this username — a
- * different journal's balance, not the one that was deleted. `print_orders`'
+ * bearer credential that, followed after this rename, would approve a
+ * purchase onto whatever journal now answers to this username. `print_orders`'
  * `payload` (a postcard's recipient name, address and message, or a
  * photobook's page choices) and `contact_id` are the only other personal
  * data on either table and are cleared or nulled here; `contact_id` would
@@ -1012,15 +979,7 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
       // `print_orders` rows are exactly that: real money that changed hands,
       // through Stripe or a print provider, for a journal that no longer
       // exists to hold them itself. Swept below by `stripMoneyTables`
-      // instead of deleted here. `credits` and `credit_ledger` are not
-      // treated the same way and stay in this loop: `credits.balance` is the
-      // journal's current spendable number, not a record of a transaction,
-      // and `credit_ledger` records the *virtual* currency's own movement
-      // (a mail sent, a grant, a refund of credits) rather than money —
-      // neither is a "Geschäftsvorfall" the law asks an operator to keep,
-      // and both must actually disappear so a later journal that takes this
-      // username back starts at a balance of zero rather than inheriting one
-      // (see `balanceOf`, which reads `credits.balance` alone).
+      // instead of deleted here.
       if ((KEPT_MONEY_TABLES as readonly string[]).includes(table)) continue;
       await sql`delete from ${sql.table(table)} where owner_id = ${username}`.execute(db);
     }

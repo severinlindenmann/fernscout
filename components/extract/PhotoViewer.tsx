@@ -38,7 +38,7 @@ export type PhotoViewerItem = {
  * **`extra`, B1803 Task 1.3 fix round.** The same slot `Gallery.tsx` already
  * uses for its owner-only "remove this photo" button, threaded straight
  * through to `Lightbox`'s own `extra` prop rather than a second copy of
- * that chrome. `CreditsScreen` is the first caller here: its free sample is
+ * that chrome. The extract flow's photo-set grid was the first caller here: its free sample is
  * spent once, permanently, so the person needs to see the photograph large
  * — via this same viewer, not a small grid tile — before committing to it,
  * and `extra` is where that "use this one" action lives.

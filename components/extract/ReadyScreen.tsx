@@ -8,19 +8,17 @@ import { useI18n } from "@/components/LocaleProvider";
 import type { RunManifest } from "@/lib/staging/manifest";
 
 import { journalPath } from "@/lib/journalPath";
-type RunResponse = { manifest: RunManifest; spentCredits?: number };
+type RunResponse = { manifest: RunManifest };
 
 /**
  * S10b — "Ready". B1803 Task 3.7.
  *
  * The flow's real terminal screen: `ExtractFlow` renders this the moment
- * `left` becomes true, i.e. the instant `commitReadyDays`/`CreditsScreen`
- * finishes. Everything it names is real and already on disk — a day here
- * is one `commitReadyDays` actually committed (`PreviewScreen.committedDays`,
+ * `left` becomes true, i.e. the instant `commitReadyDays` finishes.
+ * Everything it names is real and already on disk — a day here is one
+ * `commitReadyDays` actually committed (`PreviewScreen.committedDays`,
  * imported rather than re-derived, so the two screens can never disagree
- * about which days that is), and "Credits spent" is `spentOnRun`'s own
- * ledger read (`studio/run`'s `spentCredits`), never a number kept beside
- * it that could drift from what was actually charged.
+ * about which days that is).
  *
  * **"Saved as a draft" is the truth, not a hedge.** Every day named here
  * came out of a commit path that never publishes
@@ -91,7 +89,7 @@ export default function ReadyScreen({
     return <p className="mt-4 text-sm text-ink-secondary">{t("studio.photos.board.loading")}</p>;
   }
 
-  const { manifest, spentCredits } = data;
+  const { manifest } = data;
   const days = committedDays(manifest);
   // Counted the way `lib/extract/commit.ts` actually moved them —
   // `photosForDate`, the one shared rule, not this screen's own reading of
@@ -151,12 +149,6 @@ export default function ReadyScreen({
             <dd className="text-sm font-semibold text-ink-strong">
               {tn("studio.photos.ready.heldBackValue", heldBack, { count: String(heldBack) })}
             </dd>
-          </div>
-        )}
-        {typeof spentCredits === "number" && spentCredits > 0 && (
-          <div className="flex items-center justify-between">
-            <dt className="text-sm text-ink-secondary">{t("studio.photos.ready.credits")}</dt>
-            <dd className="text-sm font-semibold text-ink-strong">{spentCredits}</dd>
           </div>
         )}
       </dl>
