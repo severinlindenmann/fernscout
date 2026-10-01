@@ -3831,7 +3831,6 @@
   "studio.day.sheet.lookItUp": "Nachschlagen",
   "studio.day.sheet.weatherBody": "Beim Speichern wird das Wetter für dieses Datum und diesen Ort in einem öffentlichen Archiv nachgeschlagen und beim Tag als Quelle genannt. Hat das Archiv keine Antwort, bleibt der Tag ohne Wetter.",
   "studio.day.text.placeholder": "Eine Zeile reicht. Du kannst jedes Wort später ändern.",
-  "studio.day.mic.price": "Das Mikrofon kostet 1 Credit pro {minutes} Minuten.",
   "studio.day.aiDays.chip": "KI-Tage {used} von {allowed}",
   "studio.day.aiDays.usedUpTitle": "Deine {allowed} KI-Tage sind aufgebraucht",
   "studio.day.aiDays.usedUpBody": "Heute kannst du wie immer selbst schreiben. Für Fotobeschreibungen, Diktat und Glätten auf dieser Reise wähle eins:",

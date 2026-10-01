@@ -3831,7 +3831,6 @@
   "studio.day.sheet.lookItUp": "La rechercher",
   "studio.day.sheet.weatherBody": "Quand tu enregistres, la météo pour cette date et ce lieu est recherchée dans une archive publique et créditée sur la journée. Si l’archive n’a pas de réponse, la journée n’en a simplement pas.",
   "studio.day.text.placeholder": "Une ligne suffit. Tu pourras changer chaque mot plus tard.",
-  "studio.day.mic.price": "Le micro coûte 1 crédit toutes les {minutes} minutes.",
   "studio.day.aiDays.chip": "Jours d’IA {used} sur {allowed}",
   "studio.day.aiDays.usedUpTitle": "Tes {allowed} jours d’IA sont épuisés",
   "studio.day.aiDays.usedUpBody": "Aujourd’hui reste à écrire toi-même, comme toujours. Pour de l’aide sur les descriptions de photos, la dictée ou le peaufinage sur ce voyage, choisis :",

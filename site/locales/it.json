@@ -3831,7 +3831,6 @@
   "studio.day.sheet.lookItUp": "Cercalo",
   "studio.day.sheet.weatherBody": "Quando salvi, il meteo di questa data e di questo luogo viene cercato in un archivio pubblico e citato come fonte nel giorno. Se l’archivio non ha una risposta, il giorno semplicemente non ne ha.",
   "studio.day.text.placeholder": "Basta una riga. Puoi cambiare ogni parola più tardi.",
-  "studio.day.mic.price": "Il microfono costa 1 credito ogni {minutes} minuti.",
   "studio.day.aiDays.chip": "Giorni IA {used} su {allowed}",
   "studio.day.aiDays.usedUpTitle": "I tuoi {allowed} giorni IA sono finiti",
   "studio.day.aiDays.usedUpBody": "Oggi scrivi tu, come sempre. Per un aiuto con descrizioni delle foto, dettatura e rifinitura su questo viaggio, scegli:",

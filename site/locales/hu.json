@@ -3832,7 +3832,6 @@
   "studio.day.sheet.lookItUp": "Nézzük meg",
   "studio.day.sheet.weatherBody": "Mentéskor egy nyilvános archívumban megnézzük az időjárást erre a napra és helyre, és a forrást a napnál feltüntetjük. Ha az archívum nem tud választ, a nap időjárás nélkül marad.",
   "studio.day.text.placeholder": "Egy sor is elég. Később minden szót megváltoztathatsz.",
-  "studio.day.mic.price": "A mikrofon {minutes} percenként 1 kreditbe kerül.",
   "studio.day.aiDays.chip": "MI-napok {used} / {allowed}",
   "studio.day.aiDays.usedUpTitle": "Elfogyott a {allowed} MI-napod",
   "studio.day.aiDays.usedUpBody": "A mai napot most is magad írod. Ha segítség kell fotóleíráshoz, diktáláshoz vagy csiszoláshoz ezen az úton, válassz egyet:",

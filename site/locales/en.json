@@ -3846,7 +3846,6 @@
   "studio.day.sheet.lookItUp": "Look it up",
   "studio.day.sheet.weatherBody": "When you save, the weather for this date and place is looked up in a public archive and credited on the day. If the archive has no answer, the day simply has none.",
   "studio.day.text.placeholder": "A line is enough. You can change every word later.",
-  "studio.day.mic.price": "The microphone costs 1 credit per {minutes} minutes.",
   "studio.day.aiDays.chip": "AI days {used} of {allowed}",
   "studio.day.aiDays.usedUpTitle": "Your {allowed} AI days are used",
   "studio.day.aiDays.usedUpBody": "Today is yours to write as always. For help with photo descriptions, dictation and polishing on this trip, pick one:",
