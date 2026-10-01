@@ -361,8 +361,9 @@ const photobookOrderDoc = z.strictObject({
   updatedAt: z.string(),
   // B2669 — why `status` is "failed": a cancelled order or an expired
   // Checkout Session (nothing ever charged), or a build that genuinely
-  // failed (refunded). Absent on every order that has not failed.
-  failure: z.string().optional(),
+  // failed (refunded, "build_failed"; never the raw error). Absent on
+  // every order that has not failed.
+  failure: z.enum(["cancelled", "expired", "build_stalled", "build_failed"]).optional(),
   print: z
     .strictObject({
       contactId: z.string(),
