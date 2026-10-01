@@ -917,6 +917,8 @@
   "studio.hub.duringTrip.waiting.detail": "{count} Tage haben Fotos und noch nichts Geschriebenes.",
   "studio.hub.duringTrip.waiting.detail.one": "{count} Tag hat Fotos und noch nichts Geschriebenes.",
   "studio.hub.filter.placeholder": "Etwas finden, z. B. GPX oder Leser",
+  "studio.hub.filter.empty": "Keine Treffer für „{query}“.",
+  "studio.hub.filter.clear": "Suche leeren",
   "studio.hub.halfDone.more": "+{count} weitere",
   "studio.hub.halfDone.more.one": "+{count} weitere",
   "studio.hub.newTrip.cta": "Reise beginnen",
