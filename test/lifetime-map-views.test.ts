@@ -50,6 +50,40 @@ describe("buildLifetimeViews", () => {
     expect(views.some((v) => v.kind === "continent" && v.continent === "Asia")).toBe(true);
   });
 
+  test("a continent button with one visited city still frames at continent scale (B2652)", () => {
+    const visited: VisitedCountry[] = [
+      { code: "CH", continent: "Europe", subregion: "Western Europe" },
+      { code: "TH", continent: "Asia", subregion: "South-Eastern Asia" },
+    ];
+    const points = new Map([
+      ["CH", [ZURICH]],
+      ["TH", [BANGKOK]],
+    ]);
+    const { views } = buildLifetimeViews(visited, points, new Map());
+    const asia = views.find((v) => v.id === "Asia")!;
+    // 25° floor, in the 500-unit-tall world's units — not the 6° one city
+    // would otherwise get, which filled a phone with one stretch of coast.
+    expect(asia.frame.h).toBeGreaterThanOrEqual((25 / 180) * 500 - 0.01);
+  });
+
+  test("the continent floor never widens a continent already larger than it", () => {
+    const visited: VisitedCountry[] = [
+      { code: "CH", continent: "Europe", subregion: "Western Europe" },
+      { code: "PT", continent: "Europe", subregion: "Southern Europe" },
+      { code: "TH", continent: "Asia", subregion: "South-Eastern Asia" },
+      { code: "JP", continent: "Asia", subregion: "Eastern Asia" },
+    ];
+    const points = new Map([
+      ["CH", [ZURICH]],
+      ["PT", [LISBON]],
+      ["TH", [BANGKOK]],
+      ["JP", [{ lat: 35.6762, lng: 139.6503 }]],
+    ]);
+    const asia = buildLifetimeViews(visited, points, new Map()).views.find((v) => v.id === "Asia")!;
+    const plain = buildLifetimeViews([visited[2], visited[3]], points, new Map()).views.find((v) => v.id === "all")!;
+    expect(asia.frame).toEqual(plain.frame);
+  });
+
   test("a continent with visited countries in only one area gets no area buttons", () => {
     const visited: VisitedCountry[] = [
       { code: "CH", continent: "Europe", subregion: "Western Europe" },

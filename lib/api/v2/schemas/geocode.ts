@@ -33,6 +33,13 @@ export const geocodeCandidate = z.strictObject({
   country: z.string(),
   countryCode: z.string().optional(),
   adminRegion: z.string().optional(),
+  /** The provider's own first-level administrative division (Photon's
+   * `state` — a canton, a Land, a state), named separately from
+   * `adminRegion` above: that field falls back to a county or a city when
+   * there is no `state`, which is the right thing for a display label and
+   * the wrong thing for `Day.region` (B2640) — a day's region is this field
+   * or nothing, never a city standing in for one. */
+  region: z.string().optional(),
   lat: z.number(),
   lon: z.number(),
   type: z.string().optional(),

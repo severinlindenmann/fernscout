@@ -150,6 +150,7 @@ const summary: CostSummary = {
   unrecordedDays: 0,
   byCategory: [],
   byCountry: [],
+  byRegion: [],
   byDay: [],
   items: [],
   unconverted: [],

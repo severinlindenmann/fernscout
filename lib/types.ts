@@ -237,6 +237,9 @@ export type Entry = {
   country: string;
   /** ISO 3166-1 alpha-2, used for the flag. */
   countryCode?: string;
+  /** A sub-national division — canton, Land, state, regione — B2640.
+   * Absent for the great majority of days; never guessed. */
+  region?: string;
   lat: number;
   lng: number;
   transport?: Transport;

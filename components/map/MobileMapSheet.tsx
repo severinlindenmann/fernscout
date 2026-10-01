@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, MapPin } from "lucide-react";
 import { useSnapDrag } from "@/components/SnapSheet";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
@@ -81,6 +81,7 @@ export default function MobileMapSheet({
   selectedDate,
   onSelectDate,
   onInsetChange,
+  onPlay,
 }: {
   /** Every published day, in order, including one with no place at all
    * (greyed — B2537). The strip at peek and the full list both read this
@@ -93,6 +94,10 @@ export default function MobileMapSheet({
    * still resolves to a place through `firstDate`…`lastDate` for the map). */
   selectedDate: string | null;
   onSelectDate: (date: string | null) => void;
+  /** Opens the Diashow, from the start or at one day — B2654: the map
+   * page's own Slideshow button lives in the desktop day list, so a phone
+   * had no way in. Absent when the trip has no places to show. */
+  onPlay?: (date?: string) => void;
   /** B2517: called with how tall this sheet's *current snap* stands, in
    * CSS px, so `WorldMap` can frame the whole trip and a selected stop into
    * the part of the map above it rather than the box's full height. Fires
@@ -214,10 +219,23 @@ export default function MobileMapSheet({
                   bottom on a phone: a strip of date + place + update count."
                   A day with no place still gets a row, greyed, so the strip
                   is never quietly missing one. */}
+              <div className="flex gap-1.5">
+              {/* Pinned beside the strip, not in it: the list is the days,
+                  and this stays in reach however far the days scroll. */}
+              {onPlay && (
+                <button
+                  type="button"
+                  onClick={() => onPlay()}
+                  className="flex shrink-0 flex-col items-start justify-center gap-1 rounded-lg border-2 border-navy-900 bg-yellow-400 px-2.5 py-1.5 text-left text-xs font-bold text-navy-900"
+                >
+                  <Clapperboard className="h-4 w-4" aria-hidden />
+                  {t("show.start")}
+                </button>
+              )}
               <div
                 role="list"
                 aria-label={t("map.everyDay")}
-                className="flex gap-1.5 overflow-x-auto"
+                className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto"
               >
                 {days.map((day) => {
                   const isSelected = day.date === selectedDate;
@@ -247,6 +265,7 @@ export default function MobileMapSheet({
                     </button>
                   );
                 })}
+              </div>
               </div>
             </div>
           )}
@@ -334,6 +353,13 @@ export default function MobileMapSheet({
                       <MapPin className="h-4 w-4" aria-hidden />
                       {t("map.googleMapsShort")}
                     </a>
+                    {onPlay && (
+                      // Starts the show at this day rather than the first.
+                      <button type="button" onClick={() => onPlay(selectedDay.date)} className={MAPS_BUTTON}>
+                        <Clapperboard className="h-4 w-4" aria-hidden />
+                        {t("show.start")}
+                      </button>
+                    )}
                   </div>
                 </>
               )}

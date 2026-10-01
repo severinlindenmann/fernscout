@@ -135,6 +135,7 @@ export function dayToJson(day: DayFile): string {
     location: day.location,
     country: day.country,
     countryCode: day.countryCode,
+    region: day.region,
     coordinates: day.coordinates,
     content: day.content,
     media: day.media,
@@ -215,6 +216,7 @@ export function dayFromJson(slug: string, raw: string): DayFile {
   if (data.location !== undefined) day.location = data.location as DayFile["location"];
   if (data.country !== undefined) day.country = data.country as DayFile["country"];
   if (data.countryCode !== undefined) day.countryCode = data.countryCode as DayFile["countryCode"];
+  if (data.region !== undefined) day.region = data.region as DayFile["region"];
   if (data.coordinates !== undefined) day.coordinates = data.coordinates as DayFile["coordinates"];
   if (data.media !== undefined) day.media = data.media as DayFile["media"];
   if (data.costs !== undefined && !isRetiredCostsDecline(data.costs)) {

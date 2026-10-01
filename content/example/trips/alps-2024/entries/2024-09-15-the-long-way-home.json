@@ -5,6 +5,7 @@
   "location": "Andermatt",
   "country": "Switzerland",
   "countryCode": "CH",
+  "region": "Uri",
   "coordinates": {
     "lat": 46.6364,
     "lng": 8.5942

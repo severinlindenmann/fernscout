@@ -12,6 +12,18 @@ import type { PlanSummary } from "@/lib/billingSummary";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
 
+/** `CHF 49`. `PLANS` itself (`@paid/billing/lib/plans`) carries other,
+ *  server-only imports behind it (`translateIn` -> `lib/locales.ts` ->
+ *  `lib/users.ts` -> `better-sqlite3`) that break this client component's
+ *  bundle the moment anything here imports that module — so the page
+ *  (`app/at/[user]/studio/account/page.tsx`, a server component) reads
+ *  `PLANS` itself and hands down only the plain numbers in `planOptions`.
+ *  `chf()` is the one line worth keeping in sync with it rather than
+ *  re-triggering that import for a one-liner. */
+function chf(amount: number): string {
+  return `CHF ${amount}`;
+}
+
 /**
  * Storage and plan, on their own page — B821, B2593.
  *
@@ -221,6 +233,10 @@ export type StoragePanel = {
   used: string;
   limit: string | null;
   percent: number | null;
+  /** How far over the limit, formatted from bytes — set only once `percent`
+   *  has actually passed 100, never guessed from the rounded percent.
+   *  B2636. */
+  excess: string | null;
   rows: { key: string; label: string; human: string; share: number }[];
   reclaimable: { human: string; files: number; hasStagedFiles: boolean };
 };
@@ -238,6 +254,18 @@ export type StoragePanel = {
  * the same way.
  */
 export type PlanPanel = PlanSummary;
+
+/**
+ * The plain numbers behind the two buy tiles — B2638. Read from `PLANS`
+ * (`@paid/billing/lib/plans`) by the page (a server component), never by
+ * this file: see `chf()`'s own comment for why that import cannot cross
+ * into a client bundle. Present exactly when `plan` is, same as `plan`
+ * itself.
+ */
+export type PlanOptionFacts = {
+  plus: { priceChf: number; aiDays: number; storageGb: number; includedPostcards: number };
+  pass: { priceChf: number; days: number; aiDays: number; storageGb: number; includedPostcards: number };
+};
 
 /** Buy a plan, or ask the operator to grant it when no Stripe key is
  *  configured (`dryRun`) — the same "ask, don't act" shape every panel on
@@ -314,6 +342,58 @@ function BuyPlanButton({
           {t("billing.dryRunSent")}
         </span>
       )}
+    </div>
+  );
+}
+
+/**
+ * One plan to buy, as a tile rather than a bare button — B2638's board. Price
+ * and facts are the caller's own (read straight from `PLANS`, real or its
+ * public stub), so this draws nothing and decides nothing about what a plan
+ * costs; it only lays it out, with the buy button inside rather than below
+ * the pair.
+ */
+function PlanOptionTile({
+  username,
+  plan,
+  name,
+  tag,
+  price,
+  cadence,
+  facts,
+  buyLabel,
+}: {
+  username: string;
+  plan: "pass" | "plus";
+  name: string;
+  tag?: string;
+  price: string;
+  cadence: string;
+  facts: string[];
+  buyLabel: string;
+}) {
+  return (
+    <div className="flex-1 rounded-xl border border-line-quiet bg-surface-base p-4">
+      <p className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-display text-lg font-semibold text-ink-strong">{name}</span>
+        {tag && (
+          <span className="inline-flex rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-bold text-ink-strong">
+            {tag}
+          </span>
+        )}
+      </p>
+      <p className="mt-1 flex items-baseline gap-1.5">
+        <span className="font-display text-xl font-semibold text-ink-strong">{price}</span>
+        <span className="text-sm text-ink-secondary">{cadence}</span>
+      </p>
+      <ul className="mt-2 space-y-1 text-sm text-ink-body">
+        {facts.map((fact) => (
+          <li key={fact}>{fact}</li>
+        ))}
+      </ul>
+      <div className="mt-3">
+        <BuyPlanButton username={username} plan={plan} label={buyLabel} />
+      </div>
     </div>
   );
 }
@@ -496,14 +576,16 @@ function YourPlanPanel({
   username,
   plan,
   storage,
+  planOptions,
 }: {
   username: string;
   plan: PlanPanel;
   /** Shares the one ceiling `storage` already reads below, for the meter —
    *  absent where the instance sets no ceiling, same as `storage` itself. */
   storage?: StoragePanel;
+  planOptions: PlanOptionFacts;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const native = useNativeShell();
   const planTag = t(`plans.${plan.plan}` as "plans.free");
   const dateStr = plan.periodEnd ? plan.periodEnd.slice(0, 10) : null;
@@ -577,9 +659,51 @@ function YourPlanPanel({
         {plan.plan === "plus" && <StorageAddonButton username={username} label={t("billing.addStorage")} />}
         {plan.hasStripeSubscription && <ManageSubscriptionButton username={username} />}
         {plan.source === "apple" && <ManagedByApple />}
-        {plan.plan !== "plus" && <BuyPlanButton username={username} plan="plus" label={t("billing.buyPlus")} />}
-        {plan.plan === "free" && <BuyPlanButton username={username} plan="pass" label={t("billing.buyPass")} />}
       </div>
+
+      {/* The two plans still open to buy, as tiles rather than bare buttons
+          — B2638's board: name, price, cadence, three facts and the buy
+          button inside each, Plus first. */}
+      {plan.plan !== "plus" && (
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <PlanOptionTile
+            username={username}
+            plan="plus"
+            name={t("plans.plus")}
+            tag={t("billing.tilePlusTag")}
+            price={chf(planOptions.plus.priceChf)}
+            cadence={t("billing.tilePlusCadence")}
+            facts={[
+              t("billing.tileAiDaysYear", { days: String(planOptions.plus.aiDays) }),
+              `${planOptions.plus.storageGb} GB`,
+              tn("billing.tilePostcards", planOptions.plus.includedPostcards, {
+                count: String(planOptions.plus.includedPostcards),
+              }),
+            ]}
+            buyLabel={t("billing.buyPlus")}
+          />
+          {plan.plan === "free" && (
+            <PlanOptionTile
+              username={username}
+              plan="pass"
+              name={t("plans.pass")}
+              price={chf(planOptions.pass.priceChf)}
+              cadence={t("billing.tilePassCadence", { days: String(planOptions.pass.days) })}
+              facts={[
+                t("billing.tileAiDaysWindow", {
+                  days: String(planOptions.pass.aiDays),
+                  window: String(planOptions.pass.days),
+                }),
+                `${planOptions.pass.storageGb} GB`,
+                tn("billing.tilePostcards", planOptions.pass.includedPostcards, {
+                  count: String(planOptions.pass.includedPostcards),
+                }),
+              ]}
+              buyLabel={t("billing.buyPass")}
+            />
+          )}
+        </div>
+      )}
 
       {plan.hasStripeSubscription && plan.renews && (
         <div className="mt-4">
@@ -637,6 +761,7 @@ export default function AccountPageContent({
   storage,
   orders,
   plan,
+  planOptions,
 }: {
   username: string;
   /** Absent only where the instance sets no ceiling. */
@@ -645,6 +770,8 @@ export default function AccountPageContent({
   orders: { recent: OrderRow[]; total: number };
   /** Absent when `billing` is off. */
   plan?: PlanPanel;
+  /** Present exactly when `plan` is — B2638's tiles. */
+  planOptions?: PlanOptionFacts;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -655,7 +782,9 @@ export default function AccountPageContent({
         <div className="mt-6 space-y-4">
           {/* Your plan, first — B2622's board. What an owner pays for and
               what it buys them, ahead of everything else on this page. */}
-          {plan && <YourPlanPanel username={username} plan={plan} storage={storage} />}
+          {plan && planOptions && (
+            <YourPlanPanel username={username} plan={plan} storage={storage} planOptions={planOptions} />
+          )}
 
           {orders.recent.length > 0 && (
             // B1452. Next — what an owner asks most often right after a
@@ -700,8 +829,28 @@ export default function AccountPageContent({
                   limit: storage.limit ?? "",
                 })}
               </p>
-              {storage.percent !== null && storage.percent >= 90 && (
-                <p className="mt-1 text-sm leading-6 text-coral-600">
+              {/* Three states — B2636: a journal at 4.0 of 2.0 GB used to
+                  read "nearly full" like one at 1.9 of 2.0, though uploads
+                  are already refused (`withStorageQuota`/`storageRefusal` in
+                  `lib/storageQuota.ts` refuse any write that would take
+                  `usedBytes` past `limitBytes`). "Voll" only fires once that
+                  is actually true, with the real excess from bytes; "Fast
+                  voll" stays a forward-looking warning for 90–99%, where
+                  nothing is refused yet. */}
+              {storage.percent !== null && storage.percent >= 100 && (
+                <>
+                  <p className="mt-1 text-sm leading-6 text-coral-600">
+                    {t("me.storageFull", { excess: storage.excess ?? "" })}
+                  </p>
+                  {plan && plan.plan !== "plus" && (
+                    <div className="mt-2">
+                      <BuyPlanButton username={username} plan="plus" label={t("billing.buyPlus")} />
+                    </div>
+                  )}
+                </>
+              )}
+              {storage.percent !== null && storage.percent >= 90 && storage.percent < 100 && (
+                <p className="mt-1 text-sm leading-6 text-amber-700">
                   {t("me.storageNearlyFull")}
                 </p>
               )}

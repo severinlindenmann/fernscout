@@ -1,3 +1,5 @@
+import type { TranslationKey } from "./i18n";
+
 /**
  * Every country this instance might need to name, plus the two derived views
  * every picker over it wants — a flag with no image asset, and a name in the
@@ -194,6 +196,40 @@ export function filterCountryList(query: string, locale: string): { iso2: string
  * locale would resolve to whichever sorts first in `COUNTRIES`. Add a
  * uniqueness check if that ever turns out to matter for a real address.
  */
+/**
+ * What a country's own first-level administrative division is called — B2640.
+ *
+ * Not the reader's own word for "region" in general, but the name THIS
+ * country uses for the thing: Switzerland has cantons, Germany and Austria
+ * have Länder, Italy has regioni. Returns a locale key (`lib/i18n.ts`'s own
+ * `region.*` entries), translated the same way every other UI string is,
+ * never a hand-picked English word. `"region.generic"` for every country not
+ * named here — "Region" is a safe, true word for any of them.
+ */
+export function regionWordKey(countryCode: string): TranslationKey {
+  switch (countryCode.toUpperCase()) {
+    case "CH":
+      return "region.kanton";
+    case "DE":
+    case "AT":
+      return "region.bundesland";
+    case "US":
+    case "BR":
+    case "MX":
+    case "AU":
+    case "IN":
+      return "region.state";
+    case "IT":
+      return "region.regione";
+    case "FR":
+      return "region.regionFr";
+    case "ES":
+      return "region.comunidadAutonoma";
+    default:
+      return "region.generic";
+  }
+}
+
 export function resolveCountry(stored: string, locales: string[]): string | null {
   const value = stored.trim().toLowerCase();
   if (value === "") return null;
