@@ -157,8 +157,10 @@ const NUMBER_PATTERN = /\d+(?:[.,]\d+)?/g;
 const WORD_PATTERN = /[\p{L}][\p{L}'’-]*/gu;
 const CAPITALISED = /^\p{Lu}/u;
 
+/** Accents are dropped too: "uton" tidied to "úton" is spelling, not a new
+ *  fact (TIX-2 persona round, Hungarian typed without accents). */
 function normalise(word: string): string {
-  return word.toLowerCase().replace(/['’]/g, "");
+  return word.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/['’]/g, "");
 }
 
 /** Loose stem: the first five characters (or the whole word if shorter) —
