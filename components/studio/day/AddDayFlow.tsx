@@ -250,6 +250,8 @@ export default function AddDayFlow({
   const [placeSuggestionDismissed, setPlaceSuggestionDismissed] = useState(false);
 
   const [detailsOpen, setDetailsOpen] = useState(false);
+  // B2645 — what the last tap on the bottom button was stopped by.
+  const [blockedBy, setBlockedBy] = useState<"trip" | "date" | "cost" | null>(null);
   const [extras, setExtras] = useState<DayExtrasValue>(NO_EXTRAS);
   const [busy, setBusy] = useState(false);
   const [saveQueued, setSaveQueued] = useState(false);
@@ -652,6 +654,9 @@ export default function AddDayFlow({
     if (!saveQueued || uploading > 0) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the queued save fires once the uploads it waited for are in.
     setSaveQueued(false);
+    // B2645 — the photos that just came in can change the day; check again.
+    const blocker = !tripId ? "trip" : !date ? "date" : extras.costs.some(lineProblem) ? "cost" : null;
+    if (blocker) return setBlockedBy(blocker);
     void commit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveQueued, uploading]);
@@ -922,11 +927,31 @@ export default function AddDayFlow({
               <span className="block truncate text-sm font-semibold text-ink-strong">
                 {dayNumber ? t("studio.day.chip.dayOf", { trip: trip?.title ?? "", n: String(dayNumber) }) : (trip?.title ?? "")}
               </span>
-              <span className="block text-xs text-ink-secondary">
-                {date ? `${formatLongDate(date, { year: true })} · ${dateSource}` : t("studio.day.date.ask")}
+              <span className={`block text-xs ${date ? "text-ink-secondary" : "font-semibold text-ink-strong"}`}>
+                {date
+                  ? `${formatLongDate(date, { year: true })} · ${dateSource}`
+                  : chosenPhotos.length > 0 && !chosenPhotos.some((i) => i.id in pendingPhotoUrls)
+                    ? tn("studio.day.date.noDateInPhoto", chosenPhotos.length)
+                    : t("studio.day.date.ask")}
               </span>
             </span>
           </button>
+          {/* B2645 — a photo with no date in it: ask, with today one tap away
+              when today is inside the trip. Nothing is filled in by itself. */}
+          {!date && (
+            <div data-date-ask className="mt-2 flex flex-wrap gap-2">
+              {proposedToday && (
+                <button type="button" onClick={() => pickDate(proposedToday)} className="min-h-11 rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action">
+                  {t("studio.day.date.useToday", { date: formatLongDate(proposedToday) })}
+                </button>
+              )}
+              {sheet !== "date" && (
+                <button type="button" onClick={() => setSheet("date")} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong">
+                  {t("studio.day.date.pick")}
+                </button>
+              )}
+            </div>
+          )}
           {sheet === "date" && (
             <div className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
               <p className="text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
@@ -1191,13 +1216,29 @@ export default function AddDayFlow({
               </div>
             )}
           </details>
-          {!date && <p className="mt-3 text-sm text-ink-secondary">{t("studio.day.date.ask")}</p>}
+          {blockedBy && blockedBy === (!tripId ? "trip" : !date ? "date" : extras.costs.some(lineProblem) ? "cost" : null) && (
+            <p role="alert" className="mt-3 text-sm font-semibold text-coral-600">
+              {t(blockedBy === "trip" ? "studio.day.blocked.trip" : blockedBy === "date" ? "studio.day.date.ask" : "studio.day.extras.costIncomplete")}
+            </p>
+          )}
           <StepPrimary
             busy={busy || saveQueued}
             busyLabel={saveQueued ? tn("studio.day.saveWaiting", uploading, { count: String(uploading) }) : t("studio.day.saveBusy")}
-            disabled={!tripId || !date || extras.costs.some(lineProblem)}
             tone="bg-yellow-400 text-yellow-950"
-            onClick={save}
+            // B2645 — never a dead tap: what is still missing is opened,
+            // scrolled to and named instead.
+            onClick={() => {
+              const blocker = !tripId ? "trip" : !date ? "date" : extras.costs.some(lineProblem) ? "cost" : null;
+              setBlockedBy(blocker);
+              if (!blocker) return save();
+              if (blocker === "cost") setDetailsOpen(true);
+              else setSheet("date");
+              requestAnimationFrame(() => {
+                const target = document.querySelector<HTMLElement>(blocker === "cost" ? "[data-cost-line]" : '[data-chip="date"]');
+                target?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+                if (blocker !== "cost") target?.focus();
+              });
+            }}
             label={asPart?.label ?? t("studio.day.save")}
           />
         </>

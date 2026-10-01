@@ -156,7 +156,7 @@ describe("AddDayFlow, one page — B2188", () => {
     expect(text()).toContain("2 chosen");
 
     // Two photographs that carry no date: it asks, rather than keep today.
-    expect(dateChip()).toContain("Which day was this?");
+    expect(dateChip()).toContain("Which day was it?");
     await act(async () => (container.querySelector('[data-chip="date"]') as HTMLButtonElement).click());
     await act(async () => (container.querySelector('button[aria-label^="Monday, 10 November"]') as HTMLButtonElement).click());
     expect(dateChip()).toContain("chosen by you");
@@ -220,9 +220,19 @@ describe("AddDayFlow, one page — B2188", () => {
     inbox = [A, B];
     await mount();
     await chooseEveryWaitingPhoto();
-    expect(text()).toContain("Which day was this?");
+    expect(text()).toContain("No date in these photos. Which day was it?");
+    // B2645 — the button is never a dead tap: it writes nothing, names what
+    // is missing and opens the day picker; "Use today" is one tap away.
     const save = Array.from(container.ownerDocument.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Save privately");
-    expect(save?.disabled).toBe(true);
+    expect(save?.disabled).toBe(false);
+    await act(async () => save!.click());
+    await flush();
+    expect(commitBody).toBeNull();
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Which day was this?");
+    expect(container.querySelector('[data-chip="date"]')!.getAttribute("aria-expanded")).toBe("true");
+    await click("Use today, Monday, 10 November");
+    expect(dateChip()).toContain("10 November");
+    expect(container.querySelector('[role="alert"]')).toBeNull();
   });
 
   describe("B2193 — a hub day card opens the page with exactly that day's photographs", () => {
@@ -253,7 +263,7 @@ describe("AddDayFlow, one page — B2188", () => {
       props = { initialPhotos: "undated" };
       await mount();
       expect(text()).toContain("1 chosen");
-      expect(text()).toContain("Which day was this?");
+      expect(text()).toContain("Which day was it?");
     });
 
     test("photographs from several days offer to make that many days, on the hub's cards", async () => {
