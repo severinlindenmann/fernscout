@@ -112,8 +112,10 @@ test("the MapLibre worker is served only while street maps are on, and only its 
 
 async function glyph(stack: string, range: string) {
   const { GET } = await import("@/app/api/maps/fonts/[stack]/[range]/route");
-  const url = `https://t.test/api/maps/fonts/${encodeURIComponent(stack)}/${range}`;
-  return GET(new Request(url), { params: Promise.resolve({ stack, range }) });
+  // The segment as MapLibre's `{range}.pbf` glyph URL actually delivers it.
+  const segment = `${range}.pbf`;
+  const url = `https://t.test/api/maps/fonts/${encodeURIComponent(stack)}/${segment}`;
+  return GET(new Request(url), { params: Promise.resolve({ stack, range: segment }) });
 }
 
 test("glyph route: 404 when the capability is off", async () => {

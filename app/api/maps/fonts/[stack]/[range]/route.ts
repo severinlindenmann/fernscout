@@ -28,7 +28,9 @@ export async function GET(
   if (!isEnabled("streetMaps")) return new Response("Not found", { status: 404 });
 
   const { stack, range } = await params;
-  const file = resolveFontFile(decodeURIComponent(stack), range);
+  // The segment is the whole last part of `{range}.pbf` — B2642: passed on
+  // with its suffix, no range ever matched and every label went blank.
+  const file = resolveFontFile(decodeURIComponent(stack), range.replace(/\.pbf$/, ""));
   if (!file) return new Response(new Uint8Array(), { status: 200, headers: EMPTY_HEADERS });
 
   try {
