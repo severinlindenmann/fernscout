@@ -897,10 +897,11 @@ export default function SlideShow({
             for a second or more. Same component and props as the slide
             itself, so the browser fetches the very URL the slide will ask
             for. */}
-        {cut === "narrated" && !atEndCard && narratedSlides[index + 1]?.photo && (
+        {/* During the globe opener the slide still to come is this one. */}
+        {cut === "narrated" && !atEndCard && narratedSlides[opener ? index : index + 1]?.photo && (
           <div aria-hidden className="pointer-events-none invisible absolute inset-0">
             <PresentedPhoto
-              item={narratedSlides[index + 1].photo!}
+              item={narratedSlides[opener ? index : index + 1].photo!}
               alt=""
               priority
               isPortraitFrame={isPortraitFrame}
