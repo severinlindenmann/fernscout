@@ -8,13 +8,14 @@ import { useI18n } from "@/components/LocaleProvider";
 import { journalPath } from "@/lib/journalPath";
 import { readZipEntries, readZipEntryBytes, readZipEntryText, ZipError, type ZipEntry } from "@/lib/zip/readZip";
 import type { PolarstepsTrip } from "@/importers/trips/polarsteps";
+import { JSON_BODY_MAX_BYTES } from "@/lib/api/jsonBody";
 
 /** trip.json entries only — `trip/<slug>_<id>/trip.json`, never a nested
  * one a crafted export might add. */
 const TRIP_JSON = /^trip\/([^/]+)\/trip\.json$/;
-/** One trip.json, capped — a real export's biggest trip is a few hundred
- * kB; 20 MB is a thousand-step trip with every field maxed out. */
-const TRIP_JSON_MAX_BYTES = 20 * 1024 * 1024;
+/** One trip.json, capped at what the import door accepts as a JSON body — a
+ * real export's biggest trip is a few hundred kB. */
+const TRIP_JSON_MAX_BYTES = JSON_BODY_MAX_BYTES;
 const LOCATIONS_JSON_MAX_BYTES = 50 * 1024 * 1024;
 
 type DiscoveredTrip = {
