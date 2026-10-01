@@ -114,12 +114,6 @@ async function addedId(body: Record<string, unknown>): Promise<string> {
   return ((await res.json()) as { contact: { id: string } }).contact.id;
 }
 
-async function ledgerRows(): Promise<number> {
-  const { getDatabase } = await import("@/lib/db");
-  const { db } = await getDatabase();
-  return (await db.selectFrom("credit_ledger").select("id").execute()).length;
-}
-
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-b2292-"));
   process.env.CONTENT_DIR = dir;
@@ -234,11 +228,9 @@ describe("step 2 — telling them", () => {
     });
     const options = (await res.json()) as {
       url: string;
-      balance: number | null;
       channels: { channel: string; cost: number; blocked: string | null; preview: string }[];
     };
     expect(options.url).toMatch(/^https:\/\/example\.test\/w\/[23456789abcdefghjkmnpqrstuvwxyz]{10}$/);
-    expect(options.balance).toBeNull();
     const by = Object.fromEntries(options.channels.map((c) => [c.channel, c]));
     expect(by.email.blocked).toBeNull();
     expect(by.email.preview).toBe(
@@ -247,7 +239,7 @@ describe("step 2 — telling them", () => {
     expect(by.whatsapp).toBeUndefined();
     expect(by.sms).toBeUndefined();
     expect(by.self).toMatchObject({ blocked: null, cost: 0, preview: options.url });
-    // Credits are off here: nothing costs anything.
+    // Every invite channel is free — B2597/B840.
     expect(options.channels.every((c) => c.cost === 0)).toBe(true);
   });
 
@@ -262,7 +254,7 @@ describe("step 2 — telling them", () => {
     expect(body.message).toContain("self");
   });
 
-  test("email: exactly one mail carrying the /w/ link, and the ledger untouched", async () => {
+  test("email: exactly one mail carrying the /w/ link", async () => {
     const id = await addedId({ name: "Otto", email: "otto@example.test" });
     const res = await notify(id, "email");
     expect(res.status).toBe(200);
@@ -271,7 +263,6 @@ describe("step 2 — telling them", () => {
     const letters = mails("otto@example.test");
     expect(letters).toHaveLength(1);
     expect(letters[0]).toContain(sent.url);
-    expect(await ledgerRows()).toBe(0);
     const { getContact } = await import("@/lib/contacts");
     expect((await getContact(OWNER, id))?.invitedVia).toBe("email");
   });
