@@ -105,7 +105,8 @@ const CHIP =
 const FIELD = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border border-line-strong bg-surface-base px-3 text-base text-ink-body sm:text-sm";
 // B2647 — iOS draws a time input at its own width and height, past its box;
 // drop the native look so it sizes like every other field.
-const TIME_FIELD = `${FIELD} appearance-none [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:min-h-[1.5em]`;
+// The value is centred by hand: without the native look iOS sets it at the top.
+const TIME_FIELD = `${FIELD} appearance-none py-2.5 leading-6 [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:min-h-[1.5em]`;
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-ink-secondary";
 const LINK = "min-h-11 text-left text-sm font-semibold text-ink-body underline underline-offset-2";
 

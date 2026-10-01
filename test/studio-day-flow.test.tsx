@@ -195,6 +195,29 @@ describe("the assistant is asked once, with its consent", () => {
   });
 });
 
+test("a part saved without words reads as no words and is never sent to be tidied", async () => {
+  props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
+  const base = globalThis.fetch as unknown as (url: string, init?: RequestInit) => Promise<Response>;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const r = await base(url, init);
+      if (url.includes("/day?") && (init?.method ?? "GET") === "GET") {
+        const json = (await r.json()) as { preview: { day: { entries: { content: string }[] } } };
+        json.preview.day.entries[0].content = "…";
+        return Response.json(json);
+      }
+      return r;
+    }),
+  );
+  await mount();
+  await click(dict["studio.flow.splitNo"]);
+  await click(dict["studio.flow.check"]);
+  await flush();
+  expect(text()).toContain(dict["studio.check.noWords"]);
+  expect(sent("/day/write-day")).toHaveLength(0);
+});
+
 describe("B2649 — the assistant switch", () => {
   test("a switch, On with a green dot; Off saves and shows Off", async () => {
     props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
