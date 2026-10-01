@@ -259,8 +259,12 @@ describe("the helper routes", () => {
   // recorded kilometres by mode for one part of a day, built on
   // `ownerDayLine` so it adds no new reader of the GPS store. Same cookie,
   // same owner check as the sixty-four before them.
-  test("there are sixty-six of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(66);
+  // Sixty-seven: `polarsteps` (B2662) — the cookie-only door onto B2432's
+  // `importPolarsteps`, for the studio's own Polarsteps import screen; the
+  // bearer-token twin is `kind: "polarsteps"` on `POST /api/v2/{user}/import`.
+  // Same cookie, same owner check as everything above it.
+  test("there are sixty-seven of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(67);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

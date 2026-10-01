@@ -6,6 +6,7 @@ import {
   ChartNoAxesColumn,
   Coins,
   Compass,
+  FileArchive,
   Images,
   Inbox,
   KeyRound,
@@ -281,6 +282,12 @@ export function buildHubGroups(
           Icon: Receipt,
           title: t("studio.hub.item.statement.title"),
           description: t("studio.hub.item.statement.description"),
+        },
+        {
+          href: `${journalPath(username)}/studio/import/polarsteps`,
+          Icon: FileArchive,
+          title: t("studio.hub.item.polarsteps.title"),
+          description: t("studio.hub.item.polarsteps.description"),
         },
         {
           href: `${journalPath(username)}/studio/inbox`,

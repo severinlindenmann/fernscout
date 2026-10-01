@@ -148,7 +148,7 @@ function guessedTimezone(username: string, date: string): string | undefined {
  * address book as positions is not a mistake to make quietly, and it was one
  * word away while there was a single kind to fall back to.
  */
-export const IMPORT_KINDS = ["gps", "contacts"] as const;
+export const IMPORT_KINDS = ["gps", "contacts", "polarsteps"] as const;
 export type ImportKind = (typeof IMPORT_KINDS)[number];
 
 /**
@@ -249,6 +249,13 @@ export function importFormats(): {
       kind: "contacts",
       what: "who might get post — a phone's own address book, read and shown before anybody is added",
       formats: CONTACTS_IMPORTERS.map((i) => ({ id: i.id, label: i.label })),
+    },
+    {
+      kind: "polarsteps",
+      what:
+        "one trip from a Polarsteps export (user_data.zip) — a draft trip and a draft day per " +
+        "local date, never comments, followers, buddies or full-resolution photos",
+      formats: [{ id: "polarsteps", label: "Polarsteps trip.json" }],
     },
   ];
 }
