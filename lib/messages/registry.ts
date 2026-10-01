@@ -67,8 +67,6 @@ export const TEMPLATES = {
   "notice.expiryWarn": { family: "notice", channel: "mail", kind: "studio photo expiry warning", audience: "owner" },
   "notice.expiryFinal": { family: "notice", channel: "mail", kind: "studio photo expiry final notice", audience: "owner" },
   "notice.operatorMessage": { family: "notice", channel: "mail", kind: "operator note to the owner", audience: "owner" },
-  "notice.buy": { family: "notice", channel: "mail", kind: "credit purchase awaiting payment", audience: "owner", paid: true },
-  "notice.creditsRefund": { family: "notice", channel: "mail", kind: "credit refund notice", audience: "owner", paid: true },
   "notice.postcardCancelled": { family: "notice", channel: "mail", kind: "postcard cancelled", audience: "owner", paid: true },
   "notice.photobookRefused": { family: "notice", channel: "mail", kind: "photobook order refused", audience: "owner", paid: true },
   "notice.paymentFailed": { family: "notice", channel: "mail", kind: "Plus renewal payment failed, grace started", audience: "owner", paid: true },
@@ -84,10 +82,9 @@ export const TEMPLATES = {
   // -- mail: operator (open core) ------------------------------------------
   "op.spend": { family: "operator", channel: "mail", kind: "nightly spend alert", audience: "operator" },
   "op.alert": { family: "operator", channel: "mail", kind: "backup/job alert", audience: "operator" },
-  "op.grantApproval": { family: "operator", channel: "mail", kind: "credit grant/purchase awaiting approval", audience: "operator", paid: true },
+  "op.grantApproval": { family: "operator", channel: "mail", kind: "pass/Plus grant awaiting approval", audience: "operator", paid: true },
 
   // -- mail: receipt (paid) -------------------------------------------------
-  "receipt.credits": { family: "receipt", channel: "mail", kind: "credit purchase receipt", audience: "owner", paid: true },
   "receipt.plan": { family: "receipt", channel: "mail", kind: "pass/Plus purchase receipt", audience: "owner", paid: true },
   "receipt.postcard": { family: "receipt", channel: "mail", kind: "postcard order receipt", audience: "owner", paid: true },
   "receipt.photobook": { family: "receipt", channel: "mail", kind: "photobook order receipt", audience: "owner", paid: true },
@@ -293,17 +290,6 @@ export const FLOWS = [
       { id: "stop", type: "stop", label: "Done", to: [] },
     ],
   },
-  {
-    id: "money",
-    label: "Buying credits",
-    nodes: [
-      { id: "buy", type: "trigger", label: "Owner asks to buy credits", to: [{ id: "buyMail" }] },
-      { id: "buyMail", type: "send", label: "Payment instructions", template: "notice.buy", to: [{ id: "approve" }] },
-      { id: "approve", type: "send", label: "Ask the operator to approve", template: "op.grantApproval", to: [{ id: "receipt" }] },
-      { id: "receipt", type: "send", label: "Receipt", template: "receipt.credits", to: [{ id: "stop" }] },
-      { id: "stop", type: "stop", label: "Balance updated", to: [] },
-    ],
-  },
   // B2593 — a pass or Plus: paid through Stripe (a receipt), or with no
   // Stripe key the operator's approval mail and a grant by hand from /admin.
   {
@@ -314,9 +300,8 @@ export const FLOWS = [
         id: "buyPlan",
         type: "trigger",
         label: "Owner buys a pass or subscribes to Plus",
-        to: [{ id: "planReceipt" }, { id: "planApprove" }],
+        to: [{ id: "planReceipt" }],
       },
-      { id: "planApprove", type: "send", label: "Ask the operator to grant it", template: "op.grantApproval", to: [{ id: "stop" }] },
       {
         id: "planReceipt",
         type: "send",
@@ -393,19 +378,18 @@ export const FLOWS = [
     ],
   },
   {
-    id: "creditsRefund",
-    label: "Credit refund",
-    nodes: [
-      { id: "refund", type: "trigger", label: "Operator records a refund", to: [{ id: "send" }] },
-      { id: "send", type: "send", label: "Tell the owner", template: "notice.creditsRefund", to: [{ id: "stop" }] },
-      { id: "stop", type: "stop", label: "Ledger and mail agree", to: [] },
-    ],
-  },
-  {
     id: "postcard",
     label: "Postcard order",
     nodes: [
-      { id: "order", type: "trigger", label: "Owner sends a postcard order to the printer", to: [{ id: "receipt" }] },
+      {
+        id: "order",
+        type: "trigger",
+        label: "Owner sends a postcard order to the printer",
+        to: [{ id: "receipt" }, { id: "approve" }],
+      },
+      // B2594 — no STRIPE_SECRET_KEY set: the operator approves by hand
+      // before anything prints. Same door photobook's own order uses below.
+      { id: "approve", type: "send", label: "Ask the operator to approve, no Stripe key", template: "op.grantApproval", to: [{ id: "receipt" }] },
       { id: "receipt", type: "send", label: "Order receipt", template: "receipt.postcard", to: [{ id: "reconcile" }] },
       {
         id: "reconcile",
