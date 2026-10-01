@@ -201,7 +201,11 @@ and no addresses are ever sent** to either.
 in one request and is dropped when the request ends; no copy is written to
 this server, to a backup or to an export. The text is kept, because the text is
 what was asked for. Both services are used only for the one request, and
-neither is asked to keep anything or to train on it.
+neither trains its models on it. Anthropic deletes what it was sent within 30
+days, and keeps a request longer only when it is flagged for misuse, to check
+it. Deepgram is asked, with every recording, not to keep it or learn from it
+(its model-improvement opt-out); that is Deepgram's own promise, which this
+server cannot check.
 
 ## The iPhone app {#iphone}
 
