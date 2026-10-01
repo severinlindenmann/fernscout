@@ -251,6 +251,6 @@ export default function DayFlow(
 /** The bottom bar for this flow's own two screens — mounted only there, so it
  *  never competes with the composer's own Save button for the one bar. */
 function Bar({ children }: { children: ReactNode }) {
-  useStudioBar(children, { replace: true });
+  useStudioBar(children, { replace: true, desktop: true });
   return null;
 }

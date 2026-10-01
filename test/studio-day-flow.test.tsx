@@ -15,6 +15,8 @@ vi.mock("next/navigation", async () => {
   };
 });
 
+vi.mock("@/components/PageHeader", () => ({ default: () => <header /> }));
+
 /**
  * Add a day, start to finish — TIX-2: the assistant choice and its consent,
  * a long day offered in parts, each part saved as its own draft (a later part
@@ -25,6 +27,7 @@ vi.mock("next/navigation", async () => {
 
 const { default: DayFlow } = await import("@/components/studio/day/DayFlow");
 const { default: StudioBarProvider } = await import("@/components/studio/StudioBar");
+const { default: StudioPage } = await import("@/components/studio/StudioPage");
 const { default: LocaleProvider } = await import("@/components/LocaleProvider");
 const { dictionaryFor } = await import("@/lib/locales");
 
@@ -128,6 +131,7 @@ async function mount() {
     root!.render(
       <LocaleProvider dictionary={dict} locale="en">
         <StudioBarProvider username="alex">
+          <StudioPage username="alex" group="write" title="A day">
           <DayFlow
             username="alex"
             trips={TRIPS}
@@ -141,6 +145,7 @@ async function mount() {
             providers={{ words: "Anthropic", speech: "Deepgram" }}
             {...props}
           />
+          </StudioPage>
         </StudioBarProvider>
       </LocaleProvider>,
     ),
@@ -165,6 +170,11 @@ const text = () => document.body.textContent ?? "";
 const sent = (part: string, method = "POST") => calls.filter((c) => c.url.includes(part) && c.method === method);
 
 describe("the assistant is asked once, with its consent", () => {
+  test("its buttons are on the desktop bar too, not only the phone's", async () => {
+    await mount();
+    expect(button(dict["studio.flow.without"]).closest(".md\\:hidden")).toBeNull();
+  });
+
   test("Without remembers off and goes straight on", async () => {
     await mount();
     expect(text()).toContain(dict["studio.flow.hintTitle"]);

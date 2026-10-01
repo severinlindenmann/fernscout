@@ -204,7 +204,7 @@ export default function DayCheck({ username, saved, assistant }: { username: str
         {working ? t("studio.check.working") : t("studio.check.looksGood")}
       </BusyButton>
     </div>,
-    { replace: true },
+    { replace: true, desktop: true },
   );
 
   return (
