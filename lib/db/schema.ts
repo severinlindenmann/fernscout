@@ -955,6 +955,15 @@ type EntitlementsTable = {
    *  that purchase's upgrade-to-Plus offer — B2593. Null on every row that
    *  never had one. */
   upgrade_promo_id: string | null;
+  /** The `period_end` the 30-day renewal reminder was last sent for — B2608.
+   *  Compared against the *current* `period_end`, not a plain timestamp, so
+   *  the same reminder fires again after each renewal. Null until sent once. */
+  renewal_reminder_period_end: string | null;
+  /** When "your Trip pass ends in N days" was sent — B2608. One-shot: a pass
+   *  never renews, so a plain timestamp (not a period) is enough. */
+  pass_ending_sent_at: string | null;
+  /** When "your Trip pass has ended" was sent — B2608. Same one-shot shape. */
+  pass_ended_sent_at: string | null;
 };
 
 /**
@@ -976,6 +985,16 @@ type AiDaysTable = {
   date: string;
   first_used_at: string;
   plan_period_start: string | null;
+};
+
+/**
+ * How many of a plan's included prints an owner has claimed in one plan
+ * period — B2594/B2595. See migration `059-print-included-usage`.
+ */
+type PrintIncludedUsageTable = {
+  owner_id: string;
+  period_key: string;
+  used: Generated<number>;
 };
 
 export type Database = {
@@ -1017,6 +1036,7 @@ export type Database = {
   entitlements: EntitlementsTable;
   ai_days: AiDaysTable;
   stripe_customers: StripeCustomersTable;
+  print_included_usage: PrintIncludedUsageTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1059,4 +1079,5 @@ export const TABLE_NAMES = [
   "entitlements",
   "ai_days",
   "stripe_customers",
+  "print_included_usage",
 ] as const satisfies readonly (keyof Database)[];

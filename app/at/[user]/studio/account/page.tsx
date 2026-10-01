@@ -158,6 +158,10 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
       plan: current.plan,
       periodEnd: current.unlimited ? null : current.periodEnd,
       cancelAtPeriodEnd: live?.cancelAtPeriodEnd ?? false,
+      renews:
+        current.plan === "plus" &&
+        (current.source === "stripe" || current.source === "apple") &&
+        !(live?.cancelAtPeriodEnd ?? false),
       aiDays: status.unlimited ? { unlimited: true } : { unlimited: false, used: status.used, allowed: status.allowed },
       storageGb: current.limits.storageGb,
       hasStripeSubscription: current.plan === "plus" && current.source === "stripe",

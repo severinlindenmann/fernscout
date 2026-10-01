@@ -282,7 +282,7 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
       ENV_FILE: envFile,
       ...extra,
     };
-    // B2552. backup.sh's seven nightly `npm run` sweeps are tsx processes
+    // B2552 (B2608 added an eighth). backup.sh's nightly `npm run` sweeps are tsx processes
     // against the real checkout — seconds per run, and none of this suite's
     // business. A recording no-op `npm` goes first on whatever PATH the test
     // chose; the first test below proves the script still calls every one.
@@ -569,6 +569,7 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
           "messages:sweep",
           "spend:alert",
           "gap-nudges:send",
+          "plan-reminders:send",
           "extract:remind",
         ].map((script) => `run --silent ${script}`),
       );

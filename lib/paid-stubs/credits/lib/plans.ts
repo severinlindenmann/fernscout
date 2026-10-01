@@ -27,6 +27,7 @@ export const PLANS = {
     postcardPriceRappen: 350,
     upgradeWindowDays: 60,
     upgradeCouponChf: 19,
+    endingReminderDays: 5,
   },
   plus: {
     priceChf: 49,
@@ -41,7 +42,6 @@ export const PLANS = {
     renewalReminderDays: 30,
   },
   prints: {
-    whatsappPostcardRappen: 100,
     postcardRappen: 390,
     photobookFromPages: 28,
     photobookFromRappen: 3690,

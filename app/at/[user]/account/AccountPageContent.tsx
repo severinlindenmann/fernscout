@@ -557,6 +557,9 @@ export type PlanPanel = {
   /** `null` on Free, which has no period. */
   periodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  /** Only a paid Plus that is not cancelled renews; a pass, an admin grant
+   *  and a cancelled Plus end on `periodEnd`. */
+  renews: boolean;
   aiDays: { unlimited: true } | { unlimited: false; used: number; allowed: number };
   storageGb: number;
   /** Only Plus, bought through Stripe, has a subscription to manage. */
@@ -718,7 +721,7 @@ function YourPlanPanel({ username, plan }: { username: string; plan: PlanPanel }
         <span className="font-display text-2xl font-semibold text-ink-strong">{planTag}</span>
         {dateStr && (
           <span className="text-sm text-ink-secondary">
-            {t(plan.cancelAtPeriodEnd ? "billing.ends" : "billing.renews", { date: dateStr })}
+            {t(plan.renews ? "billing.renews" : "billing.ends", { date: dateStr })}
           </span>
         )}
       </div>
