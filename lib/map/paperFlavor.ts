@@ -155,7 +155,9 @@ export function paperStyle(
     .filter((l) => l !== null);
   return {
     version: 8,
-    glyphs: "/api/maps/fonts/{fontstack}/{range}.pbf",
+    // `?v=2`: a new cache key — before B2642 every glyph answered empty, and
+    // browsers keep that answer for a day.
+    glyphs: "/api/maps/fonts/{fontstack}/{range}.pbf?v=2",
     sources: {
       world: { type: "vector", url: tileJsonFor(WORLD_URL) },
       protomaps: {
