@@ -1,26 +1,21 @@
 "use client";
 
 import { Mail, MessageCircle, MessageSquareText } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useI18n } from "./LocaleProvider";
 import BusyButton from "@/components/BusyButton";
 import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
-import { formatCredits } from "@/lib/creditsFormat";
 
 import { journalPath } from "@/lib/journalPath";
 /** One channel the button would use, and what it would do there — B1024. */
-type Pending = { channel: "mail" | "whatsapp" | "sms"; count: number; cost: number };
+type Pending = { channel: "mail" | "whatsapp" | "sms"; count: number };
 
 type Status = {
   ok: true;
   reachable: boolean;
   alreadySent: boolean;
   pending: Pending[];
-  needed: number;
-  balance: number | null;
-  short: boolean;
 };
 
 /**
@@ -29,7 +24,7 @@ type Status = {
  * `sendDayLetter` / `sendDayWhatsapp` (`lib/digest/`) already exist behind
  * `POST …/send-mail` and `…/send-whatsapp`; an agent has always been able to
  * ask for a send. What did not exist was a way for the person whose journal
- * it is to do it themselves, see what it costs first, and see afterwards
+ * it is to do it themselves, see who it reaches first, and see afterwards
  * that it already went — so they never have to remember or ask.
  *
  * `app/at/[user]/trips/[trip]/day/[slug]/notify/route.ts` is the door: the
@@ -38,11 +33,9 @@ type Status = {
  *
  * The confirmation is a panel in the page rather than `window.confirm` —
  * B633. A browser dialog arrives in the operating system's own type, with a
- * generic title bar naming the domain, and it is the one moment this control
- * is asking somebody to spend real money on real letters: it should look like
- * the journal it belongs to. It also answers a question `window.confirm`
- * cannot — what a send costs and what is left afterwards, in the page's own
- * words.
+ * generic title bar naming the domain, and it should look like the journal
+ * it belongs to instead. It also answers a question `window.confirm` cannot
+ * — who it reaches, in the page's own words.
  *
  * Rendered unconditionally by `OwnerTools`, as one cell of its grid — which
  * is why the states that are a sentence or a panel rather than a tile take
@@ -90,20 +83,6 @@ export default function DayNotify({
   if (status.alreadySent) {
     return (
       <p className="col-span-full text-xs text-ink-secondary">{t("notify.sent")}</p>
-    );
-  }
-
-  if (status.short) {
-    return (
-      <p className="col-span-full text-xs text-coral-600">
-        {tn("notify.short", status.needed, {
-          needed: String(status.needed),
-          balance: formatCredits(status.balance ?? 0),
-        })}{" "}
-        <Link className="font-semibold underline" href={`${journalPath(username)}/me`}>
-          {t("photobook.getCredits")}
-        </Link>
-      </p>
     );
   }
 
@@ -173,7 +152,7 @@ export default function DayNotify({
               The all-zero case is handled above, before this panel opens. */}
           {status.pending
             .filter(({ count }) => count > 0)
-            .map(({ channel, count, cost }) => (
+            .map(({ channel, count }) => (
               <li
                 key={channel}
                 className="flex items-center gap-2.5 border-t border-line-quiet py-1.5 text-sm text-ink-strong first:border-t-0"
@@ -196,30 +175,10 @@ export default function DayNotify({
                     count,
                   )}
                 </span>
-                {/* Where the cost actually falls. That a letter is free and a
-                    WhatsApp is not used to disappear into one sum. */}
-                <span className="shrink-0 text-xs text-ink-secondary">
-                  {cost === 0
-                    ? t("notify.free")
-                    : tn("notify.costCredits", cost, { credits: String(cost) })}
-                </span>
               </li>
             ))}
         </ul>
 
-        {/* Only when there is something to pay. The zero-credit sentence this
-            replaces was reached whenever credits were merely *switched on* —
-            the old branch asked `balance === null` rather than
-            `needed === 0`, so a journal with credits that sends only letters
-            was told its send cost "0 Credit(s)" and quoted a balance. */}
-        {status.needed > 0 && (
-          <p className="mt-2 border-t border-line-quiet pt-2 text-xs text-ink-body">
-            {t("notify.total", {
-              needed: String(status.needed),
-              rest: formatCredits((status.balance ?? 0) - status.needed),
-            })}
-          </p>
-        )}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <BusyButton
             busy={busy}

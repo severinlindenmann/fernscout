@@ -23,7 +23,6 @@ import {
 } from "@/lib/auth";
 import { normalizeJournalVisibility } from "@/lib/config";
 import { normalizeCurrency } from "@/lib/currency";
-import { creditsEnabled, grant, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
 import { skillDocPath } from "@/lib/api/skillDocMeta";
 import { createJournal, sendWelcome, setJournalFeatures } from "@/lib/journals";
 // One sentence, read here and by the guide and the OpenAPI document — never a
@@ -200,14 +199,6 @@ export async function POST(request: Request) {
     await revokeSession(session.id);
   } catch (err) {
     console.error(`[journals] could not spend the signup token for ${created.username}:`, err);
-  }
-
-  if (creditsEnabled() && !created.username.startsWith("test-")) {
-    try {
-      await grant(created.username, SIGNUP_CREDIT_GRANT, "signup");
-    } catch (err) {
-      console.error(`[journals] could not grant the signup credit to ${created.username}:`, err);
-    }
   }
 
   const token = await openAgentSession(created.username, session.email);
