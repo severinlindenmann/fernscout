@@ -1,10 +1,7 @@
 import "server-only";
 import crypto from "node:crypto";
 import { hashSecret } from "../auth";
-import { balanceOf, refund, spend } from "../credits";
-import { formatChf } from "../creditsFormat";
-import { creditsInRappen } from "@paid/credits/lib/credits/pricing";
-import { getDatabase, getDatabaseOrNull, newId, nowIso } from "../db";
+import { getDatabase, getDatabaseOrNull, nowIso } from "../db";
 import { translateIn } from "../locales";
 import { mailDisabledReason } from "../mail";
 import { logMessage } from "../messages/log";
@@ -387,11 +384,6 @@ export type InviteOptions = {
   /** Masked, for "to +41 •••• 12". */
   to: { email: string | null; mobile: string | null };
   channels: { channel: InviteChannel; cost: number; blocked: ChannelBlock | null; preview: string }[];
-  /** Null when credits are switched off on this instance. */
-  balance: number | null;
-  /** What one credit is worth ("CHF 0.20"), from the pricing module — null
-   * where this build has no price for one. */
-  creditPrice: string | null;
   /** True once the person opened their link: sending again is no longer offered. */
   opened: boolean;
 };
@@ -432,8 +424,6 @@ export async function inviteOptions(owner: string, contactId: string): Promise<I
         preview: !message ? "" : channel === "self" ? message.url : message.text,
       })),
     ),
-    balance: await balanceOf(owner),
-    creditPrice: creditsInRappen(1) > 0 ? formatChf(creditsInRappen(1)) : null,
     opened: contact.welcomeOpenedAt !== null,
   };
 }
@@ -455,7 +445,6 @@ export type InviteSendResult =
        * delivery. Null for `self`, which sends nothing. */
       backend: string | null;
       charged: number;
-      balance: number | null;
     }
   | {
       ok: false;
@@ -464,13 +453,11 @@ export type InviteSendResult =
         | "already_opened"
         | "rate_limited"
         | "daily_limit"
-        | "no_credits"
         | "send_failed"
         // The operator switched invite.sms off (M1) — distinguished from a
         // real send failure so the studio can say what actually happened.
         | "switched_off"
         | ChannelBlock;
-      balance?: number | null;
     };
 
 /**
@@ -497,7 +484,7 @@ export async function sendInvite(
   if (channel === "self") {
     await letInImported(owner, contact);
     await recordInvited(owner, contactId, "self");
-    return { ok: true, channel, url: message.url, backend: null, charged: 0, balance: await balanceOf(owner) };
+    return { ok: true, channel, url: message.url, backend: null, charged: 0 };
   }
   if (contact.welcomeOpenedAt) return { ok: false, reason: "already_opened" };
   const blocked = await blockFor(owner, contact, channel);
@@ -518,10 +505,6 @@ export async function sendInvite(
   if (!rateLimitFor("invite-send-journal", owner, DAILY_LIMIT).ok) return { ok: false, reason: "daily_limit" };
 
   const cost = costOf();
-  const ref = `invite/${contactId}/${newId()}`;
-  if (!(await spend(owner, cost, "invite", ref))) {
-    return { ok: false, reason: "no_credits", balance: await balanceOf(owner) };
-  }
 
   let backend: string | null = null;
   try {
@@ -530,14 +513,12 @@ export async function sendInvite(
     console.error(`[invite] ${channel} to contact ${contactId} failed:`, err instanceof Error ? err.message : err);
   }
   if (backend === null) {
-    // Nothing went out: whatever it cost comes back.
-    if (cost > 0) await refund(owner, cost, ref);
-    return { ok: false, reason: "send_failed", balance: await balanceOf(owner) };
+    return { ok: false, reason: "send_failed" };
   }
 
   await letInImported(owner, contact);
   await recordInvited(owner, contactId, channel);
-  return { ok: true, channel, url: message.url, backend, charged: cost, balance: await balanceOf(owner) };
+  return { ok: true, channel, url: message.url, backend, charged: cost };
 }
 
 /**

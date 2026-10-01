@@ -8,13 +8,10 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import {
   MAX_SPEECH_SECONDS,
-  MINUTES_PER_CREDIT,
   SPEECH_LANGUAGE_LABEL,
   SPEECH_LANGUAGES,
-  creditsForSeconds,
 } from "@/lib/helper/speech";
 
-import { journalPath } from "@/lib/journalPath";
 /**
  * Hold to talk — B686.
  *
@@ -80,8 +77,7 @@ export default function RecordButton({
   hold: holdToTalk = true,
   maxSeconds = MAX_SPEECH_SECONDS,
   onSettled,
-  credits,
-  priceChf,
+  aiAvailable,
   onOffline,
 }: {
   username: string;
@@ -93,10 +89,8 @@ export default function RecordButton({
    *  `"dry-run"` on an instance with no transcriber configured — B744. */
   provider: string;
   /** The staging import run this recording is being made inside, when there
-   *  is one — B1803 final review, finding 4. Sent to the transcribe route,
-   *  which puts it on the ledger ref so that import's own "Credits spent"
-   *  row can name what the voice answers really cost. Absent everywhere
-   *  else this button is mounted, which leaves the ref exactly as it was. */
+   *  is one — B1803 final review, finding 4. Sent to the transcribe route.
+   *  Absent everywhere else this button is mounted. */
   run?: string;
   disabled?: boolean;
   /** An icon inside somebody else's box rather than a button of its own —
@@ -178,37 +172,28 @@ export default function RecordButton({
    * When the recording stops itself — B1006. `MAX_SPEECH_SECONDS` (fifteen
    * minutes) unless a host says otherwise, which is right for dictating a day
    * and absurd for a search box: a search is a sentence, and a microphone
-   * left open because somebody walked away is their credits going into
-   * silence.
+   * left open because somebody walked away is an AI day spent on silence.
    *
    * The server's own ceiling is unchanged and still the real one; this is the
    * ceiling for *this* use of the control.
    */
   maxSeconds?: number;
   /**
-   * Told once a recording has finished settling, spent or not — B1255. The
-   * host re-reads the balance from it; this component knows nothing about
-   * credits and never did, it only marks the moment a spend could have
-   * happened.
+   * Told once a recording has finished settling — B1255. The host re-reads
+   * its own plan status from it if it wants to.
    */
   onSettled?: () => void;
   /**
-   * The owner's balance, when the host already knows it — B2234. `undefined`
-   * (every existing caller) is "not checked here", and nothing about this
-   * component's behaviour changes. A number below what even the shortest
-   * recording costs (`creditsForSeconds(0)`, the one-hundredth floor) shows a
-   * notice and refuses the tap instead of opening the microphone only to have
-   * the transcribe route refuse it after the fact — in the plain price-line
-   * and `hero` forms, which are the two that say a price at all; `compact`
-   * never did and stays exactly as it was.
+   * Whether this owner's plan still has room for a transcription, when the
+   * host already knows it — B2234/B2591. `undefined`/`null` (most callers) is
+   * "not checked here", and nothing about this component's behaviour
+   * changes; `false` shows a notice and refuses the tap instead of opening
+   * the microphone only to have the transcribe route refuse it after the
+   * fact (`mayUseAi`, `@paid/credits/lib/aiDays.ts`) — in the plain
+   * price-line and `hero` forms; `compact` never did and stays exactly as it
+   * was.
    */
-  credits?: number | null;
-  /** "about CHF x.xx" for one credit's worth, computed server-side (B2288 —
-   *  same pattern as PolishText's own price, B2254: pricing is paid-only code
-   *  after the open-core split, so this component never imports it). `null`
-   *  or omitted (every existing caller — none currently mounts the plain
-   *  price-line form on a live page) shows the credit price alone. */
-  priceChf?: string | null;
+  aiAvailable?: boolean | null;
   /**
    * B2331, D4 — given by a host that has somewhere to queue a recording it
    * cannot send right now (`SpeakFlow`, the outbox), and only while that
@@ -227,11 +212,9 @@ export default function RecordButton({
   onOffline?: (blob: Blob, heldSeconds: number, language: string, locale: string) => void;
 }) {
   const { t, locale } = useI18n();
-  // B2234 — say so before the tap. `creditsForSeconds(0)` is the same floor
-  // the transcribe route would charge for the shortest possible recording,
-  // so this is "would the route refuse anyway", asked before the microphone
-  // ever opens rather than after.
-  const insufficientCredits = credits != null && credits < creditsForSeconds(0);
+  // B2234/B2591 — say so before the tap: "would the route refuse anyway",
+  // asked before the microphone ever opens rather than after.
+  const aiDaysUsedUp = aiAvailable === false;
   const [consented, setConsented] = useState(initialConsent);
   const [consenting, setConsenting] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -576,16 +559,16 @@ export default function RecordButton({
     }
   }
 
-  // B2234 — before consent is even asked about: a balance the tap could
-  // never spend against is not something worth a consent dialog for.
-  if (insufficientCredits && !compact) {
+  // B2234/B2591 — before consent is even asked about: a plan with no AI
+  // days left is not something worth a consent dialog for.
+  if (aiDaysUsedUp && !compact) {
     return (
       <div className={hero ? "flex flex-col items-center gap-1" : "mt-3"}>
         <p role="status" className={`text-sm ${hero ? "text-center text-cream-50" : "text-ink-secondary"}`}>
-          {t("agent.speechNoCredits")}
+          {t("agent.speechAiDaysUsedUp")}
         </p>
         <Link
-          href={`${journalPath(username)}/studio/account`}
+          href="/prices"
           className={`text-sm font-semibold underline underline-offset-2 ${hero ? "text-cream-50" : "text-ink-strong"}`}
         >
           {t("studio.day.polish.error.noCredits.link")}
@@ -608,13 +591,8 @@ export default function RecordButton({
         }
         details={
           provider === "dry-run"
-            ? t("agent.speechConsentDryRun", {
-                minutes: String(MINUTES_PER_CREDIT),
-              })
-            : t("agent.speechConsent", {
-                provider,
-                minutes: String(MINUTES_PER_CREDIT),
-              })
+            ? t("agent.speechConsentDryRun")
+            : t("agent.speechConsent", { provider })
         }
         confirmLabel={t("agent.speechConsentConfirm")}
         busy={busy}
@@ -742,10 +720,8 @@ export default function RecordButton({
 
   // The stopwatch, and nothing else. It used to carry what the recording had
   // cost so far — a running price beside a person mid-sentence, which is the
-  // same judgement B978 made about the send panel: the tariff belongs where
-  // credits are bought, not on somebody's face while they speak. What a hold
-  // costs is still said before it, on the button's own label where there is
-  // one, and the ledger on `/@<user>/me` is what it was actually charged.
+  // same judgement B978 made about the send panel: a tariff does not belong
+  // on somebody's face while they speak.
   // What the button is called, and it has to be true: with `hold` off there
   // is no holding to talk, and a name that offers it sends somebody looking
   // for an interaction that is not there — B1004.
@@ -1008,13 +984,9 @@ export default function RecordButton({
             : "border-line-strong text-ink-strong"
         }`}
       >
-        {/* The price is on the button, before the hold — on the wizard's own
-            words step, where speaking is the thing that step is for. */}
-        {heard ??
-          label ??
-          (priceChf == null
-            ? t("agent.speechHoldNoPrice", { minutes: String(MINUTES_PER_CREDIT) })
-            : t("agent.speechHold", { minutes: String(MINUTES_PER_CREDIT), money: priceChf }))}
+        {/* On the button, before the hold — on the wizard's own words step,
+            where speaking is the thing that step is for. */}
+        {heard ?? label ?? t("agent.speechHold")}
       </BusyButton>
 
       {spoken}

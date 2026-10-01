@@ -2124,11 +2124,11 @@
   "plans.cellFreePay": "semmi",
   "plans.cellPassTools": "{days} MI-nap, {window} napon belül",
   "plans.cellPassStorage": "{size} {days} napig",
-  "plans.cellPassPay": "TWINT, egyszer",
+  "plans.cellPassPay": "Kártya vagy TWINT, egyszer",
   "plans.cellPlusFor": "Aki évente többször utazik",
   "plans.cellPlusTools": "{days} MI-nap évente",
   "plans.cellPlusStorage": "{size}, +{extra} évi {price} áron",
-  "plans.cellPlusPay": "Kártya vagy TWINT, évente",
+  "plans.cellPlusPay": "Kártya, évente",
   "plans.cellSchoolsFor": "Osztálykirándulások és cserék",
   "plans.cellSchoolsTrips": "Táboronként",
   "plans.cellSchoolsAgreed": "Az iskolával egyeztetve",
@@ -4676,5 +4676,6 @@
   "billing.checkoutFailed": "Nem sikerült elindítani. Próbáld újra.",
   "billing.managedByApple": "Az Apple kezeli",
   "billing.restorePurchases": "Vásárlások visszaállítása",
-  "billing.restoreDone": "Kész."
+  "billing.restoreDone": "Kész.",
+  "plans.cellPlusPayTwint": "Kártya vagy TWINT, évente"
 }

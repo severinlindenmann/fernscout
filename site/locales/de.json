@@ -2338,11 +2338,11 @@
   "plans.cellFreePay": "nichts",
   "plans.cellPassTools": "{days} KI-Tage, innerhalb von {window} Tagen",
   "plans.cellPassStorage": "{size} für {days} Tage",
-  "plans.cellPassPay": "TWINT, einmalig",
+  "plans.cellPassPay": "Karte oder TWINT, einmalig",
   "plans.cellPlusFor": "Mehr als eine Reise im Jahr",
   "plans.cellPlusTools": "{days} KI-Tage pro Jahr",
   "plans.cellPlusStorage": "{size}, +{extra} für {price} pro Jahr",
-  "plans.cellPlusPay": "Karte oder TWINT, jährlich",
+  "plans.cellPlusPay": "Karte, jährlich",
   "plans.cellSchoolsFor": "Klassenlager und Austausch",
   "plans.cellSchoolsTrips": "Pro Lager",
   "plans.cellSchoolsAgreed": "Mit der Schule vereinbart",
@@ -4675,5 +4675,6 @@
   "billing.checkoutFailed": "Konnte nicht gestartet werden. Bitte erneut versuchen.",
   "billing.managedByApple": "Verwaltet von Apple",
   "billing.restorePurchases": "Käufe wiederherstellen",
-  "billing.restoreDone": "Erledigt."
+  "billing.restoreDone": "Erledigt.",
+  "plans.cellPlusPayTwint": "Karte oder TWINT, jährlich"
 }

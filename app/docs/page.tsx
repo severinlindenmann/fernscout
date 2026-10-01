@@ -386,7 +386,7 @@ export default async function DocsPage() {
         component rather than a second page under `DOCS_PAGES` — one price
         list, two places it is asked for. Absent where credits are off. B840.
       */}
-      {isEnabled("credits") && <Pricing locale={locale} />}
+      {isEnabled("billing") && <Pricing locale={locale} />}
     </>
   );
 }

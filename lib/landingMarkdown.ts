@@ -16,7 +16,7 @@ import { serverSite } from "./site";
  * the Markdown below.
  */
 export function landingFlags(locale: string): LandingFlags & { credits: boolean; printPrices: { label: string; price: string }[] } {
-  const credits = isEnabled("credits");
+  const credits = isEnabled("billing");
   return {
     helperEnabled: isEnabled("helper"),
     postcards: isEnabled("postcards"),

@@ -5,14 +5,9 @@ import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { speechProvider } from "@/lib/helper/transcribe";
-import { balanceOf } from "@/lib/credits";
-import { formatChf } from "@/lib/creditsFormat";
-import { creditsInRappen } from "@paid/credits/lib/credits/pricing";
-import { WRITE_DAY_CREDITS } from "@/lib/helper/credits";
 import { aiDaysStatus, mayUseAi } from "@paid/credits/lib/aiDays";
 import AiDaysChip from "@/components/studio/day/AiDaysChip";
 import { PLANS, chf } from "@paid/credits/lib/plans";
-import { MINUTES_PER_CREDIT } from "@/lib/helper/speech";
 import { getTrips } from "@/lib/trips";
 import { journalCurrencies } from "@/lib/rates";
 import { namesOnTrip } from "@/lib/tripPeople";
@@ -52,7 +47,7 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
   const writtenDatesByTrip = Object.fromEntries(trips.map((t) => [t.id, writtenDatesForTrip(user, t.id)]));
   const proposal = proposeAddDayTrip(user);
   // The same two gates `write-day/route.ts` itself checks before it will
-  // spend a credit — read here so the flow never even offers a button that
+  // use an AI day — read here so the flow never even offers a button that
   // route would refuse. `isEnabled("helper", user)` is the capability
   // switch; consent is the owner's own prior "yes" to a model reading their
   // notes at all (AGENTS.md: every optional capability is absent, not
@@ -67,26 +62,17 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
   // broken) with its capability off.
   const weatherAvailable = isEnabled("weather", user);
   const speechEnabled = isEnabled("transcription", user);
-  // B2234 — the owner's balance, read once and shared by the spoken
-  // questions' own price-before-the-tap check (transcription still spends
-  // credits; B2591 did not touch it).
-  const credits = wordsAssistAvailable || speechEnabled ? await balanceOf(user) : null;
-  // B2591 — write-day no longer spends credits for "Polish my text", so its
-  // own gate now asks the plan (`mayUseAi`) rather than a balance. Fed
-  // through the same `credits < WRITE_DAY_CREDITS` comparison `PolishText`
-  // already made (nothing there had to change): a positive sentinel when AI
-  // is available, `0` when the plan has none left.
-  const polishAiAvailable = wordsAssistAvailable ? (await mayUseAi(user)).ok : false;
-  const polishCredits = wordsAssistAvailable ? (polishAiAvailable ? WRITE_DAY_CREDITS : 0) : null;
+  // B2234/B2591 — the plan's AI-day gate, read once and shared by the
+  // spoken questions' own before-the-tap check and "Polish my text", both of
+  // which need an active plan or unused Free days (`mayUseAi`) but take no
+  // AI day themselves.
+  const aiAvailable = wordsAssistAvailable || speechEnabled ? (await mayUseAi(user)).ok : null;
+  const polishAiAvailable = wordsAssistAvailable ? aiAvailable : null;
   const speech = speechEnabled
     ? {
         consented: hasHelperConsent(user, "speech"),
         provider: speechProvider(),
-        credits,
-        // B2288 — same pattern as `polishPriceChf` above: computed here, not
-        // in `RecordButton`/`SpeakFlow` (client components), since pricing is
-        // paid-only code after the open-core split.
-        priceChf: formatChf(creditsInRappen(1 / MINUTES_PER_CREDIT)),
+        aiAvailable,
       }
     : null;
   // Who else sees a draft on each trip — `draftsVisibleTo` lets in the owner
@@ -117,11 +103,7 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
         trips={trips}
         writtenDatesByTrip={writtenDatesByTrip}
         proposal={proposal}
-        polishCredits={polishCredits}
-        // B2254 — computed here, not in `PolishText` (a client component):
-        // pricing is paid-only code after the open-core split, and a public
-        // build must show no price rather than a wrong CHF 0.00.
-        polishPriceChf={wordsAssistAvailable ? formatChf(creditsInRappen(WRITE_DAY_CREDITS)) : null}
+        polishAiAvailable={polishAiAvailable}
         routeRecordingAvailable={routeRecordingAvailable}
         weatherAvailable={weatherAvailable}
         speech={speech}

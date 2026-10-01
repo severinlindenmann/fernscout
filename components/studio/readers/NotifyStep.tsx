@@ -4,25 +4,26 @@ import { useEffect, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
-import { formatCredits } from "@/lib/creditsFormat";
 import ShareLink from "./ShareLink";
 
 // B2597: SMS retired as an invite channel — readers sign in by email only.
 type Channel = "email" | "self";
 type Block = "no_email" | "mail_off" | "link_lost";
 
-/** `GET /api/web/<user>/readers/notify` — `InviteOptions` in lib/contacts/welcome.ts. */
+/** `GET /api/web/<user>/readers/notify` — `InviteOptions` in lib/contacts/welcome.ts.
+ *  Every channel is free since B2597 (SMS, the one paid channel, is
+ *  retired) — `cost`/`charged` stay on the wire so an older client reads a
+ *  plain `0` rather than a missing field, but nothing here prices anything
+ *  any more. */
 type Options = {
   name: string | null;
   url: string | null;
   to: { email: string | null; mobile: string | null };
   channels: { channel: Channel; cost: number; blocked: Block | null; preview: string }[];
-  balance: number | null;
-  creditPrice: string | null;
   opened: boolean;
 };
 
-type Sent = { channel: Channel; url: string; backend: string | null; charged: number; balance: number | null };
+type Sent = { channel: Channel; url: string; backend: string | null; charged: number };
 
 const LABEL: Record<Channel, TranslationKey> = {
   email: "notifyStep.email",
@@ -38,7 +39,6 @@ const BLOCK: Record<Block, TranslationKey> = {
   link_lost: "notifyStep.blocked.linkLost",
 };
 const ERROR: Record<string, TranslationKey> = {
-  no_credits: "notifyStep.error.noCredits",
   rate_limited: "notifyStep.error.rateLimited",
   daily_limit: "notifyStep.error.dailyLimit",
   link_lost: "notifyStep.linkLost",
@@ -48,9 +48,6 @@ const ERROR: Record<string, TranslationKey> = {
 /** Transports that write the message to a local file instead of sending it. */
 const LOCAL_BACKENDS = new Set(["dry-run", "file", "console"]);
 
-const PILL = "ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold";
-const FREE_PILL = `${PILL} bg-green-100 text-green-700`;
-const PAID_PILL = `${PILL} bg-yellow-400 text-navy-900`;
 const PRIMARY =
   "min-h-12 rounded-xl bg-yellow-400 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-yellow-300 disabled:opacity-50";
 
@@ -80,7 +77,7 @@ export default function NotifyStep({
   journalTitle?: string;
   siteName?: string;
 }) {
-  const { t, tn } = useI18n();
+  const { t } = useI18n();
   const url = `/api/web/${encodeURIComponent(username)}/readers/notify`;
   const [options, setOptions] = useState<Options | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -116,8 +113,6 @@ export default function NotifyStep({
   const name = options.name?.trim() || t("notifyStep.them");
   // Shown once already, on a server that kept only its hash: say so, send nothing.
   if (!options.url) return <p className="mt-4 text-sm text-ink-body">{t("notifyStep.linkLost", { name })}</p>;
-  const costText = (cost: number) =>
-    cost === 0 ? t("notifyStep.free") : tn("notifyStep.credits", cost, { count: String(cost) });
 
   async function copy(link: string) {
     try {
@@ -142,11 +137,6 @@ export default function NotifyStep({
         {sent.channel !== "self" && (
           <p className="mt-2 text-sm text-ink-body">
             {local ? t("notifyStep.dryRunBody") : t("notifyStep.accepted", { channel: t(LABEL[sent.channel]) })}
-            {sent.charged > 0 &&
-              ` ${t("notifyStep.charged", {
-                spent: tn("notifyStep.credits", sent.charged, { count: String(sent.charged) }),
-                balance: formatCredits(sent.balance ?? 0),
-              })}`}
           </p>
         )}
         {sent.channel === "self" ? (
@@ -194,8 +184,6 @@ export default function NotifyStep({
   }
 
   const selected = options.channels.find((c) => c.channel === choice)!;
-  const paidOffered = options.balance !== null && options.channels.some((c) => c.cost > 0 && !c.blocked);
-  const short = options.balance !== null && selected.cost > options.balance;
   const to = (channel: Channel) =>
     channel === "email" ? options.to.email : channel === "self" ? null : options.to.mobile;
 
@@ -208,17 +196,12 @@ export default function NotifyStep({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ contactId, channel: choice }),
       });
-      const json = (await res.json().catch(() => null)) as (Sent & { ok?: boolean; error?: string; balance?: number | null }) | null;
+      const json = (await res.json().catch(() => null)) as (Sent & { ok?: boolean; error?: string }) | null;
       if (!res.ok || !json?.ok) {
         const key = ERROR[json?.error ?? ""] ?? "notifyStep.error.generic";
-        setError(t(key, { name, balance: formatCredits(json?.balance ?? options?.balance ?? 0) }));
+        setError(t(key, { name }));
         return;
       }
-      // no-refresh: this step stays open to show what was sent; both callers
-      // (ReaderCard, AddPersonDoor) wire `onLater` — pressed next, whether to
-      // decline or once this screen's "Done" is pressed — to their own
-      // router.refresh(), which is when the credits balance elsewhere needs
-      // to be current, not mid-step.
       setSent(json);
     } catch {
       setError(t("notifyStep.error.generic"));
@@ -236,7 +219,7 @@ export default function NotifyStep({
       {options.opened && <p className="mt-2 text-sm text-ink-body">{t("notifyStep.opened", { name })}</p>}
 
       <fieldset className="mt-3 flex flex-col gap-2" aria-labelledby="notify-step-heading">
-        {options.channels.map(({ channel, cost, blocked }) => {
+        {options.channels.map(({ channel, blocked }) => {
           const off = blocked !== null || (options.opened && channel !== "self");
           const on = choice === channel;
           const address = to(channel);
@@ -267,7 +250,6 @@ export default function NotifyStep({
                         : null}
                 </span>
               </span>
-              <span className={cost > 0 ? PAID_PILL : FREE_PILL}>{costText(cost)}</span>
             </label>
           );
         })}
@@ -282,22 +264,6 @@ export default function NotifyStep({
         </div>
       )}
 
-      {paidOffered && (
-        <p className="mt-3 text-xs text-ink-body">
-          {options.creditPrice
-            ? t("notifyStep.creditNote", { price: options.creditPrice, balance: formatCredits(options.balance ?? 0) })
-            : t("notifyStep.creditNoteNoPrice", { balance: formatCredits(options.balance ?? 0) })}
-        </p>
-      )}
-      {short && (
-        // B2368 — this is shown before anything is sent (the default
-        // selection can already cost more than the balance), so it must not
-        // borrow the post-attempt error's "Nothing was charged": nothing has
-        // been tried yet to charge in the first place.
-        <p role="alert" className="mt-2 text-sm text-coral-600">
-          {t("notifyStep.insufficientBalance", { balance: formatCredits(options.balance ?? 0) })}
-        </p>
-      )}
       {error && (
         <p role="alert" className="mt-2 text-sm text-coral-600">
           {error}
@@ -305,8 +271,8 @@ export default function NotifyStep({
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-4">
-        <BusyButton busy={busy} type="button" onClick={send} disabled={short} className={PRIMARY}>
-          {choice === "self" ? t(SEND.self) : `${t(SEND[choice])} · ${costText(selected.cost)}`}
+        <BusyButton busy={busy} type="button" onClick={send} className={PRIMARY}>
+          {t(SEND[choice])}
         </BusyButton>
         {onLater && (
           <button

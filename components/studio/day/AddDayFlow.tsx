@@ -23,7 +23,6 @@ import StepBody from "@/components/studio/StepBody";
 import DayExtras, { NO_EXTRAS, extrasToWrite, lineProblem, type DayExtrasValue } from "@/components/studio/day/DayExtras";
 import SpeakFlow, { RatherTalk, TellByChoice } from "@/components/studio/day/SpeakFlow";
 import type { TellBy } from "@/lib/studio/speak";
-import { MINUTES_PER_CREDIT } from "@/lib/helper/speech";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
 import { slugify } from "@/lib/slug";
@@ -122,8 +121,7 @@ export default function AddDayFlow({
   trips,
   writtenDatesByTrip,
   proposal,
-  polishCredits = null,
-  polishPriceChf = null,
+  polishAiAvailable = null,
   routeRecordingAvailable = false,
   weatherAvailable = false,
   speech = null,
@@ -138,15 +136,11 @@ export default function AddDayFlow({
   /** ISO dates already written, per trip id (B1989's `DayStrip`). */
   writtenDatesByTrip: Record<string, string[]>;
   proposal: { trip: { id: string; title: string; status: string }; reasonKey: string; today: string } | null;
-  /** "Polish my text" (B2190): the owner's credit balance, or `null` when it
-   *  may not be offered at all — helper off, no consent to send words, or
-   *  credits off — read on the server. `PolishText` renders nothing on null. */
-  polishCredits?: number | null;
-  /** "about CHF x.xx" for the same tap (B2254) — computed server-side, since
-   *  pricing is paid-only code after the open-core split. `null` on a
-   *  public build or whenever `polishCredits` is: `PolishText` then shows
-   *  the credit price alone. */
-  polishPriceChf?: string | null;
+  /** "Polish my text" (B2190/B2591): whether the plan still has an AI day or
+   *  turn to spend on it, or `null` when it may not be offered at all —
+   *  helper off, or no consent to send words — read on the server.
+   *  `PolishText` renders nothing on null. */
+  polishAiAvailable?: boolean | null;
   /** B2200, D1 — whether the page may ask `day/place` for a suggestion at
    *  all. Off means the route is never called. */
   routeRecordingAvailable?: boolean;
@@ -154,7 +148,7 @@ export default function AddDayFlow({
   weatherAvailable?: boolean;
   /** The transcription capability's own facts, `null` when it is off — the
    *  microphone is then absent, not broken. */
-  speech?: { consented: boolean; provider: string; credits: number | null; priceChf: string | null } | null;
+  speech?: { consented: boolean; provider: string; aiAvailable: boolean | null } | null;
   /** Who besides the owner can see a draft on each trip (`draftsVisibleTo`:
    *  the people on the trip), by name, for the saved sentence. */
   readersByTrip?: Record<string, string[]>;
@@ -1097,7 +1091,7 @@ export default function AddDayFlow({
           </div>
           <p className="mt-1 text-xs text-ink-secondary">
             {t("studio.day.whatHappened.nothingInvented")}
-            {speech && ` ${t("studio.day.mic.price", { minutes: String(MINUTES_PER_CREDIT) })}`}
+            {speech && ` ${t("studio.day.mic.price")}`}
           </p>
           {/* B2236 — the quiet way back to Speak once it isn't the answer. */}
           <RatherTalk username={username} speech={speech} tellBy={tellByNow} />
@@ -1107,8 +1101,7 @@ export default function AddDayFlow({
             trip={tripId}
             text={content}
             onUse={setContent}
-            credits={polishCredits}
-            priceChf={polishPriceChf}
+            aiAvailable={polishAiAvailable}
           />
           {part === "words" && <StepPrimary onClick={() => go("save")} label={t("studio.day.firstRun.toSave")} />}
         </div>

@@ -77,7 +77,7 @@ export function pagesSitemap(): SitemapEntry[] {
   }
   // The plans side by side — B2509. Only where this instance charges; the
   // page itself is a 404 otherwise.
-  if (isEnabled("credits")) paths.push("/prices");
+  if (isEnabled("billing")) paths.push("/prices");
   if (hasLegal()) paths.push("/legal");
   // The answer pages — B2489. Empty without paid/.
   paths.push(...GUIDE_PATHS);
@@ -153,7 +153,7 @@ export function journalsSitemap(): SitemapEntry[] {
  */
 export function markdownPages(): string[] {
   return MARKDOWN_PAGES.filter((path) => {
-    if (path === "/prices") return isEnabled("credits");
+    if (path === "/prices") return isEnabled("billing");
     if (path.startsWith("/schools") || path.startsWith("/tour-operators")) return PAID_AREAS.includes("orgs");
     return true;
   });

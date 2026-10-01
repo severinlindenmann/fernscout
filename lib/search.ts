@@ -335,7 +335,7 @@ function tripExtraDocs(
   const behindIt: Record<string, boolean> = {
     "/costs": cards.costs,
     "/weather": cards.weather,
-    "/photobook": isEnabled("credits"),
+    "/photobook": isEnabled("billing"),
   };
   return destinationDocs(
     username,

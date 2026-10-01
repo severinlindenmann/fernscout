@@ -1,8 +1,7 @@
 import { isEnabled } from "@/lib/capabilities";
-import { balanceOf, refund, spend } from "@/lib/credits";
+import { mayUseAi } from "@paid/credits/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
-import { HELPER_TURN_CREDITS, noCreditsAnswer } from "@/lib/helper/creditGate";
 import { refusalFor, sayIn } from "@/lib/helper/intents";
 import { answerInThread, droppedAnInstruction, statusKeyFor, type ToolKind } from "@/lib/helper/model";
 import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
@@ -19,23 +18,16 @@ import { requestLocale } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
-import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
 /**
  * A sentence in, a conversation out — B685, B889, B900, and B1091.
  *
- * **A flat `HELPER_TURN_CREDITS` a turn**, spent before the model is ever
- * called and refunded if the call throws — the same before/refund shape
- * `write-day` already uses, and the reason it lives here rather than inside
- * `answerInThread`: this route is the one door, `lib/helper/model.ts` stays
- * model-only. A sentence the refusal table below catches, or a turn refused
- * for want of credits, never reaches a model at all, so neither is charged.
- * `lib/rateLimit.ts` is the brake beneath the credit, for the same reasons it
- * always was. A *write* proposal may cost something more on top — one of
- * them does — and it is charged by the route the press posts to, once, when
- * it is accepted. A proposal corrected three times and then abandoned costs
- * only the turns that produced it.
+ * **No AI day of its own — B2591.** This needs an active plan or unused
+ * Free days (`mayUseAi`, `@paid/credits/lib/aiDays.ts`), checked once before
+ * the model is ever called; a turn refused for want of a plan never reaches
+ * a model at all. `lib/rateLimit.ts` is the brake beneath that, for the same
+ * reasons it always was.
  *
  * **One path, since B900.** There was a router in front of this: a model that
  * classified the sentence into a row of `lib/helper/intents.ts`, answered it
@@ -264,8 +256,8 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   /**
-   * Request-level dedup — B1663. A turn is real work (a model call, spent
-   * credits) and not a resource with a state to be idempotent about, so this
+   * Request-level dedup — B1663. A turn is real work (a model call) and not
+   * a resource with a state to be idempotent about, so this
    * follows `write-day`'s shape rather than `buy_room`'s: the *previous
    * answer* is handed back verbatim for a repeat under the same key, and
    * nothing runs twice. Optional — a caller that never supplies a key gets
@@ -287,29 +279,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     return Response.json({ error: "idempotency_conflict" }, { status: 409 });
   }
 
-  /**
-   * The credit, after consent and before the model — B1091, the same gate
-   * order `write-day` already uses. A ledger ref that is merely unique
-   * rather than meaningful: unlike a day's write-up this turn names no trip
-   * and no date, and the reason on the row is what an operator reconciles
-   * against, not this string.
-   */
-  const ledgerRef = `${user}/ask/${Date.now()}`;
-  if (!(await spend(user, HELPER_TURN_CREDITS, "ask_thread", ledgerRef))) {
-    const balance = (await balanceOf(user)) ?? 0;
-    const noCredits = noCreditsAnswer(
-      say,
-      balance,
-      `${journalPath(encodeURIComponent(user))}/studio/account#buy`,
-    );
-    return Response.json({
-      ok: true,
-      kind: "read",
-      answer: noCredits,
-      looked: [],
-      blocks: [{ shape: "say", text: noCredits }] satisfies Block[],
-      proposals: [],
-    });
+  // The plan gate, after consent and before the model — B1091/B2591, the
+  // same gate order `write-day` already uses for its own AI day.
+  const gate = await mayUseAi(user);
+  if (!gate.ok) {
+    return Response.json(gate.refusal, { status: 402 });
   }
 
   // The person's own today, because "yesterday" is answered from where they
@@ -374,9 +348,6 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
         onToolStart,
       );
     } catch {
-      // The credit bought nothing — B1091, the same refund `write-day` gives
-      // for the identical reason.
-      await refund(user, HELPER_TURN_CREDITS, ledgerRef);
       return { status: 502, body: { error: "model_failed" } };
     }
     // Nothing said and nothing drawn is a failed turn, and it is honest to

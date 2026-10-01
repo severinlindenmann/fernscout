@@ -2336,13 +2336,13 @@
   "plans.cellPassTools": "{days} AI days, within {window} days",
   "plans.cellPassStorage": "{size} for {days} days",
   "plans.cellPassPostcards": "{count} included, then {price}",
-  "plans.cellPassPay": "TWINT, once",
+  "plans.cellPassPay": "Card or TWINT, once",
   "plans.cellPlusFor": "Travelling more than once a year",
   "plans.cellPlusTools": "{days} AI days a year",
   "plans.cellPlusStorage": "{size}, +{extra} for {price} a year",
   "plans.cellPlusPostcards": "{count} a year included, then {price}",
   "plans.cellPlusDiscount": "{discount} off every book",
-  "plans.cellPlusPay": "Card or TWINT, yearly",
+  "plans.cellPlusPay": "Card, yearly",
   "plans.cellSchoolsFor": "Class camps and exchanges",
   "plans.cellSchoolsTrips": "Per camp",
   "plans.cellSchoolsAgreed": "Agreed with the school",
@@ -4670,5 +4670,6 @@
   "billing.checkoutFailed": "Could not start this. Try again.",
   "billing.managedByApple": "Managed by Apple",
   "billing.restorePurchases": "Restore purchases",
-  "billing.restoreDone": "Done."
+  "billing.restoreDone": "Done.",
+  "plans.cellPlusPayTwint": "Card or TWINT, yearly"
 }
