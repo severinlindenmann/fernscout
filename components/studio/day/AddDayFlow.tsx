@@ -181,6 +181,8 @@ export default function AddDayFlow({
     key: string;
     photoIds: string[] | null;
     time: string;
+    /** The part's last photo's time — the end of its stretch of route. */
+    until?: string;
     secondEntry: boolean;
     label: string;
     assistant: boolean;
@@ -541,6 +543,26 @@ export default function AddDayFlow({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeRecordingAvailable, tripId, date, placeEmpty, online]);
+
+  // ── B2648 — how the day (or this part of it) travelled, from the
+  // owner's own recorded route. Asked when "More details" opens; offered as
+  // chips, never filled in by itself.
+  const [routeTravel, setRouteTravel] = useState<{ mode: string; km: number }[] | null>(null);
+  useEffect(() => {
+    if (!detailsOpen || !online || !routeRecordingAvailable || !tripId || !date) return;
+    let cancelled = false;
+    const span = asPart ? `${asPart.time ? `&from=${asPart.time}` : ""}${asPart.until ? `&to=${asPart.until}` : ""}` : "";
+    fetch(`/api/helper/${encodeURIComponent(username)}/day/travel?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}${span}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { travel?: { modes?: { mode: string; km: number }[] } | null } | null) => {
+        if (!cancelled) setRouteTravel(json?.travel?.modes ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailsOpen, online, routeRecordingAvailable, tripId, date]);
 
   function acceptPlaceSuggestion() {
     if (!placeSuggestion) return;
@@ -1219,7 +1241,7 @@ export default function AddDayFlow({
                 Mounted only while open: the collapsed page has no dropdown. */}
             {detailsOpen && (
               <div className="mb-3">
-                <DayExtras value={extras} onChange={setExtras} currencies={currencies} />
+                <DayExtras value={extras} onChange={setExtras} currencies={currencies} routeTravel={routeTravel} />
               </div>
             )}
           </details>

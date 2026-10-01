@@ -251,6 +251,7 @@ export default function DayFlow(
           key: usingParts ? `part-${index}` : "one",
           photoIds: part ? part.ids : null,
           time: part?.from ?? "",
+          until: part?.to ?? undefined,
           secondEntry: usingParts && index > 0,
           label: usingParts && index < total - 1 ? t("studio.flow.next") : t("studio.flow.check"),
           assistant: assistant === "on",

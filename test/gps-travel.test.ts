@@ -145,7 +145,10 @@ describe("travelForPartOfDay", () => {
       at("2026-06-22T01:05:00Z", 13.76, 100.49, "on_foot"),
     ]);
     const travel = travelForPartOfDay(OWNER, TRIP_A, "2026-06-22");
-    expect(Object.keys(travel ?? {}).sort()).toEqual(["km", "mode"]);
+    expect(Object.keys(travel ?? {}).sort()).toEqual(["km", "mode", "modes"]);
+    // B2648 — the per-mode list is the same two facts per mode, nothing more.
+    for (const entry of travel!.modes) expect(Object.keys(entry).sort()).toEqual(["km", "mode"]);
+    expect(JSON.stringify(travel)).not.toMatch(/13\.7|100\.4|lat|lon|time/);
   });
 });
 
@@ -191,5 +194,19 @@ describe("GET app/api/helper/[user]/day/travel", () => {
     const { GET } = await import("@/app/api/helper/[user]/day/travel/route");
     const res = await GET(new Request(url(`trip=${TRIP_A}&date=2026-06-22&from=noon`)), params);
     expect(res.status).toBe(400);
+  });
+});
+
+describe("B2648 — every mode of a stretch, longest first", () => {
+  test("a bike ride and a longer drive come back as two modes", () => {
+    appendFixes(OWNER, [
+      at("2026-06-23T01:00:00Z", 13.7, 100.5, "bike"),
+      at("2026-06-23T01:20:00Z", 13.75, 100.5, "bike"),
+      at("2026-06-23T02:00:00Z", 13.75, 100.5, "car"),
+      at("2026-06-23T03:00:00Z", 14.2, 100.5, "car"),
+    ]);
+    const travel = travelForPartOfDay(OWNER, TRIP_A, "2026-06-23");
+    expect(travel!.modes.map((m) => m.mode)).toEqual(["car", "bike"]);
+    expect(travel!.mode).toBe("car");
   });
 });
