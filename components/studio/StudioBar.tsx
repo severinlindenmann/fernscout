@@ -72,6 +72,17 @@ const StudioBarContext = createContext<StudioBarContextValue | null>(null);
  * last in flow, no reserved room. From `md` the wrapper is a plain block and
  * the desktop row follows the page, as before.
  *
+ * B2661: that "one viewport" is `100svh`, the smallest the viewport can
+ * report, not `100dvh`. A WKWebView (the iPhone shell, not mobile Safari —
+ * there is no browser chrome to collapse) can still paint the first frame of
+ * a route with `100dvh` read larger than what is actually on screen, and only
+ * correct it on the next scroll; a wrapper sized to that too-tall reading
+ * pushes the sticky bar below the fold until a scroll forces the
+ * recalculation. `svh` can never be read too large, so the bar is never
+ * placed past the real edge — the one cost is a few idle pixels under it on
+ * whatever device actually does grow past `svh`, which this bar already
+ * tolerates (it is "last in flow", not fixed).
+ *
  * B2141: beside "← Studio" a chevron opens `GroupSheet`, the six groups as
  * links to their hub sections. The back link itself stays one plain tap.
  *
@@ -186,7 +197,7 @@ export default function StudioBarProvider({
 
   return (
     <StudioBarContext.Provider value={value}>
-      <div className="max-md:flex max-md:min-h-[100dvh] max-md:flex-col">
+      <div className="max-md:flex max-md:min-h-[100svh] max-md:flex-col">
       <div className="max-md:flex-1">{children}</div>
       <div className="relative">
         <OutboxPill
