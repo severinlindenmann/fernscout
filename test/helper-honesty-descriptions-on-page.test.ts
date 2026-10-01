@@ -6,7 +6,6 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { grant } from "@/lib/credits";
 import { forget } from "@/lib/helper/thread";
 import { honestyCounts } from "@/lib/helper/model";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
@@ -147,7 +146,6 @@ beforeEach(async () => {
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
-  await grant("alex", 10);
   await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
 });
 

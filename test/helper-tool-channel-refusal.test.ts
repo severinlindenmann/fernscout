@@ -6,7 +6,6 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { grant } from "@/lib/credits";
 import { AREAS, TOOLS, WHATSAPP_AREAS, WHATSAPP_TOOLS, runTool } from "@/lib/helper/tools";
 import { writeTripFixture } from "./fixtures/content";
 import { WEB_CALLER, WHATSAPP_CALLER } from "./support/callers";
@@ -80,7 +79,6 @@ describe("runTool refuses on the caller's kind — the boundary itself", () => {
     clearConfigCache();
     clearUserCache();
     await migrateToLatest(await getDatabase());
-    await grant("alex", 1);
   });
 
   afterEach(async () => {
