@@ -209,6 +209,14 @@ describe("POST /api/v2/<user>/import, kind polarsteps", () => {
 });
 
 describe("locations.json goes through kind: gps, never kind: polarsteps", () => {
+  test("named locations.json, it is read as Polarsteps, not as Google Records (both have a top-level \"locations\")", async () => {
+    const { GPS_IMPORTERS } = await import("@/importers/gps");
+    const text = locationsJsonFor("a");
+    const picked = GPS_IMPORTERS.find((i) => i.detect(text.slice(0, 64 * 1024), "locations.json"));
+    expect(picked?.id).toBe("polarsteps");
+    expect(picked?.parse(text)).toHaveLength(3);
+  });
+
   test("the polarsteps gps importer is detected and stores only into gps/, never content", async () => {
     const token = await ownerToken();
     const { POST } = await import("@/app/api/v2/[user]/import/route");

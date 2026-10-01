@@ -6,7 +6,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { journalPath } from "@/lib/journalPath";
-import { readZipEntries, readZipEntryBytes, readZipEntryText, type ZipEntry } from "@/lib/zip/readZip";
+import { readZipEntries, readZipEntryBytes, readZipEntryText, ZipError, type ZipEntry } from "@/lib/zip/readZip";
 import type { PolarstepsTrip } from "@/importers/trips/polarsteps";
 
 /** trip.json entries only — `trip/<slug>_<id>/trip.json`, never a nested
@@ -26,7 +26,15 @@ type DiscoveredTrip = {
   locationsEntry?: ZipEntry;
 };
 
-type TripLog = { folder: string; title: string; status: "importing" | "done" | "refused" | "duplicate"; message?: string; tripId?: string };
+type TripLog = {
+  folder: string;
+  title: string;
+  status: "importing" | "done" | "refused" | "duplicate";
+  message?: string;
+  tripId?: string;
+  /** Set when the trip was written but some media or its route did not go through. */
+  partial?: boolean;
+};
 
 /**
  * "Import from Polarsteps" — B2662. Everything about reading the export
@@ -49,6 +57,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
   const [reading, setReading] = useState(false);
   const [readError, setReadError] = useState<string | null>(null);
   const [trips, setTrips] = useState<DiscoveredTrip[] | null>(null);
+  const [index, setIndex] = useState<ZipEntry[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [previewing, setPreviewing] = useState(false);
@@ -63,7 +72,10 @@ export default function PolarstepsImportFlow({ username }: { username: string })
     setReading(true);
     try {
       const entries = await readZipEntries(picked);
+      setIndex(entries);
       const found: DiscoveredTrip[] = [];
+      // A trip.json refused for its size (a zip bomb) is said, not skipped silently.
+      let refused: string | null = null;
       for (const entry of entries) {
         const match = TRIP_JSON.exec(entry.name);
         if (!match) continue;
@@ -72,8 +84,9 @@ export default function PolarstepsImportFlow({ username }: { username: string })
         try {
           const text = await readZipEntryText(picked, entry, { maxBytes: TRIP_JSON_MAX_BYTES });
           trip = JSON.parse(text) as PolarstepsTrip;
-        } catch {
-          continue; // not this importer's business to explain a broken trip.json — skip it
+        } catch (err) {
+          if (err instanceof ZipError) refused = t("studio.polarsteps.error.unreadable");
+          continue; // an unparseable trip.json is skipped; the others still import
         }
         const prefix = `trip/${folder}/`;
         let photos = 0;
@@ -88,7 +101,7 @@ export default function PolarstepsImportFlow({ username }: { username: string })
       }
       setTrips(found);
       setSelected(new Set(found.map((f) => f.folder)));
-      if (found.length === 0) setReadError(t("studio.polarsteps.error.noTrips"));
+      if (found.length === 0) setReadError(refused ?? t("studio.polarsteps.error.noTrips"));
     } catch (err) {
       setReadError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -105,41 +118,56 @@ export default function PolarstepsImportFlow({ username }: { username: string })
     });
   }
 
-  async function uploadStepMedia(tripId: string, slug: string, discovered: DiscoveredTrip, stepFolder: string) {
-    if (!file) return;
+  /** Each of a step's photographs and videos, one request per file so one
+   *  refused file (too large, undecodable) never costs the rest. Answers how
+   *  many did not go through — never claimed as uploaded when they were not. */
+  async function uploadStepMedia(tripId: string, slug: string, discovered: DiscoveredTrip, stepFolder: string): Promise<number> {
+    if (!file || !index) return 0;
     const prefix = `trip/${discovered.folder}/${stepFolder}/`;
-    const entries = (await readZipEntries(file)).filter((e) => e.name.startsWith(prefix) && (e.name.includes("/photos/") || e.name.includes("/videos/")));
-    if (entries.length === 0) return;
-    const form = new FormData();
+    const entries = index.filter((e) => e.name.startsWith(prefix) && (e.name.includes("/photos/") || e.name.includes("/videos/")));
+    let failed = 0;
     for (const entry of entries) {
-      const bytes = await readZipEntryBytes(file, entry);
-      const name = entry.name.slice(entry.name.lastIndexOf("/") + 1);
-      form.append("files", new File([bytes as BlobPart], name));
+      try {
+        const bytes = await readZipEntryBytes(file, entry);
+        const form = new FormData();
+        form.append("files", new File([bytes as BlobPart], entry.name.slice(entry.name.lastIndexOf("/") + 1)));
+        form.append("source", "polarsteps");
+        // no-refresh: one file of a step mid-import; runImport refreshes once at the end.
+        const res = await fetch(`${journalPath(username)}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(slug)}/photos`, {
+          method: "POST",
+          body: form,
+        });
+        if (!res.ok) failed++;
+      } catch {
+        failed++;
+      }
     }
-    form.append("source", "polarsteps");
-    // no-refresh: one batch of a step's media mid-import; runImport refreshes once at the end.
-    await fetch(`${journalPath(username)}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(slug)}/photos`, {
-      method: "POST",
-      body: form,
-    });
+    return failed;
   }
 
-  async function importLocations(discovered: DiscoveredTrip, tripId: string) {
-    if (!file || !discovered.locationsEntry) return;
-    const text = await readZipEntryText(file, discovered.locationsEntry, { maxBytes: LOCATIONS_JSON_MAX_BYTES });
-    const form = new FormData();
-    form.append("files", new File([text], "locations.json", { type: "application/json" }));
-    // no-refresh: stages locations.json in the inbox; runImport refreshes once at the end.
-    const staged = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, { method: "POST", body: form });
-    const stagedJson = (await staged.json().catch(() => null)) as { items?: { id: string }[] } | null;
-    const inboxId = stagedJson?.items?.[0]?.id;
-    if (!staged.ok || !inboxId) return;
-    // no-refresh: writes positions to gps/ only; runImport refreshes once at the end.
-    await fetch(`/api/helper/${encodeURIComponent(username)}/import`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ inbox: inboxId, commit: true, trips: [tripId] }),
-    });
+  /** `locations.json` through the existing gps-kind inbox flow. Answers
+   *  whether it failed — `false` when there was none to send. */
+  async function importLocations(discovered: DiscoveredTrip, tripId: string): Promise<boolean> {
+    if (!file || !discovered.locationsEntry) return false;
+    try {
+      const text = await readZipEntryText(file, discovered.locationsEntry, { maxBytes: LOCATIONS_JSON_MAX_BYTES });
+      const form = new FormData();
+      form.append("files", new File([text], "locations.json", { type: "application/json" }));
+      // no-refresh: stages locations.json in the inbox; runImport refreshes once at the end.
+      const staged = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, { method: "POST", body: form });
+      const stagedJson = (await staged.json().catch(() => null)) as { items?: { id: string }[] } | null;
+      const inboxId = stagedJson?.items?.[0]?.id;
+      if (!staged.ok || !inboxId) return true;
+      // no-refresh: writes positions to gps/ only; runImport refreshes once at the end.
+      const res = await fetch(`/api/helper/${encodeURIComponent(username)}/import`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ inbox: inboxId, commit: true, trips: [tripId] }),
+      });
+      return !res.ok;
+    } catch {
+      return true;
+    }
   }
 
   /** The dry-run preview, per selected trip — ticket B2432/B2662's own
@@ -202,15 +230,16 @@ export default function PolarstepsImportFlow({ username }: { username: string })
       }
 
       const { tripId, stepDays } = body;
+      let failed = 0;
       for (const step of discovered.trip.all_steps) {
         const slug = stepDays?.[String(step.id)];
         if (!slug) continue;
-        const stepFolder = `${step.display_slug}_${step.id}`;
-        await uploadStepMedia(tripId, slug, discovered, stepFolder);
+        failed += await uploadStepMedia(tripId, slug, discovered, `${step.display_slug}_${step.id}`);
       }
-      await importLocations(discovered, tripId);
+      const routeFailed = await importLocations(discovered, tripId);
+      const partial = failed > 0 || routeFailed;
 
-      setLogs((prev) => prev.map((l) => (l.folder === discovered.folder ? { ...l, status: "done", tripId } : l)));
+      setLogs((prev) => prev.map((l) => (l.folder === discovered.folder ? { ...l, status: "done", tripId, partial } : l)));
     }
     setRunning(false);
     router.refresh();
@@ -219,7 +248,15 @@ export default function PolarstepsImportFlow({ username }: { username: string })
   return (
     <div className="space-y-4">
       {!trips && (
-        <label className="block cursor-pointer rounded-xl border border-dashed border-line-quiet p-6 text-center text-sm text-ink-secondary">
+        <label
+          className="block cursor-pointer rounded-xl border border-dashed border-line-quiet p-6 text-center text-sm text-ink-secondary"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const dropped = e.dataTransfer.files?.[0];
+            if (dropped) void onFile(dropped);
+          }}
+        >
           <input
             type="file"
             accept=".zip"
@@ -261,7 +298,13 @@ export default function PolarstepsImportFlow({ username }: { username: string })
             ))}
           </ul>
           <p className="text-sm text-ink-secondary">{t("studio.polarsteps.notImported")}</p>
-          <BusyButton type="button" busy={previewing} disabled={selected.size === 0} onClick={() => void openConfirm()}>
+          <BusyButton
+            type="button"
+            busy={previewing}
+            disabled={selected.size === 0 || confirming}
+            onClick={() => void openConfirm()}
+            className="min-h-11 rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
+          >
             {t("studio.polarsteps.importButton")}
           </BusyButton>
         </div>
@@ -289,6 +332,11 @@ export default function PolarstepsImportFlow({ username }: { username: string })
                   <a className="underline" href={`${journalPath(username)}/trips/${encodeURIComponent(l.tripId)}`}>
                     {t("studio.polarsteps.log.done")}
                   </a>
+                </p>
+              )}
+              {l.status === "done" && l.partial && (
+                <p role="alert" className="text-coral-600">
+                  {t("studio.polarsteps.log.partial")}
                 </p>
               )}
               {l.status === "duplicate" && <p className="text-ink-secondary">{t("studio.polarsteps.log.duplicate")}</p>}

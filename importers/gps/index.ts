@@ -25,4 +25,8 @@ import polarsteps from "./polarsteps";
  * Order is the order `detect` is tried in. Put a stricter format above a
  * looser one.
  */
-export const GPS_IMPORTERS: GpsImporter[] = [googleTimeline, googleRecords, gpx, polarsteps, fixes];
+// `polarsteps` before `googleRecords`: both files carry a top-level
+// `"locations"` key, and Records' own detect says yes to any `.json` that
+// does — Polarsteps' is the stricter test (`"lat"`/`"lon"`, never
+// `latitudeE7`), so it is tried first.
+export const GPS_IMPORTERS: GpsImporter[] = [googleTimeline, polarsteps, googleRecords, gpx, fixes];
