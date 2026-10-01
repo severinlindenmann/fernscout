@@ -127,7 +127,7 @@ readable back, and limits must be discoverable before a caller hits them.
 
 This repository is the complete, self-hostable open edition, licensed
 Apache-2.0. A small set of hosted-only features (things that only make sense
-run by one operator for many journals — printed photobooks and postcards, the WhatsApp helper, buying credits with Stripe)
+run by one operator for many journals — printed photobooks and postcards, the WhatsApp helper, plans billed through Stripe)
 live in a private companion repository and are never part of this codebase.
 The app reaches them only through a `@paid/*` import alias; when the private
 package is not present, the alias resolves to public stubs under

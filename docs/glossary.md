@@ -42,9 +42,8 @@ German uses **ß** rather than Swiss `ss`, „…" quotes, and **Reisetagebuch**
 | fernscout.ch and its paid features | hosted edition | gehostete Edition | üzemeltetett kiadás |
 | The private companion codebase | the private repository | das private Repository | a privát repó |
 | Trip expenses | costs / spent | Kosten / ausgegeben | költségek / elköltve |
-| The metered unit for model/send actions | credits | Credits | kredit |
-| A credit purchase's price | price | Preis | ár |
-| A credit balance | balance (Guthaben, DE only) | Guthaben | egyenleg |
+| The metered unit for assistant calls | AI day | KI-Tag | MI-nap |
+| A plan's recurring price | price | Preis | ár |
 | What running the server costs its operator | running costs | Betriebskosten | üzemeltetési költség |
 | A config key under `features.*` | feature | Feature | funkció |
 | Decided once for the whole server | server-wide (feature) | serverweit | szerver szintű |

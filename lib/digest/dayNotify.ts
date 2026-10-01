@@ -12,13 +12,13 @@ export type NotifyChannel = "mail" | "whatsapp" | "sms" | "push";
  *
  * Called by `sendDayLetter` / `sendDayWhatsapp` themselves on every
  * `ok: true` outcome, whatever it cost — see `022-day-notifications` for why
- * this cannot be read off `credit_ledger` instead. Upserted rather than
+ * this cannot be read off the usage log instead. Upserted rather than
  * inserted: a resend is still one fact about a day and a channel, not a log
  * of every time it went out.
  *
- * Silently does nothing without a database — the same fallback `spend` and
- * `refund` make for the same reason. A journal with no database has no
- * credits either, so nothing here can be reached with charging switched on.
+ * Silently does nothing without a database — the same fallback the billing
+ * reads make for the same reason. A journal with no database has no plan
+ * either, so nothing here can be reached with charging switched on.
  */
 export async function recordNotified(
   owner: string,
@@ -60,7 +60,7 @@ export async function recordNotified(
  * agent's `POST …/send-mail`, which is deliberately allowed to resend).
  *
  * Two presses of the same button, a heartbeat apart, must not both find
- * "not yet sent", both pass the credit precheck, and both mail the whole
+ * "not yet sent", both pass the plan-limit precheck, and both mail the whole
  * readership — the exact failure the record exists to prevent. This is
  * `claimForSend` in `paid/postcard/lib/postcard/orders.ts`'s own reasoning, adapted from an
  * update-on-rows-affected (there is a `draft` row to claim) to an

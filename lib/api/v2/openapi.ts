@@ -79,7 +79,7 @@ import {
   SKIN,
 } from "../../travellers/vocabulary";
 import { BOOK_SIZES, COVER_TYPES } from "@paid/photobook/lib/photobook/spec";
-import { HELPER_PROVIDER, TRAVELLERS_FROM_PHOTO_CREDITS } from "../../helper/model";
+import { HELPER_PROVIDER } from "../../helper/model";
 import { IMPORT_KINDS } from "../../gps/api";
 import { PAID_AREAS } from "@paid/manifest";
 import { CODE_TTL_MINUTES, GPS_TOKEN_TTL_DAYS, HANDOVER_TTL_MINUTES } from "../../auth";
@@ -323,7 +323,7 @@ const postcardRecipient = z.strictObject({
 const postcardRecipients = z.strictObject({
   // A historical field name (B2592 deleted credits) — the owner's real
   // per-plan rappen price for one postcard, never a flat figure.
-  creditsEach: z.number().int().nonnegative(),
+  rappenEach: z.number().int().nonnegative(),
   recipients: z.array(postcardRecipient),
   note: z.string().optional(),
 });
@@ -354,16 +354,15 @@ const photobookOrderDoc = z.strictObject({
   coverType: z.enum(COVER_TYPES),
   pages: z.number().int().nonnegative(),
   volumes: z.number().int().positive(),
-  // A historical field name (B2617 deleted the credits display) — the
-  // owner's whole price, in rappen, the same figure the receipt shows.
-  credits: z.number().int().nonnegative(),
+  // The owner's whole price, in rappen, the same figure the receipt shows.
+  priceRappen: z.number().int().nonnegative(),
   files: z.array(z.string()),
   createdAt: z.string(),
   updatedAt: z.string(),
   print: z
     .strictObject({
       contactId: z.string(),
-      quotedCredits: z.number(),
+      priceRappen: z.number(),
       quotedAt: z.string(),
       shipmentMethodUid: z.string(),
       providerRef: z.string().optional(),
@@ -623,7 +622,6 @@ const fromPhotoResult = z.strictObject({
   ),
   party: z.array(figureAppearance),
   preview: z.string(),
-  spent: z.literal(TRAVELLERS_FROM_PHOTO_CREDITS),
   provider: z.literal(HELPER_PROVIDER),
   note: z.string(),
 });
@@ -2084,7 +2082,6 @@ function buildPaths(): Record<string, PathItem> {
   // Open core: these doors live in paid/. A build without that area answers
   // them with a plain 404, so the document does not offer them.
   const PAID_PATHS: [RegExp, string][] = [
-    [/^\/api\/v2\/\{user\}\/(purchases|credits)(\/|$)/, "credits"],
     [/^\/api\/v2\/\{user\}\/postcards\//, "postcards"],
     [/^\/api\/v2\/\{user\}\/photobooks\//, "photobook"],
   ];

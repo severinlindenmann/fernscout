@@ -1,7 +1,7 @@
 import "server-only";
 import path from "node:path";
 import { isEnabled } from "@/lib/capabilities";
-import { mayUseAi } from "@paid/credits/lib/aiDays";
+import { mayUseAi } from "@paid/billing/lib/aiDays";
 import { describeImage, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { describedRunFile, rememberRunFile } from "@/lib/extract/described";
@@ -39,7 +39,7 @@ function stagedPath(user: string, runId: string, photoId: string): string {
  * the caption goes with the staged files it describes.
  *
  * **B2591 — no AI day of its own.** This needs an active plan or unused
- * Free days (`mayUseAi`, `@paid/credits/lib/aiDays.ts`) but takes nothing;
+ * Free days (`mayUseAi`, `@paid/billing/lib/aiDays.ts`) but takes nothing;
  * nothing is charged or given back. `describedRunFile`'s own per-photo
  * cache is what keeps a genuine double-tap from reaching the model a second
  * time (B1751 Task 4.3's R30).

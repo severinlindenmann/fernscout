@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageAlternates } from "@/lib/pageLanguage";
 import Landing from "@/components/Landing";
 import { LandingStructuredData } from "@/components/StructuredData";
-import Pricing from "@paid/credits/components/Pricing";
+import Pricing from "@paid/billing/components/Pricing";
 import { orgsNav } from "@paid/orgs/lib/nav";
 import { iosAppStoreUrl, iosAppWaitlistAvailable } from "@/lib/appWaitlist";
 import { isEnabled } from "@/lib/capabilities";
@@ -94,7 +94,7 @@ export default async function Root() {
   // Prices and plans only where this instance charges — B840's gate, kept.
   // One answer for the page and its Markdown version (B2488).
   const flags = landingFlags(locale);
-  const { inviteCta, credits } = flags;
+  const { inviteCta, billingEnabled } = flags;
 
   return (
     <>
@@ -166,10 +166,10 @@ export default async function Root() {
         // `server-only` module that charges it rather than having a dozen
         // numbers drilled through as props. Absent — not empty — on an
         // instance that charges nothing at all. B840.
-        pricing={credits ? <Pricing locale={locale} cta={inviteCta} /> : null}
+        pricing={billingEnabled ? <Pricing locale={locale} cta={inviteCta} /> : null}
         // B2506. The same prices and plan facts as data, for the hero's
         // plan line, the prints block and the questions. Empty in a public
-        // build (the stubs) and with credits off.
+        // build (the stubs) and with billing off.
         planPoint={flags.planPoint}
         planFaq={flags.planFaq}
         printPrices={flags.printPrices}

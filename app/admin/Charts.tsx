@@ -1,4 +1,4 @@
-import { formatChf } from "@/lib/creditsFormat";
+import { formatChf } from "@/lib/money";
 import type { CostLine } from "@/lib/instanceCosts";
 
 /**
@@ -85,7 +85,7 @@ export function BarChart({ title, bars, empty }: { title: string; bars: Bar[]; e
 /**
  * A proportion, drawn once — B996.
  *
- * The one shape this page repeats: credits left of credits granted, bytes used
+ * The one shape this page repeats: francs taken of francs owed, bytes used
  * of bytes allowed, one feature's spend against the largest. Written once so
  * that the eight places it appears cannot drift into eight slightly different
  * bars.

@@ -1,4 +1,4 @@
-import { pricesMarkdown } from "@paid/credits/lib/markdown";
+import { pricesMarkdown } from "@paid/billing/lib/markdown";
 import { guideMarkdown } from "@paid/guides/lib/markdown";
 import { orgsMarkdown } from "@paid/orgs/lib/markdown";
 import { isEnabled } from "@/lib/capabilities";

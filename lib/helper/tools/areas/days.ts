@@ -13,7 +13,7 @@ import { firstUnwritten, noTrip, readersOf, resolveDay, resolveTrip, tripIdFor }
 import { missingForDayFolder, type DayFolderMissing } from "../../../dayMissing";
 import { listDayInbox, listInbox } from "../../../inbox";
 import { readWords } from "../../../dayReadiness";
-import { WRITE_DAY_NOTES_MAX_CHARS } from "../../credits";
+import { WRITE_DAY_NOTES_MAX_CHARS } from "../../limits";
 
 /**
  * One `DayFolderMissing` item, as one or two proposal fields —
@@ -316,7 +316,7 @@ export const DAYS_TOOLS: readonly Tool[] = [
        * into the next one, so the notes ride along and the trip and slug come
        * from what the route actually wrote.
        *
-       * Only when there are notes. A card offering to spend a credit writing
+       * Only when there are notes. A card offering to spend an AI day writing
        * up an empty day is worse than no card.
        */
       const carryOn = (args.notes ?? "").trim() !== "";
@@ -355,7 +355,7 @@ export const DAYS_TOOLS: readonly Tool[] = [
   },
   {
     /**
-     * The one tool that spends a credit, and it spends it on the press.
+     * The one tool that spends an AI day, and it spends it on the press.
      *
      * It writes nothing either: `POST .../day/write-day` returns prose to be
      * read, and keeping it is `set_day_words` — a second proposal and a second
@@ -367,7 +367,7 @@ export const DAYS_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "form",
     describe:
-      "Propose turning their own notes about a day into a title and a few paragraphs. Nothing is written and nothing is spent until they press; what comes back is shown to them to read, change or throw away. It costs one credit.",
+      "Propose turning their own notes about a day into a title and a few paragraphs. Nothing is written and nothing is spent until they press; what comes back is shown to them to read, change or throw away. It costs one AI day.",
     properties: {
       ...DAY_ARGS,
       notes: {

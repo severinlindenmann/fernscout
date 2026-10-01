@@ -2,7 +2,7 @@ import "server-only";
 import { loadServerConfig } from "./config";
 import { getDatabaseOrNull } from "./db";
 import { crossRate } from "./currency";
-import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "@paid/credits/lib/payments";
+import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "@paid/billing/lib/payments";
 import { loadEcbRates } from "./rates";
 import { getUsernames } from "./users";
 import {
@@ -307,7 +307,7 @@ export type JournalRow = {
   speechRappen: number;
   otherRappen: number;
   /** What this journal paid the instance over the period — B2589. Reads
-   *  only `payments` (credit purchases) for now, the way the ticket that
+   *  only `payments` (historical purchases) for now, the way the ticket that
    *  added this column decided: `revenueRappenByOwner` below is the one
    *  place B2590 (subscriptions) and B2593 (trip passes) extend once those
    *  tables exist, without this row's shape changing. */
@@ -318,8 +318,8 @@ export type JournalRow = {
  * What each journal paid this instance, in rappen, over a list of already-
  * fetched payments — B2589.
  *
- * **The extension point for B2590/B2593.** Today a journal's only way to pay
- * is buying credits (`payments`), so that is the whole of this function.
+ * **The extension point for B2590/B2593.** Today a journal's only recorded
+ * purchases are in `payments`, so that is the whole of this function.
  * Once entitlements/plans and trip passes exist, whatever reads their own
  * payment records folds into this same map before it is returned — every
  * caller here (`journalRows`) already reads "revenue" as one number per

@@ -1,6 +1,6 @@
 import type { Ack } from "./adminAcks";
 import type { Trouble } from "./adminConsole";
-import type { Payment } from "@paid/credits/lib/payments";
+import type { Payment } from "@paid/billing/lib/payments";
 import type { Tombstone } from "./tombstones";
 
 /**

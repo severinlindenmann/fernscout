@@ -8,7 +8,7 @@ import type { Caller } from "../caller";
  * The exact tools a WhatsApp caller — proven only by a phone number, B1055 —
  * may ever run. Phone-level trust is the right trust for "put today's
  * photographs on a day" and the wrong one for "change who can read this
- * trip" or "spend credits", so this is deliberately the funnel and nothing
+ * trip" or "spend an AI day", so this is deliberately the funnel and nothing
  * wider — B1891:
  *
  * - `trips` — which trip a message is about, when it does not say (the hub

@@ -75,9 +75,8 @@ what it would generate.
 
 <!-- END:generated-feature-table -->
 
-`transcription` and `credits` are listed server-wide because a journal cannot
-switch them: `transcription` needs no per-journal opt-in and `credits`, like
-`logging`, is never a per-journal question. This does not mean every
+`transcription` is listed server-wide because a journal cannot switch it:
+it needs no per-journal opt-in, the same as `logging`. This does not mean every
 server-wide feature is decided the same way — see each one's row below for
 what actually turns it on.
 
@@ -115,7 +114,7 @@ what makes each one boot and what its absence looks like.
 | `helper` | `ANTHROPIC_API_KEY` and a database | no writing assistant |
 | `transcription` | a database; `dry-run` needs nothing else, `deepgram` needs `DEEPGRAM_API_KEY` | no dictation |
 | `extract` | `SESSION_SECRET`, `auth` and `helper`, and a journal must switch it on for itself | no guided import of photos into draft days from the studio |
-| `credits` | a database (operator only) | model calls and sends are never metered |
+| `billing` | a database | model calls and sends are never metered |
 
 `extract` is the studio's guided camera-roll photo import; it does not read
 bank or card statements. Statement reading (`/studio/statement` and
@@ -123,8 +122,8 @@ bank or card statements. Statement reading (`/studio/statement` and
 reachable whenever a journal's owner is signed in.
 
 With `billing` on, the assistant's calls are metered against a journal's
-plan (`entitlements`/`ai_days`, `@paid/credits/lib/entitlements.ts` and
-`@paid/credits/lib/aiDays.ts` — hosted edition only). With it off, the
+plan (`entitlements`/`ai_days`, `@paid/billing/lib/entitlements.ts` and
+`@paid/billing/lib/aiDays.ts` — hosted edition only). With it off, the
 assistant is the operator's own and unmetered.
 
 ### Location

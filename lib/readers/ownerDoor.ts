@@ -18,7 +18,7 @@ const NOT_FOR_AGENTS = {
  */
 export async function ownerOnly(request: Request, user: string): Promise<Response | null> {
   if (request.headers.get("authorization")) return Response.json(NOT_FOR_AGENTS, { status: 403 });
-  // Both doors write grants or spend credits: a present, mismatched Origin is
+  // Both doors write grants or spend money: a present, mismatched Origin is
   // refused (B1559), on top of the cookie's own sameSite.
   if (foreignOrigin(request)) return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
   const ready = await contactsReady(user);

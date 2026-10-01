@@ -4,7 +4,7 @@ import { AckButton, SnoozeButton, UnhideButton } from "./Acks";
 import AppWaitlist from "./AppWaitlist";
 import InviteRequests from "./InviteRequests";
 import Invites from "./Invites";
-import AdminPlanGrant from "@paid/credits/routes/admin/AdminPlanGrant";
+import AdminPlanGrant from "@paid/billing/routes/admin/AdminPlanGrant";
 import Journals from "./Journals";
 import MessageOwner from "./MessageOwner";
 import MessagesPanel from "./messages/MessagesPanel";
@@ -24,7 +24,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { countMessages } from "@/lib/messages/log";
 import { listSwitches } from "@/lib/messages/switches";
 import { listSms } from "@/lib/sms/store";
-import { formatChf } from "@/lib/creditsFormat";
+import { formatChf } from "@/lib/money";
 import {
   dailyCosts,
   dashboard,
@@ -54,7 +54,7 @@ import {
   type Takings,
   type Trouble,
 } from "@/lib/adminConsole";
-import { paymentsPaidSince, takings, type Payment } from "@paid/credits/lib/payments";
+import { paymentsPaidSince, takings, type Payment } from "@paid/billing/lib/payments";
 import { serverSite } from "@/lib/site";
 import type { Tombstone } from "@/lib/tombstones";
 import { sessionStats, type SessionStats } from "@/lib/helper/sessions";
@@ -130,11 +130,11 @@ function ago(days: number): string {
  * of records other things already keep (`lib/adminActivity.ts`) and invents
  * no event of its own.
  *
- * ## Nothing here grants credits
+ * ## Nothing here grants anything
  *
- * `lib/credits.ts`'s property 1 is unchanged: nothing a caller reaches over
- * HTTP raises a balance. The grant form in a journal's panel files a request
- * and causes a mail, and the single-use link in that mailbox is what credits.
+ * Nothing a caller reaches over HTTP raises an entitlement. The grant form in
+ * a journal's panel files a request and causes a mail, and the single-use
+ * link in that mailbox is what grants it.
  */
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   if (!(await isInstanceAdmin())) notFound();
@@ -556,9 +556,9 @@ function whereFixed(item: Attend): { href: string; label: string } | null {
  * Everything that wants a person, first on Overview — B1181, over B774.
  *
  * **It shows, and it cannot approve.** Approval spends a single-use token that
- * was mailed to the operator, and `lib/credits.ts`'s property 1 is that
- * nothing reachable over HTTP raises a balance. Rendering that token here
- * would put a balance-raising credential into a browser tab, a screenshot and
+ * was mailed to the operator: nothing reachable over HTTP raises an
+ * entitlement. Rendering that token here would put a grant-raising
+ * credential into a browser tab, a screenshot and
  * a scrollback — exactly what B425 avoided by putting it in a mailbox — so it
  * is not selected by the query that feeds this, and the entry says where the
  * link is instead of carrying a button. Every other kind links to the section
@@ -1218,7 +1218,7 @@ function TakingsPanel({ money, paid, days }: { money: Takings; paid: Payment[]; 
  *
  * The table the ticket's own admin draft sketched: what each journal cost in
  * AI and speech calls, what its SMS and other metered sends came to, what it
- * paid, and what is left over. Revenue reads only `payments` (credit
+ * paid, and what is left over. Revenue reads only `payments` (historical
  * purchases) today — `revenueRappenByOwner` in `lib/instanceCosts.ts` is
  * where the plans and trip-pass tickets (B2590, B2593) add their own money
  * without this row changing shape. A journal with nothing on either side
@@ -1234,7 +1234,7 @@ function CostAndRevenue({ journals, days }: { journals: JournalRow[]; days: numb
       <h2 className="font-display text-lg font-semibold text-ink-strong">Cost and revenue per journal</h2>
       <p className="mt-1 text-sm text-ink-body">
         The last {days} days. Costs come from the usage log, priced at the moment of the call.
-        Revenue is credit purchases only, until plans and trip passes have their own tables.
+        Revenue is historical purchases only, until plans and trip passes have their own tables.
       </p>
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-ink-body">No journal moved any money in this period.</p>
@@ -1287,9 +1287,9 @@ function CostAndRevenue({ journals, days }: { journals: JournalRow[]; days: numb
  *
  * **The fifty ledger rows are gone.** They were the longest thing on the page
  * and answered a question — which exact transaction, on which day — that an
- * operator asks about once a quarter and that `credit_ledger` answers better
- * from a shell. What replaces them is the same money, rolled up: what it was
- * spent on, what was bought, what is left.
+ * operator asks about once a quarter and that the `payments` table answers
+ * better from a shell. What replaces them is the same money, rolled up: what
+ * it was spent on, what was bought, what is left.
  *
  * Everything here was fetched once for the whole instance and handed in, so
  * thirty-five of these cost three queries rather than a hundred and five.

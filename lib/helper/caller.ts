@@ -19,7 +19,7 @@ import { getUser } from "../users";
  * mailbox.** A `Caller` never widens what a route will do with it — every
  * route that needs an owner's browser keeps asking `isHelperOwner`, which
  * this file now backs, and a `whatsapp` caller is never handed to one. The
- * money and the irreversible things (postcards, deletion, credits) stay
+ * money and the irreversible things (postcards, deletion, billing) stay
  * behind the existing web pages exactly as before; see B1061.
  *
  * Deliberately not an interface with two implementations pretending to be

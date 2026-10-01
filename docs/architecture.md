@@ -13,7 +13,7 @@ longer exist as separate files, since B1598/B1606), `entries/*.json` and
 database.
 
 **The database is an index and a session store** — accounts, contacts, reader
-grants, push subscriptions, reactions, jobs. Credits, the credit ledger,
+grants, push subscriptions, reactions, jobs. Billing, entitlements,
 analytics and contacts have no file form at all; they live only in the
 database. SQLite locally, Postgres in production, and nothing outside
 `lib/db/` and `lib/repos/` knows which.
@@ -37,7 +37,7 @@ serves any trip at the explicit one. Both render the same components.
 | `/@<user>/trips` | every trip, with the lifetime map |
 | `/@<user>/search` | across the whole journal, not one trip |
 | `/@<user>/me` · `/@<user>/contacts` | the reader's own access, and a permanent redirect to `/@<user>/studio/readers` for the owner |
-| `/@<user>/studio` | the owner's control room — journal settings, agent keys, export, delete, and every trip's own edit page (`/studio/trip?trip=<id>`); credits and storage (`/studio/account`) and visitor analytics (`/studio/visitors`) moved in whole from `/account` and `/me/analytics`, which are now permanent redirects (B2016–B2019) |
+| `/@<user>/studio` | the owner's control room — journal settings, agent keys, export, delete, and every trip's own edit page (`/studio/trip?trip=<id>`); plan and storage (`/studio/account`) and visitor analytics (`/studio/visitors`) moved in whole from `/account` and `/me/analytics`, which are now permanent redirects (B2016–B2019) |
 | `/@<user>/invite/guest/<token>` · `/@<user>/invite/buddy/<token>` · `/@<user>/c/<token>` · `/@<user>/u/<token>` | reader and buddy invites; confirm; unsubscribe. A reader link leads to reading every `guest`-visibility trip in the journal once approved; a buddy link names one trip and leads to write access to it, plus the same read access a reader gets. `/@<user>/studio/readers` is the only place either kind is made, approved or revoked (B2295) |
 | `/@<user>/feed.xml` · `/@<user>/search-index.json` · `/@<user>/story.json` · `/@<user>/export.zip` | generated |
 | `/@<user>/media/<path>` | media, resized on demand (the grid widths ahead of time, after an upload) and cached |
@@ -64,7 +64,7 @@ serves any trip at the explicit one. Both render the same components.
 | `lib/paid-stubs/` | the public stand-ins for `@paid/*` — photobook and postcard PDF generation, billing's Stripe half and WhatsApp live only in the private repository; a plain clone builds and runs with each one simply absent |
 | `lib/capabilities.ts` | which optional features are on, and why one is off — see `/api/health` |
 | `lib/helper/` | the model behind the studio's assistant: `model.ts` holds the net that checks what it *said* against what the turn actually *did*, `tools/` are the calls it may make, `consent.ts` and `undo.ts` guard publish and delete |
-| `lib/admin.ts` · `lib/instanceCosts.ts` | the one address that sees instance-wide cost (`FERNSCOUT_ADMIN_EMAIL`) — a journal's own plan and AI days are `@paid/credits/lib/entitlements.ts` and `@paid/credits/lib/aiDays.ts`, hosted edition only |
+| `lib/admin.ts` · `lib/instanceCosts.ts` | the one address that sees instance-wide cost (`FERNSCOUT_ADMIN_EMAIL`) — a journal's own plan and AI days are `@paid/billing/lib/entitlements.ts` and `@paid/billing/lib/aiDays.ts`, hosted edition only |
 | `app/content-model.json` | the file shape a journal must have — published so `fernscout-helper` and anything else written against this instance stops copying it by hand |
 | `importers/` · `lib/gps/` · `lib/inbox.ts` | MIT-licensed parsers turning somebody's location/cost export into plain rows; the GPS history store itself, reachable from three doors under `app/` and no others — see `docs/gps.md`; and files waiting on a day to attach to |
 

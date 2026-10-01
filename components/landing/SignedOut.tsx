@@ -28,7 +28,7 @@ export type { InviteCta, NavLink };
  * headline is a real published day (`lib/demoDay.ts`), absent when this
  * instance has none. The prints block exists only where postcards or the
  * photobook do. Prices, the plan line and the plan questions come from
- * `paid/credits` as data and are absent in a build without it. The agent
+ * `paid/billing` as data and are absent in a build without it. The agent
  * instruction stays on the page, below the hero, where the helper is off —
  * with no helper it is the only way in (B751).
  *

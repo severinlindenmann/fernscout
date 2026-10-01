@@ -65,19 +65,13 @@ export const HELPER_MODEL = "claude-haiku-4-5";
 /** Who the words are going to, said in the consent panel and in `/api/health`. */
 export const HELPER_PROVIDER = "Anthropic";
 
-/** What one call to `POST .../travellers/from-photo` costs — B1517. Priced
- *  per call rather than per face: a group photo of a whole family is the
- *  point, and charging by the figure would tax exactly the case this exists
- *  for. */
-export const TRAVELLERS_FROM_PHOTO_CREDITS = 2;
-
 /**
  * The system prompt. **This is the product.**
  *
  * It carries the rule AGENTS.md puts on every agent that writes into somebody's
  * journal, in the same words and for the same reason: one invented memory
  * presented to a family as fact is not recoverable. Everything else here —
- * the capability, the credit, the schema — is scaffolding around this
+ * the capability, the AI day, the schema — is scaffolding around this
  * paragraph.
  *
  * `warnings` is the pressure valve. A model told only "do not invent" will
@@ -281,7 +275,7 @@ printworthiness — a whole number from 1 to 5 for how much this looks like a ph
 
 /**
  * One photograph in, one form out. Nothing here stores anything; the caller
- * owns the sidecar and the credit.
+ * owns the sidecar and the AI day.
  */
 export async function describeImage(
   image: PhotoImage,
@@ -382,7 +376,7 @@ const CURRENCY_CODE = /^[A-Z]{3}$/;
  * is what actually keeps an invented total out of the answer.
  *
  * Throws on anything that goes wrong, the same contract as `writeDay` and
- * `describeImage`: the caller has already spent a credit by the time this
+ * `describeImage`: the caller has already spent an AI day by the time this
  * runs and refunds on a throw.
  */
 export async function readReceipt(image: PhotoImage, owner: string | undefined): Promise<Receipt | null> {
@@ -446,7 +440,7 @@ export async function readReceipt(image: PhotoImage, owner: string | undefined):
  * route does not make.
  *
  * Throws on anything that goes wrong, the same contract as `describeImage`:
- * the caller has already spent the credit and refunds on a throw.
+ * the caller has already spent the AI day and refunds on a throw.
  */
 function travellersPhotoSystemPrompt(): string {
   return `You are looking at one photograph from somebody's own travel journal, and turning each person visible in it into a walking figure for the journal's own illustration — nothing about anybody's identity, only what a figure looks like.
@@ -668,7 +662,7 @@ const POLISH_SCHEMA = {
  * One request, one answer.
  *
  * Throws on anything that goes wrong, including an answer that does not fit
- * the schema — the caller has already spent a credit by the time this runs and
+ * the schema — the caller has already spent an AI day by the time this runs and
  * refunds on a throw, so failing loudly is the honest outcome and a half-empty
  * draft is not.
  */
@@ -753,7 +747,7 @@ const TITLES_SCHEMA = {
  * above is the first line, not the guard.
  *
  * Throws on anything that goes wrong, the same contract as `writeDay`: the
- * caller has already spent a credit by the time this runs and refunds on a
+ * caller has already spent an AI day by the time this runs and refunds on a
  * throw.
  */
 export async function suggestTitles(notes: string, facts: DayFacts, owner?: string): Promise<string[]> {
@@ -891,7 +885,7 @@ function optional(value: unknown): string | undefined {
  * One request, one mapping.
  *
  * Throws on anything that goes wrong, the same contract as `writeDay`: the
- * caller has spent a credit by the time this runs and refunds on a throw. What
+ * caller has spent an AI day by the time this runs and refunds on a throw. What
  * comes back is *not* trusted — `checkMapping` runs against the real header
  * before a row is read, and a person confirms it before a cost is written.
  */
@@ -939,7 +933,7 @@ export async function mapStatementColumns(sample: Table, owner?: string): Promis
  *
  * **It cannot change anything, and that is the round's whole point.** Every
  * tool in `./thread.ts` reads; there is no write tool, no proposal and no
- * credit spent, so this is the cheapest honest way to find out whether the
+ * AI day spent, so this is the cheapest honest way to find out whether the
  * direction is right. When somebody asks for something that would change the
  * journal, the answer is a sentence naming the control that does it — the
  * wizard, the tiles and the forms all still exist and all still work.

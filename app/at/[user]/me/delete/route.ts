@@ -1,7 +1,7 @@
 import { isOwner } from "@/lib/contacts/session";
 import { isEnabled } from "@/lib/capabilities";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion, summarise } from "@/lib/deletions";
-import { planOf } from "@paid/credits/lib/entitlements";
+import { planOf } from "@paid/billing/lib/entitlements";
 
 export const dynamic = "force-dynamic";
 

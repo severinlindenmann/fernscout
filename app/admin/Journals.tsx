@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Download, ExternalLink, X } from "lucide-react";
-import { formatChf } from "@/lib/creditsFormat";
+import { formatChf } from "@/lib/money";
 import { Meter, Sparkline } from "./Charts";
 import { goTo, useHash } from "./Shell";
 

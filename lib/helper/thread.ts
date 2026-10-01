@@ -419,7 +419,7 @@ export function note(username: string, text: string, channel: Channel = "web"): 
  * without calling the model at all, and that route used to leave the thread
  * untouched — so a person who read their notes into the day, had `start_day`
  * chain to a `draft_words` card carrying those notes, and then had that
- * *press* fail (a transient model error, no credits, anything) was left with
+ * *press* fail (a transient model error, no AI days left, anything) was left with
  * a conversation that had never heard of the draft it was shown. The only
  * trace of their notes was an *earlier* `start_day` proposal, itself since
  * marked `[written: start_day …]` — a stale, contradictory note about the

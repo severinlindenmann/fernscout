@@ -31,7 +31,7 @@ itself).
 
 1. As the `operator` persona, open `/admin`. Confirm it renders the cost
    dashboard — model calls, transcription minutes, sends, print orders — and
-   every journal's credit balance and ledger.
+   every journal's payments and plan.
 2. Confirm the numbers shown trace to the `usage` table's own rows
    (`lib/usage.ts`) multiplied by the priced `costs` block, not to anything
    invented for the page.

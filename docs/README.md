@@ -49,7 +49,7 @@ from the code ("ROADMAP decision 24"), but a decision can be superseded or
 reversed by a later one in the same log — read forward to the end before
 trusting an early one. The backlog below the log is out of date.
 
-Hosted-only features (photobooks, postcards, WhatsApp, buying credits) are
+Hosted-only features (photobooks, postcards, WhatsApp, paid plans) are
 marked "hosted edition only" wherever they come up in this folder. Their own
 walkthroughs and testing flows live in the private repository behind
 fernscout.ch, not here.

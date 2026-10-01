@@ -569,7 +569,7 @@ export function serverChoiceError(error: unknown): ServerChoiceError {
  * verified and granted it (`verifyApplePurchase`), so a dropped network call
  * in between leaves StoreKit still holding the transaction to retry.
  */
-/** Mirrors `paid/credits/lib/apple/products.ts` — public App Store product
+/** Mirrors `paid/billing/lib/apple/products.ts` — public App Store product
  *  ids, not a secret, so duplicating the two strings here is cheaper than a
  *  round trip just to learn them. */
 export const APPLE_PRODUCT_IDS = { pass: "ch.fernscout.pass", plus: "ch.fernscout.plus.yearly" } as const;

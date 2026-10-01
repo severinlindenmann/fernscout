@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { COSTS_IMPORTERS } from "@/importers/costs";
 import { applyMapping, checkMapping, statementSample } from "@/importers/costs/mapping";
 import { isEnabled } from "@/lib/capabilities";
-import { mayUseAi } from "@paid/credits/lib/aiDays";
+import { mayUseAi } from "@paid/billing/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { HELPER_PROVIDER, mapStatementColumns } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";

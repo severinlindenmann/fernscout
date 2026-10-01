@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
  *
  * Nothing is announced. `POST /api/v1/.../publish` can send the day by mail or
  * WhatsApp on the same call; this cannot, and that is deliberate rather than
- * unfinished — those cost credits and buzz in other people's pockets, and the
+ * unfinished — those cost AI days and buzz in other people's pockets, and the
  * wizard's promise is that the whole flow runs with nothing switched on and
  * nothing spent. The day's own page carries the notify control for afterwards.
  */

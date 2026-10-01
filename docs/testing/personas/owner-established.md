@@ -6,7 +6,7 @@ about whether an *existing* journal's data still behaves correctly under a
 new feature, not about first impressions.
 
 **Wants:** to keep writing — add a day to an existing trip, correct one
-already published (`components/EditDay.tsx`), check credits/storage, invite
+already published (`components/EditDay.tsx`), check plan/storage, invite
 a buddy or guest, order a postcard or photobook.
 
 **Knows:** the vocabulary (draft vs. published, guest vs. buddy vs. private)

@@ -135,7 +135,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000 npm run dev
 ## Opening an owner-only page
 
 `/@<user>/contacts` (a redirect to `/@<user>/studio/readers`), the postcard
-preview and the credits page all answer 404, or refuse past sign-in, to
+preview and the account page all answer 404, or refuse past sign-in, to
 everybody but the journal's owner, and `isOwner` has no development shortcut
 on purpose — an environment variable that makes you an owner is a thing that
 eventually ships. So the way in locally is the way in everywhere: request a
@@ -143,8 +143,8 @@ code, read it, redeem it.
 
 **`photobook` and `postcards` are hosted edition only** (`PAID_FEATURES`,
 `lib/capabilities.ts`) — switching either on in this checkout refuses to boot
-rather than opening the page, so leave them off here and use `credits` and
-`contacts` to prove the sign-in flow instead.
+rather than opening the page, so leave them off here and use `contacts` to
+prove the sign-in flow instead.
 
 It works with no accounts. Mail written to a file is a real transport, and the
 one-time code is in the file.
@@ -152,13 +152,12 @@ one-time code is in the file.
 ```bash
 # 1. The capabilities the page needs, in site/config.json — the *server's*
 #    switches, and since B611 the only place either of these is asked: a
-#    journal has no vote on `credits` or `contacts` either, so nothing needs
+#    journal has no vote on `contacts` either, so nothing needs
 #    adding to content/<user>/config.json.
 #    Leave `contacts` off unless you have set CONTACTS_ENCRYPTION_KEY: the boot
 #    refuses a capability it cannot honour, which is the point of it.
 #
 #      features.auth.enabled       true
-#      features.credits.enabled    true
 #      features.mail               { enabled: true, transport: "file" }
 
 # 2. A database, and a secret to sign sessions with.
@@ -214,7 +213,7 @@ needs a signed-in instance admin:
 
 ```bash
 npx tsx --conditions=react-server -e \
-  'import("@paid/credits/lib/entitlements.ts").then(m => m.grantPlan({
+  'import("@paid/billing/lib/entitlements.ts").then(m => m.grantPlan({
      owner: "example", plan: "pass", source: "admin", providerRef: null,
      startsAt: new Date().toISOString(),
      endsAt: new Date(Date.now() + 45 * 86_400_000).toISOString(),

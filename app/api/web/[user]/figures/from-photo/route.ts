@@ -13,7 +13,7 @@
 // the model as bytes in the request; nothing here writes it to disk.
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
-import { mayUseAi } from "@paid/credits/lib/aiDays";
+import { mayUseAi } from "@paid/billing/lib/aiDays";
 import { filterPhotoProposal } from "@/lib/figures/creator";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { classifyTravellers, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";

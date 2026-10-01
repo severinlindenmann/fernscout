@@ -1,8 +1,8 @@
 import "server-only";
 import { isEnabled } from "@/lib/capabilities";
-import { entitlementHistory, planOf, type PlanKey } from "@paid/credits/lib/entitlements";
-import { aiDaysStatus } from "@paid/credits/lib/aiDays";
-import { peekIncludedUsage } from "@paid/credits/lib/print-usage";
+import { entitlementHistory, planOf, type PlanKey } from "@paid/billing/lib/entitlements";
+import { aiDaysStatus } from "@paid/billing/lib/aiDays";
+import { peekIncludedUsage } from "@paid/billing/lib/print-usage";
 
 /**
  * One owner's plan, read the one way — B2622.

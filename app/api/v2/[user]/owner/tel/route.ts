@@ -1,7 +1,7 @@
 // GET/DELETE /api/v2/{user}/owner/tel — B1654, D20.
 //
 // The owner's own telephone number, moved off `config.json` and into a
-// central store (`lib/ownerTel.ts`) alongside contacts and credits. Owner
+// central store (`lib/ownerTel.ts`) alongside contacts and entitlements. Owner
 // only, like every other journal-wide resource — `requireJournalOwner`
 // refuses a trip-scoped token even when it belongs to the right journal
 // (B1652 is why that check exists at all).

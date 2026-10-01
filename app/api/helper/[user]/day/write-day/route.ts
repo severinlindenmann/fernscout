@@ -1,9 +1,9 @@
 import { isEnabled } from "@/lib/capabilities";
-import { checkAiDay, recordAiDay } from "@paid/credits/lib/aiDays";
+import { checkAiDay, recordAiDay } from "@paid/billing/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { HELPER_PROVIDER, suggestTitles, writeDay, type DayFacts, type WriteDayMode } from "@/lib/helper/model";
 import { checkPolishForAddedFacts, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
-import { WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/credits";
+import { WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/limits";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { note, refused } from "@/lib/helper/thread";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
@@ -29,13 +29,13 @@ export const dynamic = "force-dynamic";
  * somebody who went looking.
  *
  * The order of the four gates below is deliberate. Rate limit, then consent,
- * then the credit, then the model: each one is cheaper than the next, and the
+ * then the AI day, then the model: each one is cheaper than the next, and the
  * expensive one is the only one that can fail after money has moved — which is
  * what the refund is for.
  */
 
 /** Fifteen minutes, and comfortably more write-ups than a person on a bus
- *  makes. It is a brake on a script, not a quota; the credit is the quota. */
+ *  makes. It is a brake on a script, not a quota; the AI day is the quota. */
 const LIMIT = { max: 20, windowMs: 15 * 60 * 1000 };
 
 function text(value: unknown): string {

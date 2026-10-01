@@ -548,7 +548,7 @@ describe.skipIf(!hasPaid())("B2591 — AI days, with billing on", () => {
   });
 
   test("once the plan's AI days are gone, describing photos is refused with 402 plan_limit", async () => {
-    const { grantPlan } = await import("@paid/credits/lib/entitlements");
+    const { grantPlan } = await import("@paid/billing/lib/entitlements");
     // A pass exhausted by nine days already taken elsewhere, one left.
     const now = Date.now();
     await grantPlan({

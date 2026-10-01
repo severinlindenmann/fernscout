@@ -1,5 +1,5 @@
 import "server-only";
-import { mayUseAi } from "@paid/credits/lib/aiDays";
+import { mayUseAi } from "@paid/billing/lib/aiDays";
 import { MAX_SPEECH_SECONDS } from "./speech";
 import type { SpeechLanguage } from "./speech";
 import { transcribeAudio } from "./transcribe";

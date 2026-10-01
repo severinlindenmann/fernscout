@@ -19,7 +19,7 @@ export default function GalleryPageContent({
   media: MediaTile[];
   /**
    * Present only for the journal's owner, on a journal with photobook and
-   * credits switched on. The server decides (`page.tsx`, via
+   * billing switched on. The server decides (`page.tsx`, via
    * `paid/photobook/lib/photobook/entry.ts`); this component only renders what it was
    * handed, and the routes the photobook page calls check for themselves
    * rather than trusting either.

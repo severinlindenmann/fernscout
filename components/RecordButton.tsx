@@ -189,7 +189,7 @@ export default function RecordButton({
    * "not checked here", and nothing about this component's behaviour
    * changes; `false` shows a notice and refuses the tap instead of opening
    * the microphone only to have the transcribe route refuse it after the
-   * fact (`mayUseAi`, `@paid/credits/lib/aiDays.ts`) — in the plain
+   * fact (`mayUseAi`, `@paid/billing/lib/aiDays.ts`) — in the plain
    * price-line and `hero` forms; `compact` never did and stays exactly as it
    * was.
    */

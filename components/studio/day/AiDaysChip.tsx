@@ -31,7 +31,7 @@ export default function AiDaysChip({
   username: string;
   status: AiDaysStatus;
   /** The two plans' own numbers, computed server-side from `PLANS` — never
-   *  typed here, so a price change in `paid/credits/lib/plans.ts` cannot
+   *  typed here, so a price change in `paid/billing/lib/plans.ts` cannot
    *  drift from what this sheet says. */
   offers: AiDaysUpgradeOffers;
 }) {

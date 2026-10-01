@@ -20,8 +20,8 @@ export const dynamic = "force-dynamic";
  * price, they are shown one real result. `sampleTakenFor` on the manifest
  * is what stops a second one — the run id is the natural key, since this is
  * a taste of the feature rather than a free tier a script could loop on.
- * Nothing here touches the credit ledger: a row for a free thing would be a
- * lie about the balance, and the abuse control is one-per-run rather than a
+ * Nothing here touches the AI-day count: a row for a free thing would be a
+ * lie about what was used, and the abuse control is one-per-run rather than a
  * rate limit.
  *
  * The same shape as `day/describe-photos` next door, narrowed to one

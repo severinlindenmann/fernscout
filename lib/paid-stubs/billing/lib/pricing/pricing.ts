@@ -2,7 +2,7 @@
 // Public stub: buying credits is not included in this build. The constants
 // below are the published contract values (they appear as literals in
 // /api/v2/openapi.json and in status payloads), mirrored from
-// paid/credits/lib/credits/pricing.ts; the price functions answer zero.
+// paid/billing/lib/pricing/pricing.ts; the price functions answer zero.
 export const MIN_CREDITS = 10;
 export const MAX_CREDITS = 500;
 export const CREDIT_STEP = 10;

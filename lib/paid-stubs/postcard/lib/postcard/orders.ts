@@ -7,7 +7,7 @@ export type PostcardOrder = {
   owner: string;
   status: string;
   provider: string;
-  payload: { trip: string | null; day: string | null; photo: string; recipients: string[]; expiresAt: string; creditsEach: number };
+  payload: { trip: string | null; day: string | null; photo: string; recipients: string[]; expiresAt: string; rappenEach: number };
   createdAt: string;
   updatedAt: string;
 };

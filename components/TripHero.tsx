@@ -110,7 +110,7 @@ export default function TripHero({
   onShowNew?: () => void;
   /**
    * Present only for the journal's owner, on a journal with photobook and
-   * credits switched on — B569. The server decides
+   * billing switched on — B569. The server decides
    * (`app/at/[user]/trips/[trip]/page.tsx`, via `paid/photobook/lib/photobook/entry.ts`); this
    * component only renders what it was handed.
    */

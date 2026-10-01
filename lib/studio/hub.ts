@@ -2,7 +2,7 @@ import "server-only";
 import { listTrash } from "@/lib/dayTrash";
 import { isEnabled } from "@/lib/capabilities";
 import { listAllOrders, listUnfinished, type OrderRow, type UnfinishedPrint } from "@paid/printOrder/lib/orders";
-import { listPayments } from "@paid/credits/lib/payments";
+import { listPayments } from "@paid/billing/lib/payments";
 import { storageFor } from "@/lib/storageQuota";
 import { readersModel } from "@/lib/readers/model";
 import { AS_AUTHOR, getDays, getEntryBySlug } from "@/lib/entries";

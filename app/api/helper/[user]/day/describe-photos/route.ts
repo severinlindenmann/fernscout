@@ -1,7 +1,7 @@
 import path from "node:path";
 import { isEnabled } from "@/lib/capabilities";
-import { DESCRIBE_PHOTO_WIDTH } from "@/lib/helper/credits";
-import { checkAiDay, recordAiDay } from "@paid/credits/lib/aiDays";
+import { DESCRIBE_PHOTO_WIDTH } from "@/lib/helper/limits";
+import { checkAiDay, recordAiDay } from "@paid/billing/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { describeImage, HELPER_MODEL, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
