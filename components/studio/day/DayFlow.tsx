@@ -49,9 +49,11 @@ export default function DayFlow(
     providers: { words: string; speech: string | null };
     /** The helper capability — tidying, titles, captions, receipts. */
     helperOn: boolean;
+    /** B2649 — the plan's AI-days counter, shown in the assistant's row. */
+    aiDays?: ReactNode;
   },
 ) {
-  const { assistantChoice, assistantPossible, consents, providers, helperOn, ...composer } = props;
+  const { assistantChoice, assistantPossible, consents, providers, helperOn, aiDays = null, ...composer } = props;
   const { t, tn } = useI18n();
   const router = useRouter();
   const [assistant, setAssistant] = useState<Assistant | null>(assistantPossible ? assistantChoice : "off");
@@ -62,6 +64,7 @@ export default function DayFlow(
   const [index, setIndex] = useState(0);
   const [saved, setSaved] = useState<Saved[]>([]);
   const [checking, setChecking] = useState(false);
+  const [choiceFailed, setChoiceFailed] = useState(false);
   const user = encodeURIComponent(composer.username);
 
   // A waiting day's photographs, to see whether they fall into parts.
@@ -85,12 +88,15 @@ export default function DayFlow(
   async function choose(next: Assistant) {
     setBusy(true);
     // no-refresh: the choice only steers this flow; nothing on the page reads it.
-    await fetch(`/api/web/${user}/studio/assistant`, {
+    const response = await fetch(`/api/web/${user}/studio/assistant`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ assistant: next }),
     }).catch(() => null);
     setBusy(false);
+    // B2649 — a choice that did not save is not shown as made.
+    setChoiceFailed(!response?.ok);
+    if (!response?.ok) return;
     setAssistant(next);
     setAsking(false);
   }
@@ -139,6 +145,7 @@ export default function DayFlow(
             </BusyButton>
           </div>
         </Bar>
+        {aiDays && <div className="flex flex-wrap items-center">{aiDays}</div>}
         <div className="rounded-2xl bg-surface-subtle px-4 py-3 text-sm leading-6 text-ink-body">
           <p className="font-semibold text-ink-strong">{t("studio.flow.hintTitle")}</p>
           <p>{t("studio.flow.hintBody")}</p>
@@ -195,17 +202,30 @@ export default function DayFlow(
   const part = usingParts ? parts[index] : null;
   return (
     <>
-      {assistantPossible && (
-        <p className="mt-1 text-xs text-ink-secondary">
-          {assistant === "on" ? t("studio.flow.assistantOn") : t("studio.flow.assistantOff")}{" "}
-          <button
-            type="button"
-            className="min-h-11 font-semibold text-ink-strong underline underline-offset-2"
-            onClick={() => (assistant === "on" ? void choose("off") : missingConsent ? setAssistant(null) : void choose("on"))}
-          >
-            {assistant === "on" ? t("studio.flow.turnOff") : t("studio.flow.turnOn")}
-          </button>
-        </p>
+      {(assistantPossible || aiDays) && (
+        <div data-assistant-row className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+          {assistantPossible && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={assistant === "on"}
+              disabled={busy}
+              onClick={() => (assistant === "on" ? void choose("off") : missingConsent ? setAssistant(null) : void choose("on"))}
+              className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3 text-sm font-semibold ${
+                assistant === "on" ? "border-emerald-600/40 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100" : "border-line-strong bg-surface-raised text-ink-secondary"
+              }`}
+            >
+              <span aria-hidden className={`size-2.5 rounded-full ${assistant === "on" ? "bg-emerald-500 ring-4 ring-emerald-500/20" : "bg-ink-faint"}`} />
+              {t("studio.flow.switchLabel")} · {assistant === "on" ? t("studio.flow.switchOn") : t("studio.flow.switchOff")}
+            </button>
+          )}
+          {aiDays}
+          {choiceFailed && (
+            <p role="alert" className="w-full basis-full text-sm text-coral-600">
+              {t("studio.flow.choiceFailed")}
+            </p>
+          )}
+        </div>
       )}
       {usingParts && (
         <ol aria-label={t("studio.flow.partsLabel")} className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -231,6 +251,7 @@ export default function DayFlow(
           key: usingParts ? `part-${index}` : "one",
           photoIds: part ? part.ids : null,
           time: part?.from ?? "",
+          until: part?.to ?? undefined,
           secondEntry: usingParts && index > 0,
           label: usingParts && index < total - 1 ? t("studio.flow.next") : t("studio.flow.check"),
           assistant: assistant === "on",

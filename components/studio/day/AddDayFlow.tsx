@@ -101,7 +101,11 @@ function dateFromPhotos(photos: InboxMediaItem[]): { date: string; count: number
 
 const CHIP =
   "inline-flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-surface-raised px-3 text-left text-sm text-ink-strong hover:bg-surface-subtle";
-const FIELD = "mt-1 block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body";
+// 16px on phones: iOS zooms the page into any field set smaller (B2647).
+const FIELD = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border border-line-strong bg-surface-base px-3 text-base text-ink-body sm:text-sm";
+// B2647 — iOS draws a time input at its own width and height, past its box;
+// drop the native look so it sizes like every other field.
+const TIME_FIELD = `${FIELD} appearance-none [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:min-h-[1.5em]`;
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-ink-secondary";
 const LINK = "min-h-11 text-left text-sm font-semibold text-ink-body underline underline-offset-2";
 
@@ -177,6 +181,8 @@ export default function AddDayFlow({
     key: string;
     photoIds: string[] | null;
     time: string;
+    /** The part's last photo's time — the end of its stretch of route. */
+    until?: string;
     secondEntry: boolean;
     label: string;
     assistant: boolean;
@@ -250,6 +256,8 @@ export default function AddDayFlow({
   const [placeSuggestionDismissed, setPlaceSuggestionDismissed] = useState(false);
 
   const [detailsOpen, setDetailsOpen] = useState(false);
+  // B2645 — what the last tap on the bottom button was stopped by.
+  const [blockedBy, setBlockedBy] = useState<"trip" | "date" | "cost" | null>(null);
   const [extras, setExtras] = useState<DayExtrasValue>(NO_EXTRAS);
   const [busy, setBusy] = useState(false);
   const [saveQueued, setSaveQueued] = useState(false);
@@ -516,6 +524,8 @@ export default function AddDayFlow({
     // silently skipped for a place suggestion that only ever asked once.
     if (!online || !routeRecordingAvailable || !tripId || !date || !placeEmpty || placeSuggestionDismissed || placeAskedFor.current === key) return;
     placeAskedFor.current = key;
+    // B2646 — a suggestion for the previous trip or date never lingers.
+    setPlaceSuggestion(null);
     let cancelled = false;
     fetch(`/api/helper/${encodeURIComponent(username)}/day/place?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -534,10 +544,34 @@ export default function AddDayFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeRecordingAvailable, tripId, date, placeEmpty, online]);
 
+  // ── B2648 — how the day (or this part of it) travelled, from the
+  // owner's own recorded route. Asked when "More details" opens; offered as
+  // chips, never filled in by itself.
+  const [routeTravel, setRouteTravel] = useState<{ mode: string; km: number }[] | null>(null);
+  useEffect(() => {
+    if (!detailsOpen || !online || !routeRecordingAvailable || !tripId || !date) return;
+    let cancelled = false;
+    const span = asPart ? `${asPart.time ? `&from=${asPart.time}` : ""}${asPart.until ? `&to=${asPart.until}` : ""}` : "";
+    fetch(`/api/helper/${encodeURIComponent(username)}/day/travel?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}${span}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { travel?: { modes?: { mode: string; km: number }[] } | null } | null) => {
+        if (!cancelled) setRouteTravel(json?.travel?.modes ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailsOpen, online, routeRecordingAvailable, tripId, date]);
+
   function acceptPlaceSuggestion() {
     if (!placeSuggestion) return;
     editPlace({ location: placeSuggestion.name, country: placeSuggestion.country });
     setPlaceSuggestionDismissed(true);
+    // B2646 — "Use it" is the whole answer: the panel closes and focus
+    // returns to the place chip, which now names the place.
+    setSheet(null);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-chip="place"]')?.focus());
   }
 
   // ── the write ───────────────────────────────────────────────────────
@@ -646,6 +680,9 @@ export default function AddDayFlow({
     if (!saveQueued || uploading > 0) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the queued save fires once the uploads it waited for are in.
     setSaveQueued(false);
+    // B2645 — the photos that just came in can change the day; check again.
+    const blocker = !tripId ? "trip" : !date ? "date" : extras.costs.some(lineProblem) ? "cost" : null;
+    if (blocker) return setBlockedBy(blocker);
     void commit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveQueued, uploading]);
@@ -768,7 +805,7 @@ export default function AddDayFlow({
         )}
         <label className={`mt-2 ${LABEL}`}>
           {t("studio.day.collision.timeLabel")}
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD} />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={TIME_FIELD} />
         </label>
         <StepPrimary
           busy={busy}
@@ -833,6 +870,23 @@ export default function AddDayFlow({
   const inPart = (i: InboxMediaItem) => !asPart?.photoIds || asPart.photoIds.includes(i.id) || selectedIds.includes(i.id) || ownIds.includes(i.id);
   const dayPhotos = split.own.filter(inPart);
   const waitingPhotos = [...split.own.filter((i) => !inPart(i)), ...split.others];
+  // B2646 — the route's place suggestion, shown once: inside the place
+  // panel while it is open, as its own card otherwise.
+  const suggestionCard = placeSuggestion && !placeSuggestionDismissed && placeEmpty ? (
+            <div className="mt-3 rounded-xl border border-action-strong bg-surface-subtle px-4 py-3">
+              <p className="text-sm text-ink-body">
+                {t("studio.day.where.suggestion.body", { name: placeSuggestion.name, country: placeSuggestion.country })}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" onClick={acceptPlaceSuggestion} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-raised">
+                  {t("studio.day.where.suggestion.use")}
+                </button>
+                <button type="button" onClick={() => setPlaceSuggestionDismissed(true)} className="min-h-11 rounded-full px-4 text-sm font-semibold text-ink-secondary">
+                  {t("studio.day.where.suggestion.dismiss")}
+                </button>
+              </div>
+            </div>
+  ) : null;
   const shownPhotos = showAllPhotos ? dayPhotos : dayPhotos.slice(0, 8);
   const tile = (item: InboxMediaItem) => {
     const on = selectedIds.includes(item.id);
@@ -899,11 +953,37 @@ export default function AddDayFlow({
               <span className="block truncate text-sm font-semibold text-ink-strong">
                 {dayNumber ? t("studio.day.chip.dayOf", { trip: trip?.title ?? "", n: String(dayNumber) }) : (trip?.title ?? "")}
               </span>
-              <span className="block text-xs text-ink-secondary">
-                {date ? `${formatLongDate(date, { year: true })} · ${dateSource}` : t("studio.day.date.ask")}
+              <span className={`block text-xs ${date ? "text-ink-secondary" : "font-semibold text-ink-strong"}`}>
+                {date
+                  ? `${formatLongDate(date, { year: true })} · ${dateSource}`
+                  : chosenPhotos.length > 0 && !chosenPhotos.some((i) => i.id in pendingPhotoUrls)
+                    ? tn("studio.day.date.noDateInPhoto", chosenPhotos.length)
+                    : t("studio.day.date.ask")}
               </span>
             </span>
           </button>
+          {/* B2645 — a photo with no date in it: ask, with today one tap away
+              when today is inside the trip. Nothing is filled in by itself. */}
+          {!date && (
+            <div data-date-ask className="mt-2 flex flex-wrap gap-2">
+              {proposedToday && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    pickDate(proposedToday);
+                    setSheet(null);
+                  }}
+                  className="min-h-11 rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action">
+                  {t("studio.day.date.useToday", { date: formatLongDate(proposedToday) })}
+                </button>
+              )}
+              {sheet !== "date" && (
+                <button type="button" onClick={() => setSheet("date")} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong">
+                  {t("studio.day.date.pick")}
+                </button>
+              )}
+            </div>
+          )}
           {sheet === "date" && (
             <div className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
               <p className="text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
@@ -1037,25 +1117,12 @@ export default function AddDayFlow({
             )}
           </div>
 
-          {placeSuggestion && !placeSuggestionDismissed && placeEmpty && (
-            <div className="mt-3 rounded-xl border border-action-strong bg-surface-subtle px-4 py-3">
-              <p className="text-sm text-ink-body">
-                {t("studio.day.where.suggestion.body", { name: placeSuggestion.name, country: placeSuggestion.country })}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button type="button" onClick={acceptPlaceSuggestion} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-raised">
-                  {t("studio.day.where.suggestion.use")}
-                </button>
-                <button type="button" onClick={() => setPlaceSuggestionDismissed(true)} className="min-h-11 rounded-full px-4 text-sm font-semibold text-ink-secondary">
-                  {t("studio.day.where.suggestion.dismiss")}
-                </button>
-              </div>
-            </div>
-          )}
+          {sheet !== "place" && suggestionCard}
 
           {sheet === "place" && (
             <div className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
-              <p className="text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
+              {suggestionCard}
+              <p className="mt-2 text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
               <label className={`mt-3 ${LABEL}`}>
                 {t("studio.day.where.placeLabel")}
                 <input type="text" name="location" value={place.location} onChange={(e) => editPlace({ location: e.target.value })} className={FIELD} />
@@ -1158,36 +1225,55 @@ export default function AddDayFlow({
               <span className="font-semibold text-ink-strong">{t("studio.day.details.summary")}</span>
               <span className="text-xs text-ink-secondary">{t("studio.day.details.hint")}</span>
             </summary>
-            <label className={`mt-2 ${LABEL}`}>
-              {t("studio.day.whatHappened.titleLabel")}
-              <input
-                type="text"
-                name="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("studio.day.whatHappened.titlePlaceholder")}
-                className={FIELD}
-              />
-            </label>
-            <label className={`mt-3 mb-2 ${LABEL}`}>
-              {t("studio.day.field.time")}
-              <input type="time" name="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD} />
-            </label>
+            {/* B2647 — title and time on one row, the time a fixed narrow column. */}
+            <div className="mt-2 mb-2 grid grid-cols-[minmax(0,1fr)_7.5rem] gap-3">
+              <label className={`min-w-0 ${LABEL}`}>
+                {t("studio.day.whatHappened.titleLabel")}
+                <input
+                  type="text"
+                  name="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t("studio.day.whatHappened.titlePlaceholder")}
+                  className={FIELD}
+                />
+              </label>
+              <label className={`min-w-0 ${LABEL}`}>
+                {t("studio.day.field.time")}
+                <input type="time" name="time" value={time} onChange={(e) => setTime(e.target.value)} className={TIME_FIELD} />
+              </label>
+            </div>
             {/* B2233 — costs, how you travelled, tags; blank stays blank.
                 Mounted only while open: the collapsed page has no dropdown. */}
             {detailsOpen && (
               <div className="mb-3">
-                <DayExtras value={extras} onChange={setExtras} currencies={currencies} />
+                <DayExtras value={extras} onChange={setExtras} currencies={currencies} routeTravel={routeTravel} />
               </div>
             )}
           </details>
-          {!date && <p className="mt-3 text-sm text-ink-secondary">{t("studio.day.date.ask")}</p>}
+          {blockedBy && blockedBy === (!tripId ? "trip" : !date ? "date" : extras.costs.some(lineProblem) ? "cost" : null) && (
+            <p role="alert" className="mt-3 text-sm font-semibold text-coral-600">
+              {t(blockedBy === "trip" ? "studio.day.blocked.trip" : blockedBy === "date" ? "studio.day.date.ask" : "studio.day.extras.costIncomplete")}
+            </p>
+          )}
           <StepPrimary
             busy={busy || saveQueued}
             busyLabel={saveQueued ? tn("studio.day.saveWaiting", uploading, { count: String(uploading) }) : t("studio.day.saveBusy")}
-            disabled={!tripId || !date || extras.costs.some(lineProblem)}
             tone="bg-yellow-400 text-yellow-950"
-            onClick={save}
+            // B2645 — never a dead tap: what is still missing is opened,
+            // scrolled to and named instead.
+            onClick={() => {
+              const blocker = !tripId ? "trip" : !date ? "date" : extras.costs.some(lineProblem) ? "cost" : null;
+              setBlockedBy(blocker);
+              if (!blocker) return save();
+              if (blocker === "cost") setDetailsOpen(true);
+              else setSheet("date");
+              requestAnimationFrame(() => {
+                const target = document.querySelector<HTMLElement>(blocker === "cost" ? "[data-cost-line]" : '[data-chip="date"]');
+                target?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+                if (blocker !== "cost") target?.focus();
+              });
+            }}
             label={asPart?.label ?? t("studio.day.save")}
           />
         </>

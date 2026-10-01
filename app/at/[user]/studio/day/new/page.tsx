@@ -90,16 +90,19 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
 
   return (
     <StudioPage username={user} group="write" title={translateIn(locale, "studio.day.title")} lede={translateIn(locale, "studio.day.lede")}>
-      <AiDaysChip
-        username={user}
-        status={aiStatus}
-        offers={{
-          passPrice: chf(PLANS.tripPass.priceChf),
-          passDays: PLANS.tripPass.days,
-          plusPrice: `${chf(PLANS.plus.priceChf)} / ${translateIn(locale, "plans.perYear")}`,
-        }}
-      />
       <DayFlow
+        // B2649 — the AI-days counter sits in the assistant's own row.
+        aiDays={
+          <AiDaysChip
+            username={user}
+            status={aiStatus}
+            offers={{
+              passPrice: chf(PLANS.tripPass.priceChf),
+              passDays: PLANS.tripPass.days,
+              plusPrice: `${chf(PLANS.plus.priceChf)} / ${translateIn(locale, "plans.perYear")}`,
+            }}
+          />
+        }
         // TIX-2 — the whole flow: assistant choice, parts, check, share.
         assistantChoice={readAssistantChoice(user)}
         assistantPossible={isEnabled("helper", user) || speechEnabled}

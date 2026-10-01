@@ -44,7 +44,19 @@ export function extrasToWrite(v: DayExtrasValue): { costs?: object[]; transportM
 }
 
 const LABEL = "block text-xs font-semibold uppercase tracking-wide text-ink-secondary";
-const FIELD = "mt-1 block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body";
+/** The recorder's modes (importers/gps/schema.ts) as a day's own. "car" is
+ *  absent on purpose: the phone cannot tell it from a train or a bus. */
+const ROUTE_TO_ENTRY: Record<string, (typeof TRANSPORT_MODES)[number]> = {
+  on_foot: "walk",
+  bike: "bicycle",
+  bus: "bus",
+  train: "train",
+  tram: "tram",
+  boat: "boat",
+  plane: "flight",
+};
+// The composer's own field look (AddDayFlow FIELD): 16px on phones, B2647.
+const FIELD = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border border-line-strong bg-surface-base px-3 text-base text-ink-body sm:text-sm";
 const LINK = "min-h-11 text-left text-sm font-semibold text-ink-body underline underline-offset-2";
 
 /**
@@ -61,16 +73,22 @@ export default function DayExtras({
   onChange,
   currencies,
   keep = { costs: false, transportMode: false, tags: false },
+  routeTravel = null,
 }: {
   value: DayExtrasValue;
   onChange: (next: DayExtrasValue) => void;
   /** `journalCurrencies`, base first. */
   currencies: string[];
   keep?: { costs: boolean; transportMode: boolean; tags: boolean };
+  /** B2648 — what the owner's own recorded route says about this day (or
+   *  part), longest first, in the recorder's own mode names. Offered, never
+   *  filled in by itself. */
+  routeTravel?: { mode: string; km: number }[] | null;
 }) {
   const { t } = useI18n();
   const [tagDraft, setTagDraft] = useState("");
   const tagId = useId();
+  const modeId = useId();
   // A stored line in a currency the journal no longer lists is still offered.
   const codes = [...new Set([...currencies, ...value.costs.map((c) => c.currency).filter(Boolean)])];
 
@@ -164,9 +182,44 @@ export default function DayExtras({
         </button>
       </fieldset>
 
-      <label className={LABEL}>
-        {t("studio.day.field.transportMode")}
-        <select name="transportMode" value={value.transportMode} onChange={(e) => onChange({ ...value, transportMode: e.target.value })} className={FIELD}>
+      <div>
+        <label htmlFor={modeId} className={LABEL}>
+          {t("studio.day.field.transportMode")}
+        </label>
+        {routeTravel && routeTravel.length > 0 && (
+          <div data-route-travel className="mt-1 rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2">
+            <p className="text-xs text-ink-secondary">{t("studio.day.extras.fromRoute")}</p>
+            {routeTravel.map(({ mode, km }) => {
+              // The phone reports cars, trains and buses all as "car".
+              const choices = mode === "car" ? (["car", "train", "bus"] as const) : ROUTE_TO_ENTRY[mode] ? [ROUTE_TO_ENTRY[mode]] : [];
+              if (choices.length === 0) return null;
+              return (
+                <div key={mode} className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-semibold text-ink-body">
+                    {mode === "car" ? t("studio.day.extras.carOrTrain", { km: String(km) }) : t("studio.day.extras.routeKm", { km: String(km) })}
+                  </span>
+                  {choices.map((choice) => {
+                    const on = value.transportMode === choice;
+                    return (
+                      <button
+                        key={choice}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => onChange({ ...value, transportMode: choice })}
+                        className={`min-h-9 rounded-full border px-3 text-xs font-semibold ${
+                          on ? "border-line-ink bg-action-strong text-on-action" : "border-line-strong text-ink-strong"
+                        }`}
+                      >
+                        {t(`studio.day.transport.${choice}` as TranslationKey)}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <select id={modeId} name="transportMode" value={value.transportMode} onChange={(e) => onChange({ ...value, transportMode: e.target.value })} className={FIELD}>
           {!keep.transportMode && <option value="">{t("studio.day.extras.noTransport")}</option>}
           {TRANSPORT_MODES.map((mode) => (
             <option key={mode} value={mode}>
@@ -174,7 +227,7 @@ export default function DayExtras({
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
       <div>
         <label htmlFor={tagId} className={LABEL}>

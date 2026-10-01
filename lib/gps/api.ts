@@ -1087,7 +1087,10 @@ export function kmByMode(username: string, tripId: string): Partial<Record<Trans
  *  day asked about, but under half a kilometre of it carries a mode — not
  *  worth naming. Otherwise the mode with the most recorded kilometres in
  *  that window, and how many. Never a point, a coordinate or a time. */
-export type PartOfDayTravel = { mode: TransportMode; km: number } | null | undefined;
+/** `mode`/`km` are the stretch with the most kilometres; `modes` lists every
+ *  mode of at least half a kilometre, longest first (B2648 — the composer
+ *  offers each, and asks "car, train or bus?" where the phone says car). */
+export type PartOfDayTravel = { mode: TransportMode; km: number; modes: { mode: TransportMode; km: number }[] } | null | undefined;
 
 /**
  * "What did we do in this part of the day?" — TIX-2's add-a-day flow asking
@@ -1130,7 +1133,11 @@ export function travelForPartOfDay(
     }
   }
   if (!bestMode || bestKm < 0.5) return null;
-  return { mode: bestMode, km: Math.round(bestKm * 10) / 10 };
+  const modes = (Object.keys(totals) as TransportMode[])
+    .map((mode) => ({ mode, km: Math.round((totals[mode] ?? 0) * 10) / 10 }))
+    .filter((m) => m.km >= 0.5)
+    .sort((a, b) => b.km - a.km);
+  return { mode: bestMode, km: Math.round(bestKm * 10) / 10, modes };
 }
 
 /** How long with nothing received, *and* how far the next fix turns out to be
