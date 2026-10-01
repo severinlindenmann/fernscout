@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CreditCard, HardDrive } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -256,6 +256,66 @@ export type StoragePanel = {
 export type PlanPanel = PlanSummary;
 
 /**
+ * Apple's own localized price for one plan, plus the period/renewal note
+ * App Store guideline 3.1.2 requires before a subscription purchase —
+ * B2658. `displayPrice` comes from StoreKit (`loadProducts`), already
+ * localized to the storefront; the period and renewal/non-renewal wording
+ * is this app's own plan rule (`docs/billing.md`), not something StoreKit
+ * reports, so it is translated copy rather than derived from the product.
+ * Renders nothing until the product has loaded — the Buy button still
+ * works without it, same "absent, not broken" shape as everything else
+ * here.
+ */
+function ApplePlanPrice({ plan }: { plan: "pass" | "plus" }) {
+  const { t } = useI18n();
+  const [price, setPrice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const { loadAppleProducts, APPLE_PRODUCT_IDS } = await import("@/components/nativeShell");
+        const products = await loadAppleProducts([APPLE_PRODUCT_IDS[plan]]);
+        if (live) setPrice(products[0]?.displayPrice ?? null);
+      } catch {
+        // No price to show yet; the button still works without it.
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [plan]);
+
+  if (!price) return null;
+  return (
+    <p className="mt-1 max-w-xs text-sm text-ink-secondary">
+      {t(plan === "plus" ? "billing.applePriceYearly" : "billing.applePriceOnce", { price })}
+      {" — "}
+      {t(plan === "plus" ? "billing.appleRenewsNote" : "billing.applePassNote")}
+    </p>
+  );
+}
+
+/** "Terms" and "Privacy", App Store guideline 3.1.2's other requirement
+ *  before a subscription purchase — both point at the one legal page this
+ *  instance has (`/legal`, `lib/legal.ts`); there is no separate terms
+ *  document to link instead. Shown only in the shell, next to Restore —
+ *  B2658. */
+function AppleLegalLinks() {
+  const { t } = useI18n();
+  return (
+    <p className="mt-3 flex gap-4 text-sm">
+      <Link href="/legal" className="font-semibold text-ink-body underline decoration-line-strong underline-offset-2 hover:text-ink-strong">
+        {t("billing.terms")}
+      </Link>
+      <Link href="/legal#privacy" className="font-semibold text-ink-body underline decoration-line-strong underline-offset-2 hover:text-ink-strong">
+        {t("billing.privacy")}
+      </Link>
+    </p>
+  );
+}
+
+/**
  * The plain numbers behind the two buy tiles — B2638. Read from `PLANS`
  * (`@paid/billing/lib/plans`) by the page (a server component), never by
  * this file: see `chf()`'s own comment for why that import cannot cross
@@ -332,6 +392,7 @@ function BuyPlanButton({
       >
         {label}
       </button>
+      {native && <ApplePlanPrice plan={plan} />}
       {state === "failed" && (
         <span role="status" className="mt-1 block text-sm text-coral-600">
           {t("billing.checkoutFailed")}
@@ -717,7 +778,12 @@ function YourPlanPanel({
         </p>
       )}
 
-      {native && <RestoreApplePurchasesButton username={username} />}
+      {native && (
+        <>
+          <RestoreApplePurchasesButton username={username} />
+          <AppleLegalLinks />
+        </>
+      )}
     </div>
   );
 }
@@ -725,19 +791,25 @@ function YourPlanPanel({
 /** "Restore purchases" — App Store guideline 3.1.2: a purchase made on
  *  another device (or after a reinstall) must be recoverable without a new
  *  charge. Shown only in the shell, since it is meaningless on the web —
- *  B2598. */
+ *  B2598. Says how many purchases it actually found (B2658 — it used to say
+ *  "Done." even for zero) and refreshes the panel's own server data so a
+ *  restored plan shows up without a full reload. */
 function RestoreApplePurchasesButton({ username }: { username: string }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<"idle" | "done" | "failed">("idle");
+  const [restored, setRestored] = useState(0);
 
   async function restore() {
     setBusy(true);
     setState("idle");
     try {
       const { restoreApplePurchases } = await import("@/components/nativeShell");
-      await restoreApplePurchases(username);
+      const granted = await restoreApplePurchases(username);
+      setRestored(granted);
       setState("done");
+      router.refresh();
     } catch {
       setState("failed");
     } finally {
@@ -750,7 +822,11 @@ function RestoreApplePurchasesButton({ username }: { username: string }) {
       <button type="button" disabled={busy} onClick={restore} className="font-semibold text-ink-body underline decoration-line-strong underline-offset-2 hover:text-ink-strong disabled:opacity-50">
         {t("billing.restorePurchases")}
       </button>
-      {state === "done" && <span className="ml-2 text-ink-secondary">{t("billing.restoreDone")}</span>}
+      {state === "done" && (
+        <span className="ml-2 text-ink-secondary">
+          {restored > 0 ? tn("billing.restoreCount", restored, { count: String(restored) }) : t("billing.restoreNone")}
+        </span>
+      )}
       {state === "failed" && <span className="ml-2 text-coral-600">{t("billing.checkoutFailed")}</span>}
     </p>
   );
