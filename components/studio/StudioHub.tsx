@@ -256,30 +256,40 @@ export default function StudioHub({
 
   return (
     <StudioPage username={username} back={false} width="wide" title={t("studio.hub.title")}>
-      <FilterInput value={query} onChange={setQuery} className="mt-4" />
+      {/* B2664 — from lg up, two columns: today's things left, the rest as
+          one list on the right. Below lg the two wrappers are plain blocks
+          and the page reads exactly as before. */}
+      <div className="lg:mt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-8">
+      <div data-hub-main className="min-w-0">
+      <FilterInput value={query} onChange={setQuery} className="mt-4 lg:mt-0" />
 
       {!searching && (
         <>
           <h2 id="h-today" className="mt-4 font-display text-lg font-semibold text-ink-strong">
             {t("studio.hub.today.heading")}
           </h2>
-          <div className="mt-2 grid grid-cols-1 items-start gap-3 md:grid-cols-2">
-            <div>
+          <div className="mt-2 grid grid-cols-1 items-start gap-3 md:grid-cols-2 lg:grid-cols-1 lg:gap-4">
+            <div className="lg:mt-2 lg:rounded-[24px] lg:border-[1.5px] lg:border-yellow-600 lg:bg-yellow-50 lg:p-6">
               <Hero {...hero} />
               {hero.altLink && (
                 <Link
                   href={hero.altLink.href}
                   data-hero-alt
-                  className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-ink-strong underline underline-offset-2"
+                  className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-ink-strong underline underline-offset-2
+                             lg:mt-4 lg:rounded-full lg:border-[1.5px] lg:border-yellow-600 lg:px-5 lg:no-underline lg:hover:bg-yellow-100"
                 >
                   {hero.altLink.label}
                 </Link>
               )}
             </div>
-            <section id="write" data-group="write" className="rounded-2xl md:mt-4 border border-line-faint bg-surface-raised px-2.5 py-1.5">
-              <ul className="divide-y divide-line-faint">
+            <section
+              id="write"
+              data-group="write"
+              className="rounded-2xl md:mt-4 border border-line-faint bg-surface-raised px-2.5 py-1.5 lg:mt-0 lg:border-0 lg:bg-transparent lg:p-0"
+            >
+              <ul className="divide-y divide-line-faint lg:grid lg:grid-cols-2 lg:gap-3 lg:divide-y-0">
                 {todayRowsList.map((row) => (
-                  <li key={row.href}>
+                  <li key={row.href} className="lg:rounded-2xl lg:border lg:border-line-faint lg:bg-surface-raised lg:p-2">
                     <HubRow row={row} />
                   </li>
                 ))}
@@ -302,38 +312,40 @@ export default function StudioHub({
         </>
       )}
       {halfDone}
+      </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+      <div data-hub-aside className="min-w-0">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 lg:mt-1">
         <h2 id="h-everything" className="font-display text-lg font-semibold text-ink-strong">
           {t("studio.hub.everything.heading")}
         </h2>
       </div>
       {groups.length > 0 && (
-        <div className="mt-3 grid grid-cols-1 items-start gap-3 md:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 items-start gap-3 md:grid-cols-3 lg:grid-cols-1 lg:gap-0 lg:rounded-2xl lg:border lg:border-line-faint lg:bg-surface-raised lg:p-2">
           {groups.map(({ group, rows }, i) => (
             <EverythingCardShell key={group} group={group} open={isOpen(group)} onToggle={() => toggleOpen(group)} arriveIndex={i}>
               {group === "tripsPeople" && !searching ? (
                 <>
-                  <ul id="plan" className="divide-y divide-line-faint">
+                  <ul id="plan" className="divide-y divide-line-faint lg:divide-y-0">
                     {tripsOnlyRows.map((row) => (
                       <li key={row.href}>
-                        <HubRow row={row} />
+                        <HubRow row={row} dense />
                       </li>
                     ))}
                   </ul>
-                  <ul id="people" className="divide-y divide-line-faint border-t border-line-faint">
+                  <ul id="people" className="divide-y divide-line-faint border-t border-line-faint lg:divide-y-0 lg:border-t-0">
                     {peopleOnlyRows.map((row) => (
                       <li key={row.href}>
-                        <HubRow row={row} />
+                        <HubRow row={row} dense />
                       </li>
                     ))}
                   </ul>
                 </>
               ) : (
-                <ul className="divide-y divide-line-faint">
+                <ul className="divide-y divide-line-faint lg:divide-y-0">
                   {rows.map((row) => (
                     <li key={row.href}>
-                      <HubRow row={row} />
+                      <HubRow row={row} dense />
                     </li>
                   ))}
                 </ul>
@@ -362,6 +374,8 @@ export default function StudioHub({
           arriveIndex={groups.length}
         />
       )}
+      </div>
+      </div>
     </StudioPage>
   );
 }
@@ -468,7 +482,8 @@ function EverythingCardShell({
     <section
       id={group}
       data-group={group}
-      className="fs-arrive scroll-mt-20 rounded-2xl border border-line-faint bg-surface-raised px-2.5 pb-1.5 pt-3"
+      className="fs-arrive scroll-mt-20 rounded-2xl border border-line-faint bg-surface-raised px-2.5 pb-1.5 pt-3
+                 lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:pb-1 lg:pt-2"
       style={{ "--i": arriveIndex } as React.CSSProperties}
     >
       <button
@@ -476,17 +491,17 @@ function EverythingCardShell({
         aria-expanded={open}
         onClick={onToggle}
         // B2600 — no rule under a closed card on phone; desktop always shows its rows.
-        className={`flex w-full items-center gap-2.5 border-b px-1 pb-2.5 text-left ${open ? "border-line-faint" : "border-transparent md:border-line-faint"}`}
+        className={`flex w-full items-center gap-2.5 border-b px-1 pb-2.5 text-left lg:border-b-0 lg:px-1.5 lg:pb-1 ${open ? "border-line-faint" : "border-transparent md:border-line-faint"}`}
       >
         <span
           aria-hidden="true"
-          className="grid size-10 flex-none place-items-center rounded-[11px] border border-line-faint text-ink-strong"
+          className="grid size-10 flex-none place-items-center rounded-[11px] border border-line-faint text-ink-strong lg:size-6 lg:rounded-md lg:[&>svg]:size-3.5"
           style={{ background: `color-mix(in srgb, ${hue} 22%, var(--surface-raised))` }}
         >
           <Icon size={20} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-display text-[19px] font-semibold text-ink-strong">{t(titleKey)}</span>
+          <span className="block font-display text-[19px] font-semibold text-ink-strong lg:font-mono lg:text-[11px] lg:font-medium lg:uppercase lg:tracking-[.07em] lg:text-ink-secondary">{t(titleKey)}</span>
           <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary md:hidden">{t(summaryKey)}</span>
         </span>
         <ChevronDown aria-hidden strokeWidth={2} className={`h-4 w-4 flex-none text-ink-secondary transition-transform md:hidden ${open ? "rotate-180" : ""}`} />
@@ -526,13 +541,14 @@ function JournalAccountSection({
   const rowClass =
     "flex min-h-11 items-center gap-2.5 rounded-[10px] px-1.5 py-2 text-left text-sm font-semibold transition-colors hover:bg-surface-subtle " +
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 " +
-    "md:inline-flex md:min-h-8 md:w-auto md:rounded-full md:px-1 md:py-0 md:hover:bg-transparent md:hover:underline";
+    "md:inline-flex md:min-h-8 md:w-auto md:rounded-full md:px-1 md:py-0 md:hover:bg-transparent md:hover:underline " +
+    "lg:flex lg:min-h-10 lg:w-full lg:rounded-[10px] lg:px-2.5 lg:hover:bg-surface-raised lg:hover:no-underline";
   return (
     <section
       id="journal"
       data-group="journal"
       className="fs-arrive mt-3 rounded-2xl border border-line-faint bg-surface-neutral px-2.5 pb-2.5 pt-3
-                 md:border md:bg-surface-neutral md:px-4 md:py-3"
+                 md:border md:bg-surface-neutral md:px-4 md:py-3 lg:mt-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0"
       style={{ "--i": arriveIndex } as React.CSSProperties}
     >
       <button
@@ -554,14 +570,18 @@ function JournalAccountSection({
         </span>
         <ChevronDown aria-hidden strokeWidth={2} className={`h-4 w-4 flex-none text-ink-secondary transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
+      <p aria-hidden="true" className="mb-1 hidden px-2.5 font-mono text-[11px] font-medium uppercase tracking-[.07em] text-ink-secondary lg:block">
+        {t(titleKey)}
+      </p>
       <ul
         className={`${open ? "flex" : "hidden"} md:flex flex-col divide-y divide-line-faint
-                    md:flex-row md:flex-wrap md:items-center md:divide-y-0 md:gap-x-5 md:gap-y-1.5`}
+                    md:flex-row md:flex-wrap md:items-center md:divide-y-0 md:gap-x-5 md:gap-y-1.5
+                    lg:flex-col lg:flex-nowrap lg:items-stretch lg:gap-0`}
       >
         {rows.map((row) => {
           const off = Boolean(row.reason);
           return (
-            <li key={row.href} className="min-w-0 md:w-auto">
+            <li key={row.href} className="min-w-0 md:w-auto lg:w-full">
               <Link href={row.href} data-row className={`${rowClass} ${off ? "text-ink-faint" : "text-ink-strong"}`}>
                 <row.Icon className="h-4 w-4 flex-none" aria-hidden strokeWidth={2} />
                 <span className="min-w-0">
@@ -586,13 +606,13 @@ function JournalAccountSection({
             </li>
           );
         })}
-        <li className="min-w-0 md:w-auto">
+        <li className="min-w-0 md:w-auto lg:w-full">
           <button type="button" aria-expanded={tileOpen === "export"} onClick={() => toggleTile("export")} className={`${rowClass} text-ink-strong`}>
             <Download className="h-4 w-4 flex-none" aria-hidden strokeWidth={2} />
             {t("me.exportTitle")}
           </button>
         </li>
-        <li className="min-w-0 md:w-auto">
+        <li className="min-w-0 md:w-auto lg:mt-2 lg:w-full">
           <button type="button" aria-expanded={tileOpen === "delete"} onClick={() => toggleTile("delete")} className={`${rowClass} text-coral-600`}>
             <Trash2 className="h-4 w-4 flex-none" aria-hidden strokeWidth={2} />
             {t("me.deleteTitle")}
@@ -611,17 +631,19 @@ function Hero({ href, Icon, title, description, cta }: { href: string; Icon: Luc
       href={href}
       data-hero
       className="mt-4 flex flex-wrap items-start gap-3 rounded-[20px] border-[1.5px] border-yellow-600 bg-yellow-50 p-4
-                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:items-center sm:px-5 sm:py-5"
+                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:items-center sm:px-5 sm:py-5
+                 lg:mt-0 lg:gap-5 lg:border-0 lg:bg-transparent lg:p-0"
     >
       <span
         aria-hidden="true"
-        className="grid size-10 flex-none place-items-center rounded-[11px] border border-line-faint bg-surface-raised text-ink-strong"
+        className="grid size-10 flex-none place-items-center rounded-[11px] border border-line-faint bg-surface-raised text-ink-strong
+                   lg:size-16 lg:rounded-[20px] lg:border-0 lg:bg-yellow-400 lg:[&>svg]:size-7"
       >
         <Icon size={20} />
       </span>
       <span className="min-w-[200px] flex-1">
-        <span className="block font-display text-[23px] font-semibold leading-tight text-ink-strong">{title}</span>
-        <span className="mt-1 block text-sm text-ink-secondary">{description}</span>
+        <span className="block font-display text-[23px] font-semibold leading-tight text-ink-strong lg:text-[30px]">{title}</span>
+        <span className="mt-1 block text-sm text-ink-secondary lg:text-[15px]">{description}</span>
       </span>
       <span className="inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-[15px] font-semibold text-on-action">
         {cta}
@@ -686,7 +708,10 @@ function GroupCard({
   );
 }
 
-function HubRow({ row, compact = false }: { row: Row; compact?: boolean }) {
+/** `dense` (B2664) — the desktop right-hand list: title and chips only from
+ *  lg up; the description stays in the DOM and shows again below lg. A row
+ *  that cannot run still says so with its "off" chip. */
+function HubRow({ row, compact = false, dense = false }: { row: Row; compact?: boolean; dense?: boolean }) {
   const { t } = useI18n();
   const off = Boolean(row.reason);
   const line = row.reason ?? row.description;
@@ -697,7 +722,7 @@ function HubRow({ row, compact = false }: { row: Row; compact?: boolean }) {
       className={`flex flex-wrap items-center gap-x-3 rounded-[10px] px-1.5 py-[7px] transition-colors hover:bg-surface-neutral
                   focus-visible:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
                     compact && !line ? "min-h-11" : "min-h-[52px]"
-                  }`}
+                  } ${dense ? "lg:min-h-10 lg:py-1.5" : ""}`}
     >
       <row.Icon className={`h-5 w-5 flex-none ${off ? "text-ink-faint" : "text-ink-body"}`} aria-hidden strokeWidth={2} />
       <span className="min-w-0 flex-1 basis-0">
@@ -710,7 +735,7 @@ function HubRow({ row, compact = false }: { row: Row; compact?: boolean }) {
           {off ? <Chip>{t("studio.hub.chip.off")}</Chip> : row.fact ? <Chip fact>{row.fact}</Chip> : null}
         </span>
         {line && (
-          <span data-desc className={`mt-0.5 block text-[12.5px] leading-snug text-ink-secondary ${off ? "italic" : ""}`}>
+          <span data-desc className={`mt-0.5 block text-[12.5px] leading-snug text-ink-secondary ${off ? "italic" : ""} ${dense ? "lg:hidden" : ""}`}>
             {line}
           </span>
         )}
@@ -923,7 +948,7 @@ function HalfDone({
     <section
       data-half-done
       aria-labelledby="h-half-done"
-      className="mt-3 rounded-2xl border border-dashed border-navy-500 bg-surface-raised px-3 py-2.5"
+      className="mt-3 rounded-2xl border border-dashed border-navy-500 bg-surface-raised px-3 py-2.5 lg:mt-4 lg:border-solid lg:border-line-faint"
     >
       <h2 id="h-half-done" className="mb-1.5 mt-0.5 font-mono text-[11px] font-medium uppercase tracking-[.06em] text-ink-secondary">
         {t("studio.hub.halfDone")}
