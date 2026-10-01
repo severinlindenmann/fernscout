@@ -249,8 +249,12 @@ describe("the helper routes", () => {
   // own days, once the studio inbox page can show it at all. Same cookie,
   // same owner check as the sixty-nine before it; nothing here re-uploads
   // or moves bytes, only the gallery reference (`attachGallery`).
-  test("there are sixty-five of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(65);
+  // Sixty-four, down from sixty-five: `storage` (its own GET, separate from
+  // `storage/cleanup` and from `account` above) was deleted whole in
+  // B2592 — whatever it answered duplicated `account`'s own storage figure,
+  // and B2592 left `account` as the one route for it.
+  test("there are sixty-four of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(64);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
