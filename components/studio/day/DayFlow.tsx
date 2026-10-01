@@ -52,7 +52,7 @@ export default function DayFlow(
   },
 ) {
   const { assistantChoice, assistantPossible, consents, providers, helperOn, ...composer } = props;
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const router = useRouter();
   const [assistant, setAssistant] = useState<Assistant | null>(assistantPossible ? assistantChoice : "off");
   const [asking, setAsking] = useState(false);
@@ -173,17 +173,17 @@ export default function DayFlow(
               {t("studio.flow.splitNo")}
             </button>
             <button type="button" className={PRIMARY} onClick={() => setSplit(true)}>
-              {t("studio.flow.splitYes", { count: String(parts.length) })}
+              {tn("studio.flow.splitYes", parts.length, { count: String(parts.length) })}
             </button>
           </div>
         </Bar>
         <h2 className="font-display text-lg font-semibold text-ink-strong">
-          {t("studio.flow.splitTitle", { count: String(parts.length) })}
+          {tn("studio.flow.splitTitle", parts.length, { count: String(parts.length) })}
         </h2>
         <ol className="mt-2 space-y-1 text-sm text-ink-body">
           {parts.map((p, i) => (
             <li key={i}>
-              {t("studio.flow.partLine", { index: String(i + 1), range: range(p) || "—", count: String(p.ids.length) })}
+              {tn("studio.flow.partLine", p.ids.length, { index: String(i + 1), range: range(p) || "—", count: String(p.ids.length) })}
             </li>
           ))}
         </ol>

@@ -273,15 +273,15 @@ export default function PublishDayFlow({
                 disabled
                 className="mt-3 min-h-11 cursor-not-allowed rounded-full bg-surface-neutral-strong px-5 text-base font-semibold text-ink-secondary"
               >
-                {(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? t("studio.publish.confirmParts", { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
+                {(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
               </button>
               <p className="mt-2 text-sm text-ink-secondary">{t("studio.publish.offline")}</p>
             </div>
           ) : (
             <ConfirmPanel
-              label={takeDown ? t("edit.takeDown") : also.length > 0 ? t("studio.publish.confirmParts", { count: String(also.length + 1) }) : t("studio.publish.confirm")}
+              label={takeDown ? t("edit.takeDown") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm")}
               question={t(takeDown ? "edit.takeDownQuestion" : "studio.publish.question", { title: nameOf(chosen) })}
-              confirmLabel={(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? t("studio.publish.confirmParts", { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
+              confirmLabel={(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
               busyLabel={t(takeDown ? "studio.publish.busyDown" : "studio.publish.busy")}
               tone={takeDown ? "destructive" : "commit"}
               busy={busy}

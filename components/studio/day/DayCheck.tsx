@@ -6,7 +6,6 @@ import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { useStudioBar } from "@/components/studio/StudioBar";
 import { journalPath } from "@/lib/journalPath";
-import type { TranslationKey } from "@/lib/i18n";
 
 /**
  * "Check your day" — TIX-2, the step after the last part is saved.
@@ -32,7 +31,7 @@ type Photo = { src: string; type: "image" | "video"; caption?: string };
 type Entry = { slug: string; date: string; time?: string; title: string; content: string; location?: string; gallery: Photo[] };
 type Suggestions = {
   status: "waiting" | "working" | "done" | "failed";
-  failure?: string;
+  failure?: "studio.check.planLimit" | "studio.check.failed";
   tidied?: string;
   titles?: string[];
   captions?: Record<string, string>;
@@ -62,6 +61,7 @@ export default function DayCheck({ username, saved, assistant }: { username: str
   const [receipts, setReceipts] = useState<Record<string, string>>({});
   const started = useRef(false);
 
+  // no-refresh: suggestions and the receipt's cost; "Looks good" refreshes before it leaves.
   async function post(path: string, body: unknown) {
     const response = await fetch(`/api/helper/${user}/${path}`, {
       method: "POST",
@@ -248,7 +248,7 @@ export default function DayCheck({ username, saved, assistant }: { username: str
                       : tn("studio.check.workingOn", images.length, { count: String(images.length) })}
                   </p>
                 )}
-                {s.status === "waiting" && assistant && <p className="text-sm text-ink-faint">{t("studio.check.waiting")}</p>}
+                {s.status === "waiting" && assistant && <p className="text-sm text-ink-secondary">{t("studio.check.waiting")}</p>}
 
                 {titleChoices.length > 0 || s.titles || s.status === "done" ? (
                   <fieldset>
@@ -304,7 +304,7 @@ export default function DayCheck({ username, saved, assistant }: { username: str
                   </div>
                 )}
                 {s.failure && (
-                  <p className="text-sm text-ink-secondary">{t(s.failure as TranslationKey)}</p>
+                  <p className="text-sm text-ink-secondary">{t(s.failure)}</p>
                 )}
                 {s.captions && Object.keys(s.captions).length > 0 && (
                   <label className="flex min-h-11 items-center gap-3 text-sm text-ink-body">
