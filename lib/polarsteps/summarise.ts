@@ -12,7 +12,7 @@
  * never anything leaves the browser.
  */
 import { readZipEntryText, ZipError, type ZipEntry } from "@/lib/zip/readZip";
-import type { PolarstepsTrip } from "@/importers/trips/polarsteps";
+import { parsePolarstepsTrip, type PolarstepsTrip } from "@/importers/trips/polarsteps";
 import { JSON_BODY_MAX_BYTES } from "@/lib/api/jsonBody";
 
 const TRIP_JSON = /^trip\/([^/]+)\/trip\.json$/;
@@ -41,10 +41,11 @@ export type DiscoverResult = {
  * a trip whose `start_date`/`end_date` are absent — a confirmed real-export
  * quirk (B2432). Returns `null` when the trip has no steps with a time. */
 export function tripDateRange(trip: PolarstepsTrip): { start: string; end: string } | null {
-  const times = trip.all_steps.map((s) => s.start_time).filter((t): t is number => typeof t === "number");
-  if (times.length === 0) return null;
-  const toDate = (t: number) => new Date(t * 1000).toISOString().slice(0, 10);
-  return { start: toDate(Math.min(...times)), end: toDate(Math.max(...times)) };
+  // The importer's own local dates, so the preview names exactly the days
+  // the import will write — never the UTC date of an evening step.
+  const days = parsePolarstepsTrip(trip).days;
+  if (days.length === 0) return null;
+  return { start: days[0].date, end: days[days.length - 1].date };
 }
 
 /** Every trip a zip's entry index names, with its photo/video counts and

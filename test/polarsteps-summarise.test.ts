@@ -63,6 +63,12 @@ describe("tripDateRange", () => {
   test("derives the range from steps when start_date/end_date are absent", () => {
     expect(tripA.start_date).toBeUndefined();
     const range = tripDateRange(tripA);
-    expect(range).toEqual({ start: "2026-04-15", end: "2026-05-02" });
+    // The last step is 23:30 in New York — 2 May in UTC, 1 May where it happened.
+    expect(range).toEqual({ start: "2026-04-15", end: "2026-05-01" });
+  });
+
+  test("names the local dates the import writes, not the UTC ones", () => {
+    // 05:00 in Tokyo is still 10 July in UTC; the import files it on the 11th.
+    expect(tripDateRange(tripB)).toEqual({ start: "2026-07-11", end: "2026-07-12" });
   });
 });
