@@ -3122,7 +3122,7 @@
   "studio.location.route.empty": "Még nincs felvétel. Nyiss meg egy utat a stúdióban az iPhone-odon, és kapcsold be az „Útvonal rögzítése” funkciót.",
   "studio.location.route.mode.onFoot": "gyalog",
   "studio.location.route.mode.bike": "biciklivel",
-  "studio.location.route.mode.car": "autóval",
+  "studio.location.route.mode.car": "autóval, vonattal vagy busszal",
   "studio.location.route.mode.bus": "busszal",
   "studio.location.route.mode.train": "vonattal",
   "studio.location.route.mode.tram": "villamossal",

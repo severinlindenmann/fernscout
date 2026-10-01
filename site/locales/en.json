@@ -3135,7 +3135,7 @@
   "studio.location.route.empty": "Nothing recorded yet. Open a trip in the studio on your iPhone and turn on Record my route.",
   "studio.location.route.mode.onFoot": "on foot",
   "studio.location.route.mode.bike": "by bike",
-  "studio.location.route.mode.car": "by car",
+  "studio.location.route.mode.car": "by car, train or bus",
   "studio.location.route.mode.bus": "by bus",
   "studio.location.route.mode.train": "by train",
   "studio.location.route.mode.tram": "by tram",

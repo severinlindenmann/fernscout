@@ -3120,7 +3120,7 @@
   "studio.location.route.empty": "Rien d’enregistré pour l’instant. Ouvre un voyage dans le studio sur ton iPhone et active « Enregistrer mon itinéraire ».",
   "studio.location.route.mode.onFoot": "à pied",
   "studio.location.route.mode.bike": "à vélo",
-  "studio.location.route.mode.car": "en voiture",
+  "studio.location.route.mode.car": "en voiture, train ou bus",
   "studio.location.route.mode.bus": "en bus",
   "studio.location.route.mode.train": "en train",
   "studio.location.route.mode.tram": "en tram",

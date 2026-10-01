@@ -3120,7 +3120,7 @@
   "studio.location.route.empty": "Ancora nessuna registrazione. Apri un viaggio nello studio sul tuo iPhone e attiva Registra il mio percorso.",
   "studio.location.route.mode.onFoot": "a piedi",
   "studio.location.route.mode.bike": "in bicicletta",
-  "studio.location.route.mode.car": "in auto",
+  "studio.location.route.mode.car": "in auto, treno o autobus",
   "studio.location.route.mode.bus": "in autobus",
   "studio.location.route.mode.train": "in treno",
   "studio.location.route.mode.tram": "in tram",

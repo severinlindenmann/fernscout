@@ -3120,7 +3120,7 @@
   "studio.location.route.empty": "Noch nichts aufgezeichnet. Öffne eine Reise im Studio auf deinem iPhone und schalte „Route aufzeichnen“ ein.",
   "studio.location.route.mode.onFoot": "zu Fuß",
   "studio.location.route.mode.bike": "mit dem Velo",
-  "studio.location.route.mode.car": "mit dem Auto",
+  "studio.location.route.mode.car": "mit Auto, Zug oder Bus",
   "studio.location.route.mode.bus": "mit dem Bus",
   "studio.location.route.mode.train": "mit dem Zug",
   "studio.location.route.mode.tram": "mit dem Tram",
