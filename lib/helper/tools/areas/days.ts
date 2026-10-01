@@ -385,9 +385,8 @@ export const DAYS_TOOLS: readonly Tool[] = [
       const found = resolveDay(username, args);
       return {
         sentence: say("agent.tool.draftWords", {
-          credits: "1",
           // B1107: the resolved day is no longer drawn, so the sentence says
-          // which day this credit is being spent on.
+          // which day this spends an AI day on.
           date: found?.entry.date ?? args.date ?? "",
         }),
         accept: say("agent.tool.draftWordsAccept"),

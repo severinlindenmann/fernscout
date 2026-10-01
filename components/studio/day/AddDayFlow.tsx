@@ -1091,7 +1091,6 @@ export default function AddDayFlow({
           </div>
           <p className="mt-1 text-xs text-ink-secondary">
             {t("studio.day.whatHappened.nothingInvented")}
-            {speech && ` ${t("studio.day.mic.price")}`}
           </p>
           {/* B2236 — the quiet way back to Speak once it isn't the answer. */}
           <RatherTalk username={username} speech={speech} tellBy={tellByNow} />
