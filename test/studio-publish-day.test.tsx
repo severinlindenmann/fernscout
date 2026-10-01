@@ -125,7 +125,7 @@ describe("PublishDayFlow", () => {
       root!.render(
         <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
           <StudioBarProvider username={OWNER}>
-            <PublishDayFlow username={OWNER} rows={[ROW]} chosen={chosen} missing={false} takeDown={false} canTell={false} {...extra} />
+            <PublishDayFlow username={OWNER} rows={[ROW]} chosen={chosen} missing={false} takeDown={false} {...extra} />
           </StudioBarProvider>
         </LocaleProvider>,
       );
