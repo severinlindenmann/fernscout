@@ -88,7 +88,7 @@ describe("TripPicker", () => {
 
 describe("?from=hub", () => {
   const people = () => (
-    <PeopleFlow username="alex" trips={[{ id: "alps", title: "Alps" }]} defaultTripId="alps" photoConsent={false} photoCredits={0} />
+    <PeopleFlow username="alex" trips={[{ id: "alps", title: "Alps" }]} defaultTripId="alps" photoConsent={false} />
   );
   const counter = () => container.textContent?.match(/(\d) of (\d)/)?.slice(1).join("/") ?? null;
 

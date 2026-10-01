@@ -3,7 +3,6 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import PeopleFlow from "@/components/studio/people/PeopleFlow";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { TRAVELLERS_FROM_PHOTO_CREDITS } from "@/lib/helper/model";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { listContacts, normaliseEmail } from "@/lib/contacts";
@@ -74,7 +73,6 @@ export default async function StudioPeoplePage({
         defaultTripId={current?.id ?? null}
         initialName={typeof name === "string" ? name : undefined}
         photoConsent={photoConsent}
-        photoCredits={TRAVELLERS_FROM_PHOTO_CREDITS}
         people={people}
       />
     </StudioPage>

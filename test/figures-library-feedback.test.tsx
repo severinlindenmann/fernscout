@@ -67,7 +67,6 @@ function render(figures: FigureDoc[], journalSet: string[] = [], trips: FigureTr
             initialJournalSet={journalSet}
             trips={trips}
             photoConsent={false}
-            photoCredits={0}
           />
         </StudioBarProvider>
       </LocaleProvider>,

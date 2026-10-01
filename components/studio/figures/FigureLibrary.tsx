@@ -112,7 +112,6 @@ export default function FigureLibrary({
   initialJournalSet,
   trips: initialTrips,
   photoConsent,
-  photoCredits,
 }: {
   username: string;
   initialFigures: FigureDoc[];
@@ -123,7 +122,6 @@ export default function FigureLibrary({
   initialJournalSet: string[];
   trips: FigureTripRow[];
   photoConsent: boolean;
-  photoCredits: number;
 }) {
   const { t, tn } = useI18n();
   const router = useRouter();
@@ -293,7 +291,6 @@ export default function FigureLibrary({
           initial={null}
           person={view.person}
           photoConsent={photoConsent}
-          photoCredits={photoCredits}
           existingIds={figures.map((f) => f.id)}
           onSaved={(doc) => {
             upsertFigure(doc);
@@ -319,7 +316,6 @@ export default function FigureLibrary({
           initial={figure}
           person={null}
           photoConsent={photoConsent}
-          photoCredits={photoCredits}
           existingIds={figures.map((f) => f.id)}
           onSaved={(doc) => {
             upsertFigure(doc);

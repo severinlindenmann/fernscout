@@ -13,7 +13,6 @@ export type PhotobookPayload = {
   };
   pages: number;
   volumes: number;
-  credits: number;
   files?: string[];
   pruned?: true;
 };

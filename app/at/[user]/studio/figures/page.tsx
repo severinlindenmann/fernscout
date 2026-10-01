@@ -5,7 +5,6 @@ import FigureLibrary from "@/components/studio/figures/FigureLibrary";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts } from "@/lib/contacts";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { TRAVELLERS_FROM_PHOTO_CREDITS } from "@/lib/helper/model";
 import { MAX_FIGURES_LIMIT, figureModifiedAt, figureTripRows, listFiguresPage } from "@/lib/figures";
 import { journalV2Fields } from "@/lib/journals";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
@@ -75,7 +74,6 @@ export default async function StudioFiguresPage({ params }: PageProps<"/at/[user
         initialJournalSet={journalSet}
         trips={trips}
         photoConsent={photoConsent}
-        photoCredits={TRAVELLERS_FROM_PHOTO_CREDITS}
       />
     </StudioPage>
   );
