@@ -447,6 +447,11 @@ export default function MapPageContent({
   useEffect(() => {
     const map = streetMapInstance;
     if (!map) return;
+    // The canvas runs on under the phone's day sheet; as the map's own
+    // padding the sheet moves the camera's centre — the point every zoom
+    // keeps still — into the part still showing, so a zoom-out lands the
+    // globe there rather than behind the sheet (B2618).
+    map.setPadding({ top: 0, right: 0, left: 0, bottom: sheetInset });
     const redraw = applyStreetOverlay(
       map,
       {
@@ -465,7 +470,8 @@ export default function MapPageContent({
         // frames around.
         // The bottom also clears the legend row and the town label drawn
         // under each marker, or the southernmost day sits under them.
-        padding: { top: 80, bottom: sheetInset + 96, left: 56, right: 56 },
+        // `sheetInset` itself is already the map's own padding (above).
+        padding: { top: 80, bottom: 96, left: 56, right: 56 },
       },
       streetMarkersRef.current,
     );

@@ -891,6 +891,24 @@ export default function SlideShow({
           )
         )}
 
+        {/* The next day's photo, fetched while this slide (and the travel
+            step after it) is on screen — B2632: each slide used to start its
+            own download only once it mounted, so it opened on a dark card
+            for a second or more. Same component and props as the slide
+            itself, so the browser fetches the very URL the slide will ask
+            for. */}
+        {cut === "narrated" && !atEndCard && narratedSlides[index + 1]?.photo && (
+          <div aria-hidden className="pointer-events-none invisible absolute inset-0">
+            <PresentedPhoto
+              item={narratedSlides[index + 1].photo!}
+              alt=""
+              priority
+              isPortraitFrame={isPortraitFrame}
+              fit="cover"
+            />
+          </div>
+        )}
+
         {/* Story-style tap/hold/swipe layer, full-frame and BELOW the chrome
             in DOM order (and so in stacking) — a tap that lands on a real
             button is a click on that button, never a gesture on this. Absent
