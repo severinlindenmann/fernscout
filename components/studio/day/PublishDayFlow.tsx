@@ -59,6 +59,7 @@ export default function PublishDayFlow({
   missing,
   takeDown,
   tell = null,
+  also = [],
   blank = [],
   readers = null,
 }: {
@@ -71,6 +72,8 @@ export default function PublishDayFlow({
   /** TIX-6 — who this day could reach, by reader group, and what the owner
    *  chose last time on this trip. Null on the take-down list. */
   tell?: (TellProps & { choice: { groups: string[] | null; mail: boolean } | null }) | null;
+  /** TIX-2 — more parts of the chosen date, going up together with it. */
+  also?: PublishRow[];
   /** B2192 — the chosen draft's declinables still blank (`blankFieldsOf`). */
   blank?: string[];
   /** B2192 — its readers by name (`readersOf`); `null` where it is "anyone". */
@@ -123,6 +126,20 @@ export default function PublishDayFlow({
       ...(declineOpen.length > 0 ? { declineOpen } : {}),
       ...(!takeDown && tell ? { tell: { groups: tellGroups, mail: tellMail && (counts?.mailable ?? 0) > 0 } } : {}),
     });
+    // TIX-2 — the other parts of this date go up first and tell nobody; the
+    // chosen one goes last and tells whoever was picked, once — its day page
+    // shows every part of the date.
+    for (const extra of takeDown ? [] : also) {
+      const quiet = await fetch(
+        `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(extra.tripId)}/days/${encodeURIComponent(extra.slug)}/publish`,
+        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(tell ? { tell: { groups: [], mail: false } } : {}) },
+      ).catch(() => null);
+      if (!quiet?.ok) {
+        setBusy(false);
+        router.refresh();
+        return setError(t("studio.publish.failed"));
+      }
+    }
     const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }).catch(() => null);
     setBusy(false);
     if (response?.ok) {
@@ -194,6 +211,16 @@ export default function PublishDayFlow({
         <p className="text-sm text-ink-secondary">
           {chosen.tripTitle} · {formatLongDate(chosen.date)} · {tn("studio.publish.photos", chosen.photos, { count: String(chosen.photos) })}
         </p>
+        {also.length > 0 && (
+          <div data-also={also.length} className="mt-2 text-sm text-ink-body">
+            <p className="font-semibold text-ink-strong">{tn("studio.publish.parts", also.length + 1, { count: String(also.length + 1) })}</p>
+            <ul className="mt-1 list-disc pl-5">
+              {[chosen, ...also].map((row) => (
+                <li key={row.slug}>{nameOf(row)}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <Link href={dayHref(chosen)} className="mt-2 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
           {t("studio.publish.preview")}
         </Link>

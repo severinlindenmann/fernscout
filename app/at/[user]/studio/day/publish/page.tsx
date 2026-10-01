@@ -28,7 +28,7 @@ export default async function StudioPublishDayPage({
 }: PageProps<"/at/[user]/studio/day/publish">) {
   const { user } = await params;
   await requireStudioOwner(user);
-  const { day, trip, list } = await searchParams;
+  const { day, trip, list, also } = await searchParams;
   const takeDown = list === "published";
 
   const rows = daysToPublish(user, takeDown ? "published" : "draft");
@@ -39,6 +39,10 @@ export default async function StudioPublishDayPage({
   const blank = chosen && !takeDown ? blankFieldsOf(user, chosen) : [];
   const readers = chosen && !takeDown ? await readersOf(user, chosen) : null;
   // TIX-6 — who this day would reach, by reader group, and last time's pick.
+  // TIX-2 — the other parts of the same date the add-a-day flow just wrote,
+  // published together with the chosen one (drafts on the same trip only).
+  const alsoSlugs = typeof also === "string" && chosen && !takeDown ? also.split(",").filter(Boolean) : [];
+  const alsoRows = rows.filter((r) => chosen && r.tripId === chosen.tripId && r.slug !== chosen.slug && alsoSlugs.includes(r.slug));
   const tell =
     chosen && !takeDown
       ? {
@@ -63,6 +67,7 @@ export default async function StudioPublishDayPage({
         missing={Boolean(asked) && !chosen}
         takeDown={takeDown}
         tell={tell}
+        also={alsoRows}
         blank={blank}
         readers={readers}
       />
