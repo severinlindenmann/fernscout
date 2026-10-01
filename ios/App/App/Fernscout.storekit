@@ -27,7 +27,13 @@
   "subscriptionGroups" : [
     {
       "id" : "00000000-0000-0000-0000-000000000002",
-      "localizations" : [],
+      "localizations" : [
+        {
+          "description" : "AI for 100 travel days a year, 3 printed postcards included, CHF 10 off every photobook.",
+          "displayName" : "Fernscout Plus",
+          "locale" : "en_US"
+        }
+      ],
       "name" : "Fernscout Plus",
       "subscriptions" : [
         {
