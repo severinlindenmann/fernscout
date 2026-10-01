@@ -31,9 +31,6 @@ import {
   instanceStatus,
   journalStatus,
   figureDoc,
-  purchaseCreate,
-  purchaseDoc,
-  ledgerRow,
   errorEnvelope,
   geocodeRequest,
   geocodeResponse,
@@ -82,7 +79,6 @@ import {
   SKIN,
 } from "../../travellers/vocabulary";
 import { BOOK_SIZES, COVER_TYPES } from "@paid/photobook/lib/photobook/spec";
-import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS, POSTCARD_CREDITS } from "@paid/credits/lib/credits/pricing";
 import { HELPER_PROVIDER, TRAVELLERS_FROM_PHOTO_CREDITS } from "../../helper/model";
 import { IMPORT_KINDS } from "../../gps/api";
 import { PAID_AREAS } from "@paid/manifest";
@@ -292,10 +288,6 @@ const storageDoc = z.strictObject({
     bytes: z.number(),
     files: z.number(),
   }),
-  extension: z.strictObject({
-    credits: z.literal(EXTRA_STORAGE_CREDITS),
-    addsBytes: z.literal(EXTRA_STORAGE_BYTES),
-  }),
 });
 
 const figurePresets = z.strictObject({
@@ -329,7 +321,9 @@ const postcardRecipient = z.strictObject({
 });
 
 const postcardRecipients = z.strictObject({
-  creditsEach: z.literal(POSTCARD_CREDITS),
+  // A historical field name (B2592 deleted credits) — the owner's real
+  // per-plan rappen price for one postcard, never a flat figure.
+  creditsEach: z.number().int().nonnegative(),
   recipients: z.array(postcardRecipient),
   note: z.string().optional(),
 });
@@ -493,8 +487,6 @@ const dayCreatedFirst = z.object({ ...dayDoc.shape, next: z.string().optional() 
 const tripsList = z.strictObject({ trips: z.array(tripDoc), next_cursor: z.string().optional() });
 const daysList = z.strictObject({ trip: z.string(), days: z.array(dayDoc), next_cursor: z.string().optional() });
 const mediaList = z.strictObject({ items: z.array(mediaItem), next_cursor: z.string().optional() });
-const purchasesList = z.strictObject({ purchases: z.array(purchaseDoc), next_cursor: z.string().nullable() });
-const ledgerList = z.strictObject({ ledger: z.array(ledgerRow), next_cursor: z.string().nullable() });
 const figuresList = z.strictObject({ figures: z.array(figureDoc), next_cursor: z.string().optional() });
 
 // ── the sync surface (B1495) — a journal's own folder, mirrorable ────────
@@ -970,7 +962,7 @@ function buildPaths(): Record<string, PathItem> {
     get: {
       summary: "Where this journal's storage is going.",
       responses: {
-        ...jsonResponse(200, storageDoc, "usage, breakdown, what could be reclaimed, and the price of more"),
+        ...jsonResponse(200, storageDoc, "usage, breakdown and what could be reclaimed"),
         ...refusalResponses([...authRefusals, outOfScope(), noSuchJournal()]),
       },
     },
@@ -1356,7 +1348,6 @@ function buildPaths(): Record<string, PathItem> {
           ref("stale_document", 409, "the day changed while the publish was checked; nothing written"),
           ref("invalid_request", 400, "includes declineTracked naming a field that is not blank (details.refused)"),
           ref("incomplete_day", 422),
-          ref("no_credits", 402),
         ]),
       },
     },
@@ -1390,7 +1381,6 @@ function buildPaths(): Record<string, PathItem> {
           ref("not_published", 409),
           ref("test_content", 409),
           ref("invalid_request", 400),
-          ref("no_credits", 402),
         ]),
       },
     },
@@ -1669,47 +1659,6 @@ function buildPaths(): Record<string, PathItem> {
           ref("model_failed", 502),
         ]),
       },
-    },
-  };
-
-  // ── money ───────────────────────────────────────────────────────────
-  paths["/api/v2/{user}/purchases"] = {
-    get: {
-      summary: "This journal's purchase history, paged.",
-      responses: { ...jsonResponse(200, purchasesList, "one page of purchases"), ...refusalResponses([...ownerRefusals, ref("credits_disabled", 404)]) },
-    },
-  };
-  paths["/api/v2/{user}/purchases/{id}"] = {
-    get: {
-      summary: "One purchase.",
-      responses: {
-        ...jsonResponse(200, purchaseDoc, "the purchase"),
-        ...refusalResponses([...ownerRefusals, ref("credits_disabled", 404), ref("unknown_payment", 404)]),
-      },
-    },
-    put: {
-      summary:
-        "Propose buying credits at a client-chosen id. Files a pending transaction and mails the owner — grants nothing itself.",
-      requestBody: jsonBody(purchaseCreate, "the amount of credits wanted"),
-      responses: {
-        ...jsonResponse(201, purchaseDoc, "created; mail sent"),
-        ...jsonResponse(200, purchaseDoc, "the same id was already this exact amount — a no-op re-read"),
-        ...refusalResponses([
-          ...ownerRefusals,
-          ref("credits_disabled", 404),
-          ref("too_many_requests", 429),
-          ref("invalid_amount", 400),
-          ref("no_owner_address", 409),
-          ref("no_database", 503),
-          ref("conflict", 409, "the id exists with a different amount"),
-        ]),
-      },
-    },
-  };
-  paths["/api/v2/{user}/credits/ledger"] = {
-    get: {
-      summary: "This journal's credit ledger, paged.",
-      responses: { ...jsonResponse(200, ledgerList, "one page of ledger rows"), ...refusalResponses([...ownerRefusals, ref("credits_disabled", 404)]) },
     },
   };
 

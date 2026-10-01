@@ -173,7 +173,7 @@ beforeEach(async () => {
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
+      features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
   writeTripFixture("alex", {
@@ -424,7 +424,7 @@ describe("a proposal chained without the model — B926", () => {
       path.join(dir, "config.json"),
       JSON.stringify({
         site: { name: "T", url: "https://t.test" },
-        features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } },
+        features: { auth: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } },
       }),
     );
     clearConfigCache();

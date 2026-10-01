@@ -115,7 +115,6 @@ beforeEach(async () => {
   );
   writeConfig({
     auth: { enabled: true },
-    credits: { enabled: true },
     helper: { enabled: true },
   });
   await migrateToLatest(await getDatabase());
@@ -309,7 +308,7 @@ describe("what it costs", () => {
 
 describe.skipIf(!hasPaid())("B2591 — AI days, with billing on", () => {
   beforeEach(async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
   });
 
@@ -347,7 +346,7 @@ describe.skipIf(!hasPaid())("B2591 — AI days, with billing on", () => {
 
 describe("with the capability off", () => {
   test("the route refuses rather than failing", async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, });
     const refused = await read(await call());
     expect(refused.status).toBe(404);
     expect(refused.body.error).toBe("helper_unavailable");

@@ -1,7 +1,7 @@
 // GET where this journal's space is going — B1622, phase 2 step 4
 // (money.md §2.6), replacing the GET half of
-// app/api/v1/[user]/storage/route.ts. The POST half (buying more) is the
-// owner's own, cookie-only, at /api/web/{user}/storage/purchases/{id}.
+// app/api/v1/[user]/storage/route.ts. There is no credit-funded way to buy
+// more any more (B2592); a plan's own storage ceiling is set at checkout.
 //
 // Bearer, any scope — money.md's open question 4, adopted: a trip-scoped
 // token cannot see another trip's bytes in `breakdown`, but it can still see
@@ -9,7 +9,6 @@
 // upload batch it cannot finish.
 import { describeScope } from "@/lib/auth";
 import { resolveBearer, outOfScopeRefusal, ownsUser } from "@/lib/api/v2/auth";
-import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS } from "@paid/credits/lib/credits/pricing";
 import { cleanupPlan } from "@/lib/storageCleanup";
 import { storageBreakdown, storageFor } from "@/lib/storageQuota";
 import { fail, ok } from "@/lib/api/v2/route";
@@ -42,6 +41,5 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
     ...usage,
     breakdown: rows,
     reclaimable: await cleanupPlan(user),
-    extension: { credits: EXTRA_STORAGE_CREDITS, addsBytes: EXTRA_STORAGE_BYTES },
   });
 }

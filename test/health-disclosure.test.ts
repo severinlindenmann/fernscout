@@ -182,7 +182,7 @@ describe("what a stranger is told", () => {
       JSON.stringify({
         site: { name: "R", url: "https://example.test", defaultUser: PUBLIC_JOURNAL },
         users: { reserved: [] },
-        features: { mail: { enabled: true, transport: "file" }, credits: { enabled: true } },
+        features: { mail: { enabled: true, transport: "file" }, },
       }),
     );
     // Credits needs a database to count as enabled at the server level; without

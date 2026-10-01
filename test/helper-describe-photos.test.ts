@@ -185,7 +185,7 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } });
+  writeConfig({ auth: { enabled: true }, helper: { enabled: true } });
   await migrateToLatest(await getDatabase());
   await grant("alex", 10);
 });
@@ -526,7 +526,7 @@ describe("what is sent", () => {
 describe("with the capability off", () => {
   test("the route refuses rather than failing", async () => {
     await writeDayWithPhotos(2);
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, });
     const refused = await read(await call());
     expect(refused.status).toBe(404);
     expect(refused.body.error).toBe("helper_unavailable");
@@ -556,7 +556,7 @@ describe("bearer tokens", () => {
 
 describe.skipIf(!hasPaid())("B2591 — AI days, with billing on", () => {
   beforeEach(async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     await consent("photos");
   });
 

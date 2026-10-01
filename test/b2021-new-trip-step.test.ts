@@ -39,7 +39,7 @@ beforeEach(async () => {
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "F", url: "https://example.test" },
-      features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
+      features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
   fs.mkdirSync(path.join(dir, "b2021trav", "trips"), { recursive: true });

@@ -137,7 +137,6 @@ beforeEach(async () => {
   );
   writeConfig({
     auth: { enabled: true },
-    credits: { enabled: true },
     helper: { enabled: true },
   });
   await migrateToLatest(await getDatabase());
@@ -270,7 +269,7 @@ describe("what it costs", () => {
   });
 
   test("the capability off is a 404, not a fault", async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, });
     const id = stage("export.csv", STATEMENT);
     const off = await read(await POST(json("/api/helper/owner/statement", { inbox: id }), params));
     expect(off.status).toBe(404);
@@ -304,7 +303,7 @@ describe("a location export", () => {
   });
 
   test("it needs no model on the instance at all", async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, });
     const id = stage("history.jsonl", TRACK);
     const done = await read(await importRoute(json("/api/helper/owner/import", { inbox: id }), params));
     expect(done.status).toBe(200);

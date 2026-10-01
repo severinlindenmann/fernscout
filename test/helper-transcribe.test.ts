@@ -126,7 +126,6 @@ beforeEach(async () => {
   writeJournal(["en"]);
   writeServerConfig({
     auth: { enabled: true },
-    credits: { enabled: true },
     transcription: { enabled: true, backend: "dry-run" },
   });
   await migrateToLatest(await getDatabase());
@@ -231,7 +230,6 @@ describe("consent", () => {
   test("consenting to words or photographs is not consent to send a voice", async () => {
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       helper: { enabled: true },
       transcription: { enabled: true, backend: "dry-run" },
     });
@@ -260,7 +258,6 @@ describe("consent", () => {
     process.env.DEEPGRAM_API_KEY = "not-a-real-key";
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       transcription: { enabled: true, backend: "deepgram" },
     });
 
@@ -337,7 +334,6 @@ describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
   beforeEach(async () => {
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       transcription: { enabled: true, backend: "dry-run" },
       billing: { enabled: true },
     });
@@ -518,7 +514,6 @@ describe("what the deepgram backend asks for", () => {
     process.env.DEEPGRAM_API_KEY = "dummy-key";
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       transcription: { enabled: true, backend: "deepgram" },
     });
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -561,7 +556,6 @@ describe("which Deepgram host the audio goes to — B2472", () => {
     process.env.DEEPGRAM_API_KEY = "dummy-key";
     writeServerConfig({
       auth: { enabled: true },
-      credits: { enabled: true },
       transcription: { enabled: true, backend: "deepgram" },
     });
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -597,7 +591,7 @@ describe("which Deepgram host the audio goes to — B2472", () => {
 
 describe("with the capability off", () => {
   test("the route answers 404 rather than failing", async () => {
-    writeServerConfig({ auth: { enabled: true }, credits: { enabled: true } });
+    writeServerConfig({ auth: { enabled: true }, });
     const refused = await read(await call());
     expect(refused.status).toBe(404);
     expect(refused.body.error).toBe("transcription_unavailable");

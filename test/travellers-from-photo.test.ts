@@ -137,7 +137,7 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } });
+  writeConfig({ auth: { enabled: true }, helper: { enabled: true } });
   writeTrip();
   await migrateToLatest(await getDatabase());
   await grant(OWNER, 10);
@@ -163,7 +163,7 @@ describe("consent and the capability", () => {
   });
 
   test("with the helper capability off, refuses rather than failing", async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, });
     const token = await ownerToken();
     await consent();
     const src = await writeTripPhoto("day-one");
@@ -334,7 +334,7 @@ describe("what it costs", () => {
 
 describe.skipIf(!hasPaid())("B2591 — with billing on", () => {
   test("once the plan's AI days are used up, this is refused with 402 plan_limit", async () => {
-    writeConfig({ auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
+    writeConfig({ auth: { enabled: true }, helper: { enabled: true }, billing: { enabled: true } });
     const token = await ownerToken();
     await consent();
     const { grantPlan } = await import("@paid/credits/lib/entitlements");

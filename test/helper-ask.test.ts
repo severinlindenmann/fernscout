@@ -117,7 +117,7 @@ beforeEach(async () => {
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
+      features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
   clearConfigCache();
@@ -368,7 +368,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
         path.join(dir, "config.json"),
         JSON.stringify({
           site: { name: "T", url: "https://t.test" },
-          features: { auth: { enabled: true }, credits: { enabled: true } },
+          features: { auth: { enabled: true }, },
         }),
       );
       clearConfigCache();

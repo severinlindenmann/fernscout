@@ -210,7 +210,6 @@ describe("B2247: the gate is inert before the split lands", () => {
         photobook: { enabled: true },
         postcards: { enabled: true },
         whatsapp: { enabled: true },
-        credits: { enabled: true },
       },
       withPaidStubs: false,
     });

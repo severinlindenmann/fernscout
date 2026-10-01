@@ -96,7 +96,7 @@ beforeAll(async () => {
     JSON.stringify({
       site: { name: "R", url: "https://example.test", defaultUser: OWNER },
       users: { reserved: [] },
-      features: { auth: { enabled: true }, credits: { enabled: true } },
+      features: { auth: { enabled: true }, },
     }),
   );
   fs.mkdirSync(path.join(dir, OWNER, "trips"), { recursive: true });
@@ -110,7 +110,7 @@ beforeAll(async () => {
       baseCurrency: "CHF",
       displayCurrencies: ["CHF"],
       units: "metric",
-      features: { auth: { enabled: true }, credits: { enabled: true } },
+      features: { auth: { enabled: true }, },
     }),
   );
   writeTrip("owner-only-trip");
