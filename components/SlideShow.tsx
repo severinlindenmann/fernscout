@@ -46,6 +46,7 @@ import {
   type NarratedCutSlide,
 } from "@/lib/narratedCut";
 import DualTime from "./DualTime";
+import SlideStreetMap, { type SlideStreetMapHandle } from "./SlideStreetMap";
 import { useWakeLock } from "./useWakeLock";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
@@ -74,6 +75,12 @@ const MIN_DWELL_S = 3;
 const MAX_DWELL_S = 15;
 const FULL_TRAVEL_MS = 5200;
 const FULL_MEDIA_MS = 6500;
+
+// The globe opener's flight, at 1x — then the same rest a travel step gets
+// (B2620). If the street map has not loaded by OPENER_WAIT_MS the show
+// starts without it rather than holding a dark screen.
+const OPENER_MS = 4500;
+const OPENER_WAIT_MS = 4000;
 
 // Controls fade out this long after the last pointer/key activity, so a show
 // left running on a TV isn't sitting under a permanent overlay of buttons.
@@ -167,6 +174,7 @@ export default function SlideShow({
   startDate,
   stats,
   basemap = null,
+  streetMapUrl = null,
 }: {
   places: PlaceView[];
   onClose: () => void;
@@ -181,8 +189,14 @@ export default function SlideShow({
    * through rather than fetched again: nothing here asks the server for a
    * second copy of a bundle already sitting in this page's own props. */
   basemap?: Basemap | null;
+  /** The trip's street-map region file when `features.streetMaps` has one
+   * (B2620) — the Highlights cut then travels on it and opens on the globe.
+   * Null keeps the SVG map, as before. */
+  streetMapUrl?: string | null;
 }) {
-  const { t, formatShortDate, formatLongDate, locale } = useI18n();
+  const { t, formatShortDate, formatLongDate, locale, localizedTrip } = useI18n();
+  const tripForTitle = useTrip()?.trip;
+  const tripTitle = tripForTitle ? localizedTrip(tripForTitle).title : "";
   const href = useTrip()?.href ?? ((p: string) => p);
   // The trip's own colour on its own route (B2422), the same fallback
   // `WorldMap`/`MapPageContent` use for a caller with none to give.
@@ -298,8 +312,30 @@ export default function SlideShow({
     }
   }, [dwellSeconds]);
 
+  // The street map behind the Highlights slides (B2620): mounted only where
+  // it can ever be seen — the narrated cut, with motion — and dropped for
+  // the SVG map for good if WebGL fails.
+  const streetRef = useRef<SlideStreetMapHandle | null>(null);
+  const [streetReady, setStreetReady] = useState(false);
+  const [streetFailed, setStreetFailed] = useState(false);
+  const useStreet = cut === "narrated" && !!streetMapUrl && !streetFailed && !reducedMotion;
+  const streetShown = useStreet && streetReady;
+  // The first day's place the globe opener lands on — a day with no
+  // coordinates (an arrival day, say) is skipped for the next that has.
+  const openerPlace = useMemo(
+    () =>
+      narratedPlaceIndexes.find(
+        (pi) => pi !== undefined && Number.isFinite(places[pi]?.lat) && Number.isFinite(places[pi]?.lng),
+      ),
+    [narratedPlaceIndexes, places],
+  );
+  // Only on a show opened from the start; never on "watch again".
+  const [openerWanted, setOpenerWanted] = useState(() => !startDate && !startPlaceKey);
+  const opener = openerWanted && useStreet && openerPlace !== undefined;
+
   const switchCut = useCallback(
     (next: Cut) => {
+      setOpenerWanted(false);
       setInterlude(null);
       setCut(next);
       setIndex(next === "full" ? fullStartIndex : narratedStartIndex);
@@ -332,6 +368,7 @@ export default function SlideShow({
   // through a pending travel interlude, which is an autoplay-only thing.
   const go = useCallback(
     (delta: number) => {
+      setOpenerWanted(false);
       setInterlude(null);
       setIndex((i) => Math.min(Math.max(i + delta, 0), Math.max(total, 0)));
     },
@@ -346,7 +383,7 @@ export default function SlideShow({
   useEffect(() => {
     // A pending interlude owns the clock until it commits (B2619) — without
     // this, a pause/resume during it re-armed this timer as well.
-    if (!isPlaying || isVideoStep || interlude) return;
+    if (!isPlaying || isVideoStep || interlude || opener) return;
     const advanceTo = Math.min(index + 1, total);
     timerRef.current = setTimeout(() => {
       // A travel interlude between two Highlights slides at different
@@ -378,7 +415,33 @@ export default function SlideShow({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [index, isPlaying, duration, total, cut, reducedMotion, narratedPlaceIndexes, isVideoStep, interlude, places, dwellScale]);
+  }, [index, isPlaying, duration, total, cut, reducedMotion, narratedPlaceIndexes, isVideoStep, interlude, places, dwellScale, opener]);
+
+  // The globe opener (B2620): once the street map has loaded, the Earth
+  // turns down onto the first day's place, then the first slide shows. A
+  // map that is still loading after OPENER_WAIT_MS gives up the opener.
+  useEffect(() => {
+    if (!opener) return;
+    if (!streetReady) {
+      const id = setTimeout(() => setOpenerWanted(false), OPENER_WAIT_MS);
+      return () => clearTimeout(id);
+    }
+    if (!isPlaying) return;
+    streetRef.current?.opener(openerPlace!, OPENER_MS * dwellScale);
+    const id = setTimeout(() => setOpenerWanted(false), (OPENER_MS + TRAVEL_REST_MS) * dwellScale);
+    return () => clearTimeout(id);
+  }, [opener, streetReady, isPlaying, openerPlace, dwellScale]);
+
+  // Keeps the street map's camera on the slide's own place, and flies it on
+  // a travel step — the map is always where the show is, so a step starts
+  // from the place just left rather than from wherever it last was.
+  useEffect(() => {
+    if (!streetShown || opener) return;
+    const map = streetRef.current;
+    if (!map) return;
+    if (interlude) map.flyTo(interlude.fromPlaceIndex, interlude.toPlaceIndex, interlude.flightMs);
+    else if (narratedPlaceIndexes[index] !== undefined) map.jumpTo(narratedPlaceIndexes[index]!);
+  }, [streetShown, opener, interlude, index, narratedPlaceIndexes]);
 
   // Once a pending interlude's flight has landed and rested on the
   // destination, commit the advance it was standing in for (B2619). Paused,
@@ -439,6 +502,7 @@ export default function SlideShow({
   }, [atEndCard]);
 
   const watchAgain = useCallback(() => {
+    setOpenerWanted(false);
     setIndex(0);
     setPlaying(true);
   }, []);
@@ -632,6 +696,7 @@ export default function SlideShow({
     (dayIndex: number) => {
       const day = narratedSlides[dayIndex];
       if (!day) return;
+      setOpenerWanted(false);
       setInterlude(null);
       setPlaying(false);
       setIndex(cut === "narrated" ? dayIndex : fullCutIndexForDate(fullSteps, day.date));
@@ -683,6 +748,17 @@ export default function SlideShow({
         .fs-safe-right { right: max(0.75rem, env(safe-area-inset-right, 0px)); }
       `}</style>
       <div ref={containerRef} className="relative overflow-hidden bg-overlay-strong fs-present-frame">
+        {useStreet && streetMapUrl && (
+          <SlideStreetMap
+            ref={streetRef}
+            pmtilesUrl={streetMapUrl}
+            places={places}
+            locale={locale}
+            startOnGlobe={opener}
+            onReady={() => setStreetReady(true)}
+            onFail={() => setStreetFailed(true)}
+          />
+        )}
         {atEndCard ? (
           <EndScreen stats={stats} tripHref={href("/")} onWatchAgain={watchAgain} />
         ) : cut === "full" && fullStep ? (
@@ -772,6 +848,17 @@ export default function SlideShow({
               </div>
             )}
           </>
+        ) : cut === "narrated" && opener ? (
+          // The globe opener: the street map underneath is the picture; this
+          // only names the trip over it.
+          <div className="pointer-events-none absolute inset-x-0 top-[12%] px-[5%] text-center">
+            <div className="font-display font-semibold text-overlay-ink drop-shadow-lg text-[clamp(1.75rem,5vw,4rem)]">
+              {tripTitle}
+            </div>
+          </div>
+        ) : cut === "narrated" && interlude && streetShown ? (
+          // A travel step on the street map underneath — nothing to draw here.
+          null
         ) : cut === "narrated" && interlude ? (
           // The travel interlude itself — the same map the full tour uses,
           // aimed at the destination place with the leg into it flying.
@@ -1232,7 +1319,7 @@ function NarratedSlide({
   cornerMap?: { places: PlaceView[]; activeIndex: number; basemap: Basemap | null; accent: TripAccent };
 }) {
   return (
-    <div className="absolute inset-0">
+    <div className="absolute inset-0 bg-overlay-strong">
       {slide.photo ? (
         <div key={`photo-${index}`} className="absolute inset-0">
           <PresentedPhoto

@@ -792,6 +792,7 @@ export default function MapPageContent({
           stats={stats}
           startDate={startDate}
           basemap={basemap}
+          streetMapUrl={streetMap?.url ?? null}
         />
       )}
 
