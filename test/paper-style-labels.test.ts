@@ -23,3 +23,16 @@ describe("paperStyle labels", () => {
     }
   });
 });
+
+// B2624: the style has no sprite, so any `icon-image` logged a MapLibre
+// warning on every load and drew nothing.
+describe("paperStyle icons", () => {
+  test("no layer asks for an icon the style cannot have", () => {
+    for (const scheme of ["light", "dark"] as const) {
+      const style = paperStyle("/api/maps/x.pmtiles", scheme, "en");
+      const withIcon = style.layers.filter((l) => "icon-image" in ((l as { layout?: object }).layout ?? {}));
+      expect(withIcon.map((l) => l.id)).toEqual([]);
+      expect(style.layers.some((l) => l.id === "places_locality")).toBe(true);
+    }
+  });
+});
