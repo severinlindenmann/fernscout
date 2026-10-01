@@ -25,6 +25,11 @@ class ViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(ShareInboxPlugin())
         bridge?.registerPluginInstance(LocationRecorderPlugin())
         bridge?.registerPluginInstance(ServerChoicePlugin())
+        bridge?.registerPluginInstance(MediaUploadPlugin())
+        // B2655 — never registered, so no in-app purchase could ever start.
+        if #available(iOS 15.0, *) {
+            bridge?.registerPluginInstance(AppleIAPPlugin())
+        }
         // B2324 — WKWebView ships this off; every iPhone user reaches for
         // the left-edge swipe back regardless, and it works against Next's
         // own pushState history the same as any other back-forward move.
