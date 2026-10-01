@@ -6,7 +6,6 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { tripMediaDir } from "@/lib/media";
 import { DESCRIBED_SCHEMA_VERSION } from "@/lib/photos/described";
@@ -34,8 +33,7 @@ import { hasPaid } from "./support/openCore";
  * The gallery files themselves are real — `paintJpeg` and the ordinary
  * `resizedCopy`/`sharp` pipeline, which is entirely local and needs no key —
  * so this also exercises the one thing worth exercising for real: that a
- * derivative is what gets sent, not the original, and that a day with twelve
- * photographs charges exactly two credits.
+ * derivative is what gets sent, not the original.
  */
 
 const OWNER_EMAIL = "alex@example.test";
@@ -187,7 +185,6 @@ beforeEach(async () => {
   );
   writeConfig({ auth: { enabled: true }, helper: { enabled: true } });
   await migrateToLatest(await getDatabase());
-  await grant("alex", 10);
 });
 
 afterEach(async () => {
@@ -205,7 +202,6 @@ describe("consent, and that words alone is not enough", () => {
     expect(refused.status).toBe(403);
     expect(refused.body.error).toBe("consent_required");
     expect(describeImage).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("consenting to words alone does not cover photographs", async () => {
@@ -227,20 +223,12 @@ describe("consent, and that words alone is not enough", () => {
   });
 });
 
-describe("what it costs", () => {
+describe("batching twelve photographs", () => {
   beforeEach(async () => {
     await consent("photos");
   });
 
-  test("twelve photographs cost two credits, rounding up", async () => {
-    await writeDayWithPhotos(12);
-    const done = await read(await call());
-    expect(done.status).toBe(200);
-    expect(done.body.spent).toBe(2);
-    expect(await balanceOf("alex")).toBe(10);
-  });
-
-  test("a retry under the same idempotency key spends once", async () => {
+  test("a retry under the same idempotency key asks the model once per photograph, not twice", async () => {
     await writeDayWithPhotos(12);
     const first = await read(await call());
     const again = await read(await call());
@@ -248,18 +236,16 @@ describe("what it costs", () => {
     expect(again.body).toEqual(first.body);
     // Twelve photographs, twelve calls, and the replay adds none.
     expect(describeImage).toHaveBeenCalledTimes(12);
-    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("a failed model call refunds the credit", async () => {
+  test("a failed model call describes nothing", async () => {
     await writeDayWithPhotos(2);
     describeImage.mockRejectedValueOnce(new Error("provider is unhappy"));
     const failed = await read(await call());
     expect(failed.status).toBe(502);
-    expect(await balanceOf("alex")).toBe(10);
   });
 
-  test("every photograph failing to resize refunds the credit — B1795", async () => {
+  test("every photograph failing to resize describes nothing — B1795", async () => {
     await writeDayWithPhotos(2);
     // Real files, but not real JPEGs — `resizedCopy` returns null for these
     // (see `test/media-resize.test.ts`'s own "broken.jpg"), the same as a
@@ -276,7 +262,6 @@ describe("what it costs", () => {
     const failed = await read(await POST(request, params));
     expect(failed.status).toBe(502);
     expect(describeImage).not.toHaveBeenCalled();
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a day with no photographs is refused before any spend", async () => {
@@ -303,7 +288,6 @@ describe("what it costs", () => {
     const refused = await read(await call());
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("no_photos");
-    expect(await balanceOf("alex")).toBe(10);
   });
 });
 
@@ -331,10 +315,9 @@ describe("a mixed day — B873", () => {
     expect(captions).toHaveLength(3);
     const video = captions.find((c) => c.src === "/@alex/media/a-trip/the-pass/clip.mp4");
     expect(video).toEqual({ src: "/@alex/media/a-trip/the-pass/clip.mp4", caption: "", skipped: "video" });
-    // The credit spend and the model calls still cover photographs only —
-    // two calls for the two photographs, none for the video.
+    // The model calls cover photographs only — two calls for the two
+    // photographs, none for the video.
     expect(describeImage).toHaveBeenCalledTimes(2);
-    expect(done.body.spent).toBe(1);
   });
 });
 
@@ -365,19 +348,15 @@ describe("a photograph is described once", () => {
 
     const first = await read(await from("198.51.100.1", "cache-first"));
     expect(first.status).toBe(200);
-    expect(first.body.spent).toBe(1);
     expect(first.body.cached).toBe(0);
-    expect(await balanceOf("alex")).toBe(10);
 
     const again = await read(await from("198.51.100.1", "cache-second"));
     expect(again.status).toBe(200);
     // Two calls in total, both from the first request: the second asked the
     // model nothing.
     expect(describeImage).toHaveBeenCalledTimes(2);
-    expect(again.body.spent).toBe(0);
     expect(again.body.cached).toBe(2);
     // Nothing further was taken — no second spend, and no refund either.
-    expect(await balanceOf("alex")).toBe(10);
     // And the captions are the same ones, read back out of the sidecars.
     expect(again.body.captions).toEqual(first.body.captions);
     // The day's gallery sees the new alt text at once: the entry cache is
@@ -403,7 +382,6 @@ describe("a photograph is described once", () => {
     const failed = await read(await from("198.51.100.2", "partial"));
     expect(failed.status).toBe(502);
     // The whole spend comes back, because the spend was priced whole.
-    expect(await balanceOf("alex")).toBe(10);
     // Exactly one of the two was described before the throw, and that one is
     // kept — the other has no block at all, never a half-written one.
     const blocks = ["01.jpg", "02.jpg"].map((name) => sidecarFor(name)?.described);
@@ -417,10 +395,8 @@ describe("a photograph is described once", () => {
     const retry = await read(await from("198.51.100.2", "partial-retry"));
     expect(retry.status).toBe(200);
     expect(retry.body.cached).toBe(1);
-    expect(retry.body.spent).toBe(1);
     // Two failed-or-succeeded calls on the first request, one on the retry.
     expect(describeImage).toHaveBeenCalledTimes(3);
-    expect(await balanceOf("alex")).toBe(10);
   });
 
   test("a derivative replaced in place is described again", async () => {
@@ -435,7 +411,6 @@ describe("a photograph is described once", () => {
     const again = await read(await from("198.51.100.3", "replace-second"));
     expect(again.status).toBe(200);
     expect(again.body.cached).toBe(0);
-    expect(again.body.spent).toBe(1);
     expect(describeImage).toHaveBeenCalledTimes(2);
   });
 
@@ -514,9 +489,9 @@ describe("what is sent", () => {
     await writeDayWithPhotos(1);
     await consent("photos");
     await call();
-    // The signature is (image, owner, locales): the owner is what the credit
-    // ledger is booked against (B7xx), the locales are this journal's own —
-    // every one of them since B1866, not only the default.
+    // The signature is (image, owner, locales): the owner is who this is
+    // being described for, the locales are this journal's own — every one
+    // of them since B1866, not only the default.
     const [, owner, locales] = describeImage.mock.calls[0] as [unknown, string, string[]];
     expect(owner).toBe("alex");
     expect(locales).toEqual(["de"]);
