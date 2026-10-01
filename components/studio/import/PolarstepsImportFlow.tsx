@@ -6,26 +6,13 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { journalPath } from "@/lib/journalPath";
-import { readZipEntries, readZipEntryBytes, readZipEntryText, ZipError, type ZipEntry } from "@/lib/zip/readZip";
-import type { PolarstepsTrip } from "@/importers/trips/polarsteps";
-import { JSON_BODY_MAX_BYTES } from "@/lib/api/jsonBody";
-
-/** trip.json entries only — `trip/<slug>_<id>/trip.json`, never a nested
- * one a crafted export might add. */
-const TRIP_JSON = /^trip\/([^/]+)\/trip\.json$/;
-/** One trip.json, capped at what the import door accepts as a JSON body — a
- * real export's biggest trip is a few hundred kB. */
-const TRIP_JSON_MAX_BYTES = JSON_BODY_MAX_BYTES;
-const LOCATIONS_JSON_MAX_BYTES = 50 * 1024 * 1024;
-
-type DiscoveredTrip = {
-  folder: string;
-  entry: ZipEntry;
-  trip: PolarstepsTrip;
-  photos: number;
-  videos: number;
-  locationsEntry?: ZipEntry;
-};
+import { readZipEntries, readZipEntryBytes, readZipEntryText, type ZipEntry } from "@/lib/zip/readZip";
+import {
+  discoverPolarstepsTrips,
+  TRIP_JSON_MAX_BYTES,
+  LOCATIONS_JSON_MAX_BYTES,
+  type DiscoveredTrip,
+} from "@/lib/polarsteps/summarise";
 
 type TripLog = {
   folder: string;
@@ -74,35 +61,10 @@ export default function PolarstepsImportFlow({ username }: { username: string })
     try {
       const entries = await readZipEntries(picked);
       setIndex(entries);
-      const found: DiscoveredTrip[] = [];
-      // A trip.json refused for its size (a zip bomb) is said, not skipped silently.
-      let refused: string | null = null;
-      for (const entry of entries) {
-        const match = TRIP_JSON.exec(entry.name);
-        if (!match) continue;
-        const folder = match[1];
-        let trip: PolarstepsTrip;
-        try {
-          const text = await readZipEntryText(picked, entry, { maxBytes: TRIP_JSON_MAX_BYTES });
-          trip = JSON.parse(text) as PolarstepsTrip;
-        } catch (err) {
-          if (err instanceof ZipError) refused = t("studio.polarsteps.error.unreadable");
-          continue; // an unparseable trip.json is skipped; the others still import
-        }
-        const prefix = `trip/${folder}/`;
-        let photos = 0;
-        let videos = 0;
-        for (const e of entries) {
-          if (!e.name.startsWith(prefix)) continue;
-          if (e.name.includes("/photos/")) photos++;
-          else if (e.name.includes("/videos/")) videos++;
-        }
-        const locationsEntry = entries.find((e) => e.name === `${prefix}locations.json`);
-        found.push({ folder, entry, trip, photos, videos, locationsEntry });
-      }
+      const { trips: found, anyUnreadable } = await discoverPolarstepsTrips(picked, entries);
       setTrips(found);
       setSelected(new Set(found.map((f) => f.folder)));
-      if (found.length === 0) setReadError(refused ?? t("studio.polarsteps.error.noTrips"));
+      if (found.length === 0) setReadError(anyUnreadable ? t("studio.polarsteps.error.unreadable") : t("studio.polarsteps.error.noTrips"));
     } catch (err) {
       setReadError(err instanceof Error ? err.message : String(err));
     } finally {

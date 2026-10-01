@@ -1,6 +1,7 @@
 import { pricesMarkdown } from "@paid/billing/lib/markdown";
 import { guideMarkdown } from "@paid/guides/lib/markdown";
 import { orgsMarkdown } from "@paid/orgs/lib/markdown";
+import { switchMarkdown } from "@paid/switch/lib/markdown";
 import { isEnabled } from "@/lib/capabilities";
 import { landingMarkdown } from "@/lib/landingMarkdown";
 import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, languageHref } from "@/lib/languagePaths";
@@ -22,6 +23,7 @@ function markdownFor(path: string, locale: string): string | null {
   if (path === "/") return landingMarkdown(locale);
   if (path === "/prices") return isEnabled("billing") ? pricesMarkdown(locale) : null;
   if (path.startsWith("/guides/")) return guideMarkdown(path, locale);
+  if (path === "/switch") return switchMarkdown(path, locale);
   return orgsMarkdown(path, locale);
 }
 

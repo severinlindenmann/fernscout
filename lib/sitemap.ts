@@ -81,6 +81,8 @@ export function pagesSitemap(): SitemapEntry[] {
   if (hasLegal()) paths.push("/legal");
   // The answer pages — B2489. Empty without paid/.
   paths.push(...GUIDE_PATHS);
+  // /switch — B2663. Only where paid/ provides it.
+  if (PAID_AREAS.includes("switch")) paths.push("/switch");
   return paths.flatMap((path) => instancePage(base, path === "" ? "/" : path));
 }
 
@@ -155,6 +157,7 @@ export function markdownPages(): string[] {
   return MARKDOWN_PAGES.filter((path) => {
     if (path === "/prices") return isEnabled("billing");
     if (path.startsWith("/schools") || path.startsWith("/tour-operators")) return PAID_AREAS.includes("orgs");
+    if (path === "/switch") return PAID_AREAS.includes("switch");
     return true;
   });
 }
