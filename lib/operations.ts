@@ -33,6 +33,10 @@ const OPERATIONS = [
   "travellers_from_photo",
   // B2589 — one outbound SMS, Twilio or dry-run, passcode paths included.
   "sms_send",
+  // TIX-2 — one photograph read for a printed total, currency and merchant
+  // label, the add-a-day flow's "read a receipt". Charged once a call, the
+  // same shape as `describe_photos` and `travellers_from_photo`.
+  "read_receipt",
 ] as const;
 
 export type Operation = (typeof OPERATIONS)[number];
@@ -55,4 +59,5 @@ export const OPERATION_LABEL: Record<string, string> = {
   find_in_journal: "Searching a journal",
   travellers_from_photo: "Drawing travellers from a photograph",
   sms_send: "Sending an SMS",
+  read_receipt: "Reading a receipt",
 };

@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { TAG_MAX_LENGTH, TRANSPORT_MODES } from "@/lib/validate/entry";
 import type { TranslationKey } from "@/lib/i18n";
+import { COST_CATEGORIES } from "@/lib/costFormat";
 
 /** One cost line as it is typed: the amount stays text until it is sent. */
 export type CostLine = { label: string; amount: string; currency: string; category?: string };
@@ -119,6 +120,29 @@ export default function DayExtras({
                 </select>
               </label>
             </div>
+            {/* TIX-2 — what it was for, as one of the journal's cost categories
+                (the server already took `category`; nothing asked for it). */}
+            <fieldset className="mt-2">
+              <legend className={LABEL}>{t("cost.category")}</legend>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {COST_CATEGORIES.map((category) => {
+                  const on = line.category === category;
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setLine(at, { category: on ? undefined : category })}
+                      className={`min-h-9 rounded-full border px-3 text-xs font-semibold ${
+                        on ? "border-line-ink bg-action-strong text-on-action" : "border-line-strong text-ink-strong"
+                      }`}
+                    >
+                      {t(`cost.cat.${category}` as TranslationKey)}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
             {lineProblem(line) && (
               <p role="alert" className="mt-1 text-sm text-coral-600">
                 {t("studio.day.extras.costIncomplete")}

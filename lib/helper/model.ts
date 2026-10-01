@@ -339,6 +339,84 @@ export async function describeImage(
   return clamped;
 }
 
+/** What `readReceipt` answers with. Never anything beyond what the receipt
+ *  itself prints — a total, the currency it is in, and an optional short
+ *  label for what it was for. */
+export type Receipt = { amount: number; currency: string; label: string | null };
+
+const RECEIPT_SYSTEM_PROMPT = `You are looking at one photograph from somebody's own travel journal, to see whether it is a receipt — and if it is, to read back only what is printed on it.
+
+The one rule, and it outranks everything else you might think makes this more useful:
+
+READ ONLY WHAT IS PRINTED ON THE RECEIPT ITSELF. Never guess a total that is not legible, never convert or infer a currency the receipt does not itself show, never invent a merchant or item from anything other than its own printed name. If the photograph is not a receipt, or nothing on it is legible enough to read a total from, say so rather than guessing.
+
+found — true only when this is a legible receipt and you can read a total amount off it. false for anything else: a menu, a ticket, an unrelated photograph, or a receipt too blurred or cropped to read.
+
+amount — the total amount printed, as a plain number with no currency symbol and no thousands separator. 0 when found is false.
+
+currency — the ISO 4217 three-letter code (CHF, EUR, USD, …) for the currency printed or shown by its symbol. An empty string when found is false or no currency is legible.
+
+label — a short, few-word label for what the receipt is for, only when the receipt itself prints a merchant name or a clear single item — never a guess at what the photograph otherwise shows. An empty string when nothing printed gives one, or found is false.`;
+
+const RECEIPT_SCHEMA = {
+  type: "object",
+  properties: {
+    found: { type: "boolean" },
+    amount: { type: "number" },
+    currency: { type: "string" },
+    label: { type: "string" },
+  },
+  required: ["found", "amount", "currency", "label"],
+  additionalProperties: false,
+} as const;
+
+const CURRENCY_CODE = /^[A-Z]{3}$/;
+
+/**
+ * One photograph in, a receipt's own printed total out — or `null` when it
+ * is not a receipt, or nothing on it is legible. TIX-2's add-a-day flow.
+ *
+ * Validated twice, the same belt-and-braces shape `describeImage` already
+ * uses for its own fields: the prompt is the first line, and `amount > 0`
+ * plus a real three-letter currency code, checked here rather than trusted,
+ * is what actually keeps an invented total out of the answer.
+ *
+ * Throws on anything that goes wrong, the same contract as `writeDay` and
+ * `describeImage`: the caller has already spent a credit by the time this
+ * runs and refunds on a throw.
+ */
+export async function readReceipt(image: PhotoImage, owner: string | undefined): Promise<Receipt | null> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 200,
+    system: RECEIPT_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "image" as const, source: { type: "base64" as const, media_type: image.mediaType, data: image.base64 } },
+          { type: "text" as const, text: "One photograph. Is it a receipt?" },
+        ],
+      },
+    ],
+    output_config: { format: { type: "json_schema", schema: RECEIPT_SCHEMA } },
+  });
+  await book(owner ?? NO_JOURNAL, "read_receipt", response.usage);
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  if (parsed.found !== true) return null;
+  const amount = typeof parsed.amount === "number" ? parsed.amount : NaN;
+  const currency = typeof parsed.currency === "string" ? parsed.currency.trim().toUpperCase() : "";
+  const label = typeof parsed.label === "string" ? parsed.label.trim() : "";
+  if (!(amount > 0) || !CURRENCY_CODE.test(currency)) return null;
+  return { amount, currency, label: label === "" ? null : label };
+}
+
 /**
  * Classifying a group photograph into a party — B1517.
  *
@@ -384,8 +462,8 @@ const TRAVELLER_PHOTO_SCHEMA = {
   type: "object",
   properties: {
     figures: {
+      // No maxItems: structured outputs refuse it (400); the slice after parsing caps it.
       type: "array",
-      maxItems: MAX_FIGURES,
       items: {
         type: "object",
         properties: {
@@ -556,12 +634,16 @@ function strings(value: unknown): string[] {
  * use. `polish`: the owner's own already-written text in, the same text
  * reworded out — B2190. No title (the wizard already has one, and a
  * generated title is exactly what C7 in
- * `test/studio/conformance.manifest.ts` forbids), and no new fact: the
- * route runs `checkPolishForAddedFacts` (`./polishGuard.ts`) against
- * whatever comes back, because B829 is the standing lesson that a prompt
- * asking nicely is not a guard.
+ * `test/studio/conformance.manifest.ts` forbade until TIX-2), and no new
+ * fact: the route runs `checkPolishForAddedFacts` (`./polishGuard.ts`)
+ * against whatever comes back, because B829 is the standing lesson that a
+ * prompt asking nicely is not a guard. `titles`: up to two short titles
+ * suggested from the notes alone, for the owner to pick or discard — TIX-2,
+ * owner decision 2026-10-01. The route runs `titleIsGroundedInNotes`
+ * (`./polishGuard.ts`) on each one and drops any that fails it, the same
+ * belt-and-braces shape `polish` already uses.
  */
-export type WriteDayMode = "draft" | "polish";
+export type WriteDayMode = "draft" | "polish" | "titles";
 
 const POLISH_SYSTEM_PROMPT = `You are helping somebody tidy up something they already wrote in their own travel journal — their own words, typed or spoken, about one day of their trip. This is copyediting, nothing more: fix spelling, casing, punctuation and sentence flow. You do not write a new day, and you do not rewrite theirs — only tidy the words they actually gave you.
 
@@ -638,6 +720,62 @@ export async function writeDay(
     prose,
     warnings: strings(parsed.warnings),
   };
+}
+
+const TITLE_LIMIT_CHARS = 60;
+const TITLE_MAX_COUNT = 2;
+
+const TITLES_SYSTEM_PROMPT = `You are suggesting a short title for one day of somebody's own travel journal, from their own notes about that day and a few facts their day already carries. Suggest at most two titles — fewer, or none, is a correct answer when the notes do not support one.
+
+The one rule, and it outranks everything else you might think makes a title better:
+
+USE ONLY WORDS AND PLACES ALREADY IN THE NOTES OR THE FACTS BELOW. A title is a short label built from what they already wrote, never a new thought, mood, summary word or place name they did not use. No "amazing", "unforgettable", "a day of discovery" or anything else you supplied yourself. If nothing in the notes makes a good short label, return an empty list rather than inventing one.
+
+Never translate. Write every title in the same language the notes are written in.
+
+Each title is a few words, at most ${TITLE_LIMIT_CHARS} characters, no punctuation at the end.`;
+
+const TITLES_SCHEMA = {
+  type: "object",
+  // No maxItems: structured outputs refuse it (400); the slice below caps the count.
+  properties: { titles: { type: "array", items: { type: "string" } } },
+  required: ["titles"],
+  additionalProperties: false,
+} as const;
+
+/**
+ * Up to two short titles, suggested from the notes alone — TIX-2's add-a-day
+ * flow, owner decision 2026-10-01. Never written anywhere by itself: the
+ * route returns them for the owner to pick or discard, the same
+ * "review, then keep or discard" shape `writeDay`'s own draft prose already
+ * uses. Every title is also checked server-side by `titleIsGroundedInNotes`
+ * (`./polishGuard.ts`) before it ever reaches the response — the prompt
+ * above is the first line, not the guard.
+ *
+ * Throws on anything that goes wrong, the same contract as `writeDay`: the
+ * caller has already spent a credit by the time this runs and refunds on a
+ * throw.
+ */
+export async function suggestTitles(notes: string, facts: DayFacts, owner?: string): Promise<string[]> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 300,
+    system: TITLES_SYSTEM_PROMPT,
+    messages: [{ role: "user", content: buildPrompt(notes, facts) }],
+    output_config: { format: { type: "json_schema", schema: TITLES_SCHEMA } },
+  });
+  await book(owner ?? NO_JOURNAL, "write_day", response.usage);
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  return strings(parsed.titles)
+    .map((t) => t.trim())
+    .filter((t) => t !== "" && t.length <= TITLE_LIMIT_CHARS)
+    .slice(0, TITLE_MAX_COUNT);
 }
 
 /* -------------------------------------------------------------------------

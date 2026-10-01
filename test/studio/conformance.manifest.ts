@@ -132,7 +132,7 @@ export const manifest: ManifestItem[] = [
   {
     id: "C7",
     claim:
-      "No invented content on any screen or in any write. No generated titles, no composed weather, no filled-in prose.",
+      "No invented content on any screen or in any write. No composed weather, no filled-in prose, and a suggested title (TIX-2, owner decision 2026-10-01) is built only from words and places the owner already wrote, shown for the owner to pick or discard, and kept only when they pick one.",
     proof: {
       kind: "test",
       name: "createDayTransactional — C7, no invented content anywhere in the write an empty title, an empty body and declined weather: nothing composed for any of them",

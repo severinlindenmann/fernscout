@@ -28,7 +28,7 @@ export default async function StudioPublishDayPage({
 }: PageProps<"/at/[user]/studio/day/publish">) {
   const { user } = await params;
   await requireStudioOwner(user);
-  const { day, trip, list } = await searchParams;
+  const { day, trip, list, also } = await searchParams;
   const takeDown = list === "published";
 
   const rows = daysToPublish(user, takeDown ? "published" : "draft");
@@ -36,9 +36,17 @@ export default async function StudioPublishDayPage({
   const chosen = asked ? (rows.find((r) => r.slug === asked && (typeof trip !== "string" || r.tripId === trip)) ?? null) : null;
 
   // B2192 — the share sheet names what is still blank and who will read it.
-  const blank = chosen && !takeDown ? blankFieldsOf(user, chosen) : [];
+  const ownBlank = chosen && !takeDown ? blankFieldsOf(user, chosen) : [];
   const readers = chosen && !takeDown ? await readersOf(user, chosen) : null;
   // TIX-6 — who this day would reach, by reader group, and last time's pick.
+  // TIX-2 — the other parts of the same date the add-a-day flow just wrote,
+  // published together with the chosen one (drafts on the same trip only).
+  const alsoSlugs = typeof also === "string" && chosen && !takeDown ? also.split(",").filter(Boolean) : [];
+  const alsoRows = rows
+    .filter((r) => chosen && r.tripId === chosen.tripId && r.slug !== chosen.slug && alsoSlugs.includes(r.slug))
+    .map((r) => ({ ...r, blank: blankFieldsOf(user, r) }));
+  // The sentence names every blank across the parts; each part declines only its own.
+  const blank = [...new Set([...ownBlank, ...alsoRows.flatMap((r) => r.blank)])];
   const tell =
     chosen && !takeDown
       ? {
@@ -63,7 +71,9 @@ export default async function StudioPublishDayPage({
         missing={Boolean(asked) && !chosen}
         takeDown={takeDown}
         tell={tell}
+        also={alsoRows}
         blank={blank}
+        chosenBlank={ownBlank}
         readers={readers}
       />
     </StudioPage>
