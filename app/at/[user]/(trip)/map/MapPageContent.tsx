@@ -807,6 +807,14 @@ export default function MapPageContent({
         onSelectDate={toggleDay}
         onInsetChange={setSheetInset}
         hrefForDay={(slug) => href(`/day/${slug}`)}
+        onPlay={
+          hasPlaces
+            ? (date) => {
+                setStartDate(date);
+                setShowing(true);
+              }
+            : undefined
+        }
       />
     </div>
   );
