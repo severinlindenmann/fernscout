@@ -307,6 +307,21 @@ export function getCostSummary(
     })
     .sort((a, b) => b.amount - a.amount);
 
+  // Nights per region — B2640. Counted the same simple way as `byCountry`
+  // above (one day, one region, one tally), and left for the caller to
+  // decide when it means anything: a trip that crossed a border has no one
+  // country's own vocabulary (Kanton/Land/state) to draw regions in, so the
+  // hero only reads this when `byCountry.length` is 1.
+  const regionNights = new Map<string, number>();
+  for (const day of days) {
+    const r = day.lead.region;
+    if (!r) continue;
+    regionNights.set(r, (regionNights.get(r) ?? 0) + 1);
+  }
+  const byRegion = Array.from(regionNights.entries())
+    .map(([region, nights]) => ({ region, nights }))
+    .sort((a, b) => b.nights - a.nights);
+
   // Per day, with a running total seeded from the preparation spend.
   let running = preparation;
   const byDay = days.map((day) => {
@@ -443,6 +458,7 @@ export function getCostSummary(
     unrecordedDays,
     byCategory,
     byCountry,
+    byRegion,
     byDay,
     items,
     unconverted,

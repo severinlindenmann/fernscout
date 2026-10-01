@@ -165,6 +165,15 @@ export type CostSummary = {
     nights: number;
     perDay: number;
   }[];
+  /**
+   * Nights per region — B2640. Days, not money, like `byCountry` above, and
+   * only meaningful when the trip named one country throughout: a trip that
+   * crossed a border has no one country's canton/Land/state vocabulary to
+   * draw regions in, so the hero only reads this when `byCountry.length`
+   * is 1. Every day the trip logged with no `region` is simply not counted
+   * here — never a guessed "unknown" row.
+   */
+  byRegion: { region: string; nights: number }[];
   byDay: { date: string; amount: number; cumulative: number; unrecorded: boolean }[];
   items: CostItem[];
   /** Spend excluded from every total above for want of a rate. Usually empty. */

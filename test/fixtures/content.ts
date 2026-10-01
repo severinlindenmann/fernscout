@@ -131,6 +131,7 @@ export type DayFixture = {
   location?: string;
   country?: string;
   countryCode?: string;
+  region?: string;
   coordinates?: { lat: number; lng: number };
   /** Gallery items — each `src` is a path the caller already wrote bytes to
    * (usually under the trip's `media/` folder). Maps to `gallery:`. */
@@ -200,6 +201,7 @@ export function writeDayFixture(
     ...(day.location ? { location: day.location } : {}),
     ...(day.country ? { country: day.country } : {}),
     ...(day.countryCode ? { countryCode: day.countryCode } : {}),
+    ...(day.region ? { region: day.region } : {}),
     ...(day.coordinates ? { coordinates: day.coordinates } : {}),
     ...(day.media?.length
       ? {

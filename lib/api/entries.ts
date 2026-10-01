@@ -104,6 +104,9 @@ export type DraftInput = {
    * and a day that came back without it.
    */
   countryCode?: string;
+  /** A sub-national division — canton, Land, state, regione — B2640. Plain
+   * optional, never required-or-declined: most days carry none. */
+  region?: string;
   lat?: number;
   lng?: number;
   content: string;
@@ -636,6 +639,7 @@ function buildDayFile(
   if (input.location) day.location = input.location;
   if (input.country) day.country = input.country;
   if (input.countryCode) day.countryCode = input.countryCode.toUpperCase();
+  if (input.region) day.region = input.region;
   if (input.lat !== undefined && input.lng !== undefined) {
     day.coordinates = { lat: input.lat, lng: input.lng };
   }
@@ -1179,6 +1183,10 @@ function applyEditToDay(day: DayFile, input: EditInput): DayFile {
   if (input.countryCode !== undefined) {
     if (input.countryCode) next.countryCode = input.countryCode.toUpperCase();
     else delete next.countryCode;
+  }
+  if (input.region !== undefined) {
+    if (input.region) next.region = input.region;
+    else delete next.region;
   }
   // `coordinates` is one object on disk (v2) where `lat`/`lng` used to be two
   // independent scalar lines — an edit naming only one of them now merges
@@ -1904,6 +1912,7 @@ export function entrySummary(entry: Entry, trip: Trip | undefined) {
     location: entry.location,
     country: entry.country,
     ...(entry.countryCode ? { countryCode: entry.countryCode } : {}),
+    ...(entry.region ? { region: entry.region } : {}),
     lat: entry.lat,
     lng: entry.lng,
     photos: entry.gallery.length,

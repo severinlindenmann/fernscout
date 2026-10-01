@@ -181,7 +181,7 @@ export async function lookupAddresses(query: string, locale: string): Promise<Ad
 
 /** What a coordinate turns into: a place a day can be labelled with, never a
  *  street address. See `reversePlace`. */
-export type ReversePlace = { location: string; country: string; countryCode: string };
+export type ReversePlace = { location: string; country: string; countryCode: string; region?: string };
 
 export type GeocodeContextCoordinate = { lat: number; lng: number };
 
@@ -419,5 +419,9 @@ export async function reversePlace(
     location,
     country: p.country ?? "",
     countryCode: (p.countrycode ?? "").toUpperCase(),
+    // Photon's `state` — a canton, a Land, a state — dropped on the floor
+    // until B2640: the trip hero's "time per region" card needs it, and this
+    // is the one reverse-geocode a day's lead ever goes through.
+    ...(p.state ? { region: p.state } : {}),
   };
 }

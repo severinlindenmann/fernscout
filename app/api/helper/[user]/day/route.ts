@@ -184,6 +184,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     ...(lng !== undefined ? { lng } : {}),
     ...(place ? { location: place.location, country: place.country } : {}),
     ...(place?.countryCode ? { countryCode: place.countryCode } : {}),
+    ...(place?.region ? { region: place.region } : {}),
     // B325 — a request for a lookup, never an answer. The archive is asked
     // below, once the day is on disk.
     weather: true,

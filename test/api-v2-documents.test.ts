@@ -28,6 +28,7 @@ const maximalDay: DayFile = {
   location: "Susten Pass",
   country: "Switzerland",
   countryCode: "CH",
+  region: "Uri",
   coordinates: { lat: 46.7297, lng: 8.4444 },
   transportMode: "car",
   transportFrom: "Zurich",

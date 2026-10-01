@@ -202,4 +202,80 @@ describe("byCountry keeps a country with nothing spent in it", () => {
       { country: "Spain", countryCode: "ES", amount: 0, nights: 1, perDay: 0 },
     ]);
   });
+
+  // B2640 — neither day named a region, so there is nothing to count.
+  test("byRegion is empty when no day carries one", () => {
+    expect(getCostSummary("owner/trip").byRegion).toEqual([]);
+  });
+});
+
+/**
+ * B2640 — nights per region, the same shape of count as `byCountry` above,
+ * never asked to decide whether the regions all belong to one country (the
+ * caller, `TripHero`, only reads this when `byCountry.length` is 1).
+ */
+describe("byRegion counts nights per named region", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-costs-byregion-"));
+    process.env.CONTENT_DIR = dir;
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: {} }),
+    );
+    fs.mkdirSync(path.join(dir, "owner"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "owner", "config.json"),
+      JSON.stringify({
+        title: "U",
+        tagline: "t",
+        owner: { name: "A B", nickname: "A" },
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+      }),
+    );
+    writeTripFixture("owner", { id: "trip", start: "2026-01-01", end: "2026-01-05" });
+    writeDayFixture(dir, "owner", "trip", {
+      slug: "zurich-1",
+      date: "2026-01-01",
+      country: "Switzerland",
+      countryCode: "CH",
+      region: "Zürich",
+    });
+    writeDayFixture(dir, "owner", "trip", {
+      slug: "zurich-2",
+      date: "2026-01-02",
+      country: "Switzerland",
+      countryCode: "CH",
+      region: "Zürich",
+    });
+    writeDayFixture(dir, "owner", "trip", {
+      slug: "lucerne",
+      date: "2026-01-03",
+      country: "Switzerland",
+      countryCode: "CH",
+      region: "Luzern",
+    });
+    // No region named — not counted, not guessed.
+    writeDayFixture(dir, "owner", "trip", {
+      slug: "unnamed",
+      date: "2026-01-04",
+      country: "Switzerland",
+      countryCode: "CH",
+    });
+  });
+
+  afterEach(() => {
+    delete process.env.CONTENT_DIR;
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("tallies nights per region, largest first, leaving unnamed days out", () => {
+    expect(getCostSummary("owner/trip").byRegion).toEqual([
+      { region: "Zürich", nights: 2 },
+      { region: "Luzern", nights: 1 },
+    ]);
+  });
 });

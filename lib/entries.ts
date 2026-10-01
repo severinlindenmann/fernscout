@@ -437,6 +437,7 @@ function readAllEntriesFromDisk(ref: string): Entry[] {
       location: day.location ?? "",
       country,
       countryCode: countryCodeFor(country, day.countryCode),
+      ...(day.region ? { region: day.region } : {}),
       // Missing stays missing rather than becoming `Number(undefined)` —
       // `NaN`, which is what B265 actually found reaching the page: not the
       // `undefined` a missing field ought to produce, but a number that

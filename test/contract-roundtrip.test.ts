@@ -138,6 +138,7 @@ const DAY_SAMPLES: Record<string, unknown> = {
   location: "Lissabon",
   country: "Portugal",
   countryCode: "PT",
+  region: "Lisboa",
   transportMode: "train",
   tags: ["eins", "zwei"],
   translations: { en: { title: "A day", content: "The day's prose." } },
