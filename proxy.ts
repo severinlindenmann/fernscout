@@ -386,6 +386,6 @@ export const config = {
     "/skill/:name.md",
     "/api/:path*",
     // The pages' Markdown versions (B2488) — `.md` is excluded above.
-    "/((?:de/|fr/|it/)?(?:index|prices|schools|schools/demo|tour-operators|tour-operators/demo|guides/[a-z-]+)\\.md)",
+    "/((?:de/|fr/|it/)?(?:index|prices|schools|schools/demo|tour-operators|tour-operators/demo|switch|guides/[a-z-]+)\\.md)",
   ],
 };
