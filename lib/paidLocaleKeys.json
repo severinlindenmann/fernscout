@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "316f347e7d93cfa91fc329db2ed875efd266eab8",
+  "generatedFrom": "4415480d2d13431a739a47f9a16efc0baeb25b82",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -47,6 +47,7 @@
     "billing.paymentFailed.preheader",
     "billing.paymentFailed.subject",
     "billing.paymentFailed.title",
+    "billing.plusCheckoutSubmitText",
     "billing.receipt.body",
     "billing.receipt.footer",
     "billing.receipt.preheader",
