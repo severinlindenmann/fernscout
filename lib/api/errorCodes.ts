@@ -158,8 +158,6 @@ export const ERROR_CODES = {
   plan_limit: "This journal's plan has no more AI travel days (or storage) left in its current period. `used`, `allowed`, `plan` and `upgradeUrl` on the response say which limit and where to upgrade.",
   not_for_agents:
     "This spends the owner's money and is done by the owner, from their own page — a token is refused here whatever it is scoped to. Nothing was charged. Report what is needed and let them decide.",
-  bad_token: "The single-use token in the body does not verify.",
-  bad_method: "That payment method is not one this server takes.",
   too_many_requests: "Too many of these too quickly. `retryAfter` says how long to wait — wait it out rather than retrying immediately.",
   helper_unavailable: "This journal has no model-backed features switched on. /api/health says which capabilities are on and why.",
   consent_required: "This journal has not agreed to send photographs to a model. That is asked for on the journal's own page, not by an agent — an owner has to say yes to this themselves.",

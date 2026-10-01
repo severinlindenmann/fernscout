@@ -251,8 +251,8 @@ export type PlanPanel = {
 };
 
 /** Buy a plan, or ask the operator to grant it when no Stripe key is
- *  configured (`dryRun`) — the same "ask, don't act" shape every panel on this page
- *  and `submitRequest` already take for credits.
+ *  configured (`dryRun`) — the same "ask, don't act" shape every panel on
+ *  this page takes.
  *
  *  Inside the iPhone shell this buys through StoreKit instead — Apple
  *  3.1.3(b) forbids pointing an in-app button at a web checkout — B2598. */
