@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { resetRateLimitsForTests } from "@/lib/rateLimit";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildPrompt, SYSTEM_PROMPT } from "@/lib/helper/model";
+import { WRITE_DAY_TITLE_MAX_CHARS } from "@/lib/helper/limits";
 import { history } from "@/lib/helper/thread";
 import { createTrip } from "@/lib/tripWrite";
 import { hasPaid } from "./support/openCore";
@@ -509,6 +510,14 @@ describe("translate mode", () => {
     expect(translateDay).toHaveBeenCalledWith("The pass", "The bus took three hours.", "de", "alex");
     expect(writeDay).not.toHaveBeenCalled();
     expect(answered.body).toMatchObject({ ok: true, title: "Der Pass", content: "Der Bus brauchte drei Stunden.", locale: "de", provider: "Anthropic" });
+  });
+
+  test("security review: an oversized title is refused before consent and the AI-day gate, never reaching translateDay", async () => {
+    const title = "x".repeat(WRITE_DAY_TITLE_MAX_CHARS + 1);
+    const answered = await read(await call({ mode: "translate", to: "de", title, content: "Some words." }));
+    expect(answered.status).toBe(413);
+    expect(answered.body.error).toBe("title_too_long");
+    expect(translateDay).not.toHaveBeenCalled();
   });
 
   test("refuses a locale the journal does not have", async () => {

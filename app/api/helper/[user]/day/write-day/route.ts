@@ -12,7 +12,7 @@ import {
   type WriteDayMode,
 } from "@/lib/helper/model";
 import { checkPolishForAddedFacts, keepTypedWhereAccentsGuessed, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
-import { DESCRIBE_PHOTO_WIDTH, WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/limits";
+import { DESCRIBE_PHOTO_WIDTH, WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS, WRITE_DAY_TITLE_MAX_CHARS } from "@/lib/helper/limits";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { note, refused } from "@/lib/helper/thread";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
@@ -199,6 +199,25 @@ export async function POST(
           message: `${field} can be at most ${WRITE_DAY_FACT_MAX_CHARS} characters; this one is ${value.length}.`,
           field,
           maxChars: WRITE_DAY_FACT_MAX_CHARS,
+        },
+        { status: 413 },
+      );
+    }
+  }
+  // Security review follow-up — `translate`'s own `title` is never run
+  // through the `["location", "country", "from", "to"]` loop above (it is
+  // not one of those fields), so without its own check a body could carry
+  // an unbounded `title` straight into the prompt. Capped the same way,
+  // before consent and before the AI-day gate.
+  if (mode === "translate") {
+    const title = text(body.title);
+    if (title.length > WRITE_DAY_TITLE_MAX_CHARS) {
+      refused(user, "draft_words", "title_too_long");
+      return Response.json(
+        {
+          error: "title_too_long",
+          message: `title can be at most ${WRITE_DAY_TITLE_MAX_CHARS} characters; this one is ${title.length}.`,
+          maxChars: WRITE_DAY_TITLE_MAX_CHARS,
         },
         { status: 413 },
       );
