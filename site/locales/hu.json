@@ -3857,7 +3857,6 @@
   "me.phone.cleared": "{size} felszabadítva. Továbbra is be vagy jelentkezve.",
   "me.phone.clearing": "Törlés…",
   "me.phone.gps": "Rögzítse, merre járok",
-  "me.phone.later": "Később érkezik",
   "me.phone.off": "Ki",
   "me.phone.on": "Be",
   "me.phone.sharing": "Megosztás a Fotókból",
@@ -4671,5 +4670,18 @@
   "studio.hub.addDay.toldToday.untitled": "Ma már van egy nap",
   "studio.day.writeFailed.alreadySaved": "Az utolsó módosítás nem mentődött el. Maga a nap piszkozatként megmaradt – lépj vissza, és próbáld újra.",
   "billing.purchaseUnconfirmed": "Az Apple elfogadta a vásárlást, de ez a szerver még nem tudta megerősíteni. Semmi sem vész el: koppints a „Vásárlások visszaállítása” gombra az újrapróbáláshoz.",
-  "billing.purchasePending": "A vásárlás jóváhagyásra vár. A csomagod a jóváhagyás után azonnal megváltozik."
+  "billing.purchasePending": "A vásárlás jóváhagyásra vár. A csomagod a jóváhagyás után azonnal megváltozik.",
+  "me.phone.location.always": "Helyzet: Mindig – rögzítésre kész",
+  "me.phone.location.whenInUse": "Helyzet: csak az app használata közben – a rögzítéshez „Mindig” kell",
+  "me.phone.location.denied": "Helyzet: nem engedélyezett",
+  "me.phone.location.restricted": "Helyzet: ezen az iPhone-on letiltva",
+  "me.phone.location.notDetermined": "Helyzet: még nem kérdezte",
+  "me.phone.microphone": "Mikrofon",
+  "me.phone.microphoneAsk": "Az első hangfelvételnél kérdezi meg",
+  "me.phone.camera": "Kamera",
+  "me.phone.cameraAsk": "Az első fotózásnál kérdezi meg",
+  "me.phone.allowed": "Engedélyezve",
+  "me.phone.denied": "Nincs engedélyezve – a Beállításokban módosíthatod",
+  "me.phone.settings": "Engedélyek",
+  "me.phone.settingsBody": "Helyzet, mikrofon, kamera, fotók és értesítések a Fernscout számára"
 }

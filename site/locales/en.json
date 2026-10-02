@@ -3871,7 +3871,6 @@
   "me.phone.cleared": "Freed {size}. You are still signed in.",
   "me.phone.clearing": "Clearing…",
   "me.phone.gps": "Record where I go",
-  "me.phone.later": "Coming later",
   "me.phone.off": "Off",
   "me.phone.on": "On",
   "me.phone.sharing": "Sharing from Photos",
@@ -4665,5 +4664,18 @@
   "studio.hub.addDay.toldToday.untitled": "Today has a day",
   "studio.day.writeFailed.alreadySaved": "That last change did not save. The day itself is kept as a draft — go back and try again.",
   "billing.purchaseUnconfirmed": "Apple took the purchase, but this server could not confirm it yet. Nothing is lost: press Restore purchases to try again.",
-  "billing.purchasePending": "The purchase is waiting for approval. Your plan changes as soon as it is approved."
+  "billing.purchasePending": "The purchase is waiting for approval. Your plan changes as soon as it is approved.",
+  "me.phone.location.always": "Location: Always — ready to record",
+  "me.phone.location.whenInUse": "Location: only while using the app — recording needs Always",
+  "me.phone.location.denied": "Location: not allowed",
+  "me.phone.location.restricted": "Location: blocked on this iPhone",
+  "me.phone.location.notDetermined": "Location: not asked yet",
+  "me.phone.microphone": "Microphone",
+  "me.phone.microphoneAsk": "Asked the first time you record your voice",
+  "me.phone.camera": "Camera",
+  "me.phone.cameraAsk": "Asked the first time you take a photo",
+  "me.phone.allowed": "Allowed",
+  "me.phone.denied": "Not allowed — change it in Settings",
+  "me.phone.settings": "Permissions",
+  "me.phone.settingsBody": "Location, microphone, camera, photos and notifications for Fernscout"
 }
