@@ -163,7 +163,7 @@ describe("AddDayFlow, one page — B2188", () => {
 
     type(container.querySelector("textarea") as HTMLTextAreaElement, "Rain all day, then the river.");
     await flush();
-    await click("Save privately");
+    await click("Preview →");
 
     const body = commitBody as unknown as Record<string, unknown>;
     expect(body.mediaInboxIds).toEqual([A.id, B.id]);
@@ -211,7 +211,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await click("Leave the outliers out");
     expect(text()).toContain("3 chosen");
     expect(text()).not.toContain("taken on a different day");
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { mediaInboxIds: string[]; date: string }).mediaInboxIds).toEqual(["p1", "p2", "p4"]);
     expect((commitBody as unknown as { date: string }).date).toBe("2025-11-05");
   });
@@ -223,7 +223,7 @@ describe("AddDayFlow, one page — B2188", () => {
     expect(text()).toContain("No date in these photos. Which day was it?");
     // B2645 — the button is never a dead tap: it writes nothing, names what
     // is missing and opens the day picker; "Use today" is one tap away.
-    const save = Array.from(container.ownerDocument.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Save privately");
+    const save = Array.from(container.ownerDocument.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Preview →");
     expect(save?.disabled).toBe(false);
     await act(async () => save!.click());
     await flush();
@@ -253,7 +253,7 @@ describe("AddDayFlow, one page — B2188", () => {
       expect(text()).toContain("2 chosen");
       expect(dateChip()).toContain("from 2 photos");
       expect(text()).not.toContain("different day");
-      await click("Save privately");
+      await click("Preview →");
       const body = commitBody as unknown as { mediaInboxIds: string[]; date: string };
       expect(body.mediaInboxIds).toEqual(["d6a", "d6b"]);
       expect(body.date).toBe("2025-11-06");
@@ -297,7 +297,7 @@ describe("AddDayFlow, one page — B2188", () => {
       expect(grid()).toEqual(["o4.jpg", "t1.jpg", "t2.jpg", "t3.jpg"]);
       expect(text()).toContain("4 chosen");
       expect(text()).toContain("Add more from what's waiting (4)");
-      await click("Save privately");
+      await click("Preview →");
       expect((commitBody as unknown as { mediaInboxIds: string[] }).mediaInboxIds).toEqual(["o4", "t1", "t2", "t3"]);
     });
 
@@ -318,7 +318,7 @@ describe("AddDayFlow, one page — B2188", () => {
     props = { trips: [...TRIPS, { id: "wochenende", title: "Wochenende", start: "2025-11-09", end: "2025-11-11" }] };
     await mount();
     expect(dateChip()).toContain("Wochenende · day 2");
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { trip: string }).trip).toBe("wochenende");
   });
 
@@ -342,7 +342,7 @@ describe("AddDayFlow, one page — B2188", () => {
     props = { initialPhotos: "2025-11-05" };
     await mount();
     expect(container.querySelector('[data-chip="weather"]')).toBeNull();
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { weather: boolean }).weather).toBe(false);
 
     act(() => root!.unmount());
@@ -354,7 +354,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await act(async () => (container.querySelector('[data-chip="weather"]') as HTMLButtonElement).click());
     await click("Leave it out");
     expect(container.querySelector('[data-chip="weather"]')?.textContent).toContain("not looked up");
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { weather: boolean; lat: number }).weather).toBe(false);
     expect((commitBody as unknown as { lat: number }).lat).toBe(46.2);
   });
@@ -363,14 +363,14 @@ describe("AddDayFlow, one page — B2188", () => {
     inbox = [{ ...A, takenAt: "2025-11-05T09:00:00", lat: 46.2, lon: 9.0 }];
     props = { weatherAvailable: true, initialPhotos: "2025-11-05" };
     await mount();
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { weather: boolean }).weather).toBe(true);
   });
 
   test("the saved sentence names the people on the trip, and sharing is a quiet link", async () => {
     props = { readersByTrip: { reise: ["Hans", "Viki"] } };
     await mount();
-    await click("Save privately");
+    await click("Preview →");
     expect(text()).toContain("Saved. Only you and Hans, Viki can see this day.");
     const share = [...container.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Publish this day ›");
     expect(share?.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
@@ -382,7 +382,7 @@ describe("AddDayFlow, one page — B2188", () => {
         ? Response.json({ ok: true, slug: `${TODAY}-second` }, { status: 201 })
         : Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
     await mount();
-    await click("Save privately");
+    await click("Preview →");
     expect(text()).toContain("already has a day");
     expect([...container.querySelectorAll("a")].find((a) => a.textContent === "Add to that day instead")?.getAttribute("href")).toBe(
       "/@alex/studio/day/edit?slug=first",
@@ -397,7 +397,7 @@ describe("AddDayFlow, one page — B2188", () => {
   test("a date with a published day offers to change it, not to add to it", async () => {
     dayNew = () => Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "published" } }, { status: 409 });
     await mount();
-    await click("Save privately");
+    await click("Preview →");
     expect(text()).toContain("Change that day instead");
     expect(text()).not.toContain("Add to that day instead");
   });
@@ -422,7 +422,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await mount();
     type(container.querySelector('input[name="title"]') as HTMLInputElement, "First");
     await flush();
-    await click("Save privately");
+    await click("Preview →");
     expect(text()).toContain("already has a day");
     type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
     await flush();
@@ -437,7 +437,7 @@ describe("AddDayFlow, one page — B2188", () => {
         ? Response.json({ error: "day_exists", detail: { ok: false, code: "day_exists" } }, { status: 400 })
         : Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
     await mount();
-    await click("Save privately");
+    await click("Preview →");
     type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
     await flush();
     await click("Make a second update on this date");
@@ -480,10 +480,8 @@ describe("B2627 — a long day's photos picked inside the composer are offered a
     { ...A, id: "a1", filename: "a1.jpg", takenAt: "2025-11-05T13:00:00", uploadedAt: "2025-11-10T10:00:03.000Z" },
   ];
 
-  test("choosing them offers the same split, with the words typed so far", async () => {
+  test("choosing them splits in place — stacked on the same page, each with its own photos and words", async () => {
     inbox = LONG_DAY;
-    const onSplit = vi.fn();
-    props = { onSplit };
     await mount();
     await chooseEveryWaitingPhoto();
     expect(text()).toContain("This day looks like 2 parts");
@@ -493,45 +491,29 @@ describe("B2627 — a long day's photos picked inside the composer are offered a
     type(container.querySelector("textarea") as HTMLTextAreaElement, "A long one, two places.");
     await flush();
     await click("Write it in 2 parts");
-    expect(onSplit).toHaveBeenCalledTimes(1);
-    const [parts, content] = onSplit.mock.calls[0] as [{ ids: string[] }[], string];
-    expect(parts.map((p) => p.ids)).toEqual([["m1", "m2"], ["a1"]]);
-    expect(content).toBe("A long one, two places.");
-    // The one-day draft is cleared: the parts carry these photos and words now.
-    expect(sessionStorage.getItem(addDayStorageKey("alex"))).toBeNull();
+    // B2676 — no callback to a parent any more: both parts are right here,
+    // stacked, each its own card — and the words typed before the split
+    // rode into the first one, visibly.
+    expect(document.querySelector("[data-day-parts]")).not.toBeNull();
+    const textareas = Array.from(container.querySelectorAll("[data-day-parts] textarea")) as HTMLTextAreaElement[];
+    expect(textareas).toHaveLength(2);
+    expect(textareas[0].value).toBe("A long one, two places.");
+    expect(textareas[1].value).toBe("");
+    // The draft is still kept (now carrying the parts), never cleared out
+    // from under somebody who reloads mid-split.
+    expect(sessionStorage.getItem(addDayStorageKey("alex"))).not.toBeNull();
   });
 
   test("Keep it one day dismisses it for this exact set of photos, not forever", async () => {
     inbox = LONG_DAY;
-    props = { onSplit: vi.fn() };
     await mount();
     await chooseEveryWaitingPhoto();
     expect(text()).toContain("This day looks like 2 parts");
     await click("Keep it one day");
     expect(text()).not.toContain("This day looks like 2 parts");
     // Save privately still works, as one entry with every chosen photo.
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { mediaInboxIds: string[] }).mediaInboxIds).toEqual(["m1", "m2", "a1"]);
-  });
-
-  test("never offered a second time inside one part of the flow already", async () => {
-    const onSplit = vi.fn();
-    props = {
-      onSplit,
-      asPart: {
-        key: "part-1",
-        photoIds: LONG_DAY.map((i) => i.id),
-        time: "09:00",
-        secondEntry: false,
-        label: "Next part",
-        assistant: false,
-        onSaved: vi.fn(),
-      },
-    };
-    inbox = LONG_DAY;
-    await mount();
-    expect(text()).not.toContain("This day looks like");
-    expect(onSplit).not.toHaveBeenCalled();
   });
 });
 
@@ -549,7 +531,7 @@ describe("AddDayFlow, first run — B2188 (C inside A)", () => {
     await flush();
     await click("Next: save it");
     expect(text()).toContain("3 of 3");
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { content: string }).content).toBe("Our first day.");
   });
 });

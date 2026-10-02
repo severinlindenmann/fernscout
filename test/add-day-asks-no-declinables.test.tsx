@@ -113,7 +113,7 @@ describe("AddDayFlow — D1, declinables are named at share time, never asked wh
     expect(fields.length).toBeGreaterThan(8);
     for (const field of fields) expect(c.querySelector(`[name="reason-${field}"], [name="reason-text-${field}"]`), field).toBeNull();
 
-    const save = [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Save privately")!;
+    const save = [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Preview →")!;
     await act(async () => save.click());
     await act(async () => {
       for (let i = 0; i < 8; i++) await Promise.resolve();

@@ -172,7 +172,7 @@ describe("a day by voice — B2194", () => {
     expect(currentSearch()).toBe("mode=type");
     // Nothing was written while speaking; the one write is the usual Save.
     expect(calls).toEqual([]);
-    await click(button(en["studio.day.save"]));
+    await click(button(en["studio.day.previewCta"]));
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe("/api/helper/alex/day/new");
     expect(calls[0].body.content).toBe("Tired but happy.\n\nPastéis de nata.\n\nA seagull stole my bread.");
@@ -188,7 +188,7 @@ describe("a day by voice — B2194", () => {
     expect(heading()).toBe("2 of your photos are from Porto. What did you do there?");
     for (let i = 0; i < 4; i++) await click(button(en["studio.day.speak.skip"]));
     expect(currentSearch()).toBe("photos=2025-11-08&mode=type");
-    await click(button(en["studio.day.save"]));
+    await click(button(en["studio.day.previewCta"]));
     expect(calls.at(-1)!.body.mediaInboxIds).toEqual(["a", "b"]);
   });
 

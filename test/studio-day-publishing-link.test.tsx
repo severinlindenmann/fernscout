@@ -84,7 +84,7 @@ describe("the day-created screen", () => {
 
     // B2188 — one page: Save privately is the bar's one primary.
     await act(async () => {
-      [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Save privately")!.click();
+      [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Preview →")!.click();
     });
     await act(async () => {
       await Promise.resolve();

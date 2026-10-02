@@ -151,7 +151,7 @@ describe("Add a day — More details (B2233)", () => {
     const currency = container.querySelector<HTMLSelectElement>("[data-cost-line] select")!;
     expect(Array.from(currency.options, (o) => o.value)).toEqual(["CHF", "EUR"]);
     await type(currency, "EUR");
-    await click("Save privately");
+    await click("Preview →");
     expect(sent!.costs).toEqual([{ label: "Train to Lugano", amount: 23.4, currency: "EUR" }]);
     expect(sent!.transportMode).toBe("train");
     expect(sent!.tags).toEqual(["lake-side", "rain"]);
@@ -160,7 +160,7 @@ describe("Add a day — More details (B2233)", () => {
 
   test("nothing given, nothing sent", async () => {
     await mount(flow);
-    await click("Save privately");
+    await click("Preview →");
     expect(sent).not.toHaveProperty("costs");
     expect(sent).not.toHaveProperty("transportMode");
     expect(sent).not.toHaveProperty("tags");
