@@ -114,9 +114,6 @@ async function mount() {
             writtenDatesByTrip={{ utah: ["2025-09-06"] }}
             proposal={null}
             initialPhotos="2025-09-07"
-            helperOn
-            consents={{ words: true, photos: true, speech: true }}
-            providers={{ words: "Anthropic", speech: "Deepgram" }}
             {...props}
           />
           </StudioPage>

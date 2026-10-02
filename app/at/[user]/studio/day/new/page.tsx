@@ -3,8 +3,7 @@ import StudioPage from "@/components/studio/StudioPage";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { isEnabled } from "@/lib/capabilities";
-import { currentHelperProvider, hasHelperConsent } from "@/lib/helper/consent";
-import { readAssistantChoice } from "@/lib/studio/assistantChoice";
+import { hasHelperConsent } from "@/lib/helper/consent";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { aiDaysStatus, mayUseAi } from "@paid/billing/lib/aiDays";
 import AiDaysChip from "@/components/studio/day/AiDaysChip";
@@ -103,16 +102,6 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
             }}
           />
         }
-        // TIX-2 — the whole flow: assistant choice, parts, check, share.
-        assistantChoice={readAssistantChoice(user)}
-        assistantPossible={isEnabled("helper", user) || speechEnabled}
-        helperOn={isEnabled("helper", user)}
-        consents={{
-          words: hasHelperConsent(user, "words"),
-          photos: hasHelperConsent(user, "photos"),
-          speech: hasHelperConsent(user, "speech"),
-        }}
-        providers={{ words: currentHelperProvider("words"), speech: speechEnabled ? speechProvider() : null }}
         username={user}
         trips={trips}
         writtenDatesByTrip={writtenDatesByTrip}
