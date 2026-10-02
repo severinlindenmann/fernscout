@@ -612,14 +612,28 @@ async function verifyApplePurchase(username: string, transactionJws: string): Pr
   return body;
 }
 
-export type BuyApplePlanResult = { ok: true; plan: "pass" | "plus" } | { ok: false; reason: "cancelled" | "pending" | "failed" };
+export type BuyApplePlanResult =
+  | { ok: true; plan: "pass" | "plus" }
+  | { ok: false; reason: "cancelled" | "pending" | "failed" | "unavailable" };
 
 /** Buys `plan` for `username` end to end: mint the account token, call
  *  StoreKit, hand the signed transaction to the server, and only then tell
- *  StoreKit the purchase is finished. */
+ *  StoreKit the purchase is finished.
+ *
+ *  Checks the product resolves from the store first — B2670. Apple's own
+ *  `purchase` call fails just as generically whether the product id is
+ *  unknown to this storefront or something else went wrong; a missing
+ *  product (not yet propagated to Apple's catalog, or a typo) is common
+ *  enough, and different enough from "retry", to tell apart and to log. */
 export async function buyApplePlan(username: string, plan: "pass" | "plus"): Promise<BuyApplePlanResult> {
+  const productId = APPLE_PRODUCT_IDS[plan];
+  const [product] = await loadAppleProducts([productId]).catch(() => []);
+  if (!product) {
+    console.error(`[AppleIAP] product did not resolve from the store: ${productId}`);
+    return { ok: false, reason: "unavailable" };
+  }
   const appAccountToken = await ownerAppAccountToken(username);
-  const outcome = await AppleIAP.purchase({ productId: APPLE_PRODUCT_IDS[plan], appAccountToken });
+  const outcome = await AppleIAP.purchase({ productId, appAccountToken });
   if ("cancelled" in outcome) return { ok: false, reason: "cancelled" };
   if ("pending" in outcome) return { ok: false, reason: "pending" };
   const verified = await verifyApplePurchase(username, outcome.transactionJws);

@@ -547,6 +547,7 @@ export type TranslationKey =
   | "billing.postcardsLabel"
   | "billing.postcardsLeft"
   | "billing.privacy"
+  | "billing.purchaseUnavailable"
   | "billing.receipt.body"
   | "billing.receipt.footer"
   | "billing.receipt.preheader"
