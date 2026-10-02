@@ -4715,5 +4715,11 @@
   "studio.check.keepMine": "Garder les miens",
   "studio.check.useTidied": "Prendre la version mise en forme",
   "studio.check.captions": "Utiliser {count} légendes — elles ne disent que ce qui se voit",
-  "studio.check.captions.one": "Utiliser 1 légende — elle ne dit que ce qui se voit"
+  "studio.check.captions.one": "Utiliser 1 légende — elle ne dit que ce qui se voit",
+  "studio.day.existing.partOf": "Partie de « {title} », à",
+  "studio.day.existing.timeLabel": "Heure",
+  "studio.day.existing.timeNeeded": "Donne une heure à cette partie : c’est ce qui la distingue du reste de la journée.",
+  "studio.published.toldNobody": "Tes {count} lecteurs peuvent la lire. Personne n’a été prévenu.",
+  "studio.published.toldNobody.one": "Ton lecteur peut la lire. Personne n’a été prévenu.",
+  "studio.published.toldEveryoneNobody": "Tout le monde peut la lire. Personne n’a été prévenu."
 }

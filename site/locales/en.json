@@ -4706,5 +4706,11 @@
   "studio.check.keepMine": "Keep mine",
   "studio.check.useTidied": "Use tidied",
   "studio.check.captions": "Use {count} photo captions — they say only what is visible",
-  "studio.check.captions.one": "Use 1 photo caption — it says only what is visible"
+  "studio.check.captions.one": "Use 1 photo caption — it says only what is visible",
+  "studio.day.existing.partOf": "Part of “{title}”, at",
+  "studio.day.existing.timeLabel": "Time",
+  "studio.day.existing.timeNeeded": "Give this part a time — it is what tells it apart from the rest of the day.",
+  "studio.published.toldNobody": "Your {count} readers can read it. Nobody was told.",
+  "studio.published.toldNobody.one": "Your 1 reader can read it. Nobody was told.",
+  "studio.published.toldEveryoneNobody": "Anyone can read it. Nobody was told."
 }

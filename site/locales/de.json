@@ -4711,5 +4711,11 @@
   "studio.check.keepMine": "Meine behalten",
   "studio.check.useTidied": "Geglättete nehmen",
   "studio.check.captions": "{count} Bildunterschriften verwenden – sie sagen nur, was zu sehen ist",
-  "studio.check.captions.one": "1 Bildunterschrift verwenden – sie sagt nur, was zu sehen ist"
+  "studio.check.captions.one": "1 Bildunterschrift verwenden – sie sagt nur, was zu sehen ist",
+  "studio.day.existing.partOf": "Teil von „{title}“, um",
+  "studio.day.existing.timeLabel": "Uhrzeit",
+  "studio.day.existing.timeNeeded": "Gib diesem Teil eine Uhrzeit – daran erkennt man ihn im Tag.",
+  "studio.published.toldNobody": "Deine {count} Leserinnen und Leser können ihn lesen. Niemand wurde benachrichtigt.",
+  "studio.published.toldNobody.one": "Deine eine Leserin oder dein einer Leser kann ihn lesen. Niemand wurde benachrichtigt.",
+  "studio.published.toldEveryoneNobody": "Alle können ihn lesen. Niemand wurde benachrichtigt."
 }

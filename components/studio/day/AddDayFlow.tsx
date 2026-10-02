@@ -720,14 +720,19 @@ export default function AddDayFlow({
   // time — `day/for-date` exists for exactly this (its own doc comment).
   useEffect(() => {
     const key = `${tripId}\u0000${date}`;
+    // Once this page has created its own day the question was answered —
+    // asking again on a reload would re-offer it and undo the "yes".
+    if (createdSlug) return;
     if (!online || !tripId || !date || existingAskedFor.current === key) return;
     existingAskedFor.current = key;
     setExistingOnDate(null);
     setConfirmedSecondEntry(false);
     let cancelled = false;
+    let settled = false;
     fetch(`/api/helper/${encodeURIComponent(username)}/day/for-date?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((json: { ok?: boolean; existing?: ExistingDayOnDate | null } | null) => {
+        settled = true;
         if (!cancelled) setExistingOnDate(json?.ok ? (json.existing ?? null) : null);
       })
       .catch(() => {
@@ -735,9 +740,13 @@ export default function AddDayFlow({
       });
     return () => {
       cancelled = true;
+      // An answer thrown away unread (a re-run of this effect — React's
+      // own double mount in development, or `online` flipping) must be
+      // asked for again, or the card never shows for this date.
+      if (!settled) existingAskedFor.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [online, tripId, date]);
+  }, [online, tripId, date, createdSlug]);
 
   /** Free text — only ever reached with `addressLookupAvailable` off. A
    *  manual edit always clears the coordinates: whatever pin was there (a
@@ -1173,7 +1182,7 @@ export default function AddDayFlow({
   // is a trip and a date to write against. Scoped to the base/unsplit day:
   // split parts 2+ are created together at Save/Preview (Build notes).
   const autosaveSignature = JSON.stringify({
-    tripId, date, content, title, place, weatherOn, extras,
+    tripId, date, time, content, title, place, weatherOn, extras,
     photoIds: chosenPhotos.map((i) => i.id).sort(),
   });
   const lastAutosaved = useRef<string | null>(null);
@@ -1184,6 +1193,8 @@ export default function AddDayFlow({
     // saved until there are words or a photograph, so a draft nobody typed
     // into is never created just by visiting `/studio/day/new`.
     if (!createdSlug && content.trim() === "" && chosenPhotos.length === 0) return;
+    // A second entry on a date needs its time before it can exist at all.
+    if (!createdSlug && confirmedSecondEntry && !time) return;
     // A restored day is written to only once it is known to still be a draft.
     if (restoredFrom && createdSlug && !restoredSlugOk) return;
     // Waits for the inline "Add this to it?" to be answered — autosaving
@@ -1581,7 +1592,14 @@ export default function AddDayFlow({
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => setConfirmedSecondEntry(true)}
+                  onClick={() => {
+                    // A second entry on a date is told apart by its time
+                    // (the server refuses one without): the first chosen
+                    // photo's own clock when there is one, else asked below.
+                    const first = chosenPhotos.find((i) => i.takenAt && i.takenAt.length >= 16);
+                    if (!time && first?.takenAt) setTime(first.takenAt.slice(11, 16));
+                    setConfirmedSecondEntry(true);
+                  }}
                   className="min-h-11 rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action"
                 >
                   {t("studio.day.existing.yes")}
@@ -1591,6 +1609,19 @@ export default function AddDayFlow({
                 </button>
               </div>
             </div>
+          )}
+          {existingOnDate && confirmedSecondEntry && (
+            <label data-existing-time className="mt-2 flex flex-wrap items-center gap-3 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3 text-sm text-ink-body">
+              <span>{t("studio.day.existing.partOf", { title: existingOnDate.title || t("studio.day.collision.untitled") })}</span>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                aria-label={t("studio.day.existing.timeLabel")}
+                className="min-h-11 rounded-lg border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
+              />
+              {!time && <span className="w-full text-xs text-ink-secondary">{t("studio.day.existing.timeNeeded")}</span>}
+            </label>
           )}
           {/* B2645 — a photo with no date in it: ask, with today one tap away
               when today is inside the trip. Nothing is filled in by itself. */}

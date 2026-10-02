@@ -371,10 +371,15 @@ export default function PreviewDayFlow({
   ), { replace: true, desktop: true });
 
   if (published) {
+    const nobodyTold = published.told.app === 0 && published.told.mail === 0;
     const readerLine =
       audienceLabel.kind === "readers"
-        ? tn("studio.published.told", audienceLabel.count, { count: String(audienceLabel.count), app: String(published.told.app), mail: String(published.told.mail) })
-        : t("studio.published.toldEveryone", { app: String(published.told.app), mail: String(published.told.mail) });
+        ? nobodyTold
+          ? tn("studio.published.toldNobody", audienceLabel.count, { count: String(audienceLabel.count) })
+          : tn("studio.published.told", audienceLabel.count, { count: String(audienceLabel.count), app: String(published.told.app), mail: String(published.told.mail) })
+        : nobodyTold
+          ? t("studio.published.toldEveryoneNobody")
+          : t("studio.published.toldEveryone", { app: String(published.told.app), mail: String(published.told.mail) });
     return (
       <PublishedDay
         username={username}

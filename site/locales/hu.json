@@ -4712,5 +4712,11 @@
   "studio.check.keepMine": "Az enyém marad",
   "studio.check.useTidied": "A rendbe tett legyen",
   "studio.check.captions": "{count} képaláírás használata – csak azt írják le, ami látszik",
-  "studio.check.captions.one": "1 képaláírás használata – csak azt írja le, ami látszik"
+  "studio.check.captions.one": "1 képaláírás használata – csak azt írja le, ami látszik",
+  "studio.day.existing.partOf": "A(z) „{title}” része, ekkor:",
+  "studio.day.existing.timeLabel": "Időpont",
+  "studio.day.existing.timeNeeded": "Adj meg egy időpontot ennek a résznek – ez különbözteti meg a nap többi részétől.",
+  "studio.published.toldNobody": "{count} olvasód olvashatja. Senki sem kapott értesítést.",
+  "studio.published.toldNobody.one": "Az egy olvasód olvashatja. Senki sem kapott értesítést.",
+  "studio.published.toldEveryoneNobody": "Bárki olvashatja. Senki sem kapott értesítést."
 }

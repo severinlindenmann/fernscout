@@ -4715,5 +4715,11 @@
   "studio.check.keepMine": "Tieni le mie",
   "studio.check.useTidied": "Usa quella sistemata",
   "studio.check.captions": "Usa {count} didascalie — dicono solo ciò che si vede",
-  "studio.check.captions.one": "Usa 1 didascalia — dice solo ciò che si vede"
+  "studio.check.captions.one": "Usa 1 didascalia — dice solo ciò che si vede",
+  "studio.day.existing.partOf": "Parte di «{title}», alle",
+  "studio.day.existing.timeLabel": "Ora",
+  "studio.day.existing.timeNeeded": "Dai un’ora a questa parte: è ciò che la distingue dal resto della giornata.",
+  "studio.published.toldNobody": "I tuoi {count} lettori possono leggerla. Nessuno è stato avvisato.",
+  "studio.published.toldNobody.one": "Il tuo lettore può leggerla. Nessuno è stato avvisato.",
+  "studio.published.toldEveryoneNobody": "Chiunque può leggerla. Nessuno è stato avvisato."
 }
