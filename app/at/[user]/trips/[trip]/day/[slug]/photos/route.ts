@@ -4,6 +4,7 @@ import { isOwner } from "@/lib/contacts/session";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { IMAGE_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -141,7 +142,9 @@ export async function DELETE(
   const gate = await guard(request, params);
   if (!gate.ok) return gate.response;
 
-  const body = (await request.json().catch(() => null)) as {
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null) as {
     src?: unknown;
   } | null;
   const src = Array.isArray(body?.src)

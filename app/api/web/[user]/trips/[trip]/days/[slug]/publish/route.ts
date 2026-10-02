@@ -52,6 +52,7 @@ import { tripRef } from "@/lib/trips";
 import { isOwner } from "@/lib/contacts/session";
 import { contactsInGroups, saveTellChoice } from "@/lib/digest/tellChoice";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -135,7 +136,9 @@ export async function POST(
     return Response.json({ error: "unknown_day" }, { status: 404 });
   }
 
-  const parsed = shareBody.safeParse(await request.json().catch(() => ({})));
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const parsed = shareBody.safeParse(bodyRead.value ?? {});
   if (!parsed.success) {
     return Response.json(
       { error: "invalid_request", message: "parts must be a list of day slugs; tell, if present, an object." },

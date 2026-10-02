@@ -6,6 +6,7 @@ import { mayReadTrip } from "@/lib/tripGate";
 import { getTrip, parseTripRef } from "@/lib/trips";
 import type { Trip } from "@/lib/types";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 // Reads and writes reader data on every call — never prerender or cache it.
 export const dynamic = "force-dynamic";
@@ -129,12 +130,10 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { day?: unknown; emoji?: unknown; voter?: unknown; trip?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = bodyRead.value as { day?: unknown; emoji?: unknown; voter?: unknown; trip?: unknown } | null;
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "bad_json" }, { status: 400 });
 
   const day = typeof body.day === "string" ? body.day : "";
   const voter = typeof body.voter === "string" ? body.voter : "";

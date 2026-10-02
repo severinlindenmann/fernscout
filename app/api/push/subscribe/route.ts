@@ -4,6 +4,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { findActiveContactId, removeSubscription, saveSubscription } from "@/lib/push";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -48,12 +49,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
-  let body: { user?: unknown; endpoint?: unknown; keys?: unknown; kind?: unknown; token?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = bodyRead.value as { user?: unknown; endpoint?: unknown; keys?: unknown; kind?: unknown; token?: unknown } | null;
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "bad_json" }, { status: 400 });
 
   const username = usernameOf(body.user);
   const kind = kindOf(body.kind);
@@ -133,12 +132,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  let body: { user?: unknown; endpoint?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "bad_json" }, { status: 400 });
-  }
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = bodyRead.value as { user?: unknown; endpoint?: unknown } | null;
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "bad_json" }, { status: 400 });
   const username = usernameOf(body.user);
   if (!username || typeof body.endpoint !== "string") {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });

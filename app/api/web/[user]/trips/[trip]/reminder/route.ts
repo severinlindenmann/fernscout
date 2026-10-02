@@ -19,6 +19,7 @@ import { patchTripReminder, readTripReminder } from "@/lib/api/tripReminder";
 import { isOwner } from "@/lib/contacts/session";
 import { tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,9 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
   const { user, trip } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
-  const body = await request.json().catch(() => null);
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null);
   const result = await patchTripReminder(tripRef(user, trip), body);
   if (!result.ok) {
     const status = result.bug

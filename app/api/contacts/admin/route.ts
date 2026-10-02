@@ -41,6 +41,7 @@ import { serverSite } from "@/lib/site";
 import { peopleOf } from "@/lib/tripPeople";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -194,7 +195,9 @@ export async function POST(request: Request) {
   if (foreignOrigin(request)) {
     return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
   }
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const username = typeof body.user === "string" ? body.user : "";
   const denied = await guard(username, request);
   if (denied) return denied;
