@@ -3856,7 +3856,6 @@
   "me.phone.cleared": "{size} libérés. Tu es toujours connecté·e.",
   "me.phone.clearing": "Nettoyage…",
   "me.phone.gps": "Enregistrer où je vais",
-  "me.phone.later": "À venir",
   "me.phone.off": "Désactivé",
   "me.phone.on": "Activé",
   "me.phone.sharing": "Partage depuis Photos",
@@ -4679,5 +4678,18 @@
   "studio.preview.composeSourceSeen": "photo",
   "studio.preview.composeUseThis": "Utiliser ceci",
   "studio.preview.composeAnswerPlaceholder": "Réponse…",
-  "studio.preview.composeAddAnswer": "Ajouter"
+  "studio.preview.composeAddAnswer": "Ajouter",
+  "me.phone.location.always": "Position : Toujours – prêt à enregistrer",
+  "me.phone.location.whenInUse": "Position : seulement pendant l’utilisation – l’enregistrement demande « Toujours »",
+  "me.phone.location.denied": "Position : non autorisée",
+  "me.phone.location.restricted": "Position : bloquée sur cet iPhone",
+  "me.phone.location.notDetermined": "Position : pas encore demandée",
+  "me.phone.microphone": "Micro",
+  "me.phone.microphoneAsk": "Demandé la première fois que tu enregistres ta voix",
+  "me.phone.camera": "Appareil photo",
+  "me.phone.cameraAsk": "Demandé la première fois que tu prends une photo",
+  "me.phone.allowed": "Autorisé",
+  "me.phone.denied": "Non autorisé – à changer dans Réglages",
+  "me.phone.settings": "Autorisations",
+  "me.phone.settingsBody": "Position, micro, appareil photo, photos et notifications pour Fernscout"
 }

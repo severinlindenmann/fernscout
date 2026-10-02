@@ -3856,7 +3856,6 @@
   "me.phone.cleared": "{size} freigegeben. Du bist weiterhin angemeldet.",
   "me.phone.clearing": "Wird geleert …",
   "me.phone.gps": "Aufzeichnen, wo ich bin",
-  "me.phone.later": "Kommt später",
   "me.phone.off": "Aus",
   "me.phone.on": "Ein",
   "me.phone.sharing": "Teilen aus Fotos",
@@ -4675,5 +4674,18 @@
   "studio.preview.composeSourceSeen": "Foto",
   "studio.preview.composeUseThis": "Diese nehmen",
   "studio.preview.composeAnswerPlaceholder": "Antwort…",
-  "studio.preview.composeAddAnswer": "Hinzufügen"
+  "studio.preview.composeAddAnswer": "Hinzufügen",
+  "me.phone.location.always": "Standort: Immer – bereit zum Aufzeichnen",
+  "me.phone.location.whenInUse": "Standort: nur bei Verwendung der App – Aufzeichnen braucht «Immer»",
+  "me.phone.location.denied": "Standort: nicht erlaubt",
+  "me.phone.location.restricted": "Standort: auf diesem iPhone gesperrt",
+  "me.phone.location.notDetermined": "Standort: noch nicht gefragt",
+  "me.phone.microphone": "Mikrofon",
+  "me.phone.microphoneAsk": "Wird gefragt, wenn du zum ersten Mal sprichst",
+  "me.phone.camera": "Kamera",
+  "me.phone.cameraAsk": "Wird gefragt, wenn du zum ersten Mal ein Foto machst",
+  "me.phone.allowed": "Erlaubt",
+  "me.phone.denied": "Nicht erlaubt – in den Einstellungen ändern",
+  "me.phone.settings": "Berechtigungen",
+  "me.phone.settingsBody": "Standort, Mikrofon, Kamera, Fotos und Mitteilungen für Fernscout"
 }

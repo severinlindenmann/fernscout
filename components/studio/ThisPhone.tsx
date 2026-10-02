@@ -1,8 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useI18n } from "@/components/LocaleProvider";
-import { connectShareInbox, disconnectShareInbox, useNativeShell, useStandalone } from "@/components/nativeShell";
+import {
+  connectShareInbox,
+  disconnectShareInbox,
+  locationPermission,
+  openAppSettings,
+  useNativeShell,
+  useStandalone,
+  type LocationPermission,
+} from "@/components/nativeShell";
+import { journalPath } from "@/lib/journalPath";
 import { useShareInboxAutoConnect } from "@/components/studio/ShareInboxConnect";
 import { KEPT_CHANGED } from "@/components/KeepTrip";
 import { clearKeptCaches } from "@/lib/keepCache";
@@ -86,7 +96,44 @@ function SharingRow({ username }: { username: string }) {
   );
 }
 
-export default function ThisPhone({ username }: { username: string }) {
+/** "Record where I go" — the switch itself is per trip on the routes page
+ * (`RouteRecordSection`), so this row links there and says what iOS
+ * currently allows, which is the one thing that page cannot fix by itself. */
+function RecordRow({ username }: { username: string }) {
+  const { t } = useI18n();
+  const [permission, setPermission] = useState<LocationPermission["status"] | null>(null);
+  useEffect(() => {
+    void locationPermission().then((p) => setPermission(p.status), () => undefined);
+  }, []);
+  return (
+    <li>
+      <Link href={journalPath(username, "/studio/location")} className="flex min-h-14 items-center gap-4 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-base text-ink-strong">{t("me.phone.gps")}</div>
+          {permission && <div className="text-sm text-ink-secondary">{t(`me.phone.location.${permission}`)}</div>}
+        </div>
+        <span aria-hidden className="text-ink-faint">›</span>
+      </Link>
+    </li>
+  );
+}
+
+/** Microphone and camera are WebView permissions, asked by iOS the first
+ * time a page uses them. Only a definite answer is shown; anything else
+ * reads as "asked when you first need it" rather than a guess. */
+function MediaRow({ name, label, ask }: { name: "microphone" | "camera"; label: string; ask: string }) {
+  const { t } = useI18n();
+  const [state, setState] = useState<PermissionState | null>(null);
+  useEffect(() => {
+    navigator.permissions
+      ?.query({ name: name as PermissionName })
+      .then((s) => setState(s.state), () => undefined);
+  }, [name]);
+  const hint = state === "granted" ? t("me.phone.allowed") : state === "denied" ? t("me.phone.denied") : ask;
+  return <Row label={label} hint={hint}>{null}</Row>;
+}
+
+export default function ThisPhone({ username, routeRecording = false }: { username: string; routeRecording?: boolean }) {
   const { t } = useI18n();
   const native = useNativeShell();
   const standalone = useStandalone();
@@ -107,9 +154,18 @@ export default function ThisPhone({ username }: { username: string }) {
       <h2 className="font-display text-xl font-semibold text-ink-strong">{native ? t("me.phone.titleIphone") : t("me.phone.title")}</h2>
       <ul className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
         {native && <SharingRow username={username} />}
+        {native && routeRecording && <RecordRow username={username} />}
+        {native && <MediaRow name="microphone" label={t("me.phone.microphone")} ask={t("me.phone.microphoneAsk")} />}
+        {native && <MediaRow name="camera" label={t("me.phone.camera")} ask={t("me.phone.cameraAsk")} />}
         {native && (
-          <Row label={t("me.phone.gps")} hint={t("me.phone.later")}>
-            <Switch on={false} disabled label={t("me.phone.gps")} onChange={() => undefined} />
+          <Row label={t("me.phone.settings")} hint={t("me.phone.settingsBody")}>
+            <button
+              type="button"
+              onClick={() => void openAppSettings()}
+              className="min-h-11 rounded-full border border-line-quiet px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
+            >
+              {t("studio.record.openSettings")}
+            </button>
           </Row>
         )}
         <Row label={t("me.phone.clear")} hint={clear.state === "done" ? t("me.phone.cleared", { size: mb(clear.freed) }) : t("me.phone.clearBody")}>

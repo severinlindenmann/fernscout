@@ -3856,7 +3856,6 @@
   "me.phone.cleared": "Liberati {size}. Sei ancora connesso.",
   "me.phone.clearing": "Svuotamento…",
   "me.phone.gps": "Registra dove vado",
-  "me.phone.later": "In arrivo",
   "me.phone.off": "Off",
   "me.phone.on": "On",
   "me.phone.sharing": "Condivisione da Foto",
@@ -4679,5 +4678,18 @@
   "studio.preview.composeSourceSeen": "foto",
   "studio.preview.composeUseThis": "Usa questa",
   "studio.preview.composeAnswerPlaceholder": "Risposta…",
-  "studio.preview.composeAddAnswer": "Aggiungi"
+  "studio.preview.composeAddAnswer": "Aggiungi",
+  "me.phone.location.always": "Posizione: Sempre – pronta a registrare",
+  "me.phone.location.whenInUse": "Posizione: solo mentre usi l’app – la registrazione richiede «Sempre»",
+  "me.phone.location.denied": "Posizione: non consentita",
+  "me.phone.location.restricted": "Posizione: bloccata su questo iPhone",
+  "me.phone.location.notDetermined": "Posizione: non ancora richiesta",
+  "me.phone.microphone": "Microfono",
+  "me.phone.microphoneAsk": "Richiesto la prima volta che registri la tua voce",
+  "me.phone.camera": "Fotocamera",
+  "me.phone.cameraAsk": "Richiesta la prima volta che scatti una foto",
+  "me.phone.allowed": "Consentito",
+  "me.phone.denied": "Non consentito – cambialo in Impostazioni",
+  "me.phone.settings": "Autorizzazioni",
+  "me.phone.settingsBody": "Posizione, microfono, fotocamera, foto e notifiche per Fernscout"
 }

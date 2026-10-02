@@ -227,6 +227,7 @@ export default function MePageContent({
   canSignIn,
   codeMinutes,
   contactsEnabled,
+  routeRecording = false,
   ownerName,
   signinNotice,
   hasAbout = false,
@@ -265,6 +266,9 @@ export default function MePageContent({
   /** Whether this journal keeps a guest list at all. Resolved on the server;
    * `isEnabled` reads server config and this file is a client component. */
   contactsEnabled: boolean;
+  /** `features.routeRecording` for this journal — the phone section links
+   * to the routes page only when there is one. */
+  routeRecording?: boolean;
   /**
    * What to call the person whose journal this is — one word, and never their
    * address (B20).
@@ -671,7 +675,7 @@ export default function MePageContent({
           sign out of and is not offered a control that would do nothing.
         */}
         {/* Owner, on a phone only — B2208. */}
-        {viewer.owner && <ThisPhone username={username} />}
+        {viewer.owner && <ThisPhone username={username} routeRecording={routeRecording} />}
         {viewer.email && <SignOut owner={viewer.owner ? username : undefined} />}
         <ConnectionInfo build={build} hosting={hosting} />
       </main>

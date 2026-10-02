@@ -3871,7 +3871,6 @@
   "me.phone.cleared": "Freed {size}. You are still signed in.",
   "me.phone.clearing": "Clearing…",
   "me.phone.gps": "Record where I go",
-  "me.phone.later": "Coming later",
   "me.phone.off": "Off",
   "me.phone.on": "On",
   "me.phone.sharing": "Sharing from Photos",
@@ -4670,5 +4669,18 @@
   "studio.preview.composeSourceSeen": "photo",
   "studio.preview.composeUseThis": "Use this",
   "studio.preview.composeAnswerPlaceholder": "Answer…",
-  "studio.preview.composeAddAnswer": "Add"
+  "studio.preview.composeAddAnswer": "Add",
+  "me.phone.location.always": "Location: Always — ready to record",
+  "me.phone.location.whenInUse": "Location: only while using the app — recording needs Always",
+  "me.phone.location.denied": "Location: not allowed",
+  "me.phone.location.restricted": "Location: blocked on this iPhone",
+  "me.phone.location.notDetermined": "Location: not asked yet",
+  "me.phone.microphone": "Microphone",
+  "me.phone.microphoneAsk": "Asked the first time you record your voice",
+  "me.phone.camera": "Camera",
+  "me.phone.cameraAsk": "Asked the first time you take a photo",
+  "me.phone.allowed": "Allowed",
+  "me.phone.denied": "Not allowed — change it in Settings",
+  "me.phone.settings": "Permissions",
+  "me.phone.settingsBody": "Location, microphone, camera, photos and notifications for Fernscout"
 }
