@@ -4694,5 +4694,15 @@
   "studio.day.photos.addN.one": "Add 1 photo",
   "studio.day.photos.choose": "Choose photos",
   "studio.day.sheet.cancel": "Cancel",
-  "studio.day.photos.openCamera": "Open the camera"
+  "studio.day.photos.openCamera": "Open the camera",
+  "studio.check.working": "The assistant is working…",
+  "studio.check.lookingAt": "Looking at {count} photos…",
+  "studio.check.lookingAt.one": "Looking at 1 photo…",
+  "studio.check.titleLabel": "Title",
+  "studio.check.noTitle": "No title",
+  "studio.check.noWords": "No words. The photos stand on their own.",
+  "studio.check.keepMine": "Keep mine",
+  "studio.check.useTidied": "Use tidied",
+  "studio.check.captions": "Use {count} photo captions — they say only what is visible",
+  "studio.check.captions.one": "Use 1 photo caption — it says only what is visible"
 }

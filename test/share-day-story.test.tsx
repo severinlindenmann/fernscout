@@ -51,14 +51,14 @@ test("the preview comes before the look picker", async () => {
   await mount();
   const order = [...container!.querySelectorAll("img, button")].map((el) => el.className);
   const previewIndex = order.findIndex((c) => c.includes("max-h-[480px]"));
-  const lookButtonIndex = [...container!.querySelectorAll("button[aria-pressed]")][0]
-    ? [...container!.querySelectorAll("button, img")].indexOf([...container!.querySelectorAll("button[aria-pressed]")][0] as Element)
+  const lookButtonIndex = [...container!.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")][0]
+    ? [...container!.querySelectorAll("button, img")].indexOf([...container!.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")][0] as Element)
     : -1;
   expect(previewIndex).toBeGreaterThanOrEqual(0);
   expect(lookButtonIndex).toBeGreaterThan(previewIndex);
 });
 
-const photoGridTiles = (el: HTMLElement) => [...el.querySelectorAll("button[aria-pressed]")].filter((b) => b.className.includes("h-16 w-16"));
+const photoGridTiles = (el: HTMLElement) => [...el.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")].filter((b) => b.className.includes("h-16 w-16"));
 
 test("Include more photos from this day is off by default; checking it reveals the photo grid", async () => {
   await mount();
@@ -87,12 +87,12 @@ test("'Shared.' appears only once navigator.share resolves, never for the downlo
 
 test("remembers the chosen look per owner across mounts", async () => {
   await mount();
-  const postcardTile = [...container!.querySelectorAll("button[aria-pressed]")].find((b) => b.textContent?.includes("Postcard"))!;
+  const postcardTile = [...container!.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")].find((b) => b.textContent?.includes("Postcard"))!;
   await act(async () => postcardTile.click());
   act(() => root?.unmount());
   container?.remove();
 
   await mount();
-  const postcardTileAgain = [...container!.querySelectorAll("button[aria-pressed]")].find((b) => b.textContent?.includes("Postcard"))!;
+  const postcardTileAgain = [...container!.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")].find((b) => b.textContent?.includes("Postcard"))!;
   expect(postcardTileAgain.getAttribute("aria-pressed")).toBe("true");
 });

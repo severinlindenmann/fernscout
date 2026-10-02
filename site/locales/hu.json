@@ -4700,5 +4700,15 @@
   "studio.day.photos.addN.one": "1 fotó hozzáadása",
   "studio.day.photos.choose": "Fotók kiválasztása",
   "studio.day.sheet.cancel": "Mégse",
-  "studio.day.photos.openCamera": "Kamera megnyitása"
+  "studio.day.photos.openCamera": "Kamera megnyitása",
+  "studio.check.working": "Az asszisztens dolgozik…",
+  "studio.check.lookingAt": "Megnéz {count} fotót…",
+  "studio.check.lookingAt.one": "Megnéz 1 fotót…",
+  "studio.check.titleLabel": "Cím",
+  "studio.check.noTitle": "Nincs cím",
+  "studio.check.noWords": "Nincsenek szavak. A fotók önmagukért beszélnek.",
+  "studio.check.keepMine": "Az enyém marad",
+  "studio.check.useTidied": "A rendbe tett legyen",
+  "studio.check.captions": "{count} képaláírás használata – csak azt írják le, ami látszik",
+  "studio.check.captions.one": "1 képaláírás használata – csak azt írja le, ami látszik"
 }

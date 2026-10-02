@@ -12,7 +12,7 @@ import PublishedDay from "@/components/studio/day/PublishedDay";
 import TellWho, { tellCounts, type TellProps } from "@/components/studio/day/TellWho";
 import { journalPath } from "@/lib/journalPath";
 import { NO_PROSE } from "@/lib/helper/draft";
-import { missingConsentScopes } from "@/lib/studio/featureConsent";
+import { missingConsentScopes, type ConsentScopes } from "@/lib/studio/featureConsent";
 import { publishAudienceLabel } from "@/lib/studio/publishAudience";
 import { addAllAiTags, mergeTags, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer, type LanguageAnswer } from "@/lib/studio/languageAnswer";
@@ -183,8 +183,12 @@ export default function PreviewDayFlow({
     return { ok: !!response?.ok && !!json?.ok, json, status: response?.status ?? 0 };
   }
 
-  async function agree(scope: "words" | "photos") {
-    await fetch(`/api/helper/${user}/consent`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scope }) }).catch(() => null);
+  // The consent this visit knows about: the server's answer at load, plus
+  // every scope agreed to since, so a second Suggest/Translate never asks again.
+  const [consentNow, setConsentNow] = useState<ConsentScopes>({ ...consent, speech: false });
+  async function agree(scope: keyof ConsentScopes) {
+    const res = await fetch(`/api/helper/${user}/consent`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scope }) }).catch(() => null);
+    if (res?.ok) setConsentNow((prev) => ({ ...prev, [scope]: true }));
   }
 
   /** ✦ Suggest — B2677 item 2+3: tidied words, titles and captions per part,
@@ -230,7 +234,7 @@ export default function PreviewDayFlow({
 
   function onSuggestTap() {
     if (!helperEnabled) return;
-    if (missingConsentScopes("suggest", consent).length > 0) {
+    if (missingConsentScopes("suggest", consentNow).length > 0) {
       setSuggestConsenting(true);
       return;
     }
@@ -238,7 +242,7 @@ export default function PreviewDayFlow({
   }
 
   async function confirmSuggestConsent() {
-    for (const scope of missingConsentScopes("suggest", consent)) await agree(scope);
+    for (const scope of missingConsentScopes("suggest", consentNow)) await agree(scope);
     setSuggestConsenting(false);
     void runSuggest();
   }
@@ -258,7 +262,7 @@ export default function PreviewDayFlow({
 
   // Languages — ✦ Translate / Write it myself / "<language> is fine".
   async function runTranslate(locale: string) {
-    if (missingConsentScopes("translate", consent).length > 0) {
+    if (missingConsentScopes("translate", consentNow).length > 0) {
       setTranslateConsenting(true);
       return;
     }

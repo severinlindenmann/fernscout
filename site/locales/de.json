@@ -4699,5 +4699,15 @@
   "studio.day.photos.addN.one": "1 Foto hinzufügen",
   "studio.day.photos.choose": "Fotos wählen",
   "studio.day.sheet.cancel": "Abbrechen",
-  "studio.day.photos.openCamera": "Kamera öffnen"
+  "studio.day.photos.openCamera": "Kamera öffnen",
+  "studio.check.working": "Der Assistent arbeitet…",
+  "studio.check.lookingAt": "Schaut {count} Fotos an…",
+  "studio.check.lookingAt.one": "Schaut 1 Foto an…",
+  "studio.check.titleLabel": "Titel",
+  "studio.check.noTitle": "Kein Titel",
+  "studio.check.noWords": "Keine Worte. Die Fotos sprechen für sich.",
+  "studio.check.keepMine": "Meine behalten",
+  "studio.check.useTidied": "Geglättete nehmen",
+  "studio.check.captions": "{count} Bildunterschriften verwenden – sie sagen nur, was zu sehen ist",
+  "studio.check.captions.one": "1 Bildunterschrift verwenden – sie sagt nur, was zu sehen ist"
 }

@@ -4703,5 +4703,15 @@
   "studio.day.photos.addN.one": "Ajouter 1 photo",
   "studio.day.photos.choose": "Choisir des photos",
   "studio.day.sheet.cancel": "Annuler",
-  "studio.day.photos.openCamera": "Ouvrir l'appareil photo"
+  "studio.day.photos.openCamera": "Ouvrir l'appareil photo",
+  "studio.check.working": "L’assistant travaille…",
+  "studio.check.lookingAt": "Regarde {count} photos…",
+  "studio.check.lookingAt.one": "Regarde 1 photo…",
+  "studio.check.titleLabel": "Titre",
+  "studio.check.noTitle": "Pas de titre",
+  "studio.check.noWords": "Pas de mots. Les photos parlent d’elles-mêmes.",
+  "studio.check.keepMine": "Garder les miens",
+  "studio.check.useTidied": "Prendre la version mise en forme",
+  "studio.check.captions": "Utiliser {count} légendes — elles ne disent que ce qui se voit",
+  "studio.check.captions.one": "Utiliser 1 légende — elle ne dit que ce qui se voit"
 }

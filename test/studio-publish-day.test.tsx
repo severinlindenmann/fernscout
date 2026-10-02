@@ -159,7 +159,7 @@ describe("PublishDayFlow — B2677, narrowed to the drafts list and the take-dow
 
     await act(async () => confirm!.click());
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe("/api/web/alex/trips/alps/days/open/unpublish");
+    expect((fetchMock.mock.calls as unknown as [string][])[0][0]).toBe("/api/web/alex/trips/alps/days/open/unpublish");
     expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is off the site.");
   });
 });
