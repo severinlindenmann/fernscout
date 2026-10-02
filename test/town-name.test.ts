@@ -33,6 +33,16 @@ describe("reverseGeocode townOnly — B2543", () => {
     expect(town?.name).toBeTruthy();
   });
 
+  test("B2561: Ho Chi Minh City districts resolve to the city; towns stay put", () => {
+    for (const [lat, lng] of [[10.7829, 106.6883], [10.755, 106.66], [10.76, 106.705]]) {
+      expect(reverseGeocode(lat, lng, { townOnly: true })?.name).toBe("Ho Chi Minh City");
+    }
+    expect(reverseGeocode(47.37, 8.54, { townOnly: true })?.name).toBe("Zürich");
+    expect(reverseGeocode(46.95, 7.45, { townOnly: true })?.name).toBe("Bern");
+    // The default (photo caption) answer is untouched.
+    expect(reverseGeocode(10.7829, 106.6883)?.name).toBe("Quận Ba");
+  });
+
   test("nowhere within reach stays null both ways", () => {
     expect(reverseGeocode(0, -160, { townOnly: true })).toBeNull();
   });
