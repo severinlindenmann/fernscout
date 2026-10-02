@@ -297,7 +297,7 @@ export default function ShareDayStory({
     <div className="flex flex-col gap-5">
       {/* B2678 — the preview leads; the look picker is the control for it,
           not the first thing on the screen. */}
-      <div className="relative overflow-hidden rounded-xl border border-line-quiet bg-surface-subtle">
+      <div data-testid="story-preview" className="relative overflow-hidden rounded-xl border border-line-quiet bg-surface-subtle">
         {prepareState === "preparing" ? (
           <div className="relative mx-auto max-h-[480px]">
             {first?.src && (
@@ -314,7 +314,7 @@ export default function ShareDayStory({
           </div>
         ) : prepareState === "error" ? (
           <div className="flex flex-col items-center gap-3 p-8 text-center text-sm">
-            <p className="font-semibold text-coral-600">
+            <p role="alert" className="font-semibold text-coral-600">
               {t(look === "video" ? "studio.share.prepareFailedVideo" : "studio.share.prepareFailedPicture")}
             </p>
             <button type="button" onClick={retryPrepare} className="min-h-9 rounded-lg border border-line-strong px-3 text-xs font-semibold text-ink-strong">
