@@ -578,6 +578,7 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
           "first-trip:send",
           "messages:sweep",
           "spend:alert",
+          "usage:fold",
           "gap-nudges:send",
           "plan-reminders:send",
           "extract:remind",
