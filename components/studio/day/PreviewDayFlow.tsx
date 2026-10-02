@@ -107,7 +107,6 @@ export default function PreviewDayFlow({
   const [tagInput, setTagInput] = useState("");
   const seededTags = useRef(false);
 
-  const [etags, setEtags] = useState<Record<string, string>>({});
 
   // Languages (B2677 item 4) — one remembered answer per trip, applied to
   // every other locale this journal has. `null` until the owner picks (or
@@ -131,7 +130,7 @@ export default function PreviewDayFlow({
 
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string>();
-  const [published, setPublished] = useState<{ told: { app: number; mail: number } } | null>(null);
+  const [published, setPublished] = useState<{ told: { app: number; mail: number }; slug: string } | null>(null);
 
   const started = useRef(false);
   useEffect(() => {
@@ -156,22 +155,6 @@ export default function PreviewDayFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // One ETag per part, read once on mount — the same `If-Match` contract
-  // `EditDay.tsx` already holds a save to; every write below is small and
-  // best-effort (tags, translations, visibility), so a stale conflict here
-  // simply means the next PATCH is silently skipped rather than the owner
-  // being shown a save-conflict screen over a single tag tap.
-  useEffect(() => {
-    void Promise.all(
-      rows.map((row) =>
-        fetch(`/api/web/${user}/trips/${encodeURIComponent(row.tripId)}/days/${encodeURIComponent(row.slug)}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((json: { etag?: string } | null) => [row.slug, json?.etag] as const)
-          .catch(() => [row.slug, undefined] as const),
-      ),
-    ).then((pairs) => setEtags(Object.fromEntries(pairs.filter(([, etag]) => etag) as [string, string][])));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function post(path: string, body: unknown) {
     const response = await fetch(`/api/helper/${user}/${path}`, {
@@ -250,14 +233,11 @@ export default function PreviewDayFlow({
   const place = entries[0]?.location ?? null;
   const tagChips: TagChip[] = mergeTags(place, usedBeforeTags, aiTags, selectedTags);
 
-  async function saveTags(next: Set<string>) {
+  // Tags, translations and this day's visibility are held here and written
+  // once, in order, by `persistChoices` right before publishing — never one
+  // PATCH per tap, which raced its own If-Match and lost the second write.
+  function saveTags(next: Set<string>) {
     setSelectedTags(next);
-    const etag = etags[chosen.slug];
-    await fetch(`/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(chosen.slug)}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json", ...(etag ? { "if-match": etag } : {}) },
-      body: JSON.stringify({ tags: [...next] }),
-    }).catch(() => null);
   }
 
   // Languages — ✦ Translate / Write it myself / "<language> is fine".
@@ -282,15 +262,8 @@ export default function PreviewDayFlow({
     void runTranslate(locale);
   }
 
-  async function saveTranslations() {
-    const etag = etags[chosen.slug];
-    const translations = Object.fromEntries(Object.entries(langDrafts).map(([code, said]) => [code, said]));
-    if (Object.keys(translations).length === 0) return;
-    await fetch(`/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(chosen.slug)}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json", ...(etag ? { "if-match": etag } : {}) },
-      body: JSON.stringify({ translations }),
-    }).catch(() => null);
+  function saveTranslations() {
+    // Held in `langDrafts`; written by `persistChoices`.
   }
 
   function declineLanguage() {
@@ -299,17 +272,60 @@ export default function PreviewDayFlow({
   }
 
   // Readers / Message "Change" — visibility + who is told.
-  async function saveChange() {
-    const etag = etags[chosen.slug];
-    const patch: Record<string, unknown> = visibility
-      ? { visibility }
-      : { declined: { visibility: "shown to everyone the trip lets in" } };
-    await fetch(`/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(chosen.slug)}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json", ...(etag ? { "if-match": etag } : {}) },
-      body: JSON.stringify(patch),
-    }).catch(() => null);
+  function saveChange() {
+    // Held in `visibility`; written by `persistChoices`.
     setChanging(false);
+  }
+
+  /**
+   * Everything the owner chose on this page, written before the publish:
+   * 1. each part's accepted suggestions (tidied words, the picked title,
+   *    captions) through the helper's own day PATCH — a new title can rename
+   *    the slug, so the slugs the publish then names come from its answers;
+   * 2. the main day's tags, translations and visibility in ONE cookie PATCH,
+   *    against an ETag read fresh after step 1.
+   * Returns the slugs to publish, or null when a write failed (nothing is
+   * published then, and the owner sees why).
+   */
+  async function persistChoices(): Promise<string[] | null> {
+    const slugs = rows.map((row) => row.slug);
+    for (let i = 0; i < rows.length; i++) {
+      const entry = entries[i];
+      const idea = ideas[i];
+      const ss = suggestionState[i];
+      const body: Record<string, unknown> = { trip: rows[i].tripId, slug: rows[i].slug };
+      if (ss.spellingApplied && idea.tidied) body.content = idea.tidied;
+      if (ss.titleChoice && ss.titleChoice !== entry?.title) body.title = ss.titleChoice;
+      if (ss.captionsOn && idea.captions && Object.keys(idea.captions).length > 0) body.captions = idea.captions;
+      if (Object.keys(body).length === 2) continue;
+      // no-refresh: the publish that follows refreshes the router once.
+      const response = await fetch(`/api/helper/${user}/day`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }).catch(() => null);
+      if (!response?.ok) return null;
+      const json = (await response.json().catch(() => null)) as { draft?: { slug?: string } } | null;
+      slugs[i] = json?.draft?.slug ?? rows[i].slug;
+    }
+    const main = slugs[0];
+    const patch: Record<string, unknown> = {};
+    if (selectedTags.size > 0) patch.tags = [...selectedTags];
+    if (Object.keys(langDrafts).length > 0) patch.translations = langDrafts;
+    if (visibility) patch.visibility = visibility;
+    else if (blank.includes("visibility")) patch.declined = { visibility: "shown to everyone the trip lets in" };
+    if (Object.keys(patch).length > 0) {
+      const dayUrl = `/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(main)}`;
+      const head = await fetch(dayUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { etag?: string } | null;
+      // no-refresh: the publish that follows refreshes the router once.
+      const response = await fetch(dayUrl, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", ...(head?.etag ? { "if-match": head.etag } : {}) },
+        body: JSON.stringify(patch),
+      }).catch(() => null);
+      if (!response?.ok) return null;
+    }
+    return slugs;
   }
 
   const audienceLabel = publishAudienceLabel(chosen.audience, readers?.length ?? null);
@@ -318,17 +334,15 @@ export default function PreviewDayFlow({
   async function doPublish() {
     setPublishing(true);
     setPublishError(undefined);
-    await saveTags(selectedTags);
-    await saveTranslations();
-    if (blank.includes("visibility") && !changing) {
-      // The owner never opened Change: the blank visibility is set to the
-      // trip's own ceiling — the same honest default "Everyone (public)" in
-      // the Change panel already shows — rather than left for a 422.
-      await saveChange();
+    const slugs = await persistChoices();
+    if (!slugs) {
+      setPublishing(false);
+      setPublishError(t("studio.publish.failed"));
+      return;
     }
-    const url = `/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(chosen.slug)}/publish`;
+    const url = `/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(slugs[0])}/publish`;
     const body = JSON.stringify({
-      ...(also.length > 0 ? { parts: also.map((r) => r.slug) } : {}),
+      ...(slugs.length > 1 ? { parts: slugs.slice(1) } : {}),
       tell: { groups: tellGroups, mail: tellMail && counts.mailable > 0 },
     });
     const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }).catch(() => null);
@@ -336,7 +350,7 @@ export default function PreviewDayFlow({
     setPublishing(false);
     if (response?.ok) {
       router.refresh();
-      setPublished({ told: json?.told ?? { app: 0, mail: 0 } });
+      setPublished({ told: json?.told ?? { app: 0, mail: 0 }, slug: slugs[0] });
       return;
     }
     setPublishError(response?.status === 422 ? t("studio.publish.incomplete") : t("studio.publish.failed"));
@@ -357,10 +371,10 @@ export default function PreviewDayFlow({
       <PublishedDay
         username={username}
         tripId={chosen.tripId}
-        slug={chosen.slug}
-        title={entries[0]?.title || formatLongDate(chosen.date)}
+        slug={published.slug}
+        title={suggestionState[0]?.titleChoice || entries[0]?.title || formatLongDate(chosen.date)}
         readerLine={readerLine}
-        thumb={entries[0]?.gallery.length ? `/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(chosen.slug)}/story?look=photo` : null}
+        thumb={entries[0]?.gallery.length ? `/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(published.slug)}/story?look=photo` : null}
       />
     );
   }
@@ -505,7 +519,7 @@ export default function PreviewDayFlow({
               key={chip.tag}
               type="button"
               aria-pressed={chip.selected}
-              onClick={() => void saveTags(toggleTag(selectedTags, chip.tag))}
+              onClick={() => saveTags(toggleTag(selectedTags, chip.tag))}
               className={`min-h-9 rounded-full border px-3 text-sm font-semibold ${
                 chip.selected ? "border-line-ink bg-action-strong text-on-action" : chip.source === "ai" ? "border-dashed border-line-strong text-ink-strong" : "border-line-strong text-ink-strong"
               }`}
@@ -514,7 +528,7 @@ export default function PreviewDayFlow({
             </button>
           ))}
           {aiTags.length > 0 && (
-            <button type="button" onClick={() => void saveTags(addAllAiTags(tagChips, selectedTags))} className="min-h-9 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong">
+            <button type="button" onClick={() => saveTags(addAllAiTags(tagChips, selectedTags))} className="min-h-9 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong">
               {t("studio.preview.addAllTags")}
             </button>
           )}
@@ -522,7 +536,7 @@ export default function PreviewDayFlow({
             className="inline-flex items-center gap-1"
             onSubmit={(e) => {
               e.preventDefault();
-              if (tagInput.trim()) void saveTags(toggleTag(selectedTags, tagInput.trim()));
+              if (tagInput.trim()) saveTags(toggleTag(selectedTags, tagInput.trim()));
               setTagInput("");
             }}
           >
@@ -577,7 +591,7 @@ export default function PreviewDayFlow({
                 <textarea
                   value={langDrafts[locale].content}
                   onChange={(e) => setLangDrafts((prev) => ({ ...prev, [locale]: { ...prev[locale], content: e.target.value } }))}
-                  onBlur={() => void saveTranslations()}
+                  onBlur={() => saveTranslations()}
                   rows={4}
                   className="w-full rounded-xl border border-line-strong bg-surface-raised px-3 py-2 text-sm text-ink-strong"
                 />
@@ -617,7 +631,7 @@ export default function PreviewDayFlow({
               ))}
             </fieldset>
             <TellWho tell={tell} selected={tellGroups} onSelect={setTellGroups} mail={tellMail} onMail={setTellMail} />
-            <button type="button" onClick={() => void saveChange()} className="min-h-10 rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950">
+            <button type="button" onClick={() => saveChange()} className="min-h-10 rounded-full bg-yellow-400 px-4 text-sm font-semibold text-yellow-950">
               {t("studio.preview.saveChange")}
             </button>
           </div>
