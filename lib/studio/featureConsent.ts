@@ -19,19 +19,20 @@
 /** The three scopes `POST /api/helper/{user}/consent` already records. */
 export type ConsentScopes = { words: boolean; photos: boolean; speech: boolean };
 
-/** The two features Write gates on. `translate` (Preview's own, B2677) and
- *  any other helper-backed feature are not this ticket's concern. */
-export type ConsentFeature = "voice" | "suggest";
+/** `translate` (Preview's own, B2677) needs `words` only — no photo ever
+ *  goes with a translation. */
+export type ConsentFeature = "voice" | "suggest" | "translate";
 
 /**
  * Which of the three API scopes `feature` still needs — empty once nothing
  * is left to ask. `voice` needs only `speech` (Deepgram hears the owner's
- * words, nothing else); `suggest` — today, reading a receipt — needs both
- * `words` and `photos`, since the photograph and what is read off it both
- * go to the same model call.
+ * words, nothing else); `suggest` — tidied words, titles, captions, tags —
+ * and `translate` both go to the words model, but only `suggest` also reads
+ * a photograph (captions, tags from photos).
  */
 export function missingConsentScopes(feature: ConsentFeature, consents: ConsentScopes): Array<keyof ConsentScopes> {
-  const needed: Array<keyof ConsentScopes> = feature === "voice" ? ["speech"] : ["words", "photos"];
+  const needed: Array<keyof ConsentScopes> =
+    feature === "voice" ? ["speech"] : feature === "translate" ? ["words"] : ["words", "photos"];
   return needed.filter((scope) => !consents[scope]);
 }
 

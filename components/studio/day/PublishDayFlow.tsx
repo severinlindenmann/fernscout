@@ -7,50 +7,22 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import { DeleteDayConfirm } from "@/components/DeleteDay";
 import { useI18n } from "@/components/LocaleProvider";
 import DoneScreen from "@/components/studio/DoneScreen";
-import TellWho, { tellCounts, type TellProps } from "@/components/studio/day/TellWho";
 import { useOnline } from "@/components/studio/useOnline";
-import type { TranslationKey } from "@/lib/i18n";
 import type { PublishRow } from "@/lib/studio/publishDay";
 
 import { journalPath } from "@/lib/journalPath";
 /** More rows than this and the list gets a search box. */
 const SEARCH_FROM = 8;
 
-/** More readers than this and all but two collapse into "and N others". */
-const NAMES_SHOWN = 3;
-
-/** The blanks "Change a day" (`EditDay`) has a real control for; every other
- *  declinable has none in the studio yet, so it is not linked there. */
-const FILLABLE_IN_CHANGE_A_DAY = new Set(["time", "location", "media", "visibility", "costs", "transportMode", "tags"]);
-
-/** How the sentence names the blanks: a derived field is said as the thing a
- *  person thinks of (a position, a country, a time zone are all "place").
- *  Anything not here — weather, other languages — counts as a "detail". The
- *  "Show all" list below still names every field exactly. */
-const PART_OF: Record<string, string> = {
-  media: "photographs",
-  location: "place",
-  coordinates: "place",
-  country: "place",
-  countryCode: "place",
-  timezone: "place",
-  time: "time",
-  costs: "costs",
-  transportMode: "transportMode",
-  tags: "tags",
-  visibility: "visibility",
-};
-const PART_ORDER = ["photographs", "place", "time", "costs", "transportMode", "tags", "visibility"];
-/** Named parts in the sentence before the rest become "N more details". */
-const PARTS_NAMED = 5;
-
 /**
- * "Publish a day" — B2140. A page, not a wizard: the list (drafts, or with
- * `takeDown` the days already on the site), and once one is chosen by URL
- * (`?day=&trip=`, so "Go to publishing" can preselect it) what publishing
- * does and to whom, then one `ConfirmPanel`. Nothing is written until its
- * confirm is pressed; the write is the owner's cookie door
- * (`/api/web/.../days/<slug>/publish` or `.../unpublish`), which never sends.
+ * "Publish a day" — B2140, narrowed by B2677 to the take-down list and
+ * confirm only: a draft's own "Publish…" now opens Preview
+ * (`/studio/day/preview?trip=&date=`, `PreviewDayFlow`), which does the
+ * blank-declining, who-reads and who-is-told work this screen used to carry
+ * for a publish. What is left here is `?list=published` — the days already
+ * on the site — and, once one is chosen by `?day=&trip=`, one `ConfirmPanel`
+ * for taking it down. Nothing is written until that confirm is pressed; the
+ * write is the owner's cookie door (`/api/web/.../days/<slug>/unpublish`).
  */
 export default function PublishDayFlow({
   username,
@@ -58,30 +30,17 @@ export default function PublishDayFlow({
   chosen,
   missing,
   takeDown,
-  tell = null,
-  also = [],
-  blank = [],
-  readers = null,
 }: {
   username: string;
   rows: PublishRow[];
   chosen: PublishRow | null;
-  /** `?day=` named something that is not in `rows` (already published, gone). */
+  /** `?day=` named something that is not in `rows` (already published, gone,
+   *  or — since B2677 — a draft, which is never reached through this screen
+   *  any more). */
   missing: boolean;
   takeDown: boolean;
-  /** TIX-6 — who this day could reach, by reader group, and what the owner
-   *  chose last time on this trip. Null on the take-down list. */
-  tell?: (TellProps & { choice: { groups: string[] | null; mail: boolean } | null }) | null;
-  /** TIX-2 — more parts of the chosen date, going up together with it;
-   *  B2674 sends their slugs as `parts` and lets the server work out each
-   *  one's own blanks, so this component no longer needs their reasons. */
-  also?: (PublishRow & { blank: string[] })[];
-  /** B2192 — the chosen draft's declinables still blank (`blankFieldsOf`). */
-  blank?: string[];
-  /** B2192 — its readers by name (`readersOf`); `null` where it is "anyone". */
-  readers?: string[] | null;
 }) {
-  const { t, tn, formatLongDate, locale } = useI18n();
+  const { t, tn, formatLongDate } = useI18n();
   const router = useRouter();
   const online = useOnline();
   const [query, setQuery] = useState("");
@@ -93,22 +52,19 @@ export default function PublishDayFlow({
   // B2259 — the row whose "Delete…" is asking, and the one just deleted.
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleted, setDeleted] = useState<PublishRow | null>(null);
-  // TIX-6 — last time's pick on this trip, minus any group deleted since.
-  const known = new Set([...(tell?.groups.map((g) => g.id) ?? []), "none"]);
-  const [tellGroups, setTellGroups] = useState<string[] | null>(() => {
-    const remembered = tell?.choice?.groups ?? null;
-    if (remembered === null || (tell?.groups.length ?? 0) === 0) return null;
-    return remembered.filter((key) => known.has(key));
-  });
-  const [tellMail, setTellMail] = useState<boolean>(tell?.choice?.mail ?? false);
-  const counts = tell ? tellCounts(tell, tellGroups, tellMail) : null;
 
   const base = `${journalPath(encodeURIComponent(username))}/studio/day/publish`;
   const listHref = takeDown ? `${base}?list=published` : base;
   const dayHref = (row: PublishRow) =>
     `${journalPath(encodeURIComponent(username))}/trips/${encodeURIComponent(row.tripId)}/day/${encodeURIComponent(row.slug)}`;
+  // B2677 — a draft row's "Publish…" opens Preview (every part of that date,
+  // stacked) rather than this page's own chosen-row flow, which stays for
+  // taking an already-published day down only. `?day=&trip=` still resolves
+  // `chosen` below for that take-down case.
   const chooseHref = (row: PublishRow) =>
-    `${base}?day=${encodeURIComponent(row.slug)}&trip=${encodeURIComponent(row.tripId)}${takeDown ? "&list=published" : ""}`;
+    takeDown
+      ? `${base}?day=${encodeURIComponent(row.slug)}&trip=${encodeURIComponent(row.tripId)}&list=published`
+      : `${journalPath(encodeURIComponent(username))}/studio/day/preview?trip=${encodeURIComponent(row.tripId)}&date=${encodeURIComponent(row.date)}`;
 
   /** An untitled day is called by its date, as a person says it. */
   const nameOf = (row: PublishRow) => row.title || formatLongDate(row.date);
@@ -122,16 +78,10 @@ export default function PublishDayFlow({
   async function commit(row: PublishRow) {
     setBusy(true);
     setError(undefined);
-    const url = `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(row.tripId)}/days/${encodeURIComponent(row.slug)}/${takeDown ? "unpublish" : "publish"}`;
-    // B2674 — the server now declines its own blanks, field by field, so
-    // the client sends neither `declineOpen` nor a loop of separate calls:
-    // `parts` names the other draft slugs of this date, and one POST
-    // publishes the whole day, all or nothing, telling readers once.
-    const body = JSON.stringify({
-      ...(!takeDown && also.length > 0 ? { parts: also.map((extra) => extra.slug) } : {}),
-      ...(!takeDown && tell ? { tell: { groups: tellGroups, mail: tellMail && (counts?.mailable ?? 0) > 0 } } : {}),
-    });
-    const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }).catch(() => null);
+    // B2677 — publishing itself (parts, who is told) moved to Preview;
+    // `chosen` only ever arrives here for a take-down, which takes no body.
+    const url = `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(row.tripId)}/days/${encodeURIComponent(row.slug)}/unpublish`;
+    const response = await fetch(url, { method: "POST" }).catch(() => null);
     setBusy(false);
     if (response?.ok) {
       // B2549 — the day's own page (and the drafts/published lists) have to
@@ -160,165 +110,62 @@ export default function PublishDayFlow({
     );
   }
 
+  // B2677 — "done" here is take-down only now: a draft's own publish moment
+  // is Preview's (`PreviewDayFlow`), which renders B2678's `PublishedDay`
+  // directly rather than this screen.
   if (done) {
-    const shareHref = `${journalPath(encodeURIComponent(username))}/studio/day/share?trip=${encodeURIComponent(done.tripId)}&day=${encodeURIComponent(done.slug)}`;
     return (
       <DoneScreen
         username={username}
-        done={t(takeDown ? "studio.publish.doneDown" : "studio.publish.done", { title: nameOf(done) })}
-        next={
-          takeDown
-            ? [
-                { title: nameOf(done), href: dayHref(done), label: t("studio.day.done.openDay") },
-                {
-                  title: t("studio.publish.anotherDown"),
-                  href: listHref,
-                  label: t("studio.publish.anotherDown"),
-                },
-              ]
-            : [
-                // B2665 — the first thing the owner reaches for right after
-                // publishing: a story-shaped picture or clip for WhatsApp
-                // Status / Instagram Story.
-                {
-                  title: t("studio.share.title"),
-                  body: t("studio.share.whatNextBody"),
-                  href: shareHref,
-                  label: t("studio.share.whatNextLabel"),
-                },
-                { title: nameOf(done), href: dayHref(done), label: t("studio.day.done.openDay") },
-                { title: t("studio.publish.another"), href: listHref, label: t("studio.publish.another") },
-              ]
-        }
+        done={t("studio.publish.doneDown", { title: nameOf(done) })}
+        next={[
+          { title: nameOf(done), href: dayHref(done), label: t("studio.day.done.openDay") },
+          { title: t("studio.publish.anotherDown"), href: listHref, label: t("studio.publish.anotherDown") },
+        ]}
       />
     );
   }
 
+  // B2677 — `chosen` only ever arrives here for a take-down now (a draft's
+  // own "Publish…" goes straight to Preview, above); this is the one
+  // confirm screen left for the opposite direction, "take a day down".
   if (chosen) {
-    const list = (items: string[]) => new Intl.ListFormat(locale, { type: "conjunction" }).format(items);
-    const label = (field: string) => t(`studio.day.field.${field}` as TranslationKey);
-    const parts = PART_ORDER.filter((part) => blank.some((f) => PART_OF[f] === part));
-    const named = parts.slice(0, PARTS_NAMED);
-    // Every field whose part is not named — a detail, or a part past the cap.
-    const details = blank.filter((f) => !named.includes(PART_OF[f])).length;
-    const sentence = [
-      ...named.map((part) => t(`studio.publish.part.${part}` as TranslationKey)),
-      ...(details > 0 ? [tn("studio.publish.moreDetails", details, { count: String(details) })] : []),
-    ];
-    const editHref = `${journalPath(encodeURIComponent(username))}/studio/day/edit?slug=${encodeURIComponent(chosen.slug)}`;
-    const readerNames =
-      readers && readers.length > NAMES_SHOWN
-        ? [...readers.slice(0, 2), tn("studio.publish.others", readers.length - 2, { count: String(readers.length - 2) })]
-        : readers;
     return (
       <>
         <Link href={listHref} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
-          {t(takeDown ? "studio.publish.backToPublished" : "studio.publish.backToDrafts")}
+          {t("studio.publish.backToPublished")}
         </Link>
         <h2 className="mt-3 font-display text-lg font-semibold text-ink-strong">{nameOf(chosen)}</h2>
         <p className="text-sm text-ink-secondary">
           {chosen.tripTitle} · {formatLongDate(chosen.date)} · {tn("studio.publish.photos", chosen.photos, { count: String(chosen.photos) })}
         </p>
-        {also.length > 0 && (
-          <div data-also={also.length} className="mt-2 text-sm text-ink-body">
-            <p className="font-semibold text-ink-strong">{tn("studio.publish.parts", also.length + 1, { count: String(also.length + 1) })}</p>
-            <ul className="mt-1 list-disc pl-5">
-              {[chosen, ...also].map((row) => (
-                <li key={row.slug}>{[row.time, nameOf(row)].filter(Boolean).join(" · ")}</li>
-              ))}
-            </ul>
-          </div>
-        )}
         <Link href={dayHref(chosen)} className="mt-2 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
           {t("studio.publish.preview")}
         </Link>
 
-        {!takeDown && (
-          <dl className="mt-4 space-y-3 rounded-xl border border-line-faint bg-surface-subtle px-4 py-3 text-sm text-ink-body">
-            <div>
-              <dt className="font-semibold text-ink-strong">{t("studio.publish.whoTitle")}</dt>
-              <dd data-audience={chosen.audience}>{t(`studio.publish.who.${chosen.audience}` as TranslationKey)}</dd>
-              {readerNames && (
-                <dd data-readers className="mt-1">
-                  {readerNames.length > 0 ? t("studio.publish.readers", { names: list(readerNames) }) : t("studio.publish.readersNobody")}
-                </dd>
-              )}
-            </div>
-            <div>
-              <dt className="font-semibold text-ink-strong">{t("studio.publish.tellTitle")}</dt>
-              <dd>
-                {tell ? (
-                  <TellWho tell={tell} selected={tellGroups} onSelect={setTellGroups} mail={tellMail} onMail={setTellMail} />
-                ) : (
-                  t("studio.publish.tellOffServer")
-                )}
-              </dd>
-            </div>
-          </dl>
-        )}
-
         <div className="mt-4">
-          {/* B2330 — publishing is never queued: it is the moment a draft
-              becomes visible to whoever it names, and that promise has to be
-              kept the moment it is made, not replayed later from a queue
-              nobody watched fire. Greyed out with one line why, the same
-              stance `PolishText` already takes for its own live model call. */}
+          {/* B2330 — a take-down is never queued either; same stance as a
+              publish always took here. */}
           {!online ? (
             <div className="rounded-2xl border border-line-strong p-4 opacity-60">
-              <p className="text-sm leading-6 text-ink-body">
-                {t(takeDown ? "edit.takeDownQuestion" : "studio.publish.question", { title: nameOf(chosen) })}
-              </p>
-              <button
-                type="button"
-                disabled
-                className="mt-3 min-h-11 cursor-not-allowed rounded-full bg-surface-neutral-strong px-5 text-base font-semibold text-ink-secondary"
-              >
-                {(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
+              <p className="text-sm leading-6 text-ink-body">{t("edit.takeDownQuestion", { title: nameOf(chosen) })}</p>
+              <button type="button" disabled className="mt-3 min-h-11 cursor-not-allowed rounded-full bg-surface-neutral-strong px-5 text-base font-semibold text-ink-secondary">
+                {t("edit.takeDownConfirm")}
               </button>
               <p className="mt-2 text-sm text-ink-secondary">{t("studio.publish.offline")}</p>
             </div>
           ) : (
             <ConfirmPanel
-              label={takeDown ? t("edit.takeDown") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm")}
-              question={t(takeDown ? "edit.takeDownQuestion" : "studio.publish.question", { title: nameOf(chosen) })}
-              confirmLabel={(takeDown ? t("edit.takeDownConfirm") : also.length > 0 ? tn("studio.publish.confirmParts", also.length + 1, { count: String(also.length + 1) }) : t("studio.publish.confirm"))}
-              busyLabel={t(takeDown ? "studio.publish.busyDown" : "studio.publish.busy")}
-              tone={takeDown ? "destructive" : "commit"}
+              label={t("edit.takeDown")}
+              question={t("edit.takeDownQuestion", { title: nameOf(chosen) })}
+              confirmLabel={t("edit.takeDownConfirm")}
+              busyLabel={t("studio.publish.busyDown")}
+              tone="destructive"
               busy={busy}
               error={error}
               onConfirm={() => void commit(chosen)}
               onCancel={() => router.push(listHref)}
-              cancelLabel={takeDown ? undefined : t("studio.publish.cancel")}
-            >
-              {!takeDown && counts && (
-                <p data-tell-told={counts.told} className="mt-2 text-sm leading-6 text-ink-body">
-                  {counts.told > 0
-                    ? tn("studio.publish.tellSummary", counts.told, { count: String(counts.told) })
-                    : t("studio.publish.tellNobody")}
-                </p>
-              )}
-              {!takeDown && blank.length > 0 && (
-                <div data-blank={blank.join(" ")} className="mt-2 space-y-1 text-sm leading-6 text-ink-body">
-                  <p>{t("studio.publish.blank", { fields: list(sentence) })}</p>
-                  <details>
-                    <summary className="cursor-pointer font-semibold underline underline-offset-2">{t("studio.publish.showAll")}</summary>
-                    <ul className="mt-1 space-y-1">
-                      {blank.map((field) => (
-                        <li key={field} data-blank-field={field} className="flex flex-wrap items-baseline justify-between gap-x-3">
-                          <span>{label(field)}</span>
-                          {FILLABLE_IN_CHANGE_A_DAY.has(field) && (
-                            <Link href={editHref} className="font-semibold underline underline-offset-2">
-                              {t("studio.publish.fillNow")}
-                            </Link>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-1 text-ink-secondary">{t("studio.publish.fillLater")}</p>
-                  </details>
-                </div>
-              )}
-            </ConfirmPanel>
+            />
           )}
         </div>
       </>

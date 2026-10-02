@@ -242,7 +242,11 @@ export default function AddDayFlow({
   // this page already had; a part's own `ids` picks up a newly-chosen
   // photograph through the effect below, keyed off `selectedIds` growing
   // while the sheet is open for it.
-  const [photoSheetTarget, setPhotoSheetTarget] = useState<"day" | number | null>(null);
+  // B2677 — "＋ Add photos" on Preview links back here with `&add=photos` so
+  // its own photo sheet opens over Write rather than Write opening blank; a
+  // lazy initial value rather than a mount effect, since this never needs to
+  // react to the param changing after the page has already opened.
+  const [photoSheetTarget, setPhotoSheetTarget] = useState<"day" | number | null>(() => (params.get("add") === "photos" ? "day" : null));
   const selectedIdsAtSheetOpen = useRef<string[]>([]);
   useEffect(() => {
     if (typeof photoSheetTarget !== "number") return;
@@ -252,12 +256,6 @@ export default function AddDayFlow({
     setParts((prev) => (prev ? prev.map((p, idx) => (idx === i ? { ...p, ids: [...new Set([...p.ids, ...added])] } : p)) : prev));
     selectedIdsAtSheetOpen.current = selectedIds;
   }, [selectedIds, photoSheetTarget]);
-  // B2677 — "＋ Add photos" on Preview links back here with `&add=photos`
-  // so its own photo sheet opens over Write rather than Write opening blank.
-  useEffect(() => {
-    if (params.get("add") === "photos") setPhotoSheetTarget("day");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   // B2330 — a photo picked with no server reachable: queued in the outbox as
@@ -781,10 +779,13 @@ export default function AddDayFlow({
         });
         if (result.ok) {
           setCreatedSlug(result.slug);
-          setOutcome("saved");
           reset();
           // B2549 — the studio's own lists and the trip page have one more day.
           router.refresh();
+          // B2677 — "Preview →" now exists; the unsplit day goes straight
+          // there instead of the old inline done screen (which only ever
+          // stood in for it — see B2676's Build notes, "out of scope here").
+          router.push(writePreviewUrl(username, result.slug, tripId, date));
           return;
         }
         if (result.network) {
@@ -854,7 +855,7 @@ export default function AddDayFlow({
       }
       reset();
       router.refresh();
-      router.push(writePreviewUrl(username, slugs[0], tripId, slugs.slice(1)));
+      router.push(writePreviewUrl(username, slugs[0], tripId, date));
     } finally {
       setBusy(false);
     }

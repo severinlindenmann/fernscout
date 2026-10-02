@@ -1,11 +1,8 @@
 import PublishDayFlow from "@/components/studio/day/PublishDayFlow";
-import { listGroups } from "@/lib/contacts/groups";
-import { getTellChoice, tellAudience } from "@/lib/digest/tellChoice";
 import StudioPage from "@/components/studio/StudioPage";
-import { tripRef } from "@/lib/trips";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
-import { blankFieldsOf, daysToPublish, readersOf } from "@/lib/studio/publishDay";
+import { daysToPublish } from "@/lib/studio/publishDay";
 
 export const dynamic = "force-dynamic";
 // B2549 — keep this page in the client Router Cache for 30s after a
@@ -17,10 +14,11 @@ export const dynamic = "force-dynamic";
 export const unstable_dynamicStaleTime = 30;
 
 /**
- * "Publish a day" — B2140. The studio's one door onto the site: the drafts
- * (or, with `?list=published`, the days already up, to take one down), and
- * with `?day=<slug>&trip=<id>` one of them chosen, what publishing it does,
- * and a `ConfirmPanel`. Owner only, like every studio page.
+ * "Publish a day" — B2140, narrowed by B2677. The drafts list (or, with
+ * `?list=published`, the days already up, to take one down). A draft's own
+ * "Publish…" now opens Preview (`/studio/day/preview?trip=&date=`); this
+ * page keeps only the take-down confirm, chosen by `?day=<slug>&trip=<id>`.
+ * Owner only, like every studio page.
  */
 export default async function StudioPublishDayPage({
   params,
@@ -28,33 +26,12 @@ export default async function StudioPublishDayPage({
 }: PageProps<"/at/[user]/studio/day/publish">) {
   const { user } = await params;
   await requireStudioOwner(user);
-  const { day, trip, list, also } = await searchParams;
+  const { day, trip, list } = await searchParams;
   const takeDown = list === "published";
 
   const rows = daysToPublish(user, takeDown ? "published" : "draft");
   const asked = typeof day === "string" && day ? day : null;
-  const chosen = asked ? (rows.find((r) => r.slug === asked && (typeof trip !== "string" || r.tripId === trip)) ?? null) : null;
-
-  // B2192 — the share sheet names what is still blank and who will read it.
-  const ownBlank = chosen && !takeDown ? blankFieldsOf(user, chosen) : [];
-  const readers = chosen && !takeDown ? await readersOf(user, chosen) : null;
-  // TIX-6 — who this day would reach, by reader group, and last time's pick.
-  // TIX-2 — the other parts of the same date the add-a-day flow just wrote,
-  // published together with the chosen one (drafts on the same trip only).
-  const alsoSlugs = typeof also === "string" && chosen && !takeDown ? also.split(",").filter(Boolean) : [];
-  const alsoRows = rows
-    .filter((r) => chosen && r.tripId === chosen.tripId && r.slug !== chosen.slug && alsoSlugs.includes(r.slug))
-    .map((r) => ({ ...r, blank: blankFieldsOf(user, r) }));
-  // The sentence names every blank across the parts; each part declines only its own.
-  const blank = [...new Set([...ownBlank, ...alsoRows.flatMap((r) => r.blank)])];
-  const tell =
-    chosen && !takeDown
-      ? {
-          ...(await tellAudience(user, tripRef(user, chosen.tripId), chosen.slug)),
-          groups: (await listGroups(user)).map(({ id, name, color }) => ({ id, name, color })),
-          choice: await getTellChoice(user, chosen.tripId),
-        }
-      : null;
+  const chosen = takeDown && asked ? (rows.find((r) => r.slug === asked && (typeof trip !== "string" || r.tripId === trip)) ?? null) : null;
 
   const locale = await requestLocale();
   return (
@@ -64,17 +41,7 @@ export default async function StudioPublishDayPage({
       title={translateIn(locale, takeDown ? "studio.publish.titleDown" : "studio.hub.item.publishDay.title")}
       lede={chosen ? undefined : translateIn(locale, takeDown ? "studio.publish.ledeDown" : "studio.publish.lede")}
     >
-      <PublishDayFlow
-        username={user}
-        rows={rows}
-        chosen={chosen}
-        missing={Boolean(asked) && !chosen}
-        takeDown={takeDown}
-        tell={tell}
-        also={alsoRows}
-        blank={blank}
-        readers={readers}
-      />
+      <PublishDayFlow username={user} rows={rows} chosen={chosen} missing={Boolean(asked) && !chosen} takeDown={takeDown} />
     </StudioPage>
   );
 }
