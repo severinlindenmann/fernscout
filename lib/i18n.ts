@@ -2977,7 +2977,6 @@ export type TranslationKey =
   | "studio.day.saved.youAnd"
   | "studio.day.sheet.cancel"
   | "studio.day.sheet.close"
-  | "studio.day.sheet.done"
   | "studio.day.sheet.leaveOut"
   | "studio.day.sheet.lookItUp"
   | "studio.day.sheet.notRight"
