@@ -20,6 +20,9 @@ class ViewController: CAPBridgeViewController {
     private var pathSatisfied = true
     private var troubleHost: UIHostingController<ConnectionTroubleView>?
     private var trouble: ConnectionTroubleKind?
+    /// B2732 — the quick action / App Shortcut notification observer, held
+    /// strongly for the controller's lifetime (there is only ever one).
+    private var saveToInboxObserver: NSObjectProtocol?
 
     /// `-FernscoutForceOffline` — compiled out of Release — lets a Simulator
     /// run exercise the "No internet" screen without an airplane-mode
@@ -61,6 +64,41 @@ class ViewController: CAPBridgeViewController {
         webView?.allowsBackForwardNavigationGestures = true
         exposeAppVersion()
         observeNetworkFailures()
+        observeSaveToInbox()
+    }
+
+    // MARK: B2732 — Save to inbox
+
+    private func observeSaveToInbox() {
+        saveToInboxObserver = NotificationCenter.default.addObserver(
+            forName: SaveToInboxDoors.showSheetNotification, object: nil, queue: .main
+        ) { [weak self] _ in self?.presentSaveToInbox() }
+    }
+
+    /// Absent with no `ShareCredential` — the same rule as the quick action
+    /// and the App Shortcut (`SaveToInboxDoors.syncQuickAction`), so a tap
+    /// that somehow still reaches here (a stale Spotlight/Siri entry) does
+    /// nothing rather than crash on a missing credential.
+    func presentSaveToInbox() {
+        guard let credential = ShareCredentialStore.load() else { return }
+        let view = SaveToInboxView(
+            credential: credential,
+            onOpenStudioInbox: { [weak self] in self?.openStudioInbox() },
+            onDismiss: { [weak self] in self?.presentedInboxSheet?.dismiss(animated: true) }
+        )
+        let host = UIHostingController(rootView: view)
+        presentedInboxSheet = host
+        present(host, animated: true)
+    }
+
+    private var presentedInboxSheet: UIViewController?
+
+    private func openStudioInbox() {
+        guard let credential = ShareCredentialStore.load(),
+              let url = URL(string: "\(credential.base)/@\(credential.user)/studio/inbox") else { return }
+        presentedInboxSheet?.dismiss(animated: true) { [weak self] in
+            self?.webView?.load(URLRequest(url: url))
+        }
     }
 
     /// B2731 — a failed main-frame load (no connection, or the chosen server
@@ -79,6 +117,9 @@ class ViewController: CAPBridgeViewController {
             DispatchQueue.main.async {
                 self?.pathSatisfied = path.status == .satisfied
                 self?.retryIfPathSatisfied()
+                // B2732 — the queue's other retry point beside launch and
+                // becoming active.
+                if path.status == .satisfied { InboxQueue.shared.sendAll() }
             }
         }
         monitor.start(queue: .global(qos: .utility))
@@ -112,8 +153,13 @@ class ViewController: CAPBridgeViewController {
             recordingArmed: !Recorder.shared.armedTripIds().armed.isEmpty,
             customServerChosen: ServerChoiceStore.chosen != nil,
             defaultServerHost: Self.defaultServerURL.flatMap { URL(string: $0)?.host } ?? "",
+            // B2732 — only shown with a stored credential, same rule as the
+            // quick action and the App Shortcut.
+            hasShareCredential: ShareCredentialStore.load() != nil,
+            photosWaiting: InboxQueue.shared.waitingCount,
             onTryAgain: { [weak self] in self?.tryAgain() },
-            onOpenDefaultServer: { ServerChoicePlugin.switchServer(to: nil) }
+            onOpenDefaultServer: { ServerChoicePlugin.switchServer(to: nil) },
+            onSaveToInbox: { [weak self] in self?.presentSaveToInbox() }
         )
         if let host = troubleHost {
             host.rootView = view

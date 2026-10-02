@@ -34,6 +34,12 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		B2732A000000000000000002 /* InboxQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2732A000000000000000001 /* InboxQueue.swift */; };
+		B2732A000000000000000004 /* SaveToInboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2732A000000000000000003 /* SaveToInboxView.swift */; };
+		B2732A000000000000000006 /* SaveToInboxIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2732A000000000000000005 /* SaveToInboxIntent.swift */; };
+		B2732A000000000000000008 /* TripList.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2732A000000000000000007 /* TripList.swift */; };
+		B2732A000000000000000009 /* TripList.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2732A000000000000000007 /* TripList.swift */; };
+		B2732A00000000000000000A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B2731A000000000000000003 /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -71,6 +77,10 @@
 		B2123A0000000000000000A1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		B2732A000000000000000001 /* InboxQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxQueue.swift; sourceTree = "<group>"; };
+		B2732A000000000000000003 /* SaveToInboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToInboxView.swift; sourceTree = "<group>"; };
+		B2732A000000000000000005 /* SaveToInboxIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToInboxIntent.swift; sourceTree = "<group>"; };
+		B2732A000000000000000007 /* TripList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripList.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +140,9 @@
 				B2657A000000000000000001 /* InAppCheckoutPlugin.swift */,
 				B2731A000000000000000001 /* ConnectionTroubleView.swift */,
 				B2731A000000000000000003 /* Localizable.xcstrings */,
+				B2732A000000000000000001 /* InboxQueue.swift */,
+				B2732A000000000000000003 /* SaveToInboxView.swift */,
+				B2732A000000000000000005 /* SaveToInboxIntent.swift */,
 				B2175A00000000000000000F /* App.entitlements */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -147,6 +160,7 @@
 			isa = PBXGroup;
 			children = (
 				B2175A00000000000000000A /* ShareCredential.swift */,
+				B2732A000000000000000007 /* TripList.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -256,6 +270,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B2183A000000000000000002 /* Assets.xcassets in Resources */,
+				B2732A00000000000000000A /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -284,6 +299,7 @@
 			files = (
 				B2175A000000000000000009 /* ShareViewController.swift in Sources */,
 				B2175A00000000000000000C /* ShareCredential.swift in Sources */,
+				B2732A000000000000000009 /* TripList.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -304,6 +320,10 @@
 				B2598A000000000000000002 /* AppleIAPPlugin.swift in Sources */,
 				B2657A000000000000000002 /* InAppCheckoutPlugin.swift in Sources */,
 				B2731A000000000000000002 /* ConnectionTroubleView.swift in Sources */,
+				B2732A000000000000000002 /* InboxQueue.swift in Sources */,
+				B2732A000000000000000004 /* SaveToInboxView.swift in Sources */,
+				B2732A000000000000000006 /* SaveToInboxIntent.swift in Sources */,
+				B2732A000000000000000008 /* TripList.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

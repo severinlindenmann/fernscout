@@ -15,21 +15,11 @@ import UniformTypeIdentifiers
 /// works without a signal, and refreshed in the background on each open.
 /// No caption here: the person writes it in the studio, in their words.
 final class ShareViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
-    private static func isUnderWay(from: String?, to: String?) -> Bool {
-        guard let from else { return false }
-        return from <= today && (to == nil || today <= to!)
-    }
-    private struct TripRow: Codable {
-        let id: String; let title: String; let from: String?; let to: String?
-        var underWay: Bool { ShareViewController.isUnderWay(from: from, to: to) }
-    }
+    private typealias TripRow = TripList.Row
 
     private let label = UILabel()
     private let card = UIView()
     private var cardHeight: NSLayoutConstraint!
-    private static let today: String = {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date())
-    }()
     private let table = UITableView(frame: .zero, style: .insetGrouped)
     private var session: URLSession!
     private var credential: ShareCredential?
@@ -112,15 +102,15 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         session = URLSession(configuration: config)
 
         guard let c = ShareCredentialStore.load() else {
-            finish("Open Fernscout once, then share again.", after: 2.5)
+            finish(String(localized: "shareInbox.openOnce"), after: 2.5)
             return
         }
         if let until = ISO8601DateFormatter().date(from: c.expiresAt), until < Date() {
-            finish("Open Fernscout once to reconnect this iPhone, then share again.", after: 2.5)
+            finish(String(localized: "shareInbox.reconnect"), after: 2.5)
             return
         }
         credential = c
-        trips = Self.cachedTrips()
+        trips = TripList.cached()
         label.isHidden = true
         table.tableHeaderView = Self.header(width: view.bounds.width)
         table.rowHeight = 56
@@ -150,7 +140,7 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         name.textColor = .secondaryLabel
         if let text = name.text { name.attributedText = NSAttributedString(string: text.uppercased(), attributes: [.kern: 2.5, .font: name.font!, .foregroundColor: UIColor.secondaryLabel]) }
         let ask = UILabel(frame: CGRect(x: 24, y: 84, width: width - 48, height: 26))
-        ask.text = "Which trip is this?"
+        ask.text = String(localized: "shareInbox.whichTrip")
         ask.textAlignment = .center
         ask.font = .systemFont(ofSize: 20, weight: .semibold)
         ask.textColor = navy
@@ -204,47 +194,15 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         return cell
     }
 
-    /// The rows out of a `GET …/trips` body: the trip under way first, then
-    /// newest first. The same function reads the cache the app wrote at
-    /// connect time and the fresh body from the network.
-    private static func parseTrips(_ data: Data) -> [TripRow] {
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let list = json["trips"] as? [[String: Any]] else { return [] }
-        var rows: [TripRow] = list.compactMap { t in
-            guard let id = t["id"] as? String, let title = t["title"] as? String else { return nil }
-            let dates = t["dates"] as? [String: Any]
-            return TripRow(id: id, title: title, from: dates?["from"] as? String, to: dates?["to"] as? String)
-        }
-        rows.sort { a, b in
-            if a.underWay != b.underWay { return a.underWay }
-            return (a.from ?? "") > (b.from ?? "")
-        }
-        return rows
-    }
-
-    private static func cachedTrips() -> [TripRow] {
-        guard let data = ShareCredentialStore.defaults?.data(forKey: ShareCredentialStore.tripsKey) else { return [] }
-        return parseTrips(data)
-    }
-
-    /// Newest first, the trip under way on top. Fetched with the same token
-    /// the upload uses; a refusal leaves the cached list alone — a stale list
-    /// is still the person's own trips, and the upload itself will say if
-    /// the token is gone.
+    /// Newest first, the trip under way on top — `TripList.refresh` fetches
+    /// with the same token the upload uses; a refusal leaves the cached list
+    /// alone, and the upload itself will say if the token is gone.
     private func refreshTrips(_ c: ShareCredential) {
-        var req = URLRequest(url: URL(string: "\(c.base)/api/v2/\(c.user)/trips?limit=200")!)
-        req.setValue("Bearer \(c.token)", forHTTPHeaderField: "Authorization")
-        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
-            guard let data, (response as? HTTPURLResponse)?.statusCode == 200 else { return }
-            let rows = Self.parseTrips(data)
-            guard !rows.isEmpty else { return }
-            ShareCredentialStore.defaults?.set(data, forKey: ShareCredentialStore.tripsKey)
-            DispatchQueue.main.async {
-                self?.trips = rows
-                self?.table.reloadData()
-                self?.fitSheet()
-            }
-        }.resume()
+        TripList.refresh(c) { [weak self] rows in
+            self?.trips = rows
+            self?.table.reloadData()
+            self?.fitSheet()
+        }
     }
 
     private static let yellow = UIColor(red: 1.0, green: 0.824, blue: 0.247, alpha: 1)
@@ -256,19 +214,19 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         section == 0 ? shown.count + (hasMore ? 1 : 0) : 1
     }
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        section == 0 && trips.isEmpty ? "No trips yet" : nil
+        section == 0 && trips.isEmpty ? String(localized: "shareInbox.noTripsYet") : nil
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if indexPath.section == 0 {
             if indexPath.row < shown.count {
                 let trip = shown[indexPath.row]
                 return trip.underWay
-                    ? iconCell("figure.walk", tint: Self.navy, fill: Self.yellow, title: trip.title, detail: "Under way")
+                    ? iconCell("figure.walk", tint: Self.navy, fill: Self.yellow, title: trip.title, detail: String(localized: "shareInbox.underWay"))
                     : iconCell("suitcase.fill", tint: Self.navy, fill: Self.creamDeep, title: trip.title, detail: trip.from.map(Self.year) ?? nil)
             }
-            return iconCell("chevron.down", tint: .secondaryLabel, fill: Self.yellowSoft, title: "All trips (\(trips.count))", detail: nil)
+            return iconCell("chevron.down", tint: .secondaryLabel, fill: Self.yellowSoft, title: String(format: String(localized: "shareInbox.allTrips"), trips.count), detail: nil)
         }
-        return iconCell("tray.fill", tint: Self.navy, fill: Self.creamDeep, title: "Decide later", detail: "Lands in What's waiting")
+        return iconCell("tray.fill", tint: Self.navy, fill: Self.creamDeep, title: String(localized: "shareInbox.decideLater"), detail: String(localized: "shareInbox.decideLater.detail"))
     }
     private static func year(_ from: String) -> String { String(from.prefix(4)) }
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -282,7 +240,7 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         let trip = indexPath.section == 0 ? shown[indexPath.row] : nil
         table.isHidden = true
         label.isHidden = false
-        label.text = "Handing over…"
+        label.text = String(localized: "shareInbox.handingOver")
         send(trip: trip)
     }
 
@@ -297,18 +255,15 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         }
         guard let c = credential else { return }
         if files.isEmpty {
-            finish("Nothing here that Fernscout can take.", after: 2)
+            finish(String(localized: "shareInbox.nothingToTake"), after: 2)
             return
         }
         for file in files { enqueue(file, trip: trip, c) }
         let n = files.count
-        let what = "\(n) \(n == 1 ? "photograph" : "photographs")"
-        finish(
-            heading: trip.map { "On its way to “\($0.title)”" } ?? "On its way to What's waiting",
-            line: "\(what) · uploads in the background, originals intact.",
-            sent: true,
-            after: 2.0
-        )
+        let heading = trip.map { String(format: String(localized: "shareInbox.onItsWayToTrip"), $0.title) }
+            ?? String(localized: "shareInbox.onItsWayToInbox")
+        let line = String(format: n == 1 ? String(localized: "shareInbox.uploading.one") : String(localized: "shareInbox.uploading"), n)
+        finish(heading: heading, line: line, sent: true, after: 2.0)
     }
 
     /// Each attachment copied into the app group as a file, with its own

@@ -110,8 +110,14 @@ struct ConnectionTroubleView: View {
     let recordingArmed: Bool
     let customServerChosen: Bool
     let defaultServerHost: String
+    /// B2732 — the "Save to inbox" button and its waiting count only show
+    /// with a stored `ShareCredential`, the same door rule as the quick
+    /// action and the App Shortcut.
+    let hasShareCredential: Bool
+    let photosWaiting: Int
     let onTryAgain: () -> Void
     let onOpenDefaultServer: () -> Void
+    let onSaveToInbox: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -172,6 +178,21 @@ struct ConnectionTroubleView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.horizontal, 32)
+                if hasShareCredential {
+                    VStack(spacing: 6) {
+                        Button(action: onSaveToInbox) {
+                            Text(String(localized: "saveToInbox.title"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(textPrimary)
+                                .frame(minHeight: 44)
+                        }
+                        if photosWaiting > 0 {
+                            Text(String(format: String(localized: "saveToInbox.photosWaiting"), photosWaiting))
+                                .font(.caption)
+                                .foregroundColor(muted)
+                        }
+                    }
+                }
                 if customServerChosen {
                     VStack(spacing: 6) {
                         Button(action: onOpenDefaultServer) {
