@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Share2 } from "lucide-react";
 import AgentRow from "./AgentRow";
 import DeleteDay, { type DeletableDay } from "./DeleteDay";
 import DayNotify from "./DayNotify";
@@ -126,6 +127,23 @@ export default function OwnerTools({
             OwnerTools already knows day.published, so it never asks. */}
         {day && day.published && (
           <DayNotify username={username} tripId={day.tripId} slug={day.slug} />
+        )}
+
+        {/* B2665 — one more door onto the same published day, right beside
+            telling readers: a story-shaped picture or clip for WhatsApp
+            Status / Instagram Story. Same gate as DayNotify above: nothing
+            for a draft, nothing for a reader. */}
+        {day && day.published && (
+          <Link
+            href={`${journalPath(encodeURIComponent(username))}/studio/day/share?trip=${encodeURIComponent(day.tripId)}&day=${encodeURIComponent(day.slug)}`}
+            prefetch={false}
+            className={OWNER_TOOL}
+          >
+            <span className="flex items-center gap-1.5">
+              <Share2 aria-hidden className="h-3.5 w-3.5 flex-none" />
+              {t("owner.shareStory")}
+            </span>
+          </Link>
         )}
 
         {/* The trip page's own two — invite, and the door into the studio for

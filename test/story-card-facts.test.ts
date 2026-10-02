@@ -1,0 +1,155 @@
+import { describe, expect, test } from "vitest";
+import { storyCardFacts, dayNumberOf, storyDayLink, storyPhotos } from "@/lib/storyCard";
+import { segmentLine, segmentStarts } from "@/lib/storyVideo";
+import type { Trip } from "@/lib/types";
+import type { DayFile } from "@/lib/api/v2/documents";
+
+/**
+ * `storyCardFacts` — B2665. The pure function that decides every word a
+ * story card or the video's panel carries, kept separate from the
+ * `ImageResponse` layout so it can be asserted on without decoding a PNG.
+ * Every string is either the day's own (title, location, a photo's own
+ * caption) or a derived position ("Day N", a formatted date) — nothing is
+ * composed here.
+ */
+function baseDay(overrides: Partial<DayFile> = {}): DayFile {
+  return {
+    slug: "a-day",
+    title: "Up the Narrows",
+    date: "2025-09-06",
+    content: "Something happened.",
+    status: "published",
+    location: "Zion National Park",
+    media: [
+      { src: "/media/parks-2025/zion-narrows/01.jpg", type: "image", caption: "The water going over" },
+      { src: "/media/parks-2025/zion-narrows/02.jpg", type: "image" },
+    ],
+    weather: { tempMin: 13.1, tempMax: 24.5, source: "open-meteo", recordedAt: "2026-09-06T08:32:18.968Z" },
+    ...overrides,
+  } as DayFile;
+}
+
+describe("storyCardFacts", () => {
+  test("carries the day's own title, place and rounded temperature range", () => {
+    const facts = storyCardFacts({ day: baseDay(), dayNumber: 2, tripTitle: "Eighteen days", link: null, locale: "en" });
+    expect(facts.title).toBe("Up the Narrows");
+    expect(facts.place).toBe("Zion National Park");
+    expect(facts.tempLine).toBe("13–25 °C");
+    expect(facts.dayLabel).toBe("Day 2");
+    expect(facts.tripTitle).toBe("Eighteen days");
+  });
+
+  test("omits the temperature line when the day has no weather reading", () => {
+    const facts = storyCardFacts({ day: baseDay({ weather: undefined }), dayNumber: 1, tripTitle: "T", link: null, locale: "en" });
+    expect(facts.tempLine).toBeUndefined();
+  });
+
+  test("omits the temperature line for a day that only asked (weather: true)", () => {
+    const facts = storyCardFacts({ day: baseDay({ weather: true }), dayNumber: 1, tripTitle: "T", link: null, locale: "en" });
+    expect(facts.tempLine).toBeUndefined();
+  });
+
+  test("omits the place when the day has none", () => {
+    const facts = storyCardFacts({ day: baseDay({ location: undefined }), dayNumber: 1, tripTitle: "T", link: null, locale: "en" });
+    expect(facts.place).toBeUndefined();
+  });
+
+  test("omits Day N when the caller could not place the day (dayNumber null)", () => {
+    const facts = storyCardFacts({ day: baseDay(), dayNumber: null, tripTitle: "T", link: null, locale: "en" });
+    expect(facts.dayLabel).toBeUndefined();
+  });
+
+  test("carries the link only when the caller decided to pass one — never on its own", () => {
+    const withLink = storyCardFacts({ day: baseDay(), dayNumber: 1, tripTitle: "T", link: "https://t.test/@a/trips/x/day/y", locale: "en" });
+    expect(withLink.link).toBe("https://t.test/@a/trips/x/day/y");
+    const withoutLink = storyCardFacts({ day: baseDay(), dayNumber: 1, tripTitle: "T", link: null, locale: "en" });
+    expect(withoutLink.link).toBeUndefined();
+  });
+
+  test("carries each photo's own caption, or none, and drops a video item", () => {
+    const facts = storyCardFacts({
+      day: baseDay({
+        media: [
+          { src: "/media/t/d/01.jpg", type: "image", caption: "A caption" },
+          { src: "/media/t/d/02.jpg", type: "image" },
+          { src: "/media/t/d/clip.mp4", type: "video", poster: "/media/t/d/clip-poster.jpg" },
+        ],
+      }),
+      dayNumber: 1,
+      tripTitle: "T",
+      link: null,
+      locale: "en",
+    });
+    expect(facts.photos).toEqual([
+      { src: "/media/t/d/01.jpg", caption: "A caption" },
+      { src: "/media/t/d/02.jpg", caption: undefined },
+    ]);
+  });
+});
+
+describe("dayNumberOf", () => {
+  test("is 1-based, by position among the trip's own sorted day stems", () => {
+    const stems = ["2025-09-05-a", "2025-09-06-b", "2025-09-07-c"];
+    expect(dayNumberOf(stems, "2025-09-05-a")).toBe(1);
+    expect(dayNumberOf(stems, "2025-09-06-b")).toBe(2);
+    expect(dayNumberOf(stems, "2025-09-07-c")).toBe(3);
+  });
+
+  test("is null for a stem that is not among them, rather than a wrong number", () => {
+    expect(dayNumberOf(["2025-09-05-a"], "2099-01-01-nope")).toBeNull();
+  });
+});
+
+describe("storyDayLink — B2665", () => {
+  const trip = (visibility: string) => ({ visibility }) as unknown as Trip;
+
+  test("a public trip's published day gets its own /trips/ address", () => {
+    expect(storyDayLink("alex", "parks-2025", "2025-09-06-zion-narrows", trip("public"), baseDay())).toMatch(
+      /\/@alex\/trips\/parks-2025\/day\/2025-09-06-zion-narrows$/,
+    );
+  });
+
+  test("no link for a guest or private trip, a draft, or a day held back by its own label", () => {
+    expect(storyDayLink("alex", "t", "d", trip("guest"), baseDay())).toBeNull();
+    expect(storyDayLink("alex", "t", "d", trip("private"), baseDay())).toBeNull();
+    expect(storyDayLink("alex", "t", "d", trip("public"), baseDay({ status: "draft" }))).toBeNull();
+    expect(storyDayLink("alex", "t", "d", trip("public"), baseDay({ visibility: "guest" } as Partial<DayFile>))).toBeNull();
+    expect(storyDayLink("alex", "t", "d", undefined, baseDay())).toBeNull();
+  });
+});
+
+describe("storyPhotos — B2665", () => {
+  test("leaves out clips and any photo the owner held back with its own label", () => {
+    const day = baseDay({
+      media: [
+        { src: "/media/t/d/01.jpg", type: "image" },
+        { src: "/media/t/d/02.jpg", type: "image", visibility: "guest" },
+        { src: "/media/t/d/03.mp4", type: "video" },
+      ],
+    } as Partial<DayFile>);
+    expect(storyPhotos(day).map((m) => m.src)).toEqual(["/media/t/d/01.jpg"]);
+  });
+});
+
+describe("video segments — B2665", () => {
+  const segments = [
+    { file: "a.jpg", caption: "The water going over" },
+    { file: "b.jpg", caption: "Steps down into the fog" },
+    { file: "c.jpg" },
+  ];
+
+  test("each photo shows its own caption; the last gives its line to the link", () => {
+    expect(segmentLine(segments, 0, "https://t.test/@a/trips/x/day/y")).toBe("The water going over");
+    expect(segmentLine(segments, 1, "https://t.test/@a/trips/x/day/y")).toBe("Steps down into the fog");
+    expect(segmentLine(segments, 2, "https://t.test/@a/trips/x/day/y")).toBe("t.test/@a/trips/x/day/y");
+  });
+
+  test("without a link the last photo keeps its own caption, or nothing", () => {
+    expect(segmentLine(segments, 2, undefined)).toBeUndefined();
+    expect(segmentLine([{ file: "a.jpg", caption: "Only one" }], 0, undefined)).toBe("Only one");
+  });
+
+  test("the line switches halfway through each crossfade", () => {
+    expect(segmentStarts(3, 2.8, 0.4).map((t) => Number(t.toFixed(2)))).toEqual([0, 2.6, 5.0]);
+  });
+});

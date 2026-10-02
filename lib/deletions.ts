@@ -818,7 +818,8 @@ function goneNotice(input: {
 }
 
 /**
- * Resized copies live in `content/.cache/media/`, keyed by a hash of the
+ * Resized copies live in `content/.cache/media/` (and story clips in
+ * `content/.cache/story-video/`), keyed by a hash of the
  * source path — there is no index from a journal to its entries in there, so
  * the only way to be sure a deleted photograph leaves no derivative behind is
  * to drop the lot.
@@ -830,6 +831,8 @@ function goneNotice(input: {
  */
 function dropMediaCache(): void {
   fs.rmSync(path.join(contentRoot(), ".cache", "media"), { recursive: true, force: true });
+  // The rendered story clips (B2665) carry the same photographs.
+  fs.rmSync(path.join(contentRoot(), ".cache", "story-video"), { recursive: true, force: true });
 }
 
 /**

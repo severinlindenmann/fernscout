@@ -178,18 +178,35 @@ export default function PublishDayFlow({
   }
 
   if (done) {
+    const shareHref = `${journalPath(encodeURIComponent(username))}/studio/day/share?trip=${encodeURIComponent(done.tripId)}&day=${encodeURIComponent(done.slug)}`;
     return (
       <DoneScreen
         username={username}
         done={t(takeDown ? "studio.publish.doneDown" : "studio.publish.done", { title: nameOf(done) })}
-        next={[
-          { title: nameOf(done), href: dayHref(done), label: t("studio.day.done.openDay") },
-          {
-            title: t(takeDown ? "studio.publish.anotherDown" : "studio.publish.another"),
-            href: listHref,
-            label: t(takeDown ? "studio.publish.anotherDown" : "studio.publish.another"),
-          },
-        ]}
+        next={
+          takeDown
+            ? [
+                { title: nameOf(done), href: dayHref(done), label: t("studio.day.done.openDay") },
+                {
+                  title: t("studio.publish.anotherDown"),
+                  href: listHref,
+                  label: t("studio.publish.anotherDown"),
+                },
+              ]
+            : [
+                // B2665 — the first thing the owner reaches for right after
+                // publishing: a story-shaped picture or clip for WhatsApp
+                // Status / Instagram Story.
+                {
+                  title: t("studio.share.title"),
+                  body: t("studio.share.whatNextBody"),
+                  href: shareHref,
+                  label: t("studio.share.whatNextLabel"),
+                },
+                { title: nameOf(done), href: dayHref(done), label: t("studio.day.done.openDay") },
+                { title: t("studio.publish.another"), href: listHref, label: t("studio.publish.another") },
+              ]
+        }
       />
     );
   }
