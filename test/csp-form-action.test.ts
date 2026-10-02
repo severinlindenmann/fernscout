@@ -1,4 +1,4 @@
-// @scans app/**/*.ts app/**/*.tsx paid/**/*.ts paid/**/*.tsx lib/**/*.ts lib/**/*.tsx components/**/*.ts components/**/*.tsx next.config.ts
+// @scans app/**, paid/**, lib/**, components/**, next.config.ts
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
