@@ -69,8 +69,8 @@ export function activityFeed(sources: FeedSources, since: string, limit = 40): F
         kind: "purchase",
         text:
           one.method === "admin"
-            ? `${one.credits} credits granted by hand to ${one.owner}`
-            : `${one.owner} bought ${one.credits} credits`,
+            ? `${one.units} units granted by hand to ${one.owner} (historical — this instance no longer sells them)`
+            : `${one.owner} bought ${one.units} units (historical — this instance no longer sells them)`,
         owner: one.owner,
         alert: false,
       });

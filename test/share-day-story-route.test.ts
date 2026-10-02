@@ -190,4 +190,12 @@ describe("GET .../story — what is drawn", () => {
     const response = await GET(new Request(url()), params);
     expect(response.status).toBe(200);
   });
+
+  test("?link=0 and ?captions=1 are both accepted and still answer a PNG — B2665 round 2", async () => {
+    await setupTripAndDay({ photos: 3 });
+    const { GET } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/story/route");
+    const response = await GET(new Request(url("?look=postcard&link=0&captions=1")), params);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+  });
 });

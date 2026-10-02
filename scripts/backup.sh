@@ -48,7 +48,12 @@
 #                            .eml under content/.mail/ or content/<user>/mail/
 #                            left from before that move (B662), and those are
 #                            stripped back out the same way postcards and
-#                            photobooks are.
+#                            photobooks are. content/.cache/ (resized photos,
+#                            map SVGs, story-video clips — all regenerated on
+#                            demand from an original kept elsewhere in the
+#                            set) is stripped back out the same way, since
+#                            B2599: it cost nothing to lose and the dated
+#                            secondary repository cannot deduplicate it away.
 #   config/config.json      $DATA_DIR/config.json
 #   state/<name>.json       every OTHER top-level *.json file under DATA_DIR
 #                            — the convention `lib/store.ts` writes to
@@ -529,6 +534,17 @@ else
   log "WARNING: the spend check failed — tonight's backup is unaffected"
 fi
 
+# --- 0a1b. The usage retention fold (B2605) --------------------------------
+# Same reasoning as the spend check just above: folds `usage` rows older
+# than the retention window into `usage_monthly_totals` and deletes them —
+# see lib/usage.ts's foldUsageOlderThan. Never fatal.
+log "folding usage rows past the retention window"
+if (cd "$APP_DIR" && npm run --silent usage:fold); then
+  log "usage fold done"
+else
+  log "WARNING: the usage fold failed — tonight's backup is unaffected"
+fi
+
 # --- 0a2. The WhatsApp gap-nudge sweep (B1857) -----------------------------
 # Same reasoning as the reminder sweep just above: at most one +20h nudge per
 # day folder still sitting on an unanswered gap question, sent only inside
@@ -640,6 +656,15 @@ else
   # If either name changes there, change the -name arguments below to match.
   find "$STAGING_DIR/content" -mindepth 1 -maxdepth 1 -type d -name '.mail' -exec rm -rf {} +
   find "$STAGING_DIR/content" -mindepth 2 -maxdepth 2 -type d -name mail -exec rm -rf {} +
+
+  # B2599: content/.cache/ (lib/media.ts, lib/map/cardCache.ts) holds resized
+  # photo derivatives, map SVGs and story-video clips keyed by a hash of the
+  # source — every byte in it is reproduced on demand from an original that is
+  # backed up separately, so backing it up too is paying restic (and the
+  # dated secondary, which cannot deduplicate across nights) to store a cache
+  # that costs nothing to rebuild. Top-level under content/ like .mail above,
+  # so the same single `find` + `rm -rf` shape applies.
+  find "$STAGING_DIR/content" -mindepth 1 -maxdepth 1 -type d -name '.cache' -exec rm -rf {} +
 fi
 
 # --- 4. config/config.json --------------------------------------------------

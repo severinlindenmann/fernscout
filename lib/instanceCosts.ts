@@ -2,7 +2,7 @@ import "server-only";
 import { loadServerConfig } from "./config";
 import { getDatabaseOrNull } from "./db";
 import { crossRate } from "./currency";
-import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "@paid/billing/lib/payments";
+import { paymentsPaidSince, takings, type Payment } from "@paid/billing/lib/payments";
 import { loadEcbRates } from "./rates";
 import { getUsernames } from "./users";
 import {
@@ -174,10 +174,10 @@ export function priceUsage(totals: UsageTotal[], costs = loadServerConfig().cost
  * answer for (or whose rows never named one) is flagged `unpriced` instead:
  * a figure the page cannot convert must not be a figure it adds up.
  */
-async function printCosts(since: string): Promise<CostLine[]> {
+async function printCosts(since: string, owner?: string): Promise<CostLine[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
-  const rows = await handle.db
+  let query = handle.db
     .selectFrom("print_orders")
     .select(({ fn }) => [
       "kind",
@@ -187,8 +187,9 @@ async function printCosts(since: string): Promise<CostLine[]> {
       fn.sum<number>("cost_minor").as("cost"),
     ])
     .where("created_at", ">=", since)
-    .groupBy(["kind", "provider", "currency"])
-    .execute();
+    .groupBy(["kind", "provider", "currency"]);
+  if (owner) query = query.where("owner_id", "=", owner);
+  const rows = await query.execute();
 
   const rates = loadEcbRates()?.rates ?? {};
   return rows.map((row) => {
@@ -223,30 +224,33 @@ async function printCosts(since: string): Promise<CostLine[]> {
  * the line says out loud; `service` replies are free by Meta's own
  * 24-hour-window rule and are counted at zero rather than "not priced".
  */
-async function sendCounts(since: string): Promise<CostLine[]> {
+async function sendCounts(since: string, owner?: string): Promise<CostLine[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
-  const mailRows = await handle.db
+  let mailQuery = handle.db
     .selectFrom("day_notifications")
     .select(({ fn }) => ["channel", fn.countAll<number>().as("sent")])
     .where("sent_at", ">=", since)
     .where("channel", "=", "mail")
-    .groupBy("channel")
-    .execute();
+    .groupBy("channel");
+  if (owner) mailQuery = mailQuery.where("owner_id", "=", owner);
+  const mailRows = await mailQuery.execute();
 
-  const whatsappRows = await handle.db
+  let whatsappQuery = handle.db
     .selectFrom("whatsapp_sends")
     .select(({ fn }) => ["category", fn.countAll<number>().as("sent")])
     .where("sent_at", ">=", since)
-    .groupBy("category")
-    .execute();
+    .groupBy("category");
+  if (owner) whatsappQuery = whatsappQuery.where("owner_id", "=", owner);
+  const whatsappRows = await whatsappQuery.execute();
 
-  const smsRows = await handle.db
+  let smsQuery = handle.db
     .selectFrom("sms_messages")
     .select(({ fn }) => [fn.countAll<number>().as("sent")])
     .where("created_at", ">=", since)
-    .where("direction", "=", "out")
-    .execute();
+    .where("direction", "=", "out");
+  if (owner) smsQuery = smsQuery.where("owner_id", "=", owner);
+  const smsRows = await smsQuery.execute();
 
   const prices = loadServerConfig().costs.whatsappPerMessageRappen;
   const lines: CostLine[] = mailRows.map((row) => ({
@@ -282,6 +286,31 @@ async function sendCounts(since: string): Promise<CostLine[]> {
   }
 
   return lines;
+}
+
+/**
+ * One journal's full cost — AI, speech, SMS, WhatsApp and print — in one
+ * call, over a period. B2606.
+ *
+ * **Chosen over the alternative the ticket offered** (writing WhatsApp and
+ * print into `usage` too, and dropping `sendCounts`/`printCosts`): that
+ * would touch every WhatsApp send and print-order call site across
+ * `paid/`, in exchange for one column this function gets by adding an
+ * optional `owner` filter to the two queries that already compute these
+ * numbers instance-wide. Same arithmetic, same tables, smaller and far
+ * safer diff — nothing about a real send or a real print order changes.
+ *
+ * A per-journal query reads three places (`usage`, `whatsapp_sends`,
+ * `print_orders`) exactly as the ticket says; this is the one function that
+ * does the reading so no caller has to.
+ */
+export async function journalFullCostRappen(owner: string, since: string): Promise<number> {
+  const [totals, print, sends] = await Promise.all([
+    usageSince(since, owner),
+    printCosts(since, owner),
+    sendCounts(since, owner),
+  ]);
+  return [...priceUsage(totals), ...print, ...sends].reduce((sum, line) => sum + line.rappen, 0);
 }
 
 /** The lines that are owed whether anybody writes a day or not. */
@@ -482,9 +511,6 @@ export function byOperation(
 /** @public open core: paid/ uses this (tagged by open-core/split). */
 export type Dashboard = {
   since: string;
-  /** Purchases still waiting for the operator to approve — B774. The queue
-   *  this page exists to surface; empty is the normal state. */
-  awaiting: Payment[];
   /** Purchases settled in the window, newest first. */
   paid: Payment[];
   /** What those came to, in rappen, with admin grants excluded. */
@@ -503,12 +529,11 @@ export type Dashboard = {
 
 /** The whole page, in one call. */
 export async function dashboard(since: string): Promise<Dashboard> {
-  const [totals, print, sends, journals, awaiting, paid] = await Promise.all([
+  const [totals, print, sends, journals, paid] = await Promise.all([
     usageSince(since),
     printCosts(since),
     sendCounts(since),
     journalRows(since),
-    paymentsAwaiting(),
     paymentsPaidSince(since),
   ]);
   const providers = priceUsage(totals);
@@ -519,7 +544,6 @@ export async function dashboard(since: string): Promise<Dashboard> {
   );
   return {
     since,
-    awaiting,
     paid,
     takenRappen: takings(paid),
     providers,

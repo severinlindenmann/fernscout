@@ -167,7 +167,10 @@ export function buildDayContext(user: string, tripId: string, slug: string, opts
   const writesIn = defaultLocaleFor(user);
   const days = getDays(ref, AS_AUTHOR);
   const dayIndex = days.findIndex((d) => d.date === entry.date);
-  const dayEntries = days[dayIndex]?.entries ?? [entry];
+  // Only the part being written: another part of the same date is somebody
+  // else's words (or another moment), and its sentences leaked into this
+  // part's version, labelled "your note" (persona round, 2 Oct).
+  const dayEntries = [entry];
 
   const journal = {
     language: writesIn,

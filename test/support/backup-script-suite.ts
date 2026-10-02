@@ -198,25 +198,27 @@ function digestTree(dir: string, skip: (rel: string) => boolean = () => false): 
 }
 
 /** The directories the backup set strips out of content/ after staging it
- * wholesale — postcards/ and photobooks/ under content/<user>/ (B653), and
- * the two legacy plaintext-mail shapes B662 found still reaching a snapshot:
- * content/.mail/ and content/<user>/mail/. Excluded here too, so comparing
- * the source content tree against the staged one is not comparing apples to
- * a smaller pile of apples. */
+ * wholesale — postcards/ and photobooks/ under content/<user>/ (B653), the
+ * two legacy plaintext-mail shapes B662 found still reaching a snapshot
+ * (content/.mail/ and content/<user>/mail/), and content/.cache/ (B2599 —
+ * resized photos, map SVGs and story-video clips, all reproduced on demand
+ * from an original kept elsewhere in the set). Excluded here too, so
+ * comparing the source content tree against the staged one is not comparing
+ * apples to a smaller pile of apples. */
 const isGeneratedOutput = (rel: string) => {
   const parts = rel.split(path.sep);
-  if (parts[0] === ".mail") return true;
+  if (parts[0] === ".mail" || parts[0] === ".cache") return true;
   return parts.length >= 2 && (parts[1] === "postcards" || parts[1] === "photobooks" || parts[1] === "mail");
 };
 
 /**
- * The 39 cases in source order, divided where their fixture state is truly
+ * The 40 cases in source order, divided where their fixture state is truly
  * isolated. Each wrapper registers every title but runs only its group, so
  * Vitest schedules five independent restic repositories in parallel without
  * making tests inside one shared repository concurrent. B1665.
  */
 const TEST_GROUPS: BackupScriptGroup[] = [
-  "content", "content", "content", "content", "content",
+  "content", "content", "content", "content", "content", "content",
   "database", "database", "database",
   "repository", "repository", "repository", "repository", "repository", "repository", "repository",
   "repository", "repository",
@@ -519,6 +521,14 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
       "To: alex@example.test\r\nSubject: Your agent code\r\n\r\n112233\r\n",
     );
 
+    // B2599: content/.cache/ (lib/media.ts, lib/map/cardCache.ts) — resized
+    // derivatives keyed by a hash of the source. Top-level under content/,
+    // like .mail above, and must never leave the staged tree either: every
+    // byte in it is reproduced on demand, so paying restic (and the dated
+    // secondary, which cannot deduplicate it away) to store it buys nothing.
+    fs.mkdirSync(path.join(contentDir, ".cache", "media"), { recursive: true });
+    fs.writeFileSync(path.join(contentDir, ".cache", "media", "deadbeef.webp"), crypto.randomBytes(512));
+
     // /etc/fernscout/env, as a fixture the test points ENV_FILE at rather than
     // ever reading the real file. One variable a restored service would need,
     // and the three that must never survive staging: the password that
@@ -568,6 +578,7 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
           "first-trip:send",
           "messages:sweep",
           "spend:alert",
+          "usage:fold",
           "gap-nudges:send",
           "plan-reminders:send",
           "extract:remind",
@@ -721,6 +732,20 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
       expect(
         fs.readFileSync(path.join(restoredContent, "alex", "trips", "kyrgyzstan-2026", "trip.md"), "utf8"),
       ).toContain("edited on the box, never committed");
+    },
+    180_000,
+  );
+
+  nextTest()(
+    "B2599: content/.cache/ never reaches the snapshot",
+    () => {
+      const run = runBackup();
+      expect(run.status).toBe(0);
+
+      const staged = restoreLatest("no-cache");
+      expect(fs.existsSync(path.join(staged, "content", ".cache"))).toBe(false);
+      // The real payload beside it is unaffected.
+      expect(fs.existsSync(path.join(staged, "content", "alex", "trips", "kyrgyzstan-2026", "trip.md"))).toBe(true);
     },
     180_000,
   );

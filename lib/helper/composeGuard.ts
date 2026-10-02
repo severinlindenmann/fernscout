@@ -367,7 +367,10 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
 
   // 5 — "we" only for a party, or when the writer says it.
   const we = usesWe(whole);
-  if (we && !((ctx.partySize ?? 1) > 1) && !usesWe(notes)) reasons.push(`${which}: "${we}" but the writer travels alone`);
+  // Only the writer's own words make it "we": a trip's companions are not
+  // on every day (persona round, 2 Oct: a lone hiker's story said "we" three
+  // times because the trip listed two people).
+  if (we && !usesWe(notes)) reasons.push(`${which}: "${we}" but the writer never says "we"`);
 
   // 7 — length.
   const base = ownerWordCount(ctx.items);

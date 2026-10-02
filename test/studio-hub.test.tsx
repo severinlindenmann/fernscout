@@ -64,7 +64,7 @@ function render(model: StudioHubModel) {
 
 const EMPTY_BASE: Extract<StudioHubModel, { kind: "empty" }> = {
   kind: "empty",
-  account: { purchasesOpen: 0, storage: null },
+  account: { storage: null },
   print: { unfinished: [], recentOrders: [] },
   resumableImports: [],
   analyticsEnabled: false,
@@ -135,7 +135,7 @@ describe("H2 — an empty journal", () => {
 
 const FULL_BASE: Extract<StudioHubModel, { kind: "full" }> = {
   kind: "full",
-  account: { purchasesOpen: 0, storage: null },
+  account: { storage: null },
   print: { unfinished: [], recentOrders: [] },
   addDayTrip: { id: "alps-2024", title: "Four days round the Alps", current: true },
   toldToday: false,

@@ -163,9 +163,11 @@ export default function PageHeader({
     wasOpen.current = menuOpen;
   }, [menuOpen]);
 
+
   return (
     <header
-      className={`sticky top-0 z-30 -mt-[env(safe-area-inset-top,0px)] border-b border-line-quiet bg-surface-subtle/95 px-4 pb-2.5 pt-[calc(env(safe-area-inset-top,0px)+0.625rem)] backdrop-blur motion-safe:transition-transform motion-safe:duration-200 sm:px-6 sm:pb-3 sm:pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] ${
+      data-page-header=""
+      className={`sticky top-0 z-30 border-b border-line-quiet bg-surface-subtle/95 px-4 pb-2.5 pt-[calc(env(safe-area-inset-top,0px)+0.625rem)] backdrop-blur motion-safe:transition-transform motion-safe:duration-200 sm:px-6 sm:pb-3 sm:pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] ${
         hidden ? "max-lg:-translate-y-full" : ""
       }`}
     >
