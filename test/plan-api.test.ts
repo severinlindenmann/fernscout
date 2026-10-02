@@ -46,6 +46,13 @@ async function ownerToken(): Promise<string> {
 }
 
 async function scopedToken(email: string): Promise<string> {
+  // B2218: GET /trips/{trip} asks mayWriteTrip, so the buddy needs a granted place.
+  const { grantContactAccess } = await import("@/lib/contacts");
+  const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+  const granted = await grantContactAccess("alex", { name: "Buddy", email, locale: "en" });
+  if (!granted.ok) throw new Error("no place");
+  await claimTripPlace("alex", TRIP, granted.contact.id, null);
+  await approveTripPlaces("alex", granted.contact.id);
   const { code } = await issueCode("alex", email, "agent", { trip: TRIP });
   const session = await verifyCode("alex", email, code, "agent", tripWriteScope(TRIP));
   if (!session.ok) throw new Error(`could not mint a trip-scoped token: ${session.reason}`);
@@ -117,11 +124,12 @@ beforeEach(async () => {
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.SESSION_SECRET = "plan-api-test-secret-plan-api-test";
+  process.env.CONTACTS_ENCRYPTION_KEY = "77".repeat(32);
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true } },
+      features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
   fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
