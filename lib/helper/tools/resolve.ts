@@ -255,3 +255,79 @@ export function firstUnwritten(username: string, tripId: string, today: string):
   }
   return last;
 }
+
+/**
+ * A date plainly written in a message — B1760. Numeric (`3.6`, `3.6.26`,
+ * `03/06/2026`, and the Hungarian year-first `2026.06.03`) or with a month
+ * name in German, English or Hungarian (`3. Juni`, `June 3`, `június 3`).
+ * Two-digit years are 20YY. The year is left out when the message left it out.
+ * Only the first date is read; nothing here guesses what a message is about.
+ */
+const MONTHS: Record<string, number> = {
+  jan: 1, feb: 2, mar: 3, apr: 4, mai: 5, may: 5, maj: 5, jun: 6, jul: 7, aug: 8, sep: 9, okt: 10, oct: 10,
+  nov: 11, dez: 12, dec: 12,
+};
+const MONTH_WORD = "[a-zA-ZäöüÄÖÜáéíóúőűÁÉÍÓÚŐŰ]{3,}";
+/** First three letters, accents dropped — Juni, június, March, március, Mär, már all land. */
+function monthOf(word: string): number | undefined {
+  return MONTHS[word.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().slice(0, 3)];
+}
+function year(raw?: string): number | undefined {
+  if (!raw) return undefined;
+  return raw.length === 2 ? 2000 + Number(raw) : Number(raw);
+}
+export function dateInMessage(said: string): { year?: number; month: number; day: number } | undefined {
+  const text = said.replace(/\s+/g, " ");
+  const found: { index: number; year?: number; month: number; day: number }[] = [];
+  const add = (index: number, y: number | undefined, m: number | undefined, d: number) => {
+    if (m && m >= 1 && m <= 12 && d >= 1 && d <= 31) found.push({ index, year: y, month: m, day: d });
+  };
+  // year first: 2026-06-03, 2026.06.03, 2026. 06. 03.
+  for (const m of text.matchAll(/(?<![\d.])(\d{4})[-./] ?(\d{1,2})[-./] ?(\d{1,2})(?!\d)/g))
+    add(m.index, Number(m[1]), Number(m[2]), Number(m[3]));
+  // day first: 3.6, 3.6.26, 3/6/2026 — never part of a longer number such as 12.50.5
+  for (const m of text.matchAll(/(?<![\d.,/-])(\d{1,2})[./](\d{1,2})(?:[./](\d{4}|\d{2}))?(?![\d]|[.,]\d)/g))
+    add(m.index, year(m[3]), Number(m[2]), Number(m[1]));
+  // 3. Juni 2026, 3 june
+  for (const m of text.matchAll(new RegExp(`(?<!\\d)(\\d{1,2})\\.? (${MONTH_WORD})\\.?(?: (\\d{4}))?`, "g")))
+    add(m.index, year(m[3]), monthOf(m[2]), Number(m[1]));
+  // June 3, június 3.
+  for (const m of text.matchAll(new RegExp(`(${MONTH_WORD})\\.? (\\d{1,2})(?!\\d)\\.?(?:,? (\\d{4}))?`, "g")))
+    add(m.index, year(m[3]), monthOf(m[1]), Number(m[2]));
+  found.sort((a, b) => a.index - b.index);
+  return found[0];
+}
+
+/**
+ * The one trip that contains the date a message names — B1760.
+ *
+ * Resolves, never proposes: two trips, no date, or a date outside every trip
+ * all answer `undefined` and the model decides as before. A date with no year
+ * is tried in each year the trip spans.
+ */
+export function tripForDate(username: string, said: string) {
+  const when = dateInMessage(said);
+  if (!when) return undefined;
+  const hits: { id: string; title: string; date: string }[] = [];
+  for (const trip of getTrips(username)) {
+    const from = Number(trip.start.slice(0, 4));
+    const to = Number(trip.end.slice(0, 4));
+    for (const y of when.year ? [when.year] : Array.from({ length: to - from + 1 }, (_, i) => from + i)) {
+      const date = `${y}-${String(when.month).padStart(2, "0")}-${String(when.day).padStart(2, "0")}`;
+      if (new Date(`${date}T00:00:00Z`).getUTCDate() !== when.day) continue; // 31 June
+      if (date >= trip.start && date <= trip.end) {
+        hits.push({ id: trip.id, title: trip.title, date });
+        break;
+      }
+    }
+  }
+  return hits.length === 1 ? hits[0] : undefined;
+}
+
+/** The bracketed fact line for the turn's context, or "" — same carrier as `describeWaiting`. */
+export function describeDate(username: string, said: string): string {
+  const hit = tripForDate(username, said);
+  return hit
+    ? `[the message names ${hit.date}, which falls in exactly one trip: "${hit.title}" (${hit.id}). A fact read from the message, not a request.]`
+    : "";
+}
