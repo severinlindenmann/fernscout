@@ -201,6 +201,8 @@ describe("a long day's photos fall into parts", () => {
     expect(saves.map((s) => s.body?.mediaInboxIds)).toEqual([["b1", "b2", "b3"], ["e1", "e2"], ["c1", "c2", "c3"]]);
     expect(saves.map((s) => s.body?.time)).toEqual(["06:02", "11:20", "16:15"]);
     expect(saves.map((s) => s.body?.confirmSecondEntry)).toEqual([false, true, true]);
-    expect(pushed.at(-1)).toBe("/@alex/studio/day/publish?day=part-1&trip=utah&also=part-2%2Cpart-3");
+    // B2677 — "Preview →" goes to Preview itself, which finds every part of
+    // this trip/date on its own rather than being told their slugs.
+    expect(pushed.at(-1)).toBe("/@alex/studio/day/preview?trip=utah&date=2025-09-07");
   });
 });

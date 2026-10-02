@@ -175,8 +175,9 @@ describe("AddDayFlow, one page — B2188", () => {
     expect(body.declined).toEqual({});
     expect(body.weather).toBe(false);
 
-    expect(text()).toContain("Saved. Only you can see this day.");
-    expect(currentSearch()).toBe("");
+    // B2677 — the unsplit day's own "Preview →" now goes straight to
+    // Preview rather than showing an inline "Saved" screen of its own.
+    expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
     expect(sessionStorage.getItem(addDayStorageKey("alex"))).toBeNull();
     expect(errors.mock.calls.filter((c) => String(c[0]).includes("same key"))).toEqual([]);
   });
@@ -368,13 +369,14 @@ describe("AddDayFlow, one page — B2188", () => {
     expect((commitBody as unknown as { weather: boolean }).weather).toBe(true);
   });
 
-  test("the saved sentence names the people on the trip, and sharing is a quiet link", async () => {
+  test("Preview → saves and goes to Preview for this trip and date", async () => {
     props = { readersByTrip: { reise: ["Hans", "Viki"] } };
     await mount();
     await click("Preview →");
-    expect(text()).toContain("Saved. Only you and Hans, Viki can see this day.");
-    const share = [...container.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Publish this day ›");
-    expect(share?.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
+    // B2677 — the readers-named "Saved." sentence and its own share link
+    // were the old inline done screen's; Preview (not exercised by this
+    // unit test) now says who reads it.
+    expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
   });
 
   test("a date with a draft day offers to add to it, and a second entry with a time", async () => {
@@ -392,7 +394,8 @@ describe("AddDayFlow, one page — B2188", () => {
     await flush();
     await click("Make a second update on this date");
     expect(commitBody).toMatchObject({ confirmSecondEntry: true, time: "18:00" });
-    expect(text()).toContain("Saved.");
+    // B2677 — a second update's own "Preview →" goes to Preview too.
+    expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
   });
 
   test("a date with a published day offers to change it, not to add to it", async () => {

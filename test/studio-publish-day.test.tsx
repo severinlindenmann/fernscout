@@ -105,7 +105,7 @@ describe("daysToPublish", () => {
   });
 });
 
-describe("PublishDayFlow", () => {
+describe("PublishDayFlow — B2677, narrowed to the drafts list and the take-down confirm", () => {
   let root: Root | undefined;
   let container: HTMLDivElement | undefined;
   const ROW: PublishRow = { tripId: "alps", tripTitle: "Alps", slug: "open", title: "Open", date: "2025-01-02", photos: 2, audience: "guest" };
@@ -117,10 +117,7 @@ describe("PublishDayFlow", () => {
     root = undefined;
   });
 
-  async function mount(
-    chosen: PublishRow | null,
-    extra: { blank?: string[]; readers?: string[] | null; also?: (PublishRow & { blank: string[] })[] } = {},
-  ) {
+  async function mount(chosen: PublishRow | null, takeDown: boolean) {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -128,130 +125,41 @@ describe("PublishDayFlow", () => {
       root!.render(
         <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
           <StudioBarProvider username={OWNER}>
-            <PublishDayFlow username={OWNER} rows={[ROW]} chosen={chosen} missing={false} takeDown={false} {...extra} />
+            <PublishDayFlow username={OWNER} rows={[ROW]} chosen={chosen} missing={false} takeDown={takeDown} />
           </StudioBarProvider>
         </LocaleProvider>,
       );
     });
   }
 
-  test("the list links each draft to its own choice, a direct Publish…, and preview", async () => {
-    await mount(null);
+  test("a draft's own 'Publish…' opens Preview, not this page's own confirm", async () => {
+    await mount(null, false);
     const row = container!.querySelector("[data-publish-row]")!;
     const links = [...row.querySelectorAll("a")].map((a) => a.getAttribute("href"));
-    // The row's title, "Publish…" and "Preview" all point at the row —
-    // Publish and the title open the confirm step directly (B2237).
-    expect(links).toEqual([
-      "/@alex/studio/day/publish?day=open&trip=alps",
-      "/@alex/studio/day/publish?day=open&trip=alps",
-      "/@alex/trips/alps/day/open",
-    ]);
+    expect(links).toEqual(["/@alex/studio/day/preview?trip=alps&date=2025-01-02", "/@alex/studio/day/preview?trip=alps&date=2025-01-02", "/@alex/trips/alps/day/open"]);
     const shareLink = [...row.querySelectorAll("a")].find((a) => a.textContent === "Publish…");
     expect(shareLink, row.innerHTML).toBeTruthy();
   });
 
-  test("nothing is written before the confirm; the confirm publishes and the done screen names the day", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ status: "published" }), { status: 200 }));
+  test("a published row's own link goes to this page's own take-down confirm", async () => {
+    await mount(null, true);
+    const row = container!.querySelector("[data-publish-row]")!;
+    const links = [...row.querySelectorAll("a")].map((a) => a.getAttribute("href"));
+    expect(links[0]).toBe("/@alex/studio/day/publish?day=open&trip=alps&list=published");
+  });
+
+  test("nothing is written before the confirm; the confirm takes the day down and the done screen names it", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
-    await mount(ROW);
+    await mount(ROW, true);
 
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(container!.querySelector("[data-audience]")!.getAttribute("data-audience")).toBe("guest");
-    const confirm = [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day");
+    const confirm = [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Take it off the site");
     expect(confirm, container!.innerHTML.slice(0, 600)).toBeTruthy();
-    expect(confirm!.className).toContain("bg-yellow-400");
 
     await act(async () => confirm!.click());
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]).toEqual([
-      "/api/web/alex/trips/alps/days/open/publish",
-      expect.objectContaining({ method: "POST", body: "{}" }),
-    ]);
-    expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is published.");
-  });
-
-  test("the done screen survives the refresh that drops the day from the drafts", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 200 })));
-    await mount(ROW);
-    await act(async () => [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day")!.click());
-    // What router.refresh() does to the page: the published day is no longer a draft.
-    await act(async () => {
-      root!.render(
-        <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
-          <StudioBarProvider username={OWNER}>
-            <PublishDayFlow username={OWNER} rows={[]} chosen={null} missing={false} takeDown={false} />
-          </StudioBarProvider>
-        </LocaleProvider>,
-      );
-    });
-    expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is published.");
-  });
-
-  test("TIX-2/B2674: the other parts' slugs ride along on the one call, the server works out their own blanks", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true, published: ["open", "open-2"], told: { app: 0, mail: 0 } }), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-    const second = { ...ROW, slug: "open-2", time: "11:20", blank: ["costs", "tags"] };
-    await mount(ROW, { blank: ["costs", "location", "tags"], also: [second] });
-    expect(container!.querySelector("[data-also]")!.textContent).toContain("11:20 · Open");
-    await act(async () => [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish all 2 parts")!.click());
-    const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
-    expect(calls).toHaveLength(1);
-    expect(calls.map(([url, init]) => [url, JSON.parse(init.body as string)])).toEqual([
-      ["/api/web/alex/trips/alps/days/open/publish", { parts: ["open-2"] }],
-    ]);
-  });
-
-  test("B2192: the confirm names the blanks and the readers, and the tap sends exactly those blanks", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ status: "published" }), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-    await mount(ROW, { blank: ["costs", "time", "transportMode"], readers: ["Hans", "Viki", "Ruth", "Luca"] });
-
-    expect(container!.querySelector("[data-readers]")!.textContent).toBe("By name: Hans, Viki, and 2 others.");
-    const dialog = container!.querySelector('[role="dialog"]')!;
-    expect(dialog.textContent).toContain("Not filled in: time, costs, and how you travelled. Publishing records them as left blank.");
-    // Only what "Change a day" can actually fill is linked there — since
-    // B2233 that includes costs and how you travelled.
-    const fill = [...dialog.querySelectorAll("a")];
-    expect(fill.map((a) => a.getAttribute("href"))).toEqual(Array(3).fill("/@alex/studio/day/edit?slug=open"));
-    expect(fill.every((a) => a.textContent === "Fill in now")).toBe(true);
-    expect(fill.map((a) => a.closest("[data-blank-field]")!.getAttribute("data-blank-field")).sort()).toEqual(["costs", "time", "transportMode"]);
-    expect([...dialog.querySelectorAll("button")].map((b) => b.textContent?.trim())).toEqual(["Publish this day", "Not yet"]);
-
-    const confirm = [...dialog.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day")!;
-    await act(async () => confirm.click());
-    // B2674 — the client no longer says what is blank; the server works it
-    // out and declines each field itself.
-    expect(fetchMock.mock.calls[0]).toEqual([
-      "/api/web/alex/trips/alps/days/open/publish",
-      expect.objectContaining({ method: "POST", body: "{}" }),
-    ]);
-  });
-
-  test("B2192: many blanks read as a few parts; Show all names every field; the tap still declines all of them", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ status: "published" }), { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-    const all = ["media", "costs", "coordinates", "weather", "time", "timezone", "location", "country", "countryCode", "transportMode", "tags", "translations"];
-    await mount({ ...ROW, title: "" }, { blank: all });
-
-    const dialog = container!.querySelector('[role="dialog"]')!;
-    expect(dialog.querySelector("[data-blank] > p")!.textContent).toBe(
-      "Not filled in: photographs, place, time, costs, how you travelled, and 3 more details. Publishing records them as left blank.",
-    );
-    const listed = [...dialog.querySelectorAll("details [data-blank-field]")];
-    expect(listed.map((li) => li.getAttribute("data-blank-field"))).toEqual(all);
-    expect(listed.filter((li) => li.querySelector("a")).map((li) => li.getAttribute("data-blank-field"))).toEqual(["media", "costs", "time", "location", "transportMode", "tags"]);
-    // An untitled day is called by its long date, never an ISO string.
-    expect(container!.querySelector("h2")!.textContent).toBe("Thursday, 2 January");
-
-    const confirm = [...dialog.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day")!;
-    await act(async () => confirm.click());
-    // B2674 — the whole list of blanks is for display only now; the server
-    // declines them itself, so the body carries no field names at all.
-    expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)).toEqual({});
-  });
-
-  test("B2192: a day nobody else can read says so", async () => {
-    await mount(ROW, { readers: [] });
-    expect(container!.querySelector("[data-readers]")!.textContent).toContain("Nobody but you can read it yet");
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/web/alex/trips/alps/days/open/unpublish");
+    expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is off the site.");
   });
 });
