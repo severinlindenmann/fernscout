@@ -69,6 +69,7 @@ export const TEMPLATES = {
   "notice.operatorMessage": { family: "notice", channel: "mail", kind: "operator note to the owner", audience: "owner" },
   "notice.postcardCancelled": { family: "notice", channel: "mail", kind: "postcard cancelled", audience: "owner", paid: true },
   "notice.photobookRefused": { family: "notice", channel: "mail", kind: "photobook order refused", audience: "owner", paid: true },
+  "notice.readerBoughtPhotobook": { family: "notice", channel: "mail", kind: "a reader ordered their own copy", audience: "owner", paid: true },
   "notice.paymentFailed": { family: "notice", channel: "mail", kind: "Plus renewal payment failed, grace started", audience: "owner", paid: true },
   "notice.renewalReminder": { family: "notice", channel: "mail", kind: "Plus renews in 30 days", audience: "owner", paid: true },
   "notice.passEndingSoon": { family: "notice", channel: "mail", kind: "Trip pass ends in 5 days", audience: "owner", paid: true },
@@ -405,15 +406,30 @@ export const FLOWS = [
     id: "photobook",
     label: "Photobook order",
     nodes: [
-      { id: "order", type: "trigger", label: "Owner orders a photobook", to: [{ id: "build" }] },
+      {
+        id: "order",
+        type: "trigger",
+        label: "Owner orders a photobook, or a reader orders their own copy",
+        to: [{ id: "build" }],
+      },
       {
         id: "build",
         type: "check",
         label: "Build step, or the printer, refuses the order?",
         to: [{ id: "refused", label: "Yes" }, { id: "ship", label: "No" }],
       },
-      { id: "refused", type: "send", label: "Refusal and refund", template: "notice.photobookRefused", to: [{ id: "stop" }] },
-      { id: "ship", type: "send", label: "Receipt, then a shipped notice", template: "receipt.photobook", to: [{ id: "stop" }] },
+      // B2706 — a reader order's own receipt and refusal go to the reader
+      // who paid, never the owner; the owner only ever hears about it once,
+      // on success, with no address or email of theirs attached.
+      { id: "refused", type: "send", label: "Refusal and refund, to whoever paid", template: "notice.photobookRefused", to: [{ id: "stop" }] },
+      { id: "ship", type: "send", label: "Receipt, to whoever paid", template: "receipt.photobook", to: [{ id: "readerBought" }, { id: "stop" }] },
+      {
+        id: "readerBought",
+        type: "check",
+        label: "Was this a reader's own copy?",
+        to: [{ id: "tellOwner", label: "Yes" }, { id: "stop", label: "No" }],
+      },
+      { id: "tellOwner", type: "send", label: "Tell the owner a reader bought one", template: "notice.readerBoughtPhotobook", to: [{ id: "stop" }] },
       { id: "stop", type: "stop", label: "Done", to: [] },
     ],
   },
