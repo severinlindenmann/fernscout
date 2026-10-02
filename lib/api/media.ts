@@ -8,6 +8,7 @@ import {
   decodeSource,
   extensionFor,
   makeDerivative,
+  printJpegFor,
   perceptualHash,
   perceptualHashOf,
 } from "../ingest/image.ts";
@@ -31,7 +32,7 @@ import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } fro
 import { contentHash, isDuplicate } from "../ingest/hash.ts";
 import { loadUserConfig } from "../config";
 import { mediaKey, type PhotoVisibility } from "../photos";
-import { withStorageQuota } from "../storageQuota";
+import { storageRefusal, withStorageQuota } from "../storageQuota";
 import type { GalleryItem } from "../types";
 
 /**
@@ -700,6 +701,7 @@ async function writeUploads(
        */
       let derivative;
       let original;
+      let print;
       try {
         // Measured from the decoded source rather than from `upload.bytes`,
         // because a HEIC's own header is not something sharp can always read —
@@ -707,6 +709,8 @@ async function writeUploads(
         // These are the *original's* pixels; the derivative's are below.
         original = await sharp(source.file, { limitInputPixels: MAX_DECODE_PIXELS }).metadata();
         derivative = await makeDerivative(source);
+        // B1528: a non-JPEG original gets a full-resolution JPEG beside it.
+        print = await printJpegFor(source, upload.filename);
       } finally {
         source.dispose();
       }
@@ -749,6 +753,11 @@ async function writeUploads(
         const name = `${stem}${extensionFor(derivative.format)}`;
         fs.writeFileSync(path.join(staging, name), derivative.bytes);
         staged.push({ from: path.join(staging, name), to: path.join(mediaOut, name) });
+        if (print) {
+          const printName = `${stem}.jpg`;
+          fs.writeFileSync(path.join(staging, `print-${printName}`), print.bytes);
+          staged.push({ from: path.join(staging, `print-${printName}`), to: path.join(originalsOut, printName) });
+        }
         items.push({
           // Trip-relative, never `/@<user>/media/…`: the owner is prefixed at
           // read time, which is what let the move to multi-user rewrite no
@@ -800,6 +809,11 @@ async function writeUploads(
       }
       index += 1;
     }
+
+    // B1528: the quota check ran before the print JPEGs existed. Staging sits
+    // inside the journal, so a walk now counts them — refuse if they tipped it.
+    const over = await storageRefusal(parseTripRef(ref)!.username, 0);
+    if (over) return abandon([{ field: "media", got: "no room left in this journal", expected: over }]);
 
     fs.mkdirSync(mediaOut, { recursive: true });
     fs.mkdirSync(originalsOut, { recursive: true });

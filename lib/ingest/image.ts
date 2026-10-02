@@ -339,6 +339,29 @@ export async function makeDerivative(
   return { bytes: data, width: info.width, height: info.height, format };
 }
 
+/**
+ * B1528: a full-resolution JPEG to keep beside a camera file the printers
+ * cannot embed (HEIC, PNG, WebP…). The one function ingest and both upload
+ * routes call; each writes the result next to the original, as `name`, in
+ * `originals/`. The camera file itself is never replaced or removed.
+ *
+ * Null when the original is already a JPEG. Same encoder settings as the
+ * photobook's own print JPEGs (quality 88, 4:4:4), orientation baked in, ICC
+ * profile kept, no EXIF or GPS. Not resized: the pixel count is already
+ * bounded by `MAX_DECODE_PIXELS` at the decode.
+ */
+export async function printJpegFor(
+  source: DecodedSource,
+  originalName: string,
+): Promise<{ name: string; bytes: Buffer } | null> {
+  if (/\.jpe?g$/i.test(originalName)) return null;
+  const bytes = await oriented(source)
+    .keepIccProfile()
+    .jpeg({ quality: 88, chromaSubsampling: "4:4:4", progressive: false })
+    .toBuffer();
+  return { name: `${path.basename(originalName, path.extname(originalName))}.jpg`, bytes };
+}
+
 /** Extensions ingest treats as photographs. */
 export const IMAGE_EXTENSIONS = new Set([
   ".jpg",

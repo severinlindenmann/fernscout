@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import sharp from "sharp";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -465,6 +466,20 @@ describe("originals", () => {
    * writes one image at 2000px and used to drop what it was made from, so the
    * one artefact a photobook plate needs was the one being thrown away.
    */
+  // B1528. JPEG bytes under a .heic name stand in for a camera file sharp can
+  // read; the point is what is written beside it, not the HEIC decoder.
+  test("a non-JPEG original keeps a full-resolution JPEG beside it, and re-ingest adds nothing", async () => {
+    await photo("IMG_9.heic", 31, "2026-08-14 09:00:00", BANGKOK, { width: 2600, height: 1700 });
+    const first = await run();
+    expect(first.warnings.join(" ")).toMatch(/print JPEGs/);
+    const kept = path.join(tripDir(), "originals", "bangkok");
+    expect(fs.readdirSync(kept).sort()).toEqual(["01.heic", "01.jpg"]);
+    expect((await sharp(path.join(kept, "01.jpg")).metadata()).width).toBe(2600);
+    const before = snapshot(tripDir());
+    await run();
+    expect(snapshot(tripDir())).toEqual(before);
+  });
+
   test("are kept beside the trip, numbered to match their derivative", async () => {
     await photo("IMG_4471.jpg", 23, "2026-08-14 09:00:00", BANGKOK);
     await run();
