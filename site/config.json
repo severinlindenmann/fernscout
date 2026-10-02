@@ -142,6 +142,10 @@
       "claude-haiku-4-5": {
         "inputPerMillionRappen": 80,
         "outputPerMillionRappen": 400
+      },
+      "claude-sonnet-5": {
+        "inputPerMillionRappen": 160,
+        "outputPerMillionRappen": 800
       }
     },
     "transcriptionPerThousandMinutesRappen": 344,

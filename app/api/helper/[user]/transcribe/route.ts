@@ -1,5 +1,7 @@
 import { isEnabled } from "@/lib/capabilities";
+import { getPlaces } from "@/lib/entries";
 import { hasHelperConsent } from "@/lib/helper/consent";
+import { keytermsFor } from "@/lib/helper/keyterms";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import {
   MAX_AUDIO_BYTES,
@@ -13,6 +15,7 @@ import { mayUseAi } from "@paid/billing/lib/aiDays";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { defaultLocaleFor } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
@@ -141,7 +144,14 @@ export async function POST(
   // `newRunId` produces, and nothing else becomes part of a ledger row.
   const run = text(body.run);
   const runId = RUN_ID_RE.test(run) ? run : undefined;
-  const outcome = await spendAndTranscribe(user, audio, mediaType, language, claimed, runId);
+  // B2691 — Deepgram keyterms, built from the trip's own place names and
+  // companions, only when the caller actually knows which trip this
+  // recording is for. No trip, no lookup, no keyterms: never widened to
+  // every trip this journal holds.
+  const tripId = text(body.trip);
+  const trip = tripId !== "" ? getTrip(tripRef(user, tripId)) : null;
+  const keyterms = trip ? keytermsFor(getPlaces(trip.ref), trip.people) : [];
+  const outcome = await spendAndTranscribe(user, audio, mediaType, language, claimed, runId, keyterms);
   if (!outcome.ok) {
     if (outcome.error === "plan_limit") {
       const gate = await mayUseAi(user);
