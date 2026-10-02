@@ -40,6 +40,17 @@
 		B2732A000000000000000008 /* TripList.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2732A000000000000000007 /* TripList.swift */; };
 		B2732A000000000000000009 /* TripList.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2732A000000000000000007 /* TripList.swift */; };
 		B2732A00000000000000000A /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B2731A000000000000000003 /* Localizable.xcstrings */; };
+		B2733A000000000000000002 /* RouteActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000001 /* RouteActivity.swift */; };
+		B2733A000000000000000003 /* RouteActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000001 /* RouteActivity.swift */; };
+		B2733A000000000000000005 /* RouteActivityDoors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000004 /* RouteActivityDoors.swift */; };
+		B2733A000000000000000006 /* RouteActivityDoors.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000004 /* RouteActivityDoors.swift */; };
+		B2733A000000000000000008 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000007 /* LiveActivityController.swift */; };
+		B2733A00000000000000000A /* FernscoutWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000009 /* FernscoutWidgetsBundle.swift */; };
+		B2733A00000000000000000C /* RouteLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2733A00000000000000000B /* RouteLiveActivityWidget.swift */; };
+		B2733A00000000000000000E /* RouteControlWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2733A00000000000000000D /* RouteControlWidget.swift */; };
+		B2733A000000000000000012 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000011 /* Assets.xcassets */; };
+		B2733A000000000000000013 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B2731A000000000000000003 /* Localizable.xcstrings */; };
+		B2733A000000000000000015 /* FernscoutWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000014 /* FernscoutWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -81,6 +92,16 @@
 		B2732A000000000000000003 /* SaveToInboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToInboxView.swift; sourceTree = "<group>"; };
 		B2732A000000000000000005 /* SaveToInboxIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveToInboxIntent.swift; sourceTree = "<group>"; };
 		B2732A000000000000000007 /* TripList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TripList.swift; sourceTree = "<group>"; };
+		B2733A000000000000000001 /* RouteActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteActivity.swift; sourceTree = "<group>"; };
+		B2733A000000000000000004 /* RouteActivityDoors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteActivityDoors.swift; sourceTree = "<group>"; };
+		B2733A000000000000000007 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
+		B2733A000000000000000009 /* FernscoutWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FernscoutWidgetsBundle.swift; sourceTree = "<group>"; };
+		B2733A00000000000000000B /* RouteLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteLiveActivityWidget.swift; sourceTree = "<group>"; };
+		B2733A00000000000000000D /* RouteControlWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RouteControlWidget.swift; sourceTree = "<group>"; };
+		B2733A00000000000000000F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B2733A000000000000000010 /* FernscoutWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FernscoutWidgets.entitlements; sourceTree = "<group>"; };
+		B2733A000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B2733A000000000000000014 /* FernscoutWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FernscoutWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -99,6 +120,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B2733A00000000000000001A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -109,6 +137,7 @@
 				504EC3061FED79650016851F /* App */,
 				B2175A000000000000000007 /* Shared */,
 				B2175A000000000000000006 /* ShareInbox */,
+				B2733A00000000000000001F /* FernscoutWidgets */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -118,6 +147,7 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				B2175A000000000000000002 /* ShareInbox.appex */,
+				B2733A000000000000000014 /* FernscoutWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -132,6 +162,7 @@
 				B2196A000000000000000001 /* GpsCredential.swift */,
 				B2196A000000000000000003 /* Recorder.swift */,
 				B2196A000000000000000005 /* LocationRecorderPlugin.swift */,
+				B2733A000000000000000007 /* LiveActivityController.swift */,
 				B2400A000000000000000001 /* ServerChoicePlugin.swift */,
 				B2330A000000000000000001 /* MediaUploadPlugin.swift */,
 				B2330A000000000000000003 /* MediaUploadSession.swift */,
@@ -161,6 +192,8 @@
 			children = (
 				B2175A00000000000000000A /* ShareCredential.swift */,
 				B2732A000000000000000007 /* TripList.swift */,
+				B2733A000000000000000001 /* RouteActivity.swift */,
+				B2733A000000000000000004 /* RouteActivityDoors.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -174,6 +207,19 @@
 				B2175A00000000000000000E /* ShareInbox.entitlements */,
 			);
 			path = ShareInbox;
+			sourceTree = "<group>";
+		};
+		B2733A00000000000000001F /* FernscoutWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				B2733A000000000000000009 /* FernscoutWidgetsBundle.swift */,
+				B2733A00000000000000000B /* RouteLiveActivityWidget.swift */,
+				B2733A00000000000000000D /* RouteControlWidget.swift */,
+				B2733A000000000000000011 /* Assets.xcassets */,
+				B2733A00000000000000000F /* Info.plist */,
+				B2733A000000000000000010 /* FernscoutWidgets.entitlements */,
+			);
+			path = FernscoutWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -192,6 +238,7 @@
 			);
 			dependencies = (
 				B2175A000000000000000016 /* PBXTargetDependency */,
+				B2733A000000000000000017 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -218,6 +265,23 @@
 			productReference = B2175A000000000000000002 /* ShareInbox.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		B2733A000000000000000018 /* FernscoutWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B2733A00000000000000001E /* Build configuration list for PBXNativeTarget "FernscoutWidgets" */;
+			buildPhases = (
+				B2733A000000000000000019 /* Sources */,
+				B2733A00000000000000001A /* Frameworks */,
+				B2733A00000000000000001B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FernscoutWidgets;
+			productName = FernscoutWidgets;
+			productReference = B2733A000000000000000014 /* FernscoutWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -233,6 +297,10 @@
 						ProvisioningStyle = Automatic;
 					};
 					B2175A000000000000000001 = {
+						CreatedOnToolsVersion = 16.2;
+						ProvisioningStyle = Automatic;
+					};
+					B2733A000000000000000018 = {
 						CreatedOnToolsVersion = 16.2;
 						ProvisioningStyle = Automatic;
 					};
@@ -260,6 +328,7 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				B2175A000000000000000001 /* ShareInbox */,
+				B2733A000000000000000018 /* FernscoutWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -287,6 +356,15 @@
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				B2196A000000000000000011 /* InfoPlist.strings in Resources */,
 				B2731A000000000000000004 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B2733A00000000000000001B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B2733A000000000000000012 /* Assets.xcassets in Resources */,
+				B2733A000000000000000013 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -324,6 +402,21 @@
 				B2732A000000000000000004 /* SaveToInboxView.swift in Sources */,
 				B2732A000000000000000006 /* SaveToInboxIntent.swift in Sources */,
 				B2732A000000000000000008 /* TripList.swift in Sources */,
+				B2733A000000000000000002 /* RouteActivity.swift in Sources */,
+				B2733A000000000000000005 /* RouteActivityDoors.swift in Sources */,
+				B2733A000000000000000008 /* LiveActivityController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B2733A000000000000000019 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B2733A000000000000000003 /* RouteActivity.swift in Sources */,
+				B2733A000000000000000006 /* RouteActivityDoors.swift in Sources */,
+				B2733A00000000000000000A /* FernscoutWidgetsBundle.swift in Sources */,
+				B2733A00000000000000000C /* RouteLiveActivityWidget.swift in Sources */,
+				B2733A00000000000000000E /* RouteControlWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -337,6 +430,13 @@
 			remoteGlobalIDString = B2175A000000000000000001;
 			remoteInfo = ShareInbox;
 		};
+		B2733A000000000000000016 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B2733A000000000000000018;
+			remoteInfo = FernscoutWidgets;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -347,6 +447,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				B2175A000000000000000015 /* ShareInbox.appex in Embed Foundation Extensions */,
+				B2733A000000000000000015 /* FernscoutWidgets.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -358,6 +459,11 @@
 			isa = PBXTargetDependency;
 			target = B2175A000000000000000001 /* ShareInbox */;
 			targetProxy = B2175A000000000000000017 /* PBXContainerItemProxy */;
+		};
+		B2733A000000000000000017 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B2733A000000000000000018 /* FernscoutWidgets */;
+			targetProxy = B2733A000000000000000016 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -598,6 +704,58 @@
 			};
 			name = Release;
 		};
+		B2733A00000000000000001C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = FernscoutWidgets/FernscoutWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FernscoutWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.fernscout.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B2733A00000000000000001D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = FernscoutWidgets/FernscoutWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FernscoutWidgets/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.fernscout.app.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -624,6 +782,15 @@
 			buildConfigurations = (
 				B2175A000000000000000019 /* Debug */,
 				B2175A00000000000000001A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B2733A00000000000000001E /* Build configuration list for PBXNativeTarget "FernscoutWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B2733A00000000000000001C /* Debug */,
+				B2733A00000000000000001D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

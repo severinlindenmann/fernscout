@@ -42,10 +42,58 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         InboxQueue.shared.rejoin()
         InboxQueue.shared.sendAll()
         SaveToInboxDoors.syncQuickAction()
+        // B2733 — the Control's own door: `RouteControlTapIntent.perform()`
+        // posts this once `openAppWhenRun` has brought the app forward; the
+        // real work (reading `Recorder`'s state, presenting the alert or
+        // opening the route page) stays here, the only file that has both
+        // `RouteActivityDoors` and `Recorder`.
+        NotificationCenter.default.addObserver(forName: RouteActivityDoors.controlTapNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.handleRouteControlTap()
+        }
+        // B2733 — `fernscout://route-confirm-stop` (the Lock Screen's own
+        // tap on a needs-attention state) posts the same stop confirmation
+        // directly, with no intent in between.
+        NotificationCenter.default.addObserver(forName: RouteActivityDoors.showStopConfirmNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.presentRouteStopConfirm()
+        }
         #if DEBUG
         handleB2730TestArgs()
         #endif
         return true
+    }
+
+    /// B2733 — the Control's own tap, either state: still armed means
+    /// "Route on" was tapped, so the same stop confirmation as a Lock Screen
+    /// tap; nothing armed means "Route off", which only opens the location
+    /// page — the Control itself never arms.
+    private func handleRouteControlTap() {
+        if Recorder.shared.firstArmedTrip() != nil {
+            presentRouteStopConfirm()
+        } else {
+            openRoutePage(tripId: nil)
+        }
+    }
+
+    /// B2733 — the Control's confirmation. `UIAlertController` needs no
+    /// WebView and no bridge call at all, so this works even before any page
+    /// has loaded — the same top-most-view-controller presentation
+    /// `LocationRecorderPlugin.confirmAndRun` already uses. A no-op if
+    /// nothing is armed any more by the time the app actually comes forward
+    /// (a race with the owner's own Stop from the studio page, say).
+    private func presentRouteStopConfirm() {
+        guard let trip = Recorder.shared.firstArmedTrip() else { return }
+        let count = Recorder.shared.unsentPositionCount()
+        let title = String(format: String(localized: "routeActivity.stopConfirm.title"), trip.title)
+        let message = String(format: String(localized: "routeActivity.stopConfirm.message"), count)
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: String(localized: "routeActivity.stopConfirm.keep"), style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "routeActivity.stopConfirm.stop"), style: .destructive) { _ in
+            Recorder.shared.disarm(trip: trip.id, decline: false)
+        })
+        let windowScene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene
+        var top = windowScene?.windows.first(where: { $0.isKeyWindow })?.rootViewController
+        while let presented = top?.presentedViewController { top = presented }
+        top?.present(alert, animated: true)
     }
 
     #if DEBUG
@@ -166,6 +214,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 }
 
+/// B2733 — shared by `AppDelegate.handleRouteControlTap` and
+/// `SceneDelegate.handleFernscoutURL`: a free function since the two live in
+/// different delegate instances, neither of which the other can see. Resolves
+/// the page from whichever window scene is actually connected, the same
+/// bridge/webView either delegate would otherwise have reached through its
+/// own `window` property.
+private func openRoutePage(tripId: String?) {
+    guard let path = Recorder.shared.routePagePath(tripId: tripId),
+          let windowScene = UIApplication.shared.connectedScenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene,
+          let bridge = (windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController as? CAPBridgeViewController)?.bridge,
+          let base = bridge.config.appStartServerURL as URL?,
+          let url = URL(string: path, relativeTo: base) else { return }
+    bridge.webView?.load(URLRequest(url: url))
+}
+
 // MARK: - SceneDelegate
 
 /// The one window scene — B2328. iOS 27 refuses to run an app built with its
@@ -183,6 +246,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// B2697 — a sign-in link that launched the app cold. The bridge does not
     /// exist yet in `willConnectTo`, so it is loaded once the scene is active.
     private var pendingLink: URL?
+    /// B2733 — a `fernscout://` tap (Lock Screen, Dynamic Island, the
+    /// Control's "off" state) that launched the app cold. Same reason as
+    /// `pendingLink`: the bridge is not there yet in `willConnectTo`.
+    private var pendingFernscoutURL: URL?
     /// B2732 — a quick-action tap that launched the app cold; UIKit hands it
     /// here rather than to `windowScene(_:performActionFor:)` in that case,
     /// so the sheet it asks for is shown once the scene is active too.
@@ -192,7 +259,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // A launch by URL or activity arrives here rather than through the
         // callbacks below.
         if let url = connectionOptions.urlContexts.first?.url {
-            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: url, options: [:])
+            if url.scheme == "fernscout" {
+                pendingFernscoutURL = url // the bridge does not exist yet — see `sceneDidBecomeActive`
+            } else {
+                _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: url, options: [:])
+            }
         }
         if let activity = connectionOptions.userActivities.first {
             pendingLink = activity.webpageURL
@@ -210,7 +281,47 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             pendingShortcut = nil
             _ = SaveToInboxDoors.handle(shortcut)
         }
+        if let url = pendingFernscoutURL {
+            pendingFernscoutURL = nil
+            handleFernscoutURL(url)
+        }
+        // B2733 — the one trigger allowed to start a brand-new Live Activity:
+        // ActivityKit's own `Activity.request` refuses from the background.
+        Recorder.shared.syncLiveActivityOnBecomeActive()
     }
+
+    /// B2733 — the app's own custom scheme (`CFBundleURLTypes` in
+    /// `Info.plist`), claimed only for these three fixed doors. Never reads a
+    /// host, path or token as anything but a trip id to look up — the page it
+    /// opens is always built from the bridge's own server and the trip's
+    /// *stored* user (`Recorder.routePagePath`), never from anything in the
+    /// URL itself, so a forwarded or guessed link cannot point the WebView
+    /// anywhere but a studio page the owner's own cookie already governs.
+    /// Anything else (an unknown host) is silently ignored.
+    @discardableResult
+    private func handleFernscoutURL(_ url: URL) -> Bool {
+        guard url.scheme == "fernscout" else { return false }
+        switch url.host {
+        case "route":
+            let tripId = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            openRoutePage(tripId: tripId.isEmpty ? nil : tripId)
+            return true
+        case "route-confirm-stop":
+            NotificationCenter.default.post(name: RouteActivityDoors.showStopConfirmNotification, object: nil)
+            return true
+        case "save":
+            // B2734 reserves this for its own sheet; built now since it is
+            // one line — absent (silently ignored) without a credential, the
+            // same door `SaveToInboxDoors`'s quick action already gates on.
+            if ShareCredentialStore.load() != nil {
+                NotificationCenter.default.post(name: SaveToInboxDoors.showSheetNotification, object: nil)
+            }
+            return true
+        default:
+            return false
+        }
+    }
+
 
     /// A quick-action tap while the app was already running or backgrounded
     /// — UIKit calls this instead of handing it through `willConnectTo`.
@@ -241,8 +352,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        // Kept for the Capacitor App API's url-open tracking.
         for context in URLContexts {
+            // B2733 — the app is already running here, so the bridge exists
+            // and `handleFernscoutURL` can act at once rather than waiting
+            // for `sceneDidBecomeActive`.
+            if handleFernscoutURL(context.url) { continue }
+            // Kept for the Capacitor App API's url-open tracking.
             _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: context.url, options: [:])
         }
     }

@@ -3439,6 +3439,8 @@
   "studio.record.confirm.body": "A pozíciók csak ide kerülnek: {host}/@{user}.",
   "studio.record.confirm.record": "Rögzítés",
   "studio.record.confirm.cancel": "Mégse",
+  "studio.record.lockScreenTripName.label": "Az út nevének megjelenítése a zárolt képernyőn",
+  "studio.record.lockScreenTripName.hint": "Aki kézbe veszi a telefonodat, ott elolvashatja.",
   "studio.record.notice.beforeTrip": "Holnap indul az utad ide: {title}. Rögzítsük az útvonalat?",
   "studio.record.notice.stopped": "{title} rögzítése leállt.",
   "studio.record.notice.openEnded": "A Fernscout továbbra is rögzíti az útvonaladat.",
@@ -4575,11 +4577,6 @@
   "billing.postcardsLeft": "{left}/{allowed} maradt",
   "billing.photobooksLabel": "Fotókönyvek",
   "billing.photobookDiscount": "{amount} kedvezmény könyvenként",
-  "billing.voucherLabel": "Kupon",
-  "billing.voucherPhotobook": "{amount} kedvezmény egy fotókönyvre, {date}-ig",
-  "billing.voucherPostcard": "{amount} kedvezmény egy képeslapra, {date}-ig",
-  "billing.voucherPrint": "{amount} kedvezmény egy nyomatra, {date}-ig",
-  "billing.appUpgradeVoucherOffer": "Fizess elő, mielőtt az utazási bérleted {date}-n lejár, és kapsz egy {amount} értékű fotókönyv-kupont.",
   "billing.addStorage": "+10 GB · CHF 10/év",
   "billing.cancel": "{plan} lemondása",
   "billing.cancelExplain": "Ha lemondod, a(z) {plan} még fut eddig: {date}. Utána a naplód pontosan úgy marad, ahogy van: olvasható, nyomtatható, semmi nem törlődik.",
@@ -4740,5 +4737,10 @@
   "photobook.read.headingShort": "A könyved",
   "photobook.read.hintShort": "Lapozz végig · két ujjal nagyíts",
   "photobook.read.editShort": "Szerkesztés",
-  "photobook.read.orderPrice": "Könyv megrendelése · {price}"
+  "photobook.read.orderPrice": "Könyv megrendelése · {price}",
+  "billing.voucherLabel": "Kupon",
+  "billing.voucherPhotobook": "{amount} kedvezmény egy fotókönyvre, {date}-ig",
+  "billing.voucherPostcard": "{amount} kedvezmény egy képeslapra, {date}-ig",
+  "billing.voucherPrint": "{amount} kedvezmény egy nyomatra, {date}-ig",
+  "billing.appUpgradeVoucherOffer": "Fizess elő, mielőtt az utazási bérleted {date}-n lejár, és kapsz egy {amount} értékű fotókönyv-kupont."
 }

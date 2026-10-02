@@ -1365,6 +1365,461 @@
         }
       },
       "comment": "B2175/B2735 — also used by the app's own Save-to-inbox sheet, B2732."
+    },
+    "routeActivity.headline": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routenaufzeichnung · Tag %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route recording · Day %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement de l’itinéraire · Jour %lld"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Útvonal rögzítése · %lld. nap"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione del percorso · Giorno %lld"
+          }
+        }
+      },
+      "comment": "B2733 — Live Activity headline, %lld is the day number since the trip started."
+    },
+    "routeActivity.compactDay": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tag %lld"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Day %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jour %lld"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld. nap"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giorno %lld"
+          }
+        }
+      },
+      "comment": "B2733 — Dynamic Island compact label, %lld is the day number."
+    },
+    "routeActivity.lastSent": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zuletzt gesendet %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last sent %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dernier envoi %@"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utoljára elküldve %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ultimo invio %@"
+          }
+        }
+      },
+      "comment": "B2733 — %@ is a pre-formatted time, not substituted here (SwiftUI Text(date, style:) is used instead where possible)."
+    },
+    "routeActivity.recordsUntil": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeichnet auf bis %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Records until %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistre jusqu’au %@"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rögzítés eddig: %@"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registra fino al %@"
+          }
+        }
+      },
+      "comment": "B2733 — %@ is a pre-formatted date."
+    },
+    "routeActivity.needsPermission.whenInUse": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Standort ist auf „Bei Nutzung“. Die Aufzeichnung stoppt, sobald die App geschlossen wird. Zum Beheben antippen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location is “While using”. Recording stops when the app closes. Tap to fix."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La localisation est réglée sur « Lors de l’utilisation ». L’enregistrement s’arrête à la fermeture de l’appli. Touchez pour corriger."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A helymeghatározás „Alkalmazás használatakor” módban van. A rögzítés leáll, ha bezárod az appot. Koppints a javításhoz."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La posizione è impostata su “Solo durante l'uso”. La registrazione si ferma quando chiudi l'app. Tocca per risolvere."
+          }
+        }
+      },
+      "comment": "B2733 — Live Activity needs-you card, permission downgraded to While Using."
+    },
+    "routeActivity.needsPermission.unauthorized": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senden wurde abgelehnt. Positionen bleiben auf dem Telefon. Öffne die App, um dich erneut anzumelden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sending refused. Positions stay on the phone. Open the app to sign in again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoi refusé. Les positions restent sur le téléphone. Ouvrez l’appli pour vous reconnecter."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A küldés elutasítva. A pozíciók a telefonon maradnak. Nyisd meg az appot, hogy újra bejelentkezz."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invio rifiutato. Le posizioni restano sul telefono. Apri l'app per accedere di nuovo."
+          }
+        }
+      },
+      "comment": "B2733 — Live Activity needs-you card, uploads refused (401)."
+    },
+    "routeActivity.ended": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routenaufzeichnung beendet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route recording stopped"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement de l’itinéraire arrêté"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Útvonal rögzítése leállítva"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione del percorso interrotta"
+          }
+        }
+      },
+      "comment": "B2733 — Live Activity's last state before it is dismissed."
+    },
+    "routeActivity.control.on": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route an"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route on"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Itinéraire activé"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Útvonal: be"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Percorso attivo"
+          }
+        }
+      },
+      "comment": "B2733 — Control Center toggle label, route recording armed."
+    },
+    "routeActivity.control.off": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route aus"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route off"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Itinéraire désactivé"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Útvonal: ki"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Percorso disattivo"
+          }
+        }
+      },
+      "comment": "B2733 — Control Center toggle label, nothing armed."
+    },
+    "routeActivity.stopConfirm.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufzeichnung der Route „%@“ stoppen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop recording the %@ route?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter l’enregistrement de l’itinéraire « %@ » ?"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leállítod a(z) „%@” útvonal rögzítését?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrompere la registrazione del percorso “%@”?"
+          }
+        }
+      },
+      "comment": "B2733 — %@ is the armed trip's own title."
+    },
+    "routeActivity.stopConfirm.message": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld nicht gesendete Positionen sind auf dem Telefon. Sie werden jetzt noch einmal gesendet; schlägt das fehl, bleiben sie erhalten und werden beim nächsten Mal gesendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld unsent positions are on the phone. They are sent once more now; if that fails they are kept and sent next time."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld positions non envoyées se trouvent sur le téléphone. Elles seront renvoyées maintenant ; en cas d’échec, elles seront conservées et envoyées la prochaine fois."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld el nem küldött pozíció van a telefonon. Most újra megpróbáljuk elküldeni őket; ha ez nem sikerül, megmaradnak, és legközelebb elküldjük."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld posizioni non inviate sono sul telefono. Verranno inviate di nuovo ora; se non riesce, resteranno e verranno inviate la prossima volta."
+          }
+        }
+      },
+      "comment": "B2733 — %lld is the count of positions still on the phone (buffer plus any pending final upload)."
+    },
+    "routeActivity.stopConfirm.stop": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufzeichnung stoppen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop recording"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter l’enregistrement"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rögzítés leállítása"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interrompi registrazione"
+          }
+        }
+      },
+      "comment": "B2733 — Control's native stop-confirmation, destructive action."
+    },
+    "routeActivity.stopConfirm.keep": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter aufzeichnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep recording"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer l’enregistrement"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rögzítés folytatása"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continua a registrare"
+          }
+        }
+      },
+      "comment": "B2733 — Control's native stop-confirmation, cancel action."
     }
   },
   "version": "1.0"

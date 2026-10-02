@@ -3438,6 +3438,8 @@
   "studio.record.confirm.body": "Positionen gehen nur an {host}/@{user}.",
   "studio.record.confirm.record": "Aufzeichnen",
   "studio.record.confirm.cancel": "Abbrechen",
+  "studio.record.lockScreenTripName.label": "Reisenamen auf dem Sperrbildschirm anzeigen",
+  "studio.record.lockScreenTripName.hint": "Wer dein Telefon in der Hand hält, kann ihn dort lesen.",
   "studio.record.notice.beforeTrip": "Deine Reise nach {title} beginnt morgen. Route aufzeichnen?",
   "studio.record.notice.stopped": "Die Aufzeichnung für {title} wurde gestoppt.",
   "studio.record.notice.openEnded": "Fernscout zeichnet deine Route weiterhin auf.",
@@ -4574,11 +4576,6 @@
   "billing.postcardsLeft": "{left} von {allowed} übrig",
   "billing.photobooksLabel": "Fotobücher",
   "billing.photobookDiscount": "{amount} Rabatt pro Buch",
-  "billing.voucherLabel": "Gutschein",
-  "billing.voucherPhotobook": "{amount} Rabatt auf ein Fotobuch, bis {date}",
-  "billing.voucherPostcard": "{amount} Rabatt auf eine Postkarte, bis {date}",
-  "billing.voucherPrint": "{amount} Rabatt auf einen Druck, bis {date}",
-  "billing.appUpgradeVoucherOffer": "Abonniere, bevor dein Trip-Pass am {date} endet, und erhalte einen Fotobuch-Gutschein über {amount}.",
   "billing.addStorage": "10 GB dazubuchen · CHF 10 pro Jahr",
   "billing.cancel": "{plan} kündigen",
   "billing.cancelExplain": "Wenn du kündigst, läuft {plan} noch bis {date} weiter. Danach bleibt dein Tagebuch genau so, wie es ist: lesbar, druckbar, nichts wird gelöscht.",
@@ -4739,5 +4736,10 @@
   "photobook.read.headingShort": "Dein Buch",
   "photobook.read.hintShort": "Durchblättern · Seite mit zwei Fingern vergrößern",
   "photobook.read.editShort": "Bearbeiten",
-  "photobook.read.orderPrice": "Dieses Buch bestellen · {price}"
+  "photobook.read.orderPrice": "Dieses Buch bestellen · {price}",
+  "billing.voucherLabel": "Gutschein",
+  "billing.voucherPhotobook": "{amount} Rabatt auf ein Fotobuch, bis {date}",
+  "billing.voucherPostcard": "{amount} Rabatt auf eine Postkarte, bis {date}",
+  "billing.voucherPrint": "{amount} Rabatt auf einen Druck, bis {date}",
+  "billing.appUpgradeVoucherOffer": "Abonniere, bevor dein Trip-Pass am {date} endet, und erhalte einen Fotobuch-Gutschein über {amount}."
 }

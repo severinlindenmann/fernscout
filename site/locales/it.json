@@ -3438,6 +3438,8 @@
   "studio.record.confirm.body": "Le posizioni vanno solo a {host}/@{user}.",
   "studio.record.confirm.record": "Registra",
   "studio.record.confirm.cancel": "Annulla",
+  "studio.record.lockScreenTripName.label": "Mostra il nome del viaggio sulla schermata di blocco",
+  "studio.record.lockScreenTripName.hint": "Chiunque tenga in mano il tuo telefono può leggerlo lì.",
   "studio.record.notice.beforeTrip": "Il tuo viaggio {title} inizia domani. Registrare il percorso?",
   "studio.record.notice.stopped": "La registrazione per {title} si è interrotta.",
   "studio.record.notice.openEnded": "Fernscout sta ancora registrando il tuo percorso.",
@@ -4578,11 +4580,6 @@
   "billing.postcardsLeft": "{left} di {allowed} rimaste",
   "billing.photobooksLabel": "Fotolibri",
   "billing.photobookDiscount": "{amount} di sconto su ogni libro",
-  "billing.voucherLabel": "Buono",
-  "billing.voucherPhotobook": "{amount} di sconto su un fotolibro, fino al {date}",
-  "billing.voucherPostcard": "{amount} di sconto su una cartolina, fino al {date}",
-  "billing.voucherPrint": "{amount} di sconto su una stampa, fino al {date}",
-  "billing.appUpgradeVoucherOffer": "Abbonati prima che il tuo Trip pass termini il {date} e ricevi un buono fotolibro da {amount}.",
   "billing.addStorage": "Aggiungi 10 GB · CHF 10 all'anno",
   "billing.cancel": "Disdici {plan}",
   "billing.cancelExplain": "Se disdici, {plan} resta attivo fino al {date}. Dopo, il tuo diario resta esattamente com'è: leggibile, stampabile, niente viene eliminato.",
@@ -4743,5 +4740,10 @@
   "photobook.read.headingShort": "Il tuo libro",
   "photobook.read.hintShort": "Sfoglia · pizzica una pagina per ingrandire",
   "photobook.read.editShort": "Modifica",
-  "photobook.read.orderPrice": "Ordina questo libro · {price}"
+  "photobook.read.orderPrice": "Ordina questo libro · {price}",
+  "billing.voucherLabel": "Buono",
+  "billing.voucherPhotobook": "{amount} di sconto su un fotolibro, fino al {date}",
+  "billing.voucherPostcard": "{amount} di sconto su una cartolina, fino al {date}",
+  "billing.voucherPrint": "{amount} di sconto su una stampa, fino al {date}",
+  "billing.appUpgradeVoucherOffer": "Abbonati prima che il tuo Trip pass termini il {date} e ricevi un buono fotolibro da {amount}."
 }
