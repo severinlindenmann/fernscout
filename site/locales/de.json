@@ -4581,7 +4581,7 @@
   "studio.preview.suggest": "✦ Titel, Rechtschreibung, Bildunterschriften und Tags vorschlagen",
   "studio.preview.suggestAgain": "✦ Erneut vorschlagen",
   "studio.preview.suggestConsentLabel": "Vorschläge für diesen Tag zulassen",
-  "studio.preview.suggestConsent": "Deine Worte und Fotos werden gesendet, um einen Titel, Rechtschreibung, Bildunterschriften und Tags vorzuschlagen. Nichts wird übernommen, bis du es antippst.",
+  "studio.preview.suggestConsent": "Deine Worte und Fotos werden zusammen mit dem Ort, den Namen deiner Begleitung und dem Text benachbarter Tage gesendet, um einen Titel, Rechtschreibung, Bildunterschriften und Tags vorzuschlagen. Nichts wird übernommen, bis du es antippst.",
   "studio.preview.suggestConsentConfirm": "Vorschlagen",
   "studio.preview.tagsTitle": "Tags",
   "studio.preview.addAllTags": "Alle hinzufügen",

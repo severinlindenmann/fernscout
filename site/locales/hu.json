@@ -4582,7 +4582,7 @@
   "studio.preview.suggest": "✦ Cím, helyesírás, feliratok és címkék javaslata",
   "studio.preview.suggestAgain": "✦ Javaslat újra",
   "studio.preview.suggestConsentLabel": "Javaslatok engedélyezése ehhez a naphoz",
-  "studio.preview.suggestConsent": "A szöveged és a fotóid elküldésre kerülnek cím, helyesírás, feliratok és címkék javaslatához. Semmi nem kerül alkalmazásra, amíg rá nem koppintasz.",
+  "studio.preview.suggestConsent": "A szöveged és a fotóid a hellyel, az útitársaid nevével és a szomszédos napok szövegével együtt kerülnek elküldésre cím, helyesírás, feliratok és címkék javaslatához. Semmi nem kerül alkalmazásra, amíg rá nem koppintasz.",
   "studio.preview.suggestConsentConfirm": "Javaslat",
   "studio.preview.tagsTitle": "Címkék",
   "studio.preview.addAllTags": "Összes hozzáadása",

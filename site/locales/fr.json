@@ -4585,7 +4585,7 @@
   "studio.preview.suggest": "✦ Suggérer un titre, l'orthographe, les légendes et les tags",
   "studio.preview.suggestAgain": "✦ Suggérer à nouveau",
   "studio.preview.suggestConsentLabel": "Autoriser les suggestions pour ce jour",
-  "studio.preview.suggestConsent": "Votre texte et vos photos sont envoyés pour suggérer un titre, corriger l'orthographe, les légendes et les tags. Rien n'est appliqué avant que vous ne le touchiez.",
+  "studio.preview.suggestConsent": "Votre texte et vos photos sont envoyés, avec le lieu, les noms de vos compagnons de voyage et le texte des jours voisins, pour suggérer un titre, corriger l'orthographe, les légendes et les tags. Rien n'est appliqué avant que vous ne le touchiez.",
   "studio.preview.suggestConsentConfirm": "Suggérer",
   "studio.preview.tagsTitle": "Tags",
   "studio.preview.addAllTags": "Tout ajouter",
