@@ -707,7 +707,7 @@ export default function PreviewDayFlow({
           </button>
         ) : composeStatus === "working" ? (
           <p className="text-sm text-ink-secondary">{t("studio.check.working")}</p>
-        ) : composeStatus === "ready" && composeResult && !composeOpen ? (
+        ) : composeStatus === "ready" && composeResult && !composeOpen && !suggestionState[0]?.composeApplied ? (
           <button
             type="button"
             onClick={() => setComposeOpen(true)}
@@ -718,7 +718,10 @@ export default function PreviewDayFlow({
           </button>
         ) : null}
 
-        {composeStatus === "ready" && composeResult && composeOpen && (
+        {/* Once a version is in use the part above holds it, editable, with
+            its own "Keep mine"; the review closes so there is one of each
+            (persona round, 2 Oct). */}
+        {composeStatus === "ready" && composeResult && composeOpen && !suggestionState[0]?.composeApplied && (
           <div className="mt-2 space-y-3 rounded-xl border border-line-strong bg-surface-raised p-4">
             {/* Tabs — "Close to my words" / "As a story". C2: opens on
                 Story when there is one, else Close; no Story tab at all

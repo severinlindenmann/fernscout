@@ -2790,7 +2790,7 @@
   "studio.day.whatHappened.heading": "Was ist passiert?",
   "studio.day.whatHappened.titleLabel": "Titel",
   "studio.day.whatHappened.titlePlaceholder": "Ein paar Worte",
-  "studio.day.whatHappened.nothingInvented": "Es wird nichts für dich geschrieben. Ein leerer Tag ist ein echter Tag.",
+  "studio.day.whatHappened.nothingInvented": "Schreib es auf deine Art – eine Zeile reicht. Ein leerer Tag ist auch ein Tag.",
   "studio.day.writeFailed.media.tooLarge": "{file} ist zu groß ({got}). Erlaubt ist {expected}.",
   "studio.day.writeFailed.media.tooLong": "{file} ist zu lang ({got}). Erlaubt ist {expected}.",
   "studio.day.writeFailed.media.format": "{file} hat ein Format, das nicht geht ({got}). Erlaubt: {expected}.",

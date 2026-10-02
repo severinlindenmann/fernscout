@@ -2792,7 +2792,7 @@
   "studio.day.whatHappened.heading": "Mi történt?",
   "studio.day.whatHappened.titleLabel": "Cím",
   "studio.day.whatHappened.titlePlaceholder": "Néhány szó",
-  "studio.day.whatHappened.nothingInvented": "Semmi nincs megírva helyetted. Egy üres nap is valódi nap.",
+  "studio.day.whatHappened.nothingInvented": "Írd meg a magad módján – egy sor is elég. Az üres nap is igazi nap.",
   "studio.day.writeFailed.media.tooLarge": "{file} túl nagy ({got}). A határ: {expected}.",
   "studio.day.writeFailed.media.tooLong": "{file} túl hosszú ({got}). A határ: {expected}.",
   "studio.day.writeFailed.media.format": "{file} formátuma nem használható ({got}). Engedélyezett: {expected}.",

@@ -70,7 +70,7 @@ Output, in this order:
 4. Each sentence lists sources: the pack ids it rests on.
 5. titles: up to two per variant, kind label (pack nouns) | quote (a phrase lifted word for word from the notes) | pair (two things from the day joined). Prefer a quote when the notes have a vivid phrase. Every word of a title is in the pack.
 6. tags: up to 6 lowercase hyphenated English slugs naming an activity, a kind of place, a food, a way of travelling or a plain topic actually in the day ("hiking", "street-food", "rain"); reuse <existing_tags> first.
-7. missing: up to three short questions, in the writer's language, for details only they know that would make the entry better. Ask; never state what happened or what you left out.
+7. missing: up to three short, warm questions, in the writer's language, about the day itself — what happened, what it looked, tasted or felt like — for details only they know that would make the entry better. Never ask who a named person is or how the writer knows them; the writer knows, and readers do too. Ask; never state what happened or what you left out.
 
 <examples note="format and judgement only; never reuse their content">
 <example name="thin note: story is null">
