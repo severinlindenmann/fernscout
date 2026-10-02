@@ -13,7 +13,7 @@ import { journalPath } from "@/lib/journalPath";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { missingConsentScopes, type ConsentScopes } from "@/lib/studio/featureConsent";
 import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
-import { addAllAiTags, matchingUsedBeforeTags, mergeTags, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
+import { addAllAiTags, matchingUsedBeforeTags, mergeTags, tagPhotoIds, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer, type LanguageAnswer } from "@/lib/studio/languageAnswer";
 import { initialSuggestionState, pickTitle, addCaptions, acceptSpelling, undoSpelling, type SuggestionState } from "@/lib/studio/suggestionState";
 import type { PublishRow } from "@/lib/studio/publishDay";
@@ -108,7 +108,10 @@ export default function PreviewDayFlow({
   // every other locale this journal has. `null` until the owner picks (or
   // the remembered answer is read on mount).
   const [langAnswer, setLangAnswer] = useState<LanguageAnswer | null>(() => readLanguageAnswer(username, tripId));
-  const [langDrafts, setLangDrafts] = useState<Record<string, { title: string; content: string }>>({});
+  // B2685 — index-aligned with `rows`/`entries`, like `ideas` and
+  // `suggestionState` above: each part keeps its own translations, since a
+  // multi-part day's parts are different days' words, never one flat map.
+  const [langDrafts, setLangDrafts] = useState<Record<string, { title: string; content: string }>[]>(rows.map(() => ({})));
   const [translating, setTranslating] = useState(false);
   const [translateConsenting, setTranslateConsenting] = useState(false);
 
@@ -206,7 +209,13 @@ export default function PreviewDayFlow({
     );
     const allWords = entries.map((e) => ownWords(e)).filter(Boolean).join("\n\n");
     if (allWords) {
-      const r = await post("day/write-day", { trip: chosen.tripId, content: allWords, mode: "tags", date: chosen.date });
+      // B2685 — the day's own photographs ride along, up to the route's own
+      // cap (`tagPhotoIds`); `onSuggestTap`/`confirmSuggestConsent` never let
+      // `runSuggest` start without the "photos" scope already granted
+      // (`missingConsentScopes("suggest", …)` needs both `words` and
+      // `photos`), so there is nothing left to ask here.
+      const photoIds = tagPhotoIds(entries.filter((e): e is Entry => !!e));
+      const r = await post("day/write-day", { trip: chosen.tripId, content: allWords, mode: "tags", date: chosen.date, ...(photoIds.length > 0 ? { photoIds } : {}) });
       if (r.ok && Array.isArray(r.json?.tags)) setAiTags((r.json.tags as unknown[]).filter((v): v is string => typeof v === "string"));
     }
     setSuggesting(false);
@@ -242,21 +251,40 @@ export default function PreviewDayFlow({
     setSelectedTags(next);
   }
 
+  /** B2685 — a part's own final title/words: the picked title (or the date,
+   *  "keep the date" being the default) and the accepted tidy, not the
+   *  original — the same two choices `persistChoices` below already reads
+   *  off `suggestionState`/`ideas` before it writes a part. */
+  function finalTitle(i: number): string {
+    return suggestionState[i]?.titleChoice || entries[i]?.title || "";
+  }
+  function finalContent(i: number): string {
+    const ss = suggestionState[i];
+    const idea = ideas[i];
+    return ss?.spellingApplied && idea?.tidied ? idea.tidied : ownWords(entries[i]);
+  }
+
   // Languages — ✦ Translate / Write it myself / "<language> is fine". B2677,
-  // bug 9 — one row for every other locale together, not one per locale:
-  // Translate runs each of `otherLocales` in turn (a later one still runs
-  // even if an earlier one fails, so one bad response never blocks the
-  // rest).
+  // bug 9 — one row for every other locale together, not one per locale.
+  // B2685 — every part of the day, not only the first: one call per part per
+  // language (a later part, or a later language, still runs even if an
+  // earlier one fails), each from that part's own final text.
   async function runTranslate() {
     if (missingConsentScopes("translate", consentNow).length > 0) {
       setTranslateConsenting(true);
       return;
     }
     setTranslating(true);
-    for (const toLocale of otherLocales) {
-      const r = await post("day/write-day", { trip: chosen.tripId, mode: "translate", to: toLocale, title: entries[0]?.title ?? "", content: entries[0]?.content ?? "", date: chosen.date });
-      if (r.ok) {
-        setLangDrafts((prev) => ({ ...prev, [toLocale]: { title: String(r.json?.title ?? ""), content: String(r.json?.content ?? "") } }));
+    for (let i = 0; i < rows.length; i++) {
+      const content = finalContent(i);
+      if (!content.trim()) continue; // write-day refuses an empty translate.
+      const title = finalTitle(i);
+      for (const toLocale of otherLocales) {
+        const r = await post("day/write-day", { trip: rows[i].tripId, mode: "translate", to: toLocale, title, content, date: rows[i].date });
+        if (r.ok) {
+          const part = i;
+          setLangDrafts((prev) => prev.map((d, at) => (at === part ? { ...d, [toLocale]: { title: String(r.json?.title ?? ""), content: String(r.json?.content ?? "") } } : d)));
+        }
       }
     }
     setTranslating(false);
@@ -316,10 +344,27 @@ export default function PreviewDayFlow({
       const json = (await response.json().catch(() => null)) as { draft?: { slug?: string } } | null;
       slugs[i] = json?.draft?.slug ?? rows[i].slug;
     }
+    // B2685 — each part's own translations, through the v2 day route (the
+    // helper PATCH just above has no `translations` field — only `title`,
+    // `content`, `captions`, `photoVisibility` and declines); each against
+    // its own fresh ETag, so a multi-part day lands every part's words in
+    // its own document rather than all under the main day's.
+    for (let i = 0; i < rows.length; i++) {
+      const drafts = langDrafts[i];
+      if (!drafts || Object.keys(drafts).length === 0) continue;
+      const partUrl = `/api/web/${user}/trips/${encodeURIComponent(rows[i].tripId)}/days/${encodeURIComponent(slugs[i])}`;
+      const partHead = await fetch(partUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { etag?: string } | null;
+      const partResponse = await fetch(partUrl, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", ...(partHead?.etag ? { "if-match": partHead.etag } : {}) },
+        body: JSON.stringify({ translations: drafts }),
+      }).catch(() => null);
+      if (!partResponse?.ok) return null;
+    }
+
     const main = slugs[0];
     const patch: Record<string, unknown> = {};
     if (selectedTags.size > 0) patch.tags = [...selectedTags];
-    if (Object.keys(langDrafts).length > 0) patch.translations = langDrafts;
     if (visibility) patch.visibility = visibility;
     else if (blank.includes("visibility")) patch.declined = { visibility: "shown to everyone the trip lets in" };
     if (Object.keys(patch).length > 0) {
@@ -620,11 +665,11 @@ export default function PreviewDayFlow({
                 <button
                   type="button"
                   onClick={() => {
-                    setLangDrafts((prev) => {
-                      const next = { ...prev };
-                      for (const toLocale of otherLocales) next[toLocale] = next[toLocale] ?? { title: "", content: "" };
-                      return next;
-                    });
+                    // Held against the main part only (index 0) — the one
+                    // part this page offers a review box for.
+                    setLangDrafts((prev) =>
+                      prev.map((d, at) => (at === 0 ? { ...d, ...Object.fromEntries(otherLocales.map((l) => [l, d[l] ?? { title: "", content: "" }])) } : d)),
+                    );
                     setLangAnswer("mine");
                     saveLanguageAnswer(username, tripId, "mine");
                   }}
@@ -637,15 +682,17 @@ export default function PreviewDayFlow({
                 </button>
               </div>
             )}
-            {/* ✦ Translate's own results — one collapsible per locale. */}
+            {/* ✦ Translate's own results — one collapsible per locale, the
+                main part's text (B2685: every part is translated and
+                persisted; this is the one review box the page offers). */}
             {langAnswer === "translate" &&
               otherLocales.map((toLocale) => (
                 <details key={toLocale} className="rounded-xl border border-line-strong px-3 py-2">
                   <summary className="cursor-pointer text-sm font-semibold text-ink-strong">{languageName(toLocale)}</summary>
-                  {langDrafts[toLocale] ? (
+                  {langDrafts[0]?.[toLocale] ? (
                     <textarea
-                      value={langDrafts[toLocale].content}
-                      onChange={(e) => setLangDrafts((prev) => ({ ...prev, [toLocale]: { ...prev[toLocale], content: e.target.value } }))}
+                      value={langDrafts[0][toLocale].content}
+                      onChange={(e) => setLangDrafts((prev) => prev.map((d, at) => (at === 0 ? { ...d, [toLocale]: { ...d[toLocale], content: e.target.value } } : d)))}
                       onBlur={() => saveTranslations()}
                       rows={4}
                       className="mt-2 w-full rounded-xl border border-line-strong bg-surface-raised px-3 py-2 text-sm text-ink-strong"
@@ -655,14 +702,14 @@ export default function PreviewDayFlow({
                   )}
                 </details>
               ))}
-            {/* "Write it myself" — one textarea per locale. */}
+            {/* "Write it myself" — one textarea per locale, the main part. */}
             {langAnswer === "mine" &&
               otherLocales.map((toLocale) => (
                 <label key={toLocale} className="block text-xs font-semibold uppercase tracking-wide text-ink-secondary">
                   {languageName(toLocale)}
                   <textarea
-                    value={langDrafts[toLocale]?.content ?? ""}
-                    onChange={(e) => setLangDrafts((prev) => ({ ...prev, [toLocale]: { title: prev[toLocale]?.title ?? "", content: e.target.value } }))}
+                    value={langDrafts[0]?.[toLocale]?.content ?? ""}
+                    onChange={(e) => setLangDrafts((prev) => prev.map((d, at) => (at === 0 ? { ...d, [toLocale]: { title: d[toLocale]?.title ?? "", content: e.target.value } } : d)))}
                     onBlur={() => saveTranslations()}
                     rows={4}
                     className="mt-1 w-full rounded-xl border border-line-strong bg-surface-raised px-3 py-2 text-sm font-normal normal-case text-ink-strong"
