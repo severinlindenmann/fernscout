@@ -96,12 +96,24 @@ export async function applyPublish(
   tripId: string,
   slug: string,
   /** What `declined.<field>` says for each `declineTracked` field — the
-   *  studio's door (B2192) says what actually happened there. */
-  declineReason = "declined at publish (declineTracked)",
+   *  studio's door (B2192) says what actually happened there. A function
+   *  gives each field its own honest reason (B2674, `declineReasonFor`);
+   *  the plain string every other caller still passes is applied to all of
+   *  them alike, as before. */
+  declineReason: string | ((field: string) => string) = "declined at publish (declineTracked)",
   /** TIX-6 — the studio's "who is told": tell only these readers (contact ids
    *  of the chosen reader groups). Absent = everyone, as every other caller
    *  (the v2 door, agents) has always had it. Narrows mail and push alike. */
   onlyContacts?: ReadonlySet<string>,
+  /**
+   * B2674 — a day published as one of several parts of the same date sends
+   * nothing of its own: no mail, no WhatsApp, no push, not even the
+   * "nobody has been told" nudge. The day still goes up and its
+   * completeness is still checked exactly the same; only the three send
+   * blocks below are skipped entirely. The studio's own door calls this
+   * quietly for every part but the one it tells from.
+   */
+  quiet = false,
 ): Promise<Response> {
   const trip = readTripFile(user, tripId);
   if (!trip) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
@@ -122,7 +134,8 @@ export async function applyPublish(
   // B2225 — a decline is only recorded for a field this day has neither
   // filled in nor answered, so the file never says a value is there and
   // absent at once, and an earlier reason is never silently replaced. Refused,
-  // not ignored, exactly as the studio's door refuses `declineOpen`.
+  // not ignored — the same refusal the studio's own door (B2674) gets for
+  // any blank it tries to auto-decline that turns out not to be blank.
   const locales = getUser(user)?.locales ?? [];
   const blank = new Set(missingAtPublish(day, locales).map((row) => row.field));
   const refused = [...new Set(declineTracked ?? [])].filter((field) => !blank.has(field));
@@ -138,7 +151,7 @@ export async function applyPublish(
 
   const declined = { ...day.declined };
   for (const field of declineTracked ?? []) {
-    declined[field] = declineReason;
+    declined[field] = typeof declineReason === "function" ? declineReason(field) : declineReason;
   }
 
   const merged = { ...day, declined: Object.keys(declined).length > 0 ? declined : undefined, status: "draft" as const };
@@ -194,10 +207,20 @@ export async function applyPublish(
   // import gives the store new fixes (`lib/gps/api.ts`'s `importGps`) or the
   // owner's own explicit `POST …/track`.
 
+  // B2674 — a quiet part sends nothing at all: no mail, no WhatsApp, no
+  // push, no claim burned, no "skipped" log line, not even the "nobody has
+  // been told" nudge below. The day it publishes is otherwise identical.
+  let mail: Record<string, unknown> | undefined;
+  let whatsapp: Record<string, unknown> | undefined;
+  /** B2674 — a reader count for the response (`told.app`), the owner's own
+   *  devices excluded: they are not readers, even though they still get the
+   *  push itself below. `undefined` when push never ran at all (off, or a
+   *  lost claim). */
+  let pushTold: number | undefined;
+  if (!quiet) {
   // Neither send function throws for an ordinary reason not to send — both
   // resolve to `{ok:false, reason:...}` (including `"unknown_trip"`, the
   // shape a v2-native day currently gets from their v1 reader — B1598).
-  let mail: Record<string, unknown> | undefined;
   if (sendMailRequested) {
     /**
      * The same double-press guard the WhatsApp branch below already has —
@@ -227,7 +250,6 @@ export async function applyPublish(
       });
     }
   }
-  let whatsapp: Record<string, unknown> | undefined;
   if (sendWhatsappRequested) {
     /**
      * The double-press guard, at the door that triggers automatically —
@@ -280,8 +302,27 @@ export async function applyPublish(
     const pushEntry = { test: day.test, visibility: day.visibility };
     const pushUrl = `${serverSite().url}${journalPath(user)}/trips/${tripId}/day/${slug}`;
     const owner = getUser(user);
+    // B2674 — resolved here, ahead of `afterResponse`, purely so `told.app`
+    // in the response below can be an honest number rather than a deferred
+    // unknown. The actual sending (grouped by locale) still happens after
+    // the response, exactly as before.
+    //
+    // Security review follow-up: the day is already written by this point
+    // (`writeDayFile` above) — a throw here must never escape as an
+    // uncaught 500 over a successful write. `recipients` falls back to `[]`
+    // on a failed lookup, which still queues the (harmless, no-op on an
+    // empty list) deferred send, and `pushTold` is left `undefined` rather
+    // than claiming a count this route never actually measured.
+    let recipients: StoredSubscription[] = [];
+    try {
+      recipients = await subscribersFor(pushTrip, pushEntry, onlyContacts);
+      // The owner's own devices still get the push (unchanged) but are not
+      // readers, so they are not counted as "told" — B2674.
+      pushTold = recipients.filter((sub) => sub.isOwner !== true).length;
+    } catch {
+      // Left `undefined` — see the comment above.
+    }
     afterResponse("publish-push", async () => {
-      const recipients = await subscribersFor(pushTrip, pushEntry, onlyContacts);
       if (recipients.length === 0) return;
 
       const byLocale = new Map<string, StoredSubscription[]>();
@@ -323,6 +364,7 @@ export async function applyPublish(
       reason: "deduped",
     });
   }
+  } // !quiet
 
   const test = isTestContent(tripLike(user, tripId, trip.people), day) || trip.test === true || day.test === true;
   // Instance-level, like every capability in v2 (decision 5): whether this
@@ -335,7 +377,7 @@ export async function applyPublish(
       url: `${serverSite().url}/api/v2/${user}/trips/${tripId}/days/${slug}/send`,
     }));
   const notify =
-    sendMailRequested || sendWhatsappRequested || test || channels.length === 0
+    quiet || sendMailRequested || sendWhatsappRequested || test || channels.length === 0
       ? undefined
       : {
           channels,
@@ -361,6 +403,9 @@ export async function applyPublish(
     }),
     ...(mail ? { mail } : {}),
     ...(whatsapp ? { whatsapp } : {}),
+    // B2674 — a reader count, not the addresses, same stance `mailSummary`
+    // already takes; absent entirely for a quiet call or when push never ran.
+    ...(pushTold !== undefined ? { push: { told: pushTold } } : {}),
     ...(notify ? { notify } : {}),
   });
 }

@@ -72,7 +72,13 @@ function SharingRow({ username }: { username: string }) {
   }
 
   const hint =
-    state === "busy" ? t("studio.share.busy") : state === "failed" ? t("studio.share.failed") : on ? t("me.phone.on") : t("me.phone.off");
+    state === "busy"
+      ? t("studio.thisPhone.shareBusy")
+      : state === "failed"
+        ? t("studio.thisPhone.shareFailed")
+        : on
+          ? t("me.phone.on")
+          : t("me.phone.off");
   return (
     <Row label={t("me.phone.sharing")} hint={hint}>
       <Switch on={on} busy={state === "busy" || state === "unknown"} label={t("me.phone.sharing")} onChange={() => void toggle()} />
