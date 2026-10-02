@@ -85,8 +85,12 @@ function Sheet({
 
   useLayoutEffect(() => {
     height.current = ref.current?.offsetHeight ?? window.innerHeight;
-    if (reduced) y.set(0);
-    else y.set(height.current), animate(y, 0, { duration: 0.32, ease: [0.32, 0.72, 0, 1] });
+    if (reduced) {
+      y.set(0);
+      return;
+    }
+    y.set(height.current);
+    animate(y, 0, { duration: 0.32, ease: [0.32, 0.72, 0, 1] });
   }, [y, reduced]);
 
   useEffect(() => {
@@ -219,9 +223,7 @@ export default function VisibilityPopover({
 
   // Rendered only once it has opened, so the server never reaches `document`.
   const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    if (open) setMounted(true);
-  }, [open]);
+  if (open && !mounted) setMounted(true);
   if (!mounted) return null;
 
   return createPortal(
