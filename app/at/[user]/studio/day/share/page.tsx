@@ -61,7 +61,7 @@ export default async function StudioShareDayPage({
   const photos = storyPhotos(day)
     .map((item) => ({ src: `${journalPath(user)}${item.src}`, caption: item.caption }));
 
-  const caption = storyCaption(day.title, day.content);
+  const caption = storyCaption(day);
 
   return (
     <StudioPage username={user} group="write" title={title}>

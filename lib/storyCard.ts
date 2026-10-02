@@ -19,6 +19,10 @@ type StoryPhoto = { src: string; caption?: string };
 
 export type StoryFacts = {
   title: string;
+  /** What the card's big line actually shows — the day's own title, else its
+   * own place, else the trip's own title. Never invented: always one of
+   * those three words the owner or a real lookup already supplied. */
+  headline: string;
   /** Weekday d Mon yyyy, in the day's own locale. */
   dateLabel: string;
   /** "Day N" — only when the caller could place this day in its trip. */
@@ -27,6 +31,10 @@ export type StoryFacts = {
   place?: string;
   /** "12–24 °C" — omitted when neither bound was recorded. */
   tempLine?: string;
+  /** The line under the headline: place and temperature, joined — except
+   * the place is dropped when it is already the headline (B2665 round 2),
+   * so a day with no title never shows its own place twice. */
+  subLine?: string;
   /** Only when the caller decided the trip is public and the day is
    *  published — see `isOpenToLink` + day.status at the call site. Never
    *  decided in here. */
@@ -61,29 +69,60 @@ export function storyCardFacts(args: {
     : new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(
         date,
       );
+  const place = day.location || undefined;
+  const headline = day.title || place || tripTitle;
+  const temp = tempLine(day);
+  // The place is dropped from the sub-line once it is already the headline
+  // (an untitled day) — never shown twice.
+  const subLine = [headline === place ? undefined : place, temp].filter(Boolean).join(" · ") || undefined;
   return {
     title: day.title,
+    headline,
     dateLabel,
     dayLabel: dayNumber && dayNumber > 0 ? translateIn(locale, "studio.date.dayOfTrip", { n: String(dayNumber) }) : undefined,
     tripTitle,
-    place: day.location || undefined,
-    tempLine: tempLine(day),
+    place,
+    tempLine: temp,
+    subLine,
     link: link ?? undefined,
     photos: storyPhotos(day).map((item) => ({ src: item.src, caption: item.caption })),
   };
 }
 
+/** Has at least one letter or digit — Unicode-aware, so a lone "." or "…"
+ * (punctuation only, no words) counts as nothing. */
+function hasWords(s: string): boolean {
+  return /[\p{L}\p{N}]/u.test(s);
+}
+
+/** Trimmed to ~200 characters at a word boundary, with a trailing "…" when
+ * it was actually cut. */
+function clip(s: string, max = 200): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+}
+
 /**
- * "Share as a story"'s own caption (B2665) — the day's title as a sentence,
- * then its own first sentence, the owner's own words only. B2677, bug 16:
- * an untitled day (`title` blank) gets no bare "." of its own — joined with
- * `.filter(Boolean)`, a lone "." is still truthy, which opened the caption
- * with ". " before any real words.
+ * "Share as a story"'s own caption (B2665, round 2) — built only from parts
+ * that actually hold a word: the day's own title as a sentence, then its
+ * own first sentence, the owner's own words only. A title or sentence made
+ * only of punctuation (a lone "." or "…") contributes nothing, never a bare
+ * "." opening the caption (B2677, bug 16). A sentence with no terminal
+ * punctuation is kept whole rather than dropped, trimmed to ~200 characters
+ * at a word boundary.
  */
-export function storyCaption(title: string, content: string): string {
-  const firstSentence = content.trim().match(/^[^.!?]*[.!?]/)?.[0]?.trim();
-  const titleLine = title ? (/[.!?]$/.test(title) ? title : `${title}.`) : "";
-  return [titleLine, firstSentence].filter(Boolean).join(" ").trim();
+export function storyCaption(day: Pick<DayFile, "title" | "content">): string {
+  const title = day.title.trim();
+  const titleLine = hasWords(title) ? (/[.!?]$/.test(title) ? title : `${title}.`) : "";
+
+  const content = day.content.trim();
+  const match = content.match(/^[^.!?]*[.!?]/)?.[0]?.trim();
+  const sentence = clip(match ?? content);
+  const sentenceLine = hasWords(sentence) ? sentence : "";
+
+  return [titleLine, sentenceLine].filter(Boolean).join(" ").trim();
 }
 
 /**
@@ -107,12 +146,3 @@ export function storyDayLink(user: string, tripId: string, stem: string, trip: T
   return dayUrl(serverSite().url.replace(/\/$/, ""), user, tripId, stem);
 }
 
-/** This day's position among its trip's days, oldest first — "Day N" is
- * `1 + the number of days before it`, the same ordering `listDaySlugs`
- * already sorts by (its slug's own `YYYY-MM-DD-` prefix). `null` when the
- * stem is not actually among them (should not happen for a resolved day,
- * but a derived label is worth no crash). */
-export function dayNumberOf(stems: readonly string[], stem: string): number | null {
-  const index = stems.indexOf(stem);
-  return index === -1 ? null : index + 1;
-}

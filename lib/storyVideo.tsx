@@ -34,10 +34,19 @@ function cacheDir(): string {
 export function storyVideoCacheKey(parts: {
   dayJson: string;
   photoFiles: string[];
+  tripTitle: string;
+  locale: string;
+  link: string | null;
+  captions: boolean;
 }): string {
   const hash = crypto.createHash("sha256");
-  hash.update("v4\n");
+  // v5 — B2665 round 2: `fps=25` after the zoom (ffmpeg 7.1 on the production
+  // server refuses `xfade` on a variable-frame-rate input), pre-cropped
+  // photographs, the redesigned panel, and the trip title/locale/link/
+  // captions switch all now change what is rendered.
+  hash.update("v5\n");
   hash.update(parts.dayJson);
+  hash.update(`${parts.tripTitle}\n${parts.locale}\n${parts.link ?? ""}\n${parts.captions}\n`);
   for (const file of parts.photoFiles) {
     try {
       const stat = fs.statSync(file);
@@ -97,11 +106,19 @@ export async function withRenderSlot<T>(work: () => Promise<T>): Promise<T> {
 /** One photograph of the clip and the line its panel shows while it is up. */
 export type StorySegment = { file: string; caption?: string };
 
-/** What the panel's last line says during segment `i` of `n` — the photo's
- * own caption, except that the last photo gives the line to the link when
- * there is one (the owner's draft, 2026-10-02). Empty when neither exists. */
-export function segmentLine(segments: readonly StorySegment[], i: number, link: string | undefined): string | undefined {
+/** What the panel's last line says during segment `i` of `n`: the last photo
+ * gives the line to the link when there is one, ahead of its own caption.
+ * Otherwise it is the photo's own caption — but only when captions are on
+ * (off by default, B2665 round 2); with them off every non-last line is
+ * empty. */
+export function segmentLine(
+  segments: readonly StorySegment[],
+  i: number,
+  link: string | undefined,
+  showCaptions: boolean,
+): string | undefined {
   if (i === segments.length - 1 && link) return link.replace(/^https?:\/\//, "");
+  if (!showCaptions) return undefined;
   return segments[i]?.caption || undefined;
 }
 
@@ -116,15 +133,23 @@ export function segmentStarts(n: number, segment: number, overlap: number): numb
  * "photo" look agree. One per segment; only the last line differs, and it
  * keeps its height when empty so the panel never jumps. */
 async function renderPanelPng(facts: StoryFacts, line: string | undefined): Promise<Buffer> {
+  // The same floating panel `PhotoCard` draws in the picture route (B2665
+  // round 2), so the "photo" look and the video agree: inset 36px, rounded
+  // 54px, navy-950. Transparent everywhere else — this PNG is only overlaid
+  // on top of the photo by ffmpeg.
   const element = (
-    <div style={{ display: "flex", width: "100%", height: "100%", flexDirection: "column" }}>
-      <div style={{ display: "flex", flex: 1 }} />
+    <div style={{ display: "flex", width: "100%", height: "100%" }}>
       <div
         style={{
           display: "flex",
           flexDirection: "column",
+          position: "absolute",
+          left: 36,
+          right: 36,
+          bottom: 36,
+          borderRadius: 54,
           background: "#0f1520",
-          padding: "40px 56px 56px",
+          padding: "40px 44px",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -136,12 +161,10 @@ async function renderPanelPng(facts: StoryFacts, line: string | undefined): Prom
           )}
         </div>
         <div style={{ display: "flex", marginTop: 12, fontSize: 48, fontWeight: 700, color: "#fffaf0", lineHeight: 1.1 }}>
-          {facts.title}
+          {facts.headline}
         </div>
-        {(facts.place || facts.tempLine) && (
-          <div style={{ display: "flex", marginTop: 12, fontSize: 24, color: "#d8dee8" }}>
-            {[facts.place, facts.tempLine].filter(Boolean).join(" · ")}
-          </div>
+        {facts.subLine && (
+          <div style={{ display: "flex", marginTop: 12, fontSize: 24, color: "#d8dee8" }}>{facts.subLine}</div>
         )}
         <div
           style={{
@@ -175,6 +198,7 @@ export async function renderStoryVideo(args: {
   segments: StorySegment[];
   facts: StoryFacts;
   rateLimitKey: string;
+  showCaptions: boolean;
 }): Promise<Buffer | "rate_limited" | null> {
   const cached = readCachedStoryVideo(args.key);
   if (cached) return cached;
@@ -188,7 +212,9 @@ export async function renderStoryVideo(args: {
   const job = (async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "story-video-"));
     try {
-      const bytes = await withRenderSlot(() => buildClip(args.segments.slice(0, 3), args.facts, tmpDir));
+      const bytes = await withRenderSlot(() =>
+        buildClip(args.segments.slice(0, 3), args.facts, args.showCaptions, tmpDir),
+      );
       if (bytes) writeCachedStoryVideo(args.key, bytes);
       return bytes;
     } finally {
@@ -203,13 +229,50 @@ export async function renderStoryVideo(args: {
   }
 }
 
-async function buildClip(segments: StorySegment[], facts: StoryFacts, tmpDir: string): Promise<Buffer | null> {
+/** Twice the card's own size (the same box `PHOTO_LOOK_BOX` in the picture
+ * route crops the "photo" look to) — a still read once by `zoompan`, which
+ * rounds its window to whole pixels and visibly shakes at 1080 wide. */
+const CROP_WIDTH = WIDTH * 2;
+const CROP_HEIGHT = HEIGHT * 2;
+
+/** Smart-crops one photograph to the clip's own frame before ffmpeg ever
+ * sees it (B2665 round 2) — attention-weighted, the same guess a thumbnail
+ * makes, so the subject survives rather than whichever edge a bare `crop`
+ * filter happened to keep. `null` on a corrupt or unreadable source. */
+async function cropPhotoForClip(file: string, destPath: string): Promise<boolean> {
+  try {
+    const sharp = (await import("sharp")).default;
+    await sharp(file, { failOn: "error" })
+      .rotate()
+      .resize(CROP_WIDTH, CROP_HEIGHT, { fit: "cover", position: sharp.strategy.attention })
+      .jpeg({ quality: 85 })
+      .toFile(destPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function buildClip(
+  segments: StorySegment[],
+  facts: StoryFacts,
+  showCaptions: boolean,
+  tmpDir: string,
+): Promise<Buffer | null> {
   if (segments.length === 0) return null;
-  const photoFiles = segments.map((s) => s.file);
+
+  const croppedFiles: string[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    const cropPath = path.join(tmpDir, `crop-${i}.jpg`);
+    if (!(await cropPhotoForClip(segments[i].file, cropPath))) return null;
+    croppedFiles.push(cropPath);
+  }
+  const photoFiles = croppedFiles;
+
   const panelPaths: string[] = [];
   for (let i = 0; i < segments.length; i++) {
     const panelPath = path.join(tmpDir, `panel-${i}.png`);
-    fs.writeFileSync(panelPath, await renderPanelPng(facts, segmentLine(segments, i, facts.link)));
+    fs.writeFileSync(panelPath, await renderPanelPng(facts, segmentLine(segments, i, facts.link, showCaptions)));
     panelPaths.push(panelPath);
   }
 
@@ -230,14 +293,18 @@ async function buildClip(segments: StorySegment[], facts: StoryFacts, tmpDir: st
   }
 
   // The slow push-in from the draft: 1.00 → 1.08 over each segment, centred.
+  // Each photo is already cropped to this exact frame above, so the filter
+  // here only has to fix the sample-aspect-ratio before `zoompan`.
   const frames = Math.round(segment * FPS);
   const scaled = photoFiles.map(
     (_, i) =>
-      // Cropped at twice the size first: `zoompan` rounds its window to whole
-      // pixels, and at 1080 wide a slow push-in visibly shakes.
-      `[${i}:v]scale=${WIDTH * 2}:${HEIGHT * 2}:force_original_aspect_ratio=increase,crop=${WIDTH * 2}:${HEIGHT * 2},setsar=1,` +
+      `[${i}:v]setsar=1,` +
       `zoompan=z='1+${ZOOM}*on/${frames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS},` +
-      `setpts=PTS-STARTPTS[v${i}]`,
+      // ffmpeg 7.1 refuses `xfade` on a variable-frame-rate input ("inputs
+      // needs to be a constant frame rate") — `zoompan`'s own `fps` sets the
+      // *output* frame count, not a constant rate flag, so it is pinned
+      // again explicitly here (verified against the production server).
+      `setpts=PTS-STARTPTS,fps=${FPS}[v${i}]`,
   );
 
   const transitions: string[] = [];
@@ -282,6 +349,12 @@ async function buildClip(segments: StorySegment[], facts: StoryFacts, tmpDir: st
     "libx264",
     "-profile:v",
     "high",
+    "-level:v",
+    "4.1",
+    "-maxrate",
+    "8M",
+    "-bufsize",
+    "16M",
     "-preset",
     "veryfast",
     "-crf",
