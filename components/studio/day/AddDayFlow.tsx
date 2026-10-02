@@ -248,7 +248,6 @@ export default function AddDayFlow({
     const i = photoSheetTarget;
     setParts((prev) => (prev ? prev.map((p, idx) => (idx === i ? { ...p, ids: [...new Set([...p.ids, ...added])] } : p)) : prev));
     selectedIdsAtSheetOpen.current = selectedIds;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, photoSheetTarget]);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -956,7 +955,6 @@ export default function AddDayFlow({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createdSlug, weatherAvailable, hasCoords, tripId, username, autosaveState]);
 
   // ── day by voice (B2194) ────────────────────────────────────────────
