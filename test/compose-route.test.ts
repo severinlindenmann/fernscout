@@ -191,6 +191,20 @@ describe("refusals before any spend", () => {
     expect(r.body.error).toBe("no_notes");
   });
 
+  test("a day with one undescribed photo and no words is 400 before any model call", async () => {
+    await consent();
+    writeDayFixture(dir, "alex", "a-trip", {
+      slug: "one-photo",
+      date: "2026-05-06",
+      content: "",
+      media: [{ src: "/media/a-trip/one.jpg" }],
+    });
+    const r = await read(await call({ slug: "one-photo" }));
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBe("no_notes");
+    expect(create).not.toHaveBeenCalled();
+  });
+
   test("consent first", async () => {
     const r = await read(await call({}));
     expect(r.status).toBe(403);

@@ -4210,6 +4210,7 @@ export type TranslationKey =
   | "studio.preview.composeConsent"
   | "studio.preview.composeConsentConfirm"
   | "studio.preview.composeConsentLabel"
+  | "studio.preview.composeNothing"
   | "studio.preview.composeRead"
   | "studio.preview.composeReady"
   | "studio.preview.composeSourceMeasured"

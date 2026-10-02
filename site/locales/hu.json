@@ -4699,6 +4699,7 @@
   "studio.preview.composeClose": "Közel a szavaimhoz",
   "studio.preview.composeStory": "Mint történet",
   "studio.preview.composeSources": "Mutasd, honnan származik",
+  "studio.preview.composeNothing": "Még nincs miből írni – az asszisztens csak abból dolgozik, amit elmondasz neki. Írj egy-két sort az Írás oldalon, és javasol egy változatot.",
   "studio.preview.composeSourcesHide": "Forrás elrejtése",
   "studio.preview.composeSourceOwner": "a jegyzeted",
   "studio.preview.composeSourceMeasured": "mért adat",
