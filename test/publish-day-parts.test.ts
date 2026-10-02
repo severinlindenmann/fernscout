@@ -21,6 +21,28 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 let isOwnerMock: ReturnType<typeof vi.fn>;
 vi.mock("@/lib/contacts/session", () => ({ isOwner: vi.fn() }));
 
+// Security review follow-up — two narrow injection points, each wrapping the
+// real implementation by default (reset every test in beforeEach below) so
+// every other test in this file still exercises the genuine code path. Only
+// the tests that need a throw override it, with `mockRejectedValueOnce`/
+// `mockImplementationOnce`.
+const { subscribersForMock, subscribersForActual, saveTellChoiceMock, saveTellChoiceActual } = vi.hoisted(() => ({
+  subscribersForMock: vi.fn(),
+  subscribersForActual: { current: null as unknown },
+  saveTellChoiceMock: vi.fn(),
+  saveTellChoiceActual: { current: null as unknown },
+}));
+vi.mock("@/lib/push", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/push")>();
+  subscribersForActual.current = actual.subscribersFor;
+  return { ...actual, subscribersFor: subscribersForMock };
+});
+vi.mock("@/lib/digest/tellChoice", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/digest/tellChoice")>();
+  saveTellChoiceActual.current = actual.saveTellChoice;
+  return { ...actual, saveTellChoice: saveTellChoiceMock };
+});
+
 const OWNER = "alex";
 const OWNER_EMAIL = "alex@example.test";
 const TRIP = "reise";
@@ -110,6 +132,18 @@ beforeEach(async () => {
   const mod = await import("@/lib/contacts/session");
   isOwnerMock = mod.isOwner as unknown as ReturnType<typeof vi.fn>;
   isOwnerMock.mockResolvedValue(true);
+
+  // Reset to the real implementation every test — `vi.restoreAllMocks()` in
+  // afterEach clears a plain `vi.fn()`'s own implementation too, so this
+  // cannot be set once at module scope and left alone.
+  subscribersForMock.mockReset();
+  subscribersForMock.mockImplementation((...args: Parameters<typeof import("@/lib/push").subscribersFor>) =>
+    (subscribersForActual.current as typeof import("@/lib/push").subscribersFor)(...args),
+  );
+  saveTellChoiceMock.mockReset();
+  saveTellChoiceMock.mockImplementation((...args: Parameters<typeof import("@/lib/digest/tellChoice").saveTellChoice>) =>
+    (saveTellChoiceActual.current as typeof import("@/lib/digest/tellChoice").saveTellChoice)(...args),
+  );
 
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-publish-parts-"));
   process.env.CONTENT_DIR = dir;
@@ -232,5 +266,121 @@ describe("B2674 — publishing a day of several parts in one call", () => {
     expect(response.status).toBe(400);
     expect(fs.readFileSync(entryFile("morning"), "utf8")).toBe(before);
     expect(fs.readFileSync(path.join(dir, OWNER, "trips", TRIP, "entries", "2026-09-05-other-day.json"), "utf8")).toContain('"status": "draft"');
+  });
+
+  test("security review: a throw while counting push recipients never fails the publish (contained at the v2 level)", async () => {
+    writeDraft("morning", { visible: true });
+    writeDraft("lunch", { visible: true });
+    await saveSubscription({ username: OWNER, endpoint: "https://push.example/one", keys: { p256dh: "p", auth: "a" }, created: "2026-08-01" });
+    subscribersForMock.mockRejectedValueOnce(new Error("db hiccup"));
+
+    const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
+    const response = await POST(
+      req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${DATE}-morning/publish`, { parts: ["lunch"] }),
+      paramsFor(`${DATE}-morning`),
+    );
+    // Security review follow-up — `subscribersFor` now runs synchronously
+    // ahead of `afterResponse` inside `applyPublish`; a throw there is
+    // caught there and never escapes as an exception over a day that was
+    // already written. The publish still succeeds, with `told.app` simply
+    // absent the count it could not measure.
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as { ok: boolean; published: string[]; told: { app: number; mail: number } };
+    expect(body.ok).toBe(true);
+    expect(body.published.sort()).toEqual([`${DATE}-lunch`, `${DATE}-morning`].sort());
+    expect(body.told.app).toBe(0);
+    expect(onDisk("morning").status).toBe("published");
+    expect(onDisk("lunch").status).toBe("published");
+  });
+
+  test("security review: a throw after everything is already written rolls every part back whole — main day included, declines and all", async () => {
+    writeDraft("morning", { visible: true });
+    writeDraft("lunch", { visible: true });
+    const beforeMorning = fs.readFileSync(entryFile("morning"), "utf8");
+    const beforeLunch = fs.readFileSync(entryFile("lunch"), "utf8");
+
+    // `saveTellChoice` is the last thing the route does once the main day
+    // has already published successfully — by this point every part and
+    // the main day have already been written, so a throw here is the
+    // sharpest test of "roll back everything this call wrote, main day
+    // included". (The one throw site named in the review, `subscribersFor`,
+    // is now fully contained inside `applyPublish` itself — see the test
+    // above — so it can no longer reach this far; this exercises the same
+    // route-level try/catch + rollback through a different, reachable
+    // throw site.)
+    saveTellChoiceMock.mockRejectedValueOnce(new Error("db hiccup"));
+
+    const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
+    const response = await POST(
+      req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${DATE}-morning/publish`, {
+        parts: ["lunch"],
+        tell: { groups: null, mail: false },
+      }),
+      paramsFor(`${DATE}-morning`),
+    );
+    expect(response.status).toBe(500);
+    expect((await response.json()).error).toBe("publish_failed");
+
+    // Byte-identical to before the call: not just `status` flipped back to
+    // "draft" (what `applyUnpublish` alone would leave), but the declined
+    // reasons this call's auto-decline added are gone too.
+    expect(fs.readFileSync(entryFile("morning"), "utf8")).toBe(beforeMorning);
+    expect(fs.readFileSync(entryFile("lunch"), "utf8")).toBe(beforeLunch);
+    expect(onDisk("morning").status).toBe("draft");
+    expect(onDisk("lunch").status).toBe("draft");
+    // Only the decline the fixture itself wrote (`visibility`) survives —
+    // none of this call's own auto-declines (tags, media, coordinates, ...).
+    expect(onDisk("morning").declined).toEqual({ visibility: "shown to everyone the trip lets in" });
+    expect(onDisk("lunch").declined).toEqual({ visibility: "shown to everyone the trip lets in" });
+  });
+
+  test("security review: a blank visibility on the main day refuses before any part is ever published", async () => {
+    writeDraft("morning"); // visibility blank — the main day itself
+    writeDraft("lunch", { visible: true }); // this part, on its own, is fine
+    const beforeMorning = fs.readFileSync(entryFile("morning"), "utf8");
+    const beforeLunch = fs.readFileSync(entryFile("lunch"), "utf8");
+
+    const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
+    const response = await POST(
+      req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${DATE}-morning/publish`, { parts: ["lunch"] }),
+      paramsFor(`${DATE}-morning`),
+    );
+    expect(response.status).toBe(422);
+    // Zero writes — the complete-day fine part never even got as far as a
+    // weather fill, let alone a publish.
+    expect(fs.readFileSync(entryFile("morning"), "utf8")).toBe(beforeMorning);
+    expect(fs.readFileSync(entryFile("lunch"), "utf8")).toBe(beforeLunch);
+    expect(onDisk("lunch").status).toBe("draft");
+  });
+
+  test("security review: a part named both ways (\"lunch\" and its full stem) is deduplicated to one", async () => {
+    writeDraft("morning", { visible: true });
+    writeDraft("lunch", { visible: true });
+
+    const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
+    const response = await POST(
+      req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${DATE}-morning/publish`, { parts: ["lunch", `${DATE}-lunch`] }),
+      paramsFor(`${DATE}-morning`),
+    );
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as { published: string[] };
+    // Exactly two, not three: "lunch" and "2026-09-02-lunch" are the same
+    // day, resolved to the same stem.
+    expect(body.published).toHaveLength(2);
+    expect(body.published.sort()).toEqual([`${DATE}-lunch`, `${DATE}-morning`].sort());
+    expect(onDisk("lunch").status).toBe("published");
+  });
+
+  test("security review: the main slug named again as its own \"part\" is not published twice", async () => {
+    writeDraft("morning", { visible: true });
+
+    const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
+    const response = await POST(
+      req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${DATE}-morning/publish`, { parts: [`${DATE}-morning`] }),
+      paramsFor(`${DATE}-morning`),
+    );
+    expect(response.status, await response.clone().text()).toBe(200);
+    const body = (await response.json()) as { published: string[] };
+    expect(body.published).toEqual([`${DATE}-morning`]);
   });
 });

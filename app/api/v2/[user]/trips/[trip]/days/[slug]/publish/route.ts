@@ -306,10 +306,22 @@ export async function applyPublish(
     // in the response below can be an honest number rather than a deferred
     // unknown. The actual sending (grouped by locale) still happens after
     // the response, exactly as before.
-    const recipients = await subscribersFor(pushTrip, pushEntry, onlyContacts);
-    // The owner's own devices still get the push (unchanged) but are not
-    // readers, so they are not counted as "told" — B2674.
-    pushTold = recipients.filter((sub) => sub.isOwner !== true).length;
+    //
+    // Security review follow-up: the day is already written by this point
+    // (`writeDayFile` above) — a throw here must never escape as an
+    // uncaught 500 over a successful write. `recipients` falls back to `[]`
+    // on a failed lookup, which still queues the (harmless, no-op on an
+    // empty list) deferred send, and `pushTold` is left `undefined` rather
+    // than claiming a count this route never actually measured.
+    let recipients: StoredSubscription[] = [];
+    try {
+      recipients = await subscribersFor(pushTrip, pushEntry, onlyContacts);
+      // The owner's own devices still get the push (unchanged) but are not
+      // readers, so they are not counted as "told" — B2674.
+      pushTold = recipients.filter((sub) => sub.isOwner !== true).length;
+    } catch {
+      // Left `undefined` — see the comment above.
+    }
     afterResponse("publish-push", async () => {
       if (recipients.length === 0) return;
 
