@@ -1,6 +1,7 @@
 import "server-only";
 import { isEnabled } from "@/lib/capabilities";
 import { AS_AUTHOR, getAllEntries, getDays, getEntryBySlug, getPlaces } from "@/lib/entries";
+import { readDayFile, resolveDayStem } from "@/lib/api/v2/store";
 import { isHomePlace } from "@/lib/gps/enrich";
 import { placeForDay, travelForPartOfDay } from "@/lib/gps/api";
 import { defaultLocaleFor, translateIn } from "@/lib/locales";
@@ -195,7 +196,14 @@ export function buildDayContext(user: string, tripId: string, slug: string, opts
   }
 
   const allCosts = dayEntries.flatMap((e) => e.costs);
-  const notesText = dayEntries.map((e) => e.content).join("\n\n");
+  // B2698 — the owner's own pre-compose words, when a compose round has
+  // since replaced `content`: the AI's own text must never be what the
+  // next compose round builds on. `ownWords` is owner-only and deliberately
+  // not on `Entry` (see `DayFile["ownWords"]`'s own comment), so it is read
+  // directly off the stored file rather than off `entry` above.
+  const stem = resolveDayStem(user, tripId, slug) ?? slug;
+  const ownWords = readDayFile(user, tripId, stem)?.ownWords;
+  const notesText = ownWords || dayEntries.map((e) => e.content).join("\n\n");
   const mentionsMoney = MONEY_RE.test(notesText);
   if (allCosts.length > 0 && (opts.includeCosts || mentionsMoney)) {
     for (const [i, cost] of allCosts.entries()) {

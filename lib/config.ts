@@ -989,6 +989,9 @@ function parseDeclinedMap(raw: unknown): Record<string, string> | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+/** Features that were removed; a config naming one still loads (B2713). Append when a feature is deleted. */
+const RETIRED_FEATURE_NAMES: readonly string[] = ["credits"];
+
 function parseFeatures(
   raw: unknown,
   problems: string[],
@@ -1030,12 +1033,20 @@ function parseFeatures(
     };
   }
 
+  // B2713: a retired feature (one that existed and was removed, like the
+  // `credits` flag `features.billing` replaced) is a warning, never a reason to
+  // fail the build or refuse to boot: a deployed config.json may still name it.
+  // Any other unknown key is still refused, so a typo cannot silently leave a
+  // feature off.
   for (const key of Object.keys(src)) {
-    if (!(FEATURE_NAMES as readonly string[]).includes(key)) {
-      problems.push(
-        `features.${key} is not a known feature (expected one of: ${FEATURE_NAMES.join(", ")})`,
-      );
+    if ((FEATURE_NAMES as readonly string[]).includes(key)) continue;
+    if (RETIRED_FEATURE_NAMES.includes(key)) {
+      console.warn(`features.${key} is a retired feature and is ignored`);
+      continue;
     }
+    problems.push(
+      `features.${key} is not a known feature (expected one of: ${FEATURE_NAMES.join(", ")})`,
+    );
   }
   return out;
 }

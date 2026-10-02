@@ -220,6 +220,78 @@ describe("writing a day from the wizard", () => {
   });
 });
 
+describe("B2698/B2700 — ownWords and language through the wizard's own PATCH", () => {
+  async function freshDay(date: string): Promise<string> {
+    const made = await read(
+      await POST(
+        json("POST", {
+          trip: "a-trip",
+          date,
+          answers: { costs: "none", coordinates: "unknown", time: "none", transportMode: "none", tags: "none", visibility: "none" },
+        }),
+        params,
+      ),
+    );
+    return String(made.body.slug);
+  }
+
+  function storedDay(slug: string): Record<string, unknown> {
+    const file = fs.readdirSync(path.join(dir, "alex", "trips", "a-trip", "entries")).find((f) => f.includes(slug));
+    return JSON.parse(fs.readFileSync(path.join(dir, "alex", "trips", "a-trip", "entries", file!), "utf8"));
+  }
+
+  test("ownWords is written on the first \"Use this\" and never again, so a re-compose never builds on the AI's own text", async () => {
+    const slug = await freshDay("2026-05-07");
+    await PATCH(
+      json("PATCH", { trip: "a-trip", slug, ownWords: "we walked a lot and ate cheese", content: "A tidied account of a long, cheese-filled walk." }),
+      params,
+    );
+    expect(storedDay(slug).ownWords).toBe("we walked a lot and ate cheese");
+
+    // A second "Use this" sends the AI's own last text back as `ownWords`
+    // (what the client reads off the day before this round) — the server
+    // keeps the first one it was ever given rather than letting the words a
+    // model wrote become what the next round composes from.
+    await PATCH(
+      json("PATCH", { trip: "a-trip", slug, ownWords: "A tidied account of a long, cheese-filled walk.", content: "An even more polished account." }),
+      params,
+    );
+    const day = storedDay(slug);
+    expect(day.ownWords).toBe("we walked a lot and ate cheese");
+    expect(day.content).toBe("An even more polished account.");
+  });
+
+  test("ownWords never reaches the wizard's own reads — not the GET preview, not the PATCH echo", async () => {
+    const slug = await freshDay("2026-05-08");
+    const written = await read(
+      await PATCH(json("PATCH", { trip: "a-trip", slug, ownWords: "the owner's own words", content: "Composed text." }), params),
+    );
+    expect(JSON.stringify(written.body)).not.toContain("the owner's own words");
+
+    const seen = await read(
+      await GET(new Request(`https://t.test/api/helper/alex/day?trip=a-trip&slug=${slug}`), params),
+    );
+    expect(JSON.stringify(seen.body)).not.toContain("the owner's own words");
+    // It is on disk, though — this is an exclusion from reads, not a failed
+    // write.
+    expect(storedDay(slug).ownWords).toBe("the owner's own words");
+  });
+
+  test("language is written and read back through the same door", async () => {
+    const slug = await freshDay("2026-05-09");
+    await PATCH(json("PATCH", { trip: "a-trip", slug, language: "hu", content: "Szia." }), params);
+    expect(storedDay(slug).language).toBe("hu");
+
+    const seen = await read(
+      await GET(new Request(`https://t.test/api/helper/alex/day?trip=a-trip&slug=${slug}`), params),
+    );
+    const entry = (seen.body.preview as { day: { entries: Record<string, unknown>[] } }).day.entries.find(
+      (e) => e.slug === slug,
+    );
+    expect(entry?.language).toBe("hu");
+  });
+});
+
 describe("making a second trip from the wizard", () => {
   // B754 — the wizard's own "new trip" form has nowhere else to call but
   // this route, and this run's `config.json` has no `helper` capability at
