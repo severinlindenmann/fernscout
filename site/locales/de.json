@@ -1041,8 +1041,6 @@
   "studio.hub.fact.startsIn.one": "in {count} Tag",
   "studio.hub.fact.asking": "{count} fragen",
   "studio.hub.fact.asking.one": "{count} fragt",
-  "studio.hub.fact.purchasesOpen": "{count} offen",
-  "studio.hub.fact.purchasesOpen.one": "{count} offen",
   "studio.hub.fact.storage": "{used} von {limit} GB",
   "studio.hub.item.inbox.hint": "Dateien, die du geschickt hast und die noch an keinem Tag liegen.",
   "studio.hub.item.postcard.title": "Eine Postkarte",

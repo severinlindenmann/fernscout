@@ -105,7 +105,7 @@ function renderHub(model: StudioHubModel) {
 
 const FULL_MODEL: StudioHubModel = {
   kind: "full",
-  account: { purchasesOpen: 0, storage: null },
+  account: { storage: null },
   print: { unfinished: [], recentOrders: [] },
   addDayTrip: { id: "reise", title: "Reise", current: true },
   toldToday: false,
@@ -135,7 +135,7 @@ describe("StudioHub — half-done 'Add a day' work reaches the hub (H4)", () => 
 
   test("an empty journal's hub surfaces the same draft above its own CTA", async () => {
     writeSnapshot(USERNAME);
-    renderHub({ kind: "empty", account: { purchasesOpen: 0, storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] });
+    renderHub({ kind: "empty", account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] });
     await act(async () => {});
     expect(container!.textContent).toContain("A day you started, not finished");
   });

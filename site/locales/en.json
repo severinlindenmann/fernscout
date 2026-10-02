@@ -1041,8 +1041,6 @@
   "studio.hub.fact.startsIn.one": "in {count} day",
   "studio.hub.fact.asking": "{count} asking",
   "studio.hub.fact.asking.one": "{count} asking",
-  "studio.hub.fact.purchasesOpen": "{count} open",
-  "studio.hub.fact.purchasesOpen.one": "{count} open",
   "studio.hub.fact.storage": "{used} of {limit} GB",
   "studio.hub.item.inbox.hint": "Files you sent in, not yet placed on a day.",
   "studio.hub.item.postcard.title": "A postcard",

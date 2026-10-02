@@ -2,7 +2,6 @@ import "server-only";
 import { listTrash } from "@/lib/dayTrash";
 import { isEnabled } from "@/lib/capabilities";
 import { listAllOrders, listUnfinished, type OrderRow, type UnfinishedPrint } from "@paid/printOrder/lib/orders";
-import { listPayments } from "@paid/billing/lib/payments";
 import { storageFor } from "@/lib/storageQuota";
 import { readersModel } from "@/lib/readers/model";
 import { AS_AUTHOR, getDays, getEntryBySlug } from "@/lib/entries";
@@ -178,12 +177,9 @@ export type HubFacts = {
   deleted?: number;
 };
 
-/** B2134 — the account row's chips: its purchase history's "awaiting
- *  approval" rows (a postcard, a photobook or a plan still waiting on the
- *  dry-run operator-approval path) and `storageFor`. Credits removed in
- *  B2592. */
+/** B2134 — the account row's chip: `storageFor`. The "purchases open" chip
+ *  read the retired credits ledger and went with it (B2695). */
 export type HubAccount = {
-  purchasesOpen: number;
   storage: { usedBytes: number; limitBytes: number } | null;
 };
 
@@ -192,9 +188,8 @@ export type HubAccount = {
 type HubPrint = { unfinished: UnfinishedPrint[]; recentOrders: OrderRow[] };
 
 async function hubAccount(username: string): Promise<HubAccount> {
-  const [payments, usage] = await Promise.all([listPayments(username), storageFor(username)]);
+  const usage = await storageFor(username);
   return {
-    purchasesOpen: payments.filter((p) => p.status === "requested").length,
     storage: usage.limitBytes === null ? null : { usedBytes: usage.usedBytes, limitBytes: usage.limitBytes },
   };
 }
