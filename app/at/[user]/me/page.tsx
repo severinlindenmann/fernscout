@@ -165,6 +165,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/at/[u
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
       contactsEnabled={contactsEnabled}
+      routeRecording={isEnabled("routeRecording", user)}
       // B20. The stranger's half of this page told somebody to ask for a link
       // and never said whom to ask, on a site they may have reached without
       // knowing whose it is.

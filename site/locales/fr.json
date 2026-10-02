@@ -3856,7 +3856,6 @@
   "me.phone.cleared": "{size} libérés. Tu es toujours connecté·e.",
   "me.phone.clearing": "Nettoyage…",
   "me.phone.gps": "Enregistrer où je vais",
-  "me.phone.later": "À venir",
   "me.phone.off": "Désactivé",
   "me.phone.on": "Activé",
   "me.phone.sharing": "Partage depuis Photos",
@@ -4674,5 +4673,18 @@
   "studio.hub.addDay.toldToday.untitled": "Aujourd’hui a déjà une journée",
   "studio.day.writeFailed.alreadySaved": "La dernière modification n’a pas été enregistrée. La journée reste gardée en brouillon — reviens et réessaie.",
   "billing.purchaseUnconfirmed": "Apple a accepté l'achat, mais ce serveur n'a pas encore pu le confirmer. Rien n'est perdu : touche « Restaurer les achats » pour réessayer.",
-  "billing.purchasePending": "L'achat attend une approbation. Ton forfait change dès qu'il est approuvé."
+  "billing.purchasePending": "L'achat attend une approbation. Ton forfait change dès qu'il est approuvé.",
+  "me.phone.location.always": "Position : Toujours – prêt à enregistrer",
+  "me.phone.location.whenInUse": "Position : seulement pendant l’utilisation – l’enregistrement demande « Toujours »",
+  "me.phone.location.denied": "Position : non autorisée",
+  "me.phone.location.restricted": "Position : bloquée sur cet iPhone",
+  "me.phone.location.notDetermined": "Position : pas encore demandée",
+  "me.phone.microphone": "Micro",
+  "me.phone.microphoneAsk": "Demandé la première fois que tu enregistres ta voix",
+  "me.phone.camera": "Appareil photo",
+  "me.phone.cameraAsk": "Demandé la première fois que tu prends une photo",
+  "me.phone.allowed": "Autorisé",
+  "me.phone.denied": "Non autorisé – à changer dans Réglages",
+  "me.phone.settings": "Autorisations",
+  "me.phone.settingsBody": "Position, micro, appareil photo, photos et notifications pour Fernscout"
 }
