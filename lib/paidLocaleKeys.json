@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "597a639af1c267dd349a3b8c2c81f906411fa28a",
+  "generatedFrom": "86959a7c2e7e9acebc83439f8f53c773eed8a548",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -212,6 +212,7 @@
     "photobook.first.cover",
     "photobook.first.coverHint",
     "photobook.first.coverHint.one",
+    "photobook.first.coverMore",
     "photobook.first.coverShowAll",
     "photobook.first.coverShowFewer",
     "photobook.first.coverType.hard",
@@ -247,6 +248,7 @@
     "photobook.first.next",
     "photobook.first.progress",
     "photobook.first.skip",
+    "photobook.first.skipShort",
     "photobook.first.text",
     "photobook.first.text.with",
     "photobook.first.text.without",
@@ -344,7 +346,7 @@
     "photobook.order.more.leftOutSub",
     "photobook.order.more.resetSub",
     "photobook.order.more.startOverSub",
-    "photobook.order.passSub",
+    "photobook.order.passButton",
     "photobook.order.previewAndOrder",
     "photobook.order.priceHeld",
     "photobook.order.priceMeta",

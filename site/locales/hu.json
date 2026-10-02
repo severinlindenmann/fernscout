@@ -4732,5 +4732,6 @@
   "studio.day.photos.chooseLabel": "Fényképek kiválasztása",
   "studio.published.pageTitle": "Közzétéve",
   "photobook.first.skipShort": "Kihagyás ›",
-  "photobook.first.coverMore": "+{count} további"
+  "photobook.first.coverMore": "+{count} további",
+  "photobook.order.passButton": "Oldalanként szerkesztés · kb. {minutes} perc"
 }

@@ -4735,5 +4735,6 @@
   "studio.day.photos.chooseLabel": "Scegli le foto",
   "studio.published.pageTitle": "Pubblicato",
   "photobook.first.skipShort": "Salta ›",
-  "photobook.first.coverMore": "+{count} altre"
+  "photobook.first.coverMore": "+{count} altre",
+  "photobook.order.passButton": "Modifica pagina per pagina · circa {minutes} min"
 }
