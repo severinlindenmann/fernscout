@@ -4585,7 +4585,7 @@
   "studio.preview.suggest": "✦ Suggerisci titolo, ortografia, didascalie e tag",
   "studio.preview.suggestAgain": "✦ Suggerisci di nuovo",
   "studio.preview.suggestConsentLabel": "Consenti suggerimenti per questo giorno",
-  "studio.preview.suggestConsent": "Il tuo testo e le tue foto vengono inviati per suggerire un titolo, correggere l'ortografia, le didascalie e i tag. Niente viene applicato finché non lo tocchi.",
+  "studio.preview.suggestConsent": "Il tuo testo e le tue foto vengono inviati, insieme al luogo, ai nomi dei tuoi compagni di viaggio e al testo dei giorni vicini, per suggerire un titolo, correggere l'ortografia, le didascalie e i tag. Niente viene applicato finché non lo tocchi.",
   "studio.preview.suggestConsentConfirm": "Suggerisci",
   "studio.preview.tagsTitle": "Tag",
   "studio.preview.addAllTags": "Aggiungi tutti",

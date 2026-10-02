@@ -4576,7 +4576,7 @@
   "studio.preview.suggest": "✦ Suggest a title, spelling fixes, captions and tags",
   "studio.preview.suggestAgain": "✦ Suggest again",
   "studio.preview.suggestConsentLabel": "Let the assistant suggest for this day",
-  "studio.preview.suggestConsent": "Your words and photographs are sent to suggest a title, tidy spelling, captions and tags. Nothing is applied until you tap it.",
+  "studio.preview.suggestConsent": "Your words and photographs are sent, along with the place, your companions' names and nearby days' text, to suggest a title, tidy spelling, captions and tags. Nothing is applied until you tap it.",
   "studio.preview.suggestConsentConfirm": "Suggest",
   "studio.preview.tagsTitle": "Tags",
   "studio.preview.addAllTags": "Add all",
