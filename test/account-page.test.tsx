@@ -50,6 +50,11 @@ vi.mock("next/link", () => ({
     <a href={href}>{children}</a>
   ),
 }));
+const shell = vi.hoisted(() => ({ native: false }));
+vi.mock("@/components/nativeShell", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/components/nativeShell")>();
+  return { ...real, useNativeShell: () => shell.native };
+});
 vi.mock("next/navigation", () => ({
   usePathname: () => "/alex/account",
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -363,6 +368,18 @@ describe("the plan panel", () => {
       const html = render({ plan: plus });
       expect(html).not.toContain("Subscribe to Plus");
       expect(html).not.toContain("Buy a Trip pass");
+    });
+
+    // B2682 — no priced digital extra outside Apple's own purchase in the app.
+    test("the storage add-on is offered on the web and absent inside the iPhone shell", () => {
+      const plus: PlanPanel = { ...free, plan: "plus" };
+      expect(render({ plan: plus })).toContain("Add 10 GB");
+      shell.native = true;
+      try {
+        expect(render({ plan: plus })).not.toContain("Add 10 GB");
+      } finally {
+        shell.native = false;
+      }
     });
   });
 });
