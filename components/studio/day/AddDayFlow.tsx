@@ -29,6 +29,7 @@ import { splitIntoParts, type DayPart } from "@/lib/studio/dayParts";
 import { partCommitPlan, titleCollidesWithExisting } from "@/lib/studio/dayCollision";
 import { writePreviewUrl } from "@/lib/studio/previewUrl";
 import { weatherGroup, type DayWeather } from "@/lib/weather";
+import { MIN_QUERY_LEN } from "@/lib/addressLookupTypes";
 
 import { journalPath } from "@/lib/journalPath";
 /** First-run mode (B2188, owner decision D1 "C inside A"): the same page,
@@ -40,6 +41,11 @@ const FIRST_RUN = ["photos", "words", "save"] as const;
 const NEW_TRIP_OPTION = "__new__";
 type Outcome = "collision" | "saved" | "writeFailed" | "queued";
 type Sheet = "date" | "place" | "weather" | null;
+/** `lib/addressLookup.ts`'s own `GeocodeCandidate`, read back by hand: that
+ *  module is `server-only`, so a client component declares the wire shape
+ *  itself rather than importing it — the same split
+ *  `addressLookupTypes.ts` already makes for `AddressSuggestion`. */
+type GeocodeCandidate = { displayName: string; country: string; lat: number; lon: number };
 
 /** `Problem` from `lib/validate/media.ts`, read back off the wire — never
  *  imported directly, since that module is server-only. */
@@ -139,6 +145,10 @@ export default function AddDayFlow({
   polishAiAvailable = null,
   routeRecordingAvailable = false,
   weatherAvailable = false,
+  addressLookupAvailable = false,
+  helperOn = false,
+  consents = { words: false, photos: false, speech: false },
+  providers = { words: "", speech: null },
   speech: speechProp = null,
   readersByTrip = {},
   initialTripId,
@@ -161,6 +171,18 @@ export default function AddDayFlow({
   routeRecordingAvailable?: boolean;
   /** The weather capability. Off: no weather chip, and `weather` is never sent. */
   weatherAvailable?: boolean;
+  /** B2676 — the place panel's own search (`plan/search`, `geocodePlace`).
+   *  Off: the place panel is free text, coordinates never set from it. */
+  addressLookupAvailable?: boolean;
+  /** B2676 — whether the receipt feature may run at all (the `helper`
+   *  capability). Off: "📷 From a receipt" is absent, never disabled. */
+  helperOn?: boolean;
+  /** The three `/api/helper/{user}/consent` scopes already agreed to — the
+   *  receipt sheet's own "suggest" gate (`lib/studio/featureConsent.ts`)
+   *  reads `words`/`photos` from here. */
+  consents?: { words: boolean; photos: boolean; speech: boolean };
+  /** Who the receipt's "suggest" consent sheet names. */
+  providers?: { words: string; speech: string | null };
   /** The transcription capability's own facts, `null` when it is off — the
    *  microphone is then absent, not broken. */
   speech?: { consented: boolean; provider: string; aiAvailable: boolean | null } | null;
@@ -290,6 +312,14 @@ export default function AddDayFlow({
   const [country, setCountry] = useState("");
   const [lat, setLat] = useState<number | undefined>(undefined);
   const [lng, setLng] = useState<number | undefined>(undefined);
+  // B2676 — the place panel's own search, when `addressLookup` is on: a
+  // place name in, real candidates (with coordinates) back. Separate from
+  // `location`/`country` above, which only a pick (or, with the capability
+  // off, free text) ever writes.
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [placeResults, setPlaceResults] = useState<GeocodeCandidate[]>([]);
+  const [placeSearchFailed, setPlaceSearchFailed] = useState(false);
+  const placeSearchId = useRef(0);
   // D6 — on by default, removable.
   const [weatherOn, setWeatherOn] = useState(true);
 
@@ -576,25 +606,91 @@ export default function AddDayFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online, tripId, date]);
 
-  function editPlace(next: { location?: string; country?: string }) {
+  /** Free text — only ever reached with `addressLookupAvailable` off. A
+   *  manual edit always clears the coordinates: whatever pin was there (a
+   *  photo's, or an earlier pick's) named a place that is not necessarily
+   *  this one any more, and a stale pin must never survive an edit that no
+   *  longer names the place it pointed at (B2676, decision 6 / old P13). */
+  function editPlaceText(next: { location?: string; country?: string }) {
     if (!placeEdited) {
       setLocation(place.location);
       setCountry(place.country);
-      setLat(place.lat);
-      setLng(place.lng);
       setPlaceEdited(true);
     }
     if (next.location !== undefined) setLocation(next.location);
     if (next.country !== undefined) setCountry(next.country);
+    setLat(undefined);
+    setLng(undefined);
+  }
+  /** A real geocode pick (`addressLookupAvailable` on) — the only way
+   *  coordinates are ever set from the place panel. Replaces whatever pin
+   *  was there before outright. */
+  function pickPlace(candidate: GeocodeCandidate) {
+    setPlaceEdited(true);
+    setLocation(candidate.displayName);
+    setCountry(candidate.country);
+    setLat(candidate.lat);
+    setLng(candidate.lon);
+    setPlaceQuery(candidate.displayName);
+    setPlaceResults([]);
+    setSheet(null);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-chip="place"]')?.focus());
   }
   function removePlace() {
     setPlaceEdited(true);
     setLocation("");
     setCountry("");
+    setPlaceQuery("");
+    setPlaceResults([]);
     setLat(undefined);
     setLng(undefined);
     setSheet(null);
   }
+
+  // B2676 — the place panel's own search, debounced the same way
+  // `AddressLookupField.tsx` already debounces its own (300ms): a
+  // keystroke is not a search. `plan/search` (→ `geocodePlace`) rather than
+  // `AddressLookupField`'s own `address-lookup` route — that one filters to
+  // street-level house numbers only (its own doc comment: "a 'city' hit is
+  // a place, not an address"), which would never find "Budapest" at all.
+  useEffect(() => {
+    if (!addressLookupAvailable || sheet !== "place") return;
+    const trimmed = placeQuery.trim();
+    if (trimmed.length < MIN_QUERY_LEN) {
+      setPlaceResults([]);
+      setPlaceSearchFailed(false);
+      return;
+    }
+    const id = ++placeSearchId.current;
+    const timer = setTimeout(() => {
+      fetch(`/api/helper/${encodeURIComponent(username)}/plan/search?q=${encodeURIComponent(trimmed)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((json: { results?: GeocodeCandidate[] } | null) => {
+          if (placeSearchId.current !== id) return;
+          if (!json) {
+            setPlaceSearchFailed(true);
+            setPlaceResults([]);
+            return;
+          }
+          setPlaceSearchFailed(false);
+          setPlaceResults(json.results ?? []);
+        })
+        .catch(() => {
+          if (placeSearchId.current === id) {
+            setPlaceSearchFailed(true);
+            setPlaceResults([]);
+          }
+        });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [addressLookupAvailable, sheet, placeQuery, username]);
+
+  // The search box shows the current place when the sheet opens, not
+  // whatever was last typed in a previous visit to it.
+  useEffect(() => {
+    if (sheet === "place") setPlaceQuery(place.location);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet]);
 
   // ── the route's place suggestion (B2200) ────────────────────────────
   // Asked once per (trip, date), only with the capability on and nothing
@@ -656,7 +752,7 @@ export default function AddDayFlow({
 
   function acceptPlaceSuggestion() {
     if (!placeSuggestion) return;
-    editPlace({ location: placeSuggestion.name, country: placeSuggestion.country });
+    editPlaceText({ location: placeSuggestion.name, country: placeSuggestion.country });
     setPlaceSuggestionDismissed(true);
     // B2646 — "Use it" is the whole answer: the panel closes and focus
     // returns to the place chip, which now names the place.
@@ -1475,14 +1571,51 @@ export default function AddDayFlow({
             <div className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
               {suggestionCard}
               <p className="mt-2 text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
-              <label className={`mt-3 ${LABEL}`}>
-                {t("studio.day.where.placeLabel")}
-                <input type="text" name="location" value={place.location} onChange={(e) => editPlace({ location: e.target.value })} className={FIELD} />
-              </label>
-              <label className={`mt-3 ${LABEL}`}>
-                {t("studio.day.where.countryLabel")}
-                <input type="text" name="country" value={place.country} onChange={(e) => editPlace({ country: e.target.value })} className={FIELD} />
-              </label>
+              {addressLookupAvailable ? (
+                <div className="relative mt-3">
+                  <label className={LABEL} htmlFor="studio-day-place-search">
+                    {t("studio.day.where.placeLabel")}
+                  </label>
+                  <input
+                    id="studio-day-place-search"
+                    type="text"
+                    role="combobox"
+                    aria-expanded={placeResults.length > 0}
+                    aria-controls="studio-day-place-results"
+                    value={placeQuery}
+                    onChange={(e) => setPlaceQuery(e.target.value)}
+                    className={FIELD}
+                  />
+                  {placeResults.length > 0 && (
+                    <ul id="studio-day-place-results" role="listbox" className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-line-quiet bg-surface-raised shadow-lg">
+                      {placeResults.map((candidate, i) => (
+                        <li key={`${candidate.displayName}-${i}`} role="option" aria-selected={false}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickPlace(candidate)}
+                            className="block w-full px-4 py-2 text-left text-base hover:bg-surface-subtle"
+                          >
+                            {candidate.displayName}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {placeSearchFailed && <p className="mt-1 text-xs text-ink-secondary">{t("studio.day.where.searchUnavailable")}</p>}
+                </div>
+              ) : (
+                <>
+                  <label className={`mt-3 ${LABEL}`}>
+                    {t("studio.day.where.placeLabel")}
+                    <input type="text" name="location" value={place.location} onChange={(e) => editPlaceText({ location: e.target.value })} className={FIELD} />
+                  </label>
+                  <label className={`mt-3 ${LABEL}`}>
+                    {t("studio.day.where.countryLabel")}
+                    <input type="text" name="country" value={place.country} onChange={(e) => editPlaceText({ country: e.target.value })} className={FIELD} />
+                  </label>
+                </>
+              )}
               <div className="mt-2 flex flex-wrap gap-x-4">
                 <button type="button" onClick={() => setSheet(null)} className={LINK}>
                   {t("studio.day.sheet.close")}
