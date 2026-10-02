@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "a0bcde84de34a00874dbf4eeb1d2407f2aca851a",
+  "generatedFrom": "98452dae3104d16d3041935eb720d1338160655a",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -477,6 +477,8 @@
     "photobook.read.open",
     "photobook.read.order",
     "photobook.read.phoneHint",
+    "photobook.reader.failed",
+    "photobook.reader.start",
     "photobook.receipt.body",
     "photobook.receipt.bodyVolumes",
     "photobook.receipt.cost",

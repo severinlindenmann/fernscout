@@ -2111,6 +2111,8 @@ export type TranslationKey =
   | "photobook.read.open"
   | "photobook.read.order"
   | "photobook.read.phoneHint"
+  | "photobook.reader.failed"
+  | "photobook.reader.start"
   | "photobook.receipt.body"
   | "photobook.receipt.bodyVolumes"
   | "photobook.receipt.cost"

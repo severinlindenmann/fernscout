@@ -1757,6 +1757,8 @@
   "photobook.read.heading": "A könyved elejétől a végéig",
   "photobook.read.open": "Olvasd el az egész könyvet",
   "photobook.read.order": "Megrendelem ezt a könyvet",
+  "photobook.reader.failed": "A pénztár most nem volt elérhető. Semmi nem lett megrendelve, és semmit nem számláztunk.",
+  "photobook.reader.start": "Saját példány megrendelése",
   "photobook.receipt.body": "{trip} — {pages} oldal, {cover}, {size}. Az egész könyv egyetlen PDF, a borítóval az első oldalon, ahogy a nyomda kéri.",
   "photobook.receipt.bodyVolumes": "{trip} — {pages} oldal {volumes} kötetben, {cover}, {size}. Minden kötet egyetlen PDF, a borítóval az első oldalon, ahogy a nyomda kéri.",
   "photobook.receipt.cost": "{total}.",

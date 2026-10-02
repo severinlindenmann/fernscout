@@ -1998,6 +1998,8 @@
   "photobook.read.heading": "Ton livre, de bout en bout",
   "photobook.read.open": "Lire tout le livre",
   "photobook.read.order": "Commander ce livre",
+  "photobook.reader.failed": "Impossible d'atteindre le paiement pour le moment. Rien n'a été commandé ni facturé.",
+  "photobook.reader.start": "Commander votre propre exemplaire",
   "photobook.receipt.body": "{trip} — {pages} pages, {cover}, {size}. Le livre entier est un seul PDF, avec la couverture en première page, comme le veut un imprimeur.",
   "photobook.receipt.bodyVolumes": "{trip} — {pages} pages en {volumes} volumes, {cover}, {size}. Chaque volume est un seul PDF, avec la couverture en première page, comme le veut un imprimeur.",
   "photobook.receipt.cost": "{total}.",

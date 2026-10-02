@@ -1998,6 +1998,8 @@
   "photobook.read.heading": "Dein Buch, von vorne bis hinten",
   "photobook.read.open": "Das ganze Buch lesen",
   "photobook.read.order": "Dieses Buch bestellen",
+  "photobook.reader.failed": "Die Kasse war gerade nicht erreichbar. Es wurde nichts bestellt und nichts berechnet.",
+  "photobook.reader.start": "Eigenes Exemplar bestellen",
   "photobook.receipt.body": "{trip} — {pages} Seiten, {cover}, {size}. Das ganze Buch ist eine einzige PDF, der Umschlag ist die erste Seite — so will es eine Druckerei.",
   "photobook.receipt.bodyVolumes": "{trip} — {pages} Seiten in {volumes} Bänden, {cover}, {size}. Jeder Band ist eine einzige PDF, der Umschlag ist die erste Seite — so will es eine Druckerei.",
   "photobook.receipt.cost": "{total}.",
