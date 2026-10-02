@@ -35,6 +35,9 @@ vi.mock("@/components/nativeShell", () => ({
   keepRecordingRoute: vi.fn(),
   refreshGpsToken: vi.fn(async () => ({ token: "t", expiresAt: "2099-01-01T00:00:00Z" })),
   needsGpsTokenRefresh: () => false,
+  // B2733 — the Lock Screen trip-name toggle, read on every mount.
+  getLockScreenTripName: async () => false,
+  setLockScreenTripName: vi.fn(),
 }));
 
 let root: Root | undefined;
