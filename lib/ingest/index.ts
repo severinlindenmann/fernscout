@@ -24,6 +24,7 @@ import {
   decodeSource,
   extensionFor,
   makeDerivative,
+  printJpegFor,
   perceptualHash,
   sourceLongestEdge,
   type DecodedSource,
@@ -360,6 +361,8 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
   const warnings: string[] = [];
   const skipped: { file: string; reason: string }[] = [];
   const failed: { file: string; reason: string }[] = [];
+  /** Bytes of print JPEGs written beside non-JPEG originals — B1528. */
+  let printJpegBytes = 0;
 
   const { media, notes } = scan(options.source);
   if (media.length === 0) throw new IngestError(`No photos or videos found in ${options.source}.`);
@@ -603,6 +606,15 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
             item.file,
             path.join(keep, `${name}${path.extname(item.file).toLowerCase()}`),
           );
+          // B1528: a non-JPEG camera file gets a full-resolution JPEG beside
+          // it, which is what the printers embed. The camera file stays.
+          const print = item.decoded
+            ? await printJpegFor(item.decoded, `${name}${path.extname(item.file)}`)
+            : null;
+          if (print) {
+            fs.writeFileSync(path.join(keep, print.name), print.bytes);
+            printJpegBytes += print.bytes.length;
+          }
         }
       } catch (err) {
         failed.push({ file: item.file, reason: (err as Error).message });
@@ -708,6 +720,16 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
   if (!options.dryRun && newRecords.length > 0) {
     ledger.imports.push(...newRecords);
     writeLedger(username, tripId, ledger);
+  }
+
+  // The CLI never refuses on storage; it says what it added (B1528). The
+  // upload routes are where the journal's quota is enforced.
+  if (printJpegBytes > 0) {
+    warnings.push(
+      `Kept full-resolution print JPEGs beside the non-JPEG originals, ` +
+        `${(printJpegBytes / 1_048_576).toFixed(1)} MB more in originals/. They count against the ` +
+        `journal's storage allowance.`,
+    );
   }
 
   return { entries: results, skipped, failed, imported, warnings, elapsedMs: Date.now() - started };

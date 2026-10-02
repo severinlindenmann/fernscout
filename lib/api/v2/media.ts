@@ -24,7 +24,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
-import { decodeSource, makeDerivative, MAX_DECODE_PIXELS } from "../../ingest/image";
+import { decodeSource, makeDerivative, printJpegFor, MAX_DECODE_PIXELS } from "../../ingest/image";
 import { frontmatterSrc } from "../../ingest/paths";
 import { contentHash } from "../../ingest/hash";
 import {
@@ -322,6 +322,7 @@ async function storeTripPhoto(
     fs.writeFileSync(stagedInput, upload.bytes);
 
     let derivativeBytes: Buffer;
+    let printJpeg: Awaited<ReturnType<typeof printJpegFor>> = null;
     let posterBytes: Buffer | undefined;
 
     if (isVideo) {
@@ -369,6 +370,8 @@ async function storeTripPhoto(
         if (edgeProblems.length > 0) return { ok: false, error: "invalid_media", problems: edgeProblems };
         const derivative = await makeDerivative(source);
         derivativeBytes = derivative.bytes;
+        // B1528: a non-JPEG original gets a full-resolution JPEG beside it.
+        printJpeg = await printJpegFor(source, `${hash}${originalExt}`);
       } finally {
         source.dispose();
       }
@@ -407,7 +410,7 @@ async function storeTripPhoto(
       ...(image ? { image } : {}),
     };
 
-    const guard = await withStorageQuota(username, upload.bytes.byteLength, () => {
+    const guard = await withStorageQuota(username, upload.bytes.byteLength + (printJpeg?.bytes.length ?? 0), () => {
       fs.mkdirSync(mediaDir, { recursive: true });
       fs.mkdirSync(originalsDir, { recursive: true });
       // Another request for the identical bytes could have landed while this
@@ -417,6 +420,7 @@ async function storeTripPhoto(
         fs.writeFileSync(derivativePath, derivativeBytes);
         if (posterName && posterBytes) fs.writeFileSync(path.join(mediaDir, posterName), posterBytes);
         if (!fs.existsSync(originalPath)) fs.writeFileSync(originalPath, upload.bytes);
+        if (printJpeg) fs.writeFileSync(path.join(originalsDir, printJpeg.name), printJpeg.bytes);
         // The sidecar the bytes already have, carried whole — every key the
         // inbox collected (a description, coordinates measured off EXIF, the
         // door it came through) survives the filing, and the inbox copy is
