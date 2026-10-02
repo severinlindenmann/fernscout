@@ -13,12 +13,17 @@ import type { MigrationDb } from "./types";
  * same guard `054-entitlements` gives `provider_ref`. One row is one use:
  * `used_at`/`used_ref` are set together, once, by a single conditional
  * UPDATE (`markVoucherUsed`), never by a plain read-then-write.
+ *
+ * `owner_id` is `NOT NULL` like every other table's (ROADMAP §0.5) —
+ * `lib/auth`'s `NO_JOURNAL` ("*") stands in for "not yet claimed" rather than
+ * a real `NULL`, the same sentinel `news_consent`/`sms_messages` and friends
+ * already use for instance-wide state.
  */
 export async function up(db: MigrationDb): Promise<void> {
   await db.schema
     .createTable("vouchers")
     .addColumn("id", "text", (c) => c.primaryKey().notNull())
-    .addColumn("owner_id", "text")
+    .addColumn("owner_id", "text", (c) => c.notNull())
     .addColumn("code", "text")
     .addColumn("applies_to", "text", (c) => c.notNull())
     .addColumn("amount_rappen", "integer", (c) => c.notNull())

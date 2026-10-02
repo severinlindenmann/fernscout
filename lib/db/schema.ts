@@ -1031,7 +1031,9 @@ type StorageAddonsTable = {
  */
 type VouchersTable = {
   id: string;
-  owner_id: string | null;
+  /** `lib/auth`'s `NO_JOURNAL` ("*") when not yet claimed by a coded
+   *  voucher — never a real `NULL` (ROADMAP §0.5). */
+  owner_id: string;
   code: string | null;
   applies_to: string;
   amount_rappen: number;
