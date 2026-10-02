@@ -571,7 +571,10 @@ function deriveTripTail(
   // still in the same zone, and a fresh guess here would find nothing to
   // guess from. Only the tail reads this extra date — `track.json` and
   // every other `dayTimezones` caller are untouched.
-  const tailEnd = nextDate(trip.end);
+  // Only while trip.end is still today's UTC date — the 00:00-02:00 local
+  // gap above. A trip that ended before today never gains a day: a whole
+  // day after its end (a home address, say) must not reach the tail.
+  const tailEnd = trip.end >= new Date(now).toISOString().slice(0, 10) ? nextDate(trip.end) : trip.end;
   const tailZonedDates: Record<string, string> =
     tailEnd in zonedDates ? { ...zonedDates } : { ...zonedDates, [tailEnd]: zonedDates[trip.end] ?? "UTC" };
   const tail = tailForTrip(username, {

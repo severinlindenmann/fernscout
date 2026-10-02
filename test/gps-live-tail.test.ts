@@ -263,6 +263,31 @@ describe("the derived tail — B2536", () => {
     }
   });
 
+  test("a trip that ended yesterday never shows today's walk in its tail (B2610's extra day is only for a trip ending today)", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-02T10:00:00.000Z"));
+      const pinnedNow = Date.now();
+      const edgeTrip = "ended-2026";
+      const start = "2026-09-28";
+      const end = "2026-10-01";
+      writeTripFixture(OWNER, {
+        id: edgeTrip,
+        start,
+        end,
+        visibility: "guest",
+        listed: false,
+        people: [{ name: "Robin", email: ROBIN_EMAIL }],
+        intro: "x",
+      });
+      appendFixes(OWNER, recentWalk(pinnedNow - 60_000, 41, 2));
+      deriveTripTrack(OWNER, { id: edgeTrip, start, end });
+      expect(readTail(OWNER, edgeTrip)).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("no fix at all leaves both files absent, never stale", () => {
     deriveTripTrack(OWNER, { id: TRIP, start: START_DATE, end: END_DATE });
     expect(readTrack(OWNER, TRIP)).toBeUndefined();
