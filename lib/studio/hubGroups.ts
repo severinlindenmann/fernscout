@@ -171,7 +171,7 @@ export function todayRows(model: Extract<StudioHubModel, { kind: "full" }>, user
     ...(ended
       ? [
           {
-            href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(ended.id)}&from=hub`,
+            href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(ended.id)}`,
             Icon: CalendarPlus,
             title: t("studio.hub.item.addDayEnded.title", { trip: ended.title }),
             description: t("studio.hub.item.addDayEnded.description", { trip: ended.title }),

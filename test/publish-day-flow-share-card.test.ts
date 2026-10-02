@@ -3,10 +3,11 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 
 /**
- * "Share it as a story" on the done screen after publishing — B2665,
- * decision: the first What-next card, deep-linking into the share page
- * with the just-published day already chosen. Take-down keeps its own two
- * cards unchanged (there is nothing to share once a day is off the site).
+ * "Share it as a story" after publishing — B2665, moved by B2678 off the old
+ * done screen's own What-next cards onto `PublishedDay.tsx` (Preview's own
+ * success state, since B2677 moved publishing itself off `PublishDayFlow`):
+ * the story card leads, then one card of three action rows, never loose
+ * underlined links (the owner's own objection the ticket names).
  *
  * Source-level, like `test/owner-tools.test.ts`'s own keepers: the thing
  * worth pinning is that it is there and first, not the exact JSX shape.
@@ -14,25 +15,40 @@ import { describe, expect, test } from "vitest";
 const root = path.join(__dirname, "..");
 const read = (file: string) => fs.readFileSync(path.join(root, file), "utf8");
 
-describe("PublishDayFlow's done screen", () => {
-  test("offers Share as a story as the first card, after a real publish", () => {
-    const source = read("components/studio/day/PublishDayFlow.tsx");
-    const doneBlock = source.slice(source.indexOf("if (done) {"), source.indexOf("if (chosen) {"));
-    expect(doneBlock).toContain("studio/day/share?trip=");
-    expect(doneBlock).toContain('t("studio.share.title")');
-    // "First" — within the publish branch's own array (after the
-    // `takeDown ? […] : […]` split), the share card's object literal comes
-    // before the "open the published day" card's.
-    const publishBranch = doneBlock.slice(doneBlock.indexOf("            : ["));
-    expect(publishBranch.indexOf("studio.share.title")).toBeLessThan(publishBranch.indexOf("dayHref(done)"));
-    // Never offered on the take-down screen — nothing to share once a day
-    // is off the site, and `takeDown` branches the `next` array for exactly
-    // that reason.
-    expect(doneBlock).toContain("takeDown\n            ?");
+describe("PublishedDay — B2678", () => {
+  test("Share as a story leads, before the three-row action card", () => {
+    const source = read("components/studio/day/PublishedDay.tsx");
+    expect(source).toContain("studio/day/share?trip=");
+    expect(source).toContain('t("studio.share.title")');
+    // Compared within the actual markup (`return (`), not the `rows` array
+    // literal declared above it, which names `sendLink` first for unrelated
+    // reasons (it is simply the first row).
+    const markup = source.slice(source.indexOf("return (\n    <div"));
+    expect(markup.indexOf("studio.share.title")).toBeLessThan(markup.indexOf('rows.map'));
   });
 
-  test("still carries the three cards' own cap (at most three)", () => {
-    const source = read("components/studio/DoneScreen.tsx");
-    expect(source).toContain("[DoneNext] | [DoneNext, DoneNext] | [DoneNext, DoneNext, DoneNext]");
+  test("the action card is three rows sharing one target size, not loose links", () => {
+    const source = read("components/studio/day/PublishedDay.tsx");
+    expect(source).toContain("studio.published.sendLink");
+    expect(source).toContain("studio.published.nextDay");
+    expect(source).toContain("studio.published.addPhotos");
+    // Every row shares one 64px-ish target and a hairline divider between
+    // them, inside one bordered card — `min-h-16`/`divide-y`/one
+    // `rounded-2xl border` wrapper around all three, not three separate
+    // underlined links loose in the page.
+    expect(source).toContain("min-h-16");
+    expect(source).toContain("divide-y divide-line-faint overflow-hidden rounded-2xl border");
+  });
+
+  test("what happened comes straight from the publish response, in a green band", () => {
+    const source = read("components/studio/day/PublishedDay.tsx");
+    expect(source).toContain("readerLine");
+    expect(source).toContain("bg-green-100");
+  });
+
+  test("PublishDayFlow no longer carries a publish done screen — B2677 moved it to Preview", () => {
+    const source = read("components/studio/day/PublishDayFlow.tsx");
+    expect(source).not.toContain("studio.share.title");
+    expect(source).not.toContain("studio.publish.done\"");
   });
 });

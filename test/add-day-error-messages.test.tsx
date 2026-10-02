@@ -103,7 +103,7 @@ describe("AddDayFlow write failures show sentences, never JSON — B2184", () =>
         { status: 400 },
       );
     await mount();
-    await click("Save privately");
+    await click("Preview →");
     expect(text()).toContain("IMG_6178.jpeg is too large (8064px)");
     expect(text()).toContain("at most 8000px on the longest edge");
     expect(text()).not.toContain("{");
@@ -113,7 +113,7 @@ describe("AddDayFlow write failures show sentences, never JSON — B2184", () =>
   test("any other write failure shows the plain message, never the response body", async () => {
     dayNewResponse = () => Response.json({ error: "day_write_failed", detail: { ok: false, stack: "at createDraft (…)" } }, { status: 400 });
     await mount();
-    await click("Save privately");
+    await click("Preview →");
     expect(text()).not.toContain("{");
     expect(text()).not.toContain("stack");
     expect(text()).toContain("Nothing at all was written");

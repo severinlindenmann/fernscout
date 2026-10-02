@@ -13,6 +13,8 @@
  * fact to disagree with the first.
  */
 
+import type { DayWeather } from "../weather";
+
 /**
  * The `content` a day is created with, before anybody has written anything.
  *
@@ -51,6 +53,15 @@ export type WizardDraft = {
    *  weather up" chip only ever offers itself where a lookup could answer,
    *  never as a guess about a day that has none. */
   hasCoordinates?: true;
+  /** B2676 — the real reading, once one has been recorded: the Write page's
+   *  weather chip shows this, never a static "Weather" label. Absent before
+   *  a lookup has answered (or where the day carries no coordinates). */
+  weather?: DayWeather;
+  /** B2676 — each photograph's own on-disk address (`src`), for the
+   *  receipt sheet: it needs to name *which* gallery item a read is for,
+   *  and the only thing a staged upload answers with is an inbox id, which
+   *  is not that address any more once the photograph has been attached. */
+  gallery?: { src: string; type: "image" | "video" }[];
 };
 
 // Not exported since B1239 — nothing outside this file needs the array

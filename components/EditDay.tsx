@@ -239,8 +239,9 @@ export default function EditDay({
    *  screen naming what changed underneath", never applied silently). */
   const [staleConflict, setStaleConflict] = useState<{ slug: string; changed: string[] } | null>(null);
 
-  /** B2331, D4 — a voice note recorded offline (`SpeakFlow`'s own queueing,
-   *  while composing this same date) that has since come back transcribed.
+  /** B2331, D4 — a voice note recorded offline (RecordButton's own `onOffline`
+   *  queueing, while composing this same date) that has since come back
+   *  transcribed.
    *  Never inserted on its own — this is only ever what the banner below
    *  offers, and only for `day.date`; a re-read on mount, and again whenever
    *  a confirm or discard changes the outbox. */

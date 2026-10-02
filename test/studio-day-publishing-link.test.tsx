@@ -2,7 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { resetNavigation } from "./fixtures/fakeNavigation";
+import { currentSearch, resetNavigation } from "./fixtures/fakeNavigation";
 import AddDayFlow from "@/components/studio/day/AddDayFlow";
 import EditDayFlow from "@/components/studio/day/EditDayFlow";
 import StudioBarProvider from "@/components/studio/StudioBar";
@@ -26,8 +26,12 @@ vi.mock("next/navigation", async () => (await import("./fixtures/fakeNavigation"
  * says a draft is a draft, and where it is published from, without offering
  * to publish it.
  *
- * B2140 — publishing has its own studio page now, so both links go there
- * with the day preselected; `day/edit` still offers no publish button.
+ * B2140 — publishing had its own studio page, both links went there with
+ * the day preselected.
+ *
+ * B2677 — that screen (and its own "Publish this day ›" link) is gone:
+ * "Preview →" now saves and goes straight to `/studio/day/preview`
+ * (`PreviewDayFlow`), which finds every part of the trip/date on its own.
  *
  * Same jsdom + `createRoot` harness as `test/add-day-asks-no-declinables.test.tsx`.
  */
@@ -59,7 +63,7 @@ async function mount(node: React.ReactNode) {
 }
 
 describe("the day-created screen", () => {
-  test("the publishing link opens the studio's publish page with the new day chosen (B2140)", async () => {
+  test("Preview → saves and goes to Preview for the new day's trip and date (B2677)", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
@@ -84,19 +88,17 @@ describe("the day-created screen", () => {
 
     // B2188 — one page: Save privately is the bar's one primary.
     await act(async () => {
-      [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Save privately")!.click();
+      [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Preview →")!.click();
     });
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    // D5 — "Publish this day", a quiet link beside Done (B2188); "Open the day"
-    // and "Add another day" went with the what-next cards (no nudges).
-    const link = [...container!.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Publish this day ›");
-    expect(link, container!.innerHTML.slice(0, 400)).toBeTruthy();
-    // The route answers with the dated v2 id; the publish page wants the bare slug.
-    expect(link!.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
+    // B2677 — no more done screen or "Publish this day ›" link here: the
+    // save itself goes straight to Preview, for this trip and the date the
+    // proposal named.
+    expect(currentSearch()).toBe("trip=reise&date=2025-11-01");
   });
 });
 
@@ -125,7 +127,7 @@ describe("day/edit", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ etag: '"abc"' }), { status: 200 })));
   }
 
-  test("a draft wears a Draft pill that links to publishing it (B2140)", async () => {
+  test("a draft wears a Draft pill that links to publishing it (B2140/B2677)", async () => {
     stubVersionFetch();
     // B2073 — the flow's Save is the studio bar's primary; the page is
     // only ever mounted under the studio layout's provider.
@@ -136,7 +138,9 @@ describe("day/edit", () => {
     );
     const pill = container!.querySelector("[data-draft-pill]");
     expect(pill?.textContent).toContain("Draft");
-    expect(pill?.querySelector("a")?.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
+    // B2677 — publishing moved to Preview, which finds every part of this
+    // trip/date on its own.
+    expect(pill?.querySelector("a")?.getAttribute("href")).toBe("/@alex/studio/day/preview?trip=reise&date=2025-11-01");
     expect(pill?.querySelector("button")).toBeNull();
   });
 

@@ -1,10 +1,38 @@
 import { describe, expect, test } from "vitest";
-import { splitIntoParts } from "@/lib/studio/dayParts";
+import { partTimeOfDay, splitIntoParts, waitingSheetPreselectsAll } from "@/lib/studio/dayParts";
 
 /** TIX-2 — splitting one day's photographs into a handful of parts, by time
  *  and distance alone. Pure function, no I/O. */
 
 const T = (hhmm: string) => `2026-06-22T${hhmm}:00`;
+
+describe("waitingSheetPreselectsAll — B2676, the photo sheet's own Waiting tab", () => {
+  test("20 or fewer waiting for this day: all pre-selected", () => {
+    expect(waitingSheetPreselectsAll(0)).toBe(true);
+    expect(waitingSheetPreselectsAll(1)).toBe(true);
+    expect(waitingSheetPreselectsAll(20)).toBe(true);
+  });
+
+  test("more than 20 waiting for this day: none pre-selected", () => {
+    expect(waitingSheetPreselectsAll(21)).toBe(false);
+    expect(waitingSheetPreselectsAll(100)).toBe(false);
+  });
+});
+
+describe("partTimeOfDay", () => {
+  test("morning, afternoon and evening by the hour", () => {
+    expect(partTimeOfDay("08:12")).toBe("morning");
+    expect(partTimeOfDay("11:59")).toBe("morning");
+    expect(partTimeOfDay("12:00")).toBe("afternoon");
+    expect(partTimeOfDay("17:59")).toBe("afternoon");
+    expect(partTimeOfDay("18:00")).toBe("evening");
+    expect(partTimeOfDay("23:30")).toBe("evening");
+  });
+
+  test("no time at all: null, never a guess", () => {
+    expect(partTimeOfDay(null)).toBeNull();
+  });
+});
 
 describe("splitIntoParts", () => {
   test("a long day with three real gaps becomes three parts", () => {

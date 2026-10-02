@@ -21,6 +21,25 @@ async function toFile(url: string, name: string, type: string): Promise<File> {
   return new File([blob], name, { type });
 }
 
+/** B2678 — the look is remembered across visits, so a story made every day
+ *  does not start from "photo" every time. Per owner, not per trip: it is a
+ *  preference about how they like their stories to look, not a trip fact. */
+function rememberedLook(username: string): Look | null {
+  try {
+    const raw = window.localStorage.getItem(`fs.share.look.${username}`);
+    return raw === "photo" || raw === "postcard" || raw === "collage" || raw === "video" ? raw : null;
+  } catch {
+    return null;
+  }
+}
+function rememberLook(username: string, look: Look) {
+  try {
+    window.localStorage.setItem(`fs.share.look.${username}`, look);
+  } catch {
+    // A browser with no storage still works; it just asks again next time.
+  }
+}
+
 /**
  * "Share as a story" — B2665. Picks one of three stills or a short clip,
  * optionally the day's own photos, and a caption drawn from the owner's
@@ -56,7 +75,18 @@ export default function ShareDayStory({
     ...(canCollage ? (["collage"] as const) : []),
     ...(videoAvailable && photos.length > 0 ? (["video"] as const) : []),
   ];
-  const [look, setLook] = useState<Look>("photo");
+  const [look, setLook] = useState<Look>(() => {
+    const remembered = rememberedLook(username);
+    return remembered && looks.includes(remembered) ? remembered : "photo";
+  });
+  function chooseLook(next: Look) {
+    setLook(next);
+    rememberLook(username, next);
+  }
+  // B2678 — "Include more photos from this day", off by default: the day's
+  // own photos are a choice to widen the story with, not something offered
+  // open on every visit.
+  const [includeMorePhotos, setIncludeMorePhotos] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
   const [caption, setCaption] = useState(initialCaption);
   const [includeLink, setIncludeLink] = useState(linkAllowed);
@@ -98,14 +128,18 @@ export default function ShareDayStory({
       } else if (pictureUrl) {
         files.push(await toFile(pictureUrl, "story.png", "image/png"));
       }
-      for (const index of selectedPhotos) {
-        const photo = photos[index];
-        if (!photo) continue;
-        files.push(await toFile(photo.src, `photo-${index + 1}.jpg`, "image/jpeg"));
+      if (includeMorePhotos) {
+        for (const index of selectedPhotos) {
+          const photo = photos[index];
+          if (!photo) continue;
+          files.push(await toFile(photo.src, `photo-${index + 1}.jpg`, "image/jpeg"));
+        }
       }
       const text = includeLink && link ? `${caption}\n\n${link}` : caption;
       if (canShareFiles && navigator.canShare({ files })) {
         await navigator.share({ files, text });
+        // B2678 — "Shared." only once `navigator.share` has actually
+        // resolved; a download is not a share, so it says nothing here.
         setShared(true);
       } else {
         for (const file of files) {
@@ -116,7 +150,6 @@ export default function ShareDayStory({
           a.click();
           URL.revokeObjectURL(url);
         }
-        setShared(true);
       }
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
@@ -196,24 +229,8 @@ export default function ShareDayStory({
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <p className="text-sm font-semibold text-ink-strong">{t("studio.share.pickLook")}</p>
-        <div className="mt-2 grid grid-cols-4 gap-2 sm:max-w-md">
-          {looks.map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={look === option}
-              className={tileClass(look === option)}
-              onClick={() => setLook(option)}
-            >
-              {sketch[option]}
-              <span className="px-0.5">{t(`studio.share.look.${option}`)}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
+      {/* B2678 — the preview leads; the look picker is the control for it,
+          not the first thing on the screen. */}
       <div className="overflow-hidden rounded-xl border border-line-quiet bg-surface-subtle">
         {look === "video" ? (
           // eslint-disable-next-line jsx-a11y/media-has-caption
@@ -223,25 +240,50 @@ export default function ShareDayStory({
         )}
       </div>
 
+      <div>
+        <p className="text-sm font-semibold text-ink-strong">{t("studio.share.pickLook")}</p>
+        <div className="mt-2 grid grid-cols-4 gap-2 sm:max-w-md">
+          {looks.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={look === option}
+              className={tileClass(look === option)}
+              onClick={() => chooseLook(option)}
+            >
+              {sketch[option]}
+              <span className="px-0.5">{t(`studio.share.look.${option}`)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {photos.length > 0 && (
         <div>
-          <p className="text-sm font-semibold text-ink-strong">{t("studio.share.photosToo")}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {photos.map((photo, index) => (
-              <button
-                key={photo.src}
-                type="button"
-                aria-pressed={selectedPhotos.has(index)}
-                onClick={() => togglePhoto(index)}
-                className={`h-16 w-16 overflow-hidden rounded-lg border ${
-                  selectedPhotos.has(index) ? "border-[#2f6fed] ring-2 ring-[#2f6fed]" : "border-line-quiet"
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo.src} alt="" className="h-full w-full object-cover" />
-              </button>
-            ))}
-          </div>
+          {/* B2678 — "Include more photos from this day", off by default:
+              the picker only opens once the owner actually asks for it. */}
+          <label className="flex min-h-11 items-center gap-3 text-sm text-ink-strong">
+            <input type="checkbox" className="size-5" checked={includeMorePhotos} onChange={(e) => setIncludeMorePhotos(e.target.checked)} />
+            {t("studio.share.photosToo")}
+          </label>
+          {includeMorePhotos && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {photos.map((photo, index) => (
+                <button
+                  key={photo.src}
+                  type="button"
+                  aria-pressed={selectedPhotos.has(index)}
+                  onClick={() => togglePhoto(index)}
+                  className={`h-16 w-16 overflow-hidden rounded-lg border ${
+                    selectedPhotos.has(index) ? "border-[#2f6fed] ring-2 ring-[#2f6fed]" : "border-line-quiet"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo.src} alt="" className="h-full w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

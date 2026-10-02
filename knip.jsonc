@@ -70,6 +70,12 @@
     // only from paid/'s own `verify-purchase.ts` and `notifications.ts`,
     // outside knip's graph — same shape as `accountToken.ts` above.
     "lib/apple/environments.ts",
+    // Open core: `namesOnTrip` lost its one open-repo caller when B2679
+    // deleted the "Saved." done screen (`readersByTrip`, `AddDayFlow.tsx`);
+    // it is still called from paid/'s own postcard signature
+    // (`postcardFlow.ts`, `postcard/entry.ts`), outside knip's graph — same
+    // shape as `accountToken.ts` above.
+    "lib/tripPeople.ts",
     // The suite, and the fixtures it reaches for.
     "test/**/*.test.{ts,tsx}",
     "test/fixtures/**/*.{ts,tsx}",

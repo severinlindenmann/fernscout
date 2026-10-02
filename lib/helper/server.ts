@@ -184,6 +184,8 @@ export function dayForWizard(
     ...(entry.lat !== undefined && entry.lng !== undefined
       ? { hasCoordinates: true as const }
       : {}),
+    ...(entry.weather ? { weather: entry.weather } : {}),
+    ...(entry.gallery.length > 0 ? { gallery: entry.gallery.map((g) => ({ src: g.src, type: g.type })) } : {}),
   };
 }
 

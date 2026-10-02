@@ -74,6 +74,7 @@ export default function DayExtras({
   currencies,
   keep = { costs: false, transportMode: false, tags: false },
   routeTravel = null,
+  showTags = true,
 }: {
   value: DayExtrasValue;
   onChange: (next: DayExtrasValue) => void;
@@ -84,6 +85,9 @@ export default function DayExtras({
    *  part), longest first, in the recorder's own mode names. Offered, never
    *  filled in by itself. */
   routeTravel?: { mode: string; km: number }[] | null;
+  /** B2677 — tags moved to Preview; the Write page's own "More details"
+   *  turns this off so the field is not asked for twice. */
+  showTags?: boolean;
 }) {
   const { t } = useI18n();
   const [tagDraft, setTagDraft] = useState("");
@@ -229,6 +233,7 @@ export default function DayExtras({
         </select>
       </div>
 
+      {showTags && (
       <div>
         <label htmlFor={tagId} className={LABEL}>
           {t("studio.day.field.tags")}
@@ -273,6 +278,7 @@ export default function DayExtras({
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -73,6 +73,28 @@ function isSplit(a: Dated, b: Dated): boolean {
   return km > SOFT_GAP_KM;
 }
 
+/** "the morning" / "the afternoon" / "the evening", from a part's own first
+ *  photo's time — B2676, the photo sheet's own header ("Add photos to the
+ *  morning"). `null` (an undated part, or no `from` at all) falls back to
+ *  "this part" at the call site; never a guess at a time nobody recorded. */
+/** The "＋ Add photos" sheet's own Waiting tab — B2676 — ticks every one of
+ *  "this day"'s own waiting photographs by default, *unless* there are more
+ *  than 20 of them, in which case none are: with that many, picking is a
+ *  real choice, not a wall of ticks somebody has to undo one at a time.
+ *  Pure: the sheet hands it a count, not the photographs themselves. */
+export function waitingSheetPreselectsAll(thisDayWaitingCount: number): boolean {
+  return thisDayWaitingCount <= 20;
+}
+
+export function partTimeOfDay(from: string | null): "morning" | "afternoon" | "evening" | null {
+  if (!from) return null;
+  const hour = Number(from.slice(0, 2));
+  if (!Number.isFinite(hour)) return null;
+  if (hour < 12) return "morning";
+  if (hour < 18) return "afternoon";
+  return "evening";
+}
+
 export function splitIntoParts(photos: readonly DayPhoto[]): { parts: DayPart[] } {
   if (photos.length === 0) return { parts: [] };
 

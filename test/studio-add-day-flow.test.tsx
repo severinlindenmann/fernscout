@@ -118,8 +118,20 @@ function type(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
   Object.getOwnPropertyDescriptor(proto, "value")!.set!.call(el, value);
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
+/** B2677, bugs 5/6 — "This phone" lives in the one photo sheet now, never a
+ *  standalone picker on the page itself; open it (the empty tile when there
+ *  are no photos yet, or the grid's own "＋Add" cell otherwise), switch to
+ *  its device tab, then pick. The sheet closes itself on a successful pick. */
 async function pickTwoFiles() {
-  const input = container.querySelector("input[type=file]") as HTMLInputElement;
+  const opener =
+    (container.querySelector('button[aria-label="Add photos"]') as HTMLButtonElement | null) ??
+    (Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Add photos")) as HTMLButtonElement);
+  await act(async () => opener.click());
+  await flush();
+  const deviceTab = Array.from(container.querySelectorAll('[role="tab"]')).find((b) => b.textContent === "This phone") as HTMLButtonElement;
+  await act(async () => deviceTab.click());
+  await flush();
+  const input = container.querySelector("#studio-day-photo-sheet-device") as HTMLInputElement;
   const files = [new File(["a"], "01.jpg", { type: "image/jpeg" }), new File(["b"], "02.jpg", { type: "image/jpeg" })];
   Object.defineProperty(input, "files", { configurable: true, value: files });
   await act(async () => input.dispatchEvent(new Event("change", { bubbles: true })));
@@ -163,7 +175,7 @@ describe("AddDayFlow, one page — B2188", () => {
 
     type(container.querySelector("textarea") as HTMLTextAreaElement, "Rain all day, then the river.");
     await flush();
-    await click("Save privately");
+    await click("Preview →");
 
     const body = commitBody as unknown as Record<string, unknown>;
     expect(body.mediaInboxIds).toEqual([A.id, B.id]);
@@ -175,8 +187,9 @@ describe("AddDayFlow, one page — B2188", () => {
     expect(body.declined).toEqual({});
     expect(body.weather).toBe(false);
 
-    expect(text()).toContain("Saved. Only you can see this day.");
-    expect(currentSearch()).toBe("");
+    // B2677 — the unsplit day's own "Preview →" now goes straight to
+    // Preview rather than showing an inline "Saved" screen of its own.
+    expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
     expect(sessionStorage.getItem(addDayStorageKey("alex"))).toBeNull();
     expect(errors.mock.calls.filter((c) => String(c[0]).includes("same key"))).toEqual([]);
   });
@@ -211,7 +224,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await click("Leave the outliers out");
     expect(text()).toContain("3 chosen");
     expect(text()).not.toContain("taken on a different day");
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { mediaInboxIds: string[]; date: string }).mediaInboxIds).toEqual(["p1", "p2", "p4"]);
     expect((commitBody as unknown as { date: string }).date).toBe("2025-11-05");
   });
@@ -223,7 +236,7 @@ describe("AddDayFlow, one page — B2188", () => {
     expect(text()).toContain("No date in these photos. Which day was it?");
     // B2645 — the button is never a dead tap: it writes nothing, names what
     // is missing and opens the day picker; "Use today" is one tap away.
-    const save = Array.from(container.ownerDocument.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Save privately");
+    const save = Array.from(container.ownerDocument.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Preview →");
     expect(save?.disabled).toBe(false);
     await act(async () => save!.click());
     await flush();
@@ -253,7 +266,7 @@ describe("AddDayFlow, one page — B2188", () => {
       expect(text()).toContain("2 chosen");
       expect(dateChip()).toContain("from 2 photos");
       expect(text()).not.toContain("different day");
-      await click("Save privately");
+      await click("Preview →");
       const body = commitBody as unknown as { mediaInboxIds: string[]; date: string };
       expect(body.mediaInboxIds).toEqual(["d6a", "d6b"]);
       expect(body.date).toBe("2025-11-06");
@@ -297,7 +310,7 @@ describe("AddDayFlow, one page — B2188", () => {
       expect(grid()).toEqual(["o4.jpg", "t1.jpg", "t2.jpg", "t3.jpg"]);
       expect(text()).toContain("4 chosen");
       expect(text()).toContain("Add more from what's waiting (4)");
-      await click("Save privately");
+      await click("Preview →");
       expect((commitBody as unknown as { mediaInboxIds: string[] }).mediaInboxIds).toEqual(["o4", "t1", "t2", "t3"]);
     });
 
@@ -318,7 +331,7 @@ describe("AddDayFlow, one page — B2188", () => {
     props = { trips: [...TRIPS, { id: "wochenende", title: "Wochenende", start: "2025-11-09", end: "2025-11-11" }] };
     await mount();
     expect(dateChip()).toContain("Wochenende · day 2");
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { trip: string }).trip).toBe("wochenende");
   });
 
@@ -333,7 +346,8 @@ describe("AddDayFlow, one page — B2188", () => {
     await act(async () => (container.querySelector('[data-chip="date"]') as HTMLButtonElement).click());
     expect(text()).toContain("Not right? Change it");
     const select = container.querySelector("select") as HTMLSelectElement;
-    expect([...select.options].map((o) => o.value)).toEqual(["reise", "andere"]);
+    // B2676 — "+ New trip…" is always the last option, even here.
+    expect([...select.options].map((o) => o.value)).toEqual(["reise", "andere", "__new__"]);
     expect(text()).not.toContain("×");
   });
 
@@ -342,7 +356,7 @@ describe("AddDayFlow, one page — B2188", () => {
     props = { initialPhotos: "2025-11-05" };
     await mount();
     expect(container.querySelector('[data-chip="weather"]')).toBeNull();
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { weather: boolean }).weather).toBe(false);
 
     act(() => root!.unmount());
@@ -354,7 +368,7 @@ describe("AddDayFlow, one page — B2188", () => {
     await act(async () => (container.querySelector('[data-chip="weather"]') as HTMLButtonElement).click());
     await click("Leave it out");
     expect(container.querySelector('[data-chip="weather"]')?.textContent).toContain("not looked up");
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { weather: boolean; lat: number }).weather).toBe(false);
     expect((commitBody as unknown as { lat: number }).lat).toBe(46.2);
   });
@@ -363,101 +377,101 @@ describe("AddDayFlow, one page — B2188", () => {
     inbox = [{ ...A, takenAt: "2025-11-05T09:00:00", lat: 46.2, lon: 9.0 }];
     props = { weatherAvailable: true, initialPhotos: "2025-11-05" };
     await mount();
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { weather: boolean }).weather).toBe(true);
   });
 
-  test("the saved sentence names the people on the trip, and sharing is a quiet link", async () => {
-    props = { readersByTrip: { reise: ["Hans", "Viki"] } };
-    await mount();
-    await click("Save privately");
-    expect(text()).toContain("Saved. Only you and Hans, Viki can see this day.");
-    const share = [...container.querySelectorAll("a")].find((a) => a.textContent?.trim() === "Publish this day ›");
-    expect(share?.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
+  test("B2677, bug 1 — opening the page writes nothing until there are words or a photo", async () => {
+    vi.useFakeTimers();
+    try {
+      await mount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      const dayNewCalls = vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/day/new"));
+      expect(dayNewCalls.length).toBe(0);
+      expect(text()).toContain("Not saved yet");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  test("a date with a draft day offers to add to it, and a second entry with a time", async () => {
+  test("B2677, bug 2 — Preview → patches the day autosave already created, never POSTs day/new a second time", async () => {
+    vi.useFakeTimers();
+    try {
+      await mount();
+      type(container.querySelector("textarea") as HTMLTextAreaElement, "A short note.");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/day/new")).length).toBe(1);
+      await act(async () => {
+        button("Preview →").click();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/day/new")).length).toBe(1);
+      expect(
+        vi.mocked(fetch).mock.calls.some(([url, init]) => String(url).endsWith("/day") && (init as RequestInit | undefined)?.method === "PATCH"),
+      ).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("Preview → saves and goes to Preview for this trip and date", async () => {
+    await mount();
+    await click("Preview →");
+    // B2677 — the old inline "Saved." done screen (and its reader-named
+    // sentence) is gone; Preview now says who reads it.
+    expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
+  });
+
+  /**
+   * B2677, bug 3 — the old full-screen collision takeover ("Two days on one
+   * date is almost never what somebody means…", "Make a second update on
+   * this date") is gone. A 409 `date_has_day` from the write now surfaces
+   * only as the same inline "Add this to it?" card `day/for-date` already
+   * asks ahead of time — one shape, whether the race was caught early or
+   * only at the write itself, and whether the existing day is a draft or
+   * already published.
+   */
+  test("a 409 date_has_day on Preview → surfaces the inline 'Add this to it?' card, and a second entry goes through", async () => {
     dayNew = () =>
       commitBody?.confirmSecondEntry
         ? Response.json({ ok: true, slug: `${TODAY}-second` }, { status: 201 })
         : Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
     await mount();
-    await click("Save privately");
-    expect(text()).toContain("already has a day");
-    expect([...container.querySelectorAll("a")].find((a) => a.textContent === "Add to that day instead")?.getAttribute("href")).toBe(
-      "/@alex/studio/day/edit?slug=first",
-    );
+    await click("Preview →");
+    expect(text()).toContain("already has");
+    expect(text()).toContain("Add this to it?");
     type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
     await flush();
-    await click("Make a second update on this date");
+    await click("Yes, add to that day");
+    await click("Preview →");
     expect(commitBody).toMatchObject({ confirmSecondEntry: true, time: "18:00" });
-    expect(text()).toContain("Saved.");
+    // B2677 — a second update's own "Preview →" goes to Preview too.
+    expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
   });
 
-  test("a date with a published day offers to change it, not to add to it", async () => {
+  test("the same inline card surfaces for a published day too — no separate 'change instead' screen", async () => {
     dayNew = () => Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "published" } }, { status: 409 });
     await mount();
-    await click("Save privately");
-    expect(text()).toContain("Change that day instead");
-    expect(text()).not.toContain("Add to that day instead");
+    await click("Preview →");
+    expect(text()).toContain("Add this to it?");
+    expect(text()).not.toContain("Change that day instead");
   });
 
-  /**
-   * B2108 — the collision screen let a second entry through once a time was
-   * named, but the address on disk is date + title only (createDraft's own
-   * slug logic, untouched here): naming a time never told two same-titled
-   * entries apart, and the person learned that at the very end with a
-   * day_exists 400. This is fixed two ways — caught here separately:
-   *
-   * 1. Client-side: once the collision screen's own title matches the day
-   *    already there, it says so and offers the title field, before a
-   *    server round trip is even made.
-   * 2. Server-side, in case the client-side check ever misses a case
-   *    (accent folding, whitespace): a day_exists/slug_taken answer stays on
-   *    the collision screen rather than falling to the generic
-   *    write-failed one.
-   */
-  test("a same-titled second entry is caught before the round trip: the confirm button is disabled and says why", async () => {
-    dayNew = () => Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
-    await mount();
-    type(container.querySelector('input[name="title"]') as HTMLInputElement, "First");
-    await flush();
-    await click("Save privately");
-    expect(text()).toContain("already has a day");
-    type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
-    await flush();
-    expect(text()).toContain("This title is the same as the day above's.");
-    const confirm = button("Make a second update on this date");
-    expect(confirm.disabled).toBe(true);
-  });
-
-  test("a day_exists answer from the server keeps the collision screen up, not the generic write-failed one", async () => {
+  test("a day_exists answer (a same-titled second entry) falls back to the generic write-failed screen", async () => {
     dayNew = () =>
       commitBody?.confirmSecondEntry
         ? Response.json({ error: "day_exists", detail: { ok: false, code: "day_exists" } }, { status: 400 })
         : Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
     await mount();
-    await click("Save privately");
-    type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
-    await flush();
-    await click("Make a second update on this date");
-    expect(text()).toContain("already has a day");
-    expect(text()).not.toContain("Nothing at all was written");
-  });
-
-  test("Polish my text sits under the box when the page hands it an available plan, and is absent on null", async () => {
-    const words = "We walked along the river all morning and then ate far too many pastries by the tower.";
-    await mount();
-    type(container.querySelector("textarea") as HTMLTextAreaElement, words);
-    await flush();
-    expect(text()).not.toContain("Polish my text");
-
-    act(() => root!.unmount());
-    container.remove();
-    props = { polishAiAvailable: true };
-    await mount();
-    expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toBe(words);
-    expect(text()).toContain("Polish my text");
+    await click("Preview →");
+    await click("Yes, add to that day");
+    await click("Preview →");
+    expect(text()).toContain("The day was not made.");
+    expect(text()).toContain("Nothing at all was written");
   });
 
   test("More details is collapsed and remembered", async () => {
@@ -480,10 +494,8 @@ describe("B2627 — a long day's photos picked inside the composer are offered a
     { ...A, id: "a1", filename: "a1.jpg", takenAt: "2025-11-05T13:00:00", uploadedAt: "2025-11-10T10:00:03.000Z" },
   ];
 
-  test("choosing them offers the same split, with the words typed so far", async () => {
+  test("choosing them splits in place — stacked on the same page, each with its own photos and words", async () => {
     inbox = LONG_DAY;
-    const onSplit = vi.fn();
-    props = { onSplit };
     await mount();
     await chooseEveryWaitingPhoto();
     expect(text()).toContain("This day looks like 2 parts");
@@ -493,45 +505,98 @@ describe("B2627 — a long day's photos picked inside the composer are offered a
     type(container.querySelector("textarea") as HTMLTextAreaElement, "A long one, two places.");
     await flush();
     await click("Write it in 2 parts");
-    expect(onSplit).toHaveBeenCalledTimes(1);
-    const [parts, content] = onSplit.mock.calls[0] as [{ ids: string[] }[], string];
-    expect(parts.map((p) => p.ids)).toEqual([["m1", "m2"], ["a1"]]);
-    expect(content).toBe("A long one, two places.");
-    // The one-day draft is cleared: the parts carry these photos and words now.
-    expect(sessionStorage.getItem(addDayStorageKey("alex"))).toBeNull();
+    // B2676 — no callback to a parent any more: both parts are right here,
+    // stacked, each its own card — and the words typed before the split
+    // rode into the first one, visibly.
+    expect(document.querySelector("[data-day-parts]")).not.toBeNull();
+    const textareas = Array.from(container.querySelectorAll("[data-day-parts] textarea")) as HTMLTextAreaElement[];
+    expect(textareas).toHaveLength(2);
+    expect(textareas[0].value).toBe("A long one, two places.");
+    expect(textareas[1].value).toBe("");
+    // The draft is still kept (now carrying the parts), never cleared out
+    // from under somebody who reloads mid-split.
+    expect(sessionStorage.getItem(addDayStorageKey("alex"))).not.toBeNull();
   });
 
   test("Keep it one day dismisses it for this exact set of photos, not forever", async () => {
     inbox = LONG_DAY;
-    props = { onSplit: vi.fn() };
     await mount();
     await chooseEveryWaitingPhoto();
     expect(text()).toContain("This day looks like 2 parts");
     await click("Keep it one day");
     expect(text()).not.toContain("This day looks like 2 parts");
     // Save privately still works, as one entry with every chosen photo.
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { mediaInboxIds: string[] }).mediaInboxIds).toEqual(["m1", "m2", "a1"]);
   });
+});
 
-  test("never offered a second time inside one part of the flow already", async () => {
-    const onSplit = vi.fn();
-    props = {
-      onSplit,
-      asPart: {
-        key: "part-1",
-        photoIds: LONG_DAY.map((i) => i.id),
-        time: "09:00",
-        secondEntry: false,
-        label: "Next part",
-        assistant: false,
-        onSaved: vi.fn(),
-      },
-    };
-    inbox = LONG_DAY;
+describe("B2676 — the '＋ Add photos' sheet's own Waiting tab", () => {
+  test("more than 20 waiting for this day: none are pre-selected", async () => {
+    // Dated to 2025-11-05, not to `proposedToday` (2025-11-10) — so the
+    // page's own "today's photos" auto-choose never sweeps them up before
+    // the date is moved onto their own day.
+    inbox = Array.from({ length: 21 }, (_, i) => ({ ...A, id: `w${i}`, filename: `w${i}.jpg`, takenAt: "2025-11-05T09:00:00" }));
     await mount();
-    expect(text()).not.toContain("This day looks like");
-    expect(onSplit).not.toHaveBeenCalled();
+    await act(async () => (container.querySelector('[data-chip="date"]') as HTMLButtonElement).click());
+    await act(async () => {
+      Array.from(container.querySelectorAll("summary")).find((s) => s.textContent === "Another date")!.click();
+    });
+    await flush();
+    await act(async () => (container.querySelector('button[data-date="2025-11-05"]') as HTMLButtonElement).click());
+    await flush();
+    expect(dateChip()).toContain("5 November");
+
+    await act(async () => (container.querySelector('[aria-label="Add photos"]') as HTMLButtonElement).click());
+    await flush();
+    const sheet = container.querySelector('[role="dialog"]')!;
+    expect(sheet.querySelectorAll("[data-photo]")).toHaveLength(21);
+    const ticked = sheet.querySelectorAll('[data-photo][aria-pressed="true"]');
+    expect(ticked).toHaveLength(0);
+  });
+
+  test("20 or fewer waiting for this day: every one is pre-selected", async () => {
+    inbox = Array.from({ length: 20 }, (_, i) => ({ ...A, id: `w${i}`, filename: `w${i}.jpg`, takenAt: "2025-11-05T09:00:00" }));
+    await mount();
+    await act(async () => (container.querySelector('[data-chip="date"]') as HTMLButtonElement).click());
+    await act(async () => {
+      Array.from(container.querySelectorAll("summary")).find((s) => s.textContent === "Another date")!.click();
+    });
+    await flush();
+    await act(async () => (container.querySelector('button[data-date="2025-11-05"]') as HTMLButtonElement).click());
+    await flush();
+
+    await act(async () => (container.querySelector('[aria-label="Add photos"]') as HTMLButtonElement).click());
+    await flush();
+    const sheet = container.querySelector('[role="dialog"]')!;
+    const ticked = sheet.querySelectorAll('[data-photo][aria-pressed="true"]');
+    expect(ticked).toHaveLength(20);
+  });
+});
+
+describe("B2676 — a manual place edit clears a photo's own coordinates", () => {
+  test("typing a place by hand drops the pin a photo gave, and a stale pin never reaches the write", async () => {
+    inbox = [{ ...A, takenAt: "2025-11-05T09:00:00", lat: 46.2, lon: 9.0 }];
+    props = { weatherAvailable: true, initialPhotos: "2025-11-05" };
+    await mount();
+    // The pin is real: a photo with coordinates and no name offers the
+    // weather chip, which needs `hasCoords`.
+    expect(container.querySelector('[data-chip="weather"]')).not.toBeNull();
+
+    await act(async () => (container.querySelector('[data-chip="place"]') as HTMLButtonElement).click());
+    const locationInput = container.querySelector('input[name="location"]') as HTMLInputElement;
+    expect(locationInput).not.toBeNull();
+    type(locationInput, "Chur");
+    await flush();
+
+    // The coordinates are gone the moment a human names the place by hand
+    // — B2676, decision 6 (old P13: never keep a stale pin).
+    expect(container.querySelector('[data-chip="weather"]')).toBeNull();
+    await click("Preview →");
+    const body = commitBody as unknown as { location?: string; lat?: number; lng?: number };
+    expect(body.location).toBe("Chur");
+    expect(body.lat).toBeUndefined();
+    expect(body.lng).toBeUndefined();
   });
 });
 
@@ -549,7 +614,7 @@ describe("AddDayFlow, first run — B2188 (C inside A)", () => {
     await flush();
     await click("Next: save it");
     expect(text()).toContain("3 of 3");
-    await click("Save privately");
+    await click("Preview →");
     expect((commitBody as unknown as { content: string }).content).toBe("Our first day.");
   });
 });

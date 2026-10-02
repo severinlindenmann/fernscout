@@ -88,11 +88,12 @@ export default function OwnerTools({
 }) {
   const { t } = useI18n();
 
-  // B2169 — the studio's publish page (B2140), with this day chosen. It was
-  // the room at `/agent?about=` (B979/B984) while publishing had no flow of
-  // its own; the studio page asks the same consent in words, on the site.
+  // B2169 — the studio's publish page (B2140), with this day chosen; B2677
+  // moved that chosen moment to Preview, which finds every draft part of
+  // the trip/date on its own. Only ever rendered for a draft (`!day.published`,
+  // below), so `publish` always means Preview here, never the take-down list.
   const publish = day
-    ? `${journalPath(encodeURIComponent(username))}/studio/day/publish?day=${encodeURIComponent(day.slug)}&trip=${encodeURIComponent(day.tripId)}`
+    ? `${journalPath(encodeURIComponent(username))}/studio/day/preview?trip=${encodeURIComponent(day.tripId)}&date=${encodeURIComponent(day.date)}`
     : `${journalPath(encodeURIComponent(username))}/studio/day/publish`;
 
   return (

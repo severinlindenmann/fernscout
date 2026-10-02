@@ -1,8 +1,6 @@
 import StudioHub from "@/components/studio/StudioHub";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { buildStudioHubModel } from "@/lib/studio/hub";
-import { isEnabled } from "@/lib/capabilities";
-import { readTellBy } from "@/lib/studio/tellBy";
 
 export const dynamic = "force-dynamic";
 // B2549 — keep this page in the client Router Cache for 30s after a
@@ -32,11 +30,5 @@ export default async function StudioHubPage({ params }: PageProps<"/at/[user]/st
   const { user } = await params;
   await requireStudioOwner(user);
   const model = await buildStudioHubModel(user);
-  return (
-    <StudioHub
-      username={user}
-      model={model}
-      speak={isEnabled("transcription", user) && readTellBy(user) === "speak"}
-    />
-  );
+  return <StudioHub username={user} model={model} />;
 }

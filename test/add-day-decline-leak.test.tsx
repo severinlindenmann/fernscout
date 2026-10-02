@@ -83,7 +83,7 @@ describe("AddDayFlow — B1899, nothing is declined that the person did not decl
     await act(async () => {
       setInputValue(c.querySelector('input[name="country"]') as HTMLInputElement, "Portugal");
     });
-    const save = [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Save privately")!;
+    const save = [...document.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Preview →")!;
     await act(async () => save.click());
     await act(async () => {
       await Promise.resolve();

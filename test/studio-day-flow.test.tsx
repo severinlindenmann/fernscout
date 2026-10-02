@@ -18,11 +18,15 @@ vi.mock("next/navigation", async () => {
 vi.mock("@/components/PageHeader", () => ({ default: () => <header /> }));
 
 /**
- * Add a day, start to finish — TIX-2: the assistant choice and its consent,
- * a long day offered in parts, each part saved as its own draft (a later part
- * as a second entry at its own time), then "Check your day", where the
- * assistant's suggestions are shown and only "Looks good" writes them, and
- * the hand-off to the publish step with every part.
+ * B2676 (V2.1) — the Write page. There is no assistant gate in front of it
+ * any more (`DayFlow` is a thin wrapper now; its own removed "with/without
+ * the assistant" and "Check your day" coverage moved — the first is simply
+ * gone, `RecordButton`'s own consent covers the microphone, and the second
+ * is Preview's, B2677, not built here). What is left to prove at this
+ * level: a long day offered in parts stays stacked on the one page, and
+ * saving writes every part in order (the first a second entry only when
+ * accepted, every later one always is) before navigating to the Preview
+ * stand-in.
  */
 
 const { default: DayFlow } = await import("@/components/studio/day/DayFlow");
@@ -72,38 +76,10 @@ beforeEach(() => {
       const body = init?.body && typeof init.body === "string" ? JSON.parse(init.body) : null;
       calls.push({ url, method, body });
       if (url.endsWith("/inbox")) return Response.json({ media: [...INBOX].reverse() });
+      if (url.includes("/day/for-date")) return Response.json({ ok: true, existing: null });
       if (url.includes("/day/new")) {
         created += 1;
         return Response.json({ ok: true, slug: `2025-09-07-part-${created}` }, { status: 201 });
-      }
-      if (url.includes("/day?") && method === "GET") {
-        const slug = new URL(url, "https://x.test").searchParams.get("slug");
-        return Response.json({
-          ok: true,
-          preview: {
-            day: {
-              entries: [
-                {
-                  slug,
-                  date: "2025-09-07",
-                  time: "06:02",
-                  title: "",
-                  content: "set an alarm for half past five the hoodoos go orange",
-                  location: "Bryce Canyon",
-                  gallery: [{ src: `/@alex/media/utah/${slug}/01.jpg`, type: "image" }],
-                },
-              ],
-            },
-          },
-        });
-      }
-      if (url.includes("/day/write-day")) {
-        return body?.mode === "titles"
-          ? Response.json({ ok: true, titles: ["Hoodoos at half past five"] })
-          : Response.json({ ok: true, draft: { title: "", prose: "Set an alarm for half past five. The hoodoos go orange." } });
-      }
-      if (url.includes("/day/describe-photos")) {
-        return Response.json({ ok: true, captions: [{ src: "/media/utah/x/01.jpg", caption: "Orange rock towers" }] });
       }
       if (url.includes("/api/helper/alex/day") && method === "PATCH") {
         return Response.json({ ok: true, draft: { slug: body?.slug } });
@@ -138,11 +114,6 @@ async function mount() {
             writtenDatesByTrip={{ utah: ["2025-09-06"] }}
             proposal={null}
             initialPhotos="2025-09-07"
-            assistantChoice={null}
-            assistantPossible
-            helperOn
-            consents={{ words: false, photos: false, speech: false }}
-            providers={{ words: "Anthropic", speech: "Deepgram" }}
             {...props}
           />
           </StudioPage>
@@ -169,178 +140,69 @@ async function click(label: string) {
 const text = () => document.body.textContent ?? "";
 const sent = (part: string, method = "POST") => calls.filter((c) => c.url.includes(part) && c.method === method);
 
-describe("the assistant is asked once, with its consent", () => {
-  test("its buttons are on the desktop bar too, not only the phone's", async () => {
-    await mount();
-    expect(button(dict["studio.flow.without"]).closest(".md\\:hidden")).toBeNull();
-  });
-
-  test("Without remembers off and goes straight on", async () => {
-    await mount();
-    expect(text()).toContain(dict["studio.flow.hintTitle"]);
-    await click(dict["studio.flow.without"]);
-    expect(sent("/studio/assistant", "PATCH")[0].body).toEqual({ assistant: "off" });
-    expect(text()).toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
-  });
-
-  test("With asks for consent first, naming both providers, then records it", async () => {
-    await mount();
-    await click(dict["studio.flow.with"]);
-    expect(text()).toContain("Anthropic");
-    expect(text()).toContain("Deepgram");
-    expect(sent("/consent")).toHaveLength(0);
-    await click(dict["studio.flow.consentAgree"]);
-    expect(sent("/consent").map((c) => c.body?.scope)).toEqual(["words", "photos", "speech"]);
-    expect(sent("/studio/assistant", "PATCH")[0].body).toEqual({ assistant: "on" });
-  });
-});
-
-test("a part saved without words reads as no words and is never sent to be tidied", async () => {
-  props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
-  const base = globalThis.fetch as unknown as (url: string, init?: RequestInit) => Promise<Response>;
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (url: string, init?: RequestInit) => {
-      const r = await base(url, init);
-      if (url.includes("/day?") && (init?.method ?? "GET") === "GET") {
-        const json = (await r.json()) as { preview: { day: { entries: { content: string }[] } } };
-        json.preview.day.entries[0].content = "…";
-        return Response.json(json);
-      }
-      return r;
-    }),
-  );
+test("with one trip, the date sheet's trip select is still there, and \"+ New trip…\" goes to make one", async () => {
   await mount();
-  await click(dict["studio.flow.splitNo"]);
-  await click(dict["studio.flow.check"]);
+  const dateChip = document.querySelector('[data-chip="date"]') as HTMLButtonElement;
+  await act(async () => dateChip.click());
   await flush();
-  expect(text()).toContain(dict["studio.check.noWords"]);
-  expect(sent("/day/write-day")).toHaveLength(0);
+  const select = document.querySelector("select") as HTMLSelectElement;
+  expect(select).not.toBeNull();
+  expect(Array.from(select.options).map((o) => o.textContent)).toEqual(["Utah", dict["studio.day.decide.newTrip"]]);
+  await act(async () => {
+    select.value = "__new__";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await flush();
+  expect(pushed.at(-1)).toBe("/@alex/studio/trip/new");
 });
 
-describe("B2649 — the assistant switch", () => {
-  test("a switch, On with a green dot; Off saves and shows Off", async () => {
-    props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
-    await mount();
-    await click(dict["studio.flow.splitNo"]);
-    const sw = document.querySelector('[role="switch"]') as HTMLButtonElement;
-    expect(sw.getAttribute("aria-checked")).toBe("true");
-    expect(sw.textContent).toContain(dict["studio.flow.switchOn"]);
-    await act(async () => sw.click());
-    await flush();
-    expect(sent("/studio/assistant", "PATCH").at(-1)!.body).toEqual({ assistant: "off" });
-    expect(document.querySelector('[role="switch"]')!.getAttribute("aria-checked")).toBe("false");
-  });
-
-  test("a choice that did not save stays as it was and says so", async () => {
-    props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
-    await mount();
-    await click(dict["studio.flow.splitNo"]);
-    const base = globalThis.fetch as unknown as (url: string, init?: RequestInit) => Promise<Response>;
-    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => (url.includes("/studio/assistant") ? new Response("{}", { status: 500 }) : base(url, init))));
-    await act(async () => (document.querySelector('[role="switch"]') as HTMLButtonElement).click());
-    await flush();
-    expect(document.querySelector('[role="switch"]')!.getAttribute("aria-checked")).toBe("true");
-    expect(text()).toContain(dict["studio.flow.choiceFailed"]);
-  });
+test("Write opens directly — no assistant screen, the mic is already in the words box", async () => {
+  await mount();
+  expect(text()).not.toContain("With the AI assistant");
+  expect(text()).not.toContain(dict["studio.flow.without"]);
+  expect(document.querySelector("[data-fake-mic]")).toBeNull(); // RecordButton isn't mocked here; just the gate is gone
+  expect(text()).toContain(dict["studio.day.previewCta"]);
 });
 
-describe("a long day in parts, then Check your day, then publish", () => {
-  test("three parts: each saved as its own draft, later ones as second entries at their own time", async () => {
-    props = { assistantChoice: "on", consents: { words: true, photos: true, speech: true } };
+describe("a long day's photos fall into parts", () => {
+  test("offered inline, and once accepted every part stays stacked on this one page", async () => {
     await mount();
+    expect(text()).toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
     expect(text()).toContain("Part 1: 06:02–07:40");
-    await click(dict["studio.flow.splitYes"].replace("{count}", "3"));
 
-    await click(dict["studio.flow.next"]);
-    await click(dict["studio.flow.next"]);
-    await click(dict["studio.flow.check"]);
+    await click(dict["studio.flow.splitYes"].replace("{count}", "3"));
+    // Stacked, not stepped — every part's own heading is on the page at once.
+    expect(text()).toContain(dict["studio.flow.partHeading"].replace("{index}", "1").replace("{total}", "3"));
+    expect(text()).toContain(dict["studio.flow.partHeading"].replace("{index}", "2").replace("{total}", "3"));
+    expect(text()).toContain(dict["studio.flow.partHeading"].replace("{index}", "3").replace("{total}", "3"));
+    expect(text()).toContain(dict["studio.day.parts.keepAsOne"]);
+
+    await click(dict["studio.day.parts.keepAsOne"]);
+    expect(text()).not.toContain(dict["studio.day.parts.keepAsOne"]);
+    // Back to one box, and the split offer does not re-open on its own.
+    expect(document.querySelector('[data-day-parts]')).toBeNull();
+  });
+
+  test("Keep it one day dismisses the offer for this set of photos", async () => {
+    await mount();
+    expect(text()).toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
+    await click(dict["studio.flow.splitNo"]);
+    expect(text()).not.toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
+    expect(document.querySelector("[data-day-parts]")).toBeNull();
+  });
+
+  test("Preview → saves every part in order, the first plain and every later one a second entry, then goes to Preview", async () => {
+    await mount();
+    await click(dict["studio.flow.splitYes"].replace("{count}", "3"));
+    await click(dict["studio.day.previewCta"]);
+
     const saves = sent("/day/new");
     expect(saves).toHaveLength(3);
     expect(saves.map((s) => s.body?.mediaInboxIds)).toEqual([["b1", "b2", "b3"], ["e1", "e2"], ["c1", "c2", "c3"]]);
     expect(saves.map((s) => s.body?.time)).toEqual(["06:02", "11:20", "16:15"]);
     expect(saves.map((s) => s.body?.confirmSecondEntry)).toEqual([false, true, true]);
-
-    // Check your day: the tidied words, a title from them, captions — shown, not yet written.
-    await flush();
-    expect(text()).toContain(dict["studio.check.title"]);
-    expect(text()).toContain("Set an alarm for half past five. The hoodoos go orange.");
-    expect(text()).toContain("Hoodoos at half past five");
-    expect(sent("/api/helper/alex/day", "PATCH")).toHaveLength(0);
-    // The polish counts its AI day against the part's own date.
-    expect(sent("/day/write-day")[0].body?.date).toBe("2025-09-07");
-
-    // Keep mine on the first part, pick the suggested title on the second.
-    await act(async () => Array.from(document.querySelectorAll("button")).filter((b) => b.textContent === dict["studio.check.keepMine"])[0].click());
-    const radios = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="title-part-2"]'));
-    await act(async () => radios[0].click());
-    await click(dict["studio.check.looksGood"]);
-
-    const patches = sent("/api/helper/alex/day", "PATCH");
-    expect(patches).toHaveLength(3);
-    expect(patches[0].body?.content).toBeUndefined();
-    expect(patches[1].body?.content).toBe("Set an alarm for half past five. The hoodoos go orange.");
-    expect(patches[1].body?.title).toBe("Hoodoos at half past five");
-    expect(patches[1].body?.captions).toEqual({ "/media/utah/x/01.jpg": "Orange rock towers" });
-    expect(pushed.at(-1)).toBe("/@alex/studio/day/publish?day=part-1&trip=utah&also=part-2,part-3");
-  });
-
-  test("without the assistant, nothing is sent to a model and Check just shows the day", async () => {
-    props = { assistantChoice: "off" };
-    await mount();
-    await click(dict["studio.flow.splitNo"]);
-    await click(dict["studio.flow.check"]);
-    await flush();
-    expect(text()).toContain(dict["studio.check.ledePlain"]);
-    expect(sent("/day/write-day")).toHaveLength(0);
-    expect(sent("/day/describe-photos")).toHaveLength(0);
-    await click(dict["studio.check.looksGood"]);
-    expect(sent("/api/helper/alex/day", "PATCH")).toHaveLength(0);
-    expect(pushed.at(-1)).toBe("/@alex/studio/day/publish?day=part-1&trip=utah");
-  });
-});
-
-describe("B2627 — a long day's photos picked inside the composer, not from a waiting-day card", () => {
-  test("offered the same way, Write it in N parts leads to part tabs with each part's own photos and time", async () => {
-    // No `?photos=<date>`: the composer's own effect, not DayFlow's inbox
-    // read, auto-chooses today's photographs — the same long day, this time
-    // picked inside the plain composer.
-    props = {
-      initialPhotos: undefined,
-      assistantChoice: "on",
-      consents: { words: true, photos: true, speech: true },
-      proposal: { trip: { id: "utah", title: "Utah", status: "current" }, reasonKey: "studio.day.which.reasonCurrent", today: "2025-09-07" },
-    };
-    await mount();
-    expect(text()).toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
-    expect(text()).toContain("Part 1: 06:02–07:40");
-
-    await click(dict["studio.flow.splitYes"].replace("{count}", "3"));
-    expect(text()).toContain(dict["studio.flow.partHeading"].replace("{index}", "1").replace("{total}", "3"));
-    // Part 1's own photos only — "3 chosen" (b1, b2, b3), not all eight.
-    expect(text()).toContain("3 chosen");
-    expect(text()).toContain("06:02");
-
-    await click(dict["studio.flow.next"]);
-    await click(dict["studio.flow.next"]);
-    await click(dict["studio.flow.check"]);
-    const saves = sent("/day/new");
-    expect(saves.map((s) => s.body?.mediaInboxIds)).toEqual([["b1", "b2", "b3"], ["e1", "e2"], ["c1", "c2", "c3"]]);
-    expect(saves.map((s) => s.body?.time)).toEqual(["06:02", "11:20", "16:15"]);
-  });
-
-  test("Keep it one day dismisses the offer for this set of photos", async () => {
-    props = {
-      initialPhotos: undefined,
-      assistantChoice: "on",
-      consents: { words: true, photos: true, speech: true },
-      proposal: { trip: { id: "utah", title: "Utah", status: "current" }, reasonKey: "studio.day.which.reasonCurrent", today: "2025-09-07" },
-    };
-    await mount();
-    expect(text()).toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
-    await click(dict["studio.flow.splitNo"]);
-    expect(text()).not.toContain(dict["studio.flow.splitTitle"].replace("{count}", "3"));
-    // Still the plain composer, one entry: no parts offered a second time.
-    expect(document.querySelector('[aria-label="Parts of this day"]')).toBeNull();
+    // B2677 — "Preview →" goes to Preview itself, which finds every part of
+    // this trip/date on its own rather than being told their slugs.
+    expect(pushed.at(-1)).toBe("/@alex/studio/day/preview?trip=utah&date=2025-09-07");
   });
 });

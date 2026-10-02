@@ -8,7 +8,6 @@ import { useI18n } from "@/components/LocaleProvider";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
-import { TELL_BY, type TellBy } from "@/lib/studio/speak";
 import { journalPath } from "@/lib/journalPath";
 
 const EYEBROW = "block font-mono text-[11px] font-medium uppercase tracking-[.06em] text-ink-secondary";
@@ -100,7 +99,6 @@ export default function JournalPageContent({
   knownCurrencies,
   reminders,
   tipsOn,
-  tellBy,
 }: {
   username: string;
   journal: JournalPanel;
@@ -112,9 +110,6 @@ export default function JournalPageContent({
    *  for a journal that never turned it on, exactly like the signup box it
    *  mirrors. */
   tipsOn: boolean;
-  /** B2194 — "How you tell a day", only when transcription is on; absent
-   *  (undefined) otherwise. `tellBy: null` is "never asked". */
-  tellBy?: { current: TellBy | null };
 }) {
   const { t, tn, locale } = useI18n();
   const router = useRouter();
@@ -134,7 +129,6 @@ export default function JournalPageContent({
   const [reminderOn, setReminderOn] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(reminders.map((row) => [row.id, row.on])),
   );
-  const [tellByChoice, setTellByChoice] = useState<TellBy | null>(tellBy?.current ?? null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -162,9 +156,8 @@ export default function JournalPageContent({
     patch.displayCurrencies = baseFirst(currencyList);
   if (listed !== (journal.visibility === "public")) patch.visibility = listed ? "public" : "guest";
   const reminderMoves = reminders.filter((row) => reminderOn[row.id] !== row.on);
-  const tellByMoved = !!tellBy && tellByChoice !== null && tellByChoice !== tellBy.current;
   const tipsMoved = tips !== tipsOn;
-  const count = Object.keys(patch).length + reminderMoves.length + (tellByMoved ? 1 : 0) + (tipsMoved ? 1 : 0);
+  const count = Object.keys(patch).length + reminderMoves.length + (tipsMoved ? 1 : 0);
   // A title cannot be cleared — `setJournalProfile` refuses it.
   const titleMissing = title.trim() === "";
 
@@ -185,7 +178,6 @@ export default function JournalPageContent({
         url: `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(row.id)}/reminder`,
         body: { enabled: reminderOn[row.id] },
       })),
-      ...(tellByMoved ? [{ url: `/api/web/${encodeURIComponent(username)}/studio/tell-by`, body: { tellBy: tellByChoice } }] : []),
       ...(tipsMoved ? [{ url: `/api/web/${encodeURIComponent(username)}/studio/tips`, body: { optIn: tips } }] : []),
     ];
     for (const write of writes) {
@@ -443,27 +435,6 @@ export default function JournalPageContent({
         )}
         <p className={HINT}>{t("me.journalReminderHint")}</p>
       </div>
-
-      {tellBy && (
-        <fieldset data-tell-by-setting>
-          <legend className={EYEBROW}>{t("me.journalTellBy")}</legend>
-          <div className="mt-1.5 flex flex-wrap gap-2">
-            {TELL_BY.map((value) => (
-              <label key={value} className={PILL}>
-                <input
-                  type="radio"
-                  name={`${username}-journal-tell-by`}
-                  className="sr-only"
-                  checked={tellByChoice === value}
-                  onChange={() => setTellByChoice(value)}
-                />
-                {t(`studio.day.tellBy.${value}`)}
-              </label>
-            ))}
-          </div>
-          <p className={HINT}>{t("me.journalTellByHint")}</p>
-        </fieldset>
-      )}
 
       {/* B2600 — Walking figures left the hub's own menu; this is now its
           one door, alongside every other journal-wide setting. */}
