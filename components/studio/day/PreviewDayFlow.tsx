@@ -347,7 +347,7 @@ export default function PreviewDayFlow({
   if (published) {
     const readerLine =
       audienceLabel.kind === "readers"
-        ? t("studio.published.told", { count: String(audienceLabel.count), app: String(published.told.app), mail: String(published.told.mail) })
+        ? tn("studio.published.told", audienceLabel.count, { count: String(audienceLabel.count), app: String(published.told.app), mail: String(published.told.mail) })
         : t("studio.published.toldEveryone", { app: String(published.told.app), mail: String(published.told.mail) });
     return (
       <PublishedDay
