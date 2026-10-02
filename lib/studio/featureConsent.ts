@@ -20,19 +20,22 @@
 export type ConsentScopes = { words: boolean; photos: boolean; speech: boolean };
 
 /** `translate` (Preview's own, B2677) needs `words` only — no photo ever
- *  goes with a translation. */
-export type ConsentFeature = "voice" | "suggest" | "translate";
+ *  goes with a translation. `compose` (B2689) is the same: the pack reads
+ *  photo descriptions and captions already on disk, never a photograph
+ *  itself — the `photos` scope that covers a photograph leaving the
+ *  machine never applies to it. */
+export type ConsentFeature = "voice" | "suggest" | "translate" | "compose";
 
 /**
  * Which of the three API scopes `feature` still needs — empty once nothing
  * is left to ask. `voice` needs only `speech` (Deepgram hears the owner's
  * words, nothing else); `suggest` — tidied words, titles, captions, tags —
- * and `translate` both go to the words model, but only `suggest` also reads
- * a photograph (captions, tags from photos).
+ * reads a photograph too; `translate` and `compose` both go to the words
+ * model with `words` alone.
  */
 export function missingConsentScopes(feature: ConsentFeature, consents: ConsentScopes): Array<keyof ConsentScopes> {
   const needed: Array<keyof ConsentScopes> =
-    feature === "voice" ? ["speech"] : feature === "translate" ? ["words"] : ["words", "photos"];
+    feature === "voice" ? ["speech"] : feature === "translate" || feature === "compose" ? ["words"] : ["words", "photos"];
   return needed.filter((scope) => !consents[scope]);
 }
 
