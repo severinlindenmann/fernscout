@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import BusyButton from "@/components/BusyButton";
+import RecordButton from "@/components/RecordButton";
 import { useI18n } from "@/components/LocaleProvider";
 import { useStudioBar } from "@/components/studio/StudioBar";
 import { useOnline } from "@/components/studio/useOnline";
@@ -13,9 +14,11 @@ import { journalPath } from "@/lib/journalPath";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { missingConsentScopes, type ConsentScopes } from "@/lib/studio/featureConsent";
 import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
-import { addAllAiTags, matchingUsedBeforeTags, mergeTags, tagPhotoIds, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
+import { addAllAiTags, matchingUsedBeforeTags, mergeTags, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer, type LanguageAnswer } from "@/lib/studio/languageAnswer";
-import { initialSuggestionState, pickTitle, addCaptions, acceptSpelling, undoSpelling, type SuggestionState } from "@/lib/studio/suggestionState";
+import { initialSuggestionState, pickTitle, applyCompose, undoCompose, type SuggestionState } from "@/lib/studio/suggestionState";
+import { hashInputs, readComposeCache, writeComposeCache } from "@/lib/studio/composeCache";
+import { wordDiff } from "@/lib/studio/wordDiff";
 import type { PublishRow } from "@/lib/studio/publishDay";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -31,12 +34,24 @@ type Entry = {
   visibility?: "" | "guest" | "private";
   gallery: Photo[];
 };
-type Suggestions = {
-  status: "waiting" | "working" | "done" | "failed";
-  tidied?: string;
-  titles?: string[];
-  captions?: Record<string, string>;
+
+/** `mode: "compose"`'s own response (B2688/B2689) — a per-sentence source so
+ *  the review can show "where this came from" instead of asking the owner
+ *  to trust a black box. `sources[].kind` is the same `owner`/`measured`/
+ *  `seen` vocabulary the day pack itself uses. */
+type ComposeSource = { id: string; kind: "owner" | "measured" | "seen" };
+type ComposeTitle = { text: string; kind: "label" | "quote" | "pair" };
+type ComposeVariant = { titles: ComposeTitle[]; text: string; sentences: { text: string; sources: ComposeSource[] }[] };
+type ComposeMissing = { question: string; about: string };
+type ComposeResult = {
+  language: string;
+  close: ComposeVariant | null;
+  story: ComposeVariant | null;
+  tags: string[];
+  missing: ComposeMissing[];
 };
+type ComposeStatus = "idle" | "consenting" | "working" | "ready" | "error";
+const MAX_COMPOSE_ANSWERS = 3;
 
 const PRIMARY = "min-h-11 flex-1 rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 disabled:opacity-50";
 
@@ -71,6 +86,7 @@ export default function PreviewDayFlow({
   defaultLocale,
   helperEnabled,
   consent,
+  speech,
 }: {
   username: string;
   tripId: string;
@@ -86,6 +102,9 @@ export default function PreviewDayFlow({
   defaultLocale: string;
   helperEnabled: boolean;
   consent: { words: boolean; photos: boolean };
+  /** The one microphone the "missing" questions' answer field offers — null
+   *  with `transcription` off, same shape `AddDayFlow` takes. */
+  speech: { consented: boolean; provider: string } | null;
 }) {
   const { t, tn, formatLongDate, languageName, locale } = useI18n();
   const online = useOnline();
@@ -93,15 +112,37 @@ export default function PreviewDayFlow({
   const rows = [chosen, ...also];
 
   const [entries, setEntries] = useState<(Entry | null)[]>(rows.map(() => null));
-  const [ideas, setIdeas] = useState<Suggestions[]>(rows.map(() => ({ status: "waiting" })));
   const [suggestionState, setSuggestionState] = useState<SuggestionState[]>(rows.map(() => initialSuggestionState()));
-  const [suggesting, setSuggesting] = useState(false);
-  const [suggestConsenting, setSuggestConsenting] = useState(false);
-  const [suggested, setSuggested] = useState(false);
   const [aiTags, setAiTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [tagInput, setTagInput] = useState("");
   const seededTags = useRef(false);
+
+  // Compose (B2689) — the main part only (index 0); a multi-part day's
+  // other parts keep their own words with no suggestion UI, the same
+  // simplification F1 names as acceptable when the parts UI makes a
+  // lazy-per-part call awkward. One call per visit: `composeStatus` starts
+  // `idle`, the mount effect below either reads a cache hit, auto-composes
+  // (consent already given) or waits for "✦ Suggest a version".
+  const [composeStatus, setComposeStatus] = useState<ComposeStatus>("idle");
+  const [composeResult, setComposeResult] = useState<ComposeResult | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTab, setComposeTab] = useState<"close" | "story">("close");
+  const [composeShowSources, setComposeShowSources] = useState(false);
+  const [composeAnswers, setComposeAnswers] = useState<string[]>([]);
+  const [composeAnswering, setComposeAnswering] = useState<number | null>(null);
+  const [composeAnswerDraft, setComposeAnswerDraft] = useState("");
+  const [composeConsenting, setComposeConsenting] = useState(false);
+  // Which outcome, if any, has already been counted for the current
+  // compose result — B2693 — so a re-render or a second "Keep mine" tap
+  // never double-posts the same count.
+  const composeOutcomeSent = useRef(false);
+  // "Use this" puts the variant text into the part, editable, undo
+  // available (the ticket's own words) — the main part's own editable copy
+  // of whichever variant is applied, seeded from `composeResult` the
+  // moment it is applied and compared back against it at save time to tell
+  // "kept" from "edited" (B2693).
+  const [appliedText, setAppliedText] = useState("");
 
 
   // Languages (B2677 item 4) — one remembered answer per trip, applied to
@@ -175,66 +216,141 @@ export default function PreviewDayFlow({
     if (res?.ok) setConsentNow((prev) => ({ ...prev, [scope]: true }));
   }
 
-  /** ✦ Suggest — B2677 item 2+3: tidied words, titles and captions per part,
-   *  plus one whole-day call for AI tags. Nothing is applied here; each
-   *  result lands as a dashed card the owner still has to tap. */
-  async function runSuggest() {
-    setSuggesting(true);
-    await Promise.all(
-      rows.map(async (row, i) => {
-        const entry = entries[i];
-        const merge = (patch: Partial<Suggestions>) => setIdeas((prev) => prev.map((s, at) => (at === i ? { ...s, ...patch } : s)));
-        merge({ status: "working" });
-        const hasWords = !!entry && words(ownWords(entry)) > 0;
-        const polish = hasWords
-          ? post("day/write-day", { trip: row.tripId, notes: entry!.content, mode: "polish", date: row.date }).then((r) => {
-              const prose = (r.json?.draft as { prose?: string } | undefined)?.prose;
-              if (r.ok && prose && prose.trim() !== entry!.content.trim()) merge({ tidied: prose });
-            })
-          : null;
-        const titles = hasWords
-          ? post("day/write-day", { trip: row.tripId, notes: entry!.content, mode: "titles", date: row.date }).then((r) => {
-              if (r.ok && Array.isArray(r.json?.titles)) merge({ titles: (r.json.titles as unknown[]).filter((v): v is string => typeof v === "string" && v.trim() !== "") });
-            })
-          : null;
-        const captions = entry?.gallery.some((p) => p.type === "image")
-          ? post("day/describe-photos", { trip: row.tripId, slug: row.slug }).then((r) => {
-              const list = r.json?.captions as { src: string; caption?: string; skipped?: string }[] | undefined;
-              if (r.ok && list) merge({ captions: Object.fromEntries(list.filter((c) => c.caption && !c.skipped).map((c) => [c.src, c.caption!])) });
-            })
-          : null;
-        await Promise.all([polish, titles, captions]);
-        merge({ status: "done" });
-      }),
-    );
-    const allWords = entries.map((e) => ownWords(e)).filter(Boolean).join("\n\n");
-    if (allWords) {
-      // B2685 — the day's own photographs ride along, up to the route's own
-      // cap (`tagPhotoIds`); `onSuggestTap`/`confirmSuggestConsent` never let
-      // `runSuggest` start without the "photos" scope already granted
-      // (`missingConsentScopes("suggest", …)` needs both `words` and
-      // `photos`), so there is nothing left to ask here.
-      const photoIds = tagPhotoIds(entries.filter((e): e is Entry => !!e));
-      const r = await post("day/write-day", { trip: chosen.tripId, content: allWords, mode: "tags", date: chosen.date, ...(photoIds.length > 0 ? { photoIds } : {}) });
-      if (r.ok && Array.isArray(r.json?.tags)) setAiTags((r.json.tags as unknown[]).filter((v): v is string => typeof v === "string"));
-    }
-    setSuggesting(false);
-    setSuggested(true);
+  /**
+   * ✦ Compose (B2689, replacing B2677's four blind calls) — one call for the
+   * main part: a grounded `close` and `story` text, titles and tags
+   * together, and up to 3 follow-up questions. Nothing is applied here; the
+   * owner reads the band and taps "Read it", then "Use this" or "Keep
+   * mine".
+   *
+   * F2 — the owner's raw words stay the source. `compose` always rebuilds
+   * its pack from the day's own stored content server-side
+   * (`buildDayContext`), so re-composing after a "Use this" + save would
+   * otherwise build on the *AI's* text, not the owner's. This file keeps
+   * the client-side half of that guarantee: `entries[0]`'s content is read
+   * once, before any "Use this", and `ownWords(entries[0])` — never the
+   * applied compose text — is what feeds the cache hash and what a
+   * re-"Suggest" after undo starts from, for the length of this visit. A
+   * server-side owner-only words field (so the guarantee survives a save
+   * and a reopen) was judged a larger content-model change than this
+   * ticket's budget; see the final report for the gap this leaves.
+   */
+  const composeKey = { username, tripId: chosen.tripId, slug: chosen.slug };
+  function composeHash(answers: string[]): string {
+    const entry = entries[0];
+    return hashInputs(ownWords(entry), entry?.gallery.map((p) => p.src) ?? [], answers);
   }
 
-  function onSuggestTap() {
-    if (!helperEnabled) return;
-    if (missingConsentScopes("suggest", consentNow).length > 0) {
-      setSuggestConsenting(true);
+  /** Applied by a fresh compose and by a cache hit alike, so the two paths
+   *  can never drift apart — a cache hit that skipped this once left tags
+   *  unapplied and the band's "ready" state out of sync with the rest of
+   *  the page (caught in browser testing). */
+  function applyComposeResult(result: ComposeResult) {
+    setComposeResult(result);
+    composeOutcomeSent.current = false;
+    // C2 — Story first when there is material, Close otherwise (and when
+    // Story is null the tabs below show Close alone).
+    setComposeTab(result.story ? "story" : "close");
+    if (result.tags.length > 0) {
+      setAiTags(result.tags);
+      // "Tags from compose preselected" — merged into the existing
+      // selection the same way the place tag is already seeded.
+      setSelectedTags((prev) => new Set([...prev, ...result.tags]));
+    }
+    setComposeStatus("ready");
+  }
+
+  async function runCompose(answers: string[]) {
+    const entry = entries[0];
+    if (!entry) return;
+    setComposeStatus("working");
+    const r = await post("day/write-day", { trip: chosen.tripId, slug: chosen.slug, mode: "compose", answers });
+    if (!r.ok || !r.json) {
+      setComposeStatus("error");
       return;
     }
-    void runSuggest();
+    const result = r.json as unknown as ComposeResult;
+    writeComposeCache(composeKey, composeHash(answers), result);
+    applyComposeResult(result);
   }
 
-  async function confirmSuggestConsent() {
-    for (const scope of missingConsentScopes("suggest", consentNow)) await agree(scope);
-    setSuggestConsenting(false);
-    void runSuggest();
+  function onComposeSuggestTap() {
+    if (!helperEnabled) return;
+    if (missingConsentScopes("compose", consentNow).length > 0) {
+      setComposeConsenting(true);
+      return;
+    }
+    void runCompose(composeAnswers);
+  }
+
+  async function confirmComposeConsent() {
+    for (const scope of missingConsentScopes("compose", consentNow)) await agree(scope);
+    setComposeConsenting(false);
+    // Granting consent here changes `consentNow.words`, which is also the
+    // auto-start effect's own dependency — mark it started first so that
+    // effect does not fire a second, duplicate compose call right behind
+    // this one.
+    composeAutoStarted.current = true;
+    void runCompose(composeAnswers);
+  }
+
+  // F1 — compose starts on its own once Preview opens, when consent is
+  // already given, caching by a hash of the inputs so a reopen with nothing
+  // changed fires no call.
+  const composeAutoStarted = useRef(false);
+  useEffect(() => {
+    const entry = entries[0];
+    if (!entry || !helperEnabled || composeAutoStarted.current) return;
+    if (missingConsentScopes("compose", consentNow).length > 0) return;
+    const hasWords = words(ownWords(entry)) > 0;
+    if (!hasWords && entry.gallery.length === 0) return;
+    composeAutoStarted.current = true;
+    void (async () => {
+      const hash = composeHash(composeAnswers);
+      const cached = readComposeCache<ComposeResult>(composeKey, hash);
+      if (cached) {
+        // Yield once so this effect never sets state synchronously on its
+        // own render pass — the same reason the entries-loading effect
+        // above is an async IIFE too.
+        await Promise.resolve();
+        applyComposeResult(cached);
+        return;
+      }
+      await runCompose(composeAnswers);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries[0], helperEnabled, consentNow.words]);
+
+  function recordComposeOutcome(outcome: "kept" | "edited" | "discarded", composedText: string, savedText: string) {
+    if (composeOutcomeSent.current) return;
+    composeOutcomeSent.current = true;
+    const variant = suggestionState[0]?.composeApplied ?? "none";
+    void post("day/compose-outcome", { variant, outcome, composedText, savedText }).catch(() => {});
+  }
+
+  function applyComposeVariant(variant: "close" | "story") {
+    if (!composeResult) return;
+    setAppliedText(composeResult[variant]!.text);
+    setSuggestionState((prev) => prev.map((v, i) => (i === 0 ? applyCompose(v, variant) : v)));
+  }
+
+  function keepMineInstead() {
+    const applied = suggestionState[0]?.composeApplied;
+    setSuggestionState((prev) => prev.map((v, i) => (i === 0 ? undoCompose(v) : v)));
+    if (composeResult) {
+      const activeText = (applied && composeResult[applied]?.text) || composeResult[composeTab]?.text || "";
+      recordComposeOutcome("discarded", activeText, "");
+    }
+  }
+
+  async function addComposeAnswer() {
+    const answer = composeAnswerDraft.trim();
+    if (!answer || composeAnswers.length >= MAX_COMPOSE_ANSWERS) return;
+    const next = [...composeAnswers, answer];
+    setComposeAnswers(next);
+    setComposeAnswerDraft("");
+    setComposeAnswering(null);
+    await runCompose(next);
   }
 
   const place = entries[0]?.location ?? null;
@@ -251,17 +367,18 @@ export default function PreviewDayFlow({
     setSelectedTags(next);
   }
 
-  /** B2685 — a part's own final title/words: the picked title (or the date,
-   *  "keep the date" being the default) and the accepted tidy, not the
-   *  original — the same two choices `persistChoices` below already reads
-   *  off `suggestionState`/`ideas` before it writes a part. */
+/** B2685/B2689 — a part's own final title/words: the picked title (or the
+   *  date, "keep the date" being the default) and, for the main part only,
+   *  the applied compose text — the same choices `persistChoices` below
+   *  already reads off `suggestionState`/`composeResult` before it writes
+   *  a part. */
   function finalTitle(i: number): string {
     return suggestionState[i]?.titleChoice || entries[i]?.title || "";
   }
   function finalContent(i: number): string {
     const ss = suggestionState[i];
-    const idea = ideas[i];
-    return ss?.spellingApplied && idea?.tidied ? idea.tidied : ownWords(entries[i]);
+    const applied = i === 0 ? ss?.composeApplied : null;
+    return applied ? appliedText : ownWords(entries[i]);
   }
 
   // Languages — ✦ Translate / Write it myself / "<language> is fine". B2677,
@@ -327,12 +444,20 @@ export default function PreviewDayFlow({
     const slugs = rows.map((row) => row.slug);
     for (let i = 0; i < rows.length; i++) {
       const entry = entries[i];
-      const idea = ideas[i];
       const ss = suggestionState[i];
+      const applied = i === 0 ? ss.composeApplied : null;
       const body: Record<string, unknown> = { trip: rows[i].tripId, slug: rows[i].slug };
-      if (ss.spellingApplied && idea.tidied) body.content = idea.tidied;
+      if (applied && composeResult) {
+        const composedText = composeResult[applied]!.text;
+        const savedText = appliedText;
+        body.content = savedText;
+        // B2693 — counted once, right before the write it describes: kept
+        // (saved exactly as composed) or edited (anything else, with a
+        // word-level edit distance computed server-side from both texts
+        // and stored as a number only — see `compose-outcome/route.ts`).
+        recordComposeOutcome(composedText.trim() === savedText.trim() ? "kept" : "edited", composedText, savedText);
+      }
       if (ss.titleChoice && ss.titleChoice !== entry?.title) body.title = ss.titleChoice;
-      if (ss.captionsOn && idea.captions && Object.keys(idea.captions).length > 0) body.captions = idea.captions;
       if (Object.keys(body).length === 2) continue;
       // no-refresh: these are persisted right before the publish call below, which itself never refreshes either (B2677, bug 14) — the page navigates away or shows PublishedDay next, never stays here stale.
       const response = await fetch(`/api/helper/${user}/day`, {
@@ -459,11 +584,10 @@ export default function PreviewDayFlow({
       <ol className="mt-4 space-y-5">
         {rows.map((row, i) => {
           const entry = entries[i];
-          const s = ideas[i];
           const ss = suggestionState[i];
           const own = ownWords(entry);
-          const showTidied = !!s.tidied && ss.spellingApplied;
-          const text = showTidied ? s.tidied! : own;
+          const applied = i === 0 ? ss.composeApplied : null;
+          const text = applied ? appliedText : own;
           const images = entry?.gallery.filter((p) => p.type === "image") ?? [];
           // ponytail: "Edit" goes to the existing, already-correct
           // "Change a day" panel (`EditDayFlow`, resolves any draft or
@@ -472,14 +596,15 @@ export default function PreviewDayFlow({
           // read loosely here for that reason; see the Build notes.
           const editHref = `${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(row.slug)}`;
           const addPhotosHref = editHref;
-          const titleChoices = [...new Set([...(entry?.title ? [entry.title] : []), ...(s.titles ?? [])])];
+          const variantTitles = i === 0 && composeResult && composeOpen ? composeResult[composeTab]?.titles.map((t) => t.text) ?? [] : [];
+          const titleChoices = [...new Set([...(entry?.title ? [entry.title] : []), ...variantTitles])];
           return (
             <li key={row.slug} className="overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
               {images.length > 0 ? (
                 <div className="grid grid-cols-3 gap-0.5">
                   {images.slice(0, 3).map((p) => (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={p.src} src={`${p.src}?w=480`} alt={s.captions?.[p.src] ?? p.caption ?? ""} className="h-28 w-full object-cover" />
+                    <img key={p.src} src={`${p.src}?w=480`} alt={p.caption ?? ""} className="h-28 w-full object-cover" />
                   ))}
                   {/* B2677, bug 13 — the grid's own last cell, not only the
                       empty-state link below; the same Edit target (it can
@@ -507,7 +632,7 @@ export default function PreviewDayFlow({
                   </Link>
                 </div>
 
-                {(titleChoices.length > 0 || s.titles) && (
+                {titleChoices.length > 0 && (
                   <fieldset>
                     <legend className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">{t("studio.check.titleLabel")}</legend>
                     <div className="mt-1 flex flex-wrap gap-2">
@@ -533,33 +658,28 @@ export default function PreviewDayFlow({
                   </fieldset>
                 )}
 
-                <div className={`text-base leading-7 whitespace-pre-line ${own.trim() ? "text-ink-body" : "italic text-ink-faint"} ${showTidied ? "border-l-2 border-yellow-400 pl-3" : ""}`}>
-                  {text.trim() ? text : t("studio.check.noWords")}
-                </div>
-                {s.tidied && !ss.spellingApplied && (
-                  <div className="rounded-lg border border-dashed border-yellow-400 bg-surface-neutral px-3 py-2 text-sm leading-6 whitespace-pre-line text-ink-secondary">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-strong">{tn("studio.check.lookingAt", 1, { count: "3" })}</p>
-                    {s.tidied}
-                    <div className="mt-2 flex gap-2">
-                      <button type="button" className="min-h-9 rounded-full bg-yellow-400 px-3 text-xs font-semibold text-yellow-950" onClick={() => setSuggestionState((prev) => prev.map((v, at) => (at === i ? acceptSpelling(v) : v)))}>
-                        {t("studio.check.useTidied")}
-                      </button>
-                    </div>
+                {applied ? (
+                  // "Use this" — the variant's text, editable, undo
+                  // available right below (B2689).
+                  <div className="space-y-2">
+                    <textarea
+                      value={appliedText}
+                      onChange={(e) => setAppliedText(e.target.value)}
+                      rows={6}
+                      className="w-full rounded-xl border-l-2 border-yellow-400 bg-surface-raised px-3 py-2 text-base leading-7 text-ink-body"
+                    />
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-ink-body underline underline-offset-2"
+                      onClick={() => setSuggestionState((prev) => prev.map((v, at) => (at === i ? undoCompose(v) : v)))}
+                    >
+                      {t("studio.check.keepMine")}
+                    </button>
                   </div>
-                )}
-                {s.tidied && ss.spellingApplied && (
-                  <button type="button" className="text-xs font-semibold text-ink-body underline underline-offset-2" onClick={() => setSuggestionState((prev) => prev.map((v, at) => (at === i ? undoSpelling(v) : v)))}>
-                    {t("studio.check.keepMine")}
-                  </button>
-                )}
-                {s.captions && Object.keys(s.captions).length > 0 && !ss.captionsOn && (
-                  <button
-                    type="button"
-                    className="min-h-9 rounded-full border border-dashed border-line-strong px-3 text-xs font-semibold text-ink-strong"
-                    onClick={() => setSuggestionState((prev) => prev.map((v, at) => (at === i ? addCaptions(v) : v)))}
-                  >
-                    {tn("studio.check.captions", Object.keys(s.captions).length, { count: String(Object.keys(s.captions).length) })}
-                  </button>
+                ) : (
+                  <div className={`text-base leading-7 whitespace-pre-line ${own.trim() ? "text-ink-body" : "italic text-ink-faint"}`}>
+                    {text.trim() ? text : t("studio.check.noWords")}
+                  </div>
                 )}
               </div>
             </li>
@@ -567,24 +687,142 @@ export default function PreviewDayFlow({
         })}
       </ol>
 
-      {/* ✦ Suggest — item 2. B2677, bug 10 — absent, not disabled, with
-          `helper` off (AGENTS.md: a capability off is never a greyed-out
-          button). */}
+      {/* ✦ Compose — B2689, replacing B2677 item 2's four blind calls.
+          Absent, not disabled, with `helper` off (AGENTS.md: a capability
+          off is never a greyed-out button). */}
       {helperEnabled && (
       <div className="mt-4">
-        {suggestConsenting ? (
+        {composeConsenting ? (
           <ConfirmPanel
-            label={t("studio.preview.suggestConsentLabel")}
-            question={t("studio.preview.suggestConsent")}
-            confirmLabel={t("studio.preview.suggestConsentConfirm")}
+            label={t("studio.preview.composeConsentLabel")}
+            question={t("studio.preview.composeConsent")}
+            confirmLabel={t("studio.preview.composeConsentConfirm")}
             busy={false}
-            onConfirm={() => void confirmSuggestConsent()}
-            onCancel={() => setSuggestConsenting(false)}
+            onConfirm={() => void confirmComposeConsent()}
+            onCancel={() => setComposeConsenting(false)}
           />
-        ) : (
-          <button type="button" disabled={suggesting} onClick={onSuggestTap} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong disabled:opacity-50">
-            {suggesting ? t("studio.check.working") : suggested ? t("studio.preview.suggestAgain") : t("studio.preview.suggest")}
+        ) : composeStatus === "idle" || composeStatus === "error" ? (
+          <button type="button" onClick={onComposeSuggestTap} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong">
+            {t("studio.preview.composeSuggest")}
           </button>
+        ) : composeStatus === "working" ? (
+          <p className="text-sm text-ink-secondary">{t("studio.check.working")}</p>
+        ) : composeStatus === "ready" && composeResult && !composeOpen ? (
+          <button
+            type="button"
+            onClick={() => setComposeOpen(true)}
+            className="flex min-h-11 w-full items-center justify-between rounded-xl border border-dashed border-yellow-400 bg-surface-neutral px-4 text-sm font-semibold text-ink-strong"
+          >
+            <span>{t("studio.preview.composeReady")}</span>
+            <span className="underline underline-offset-2">{t("studio.preview.composeRead")}</span>
+          </button>
+        ) : null}
+
+        {composeStatus === "ready" && composeResult && composeOpen && (
+          <div className="mt-2 space-y-3 rounded-xl border border-line-strong bg-surface-raised p-4">
+            {/* Tabs — "Close to my words" / "As a story". C2: opens on
+                Story when there is one, else Close; no Story tab at all
+                when the day was too thin for one. */}
+            <div className="flex gap-2" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={composeTab === "close"}
+                onClick={() => setComposeTab("close")}
+                className={`min-h-9 rounded-full border px-3 text-sm font-semibold ${composeTab === "close" ? "border-line-ink bg-action-strong text-on-action" : "border-line-strong text-ink-strong"}`}
+              >
+                {t("studio.preview.composeClose")}
+              </button>
+              {composeResult.story && (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={composeTab === "story"}
+                  onClick={() => setComposeTab("story")}
+                  className={`min-h-9 rounded-full border px-3 text-sm font-semibold ${composeTab === "story" ? "border-line-ink bg-action-strong text-on-action" : "border-line-strong text-ink-strong"}`}
+                >
+                  {t("studio.preview.composeStory")}
+                </button>
+              )}
+            </div>
+
+            {composeResult[composeTab] && (
+              <div className="space-y-2 text-sm leading-6 text-ink-body">
+                <p className="whitespace-pre-line">
+                  {composeTab === "close"
+                    ? wordDiff(ownWords(entries[0]), composeResult.close!.text).map((tok, idx) => (
+                        <span key={idx} className={tok.changed ? "underline decoration-yellow-500 decoration-2 underline-offset-2" : ""}>
+                          {tok.text}{" "}
+                        </span>
+                      ))
+                    : composeResult.story!.text}
+                </p>
+                <button type="button" className="text-xs font-semibold text-ink-body underline underline-offset-2" onClick={() => setComposeShowSources((v) => !v)}>
+                  {t("studio.preview.composeSources")}
+                </button>
+                {composeShowSources && (
+                  <div className="flex flex-wrap gap-1">
+                    {composeResult[composeTab]!.sentences.flatMap((sentence) => sentence.sources).map((source, idx) => (
+                      <span key={`${source.id}-${idx}`} className="inline-flex items-center rounded-full border border-line-faint px-2 py-0.5 font-mono text-[11px] text-ink-secondary">
+                        {source.kind === "owner" ? t("studio.preview.composeSourceOwner") : source.kind === "measured" ? t("studio.preview.composeSourceMeasured") : t("studio.preview.composeSourceSeen")}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <button type="button" onClick={() => applyComposeVariant(composeTab)} className="min-h-9 rounded-full bg-yellow-400 px-3 text-xs font-semibold text-yellow-950">
+                    {t("studio.preview.composeUseThis")}
+                  </button>
+                  <button type="button" onClick={keepMineInstead} className="min-h-9 rounded-full border border-line-strong px-3 text-xs font-semibold text-ink-strong">
+                    {t("studio.check.keepMine")}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Questions — C4/F3: a chip per missing question; answering it
+                (typed or spoken) composes again, up to 3 answers total. */}
+            {composeResult.missing.length > 0 && composeAnswers.length < MAX_COMPOSE_ANSWERS && (
+              <div className="space-y-2 border-t border-line-faint pt-3">
+                <div className="flex flex-wrap gap-2">
+                  {composeResult.missing.map((q, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setComposeAnswering(idx)}
+                      className="min-h-9 rounded-full border border-dashed border-line-strong px-3 text-xs font-semibold text-ink-strong"
+                    >
+                      {q.question}
+                    </button>
+                  ))}
+                </div>
+                {composeAnswering !== null && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={composeAnswerDraft}
+                      onChange={(e) => setComposeAnswerDraft(e.target.value)}
+                      placeholder={t("studio.preview.composeAnswerPlaceholder")}
+                      className="min-h-10 flex-1 rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body"
+                    />
+                    {speech && (
+                      <RecordButton
+                        username={username}
+                        consented={speech.consented}
+                        provider={speech.provider}
+                        trip={chosen.tripId}
+                        compact
+                        hold={false}
+                        onText={(said) => setComposeAnswerDraft((prev) => (prev ? `${prev} ${said}` : said))}
+                      />
+                    )}
+                    <button type="button" onClick={() => void addComposeAnswer()} className="min-h-10 rounded-full bg-yellow-400 px-3 text-sm font-semibold text-yellow-950">
+                      {t("studio.preview.composeAddAnswer")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
       )}
