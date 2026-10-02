@@ -4569,7 +4569,7 @@
   "billing.applePriceOnce": "{price} once",
   "billing.appleRenewsNote": "Renews yearly unless cancelled at least 24 hours before the end of the period, in your Apple ID settings.",
   "billing.applePassNote": "45 days, does not renew.",
-  "billing.terms": "Terms",
+  "billing.terms": "Terms of Use (Apple EULA)",
   "billing.privacy": "Privacy",
   "billing.statusActive": "Active",
   "billing.statusEnding": "Ending",

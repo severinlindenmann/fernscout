@@ -1,0 +1,19 @@
+#!/bin/sh
+# Installed by `npm run worktree:bootstrap` via `git config core.hooksPath`
+# (B2710). Refuses a staged path under content/example/ — the example
+# journal is tracked content, but persona and browser-driven test runs write
+# runtime artefacts there too, and a `git add -A` has committed those by
+# accident before. A real, intentional edit to the example journal sets
+# ALLOW_EXAMPLE_CONTENT=1.
+set -e
+
+if [ "$ALLOW_EXAMPLE_CONTENT" = "1" ]; then
+  exit 0
+fi
+
+staged=$(git diff --cached --name-only -- content/example/)
+if [ -n "$staged" ]; then
+  echo "Refused: staged changes under content/example/ (set ALLOW_EXAMPLE_CONTENT=1 to allow this commit):" >&2
+  echo "$staged" >&2
+  exit 1
+fi

@@ -120,4 +120,21 @@ describe("paidWorktreePlan", () => {
       args: ["worktree", "add", "/repo/.claude/worktrees/wt/paid", "wt"],
     });
   });
+
+  it("detaches the paid worktree at main instead of branching 'HEAD' on a detached app checkout", () => {
+    // `git rev-parse --abbrev-ref HEAD` prints "HEAD" itself when detached —
+    // `worktree add -b HEAD` then fails with "'HEAD' is not a valid branch
+    // name" (B2710, 98f15310).
+    const plan = paidWorktreePlan("/repo", "/repo/.claude/worktrees/wt", "HEAD", {
+      exists: (p) => p === "/repo/paid",
+    });
+    expect(plan).toEqual({
+      action: "add",
+      mainPaid: "/repo/paid",
+      targetPaid: "/repo/.claude/worktrees/wt/paid",
+      branch: null,
+      detached: true,
+      args: ["worktree", "add", "--detach", "/repo/.claude/worktrees/wt/paid", "main"],
+    });
+  });
 });

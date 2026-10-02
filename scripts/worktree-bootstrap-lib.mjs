@@ -55,6 +55,22 @@ export function paidWorktreePlan(mainWorktree, worktreeRoot, appBranch, deps = {
   const targetPaid = path.join(worktreeRoot, "paid");
   if (!exists(mainPaid)) return { action: "none", reason: "the main checkout has no paid/ repo" };
   if (exists(targetPaid)) return { action: "none", reason: "this worktree already has its own paid/ worktree" };
+  // `git rev-parse --abbrev-ref HEAD` prints the literal string "HEAD" on a
+  // detached checkout (e.g. a scratch worktree added with --detach, or a
+  // paid-repo PR checked out by sha). Branching a paid worktree "-b HEAD"
+  // then fails: "'HEAD' is not a valid branch name" (B2710, 98f15310).
+  // There is no app branch to mirror, so just detach the paid worktree at
+  // its own main instead.
+  if (appBranch === "HEAD") {
+    return {
+      action: "add",
+      mainPaid,
+      targetPaid,
+      branch: null,
+      detached: true,
+      args: ["worktree", "add", "--detach", targetPaid, "main"],
+    };
+  }
   const reuseBranch = branchExists(appBranch);
   return {
     action: "add",
