@@ -707,7 +707,7 @@ export default function PreviewDayFlow({
           </button>
         ) : composeStatus === "working" ? (
           <p className="text-sm text-ink-secondary">{t("studio.check.working")}</p>
-        ) : composeStatus === "ready" && composeResult && !composeOpen ? (
+        ) : composeStatus === "ready" && composeResult && !composeOpen && !suggestionState[0]?.composeApplied ? (
           <button
             type="button"
             onClick={() => setComposeOpen(true)}
@@ -718,7 +718,10 @@ export default function PreviewDayFlow({
           </button>
         ) : null}
 
-        {composeStatus === "ready" && composeResult && composeOpen && (
+        {/* Once a version is in use the part above holds it, editable, with
+            its own "Keep mine"; the review closes so there is one of each
+            (persona round, 2 Oct). */}
+        {composeStatus === "ready" && composeResult && composeOpen && !suggestionState[0]?.composeApplied && (
           <div className="mt-2 space-y-3 rounded-xl border border-line-strong bg-surface-raised p-4">
             {/* Tabs — "Close to my words" / "As a story". C2: opens on
                 Story when there is one, else Close; no Story tab at all
@@ -748,27 +751,35 @@ export default function PreviewDayFlow({
 
             {composeResult[composeTab] && (
               <div className="space-y-2 text-sm leading-6 text-ink-body">
-                <p className="whitespace-pre-line">
-                  {composeTab === "close"
-                    ? wordDiff(ownWords(entries[0]), composeResult.close!.text).map((tok, idx) => (
-                        <span key={idx} className={tok.changed ? "underline decoration-yellow-400 decoration-2 underline-offset-2" : ""}>
-                          {tok.text}{" "}
-                        </span>
-                      ))
-                    : composeResult.story!.text}
-                </p>
-                <button type="button" className="text-xs font-semibold text-ink-body underline underline-offset-2" onClick={() => setComposeShowSources((v) => !v)}>
-                  {t("studio.preview.composeSources")}
-                </button>
-                {composeShowSources && (
-                  <div className="flex flex-wrap gap-1">
-                    {composeResult[composeTab]!.sentences.flatMap((sentence) => sentence.sources).map((source, idx) => (
-                      <span key={`${source.id}-${idx}`} className="inline-flex items-center rounded-full border border-line-faint px-2 py-0.5 font-mono text-[11px] text-ink-secondary">
-                        {source.kind === "owner" ? t("studio.preview.composeSourceOwner") : source.kind === "measured" ? t("studio.preview.composeSourceMeasured") : t("studio.preview.composeSourceSeen")}
-                      </span>
+                {composeShowSources ? (
+                  // Each sentence with the chips it rests on — a claim and
+                  // its source side by side (persona round, 2 Oct).
+                  <ol className="space-y-2">
+                    {composeResult[composeTab]!.sentences.map((sentence, idx) => (
+                      <li key={idx}>
+                        <span>{sentence.text} </span>
+                        {sentence.sources.map((source, at) => (
+                          <span key={`${source.id}-${at}`} className="ml-1 inline-flex items-center rounded-full border border-line-faint px-2 py-0.5 align-middle font-mono text-[11px] text-ink-secondary">
+                            {source.kind === "owner" ? t("studio.preview.composeSourceOwner") : source.kind === "measured" ? t("studio.preview.composeSourceMeasured") : t("studio.preview.composeSourceSeen")}
+                          </span>
+                        ))}
+                      </li>
                     ))}
-                  </div>
+                  </ol>
+                ) : (
+                  <p className="whitespace-pre-line">
+                    {composeTab === "close"
+                      ? wordDiff(ownWords(entries[0]), composeResult.close!.text).map((tok, idx) => (
+                          <span key={idx} className={tok.changed ? "underline decoration-yellow-400 decoration-2 underline-offset-2" : ""}>
+                            {tok.text}{" "}
+                          </span>
+                        ))
+                      : composeResult.story!.text}
+                  </p>
                 )}
+                <button type="button" aria-pressed={composeShowSources} className="text-xs font-semibold text-ink-body underline underline-offset-2" onClick={() => setComposeShowSources((v) => !v)}>
+                  {composeShowSources ? t("studio.preview.composeSourcesHide") : t("studio.preview.composeSources")}
+                </button>
                 <div className="flex gap-2 pt-1">
                   <button type="button" onClick={() => applyComposeVariant(composeTab)} className="min-h-9 rounded-full bg-yellow-400 px-3 text-xs font-semibold text-yellow-950">
                     {t("studio.preview.composeUseThis")}

@@ -131,10 +131,10 @@ describe("4 — banned phrases", () => {
 describe("5 — 'we' needs a party or the writer's own 'we'", () => {
   test("'we' with party_size 1 and notes that never say it fails", () => {
     const v = reasons(one("We took the bus to the pass.", ["n1"]));
-    expect(v.reasons.join()).toMatch(/travels alone/);
+    expect(v.reasons.join()).toMatch(/never says "we"/);
   });
-  test("'we' with a party passes", () => {
-    expect(reasons(one("We took the bus to the pass.", ["n1"]), "close", ctx({ partySize: 2 })).ok).toBe(true);
+  test("'we' with a party but no 'we' in the notes still fails: companions are not on every day", () => {
+    expect(reasons(one("We took the bus to the pass.", ["n1"]), "close", ctx({ partySize: 2 })).reasons.join()).toMatch(/never says "we"/);
   });
   test("'we' when the notes use it passes", () => {
     const items: GuardItem[] = [...ITEMS, { id: "n5", kind: "owner", text: "we left early" }];
