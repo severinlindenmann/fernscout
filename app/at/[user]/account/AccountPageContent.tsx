@@ -62,11 +62,8 @@ function chf(amount: number): string {
  * deleted, because the person pressing this has usually just been told their
  * journal is full and is in no mood to read carefully.
  *
- * The staged documents used to be a second `confirm()` stacked on the first,
- * which read as a stutter rather than as two questions. They are a checkbox
- * inside the one panel now, unticked: they are somebody's uploads rather than
- * generated output, so they are never swept along with the PDFs unless
- * somebody says so — see `lib/storageCleanup.ts`.
+ * Generated output only — staged uploads have their own row, `StagedRow`,
+ * which names the files it deletes (B1392; see `lib/storageCleanup.ts`).
  */
 function CleanupButton({
   username,
@@ -78,17 +75,13 @@ function CleanupButton({
   const { t } = useI18n();
   const router = useRouter();
   const [asking, setAsking] = useState(false);
-  const [staged, setStaged] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
   async function clean() {
     setBusy(true);
     setFailed(false);
-    const response = await fetch(
-      `/api/web/${username}/storage/cleanup${staged ? "?staged=1" : ""}`,
-      { method: "POST" },
-    ).catch(() => null);
+    const response = await fetch(`/api/web/${username}/storage/cleanup`, { method: "POST" }).catch(() => null);
     setBusy(false);
     if (response?.ok) {
       setAsking(false);
@@ -108,19 +101,7 @@ function CleanupButton({
         error={failed ? t("me.storageCleanupFailed") : undefined}
         onConfirm={clean}
         onCancel={() => setAsking(false)}
-      >
-        {reclaimable.hasStagedFiles && (
-          <label className="mt-3 flex items-start gap-2 text-sm leading-6 text-ink-body">
-            <input
-              type="checkbox"
-              checked={staged}
-              onChange={(event) => setStaged(event.target.checked)}
-              className="mt-1.5 h-4 w-4 shrink-0 accent-navy-900"
-            />
-            <span>{t("me.storageCleanupStaged")}</span>
-          </label>
-        )}
-      </ConfirmPanel>
+      />
     );
   }
 
@@ -142,6 +123,108 @@ function CleanupButton({
         </span>
       )}
     </>
+  );
+}
+
+/** How many staged files the delete panel names before "and N more". */
+const STAGED_NAMED = 5;
+
+/**
+ * The inbox row of the storage card — B1392. Its own ConfirmPanel names the
+ * first five files (each with its day, if it was staged for one) and then
+ * deletes exactly the ids it was given, so a file that arrives while the
+ * panel is open is never swept. One 404 is fine: it is already gone.
+ */
+function StagedRow({ username, staged }: { username: string; staged: NonNullable<StoragePanel["staged"]> }) {
+  const { t, tn } = useI18n();
+  const router = useRouter();
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const count = staged.files.length;
+  const inboxHref = `/@${username}/studio/inbox`;
+
+  async function remove() {
+    setBusy(true);
+    setFailed(false);
+    for (const file of staged.files) {
+      const url = `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(file.id)}${
+        file.day ? `?day=${encodeURIComponent(file.day)}` : ""
+      }`;
+      const response = await fetch(url, { method: "DELETE" }).catch(() => null);
+      if (!response || (!response.ok && response.status !== 404)) {
+        setBusy(false);
+        setFailed(true);
+        router.refresh();
+        return;
+      }
+    }
+    setBusy(false);
+    setAsking(false);
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-5 border-t border-line-quiet pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span>
+          <span className="block text-base font-semibold text-ink-strong">
+            {tn("me.storageStaged.title", count, { count: String(count), size: staged.human })}
+          </span>
+          <span className="block text-sm leading-6 text-ink-secondary">{t("me.storageStaged.body")}</span>
+        </span>
+        {!asking && (
+          <button
+            type="button"
+            onClick={() => {
+              setFailed(false);
+              setAsking(true);
+            }}
+            className="inline-flex min-h-11 items-center rounded-full border border-line-prominent px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-base"
+          >
+            {t("me.storageStaged.delete")}
+          </button>
+        )}
+      </div>
+      {asking && (
+        <ConfirmPanel
+          label={t("studio.inbox.deleteLabel")}
+          question={tn("studio.inbox.bulkDeleteQuestion", count, { count: String(count), size: staged.human })}
+          confirmLabel={tn("studio.inbox.bulkDeleteConfirm", count, { count: String(count) })}
+          tone="destructive"
+          busyLabel={t("me.storageCleanupBusy")}
+          busy={busy}
+          error={failed ? t("me.storageCleanupFailed") : undefined}
+          onConfirm={remove}
+          onCancel={() => setAsking(false)}
+        >
+          <ul className="mt-3 space-y-1 text-sm text-ink-body">
+            {staged.files.slice(0, STAGED_NAMED).map((file) => (
+              <li key={`${file.day ?? ""}/${file.id}`} className="flex justify-between gap-3">
+                <span className="min-w-0 truncate">
+                  {file.name}
+                  {file.day && <span className="text-ink-secondary"> · {t("me.storageStaged.forDay", { day: file.day })}</span>}
+                </span>
+                <span className="shrink-0 tabular-nums">{file.human}</span>
+              </li>
+            ))}
+            {count > STAGED_NAMED && (
+              <li>
+                {t("me.storageStaged.more", { count: String(count - STAGED_NAMED) })}{" "}
+                <Link href={inboxHref} className="underline underline-offset-4">
+                  {t("me.storageStaged.seeAll")}
+                </Link>
+              </li>
+            )}
+          </ul>
+        </ConfirmPanel>
+      )}
+      <p className="mt-2 text-sm">
+        <Link href={inboxHref} className="text-ink-strong underline underline-offset-4">
+          {t("me.storageStaged.look")}
+        </Link>
+      </p>
+    </div>
   );
 }
 
@@ -238,7 +321,10 @@ export type StoragePanel = {
    *  B2636. */
   excess: string | null;
   rows: { key: string; label: string; human: string; share: number }[];
-  reclaimable: { human: string; files: number; hasStagedFiles: boolean };
+  reclaimable: { human: string; files: number };
+  /** B1392 — everything staged, listed so the delete names what goes.
+   *  Absent at zero. `day` is the day a file was staged for, if any. */
+  staged?: { human: string; files: { id: string; name: string; human: string; day: string | null }[] };
 };
 
 /**
@@ -1023,6 +1109,8 @@ export default function AccountPageContent({
               )}
 
               {storage.rows.length > 0 && <StorageBar rows={storage.rows} />}
+
+              {storage.staged && <StagedRow username={username} staged={storage.staged} />}
 
               {storage.reclaimable.files > 0 && (
                 <div className="mt-5 border-t border-line-quiet pt-4">

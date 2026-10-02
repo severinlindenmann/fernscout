@@ -507,3 +507,21 @@ export function inboxBytes(username: string): number {
   }
   return total;
 }
+
+/**
+ * Every staged file, flat bucket and day folders alike, newest first — B1392.
+ * What the account page's inbox row lists and deletes: the same bytes the
+ * storage legend counts, each with the day it waits for (`null` = none).
+ */
+export function listStaged(username: string): { id: string; name: string; bytes: number; day: string | null }[] {
+  const rows = (day: string | null, byKind: Record<InboxKind, InboxEntry[]>) =>
+    Object.values(byKind)
+      .flat()
+      .map((e) => ({ id: e.id, name: e.filename, bytes: e.bytes, day, uploadedAt: e.uploadedAt }));
+  return [
+    ...rows(null, listInbox(username)),
+    ...listInboxDayFolders(username).flatMap((day) => rows(day, listDayInbox(username, day))),
+  ]
+    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
+    .map(({ uploadedAt: _u, ...row }) => row);
+}
