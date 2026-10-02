@@ -29,6 +29,7 @@ const planOptions: PlanOptionFacts = {
     aiDays: PLANS.tripPass.aiDays,
     storageGb: PLANS.tripPass.storageGb,
     includedPostcards: PLANS.tripPass.includedPostcards,
+    appUpgradeVoucherRappen: PLANS.tripPass.appUpgradeVoucherRappen,
   },
 };
 
@@ -180,6 +181,8 @@ describe("the storage card", () => {
         source: null,
         postcards: null,
         bookDiscountRappen: 0,
+      passEndsAt: null,
+      vouchers: [],
       };
       const notFull: StoragePanel = { ...storage, percent: 41, excess: null };
       const full: StoragePanel = { ...storage, used: "6.1 GB", percent: 122, excess: "1.1 GB" };
@@ -226,6 +229,8 @@ describe("the plan panel", () => {
     source: "stripe",
     postcards: { used: 2, allowed: 3 },
     bookDiscountRappen: 1000,
+  passEndsAt: null,
+  vouchers: [],
   };
 
   test("shows the plan name first, ahead of the orders card", () => {
@@ -283,6 +288,8 @@ describe("the plan panel", () => {
       source: "stripe",
       postcards: { used: 0, allowed: 1 },
       bookDiscountRappen: 0,
+    passEndsAt: null,
+    vouchers: [],
     };
     const html = render({ plan: pass });
     expect(html).not.toContain("Cancel");
@@ -304,6 +311,8 @@ describe("the plan panel", () => {
       source: null,
       postcards: null,
       bookDiscountRappen: 0,
+    passEndsAt: null,
+    vouchers: [],
     };
     const html = render({ plan: free });
     expect(html).toContain("Buy a Trip pass");
@@ -333,6 +342,8 @@ describe("the plan panel", () => {
       source: null,
       postcards: null,
       bookDiscountRappen: 0,
+    passEndsAt: null,
+    vouchers: [],
     };
 
     test("show both prices and facts before any click, read from PLANS", async () => {
