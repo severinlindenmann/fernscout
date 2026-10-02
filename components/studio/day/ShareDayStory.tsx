@@ -186,7 +186,7 @@ export default function ShareDayStory({
     video: (
       <span className="relative block aspect-[9/16] w-full overflow-hidden rounded-md bg-navy-950">
         {thumb(second?.src ?? first?.src, "h-full w-full")}
-        <span className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-navy-950 text-yellow-400">
+        <span className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-yellow-400 text-navy-900">
           <Play aria-hidden className="h-3.5 w-3.5" />
         </span>
         <span className="absolute bottom-1 right-1 rounded bg-navy-950 px-1 text-[10px] font-semibold text-cream-50">0:08</span>
