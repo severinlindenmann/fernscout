@@ -1,6 +1,6 @@
 import "server-only";
 import path from "node:path";
-import { HELPER_MODEL } from "@/lib/helper/model";
+import { modelFor } from "@/lib/helper/models";
 import type { Described, DescribedForm } from "@/lib/photos/described";
 import { describedBlock, describedFor, readSidecar, writeSidecar } from "@/lib/sidecar";
 import { runDir } from "@/lib/staging/paths";
@@ -43,6 +43,6 @@ export function rememberRunFile(
   form: DescribedForm,
 ): void {
   writeSidecar(runSidecarPath(user, runId, photoId), {
-    described: describedBlock(form, HELPER_MODEL, file),
+    described: describedBlock(form, modelFor("vision"), file),
   });
 }

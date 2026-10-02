@@ -23,6 +23,7 @@ import { mediaKey } from "@/lib/photos";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { parseWeather, weatherFactLine } from "@/lib/weather";
 
 export const dynamic = "force-dynamic";
 
@@ -281,6 +282,13 @@ export async function POST(
   const from = pack?.photoSpanRaw?.from || text(body.from);
   const to = !usesContentField ? pack?.photoSpanRaw?.to || text(body.to) : "";
   const photos = pack?.photoSpanRaw?.count ?? (typeof body.photos === "number" ? body.photos : undefined);
+  // B2684 — the day's own measured weather, when the caller sends it. Run
+  // through `parseWeather`, the same validator a stored day's own weather is
+  // checked against, rather than trusted as free text: what reaches the
+  // prompt is only ever a reading with real provenance, never a caller's
+  // unvalidated claim about what the weather was.
+  const weather = parseWeather(body.weatherData);
+
   const facts: DayFacts = {
     date: date || pack?.date || "",
     trip: trip.title,
@@ -289,7 +297,7 @@ export async function POST(
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
     ...(photos !== undefined ? { photos } : {}),
-    ...(weatherFact ? { weather: weatherFact.text } : {}),
+    ...(weatherFact ? { weather: weatherFact.text } : weather ? { weather: weatherFactLine(weather) } : {}),
   };
 
   const supplied = text(body.idempotency_key);
@@ -330,7 +338,11 @@ export async function POST(
       return Response.json({ error: "model_failed" }, { status: 502 });
     }
     await recordAiDay(user, tripId, facts.date);
-    const titles = suggested.filter((t) => titleIsGroundedInNotes(notes, t));
+    // B2684 — the same fact text `buildPrompt` actually sent, so a title
+    // using the day's own place name is not refused for a word it was
+    // never allowed to use in the first place.
+    const factWords = [facts.location, facts.country, facts.trip].filter((v) => !!v).join(" ");
+    const titles = suggested.filter((t) => titleIsGroundedInNotes(notes, t, factWords));
     const answer = { ok: true, titles, aiDay: facts.date || null, provider: HELPER_PROVIDER };
     await remember(key, fingerprint, answer);
     return Response.json(answer);

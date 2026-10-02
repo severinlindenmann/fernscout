@@ -170,6 +170,28 @@ describe("what the model is told", () => {
     const prompt = buildPrompt("A quiet day.", { date: "2026-05-04" });
     expect(prompt).not.toContain("Place:");
     expect(prompt).not.toContain("Photographs on this day");
+    expect(prompt).not.toContain("Weather");
+  });
+
+  // B2684 — the prompt promised a measured weather line it never sent.
+  test("the prompt carries the day's weather when it has one", () => {
+    const prompt = buildPrompt("A quiet day.", {
+      date: "2026-05-04",
+      weather: "17–22 °C, rain (Open-Meteo archive)",
+    });
+    expect(prompt).toContain("Weather, measured: 17–22 °C, rain (Open-Meteo archive)");
+  });
+
+  test("and never claims one when the day has none", () => {
+    const prompt = buildPrompt("A quiet day.", { date: "2026-05-04" });
+    expect(prompt).not.toContain("Weather");
+  });
+
+  // B2684 — a camera's clock is not an activity time.
+  test("the photo-time line says it is the camera clock, not an activity time", () => {
+    const prompt = buildPrompt("A quiet day.", { date: "2026-05-04", from: "07:15", to: "16:40" });
+    expect(prompt).toContain("Photographs' camera clock: 07:15 to 16:40");
+    expect(SYSTEM_PROMPT).toMatch(/camera clock is not when anything happened/i);
   });
 
   /** The system prompt is the product, so its three load-bearing rules are

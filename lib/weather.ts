@@ -111,6 +111,44 @@ export function weatherGroup(code: number | undefined): WeatherGroup | undefined
   return undefined;
 }
 
+/** `weatherGroup`'s seven glyphs, said in plain English — for a model prompt,
+ *  not a reader's page (which draws a glyph and `weather.<group>` from
+ *  `site/locales/`; this is the one place that needs the words themselves). */
+const WEATHER_GROUP_WORDS: Record<WeatherGroup, string> = {
+  clear: "clear",
+  partly: "partly cloudy",
+  cloudy: "cloudy",
+  fog: "fog",
+  rain: "rain",
+  snow: "snow",
+  thunder: "thunderstorm",
+};
+
+/**
+ * A day's measured weather, as one line for the assistant's prompt — B2684.
+ *
+ * Not what a reader sees: this is a short, source-credited fact for
+ * `lib/helper/model.ts`'s `buildPrompt`, e.g. "17–22 °C, rain (Open-Meteo
+ * archive)". A reserved source is credited by name (`SOURCE_CREDIT`); a
+ * hand-supplied one is shown exactly as given, the same distinction
+ * `components/StoryPager.tsx`'s own `weatherLabels` draws for readers.
+ */
+export function weatherFactLine(w: DayWeather): string {
+  const parts: string[] = [];
+  if (w.tempMin !== undefined && w.tempMax !== undefined && w.tempMin !== w.tempMax) {
+    parts.push(`${w.tempMin}–${w.tempMax} °C`);
+  } else if (w.tempMax !== undefined) {
+    parts.push(`${w.tempMax} °C`);
+  } else if (w.tempMin !== undefined) {
+    parts.push(`${w.tempMin} °C`);
+  }
+  const group = weatherGroup(w.code);
+  if (group) parts.push(WEATHER_GROUP_WORDS[group]);
+  const credit = SOURCE_CREDIT[w.source];
+  const sourceLabel = credit ? `${credit.label} archive` : w.source;
+  return parts.length > 0 ? `${parts.join(", ")} (${sourceLabel})` : `(${sourceLabel})`;
+}
+
 /** Rounded the way it is shown: a journal is not a weather station. */
 function round(n: number, places = 0): number {
   const f = 10 ** places;

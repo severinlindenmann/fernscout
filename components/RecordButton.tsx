@@ -74,6 +74,7 @@ export default function RecordButton({
   compactClassName,
   language: fixedLanguage,
   run,
+  trip,
   hold: holdToTalk = true,
   maxSeconds = MAX_SPEECH_SECONDS,
   onSettled,
@@ -92,6 +93,11 @@ export default function RecordButton({
    *  is one — B1803 final review, finding 4. Sent to the transcribe route.
    *  Absent everywhere else this button is mounted. */
   run?: string;
+  /** Which trip this recording is for, when the host already knows — B2691.
+   *  Lets the route build Deepgram keyterms from the trip's own place names
+   *  and companions, so "Széchenyi" or somebody's own name is heard right.
+   *  Absent wherever the host has no trip in view (the ask box). */
+  trip?: string;
   disabled?: boolean;
   /** An icon inside somebody else's box rather than a button of its own —
    *  B767. The host must be `relative`, since the icon pins itself to the
@@ -389,6 +395,7 @@ export default function RecordButton({
               language,
               locale,
               ...(run ? { run } : {}),
+              ...(trip ? { trip } : {}),
               // One key per recording, so a tap that times out and is retried is
               // answered rather than charged twice.
               idempotency_key: `${started.current}/${blob.size}`,
@@ -421,7 +428,7 @@ export default function RecordButton({
         onSettled?.();
       }
     },
-    [language, locale, onSettled, onText, run, t, username],
+    [language, locale, onSettled, onText, run, trip, t, username],
   );
 
   const start = useCallback(async () => {

@@ -1881,6 +1881,7 @@ export default function AddDayFlow({
                     username={username}
                     consented={speech.consented}
                     provider={speech.provider}
+                    trip={tripId}
                     compact
                     hold={false}
                     onText={(said) => setContent((prev) => (prev ? `${prev} ${said}` : said))}
@@ -1946,6 +1947,7 @@ export default function AddDayFlow({
                           username={username}
                           consented={speech.consented}
                           provider={speech.provider}
+                          trip={tripId}
                           compact
                           hold={false}
                           onText={(said) =>

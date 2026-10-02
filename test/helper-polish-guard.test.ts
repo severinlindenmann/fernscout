@@ -163,6 +163,19 @@ describe("titleIsGroundedInNotes", () => {
   it("an empty title is trivially grounded", () => {
     expect(titleIsGroundedInNotes("anything at all", "")).toBe(true);
   });
+
+  // B2684 — TITLES_SYSTEM_PROMPT allows words "in the notes or the facts",
+  // so the guard has to check the same fact text the prompt actually sent
+  // or it silently drops a title the prompt itself allowed.
+  it("accepts a title using the place name actually sent as a fact", () => {
+    const notes = "we wandered for hours, nothing special to say about it";
+    expect(titleIsGroundedInNotes(notes, "Wandered in Kotor", "Kotor Montenegro")).toBe(true);
+  });
+
+  it("still rejects a title naming a place that was never sent either way", () => {
+    const notes = "we wandered for hours, nothing special to say about it";
+    expect(titleIsGroundedInNotes(notes, "Wandered in Zurich", "Kotor Montenegro")).toBe(false);
+  });
 });
 
 // TIX-2 persona round — Hungarian typed without accents. Putting the accents
