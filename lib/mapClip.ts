@@ -205,3 +205,54 @@ export function clipPath(d: string, box: ClipBox, close: boolean): string {
   }
   return serialise(out, close);
 }
+
+/**
+ * A baked path with every vertex closer than `tolerance` (basemap units) to
+ * the line between its kept neighbours dropped — Douglas–Peucker, iterative so
+ * a long coastline cannot overflow the stack. A card draws the underlay at a
+ * known pixel scale, so the caller passes its 0.6 px in basemap units.
+ * `close` matches `clipPath`: a ring keeps its closure and at least 3 points.
+ * Unparseable paths come back unchanged.
+ */
+export function simplifyPath(d: string, tolerance: number, close: boolean): string {
+  const runs = parsePath(d);
+  if (runs === null) return d;
+  const tol2 = tolerance * tolerance;
+  const out: number[][] = [];
+  for (const run of runs) {
+    const pts = run.slice();
+    if (close) pts.push(run[0], run[1]); // measure the ring's seam too
+    const n = pts.length / 2;
+    const keep = new Uint8Array(n);
+    keep[0] = keep[n - 1] = 1;
+    const pending: [number, number][] = [[0, n - 1]];
+    while (pending.length) {
+      const [a, b] = pending.pop()!;
+      const ax = pts[a * 2];
+      const ay = pts[a * 2 + 1];
+      const dx = pts[b * 2] - ax;
+      const dy = pts[b * 2 + 1] - ay;
+      const len2 = dx * dx + dy * dy;
+      let far = -1;
+      let max = tol2;
+      for (let i = a + 1; i < b; i++) {
+        const x = pts[i * 2];
+        const y = pts[i * 2 + 1];
+        const t = len2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len2)) : 0;
+        const dist2 = (x - ax - t * dx) ** 2 + (y - ay - t * dy) ** 2;
+        if (dist2 > max) {
+          max = dist2;
+          far = i;
+        }
+      }
+      if (far !== -1) {
+        keep[far] = 1;
+        pending.push([a, far], [far, b]);
+      }
+    }
+    const kept: number[] = [];
+    for (let i = 0; i < (close ? n - 1 : n); i++) if (keep[i]) kept.push(pts[i * 2], pts[i * 2 + 1]);
+    if (kept.length >= (close ? 6 : 4)) out.push(kept);
+  }
+  return serialise(out, close);
+}

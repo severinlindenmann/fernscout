@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { isEnabled } from "../capabilities";
 import { basemapForRoute, type Basemap } from "../basemap";
+import { simplifyPath } from "../mapClip";
 import { coveringRegion, tripMapRegions } from "../maps/dir";
 import { frameRoute, place, type Frame, type Point } from "../mapFrame";
 import { cardPalette, type CardPalette } from "./cardPalette";
@@ -264,15 +265,22 @@ function renderSvg(opts: {
   // so a street region's own edge is never a visible seam onto a blank card.
   parts.push(`<g transform="scale(${frame.lngScale} 1)">`);
   if (basemap) {
+    // B2569: the underlay is drawn at card scale, so detail under 0.6 px
+    // (the street layer's own tolerance) is weight nobody sees.
+    const tol = px(0.6);
+    const thin = (d: string, close: boolean) => simplifyPath(d, tol, close);
     parts.push(`<g fill="${palette.land}" stroke="${palette.border}" stroke-width="1">`);
-    for (const d of basemap.borders) parts.push(`<path d="${d}" vector-effect="non-scaling-stroke"/>`);
+    for (const d of basemap.borders) parts.push(`<path d="${thin(d, true)}" vector-effect="non-scaling-stroke"/>`);
     parts.push(`</g>`);
     parts.push(`<g fill="${palette.water}" stroke="none">`);
-    for (const d of basemap.lakes) parts.push(`<path d="${d}"/>`);
+    for (const d of basemap.lakes) parts.push(`<path d="${thin(d, true)}"/>`);
     parts.push(`</g>`);
-    parts.push(`<g fill="none" stroke="${palette.water}" stroke-width="1.4" stroke-linecap="round">`);
-    for (const d of basemap.rivers) parts.push(`<path d="${d}" vector-effect="non-scaling-stroke"/>`);
-    parts.push(`</g>`);
+    // Street water already draws rivers wherever a street region covers the frame.
+    if (!street || street.water.length === 0) {
+      parts.push(`<g fill="none" stroke="${palette.water}" stroke-width="1.4" stroke-linecap="round">`);
+      for (const d of basemap.rivers) parts.push(`<path d="${thin(d, false)}" vector-effect="non-scaling-stroke"/>`);
+      parts.push(`</g>`);
+    }
   }
   parts.push(`</g>`);
 
