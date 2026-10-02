@@ -1239,6 +1239,30 @@ export default function AddDayFlow({
     };
   }, [createdSlug, weatherAvailable, hasCoords, tripId, username, autosaveState]);
 
+  // ── B2690 — describe photographs as soon as a batch lands on Write,
+  // never waiting for Preview to ask. Background only: no consent prompt
+  // here (`effectiveConsents.photos` is read, never asked for), no status
+  // shown, and a failure is silent — Preview still works, it just describes
+  // on its own ask as before (the route caches by content hash, so nothing
+  // already described here is paid for twice). Fires once per distinct set
+  // of image srcs the gallery read above comes back with, so a batch that
+  // has not changed is never re-sent.
+  const lastDescribedSignature = useRef<string | null>(null);
+  useEffect(() => {
+    if (!createdSlug || !helperOn || !effectiveConsents.photos) return;
+    const srcs = galleryItems.filter((g) => g.type === "image").map((g) => g.src).sort();
+    if (srcs.length === 0) return;
+    const signature = srcs.join("\u0000");
+    if (lastDescribedSignature.current === signature) return;
+    lastDescribedSignature.current = signature;
+    // no-refresh: a background caption fetch nothing on this page reads back; Preview reads the result fresh when it opens.
+    fetch(`/api/helper/${encodeURIComponent(username)}/day/describe-photos`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trip: tripId, slug: createdSlug }),
+    }).catch(() => {});
+  }, [createdSlug, tripId, username, galleryItems, helperOn, effectiveConsents.photos]);
+
   // ── receipt (B2676) ───────────────────────────────────────────────────
   // Enabled only once the draft is saved and has photos: `read-receipt`
   // needs the photograph already attached to an on-disk entry
