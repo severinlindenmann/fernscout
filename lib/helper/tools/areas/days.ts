@@ -267,6 +267,20 @@ export const DAYS_TOOLS: readonly Tool[] = [
       transportMode: { type: "string", description: 'Mode if said; "none"=rest day, else ask first.' },
       tags: { type: "string", description: 'Comma-separated if said; "none"/"unknown" once asked.' },
       visibility: { type: "string", description: '"guest"/"private" if asked; else "none".' },
+      /**
+       * B1661 — what the address lookup could not fill. Asked for only when a
+       * day has a position and the route refused with `incomplete_day` naming
+       * these; a declined position needs none of them.
+       */
+      location: { type: "string", description: 'Place name if said; "none"/"unknown" once asked.' },
+      country: { type: "string", description: 'Country if said; "none"/"unknown" once asked.' },
+      countryCode: { type: "string", description: 'Two-letter code if known; "none"/"unknown" once asked.' },
+      timezone: { type: "string", description: 'IANA zone if known; "none"/"unknown" once asked.' },
+      translations: {
+        type: "string",
+        description:
+          'Only when the journal has several languages: JSON {"<locale>":{"title","content"}} of what they said, or "none"/"unknown" once asked. Never translate it yourself.',
+      },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day`,
     propose: async (username, args, say, today) => {
@@ -346,7 +360,7 @@ export const DAYS_TOOLS: readonly Tool[] = [
            * model has not been told, which is what lets `POST .../day`'s own
            * completeness check catch a day still silent on one of them.
            */
-          ...(["time", "transportMode", "tags", "visibility"] as const)
+          ...(["time", "transportMode", "tags", "visibility", "location", "country", "countryCode", "timezone", "translations"] as const)
             .filter((name) => (args[name] ?? "").trim() !== "")
             .map((name) => ({ name, value: args[name]!.trim(), fixed: true as const })),
         ],
@@ -624,6 +638,11 @@ export const DAYS_TOOLS: readonly Tool[] = [
         type: "string",
         description: "Same rule as start_day's own visibility.",
       },
+      location: { type: "string", description: "Same rule as start_day's own location." },
+      country: { type: "string", description: "Same rule as start_day's own country." },
+      countryCode: { type: "string", description: "Same rule as start_day's own countryCode." },
+      timezone: { type: "string", description: "Same rule as start_day's own timezone." },
+      translations: { type: "string", description: "Same rule as start_day's own translations." },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/assemble-day`,
     propose: async (username, args, say, today) => {
@@ -704,7 +723,7 @@ export const DAYS_TOOLS: readonly Tool[] = [
           // an actual question asked in conversation; absent when it has not
           // asked, which is what lets the route's own completeness check
           // catch a day still silent on one of them.
-          ...(["time", "transportMode", "tags", "visibility"] as const)
+          ...(["time", "transportMode", "tags", "visibility", "location", "country", "countryCode", "timezone", "translations"] as const)
             .filter((name) => (args[name] ?? "").trim() !== "")
             .map((name) => ({ name, value: args[name]!.trim(), fixed: true as const })),
         ],

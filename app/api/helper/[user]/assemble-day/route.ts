@@ -1,6 +1,9 @@
 import "server-only";
 import fs from "node:fs";
-import { createDraft, factsOfInput, type DraftInput } from "@/lib/api/entries";
+import { reversePlace } from "@/lib/addressLookup";
+import { createDraft, dayGaps, factsOfInput, geoAnswersIn, type DraftInput } from "@/lib/api/entries";
+import { isEnabled } from "@/lib/capabilities";
+import { requestLocale } from "@/lib/locales";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { attachDayFolderMedia } from "@/lib/dayFolderAttach";
 import {
@@ -200,6 +203,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const words = readWords(user, date);
 
   const title = text(body.title);
+  const place =
+    readiness.location && isEnabled("addressLookup", user)
+      ? await reversePlace(readiness.location.lat, readiness.location.lon, await requestLocale())
+      : null;
   const input: DraftInput = {
     // No title unless the press names one (B1442): writing the ISO date in
     // its place is the exact thing that leaked to every surface as though it
@@ -234,6 +241,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     // answer, never merely "asked" (`weatherAsked` alone covers a decline
     // too, and a decline must fetch nothing).
     ...(readiness.weatherLookup ? { weather: true } : {}),
+    // B1661 — what the model was told; a found place overrides it.
+    ...geoAnswersIn(body),
+    ...(place ? { location: place.location, country: place.country } : {}),
+    ...(place?.countryCode ? { countryCode: place.countryCode } : {}),
+    ...(place?.region ? { region: place.region } : {}),
   };
 
   /**
@@ -251,6 +263,17 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       { error: "incomplete_day", missing: fullMissing.map((m) => m.field) },
       { status: 422 },
     );
+  }
+
+  // B1661 — the lookup left the place empty, or the journal owes translations.
+  const gaps = dayGaps(user, input);
+  if (gaps.invalid) {
+    refused(user, "assemble_day", "invalid_translations");
+    return Response.json({ error: "invalid_translations", problems: gaps.invalid }, { status: 400 });
+  }
+  if (gaps.missing.length > 0) {
+    refused(user, "assemble_day", "incomplete_day");
+    return Response.json({ error: "incomplete_day", missing: gaps.missing }, { status: 422 });
   }
 
   const written = createDraft(ref, input);

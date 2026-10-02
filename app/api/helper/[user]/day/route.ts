@@ -1,8 +1,10 @@
 import { reversePlace } from "@/lib/addressLookup";
 import {
   createDraft,
+  dayGaps,
   editEntry,
   factsOfInput,
+  geoAnswersIn,
   renameEntrySlug,
   slugAvailable,
   type DraftInput,
@@ -193,6 +195,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     ...(text(body.time) ? { time: text(body.time) } : {}),
     ...(lat !== undefined ? { lat } : {}),
     ...(lng !== undefined ? { lng } : {}),
+    // B1661 — what the model was told, for a lookup that found nothing; a
+    // found place overrides it below.
+    ...geoAnswersIn(body),
     ...(place ? { location: place.location, country: place.country } : {}),
     ...(place?.countryCode ? { countryCode: place.countryCode } : {}),
     ...(place?.region ? { region: place.region } : {}),
@@ -223,6 +228,17 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       { error: "incomplete_day", missing: missing.map((m) => m.field) },
       { status: 422 },
     );
+  }
+
+  // B1661 — the lookup left the place empty, or the journal owes translations.
+  const gaps = dayGaps(user, input);
+  if (gaps.invalid) {
+    refused(user, "start_day", "invalid_translations");
+    return Response.json({ error: "invalid_translations", problems: gaps.invalid }, { status: 400 });
+  }
+  if (gaps.missing.length > 0) {
+    refused(user, "start_day", "incomplete_day");
+    return Response.json({ error: "incomplete_day", missing: gaps.missing }, { status: 422 });
   }
 
   const written = createDraft(ref, input);
