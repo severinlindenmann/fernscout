@@ -672,9 +672,6 @@ final class Recorder: NSObject {
         appendFix(Fix(t: Int(Date().timeIntervalSince1970), lat: lat, lon: lon, mode: nil))
     }
 
-    /// Rewrites the pending upload's `createdAt` to look `days` old, so the
-    /// 7-day drop (`retryPendingUpload`) can be proven without waiting a
-    /// week for it.
     /// Dumps a small JSON snapshot of internal state to a fixed debug file
     /// in Application Support, purely so a test run can read it back from
     /// outside the sandbox (`xcrun simctl get_app_container … data`).
@@ -696,6 +693,9 @@ final class Recorder: NSObject {
         }
     }
 
+    /// Rewrites the pending upload's `createdAt` to look `days` old, so the
+    /// 7-day drop (`retryPendingUpload`) can be proven without waiting a
+    /// week for it.
     func debugAgePendingUpload(days: Int) {
         guard let pending = loadPendingUpload() else { return }
         let aged = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
