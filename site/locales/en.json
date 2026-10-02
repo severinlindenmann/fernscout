@@ -773,7 +773,6 @@
   "photobook.order.check.textFits": "Text fits on every page",
   "photobook.order.check.textFitsNo": "Some days are cut short to fit their page — open a day to give it a second one.",
   "photobook.print.noFilesFailed": "This book was never made, so there is nothing to download.",
-  "photobook.read.phoneHint": "Scroll through the book. Pinch a page to enlarge it; the bar below names the stop of the page you are on.",
   "photobook.status.buildFailed": "Not made",
   "photobook.status.building": "Being made",
   "photobook.status.awaitingPayment": "Waiting for payment",
@@ -3801,7 +3800,6 @@
   "photobook.order.more.startOverSub": "choose language, length and format again · asks first",
   "photobook.order.more.resetSub": "your own changes to pages are lost · asks first",
   "photobook.order.bookDetails": "Book details",
-  "photobook.order.passSub": "{spreads} spreads · about {minutes} minutes",
   "photobook.order.checksOkShort": "Print quality checked",
   "photobook.order.checksDetails": "Details",
   "photobook.order.done.see": "Looked at",
@@ -4710,7 +4708,7 @@
   "photobook.pass.pageLineRange": "{name} · p. {from}–{to}",
   "photobook.first.budgetLeftOut": "{count} photos left out",
   "photobook.first.budgetLeftOut.one": "1 photo left out",
-  "photobook.first.budgetLeftOutShow": "Show them",
+  "photobook.first.budgetLeftOutShow": "Look, and put any back",
   "photobook.print.readerCopy": "A reader's copy",
   "photobook.readerBought.body": "A reader of {trip} has ordered their own printed copy of the book, and it has gone to print. No other details are shared here.",
   "photobook.readerBought.footer": "Sent because a reader ordered their own copy of your photobook. This notice is always sent.",
@@ -4724,5 +4722,12 @@
   "studio.day.dateOutsideTrip.chooseTrip": "Choose the trip",
   "studio.day.dateOutsideTrip.pickDate": "Pick another date",
   "studio.day.photos.chooseLabel": "Choose photos",
-  "studio.published.pageTitle": "Published"
+  "studio.published.pageTitle": "Published",
+  "photobook.first.skipShort": "Skip ›",
+  "photobook.first.coverMore": "+{count} more",
+  "photobook.order.passButton": "Edit page by page · about {minutes} min",
+  "photobook.read.headingShort": "Your book",
+  "photobook.read.hintShort": "Swipe through · pinch a page to zoom",
+  "photobook.read.editShort": "Edit",
+  "photobook.read.orderPrice": "Order this book · {price}"
 }

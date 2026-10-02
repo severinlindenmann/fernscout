@@ -773,7 +773,6 @@
   "photobook.order.check.textFits": "Il testo sta in ogni pagina",
   "photobook.order.check.textFitsNo": "Alcuni giorni vengono accorciati per stare nella loro pagina — apri un giorno per dargliene una seconda.",
   "photobook.print.noFilesFailed": "Questo libro non è mai stato creato, quindi non c’è niente da scaricare.",
-  "photobook.read.phoneHint": "Scorri il libro. Allarga una pagina con due dita per ingrandirla; la barra in basso indica la tappa della pagina in cui ti trovi.",
   "photobook.status.buildFailed": "Non creato",
   "photobook.status.building": "In creazione",
   "photobook.status.awaitingPayment": "In attesa di pagamento",
@@ -3786,7 +3785,6 @@
   "photobook.order.more.startOverSub": "scegli di nuovo lingua, lunghezza e formato · chiede prima",
   "photobook.order.more.resetSub": "le tue modifiche alle pagine vanno perse · chiede prima",
   "photobook.order.bookDetails": "Dettagli del libro",
-  "photobook.order.passSub": "{spreads} doppie pagine · circa {minutes} minuti",
   "photobook.order.checksOkShort": "Qualità di stampa verificata",
   "photobook.order.checksDetails": "Dettagli",
   "photobook.order.done.see": "Visto",
@@ -4719,7 +4717,7 @@
   "photobook.pass.pageLineRange": "{name} · p. {from}–{to}",
   "photobook.first.budgetLeftOut": "{count} foto escluse",
   "photobook.first.budgetLeftOut.one": "1 foto esclusa",
-  "photobook.first.budgetLeftOutShow": "Mostrale",
+  "photobook.first.budgetLeftOutShow": "Guardale e rimettine qualcuna",
   "photobook.print.readerCopy": "La copia di un lettore",
   "photobook.readerBought.body": "Un lettore di {trip} ha ordinato una propria copia stampata del libro, ed è andata in stampa. Qui non viene condiviso nessun altro dato.",
   "photobook.readerBought.footer": "Inviata perché un lettore ha ordinato una propria copia del tuo fotolibro. Questo avviso viene sempre inviato.",
@@ -4733,5 +4731,12 @@
   "studio.day.dateOutsideTrip.chooseTrip": "Scegli il viaggio",
   "studio.day.dateOutsideTrip.pickDate": "Scegli un’altra data",
   "studio.day.photos.chooseLabel": "Scegli le foto",
-  "studio.published.pageTitle": "Pubblicato"
+  "studio.published.pageTitle": "Pubblicato",
+  "photobook.first.skipShort": "Salta ›",
+  "photobook.first.coverMore": "+{count} altre",
+  "photobook.order.passButton": "Modifica pagina per pagina · circa {minutes} min",
+  "photobook.read.headingShort": "Il tuo libro",
+  "photobook.read.hintShort": "Sfoglia · pizzica una pagina per ingrandire",
+  "photobook.read.editShort": "Modifica",
+  "photobook.read.orderPrice": "Ordina questo libro · {price}"
 }
