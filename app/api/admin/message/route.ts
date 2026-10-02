@@ -7,6 +7,7 @@ import { renderMail } from "@/lib/mail/template";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { USERNAME_RE, userExists } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const username = typeof body.user === "string" ? body.user.trim() : "";
   const subject = typeof body.subject === "string" ? body.subject.trim() : "";
   const text = typeof body.body === "string" ? body.body.trim() : "";

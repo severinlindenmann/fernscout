@@ -214,6 +214,28 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     });
   });
 
+  test("a trip-scoped token gets the same answer for another existing trip and a missing one (B2219)", async () => {
+    writeTripFixture(OWNER, {
+      id: "other-private",
+      title: "Other",
+      start: "2026-07-01",
+      end: "2026-07-02",
+      status: "past",
+      visibility: "private",
+      intro: "Intro.",
+    });
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { tripWriteScope } = await import("@/lib/tripPeople");
+    const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent", { trip: TRIP });
+    const scoped = await verifyCode(OWNER, OWNER_EMAIL, code, "agent", tripWriteScope(TRIP));
+    if (!scoped.ok) throw new Error("no scoped token");
+    const body = { rows: [{ date: "2026-07-01", label: "x", amount: 1, currency: "CHF", category: "food" }] };
+    const other = await applyCall(scoped.token, body, "other-private");
+    const missing = await applyCall(scoped.token, body, "no-such-trip");
+    expect(other.status).toBe(404);
+    expect(other).toEqual(missing);
+  });
+
   describe("putting the agreed rows on the days", () => {
     test("writes each cost on its day, and picks the earliest when a date has two", async () => {
       const token = await ownerToken();

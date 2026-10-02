@@ -8,6 +8,7 @@
 import { isOwner } from "@/lib/contacts/session";
 import { setOwnerTips } from "@/lib/journals";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,9 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
   if (!getUser(user)) return Response.json({ error: "unknown_user" }, { status: 404 });
   if (!(await isOwner(user))) return Response.json({ error: "forbidden" }, { status: 403 });
 
-  const body = (await request.json().catch(() => null)) as { optIn?: unknown } | null;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null) as { optIn?: unknown } | null;
   if (typeof body?.optIn !== "boolean") {
     return Response.json({ error: "invalid_optIn", message: "optIn must be true or false." }, { status: 400 });
   }

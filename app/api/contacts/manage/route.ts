@@ -9,6 +9,7 @@ import {
 import { EMPTY_ADDRESS, hasAnyDetail, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +69,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const username = typeof body.user === "string" ? body.user : "";
   if (!getUser(username) || !isEnabled("contacts", username)) {
     return Response.json({ error: "contacts_disabled" }, { status: 404 });

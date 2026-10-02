@@ -5,6 +5,7 @@ import { attention, health, snapshot, troubles } from "@/lib/adminConsole";
 import { loadServerConfig } from "@/lib/config";
 import { dashboard } from "@/lib/instanceCosts";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const id = typeof body.id === "string" ? body.id.trim() : "";
   const action =
     body.action === "unhide" ? "unhide" : body.action === "snooze" ? "snooze" : "acknowledge";
