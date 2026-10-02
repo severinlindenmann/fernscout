@@ -75,7 +75,17 @@ function EmptyPanel({ background }: { background: string }) {
 function PhotoCard({ facts, photo, site }: { facts: StoryFacts; photo: string | null; site: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: COLORS.navy950 }}>
-      <div style={{ display: "flex", position: "absolute", top: 40, left: 40 }}>
+      <div
+        style={{
+          display: "flex",
+          position: "absolute",
+          top: 40,
+          left: 40,
+          background: "rgba(15,21,32,0.55)",
+          borderRadius: 999,
+          padding: "8px 16px",
+        }}
+      >
         <Pill site={site} dark />
       </div>
       <div style={{ display: "flex", width: "100%", height: "70%" }}>

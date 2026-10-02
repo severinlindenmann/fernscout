@@ -176,19 +176,21 @@ async function buildClip(photoFiles: string[], facts: StoryFacts, tmpDir: string
       `crop=${WIDTH}:${HEIGHT},setsar=1,fps=25,trim=0:${segment.toFixed(2)},setpts=PTS-STARTPTS[v${i}]`,
   );
 
-  let chain = "";
+  const transitions: string[] = [];
   let lastLabel = "v0";
   let runningDuration = segment;
   for (let i = 1; i < n; i++) {
     const outLabel = i === n - 1 ? "merged" : `x${i}`;
     const offset = runningDuration - overlap;
-    chain += `[${lastLabel}][v${i}]xfade=transition=fade:duration=${overlap.toFixed(2)}:offset=${offset.toFixed(2)}[${outLabel}];`;
+    transitions.push(
+      `[${lastLabel}][v${i}]xfade=transition=fade:duration=${overlap.toFixed(2)}:offset=${offset.toFixed(2)}[${outLabel}]`,
+    );
     lastLabel = outLabel;
     runningDuration = offset + segment;
   }
   const videoLabel = n === 1 ? "v0" : lastLabel;
 
-  const filter = [...scaled, chain, `[${videoLabel}][${n}:v]overlay=0:0:format=auto[outv]`].filter(Boolean).join(";");
+  const filter = [...scaled, ...transitions, `[${videoLabel}][${n}:v]overlay=0:0:format=auto[outv]`].join(";");
 
   const output = path.join(tmpDir, "story.mp4");
   args.push(

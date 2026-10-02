@@ -168,7 +168,7 @@ export default function ShareDayStory({
               <span className="flex items-center gap-1">
                 <Play aria-hidden className="h-3.5 w-3.5" /> {t("studio.share.look.video")}
               </span>
-              <span className="text-[11px] font-normal text-ink-tertiary">0:08</span>
+              <span className="text-[11px] font-normal text-ink-secondary">0:08</span>
             </button>
           )}
         </div>

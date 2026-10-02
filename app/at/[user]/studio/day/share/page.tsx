@@ -55,12 +55,22 @@ export default async function StudioShareDayPage({
     ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? serverSite().url).replace(/\/$/, "")}${journalPath(user)}/trips/${tripId}/day/${stem}`
     : null;
 
+  // `item.src` is trip-relative (`/media/<trip>/<day>/<file>`) — the shape
+  // every day document stores. The browser needs the journal-prefixed form
+  // (`/@<user>/media/...`) the media route actually answers at; the story
+  // routes below read the trip-relative form straight off the day document
+  // (`storyPhotoFile`, reusing `resolveMediaFile`'s own guard), so only this
+  // client-facing copy needs the prefix.
   const photos = (day.media ?? [])
     .filter((item) => item.type !== "video")
-    .map((item) => ({ src: item.src, caption: item.caption }));
+    .map((item) => ({ src: `${journalPath(user)}${item.src}`, caption: item.caption }));
 
   const firstSentence = day.content.trim().match(/^[^.!?]*[.!?]/)?.[0]?.trim();
-  const caption = [day.title, firstSentence].filter(Boolean).join(" ").trim();
+  // The day title + "." + the day's own first sentence — the owner's own
+  // words only, per the brief. A title already ending in punctuation
+  // (rare — titles are plain phrases) is not given a second one.
+  const titleLine = /[.!?]$/.test(day.title) ? day.title : `${day.title}.`;
+  const caption = [titleLine, firstSentence].filter(Boolean).join(" ").trim();
 
   return (
     <StudioPage username={user} group="write" title={title}>
