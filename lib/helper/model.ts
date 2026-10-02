@@ -18,6 +18,7 @@ import {
   settleDocumentTag,
   type DescribedForm,
 } from "../photos/described";
+import { modelFor } from "./models";
 import { describeWaiting } from "./server";
 import { recordUsage, type Operation } from "../usage";
 import type { Block, Proposal } from "./blocks";
@@ -58,10 +59,6 @@ import {
  * their own day already carries and their own screen already shows them.
  */
 
-/** Exported since B1866: a stored `described` block records which model
- *  wrote it, and the model id lives in this file and nowhere else. */
-export const HELPER_MODEL = "claude-haiku-4-5";
-
 /** Who the words are going to, said in the consent panel and in `/api/health`. */
 export const HELPER_PROVIDER = "Anthropic";
 
@@ -86,7 +83,9 @@ The one rule, and it outranks everything else you might think makes the writing 
 
 WRITE ONLY WHAT YOU WERE TOLD. Nothing else may appear in the prose. No weather nobody mentioned. No meals nobody ate. No feelings nobody expressed. No place, person, price, distance or time of day that is not in the notes or in the facts below. Do not round a thin note up into a full day: if they wrote one sentence, you write about one sentence. An empty field beats a plausible fiction, and a short day beats an invented one.
 
-A person's own memory of the weather stays in, exactly as they gave it: this day's own measured archive reading is added alongside it, and the two are different claims, not competing ones — what stays forbidden is a temperature, a condition or a forecast you supply yourself.
+A person's own memory of the weather stays in, exactly as they gave it. When this day's own measured archive reading is given among the facts below, it is a separate claim from their own memory, not a competing one: say what both say without resolving them into one, and attribute the measured one to its own source. When no reading is given, say nothing about the weather yourself — what stays forbidden, always, is a temperature, a condition or a forecast you supply.
+
+A photograph's camera clock is not when anything happened. "Photographs' camera clock" below is only ever the camera's own timestamp — never turn it into an activity time ("we set off at 08:12") unless the notes themselves say so.
 
 Never translate. Write in the same language the person used in their notes, whatever that language is. If they mixed two, follow the one they mostly used.
 
@@ -173,12 +172,16 @@ async function book(
         cache_creation_input_tokens?: number | null;
       }
     | undefined,
+  /** The id actually sent on this call — B2686. Never `HELPER_MODEL`-style
+   *  constant: the cost ledger records what was really spent, not a module
+   *  default that an environment override may have changed underneath it. */
+  model: string,
 ): Promise<void> {
   logUsage(operation, usage);
   await recordUsage({
     owner,
     provider: "anthropic",
-    model: HELPER_MODEL,
+    model,
     operation,
     // B1757 — cache reads and cache writes are their own columns now, priced
     // at their real multiples (0.1x, 1.25x) by `priceUsage`
@@ -198,10 +201,15 @@ export type DayFacts = {
   trip?: string;
   location?: string;
   country?: string;
-  /** First and last photograph, as wall-clock times. */
+  /** First and last photograph, as the camera's own wall-clock times — not
+   *  when anything happened; see `buildPrompt`'s own label for why. */
   from?: string;
   to?: string;
   photos?: number;
+  /** This day's own measured weather, already formatted and source-credited
+   *  — `lib/weather.ts`'s `weatherFactLine`. Absent when nobody has looked
+   *  it up for this day; `buildPrompt` never claims one that is not here. */
+  weather?: string;
 };
 
 export type WrittenDay = { title: string; prose: string; warnings: string[] };
@@ -289,7 +297,7 @@ export async function describeImage(
 
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("vision"),
     // Three texts per locale, plus room for the tags and the envelope.
     max_tokens: 350 * locales.length + 200,
     system: describeImageSystemPrompt(locales),
@@ -306,7 +314,7 @@ export async function describeImage(
   });
   // The same operation as the batch caption call it replaces: the same
   // capability, the same consent scope, the same price.
-  await book(owner ?? NO_JOURNAL, "describe_photos", response.usage);
+  await book(owner ?? NO_JOURNAL, "describe_photos", response.usage, modelFor("vision"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -382,7 +390,7 @@ const CURRENCY_CODE = /^[A-Z]{3}$/;
 export async function readReceipt(image: PhotoImage, owner: string | undefined): Promise<Receipt | null> {
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("small"),
     max_tokens: 200,
     system: RECEIPT_SYSTEM_PROMPT,
     messages: [
@@ -396,7 +404,7 @@ export async function readReceipt(image: PhotoImage, owner: string | undefined):
     ],
     output_config: { format: { type: "json_schema", schema: RECEIPT_SCHEMA } },
   });
-  await book(owner ?? NO_JOURNAL, "read_receipt", response.usage);
+  await book(owner ?? NO_JOURNAL, "read_receipt", response.usage, modelFor("small"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -535,7 +543,7 @@ export type PhotoFigure = { figure: Figure; unanswerable: string[] };
 export async function classifyTravellers(image: PhotoImage, owner?: string): Promise<PhotoFigure[]> {
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("vision"),
     max_tokens: 120 * MAX_FIGURES + 200,
     system: travellersPhotoSystemPrompt(),
     messages: [
@@ -549,7 +557,7 @@ export async function classifyTravellers(image: PhotoImage, owner?: string): Pro
     ],
     output_config: { format: { type: "json_schema", schema: TRAVELLER_PHOTO_SCHEMA } },
   });
-  await book(owner ?? NO_JOURNAL, "travellers_from_photo", response.usage);
+  await book(owner ?? NO_JOURNAL, "travellers_from_photo", response.usage, modelFor("vision"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -595,8 +603,10 @@ export function buildPrompt(notes: string, facts: DayFacts): string {
   if (facts.location) {
     lines.push(`Place: ${facts.location}${facts.country ? `, ${facts.country}` : ""}`);
   }
-  if (facts.from) lines.push(`Photographs taken between: ${facts.from} and ${facts.to ?? facts.from}`);
+  // The camera's own clock, not an activity time — SYSTEM_PROMPT says so.
+  if (facts.from) lines.push(`Photographs' camera clock: ${facts.from} to ${facts.to ?? facts.from}`);
   if (facts.photos) lines.push(`Photographs on this day: ${facts.photos}`);
+  if (facts.weather) lines.push(`Weather, measured: ${facts.weather}`);
 
   return [
     "Facts this day already carries. They are measured, not guessed. You may refer to them; you may not add to them.",
@@ -684,13 +694,13 @@ export async function writeDay(
 
   if (mode === "polish") {
     const response = await client.messages.create({
-      model: HELPER_MODEL,
+      model: modelFor("small"),
       max_tokens: 2000,
       system: POLISH_SYSTEM_PROMPT,
       messages: [{ role: "user", content: notes.trim() }],
       output_config: { format: { type: "json_schema", schema: POLISH_SCHEMA } },
     });
-    await book(owner ?? NO_JOURNAL, "write_day", response.usage);
+    await book(owner ?? NO_JOURNAL, "write_day", response.usage, modelFor("small"));
     const text = response.content
       .map((block) => (block.type === "text" ? block.text : ""))
       .join("")
@@ -702,13 +712,13 @@ export async function writeDay(
   }
 
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("small"),
     max_tokens: 2000,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildPrompt(notes, facts) }],
     output_config: { format: { type: "json_schema", schema: SCHEMA } },
   });
-  await book(owner ?? NO_JOURNAL, "write_day", response.usage);
+  await book(owner ?? NO_JOURNAL, "write_day", response.usage, modelFor("small"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -761,13 +771,13 @@ const TITLES_SCHEMA = {
 export async function suggestTitles(notes: string, facts: DayFacts, owner?: string): Promise<string[]> {
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("small"),
     max_tokens: 300,
     system: TITLES_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildPrompt(notes, facts) }],
     output_config: { format: { type: "json_schema", schema: TITLES_SCHEMA } },
   });
-  await book(owner ?? NO_JOURNAL, "write_day", response.usage);
+  await book(owner ?? NO_JOURNAL, "write_day", response.usage, modelFor("small"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -821,13 +831,13 @@ export async function translateDay(
 ): Promise<{ title: string; content: string }> {
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("small"),
     max_tokens: 3000,
     system: translateSystemPrompt(toLocale),
     messages: [{ role: "user", content: `Title: ${title.trim()}\n\n${content.trim()}` }],
     output_config: { format: { type: "json_schema", schema: TRANSLATE_SCHEMA } },
   });
-  await book(owner ?? NO_JOURNAL, "write_day", response.usage);
+  await book(owner ?? NO_JOURNAL, "write_day", response.usage, modelFor("small"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -874,7 +884,7 @@ Each tag is one or two English words, lowercase, with a hyphen between the words
 export async function tagDay(content: string, images: PhotoImage[], owner?: string): Promise<string[]> {
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("small"),
     max_tokens: 150,
     system: TAG_DAY_SYSTEM_PROMPT,
     messages: [
@@ -891,7 +901,7 @@ export async function tagDay(content: string, images: PhotoImage[], owner?: stri
     ],
     output_config: { format: { type: "json_schema", schema: TAG_DAY_SCHEMA } },
   });
-  await book(owner ?? NO_JOURNAL, "write_day", response.usage);
+  await book(owner ?? NO_JOURNAL, "write_day", response.usage, modelFor("small"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -1021,13 +1031,13 @@ function optional(value: unknown): string | undefined {
 export async function mapStatementColumns(sample: Table, owner?: string): Promise<MappedColumns> {
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("small"),
     max_tokens: 600,
     system: STATEMENT_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildStatementPrompt(sample) }],
     output_config: { format: { type: "json_schema", schema: STATEMENT_SCHEMA } },
   });
-  await book(owner ?? NO_JOURNAL, "map_statement", response.usage);
+  await book(owner ?? NO_JOURNAL, "map_statement", response.usage, modelFor("small"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
@@ -1238,13 +1248,13 @@ async function pickArea(
   owner?: string,
 ): Promise<AreaKey> {
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("small"),
     max_tokens: 20,
     system: pickAreaSystemPrompt(areas),
     messages,
     output_config: { format: { type: "json_schema", schema: pickAreaSchema(areas) } },
   });
-  await book(owner ?? NO_JOURNAL, "ask_thread", response.usage);
+  await book(owner ?? NO_JOURNAL, "ask_thread", response.usage, modelFor("small"));
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))
     .join("")
@@ -2811,13 +2821,13 @@ export async function answerInThread(
   async function rounds(): Promise<string> {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
       const response = await client.messages.create({
-        model: HELPER_MODEL,
+        model: modelFor("small"),
         max_tokens: THREAD_MAX_TOKENS,
         system: cachedSystem,
         tools: [...toolSchemas(areaTools(activeAreas)), switchAreaTool(reachableAreas)],
         messages,
       });
-      await book(username, "ask_thread", response.usage);
+      await book(username, "ask_thread", response.usage, modelFor("small"));
 
       const calls = response.content.filter(
         (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
@@ -2965,12 +2975,12 @@ export async function answerInThread(
     // first byte, so there is nothing here to read, and the prompt alone is
     // under Haiku's 4,096-token minimum to write.
     const last = await client.messages.create({
-      model: HELPER_MODEL,
+      model: modelFor("small"),
       max_tokens: THREAD_MAX_TOKENS,
       system: threadSystemPrompt(today, journalLocale),
       messages,
     });
-    await book(username, "ask_thread", last.usage);
+    await book(username, "ask_thread", last.usage, modelFor("small"));
     return last.content
       .map((part) => (part.type === "text" ? part.text : ""))
       .join("")
@@ -3449,7 +3459,7 @@ export async function findInJournal(
 ): Promise<Found> {
   const client = new Anthropic();
   const response = await client.messages.create({
-    model: HELPER_MODEL,
+    model: modelFor("small"),
     max_tokens: 600,
     system: FIND_SYSTEM_PROMPT,
     messages: [
@@ -3467,7 +3477,7 @@ export async function findInJournal(
     ],
     output_config: { format: { type: "json_schema", schema: FIND_SCHEMA } },
   });
-  await book(owner ?? NO_JOURNAL, "find_in_journal", response.usage);
+  await book(owner ?? NO_JOURNAL, "find_in_journal", response.usage, modelFor("small"));
 
   const text = response.content
     .map((block) => (block.type === "text" ? block.text : ""))

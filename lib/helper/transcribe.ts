@@ -179,6 +179,10 @@ export async function transcribeAudio(
   mediaType: string,
   language: SpeechLanguage,
   owner?: string,
+  /** The trip's own vocabulary — `lib/helper/keyterms.ts`'s `keytermsFor` —
+   *  when the caller knows which trip this is. Empty when it does not
+   *  (B2691): never guessed, never widened to every trip a journal holds. */
+  keyterms: string[] = [],
 ): Promise<Transcript> {
   if (speechBackend() !== "deepgram") {
     return {
@@ -196,6 +200,12 @@ export async function transcribeAudio(
   url.searchParams.set("smart_format", "true");
   // Ask the provider not to retain this audio for model training — B1076.
   url.searchParams.set("mip_opt_out", "true");
+  // B2691 — Nova-3's own param name for this is `keyterm`, repeated once per
+  // term; older Deepgram models read `keywords` instead. `DEEPGRAM_MODEL`
+  // is this file's one constant, so this stays correct without a second
+  // thing to update if it ever changes.
+  const keytermParam = DEEPGRAM_MODEL.startsWith("nova-3") ? "keyterm" : "keywords";
+  for (const term of keyterms) url.searchParams.append(keytermParam, term);
 
   let response: Response;
   try {
