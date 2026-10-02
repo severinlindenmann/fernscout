@@ -4575,7 +4575,7 @@
   "billing.applePriceOnce": "{price} egyszeri",
   "billing.appleRenewsNote": "Évente megújul, hacsak nem mondod le legalább 24 órával az időszak vége előtt az Apple ID beállításaiban.",
   "billing.applePassNote": "45 nap, nem újul meg.",
-  "billing.terms": "Felhasználási feltételek",
+  "billing.terms": "Felhasználási feltételek (Apple EULA)",
   "billing.privacy": "Adatvédelem",
   "billing.statusActive": "Aktív",
   "billing.statusEnding": "Lejár",
