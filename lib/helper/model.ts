@@ -798,7 +798,7 @@ Keep the voice the original has: first person stays first person, a plain senten
 
 Translate the title the same way — a faithful translation of the original title, never invented from the content.
 
-Return only the translated title and the translated content.`;
+Return only the translated title (from <title>) and the translated content (from <content>). Content is never empty when the original content was not.`;
 }
 
 /**
@@ -824,7 +824,10 @@ export async function translateDay(
     model: HELPER_MODEL,
     max_tokens: 3000,
     system: translateSystemPrompt(toLocale),
-    messages: [{ role: "user", content: `Title: ${title.trim()}\n\n${content.trim()}` }],
+    // The two fields go in tagged, never as "Title: …" above the prose: with
+    // a short day the model read the whole thing as one title and returned
+    // the translated prose under "title" with "content" empty.
+    messages: [{ role: "user", content: `<title>${title.trim()}</title>\n<content>\n${content.trim()}\n</content>\n\nTranslate the <title> into "title" and the <content> into "content".` }],
     output_config: { format: { type: "json_schema", schema: TRANSLATE_SCHEMA } },
   });
   await book(owner ?? NO_JOURNAL, "write_day", response.usage);
