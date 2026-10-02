@@ -81,8 +81,9 @@ export type Takings = {
   /** Given back. Reported separately rather than netted off, because a refund
    *  is an event worth seeing and a net figure hides it. */
   refundedRappen: number;
-  /** Credits handed over by the operator, which cost the buyer nothing. */
-  grantedCredits: number;
+  /** Units of the old credit pack handed over by the operator, by hand —
+   *  historical only; no route grants these anymore. */
+  grantedUnits: number;
 };
 
 /**
@@ -97,7 +98,7 @@ export function takingsBreakdown(paid: Payment[], awaiting: Payment[]): Takings 
   const byMethod = new Map<string, { rappen: number; count: number }>();
   let paidRappen = 0;
   let refundedRappen = 0;
-  let grantedCredits = 0;
+  let grantedUnits = 0;
 
   for (const payment of paid) {
     if (payment.status === "refunded") {
@@ -105,7 +106,7 @@ export function takingsBreakdown(paid: Payment[], awaiting: Payment[]): Takings 
       continue;
     }
     if (payment.method === "admin") {
-      grantedCredits += payment.credits;
+      grantedUnits += payment.units;
       continue;
     }
     paidRappen += payment.amountRappen;
@@ -127,7 +128,7 @@ export function takingsBreakdown(paid: Payment[], awaiting: Payment[]): Takings 
     ),
     waitingCount: awaiting.length,
     refundedRappen,
-    grantedCredits,
+    grantedUnits,
   };
 }
 
@@ -145,7 +146,7 @@ export async function paymentsByOwner(): Promise<Record<string, Payment[]>> {
       .select([
         "id",
         "owner_id",
-        "credits",
+        "units",
         "amount_rappen",
         "status",
         "method",
@@ -162,7 +163,7 @@ export async function paymentsByOwner(): Promise<Record<string, Payment[]>> {
       (found[row.owner_id] ??= []).push({
         id: row.id,
         owner: row.owner_id,
-        credits: row.credits,
+        units: row.units,
         amountRappen: row.amount_rappen,
         status: row.status as Payment["status"],
         method: (row.method as Payment["method"]) ?? null,
@@ -285,7 +286,7 @@ export async function troubles(since: string): Promise<Trouble[]> {
     const stuckBefore = new Date(Date.now() - STUCK_HOURS * 3600_000).toISOString();
     const stuck = await handle.db
       .selectFrom("payments")
-      .select(["owner_id", "credits", "requested_at", "id"])
+      .select(["owner_id", "units", "requested_at", "id"])
       .where("status", "=", "requested")
       .where("requested_at", "<", stuckBefore)
       .orderBy("requested_at", "asc")
@@ -296,7 +297,7 @@ export async function troubles(since: string): Promise<Trouble[]> {
         what: "A purchase has waited more than two days",
         owner: row.owner_id,
         when: (row.requested_at ?? "").slice(0, 10),
-        detail: `${row.credits} credits · the approval link is in your mailbox`,
+        detail: `${row.units} units · the approval link is in your mailbox`,
         ref: row.id,
       });
     }
