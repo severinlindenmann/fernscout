@@ -3186,8 +3186,6 @@ export type TranslationKey =
   | "studio.hub.fact.deleted.one"
   | "studio.hub.fact.drafts"
   | "studio.hub.fact.drafts.one"
-  | "studio.hub.fact.purchasesOpen"
-  | "studio.hub.fact.purchasesOpen.one"
   | "studio.hub.fact.startsIn"
   | "studio.hub.fact.startsIn.one"
   | "studio.hub.fact.storage"

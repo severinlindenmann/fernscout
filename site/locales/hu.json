@@ -2528,8 +2528,6 @@
   "studio.hub.fact.startsIn.one": "{count} nap múlva",
   "studio.hub.fact.asking": "{count} kér",
   "studio.hub.fact.asking.one": "{count} kér",
-  "studio.hub.fact.purchasesOpen": "{count} nyitott",
-  "studio.hub.fact.purchasesOpen.one": "{count} nyitott",
   "studio.hub.fact.storage": "{used} / {limit} GB",
   "studio.hub.item.inbox.hint": "Fájlok, amiket beküldtél, de még nincsenek egy naphoz rendelve.",
   "studio.hub.item.postcard.title": "Képeslap",

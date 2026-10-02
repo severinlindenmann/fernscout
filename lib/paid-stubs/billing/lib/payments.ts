@@ -15,12 +15,6 @@ export type Payment = {
   providerRef: string | null;
 };
 
-export async function listPayments(_owner: string, _limit = 8): Promise<Payment[]> {
-  return [];
-}
-export async function paymentsAwaiting(): Promise<Payment[]> {
-  return [];
-}
 export async function paymentsPaidSince(_since: string): Promise<Payment[]> {
   return [];
 }

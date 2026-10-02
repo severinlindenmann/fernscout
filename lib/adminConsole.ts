@@ -75,9 +75,6 @@ export type Takings = {
   paidRappen: number;
   /** What each method brought in, biggest first. Grants are excluded. */
   byMethod: { method: string; rappen: number; count: number }[];
-  /** Filed and not yet approved. Money you have not got. */
-  waitingRappen: number;
-  waitingCount: number;
   /** Given back. Reported separately rather than netted off, because a refund
    *  is an event worth seeing and a net figure hides it. */
   refundedRappen: number;
@@ -94,7 +91,7 @@ export type Takings = {
  * distinction is `method === "admin"`, and conflating the two would show an
  * instance that gives credits away as one that sells them.
  */
-export function takingsBreakdown(paid: Payment[], awaiting: Payment[]): Takings {
+export function takingsBreakdown(paid: Payment[]): Takings {
   const byMethod = new Map<string, { rappen: number; count: number }>();
   let paidRappen = 0;
   let refundedRappen = 0;
@@ -122,11 +119,6 @@ export function takingsBreakdown(paid: Payment[], awaiting: Payment[]): Takings 
     byMethod: [...byMethod]
       .map(([method, row]) => ({ method, ...row }))
       .sort((a, b) => b.rappen - a.rappen),
-    waitingRappen: awaiting.reduce(
-      (sum, payment) => sum + (payment.method === "admin" ? 0 : payment.amountRappen),
-      0,
-    ),
-    waitingCount: awaiting.length,
     refundedRappen,
     grantedUnits,
   };
@@ -205,9 +197,6 @@ export type Trouble = {
   ref: string;
 };
 
-/** How long a filed purchase may sit before it is a person kept waiting. */
-const STUCK_HOURS = 48;
-
 /**
  * Small counts, each of which is somebody who did not get what they paid for
  * — B996 (X6).
@@ -275,29 +264,6 @@ export async function troubles(since: string): Promise<Trouble[]> {
         detail: `${row.provider} refused it (${print.failure})${
           print.providerMessage ? ` — "${print.providerMessage}"` : ""
         } · order ${row.id}`,
-        ref: row.id,
-      });
-    }
-
-    // Filed, mailed, and still sitting there. `requested_at` rather than
-    // `created_at`: a row is created when somebody opens the purchase page and
-    // may never be filed at all, and an abandoned checkout is not a person
-    // waiting on you.
-    const stuckBefore = new Date(Date.now() - STUCK_HOURS * 3600_000).toISOString();
-    const stuck = await handle.db
-      .selectFrom("payments")
-      .select(["owner_id", "units", "requested_at", "id"])
-      .where("status", "=", "requested")
-      .where("requested_at", "<", stuckBefore)
-      .orderBy("requested_at", "asc")
-      .limit(20)
-      .execute();
-    for (const row of stuck) {
-      found.push({
-        what: "A purchase has waited more than two days",
-        owner: row.owner_id,
-        when: (row.requested_at ?? "").slice(0, 10),
-        detail: `${row.units} units · the approval link is in your mailbox`,
         ref: row.id,
       });
     }
@@ -900,14 +866,14 @@ export type Attend = {
    */
   id: string;
   /** The kind, which is also the order these are shown in. */
-  kind: "approve" | "fault" | "backup" | "disk";
+  kind: "fault" | "backup" | "disk";
   title: string;
   detail: string;
   /** The right-hand stamp: how long it has been like this. */
   age: string;
   /**
    * How bad this is, in whatever unit this entry counts in — days stale,
-   * percent full, journals under the floor, the newest purchase's timestamp.
+   * percent full, journals under the floor.
    * Comparable **within one id and never across ids**.
    *
    * It exists so an acknowledgement can lapse when the thing gets worse
@@ -924,7 +890,7 @@ export type Attend = {
  *  afternoon's worth. */
 const DISK_FULL = 0.9;
 
-const ORDER: Attend["kind"][] = ["approve", "fault", "backup", "disk"];
+const ORDER: Attend["kind"][] = ["fault", "backup", "disk"];
 
 /** Whole days between then and now, for a stamp rather than a duration. */
 function daysSince(when: string | null, now: Date): number | null {
@@ -946,17 +912,14 @@ function daysSince(when: string | null, now: Date): number | null {
  * learned about from somebody complaining.
  *
  * Pure, over what the page already fetched, so it costs no query and is
- * checkable without a database or a browser. It **shows and never acts**:
- * the token that approves a purchase sits in a mailbox precisely so that it
- * is not in a browser tab.
+ * checkable without a database or a browser. It **shows and never acts**.
  *
- * Ordered by kind rather than by age. A purchase is somebody's money today and
- * a stale backup is only ever bad news later; sorting by how long each had
- * waited would put a fortnight-old disk warning above a person who paid this
- * morning.
+ * Ordered by kind rather than by age: a fault is happening now and a stale
+ * backup is only ever bad news later. The purchase queue that once led this
+ * list went with credits (B2695) — nothing can approve a credit request any
+ * more, so a waiting one was an alarm with no answer.
  */
 export function attention(input: {
-  awaiting: Payment[];
   health: Health;
   troubles: Trouble[];
   journals: StatusReport["journals"];
@@ -965,25 +928,6 @@ export function attention(input: {
 }): Attend[] {
   const now = input.now ?? new Date();
   const found: Attend[] = [];
-
-  if (input.awaiting.length > 0) {
-    const asked = input.awaiting.map((one) => one.requestedAt ?? one.createdAt).sort();
-    const oldest = asked[0];
-    const days = daysSince(oldest, now);
-    found.push({
-      id: "approve",
-      // The *newest* request, as a number. Acknowledging the queue says "I
-      // have seen these"; a purchase filed after that moment is a higher
-      // level and shows through, which is the only reading of this entry that
-      // does not lose somebody's money in a suppression.
-      level: Date.parse(asked[asked.length - 1] ?? "") || 0,
-      kind: "approve",
-      title: `${input.awaiting.length} ${input.awaiting.length === 1 ? "purchase is" : "purchases are"} waiting`,
-      detail:
-        "The single-use approval link is in your mailbox. This page cannot grant, and that is deliberate.",
-      age: days === null ? "unknown" : `oldest ${days}d`,
-    });
-  }
 
   // A backup's own faults arrive inside `health.wrong` carrying their own
   // `backup` mark, so a stale copy is one entry here rather than one under
