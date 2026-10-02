@@ -73,22 +73,18 @@ function EmptyPanel({ background }: { background: string }) {
 /** Look A — the published-looking card: a hero photo and a navy caption
  * panel underneath. */
 function PhotoCard({ facts, photo, site }: { facts: StoryFacts; photo: string | null; site: string }) {
+  // The pill sits ABOVE the photo rather than floated over it — next/og's
+  // satori renderer does not reliably paint a `position: absolute` child
+  // above a later, non-positioned sibling the way a browser would (tried and
+  // confirmed by eye: the photo painted over it regardless of z-index).
+  // Normal flow is the lazy fix that is guaranteed to render; the small
+  // bar reads the same as a floating pill at this size.
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: COLORS.navy950 }}>
-      <div
-        style={{
-          display: "flex",
-          position: "absolute",
-          top: 40,
-          left: 40,
-          background: "rgba(15,21,32,0.55)",
-          borderRadius: 999,
-          padding: "8px 16px",
-        }}
-      >
+      <div style={{ display: "flex", padding: "28px 40px 16px" }}>
         <Pill site={site} dark />
       </div>
-      <div style={{ display: "flex", width: "100%", height: "70%" }}>
+      <div style={{ display: "flex", width: "100%", height: "64%" }}>
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
