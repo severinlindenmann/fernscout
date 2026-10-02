@@ -60,7 +60,14 @@ export type GuardContext = {
   storyFloor?: number;
 };
 
-export type VariantVerdict = { ok: boolean; reasons: string[]; banned: string[] };
+export type VariantVerdict = {
+  ok: boolean;
+  reasons: string[];
+  banned: string[];
+  /** Indexes (into `sentencesOf`) of sentences that failed guards 1–3 or 6 —
+   *  the ones a caller may strike instead of dropping the whole variant. */
+  failing: number[];
+};
 
 /** Words readers recognise as machine-written, per locale (B2688 spec). A
  *  phrase is matched at a word start, so "unvergesslich" also catches
@@ -204,8 +211,9 @@ function isCalendarWord(word: string): boolean {
   return [...locales].some((l) => LOWERCASE_CAL.has(l));
 }
 
+/** A German "18,6" is the pack's "18.6": decimal commas compare as points. */
 function numbersIn(text: string): Set<string> {
-  return new Set(Array.from(text.matchAll(NUMBER_PATTERN), (m) => m[0]));
+  return new Set(Array.from(text.matchAll(NUMBER_PATTERN), (m) => m[0].replace(",", ".")));
 }
 
 /** A word's stem is in `stems`, or a cited word shares its first four
@@ -247,13 +255,16 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
 
   if (sentences.length === 0) reasons.push(`${which}: empty`);
 
-  for (const sentence of sentences) {
+  const failing = new Set<number>();
+  for (const [at, sentence] of sentences.entries()) {
+    const before = reasons.length;
     const text = sentence.text;
     const label = `${which}: "${text.slice(0, 60)}"`;
     // 1 — every source exists.
     const unknown = sentence.sources.filter((id) => !byId.has(id));
     if (unknown.length > 0) {
       reasons.push(`${label} cites unknown ${unknown.join(", ")}`);
+      failing.add(at);
       continue;
     }
     const cited = sentence.sources.map((id) => byId.get(id)!);
@@ -323,6 +334,7 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
       if (index === 0) continue;
       reasons.push(`${label} "${word}" not in its sources`);
     }
+    if (reasons.length > before) failing.add(at);
   }
 
   // 5 — "we" only for a party, or when the writer says it.
@@ -338,7 +350,7 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
   // 4 — banned phrases, kept apart for the one retry.
   const banned = bannedHits(whole, ctx.languages, notes);
 
-  return { ok: reasons.length === 0 && banned.length === 0, reasons, banned };
+  return { ok: reasons.length === 0 && banned.length === 0, reasons, banned, failing: [...failing] };
 }
 
 /** Under this many owner words a story is padding — forced to null — unless

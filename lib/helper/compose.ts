@@ -66,7 +66,7 @@ No rhetorical questions, no closing line about what the day meant.
 Output, in this order:
 1. used: the pack ids you will build on, most important first. Decide this before writing.
 2. close: the writer's own words, tidied — spelling, punctuation, accents restored only where unmistakable, fragments joined where the subject is already in the notes. Every note stays in the language it was written in: never translate a note, even when the notes mix languages. Nothing from photos, weather or place goes into close. Nearly every sentence cites a note id. About as long as the notes.
-3. story: the same material told as a short entry — an opening that drops the reader into the day, details in an order that carries, an ending that stops. At most about three times the notes' length. Many writers note only a line and let the photos tell the day: when the notes are short but three or more photos are described, the story may also say what those photos show — as seen, never as something anyone did — in at most about 70 words, with the writer's line kept as written. Return null when there is nothing to tell beyond the notes (short notes and fewer than three described photos): a story built on one line is padding.
+3. story: the same material told as a short entry — an opening that drops the reader into the day, details in an order that carries, an ending that stops. At most about three times the notes' length. Many writers note only a line and let the photos tell the day: when the notes are short but three or more photos are described, the story may also say what those photos show — as seen, never as something anyone did — in at most about 60 words, with the writer's line kept as written. Pick the two to four photos that tell the day best, not all of them, and weave what they show into the writer's line as short, concrete scene details ("Nachtschlitteln mit Stirnlampen, auf einem verschneiten Weg durch den Wald."). Never frame it as "on the photos" or "in one picture", and leave out light, colours and camera angles unless they are the point. Measured weather may be one short clause; never more than one sentence about it. Return null when there is nothing to tell beyond the notes (short notes and fewer than three described photos): a story built on one line is padding.
 4. Each sentence lists sources: the pack ids it rests on.
 5. titles: up to two per variant, kind label (pack nouns) | quote (a phrase lifted word for word from the notes) | pair (two things from the day joined). Prefer a quote when the notes have a vivid phrase. Every word of a title is in the pack.
 6. tags: up to 6 lowercase hyphenated English slugs naming an activity, a kind of place, a food, a way of travelling or a plain topic actually in the day ("hiking", "street-food", "rain"); reuse <existing_tags> first.
@@ -213,6 +213,8 @@ export class ComposeRejected extends Error {
 }
 
 const MAX_ANSWERS = 3;
+/** composeGuard's length reason, "story: 97 words, at most 70". */
+const LENGTH_REASON = /words, at most (\d+)$/;
 
 /** The pack with the owner's answers to earlier `missing` questions added as
  *  owner notes `a1`…`a3` — they are the writer's own words. */
@@ -336,13 +338,39 @@ export async function composeDay(
   for (const slot of slots) {
     const { variant, verdict } = results.get(slot)!;
     if (!variant || !verdict) continue;
+    let kept = variant;
     if (!verdict.ok) {
-      dropped.push(...verdict.reasons, ...verdict.banned.map((p) => `${slot}: banned "${p}"`));
-      continue;
+      // A story where one sentence in three or fewer failed only the
+      // grounding checks loses those sentences, not the whole story: the
+      // rest is still the owner's material, each sentence checked on its own.
+      const sentences = sentencesOf(variant);
+      const strikable =
+        slot === "story" &&
+        verdict.banned.length === 0 &&
+        verdict.failing.length > 0 &&
+        verdict.failing.length * 3 <= sentences.length &&
+        verdict.reasons.every(
+          (r) => LENGTH_REASON.test(r) || verdict.failing.some((i) => r.startsWith(`${slot}: "${sentences[i].text.slice(0, 60)}"`)),
+        );
+      const tooLongOnly = slot === "story" && verdict.banned.length === 0 && verdict.reasons.every((r) => LENGTH_REASON.test(r));
+      if (!strikable && !tooLongOnly) {
+        dropped.push(...verdict.reasons, ...verdict.banned.map((p) => `${slot}: banned "${p}"`));
+        continue;
+      }
+      const strike = new Set(verdict.failing.map((i) => sentences[i]));
+      kept = { ...variant, paragraphs: variant.paragraphs.map((p) => ({ sentences: p.sentences.filter((x) => !strike.has(x)) })).filter((p) => p.sentences.length > 0) };
+      // Over the length cap: the story ends earlier — trailing sentences go
+      // until it fits, never the opening one.
+      const cap = Number(verdict.reasons.map((r) => LENGTH_REASON.exec(r)?.[1]).find(Boolean) ?? Infinity);
+      while (sentencesOf(kept).length > 1 && variantText(kept).split(/\s+/).filter(Boolean).length > cap) {
+        const last = kept.paragraphs[kept.paragraphs.length - 1];
+        kept = { ...kept, paragraphs: [...kept.paragraphs.slice(0, -1), { sentences: last.sentences.slice(0, -1) }].filter((p) => p.sentences.length > 0) };
+      }
+      dropped.push(...verdict.reasons.map((r) => `struck: ${r}`));
     }
-    const titles = keptTitles(ctx, variant.titles);
+    const titles = keptTitles(ctx, kept.titles);
     dropped.push(...titles.reasons);
-    out[slot] = present(variant, titles.titles, byId);
+    out[slot] = present(kept, titles.titles, byId);
   }
 
   if (!out.close && !out.story) throw new ComposeRejected(dropped);
