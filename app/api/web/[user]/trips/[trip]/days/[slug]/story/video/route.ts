@@ -1,24 +1,15 @@
 // GET /api/web/{user}/trips/{trip}/days/{slug}/story/video — the ~8s MP4
 // twin of the picture route beside it (B2665). Same gates, same facts.
 //
-// **Deviation from the brief, noted rather than hidden (effort budget):**
-// the bottom caption panel is one static overlay for the whole clip rather
-// than a per-segment one that swaps to that photo's own caption and, on the
-// last segment, the link. Building three overlay PNGs and compositing each
-// only over its own segment is a larger filter graph (`overlay` gated by
-// `between(t,…)` per segment) than this pass had budget to write and prove
-// with a real ffmpeg run; the panel today shows the day's title/place/temp
-// and the link (when allowed) for the full ~8s instead. Flagged in the
-// final report as a candidate follow-up ticket.
+// The bottom panel stays for the whole clip; its last line follows the
+// photo on screen — that photo's own caption — and on the last photo it
+// carries the link when the day may have one (`storyDayLink`).
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { readDayFile, readTripFile, resolveDayStem, listDaySlugs } from "@/lib/api/v2/store";
 import { getTrip } from "@/lib/trips";
-import { isOpenToLink } from "@/lib/access";
 import { journalPath } from "@/lib/journalPath";
-import { serverSite } from "@/lib/site";
-import { clientIp } from "@/lib/rateLimit";
-import { dayNumberOf, storyCardFacts } from "@/lib/storyCard";
+import { dayNumberOf, storyCardFacts, storyDayLink, storyPhotos } from "@/lib/storyCard";
 import { storyPhotoFile } from "@/lib/storyMedia";
 import { renderStoryVideo, storyVideoCacheKey, videoToolsAvailable } from "@/lib/storyVideo";
 
@@ -52,29 +43,27 @@ export async function GET(
   if (!stem || !day) return Response.json({ error: "unknown_day" }, { status: 404 });
   if (day.status !== "published") return Response.json({ error: "not_published" }, { status: 409 });
 
-  const photos = (day.media ?? []).filter((item) => item.type !== "video");
+  const photos = storyPhotos(day);
   if (photos.length === 0) {
     return Response.json({ error: "video_unavailable" }, { status: 404 });
   }
-  const photoFiles = photos
+  const segments = photos
     .slice(0, 3)
-    .map((p) => storyPhotoFile(user, p.src))
-    .filter((f): f is string => f !== null);
-  if (photoFiles.length === 0) {
+    .map((p) => ({ file: storyPhotoFile(user, p.src), caption: p.caption }))
+    .filter((s): s is { file: string; caption: string | undefined } => s.file !== null);
+  if (segments.length === 0) {
     return Response.json({ error: "video_unavailable" }, { status: 404 });
   }
 
   const trip = getTrip(`${user}/${tripId}`);
-  const link =
-    trip && isOpenToLink(trip)
-      ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? serverSite().url).replace(/\/$/, "")}${journalPath(user)}/trips/${tripId}/day/${stem}`
-      : null;
+  const link = storyDayLink(user, tripId, stem, trip, day);
 
   const dayNumber = dayNumberOf(listDaySlugs(user, tripId), stem);
   const facts = storyCardFacts({ day, dayNumber, tripTitle: tripFile.title, link, locale: owner.defaultLocale });
 
-  const key = storyVideoCacheKey({ dayJson: JSON.stringify(day), photoFiles });
-  const bytes = await renderStoryVideo({ key, photoFiles, facts, ownerIpForRateLimit: clientIp(request) });
+  const key = storyVideoCacheKey({ dayJson: JSON.stringify({ day, link }), photoFiles: segments.map((s) => s.file) });
+  const bytes = await renderStoryVideo({ key, segments, facts, rateLimitKey: user });
+  if (bytes === "rate_limited") return Response.json({ error: "rate_limited" }, { status: 429 });
   if (!bytes) return Response.json({ error: "render_failed" }, { status: 500 });
 
   return new Response(new Uint8Array(bytes), {

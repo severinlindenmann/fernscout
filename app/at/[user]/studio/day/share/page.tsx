@@ -4,9 +4,8 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";
 import { getTrip } from "@/lib/trips";
-import { isOpenToLink } from "@/lib/access";
 import { journalPath } from "@/lib/journalPath";
-import { serverSite } from "@/lib/site";
+import { storyDayLink, storyPhotos } from "@/lib/storyCard";
 import { videoToolsAvailable } from "@/lib/storyVideo";
 
 export const dynamic = "force-dynamic";
@@ -50,10 +49,8 @@ export default async function StudioShareDayPage({
   }
 
   const trip = getTrip(`${user}/${tripId}`);
-  const linkAllowed = Boolean(trip && isOpenToLink(trip));
-  const link = linkAllowed
-    ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? serverSite().url).replace(/\/$/, "")}${journalPath(user)}/trips/${tripId}/day/${stem}`
-    : null;
+  const link = storyDayLink(user, tripId, stem, trip, day);
+  const linkAllowed = link !== null;
 
   // `item.src` is trip-relative (`/media/<trip>/<day>/<file>`) — the shape
   // every day document stores. The browser needs the journal-prefixed form
@@ -61,8 +58,7 @@ export default async function StudioShareDayPage({
   // routes below read the trip-relative form straight off the day document
   // (`storyPhotoFile`, reusing `resolveMediaFile`'s own guard), so only this
   // client-facing copy needs the prefix.
-  const photos = (day.media ?? [])
-    .filter((item) => item.type !== "video")
+  const photos = storyPhotos(day)
     .map((item) => ({ src: `${journalPath(user)}${item.src}`, caption: item.caption }));
 
   const firstSentence = day.content.trim().match(/^[^.!?]*[.!?]/)?.[0]?.trim();

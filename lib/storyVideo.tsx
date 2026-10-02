@@ -18,6 +18,9 @@ const HEIGHT = 1920;
 /** Roughly the brief's "~8 s", however many photos (1–3) go in. */
 const TOTAL_SECONDS = 8;
 const CROSSFADE_SECONDS = 0.4;
+const FPS = 25;
+/** How far each photo pushes in over its segment. */
+const ZOOM = 0.08;
 const RENDER_TIMEOUT_MS = 60_000;
 
 function cacheDir(): string {
@@ -33,7 +36,7 @@ export function storyVideoCacheKey(parts: {
   photoFiles: string[];
 }): string {
   const hash = crypto.createHash("sha256");
-  hash.update("v1\n");
+  hash.update("v4\n");
   hash.update(parts.dayJson);
   for (const file of parts.photoFiles) {
     try {
@@ -72,12 +75,28 @@ function writeCachedStoryVideo(key: string, bytes: Buffer): void {
  * filesystem lock if this instance ever runs more than one worker. */
 const renders = new Map<string, Promise<Buffer | null>>();
 
-/** A transparent 1080×1920 PNG with only the bottom caption panel drawn —
- * the same text `PhotoCard` in the picture route draws, so the video's
- * panel and the "photo" look agree. Overlaid over the whole clip: per-
- * segment captions are not built (see the route's doc comment on this
- * deviation). */
-async function renderPanelPng(facts: StoryFacts): Promise<Buffer> {
+/** One photograph of the clip and the line its panel shows while it is up. */
+export type StorySegment = { file: string; caption?: string };
+
+/** What the panel's last line says during segment `i` of `n` — the photo's
+ * own caption, except that the last photo gives the line to the link when
+ * there is one (the owner's draft, 2026-10-02). Empty when neither exists. */
+export function segmentLine(segments: readonly StorySegment[], i: number, link: string | undefined): string | undefined {
+  if (i === segments.length - 1 && link) return link.replace(/^https?:\/\//, "");
+  return segments[i]?.caption || undefined;
+}
+
+/** When segment `i` takes over the panel: halfway through the crossfade
+ * into its photo, so the line changes with the picture. */
+export function segmentStarts(n: number, segment: number, overlap: number): number[] {
+  return Array.from({ length: n }, (_, i) => (i === 0 ? 0 : i * (segment - overlap) + overlap / 2));
+}
+
+/** A transparent 1080×1920 PNG with only the bottom panel drawn — the same
+ * text `PhotoCard` in the picture route draws, so the video's panel and the
+ * "photo" look agree. One per segment; only the last line differs, and it
+ * keeps its height when empty so the panel never jumps. */
+async function renderPanelPng(facts: StoryFacts, line: string | undefined): Promise<Buffer> {
   const element = (
     <div style={{ display: "flex", width: "100%", height: "100%", flexDirection: "column" }}>
       <div style={{ display: "flex", flex: 1 }} />
@@ -105,11 +124,21 @@ async function renderPanelPng(facts: StoryFacts): Promise<Buffer> {
             {[facts.place, facts.tempLine].filter(Boolean).join(" · ")}
           </div>
         )}
-        {facts.link && (
-          <div style={{ display: "flex", marginTop: 20, fontSize: 20, color: "#aeb7c5", fontFamily: "monospace" }}>
-            {facts.link.replace(/^https?:\/\//, "")}
-          </div>
-        )}
+        <div
+          style={{
+            display: "flex",
+            marginTop: 20,
+            paddingTop: 16,
+            height: 80,
+            borderTop: "2px solid #253145",
+            fontSize: 24,
+            lineHeight: 1.35,
+            color: "#aeb7c5",
+            fontStyle: line && facts.link && line === facts.link.replace(/^https?:\/\//, "") ? "normal" : "italic",
+          }}
+        >
+          {line ?? ""}
+        </div>
       </div>
     </div>
   );
@@ -124,23 +153,23 @@ async function renderPanelPng(facts: StoryFacts): Promise<Buffer> {
  */
 export async function renderStoryVideo(args: {
   key: string;
-  photoFiles: string[];
+  segments: StorySegment[];
   facts: StoryFacts;
-  ownerIpForRateLimit: string;
-}): Promise<Buffer | null> {
+  rateLimitKey: string;
+}): Promise<Buffer | "rate_limited" | null> {
   const cached = readCachedStoryVideo(args.key);
   if (cached) return cached;
 
   const inFlight = renders.get(args.key);
   if (inFlight) return inFlight;
 
-  const limited = rateLimitFor("story-video", args.ownerIpForRateLimit, { max: 10, windowMs: 10 * 60 * 1000 });
-  if (!limited.ok) return null;
+  const limited = rateLimitFor("story-video", args.rateLimitKey, { max: 10, windowMs: 10 * 60 * 1000 });
+  if (!limited.ok) return "rate_limited";
 
   const job = (async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "story-video-"));
     try {
-      const bytes = await buildClip(args.photoFiles.slice(0, 3), args.facts, tmpDir);
+      const bytes = await buildClip(args.segments.slice(0, 3), args.facts, tmpDir);
       if (bytes) writeCachedStoryVideo(args.key, bytes);
       return bytes;
     } finally {
@@ -155,25 +184,39 @@ export async function renderStoryVideo(args: {
   }
 }
 
-async function buildClip(photoFiles: string[], facts: StoryFacts, tmpDir: string): Promise<Buffer | null> {
-  if (photoFiles.length === 0) return null;
-  const panelPath = path.join(tmpDir, "panel.png");
-  fs.writeFileSync(panelPath, await renderPanelPng(facts));
+async function buildClip(segments: StorySegment[], facts: StoryFacts, tmpDir: string): Promise<Buffer | null> {
+  if (segments.length === 0) return null;
+  const photoFiles = segments.map((s) => s.file);
+  const panelPaths: string[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    const panelPath = path.join(tmpDir, `panel-${i}.png`);
+    fs.writeFileSync(panelPath, await renderPanelPng(facts, segmentLine(segments, i, facts.link)));
+    panelPaths.push(panelPath);
+  }
 
   const n = photoFiles.length;
   const overlap = n > 1 ? CROSSFADE_SECONDS : 0;
   const segment = (TOTAL_SECONDS + overlap * (n - 1)) / n;
 
   const args: string[] = ["-v", "error", "-y"];
+  // A still, read once: `zoompan` below turns its one frame into the whole
+  // segment (a looped input would hand it a frame per output frame).
   for (const file of photoFiles) {
-    args.push("-loop", "1", "-t", segment.toFixed(2), "-i", file);
+    args.push("-i", file);
   }
-  args.push("-loop", "1", "-t", TOTAL_SECONDS.toFixed(2), "-i", panelPath);
+  for (const panelPath of panelPaths) {
+    args.push("-loop", "1", "-t", TOTAL_SECONDS.toFixed(2), "-i", panelPath);
+  }
 
+  // The slow push-in from the draft: 1.00 → 1.08 over each segment, centred.
+  const frames = Math.round(segment * FPS);
   const scaled = photoFiles.map(
     (_, i) =>
-      `[${i}:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,` +
-      `crop=${WIDTH}:${HEIGHT},setsar=1,fps=25,trim=0:${segment.toFixed(2)},setpts=PTS-STARTPTS[v${i}]`,
+      // Cropped at twice the size first: `zoompan` rounds its window to whole
+      // pixels, and at 1080 wide a slow push-in visibly shakes.
+      `[${i}:v]scale=${WIDTH * 2}:${HEIGHT * 2}:force_original_aspect_ratio=increase,crop=${WIDTH * 2}:${HEIGHT * 2},setsar=1,` +
+      `zoompan=z='1+${ZOOM}*on/${frames}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS},` +
+      `setpts=PTS-STARTPTS[v${i}]`,
   );
 
   const transitions: string[] = [];
@@ -190,7 +233,21 @@ async function buildClip(photoFiles: string[], facts: StoryFacts, tmpDir: string
   }
   const videoLabel = n === 1 ? "v0" : lastLabel;
 
-  const filter = [...scaled, ...transitions, `[${videoLabel}][${n}:v]overlay=0:0:format=auto[outv]`].join(";");
+  // Each segment's panel is laid over only while that segment holds the
+  // panel — `enable` switches them, so the caption changes with its photo.
+  const starts = segmentStarts(n, segment, overlap);
+  const overlays: string[] = [];
+  let base = videoLabel;
+  for (let i = 0; i < n; i++) {
+    const until = i === n - 1 ? TOTAL_SECONDS + 1 : starts[i + 1];
+    const out = i === n - 1 ? "outv" : `o${i}`;
+    overlays.push(
+      `[${base}][${n + i}:v]overlay=0:0:format=auto:enable='between(t,${starts[i].toFixed(2)},${until.toFixed(2)})'[${out}]`,
+    );
+    base = out;
+  }
+
+  const filter = [...scaled, ...transitions, ...overlays].join(";");
 
   const output = path.join(tmpDir, "story.mp4");
   args.push(

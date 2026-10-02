@@ -1,5 +1,11 @@
 import "server-only";
 import type { DayFile } from "./api/v2/documents";
+import { isOpenToLink } from "./access";
+import { dayUrl } from "./digest/content";
+import { translateIn } from "./locales";
+import { maySeePhoto, parsePhotoVisibility } from "./photos";
+import { serverSite } from "./site";
+import type { Trip } from "./types";
 
 /**
  * "Share as a story" — B2665. What goes on a 9:16 card or in the video's
@@ -58,15 +64,34 @@ export function storyCardFacts(args: {
   return {
     title: day.title,
     dateLabel,
-    dayLabel: dayNumber && dayNumber > 0 ? `Day ${dayNumber}` : undefined,
+    dayLabel: dayNumber && dayNumber > 0 ? translateIn(locale, "studio.date.dayOfTrip", { n: String(dayNumber) }) : undefined,
     tripTitle,
     place: day.location || undefined,
     tempLine: tempLine(day),
     link: link ?? undefined,
-    photos: (day.media ?? [])
-      .filter((item) => item.type !== "video")
-      .map((item) => ({ src: item.src, caption: item.caption })),
+    photos: storyPhotos(day).map((item) => ({ src: item.src, caption: item.caption })),
   };
+}
+
+/**
+ * The photographs a story may carry: the day's images, minus any the owner
+ * held back with a label of their own. A story goes to a public feed, so a
+ * photo kept for a closer circle is never offered for one by default; the
+ * owner can still share it by hand from their phone.
+ */
+export function storyPhotos(day: DayFile): NonNullable<DayFile["media"]> {
+  return (day.media ?? []).filter((item) => item.type !== "video" && !parsePhotoVisibility(item.visibility));
+}
+
+/**
+ * The day's own address, or `null` when it may not go on a story: only for a
+ * public trip, a published day, and a day not held back to a closer circle by
+ * its own label. Decided here once, for the picture, the video and the page.
+ */
+export function storyDayLink(user: string, tripId: string, stem: string, trip: Trip | undefined, day: DayFile): string | null {
+  if (!trip || !isOpenToLink(trip) || day.status !== "published") return null;
+  if (!maySeePhoto(parsePhotoVisibility(day.visibility), "public")) return null;
+  return dayUrl(serverSite().url.replace(/\/$/, ""), user, tripId, stem);
 }
 
 /** This day's position among its trip's days, oldest first — "Day N" is

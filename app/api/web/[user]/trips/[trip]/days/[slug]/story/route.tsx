@@ -18,7 +18,7 @@ import { getTrip } from "@/lib/trips";
 import { isOpenToLink } from "@/lib/access";
 import { journalPath } from "@/lib/journalPath";
 import { serverSite } from "@/lib/site";
-import { dayNumberOf, storyCardFacts, type StoryFacts } from "@/lib/storyCard";
+import { dayNumberOf, storyCardFacts, storyDayLink, storyPhotos, type StoryFacts } from "@/lib/storyCard";
 import { storyPhotoDataUri } from "@/lib/storyMedia";
 import { StoryMark } from "@/components/StoryMark";
 
@@ -262,16 +262,13 @@ export async function GET(
   const lookParam = url.searchParams.get("look") ?? "photo";
   const look = (STORY_LOOKS as readonly string[]).includes(lookParam) ? (lookParam as StoryLook) : "photo";
 
-  const photos = (day.media ?? []).filter((item) => item.type !== "video");
+  const photos = storyPhotos(day);
   if (look === "collage" && photos.length < 3) {
     return Response.json({ error: "not_enough_photos" }, { status: 409 });
   }
 
   const trip = getTrip(`${user}/${tripId}`);
-  const link =
-    trip && isOpenToLink(trip)
-      ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? serverSite().url).replace(/\/$/, "")}${journalPath(user)}/trips/${tripId}/day/${stem}`
-      : null;
+  const link = storyDayLink(user, tripId, stem, trip, day);
 
   const dayNumber = dayNumberOf(listDaySlugs(user, tripId), stem);
   const facts = storyCardFacts({

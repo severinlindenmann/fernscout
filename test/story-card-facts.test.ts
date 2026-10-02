@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { storyCardFacts, dayNumberOf } from "@/lib/storyCard";
+import { storyCardFacts, dayNumberOf, storyDayLink, storyPhotos } from "@/lib/storyCard";
+import { segmentLine, segmentStarts } from "@/lib/storyVideo";
+import type { Trip } from "@/lib/types";
 import type { DayFile } from "@/lib/api/v2/documents";
 
 /**
@@ -95,5 +97,59 @@ describe("dayNumberOf", () => {
 
   test("is null for a stem that is not among them, rather than a wrong number", () => {
     expect(dayNumberOf(["2025-09-05-a"], "2099-01-01-nope")).toBeNull();
+  });
+});
+
+describe("storyDayLink — B2665", () => {
+  const trip = (visibility: string) => ({ visibility }) as unknown as Trip;
+
+  test("a public trip's published day gets its own /trips/ address", () => {
+    expect(storyDayLink("alex", "parks-2025", "2025-09-06-zion-narrows", trip("public"), baseDay())).toMatch(
+      /\/@alex\/trips\/parks-2025\/day\/2025-09-06-zion-narrows$/,
+    );
+  });
+
+  test("no link for a guest or private trip, a draft, or a day held back by its own label", () => {
+    expect(storyDayLink("alex", "t", "d", trip("guest"), baseDay())).toBeNull();
+    expect(storyDayLink("alex", "t", "d", trip("private"), baseDay())).toBeNull();
+    expect(storyDayLink("alex", "t", "d", trip("public"), baseDay({ status: "draft" }))).toBeNull();
+    expect(storyDayLink("alex", "t", "d", trip("public"), baseDay({ visibility: "guest" } as Partial<DayFile>))).toBeNull();
+    expect(storyDayLink("alex", "t", "d", undefined, baseDay())).toBeNull();
+  });
+});
+
+describe("storyPhotos — B2665", () => {
+  test("leaves out clips and any photo the owner held back with its own label", () => {
+    const day = baseDay({
+      media: [
+        { src: "/media/t/d/01.jpg", type: "image" },
+        { src: "/media/t/d/02.jpg", type: "image", visibility: "guest" },
+        { src: "/media/t/d/03.mp4", type: "video" },
+      ],
+    } as Partial<DayFile>);
+    expect(storyPhotos(day).map((m) => m.src)).toEqual(["/media/t/d/01.jpg"]);
+  });
+});
+
+describe("video segments — B2665", () => {
+  const segments = [
+    { file: "a.jpg", caption: "The water going over" },
+    { file: "b.jpg", caption: "Steps down into the fog" },
+    { file: "c.jpg" },
+  ];
+
+  test("each photo shows its own caption; the last gives its line to the link", () => {
+    expect(segmentLine(segments, 0, "https://t.test/@a/trips/x/day/y")).toBe("The water going over");
+    expect(segmentLine(segments, 1, "https://t.test/@a/trips/x/day/y")).toBe("Steps down into the fog");
+    expect(segmentLine(segments, 2, "https://t.test/@a/trips/x/day/y")).toBe("t.test/@a/trips/x/day/y");
+  });
+
+  test("without a link the last photo keeps its own caption, or nothing", () => {
+    expect(segmentLine(segments, 2, undefined)).toBeUndefined();
+    expect(segmentLine([{ file: "a.jpg", caption: "Only one" }], 0, undefined)).toBe("Only one");
+  });
+
+  test("the line switches halfway through each crossfade", () => {
+    expect(segmentStarts(3, 2.8, 0.4).map((t) => Number(t.toFixed(2)))).toEqual([0, 2.6, 5.0]);
   });
 });
