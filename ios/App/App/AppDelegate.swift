@@ -35,8 +35,58 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // uploads; this covers an ordinary launch (icon tap) while some are
         // still in flight.
         MediaUploadSession.shared.rejoin()
+        #if DEBUG
+        handleB2730TestArgs()
+        #endif
         return true
     }
+
+    #if DEBUG
+    /// B2730 — a DEBUG-only launch-argument hook so this ticket's recorder
+    /// behaviour (a Stop the network could not reach, a definitive refusal,
+    /// the 7-day drop) can be driven and proven in the Simulator with no
+    /// real GPS movement and no WebView sign-in/arm flow. Each flag is a
+    /// thin, direct call onto `Recorder.shared` — nothing here is reachable
+    /// from a compiled Release build. Run in the fixed order below
+    /// (set token, arm, inject a fix, foreground, disarm, age the pending
+    /// file) regardless of the order the flags are given on the command
+    /// line, since several of these only make sense done in that sequence.
+    private func handleB2730TestArgs() {
+        let args = ProcessInfo.processInfo.arguments
+        func value(after flag: String) -> String? {
+            guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
+            return args[i + 1]
+        }
+        if let token = value(after: "-b2730SetToken") {
+            let expires = value(after: "-b2730TokenExpires") ?? "2099-01-01T00:00:00Z"
+            _ = GpsCredentialStore.save(GpsCredential(token: token, expiresAt: expires))
+        }
+        if let trip = value(after: "-b2730Arm"), let user = value(after: "-b2730User"), let base = value(after: "-b2730Base") {
+            let start = value(after: "-b2730Start") ?? "2020-01-01"
+            let end = value(after: "-b2730End") ?? "2099-01-01"
+            Recorder.shared.arm(
+                trip: trip, title: "B2730 test trip", start: start, end: end, user: user, base: base,
+                stopBody: "stop", unauthorizedBody: "unauthorized"
+            )
+        }
+        if let latS = value(after: "-b2730InjectFix"), let lonS = value(after: "-b2730InjectFixLon"),
+           let lat = Double(latS), let lon = Double(lonS) {
+            Recorder.shared.debugInjectFix(lat: lat, lon: lon)
+        }
+        if args.contains("-b2730Foreground") {
+            Recorder.shared.foreground()
+        }
+        if let trip = value(after: "-b2730Disarm") {
+            Recorder.shared.disarm(trip: trip, decline: false)
+        }
+        if let daysS = value(after: "-b2730AgePending"), let days = Int(daysS) {
+            Recorder.shared.debugAgePendingUpload(days: days)
+        }
+        if args.contains("-b2730Dump") {
+            Recorder.shared.debugDumpState()
+        }
+    }
+    #endif
 
     /// iOS relaunches the app in the background purely to say this session's
     /// tasks have news — B2330. Recreating `MediaUploadSession` (same fixed
