@@ -26,7 +26,7 @@ import SpeakFlow, { RatherTalk, TellByChoice } from "@/components/studio/day/Spe
 import type { TellBy } from "@/lib/studio/speak";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
-import { splitIntoParts, type DayPart } from "@/lib/studio/dayParts";
+import { partTimeOfDay, splitIntoParts, type DayPart } from "@/lib/studio/dayParts";
 import { partCommitPlan, titleCollidesWithExisting } from "@/lib/studio/dayCollision";
 import { missingConsentScopes } from "@/lib/studio/featureConsent";
 import { writePreviewUrl } from "@/lib/studio/previewUrl";
@@ -277,13 +277,17 @@ export default function AddDayFlow({
   const [ownIds, setOwnIds] = useState<string[]>([]);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   // B2676 — the one "＋ Add photos" sheet, opened from the strip's own first
-  // tile, the empty-state tile, or a part's own "＋ Add"; `"day"` is the
-  // unsplit day, a number is that part's index. Picking from what is
-  // waiting goes straight through the existing `toggleSelected`/`tile()`
-  // this page already had; a part's own `ids` picks up a newly-chosen
-  // photograph through the effect below, keyed off `selectedIds` growing
-  // while the sheet is open for it.
+  // tile, the empty tile, or a part's own "＋ Add"; `"day"` is the unsplit
+  // day, a number is that part's index. Three tabs: Waiting (this page's own
+  // inbox, grouped by day — a deferred multi-select, confirmed by "Add N
+  // photos"), This phone (`PhotoPicker`) and Camera (its own file input).
+  // The latter two upload and select immediately (`pickFromDevice`), which
+  // picks up `photoSheetTarget` itself to route a part-targeted upload —
+  // `selectedIdsAtSheetOpen` is only there so that effect, and the Waiting
+  // tab's own direct update, can never double-add the same ids.
   const [photoSheetTarget, setPhotoSheetTarget] = useState<"day" | number | null>(null);
+  const [photoSheetTab, setPhotoSheetTab] = useState<"waiting" | "device" | "camera">("waiting");
+  const [sheetPicked, setSheetPicked] = useState<Set<string>>(new Set());
   const selectedIdsAtSheetOpen = useRef<string[]>([]);
   useEffect(() => {
     if (typeof photoSheetTarget !== "number") return;
@@ -535,9 +539,63 @@ export default function AddDayFlow({
     }
   }
 
+  /** The Waiting tab's own grouping — every inbox item not already chosen
+   *  anywhere on this page, by its own day, this day first (B2676). */
+  function waitingGroups(): { date: string | null; items: InboxMediaItem[] }[] {
+    const chosen = new Set([...selectedIds, ...ownIds]);
+    const candidates = (inboxItems ?? []).filter((i) => !chosen.has(i.id));
+    const byDate = new Map<string | null, InboxMediaItem[]>();
+    for (const item of candidates) {
+      const d = photoDay(item.takenAt) || null;
+      if (!byDate.has(d)) byDate.set(d, []);
+      byDate.get(d)!.push(item);
+    }
+    return [...byDate.entries()]
+      .sort(([a], [b]) => {
+        if (a === date) return -1;
+        if (b === date) return 1;
+        if (a === null) return 1;
+        if (b === null) return -1;
+        return b.localeCompare(a);
+      })
+      .map(([groupDate, items]) => ({ date: groupDate, items }));
+  }
+
   function openPhotoSheet(target: "day" | number) {
     selectedIdsAtSheetOpen.current = selectedIds;
     setPhotoSheetTarget(target);
+    setPhotoSheetTab("waiting");
+    // B2676 — more than 20 waiting for this day: none pre-selected, so
+    // picking is a real choice rather than a wall of ticks to undo.
+    const thisDay = waitingGroups().find((g) => g.date === date);
+    setSheetPicked(new Set(thisDay && thisDay.items.length <= 20 ? thisDay.items.map((i) => i.id) : []));
+  }
+
+  function toggleSheetPicked(id: string) {
+    setSheetPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function confirmPhotoSheetPicks() {
+    const ids = [...sheetPicked];
+    if (ids.length > 0) {
+      if (typeof photoSheetTarget === "number") {
+        const i = photoSheetTarget;
+        setParts((prev) => (prev ? prev.map((p, idx) => (idx === i ? { ...p, ids: [...new Set([...p.ids, ...ids])] } : p)) : prev));
+      }
+      setSelectedIds((prev) => [...new Set([...prev, ...ids])]);
+      setOwnIds((prev) => [...new Set([...prev, ...ids])]);
+      // Pre-empts the growth-tracking effect above: these ids are already
+      // placed, so it must not place them again when `selectedIds` changes.
+      selectedIdsAtSheetOpen.current = [...selectedIdsAtSheetOpen.current, ...ids];
+    }
+    setPhotoSheetTarget(null);
+    setSheetPicked(new Set());
+    setPhotoSheetTab("waiting");
   }
 
   function toggleSelected(id: string) {
@@ -676,6 +734,10 @@ export default function AddDayFlow({
     if (!addressLookupAvailable || sheet !== "place") return;
     const trimmed = placeQuery.trim();
     if (trimmed.length < MIN_QUERY_LEN) {
+      // A query shrunk below the floor (backspaced, or the sheet just
+      // opened on a short name): nothing to ask, and the stale list from a
+      // longer query must not linger either.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears a stale list the moment the query itself falls below the floor, not on a timer.
       setPlaceResults([]);
       setPlaceSearchFailed(false);
       return;
@@ -707,6 +769,7 @@ export default function AddDayFlow({
   // The search box shows the current place when the sheet opens, not
   // whatever was last typed in a previous visit to it.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe seed of the search box from the sheet actually opening, the same pattern the resume banner's own mount effect uses.
     if (sheet === "place") setPlaceQuery(place.location);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sheet]);
@@ -1949,9 +2012,12 @@ export default function AddDayFlow({
             {detailsOpen && (
               <div className="mb-3">
                 <DayExtras value={extras} onChange={setExtras} currencies={currencies} routeTravel={routeTravel} />
-                {/* B2676 — "📷 From a receipt", in the Costs section: enabled
-                    only once the draft is saved and has photos (`read-receipt`
-                    needs the photograph already on an on-disk entry). */}
+                {/* B2676 — "📷 From a receipt", in the Costs section: absent
+                    with `helper` off (AGENTS.md: absent, not broken), and
+                    enabled only once the draft is saved and has photos
+                    (`read-receipt` needs the photograph already on an
+                    on-disk entry). */}
+                {helperOn && (
                 <div className="mt-2">
                   {receiptEnabled ? (
                     <button type="button" onClick={openReceiptPicker} className={LINK}>
@@ -2022,6 +2088,7 @@ export default function AddDayFlow({
                   )}
                   {receiptAdded && <p className="mt-2 text-sm text-ink-body">{t("studio.day.receipt.added")}</p>}
                 </div>
+                )}
               </div>
             )}
           </details>
@@ -2054,9 +2121,10 @@ export default function AddDayFlow({
       )}
 
       {/* B2676 — the one "＋ Add photos" sheet, opened from the strip, the
-          empty tile or a part's own "＋ Add". Picking a waiting photograph
-          reuses the same `tile()`/`toggleSelected` the strip already has;
-          uploading a new one reuses the same `PhotoPicker`/`pickFromDevice`. */}
+          empty tile or a part's own "＋ Add". Three tabs: Waiting (this
+          page's own inbox grouped by day, a deferred multi-select), This
+          phone (`PhotoPicker`) and Camera (its own capture input) — the
+          latter two upload and select immediately. */}
       {photoSheetTarget !== null && (
         <div
           role="dialog"
@@ -2069,30 +2137,134 @@ export default function AddDayFlow({
             className="max-h-[80vh] w-full overflow-y-auto rounded-t-3xl bg-surface-raised p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="font-display text-lg font-semibold text-ink-strong">{t("studio.day.photos.add")}</h2>
-              <button type="button" onClick={() => setPhotoSheetTarget(null)} className={LINK}>
-                {t("studio.day.sheet.close")}
-              </button>
+              <span className="text-sm text-ink-secondary">
+                {typeof photoSheetTarget === "number" && parts
+                  ? t("studio.day.photos.addToPart", {
+                      part: (() => {
+                        const tod = partTimeOfDay(parts[photoSheetTarget]?.from ?? null);
+                        return tod ? t(`studio.day.timeOfDay.${tod}`) : t("studio.day.timeOfDay.generic");
+                      })(),
+                    })
+                  : t("studio.day.photos.addToDay")}
+              </span>
             </div>
-            {waitingPhotos.length > 0 ? (
-              <ul className="mt-3 grid grid-cols-4 gap-1.5">{waitingPhotos.map(tile)}</ul>
-            ) : (
-              <p className="mt-3 text-sm text-ink-secondary">{t("studio.day.photos.nonePendingYet")}</p>
-            )}
-            <div className="mt-3">
-              <PhotoPicker id="studio-day-photo-sheet-picker" chosen={[]} accept="image/*,video/*" onPick={pickFromDevice} showChosen={false} />
+
+            <div role="tablist" className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface-subtle p-1">
+              {(["waiting", "device", "camera"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={photoSheetTab === tab}
+                  onClick={() => setPhotoSheetTab(tab)}
+                  className={`min-h-10 rounded-lg text-sm font-semibold ${photoSheetTab === tab ? "bg-surface-raised text-ink-strong shadow-sm" : "text-ink-secondary"}`}
+                >
+                  {t(`studio.day.photos.tab.${tab}`)}
+                </button>
+              ))}
             </div>
-            {uploading > 0 && (
-              <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
+
+            {photoSheetTab === "waiting" && (
+              <div className="mt-3">
+                {(() => {
+                  const groups = waitingGroups();
+                  if (groups.length === 0) return <p className="text-sm text-ink-secondary">{t("studio.day.photos.nonePendingYet")}</p>;
+                  return groups.map((group) => (
+                    <div key={group.date ?? "undated"} className="mt-3 first:mt-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
+                        {group.date === date
+                          ? t("studio.day.photos.groupThisDay")
+                          : group.date
+                            ? formatLongDate(group.date)
+                            : t("studio.day.photos.groupUndated")}
+                      </p>
+                      <ul className="mt-1.5 grid grid-cols-4 gap-1.5">
+                        {group.items.map((item) => {
+                          const on = sheetPicked.has(item.id);
+                          return (
+                            <li key={item.id}>
+                              <button
+                                type="button"
+                                data-photo={item.filename}
+                                aria-pressed={on}
+                                aria-label={item.filename}
+                                onClick={() => toggleSheetPicked(item.id)}
+                                className={`relative block aspect-square w-full overflow-hidden rounded-lg border-2 bg-surface-subtle ${on ? "border-action-strong" : "border-transparent opacity-60"}`}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element -- an owner-only route, not an optimisable asset */}
+                                <img
+                                  src={`/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(item.id)}/thumbnail?w=200`}
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="h-full w-full object-cover"
+                                />
+                                {on && (
+                                  <span aria-hidden className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-action-strong text-xs text-on-action">
+                                    ✓
+                                  </span>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ));
+                })()}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={sheetPicked.size === 0}
+                    onClick={confirmPhotoSheetPicks}
+                    className="min-h-11 flex-1 rounded-full bg-action-strong px-4 text-base font-semibold text-on-action disabled:opacity-50"
+                  >
+                    {sheetPicked.size > 0
+                      ? tn("studio.day.photos.addN", sheetPicked.size, { count: String(sheetPicked.size) })
+                      : t("studio.day.photos.choose")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoSheetTarget(null)}
+                    className="min-h-11 rounded-full border border-line-strong px-4 text-base font-semibold text-ink-strong"
+                  >
+                    {t("studio.day.sheet.cancel")}
+                  </button>
+                </div>
+              </div>
             )}
-            <button
-              type="button"
-              onClick={() => setPhotoSheetTarget(null)}
-              className="mt-3 min-h-11 w-full rounded-full bg-action-strong px-4 text-base font-semibold text-on-action"
-            >
-              {t("studio.day.sheet.done")}
-            </button>
+
+            {photoSheetTab === "device" && (
+              <div className="mt-3">
+                <PhotoPicker id="studio-day-photo-sheet-device" chosen={[]} accept="image/*,video/*" onPick={pickFromDevice} showChosen={false} />
+                {uploading > 0 && (
+                  <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
+                )}
+              </div>
+            )}
+
+            {photoSheetTab === "camera" && (
+              <div className="mt-3">
+                <label className="flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-action-strong px-4 text-base font-semibold text-on-action">
+                  {t("studio.day.photos.openCamera")}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={(e) => {
+                      void pickFromDevice(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {uploading > 0 && (
+                  <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
