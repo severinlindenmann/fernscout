@@ -570,6 +570,28 @@ type UsageTable = {
 };
 
 /**
+ * A month of `usage` rows an owner no longer needs kept at full grain —
+ * `064-usage-monthly-totals` (B2605). `foldUsageOlderThan` (lib/usage.ts)
+ * groups rows older than its retention window by owner, month (`YYYY-MM`)
+ * and provider, adds the group into this table, then deletes the source
+ * rows; a night that folds the same still-aging month twice adds onto the
+ * row rather than replacing it (see the `on conflict` there), which is why
+ * `cost_rappen`/`calls` are running sums rather than a snapshot. No
+ * model/operation breakdown — the dashboard's per-journal total is the only
+ * reader and never needed one.
+ */
+type UsageMonthlyTotalsTable = {
+  id: string;
+  owner_id: string;
+  /** `YYYY-MM`, UTC, matching the folded rows' `created_at` prefix. */
+  month: string;
+  provider: string;
+  cost_rappen: Generated<number>;
+  calls: Generated<number>;
+  created_at: string;
+};
+
+/**
  * What happened in one turn of a conversation, or one press — B976.
  *
  * See `026-helper-sessions` for why this is not `usage`: that table is what
@@ -987,6 +1009,22 @@ type ComposeOutcomesTable = {
   occurred_at: string;
 };
 
+/**
+ * The Plus +10 GB storage add-on — B2629. See migration `065-storage-addons`
+ * for why this is its own table rather than an `entitlements` row.
+ */
+type StorageAddonsTable = {
+  id: string;
+  owner_id: string;
+  source: string;
+  provider_ref: string | null;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  cancel_at_period_end: Generated<number>;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -1006,6 +1044,7 @@ export type Database = {
   analytics_events: AnalyticsEventsTable;
   day_notifications: DayNotificationsTable;
   usage: UsageTable;
+  usage_monthly_totals: UsageMonthlyTotalsTable;
   helper_sessions: HelperSessionsTable;
   idempotency: IdempotencyTable;
   helper_threads: HelperThreadsTable;
@@ -1027,6 +1066,7 @@ export type Database = {
   print_included_usage: PrintIncludedUsageTable;
   tell_choices: TellChoicesTable;
   compose_outcomes: ComposeOutcomesTable;
+  storage_addons: StorageAddonsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1049,6 +1089,7 @@ export const TABLE_NAMES = [
   "analytics_events",
   "day_notifications",
   "usage",
+  "usage_monthly_totals",
   "helper_sessions",
   "idempotency",
   "helper_threads",
@@ -1069,4 +1110,5 @@ export const TABLE_NAMES = [
   "stripe_customers",
   "print_included_usage",
   "compose_outcomes",
+  "storage_addons",
 ] as const satisfies readonly (keyof Database)[];

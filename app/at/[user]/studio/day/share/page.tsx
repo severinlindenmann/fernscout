@@ -6,6 +6,7 @@ import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";
 import { getTrip } from "@/lib/trips";
 import { journalPath } from "@/lib/journalPath";
 import { storyCaption, storyDayLink, storyPhotos } from "@/lib/storyCard";
+import { storyLinkState } from "@/lib/contacts/storyLink";
 import { videoToolsAvailable } from "@/lib/storyVideo";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,13 @@ export default async function StudioShareDayPage({
   const trip = getTrip(`${user}/${tripId}`);
   const link = storyDayLink(user, tripId, stem, trip, day);
   const linkAllowed = link !== null;
+  const visibility = trip?.visibility ?? "private";
+  // B2665 round 2 — only fetched for a readers-only trip; `null` on a
+  // public or private one, and `{ status: "unavailable" }` reads as absent
+  // in `ReadAlongLink`'s caller, which is why `page.tsx` passes `null` for
+  // "unavailable" too, so the component simply renders nothing.
+  const rawReadAlong = visibility === "guest" ? await storyLinkState(user) : null;
+  const readAlong = rawReadAlong && rawReadAlong.status !== "unavailable" ? rawReadAlong : null;
 
   // `item.src` is trip-relative (`/media/<trip>/<day>/<file>`) — the shape
   // every day document stores. The browser needs the journal-prefixed form
@@ -61,7 +69,7 @@ export default async function StudioShareDayPage({
   const photos = storyPhotos(day)
     .map((item) => ({ src: `${journalPath(user)}${item.src}`, caption: item.caption }));
 
-  const caption = storyCaption(day.title, day.content);
+  const caption = storyCaption(day);
 
   return (
     <StudioPage username={user} group="write" title={title}>
@@ -74,6 +82,8 @@ export default async function StudioShareDayPage({
         linkAllowed={linkAllowed}
         link={link}
         videoAvailable={await videoToolsAvailable()}
+        visibility={visibility}
+        readAlong={readAlong}
       />
     </StudioPage>
   );

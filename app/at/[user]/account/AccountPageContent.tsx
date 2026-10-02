@@ -594,15 +594,11 @@ function CancelPlanButton({ username, label }: { username: string; label: string
   );
 }
 
-/** "Add 10 GB" — Plus only, B2622's board. No checkout exists for this yet
- *  (`docs/billing.md`'s +10 GB/year is priced but nothing grants it): rather
- *  than take a real Stripe payment for a add-on this build cannot actually
- *  switch on, this asks the operator the same "ask, don't act" way the dry
- *  run of `BuyPlanButton` already does when no Stripe key is configured —
- *  here, always, since there is nowhere downstream yet for a paid session to
- *  land. `ponytail:` a real checkout + webhook + storage-grant column is the
- *  upgrade once that is actually wanted; filing it is this ticket's own
- *  report, not a silent gap. */
+/** "Add 10 GB" — Plus only, B2622's board; a real Stripe checkout since
+ *  B2629 (`docs/billing.md`'s +10 GB/year). Same shape as `BuyPlanButton`
+ *  above: a URL back redirects to Stripe, no URL (no Stripe key configured)
+ *  means the operator was mailed instead, exactly as every other checkout
+ *  button here falls back. */
 function StorageAddonButton({ username, label }: { username: string; label: string }) {
   const { t } = useI18n();
   const native = useNativeShell();
@@ -613,8 +609,18 @@ function StorageAddonButton({ username, label }: { username: string; label: stri
     setBusy(true);
     setState("idle");
     const response = await fetch(`/api/web/${username}/billing/storage-addon`, { method: "POST" }).catch(() => null);
+    const body = await response?.json().catch(() => null);
     setBusy(false);
-    setState(response?.ok ? "sent" : "failed");
+    if (!response?.ok) {
+      setState("failed");
+      return;
+    }
+    if (body?.url) {
+      window.location.href = body.url as string;
+      return;
+    }
+    // Dry run: no Stripe key, the operator was mailed — same as BuyPlanButton.
+    setState("sent");
   }
 
   // B2682: inside the iPhone shell a priced digital extra may only be sold

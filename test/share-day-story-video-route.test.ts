@@ -10,7 +10,7 @@ vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined })
 vi.mock("@/lib/contacts/session", () => ({ isOwner: vi.fn() }));
 vi.mock("@/lib/storyVideo", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/storyVideo")>();
-  return { ...actual, videoToolsAvailable: vi.fn() };
+  return { ...actual, videoToolsAvailable: vi.fn(), renderStoryVideo: vi.fn() };
 });
 
 /**
@@ -30,6 +30,7 @@ const FULL_SLUG = `2026-09-02-${SLUG}`;
 let dir: string;
 let isOwnerMock: ReturnType<typeof vi.fn>;
 let videoToolsAvailableMock: ReturnType<typeof vi.fn>;
+let renderStoryVideoMock: ReturnType<typeof vi.fn>;
 
 function writeJournal() {
   fs.writeFileSync(
@@ -110,6 +111,8 @@ beforeEach(async () => {
   const storyVideo = await import("@/lib/storyVideo");
   videoToolsAvailableMock = vi.mocked(storyVideo.videoToolsAvailable);
   videoToolsAvailableMock.mockResolvedValue(true);
+  renderStoryVideoMock = vi.mocked(storyVideo.renderStoryVideo);
+  renderStoryVideoMock.mockReset();
 });
 
 afterEach(() => {
@@ -214,5 +217,77 @@ describe("GET .../story/video", () => {
     const response = await GET(new Request(url), params);
     expect(response.status).toBe(409);
     expect((await response.json()).error).toBe("not_published");
+  });
+});
+
+/**
+ * Byte ranges — B2665 round 2. iOS Safari refuses to play a clip at all
+ * unless the server answers the range it asks for before it starts, so
+ * this is checked against a fixed, fake "rendered" buffer rather than a
+ * real clip (which the real-render test, test/story-video-render.test.ts,
+ * covers on its own).
+ */
+describe("GET .../story/video — byte ranges", () => {
+  const TOTAL = 1000;
+  function fixedClip() {
+    const buf = Buffer.alloc(TOTAL);
+    for (let i = 0; i < TOTAL; i++) buf[i] = i % 256;
+    return buf;
+  }
+
+  beforeEach(() => {
+    setupTripAndDay();
+    renderStoryVideoMock.mockResolvedValue(fixedClip());
+  });
+
+  test("no Range header answers the whole clip, with Accept-Ranges", async () => {
+    const { GET } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/story/video/route");
+    const response = await GET(new Request(url), params);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("accept-ranges")).toBe("bytes");
+    expect(response.headers.get("content-length")).toBe(String(TOTAL));
+    expect(new Uint8Array(await response.arrayBuffer())).toHaveLength(TOTAL);
+  });
+
+  test("bytes=a-b answers 206 with exactly that slice", async () => {
+    const { GET } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/story/video/route");
+    const response = await GET(new Request(url, { headers: { range: "bytes=100-199" } }), params);
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-range")).toBe(`bytes 100-199/${TOTAL}`);
+    expect(response.headers.get("content-length")).toBe("100");
+    const body = new Uint8Array(await response.arrayBuffer());
+    expect(body).toHaveLength(100);
+    expect(body[0]).toBe(100 % 256);
+  });
+
+  test("bytes=a- answers from a to the end", async () => {
+    const { GET } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/story/video/route");
+    const response = await GET(new Request(url, { headers: { range: `bytes=${TOTAL - 50}-` } }), params);
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-range")).toBe(`bytes ${TOTAL - 50}-${TOTAL - 1}/${TOTAL}`);
+    expect(response.headers.get("content-length")).toBe("50");
+  });
+
+  test("the suffix form bytes=-n answers the last n bytes", async () => {
+    const { GET } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/story/video/route");
+    const response = await GET(new Request(url, { headers: { range: "bytes=-40" } }), params);
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-range")).toBe(`bytes ${TOTAL - 40}-${TOTAL - 1}/${TOTAL}`);
+    expect(response.headers.get("content-length")).toBe("40");
+  });
+
+  test("an unsatisfiable range answers 416 with the total size, never a guess", async () => {
+    const { GET } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/story/video/route");
+    const response = await GET(new Request(url, { headers: { range: `bytes=${TOTAL + 10}-${TOTAL + 20}` } }), params);
+    expect(response.status).toBe(416);
+    expect(response.headers.get("content-range")).toBe(`bytes */${TOTAL}`);
+  });
+
+  test("auth is still checked before any byte is served, range or not", async () => {
+    isOwnerMock.mockResolvedValue(false);
+    const { GET } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/story/video/route");
+    const response = await GET(new Request(url, { headers: { range: "bytes=0-10" } }), params);
+    expect(response.status).toBe(403);
+    expect(renderStoryVideoMock).not.toHaveBeenCalled();
   });
 });

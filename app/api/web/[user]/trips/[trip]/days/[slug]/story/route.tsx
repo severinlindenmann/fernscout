@@ -13,13 +13,14 @@
 import { ImageResponse } from "next/og";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
-import { readDayFile, readTripFile, resolveDayStem, listDaySlugs } from "@/lib/api/v2/store";
+import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";
 import { getTrip } from "@/lib/trips";
 import { isOpenToLink } from "@/lib/access";
 import { journalPath } from "@/lib/journalPath";
 import { serverSite } from "@/lib/site";
-import { dayNumberOf, storyCardFacts, storyDayLink, storyPhotos, type StoryFacts } from "@/lib/storyCard";
-import { storyPhotoDataUri } from "@/lib/storyMedia";
+import { dayOfTrip } from "@/lib/studio/monthGrid";
+import { storyCardFacts, storyPhotos, storyShareLink, type StoryFacts } from "@/lib/storyCard";
+import { storyPhotoCroppedDataUri } from "@/lib/storyMedia";
 import { StoryMark } from "@/components/StoryMark";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,21 @@ const COLORS = {
   yellow400: "#ffd23f",
   green500: "#22c55e",
 };
+
+// Boxes every photo is cropped to (smart, attention-weighted — B2665 round
+// 2) before it is laid out, so the subject survives `objectFit: cover`
+// rather than being guessed at by the browser. `PhotoCard`'s photo is the
+// whole card; the others are ponytail: approximate, matching this file's
+// own fixed layout below — `objectFit: cover` forgives a box that is a
+// touch off, refine the numbers if the visual check finds a bad crop.
+const PHOTO_LOOK_BOX = { width: SIZE.width, height: SIZE.height };
+const POSTCARD_BOX = { width: 930, height: 1420 };
+const COLLAGE_HERO_BOX = { width: 984, height: 995 };
+const COLLAGE_THUMB_BOX = { width: 486, height: 652 };
+
+async function croppedPhoto(user: string, src: string | undefined, box: { width: number; height: number }) {
+  return src ? storyPhotoCroppedDataUri(user, src, box) : null;
+}
 
 function Pill({ site, dark }: { site: string; dark: boolean }) {
   return (
@@ -70,62 +86,94 @@ function EmptyPanel({ background }: { background: string }) {
   );
 }
 
-/** Look A — the published-looking card: a hero photo and a navy caption
- * panel underneath. */
-function PhotoCard({ facts, photo, site }: { facts: StoryFacts; photo: string | null; site: string }) {
-  // The pill floats over the photo's top-left corner, as drawn. satori paints
-  // in document order and ignores z-index, so the pill comes AFTER the image
-  // in the markup — placed first, the photo painted over it.
+/** Look A — the full photo: the day's own picture fills the whole card; a
+ * floating navy panel near the bottom carries the words. */
+function PhotoCard({
+  facts,
+  photo,
+  showCaptions,
+  site,
+}: {
+  facts: StoryFacts;
+  photo: string | null;
+  showCaptions: boolean;
+  site: string;
+}) {
+  const caption = showCaptions ? facts.photos[0]?.caption : undefined;
+  // The pill floats over the photo's top-left corner, as drawn, and the
+  // panel floats near the bottom. satori paints in document order and
+  // ignores z-index, so both come AFTER the image in the markup.
   return (
-    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: COLORS.navy950 }}>
-      <div style={{ display: "flex", position: "relative", width: "100%", height: "68%" }}>
-        {photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <EmptyPanel background={COLORS.navy900} />
-        )}
-        <div
-          style={{
-            display: "flex",
-            position: "absolute",
-            left: 40,
-            top: 40,
-            padding: "10px 22px 10px 10px",
-            borderRadius: 999,
-            background: COLORS.navy950,
-          }}
-        >
-          <Pill site={site} dark />
-        </div>
+    <div style={{ display: "flex", position: "relative", width: "100%", height: "100%", background: COLORS.navy950 }}>
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        <EmptyPanel background={COLORS.navy900} />
+      )}
+      <div
+        style={{
+          display: "flex",
+          position: "absolute",
+          left: 36,
+          top: 40,
+          padding: "10px 22px 10px 10px",
+          borderRadius: 999,
+          background: COLORS.navy950,
+        }}
+      >
+        <Pill site={site} dark />
       </div>
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, background: COLORS.navy950, padding: "48px 56px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          position: "absolute",
+          left: 36,
+          right: 36,
+          bottom: 36,
+          borderRadius: 54,
+          background: COLORS.navy950,
+          padding: "40px 44px",
+        }}
+      >
         {facts.dayLabel && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                display: "flex",
-                width: 12,
-                height: 12,
-                background: COLORS.yellow400,
-                transform: "rotate(45deg)",
-              }}
-            />
-            <div style={{ display: "flex", fontSize: 24, fontWeight: 700, letterSpacing: 2, color: COLORS.yellow400, textTransform: "uppercase" }}>
+            <div style={{ display: "flex", width: 12, height: 12, background: COLORS.yellow400, transform: "rotate(45deg)" }} />
+            <div style={{ display: "flex", fontSize: 32, fontWeight: 700, letterSpacing: 2, color: COLORS.yellow400, textTransform: "uppercase" }}>
               {facts.dayLabel} · {facts.dateLabel}
             </div>
           </div>
         )}
-        <div style={{ display: "flex", marginTop: 14, fontSize: 56, fontWeight: 700, color: COLORS.cream50, lineHeight: 1.1 }}>
-          {facts.title}
+        <div style={{ display: "flex", marginTop: 14, fontSize: 80, fontWeight: 700, color: COLORS.cream50, lineHeight: 1.1 }}>
+          {facts.headline}
         </div>
-        {(facts.place || facts.tempLine) && (
-          <div style={{ display: "flex", marginTop: 16, fontSize: 28, color: COLORS.navy200 }}>
-            {[facts.place, facts.tempLine].filter(Boolean).join(" · ")}
+        {facts.subLine && (
+          <div style={{ display: "flex", marginTop: 16, fontSize: 38, color: COLORS.navy200 }}>{facts.subLine}</div>
+        )}
+        {caption && (
+          <div style={{ display: "flex", marginTop: 16, fontSize: 32, fontStyle: "italic", color: COLORS.navy300 }}>{caption}</div>
+        )}
+        {facts.link && facts.readAlong && (
+          <div
+            style={{
+              display: "flex",
+              marginTop: 24,
+              alignItems: "center",
+              gap: 10,
+              background: COLORS.yellow400,
+              color: COLORS.navy900,
+              borderRadius: 16,
+              padding: "12px 18px",
+              fontSize: 30,
+              fontWeight: 700,
+            }}
+          >
+            {facts.readAlongLabel} {facts.link.replace(/^https?:\/\//, "")}
           </div>
         )}
-        {facts.link && (
-          <div style={{ display: "flex", marginTop: 24, fontSize: 22, color: COLORS.navy300, fontFamily: "monospace" }}>
+        {facts.link && !facts.readAlong && (
+          <div style={{ display: "flex", marginTop: 24, fontSize: 28, color: COLORS.navy300, fontFamily: "monospace" }}>
             {facts.link.replace(/^https?:\/\//, "")}
           </div>
         )}
@@ -134,52 +182,79 @@ function PhotoCard({ facts, photo, site }: { facts: StoryFacts; photo: string | 
   );
 }
 
-/** Look B — the postcard: a cream frame around the photo, its own caption
- * in italics underneath, mark + site left and link right in the footer. */
-function PostcardCard({ facts, photo, site }: { facts: StoryFacts; photo: string | null; caption?: string; site: string }) {
-  const caption = photo ? facts.photos[0]?.caption : undefined;
+/** Look B — the postcard: a cream frame that fills the card around the
+ * photo, tipped very slightly; the day line, headline and place/temp below
+ * it, then a footer with the mark left and the link right. */
+function PostcardCard({
+  facts,
+  photo,
+  showCaptions,
+  site,
+}: {
+  facts: StoryFacts;
+  photo: string | null;
+  showCaptions: boolean;
+  site: string;
+}) {
+  const caption = showCaptions ? facts.photos[0]?.caption : undefined;
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: COLORS.cream100, padding: 48 }}>
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          width: "100%",
+          flex: 1,
           background: COLORS.cream50,
-          padding: 24,
-          boxShadow: "0 2px 0 rgba(0,0,0,0.08)",
+          border: `1px solid ${COLORS.cream200}`,
+          padding: 27,
+          transform: "rotate(-1.2deg)",
         }}
       >
-        <div style={{ display: "flex", width: "100%", height: 1120 }}>
-          {photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          ) : (
-            <EmptyPanel background={COLORS.cream200} />
-          )}
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <EmptyPanel background={COLORS.cream200} />
+        )}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 20 }}>
+        <div
+          style={{
+            display: "flex",
+            width: 14,
+            height: 14,
+            background: COLORS.yellow400,
+            border: `1px solid ${COLORS.navy900}`,
+            transform: "rotate(45deg)",
+          }}
+        />
+        <div style={{ display: "flex", fontSize: 30, fontWeight: 700, letterSpacing: 1, color: COLORS.navy600, textTransform: "uppercase" }}>
+          {facts.dayLabel ? `${facts.dayLabel} · ${facts.dateLabel}` : facts.dateLabel}
         </div>
-        {caption && (
-          <div style={{ display: "flex", marginTop: 16, fontSize: 24, fontStyle: "italic", color: COLORS.navy600 }}>{caption}</div>
-        )}
       </div>
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center", padding: "32px 8px" }}>
-        {facts.dayLabel && (
-          <div style={{ display: "flex", fontSize: 22, fontWeight: 700, letterSpacing: 1, color: COLORS.navy600, textTransform: "uppercase" }}>
-            {facts.dayLabel} · {facts.dateLabel}
-          </div>
-        )}
-        <div style={{ display: "flex", marginTop: 10, fontSize: 48, fontWeight: 700, color: COLORS.navy900 }}>{facts.title}</div>
-        {(facts.place || facts.tempLine) && (
-          <div style={{ display: "flex", marginTop: 12, fontSize: 26, color: COLORS.navy600 }}>
-            {[facts.place, facts.tempLine].filter(Boolean).join(" · ")}
-          </div>
-        )}
+      <div style={{ display: "flex", marginTop: 10, fontSize: 80, fontWeight: 700, color: COLORS.navy900, lineHeight: 1.1 }}>
+        {facts.headline}
       </div>
-      <div style={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
+      {facts.subLine && (
+        <div style={{ display: "flex", marginTop: 10, fontSize: 36, color: COLORS.navy600 }}>{facts.subLine}</div>
+      )}
+      {caption && (
+        <div style={{ display: "flex", marginTop: 10, fontSize: 32, fontStyle: "italic", color: COLORS.navy600 }}>{caption}</div>
+      )}
+      <div
+        style={{
+          display: "flex",
+          width: "100%",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 20,
+          paddingTop: 16,
+          borderTop: `1px solid ${COLORS.cream200}`,
+        }}
+      >
         <Pill site={site} dark={false} />
         {facts.link && (
-          <div style={{ display: "flex", fontSize: 20, color: COLORS.navy600, fontFamily: "monospace" }}>
-            {facts.link.replace(/^https?:\/\//, "")}
+          <div style={{ display: "flex", fontSize: 26, color: COLORS.navy600, fontFamily: "monospace" }}>
+            {facts.readAlong ? `${facts.readAlongLabel}: ${facts.link.replace(/^https?:\/\//, "")}` : facts.link.replace(/^https?:\/\//, "")}
           </div>
         )}
       </div>
@@ -201,7 +276,7 @@ function CollageCard({ facts, photos, site }: { facts: StoryFacts; photos: strin
               display: "flex",
               background: COLORS.yellow400,
               color: COLORS.navy900,
-              fontSize: 22,
+              fontSize: 28,
               fontWeight: 700,
               padding: "8px 18px",
               borderRadius: 999,
@@ -224,15 +299,15 @@ function CollageCard({ facts, photos, site }: { facts: StoryFacts; photos: strin
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", marginTop: 28 }}>
-        <div style={{ display: "flex", fontSize: 44, fontWeight: 700, color: COLORS.cream50 }}>{facts.title}</div>
-        <div style={{ display: "flex", marginTop: 10, fontSize: 26, color: COLORS.navy200 }}>
-          {[facts.dateLabel, facts.place].filter(Boolean).join(" · ")}
+        <div style={{ display: "flex", fontSize: 64, fontWeight: 700, color: COLORS.cream50 }}>{facts.headline}</div>
+        <div style={{ display: "flex", marginTop: 10, fontSize: 34, color: COLORS.navy200 }}>
+          {[facts.dateLabel, facts.headline === facts.place ? undefined : facts.place].filter(Boolean).join(" · ")}
         </div>
         {facts.link && (
           <div style={{ display: "flex", marginTop: 16, alignItems: "center", gap: 10 }}>
             <div style={{ display: "flex", width: 10, height: 10, borderRadius: 999, background: COLORS.green500 }} />
-            <div style={{ display: "flex", fontSize: 20, color: COLORS.navy300, fontFamily: "monospace" }}>
-              {facts.link.replace(/^https?:\/\//, "")}
+            <div style={{ display: "flex", fontSize: 26, color: COLORS.navy300, fontFamily: "monospace" }}>
+              {facts.readAlong ? `${facts.readAlongLabel} ${facts.link.replace(/^https?:\/\//, "")}` : facts.link.replace(/^https?:\/\//, "")}
             </div>
           </div>
         )}
@@ -268,6 +343,11 @@ export async function GET(
   const url = new URL(request.url);
   const lookParam = url.searchParams.get("look") ?? "photo";
   const look = (STORY_LOOKS as readonly string[]).includes(lookParam) ? (lookParam as StoryLook) : "photo";
+  // Off by default (B2665 round 2): a caption is the owner's own words
+  // repeated verbatim on a public card, so it is drawn only on request.
+  const showCaptions = url.searchParams.get("captions") === "1";
+  const wantLink = url.searchParams.get("link") !== "0";
+  const wantReadAlong = url.searchParams.get("readalong") === "1";
 
   const photos = storyPhotos(day);
   if (look === "collage" && photos.length < 3) {
@@ -275,27 +355,47 @@ export async function GET(
   }
 
   const trip = getTrip(`${user}/${tripId}`);
-  const link = storyDayLink(user, tripId, stem, trip, day);
+  const { url: link, readAlong } = wantLink
+    ? await storyShareLink(user, tripId, stem, trip, day, wantReadAlong)
+    : { url: null, readAlong: false };
 
-  const dayNumber = dayNumberOf(listDaySlugs(user, tripId), stem);
+  const dayNumber = dayOfTrip(day.date, tripFile.dates.from);
   const facts = storyCardFacts({
     day,
     dayNumber,
     tripTitle: tripFile.title,
     link,
+    readAlong,
     locale: owner.defaultLocale,
   });
 
   const site = serverSite().name;
-  const dataUris = photos.map((p) => storyPhotoDataUri(user, p.src)).filter((u): u is string => u !== null);
 
   const element =
     look === "postcard" ? (
-      <PostcardCard facts={facts} photo={dataUris[0] ?? null} site={site} />
+      <PostcardCard
+        facts={facts}
+        photo={await croppedPhoto(user, photos[0]?.src, POSTCARD_BOX)}
+        showCaptions={showCaptions}
+        site={site}
+      />
     ) : look === "collage" ? (
-      <CollageCard facts={facts} photos={dataUris.slice(0, 3)} site={site} />
+      <CollageCard
+        facts={facts}
+        photos={[
+          await croppedPhoto(user, photos[0]?.src, COLLAGE_HERO_BOX),
+          await croppedPhoto(user, photos[1]?.src, COLLAGE_THUMB_BOX),
+          await croppedPhoto(user, photos[2]?.src, COLLAGE_THUMB_BOX),
+        ].filter((u): u is string => u !== null)}
+        site={site}
+      />
     ) : (
-      <PhotoCard facts={facts} photo={dataUris[0] ?? null} site={site} />
+      <PhotoCard
+        facts={facts}
+        photo={await croppedPhoto(user, photos[0]?.src, PHOTO_LOOK_BOX)}
+        showCaptions={showCaptions}
+        site={site}
+      />
     );
 
   // ImageResponse defaults to a public cache header; this card can show a
