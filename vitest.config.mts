@@ -21,8 +21,10 @@ export default defineConfig({
     // test/support/future-clock.ts and `npm run test:future-clock` (B1947).
     setupFiles: ["test/support/future-clock.ts", "test/support/per-file-database.ts"],
     // Postgres gets one database per worker (B2552), so files run in
-    // parallel on every leg — see test/support/pg-workers.ts.
-    globalSetup: ["test/support/pg-workers.ts"],
+    // parallel on every leg — see test/support/pg-workers.ts. B2714 adds the
+    // loud line for a broken/missing ffmpeg, so a silently-skipped video
+    // suite shows up in the run instead of just being quietly green.
+    globalSetup: ["test/support/pg-workers.ts", "test/support/video-tools-notice.ts"],
     // Fourteen test files spawn a subprocess — `tsx` running a script, a shell
     // running a deploy check — and wait for it to finish. Vitest's default
     // `testTimeout` is 5 seconds, which is generous when such a file is the

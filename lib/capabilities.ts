@@ -368,7 +368,13 @@ function addressLookupNote(name: FeatureName): string | undefined {
  */
 function appleEnvironmentsNote(name: FeatureName): string | undefined {
   if (name !== "billing") return undefined;
-  return `Apple in-app purchases and notifications are accepted from: ${allowedAppleEnvironments().join(", ")}`;
+  const allowed = allowedAppleEnvironments().join(", ");
+  // B2699: Sandbox against a test-* journal is always accepted (App
+  // Review buys in Sandbox against the production server) even on an
+  // instance whose own allowlist is Production only.
+  return allowed.includes("Sandbox")
+    ? `Apple in-app purchases and notifications are accepted from: ${allowed}`
+    : `Apple in-app purchases and notifications are accepted from: ${allowed}, plus Sandbox for test-* journals only`;
 }
 
 /**
