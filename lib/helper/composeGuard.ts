@@ -99,7 +99,7 @@ function isNote(id: string): boolean {
   return NOTE_ID.test(id) || id.endsWith("-caption");
 }
 
-export function notesText(items: GuardItem[]): string {
+function notesText(items: GuardItem[]): string {
   return items
     .filter((i) => isNote(i.id))
     .map((i) => i.text)

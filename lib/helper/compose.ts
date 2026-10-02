@@ -187,7 +187,7 @@ type RawCompose = {
 
 /** What a review UI shows: the text, and per sentence the ids (with their
  *  kind) it rests on, so each can be a chip. */
-export type ComposedVariant = {
+type ComposedVariant = {
   titles: { text: string; kind: TitleKind }[];
   text: string;
   sentences: { text: string; sources: { id: string; kind: GuardItem["kind"] }[] }[];
@@ -239,8 +239,8 @@ function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** Documents first, task last — exported so a test can see what is sent. */
-export function composeUserMessage(pack: DayPack, existingTags: string[]): string {
+/** Documents first, task last. */
+function composeUserMessage(pack: DayPack, existingTags: string[]): string {
   return [
     renderDayPack(pack),
     `<existing_tags>${escapeXml(existingTags.join(", "))}</existing_tags>`,
