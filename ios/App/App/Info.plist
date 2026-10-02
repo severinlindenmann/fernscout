@@ -40,6 +40,26 @@
 	<array>
 		<string>location</string>
 	</array>
+	<!-- B2733 — the route recorder's own Live Activity (Lock Screen + Dynamic
+	     Island). -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<!-- B2733 — three fixed doors only (`SceneDelegate.handleFernscoutURL`):
+	     the route page, the Control's stop-confirmation, and B2734's save
+	     sheet. Never a host, path or token trusted from the URL itself. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>ch.fernscout.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fernscout</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

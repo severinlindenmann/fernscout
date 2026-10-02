@@ -3453,6 +3453,8 @@
   "studio.record.confirm.body": "Positions go only to {host}/@{user}.",
   "studio.record.confirm.record": "Record",
   "studio.record.confirm.cancel": "Cancel",
+  "studio.record.lockScreenTripName.label": "Show the trip's name on the Lock Screen",
+  "studio.record.lockScreenTripName.hint": "Anyone holding your phone can read it there.",
   "studio.record.notice.beforeTrip": "Your trip to {title} starts tomorrow. Record your route?",
   "studio.record.notice.stopped": "Recording for {title} has stopped.",
   "studio.record.notice.openEnded": "Fernscout is still recording your route.",

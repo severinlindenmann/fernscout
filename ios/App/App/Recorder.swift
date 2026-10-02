@@ -3,6 +3,9 @@ import CoreLocation
 import CoreMotion
 import UIKit
 import UserNotifications
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
 
 /// Per-trip state this recorder tracks, the whole of what `armedTrips()` and
 /// each trip's own `status()` are built from.
@@ -154,6 +157,10 @@ final class Recorder: NSObject {
         get { decode(defaults?.data(forKey: Self.lastSentStateKey)) ?? [:] }
         set { defaults?.set(try? JSONEncoder().encode(newValue), forKey: Self.lastSentStateKey) }
     }
+    /// B2733 — the owner's own opt-in to show the trip's name on the Lock
+    /// Screen (default off; anyone holding the phone can read it there).
+    private static let lockScreenTripNameKey = "lockscreen-trip-name"
+    private static let summaryKey = "recorder-summary"
 
     private func decode<T: Decodable>(_ data: Data?) -> T? {
         guard let data else { return nil }
@@ -184,6 +191,7 @@ final class Recorder: NSObject {
         applyStopRule()
         if !armed.isEmpty { beginTracking() }
         retryPendingUpload() // B2730 — every launch, including a background relaunch
+        publishSummary() // B2733 — the widgets' own summary, current from the moment the app exists
     }
 
     // MARK: - Timeline-style tracking
@@ -370,6 +378,7 @@ final class Recorder: NSObject {
         manager.pausesLocationUpdatesAutomatically = manager.authorizationStatus == .authorizedAlways
         beginTracking()
         scheduleStopNotice(trip: trip, end: end, body: stopBody, base: base, user: user)
+        publishSummary(allowStart: true) // B2733 — arming always runs foreground, from a button tap
     }
 
     func disarm(trip: String, decline: Bool) {
@@ -400,6 +409,11 @@ final class Recorder: NSObject {
             // the final upload's own outcome is known, rather than clearing
             // unconditionally here before that outcome exists — a failed
             // final upload needs this same token to retry.
+            if let removedTrip {
+                publishSummary(endedTrip: removedTrip, endedTripId: trip) // B2733
+            }
+        } else {
+            publishSummary() // B2733 — another armed trip takes over the activity
         }
     }
 
@@ -481,6 +495,7 @@ final class Recorder: NSObject {
         beginTracking()
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [stopNoticeId(trip)])
         scheduleOpenEndedReminder(trip: trip, body: openEndedBody, base: t.base, user: t.user)
+        publishSummary(allowStart: true) // B2733 — same as `arm`, a foreground button tap
     }
 
     /// B2197's before-trip notice — replaces every pending one at once
@@ -588,6 +603,141 @@ final class Recorder: NSObject {
     func clearAuthError() {
         if lastError == "unauthorized" { lastError = nil }
         unauthorizedNoticePosted = false
+        publishSummary()
+    }
+
+    // MARK: - B2733: Live Activity / Control / Lock Screen summary
+
+    func lockScreenTripNameEnabled() -> Bool {
+        defaults?.bool(forKey: Self.lockScreenTripNameKey) ?? false
+    }
+
+    /// The owner's own toggle — `LocationRecorderPlugin.setLockScreenTripName`.
+    /// Republishes at once so a change is visible on the Lock Screen within
+    /// the same `update()` ActivityKit allows from anywhere, not just the
+    /// next state change.
+    func setLockScreenTripName(_ on: Bool) {
+        defaults?.set(on, forKey: Self.lockScreenTripNameKey)
+        publishSummary()
+    }
+
+    /// The trip the Control's stop-confirmation names — `armed.first`, the
+    /// same trip `maybeUpload` itself picks when several are armed at once
+    /// (B2542's own "first armed trip" rule, restated here for the Control).
+    func firstArmedTrip() -> (id: String, title: String)? {
+        guard let (id, trip) = armed.first else { return nil }
+        return (id, trip.title)
+    }
+
+    /// What is physically still on the phone, unsent — the buffer plus
+    /// whatever B2730's own pending final upload holds. Never a server-side
+    /// count: the Control shows what would be lost, not what the network
+    /// might still be about to confirm.
+    func unsentPositionCount() -> Int {
+        let bufferCount = readBufferSnapshot().count
+        let pendingCount = loadPendingUpload().map { $0.text.split(separator: "\n", omittingEmptySubsequences: true).count } ?? 0
+        return bufferCount + pendingCount
+    }
+
+    /// `fernscout://route/<tripId>` (the Lock Screen, the Dynamic Island, and
+    /// the Control's "off" state all tap through here) — resolves to this
+    /// trip's own route page when it is still known (armed or recently
+    /// stopped), or to the studio's general location page for whichever trip
+    /// *is* known, so a stale link never opens nothing. `nil` only when
+    /// nothing is armed or stopped at all, in which case the caller leaves
+    /// the tap alone rather than guessing a user to open for.
+    func routePagePath(tripId: String?) -> String? {
+        func path(user: String, trip: String?) -> String {
+            let userP = user.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? user
+            guard let trip else { return "/@\(userP)/studio/location" }
+            let tripP = trip.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? trip
+            return "/@\(userP)/studio/location/\(tripP)"
+        }
+        if let tripId, let known = lookup(trip: tripId) { return path(user: known.user, trip: tripId) }
+        if let any = armed.first?.value ?? stopped.first?.value { return path(user: any.user, trip: nil) }
+        return nil
+    }
+
+    /// B2733 — days since `start`, by the device's calendar: local midnight
+    /// to local midnight, plus one, so the trip's first day reads "Day 1".
+    private func dayNumber(start: String) -> Int? {
+        guard let startDate = dayFormatter.date(from: start) else { return nil }
+        let cal = Calendar.current
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: startDate), to: cal.startOfDay(for: Date())).day ?? 0
+        return days + 1
+    }
+
+    private func reloadWidgets() {
+        #if canImport(WidgetKit)
+        if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
+        #endif
+    }
+
+    /// The whole of what the Lock Screen, the Dynamic Island, the Control and
+    /// (B2734) the widgets know about this recorder — rebuilt on every state
+    /// change and written to the app-group defaults as plain JSON, since a
+    /// widget extension's timeline provider cannot share this file's private
+    /// `ArmedTrip` type. Never the positions themselves.
+    ///
+    /// `endedTrip`/`endedTripId` are supplied only from the one moment a trip
+    /// actually stops (`disarm`, `applyStopRule`'s own cooldown) — by the
+    /// time this runs otherwise, a stopped trip is already gone from both
+    /// `armed` and `stopped`, so there is nothing left to read it back from.
+    /// `allowStart` is `true` only when this call is known to be running
+    /// while the app is foreground and active (arming, keeping recording, or
+    /// becoming active again) — `Activity.request` itself refuses from the
+    /// background, so every other call site leaves it `false` and only ever
+    /// updates or ends an activity that is already running.
+    private func publishSummary(endedTrip: ArmedTrip? = nil, endedTripId: String? = nil, allowStart: Bool = false) {
+        var payload: [String: Any] = ["updatedAt": ISO8601DateFormatter().string(from: Date())]
+        if let endedTrip, let endedTripId {
+            payload["state"] = "ended"
+            payload["tripId"] = endedTripId
+            if let day = dayNumber(start: endedTrip.start) { payload["dayNumber"] = day }
+            if lockScreenTripNameEnabled() { payload["tripTitle"] = endedTrip.title }
+            if let data = try? JSONSerialization.data(withJSONObject: payload) { defaults?.set(data, forKey: Self.summaryKey) }
+            reloadWidgets()
+            if #available(iOS 16.2, *) { LiveActivityController.end(payload) }
+            return
+        }
+        guard let (id, trip) = armed.first else {
+            defaults?.removeObject(forKey: Self.summaryKey)
+            reloadWidgets()
+            if #available(iOS 16.2, *) { LiveActivityController.endAllImmediately() }
+            return
+        }
+        let state: String
+        if lastError == "unauthorized" { state = "sendingRefused" }
+        else if lastError == "denied" || manager.authorizationStatus == .authorizedWhenInUse { state = "needsPermission" }
+        else { state = "recording" }
+        payload["state"] = state
+        payload["tripId"] = id
+        if let day = dayNumber(start: trip.start) { payload["dayNumber"] = day }
+        // B2542 — `lastUpload` is one shared timestamp across every armed
+        // trip; attributing it to this one when several are armed at once
+        // would be a guess, so it is left out entirely rather than shown
+        // against the wrong trip.
+        if armed.count == 1, let last = lastUpload { payload["lastSentAt"] = ISO8601DateFormatter().string(from: last) }
+        if !trip.openEnded { payload["recordsUntil"] = ISO8601DateFormatter().string(from: cooldownEnd(trip)) }
+        if lockScreenTripNameEnabled() { payload["tripTitle"] = trip.title }
+        if let data = try? JSONSerialization.data(withJSONObject: payload) { defaults?.set(data, forKey: Self.summaryKey) }
+        reloadWidgets()
+        if #available(iOS 16.2, *) { LiveActivityController.sync(payload, allowStart: allowStart) }
+    }
+
+    /// B2733 — called from `SceneDelegate.sceneDidBecomeActive`, the one
+    /// trigger allowed to start a brand-new Live Activity if none is running
+    /// yet for an armed trip (ActivityKit's own foreground requirement).
+    /// Does nothing when nothing is armed: there is no trip to start a new
+    /// activity for, and — found while proving the "ended" state in the
+    /// Simulator — calling `publishSummary()` with nothing armed and no
+    /// `endedTrip` falls into its "nothing to report" branch and force-ends
+    /// every activity immediately, which cut an "ended" card's own brief,
+    /// dismissable life short by a fraction of a second every single time
+    /// the app came active again right after a disarm.
+    func syncLiveActivityOnBecomeActive() {
+        guard !armed.isEmpty else { return }
+        publishSummary(allowStart: true)
     }
 
     // MARK: - Stop rule — checked on every fix and every launch (B2196)
@@ -622,6 +772,11 @@ final class Recorder: NSObject {
                 // matching comment in `disarm()`: `finalUploadThenPurge`
                 // itself clears the credential once it knows whether a
                 // pending upload still needs it.
+                if let lastStopped {
+                    publishSummary(endedTrip: lastStopped.trip, endedTripId: lastStopped.id) // B2733
+                }
+            } else {
+                publishSummary() // B2733 — this cooldown took one trip; another stays armed
             }
         }
     }
@@ -952,6 +1107,7 @@ final class Recorder: NSObject {
             default:
                 break // 5xx or otherwise transient — keep buffering, no error recorded
             }
+            self.publishSummary() // B2733 — every upload outcome can flip the Lock Screen's own state
         }.resume()
     }
 
@@ -1297,6 +1453,7 @@ extension Recorder: CLLocationManagerDelegate {
         // "Always" granted later, from Settings — the low-power services
         // could not run without it, so start them now.
         if status == .authorizedAlways, !armed.isEmpty { beginTracking() }
+        if !armed.isEmpty { publishSummary() } // B2733 — the needs-you card tracks this directly
     }
 }
 
@@ -1343,6 +1500,7 @@ extension Recorder {
         applyStopRule()
         maybeUpload(force: true)
         retryPendingUpload() // B2730
+        publishSummary() // B2733 — cheap and idempotent; covers the no-network-call paths above
     }
 
     /// `UIApplication.openSettingsURLString` — B2198's Settings link for the

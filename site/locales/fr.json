@@ -3438,6 +3438,8 @@
   "studio.record.confirm.body": "Les positions vont uniquement à {host}/@{user}.",
   "studio.record.confirm.record": "Enregistrer",
   "studio.record.confirm.cancel": "Annuler",
+  "studio.record.lockScreenTripName.label": "Afficher le nom du voyage sur l'écran verrouillé",
+  "studio.record.lockScreenTripName.hint": "Quiconque tient votre téléphone peut le lire là.",
   "studio.record.notice.beforeTrip": "Ton voyage {title} commence demain. Enregistrer ton itinéraire ?",
   "studio.record.notice.stopped": "L’enregistrement pour {title} s’est arrêté.",
   "studio.record.notice.openEnded": "Fernscout enregistre toujours ton itinéraire.",

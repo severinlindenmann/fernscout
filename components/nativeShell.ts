@@ -405,6 +405,10 @@ type LocationRecorderPlugin = {
   scheduleBeforeTrip(options: { trips: NativeNotice[] }): Promise<void>;
   notificationPermissionStatus(): Promise<{ status: NotificationPermission }>;
   requestNotificationPermission(): Promise<{ status: NotificationPermission }>;
+  /** B2733 — the Lock Screen's own trip-name opt-in (default off; anyone
+   *  holding the phone can read the Lock Screen). */
+  getLockScreenTripName(): Promise<{ on: boolean }>;
+  setLockScreenTripName(options: { on: boolean }): Promise<void>;
 };
 const LocationRecorder = registerPlugin<LocationRecorderPlugin>("LocationRecorder");
 
@@ -464,6 +468,15 @@ export function notificationPermissionStatus(): Promise<{ status: NotificationPe
 
 export function requestNotificationPermission(): Promise<{ status: NotificationPermission }> {
   return LocationRecorder.requestNotificationPermission();
+}
+
+/** B2733 — read once when the route section mounts inside the shell. */
+export function getLockScreenTripName(): Promise<boolean> {
+  return LocationRecorder.getLockScreenTripName().then((r) => r.on);
+}
+
+export function setLockScreenTripName(on: boolean): Promise<void> {
+  return LocationRecorder.setLockScreenTripName({ on });
 }
 
 /** Fewer than this many days left on the `write:gps` token and it is worth

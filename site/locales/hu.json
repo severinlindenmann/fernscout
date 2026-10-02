@@ -3439,6 +3439,8 @@
   "studio.record.confirm.body": "A pozíciók csak ide kerülnek: {host}/@{user}.",
   "studio.record.confirm.record": "Rögzítés",
   "studio.record.confirm.cancel": "Mégse",
+  "studio.record.lockScreenTripName.label": "Az út nevének megjelenítése a zárolt képernyőn",
+  "studio.record.lockScreenTripName.hint": "Aki kézbe veszi a telefonodat, ott elolvashatja.",
   "studio.record.notice.beforeTrip": "Holnap indul az utad ide: {title}. Rögzítsük az útvonalat?",
   "studio.record.notice.stopped": "{title} rögzítése leállt.",
   "studio.record.notice.openEnded": "A Fernscout továbbra is rögzíti az útvonaladat.",

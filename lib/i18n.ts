@@ -4338,6 +4338,8 @@ export type TranslationKey =
   | "studio.record.keepRecording"
   | "studio.record.lastUpload"
   | "studio.record.loading"
+  | "studio.record.lockScreenTripName.hint"
+  | "studio.record.lockScreenTripName.label"
   | "studio.record.notThisTrip"
   | "studio.record.notice.allowButton"
   | "studio.record.notice.beforeTrip"

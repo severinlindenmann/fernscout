@@ -25,6 +25,9 @@ public class LocationRecorderPlugin: CAPPlugin, CAPBridgedPlugin {
             CAPPluginMethod(name: "scheduleBeforeTrip", returnType: CAPPluginReturnPromise),
             CAPPluginMethod(name: "notificationPermissionStatus", returnType: CAPPluginReturnPromise),
             CAPPluginMethod(name: "requestNotificationPermission", returnType: CAPPluginReturnPromise),
+            // B2733 — the Lock Screen's own trip-name opt-in.
+            CAPPluginMethod(name: "getLockScreenTripName", returnType: CAPPluginReturnPromise),
+            CAPPluginMethod(name: "setLockScreenTripName", returnType: CAPPluginReturnPromise),
         ]
         #if DEBUG
         methods.append(CAPPluginMethod(name: "debugForceCooldown", returnType: CAPPluginReturnPromise))
@@ -266,4 +269,15 @@ public class LocationRecorderPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve()
     }
     #endif
+
+    /// B2733 — the Lock Screen's own trip-name opt-in, default off: anyone
+    /// holding the phone can read the Lock Screen.
+    @objc func getLockScreenTripName(_ call: CAPPluginCall) {
+        call.resolve(["on": Recorder.shared.lockScreenTripNameEnabled()])
+    }
+
+    @objc func setLockScreenTripName(_ call: CAPPluginCall) {
+        Recorder.shared.setLockScreenTripName(call.getBool("on") ?? false)
+        call.resolve()
+    }
 }

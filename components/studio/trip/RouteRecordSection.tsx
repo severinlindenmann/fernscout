@@ -6,6 +6,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import {
   armRoute,
   disarmRoute,
+  getLockScreenTripName,
   keepRecordingRoute,
   locationPermission,
   needsGpsTokenRefresh,
@@ -13,6 +14,7 @@ import {
   refreshGpsToken,
   requestLocationPermission,
   routeStatus,
+  setLockScreenTripName,
   useNativeShell,
   type LocationPermission,
   type RouteRecordStatus,
@@ -65,6 +67,10 @@ export default function RouteRecordSection({
    *  permission is not already "Always", so nobody arms a recorder that
    *  would silently stop the moment they leave the app. */
   const [guide, setGuide] = useState(false);
+  /** B2733 — the Lock Screen's own trip-name opt-in, default off. Read once
+   *  on mount; `undefined` until then, so the checkbox does not flash
+   *  unchecked before the real value arrives. */
+  const [lockScreenTripName, setLockScreenTripNameState] = useState<boolean | undefined>(undefined);
 
   const refresh = useCallback(async () => {
     try {
@@ -110,6 +116,9 @@ export default function RouteRecordSection({
   useEffect(() => {
     if (!native) return;
     let live = true;
+    void getLockScreenTripName().then((on) => {
+      if (live) setLockScreenTripNameState(on);
+    });
     const load = async () => {
       const s = await refresh();
       if (!live || !s) return;
@@ -250,6 +259,7 @@ export default function RouteRecordSection({
           <button type="button" disabled={busy} onClick={() => void stop()} className={BUTTON}>
             {t("studio.record.stop")}
           </button>
+          <LockScreenTripNameToggle on={lockScreenTripName} onChange={setLockScreenTripNameState} />
         </div>
       )}
 
@@ -331,6 +341,36 @@ export default function RouteRecordSection({
         <LocationAccessLine permission={permission} onFix={() => setGuide(true)} />
       )}
     </section>
+  );
+}
+
+/** B2733 — the Lock Screen's own trip-name opt-in. Only ever rendered while
+ *  recording is on (the toggle's own native state has nothing to apply to
+ *  otherwise); `on === undefined` while the native read is still in flight,
+ *  rendered as off rather than blocking the rest of the section on it. */
+function LockScreenTripNameToggle({ on, onChange }: { on: boolean | undefined; onChange: (on: boolean) => void }) {
+  const { t } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const toggle = async () => {
+    const next = !(on ?? false);
+    setBusy(true);
+    try {
+      await setLockScreenTripName(next);
+      onChange(next);
+    } catch {
+      // Native call failed — leave the toggle showing what it actually is.
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-4 flex items-start gap-3">
+      <Switch on={on ?? false} busy={busy} label={t("studio.record.lockScreenTripName.label")} onChange={() => void toggle()} />
+      <div>
+        <p className="text-sm text-ink-strong">{t("studio.record.lockScreenTripName.label")}</p>
+        <p className="text-xs text-ink-secondary">{t("studio.record.lockScreenTripName.hint")}</p>
+      </div>
+    </div>
   );
 }
 

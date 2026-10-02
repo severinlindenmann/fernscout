@@ -3438,6 +3438,8 @@
   "studio.record.confirm.body": "Positionen gehen nur an {host}/@{user}.",
   "studio.record.confirm.record": "Aufzeichnen",
   "studio.record.confirm.cancel": "Abbrechen",
+  "studio.record.lockScreenTripName.label": "Reisenamen auf dem Sperrbildschirm anzeigen",
+  "studio.record.lockScreenTripName.hint": "Wer dein Telefon in der Hand hält, kann ihn dort lesen.",
   "studio.record.notice.beforeTrip": "Deine Reise nach {title} beginnt morgen. Route aufzeichnen?",
   "studio.record.notice.stopped": "Die Aufzeichnung für {title} wurde gestoppt.",
   "studio.record.notice.openEnded": "Fernscout zeichnet deine Route weiterhin auf.",
