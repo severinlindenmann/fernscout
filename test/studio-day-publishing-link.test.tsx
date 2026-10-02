@@ -127,7 +127,7 @@ describe("day/edit", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ etag: '"abc"' }), { status: 200 })));
   }
 
-  test("a draft wears a Draft pill that links to publishing it (B2140)", async () => {
+  test("a draft wears a Draft pill that links to publishing it (B2140/B2677)", async () => {
     stubVersionFetch();
     // B2073 — the flow's Save is the studio bar's primary; the page is
     // only ever mounted under the studio layout's provider.
@@ -138,7 +138,9 @@ describe("day/edit", () => {
     );
     const pill = container!.querySelector("[data-draft-pill]");
     expect(pill?.textContent).toContain("Draft");
-    expect(pill?.querySelector("a")?.getAttribute("href")).toBe("/@alex/studio/day/publish?day=a-day&trip=reise");
+    // B2677 — publishing moved to Preview, which finds every part of this
+    // trip/date on its own.
+    expect(pill?.querySelector("a")?.getAttribute("href")).toBe("/@alex/studio/day/preview?trip=reise&date=2025-11-01");
     expect(pill?.querySelector("button")).toBeNull();
   });
 
