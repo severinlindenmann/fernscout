@@ -98,7 +98,6 @@ async function band() {
     troubles(new Date(Date.now() - 30 * 86_400_000).toISOString()),
   ]);
   return attention({
-    awaiting: data.awaiting,
     health: healthNow,
     troubles: troubleRows,
     journals: report.journals,

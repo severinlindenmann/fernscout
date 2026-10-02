@@ -1041,8 +1041,6 @@
   "studio.hub.fact.startsIn.one": "tra {count} giorno",
   "studio.hub.fact.asking": "{count} chiedono",
   "studio.hub.fact.asking.one": "{count} chiede",
-  "studio.hub.fact.purchasesOpen": "{count} aperti",
-  "studio.hub.fact.purchasesOpen.one": "{count} aperto",
   "studio.hub.fact.storage": "{used} di {limit} GB",
   "studio.hub.item.inbox.hint": "File che hai inviato, non ancora assegnati a un giorno.",
   "studio.hub.item.postcard.title": "Una cartolina",
