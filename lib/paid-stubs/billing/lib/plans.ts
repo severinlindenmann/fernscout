@@ -28,6 +28,7 @@ export const PLANS = {
     upgradeWindowDays: 60,
     upgradeCouponChf: 19,
     endingReminderDays: 5,
+    appUpgradeVoucherRappen: 1500,
   },
   plus: {
     priceChf: 49,

@@ -4740,5 +4740,10 @@
   "photobook.read.headingShort": "Il tuo libro",
   "photobook.read.hintShort": "Sfoglia · pizzica una pagina per ingrandire",
   "photobook.read.editShort": "Modifica",
-  "photobook.read.orderPrice": "Ordina questo libro · {price}"
+  "photobook.read.orderPrice": "Ordina questo libro · {price}",
+  "billing.voucherLabel": "Buono",
+  "billing.voucherPhotobook": "{amount} di sconto su un fotolibro, fino al {date}",
+  "billing.voucherPostcard": "{amount} di sconto su una cartolina, fino al {date}",
+  "billing.voucherPrint": "{amount} di sconto su una stampa, fino al {date}",
+  "billing.appUpgradeVoucherOffer": "Abbonati prima che il tuo Trip pass termini il {date} e ricevi un buono fotolibro da {amount}."
 }

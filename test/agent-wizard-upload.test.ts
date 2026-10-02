@@ -141,6 +141,17 @@ describe("this route's day-scoped upload", () => {
     expect(entry?.gallery.map((item) => item.src)).toEqual([`/@alex/media/a-trip/${slug}/01.jpg`]);
   });
 
+  test("B1528: a non-JPEG original keeps a full-resolution JPEG beside it, the original untouched", async () => {
+    const slug = await startDay();
+    const png = await image(2400, 1600, "png");
+    const stored = await upload({ trip: "a-trip", day: slug }, "IMG_0002.png", png);
+    expect(stored.status).toBe(201);
+    expect(fs.readdirSync(originals(slug)).sort()).toEqual(["01.jpg", "01.png"]);
+    expect(fs.readFileSync(path.join(originals(slug), "01.png")).equals(png)).toBe(true);
+    // Not capped at the 2000 px web copy.
+    expect((await sharp(path.join(originals(slug), "01.jpg")).metadata()).width).toBe(2400);
+  });
+
   test("a file that is not media goes to the inbox instead of being refused", async () => {
     const slug = await startDay();
     const csv = Buffer.from("date,amount\n2026-05-04,12.50\n");

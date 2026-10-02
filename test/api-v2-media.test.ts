@@ -307,6 +307,27 @@ describe("POST — the original survives untouched, beside the derivative", () =
   });
 });
 
+describe("POST — B1528 a non-JPEG original keeps a print JPEG beside it", () => {
+  test("a PNG upload leaves the PNG untouched and a full-size JPEG next to it", async () => {
+    const token = await ownerToken();
+    const bytes = await sharp({ create: { width: 2400, height: 1600, channels: 3, background: { r: 10, g: 90, b: 30 } } })
+      .png()
+      .toBuffer();
+    const { status, body } = await postMultipart(
+      token,
+      { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "no caption for this test" } },
+      { name: "shot.png", bytes },
+    );
+    expect(status, JSON.stringify(body)).toBe(201);
+    const relPath = String(body.src).replace(/^\/media\/[^/]+\//, "");
+    const stem = relPath.replace(/\.jpg$/, "");
+    const dirOf = path.join(tripPath(), "originals", path.dirname(relPath));
+    expect(fs.readFileSync(path.join(dirOf, `${path.basename(stem)}.png`)).equals(bytes)).toBe(true);
+    const print = path.join(dirOf, `${path.basename(stem)}.jpg`);
+    expect((await sharp(print).metadata()).width).toBe(2400);
+  });
+});
+
 describe("DELETE — by src", () => {
   test("removes the stored bytes and their sidecar", async () => {
     const token = await ownerToken();

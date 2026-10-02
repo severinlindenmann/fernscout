@@ -4731,5 +4731,10 @@
   "photobook.read.headingShort": "Your book",
   "photobook.read.hintShort": "Swipe through · pinch a page to zoom",
   "photobook.read.editShort": "Edit",
-  "photobook.read.orderPrice": "Order this book · {price}"
+  "photobook.read.orderPrice": "Order this book · {price}",
+  "billing.voucherLabel": "Voucher",
+  "billing.voucherPhotobook": "{amount} off a photobook, until {date}",
+  "billing.voucherPostcard": "{amount} off a postcard, until {date}",
+  "billing.voucherPrint": "{amount} off a print, until {date}",
+  "billing.appUpgradeVoucherOffer": "Subscribe before your Trip pass ends on {date} and get a {amount} photobook voucher."
 }
