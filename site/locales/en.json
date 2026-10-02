@@ -1856,7 +1856,7 @@
   "photobook.first.coverHint.one": "One photograph on this trip.",
   "photobook.done.change": "change",
   "photobook.first.language": "In which language?",
-  "photobook.first.next": "Next",
+  "photobook.first.next": "Next · {step}",
   "photobook.first.progress": "Step {step} of {of}",
   "photobook.first.skip": "Skip the rest — the book decides",
   "photobook.first.text": "Print what you wrote?",
@@ -4714,5 +4714,8 @@
   "me.phone.settings": "Permissions",
   "me.phone.settingsBody": "Location, microphone, camera, photos and notifications for Fernscout",
   "photobook.pass.pageLine": "{name} · p. {page}",
-  "photobook.pass.pageLineRange": "{name} · p. {from}–{to}"
+  "photobook.pass.pageLineRange": "{name} · p. {from}–{to}",
+  "photobook.first.budgetLeftOut": "{count} photos left out",
+  "photobook.first.budgetLeftOut.one": "1 photo left out",
+  "photobook.first.budgetLeftOutShow": "Show them"
 }

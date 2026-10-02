@@ -1615,7 +1615,7 @@
   "photobook.first.coverHint.one": "Egy fénykép van ezen az úton.",
   "photobook.done.change": "módosítás",
   "photobook.first.language": "Milyen nyelven?",
-  "photobook.first.next": "Tovább",
+  "photobook.first.next": "Tovább · {step}",
   "photobook.first.progress": "{step}. lépés, összesen {of}",
   "photobook.first.skip": "A többi kihagyása — döntsön a könyv",
   "photobook.first.text": "Kinyomtassuk, amit írtál?",
@@ -4720,5 +4720,8 @@
   "me.phone.settings": "Engedélyek",
   "me.phone.settingsBody": "Helyzet, mikrofon, kamera, fotók és értesítések a Fernscout számára",
   "photobook.pass.pageLine": "{name} · {page}. o.",
-  "photobook.pass.pageLineRange": "{name} · {from}–{to}. o."
+  "photobook.pass.pageLineRange": "{name} · {from}–{to}. o.",
+  "photobook.first.budgetLeftOut": "{count} fotó kimaradt",
+  "photobook.first.budgetLeftOut.one": "1 fotó kimaradt",
+  "photobook.first.budgetLeftOutShow": "Mutasd"
 }

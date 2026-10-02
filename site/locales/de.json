@@ -1856,7 +1856,7 @@
   "photobook.first.coverHint.one": "Ein Foto auf dieser Reise.",
   "photobook.done.change": "ändern",
   "photobook.first.language": "In welcher Sprache?",
-  "photobook.first.next": "Weiter",
+  "photobook.first.next": "Weiter · {step}",
   "photobook.first.progress": "Schritt {step} von {of}",
   "photobook.first.skip": "Rest überspringen — das Buch entscheidet",
   "photobook.first.text": "Deine Texte mitdrucken?",
@@ -4719,5 +4719,8 @@
   "me.phone.settings": "Berechtigungen",
   "me.phone.settingsBody": "Standort, Mikrofon, Kamera, Fotos und Mitteilungen für Fernscout",
   "photobook.pass.pageLine": "{name} · S. {page}",
-  "photobook.pass.pageLineRange": "{name} · S. {from}–{to}"
+  "photobook.pass.pageLineRange": "{name} · S. {from}–{to}",
+  "photobook.first.budgetLeftOut": "{count} Fotos weggelassen",
+  "photobook.first.budgetLeftOut.one": "1 Foto weggelassen",
+  "photobook.first.budgetLeftOutShow": "Zeigen"
 }

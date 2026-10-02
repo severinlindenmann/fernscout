@@ -1856,7 +1856,7 @@
   "photobook.first.coverHint.one": "Une photo sur ce voyage.",
   "photobook.done.change": "modifier",
   "photobook.first.language": "Dans quelle langue ?",
-  "photobook.first.next": "Suivant",
+  "photobook.first.next": "Suivant · {step}",
   "photobook.first.progress": "Étape {step} sur {of}",
   "photobook.first.skip": "Passer la suite — le livre décide",
   "photobook.first.text": "Imprimer ce que tu as écrit ?",
@@ -4723,5 +4723,8 @@
   "me.phone.settings": "Autorisations",
   "me.phone.settingsBody": "Position, micro, appareil photo, photos et notifications pour Fernscout",
   "photobook.pass.pageLine": "{name} · p. {page}",
-  "photobook.pass.pageLineRange": "{name} · p. {from}–{to}"
+  "photobook.pass.pageLineRange": "{name} · p. {from}–{to}",
+  "photobook.first.budgetLeftOut": "{count} photos laissées de côté",
+  "photobook.first.budgetLeftOut.one": "1 photo laissée de côté",
+  "photobook.first.budgetLeftOutShow": "Les montrer"
 }
