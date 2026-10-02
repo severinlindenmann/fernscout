@@ -30,6 +30,7 @@
     "first-trip:send": "tsx --conditions=react-server scripts/first-trip.mts",
     "messages:sweep": "tsx --conditions=react-server scripts/messages-sweep.mts",
     "spend:alert": "tsx --conditions=react-server scripts/spend-alert.mts",
+    "usage:fold": "tsx --conditions=react-server scripts/usage-fold.mts",
     "gap-nudges:send": "tsx --conditions=react-server scripts/paid.mts whatsapp/scripts/gap-nudges.mts",
     "plan-reminders:send": "tsx --conditions=react-server scripts/paid.mts credits/scripts/plan-reminders.mts",
     "extract:remind": "tsx --conditions=react-server scripts/extract-remind.mts",

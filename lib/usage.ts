@@ -418,3 +418,90 @@ export async function usageDailyByOwnerSince(since: string): Promise<OwnerDay[]>
     seconds: Number(row.seconds ?? 0),
   }));
 }
+
+/** How long a `usage` row stays at full grain before `foldUsageOlderThan`
+ *  folds it into `usage_monthly_totals` and deletes it — B2605. Read by
+ *  `scripts/usage-fold.mts`, the only caller. */
+export const USAGE_RETENTION_MONTHS = 13;
+
+export type FoldResult = { groups: number; deletedRows: number };
+
+/**
+ * Fold every `usage` row older than `cutoffIso` into `usage_monthly_totals`,
+ * then delete them — B2605.
+ *
+ * Grouped by owner, month (`YYYY-MM`, from the row's own `created_at`) and
+ * provider — the breakdown the dashboard's per-journal total needs and no
+ * finer, since nothing reads a folded row's model or operation. The insert
+ * is additive (`cost_rappen`/`calls` add onto whatever is already there)
+ * rather than a snapshot: a month that is still aging past the cutoff folds
+ * a little more of itself on each of several nights, and this is what keeps
+ * an earlier night's slice from being overwritten by a later one instead of
+ * joined to it.
+ *
+ * Unpriced rows (`cost_rappen IS NULL`, see `callCostRappen`) sum as 0 here
+ * exactly as they already do in every other reader of this table — folding
+ * never guesses a price a row was written without.
+ */
+export async function foldUsageOlderThan(cutoffIso: string): Promise<FoldResult> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return { groups: 0, deletedRows: 0 };
+
+  const month = sql<string>`substr(created_at, 1, 7)`;
+  const groups = await handle.db
+    .selectFrom("usage")
+    .select(({ fn }) => [
+      "owner_id",
+      month.as("month"),
+      "provider",
+      fn.countAll<number>().as("calls"),
+      fn.sum<number>("cost_rappen").as("cost_rappen"),
+    ])
+    .where("created_at", "<", cutoffIso)
+    .groupBy(["owner_id", month, "provider"])
+    .execute();
+
+  for (const group of groups) {
+    const costRappen = Number(group.cost_rappen ?? 0);
+    const calls = Number(group.calls ?? 0);
+    await sql`
+      insert into usage_monthly_totals (id, owner_id, month, provider, cost_rappen, calls, created_at)
+      values (${newId()}, ${group.owner_id}, ${group.month}, ${group.provider}, ${costRappen}, ${calls}, ${nowIso()})
+      on conflict (owner_id, month, provider) do update set
+        cost_rappen = usage_monthly_totals.cost_rappen + excluded.cost_rappen,
+        calls = usage_monthly_totals.calls + excluded.calls
+    `.execute(handle.db);
+  }
+
+  const deleted = await handle.db
+    .deleteFrom("usage")
+    .where("created_at", "<", cutoffIso)
+    .executeTakeFirst();
+  return { groups: groups.length, deletedRows: Number(deleted.numDeletedRows ?? 0) };
+}
+
+/**
+ * One owner's cost over all time, live rows and folded months together —
+ * B2605. The function the fold is required never to change the answer of:
+ * `/admin`'s own per-journal table stays correct for free because its
+ * window (90 days at most, `PERIODS` in `app/admin/page.tsx`) never reaches
+ * a row old enough to have been folded, but a figure that really means
+ * "ever" has to add the two tables itself, which is what this does.
+ */
+export async function lifetimeCostRappen(owner: string): Promise<number> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return 0;
+  const [live, folded] = await Promise.all([
+    handle.db
+      .selectFrom("usage")
+      .select(({ fn }) => fn.sum<number>("cost_rappen").as("cost_rappen"))
+      .where("owner_id", "=", owner)
+      .executeTakeFirst(),
+    handle.db
+      .selectFrom("usage_monthly_totals")
+      .select(({ fn }) => fn.sum<number>("cost_rappen").as("cost_rappen"))
+      .where("owner_id", "=", owner)
+      .executeTakeFirst(),
+  ]);
+  return Number(live?.cost_rappen ?? 0) + Number(folded?.cost_rappen ?? 0);
+}

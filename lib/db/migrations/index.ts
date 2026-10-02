@@ -61,6 +61,7 @@ import * as printIncludedUsage from "./059-print-included-usage";
 import * as dropCredits from "./060-drop-credits";
 import * as tellChoices from "./061-tell-choices";
 import * as composeOutcomes from "./062-compose-outcomes";
+import * as usageMonthlyTotals from "./063-usage-monthly-totals";
 
 /**
  * Every migration, listed by hand.
@@ -137,6 +138,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "060-drop-credits": dropCredits,
   "061-tell-choices": tellChoices,
   "062-compose-outcomes": composeOutcomes,
+  "063-usage-monthly-totals": usageMonthlyTotals,
 };
 
 /**
