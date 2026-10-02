@@ -4690,5 +4690,7 @@
   "plans.cellPlusPayTwint": "Karte oder TWINT, jährlich",
   "agent.speechAiDaysUsedUp": "Deine KI-Tage für diesen Plan sind aufgebraucht.",
   "photobook.first.describe.receiptDays": "{count} Fotos beschrieben.",
-  "photobook.first.describe.receiptDays.one": "1 Foto beschrieben."
+  "photobook.first.describe.receiptDays.one": "1 Foto beschrieben.",
+  "billing.purchaseUnconfirmed": "Apple hat den Kauf angenommen, aber dieser Server konnte ihn noch nicht bestätigen. Es geht nichts verloren: Tippe auf «Käufe wiederherstellen», um es noch einmal zu versuchen.",
+  "billing.purchasePending": "Der Kauf wartet auf eine Freigabe. Dein Plan ändert sich, sobald er freigegeben ist."
 }
