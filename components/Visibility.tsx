@@ -323,6 +323,7 @@ function VisibilityControl({
         open={open}
         anchor={button}
         label={t("visibility.change")}
+        busy={busy}
         onClose={close}
       >
         <h4 className="font-display text-sm font-semibold text-ink-strong">{title}</h4>
