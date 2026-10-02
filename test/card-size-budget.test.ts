@@ -12,10 +12,12 @@ vi.mock("@/lib/map/cardCache", () => ({
 }));
 vi.mock("@/lib/capabilities", () => ({ isEnabled: () => true }));
 
-const MAPS_DIR = "/private/tmp/claude-501/-Users-severin-Documents-GitHub-fernscout/2aa7fa24-22ad-47a5-9077-c1794ab16454/scratchpad/maps";
+// B2743 — an operator's real maps folder, from the environment; skipped
+// unless it holds the world file `streetMaps` itself requires.
+const MAPS_DIR = process.env.MAPS_DIR?.trim() ?? "";
 afterEach(() => vi.unstubAllEnvs());
 
-describe.skipIf(!fs.existsSync(MAPS_DIR) || !fs.statSync(MAPS_DIR).isDirectory())("example street card size budget", () => {
+describe.skipIf(!MAPS_DIR || !fs.existsSync(path.join(MAPS_DIR, "world.pmtiles")))("example street card size budget", () => {
   test.each(["parks-2025", "alps-2024"])("%s stays below 150,000 bytes with roads and water", async (trip) => {
     vi.stubEnv("MAPS_DIR", MAPS_DIR);
     vi.stubEnv("CONTENT_DIR", path.join(process.cwd(), "content"));
