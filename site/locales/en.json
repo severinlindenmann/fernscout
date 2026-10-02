@@ -4724,5 +4724,7 @@
   "studio.day.dateOutsideTrip.chooseTrip": "Choose the trip",
   "studio.day.dateOutsideTrip.pickDate": "Pick another date",
   "studio.day.photos.chooseLabel": "Choose photos",
-  "studio.published.pageTitle": "Published"
+  "studio.published.pageTitle": "Published",
+  "photobook.first.skipShort": "Skip ›",
+  "photobook.first.coverMore": "+{count} more"
 }

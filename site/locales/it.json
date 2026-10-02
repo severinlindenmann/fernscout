@@ -4733,5 +4733,7 @@
   "studio.day.dateOutsideTrip.chooseTrip": "Scegli il viaggio",
   "studio.day.dateOutsideTrip.pickDate": "Scegli un’altra data",
   "studio.day.photos.chooseLabel": "Scegli le foto",
-  "studio.published.pageTitle": "Pubblicato"
+  "studio.published.pageTitle": "Pubblicato",
+  "photobook.first.skipShort": "Salta ›",
+  "photobook.first.coverMore": "+{count} altre"
 }

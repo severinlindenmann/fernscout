@@ -4730,5 +4730,7 @@
   "studio.day.dateOutsideTrip.chooseTrip": "Utazás kiválasztása",
   "studio.day.dateOutsideTrip.pickDate": "Másik dátum választása",
   "studio.day.photos.chooseLabel": "Fényképek kiválasztása",
-  "studio.published.pageTitle": "Közzétéve"
+  "studio.published.pageTitle": "Közzétéve",
+  "photobook.first.skipShort": "Kihagyás ›",
+  "photobook.first.coverMore": "+{count} további"
 }
