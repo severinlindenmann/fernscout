@@ -3520,7 +3520,7 @@
   "photobook.day.wholeDay": "Az egész napra · Kialakítás",
   "photobook.day.designAt": "Az egész nap kialakítása",
   "photobook.day.ofTheDay": "A nap fotói · {count}",
-  "photobook.day.tapHint": "koppints: nagy, kivágás, kihagyás",
+  "photobook.day.tapHint": "koppints: kivágás, kihagyás",
   "photobook.day.heroChoice": "A nagy kép",
   "photobook.day.heroAuto": "A könyv dönt",
   "photobook.day.heroOnPage": "Nagyban nyomtatva: {page}. o.",
@@ -3551,8 +3551,6 @@
   "photobook.first.describeIntoJournal": "A leírások a naplóban a fotóidhoz kerülnek, és ott is maradnak.",
   "photobook.leftOut.heading": "Amit a könyv kihagyott",
   "photobook.leftOut.days": "Kihagyott napok: {count}. Egy nap a saját megállóján kerül vissza a végigjárásban.",
-  "photobook.pass.pagesOf": "{from}–{to}. oldal a(z) {total}-ból",
-  "photobook.pass.pageOf": "{page}. oldal a(z) {total}-ból",
   "photobook.pass.frontSide": "Előlap",
   "photobook.pass.backSide": "Hátlap",
   "photobook.pass.notInBook": "Nincs a könyvben",
@@ -3566,9 +3564,6 @@
   "photobook.pass.sharedSpreadNote": "{name} a jobb oldalon kezdődik, hogy ne maradjon üres oldal.",
   "photobook.pass.backIsLast": "A hátlap és a gerinc az utolsó megálló.",
   "photobook.pass.backIsLastLink": "ugrás oda",
-  "photobook.pass.tabs": "Melyik oldalát nézed ennek a napnak",
-  "photobook.pass.tabPreview": "Előnézet",
-  "photobook.pass.tabPhotos": "Fotók · {count}",
   "photobook.read.changedSince": "{count} oldal változott a megtekintésed óta",
   "photobook.read.changedSince.one": "Egy oldal változott a megtekintésed óta",
   "photobook.read.changedFirst": "az elsőhöz",
@@ -4723,5 +4718,7 @@
   "me.phone.allowed": "Engedélyezve",
   "me.phone.denied": "Nincs engedélyezve – a Beállításokban módosíthatod",
   "me.phone.settings": "Engedélyek",
-  "me.phone.settingsBody": "Helyzet, mikrofon, kamera, fotók és értesítések a Fernscout számára"
+  "me.phone.settingsBody": "Helyzet, mikrofon, kamera, fotók és értesítések a Fernscout számára",
+  "photobook.pass.pageLine": "{name} · {page}. o.",
+  "photobook.pass.pageLineRange": "{name} · {from}–{to}. o."
 }

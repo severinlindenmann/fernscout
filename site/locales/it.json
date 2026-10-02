@@ -3519,7 +3519,7 @@
   "photobook.day.wholeDay": "Per tutto il giorno · Design",
   "photobook.day.designAt": "Il design di tutto il giorno",
   "photobook.day.ofTheDay": "Foto di questo giorno · {count}",
-  "photobook.day.tapHint": "toccane una: grande, ritaglia, escludi",
+  "photobook.day.tapHint": "toccane una: ritaglia, escludi",
   "photobook.day.heroChoice": "La foto grande",
   "photobook.day.heroAuto": "Decide il libro",
   "photobook.day.heroOnPage": "Stampata in grande a p. {page}",
@@ -3550,8 +3550,6 @@
   "photobook.first.describeIntoJournal": "Le descrizioni vanno alle tue foto nel diario e lì rimangono.",
   "photobook.leftOut.heading": "Cosa ha escluso il libro",
   "photobook.leftOut.days": "Giorni esclusi dal libro: {count}. Un giorno ci rientra dalla sua tappa nel percorso di revisione.",
-  "photobook.pass.pagesOf": "Pagine {from}–{to} di {total}",
-  "photobook.pass.pageOf": "Pagina {page} di {total}",
   "photobook.pass.frontSide": "Il fronte",
   "photobook.pass.backSide": "Il retro",
   "photobook.pass.notInBook": "Non nel libro",
@@ -3565,9 +3563,6 @@
   "photobook.pass.sharedSpreadNote": "{name} inizia a destra, quindi non c’è nessuna pagina bianca.",
   "photobook.pass.backIsLast": "Il retro di copertina e il dorso sono l’ultima tappa.",
   "photobook.pass.backIsLastLink": "vai lì",
-  "photobook.pass.tabs": "Quale lato di questo giorno stai guardando",
-  "photobook.pass.tabPreview": "Anteprima",
-  "photobook.pass.tabPhotos": "Foto · {count}",
   "photobook.read.changedSince": "{count} pagine modificate dopo la tua anteprima",
   "photobook.read.changedSince.one": "Una pagina modificata dopo la tua anteprima",
   "photobook.read.changedFirst": "alla prima",
@@ -4726,5 +4721,7 @@
   "me.phone.allowed": "Consentito",
   "me.phone.denied": "Non consentito – cambialo in Impostazioni",
   "me.phone.settings": "Autorizzazioni",
-  "me.phone.settingsBody": "Posizione, microfono, fotocamera, foto e notifiche per Fernscout"
+  "me.phone.settingsBody": "Posizione, microfono, fotocamera, foto e notifiche per Fernscout",
+  "photobook.pass.pageLine": "{name} · p. {page}",
+  "photobook.pass.pageLineRange": "{name} · p. {from}–{to}"
 }
