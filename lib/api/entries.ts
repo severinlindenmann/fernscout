@@ -74,8 +74,8 @@ export type CostInput = {
 };
 
 /** The four facts a position normally answers through the address lookup (B1661). */
-export const GEO_FIELDS = ["location", "country", "countryCode", "timezone"] as const;
-export type GeoField = (typeof GEO_FIELDS)[number];
+const GEO_FIELDS = ["location", "country", "countryCode", "timezone"] as const;
+type GeoField = (typeof GEO_FIELDS)[number];
 
 export type DraftInput = {
   /**
