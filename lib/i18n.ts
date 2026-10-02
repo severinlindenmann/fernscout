@@ -3182,6 +3182,7 @@ export type TranslationKey =
   | "studio.hub.addDay.subtitle"
   | "studio.hub.addDay.title"
   | "studio.hub.addDay.toldToday.cta"
+  | "studio.hub.addDay.toldToday.published"
   | "studio.hub.addDay.toldToday.subtitle"
   | "studio.hub.addDay.toldToday.title"
   | "studio.hub.allOrders"

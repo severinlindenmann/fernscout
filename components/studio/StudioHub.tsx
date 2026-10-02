@@ -97,11 +97,15 @@ function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T):
   if (model.addDayTrip?.current) {
     const trip = model.addDayTrip;
     if (model.toldToday) {
+      // B2676, decision 10 — "Today: “{title}” · Not published yet ·
+      // Continue today", naming the day the owner already started rather
+      // than the generic "Today is told".
+      const day = model.toldTodayDay;
       return {
         href: `${journalPath(username)}/studio/day/new?from=hub`,
         Icon: CalendarPlus,
-        title: t("studio.hub.addDay.toldToday.title"),
-        description: t("studio.hub.addDay.toldToday.subtitle", { trip: trip.title }),
+        title: t("studio.hub.addDay.toldToday.title", { title: day?.title || t("studio.day.collision.untitled") }),
+        description: day?.published ? t("studio.hub.addDay.toldToday.published") : t("studio.hub.addDay.toldToday.subtitle"),
         cta: t("studio.hub.addDay.toldToday.cta"),
         altLink: { href: `${journalPath(username)}/studio/day/edit`, label: t("studio.hub.addDay.change") },
       };

@@ -85,6 +85,11 @@ export type StudioHubModel =
       /** Optional so a model built elsewhere (the private features repo's own
        * fixtures) without it still type-checks; absent means "not yet". */
       toldToday?: boolean;
+      /** B2676 — the told day's own title and whether it is already
+       *  published, for the hero's "Today: “{title}” · Not published yet ·
+       *  Continue today" wording (V2.1 decision 10). `undefined` exactly
+       *  when `toldToday` is false/absent — there is no day to name. */
+      toldTodayDay?: { title: string; published: boolean };
       /** The nearest trip that has not started yet — B2011's own hub card,
        *  "Plan a trip". `null` hides that card outright rather than showing
        *  it disabled: a journal with nothing upcoming has nothing to plan,
@@ -310,9 +315,12 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
   const daysByTrip = trips.map((trip) => ({ id: trip.id, days: getDays(tripRef(username, trip.id), AS_AUTHOR) }));
   const days = daysByTrip.flatMap((t) => t.days);
   const totalDays = days.length;
-  const toldToday =
-    current !== undefined &&
-    (daysByTrip.find((t) => t.id === current.id)?.days.some((d) => d.date === readerTodayISO()) ?? false);
+  const toldTodayEntry =
+    current !== undefined
+      ? daysByTrip.find((t) => t.id === current.id)?.days.find((d) => d.date === readerTodayISO())?.lead
+      : undefined;
+  const toldToday = toldTodayEntry !== undefined;
+  const toldTodayDay = toldTodayEntry ? { title: toldTodayEntry.title, published: !toldTodayEntry.draft } : undefined;
   const inbox = inboxSummary(username);
   // B2133 — the readers page's own count (confirmed requests only), not
   // every pending row: one model, so chip and page cannot disagree.
@@ -322,6 +330,7 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
     kind: "full",
     addDayTrip,
     toldToday,
+    toldTodayDay,
     planTrip,
     cannotRun: {
       postcard: !isEnabled("postcards", username),

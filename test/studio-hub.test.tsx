@@ -561,11 +561,13 @@ describe("B2193 — waiting photographs as day cards", () => {
  * Never more than one applies, so exactly one hero renders.
  */
 describe("B2304 — the hero, chosen by state", () => {
-  test("during a trip, told already: offers to add more or change it, not to tell about today again", () => {
-    const el = render({ ...FULL_BASE, toldToday: true });
+  test("during a trip, told already: names the day, says it is not published, not to tell about today again", () => {
+    const el = render({ ...FULL_BASE, toldToday: true, toldTodayDay: { title: "Baths and the bastion", published: false } });
     const hero = el.querySelector("a[data-hero]")!;
-    expect(hero.textContent).toContain("Today is told");
-    expect(hero.textContent).toContain("Four days round the Alps");
+    // B2676, decision 10 — "Today: “{title}” · Not published yet".
+    expect(hero.textContent).toContain("Baths and the bastion");
+    expect(hero.textContent).toContain("Not published yet");
+    expect(hero.textContent).toContain("Continue today");
     expect(hero.getAttribute("href")).toBe("/@alex/studio/day/new?from=hub");
     const alt = el.querySelector("a[data-hero-alt]")!;
     expect(alt.textContent).toBe("Change it");
@@ -585,9 +587,9 @@ describe("B2304 — the hero, chosen by state", () => {
   });
 
   test("during a trip, speak on, but already told today: told-today wins over the mic", () => {
-    const el = render({ ...FULL_BASE, toldToday: true }, true);
+    const el = render({ ...FULL_BASE, toldToday: true, toldTodayDay: { title: "Baths and the bastion", published: false } }, true);
     const hero = el.querySelector("a[data-hero]")!;
-    expect(hero.textContent).toContain("Today is told");
+    expect(hero.textContent).toContain("Baths and the bastion");
     expect(el.textContent).not.toContain("Tell about today");
   });
 
