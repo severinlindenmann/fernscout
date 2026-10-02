@@ -206,13 +206,15 @@ describe("the studio's locale keys are all in use (B2093, B2112)", () => {
       [k, k.replace(/\.one$/, "")].some(
         (x) => literals.has(x) || templates.some((r) => r.test(x)) || prefixes.some((p) => x.startsWith(p)),
       );
-    // Open core: without paid/, every key only a paid area reads — computed
-    // by `npm run i18n:keys` (scripts/i18n-keys.mjs) from the one checkout
-    // that does have paid/, and committed so every other checkout can still
-    // tell "orphaned" from "paid uses this" — B2112.
-    const paidKeys: string[] = fs.existsSync(path.join(process.cwd(), "paid"))
-      ? []
-      : (JSON.parse(read(path.join("lib", "paidLocaleKeys.json"))) as { keys: string[] }).keys;
+    // Every key a paid area reads — computed by `npm run i18n:keys`
+    // (scripts/i18n-keys.mjs) from the one checkout that does have paid/, and
+    // committed so every other checkout can still tell "orphaned" from
+    // "paid uses this" — B2112. Read unconditionally, not only when paid/ is
+    // absent: a worktree that does have paid/ mounted still scans it above,
+    // but a key this file declares and a stale/partial paid/ no longer
+    // reads must not look orphaned there either — B2712, so both
+    // environments agree on the same answer.
+    const paidKeys: string[] = (JSON.parse(read(path.join("lib", "paidLocaleKeys.json"))) as { keys: string[] }).keys;
     // `agent.slot.<name>` is the one dynamic prefix no static scan can chase:
     // its live set is every write tool's argument names. A checkout without
     // paid/ cannot see the paid tools' arguments, so those come from the

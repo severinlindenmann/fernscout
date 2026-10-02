@@ -574,6 +574,12 @@ export function serverChoiceError(error: unknown): ServerChoiceError {
  *  round trip just to learn them. */
 export const APPLE_PRODUCT_IDS = { pass: "ch.fernscout.pass", plus: "ch.fernscout.plus.yearly" } as const;
 
+/** Apple's standard EULA — App Store guideline 3.1.2's required "Terms of
+ *  Use" link next to an in-app purchase. This instance has no separate
+ *  terms document of its own, and Apple's own agreement already governs the
+ *  StoreKit purchase, so the link points there rather than at `/legal`. */
+export const APPLE_EULA_URL = "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";
+
 export type AppleProduct = { id: string; displayName: string; displayPrice: string };
 type ApplePurchaseOutcome =
   | { transactionJws: string; transactionId: string }
