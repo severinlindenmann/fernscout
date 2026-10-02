@@ -1,3 +1,4 @@
+// @scans app/at/[user]/layout.tsx, lib/site.ts, components/StoryPager.tsx, components/PushPrompt.tsx, app/globals.css
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";

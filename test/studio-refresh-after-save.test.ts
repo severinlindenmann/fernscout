@@ -1,3 +1,4 @@
+// @scans components/studio/**, app/at/[user]/studio/**, components/DeleteDay.tsx, components/DayNotify.tsx
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";

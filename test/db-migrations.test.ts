@@ -1,3 +1,4 @@
+// @scans lib/db/migrations/**
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";

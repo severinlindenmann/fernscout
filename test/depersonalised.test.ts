@@ -1,3 +1,4 @@
+// @scans lib/**, app/**, components/**, scripts/**, public/**, test/fixtures/**, site/legal/**, site/config.json, content/example/**
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";

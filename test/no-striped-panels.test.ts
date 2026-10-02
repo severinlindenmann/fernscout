@@ -1,3 +1,4 @@
+// @scans components/**
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

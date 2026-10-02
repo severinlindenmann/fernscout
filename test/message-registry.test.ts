@@ -1,3 +1,4 @@
+// @scans app/**, lib/**, scripts/**, paid/**
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";

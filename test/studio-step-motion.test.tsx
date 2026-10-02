@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// @scans components/studio/**, app/globals.css
 import fs from "node:fs";
 import path from "node:path";
 import { act } from "react";

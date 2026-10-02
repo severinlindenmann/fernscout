@@ -1,3 +1,4 @@
+// @scans app/at/[user]/studio/**
 import fs from "node:fs";
 import path from "node:path";
 import { routeImplementation } from "./support/openCore";

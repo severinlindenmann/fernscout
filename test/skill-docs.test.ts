@@ -1,3 +1,4 @@
+// @scans app/api/**, lib/api/**
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";

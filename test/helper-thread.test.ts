@@ -1,3 +1,4 @@
+// @scans lib/helper/tools/**
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";

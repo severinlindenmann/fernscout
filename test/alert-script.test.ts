@@ -1,3 +1,4 @@
+// @scans scripts/alert.mts
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
