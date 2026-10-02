@@ -635,9 +635,15 @@ function strings(value: unknown): string[] {
  * suggested from the notes alone, for the owner to pick or discard — TIX-2,
  * owner decision 2026-10-01. The route runs `titleIsGroundedInNotes`
  * (`./polishGuard.ts`) on each one and drops any that fails it, the same
- * belt-and-braces shape `polish` already uses.
+ * belt-and-braces shape `polish` already uses. `translate`/`tags` — B2675 —
+ * are their own exported functions below (`translateDay`/`tagDay`) rather
+ * than branches of `writeDay`: neither takes `notes`/`facts` in `writeDay`'s
+ * shape, and folding them in would have made `writeDay`'s one signature
+ * answer for four unrelated prompts. `WriteDayMode` still names all five so
+ * the route's one `mode` field keeps meaning the same thing for every one
+ * of them.
  */
-export type WriteDayMode = "draft" | "polish" | "titles";
+export type WriteDayMode = "draft" | "polish" | "titles" | "translate" | "tags";
 
 const POLISH_SYSTEM_PROMPT = `You are helping somebody tidy up something they already wrote in their own travel journal — their own words, typed or spoken, about one day of their trip. This is copyediting, nothing more: fix spelling, casing, punctuation and sentence flow. You do not write a new day, and you do not rewrite theirs — only tidy the words they actually gave you.
 
@@ -772,6 +778,127 @@ export async function suggestTitles(notes: string, facts: DayFacts, owner?: stri
     .map((t) => t.trim())
     .filter((t) => t !== "" && t.length <= TITLE_LIMIT_CHARS)
     .slice(0, TITLE_MAX_COUNT);
+}
+
+const TRANSLATE_SCHEMA = {
+  type: "object",
+  properties: { title: { type: "string" }, content: { type: "string" } },
+  required: ["title", "content"],
+  additionalProperties: false,
+} as const;
+
+function translateSystemPrompt(toLocale: string): string {
+  return `You are translating one day of somebody's own travel journal — their own title and words about one day of their trip — faithfully into another language this same journal is also written in: ${toLocale}.
+
+The one rule, and it outranks everything else you might think makes a translation better:
+
+TRANSLATE ONLY WHAT IS THERE. Say exactly what the original says, in ${toLocale}, and nothing more: no fact, place, feeling, time or detail the original did not carry. Keep the original's own paragraphing and the order its sentences come in. A name — a person, a place, a brand — is carried across unchanged, never translated or adapted, unless that name has its own standard, well-known form in ${toLocale} (a country's own name, a well-known city), in which case use that standard form rather than a literal translation of the original word.
+
+Keep the voice the original has: first person stays first person, a plain sentence stays plain, nothing is dressed up, shortened or summarised.
+
+Translate the title the same way — a faithful translation of the original title, never invented from the content.
+
+Return only the translated title and the translated content.`;
+}
+
+/**
+ * One day's title and words, faithfully into another language this journal
+ * also publishes in — B2675, the owner's own ask ("either let the user fill
+ * out the other languages or add an auto translate function"). The target
+ * locale is the caller's own business to validate (the route checks it
+ * against `user.locales` before this is ever called — a model has no way to
+ * know what a journal declares); this function only ever translates into
+ * whatever `toLocale` names.
+ *
+ * Throws on anything that goes wrong, the same contract as `writeDay`: the
+ * caller has already spent and refunds on a throw.
+ */
+export async function translateDay(
+  title: string,
+  content: string,
+  toLocale: string,
+  owner?: string,
+): Promise<{ title: string; content: string }> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 3000,
+    system: translateSystemPrompt(toLocale),
+    messages: [{ role: "user", content: `Title: ${title.trim()}\n\n${content.trim()}` }],
+    output_config: { format: { type: "json_schema", schema: TRANSLATE_SCHEMA } },
+  });
+  await book(owner ?? NO_JOURNAL, "write_day", response.usage);
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  const translatedContent = typeof parsed.content === "string" ? parsed.content.trim() : "";
+  if (translatedContent === "") throw new Error("helper: the model returned no translated content");
+  return {
+    title: typeof parsed.title === "string" ? parsed.title.trim() : "",
+    content: translatedContent,
+  };
+}
+
+const TAG_DAY_SCHEMA = {
+  type: "object",
+  properties: { tags: { type: "array", items: { type: "string" } } },
+  required: ["tags"],
+  additionalProperties: false,
+} as const;
+
+const TAG_DAY_SYSTEM_PROMPT = `You are suggesting short tags for one day of somebody's own travel journal, from their own words about that day and, when you are given any, the photographs from it.
+
+The one rule, and it outranks everything else you might think makes a tag better:
+
+USE ONLY WHAT THE WORDS SAY OR THE PHOTOGRAPHS PLAINLY SHOW. A tag names an activity, a kind of place, a kind of food, a mode of travel or a plain topic that is actually there — "hiking", "museum", "street-food", "rain" — never a feeling, a guess at who somebody is to anyone else, an occasion, or a guess about what the day meant. Suggest at most six. Fewer, or none, is a correct answer when there is nothing to tag.
+
+Each tag is one or two English words, lowercase, with a hyphen between the words if there are two ("street-food", not "Street Food" or "street food"). Never invent a tag that is not grounded in the words or the photographs you were actually given.`;
+
+/**
+ * Up to six short tags for one day, from its own words and (when sent) its
+ * own photographs — B2675, the owner's own ask ("make them auto defined by
+ * ai … no user ever will use tags by their own"). `images` is already
+ * resized bytes, resolved by the caller the same way `describeImage`'s
+ * caller resolves one photograph; this function sends every one of them
+ * alongside the words, in one call.
+ *
+ * Returns the model's raw strings — slugifying, deduplicating and capping at
+ * six is the route's job (`slugifyTag` there), the same "grounded, then
+ * validated" split `suggestTitles`/`titleIsGroundedInNotes` already uses.
+ *
+ * Throws on anything that goes wrong, the same contract as `writeDay`.
+ */
+export async function tagDay(content: string, images: PhotoImage[], owner?: string): Promise<string[]> {
+  const client = new Anthropic();
+  const response = await client.messages.create({
+    model: HELPER_MODEL,
+    max_tokens: 150,
+    system: TAG_DAY_SYSTEM_PROMPT,
+    messages: [
+      {
+        role: "user",
+        content: [
+          ...images.map((image) => ({
+            type: "image" as const,
+            source: { type: "base64" as const, media_type: image.mediaType, data: image.base64 },
+          })),
+          { type: "text" as const, text: content.trim() || "(no written notes for this day)" },
+        ],
+      },
+    ],
+    output_config: { format: { type: "json_schema", schema: TAG_DAY_SCHEMA } },
+  });
+  await book(owner ?? NO_JOURNAL, "write_day", response.usage);
+
+  const text = response.content
+    .map((block) => (block.type === "text" ? block.text : ""))
+    .join("")
+    .trim();
+  const parsed = JSON.parse(text) as Record<string, unknown>;
+  return strings(parsed.tags);
 }
 
 /* -------------------------------------------------------------------------

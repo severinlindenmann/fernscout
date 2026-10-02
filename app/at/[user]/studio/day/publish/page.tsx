@@ -73,7 +73,6 @@ export default async function StudioPublishDayPage({
         tell={tell}
         also={alsoRows}
         blank={blank}
-        chosenBlank={ownBlank}
         readers={readers}
       />
     </StudioPage>

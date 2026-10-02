@@ -21,6 +21,13 @@ export const WRITE_DAY_NOTES_MAX_CHARS = 12_000;
  *  input the operator pays for that the price does not cover. */
 export const WRITE_DAY_FACT_MAX_CHARS = 200;
 
+/** The longest `title` a `translate` call takes — security review follow-up
+ *  to B2675, the same reasoning as `WRITE_DAY_FACT_MAX_CHARS` above: it goes
+ *  into the prompt beside the notes, and a day's own `title` is never longer
+ *  than this either (`title: z.string().trim().min(1).max(200)`,
+ *  `lib/api/v2/schemas/day.ts`), so nothing truthful is ever refused by it. */
+export const WRITE_DAY_TITLE_MAX_CHARS = 200;
+
 /** The width a photograph is resized to before it is sent: the widest of
  *  `MEDIA_WIDTHS` short of the full 2000px original — plenty for a model to
  *  read a scene, at a fraction of the bytes.

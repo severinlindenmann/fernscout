@@ -416,6 +416,10 @@ const dayPublished = z.strictObject({
   note: z.string(),
   mail: z.record(z.string(), z.unknown()).optional(),
   whatsapp: z.record(z.string(), z.unknown()).optional(),
+  // B2674 — a reader count for push, the same stance `mail`'s `sent` already
+  // takes (a count, never the addresses). Present only when push actually
+  // ran (the capability is on and the channel's claim was won).
+  push: z.strictObject({ told: z.number() }).optional(),
   notify: z
     .strictObject({
       // The day-announcement channels (mail/whatsapp) — `CHANNEL_NAMES`, the

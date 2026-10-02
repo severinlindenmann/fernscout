@@ -61,7 +61,6 @@ export default function PublishDayFlow({
   tell = null,
   also = [],
   blank = [],
-  chosenBlank = blank,
   readers = null,
 }: {
   username: string;
@@ -73,12 +72,12 @@ export default function PublishDayFlow({
   /** TIX-6 — who this day could reach, by reader group, and what the owner
    *  chose last time on this trip. Null on the take-down list. */
   tell?: (TellProps & { choice: { groups: string[] | null; mail: boolean } | null }) | null;
-  /** TIX-2 — more parts of the chosen date, going up together with it. */
+  /** TIX-2 — more parts of the chosen date, going up together with it;
+   *  B2674 sends their slugs as `parts` and lets the server work out each
+   *  one's own blanks, so this component no longer needs their reasons. */
   also?: (PublishRow & { blank: string[] })[];
   /** B2192 — the chosen draft's declinables still blank (`blankFieldsOf`). */
   blank?: string[];
-  /** TIX-2 — the chosen part's own blanks when `blank` covers several parts. */
-  chosenBlank?: string[];
   /** B2192 — its readers by name (`readersOf`); `null` where it is "anyone". */
   readers?: string[] | null;
 }) {
@@ -124,30 +123,14 @@ export default function PublishDayFlow({
     setBusy(true);
     setError(undefined);
     const url = `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(row.tripId)}/days/${encodeURIComponent(row.slug)}/${takeDown ? "unpublish" : "publish"}`;
-    // The blanks this sheet named — the server checks each is really blank.
-    // `visibility` is never sent: the studio does not answer it by leaving it.
-    const declineOpen = takeDown ? [] : chosenBlank.filter((field) => field !== "visibility");
+    // B2674 — the server now declines its own blanks, field by field, so
+    // the client sends neither `declineOpen` nor a loop of separate calls:
+    // `parts` names the other draft slugs of this date, and one POST
+    // publishes the whole day, all or nothing, telling readers once.
     const body = JSON.stringify({
-      ...(declineOpen.length > 0 ? { declineOpen } : {}),
+      ...(!takeDown && also.length > 0 ? { parts: also.map((extra) => extra.slug) } : {}),
       ...(!takeDown && tell ? { tell: { groups: tellGroups, mail: tellMail && (counts?.mailable ?? 0) > 0 } } : {}),
     });
-    // TIX-2 — the other parts of this date go up first and tell nobody; the
-    // chosen one goes last and tells whoever was picked, once — its day page
-    // shows every part of the date.
-    for (const extra of takeDown ? [] : also) {
-      const quiet = await fetch(
-        `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(extra.tripId)}/days/${encodeURIComponent(extra.slug)}/publish`,
-        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
-          ...(extra.blank.some((f) => f !== "visibility") ? { declineOpen: extra.blank.filter((f) => f !== "visibility") } : {}),
-          ...(tell ? { tell: { groups: [], mail: false } } : {}),
-        }) },
-      ).catch(() => null);
-      if (!quiet?.ok) {
-        setBusy(false);
-        router.refresh();
-        return setError(t("studio.publish.failed"));
-      }
-    }
     const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }).catch(() => null);
     setBusy(false);
     if (response?.ok) {

@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { resetRateLimitsForTests } from "@/lib/rateLimit";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildPrompt, SYSTEM_PROMPT } from "@/lib/helper/model";
+import { WRITE_DAY_TITLE_MAX_CHARS } from "@/lib/helper/limits";
 import { history } from "@/lib/helper/thread";
 import { createTrip } from "@/lib/tripWrite";
 import { hasPaid } from "./support/openCore";
@@ -35,11 +36,18 @@ const { resolveAccess } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth/handshake", () => ({ resolveAccess }));
 
-const { writeDay, suggestTitles } = vi.hoisted(() => ({ writeDay: vi.fn(), suggestTitles: vi.fn() }));
+const { writeDay, suggestTitles, translateDay, tagDay } = vi.hoisted(() => ({
+  writeDay: vi.fn(),
+  suggestTitles: vi.fn(),
+  translateDay: vi.fn(),
+  tagDay: vi.fn(),
+}));
 vi.mock("@/lib/helper/model", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/helper/model")>()),
   writeDay,
   suggestTitles,
+  translateDay,
+  tagDay,
 }));
 
 const { POST } = await import("@/app/api/helper/[user]/day/write-day/route");
@@ -98,6 +106,10 @@ beforeEach(async () => {
   writeDay.mockResolvedValue({ title: "The pass", prose: "The bus took three hours.", warnings: [] });
   suggestTitles.mockReset();
   suggestTitles.mockResolvedValue(["Bus to the pass"]);
+  translateDay.mockReset();
+  translateDay.mockResolvedValue({ title: "Der Pass", content: "Der Bus brauchte drei Stunden." });
+  tagDay.mockReset();
+  tagDay.mockResolvedValue(["Bus Travel", "Mountain Pass"]);
   clearIdempotencyStore();
   // Each test starts with a fresh bucket: the route's 20-per-15-minutes brake
   // is per IP and in-memory, so it otherwise counts every call in this file.
@@ -111,7 +123,7 @@ beforeEach(async () => {
       tagline: "t",
       owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
       defaultLocale: "en",
-      locales: ["en"],
+      locales: ["en", "de"],
       baseCurrency: "CHF",
     }),
   );
@@ -476,6 +488,127 @@ describe("titles mode", () => {
   test("nothing is noted into the thread", async () => {
     const before = (await history("alex")).length;
     await call({ mode: "titles", idempotency_key: "titles-note" });
+    expect((await history("alex")).length).toBe(before);
+  });
+});
+
+/**
+ * `mode: "translate"` — B2675, the owner's own ask for an auto-translate.
+ * Body is `{to, title?, content}`, not `notes` — a day's already-written
+ * words, faithfully carried into one of the journal's other languages.
+ */
+describe("translate mode", () => {
+  beforeEach(async () => {
+    await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
+  });
+
+  test("calls translateDay with the title, content and target locale, not writeDay", async () => {
+    const answered = await read(
+      await call({ mode: "translate", to: "de", title: "The pass", content: "The bus took three hours.", notes: undefined }),
+    );
+    expect(answered.status, JSON.stringify(answered.body)).toBe(200);
+    expect(translateDay).toHaveBeenCalledWith("The pass", "The bus took three hours.", "de", "alex");
+    expect(writeDay).not.toHaveBeenCalled();
+    expect(answered.body).toMatchObject({ ok: true, title: "Der Pass", content: "Der Bus brauchte drei Stunden.", locale: "de", provider: "Anthropic" });
+  });
+
+  test("security review: an oversized title is refused before consent and the AI-day gate, never reaching translateDay", async () => {
+    const title = "x".repeat(WRITE_DAY_TITLE_MAX_CHARS + 1);
+    const answered = await read(await call({ mode: "translate", to: "de", title, content: "Some words." }));
+    expect(answered.status).toBe(413);
+    expect(answered.body.error).toBe("title_too_long");
+    expect(translateDay).not.toHaveBeenCalled();
+  });
+
+  test("refuses a locale the journal does not have", async () => {
+    const answered = await read(await call({ mode: "translate", to: "fr", content: "Some words." }));
+    expect(answered.status).toBe(400);
+    expect(answered.body.error).toBe("invalid_locale");
+    expect(translateDay).not.toHaveBeenCalled();
+  });
+
+  test("refuses the journal's own language as a translation target", async () => {
+    const answered = await read(await call({ mode: "translate", to: "en", content: "Some words." }));
+    expect(answered.status).toBe(400);
+    expect(answered.body.error).toBe("invalid_locale");
+  });
+
+  test("needs only words consent, same as draft — no extra scope check", async () => {
+    // consentRoute in beforeEach already granted "words"; translate must not
+    // additionally demand "photos", which nothing here ever granted.
+    const answered = await read(await call({ mode: "translate", to: "de", content: "Some words." }));
+    expect(answered.status, JSON.stringify(answered.body)).toBe(200);
+  });
+
+  test("the AI-day gate still applies: a failed model call is a 502 and nothing is noted", async () => {
+    translateDay.mockRejectedValueOnce(new Error("provider is unhappy"));
+    const before = (await history("alex")).length;
+    const failed = await read(await call({ mode: "translate", to: "de", content: "Some words." }));
+    expect(failed.status).toBe(502);
+    expect((await history("alex")).length).toBe(before);
+  });
+});
+
+/** `mode: "tags"` — B2675, the owner's own ask that tags be suggested, never
+ *  typed. Body is `{content, photoIds?}`. */
+describe("tags mode", () => {
+  beforeEach(async () => {
+    await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
+  });
+
+  test("calls tagDay with the content, and the response is slugified and capped at 6", async () => {
+    tagDay.mockResolvedValue(["Bus Travel", "bus travel", "Mountain Pass", "rain", "food", "hiking", "sunset", "one more"]);
+    const answered = await read(await call({ mode: "tags", content: "Something happened.", notes: undefined }));
+    expect(answered.status, JSON.stringify(answered.body)).toBe(200);
+    expect(tagDay).toHaveBeenCalledWith("Something happened.", [], "alex");
+    expect(writeDay).not.toHaveBeenCalled();
+    // "Bus Travel" and "bus travel" slugify to the same tag and dedupe to one.
+    expect(answered.body.tags).toEqual(["bus-travel", "mountain-pass", "rain", "food", "hiking", "sunset"]);
+    expect((answered.body.tags as string[]).length).toBeLessThanOrEqual(6);
+  });
+
+  test("a tag the model invented outside slug shape is dropped, not the whole answer", async () => {
+    tagDay.mockResolvedValue(["café culture", "!!!", "quiet-evening"]);
+    const answered = await read(await call({ mode: "tags", content: "Something happened.", notes: undefined }));
+    expect(answered.status).toBe(200);
+    // "café culture" slugifies (accents stripped, spaces hyphenated) to a
+    // valid tag; "!!!" has nothing left after slugifying and is dropped.
+    expect(answered.body.tags).toEqual(["cafe-culture", "quiet-evening"]);
+  });
+
+  test("content alone is enough — no photoIds required", async () => {
+    const answered = await read(await call({ mode: "tags", content: "A quiet day.", notes: undefined }));
+    expect(answered.status, JSON.stringify(answered.body)).toBe(200);
+  });
+
+  test("empty content with no photoIds either is refused before any model call", async () => {
+    const answered = await read(await call({ mode: "tags", content: "", notes: undefined }));
+    expect(answered.status).toBe(400);
+    expect(answered.body.error).toBe("no_content");
+    expect(tagDay).not.toHaveBeenCalled();
+  });
+
+  test("photoIds beyond words needs photos consent too, even though words consent is already granted", async () => {
+    const answered = await read(
+      await call({ mode: "tags", content: "Something happened.", photoIds: ["/media/a-trip/the-pass/one.jpg"], notes: undefined }),
+    );
+    expect(answered.status).toBe(403);
+    expect(answered.body.error).toBe("consent_required");
+    expect(tagDay).not.toHaveBeenCalled();
+  });
+
+  test("with photos consent granted, an unresolvable photoId is quietly dropped rather than failing the call", async () => {
+    await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scope: "photos" }) }), params);
+    const answered = await read(
+      await call({ mode: "tags", content: "Something happened.", photoIds: ["/media/a-trip/the-pass/missing.jpg"], notes: undefined }),
+    );
+    expect(answered.status, JSON.stringify(answered.body)).toBe(200);
+    expect(tagDay).toHaveBeenCalledWith("Something happened.", [], "alex");
+  });
+
+  test("nothing is noted into the thread", async () => {
+    const before = (await history("alex")).length;
+    await call({ mode: "tags", content: "Something happened.", notes: undefined, idempotency_key: "tags-note" });
     expect((await history("alex")).length).toBe(before);
   });
 });

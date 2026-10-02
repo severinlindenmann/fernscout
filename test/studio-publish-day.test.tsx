@@ -119,7 +119,7 @@ describe("PublishDayFlow", () => {
 
   async function mount(
     chosen: PublishRow | null,
-    extra: { blank?: string[]; chosenBlank?: string[]; readers?: string[] | null; also?: (PublishRow & { blank: string[] })[] } = {},
+    extra: { blank?: string[]; readers?: string[] | null; also?: (PublishRow & { blank: string[] })[] } = {},
   ) {
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -187,17 +187,17 @@ describe("PublishDayFlow", () => {
     expect(container!.querySelector('[role="status"]')!.textContent).toBe("“Open” is published.");
   });
 
-  test("TIX-2: the other parts go up first, quietly, each declining only its own blanks", async () => {
-    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+  test("TIX-2/B2674: the other parts' slugs ride along on the one call, the server works out their own blanks", async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true, published: ["open", "open-2"], told: { app: 0, mail: 0 } }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     const second = { ...ROW, slug: "open-2", time: "11:20", blank: ["costs", "tags"] };
-    await mount(ROW, { blank: ["costs", "location", "tags"], chosenBlank: ["location"], also: [second] });
+    await mount(ROW, { blank: ["costs", "location", "tags"], also: [second] });
     expect(container!.querySelector("[data-also]")!.textContent).toContain("11:20 · Open");
     await act(async () => [...container!.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish all 2 parts")!.click());
     const calls = fetchMock.mock.calls as unknown as [string, RequestInit][];
+    expect(calls).toHaveLength(1);
     expect(calls.map(([url, init]) => [url, JSON.parse(init.body as string)])).toEqual([
-      ["/api/web/alex/trips/alps/days/open-2/publish", { declineOpen: ["costs", "tags"] }],
-      ["/api/web/alex/trips/alps/days/open/publish", { declineOpen: ["location"] }],
+      ["/api/web/alex/trips/alps/days/open/publish", { parts: ["open-2"] }],
     ]);
   });
 
@@ -219,9 +219,11 @@ describe("PublishDayFlow", () => {
 
     const confirm = [...dialog.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day")!;
     await act(async () => confirm.click());
+    // B2674 — the client no longer says what is blank; the server works it
+    // out and declines each field itself.
     expect(fetchMock.mock.calls[0]).toEqual([
       "/api/web/alex/trips/alps/days/open/publish",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ declineOpen: ["costs", "time", "transportMode"] }) }),
+      expect.objectContaining({ method: "POST", body: "{}" }),
     ]);
   });
 
@@ -243,7 +245,9 @@ describe("PublishDayFlow", () => {
 
     const confirm = [...dialog.querySelectorAll("button")].find((b) => b.textContent?.trim() === "Publish this day")!;
     await act(async () => confirm.click());
-    expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)).toEqual({ declineOpen: all });
+    // B2674 — the whole list of blanks is for display only now; the server
+    // declines them itself, so the body carries no field names at all.
+    expect(JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)).toEqual({});
   });
 
   test("B2192: a day nobody else can read says so", async () => {

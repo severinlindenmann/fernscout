@@ -1,12 +1,24 @@
 import { isEnabled } from "@/lib/capabilities";
 import { checkAiDay, recordAiDay } from "@paid/billing/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { HELPER_PROVIDER, suggestTitles, writeDay, type DayFacts, type WriteDayMode } from "@/lib/helper/model";
+import {
+  HELPER_PROVIDER,
+  suggestTitles,
+  tagDay,
+  translateDay,
+  writeDay,
+  type DayFacts,
+  type PhotoImage,
+  type WriteDayMode,
+} from "@/lib/helper/model";
 import { checkPolishForAddedFacts, keepTypedWhereAccentsGuessed, titleIsGroundedInNotes } from "@/lib/helper/polishGuard";
-import { WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/limits";
+import { DESCRIBE_PHOTO_WIDTH, WRITE_DAY_FACT_MAX_CHARS, WRITE_DAY_NOTES_MAX_CHARS, WRITE_DAY_TITLE_MAX_CHARS } from "@/lib/helper/limits";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { note, refused } from "@/lib/helper/thread";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
+import { resizedCopy, resolveMediaFile } from "@/lib/media";
+import { defaultLocaleFor, localesFor } from "@/lib/locales";
+import { mediaKey } from "@/lib/photos";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
@@ -42,6 +54,58 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** Day tags, the schema's own shape (`DAY_DECLINABLE_KEYS`'s `tags`,
+ *  `lib/api/v2/schemas/day.ts`): lowercase, hyphenated, at most 30
+ *  characters. Never trusted from the model on its own say-so — B2675. */
+const TAG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const TAG_MAX_COUNT = 6;
+const TAG_MAX_CHARS = 30;
+/** More than a day's gallery realistically needs for a tag suggestion. */
+const TAG_PHOTO_MAX = 6;
+
+function slugifyTag(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, TAG_MAX_CHARS)
+    .replace(/-+$/g, "");
+}
+
+/** Slugified, deduplicated, capped — the model's raw suggestions validated
+ *  the same "grounded, then checked" way `suggestTitles`'s titles are. */
+function tagsFrom(raw: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const candidate of raw) {
+    const slug = slugifyTag(candidate);
+    if (slug === "" || !TAG_RE.test(slug) || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push(slug);
+    if (out.length >= TAG_MAX_COUNT) break;
+  }
+  return out;
+}
+
+/** Each photo id resolved and resized the same way `describe-photos`
+ *  resolves one — a file that will not resolve or resize is quietly
+ *  dropped rather than failing the whole request over one picture. */
+async function resolvePhotoImages(user: string, photoIds: string[]): Promise<PhotoImage[]> {
+  const images: PhotoImage[] = [];
+  for (const photoId of photoIds.slice(0, TAG_PHOTO_MAX)) {
+    const segments = mediaKey(photoId).split("/");
+    const file = resolveMediaFile(user, segments);
+    if (!file) continue;
+    const resized = await resizedCopy(file, DESCRIBE_PHOTO_WIDTH);
+    if (!resized) continue;
+    images.push({ base64: resized.toString("base64"), mediaType: "image/webp" });
+  }
+  return images;
+}
+
 export async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/write-day">,
@@ -75,10 +139,34 @@ export async function POST(
     return Response.json({ error: "unknown_trip" }, { status: 404 });
   }
 
-  const notes = text(body.notes);
-  if (notes === "") {
-    refused(user, "draft_words", "no_notes");
-    return Response.json({ error: "no_notes" }, { status: 400 });
+  // `polish` (B2190) reworks the owner's own already-written text; `titles`
+  // (TIX-2) suggests up to two short titles from the notes alone;
+  // `translate`/`tags` (B2675) work from the day's own already-written
+  // `content` rather than rough `notes` — resolved here, before the field is
+  // even read, so every mode below reads one variable (`notes`) from
+  // whichever body field is actually its own. Anything else — including no
+  // field at all, which is every existing caller, WhatsApp's `draft_words`
+  // included — keeps the original `draft` behaviour.
+  const modeField = text(body.mode);
+  const mode: WriteDayMode =
+    modeField === "polish"
+      ? "polish"
+      : modeField === "titles"
+        ? "titles"
+        : modeField === "translate"
+          ? "translate"
+          : modeField === "tags"
+            ? "tags"
+            : "draft";
+  const usesContentField = mode === "translate" || mode === "tags";
+  const photoIds = Array.isArray(body.photoIds) ? body.photoIds.filter((p): p is string => typeof p === "string") : [];
+
+  const notes = usesContentField ? text(body.content) : text(body.notes);
+  // `tags` may work from photographs alone — B2675 — so an empty `content`
+  // is refused only when there is nothing else to tag from either.
+  if (notes === "" && !(mode === "tags" && photoIds.length > 0)) {
+    refused(user, "draft_words", usesContentField ? "no_content" : "no_notes");
+    return Response.json({ error: usesContentField ? "no_content" : "no_notes" }, { status: 400 });
   }
   // B2223 — a flat cost to the operator per input token needs a ceiling.
   // Both modes, before consent and before the AI-day gate.
@@ -116,13 +204,52 @@ export async function POST(
       );
     }
   }
+  // Security review follow-up — `translate`'s own `title` is never run
+  // through the `["location", "country", "from", "to"]` loop above (it is
+  // not one of those fields), so without its own check a body could carry
+  // an unbounded `title` straight into the prompt. Capped the same way,
+  // before consent and before the AI-day gate.
+  if (mode === "translate") {
+    const title = text(body.title);
+    if (title.length > WRITE_DAY_TITLE_MAX_CHARS) {
+      refused(user, "draft_words", "title_too_long");
+      return Response.json(
+        {
+          error: "title_too_long",
+          message: `title can be at most ${WRITE_DAY_TITLE_MAX_CHARS} characters; this one is ${title.length}.`,
+          maxChars: WRITE_DAY_TITLE_MAX_CHARS,
+        },
+        { status: 413 },
+      );
+    }
+  }
 
-  // `polish` (B2190) reworks the owner's own already-written text; `titles`
-  // (TIX-2) suggests up to two short titles from the notes alone. Anything
-  // else — including no field at all, which is every existing caller,
-  // WhatsApp's `draft_words` included — keeps the original `draft` behaviour.
-  const modeField = text(body.mode);
-  const mode: WriteDayMode = modeField === "polish" ? "polish" : modeField === "titles" ? "titles" : "draft";
+  // B2675 — the target language, `translate` mode only, checked before
+  // consent and before the AI-day gate like every other cheap input check
+  // above: a model has no way to know what a journal declares, so this is
+  // the route's own job. Never the journal's own language (`defaultLocale`
+  // — the language a day's own title/content is already written in, the
+  // same reading `exemptSingleLocaleTranslations` gives it, lib/api/v2/write.ts)
+  // and always one `user.locales` actually lists.
+  const toLocale = mode === "translate" ? text(body.to) : "";
+  if (mode === "translate") {
+    const locales = localesFor(user);
+    const own = defaultLocaleFor(user);
+    if (toLocale === "" || toLocale === own || !locales.includes(toLocale)) {
+      refused(user, "draft_words", "invalid_locale");
+      return Response.json(
+        {
+          error: "invalid_locale",
+          message:
+            toLocale === own
+              ? `"${toLocale}" is this journal's own language — there is nothing to translate it into.`
+              : `"${toLocale}" is not one of this journal's own languages (${locales.join(", ")}).`,
+          locales: locales.filter((l) => l !== own),
+        },
+        { status: 400 },
+      );
+    }
+  }
 
   // Before the first model call ever made for this journal, and before the
   // AI-day gate — a day taken for a call that consent would have refused
@@ -132,6 +259,11 @@ export async function POST(
   if (!hasHelperConsent(user, "words")) {
     return Response.json({ error: "consent_required" }, { status: 403 });
   }
+  // B2675 — `tags` sends photographs only when it was actually given some,
+  // so only then is it the bigger promise B687 split `photos` out for.
+  if (mode === "tags" && photoIds.length > 0 && !hasHelperConsent(user, "photos")) {
+    return Response.json({ error: "consent_required", scope: "photos" }, { status: 403 });
+  }
 
   const facts: DayFacts = {
     date,
@@ -139,13 +271,13 @@ export async function POST(
     ...(text(body.location) ? { location: text(body.location) } : {}),
     ...(text(body.country) ? { country: text(body.country) } : {}),
     ...(text(body.from) ? { from: text(body.from) } : {}),
-    ...(text(body.to) ? { to: text(body.to) } : {}),
+    ...(!usesContentField && text(body.to) ? { to: text(body.to) } : {}),
     ...(typeof body.photos === "number" ? { photos: body.photos } : {}),
   };
 
   const supplied = text(body.idempotency_key);
   const key = supplied === "" ? null : idempotencyKey(user, "helper.write-day", supplied);
-  const fingerprint = fingerprintOf({ notes, facts, mode });
+  const fingerprint = fingerprintOf({ notes, facts, mode, toLocale, photoIds, title: text(body.title) });
   const recalled = await recall<Record<string, unknown>>(key, fingerprint);
   // A retry gets the first answer back and is not charged again. A *different*
   // call under the same key is refused rather than answered with somebody
@@ -183,6 +315,45 @@ export async function POST(
     await recordAiDay(user, tripId, facts.date);
     const titles = suggested.filter((t) => titleIsGroundedInNotes(notes, t));
     const answer = { ok: true, titles, aiDay: facts.date || null, provider: HELPER_PROVIDER };
+    await remember(key, fingerprint, answer);
+    return Response.json(answer);
+  }
+
+  // `translate` (B2675) — the owner's own already-written title and words,
+  // faithfully into one other language this journal publishes in. No
+  // thread note, the same reasoning `polish`/`titles` give: a one-shot
+  // side-by-side preview, not a proposal the model could chain into
+  // `set_day_words`.
+  if (mode === "translate") {
+    let result: { title: string; content: string };
+    try {
+      result = await translateDay(text(body.title), notes, toLocale, user);
+    } catch {
+      refused(user, "draft_words", "model_failed");
+      return Response.json({ error: "model_failed" }, { status: 502 });
+    }
+    await recordAiDay(user, tripId, facts.date);
+    const answer = { ok: true, title: result.title, content: result.content, locale: toLocale, aiDay: facts.date || null, provider: HELPER_PROVIDER };
+    await remember(key, fingerprint, answer);
+    return Response.json(answer);
+  }
+
+  // `tags` (B2675) — up to six tags from the day's own words and, when
+  // sent, its own photographs. Same no-thread-note reasoning as `titles`.
+  // The model's raw suggestions are validated here (`tagsFrom`), the same
+  // "grounded, then checked" split `titleIsGroundedInNotes` already uses.
+  if (mode === "tags") {
+    const images = await resolvePhotoImages(user, photoIds);
+    let suggested: string[];
+    try {
+      suggested = await tagDay(notes, images, user);
+    } catch {
+      refused(user, "draft_words", "model_failed");
+      return Response.json({ error: "model_failed" }, { status: 502 });
+    }
+    await recordAiDay(user, tripId, facts.date);
+    const tags = tagsFrom(suggested);
+    const answer = { ok: true, tags, aiDay: facts.date || null, provider: HELPER_PROVIDER };
     await remember(key, fingerprint, answer);
     return Response.json(answer);
   }

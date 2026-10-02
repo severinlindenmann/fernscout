@@ -263,8 +263,11 @@ describe("the helper routes", () => {
   // `importPolarsteps`, for the studio's own Polarsteps import screen; the
   // bearer-token twin is `kind: "polarsteps"` on `POST /api/v2/{user}/import`.
   // Same cookie, same owner check as everything above it.
-  test("there are sixty-seven of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(67);
+  // Sixty-eight: `tags` (B2675) — the journal's own earlier day tags for the
+  // studio's Preview, read from disk with no AI call. Same cookie, same owner
+  // check.
+  test("there are sixty-eight of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(68);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
