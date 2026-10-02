@@ -19,7 +19,7 @@ import { isOpenToLink } from "@/lib/access";
 import { journalPath } from "@/lib/journalPath";
 import { serverSite } from "@/lib/site";
 import { dayOfTrip } from "@/lib/studio/monthGrid";
-import { storyCardFacts, storyDayLink, storyPhotos, type StoryFacts } from "@/lib/storyCard";
+import { storyCardFacts, storyPhotos, storyShareLink, type StoryFacts } from "@/lib/storyCard";
 import { storyPhotoCroppedDataUri } from "@/lib/storyMedia";
 import { StoryMark } from "@/components/StoryMark";
 
@@ -154,7 +154,25 @@ function PhotoCard({
         {caption && (
           <div style={{ display: "flex", marginTop: 16, fontSize: 24, fontStyle: "italic", color: COLORS.navy300 }}>{caption}</div>
         )}
-        {facts.link && (
+        {facts.link && facts.readAlong && (
+          <div
+            style={{
+              display: "flex",
+              marginTop: 24,
+              alignItems: "center",
+              gap: 10,
+              background: COLORS.yellow400,
+              color: COLORS.navy900,
+              borderRadius: 16,
+              padding: "12px 18px",
+              fontSize: 22,
+              fontWeight: 700,
+            }}
+          >
+            {facts.readAlongLabel} {facts.link.replace(/^https?:\/\//, "")}
+          </div>
+        )}
+        {facts.link && !facts.readAlong && (
           <div style={{ display: "flex", marginTop: 24, fontSize: 22, color: COLORS.navy300, fontFamily: "monospace" }}>
             {facts.link.replace(/^https?:\/\//, "")}
           </div>
@@ -236,7 +254,7 @@ function PostcardCard({
         <Pill site={site} dark={false} />
         {facts.link && (
           <div style={{ display: "flex", fontSize: 20, color: COLORS.navy600, fontFamily: "monospace" }}>
-            {facts.link.replace(/^https?:\/\//, "")}
+            {facts.readAlong ? `${facts.readAlongLabel}: ${facts.link.replace(/^https?:\/\//, "")}` : facts.link.replace(/^https?:\/\//, "")}
           </div>
         )}
       </div>
@@ -289,7 +307,7 @@ function CollageCard({ facts, photos, site }: { facts: StoryFacts; photos: strin
           <div style={{ display: "flex", marginTop: 16, alignItems: "center", gap: 10 }}>
             <div style={{ display: "flex", width: 10, height: 10, borderRadius: 999, background: COLORS.green500 }} />
             <div style={{ display: "flex", fontSize: 20, color: COLORS.navy300, fontFamily: "monospace" }}>
-              {facts.link.replace(/^https?:\/\//, "")}
+              {facts.readAlong ? `${facts.readAlongLabel} ${facts.link.replace(/^https?:\/\//, "")}` : facts.link.replace(/^https?:\/\//, "")}
             </div>
           </div>
         )}
@@ -329,6 +347,7 @@ export async function GET(
   // repeated verbatim on a public card, so it is drawn only on request.
   const showCaptions = url.searchParams.get("captions") === "1";
   const wantLink = url.searchParams.get("link") !== "0";
+  const wantReadAlong = url.searchParams.get("readalong") === "1";
 
   const photos = storyPhotos(day);
   if (look === "collage" && photos.length < 3) {
@@ -336,7 +355,9 @@ export async function GET(
   }
 
   const trip = getTrip(`${user}/${tripId}`);
-  const link = wantLink ? storyDayLink(user, tripId, stem, trip, day) : null;
+  const { url: link, readAlong } = wantLink
+    ? await storyShareLink(user, tripId, stem, trip, day, wantReadAlong)
+    : { url: null, readAlong: false };
 
   const dayNumber = dayOfTrip(day.date, tripFile.dates.from);
   const facts = storyCardFacts({
@@ -344,6 +365,7 @@ export async function GET(
     dayNumber,
     tripTitle: tripFile.title,
     link,
+    readAlong,
     locale: owner.defaultLocale,
   });
 

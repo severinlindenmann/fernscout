@@ -103,7 +103,9 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       const session = isEmail(email) ? await verifyGuestCode(owner, email, text("code"), request.headers.get("accept-language")) : null;
       if (!session) return answer({ error: "invalid_code" }, 401);
       await setGuestSessionCookies(session.token, session.subject, request.headers.get("user-agent"));
-      return answer({ ok: true, ...(await joinProved(invite, email, { name, locale })) });
+      const settled = await joinProved(invite, email, { name, locale });
+      if ("capped" in settled) return answer({ error: "rate_limited" }, 429);
+      return answer({ ok: true, ...settled });
     }
     case "join": {
       // Signed in already with an email on this instance: the address is
@@ -111,7 +113,9 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       const reader = await journalReader(owner);
       if (!reader.email || subjectPhone(reader.email)) return answer({ error: "not_signed_in" }, 401);
       if (!name && !reader.contact?.name) return answer({ error: "invalid_name" }, 400);
-      return answer({ ok: true, ...(await joinProved(invite, reader.email, { name, locale })) });
+      const settled = await joinProved(invite, reader.email, { name, locale });
+      if ("capped" in settled) return answer({ error: "rate_limited" }, 429);
+      return answer({ ok: true, ...settled });
     }
     case "proof": {
       // B2453/B2454: a second channel for the person this link just filed —
@@ -199,16 +203,29 @@ function filedByThisLink(self: ContactRecord, invite: JoinInvite): boolean {
 
 type Settled = { status: "in" | "waiting"; known: boolean };
 
+/** B2665 round 2 — at most this many brand-new requests through any one
+ * link in a day. A link shared once (even a standing "Ask to read along"
+ * one) is not a way to flood the owner's queue; somebody the owner already
+ * knows (`existing`) never counts against it. */
+const NEW_REQUEST_PER_LINK_LIMIT = { max: 30, windowMs: 24 * 60 * 60 * 1000 };
+
 /**
  * An address this request just proved. A new person gets a `pending` row with
  * the form's name and language; **somebody already here keeps every detail
  * they have** (F1, B2294's rule): the form's values are not written over
  * them. Blocked: nothing, answered like anybody else.
  */
-async function joinProved(invite: JoinInvite, email: string, form: { name: string; locale: Locale }): Promise<Settled> {
+async function joinProved(
+  invite: JoinInvite,
+  email: string,
+  form: { name: string; locale: Locale },
+): Promise<Settled | { capped: true }> {
   const existing = await getContactByEmail(invite.owner, email);
   if (existing?.status === "blocked") return { status: "waiting", known: true };
   if (!existing) {
+    if (!rateLimitFor("join-new-request-link", invite.id, NEW_REQUEST_PER_LINK_LIMIT).ok) {
+      return { capped: true };
+    }
     const filed = await requestContact(invite.owner, {
       name: form.name,
       email,

@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalSt
 import { Lock, Play, Share2 } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { journalPath } from "@/lib/journalPath";
+import ReadAlongLink, { type ReadAlongState } from "./ReadAlongLink";
 
 type Photo = { src: string; caption?: string };
 type Look = "photo" | "postcard" | "collage" | "video";
@@ -63,17 +64,35 @@ export default function ShareDayStory({
   linkAllowed,
   link,
   videoAvailable,
+  visibility = "public",
+  readAlong = null,
 }: {
   username: string;
   tripId: string;
   slug: string;
   photos: Photo[];
   caption: string;
+  /** Public trip only — the plain day link, decided server-side. Unused for
+   * a readers-only trip, which carries `readAlong` instead. */
   linkAllowed: boolean;
   link: string | null;
   videoAvailable: boolean;
+  /** B2665 round 2 — which link, if any, this trip could carry on a story. */
+  visibility?: "public" | "guest" | "private";
+  /** The owner's standing read-along link's current state, for a
+   * readers-only trip. `null` when the trip is public (irrelevant) or the
+   * feature is unavailable on this journal — either way nothing is shown. */
+  readAlong?: ReadAlongState | null;
 }) {
   const { t } = useI18n();
+  // B2665 round 2 — the read-along link's live URL, kept in state so
+  // turning it on, pausing or resuming updates the share immediately.
+  const [readAlongUrl, setReadAlongUrl] = useState<string | null>(
+    readAlong?.status === "live" ? readAlong.url : null,
+  );
+  const guestLinkAllowed = visibility === "guest" && readAlongUrl !== null;
+  const effectiveLinkAllowed = visibility === "public" ? linkAllowed : guestLinkAllowed;
+  const effectiveLink = visibility === "public" ? link : readAlongUrl;
   const canCollage = photos.length >= 3;
   const looks: Look[] = [
     "photo",
@@ -95,7 +114,7 @@ export default function ShareDayStory({
   const [includeMorePhotos, setIncludeMorePhotos] = useState(false);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
   const [caption, setCaption] = useState(initialCaption);
-  const [includeLink, setIncludeLink] = useState(linkAllowed);
+  const [includeLink, setIncludeLink] = useState(effectiveLinkAllowed);
   // B2665 round 2 — off by default: a photo's own caption is the owner's
   // words repeated verbatim on a public card, drawn only on request.
   const [showCaptions, setShowCaptions] = useState(false);
@@ -106,9 +125,10 @@ export default function ShareDayStory({
   const query = useMemo(() => {
     const params = new URLSearchParams();
     params.set("link", includeLink ? "1" : "0");
+    if (visibility === "guest") params.set("readalong", "1");
     if (showCaptions) params.set("captions", "1");
     return params.toString();
-  }, [includeLink, showCaptions]);
+  }, [includeLink, showCaptions, visibility]);
   const pictureUrl = useMemo(
     () => (look === "video" ? null : `${base}?look=${LOOK_PARAM[look]}&${query}`),
     [base, look, query],
@@ -186,7 +206,7 @@ export default function ShareDayStory({
   }, [previewUrl]);
 
   function shareText(): string {
-    return includeLink && link ? `${caption}\n\n${link}` : caption;
+    return includeLink && effectiveLink ? `${caption}\n\n${effectiveLink}` : caption;
   }
 
   function downloadFiles(files: File[]) {
@@ -235,9 +255,9 @@ export default function ShareDayStory({
   }
 
   async function copyLink() {
-    if (!link) return;
+    if (!effectiveLink) return;
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(effectiveLink);
     } catch {
       // Best-effort.
     }
@@ -395,32 +415,66 @@ export default function ShareDayStory({
         />
       </label>
 
-      {linkAllowed ? (
-        <label className="flex items-center justify-between gap-3 rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2">
-          <span className="text-sm text-ink-strong">
-            {t("studio.share.addLink")}
-            {link && <span className="block text-xs text-ink-secondary">{link.replace(/^https?:\/\//, "")}</span>}
-          </span>
-          <input
-            type="checkbox"
-            checked={includeLink}
-            onChange={(e) => setIncludeLink(e.target.checked)}
-            className="h-5 w-5"
-          />
-        </label>
-      ) : (
-        <p className="flex items-start gap-2 rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2 text-xs text-ink-secondary">
-          <Lock aria-hidden className="mt-0.5 h-4 w-4 flex-none" />
-          <span>
-            {t("studio.share.noLink")}{" "}
-            <a
-              href={`${journalPath(username)}/studio/trip/visibility?trip=${encodeURIComponent(tripId)}`}
-              className="underline underline-offset-2"
-            >
-              {t("studio.share.noLinkHint")}
-            </a>
-          </span>
-        </p>
+      {visibility === "public" &&
+        (linkAllowed ? (
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2">
+            <span className="text-sm text-ink-strong">
+              {t("studio.share.addLink")}
+              {link && <span className="block text-xs text-ink-secondary">{link.replace(/^https?:\/\//, "")}</span>}
+            </span>
+            <input
+              type="checkbox"
+              checked={includeLink}
+              onChange={(e) => setIncludeLink(e.target.checked)}
+              className="h-5 w-5"
+            />
+          </label>
+        ) : (
+          <p className="flex items-start gap-2 rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2 text-xs text-ink-secondary">
+            <Lock aria-hidden className="mt-0.5 h-4 w-4 flex-none" />
+            <span>
+              {t("studio.share.noLink")}{" "}
+              <a
+                href={`${journalPath(username)}/studio/trip/visibility?trip=${encodeURIComponent(tripId)}`}
+                className="underline underline-offset-2"
+              >
+                {t("studio.share.noLinkHint")}
+              </a>
+            </span>
+          </p>
+        ))}
+
+      {/* B2665 round 2 — a readers-only trip carries the owner's own
+          standing "Ask to read along" link instead, when the feature is
+          available on this journal (`readAlong !== null`); absent entirely
+          otherwise. */}
+      {visibility === "guest" && readAlong && (
+        <div className="flex flex-col gap-2">
+          <ReadAlongLink username={username} initial={readAlong} onLiveChange={setReadAlongUrl} />
+          {readAlongUrl && (
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2">
+              <span className="text-sm text-ink-strong">{t("studio.share.addLink")}</span>
+              <input
+                type="checkbox"
+                checked={includeLink}
+                onChange={(e) => setIncludeLink(e.target.checked)}
+                className="h-5 w-5"
+              />
+            </label>
+          )}
+        </div>
+      )}
+
+      {visibility === "private" && (
+        <div className="flex flex-col gap-2">
+          <p className="flex items-start gap-2 rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2 text-xs text-ink-secondary">
+            <Lock aria-hidden className="mt-0.5 h-4 w-4 flex-none" />
+            <span>{t("studio.share.readAlong.private")}</span>
+          </p>
+          <p role="alert" className="rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2 text-xs text-coral-600">
+            {t("studio.share.readAlong.privateWarning")}
+          </p>
+        </div>
       )}
 
       <div className="flex flex-col gap-2">
@@ -437,7 +491,7 @@ export default function ShareDayStory({
           {/* B2665 round 2 — "Copy link" sits next to Share whenever a link
               exists, on every device; "Copy caption" stays a desktop
               fallback below, next to the download buttons. */}
-          {includeLink && link && (
+          {includeLink && effectiveLink && (
             <button type="button" onClick={copyLink} className="min-h-11 rounded-lg border border-line-strong px-3 text-xs font-semibold text-ink-strong">
               {t("studio.share.copyLink")}
             </button>

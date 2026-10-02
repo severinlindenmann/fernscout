@@ -41,10 +41,32 @@ export default function LinksList({
   const [showing, setShowing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  const [resuming, setResuming] = useState(false);
 
-  const live = invites.filter((invite) => invite.live);
+  // B2665 round 2 — the owner's standing "Ask to read along" link is this
+  // exact, deterministic row (`lib/contacts/storyLink.ts`); it is shown
+  // here even while paused, with its own label and a resume control, which
+  // no other link in this list has.
+  const storyId = `story-${username}`;
+  const live = invites.filter((invite) => invite.live || invite.id === storyId);
   const linkGroup = (invite: AdminInvite) => groups.find((group) => group.id === invite.groupId) ?? null;
   if (live.length === 0) return null;
+
+  async function resume() {
+    setResuming(true);
+    setFailed(null);
+    const response = await fetch(`/api/web/${encodeURIComponent(username)}/story-link`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "resume" }),
+    }).catch(() => null);
+    setResuming(false);
+    if (!response?.ok) {
+      setFailed(storyId);
+      return;
+    }
+    onStopped();
+  }
 
   const until = (iso: string) =>
     new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : locale, { day: "numeric", month: "long", timeZone: "UTC" });
@@ -74,9 +96,11 @@ export default function LinksList({
       </h2>
       <ul className="mt-3 space-y-3">
         {live.map((invite) => {
+          const isStory = invite.id === storyId;
           const shareTrip = invite.kind === "buddy" && invite.tripId ? tripLabel(trips, invite.tripId) : journalTitle;
-          const kind =
-            invite.kind === "buddy" && invite.tripId
+          const kind = isStory
+            ? t("readers.link.kindStory")
+            : invite.kind === "buddy" && invite.tripId
               ? t("readers.link.kindBuddyOf", { trip: shareTrip })
               : t("readers.link.kind.guest");
           const url = invite.joinUrl ?? invite.url;
@@ -118,14 +142,25 @@ export default function LinksList({
                       {t("readers.link.show")}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    aria-expanded={asking === invite.id}
-                    onClick={() => setAsking(invite.id)}
-                    className="min-h-11 rounded-xl border border-line-strong bg-surface-raised px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
-                  >
-                    {t("readers.link.stop")}
-                  </button>
+                  {isStory && !invite.live ? (
+                    <button
+                      type="button"
+                      disabled={resuming}
+                      onClick={() => void resume()}
+                      className="min-h-11 rounded-xl bg-yellow-400 px-4 text-sm font-semibold text-navy-900 hover:bg-yellow-300 disabled:opacity-60"
+                    >
+                      {t("studio.share.readAlong.resume")}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      aria-expanded={asking === invite.id}
+                      onClick={() => setAsking(invite.id)}
+                      className="min-h-11 rounded-xl border border-line-strong bg-surface-raised px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
+                    >
+                      {isStory ? t("studio.share.readAlong.pause") : t("readers.link.stop")}
+                    </button>
+                  )}
                 </div>
               </div>
               {showing === invite.id && url && (
@@ -142,9 +177,9 @@ export default function LinksList({
               {asking === invite.id && (
                 <div className="mt-3">
                   <ConfirmPanel
-                    label={t("readers.link.stop")}
+                    label={isStory ? t("studio.share.readAlong.pause") : t("readers.link.stop")}
                     question={t("readers.link.stopQuestion", { name: invite.name ?? kind })}
-                    confirmLabel={t("readers.link.stopConfirm")}
+                    confirmLabel={isStory ? t("studio.share.readAlong.pause") : t("readers.link.stopConfirm")}
                     tone="destructive"
                     busy={busy}
                     onConfirm={() => void stop(invite.id)}

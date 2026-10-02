@@ -10,7 +10,7 @@ import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";
 import { getTrip } from "@/lib/trips";
 import { journalPath } from "@/lib/journalPath";
 import { dayOfTrip } from "@/lib/studio/monthGrid";
-import { storyCardFacts, storyDayLink, storyPhotos } from "@/lib/storyCard";
+import { storyCardFacts, storyPhotos, storyShareLink } from "@/lib/storyCard";
 import { storyPhotoFile } from "@/lib/storyMedia";
 import { renderStoryVideo, storyVideoCacheKey, videoToolsAvailable } from "@/lib/storyVideo";
 
@@ -47,6 +47,7 @@ export async function GET(
   const url = new URL(request.url);
   const showCaptions = url.searchParams.get("captions") === "1";
   const wantLink = url.searchParams.get("link") !== "0";
+  const wantReadAlong = url.searchParams.get("readalong") === "1";
 
   const photos = storyPhotos(day);
   if (photos.length === 0) {
@@ -61,10 +62,12 @@ export async function GET(
   }
 
   const trip = getTrip(`${user}/${tripId}`);
-  const link = wantLink ? storyDayLink(user, tripId, stem, trip, day) : null;
+  const { url: link, readAlong } = wantLink
+    ? await storyShareLink(user, tripId, stem, trip, day, wantReadAlong)
+    : { url: null, readAlong: false };
 
   const dayNumber = dayOfTrip(day.date, tripFile.dates.from);
-  const facts = storyCardFacts({ day, dayNumber, tripTitle: tripFile.title, link, locale: owner.defaultLocale });
+  const facts = storyCardFacts({ day, dayNumber, tripTitle: tripFile.title, link, readAlong, locale: owner.defaultLocale });
 
   const key = storyVideoCacheKey({
     dayJson: JSON.stringify({ day }),
@@ -72,6 +75,7 @@ export async function GET(
     tripTitle: tripFile.title,
     locale: owner.defaultLocale,
     link,
+    readAlong,
     captions: showCaptions,
   });
   const bytes = await renderStoryVideo({ key, segments, facts, rateLimitKey: user, showCaptions });

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { storyCardFacts, storyCaption, storyDayLink, storyPhotos } from "@/lib/storyCard";
+import { storyCardFacts, storyCaption, storyDayLink, storyPhotos, storyShareLink } from "@/lib/storyCard";
 import { segmentLine, segmentStarts, withRenderSlot } from "@/lib/storyVideo";
 import type { Trip } from "@/lib/types";
 import type { DayFile } from "@/lib/api/v2/documents";
@@ -128,6 +128,42 @@ describe("storyDayLink — B2665", () => {
     expect(storyDayLink("alex", "t", "d", trip("public"), baseDay({ status: "draft" }))).toBeNull();
     expect(storyDayLink("alex", "t", "d", trip("public"), baseDay({ visibility: "guest" } as Partial<DayFile>))).toBeNull();
     expect(storyDayLink("alex", "t", "d", undefined, baseDay())).toBeNull();
+  });
+});
+
+describe("storyShareLink — B2665 round 2", () => {
+  const trip = (visibility: string) => ({ visibility }) as unknown as Trip;
+
+  test("a public trip's published day keeps its plain link, read-along or not", async () => {
+    const withReadAlong = await storyShareLink("alex", "t", "d", trip("public"), baseDay(), true);
+    expect(withReadAlong).toMatchObject({ readAlong: false });
+    expect(withReadAlong.url).toMatch(/\/day\/d$/);
+    const without = await storyShareLink("alex", "t", "d", trip("public"), baseDay(), false);
+    expect(without).toEqual(withReadAlong);
+  });
+
+  test("a private trip never carries a link, even if read-along is requested", async () => {
+    expect(await storyShareLink("alex", "t", "d", trip("private"), baseDay(), true)).toEqual({
+      url: null,
+      readAlong: false,
+    });
+  });
+
+  test("a readers-only trip carries nothing unless the caller asked for the read-along link", async () => {
+    expect(await storyShareLink("alex", "t", "d", trip("guest"), baseDay(), false)).toEqual({
+      url: null,
+      readAlong: false,
+    });
+  });
+
+  test("a readers-only trip with no journal to resolve never carries a link even when asked", async () => {
+    // No journal named "alex" exists in this test's environment, so the
+    // feature reads as unavailable — the same answer a journal with
+    // contacts off would give.
+    expect(await storyShareLink("alex", "t", "d", trip("guest"), baseDay(), true)).toEqual({
+      url: null,
+      readAlong: false,
+    });
   });
 });
 

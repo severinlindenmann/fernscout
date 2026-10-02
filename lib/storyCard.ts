@@ -1,6 +1,7 @@
 import "server-only";
 import type { DayFile } from "./api/v2/documents";
 import { isOpenToLink } from "./access";
+import { storyLinkState } from "./contacts/storyLink";
 import { dayUrl } from "./digest/content";
 import { translateIn } from "./locales";
 import { maySeePhoto, parsePhotoVisibility } from "./photos";
@@ -39,6 +40,13 @@ export type StoryFacts = {
    *  published — see `isOpenToLink` + day.status at the call site. Never
    *  decided in here. */
   link?: string;
+  /** True when `link` is the owner's own standing "Ask to read along" link
+   * rather than the plain day link (B2665 round 2, readers-only trips) —
+   * drawn with its own wording and, on the photo look, its own colour. */
+  readAlong?: boolean;
+  /** "Ask to read along", in the card's own locale — only set alongside
+   * `readAlong`. The card draws it in front of the bare URL. */
+  readAlongLabel?: string;
   photos: StoryPhoto[];
 };
 
@@ -60,9 +68,11 @@ export function storyCardFacts(args: {
   tripTitle: string;
   /** Resolved by the caller: `null` whenever the link may not be shown. */
   link: string | null;
+  /** B2665 round 2 — `link` is the read-along link, not the plain day link. */
+  readAlong?: boolean;
   locale: string;
 }): StoryFacts {
-  const { day, dayNumber, tripTitle, link, locale } = args;
+  const { day, dayNumber, tripTitle, link, readAlong, locale } = args;
   const date = new Date(`${day.date}T00:00:00`);
   const dateLabel = Number.isNaN(date.getTime())
     ? day.date
@@ -85,6 +95,8 @@ export function storyCardFacts(args: {
     tempLine: temp,
     subLine,
     link: link ?? undefined,
+    readAlong: link ? Boolean(readAlong) : undefined,
+    readAlongLabel: link && readAlong ? translateIn(locale, "studio.share.readAlong.onCard") : undefined,
     photos: storyPhotos(day).map((item) => ({ src: item.src, caption: item.caption })),
   };
 }
@@ -144,5 +156,31 @@ export function storyDayLink(user: string, tripId: string, stem: string, trip: T
   if (!trip || !isOpenToLink(trip) || day.status !== "published") return null;
   if (!maySeePhoto(parsePhotoVisibility(day.visibility), "public")) return null;
   return dayUrl(serverSite().url.replace(/\/$/, ""), user, tripId, stem);
+}
+
+/**
+ * The link a story would carry — B2665 round 2. A public trip's own day
+ * link, unchanged. A readers-only ("guest") trip has no day link at all —
+ * guests only, never a stranger with the URL — but the owner's own
+ * standing "Ask to read along" link may stand in for it, only when it is
+ * live and only when the caller asked for it (`wantReadAlong`, the
+ * `readalong=1` query param every route reads). A private trip, or a
+ * guest trip where the owner never turned the link on, gets nothing.
+ */
+export async function storyShareLink(
+  user: string,
+  tripId: string,
+  stem: string,
+  trip: Trip | undefined,
+  day: DayFile,
+  wantReadAlong: boolean,
+): Promise<{ url: string | null; readAlong: boolean }> {
+  const dayLink = storyDayLink(user, tripId, stem, trip, day);
+  if (dayLink) return { url: dayLink, readAlong: false };
+  if (!trip || trip.visibility !== "guest" || day.status !== "published" || !wantReadAlong) {
+    return { url: null, readAlong: false };
+  }
+  const state = await storyLinkState(user);
+  return state.status === "live" ? { url: state.url, readAlong: true } : { url: null, readAlong: false };
 }
 

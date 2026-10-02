@@ -37,16 +37,17 @@ export function storyVideoCacheKey(parts: {
   tripTitle: string;
   locale: string;
   link: string | null;
+  /** B2665 round 2 — a read-along link draws a different last line than a
+   * plain day link at the same URL would, so it changes the key too. */
+  readAlong?: boolean;
   captions: boolean;
 }): string {
   const hash = crypto.createHash("sha256");
-  // v5 — B2665 round 2: `fps=25` after the zoom (ffmpeg 7.1 on the production
-  // server refuses `xfade` on a variable-frame-rate input), pre-cropped
-  // photographs, the redesigned panel, and the trip title/locale/link/
-  // captions switch all now change what is rendered.
-  hash.update("v5\n");
+  // v6 — B2665 round 2: the read-along flag now changes the last line's
+  // wording, so it changes what is rendered too.
+  hash.update("v6\n");
   hash.update(parts.dayJson);
-  hash.update(`${parts.tripTitle}\n${parts.locale}\n${parts.link ?? ""}\n${parts.captions}\n`);
+  hash.update(`${parts.tripTitle}\n${parts.locale}\n${parts.link ?? ""}\n${Boolean(parts.readAlong)}\n${parts.captions}\n`);
   for (const file of parts.photoFiles) {
     try {
       const stat = fs.statSync(file);
@@ -116,8 +117,12 @@ export function segmentLine(
   i: number,
   link: string | undefined,
   showCaptions: boolean,
+  readAlongLabel?: string,
 ): string | undefined {
-  if (i === segments.length - 1 && link) return link.replace(/^https?:\/\//, "");
+  if (i === segments.length - 1 && link) {
+    const bare = link.replace(/^https?:\/\//, "");
+    return readAlongLabel ? `${readAlongLabel} ${bare}` : bare;
+  }
   if (!showCaptions) return undefined;
   return segments[i]?.caption || undefined;
 }
@@ -176,7 +181,7 @@ async function renderPanelPng(facts: StoryFacts, line: string | undefined): Prom
             fontSize: 24,
             lineHeight: 1.35,
             color: "#aeb7c5",
-            fontStyle: line && facts.link && line === facts.link.replace(/^https?:\/\//, "") ? "normal" : "italic",
+            fontStyle: line && facts.link && line.includes(facts.link.replace(/^https?:\/\//, "")) ? "normal" : "italic",
           }}
         >
           {line ?? ""}
@@ -272,7 +277,10 @@ async function buildClip(
   const panelPaths: string[] = [];
   for (let i = 0; i < segments.length; i++) {
     const panelPath = path.join(tmpDir, `panel-${i}.png`);
-    fs.writeFileSync(panelPath, await renderPanelPng(facts, segmentLine(segments, i, facts.link, showCaptions)));
+    fs.writeFileSync(
+      panelPath,
+      await renderPanelPng(facts, segmentLine(segments, i, facts.link, showCaptions, facts.readAlongLabel)),
+    );
     panelPaths.push(panelPath);
   }
 
