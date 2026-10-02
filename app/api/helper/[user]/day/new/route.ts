@@ -48,12 +48,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     return Response.json({ error: "invalid_date" }, { status: 400 });
   }
 
-  // D3 — a second day on an occupied date is let through only once the
-  // person has confirmed it (`confirmSecondEntry`, set by A2✗'s own second
-  // press) *and* named a time, which is what tells the two apart from here
-  // on. Anything else is the honest refusal the collision screen renders.
+  // D3, narrowed by B2701 — a second day on an occupied date is let through
+  // only once the person has confirmed it (`confirmSecondEntry`, set by
+  // A2✗'s own second press, or a split's own later parts). A time is never
+  // required for that: `createDraft`'s own `nextUntitledSlug` already gives
+  // an untitled second entry its own address on this date (`{date}-2`, …),
+  // the same way it already does for the first. Requiring one here used to
+  // answer a legitimate timeless second part with this same 409, which the
+  // page could only read as "Add this to it?" again — asked and already
+  // answered. Anything but a confirmed second entry is still the honest
+  // refusal the inline card renders.
   const collision = findDayForDate(user, tripId, date);
-  if (collision && !(body.confirmSecondEntry === true && text(body.time))) {
+  if (collision && body.confirmSecondEntry !== true) {
     refused(user, "add_day", "date_has_day");
     return Response.json({ error: "date_has_day", existing: collision }, { status: 409 });
   }

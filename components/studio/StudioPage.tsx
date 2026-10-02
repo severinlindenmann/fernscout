@@ -58,7 +58,13 @@ export default function StudioPage({
       <PageHeader backTo={back ? { href: `${journalPath(username)}/studio`, labelKey: "nav.studio" } : undefined} />
       <main id="main" tabIndex={-1} className={`mx-auto w-full ${WIDTH[width]} px-4 py-8`}>
         {group && <GroupMark group={group} size="sm" />}
-        <h1 className="font-display text-2xl font-semibold text-ink-strong">{title}</h1>
+        {/* `id` only — B2683, bug 1: a page whose own state can change what
+            it is ("Preview" → "Published") after a client action with no
+            navigation updates this text itself, since this component is not
+            a hook and cannot know that happened. */}
+        <h1 id="studio-page-title" className="font-display text-2xl font-semibold text-ink-strong">
+          {title}
+        </h1>
         {indicator && (
           <div className="mt-3">
             <StepIndicator {...indicator} />

@@ -75,6 +75,7 @@ export function PhotoPicker({
   bare,
   onPick,
   showChosen = true,
+  chooseLabel,
 }: {
   id: string;
   /** What is chosen right now — empty says so in words. Files rather than a
@@ -103,6 +104,11 @@ export function PhotoPicker({
    * nothing true left to add there.
    */
   showChosen?: boolean;
+  /** B2683, bug 6 — a caller whose own accept is narrowed to photographs
+   *  only (never the general inbox picker, which still takes a receipt or a
+   *  GPX too) can say so in its own button label, rather than the generic
+   *  "Choose files" that promises something this one never takes. */
+  chooseLabel?: string;
 }) {
   const { t, tn } = useI18n();
   const kinds = countKinds(chosen);
@@ -134,7 +140,7 @@ export function PhotoPicker({
         // moves a person on from it, and there is only ever one — B767.
         className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line-strong bg-surface-subtle px-5 text-base font-semibold text-ink-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
       >
-        {t("agent.chooseFiles")}
+        {chooseLabel ?? t("agent.chooseFiles")}
       </label>
       {!bare && showChosen && (
         <p className="mt-2 text-sm text-ink-body">

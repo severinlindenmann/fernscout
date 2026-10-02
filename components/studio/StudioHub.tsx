@@ -81,7 +81,7 @@ type HeroModel = {
  * never more than one of those is true, so only one card is ever the right
  * one to lead with.
  */
-function heroFor(model: StudioHubModel, username: string, t: T): HeroModel {
+function heroFor(model: StudioHubModel, username: string, t: T, formatLongDate: (iso: string) => string): HeroModel {
   if (model.kind === "empty") {
     return {
       href: `${journalPath(username)}/studio/trip/new`,
@@ -99,10 +99,18 @@ function heroFor(model: StudioHubModel, username: string, t: T): HeroModel {
       // Continue today", naming the day the owner already started rather
       // than the generic "Today is told".
       const day = model.toldTodayDay;
+      // B2702 — a day with no title is named by its date, never "Untitled":
+      // the same fallback `nameOf` already uses on the publish list.
+      const dayName = day?.title || formatLongDate(readerTodayISO());
       return {
-        href: `${journalPath(username)}/studio/day/new`,
+        // B2702 — "Continue today" opens the day just written, on the edit
+        // flow, never a fresh "day/new" that asks "Add this to it?" about
+        // the words it is itself the continuation of.
+        href: day?.slug
+          ? `${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(day.slug)}`
+          : `${journalPath(username)}/studio/day/new`,
         Icon: CalendarPlus,
-        title: day?.title ? t("studio.hub.addDay.toldToday.title", { title: day.title }) : t("studio.hub.addDay.toldToday.untitled"),
+        title: t("studio.hub.addDay.toldToday.title", { title: dayName }),
         description: day?.published ? t("studio.hub.addDay.toldToday.published") : t("studio.hub.addDay.toldToday.subtitle"),
         cta: t("studio.hub.addDay.toldToday.cta"),
         altLink: { href: `${journalPath(username)}/studio/day/edit`, label: t("studio.hub.addDay.change") },
@@ -161,7 +169,7 @@ export default function StudioHub({
   // The iPhone connects itself for Photos → Share the first time the studio
   // opens; the status lives on /me — B2206.
   useShareInboxAutoConnect(username);
-  const { t, tn, locale } = useI18n();
+  const { t, tn, locale, formatLongDate } = useI18n();
   const [query, setQuery] = useState("");
 
   // B2304 — no floating pill on the hub any more: it repeated the hero and
@@ -172,7 +180,7 @@ export default function StudioHub({
   // their own bar.
   useStudioBar(null, { replace: true });
 
-  const hero = heroFor(model, username, t);
+  const hero = heroFor(model, username, t, formatLongDate);
 
   const halfDone = (
     <HalfDone username={username} runs={model.resumableImports} postcard={model.postcardSuggestion} unfinished={model.print.unfinished} />

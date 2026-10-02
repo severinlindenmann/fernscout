@@ -79,17 +79,27 @@ describe("AddDayFlow — B2227, the place chip reads only this day's photographs
     });
 
     const c = container!;
-    // Open "more waiting" and choose the Geneva photo from another day too —
-    // the reported scenario: every waiting photograph chosen.
+    // Open the "＋ Add photos" sheet (B2683, bug 2 — the old standalone
+    // "more waiting" disclosure is gone) and choose the Geneva photo from
+    // another day too — the reported scenario: every waiting photograph
+    // chosen.
+    const addTile =
+      (c.querySelector('[aria-label="Add photos"]') as HTMLButtonElement | null) ??
+      (Array.from(c.querySelectorAll("button")).find((b) => b.textContent?.includes("Add photos")) as HTMLButtonElement);
+    await act(async () => addTile.click());
     await act(async () => {
-      for (const d = c.querySelector("[data-waiting-photos]") as HTMLDetailsElement | null; d; ) {
-        d.open = true;
-        break;
-      }
+      for (let i = 0; i < 8; i++) await Promise.resolve();
     });
-    const genevaTile = c.querySelector('[data-photo="geneva-c.jpg"]') as HTMLButtonElement | null;
+    const genevaTile = c.querySelector('[role="dialog"] [data-photo="geneva-c.jpg"]') as HTMLButtonElement | null;
     expect(genevaTile).not.toBeNull();
     await act(async () => genevaTile!.click());
+    const confirm = Array.from(c.querySelectorAll('[role="dialog"] button')).find((b) =>
+      /^Add \d+ photos?$/.test(b.textContent?.trim() ?? ""),
+    ) as HTMLButtonElement;
+    await act(async () => confirm.click());
+    await act(async () => {
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+    });
 
     const chip = c.querySelector('[data-chip="place"]') as HTMLButtonElement;
     expect(chip.textContent).toContain("Porto");

@@ -87,8 +87,10 @@ export type StudioHubModel =
       /** B2676 — the told day's own title and whether it is already
        *  published, for the hero's "Today: “{title}” · Not published yet ·
        *  Continue today" wording (V2.1 decision 10). `undefined` exactly
-       *  when `toldToday` is false/absent — there is no day to name. */
-      toldTodayDay?: { title: string; published: boolean };
+       *  when `toldToday` is false/absent — there is no day to name.
+       *  `slug` (B2702) is what "Continue today" actually opens — the day
+       *  just written, on the edit flow, never a second "day/new" part. */
+      toldTodayDay?: { title: string; published: boolean; slug: string };
       /** B2678 — the most recently published day of `addDayTrip`, for the
        *  hub's own "Share as a story" card. `undefined` on a model built
        *  without it (the private features repo's own fixtures, same as
@@ -320,7 +322,7 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
       ? daysByTrip.find((t) => t.id === current.id)?.days.find((d) => d.date === readerTodayISO())?.lead
       : undefined;
   const toldToday = toldTodayEntry !== undefined;
-  const toldTodayDay = toldTodayEntry ? { title: toldTodayEntry.title, published: !toldTodayEntry.draft } : undefined;
+  const toldTodayDay = toldTodayEntry ? { title: toldTodayEntry.title, published: !toldTodayEntry.draft, slug: toldTodayEntry.slug } : undefined;
   // B2678 — the hub's own "Share as a story" card: the latest published
   // entry of `addDayTrip` only (never a different trip's), most recent date
   // first; a day with several parts shares one date, so `.find` on the
