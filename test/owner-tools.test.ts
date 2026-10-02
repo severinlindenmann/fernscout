@@ -111,4 +111,22 @@ describe("the owner's block under a day", () => {
     expect(tools).toContain("{deletable && <DeleteDay username={username} day={deletable} tile />}");
     expect(tools, "InviteToRead only renders on the trip overview").toContain("{!day && <InviteToRead");
   });
+
+  /**
+   * "Share as a story" — B2665. Same gate as `DayNotify` right above it:
+   * nothing for a draft, nothing on the trip overview (no `day`), nothing
+   * for a reader (this whole file is owner-only).
+   */
+  test("offers Share as a story only where DayNotify also would", () => {
+    const tools = read("components/OwnerTools.tsx");
+    expect(tools).toContain("owner.shareStory");
+    expect(tools).toContain("studio/day/share?trip=");
+    // The share tile's own gate, read back from right before its label —
+    // the same "{day && day.published &&" DayNotify's own render sits
+    // behind, just above it in the file.
+    const shareLabelAt = tools.indexOf("owner.shareStory");
+    const gate = tools.slice(0, shareLabelAt).match(/\{day && day\.published && \([^]*$/)?.[0] ?? "";
+    expect(gate.length, "share tile must be behind its own 'day && day.published' gate").toBeGreaterThan(0);
+    expect(gate).not.toContain("DayNotify"); // confirms this is the SECOND such gate, not the first
+  });
 });
