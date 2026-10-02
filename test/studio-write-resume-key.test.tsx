@@ -105,3 +105,65 @@ describe("the flowId itself", () => {
     expect(addDayFlowId("alex")).not.toMatch(/:one$|:part-/);
   });
 });
+
+describe("a kept draft that has since been published (found in the browser, 2026-10-02)", () => {
+  function mount() {
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    return act(async () =>
+      root!.render(
+        <LocaleProvider dictionary={dict} locale="en">
+          <StudioBarProvider username="alex">
+            <DayFlow
+              username="alex"
+              trips={TRIPS}
+              writtenDatesByTrip={{ reise: ["2025-11-02"] }}
+              proposal={{ trip: { id: "reise", title: "Reise", status: "current" }, reasonKey: "studio.day.which.reasonCurrent", today: "2025-11-10" }}
+            />
+          </StudioBarProvider>
+        </LocaleProvider>,
+      ),
+    );
+  }
+
+  test("is never written to again: the page starts over instead of PATCHing a published day", async () => {
+    await mount();
+    await flush();
+    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")!.set!;
+      setter.call(textarea, "Yesterday's words.");
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await flush();
+    const key = addDayStorageKey("alex");
+    const stored = JSON.parse(sessionStorage.getItem(key)!);
+    const withSlug = JSON.stringify(stored).replace('"createdSlug":null', '"createdSlug":"2025-11-10"');
+    expect(withSlug).toContain('"createdSlug":"2025-11-10"');
+    act(() => root?.unmount());
+    container.remove();
+    sessionStorage.setItem(key, withSlug);
+
+    const calls: Array<{ url: string; method: string }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        calls.push({ url, method: init?.method ?? "GET" });
+        if (url.endsWith("/inbox")) return Response.json({ media: [] });
+        if (url.includes("/day/for-date")) return Response.json({ ok: true, existing: null });
+        if (url.includes("/day?trip=")) return Response.json({ ok: true, draft: { slug: "2025-11-10", published: true } });
+        return Response.json({ ok: true });
+      }),
+    );
+    await mount();
+    await flush();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 2000));
+    });
+    await flush();
+
+    expect(calls.filter((c) => c.method === "PATCH")).toEqual([]);
+    expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toBe("");
+  });
+});

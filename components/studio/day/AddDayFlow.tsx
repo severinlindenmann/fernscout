@@ -449,6 +449,13 @@ export default function AddDayFlow({
     setLng(undefined);
     setWeatherOn(true);
     setExtras(NO_EXTRAS);
+    // The new day is a new day: nothing a background save created for the
+    // old one may be written to again, and the date is asked about afresh.
+    setCreatedSlug(null);
+    setParts(null);
+    setPartWords([]);
+    setExistingOnDate(null);
+    existingAskedFor.current = null;
     // Not `reset()`: that stops the draft being kept at all, and the page
     // carries on. The emptied fields are written over the old draft instead.
     setRestoredFrom(null);
@@ -688,6 +695,25 @@ export default function AddDayFlow({
   const mismatched = date ? chosenPhotos.filter((i) => i.takenAt && i.takenAt.slice(0, 10) !== date) : [];
   // B2193 — photographs from several days are split on the hub, one card each.
   const photoDays = new Set(chosenPhotos.map((i) => photoDay(i.takenAt)).filter(Boolean)).size;
+
+  // A tab's kept draft can name a day that has since been published (or
+  // deleted) — writing the old snapshot's words into it would change a day
+  // readers already have. Checked once, as soon as a restored `createdSlug`
+  // is known: anything but a live draft starts the page over.
+  const restoredSlugChecked = useRef(false);
+  const [restoredSlugOk, setRestoredSlugOk] = useState(false);
+  useEffect(() => {
+    if (restoredSlugChecked.current || !restoredFrom || !createdSlug) return;
+    restoredSlugChecked.current = true;
+    fetch(`/api/helper/${encodeURIComponent(username)}/day?trip=${encodeURIComponent(tripId)}&slug=${encodeURIComponent(createdSlug)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { draft?: { published?: boolean } } | null) => {
+        if (!json?.draft || json.draft.published) startOver();
+        else setRestoredSlugOk(true);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoredFrom, createdSlug]);
 
   // ── "Add this to it?" (B2676, decision 4) ───────────────────────────
   // Asked inline the moment a date is chosen, not only discovered at save
@@ -1158,6 +1184,8 @@ export default function AddDayFlow({
     // saved until there are words or a photograph, so a draft nobody typed
     // into is never created just by visiting `/studio/day/new`.
     if (!createdSlug && content.trim() === "" && chosenPhotos.length === 0) return;
+    // A restored day is written to only once it is known to still be a draft.
+    if (restoredFrom && createdSlug && !restoredSlugOk) return;
     // Waits for the inline "Add this to it?" to be answered — autosaving
     // into a day that already exists, before the owner said yes, would be
     // exactly the collision this ask exists to avoid.
@@ -1198,7 +1226,7 @@ export default function AddDayFlow({
     }, 1500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autosaveSignature, parts, tripId, date, online, createdSlug, existingOnDate, confirmedSecondEntry, outcome]);
+  }, [autosaveSignature, parts, tripId, date, online, createdSlug, existingOnDate, confirmedSecondEntry, outcome, restoredFrom, restoredSlugOk]);
 
   // The weather chip's own real value, and the day's gallery (B2676) — once
   // the day exists, the server has already tried the weather lookup at
