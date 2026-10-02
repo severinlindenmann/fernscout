@@ -48,6 +48,9 @@ export async function spendAndTranscribe(
    *  kept for callers that still pass it; nothing here reads it any more
    *  now that there is no ledger ref to key it into. */
   runId?: string,
+  /** The trip's own keyterms (`lib/helper/keyterms.ts`), when the caller
+   *  knows which trip this recording belongs to — B2691. */
+  keyterms: string[] = [],
 ): Promise<TranscribeOutcome> {
   void runId;
   void claimedSeconds;
@@ -56,7 +59,7 @@ export async function spendAndTranscribe(
 
   let transcript;
   try {
-    transcript = await transcribeAudio(audio, mediaType, language, username);
+    transcript = await transcribeAudio(audio, mediaType, language, username, keyterms);
   } catch {
     return { ok: false, error: "transcription_failed" };
   }
