@@ -558,11 +558,30 @@ function deriveTripTail(
   preserveExistingWhenEmpty = false,
 ): void {
   const now = Date.now();
+  // B2610 — the tail's own read range runs up to `now`, which can land on
+  // the calendar day *after* `trip.end` whenever the owner's own recorded
+  // timezone sits ahead of UTC: `trip.end`'s window is local-midnight to
+  // local-midnight, so it closes two hours before its own UTC calendar date
+  // even ends (for a UTC+2 zone) — and a fix made in that gap (00:00-02:00
+  // local) fell inside no window at all and was silently dropped, every
+  // night, for any owner east of UTC. One more day's window closes it.
+  // Carrying `trip.end`'s own guessed timezone forward, rather than
+  // re-guessing from `tailEnd`'s own (still fix-less) UTC calendar day: the
+  // tail is the same ongoing walk a few hours later, overwhelmingly likely
+  // still in the same zone, and a fresh guess here would find nothing to
+  // guess from. Only the tail reads this extra date — `track.json` and
+  // every other `dayTimezones` caller are untouched.
+  // Only while trip.end is still today's UTC date — the 00:00-02:00 local
+  // gap above. A trip that ended before today never gains a day: a whole
+  // day after its end (a home address, say) must not reach the tail.
+  const tailEnd = trip.end >= new Date(now).toISOString().slice(0, 10) ? nextDate(trip.end) : trip.end;
+  const tailZonedDates: Record<string, string> =
+    tailEnd in zonedDates ? { ...zonedDates } : { ...zonedDates, [tailEnd]: zonedDates[trip.end] ?? "UTC" };
   const tail = tailForTrip(username, {
     start: trip.start,
-    end: trip.end,
+    end: tailEnd,
     zones,
-    dayTimezones: zonedDates,
+    dayTimezones: tailZonedDates,
     trimMetres: TRIM_METRES,
     sinceMs: now - MIN_AGE_MS,
     nowMs: now,

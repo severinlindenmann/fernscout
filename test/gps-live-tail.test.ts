@@ -221,6 +221,73 @@ describe("the derived tail — B2536", () => {
     }
   });
 
+  // B2610 — this walk (lat 41 / lon 2, UTC+2) must survive the tail
+  // regardless of what time of day the suite runs. Pinned, rather than
+  // left to the real wall clock: `test.each` below used to fail only
+  // between 22:00 and 24:00 UTC, because at lat 41 / lon 2 the local date
+  // has already rolled over to tomorrow while `trip.end`'s own window (one
+  // local midnight to the next) still ends two hours earlier, inside
+  // today's own UTC calendar date. 10:00Z has no such edge and must keep
+  // passing exactly as before.
+  test.each([
+    ["22:33 UTC — local midnight already passed in UTC+2", "2026-09-30T22:33:00.000Z"],
+    ["10:00 UTC — well inside the UTC day, no timezone edge", "2026-09-30T10:00:00.000Z"],
+  ])("the tail survives a walk at lat 41 / lon 2 pinned at %s", (_label, iso) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date(iso));
+      const pinnedNow = Date.now();
+      const start = new Date(pinnedNow - 30 * 3600_000).toISOString().slice(0, 10);
+      const end = new Date(pinnedNow).toISOString().slice(0, 10);
+      const edgeTrip = "edge-2026";
+      writeTripFixture(OWNER, {
+        id: edgeTrip,
+        start,
+        end,
+        visibility: "guest",
+        listed: false,
+        people: [{ name: "Robin", email: ROBIN_EMAIL }],
+        intro: "x",
+      });
+      const anchorMs = pinnedNow - 60_000; // "right now", almost
+      const recent = recentWalk(anchorMs, 41, 2);
+      appendFixes(OWNER, recent);
+      deriveTripTrack(OWNER, { id: edgeTrip, start, end });
+
+      const tail = readTail(OWNER, edgeTrip);
+      expect(tail).toBeDefined();
+      const points = tail!.segments.flatMap((s) => s.points);
+      expect(points.length).toBeGreaterThan(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("a trip that ended yesterday never shows today's walk in its tail (B2610's extra day is only for a trip ending today)", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-02T10:00:00.000Z"));
+      const pinnedNow = Date.now();
+      const edgeTrip = "ended-2026";
+      const start = "2026-09-28";
+      const end = "2026-10-01";
+      writeTripFixture(OWNER, {
+        id: edgeTrip,
+        start,
+        end,
+        visibility: "guest",
+        listed: false,
+        people: [{ name: "Robin", email: ROBIN_EMAIL }],
+        intro: "x",
+      });
+      appendFixes(OWNER, recentWalk(pinnedNow - 60_000, 41, 2));
+      deriveTripTrack(OWNER, { id: edgeTrip, start, end });
+      expect(readTail(OWNER, edgeTrip)).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("no fix at all leaves both files absent, never stale", () => {
     deriveTripTrack(OWNER, { id: TRIP, start: START_DATE, end: END_DATE });
     expect(readTrack(OWNER, TRIP)).toBeUndefined();
