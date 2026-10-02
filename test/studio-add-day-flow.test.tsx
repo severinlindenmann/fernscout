@@ -518,6 +518,75 @@ describe("B2627 — a long day's photos picked inside the composer are offered a
   });
 });
 
+describe("B2676 — the '＋ Add photos' sheet's own Waiting tab", () => {
+  test("more than 20 waiting for this day: none are pre-selected", async () => {
+    // Dated to 2025-11-05, not to `proposedToday` (2025-11-10) — so the
+    // page's own "today's photos" auto-choose never sweeps them up before
+    // the date is moved onto their own day.
+    inbox = Array.from({ length: 21 }, (_, i) => ({ ...A, id: `w${i}`, filename: `w${i}.jpg`, takenAt: "2025-11-05T09:00:00" }));
+    await mount();
+    await act(async () => (container.querySelector('[data-chip="date"]') as HTMLButtonElement).click());
+    await act(async () => {
+      Array.from(container.querySelectorAll("summary")).find((s) => s.textContent === "Another date")!.click();
+    });
+    await flush();
+    await act(async () => (container.querySelector('button[data-date="2025-11-05"]') as HTMLButtonElement).click());
+    await flush();
+    expect(dateChip()).toContain("5 November");
+
+    await act(async () => (container.querySelector('[aria-label="Add photos"]') as HTMLButtonElement).click());
+    await flush();
+    const sheet = container.querySelector('[role="dialog"]')!;
+    expect(sheet.querySelectorAll("[data-photo]")).toHaveLength(21);
+    const ticked = sheet.querySelectorAll('[data-photo][aria-pressed="true"]');
+    expect(ticked).toHaveLength(0);
+  });
+
+  test("20 or fewer waiting for this day: every one is pre-selected", async () => {
+    inbox = Array.from({ length: 20 }, (_, i) => ({ ...A, id: `w${i}`, filename: `w${i}.jpg`, takenAt: "2025-11-05T09:00:00" }));
+    await mount();
+    await act(async () => (container.querySelector('[data-chip="date"]') as HTMLButtonElement).click());
+    await act(async () => {
+      Array.from(container.querySelectorAll("summary")).find((s) => s.textContent === "Another date")!.click();
+    });
+    await flush();
+    await act(async () => (container.querySelector('button[data-date="2025-11-05"]') as HTMLButtonElement).click());
+    await flush();
+
+    await act(async () => (container.querySelector('[aria-label="Add photos"]') as HTMLButtonElement).click());
+    await flush();
+    const sheet = container.querySelector('[role="dialog"]')!;
+    const ticked = sheet.querySelectorAll('[data-photo][aria-pressed="true"]');
+    expect(ticked).toHaveLength(20);
+  });
+});
+
+describe("B2676 — a manual place edit clears a photo's own coordinates", () => {
+  test("typing a place by hand drops the pin a photo gave, and a stale pin never reaches the write", async () => {
+    inbox = [{ ...A, takenAt: "2025-11-05T09:00:00", lat: 46.2, lon: 9.0 }];
+    props = { weatherAvailable: true, initialPhotos: "2025-11-05" };
+    await mount();
+    // The pin is real: a photo with coordinates and no name offers the
+    // weather chip, which needs `hasCoords`.
+    expect(container.querySelector('[data-chip="weather"]')).not.toBeNull();
+
+    await act(async () => (container.querySelector('[data-chip="place"]') as HTMLButtonElement).click());
+    const locationInput = container.querySelector('input[name="location"]') as HTMLInputElement;
+    expect(locationInput).not.toBeNull();
+    type(locationInput, "Chur");
+    await flush();
+
+    // The coordinates are gone the moment a human names the place by hand
+    // — B2676, decision 6 (old P13: never keep a stale pin).
+    expect(container.querySelector('[data-chip="weather"]')).toBeNull();
+    await click("Preview →");
+    const body = commitBody as unknown as { location?: string; lat?: number; lng?: number };
+    expect(body.location).toBe("Chur");
+    expect(body.lat).toBeUndefined();
+    expect(body.lng).toBeUndefined();
+  });
+});
+
 describe("AddDayFlow, first run — B2188 (C inside A)", () => {
   test("an owner with no day yet sees the same page one part at a time", async () => {
     props = { writtenDatesByTrip: { reise: [], andere: [] } };

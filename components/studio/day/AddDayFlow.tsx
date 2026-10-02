@@ -26,7 +26,7 @@ import SpeakFlow, { RatherTalk, TellByChoice } from "@/components/studio/day/Spe
 import type { TellBy } from "@/lib/studio/speak";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
-import { partTimeOfDay, splitIntoParts, type DayPart } from "@/lib/studio/dayParts";
+import { partTimeOfDay, splitIntoParts, waitingSheetPreselectsAll, type DayPart } from "@/lib/studio/dayParts";
 import { partCommitPlan, titleCollidesWithExisting } from "@/lib/studio/dayCollision";
 import { missingConsentScopes } from "@/lib/studio/featureConsent";
 import { writePreviewUrl } from "@/lib/studio/previewUrl";
@@ -565,10 +565,8 @@ export default function AddDayFlow({
     selectedIdsAtSheetOpen.current = selectedIds;
     setPhotoSheetTarget(target);
     setPhotoSheetTab("waiting");
-    // B2676 — more than 20 waiting for this day: none pre-selected, so
-    // picking is a real choice rather than a wall of ticks to undo.
     const thisDay = waitingGroups().find((g) => g.date === date);
-    setSheetPicked(new Set(thisDay && thisDay.items.length <= 20 ? thisDay.items.map((i) => i.id) : []));
+    setSheetPicked(new Set(thisDay && waitingSheetPreselectsAll(thisDay.items.length) ? thisDay.items.map((i) => i.id) : []));
   }
 
   function toggleSheetPicked(id: string) {
