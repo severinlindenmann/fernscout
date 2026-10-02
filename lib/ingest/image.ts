@@ -202,7 +202,10 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
   );
   // Awaited rather than `spawnSync`, which held every other request on the
   // server for as long as the conversion took. See lib/ingest/run.ts.
-  const run = await runProcess(decoder.command, decoder.args(file, temp));
+  // B2262: a decoder that hangs is killed, and counts as a failure below.
+  const run = await runProcess(decoder.command, decoder.args(file, temp), {
+    timeout: Number(process.env.FERNSCOUT_HEIF_TIMEOUT_MS) || 30_000,
+  });
   if (run.status !== 0 || !fs.existsSync(temp)) {
     fs.rmSync(path.dirname(temp), { recursive: true, force: true });
     throw new UndecodableImageError(file, `${failure} (${decoder.command} could not convert it)`);
@@ -234,7 +237,13 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
     m?.width && m.height ? [Math.min(m.width, m.height), Math.max(m.width, m.height)] : undefined;
   const a = pair(redeclared);
   const b = pair(got);
-  if (a && b && (a[0] !== b[0] || a[1] !== b[1])) {
+  // B2262: an output whose size cannot be read (past the pixel cap, or not an
+  // image) is refused, not waved through with the check skipped.
+  if (!b) {
+    fs.rmSync(path.dirname(temp), { recursive: true, force: true });
+    throw new UndecodableImageError(file, `${decoder.command} returned output whose size could not be read`);
+  }
+  if (a && (a[0] !== b[0] || a[1] !== b[1])) {
     fs.rmSync(path.dirname(temp), { recursive: true, force: true });
     throw new UndecodableImageError(
       file,
