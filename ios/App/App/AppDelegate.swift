@@ -102,6 +102,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
 
+    /// B2697 — a sign-in link that launched the app cold. The bridge does not
+    /// exist yet in `willConnectTo`, so it is loaded once the scene is active.
+    private var pendingLink: URL?
+
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         // A launch by URL or activity arrives here rather than through the
         // callbacks below.
@@ -109,8 +113,29 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: url, options: [:])
         }
         if let activity = connectionOptions.userActivities.first {
+            pendingLink = activity.webpageURL
             _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: activity, restorationHandler: { _ in })
         }
+    }
+
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        if let url = pendingLink {
+            pendingLink = nil
+            openInBridge(url)
+        }
+    }
+
+    /// B2697 — a universal link (`applinks:` in App.entitlements, claimed by
+    /// `app/.well-known/apple-app-site-association`) is a sign-in link from
+    /// Mail. Loaded into the bridge's own WebView so the token is redeemed
+    /// into the app's cookie jar, on the same exact host/scheme/port match
+    /// against `appStartServerURL` the notification taps use below. An owner
+    /// who pointed the app at another server keeps getting Safari for it.
+    private func openInBridge(_ url: URL) {
+        guard let bridge = (window?.rootViewController as? CAPBridgeViewController)?.bridge,
+              let base = bridge.config.appStartServerURL as URL?,
+              url.host == base.host, url.scheme == base.scheme, url.port == base.port else { return }
+        bridge.webView?.load(URLRequest(url: url))
     }
 
     func sceneWillEnterForeground(_ scene: UIScene) {
@@ -127,6 +152,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        if let url = userActivity.webpageURL { openInBridge(url) }
         _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: userActivity, restorationHandler: { _ in })
     }
 }

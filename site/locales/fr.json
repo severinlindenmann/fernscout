@@ -1041,8 +1041,6 @@
   "studio.hub.fact.startsIn.one": "dans {count} jour",
   "studio.hub.fact.asking": "{count} demandent",
   "studio.hub.fact.asking.one": "{count} demande",
-  "studio.hub.fact.purchasesOpen": "{count} en cours",
-  "studio.hub.fact.purchasesOpen.one": "{count} en cours",
   "studio.hub.fact.storage": "{used} sur {limit} Go",
   "studio.hub.item.inbox.hint": "Des fichiers que tu as envoyés, pas encore placés sur un jour.",
   "studio.hub.item.postcard.title": "Une carte postale",
