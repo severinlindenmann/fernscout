@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { storyCardFacts, dayNumberOf, storyDayLink, storyPhotos } from "@/lib/storyCard";
-import { segmentLine, segmentStarts } from "@/lib/storyVideo";
+import { segmentLine, segmentStarts, withRenderSlot } from "@/lib/storyVideo";
 import type { Trip } from "@/lib/types";
 import type { DayFile } from "@/lib/api/v2/documents";
 
@@ -151,5 +151,22 @@ describe("video segments — B2665", () => {
 
   test("the line switches halfway through each crossfade", () => {
     expect(segmentStarts(3, 2.8, 0.4).map((t) => Number(t.toFixed(2)))).toEqual([0, 2.6, 5.0]);
+  });
+});
+
+describe("render slots — B2665", () => {
+  test("never more than two renders run at once, and every one still finishes", async () => {
+    let now = 0;
+    let peak = 0;
+    const job = (i: number) =>
+      withRenderSlot(async () => {
+        now++;
+        peak = Math.max(peak, now);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        now--;
+        return i;
+      });
+    expect(await Promise.all([0, 1, 2, 3, 4, 5].map(job))).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(peak).toBe(2);
   });
 });

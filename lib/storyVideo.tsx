@@ -75,6 +75,25 @@ function writeCachedStoryVideo(key: string, bytes: Buffer): void {
  * filesystem lock if this instance ever runs more than one worker. */
 const renders = new Map<string, Promise<Buffer | null>>();
 
+/** At most this many ffmpeg renders at once on the whole instance; the rest
+ * wait their turn. Each is a few CPU-seconds at 2x size — several owners at
+ * once must not starve the server. The per-owner rate limit bounds the queue.
+ * ponytail: per process, like `renders` above. */
+const MAX_CONCURRENT_RENDERS = 2;
+let running = 0;
+const waiting: (() => void)[] = [];
+
+export async function withRenderSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (running >= MAX_CONCURRENT_RENDERS) await new Promise<void>((resolve) => waiting.push(resolve));
+  running++;
+  try {
+    return await work();
+  } finally {
+    running--;
+    waiting.shift()?.();
+  }
+}
+
 /** One photograph of the clip and the line its panel shows while it is up. */
 export type StorySegment = { file: string; caption?: string };
 
@@ -169,7 +188,7 @@ export async function renderStoryVideo(args: {
   const job = (async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "story-video-"));
     try {
-      const bytes = await buildClip(args.segments.slice(0, 3), args.facts, tmpDir);
+      const bytes = await withRenderSlot(() => buildClip(args.segments.slice(0, 3), args.facts, tmpDir));
       if (bytes) writeCachedStoryVideo(args.key, bytes);
       return bytes;
     } finally {
