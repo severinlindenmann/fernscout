@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, beforeEach } from "vitest";
 import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
-import { addAllAiTags, matchingUsedBeforeTags, mergeTags, toggleTag } from "@/lib/studio/tagsMerge";
+import { addAllAiTags, matchingUsedBeforeTags, mergeTags, tagPhotoIds, TAG_PHOTO_MAX, toggleTag } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer } from "@/lib/studio/languageAnswer";
 import { initialSuggestionState, pickTitle, addCaptions, acceptSpelling } from "@/lib/studio/suggestionState";
 
@@ -43,6 +43,26 @@ describe("mergeTags — B2677 place + used-before + AI, deduped", () => {
     const selected = new Set(["paris"]);
     expect(toggleTag(selected, "museum")).toEqual(new Set(["paris", "museum"]));
     expect(toggleTag(new Set(["paris", "museum"]), "paris")).toEqual(new Set(["museum"]));
+  });
+});
+
+describe("tagPhotoIds — B2685 the day's own photographs offered to mode: tags", () => {
+  it("collects image srcs across every part, in order", () => {
+    const entries = [
+      { gallery: [{ src: "a.jpg", type: "image" as const }, { src: "b.mp4", type: "video" as const }] },
+      { gallery: [{ src: "c.jpg", type: "image" as const }] },
+    ];
+    expect(tagPhotoIds(entries)).toEqual(["a.jpg", "c.jpg"]);
+  });
+  it("never sends a video", () => {
+    expect(tagPhotoIds([{ gallery: [{ src: "a.mp4", type: "video" as const }] }])).toEqual([]);
+  });
+  it("caps at TAG_PHOTO_MAX across all parts combined", () => {
+    const manyImages = Array.from({ length: TAG_PHOTO_MAX + 3 }, (_, i) => ({ src: `${i}.jpg`, type: "image" as const }));
+    expect(tagPhotoIds([{ gallery: manyImages }])).toHaveLength(TAG_PHOTO_MAX);
+  });
+  it("is empty with no entries", () => {
+    expect(tagPhotoIds([])).toEqual([]);
   });
 });
 
