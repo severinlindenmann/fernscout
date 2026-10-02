@@ -4691,5 +4691,7 @@
   "plans.cellPlusPayTwint": "Kártya vagy TWINT, évente",
   "agent.speechAiDaysUsedUp": "Elfogytak a csomagodhoz tartozó AI-napok.",
   "photobook.first.describe.receiptDays": "{count} fénykép leírva.",
-  "photobook.first.describe.receiptDays.one": "1 fénykép leírva."
+  "photobook.first.describe.receiptDays.one": "1 fénykép leírva.",
+  "billing.purchaseUnconfirmed": "Az Apple elfogadta a vásárlást, de ez a szerver még nem tudta megerősíteni. Semmi sem vész el: koppints a „Vásárlások visszaállítása” gombra az újrapróbáláshoz.",
+  "billing.purchasePending": "A vásárlás jóváhagyásra vár. A csomagod a jóváhagyás után azonnal megváltozik."
 }

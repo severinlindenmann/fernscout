@@ -345,7 +345,7 @@ function BuyPlanButton({
   const { t } = useI18n();
   const native = useNativeShell();
   const [busy, setBusy] = useState(false);
-  const [state, setState] = useState<"idle" | "failed" | "unavailable" | "sent">("idle");
+  const [state, setState] = useState<"idle" | "failed" | "unavailable" | "unconfirmed" | "pending" | "sent">("idle");
 
   async function buy() {
     setBusy(true);
@@ -359,6 +359,8 @@ function BuyPlanButton({
         // "unavailable" (the product never resolved from the store) gets its
         // own plain message rather than the generic retry one — B2670.
         if (result.reason === "unavailable") setState("unavailable");
+        else if (result.reason === "unconfirmed") setState("unconfirmed");
+        else if (result.reason === "pending") setState("pending");
         else if (result.reason !== "cancelled") setState("failed");
         return;
       }
@@ -404,6 +406,16 @@ function BuyPlanButton({
       {state === "unavailable" && (
         <span role="status" className="mt-1 block text-sm text-coral-600">
           {t("billing.purchaseUnavailable")}
+        </span>
+      )}
+      {state === "unconfirmed" && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("billing.purchaseUnconfirmed")}
+        </span>
+      )}
+      {state === "pending" && (
+        <span role="status" className="mt-1 block text-sm text-ink-secondary">
+          {t("billing.purchasePending")}
         </span>
       )}
       {state === "sent" && (

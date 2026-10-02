@@ -4694,5 +4694,7 @@
   "plans.cellPlusPayTwint": "Carta o TWINT, ogni anno",
   "agent.speechAiDaysUsedUp": "I tuoi giorni di IA per questo piano sono esauriti.",
   "photobook.first.describe.receiptDays": "{count} foto descritte.",
-  "photobook.first.describe.receiptDays.one": "1 foto descritta."
+  "photobook.first.describe.receiptDays.one": "1 foto descritta.",
+  "billing.purchaseUnconfirmed": "Apple ha accettato l'acquisto, ma questo server non è ancora riuscito a confermarlo. Non si perde nulla: tocca «Ripristina acquisti» per riprovare.",
+  "billing.purchasePending": "L'acquisto è in attesa di approvazione. Il tuo piano cambia appena viene approvato."
 }
