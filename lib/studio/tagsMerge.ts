@@ -10,7 +10,7 @@
  * its selection set with the place the first time it builds one; "used
  * before" and AI chips start unselected until tapped or "Add all".
  */
-export type TagSource = "place" | "usedBefore" | "ai";
+type TagSource = "place" | "usedBefore" | "ai";
 export type TagChip = { tag: string; source: TagSource; selected: boolean };
 
 export function mergeTags(
