@@ -523,7 +523,9 @@ export type ServerChoiceConfirm = {
 /** What the app says at launch if the chosen server stops answering, kept
  *  natively with the choice because no page can load then. `{host}` is
  *  filled in natively: the chosen server in the body, the build's own in
- *  `resetLabel`. */
+ *  `resetLabel`. Read only by shells built before B2731, whose native
+ *  "Can't reach this server" screen carries its own translated words;
+ *  still sent so those installed builds keep their way back. */
 export type ServerChoiceUnreachable = {
   unreachableTitle: string;
   unreachableBody: string;

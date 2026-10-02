@@ -217,35 +217,4 @@ public class ServerChoicePlugin: CAPPlugin, CAPBridgedPlugin {
         while let presented = top?.presentedViewController { top = presented }
         top?.present(alert, animated: true)
     }
-
-    /// The way back when the owner's own server does not answer — checked
-    /// once per launch, and only when a server was chosen: the build's own
-    /// server never gets this dialog. Without it, a server that was taken
-    /// down would leave the app with no page to reach the reset from. Both
-    /// buttons are native and never reachable from a page, so going back to
-    /// the default here needs no second confirmation.
-    static func checkChosenServerAnswers(reload: @escaping () -> Void) {
-        guard let origin = ServerChoiceStore.chosen, let copy = ServerChoiceStore.unreachableCopy,
-              let title = copy["unreachableTitle"], let body = copy["unreachableBody"],
-              let retry = copy["retryLabel"], let reset = copy["resetLabel"] else { return }
-        probe(origin) { outcome in
-            guard outcome == .unreachable else { return }
-            let host = URLComponents(string: origin)?.host ?? origin
-            let fallback = ViewController.defaultServerURL.flatMap { URL(string: $0)?.host } ?? ""
-            let alert = UIAlertController(
-                title: title,
-                message: body.replacingOccurrences(of: "{host}", with: host),
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: retry, style: .default) { _ in
-                probe(origin) { again in
-                    if again == .unreachable { checkChosenServerAnswers(reload: reload) } else { reload() }
-                }
-            })
-            alert.addAction(UIAlertAction(title: reset.replacingOccurrences(of: "{host}", with: fallback), style: .cancel) { _ in
-                switchServer(to: nil)
-            })
-            present(alert)
-        }
-    }
 }
