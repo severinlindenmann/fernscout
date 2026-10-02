@@ -157,6 +157,7 @@ export default function PreviewDayFlow({
 
 
   async function post(path: string, body: unknown) {
+    // no-refresh: write-day and describe-photos only answer with suggestions; nothing on the day changes.
     const response = await fetch(`/api/helper/${user}/${path}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -170,6 +171,7 @@ export default function PreviewDayFlow({
   // every scope agreed to since, so a second Suggest/Translate never asks again.
   const [consentNow, setConsentNow] = useState<ConsentScopes>({ ...consent, speech: false });
   async function agree(scope: keyof ConsentScopes) {
+    // no-refresh: the consent this page needs is held in consentNow right below.
     const res = await fetch(`/api/helper/${user}/consent`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scope }) }).catch(() => null);
     if (res?.ok) setConsentNow((prev) => ({ ...prev, [scope]: true }));
   }
