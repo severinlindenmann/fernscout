@@ -4732,7 +4732,7 @@
   "photobook.first.coverMore": "+{count} weitere",
   "photobook.order.passButton": "Seite für Seite bearbeiten · etwa {minutes} Min.",
   "photobook.read.headingShort": "Dein Buch",
-  "photobook.read.hintShort": "Durchblättern · Seite mit zwei Fingern vergrössern",
+  "photobook.read.hintShort": "Durchblättern · Seite mit zwei Fingern vergrößern",
   "photobook.read.editShort": "Bearbeiten",
   "photobook.read.orderPrice": "Dieses Buch bestellen · {price}"
 }
