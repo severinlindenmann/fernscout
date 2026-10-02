@@ -4669,5 +4669,7 @@
   "studio.published.toldNobody.one": "Az egy olvasód olvashatja. Senki sem kapott értesítést.",
   "studio.published.toldEveryoneNobody": "Bárki olvashatja. Senki sem kapott értesítést.",
   "studio.hub.addDay.toldToday.untitled": "Ma már van egy nap",
-  "studio.day.writeFailed.alreadySaved": "Az utolsó módosítás nem mentődött el. Maga a nap piszkozatként megmaradt – lépj vissza, és próbáld újra."
+  "studio.day.writeFailed.alreadySaved": "Az utolsó módosítás nem mentődött el. Maga a nap piszkozatként megmaradt – lépj vissza, és próbáld újra.",
+  "billing.purchaseUnconfirmed": "Az Apple elfogadta a vásárlást, de ez a szerver még nem tudta megerősíteni. Semmi sem vész el: koppints a „Vásárlások visszaállítása” gombra az újrapróbáláshoz.",
+  "billing.purchasePending": "A vásárlás jóváhagyásra vár. A csomagod a jóváhagyás után azonnal megváltozik."
 }

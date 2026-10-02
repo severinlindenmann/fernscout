@@ -4672,5 +4672,7 @@
   "studio.published.toldNobody.one": "Ton lecteur peut la lire. Personne n’a été prévenu.",
   "studio.published.toldEveryoneNobody": "Tout le monde peut la lire. Personne n’a été prévenu.",
   "studio.hub.addDay.toldToday.untitled": "Aujourd’hui a déjà une journée",
-  "studio.day.writeFailed.alreadySaved": "La dernière modification n’a pas été enregistrée. La journée reste gardée en brouillon — reviens et réessaie."
+  "studio.day.writeFailed.alreadySaved": "La dernière modification n’a pas été enregistrée. La journée reste gardée en brouillon — reviens et réessaie.",
+  "billing.purchaseUnconfirmed": "Apple a accepté l'achat, mais ce serveur n'a pas encore pu le confirmer. Rien n'est perdu : touche « Restaurer les achats » pour réessayer.",
+  "billing.purchasePending": "L'achat attend une approbation. Ton forfait change dès qu'il est approuvé."
 }

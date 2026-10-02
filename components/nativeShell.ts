@@ -614,7 +614,7 @@ async function verifyApplePurchase(username: string, transactionJws: string): Pr
 
 export type BuyApplePlanResult =
   | { ok: true; plan: "pass" | "plus" }
-  | { ok: false; reason: "cancelled" | "pending" | "failed" | "unavailable" };
+  | { ok: false; reason: "cancelled" | "pending" | "failed" | "unavailable" | "unconfirmed" };
 
 /** Buys `plan` for `username` end to end: mint the account token, call
  *  StoreKit, hand the signed transaction to the server, and only then tell
@@ -637,7 +637,9 @@ export async function buyApplePlan(username: string, plan: "pass" | "plus"): Pro
   if ("cancelled" in outcome) return { ok: false, reason: "cancelled" };
   if ("pending" in outcome) return { ok: false, reason: "pending" };
   const verified = await verifyApplePurchase(username, outcome.transactionJws);
-  if (!verified.ok) return { ok: false, reason: "failed" };
+  // Apple took the purchase; only this server's confirmation failed. The
+  // transaction stays unfinished, so Restore purchases hands it over again.
+  if (!verified.ok) return { ok: false, reason: "unconfirmed" };
   await AppleIAP.finishTransaction({ transactionId: outcome.transactionId }).catch(() => undefined);
   return { ok: true, plan: verified.plan ?? plan };
 }

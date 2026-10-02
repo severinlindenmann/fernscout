@@ -4668,5 +4668,7 @@
   "studio.published.toldNobody.one": "Deine eine Leserin oder dein einer Leser kann ihn lesen. Niemand wurde benachrichtigt.",
   "studio.published.toldEveryoneNobody": "Alle können ihn lesen. Niemand wurde benachrichtigt.",
   "studio.hub.addDay.toldToday.untitled": "Heute hat schon einen Tag",
-  "studio.day.writeFailed.alreadySaved": "Die letzte Änderung wurde nicht gespeichert. Der Tag selbst bleibt als Entwurf erhalten – geh zurück und versuch es noch einmal."
+  "studio.day.writeFailed.alreadySaved": "Die letzte Änderung wurde nicht gespeichert. Der Tag selbst bleibt als Entwurf erhalten – geh zurück und versuch es noch einmal.",
+  "billing.purchaseUnconfirmed": "Apple hat den Kauf angenommen, aber dieser Server konnte ihn noch nicht bestätigen. Es geht nichts verloren: Tippe auf «Käufe wiederherstellen», um es noch einmal zu versuchen.",
+  "billing.purchasePending": "Der Kauf wartet auf eine Freigabe. Dein Plan ändert sich, sobald er freigegeben ist."
 }

@@ -4663,5 +4663,7 @@
   "studio.published.toldNobody.one": "Your 1 reader can read it. Nobody was told.",
   "studio.published.toldEveryoneNobody": "Anyone can read it. Nobody was told.",
   "studio.hub.addDay.toldToday.untitled": "Today has a day",
-  "studio.day.writeFailed.alreadySaved": "That last change did not save. The day itself is kept as a draft — go back and try again."
+  "studio.day.writeFailed.alreadySaved": "That last change did not save. The day itself is kept as a draft — go back and try again.",
+  "billing.purchaseUnconfirmed": "Apple took the purchase, but this server could not confirm it yet. Nothing is lost: press Restore purchases to try again.",
+  "billing.purchasePending": "The purchase is waiting for approval. Your plan changes as soon as it is approved."
 }
