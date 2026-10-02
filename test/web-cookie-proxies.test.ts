@@ -891,24 +891,26 @@ describe("POST /api/web/{user}/trips/{trip}/days/{slug}/publish — B2140", { sh
     expect(fs.readFileSync(entryFile(), "utf8")).toContain('"status": "draft"');
   });
 
-  test("the owner's cookie puts a draft on the site, by its bare slug too, and sends nothing", async () => {
+  test("the owner's cookie puts a draft on the site, by its bare slug too, and sends nothing it was not asked to", async () => {
     draft();
     const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
     const response = await POST(
-      // A body asking for sends is not read: this door never announces.
+      // This door never accepts sendMail/sendWhatsapp from a browser at all.
       req(url, "POST", { sendMail: true, sendWhatsapp: true }),
       { params: Promise.resolve({ user: OWNER, trip: TRIP, slug: SLUG }) },
     );
-    expect(response.status).toBe(200);
+    expect(response.status, await response.clone().text()).toBe(200);
     const body = await response.json();
-    expect(body.status).toBe("published");
-    expect(body.mail).toBeUndefined();
-    expect(body.whatsapp).toBeUndefined();
+    expect(body.ok).toBe(true);
+    expect(body.published).toEqual([FULL_SLUG]);
+    expect(body.told).toEqual({ app: 0, mail: 0 });
     expect(fs.readFileSync(entryFile(), "utf8")).toContain('"status": "published"');
   });
 
-  // B2192 (D3) — the share sheet names the blanks, and the owner's tap
-  // records exactly those as left blank. Never trusted from the client.
+  // B2674 — the share sheet no longer names the blanks itself; the server
+  // declines every blank field but `visibility`, each with its own honest
+  // reason (`lib/studio/publishBlankReasons.ts`), never trusted from a
+  // client body (there is no such body field left to trust).
   const { costs: _c, tags: _t, ...DECLINED_BUT_COSTS_AND_TAGS } = DAY_DECLINED;
   const blankDraft = (declined: Record<string, string> = DECLINED_BUT_COSTS_AND_TAGS) =>
     writeDayFixture(dir, OWNER, TRIP, {
@@ -923,32 +925,21 @@ describe("POST /api/web/{user}/trips/{trip}/days/{slug}/publish — B2140", { sh
     });
   const onDisk = () => JSON.parse(fs.readFileSync(entryFile(), "utf8"));
 
-  test("B2192: without declineOpen a day with blanks is still refused, and stays a draft", async () => {
+  test("B2674: a day with blanks publishes anyway, each blank declined with its own honest reason", async () => {
     blankDraft();
     const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
     const response = await POST(req(url, "POST", {}), dayParams);
-    expect(response.status).toBe(422);
-    expect(onDisk().status).toBe("draft");
-  });
-
-  test("B2192: declineOpen naming exactly the blanks shares the day and records what happened", async () => {
-    blankDraft();
-    const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
-    const response = await POST(req(url, "POST", { declineOpen: ["costs", "tags"], sendMail: true }), dayParams);
     expect(response.status, await response.clone().text()).toBe(200);
-    const body = await response.json();
-    expect(body.mail).toBeUndefined();
-    expect(body.whatsapp).toBeUndefined();
     const day = onDisk();
     expect(day.status).toBe("published");
-    const reason = "left blank when the owner shared this day from the studio (not asked field by field)";
-    expect(day.declined.costs).toBe(reason);
-    expect(day.declined.tags).toBe(reason);
-    // Nothing else was touched.
+    const shared = "left blank when the owner shared this day from the studio (not asked field by field)";
+    expect(Object.values(day.declined)).not.toContain(shared);
+    expect(day.declined.costs).toBe("no costs given");
+    expect(day.declined.tags).toBe("no tags chosen");
+    // What was already declined before this call is untouched.
     expect(day.declined.media).toBe(DAY_DECLINED.media);
-    expect(Object.values(day.declined).filter((r) => r === reason)).toHaveLength(2);
 
-    // T6 still holds: a later value clears the share-time decline.
+    // T6 still holds: a later value clears the publish-time decline.
     const { applyDayPatch } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
     const { readTripFile } = await import("@/lib/api/v2/store");
     const patched = await applyDayPatch(
@@ -960,44 +951,38 @@ describe("POST /api/web/{user}/trips/{trip}/days/{slug}/publish — B2140", { sh
     );
     expect(patched.status, await patched.clone().text()).toBe(200);
     expect(onDisk().declined.costs).toBeUndefined();
-    expect(onDisk().declined.tags).toBe(reason);
+    expect(onDisk().declined.tags).toBe("no tags chosen");
   });
 
-  test.each([
-    ["a field that is filled in", ["costs", "tags", "location"]],
-    ["a field already answered", ["costs", "tags", "media"]],
-    ["a field that is not declinable at all", ["costs", "tags", "title"]],
-    ["status", ["costs", "tags", "status"]],
-  ])("B2192: declineOpen naming %s is refused whole, and nothing is written", async (_what, declineOpen) => {
-    blankDraft();
-    const before = fs.readFileSync(entryFile(), "utf8");
-    const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
-    const response = await POST(req(url, "POST", { declineOpen }), dayParams);
-    expect(response.status).toBe(400);
-    expect((await response.json()).refused).toEqual([declineOpen[2]]);
-    expect(fs.readFileSync(entryFile(), "utf8")).toBe(before);
-  });
-
-  test("B2192: visibility is never left blank from the studio, even when it is blank", async () => {
+  test("B2674: visibility is never declined on the owner's behalf, even when it is the only blank", async () => {
     const { visibility: _v, ...declined } = DECLINED_BUT_COSTS_AND_TAGS;
-    blankDraft(declined);
+    blankDraft({ ...declined, costs: "no costs given", tags: "no tags chosen" });
     const before = fs.readFileSync(entryFile(), "utf8");
     const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
-    const response = await POST(req(url, "POST", { declineOpen: ["costs", "tags", "visibility"] }), dayParams);
-    expect(response.status).toBe(400);
+    const response = await POST(req(url, "POST", {}), dayParams);
+    expect(response.status).toBe(422);
     expect(fs.readFileSync(entryFile(), "utf8")).toBe(before);
   });
 
-  test("B2192: declineOpen is refused to a bearer token and to somebody who is not the owner", async () => {
+  test("B2674: publishing is refused to a bearer token and to somebody who is not the owner, nothing written", async () => {
     blankDraft();
     const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
-    const bearer = await POST(req(url, "POST", { declineOpen: ["costs", "tags"] }, { authorization: "Bearer x" }), dayParams);
+    const bearer = await POST(req(url, "POST", {}, { authorization: "Bearer x" }), dayParams);
     expect(bearer.status).toBe(403);
     isOwnerMock.mockResolvedValue(false);
-    const stranger = await POST(req(url, "POST", { declineOpen: ["costs", "tags"] }), dayParams);
+    const stranger = await POST(req(url, "POST", {}), dayParams);
     expect(stranger.status).toBe(403);
     expect(onDisk().status).toBe("draft");
     expect(onDisk().declined.costs).toBeUndefined();
+  });
+
+  test("B2674: parts must be a list of strings, or the call is refused before anything is written", async () => {
+    draft();
+    const before = fs.readFileSync(entryFile(), "utf8");
+    const { POST } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/publish/route");
+    const response = await POST(req(url, "POST", { parts: "not-an-array" }), dayParams);
+    expect(response.status).toBe(400);
+    expect(fs.readFileSync(entryFile(), "utf8")).toBe(before);
   });
 });
 
