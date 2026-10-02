@@ -23,6 +23,16 @@ user, not per instance. Use `tripRef()` / `parseTripRef()` in `lib/trips.ts`
 rather than string concatenation — a username is a directory name, so it is a
 security boundary.
 
+A day's file can carry a field no reader ever sees: `ownWords`, the owner's
+own pre-compose text, kept beside `content` once a compose round has replaced
+it (written once, on the first "Use this" — B2698). It is deliberately never
+copied onto `Entry` (`lib/entries.ts`'s `DayFile` → `Entry` conversion, the
+object every reader-facing read, export and page is built from), so a wider
+read door cannot pick it up by accident; `buildDayContext`
+(`lib/helper/dayContext.ts`) reads it directly off the stored file as the
+notes a re-compose builds from, so a second "Use this" never drifts onto the
+AI's own earlier text.
+
 ## The URL space
 
 Everything a person owns hangs off `/@<username>`. `app/at/[user]/(trip)/…` serves
@@ -117,7 +127,10 @@ remembered in the `fs.locale` **cookie**, so the server renders the right
 language on the first request rather than after hydration. Appending `?lang=de`
 to any URL sets it — that is the shareable form. Entry text is translated when
 an entry provides `translations.de` / `translations.hu`, and falls back to the
-original otherwise.
+original otherwise, read against the *day's own* language: a day's optional
+`language` field (one of the maintained locales, set when compose detects
+what it wrote in) when it has one, the journal's own `defaultLocale`
+otherwise — never one locale assumed for every day in a journal (B2700).
 
 Dates are formatted from per-locale month/weekday tables rather than
 `toLocaleDateString`, whose output differs between the server and the visitor's

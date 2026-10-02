@@ -378,6 +378,41 @@ describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
     expect(getTrips("traveller").map((t) => t.id)).toEqual(["open-2026"]);
     expect(getAllEntries(tripRef("traveller", "open-2026"))[0].content).toContain("OPEN-MARKER");
   });
+
+  /**
+   * B2698 — `ownWords` is owner-only, and `entries/*.json` is otherwise
+   * copied raw into this scope's zip (the whole pitch of this file: unzip it
+   * and it is the content folder back). A published day's file is not
+   * reconstructed from `Entry` on this path, so without an explicit strip
+   * the owner's own pre-compose words would reach whoever holds this
+   * anonymous export's link.
+   */
+  test("strips ownWords from a published day's file; scope 'all' keeps it", async () => {
+    write(
+      path.join(srcDir, "traveller", "trips", "open-2026", "entries", "2026-01-02-alpha.json"),
+      JSON.stringify({
+        slug: "alpha",
+        title: "Alpha",
+        date: "2026-01-02",
+        status: "published",
+        content: "A tidied account.",
+        ownWords: "the owner's own messy first words",
+      }),
+    );
+
+    process.env.CONTENT_DIR = srcDir;
+    const open = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const openExtracted = unzipInto(open, "ownwords-open");
+    const openFile = fs.readFileSync(path.join(openExtracted, "trips", "open-2026", "entries", "2026-01-02-alpha.json"), "utf8");
+    expect(openFile).not.toContain("ownWords");
+    expect(openFile).not.toContain("messy first words");
+    expect(JSON.parse(openFile).content).toBe("A tidied account.");
+
+    const all = await buildUserExportZipBuffer("traveller", "all");
+    const allExtracted = unzipInto(all, "ownwords-all");
+    const allFile = fs.readFileSync(path.join(allExtracted, "trips", "open-2026", "entries", "2026-01-02-alpha.json"), "utf8");
+    expect(allFile).toContain("the owner's own messy first words");
+  });
 });
 
 /**
