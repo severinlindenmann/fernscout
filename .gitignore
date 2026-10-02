@@ -107,6 +107,14 @@ content/*/trips/*/originals/
 # owner-said, so they are cache, not content.
 content/example/trips/*/meta/
 
+# Runtime artefacts a journal's own working folder accumulates that are
+# never source: undo history, photo-measurement caches, the unsorted
+# inbox, and the owner's one-off helper consent flag (B2710).
+content/*/trips/*/.undo/
+content/*/trips/*/.fingerprints/
+content/*/inbox/
+content/*/helper-consent.json
+
 # scratch output from .claude/skills/apply-the-brand/favicon-check.mjs
 favicon-check.png
 

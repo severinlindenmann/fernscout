@@ -305,6 +305,14 @@ export type SiteSummary = {
    * page. Journal-wide and viewer-independent, like `canSignIn` above.
    */
   isShowcase: boolean;
+  /**
+   * The operator's own monitored address, or undefined where the config
+   * names none — `serverSite().operatorEmail`, B2723. The reader-facing
+   * footer's "report this journal" link needs it on every page under
+   * `/<username>`, the same reach `isShowcase` above already has, so it is
+   * seeded here rather than fetched again per page.
+   */
+  operatorEmail?: string;
 };
 
 /**
@@ -355,6 +363,7 @@ export function siteSummaryFor(
     helperEnabled: isEnabled("helper", user.username),
     extractEnabled: isEnabled("extract", user.username),
     isShowcase: loadServerConfig().site.showcase.includes(user.username),
+    operatorEmail: serverSite().operatorEmail,
   };
 }
 

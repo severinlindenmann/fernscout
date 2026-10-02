@@ -2735,6 +2735,7 @@ export type TranslationKey =
   | "story.emptyOwner.body"
   | "story.emptyOwner.cta"
   | "story.madeWith"
+  | "story.report"
   | "story.tripEnd"
   | "studio.check.keepMine"
   | "studio.check.noTitle"

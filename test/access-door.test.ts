@@ -110,6 +110,11 @@ describe("what the header is told about signing in", () => {
       // for "/" names the instance to a reader with no identity, and a client
       // component in the header has no other way to ask.
       "name",
+      // B2723. The operator's own monitored address, from config — journal-
+      // wide and viewer-independent like `name` above. The reader-facing
+      // footer's "report this journal" link needs it on every page under
+      // `/<username>`, not only on a particular trip.
+      "operatorEmail",
       "signedIn",
       "startLocation",
       "tagline",

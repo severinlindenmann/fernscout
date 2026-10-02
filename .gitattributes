@@ -3,3 +3,10 @@
 
 # The packed place index is binary; never normalise its line endings.
 *.bin.gz binary
+
+# B2712 — resolve a locale-dictionary conflict with the AGENTS.md rule
+# (both sides only added -> keep both; same key differs -> main's) instead
+# of a hand-written 3-way merge. The driver itself is registered by
+# scripts/worktree-bootstrap.mjs (git config merge.localejson.driver), so
+# this line alone does nothing until bootstrap has run in the checkout.
+site/locales/*.json merge=localejson
