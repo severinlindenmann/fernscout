@@ -773,7 +773,6 @@
   "photobook.order.check.textFits": "Der Text passt auf jede Seite",
   "photobook.order.check.textFitsNo": "Einzelne Tage werden gekürzt, damit sie auf die Seite passen — öffne einen Tag und gib ihm eine zweite.",
   "photobook.print.noFilesFailed": "Dieses Buch wurde nie gemacht, es gibt also nichts herunterzuladen.",
-  "photobook.read.phoneHint": "Scrolle durch das Buch. Zum Vergrößern eine Seite aufziehen; der Balken unten nennt den Stopp der Seite, auf der du bist.",
   "photobook.status.buildFailed": "Nicht gemacht",
   "photobook.status.building": "Wird gemacht",
   "photobook.status.awaitingPayment": "Wartet auf Zahlung",
@@ -3786,7 +3785,6 @@
   "photobook.order.more.startOverSub": "Sprache, Umfang, Format neu wählen · fragt zuerst",
   "photobook.order.more.resetSub": "deine Änderungen an Seiten gehen verloren · fragt zuerst",
   "photobook.order.bookDetails": "Buchdetails",
-  "photobook.order.passSub": "{spreads} Doppelseiten · etwa {minutes} Minuten",
   "photobook.order.checksOkShort": "Druckqualität geprüft",
   "photobook.order.checksDetails": "Details",
   "photobook.order.done.see": "Angesehen",
@@ -4715,7 +4713,7 @@
   "photobook.pass.pageLineRange": "{name} · S. {from}–{to}",
   "photobook.first.budgetLeftOut": "{count} Fotos weggelassen",
   "photobook.first.budgetLeftOut.one": "1 Foto weggelassen",
-  "photobook.first.budgetLeftOutShow": "Zeigen",
+  "photobook.first.budgetLeftOutShow": "Ansehen und zurückholen",
   "photobook.print.readerCopy": "Exemplar einer Leserin oder eines Lesers",
   "photobook.readerBought.body": "Eine Leserin oder ein Leser von {trip} hat ein eigenes gedrucktes Exemplar des Buches bestellt, und es ist im Druck. Weitere Angaben werden hier nicht genannt.",
   "photobook.readerBought.footer": "Gesendet, weil jemand ein eigenes Exemplar deines Fotobuchs bestellt hat. Dieser Hinweis wird immer gesendet.",
@@ -4729,5 +4727,12 @@
   "studio.day.dateOutsideTrip.chooseTrip": "Reise auswählen",
   "studio.day.dateOutsideTrip.pickDate": "Anderes Datum wählen",
   "studio.day.photos.chooseLabel": "Fotos wählen",
-  "studio.published.pageTitle": "Veröffentlicht"
+  "studio.published.pageTitle": "Veröffentlicht",
+  "photobook.first.skipShort": "Überspringen ›",
+  "photobook.first.coverMore": "+{count} weitere",
+  "photobook.order.passButton": "Seite für Seite bearbeiten · etwa {minutes} Min.",
+  "photobook.read.headingShort": "Dein Buch",
+  "photobook.read.hintShort": "Durchblättern · Seite mit zwei Fingern vergrößern",
+  "photobook.read.editShort": "Bearbeiten",
+  "photobook.read.orderPrice": "Dieses Buch bestellen · {price}"
 }
