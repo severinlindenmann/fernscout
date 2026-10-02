@@ -141,6 +141,9 @@ export default function ShareDayStory({
   const prepareToken = useRef(0);
 
   async function prepare(token: number) {
+    setPrepareState("preparing");
+    setShared(false);
+    setShareError(false);
     try {
       const files: File[] = [];
       if (look === "video") {
@@ -166,11 +169,7 @@ export default function ShareDayStory({
   }
 
   useEffect(() => {
-    const token = ++prepareToken.current;
-    setPrepareState("preparing");
-    setShared(false);
-    setShareError(false);
-    void prepare(token);
+    void prepare(++prepareToken.current);
     // selectedPhotos is a Set replaced wholesale on every toggle, so a
     // reference check here already re-runs this on every real change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,12 +223,7 @@ export default function ShareDayStory({
   }
 
   function retryPrepare() {
-    // Re-running the effect needs something to actually change; bumping the
-    // token and re-entering "preparing" directly is simpler than faking a
-    // dependency change.
-    const token = ++prepareToken.current;
-    setPrepareState("preparing");
-    void prepare(token);
+    void prepare(++prepareToken.current);
   }
 
   async function copyCaption() {
@@ -329,7 +323,6 @@ export default function ShareDayStory({
           </div>
         ) : previewUrl ? (
           look === "video" ? (
-            // eslint-disable-next-line jsx-a11y/media-has-caption
             <video key={previewUrl} src={previewUrl} muted loop playsInline autoPlay className="mx-auto max-h-[480px] w-auto" />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
