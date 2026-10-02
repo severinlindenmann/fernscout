@@ -77,7 +77,7 @@ export async function GET(
   const bytes = await renderStoryVideo({ key, photoFiles, facts, ownerIpForRateLimit: clientIp(request) });
   if (!bytes) return Response.json({ error: "render_failed" }, { status: 500 });
 
-  return new Response(bytes, {
+  return new Response(new Uint8Array(bytes), {
     headers: {
       "Content-Type": "video/mp4",
       "Content-Length": String(bytes.length),

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { storyCardFacts, dayNumberOf } from "@/lib/storyCard";
-import type { DayFile } from "@/lib/api/v2/store";
+import type { DayFile } from "@/lib/api/v2/documents";
 
 /**
  * `storyCardFacts` — B2665. The pure function that decides every word a

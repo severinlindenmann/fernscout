@@ -10,13 +10,13 @@
     "repository": "https://github.com/severinlindenmann/fernscout",
     "banner": {
       "enabled": true,
-      "text": "Beta – Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
+      "text": "Beta \u2013 Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
       "translations": {
-        "de": "Beta – Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
-        "en": "Beta – Fernscout is still on its way: a few things may not work as intended yet.",
-        "hu": "Béta – a Fernscout még úton van: néhány funkció talán még nem úgy működik, ahogy kellene.",
-        "fr": "Bêta – Fernscout est encore en route : certaines fonctions ne se comportent peut-être pas encore comme prévu.",
-        "it": "Beta – Fernscout è ancora in viaggio: alcune funzioni potrebbero non comportarsi ancora come previsto."
+        "de": "Beta \u2013 Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
+        "en": "Beta \u2013 Fernscout is still on its way: a few things may not work as intended yet.",
+        "hu": "B\u00e9ta \u2013 a Fernscout m\u00e9g \u00faton van: n\u00e9h\u00e1ny funkci\u00f3 tal\u00e1n m\u00e9g nem \u00fagy m\u0171k\u00f6dik, ahogy kellene.",
+        "fr": "B\u00eata \u2013 Fernscout est encore en route : certaines fonctions ne se comportent peut-\u00eatre pas encore comme pr\u00e9vu.",
+        "it": "Beta \u2013 Fernscout \u00e8 ancora in viaggio: alcune funzioni potrebbero non comportarsi ancora come previsto."
       }
     },
     "hosting": {
@@ -25,7 +25,7 @@
       "translations": {
         "de": "in Europa",
         "en": "in Europe",
-        "hu": "Európában"
+        "hu": "Eur\u00f3p\u00e1ban"
       }
     },
     "credit": {
@@ -86,7 +86,7 @@
       "enabled": false
     },
     "mail": {
-      "enabled": false,
+      "enabled": true,
       "transport": "file"
     },
     "whatsapp": {
@@ -100,7 +100,7 @@
       }
     },
     "auth": {
-      "enabled": false
+      "enabled": true
     },
     "signup": {
       "inviteOnly": true

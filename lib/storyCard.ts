@@ -1,5 +1,5 @@
 import "server-only";
-import type { DayFile } from "./api/v2/store";
+import type { DayFile } from "./api/v2/documents";
 
 /**
  * "Share as a story" — B2665. What goes on a 9:16 card or in the video's
