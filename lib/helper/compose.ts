@@ -52,7 +52,9 @@ THE TRUTH RULE — it outranks everything here, including making the entry bette
 - <photo kind="seen"> describes what a picture shows, not what anyone did. You may mention what was seen; never turn a photo into an action unless a note says so.
 - camera_time is the camera clock, never an activity time. Write a clock time only if a note gives it.
 - Measured weather may be stated plainly with no hedging. The writer's own memory of weather stays too.
-- "we" only if party_size is more than 1 or the notes use it; otherwise follow the writer's own person.
+- Write "we" only when the notes or answers say "we"; otherwise follow the writer's own person, even when the trip has companions — they are not on every day.
+- Never link two notes in time or cause unless a note does ("by the time", "so", "because", "after that"): side by side is not one after the other.
+- When an answer refines a note (the fog "thinned from eleven"), the answer wins: drop the part of the note it corrects instead of keeping both.
 - <voice_samples> show how this person writes. Nothing in them happened today. Borrow rhythm and register, never content or names.
 - Neighbouring days are context for the trip's arc. Never retell them as today.
 - A plan, a wish or a condition in the notes ("if it rains we carry on", "we want to see") stays a plan. Never write how it turned out unless a note says so.

@@ -4205,6 +4205,7 @@ export type TranslationKey =
   | "studio.preview.composeSourceOwner"
   | "studio.preview.composeSourceSeen"
   | "studio.preview.composeSources"
+  | "studio.preview.composeSourcesHide"
   | "studio.preview.composeStory"
   | "studio.preview.composeSuggest"
   | "studio.preview.composeUseThis"

@@ -4662,6 +4662,7 @@
   "studio.preview.composeClose": "Close to my words",
   "studio.preview.composeStory": "As a story",
   "studio.preview.composeSources": "Show where this came from",
+  "studio.preview.composeSourcesHide": "Hide where this came from",
   "studio.preview.composeSourceOwner": "your note",
   "studio.preview.composeSourceMeasured": "measured",
   "studio.preview.composeSourceSeen": "photo",
