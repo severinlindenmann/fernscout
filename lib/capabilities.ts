@@ -650,6 +650,22 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
     }
   }
 
+  // B2713. A print capability's `.live` switch spends real money — Stannp
+  // posts a card, Gelato prints a book — through the credential `billing`
+  // guards, so it must never be reachable with billing off: a deploy that
+  // shipped billing disabled while `features.postcards.live` stayed true once
+  // made every postcard free. Checked here rather than as a `REQUIREMENTS.needs`
+  // entry because only the *live* half depends on billing — the dry-run
+  // rehearsal (the `enabled: true` case above) stays available with billing
+  // off, same as today.
+  if ((name === "postcards" || name === "photobook") && feature.live === true && !resolveOne("billing").enabled) {
+    return {
+      name,
+      enabled: false,
+      reason: `features.${name}.live is true but features.billing is not enabled (a live print must not run with billing off)`,
+    };
+  }
+
   const extra = configuredEnv(name, feature);
   if (extra.problem) return { name, enabled: false, reason: extra.problem };
 

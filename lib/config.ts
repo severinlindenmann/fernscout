@@ -1030,10 +1030,15 @@ function parseFeatures(
     };
   }
 
+  // B2713: an unknown or retired key (a feature that once existed, like the
+  // `credits` flag `features.billing` replaced) is a warning, never a reason
+  // to fail the build or refuse to boot — a hand-edited config.json out there
+  // still names it, and "the config has a stale key" must not read the same
+  // as "the config is broken enough to stop serving pages".
   for (const key of Object.keys(src)) {
     if (!(FEATURE_NAMES as readonly string[]).includes(key)) {
-      problems.push(
-        `features.${key} is not a known feature (expected one of: ${FEATURE_NAMES.join(", ")})`,
+      console.warn(
+        `features.${key} is not a known feature and is ignored (expected one of: ${FEATURE_NAMES.join(", ")})`,
       );
     }
   }
