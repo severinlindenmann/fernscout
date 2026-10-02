@@ -1,5 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { checkAiDay, recordAiDay } from "@paid/billing/lib/aiDays";
+import { buildDayContext } from "@/lib/helper/dayContext";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import {
   HELPER_PROVIDER,
@@ -265,14 +266,30 @@ export async function POST(
     return Response.json({ error: "consent_required", scope: "photos" }, { status: 403 });
   }
 
+  // B2687 — when the client names the day it is writing about, the facts
+  // that are *measured* (place, weather, photo span) come from the day
+  // itself rather than from whatever the client happened to send. A client
+  // is still trusted for `location`/`country`/`from`/`to`/`photos` when no
+  // `slug` is given at all (every caller before this ticket), and for
+  // anything `buildDayContext` itself has nothing to say about — a draft's
+  // place before it has one, say.
+  const slug = text(body.slug);
+  const pack = slug !== "" ? buildDayContext(user, tripId, slug) : null;
+  const weatherFact = pack?.facts.find((f) => f.id === "weather");
+  const location = pack?.place?.location || text(body.location);
+  const country = pack?.place?.country || text(body.country);
+  const from = pack?.photoSpanRaw?.from || text(body.from);
+  const to = !usesContentField ? pack?.photoSpanRaw?.to || text(body.to) : "";
+  const photos = pack?.photoSpanRaw?.count ?? (typeof body.photos === "number" ? body.photos : undefined);
   const facts: DayFacts = {
-    date,
+    date: date || pack?.date || "",
     trip: trip.title,
-    ...(text(body.location) ? { location: text(body.location) } : {}),
-    ...(text(body.country) ? { country: text(body.country) } : {}),
-    ...(text(body.from) ? { from: text(body.from) } : {}),
-    ...(!usesContentField && text(body.to) ? { to: text(body.to) } : {}),
-    ...(typeof body.photos === "number" ? { photos: body.photos } : {}),
+    ...(location ? { location } : {}),
+    ...(country ? { country } : {}),
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
+    ...(photos !== undefined ? { photos } : {}),
+    ...(weatherFact ? { weather: weatherFact.text } : {}),
   };
 
   const supplied = text(body.idempotency_key);

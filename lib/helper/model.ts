@@ -202,6 +202,9 @@ export type DayFacts = {
   from?: string;
   to?: string;
   photos?: number;
+  /** One line, server-measured — B2687's `buildDayContext` — never a model's
+   * own guess at what the sky did. */
+  weather?: string;
 };
 
 export type WrittenDay = { title: string; prose: string; warnings: string[] };
@@ -597,6 +600,7 @@ export function buildPrompt(notes: string, facts: DayFacts): string {
   }
   if (facts.from) lines.push(`Photographs taken between: ${facts.from} and ${facts.to ?? facts.from}`);
   if (facts.photos) lines.push(`Photographs on this day: ${facts.photos}`);
+  if (facts.weather) lines.push(`Weather: ${facts.weather}`);
 
   return [
     "Facts this day already carries. They are measured, not guessed. You may refer to them; you may not add to them.",
