@@ -94,7 +94,7 @@ describe("AddDayFlow — D1, declinables are named at share time, never asked wh
     // One sheet at a time: the date sheet holds the only select there is.
     await act(async () => (c.querySelector('[data-chip="date"]') as HTMLButtonElement).click());
     const selects = [...c.querySelectorAll("select")];
-    expect(selects.map((s) => [...s.options].map((o) => o.value))).toEqual([["reise", "andere"]]);
+    expect(selects.map((s) => [...s.options].map((o) => o.value))).toEqual([["reise", "andere", "__new__"]]);
     await act(async () => (c.querySelector('[data-chip="place"]') as HTMLButtonElement).click());
     expect(c.querySelectorAll("select")).toHaveLength(0);
     await act(async () => {

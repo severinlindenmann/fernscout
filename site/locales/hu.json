@@ -2842,6 +2842,7 @@
   "studio.day.preview.photoCount": "{count} fénykép",
   "studio.day.preview.changeSomething": "Valamit megváltoztatok",
   "studio.day.decide.row.trip": "Út",
+  "studio.day.decide.newTrip": "+ Új út…",
   "studio.day.done.openDay": "Nap megnyitása",
   "studio.day.writeFailed.banner": "A nap nem jött létre.",
   "studio.day.writeFailed.message": "Egyáltalán semmi nem lett elmentve — a nap pontosan úgy van, ahogy itt hagytad.",

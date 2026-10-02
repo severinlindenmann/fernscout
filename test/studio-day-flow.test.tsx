@@ -140,6 +140,22 @@ async function click(label: string) {
 const text = () => document.body.textContent ?? "";
 const sent = (part: string, method = "POST") => calls.filter((c) => c.url.includes(part) && c.method === method);
 
+test("with one trip, the date sheet's trip select is still there, and \"+ New trip…\" goes to make one", async () => {
+  await mount();
+  const dateChip = document.querySelector('[data-chip="date"]') as HTMLButtonElement;
+  await act(async () => dateChip.click());
+  await flush();
+  const select = document.querySelector("select") as HTMLSelectElement;
+  expect(select).not.toBeNull();
+  expect(Array.from(select.options).map((o) => o.textContent)).toEqual(["Utah", dict["studio.day.decide.newTrip"]]);
+  await act(async () => {
+    select.value = "__new__";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await flush();
+  expect(pushed.at(-1)).toBe("/@alex/studio/trip/new");
+});
+
 test("Write opens directly — no assistant screen, the mic is already in the words box", async () => {
   await mount();
   expect(text()).not.toContain("With the AI assistant");

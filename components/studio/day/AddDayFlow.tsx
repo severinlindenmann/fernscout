@@ -35,6 +35,9 @@ import { journalPath } from "@/lib/journalPath";
  *  revealed one part at a time for somebody who has no day yet. The one-page
  *  mode never calls `go`, so these steps only ever mean something there. */
 const FIRST_RUN = ["photos", "words", "save"] as const;
+/** The trip `<select>`'s own "+ New trip…" row — never a real trip id, so
+ *  it can never collide with one. */
+const NEW_TRIP_OPTION = "__new__";
 type Outcome = "collision" | "saved" | "writeFailed" | "queued";
 type Sheet = "date" | "place" | "weather" | null;
 
@@ -1294,18 +1297,33 @@ export default function AddDayFlow({
           {sheet === "date" && (
             <div className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
               <p className="text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
-              {trips.length > 1 && (
-                <label className={`mt-3 ${LABEL}`}>
-                  {t("studio.day.decide.row.trip")}
-                  <select value={tripId} onChange={(e) => setTripOverride(e.target.value)} className={`${FIELD} rounded-full`}>
-                    {trips.map((tr) => (
-                      <option key={tr.id} value={tr.id}>
-                        {tr.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
+              {/* B2676 — the trip select is always here, even with one trip
+                  (it used to hide then): "+ New trip…" has nowhere else to
+                  be reached from this sheet otherwise. The draft (words
+                  included) is kept in sessionStorage regardless, so a trip
+                  made and returned from picks up exactly where this was
+                  left — nothing here needs to pass it along by hand. */}
+              <label className={`mt-3 ${LABEL}`}>
+                {t("studio.day.decide.row.trip")}
+                <select
+                  value={tripId}
+                  onChange={(e) => {
+                    if (e.target.value === NEW_TRIP_OPTION) {
+                      router.push(`${journalPath(username)}/studio/trip/new`);
+                      return;
+                    }
+                    setTripOverride(e.target.value);
+                  }}
+                  className={`${FIELD} rounded-full`}
+                >
+                  {trips.map((tr) => (
+                    <option key={tr.id} value={tr.id}>
+                      {tr.title}
+                    </option>
+                  ))}
+                  <option value={NEW_TRIP_OPTION}>{t("studio.day.decide.newTrip")}</option>
+                </select>
+              </label>
               <span className={`mt-3 ${LABEL}`}>{t("studio.day.which.dateLabel")}</span>
               <DayStrip value={date} onChange={pickDate} start={trip?.start ?? todayIso} end={todayIso} writtenDates={written} pendingDates={pendingDates} />
               <details className="mt-3">

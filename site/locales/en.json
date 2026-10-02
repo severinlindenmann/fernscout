@@ -2840,6 +2840,7 @@
   "studio.day.preview.photoCount": "{count} photographs",
   "studio.day.preview.changeSomething": "Change something",
   "studio.day.decide.row.trip": "Trip",
+  "studio.day.decide.newTrip": "+ New trip…",
   "studio.day.done.openDay": "Open the day",
   "studio.day.writeFailed.banner": "The day was not made.",
   "studio.day.writeFailed.message": "Nothing at all was written — the day is still exactly as you left it here.",

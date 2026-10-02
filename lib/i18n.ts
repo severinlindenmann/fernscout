@@ -2780,6 +2780,7 @@ export type TranslationKey =
   | "studio.day.date.noDateInPhoto.one"
   | "studio.day.date.pick"
   | "studio.day.date.useToday"
+  | "studio.day.decide.newTrip"
   | "studio.day.decide.row.trip"
   | "studio.day.decline.confirm"
   | "studio.day.decline.freePlaceholder"

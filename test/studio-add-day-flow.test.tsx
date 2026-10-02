@@ -333,7 +333,8 @@ describe("AddDayFlow, one page — B2188", () => {
     await act(async () => (container.querySelector('[data-chip="date"]') as HTMLButtonElement).click());
     expect(text()).toContain("Not right? Change it");
     const select = container.querySelector("select") as HTMLSelectElement;
-    expect([...select.options].map((o) => o.value)).toEqual(["reise", "andere"]);
+    // B2676 — "+ New trip…" is always the last option, even here.
+    expect([...select.options].map((o) => o.value)).toEqual(["reise", "andere", "__new__"]);
     expect(text()).not.toContain("×");
   });
 
