@@ -146,6 +146,22 @@ export function bannedHits(text: string, languages: string[], notes: string): st
   return hits;
 }
 
+/** On a sentence that rests only on photographs, these say more than a
+ *  still picture can: who was there and how many, and when or in which
+ *  order (B2688 eval: "standen wir zu zweit", "Gegessen wurde zu zweit" after
+ *  the notes named six guests, "Abends", "jemand joggte"). */
+const PHOTO_ONLY_OVERREACH = new RegExp(
+  [
+    "zu (?:zweit|dritt|viert|fünft)",
+    "\\b(?:zwei|drei|vier|fünf|sechs|\\d+) (?:Personen|Leute|Menschen)\\b",
+    "\\b(?:two|three|four|five|six|\\d+) (?:people|of us)\\b",
+    "\\b(?:abends|morgens|mittags|nachmittags|später|danach|anschliessend|anschließend|zuerst|zum schluss|am abend|am morgen|am nachmittag)\\b",
+    "\\b(?:in the (?:morning|evening|afternoon)|later|afterwards|then|first|finally|at night)\\b",
+    "\\b(?:le soir|le matin|ensuite|puis|la sera|la mattina|poi|dopo|este|reggel|aztán|később)\\b",
+  ].join("|"),
+  "iu",
+);
+
 const CLOCK_PATTERN = /\b(?:[01]?\d|2[0-3]):[0-5]\d\b/g;
 
 const WE_WORDS = new Set([
@@ -293,6 +309,13 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
     const citedUnits = unitsIn(citedText);
     for (const u of unitsIn(withoutClocks)) {
       if (!citedUnits.has(u)) reasons.push(`${label} unit ${u} not in its sources`);
+    }
+
+    // 2b — a sentence resting only on photographs says what they show: no
+    // "we", no head count, no time of day or order of events.
+    if (cited.length > 0 && cited.every((i) => i.kind === "seen")) {
+      const overreach = PHOTO_ONLY_OVERREACH.exec(text)?.[0] ?? usesWe(text);
+      if (overreach) reasons.push(`${label} "${overreach}" from photographs alone`);
     }
 
     // 2 — every name the model reports, word by word, from its own sources.

@@ -226,3 +226,23 @@ describe("tuning after the owner's own days (B2688)", () => {
     expect(reasons(one(text, ["n1", "p1"]), "story", deCtx({ storyFloor: 70 })).ok).toBe(true);
   });
 });
+
+describe("photographs alone say what they show (B2688 eval)", () => {
+  const items: GuardItem[] = [
+    { id: "n1", kind: "owner", text: "Nachtschlitteln." },
+    { id: "p1", kind: "seen", text: "Zwei Personen mit Stirnlampen im Schnee zwischen kahlen Bäumen" },
+  ];
+  const c = () => ctx({ items, language: "de", languages: ["de"], partySize: 3, storyFloor: 70 });
+  test("a head count from a photo is struck", () => {
+    expect(reasons(one("Mit Stirnlampen standen sie zu zweit im Schnee.", ["p1"]), "story", c()).reasons.join()).toMatch(/zu zweit/);
+  });
+  test("a time of day from a photo is struck", () => {
+    expect(reasons(one("Abends Stirnlampen im Schnee.", ["p1"]), "story", c()).reasons.join()).toMatch(/Abends/);
+  });
+  test("what the photo shows passes", () => {
+    expect(reasons(one("Stirnlampen im Schnee, zwischen kahlen Bäumen.", ["p1"]), "story", c()).ok).toBe(true);
+  });
+  test("the same words pass when a note carries them", () => {
+    expect(reasons(one("Nachtschlitteln, später Stirnlampen im Schnee.", ["n1", "p1"]), "story", c()).reasons.join()).not.toMatch(/photographs alone/);
+  });
+});
