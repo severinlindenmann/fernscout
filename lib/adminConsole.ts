@@ -206,6 +206,15 @@ export type Trouble = {
  * nothing records a failure — a panel that showed "0 mail failures" would be
  * claiming knowledge this instance does not have.
  */
+function unpaidEnd(payload: string): boolean {
+  try {
+    const failure = (JSON.parse(payload) as { failure?: unknown }).failure;
+    return failure === "cancelled" || failure === "expired";
+  } catch {
+    return false;
+  }
+}
+
 export async function troubles(since: string): Promise<Trouble[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
@@ -214,13 +223,17 @@ export async function troubles(since: string): Promise<Trouble[]> {
   try {
     const prints = await handle.db
       .selectFrom("print_orders")
-      .select(["owner_id", "kind", "provider", "created_at", "id"])
+      .select(["owner_id", "kind", "provider", "created_at", "id", "payload"])
       .where("status", "=", "failed")
       .where("created_at", ">=", since)
       .orderBy("created_at", "desc")
       .limit(20)
       .execute();
     for (const row of prints) {
+      // B2695. A photobook the owner cancelled, or whose checkout expired
+      // unpaid, also ends `failed` (`expirePhotobookOrder`) — nobody paid and
+      // no printer refused anything, so it is not somebody let down.
+      if (unpaidEnd(row.payload)) continue;
       found.push({
         what: row.kind === "photobook" ? "A photobook never printed" : "A postcard never printed",
         owner: row.owner_id,
