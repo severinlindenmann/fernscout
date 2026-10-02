@@ -2868,7 +2868,6 @@ export type TranslationKey =
   | "studio.day.photos.groupThisDay"
   | "studio.day.photos.groupUndated"
   | "studio.day.photos.loading"
-  | "studio.day.photos.moreWaiting"
   | "studio.day.photos.nonePendingYet"
   | "studio.day.photos.openCamera"
   | "studio.day.photos.pendingUpload"
