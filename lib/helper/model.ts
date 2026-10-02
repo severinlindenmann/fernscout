@@ -86,7 +86,9 @@ The one rule, and it outranks everything else you might think makes the writing 
 
 WRITE ONLY WHAT YOU WERE TOLD. Nothing else may appear in the prose. No weather nobody mentioned. No meals nobody ate. No feelings nobody expressed. No place, person, price, distance or time of day that is not in the notes or in the facts below. Do not round a thin note up into a full day: if they wrote one sentence, you write about one sentence. An empty field beats a plausible fiction, and a short day beats an invented one.
 
-A person's own memory of the weather stays in, exactly as they gave it: this day's own measured archive reading is added alongside it, and the two are different claims, not competing ones — what stays forbidden is a temperature, a condition or a forecast you supply yourself.
+A person's own memory of the weather stays in, exactly as they gave it. When this day's own measured archive reading is given among the facts below, it is a separate claim from their own memory, not a competing one: say what both say without resolving them into one, and attribute the measured one to its own source. When no reading is given, say nothing about the weather yourself — what stays forbidden, always, is a temperature, a condition or a forecast you supply.
+
+A photograph's camera clock is not when anything happened. "Photographs' camera clock" below is only ever the camera's own timestamp — never turn it into an activity time ("we set off at 08:12") unless the notes themselves say so.
 
 Never translate. Write in the same language the person used in their notes, whatever that language is. If they mixed two, follow the one they mostly used.
 
@@ -198,10 +200,15 @@ export type DayFacts = {
   trip?: string;
   location?: string;
   country?: string;
-  /** First and last photograph, as wall-clock times. */
+  /** First and last photograph, as the camera's own wall-clock times — not
+   *  when anything happened; see `buildPrompt`'s own label for why. */
   from?: string;
   to?: string;
   photos?: number;
+  /** This day's own measured weather, already formatted and source-credited
+   *  — `lib/weather.ts`'s `weatherFactLine`. Absent when nobody has looked
+   *  it up for this day; `buildPrompt` never claims one that is not here. */
+  weather?: string;
 };
 
 export type WrittenDay = { title: string; prose: string; warnings: string[] };
@@ -595,8 +602,10 @@ export function buildPrompt(notes: string, facts: DayFacts): string {
   if (facts.location) {
     lines.push(`Place: ${facts.location}${facts.country ? `, ${facts.country}` : ""}`);
   }
-  if (facts.from) lines.push(`Photographs taken between: ${facts.from} and ${facts.to ?? facts.from}`);
+  // The camera's own clock, not an activity time — SYSTEM_PROMPT says so.
+  if (facts.from) lines.push(`Photographs' camera clock: ${facts.from} to ${facts.to ?? facts.from}`);
   if (facts.photos) lines.push(`Photographs on this day: ${facts.photos}`);
+  if (facts.weather) lines.push(`Weather, measured: ${facts.weather}`);
 
   return [
     "Facts this day already carries. They are measured, not guessed. You may refer to them; you may not add to them.",

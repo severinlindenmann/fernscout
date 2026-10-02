@@ -229,17 +229,24 @@ export function checkPolishForAddedFacts(input: string, output: string): PolishG
 }
 
 /**
- * Does every real word in `title` already appear, by stem, in `notes`? The
- * guard behind `mode: "titles"` on `write-day` — TIX-2, owner decision
- * 2026-10-01. Unlike `checkPolishForAddedFacts` above, which only watches
- * numbers, units, pronouns and capitalised words because a polish only ever
- * rewords existing sentences, a suggested title is free invention risk on
- * every word it contains, so this checks all of them. Short connector words
- * (two characters or fewer — "a", "to", "in", "és", "de", …) are skipped;
- * the point is content words, not grammar.
+ * Does every real word in `title` already appear, by stem, in `notes` or in
+ * `factWords` — the fact text (place, country, trip title) the prompt
+ * actually sent? The guard behind `mode: "titles"` on `write-day` — TIX-2,
+ * owner decision 2026-10-01. `TITLES_SYSTEM_PROMPT` (`./model.ts`) tells the
+ * model it may use "words and places already in the notes or the facts", so
+ * the guard has to check the same two sources or it silently drops a title
+ * the prompt itself allowed (B2684) — a place name the day already carries
+ * ("Kotor") is not a word in the notes, and was never meant to be refused.
+ *
+ * Unlike `checkPolishForAddedFacts` above, which only watches numbers,
+ * units, pronouns and capitalised words because a polish only ever rewords
+ * existing sentences, a suggested title is free invention risk on every word
+ * it contains, so this checks all of them. Short connector words (two
+ * characters or fewer — "a", "to", "in", "és", "de", …) are skipped; the
+ * point is content words, not grammar.
  */
-export function titleIsGroundedInNotes(notes: string, title: string): boolean {
-  const known = wordStems(notes);
+export function titleIsGroundedInNotes(notes: string, title: string, factWords = ""): boolean {
+  const known = wordStems(factWords ? `${notes} ${factWords}` : notes);
   for (const match of title.matchAll(WORD_PATTERN)) {
     const word = match[0];
     if (normalise(word).length <= 2) continue;
