@@ -177,6 +177,7 @@ describe("GET .../story — what is drawn", () => {
       const response = await GET(new Request(url(`?look=${look}`)), params);
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toBe("image/png");
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
     }
   });
 

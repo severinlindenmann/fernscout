@@ -291,5 +291,7 @@ export async function GET(
       <PhotoCard facts={facts} photo={dataUris[0] ?? null} site={site} />
     );
 
-  return new ImageResponse(element, SIZE);
+  // ImageResponse defaults to a public cache header; this card can show a
+  // guest or private trip's photographs, so no shared cache may keep it.
+  return new ImageResponse(element, { ...SIZE, headers: { "Cache-Control": "private, no-store" } });
 }

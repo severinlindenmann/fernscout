@@ -201,11 +201,13 @@ async function buildClip(segments: StorySegment[], facts: StoryFacts, tmpDir: st
   const args: string[] = ["-v", "error", "-y"];
   // A still, read once: `zoompan` below turns its one frame into the whole
   // segment (a looped input would hand it a frame per output frame).
+  // Local files only: ffmpeg picks a demuxer from the contents, and a
+  // playlist dressed as a .jpg must not be able to open anything else.
   for (const file of photoFiles) {
-    args.push("-i", file);
+    args.push("-protocol_whitelist", "file", "-i", file);
   }
   for (const panelPath of panelPaths) {
-    args.push("-loop", "1", "-t", TOTAL_SECONDS.toFixed(2), "-i", panelPath);
+    args.push("-protocol_whitelist", "file", "-loop", "1", "-t", TOTAL_SECONDS.toFixed(2), "-i", panelPath);
   }
 
   // The slow push-in from the draft: 1.00 → 1.08 over each segment, centred.
