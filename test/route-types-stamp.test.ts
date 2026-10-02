@@ -42,7 +42,7 @@ describe("route type build stamp", () => {
     );
     const buildScript = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../scripts/build.mjs");
 
-    const result = spawnSync(process.execPath, [buildScript], { cwd: root, encoding: "utf8" });
+    const result = spawnSync(process.execPath, [buildScript], { cwd: root, encoding: "utf8", env: { ...process.env, FERNSCOUT_SLOTS: "off" } });
 
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain("Stamped .next/types");

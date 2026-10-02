@@ -30,7 +30,7 @@ function run(env: Record<string, string | undefined>) {
   try {
     const stdout = execFileSync("node", [path.join(process.cwd(), "scripts/verify.mjs")], {
       cwd: dir,
-      env: { ...process.env, ...env },
+      env: { ...process.env, FERNSCOUT_SLOTS: "off", ...env },
       stdio: "pipe",
     });
     return { status: 0, stdout: stdout.toString("utf8"), stderr: "" };
