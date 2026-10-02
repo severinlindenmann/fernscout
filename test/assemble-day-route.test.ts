@@ -52,7 +52,17 @@ const params = { params: Promise.resolve({ user: "alex" }) };
  * fresh entry answers them directly, exactly as a model would once it has
  * actually asked and been told there is nothing to say.
  */
-const NEW_ROW_DECLINES = { time: "none", transportMode: "none", tags: "none", visibility: "none" };
+const NEW_ROW_DECLINES = {
+  time: "none",
+  transportMode: "none",
+  tags: "none",
+  visibility: "none",
+  // B1661 — the lookup is off in these tests, so a day with a position owes
+  // its place; declined here like the rest.
+  location: "none",
+  country: "none",
+  countryCode: "none",
+};
 
 function json(body: unknown) {
   return new Request("https://t.test/api/helper/alex/assemble-day", {
@@ -356,5 +366,58 @@ describe("assemble-day: final-review Fix 4 — cleanup keeps unattached content"
     const back = findInboxFile("alex", contact.id);
     expect(back?.entry.id).toBe(contact.id);
     expect(fs.existsSync(path.join(inboxDir("alex", "contact"), contact.id))).toBe(true);
+  });
+});
+
+describe("assemble-day: B1661 — place and translations", () => {
+  const date = "2026-05-08";
+  const answered = { time: "none", transportMode: "none", tags: "none", visibility: "none" };
+
+  test("a position whose lookup found nothing refuses once, naming the place facts; telling it a place or declining writes", async () => {
+    writeDayReadiness("alex", date, { without: ["costs"], location: { lat: 1, lon: 2, source: "browser" } });
+    const refusedOnce = await read(await POST(json({ trip: TRIP, date, ...answered }), params));
+    expect(refusedOnce.status).toBe(422);
+    expect(refusedOnce.body.error).toBe("incomplete_day");
+    expect(refusedOnce.body.missing).toEqual(["location", "country", "countryCode"]);
+
+    const told = await read(
+      await POST(json({ trip: TRIP, date, ...answered, location: "Lucerne", country: "Switzerland", countryCode: "none" }), params),
+    );
+    expect(told.status).toBe(201);
+    const file = JSON.parse(
+      fs.readFileSync(path.join(dir, "alex", "trips", TRIP, "entries", fs.readdirSync(path.join(dir, "alex", "trips", TRIP, "entries"))[0]), "utf8"),
+    );
+    expect(file.location).toBe("Lucerne");
+    expect(file.declined.countryCode).toContain("countryCode");
+  });
+
+  test("a declined position cascades the four place facts as declined, without asking", async () => {
+    writeDayReadiness("alex", date, { without: ["costs", "coordinates"] });
+    const made = await read(await POST(json({ trip: TRIP, date, ...answered }), params));
+    expect(made.status).toBe(201);
+    const dirName = path.join(dir, "alex", "trips", TRIP, "entries");
+    const file = JSON.parse(fs.readFileSync(path.join(dirName, fs.readdirSync(dirName)[0]), "utf8"));
+    for (const f of ["location", "country", "countryCode", "timezone"]) expect(file.declined[f]).toContain("No position");
+  });
+
+  test("a journal with two languages refuses a day silent on translations, and accepts a decline", async () => {
+    fs.writeFileSync(
+      path.join(dir, "alex", "config.json"),
+      JSON.stringify({
+        title: "Alex",
+        tagline: "t",
+        owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
+        defaultLocale: "en",
+        locales: ["en", "de"],
+        baseCurrency: "CHF",
+      }),
+    );
+    clearUserCache();
+    writeDayReadiness("alex", date, { without: ["costs", "coordinates"] });
+    const silent = await read(await POST(json({ trip: TRIP, date, ...answered }), params));
+    expect(silent.status).toBe(422);
+    expect(silent.body.missing).toEqual(["translations"]);
+    const declined = await read(await POST(json({ trip: TRIP, date, ...answered, translations: "none" }), params));
+    expect(declined.status).toBe(201);
   });
 });
