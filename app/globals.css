@@ -986,10 +986,18 @@ body {
   /* The top inset is zero everywhere but the iPhone shell (B2105): Safari
      and the installed web app get an opaque status bar from iOS, a WKWebView
      with viewport-fit=cover does not, and the first thing on the page — the
-     operator's banner, a trip's title — sat behind the clock. The sticky
-     page header pulls itself back up over this by the same amount and pads
-     instead, so it still covers the status bar while scrolled. */
-  padding-top: env(safe-area-inset-top, 0px);
+     operator's banner, a trip's title — sat behind the clock.
+     `PageHeader` covers the status bar itself (its own padding clears the
+     inset for its content, and its background already starts at the very
+     top of the page) and publishes `--fs-header-top: 0px` on `html` while
+     mounted (B2666) so this rule steps aside rather than reserving the same
+     inset a second time — doubled, because a negative margin only moves a
+     box within its parent's padding, it does not shrink that padding, so
+     `body`'s own reservation was never cancelled and the page grew taller
+     than the viewport by exactly the inset, pushing every sticky footer
+     below the fold. Pages with nothing of their own to cover the clock (no
+     `PageHeader` — the landing page, the docs) keep the fallback. */
+  padding-top: var(--fs-header-top, env(safe-area-inset-top, 0px));
 }
 
 @keyframes fs-assemble-in {
