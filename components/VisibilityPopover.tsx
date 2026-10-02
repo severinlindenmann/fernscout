@@ -2,6 +2,17 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useDragControls,
+  useMotionValue,
+  usePresence,
+  useReducedMotion,
+  useTransform,
+} from "motion/react";
+import { nearestSnapIndex } from "./SnapSheet";
 
 /**
  * The card the visibility badge and its `?` open — B1591.
@@ -44,10 +55,102 @@ const WIDE = 640;
 const CARD = 320;
 const GAP = 8;
 
+/**
+ * The phone's bottom sheet — B2333. It is the day sheet's drag (B2327) on this
+ * sheet: pull from the strip around the handle (the body scrolls, so nothing
+ * else starts a drag), past a quarter of its height or a fast flick closes it
+ * through the same `onClose` as Cancel, anything less springs back. It is its
+ * own component so each open mounts a fresh offset, and so `usePresence` can
+ * hold it in the tree while it slides out. `busy` makes it inert: a drag must
+ * not close a sheet that is saving.
+ */
+function Sheet({
+  label,
+  busy,
+  onClose,
+  children,
+}: {
+  label: string;
+  busy: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const controls = useDragControls();
+  const reduced = useReducedMotion();
+  const [present, safeToRemove] = usePresence();
+  const y = useMotionValue(window.innerHeight);
+  const height = useRef(window.innerHeight);
+  const scrim = useTransform(() => Math.min(1, Math.max(0, 1 - y.get() / height.current)));
+
+  useLayoutEffect(() => {
+    height.current = ref.current?.offsetHeight ?? window.innerHeight;
+    if (reduced) y.set(0);
+    else y.set(height.current), animate(y, 0, { duration: 0.32, ease: [0.32, 0.72, 0, 1] });
+  }, [y, reduced]);
+
+  useEffect(() => {
+    if (present) return;
+    if (reduced) return safeToRemove?.();
+    const run = animate(y, height.current, {
+      duration: 0.22,
+      ease: "easeOut",
+      onComplete: safeToRemove ?? undefined,
+    });
+    return () => run.stop();
+  }, [present, reduced, y, safeToRemove]);
+
+  return (
+    <>
+      <motion.div
+        aria-hidden
+        onClick={busy ? undefined : onClose}
+        style={{ opacity: scrim }}
+        className="fixed inset-0 z-[60] bg-overlay-strong/25"
+      />
+      <motion.div
+        ref={ref}
+        role="dialog"
+        aria-modal="false"
+        aria-label={label}
+        style={{ y }}
+        drag="y"
+        dragControls={controls}
+        dragListener={false}
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0.4, bottom: 1 }}
+        dragMomentum={false}
+        onDragEnd={(_e, info) => {
+          const h = ref.current?.offsetHeight ?? 300;
+          // Same decision and spring as MobileDaySheet: `[0, h]` is closed and
+          // open, `[0.75]` is "past a quarter closes".
+          if (nearestSnapIndex([0, h], h - info.offset.y, info.velocity.y, 1, [0.75]) === 0) onClose();
+          else if (reduced) y.set(0);
+          else animate(y, 0, { type: "spring", stiffness: 400, damping: 36 });
+        }}
+        // The sheet: full width, its own rounded top, and capped so a long
+        // card scrolls inside itself rather than running off the screen.
+        className="fixed inset-x-0 bottom-0 z-[61] max-h-[85vh] overflow-y-auto overscroll-contain rounded-t-2xl border-t border-line-quiet bg-surface-raised p-4 pb-6 text-left shadow-[0_-8px_32px_-8px_rgba(30,41,59,0.3)]"
+      >
+        <div
+          onPointerDown={(e) => {
+            if (!busy) controls.start(e);
+          }}
+          className="-mx-4 -mt-4 mb-1 flex h-7 touch-none justify-center pt-4"
+        >
+          <span aria-hidden className="h-1 w-9 rounded-full bg-surface-selected" />
+        </div>
+        {children}
+      </motion.div>
+    </>
+  );
+}
+
 export default function VisibilityPopover({
   open,
   anchor,
   label,
+  busy = false,
   onClose,
   children,
 }: {
@@ -57,6 +160,8 @@ export default function VisibilityPopover({
   anchor: React.RefObject<HTMLElement | null>;
   /** Names the card for a screen reader — the trigger's own label. */
   label: string;
+  /** Saving: Escape, a click outside and a drag all leave the sheet open. */
+  busy?: boolean;
   onClose: () => void;
   children: React.ReactNode;
 }) {
@@ -93,11 +198,12 @@ export default function VisibilityPopover({
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !busy) onClose();
     };
     const onDown = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (panel.current?.contains(target) || anchor.current?.contains(target)) return;
+      // The phone sheet has its own scrim, and its body is not `panel`.
+      if (busy || !wide || panel.current?.contains(target) || anchor.current?.contains(target)) return;
       onClose();
     };
     document.addEventListener("keydown", onKey);
@@ -109,45 +215,39 @@ export default function VisibilityPopover({
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onDown);
     };
-  }, [open, onClose, anchor]);
+  }, [open, onClose, anchor, busy, wide]);
 
-  // No mounted-yet guard, and none is needed: `open` only becomes true from a
-  // press, so the server always leaves here before `document` is touched.
-  if (!open) return null;
+  // Rendered only once it has opened, so the server never reaches `document`.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    if (open) setMounted(true);
+  }, [open]);
+  if (!mounted) return null;
 
-  const card = (
-    <>
-      {/* The sheet dims what is behind it; the anchored card does not, because
-          it is small, attached to the thing it came from, and dimming a whole
-          desktop page for a three-line question is a modal pretending. */}
-      {!wide && (
+  return createPortal(
+    <AnimatePresence>
+      {open && wide && (
+        // The anchored card does not dim the page: it is small, attached to
+        // the thing it came from, and dimming a whole desktop page for a
+        // three-line question is a modal pretending.
         <div
-          aria-hidden
-          onClick={onClose}
-          className="fixed inset-0 z-[60] bg-overlay-strong/25 fs-fade-in"
-        />
+          key="card"
+          ref={panel}
+          role="dialog"
+          aria-modal="false"
+          aria-label={label}
+          style={at ? { top: at.top, left: at.left, width: CARD } : undefined}
+          className="fs-pop fixed z-[61] origin-top rounded-2xl border border-line-quiet bg-surface-raised p-3.5 text-left shadow-[0_12px_32px_-8px_rgba(30,41,59,0.28),0_2px_6px_rgba(30,41,59,0.08)]"
+        >
+          {children}
+        </div>
       )}
-      <div
-        ref={panel}
-        role="dialog"
-        aria-modal="false"
-        aria-label={label}
-        style={wide && at ? { top: at.top, left: at.left, width: CARD } : undefined}
-        className={
-          wide
-            ? "fs-pop fixed z-[61] origin-top rounded-2xl border border-line-quiet bg-surface-raised p-3.5 text-left shadow-[0_12px_32px_-8px_rgba(30,41,59,0.28),0_2px_6px_rgba(30,41,59,0.08)]"
-            : // The sheet: full width, its own rounded top, and capped so a long
-              // card scrolls inside itself rather than running off the screen.
-              "fs-sheet-up fixed inset-x-0 bottom-0 z-[61] max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-line-quiet bg-surface-raised p-4 pb-6 text-left shadow-[0_-8px_32px_-8px_rgba(30,41,59,0.3)]"
-        }
-      >
-        {!wide && (
-          <div aria-hidden className="mx-auto mb-3 h-1 w-9 rounded-full bg-surface-selected" />
-        )}
-        {children}
-      </div>
-    </>
+      {open && !wide && (
+        <Sheet key="sheet" label={label} busy={busy} onClose={onClose}>
+          {children}
+        </Sheet>
+      )}
+    </AnimatePresence>,
+    document.body,
   );
-
-  return createPortal(card, document.body);
 }
