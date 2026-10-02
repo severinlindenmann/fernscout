@@ -3,7 +3,7 @@ import StudioPage from "@/components/studio/StudioPage";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { isEnabled } from "@/lib/capabilities";
-import { hasHelperConsent } from "@/lib/helper/consent";
+import { currentHelperProvider, hasHelperConsent } from "@/lib/helper/consent";
 import { speechProvider } from "@/lib/helper/transcribe";
 import { aiDaysStatus, mayUseAi } from "@paid/billing/lib/aiDays";
 import AiDaysChip from "@/components/studio/day/AiDaysChip";
@@ -61,6 +61,9 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
   // B2188 — the weather chip and the microphone, each absent (never
   // broken) with its capability off.
   const weatherAvailable = isEnabled("weather", user);
+  // B2676 — the place panel's own real lookup.
+  const addressLookupAvailable = isEnabled("addressLookup", user);
+  const helperOn = isEnabled("helper", user);
   const speechEnabled = isEnabled("transcription", user);
   // B2234/B2591 — the plan's AI-day gate, read once and shared by the
   // spoken questions' own before-the-tap check and "Polish my text", both of
@@ -109,6 +112,14 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
         polishAiAvailable={polishAiAvailable}
         routeRecordingAvailable={routeRecordingAvailable}
         weatherAvailable={weatherAvailable}
+        addressLookupAvailable={addressLookupAvailable}
+        helperOn={helperOn}
+        consents={{
+          words: hasHelperConsent(user, "words"),
+          photos: hasHelperConsent(user, "photos"),
+          speech: hasHelperConsent(user, "speech"),
+        }}
+        providers={{ words: currentHelperProvider("words"), speech: speechEnabled ? speechProvider() : null }}
         speech={speech}
         readersByTrip={readersByTrip}
         initialTripId={typeof trip === "string" ? trip : undefined}

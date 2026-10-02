@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, CloudSun, MapPin } from "lucide-react";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import RecordButton from "@/components/RecordButton";
+import ConfirmPanel from "@/components/ConfirmPanel";
 import PolishText from "@/components/studio/day/PolishText";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
@@ -25,10 +26,12 @@ import SpeakFlow, { RatherTalk, TellByChoice } from "@/components/studio/day/Spe
 import type { TellBy } from "@/lib/studio/speak";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
-import { splitIntoParts, type DayPart } from "@/lib/studio/dayParts";
+import { partTimeOfDay, splitIntoParts, waitingSheetPreselectsAll, type DayPart } from "@/lib/studio/dayParts";
 import { partCommitPlan, titleCollidesWithExisting } from "@/lib/studio/dayCollision";
+import { missingConsentScopes } from "@/lib/studio/featureConsent";
 import { writePreviewUrl } from "@/lib/studio/previewUrl";
 import { weatherGroup, type DayWeather } from "@/lib/weather";
+import { MIN_QUERY_LEN } from "@/lib/addressLookupTypes";
 
 import { journalPath } from "@/lib/journalPath";
 /** First-run mode (B2188, owner decision D1 "C inside A"): the same page,
@@ -40,6 +43,11 @@ const FIRST_RUN = ["photos", "words", "save"] as const;
 const NEW_TRIP_OPTION = "__new__";
 type Outcome = "collision" | "saved" | "writeFailed" | "queued";
 type Sheet = "date" | "place" | "weather" | null;
+/** `lib/addressLookup.ts`'s own `GeocodeCandidate`, read back by hand: that
+ *  module is `server-only`, so a client component declares the wire shape
+ *  itself rather than importing it — the same split
+ *  `addressLookupTypes.ts` already makes for `AddressSuggestion`. */
+type GeocodeCandidate = { displayName: string; country: string; lat: number; lon: number };
 
 /** `Problem` from `lib/validate/media.ts`, read back off the wire — never
  *  imported directly, since that module is server-only. */
@@ -139,6 +147,10 @@ export default function AddDayFlow({
   polishAiAvailable = null,
   routeRecordingAvailable = false,
   weatherAvailable = false,
+  addressLookupAvailable = false,
+  helperOn = false,
+  consents = { words: false, photos: false, speech: false },
+  providers = { words: "", speech: null },
   speech: speechProp = null,
   readersByTrip = {},
   initialTripId,
@@ -161,6 +173,18 @@ export default function AddDayFlow({
   routeRecordingAvailable?: boolean;
   /** The weather capability. Off: no weather chip, and `weather` is never sent. */
   weatherAvailable?: boolean;
+  /** B2676 — the place panel's own search (`plan/search`, `geocodePlace`).
+   *  Off: the place panel is free text, coordinates never set from it. */
+  addressLookupAvailable?: boolean;
+  /** B2676 — whether the receipt feature may run at all (the `helper`
+   *  capability). Off: "📷 From a receipt" is absent, never disabled. */
+  helperOn?: boolean;
+  /** The three `/api/helper/{user}/consent` scopes already agreed to — the
+   *  receipt sheet's own "suggest" gate (`lib/studio/featureConsent.ts`)
+   *  reads `words`/`photos` from here. */
+  consents?: { words: boolean; photos: boolean; speech: boolean };
+  /** Who the receipt's "suggest" consent sheet names. */
+  providers?: { words: string; speech: string | null };
   /** The transcription capability's own facts, `null` when it is off — the
    *  microphone is then absent, not broken. */
   speech?: { consented: boolean; provider: string; aiAvailable: boolean | null } | null;
@@ -228,6 +252,23 @@ export default function AddDayFlow({
   const [, setPartSlugs] = useState<Record<number, string>>({});
   const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
   const [weatherReading, setWeatherReading] = useState<DayWeather | null>(null);
+  // B2676 — the receipt feature. `galleryItems` is the day's own on-disk
+  // gallery (filled once `createdSlug` exists); the rest is the sheet's own
+  // state, reset to idle on close.
+  const [galleryItems, setGalleryItems] = useState<{ src: string; type: "image" | "video" }[]>([]);
+  const [receiptPicking, setReceiptPicking] = useState(false);
+  const [receiptConsentAsking, setReceiptConsentAsking] = useState(false);
+  const [receiptConsentBusy, setReceiptConsentBusy] = useState(false);
+  const [receiptBusyFor, setReceiptBusyFor] = useState<string | null>(null);
+  const [receiptFailed, setReceiptFailed] = useState(false);
+  const [receiptReading, setReceiptReading] = useState<{ src: string; amount: number; currency: string; label: string | null } | null>(null);
+  const [receiptAdded, setReceiptAdded] = useState(false);
+  const pendingReceiptSrc = useRef<string | null>(null);
+  // B2676 (P8) — a "yes" given this visit refreshes locally rather than
+  // waiting for a reload; merged over the server-read `consents` prop so a
+  // page that already had consent, or gets it mid-visit, both read true.
+  const [consentOverride, setConsentOverride] = useState<{ words?: boolean; photos?: boolean }>({});
+  const effectiveConsents = { ...consents, ...consentOverride };
 
   const [inboxItems, setInboxItems] = useState<InboxMediaItem[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -236,17 +277,18 @@ export default function AddDayFlow({
   const [ownIds, setOwnIds] = useState<string[]>([]);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   // B2676 — the one "＋ Add photos" sheet, opened from the strip's own first
-  // tile, the empty-state tile, or a part's own "＋ Add"; `"day"` is the
-  // unsplit day, a number is that part's index. Picking from what is
-  // waiting goes straight through the existing `toggleSelected`/`tile()`
-  // this page already had; a part's own `ids` picks up a newly-chosen
-  // photograph through the effect below, keyed off `selectedIds` growing
-  // while the sheet is open for it.
-  // B2677 — "＋ Add photos" on Preview links back here with `&add=photos` so
-  // its own photo sheet opens over Write rather than Write opening blank; a
-  // lazy initial value rather than a mount effect, since this never needs to
-  // react to the param changing after the page has already opened.
+  // tile, the empty tile, or a part's own "＋ Add"; `"day"` is the unsplit
+  // day, a number is that part's index. Three tabs: Waiting (this page's own
+  // inbox, grouped by day — a deferred multi-select, confirmed by "Add N
+  // photos"), This phone (`PhotoPicker`) and Camera (its own file input).
+  // The latter two upload and select immediately (`pickFromDevice`), which
+  // picks up `photoSheetTarget` itself to route a part-targeted upload —
+  // `selectedIdsAtSheetOpen` is only there so that effect, and the Waiting
+  // tab's own direct update, can never double-add the same ids.
   const [photoSheetTarget, setPhotoSheetTarget] = useState<"day" | number | null>(() => (params.get("add") === "photos" ? "day" : null));
+  // B2677 — "＋ Add photos" on Preview links back here with `&add=photos`, so the sheet opens over Write (a lazy initial value, not a mount effect).
+  const [photoSheetTab, setPhotoSheetTab] = useState<"waiting" | "device" | "camera">("waiting");
+  const [sheetPicked, setSheetPicked] = useState<Set<string>>(new Set());
   const selectedIdsAtSheetOpen = useRef<string[]>([]);
   useEffect(() => {
     if (typeof photoSheetTarget !== "number") return;
@@ -294,6 +336,14 @@ export default function AddDayFlow({
   const [country, setCountry] = useState("");
   const [lat, setLat] = useState<number | undefined>(undefined);
   const [lng, setLng] = useState<number | undefined>(undefined);
+  // B2676 — the place panel's own search, when `addressLookup` is on: a
+  // place name in, real candidates (with coordinates) back. Separate from
+  // `location`/`country` above, which only a pick (or, with the capability
+  // off, free text) ever writes.
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [placeResults, setPlaceResults] = useState<GeocodeCandidate[]>([]);
+  const [placeSearchFailed, setPlaceSearchFailed] = useState(false);
+  const placeSearchId = useRef(0);
   // D6 — on by default, removable.
   const [weatherOn, setWeatherOn] = useState(true);
 
@@ -490,9 +540,61 @@ export default function AddDayFlow({
     }
   }
 
+  /** The Waiting tab's own grouping — every inbox item not already chosen
+   *  anywhere on this page, by its own day, this day first (B2676). */
+  function waitingGroups(): { date: string | null; items: InboxMediaItem[] }[] {
+    const chosen = new Set([...selectedIds, ...ownIds]);
+    const candidates = (inboxItems ?? []).filter((i) => !chosen.has(i.id));
+    const byDate = new Map<string | null, InboxMediaItem[]>();
+    for (const item of candidates) {
+      const d = photoDay(item.takenAt) || null;
+      if (!byDate.has(d)) byDate.set(d, []);
+      byDate.get(d)!.push(item);
+    }
+    return [...byDate.entries()]
+      .sort(([a], [b]) => {
+        if (a === date) return -1;
+        if (b === date) return 1;
+        if (a === null) return 1;
+        if (b === null) return -1;
+        return b.localeCompare(a);
+      })
+      .map(([groupDate, items]) => ({ date: groupDate, items }));
+  }
+
   function openPhotoSheet(target: "day" | number) {
     selectedIdsAtSheetOpen.current = selectedIds;
     setPhotoSheetTarget(target);
+    setPhotoSheetTab("waiting");
+    const thisDay = waitingGroups().find((g) => g.date === date);
+    setSheetPicked(new Set(thisDay && waitingSheetPreselectsAll(thisDay.items.length) ? thisDay.items.map((i) => i.id) : []));
+  }
+
+  function toggleSheetPicked(id: string) {
+    setSheetPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function confirmPhotoSheetPicks() {
+    const ids = [...sheetPicked];
+    if (ids.length > 0) {
+      if (typeof photoSheetTarget === "number") {
+        const i = photoSheetTarget;
+        setParts((prev) => (prev ? prev.map((p, idx) => (idx === i ? { ...p, ids: [...new Set([...p.ids, ...ids])] } : p)) : prev));
+      }
+      setSelectedIds((prev) => [...new Set([...prev, ...ids])]);
+      setOwnIds((prev) => [...new Set([...prev, ...ids])]);
+      // Pre-empts the growth-tracking effect above: these ids are already
+      // placed, so it must not place them again when `selectedIds` changes.
+      selectedIdsAtSheetOpen.current = [...selectedIdsAtSheetOpen.current, ...ids];
+    }
+    setPhotoSheetTarget(null);
+    setSheetPicked(new Set());
+    setPhotoSheetTab("waiting");
   }
 
   function toggleSelected(id: string) {
@@ -580,25 +682,96 @@ export default function AddDayFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online, tripId, date]);
 
-  function editPlace(next: { location?: string; country?: string }) {
+  /** Free text — only ever reached with `addressLookupAvailable` off. A
+   *  manual edit always clears the coordinates: whatever pin was there (a
+   *  photo's, or an earlier pick's) named a place that is not necessarily
+   *  this one any more, and a stale pin must never survive an edit that no
+   *  longer names the place it pointed at (B2676, decision 6 / old P13). */
+  function editPlaceText(next: { location?: string; country?: string }) {
     if (!placeEdited) {
       setLocation(place.location);
       setCountry(place.country);
-      setLat(place.lat);
-      setLng(place.lng);
       setPlaceEdited(true);
     }
     if (next.location !== undefined) setLocation(next.location);
     if (next.country !== undefined) setCountry(next.country);
+    setLat(undefined);
+    setLng(undefined);
+  }
+  /** A real geocode pick (`addressLookupAvailable` on) — the only way
+   *  coordinates are ever set from the place panel. Replaces whatever pin
+   *  was there before outright. */
+  function pickPlace(candidate: GeocodeCandidate) {
+    setPlaceEdited(true);
+    setLocation(candidate.displayName);
+    setCountry(candidate.country);
+    setLat(candidate.lat);
+    setLng(candidate.lon);
+    setPlaceQuery(candidate.displayName);
+    setPlaceResults([]);
+    setSheet(null);
+    requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-chip="place"]')?.focus());
   }
   function removePlace() {
     setPlaceEdited(true);
     setLocation("");
     setCountry("");
+    setPlaceQuery("");
+    setPlaceResults([]);
     setLat(undefined);
     setLng(undefined);
     setSheet(null);
   }
+
+  // B2676 — the place panel's own search, debounced the same way
+  // `AddressLookupField.tsx` already debounces its own (300ms): a
+  // keystroke is not a search. `plan/search` (→ `geocodePlace`) rather than
+  // `AddressLookupField`'s own `address-lookup` route — that one filters to
+  // street-level house numbers only (its own doc comment: "a 'city' hit is
+  // a place, not an address"), which would never find "Budapest" at all.
+  useEffect(() => {
+    if (!addressLookupAvailable || sheet !== "place") return;
+    const trimmed = placeQuery.trim();
+    if (trimmed.length < MIN_QUERY_LEN) {
+      // A query shrunk below the floor (backspaced, or the sheet just
+      // opened on a short name): nothing to ask, and the stale list from a
+      // longer query must not linger either.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clears a stale list the moment the query itself falls below the floor, not on a timer.
+      setPlaceResults([]);
+      setPlaceSearchFailed(false);
+      return;
+    }
+    const id = ++placeSearchId.current;
+    const timer = setTimeout(() => {
+      fetch(`/api/helper/${encodeURIComponent(username)}/plan/search?q=${encodeURIComponent(trimmed)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((json: { results?: GeocodeCandidate[] } | null) => {
+          if (placeSearchId.current !== id) return;
+          if (!json) {
+            setPlaceSearchFailed(true);
+            setPlaceResults([]);
+            return;
+          }
+          setPlaceSearchFailed(false);
+          setPlaceResults(json.results ?? []);
+        })
+        .catch(() => {
+          if (placeSearchId.current === id) {
+            setPlaceSearchFailed(true);
+            setPlaceResults([]);
+          }
+        });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [addressLookupAvailable, sheet, placeQuery, username]);
+
+  // The search box shows the current place when the sheet opens, not
+  // whatever was last typed in a previous visit to it.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe seed of the search box from the sheet actually opening, the same pattern the resume banner's own mount effect uses.
+    if (sheet === "place") setPlaceQuery(place.location);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet]);
 
   // ── the route's place suggestion (B2200) ────────────────────────────
   // Asked once per (trip, date), only with the capability on and nothing
@@ -660,7 +833,7 @@ export default function AddDayFlow({
 
   function acceptPlaceSuggestion() {
     if (!placeSuggestion) return;
-    editPlace({ location: placeSuggestion.name, country: placeSuggestion.country });
+    editPlaceText({ location: placeSuggestion.name, country: placeSuggestion.country });
     setPlaceSuggestionDismissed(true);
     // B2646 — "Use it" is the whole answer: the panel closes and focus
     // returns to the place chip, which now names the place.
@@ -704,6 +877,7 @@ export default function AddDayFlow({
       confirmSecondEntry: opts.secondEntry,
     };
     try {
+      // no-refresh: a quiet autosave while the owner is typing — a refresh here would re-render the page under them; Preview and the hub read fresh on navigation.
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/day/new`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -926,6 +1100,7 @@ export default function AddDayFlow({
         // `PATCH /day` a person editing an existing day already uses.
         const newPhotoIds = chosenPhotos.map((i) => i.id).filter((id) => !attachedIdsRef.current.has(id));
         if (newPhotoIds.length > 0) {
+          // no-refresh: a quiet autosave while the owner is typing — a refresh here would re-render the page under them; Preview and the hub read fresh on navigation.
           const attached = await fetch(`/api/helper/${encodeURIComponent(username)}/day/attach`, {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -933,6 +1108,7 @@ export default function AddDayFlow({
           }).catch(() => null);
           if (attached?.ok) newPhotoIds.forEach((id) => attachedIdsRef.current.add(id));
         }
+        // no-refresh: a quiet autosave while the owner is typing — a refresh here would re-render the page under them; Preview and the hub read fresh on navigation.
         const patched = await fetch(`/api/helper/${encodeURIComponent(username)}/day`, {
           method: "PATCH",
           headers: { "content-type": "application/json" },
@@ -950,22 +1126,116 @@ export default function AddDayFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autosaveSignature, parts, tripId, date, online, createdSlug, existingOnDate, confirmedSecondEntry, outcome]);
 
-  // The weather chip's own real value (B2676) — once the day exists, the
-  // server has already tried the lookup at creation (`day/new`'s own
-  // `fillDayWeatherQuietly`); this reads it back rather than guessing.
+  // The weather chip's own real value, and the day's gallery (B2676) — once
+  // the day exists, the server has already tried the weather lookup at
+  // creation (`day/new`'s own `fillDayWeatherQuietly`); this reads both back
+  // rather than guessing. The gallery is what the receipt sheet needs: a
+  // staged photograph's inbox id is not its address once attached, and
+  // `src` is the only thing `read-receipt` can be asked about.
   useEffect(() => {
-    if (!createdSlug || !weatherAvailable || !hasCoords) return;
+    if (!createdSlug) return;
     let cancelled = false;
     fetch(`/api/helper/${encodeURIComponent(username)}/day?trip=${encodeURIComponent(tripId)}&slug=${encodeURIComponent(createdSlug)}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((json: { ok?: boolean; draft?: { weather?: DayWeather } } | null) => {
-        if (!cancelled && json?.draft?.weather) setWeatherReading(json.draft.weather);
+      .then((json: { ok?: boolean; draft?: { weather?: DayWeather; gallery?: { src: string; type: "image" | "video" }[] } } | null) => {
+        if (cancelled) return;
+        if (json?.draft?.weather) setWeatherReading(json.draft.weather);
+        if (json?.draft?.gallery) setGalleryItems(json.draft.gallery);
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, [createdSlug, weatherAvailable, hasCoords, tripId, username, autosaveState]);
+
+  // ── receipt (B2676) ───────────────────────────────────────────────────
+  // Enabled only once the draft is saved and has photos: `read-receipt`
+  // needs the photograph already attached to an on-disk entry
+  // (`entry.gallery.find(src)`), which is exactly what `createdSlug` plus a
+  // non-empty `galleryItems` means.
+  const receiptEnabled = !!createdSlug && galleryItems.some((g) => g.type === "image");
+
+  function openReceiptPicker() {
+    setReceiptPicking(true);
+    setReceiptReading(null);
+    setReceiptFailed(false);
+    setReceiptAdded(false);
+  }
+
+  async function readReceiptFor(src: string) {
+    if (!createdSlug) return;
+    setReceiptBusyFor(src);
+    setReceiptFailed(false);
+    setReceiptAdded(false);
+    const res = await fetch(`/api/helper/${encodeURIComponent(username)}/day/read-receipt`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trip: tripId, slug: createdSlug, src }),
+    }).catch(() => null);
+    const json = (await res?.json().catch(() => null)) as
+      | { ok?: boolean; receipt?: { amount: number; currency: string; label: string | null } | null }
+      | null;
+    setReceiptBusyFor(null);
+    if (!res?.ok || !json?.receipt) {
+      setReceiptFailed(true);
+      return;
+    }
+    setReceiptReading({ src, amount: json.receipt.amount, currency: json.receipt.currency, label: json.receipt.label });
+  }
+
+  /** The "suggest" scope (words+photos) gates the read itself, not just the
+   *  picker — asked once, the first time this (or any other suggest-backed
+   *  feature) is actually used. */
+  function pickReceiptPhoto(src: string) {
+    setReceiptPicking(false);
+    if (missingConsentScopes("suggest", effectiveConsents).length > 0) {
+      pendingReceiptSrc.current = src;
+      setReceiptConsentAsking(true);
+      return;
+    }
+    void readReceiptFor(src);
+  }
+
+  async function agreeReceiptConsent() {
+    setReceiptConsentBusy(true);
+    const missing = missingConsentScopes("suggest", effectiveConsents);
+    for (const scope of missing) {
+      // no-refresh: consent is read again by every route that needs it.
+      await fetch(`/api/helper/${encodeURIComponent(username)}/consent`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scope }),
+      }).catch(() => null);
+    }
+    setConsentOverride((prev) => ({ ...prev, words: true, photos: true }));
+    setReceiptConsentBusy(false);
+    setReceiptConsentAsking(false);
+    const src = pendingReceiptSrc.current;
+    pendingReceiptSrc.current = null;
+    if (src) void readReceiptFor(src);
+  }
+
+  /** Only this writes — the read above is shown, never kept, until here
+   *  (decision 8). Through the same `day/costs` route a person's own
+   *  typed-in cost line already uses, and the same "hide this photo from
+   *  readers" `PATCH` DayCheck's own receipt flow already made. */
+  async function confirmReceiptCost() {
+    if (!receiptReading || !createdSlug) return;
+    const { src, amount, currency, label } = receiptReading;
+    const costLabel = label || t("studio.day.receipt.defaultLabel");
+    await fetch(`/api/helper/${encodeURIComponent(username)}/day/costs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trip: tripId, slug: createdSlug, label: costLabel, amount, currency }),
+    }).catch(() => null);
+    await fetch(`/api/helper/${encodeURIComponent(username)}/day`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trip: tripId, slug: createdSlug, photoVisibility: { [src]: "private" } }),
+    }).catch(() => null);
+    setReceiptReading(null);
+    setReceiptAdded(true);
+  }
 
   // ── day by voice (B2194) ────────────────────────────────────────────
   function chooseTellBy(choice: TellBy) {
@@ -1482,14 +1752,51 @@ export default function AddDayFlow({
             <div className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
               {suggestionCard}
               <p className="mt-2 text-sm font-semibold text-ink-strong">{t("studio.day.sheet.notRight")}</p>
-              <label className={`mt-3 ${LABEL}`}>
-                {t("studio.day.where.placeLabel")}
-                <input type="text" name="location" value={place.location} onChange={(e) => editPlace({ location: e.target.value })} className={FIELD} />
-              </label>
-              <label className={`mt-3 ${LABEL}`}>
-                {t("studio.day.where.countryLabel")}
-                <input type="text" name="country" value={place.country} onChange={(e) => editPlace({ country: e.target.value })} className={FIELD} />
-              </label>
+              {addressLookupAvailable ? (
+                <div className="relative mt-3">
+                  <label className={LABEL} htmlFor="studio-day-place-search">
+                    {t("studio.day.where.placeLabel")}
+                  </label>
+                  <input
+                    id="studio-day-place-search"
+                    type="text"
+                    role="combobox"
+                    aria-expanded={placeResults.length > 0}
+                    aria-controls="studio-day-place-results"
+                    value={placeQuery}
+                    onChange={(e) => setPlaceQuery(e.target.value)}
+                    className={FIELD}
+                  />
+                  {placeResults.length > 0 && (
+                    <ul id="studio-day-place-results" role="listbox" className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-line-quiet bg-surface-raised shadow-lg">
+                      {placeResults.map((candidate, i) => (
+                        <li key={`${candidate.displayName}-${i}`} role="option" aria-selected={false}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickPlace(candidate)}
+                            className="block w-full px-4 py-2 text-left text-base hover:bg-surface-subtle"
+                          >
+                            {candidate.displayName}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {placeSearchFailed && <p className="mt-1 text-xs text-ink-secondary">{t("studio.day.where.searchUnavailable")}</p>}
+                </div>
+              ) : (
+                <>
+                  <label className={`mt-3 ${LABEL}`}>
+                    {t("studio.day.where.placeLabel")}
+                    <input type="text" name="location" value={place.location} onChange={(e) => editPlaceText({ location: e.target.value })} className={FIELD} />
+                  </label>
+                  <label className={`mt-3 ${LABEL}`}>
+                    {t("studio.day.where.countryLabel")}
+                    <input type="text" name="country" value={place.country} onChange={(e) => editPlaceText({ country: e.target.value })} className={FIELD} />
+                  </label>
+                </>
+              )}
               <div className="mt-2 flex flex-wrap gap-x-4">
                 <button type="button" onClick={() => setSheet(null)} className={LINK}>
                   {t("studio.day.sheet.close")}
@@ -1710,6 +2017,83 @@ export default function AddDayFlow({
             {detailsOpen && (
               <div className="mb-3">
                 <DayExtras value={extras} onChange={setExtras} currencies={currencies} routeTravel={routeTravel} />
+                {/* B2676 — "📷 From a receipt", in the Costs section: absent
+                    with `helper` off (AGENTS.md: absent, not broken), and
+                    enabled only once the draft is saved and has photos
+                    (`read-receipt` needs the photograph already on an
+                    on-disk entry). */}
+                {helperOn && (
+                <div className="mt-2">
+                  {receiptEnabled ? (
+                    <button type="button" onClick={openReceiptPicker} className={LINK}>
+                      {t("studio.day.receipt.cta")}
+                    </button>
+                  ) : (
+                    <p className="text-xs text-ink-secondary">{t("studio.day.receipt.needsSave")}</p>
+                  )}
+                  {receiptPicking && (
+                    <div className="mt-2 rounded-xl border border-line-strong bg-surface-subtle p-3">
+                      <p className="text-sm font-semibold text-ink-strong">{t("studio.day.receipt.pick")}</p>
+                      <ul className="mt-2 grid grid-cols-4 gap-1.5">
+                        {galleryItems
+                          .filter((g) => g.type === "image")
+                          .map((g) => (
+                            <li key={g.src}>
+                              <button
+                                type="button"
+                                onClick={() => pickReceiptPhoto(g.src)}
+                                className="block aspect-square w-full overflow-hidden rounded-lg border border-line-strong"
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element -- an owner-only route, not an optimisable asset */}
+                                <img src={`${g.src}?w=160`} alt="" className="h-full w-full object-cover" />
+                              </button>
+                            </li>
+                          ))}
+                      </ul>
+                      <button type="button" onClick={() => setReceiptPicking(false)} className={`mt-2 ${LINK}`}>
+                        {t("studio.day.sheet.close")}
+                      </button>
+                    </div>
+                  )}
+                  {receiptConsentAsking && (
+                    <div className="mt-2">
+                      <ConfirmPanel
+                        label={t("studio.day.receipt.consentTitle")}
+                        question={t("studio.day.receipt.consentBody", { words: providers.words })}
+                        confirmLabel={t("studio.day.receipt.consentAgree")}
+                        busy={receiptConsentBusy}
+                        onConfirm={() => void agreeReceiptConsent()}
+                        onCancel={() => {
+                          setReceiptConsentAsking(false);
+                          pendingReceiptSrc.current = null;
+                        }}
+                      />
+                    </div>
+                  )}
+                  {receiptBusyFor && <p className="mt-2 text-sm text-ink-secondary">{t("studio.day.receipt.reading")}</p>}
+                  {receiptFailed && <p role="alert" className="mt-2 text-sm text-coral-600">{t("studio.day.receipt.failed")}</p>}
+                  {receiptReading && (
+                    <div className="mt-2 rounded-xl border border-dashed border-line-strong bg-surface-subtle p-3">
+                      <p className="text-sm text-ink-body">
+                        {t("studio.day.receipt.read", {
+                          label: receiptReading.label || t("studio.day.receipt.defaultLabel"),
+                          amount: String(receiptReading.amount),
+                          currency: receiptReading.currency,
+                        })}
+                      </p>
+                      <div className="mt-2 flex gap-2">
+                        <button type="button" onClick={() => void confirmReceiptCost()} className={SPLIT_PRIMARY}>
+                          {t("studio.day.receipt.addCost")}
+                        </button>
+                        <button type="button" onClick={() => setReceiptReading(null)} className={SPLIT_SECONDARY}>
+                          {t("studio.day.receipt.wrong")}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {receiptAdded && <p className="mt-2 text-sm text-ink-body">{t("studio.day.receipt.added")}</p>}
+                </div>
+                )}
               </div>
             )}
           </details>
@@ -1742,9 +2126,10 @@ export default function AddDayFlow({
       )}
 
       {/* B2676 — the one "＋ Add photos" sheet, opened from the strip, the
-          empty tile or a part's own "＋ Add". Picking a waiting photograph
-          reuses the same `tile()`/`toggleSelected` the strip already has;
-          uploading a new one reuses the same `PhotoPicker`/`pickFromDevice`. */}
+          empty tile or a part's own "＋ Add". Three tabs: Waiting (this
+          page's own inbox grouped by day, a deferred multi-select), This
+          phone (`PhotoPicker`) and Camera (its own capture input) — the
+          latter two upload and select immediately. */}
       {photoSheetTarget !== null && (
         <div
           role="dialog"
@@ -1757,30 +2142,134 @@ export default function AddDayFlow({
             className="max-h-[80vh] w-full overflow-y-auto rounded-t-3xl bg-surface-raised p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="font-display text-lg font-semibold text-ink-strong">{t("studio.day.photos.add")}</h2>
-              <button type="button" onClick={() => setPhotoSheetTarget(null)} className={LINK}>
-                {t("studio.day.sheet.close")}
-              </button>
+              <span className="text-sm text-ink-secondary">
+                {typeof photoSheetTarget === "number" && parts
+                  ? t("studio.day.photos.addToPart", {
+                      part: (() => {
+                        const tod = partTimeOfDay(parts[photoSheetTarget]?.from ?? null);
+                        return tod ? t(`studio.day.timeOfDay.${tod}`) : t("studio.day.timeOfDay.generic");
+                      })(),
+                    })
+                  : t("studio.day.photos.addToDay")}
+              </span>
             </div>
-            {waitingPhotos.length > 0 ? (
-              <ul className="mt-3 grid grid-cols-4 gap-1.5">{waitingPhotos.map(tile)}</ul>
-            ) : (
-              <p className="mt-3 text-sm text-ink-secondary">{t("studio.day.photos.nonePendingYet")}</p>
-            )}
-            <div className="mt-3">
-              <PhotoPicker id="studio-day-photo-sheet-picker" chosen={[]} accept="image/*,video/*" onPick={pickFromDevice} showChosen={false} />
+
+            <div role="tablist" className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-surface-subtle p-1">
+              {(["waiting", "device", "camera"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={photoSheetTab === tab}
+                  onClick={() => setPhotoSheetTab(tab)}
+                  className={`min-h-10 rounded-lg text-sm font-semibold ${photoSheetTab === tab ? "bg-surface-raised text-ink-strong shadow-sm" : "text-ink-secondary"}`}
+                >
+                  {t(`studio.day.photos.tab.${tab}`)}
+                </button>
+              ))}
             </div>
-            {uploading > 0 && (
-              <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
+
+            {photoSheetTab === "waiting" && (
+              <div className="mt-3">
+                {(() => {
+                  const groups = waitingGroups();
+                  if (groups.length === 0) return <p className="text-sm text-ink-secondary">{t("studio.day.photos.nonePendingYet")}</p>;
+                  return groups.map((group) => (
+                    <div key={group.date ?? "undated"} className="mt-3 first:mt-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
+                        {group.date === date
+                          ? t("studio.day.photos.groupThisDay")
+                          : group.date
+                            ? formatLongDate(group.date)
+                            : t("studio.day.photos.groupUndated")}
+                      </p>
+                      <ul className="mt-1.5 grid grid-cols-4 gap-1.5">
+                        {group.items.map((item) => {
+                          const on = sheetPicked.has(item.id);
+                          return (
+                            <li key={item.id}>
+                              <button
+                                type="button"
+                                data-photo={item.filename}
+                                aria-pressed={on}
+                                aria-label={item.filename}
+                                onClick={() => toggleSheetPicked(item.id)}
+                                className={`relative block aspect-square w-full overflow-hidden rounded-lg border-2 bg-surface-subtle ${on ? "border-action-strong" : "border-transparent opacity-60"}`}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element -- an owner-only route, not an optimisable asset */}
+                                <img
+                                  src={`/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(item.id)}/thumbnail?w=200`}
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="h-full w-full object-cover"
+                                />
+                                {on && (
+                                  <span aria-hidden className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-action-strong text-xs text-on-action">
+                                    ✓
+                                  </span>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ));
+                })()}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={sheetPicked.size === 0}
+                    onClick={confirmPhotoSheetPicks}
+                    className="min-h-11 flex-1 rounded-full bg-action-strong px-4 text-base font-semibold text-on-action disabled:opacity-50"
+                  >
+                    {sheetPicked.size > 0
+                      ? tn("studio.day.photos.addN", sheetPicked.size, { count: String(sheetPicked.size) })
+                      : t("studio.day.photos.choose")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoSheetTarget(null)}
+                    className="min-h-11 rounded-full border border-line-strong px-4 text-base font-semibold text-ink-strong"
+                  >
+                    {t("studio.day.sheet.cancel")}
+                  </button>
+                </div>
+              </div>
             )}
-            <button
-              type="button"
-              onClick={() => setPhotoSheetTarget(null)}
-              className="mt-3 min-h-11 w-full rounded-full bg-action-strong px-4 text-base font-semibold text-on-action"
-            >
-              {t("studio.day.sheet.done")}
-            </button>
+
+            {photoSheetTab === "device" && (
+              <div className="mt-3">
+                <PhotoPicker id="studio-day-photo-sheet-device" chosen={[]} accept="image/*,video/*" onPick={pickFromDevice} showChosen={false} />
+                {uploading > 0 && (
+                  <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
+                )}
+              </div>
+            )}
+
+            {photoSheetTab === "camera" && (
+              <div className="mt-3">
+                <label className="flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-action-strong px-4 text-base font-semibold text-on-action">
+                  {t("studio.day.photos.openCamera")}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="sr-only"
+                    onChange={(e) => {
+                      void pickFromDevice(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {uploading > 0 && (
+                  <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

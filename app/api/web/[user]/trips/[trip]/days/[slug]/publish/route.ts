@@ -42,10 +42,9 @@
 // (B2677) sets it inline before publishing, so publish never has to guess it.
 import { z } from "zod";
 import { applyPublish } from "@/app/api/v2/[user]/trips/[trip]/days/[slug]/publish/route";
-import { applyUnpublish } from "@/app/api/v2/[user]/trips/[trip]/days/[slug]/unpublish/route";
 import { missingAtPublish } from "@/lib/api/v2/days";
 import { readDryRun } from "@/lib/api/v2/route";
-import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";
+import { readDayFile, readTripFile, resolveDayStem, writeDayFile } from "@/lib/api/v2/store";
 import type { DayFile } from "@/lib/api/v2/documents";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { publishBlankReasonFor } from "@/lib/studio/publishBlankReasons";
@@ -99,6 +98,21 @@ function ownBlanks(day: DayFile, locales: readonly string[]): string[] {
     .filter((field) => field !== "visibility");
 }
 
+/**
+ * Security review follow-up — nothing may go live before the whole day
+ * passes. `publishBlankReasonFor` answers every `DAY_DECLINABLE_KEYS` field
+ * except `visibility` (and `status`, which `missingAtPublish` never reports
+ * blank in the first place), so a day's own `missingAtPublish` reduces to
+ * exactly one question once this route's own auto-decline is accounted for:
+ * is `visibility` among the blanks. A day this is true for will always 422
+ * `incomplete_day` once `applyPublish` actually runs — checked here, before
+ * the weather fill or any part's write, so that remains true with zero
+ * writes rather than a half-published day found out mid-call.
+ */
+function blankVisibility(day: DayFile, locales: readonly string[]): boolean {
+  return missingAtPublish(day, locales).some((row) => row.field === "visibility");
+}
+
 export async function POST(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/days/[slug]/publish">,
@@ -129,13 +143,12 @@ export async function POST(
     );
   }
 
-  // B2674 — every part checked before anything is written: it has to
+  // B2674 — every named part checked before anything is written: it has to
   // actually exist, be a draft (not already published, not some other kind
-  // of refusal), and share the chosen day's own date. A part named twice,
-  // or named as the main slug itself, collapses to one.
-  const partSlugs = [...new Set(parsed.data.parts ?? [])].filter((s) => s !== slug);
-  const parts: ResolvedPart[] = [];
-  for (const partSlug of partSlugs) {
+  // of refusal), and share the chosen day's own date.
+  const rawPartSlugs = [...new Set(parsed.data.parts ?? [])];
+  const resolvedParts: ResolvedPart[] = [];
+  for (const partSlug of rawPartSlugs) {
     const resolved = resolve(user, tripId, partSlug);
     if (!resolved) {
       return Response.json(
@@ -158,20 +171,47 @@ export async function POST(
         { status: 400 },
       );
     }
+    resolvedParts.push(resolved);
+  }
+  // Security review follow-up — deduplicated by resolved stem, after
+  // resolving: `"foo"` and `"2026-10-01-foo"` can both be sent for the same
+  // day, and are the same part. The main day's own stem is excluded here
+  // too, however it was spelled in `parts` — it is published once, as the
+  // main slug, never twice.
+  const seenStems = new Set<string>([main.stem]);
+  const parts: ResolvedPart[] = [];
+  for (const resolved of resolvedParts) {
+    if (seenStems.has(resolved.stem)) continue;
+    seenStems.add(resolved.stem);
     parts.push(resolved);
   }
 
   const locales = getUser(user)?.locales ?? [];
-  // A day saved too recently for the archive still carries `weather: true`
-  // (asked, unanswered). Asked again now, for every part going up — the
-  // same quiet best-effort fill the single-day door already did, capability-
-  // gated inside and every failure swallowed, so it never stands between
-  // the owner and the share.
-  if (readDryRun(request) === false) {
-    for (const part of [main, ...parts]) {
-      if (part.day.weather === true) await fillDayWeatherQuietly(tripRef(user, tripId), part.stem);
+  // Security review follow-up — nothing goes live before the whole day
+  // passes, zero writes included: every part and the main day are checked
+  // for a blank `visibility` (the one field this route never auto-declines,
+  // `blankVisibility`'s own comment) before the weather fill below, which is
+  // itself a write.
+  for (const part of [main, ...parts]) {
+    if (blankVisibility(part.day, locales)) {
+      return Response.json(
+        {
+          error: "incomplete_day",
+          message: `"${part.slug}" has not said who may see it (visibility). Nothing was published.`,
+          slug: part.slug,
+        },
+        { status: 422 },
+      );
     }
   }
+
+  // Security review follow-up — a snapshot of each day exactly as it stood
+  // before this call touched anything, taken before the weather fill below
+  // (itself a write): `rollback()` restores these whole, so a declined
+  // reason or a weather fill this call added disappears along with the
+  // publish it was part of, rather than lingering on a draft that looks
+  // like somebody answered it.
+  const snapshots = new Map<string, DayFile>([main, ...parts].map((p) => [p.stem, p.day]));
 
   const tell = parsed.data.tell;
   const onlyContacts = tell?.groups ? await contactsInGroups(user, tell.groups) : undefined;
@@ -181,67 +221,99 @@ export async function POST(
   const declineReasonFor = (day: DayFile) => (field: string) => publishBlankReasonFor(field, day);
 
   const published: string[] = [];
-  /** Roll back everything this call put up — B2674's "all or nothing". An
-   *  unpublish failing here (it should not: these slugs were drafts a
-   *  moment ago and this call just published them) is swallowed rather than
-   *  compounding the original failure with a second one. */
+  /** Roll back everything this call put up — B2674's "all or nothing".
+   *  Restores the whole snapshot (declines, weather fill and all), not just
+   *  the `published` → `draft` status flip `applyUnpublish` alone would
+   *  leave behind (security review follow-up). A restore failing here (it
+   *  should not: this call itself just read and wrote these same files) is
+   *  swallowed rather than compounding the original failure with a second
+   *  one. */
   async function rollback(): Promise<void> {
-    for (const part of published) {
-      await applyUnpublish(user, tripId, part).catch(() => undefined);
+    for (const stem of published) {
+      const snapshot = snapshots.get(stem);
+      if (!snapshot) continue;
+      try {
+        writeDayFile(user, tripId, stem, snapshot);
+      } catch {
+        // Best effort — see the comment above.
+      }
     }
   }
 
-  // The other parts go up first, quietly (no mail, no WhatsApp, no push —
-  // `applyPublish`'s `quiet` option) — the chosen one goes last and is the
-  // only one that tells anybody, once.
-  for (const part of parts) {
-    const body = JSON.stringify({ declineTracked: ownBlanks(part.day, locales) });
-    const response = await applyPublish(
-      new Request(request.url, { method: "POST", body }),
+  // Security review follow-up — everything from here on writes, so a throw
+  // that was not already turned into a refusal response (a bug, a storage
+  // hiccup) must roll back whatever this call already put up before it ever
+  // reaches the caller as a bare 500 over a half-published day.
+  try {
+    // A day saved too recently for the archive still carries `weather: true`
+    // (asked, unanswered). Asked again now, for every part going up — the
+    // same quiet best-effort fill the single-day door already did, capability-
+    // gated inside and every failure swallowed, so it never stands between
+    // the owner and the share.
+    if (readDryRun(request) === false) {
+      for (const part of [main, ...parts]) {
+        if (part.day.weather === true) await fillDayWeatherQuietly(tripRef(user, tripId), part.stem);
+      }
+    }
+
+    // The other parts go up first, quietly (no mail, no WhatsApp, no push —
+    // `applyPublish`'s `quiet` option) — the chosen one goes last and is the
+    // only one that tells anybody, once.
+    for (const part of parts) {
+      const body = JSON.stringify({ declineTracked: ownBlanks(part.day, locales) });
+      const response = await applyPublish(
+        new Request(request.url, { method: "POST", body }),
+        user,
+        tripId,
+        part.stem,
+        declineReasonFor(part.day),
+        onlyContacts,
+        /* quiet */ true,
+      );
+      if (!response.ok) {
+        await rollback();
+        return response;
+      }
+      published.push(part.stem);
+    }
+
+    const mainBody = JSON.stringify({
+      declineTracked: ownBlanks(main.day, locales),
+      ...(tell?.mail ? { sendMail: true } : {}),
+    });
+    const mainResponse = await applyPublish(
+      new Request(request.url, { method: "POST", body: mainBody }),
       user,
       tripId,
-      part.stem,
-      declineReasonFor(part.day),
+      main.stem,
+      declineReasonFor(main.day),
       onlyContacts,
-      /* quiet */ true,
+      /* quiet */ false,
     );
-    if (!response.ok) {
+    if (!mainResponse.ok) {
       await rollback();
-      return response;
+      return mainResponse;
     }
-    published.push(part.stem);
-  }
+    published.push(main.stem);
 
-  const mainBody = JSON.stringify({
-    declineTracked: ownBlanks(main.day, locales),
-    ...(tell?.mail ? { sendMail: true } : {}),
-  });
-  const mainResponse = await applyPublish(
-    new Request(request.url, { method: "POST", body: mainBody }),
-    user,
-    tripId,
-    main.stem,
-    declineReasonFor(main.day),
-    onlyContacts,
-    /* quiet */ false,
-  );
-  if (!mainResponse.ok) {
+    const mainResult = (await mainResponse.json()) as {
+      mail?: { sent?: number };
+      push?: { told?: number };
+    };
+    // Remembered only once it actually went up — the next day of this trip
+    // offers the same people again.
+    if (tell) await saveTellChoice(user, tripId, { groups: tell.groups, mail: tell.mail });
+
+    return Response.json({
+      ok: true,
+      published,
+      told: { app: mainResult.push?.told ?? 0, mail: mainResult.mail?.sent ?? 0 },
+    });
+  } catch {
     await rollback();
-    return mainResponse;
+    return Response.json(
+      { error: "publish_failed", message: "Something went wrong while publishing. Nothing was published." },
+      { status: 500 },
+    );
   }
-  published.push(main.stem);
-
-  const mainResult = (await mainResponse.json()) as {
-    mail?: { sent?: number };
-    push?: { told?: number };
-  };
-  // Remembered only once it actually went up — the next day of this trip
-  // offers the same people again.
-  if (tell) await saveTellChoice(user, tripId, { groups: tell.groups, mail: tell.mail });
-
-  return Response.json({
-    ok: true,
-    published,
-    told: { app: mainResult.push?.told ?? 0, mail: mainResult.mail?.sent ?? 0 },
-  });
 }
