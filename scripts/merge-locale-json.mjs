@@ -62,6 +62,7 @@ export function detectMainSide() {
  * @param {Record<string, string>} ours
  * @param {Record<string, string>} theirs
  * @param {{ mainSide?: "ours" | "theirs" }} [options]
+ * @returns {Record<string, string>}
  */
 export function mergeLocaleJson(ancestor, ours, theirs, { mainSide = "theirs" } = {}) {
   const result = {};
