@@ -9,6 +9,7 @@ import LatestDayButton from "./LatestDayButton";
 import type { CardMeta } from "@/lib/map/tripCard";
 import MapCard from "./map/MapCard";
 import PushInstallOnboarding from "./PushInstallOnboarding";
+import ReaderBookOrderButton from "@paid/photobook/components/ReaderBookOrderButton";
 import PushOptIn from "./PushOptIn";
 import { KeptMark } from "./KeepTrip";
 import Travelers from "./Travelers";
@@ -88,6 +89,7 @@ export default function TripHero({
   onShowNew,
   card = null,
   photobook,
+  readerBook,
   travellerNames,
 }: {
   stats: HeroStats;
@@ -120,6 +122,14 @@ export default function TripHero({
    * component only renders what it was handed.
    */
   photobook?: PhotobookEntry;
+  /**
+   * The reader's own door onto a copy of the same book — B2611, beside
+   * `photobook` above and never both at once: the server decides
+   * (`readerBookEntryFor`, `paid/photobook/lib/photobook/entry.ts`) and
+   * never hands this to the journal's own owner, who gets `photobook`
+   * instead.
+   */
+  readerBook?: PhotobookEntry;
   /** Who took this trip — `travellerNamesOf` in lib/site.ts, joined with
    * "+". B10: the walking figures beside the cover photo (`Travelers`
    * below) carry no names at all, so this is the one place on the story
@@ -380,6 +390,13 @@ export default function TripHero({
                   <ChevronRight className="h-4 w-4 text-ink-secondary" aria-hidden />
                 </a>
               </div>
+            )}
+            {/* The reader's own copy of the same book — B2611. The server
+                has already checked everything that decides whether this
+                renders at all (`readerBookEntryFor`); the button itself
+                asks the trip's own address for the Checkout Session. */}
+            {readerBook && stats.totalMedia > 0 && (
+              <ReaderBookOrderButton username={readerBook.username} tripId={readerBook.trip} />
             )}
             {/* Renders nothing unless it's iOS, push is on, and this browser
                 hasn't seen it before — see PushInstallOnboarding. */}

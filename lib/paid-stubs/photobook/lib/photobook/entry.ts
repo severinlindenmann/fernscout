@@ -5,3 +5,7 @@ import type { PhotobookEntry, Trip } from "@/lib/types";
 export async function photobookEntryFor(_trip: Trip): Promise<PhotobookEntry | undefined> {
   return undefined;
 }
+
+export async function readerBookEntryFor(_trip: Trip): Promise<PhotobookEntry | undefined> {
+  return undefined;
+}

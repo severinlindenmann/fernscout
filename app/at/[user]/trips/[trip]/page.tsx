@@ -9,7 +9,7 @@ import { buildStoryProps, showsCountdown } from "@/lib/tripView";
 import { tripCardMeta } from "@/lib/map/tripCard";
 import { getPlan, getPlanPrivate, stopsForReaders } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
-import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
+import { photobookEntryFor, readerBookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { BlogStructuredData } from "@/components/StructuredData";
 import { getUser } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
@@ -199,6 +199,10 @@ async function TripStoryBody({
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // gallery page.
   const photobook = await photobookEntryFor(trip);
+  // B2611 — the reader's own door onto a copy of the same book, beside the
+  // owner's. `readerBookEntryFor` asks `mayReadTrip` itself and never
+  // answers for the owner, who already has `photobook` above.
+  const readerBook = await readerBookEntryFor(trip);
   // The hero's own card facts — B2538. `index` is already this reader's
   // date list (drafts and visibility applied by `buildStoryProps` above);
   // the SVG itself is fetched as `<img src>` from `/card.svg`.
@@ -221,6 +225,7 @@ async function TripStoryBody({
         stats={stats}
         card={card}
         photobook={photobook}
+        readerBook={readerBook}
         // B10 — who took this trip, visible on the page itself rather than
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}

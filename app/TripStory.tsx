@@ -54,6 +54,7 @@ export default function TripStory({
   stats,
   card = null,
   photobook,
+  readerBook,
   travellerNames,
   madeWith,
 }: {
@@ -83,6 +84,9 @@ export default function TripStory({
    * is rendered.
    */
   photobook?: PhotobookEntry;
+  /** The reader's own door onto a copy of the same book — B2611. See
+   * `TripHero`, which is the only place this is rendered. */
+  readerBook?: PhotobookEntry;
   /** Who took this trip, joined for display — `travellerNamesOf` in
    * lib/site.ts. B10: the hero is the one place every reader of the story
    * lands, and until now the only page that named them was the one about
@@ -618,6 +622,7 @@ export default function TripStory({
                       : undefined
                   }
                   photobook={photobook}
+                  readerBook={readerBook}
                   travellerNames={travellerNames}
                 />
               )

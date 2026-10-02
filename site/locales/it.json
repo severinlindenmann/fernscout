@@ -1977,6 +1977,8 @@
   "photobook.read.heading": "Il tuo libro, dall’inizio alla fine",
   "photobook.read.open": "Leggi tutto il libro",
   "photobook.read.order": "Ordina questo libro",
+  "photobook.reader.failed": "Il pagamento non era raggiungibile in questo momento. Non è stato ordinato né addebitato nulla.",
+  "photobook.reader.start": "Ordina la tua copia",
   "photobook.receipt.body": "{trip} — {pages} pagine, {cover}, {size}. L’intero libro è un unico PDF con la copertina come prima pagina, proprio come lo vuole una tipografia.",
   "photobook.receipt.bodyVolumes": "{trip} — {pages} pagine in {volumes} volumi, {cover}, {size}. Ogni volume è un unico PDF con la copertina come prima pagina, proprio come lo vuole una tipografia.",
   "photobook.receipt.cost": "{total}.",

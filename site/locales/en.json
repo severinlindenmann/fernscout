@@ -1977,6 +1977,8 @@
   "photobook.read.heading": "Your book, end to end",
   "photobook.read.open": "Read the whole book",
   "photobook.read.order": "Order this book",
+  "photobook.reader.failed": "Could not reach checkout just now. Nothing was ordered and nothing was charged.",
+  "photobook.reader.start": "Order your own copy",
   "photobook.receipt.body": "{trip} — {pages} pages, {cover}, {size}. The whole book is a single PDF with the cover as its first page, which is how a printer wants it.",
   "photobook.receipt.bodyVolumes": "{trip} — {pages} pages across {volumes} volumes, {cover}, {size}. Each volume is a single PDF with the cover as its first page, which is how a printer wants it.",
   "photobook.receipt.cost": "{total}.",
