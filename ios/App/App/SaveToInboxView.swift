@@ -16,7 +16,10 @@ struct SaveToInboxView: View {
     @State private var trips: [TripList.Row] = TripList.cached()
     @State private var showAllTrips = false
     @State private var selectedTripId: String? // nil = Decide later
-    @State private var pickedCount = 0
+    /// The current selection's original files — replaced, never appended,
+    /// by each pick, and deleted when the sheet goes away unsaved.
+    @State private var picked: [PhotoPicker.File] = []
+    private var pickedCount: Int { picked.count }
     @State private var showPicker = false
     @State private var saving = false
     @State private var items: [InboxQueueItem] = InboxQueue.shared.items
@@ -53,11 +56,6 @@ struct SaveToInboxView: View {
                     journalRow
                     tripSection
                     pickButton
-                    if pickedCount > 0 {
-                        Text(String(format: pickedCount == 1 ? String(localized: "saveToInbox.save.one") : String(localized: "saveToInbox.save"), pickedCount))
-                            .font(.footnote)
-                            .foregroundColor(muted)
-                    }
                     saveButton
                     Text(String(localized: "saveToInbox.footer"))
                         .font(.footnote)
@@ -78,12 +76,19 @@ struct SaveToInboxView: View {
             }
         }
         .sheet(isPresented: $showPicker) {
-            PhotoPicker { count in pickedCount = count }
+            PhotoPicker { files in
+                PhotoPicker.discard(picked)
+                picked = files
+            }
         }
         .onAppear {
             items = InboxQueue.shared.items
             TripList.refresh(credential) { trips = $0 }
             InboxQueue.shared.onChange = { refreshItems() }
+        }
+        .onDisappear {
+            PhotoPicker.discard(picked)
+            picked = []
         }
         .alert(
             String(localized: "saveToInbox.remove.title"),
@@ -93,7 +98,7 @@ struct SaveToInboxView: View {
                 if let id = removing?.id { InboxQueue.shared.remove(id: id) }
                 removing = nil
             }
-            Button("Cancel", role: .cancel) { removing = nil }
+            Button(String(localized: "saveToInbox.remove.keep"), role: .cancel) { removing = nil }
         } message: {
             Text(String(localized: "saveToInbox.remove.message"))
         }
@@ -114,7 +119,7 @@ struct SaveToInboxView: View {
 
     private var journalRow: some View {
         HStack(spacing: 10) {
-            Image(systemName: "book.closed.fill").foregroundColor(ink)
+            Image(systemName: "book.closed.fill").foregroundColor(textPrimary)
             Text("\(URL(string: credential.base)?.host ?? credential.base) · @\(credential.user)")
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(textPrimary)
@@ -141,13 +146,13 @@ struct SaveToInboxView: View {
     private func tripRow(_ trip: TripList.Row) -> some View {
         Button(action: { selectedTripId = trip.id }) {
             HStack {
-                Image(systemName: trip.underWay ? "figure.walk" : "suitcase.fill").foregroundColor(ink)
+                Image(systemName: trip.underWay ? "figure.walk" : "suitcase.fill").foregroundColor(textPrimary)
                 VStack(alignment: .leading) {
                     Text(trip.title).foregroundColor(textPrimary)
                     if trip.underWay { Text(String(localized: "shareInbox.underWay")).font(.caption).foregroundColor(muted) }
                 }
                 Spacer()
-                if selectedTripId == trip.id { Image(systemName: "checkmark.circle.fill").foregroundColor(ink) }
+                if selectedTripId == trip.id { Image(systemName: "checkmark.circle.fill").foregroundColor(textPrimary) }
             }
             .padding(10)
             .background(selectedTripId == trip.id ? yellow.opacity(0.35) : Color.clear)
@@ -159,13 +164,13 @@ struct SaveToInboxView: View {
     private var decideLaterRow: some View {
         Button(action: { selectedTripId = nil }) {
             HStack {
-                Image(systemName: "tray.fill").foregroundColor(ink)
+                Image(systemName: "tray.fill").foregroundColor(textPrimary)
                 VStack(alignment: .leading) {
                     Text(String(localized: "shareInbox.decideLater")).foregroundColor(textPrimary)
                     Text(String(localized: "shareInbox.decideLater.detail")).font(.caption).foregroundColor(muted)
                 }
                 Spacer()
-                if selectedTripId == nil { Image(systemName: "checkmark.circle.fill").foregroundColor(ink) }
+                if selectedTripId == nil { Image(systemName: "checkmark.circle.fill").foregroundColor(textPrimary) }
             }
             .padding(10)
             .background(selectedTripId == nil ? yellow.opacity(0.35) : Color.clear)
@@ -180,15 +185,15 @@ struct SaveToInboxView: View {
         Button(action: { showPicker = true }) {
             Label(String(localized: "saveToInbox.choosePhotos"), systemImage: "photo.on.rectangle")
                 .font(.headline)
-                .foregroundColor(ink)
+                .foregroundColor(textPrimary)
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(ink.opacity(0.25), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(textPrimary.opacity(0.25), lineWidth: 1))
     }
 
     private var saveButton: some View {
         Button(action: save) {
-            Text(String(format: pickedCount == 1 ? String(localized: "saveToInbox.save.one") : String(localized: "saveToInbox.save"), pickedCount))
+            Text(saveLabel)
                 .font(.headline)
                 .foregroundColor(ink)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -198,20 +203,27 @@ struct SaveToInboxView: View {
         .disabled(pickedCount == 0 || saving)
     }
 
+    /// "Save to inbox" until something is picked — never "Save 0 photos".
+    private var saveLabel: String {
+        switch pickedCount {
+        case 0: return String(localized: "saveToInbox.title")
+        case 1: return String(localized: "saveToInbox.save.one")
+        default: return String(format: String(localized: "saveToInbox.save"), pickedCount)
+        }
+    }
+
     private func save() {
         guard pickedCount > 0 else { return }
         saving = true
         let trip = selectedTrip.map { (id: $0.id, title: $0.title) }
-        PhotoPicker.drainLoaded { files in
-            for file in files {
-                InboxQueue.shared.add(source: file.url, filename: file.name, mime: file.mime, trip: trip, credential: credential)
-                try? FileManager.default.removeItem(at: file.url)
-            }
-            InboxQueue.shared.sendAll()
-            pickedCount = 0
-            saving = false
-            refreshItems()
+        for file in picked {
+            InboxQueue.shared.add(source: file.url, filename: file.name, mime: file.mime, trip: trip, credential: credential)
         }
+        PhotoPicker.discard(picked)
+        picked = []
+        InboxQueue.shared.sendAll()
+        saving = false
+        refreshItems()
     }
 
     // MARK: on this phone
@@ -232,7 +244,7 @@ struct SaveToInboxView: View {
                 }
             }
             Button(action: onOpenStudioInbox) {
-                Text(String(localized: "saveToInbox.openStudioInbox")).font(.subheadline.weight(.semibold)).foregroundColor(ink)
+                Text(String(localized: "saveToInbox.openStudioInbox")).font(.subheadline.weight(.semibold)).foregroundColor(textPrimary)
             }
             .padding(.top, 4)
         }
@@ -270,28 +282,25 @@ struct SaveToInboxView: View {
         switch item.state {
         case .waiting: return String(localized: "saveToInbox.state.waiting")
         case .reconnect: return String(localized: "saveToInbox.state.reconnect")
-        case .refused: return item.message ?? String(localized: "saveToInbox.state.reconnect")
+        case .refused: return item.message ?? String(localized: "saveToInbox.state.refused")
         }
     }
 }
 
 /// `PHPickerViewController` wrapped for SwiftUI — unlimited images, no
 /// `Photos` permission prompt (the system picker runs out-of-process).
-/// Originals are copied into a temp file per selection, read back by
-/// `drainLoaded` once the picker has dismissed, exactly as the share
-/// extension's own `collectItems` does for its attachments.
+/// Originals are copied into a temp file per selection and handed to the
+/// sheet as that pick's whole selection, the way the share extension's own
+/// `collectItems` copies its attachments.
 struct PhotoPicker: UIViewControllerRepresentable {
-    let onSelectionChanged: (Int) -> Void
+    struct File { let url: URL; let name: String; let mime: String }
 
-    private static var loaded: [(url: URL, name: String, mime: String)] = []
-    private static let lock = NSLock()
+    /// Called once per pick with that pick's files — the whole selection,
+    /// so the sheet replaces what it held rather than adding to it.
+    let onPicked: ([File]) -> Void
 
-    static func drainLoaded(_ completion: @escaping ([(url: URL, name: String, mime: String)]) -> Void) {
-        lock.lock()
-        let files = loaded
-        loaded = []
-        lock.unlock()
-        completion(files)
+    static func discard(_ files: [File]) {
+        for file in files { try? FileManager.default.removeItem(at: file.url) }
     }
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
@@ -314,12 +323,12 @@ struct PhotoPicker: UIViewControllerRepresentable {
 
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             picker.dismiss(animated: true)
-            guard let dir = try? FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: FileManager.default.temporaryDirectory, create: true) else {
-                parent.onSelectionChanged(0)
-                return
-            }
+            // Cancel hands back no results: keep whatever was picked before.
+            guard !results.isEmpty,
+                  let dir = try? FileManager.default.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: FileManager.default.temporaryDirectory, create: true) else { return }
             let group = DispatchGroup()
-            var files: [(URL, String, String)] = []
+            let lock = NSLock()
+            var files: [File] = []
             for result in results {
                 let provider = result.itemProvider
                 let candidates = provider.registeredTypeIdentifiers
@@ -334,15 +343,12 @@ struct PhotoPicker: UIViewControllerRepresentable {
                     let dest = dir.appendingPathComponent("\(UUID().uuidString)-\(name)")
                     guard (try? FileManager.default.copyItem(at: url, to: dest)) != nil else { return }
                     let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
-                    files.append((dest, name, mime))
+                    lock.lock()
+                    files.append(File(url: dest, name: name, mime: mime))
+                    lock.unlock()
                 }
             }
-            group.notify(queue: .main) { [weak self] in
-                PhotoPicker.lock.lock()
-                PhotoPicker.loaded.append(contentsOf: files.map { (url: $0.0, name: $0.1, mime: $0.2) })
-                PhotoPicker.lock.unlock()
-                self?.parent.onSelectionChanged(files.count)
-            }
+            group.notify(queue: .main) { [parent] in parent.onPicked(files) }
         }
     }
 }

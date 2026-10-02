@@ -491,6 +491,41 @@
       },
       "comment": "B2732"
     },
+    "saveToInbox.remove.keep": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Garder"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Megtartom"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tieni"
+          }
+        }
+      },
+      "comment": "B2732 — the cancel button of the remove confirmation."
+    },
     "saveToInbox.remove.message": {
       "localizations": {
         "de": {
@@ -665,6 +700,41 @@
         }
       },
       "comment": "B2732 — a 401; the item is kept and retried once reconnected."
+    },
+    "saveToInbox.state.refused": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Server hat dieses Foto abgelehnt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server refused this photo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le serveur a refusé cette photo"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A szerver elutasította ezt a fotót"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il server ha rifiutato questa foto"
+          }
+        }
+      },
+      "comment": "B2732 — a definitive 4xx with no message of its own; the photo stays until removed."
     },
     "saveToInbox.state.sent": {
       "localizations": {
