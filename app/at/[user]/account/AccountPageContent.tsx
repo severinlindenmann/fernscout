@@ -142,6 +142,7 @@ function StagedRow({ username, staged }: { username: string; staged: NonNullable
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const count = staged.files.length;
+  const hasDays = staged.files.some((f) => f.day);
   const inboxHref = `/@${username}/studio/inbox`;
 
   async function remove() {
@@ -171,7 +172,7 @@ function StagedRow({ username, staged }: { username: string; staged: NonNullable
           <span className="block text-base font-semibold text-ink-strong">
             {tn("me.storageStaged.title", count, { count: String(count), size: staged.human })}
           </span>
-          <span className="block text-sm leading-6 text-ink-secondary">{t("me.storageStaged.body")}</span>
+          <span className="block text-sm leading-6 text-ink-secondary">{t(hasDays ? "me.storageStaged.bodyDays" : "me.storageStaged.body")}</span>
         </span>
         {!asking && (
           <button
@@ -189,7 +190,10 @@ function StagedRow({ username, staged }: { username: string; staged: NonNullable
       {asking && (
         <ConfirmPanel
           label={t("studio.inbox.deleteLabel")}
-          question={tn("studio.inbox.bulkDeleteQuestion", count, { count: String(count), size: staged.human })}
+          question={
+            tn("me.storageStaged.question", count, { count: String(count), size: staged.human }) +
+            (hasDays ? ` ${t("me.storageStaged.daysNote")}` : "")
+          }
           confirmLabel={tn("studio.inbox.bulkDeleteConfirm", count, { count: String(count) })}
           tone="destructive"
           busyLabel={t("me.storageCleanupBusy")}

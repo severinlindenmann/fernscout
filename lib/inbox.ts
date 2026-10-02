@@ -523,5 +523,5 @@ export function listStaged(username: string): { id: string; name: string; bytes:
     ...listInboxDayFolders(username).flatMap((day) => rows(day, listDayInbox(username, day))),
   ]
     .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
-    .map(({ uploadedAt: _u, ...row }) => row);
+    .map(({ id, name, bytes, day }) => ({ id, name, bytes, day }));
 }
