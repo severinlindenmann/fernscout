@@ -257,3 +257,22 @@ describe("renderDayPack / packText / allowedText", () => {
     expect(seen).toContain("steam over an outdoor pool");
   });
 });
+
+describe("one part of a day (persona round, 2 Oct)", () => {
+  test("another part of the same date never becomes this part's notes", async () => {
+    writeDayFixture(dir, OWNER, TRIP, {
+      slug: "mirador-evening",
+      date: "2026-05-02",
+      time: "19:00",
+      location: "Lisbon",
+      country: "Portugal",
+      coordinates: LISBON,
+      content: "Fado in a tiny bar, someone else's evening.",
+    });
+    const { buildDayContext } = await import("@/lib/helper/dayContext");
+    const pack = buildDayContext(OWNER, TRIP, "mirador")!;
+    const notes = pack.notes.map((n) => n.text).join(" ");
+    expect(notes).toContain("mirador");
+    expect(notes).not.toContain("Fado");
+  });
+});
