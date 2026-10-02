@@ -92,7 +92,7 @@ const UNIT_WORDS = [
   "óra(?:kor|k|ig)?",
 ] as const;
 
-const UNIT_PATTERN = new RegExp(`\\b(?:${UNIT_WORDS.join("|")})\\b`, "giu");
+export const UNIT_PATTERN = new RegExp(`\\b(?:${UNIT_WORDS.join("|")})\\b`, "giu");
 
 /** Personal pronouns across the journal's three languages — a fixed word
  *  list, the same shape as `UNIT_WORDS` and for the same reason: cheap,
@@ -148,32 +148,32 @@ const PRONOUN_PATTERN = new RegExp(`\\b(?:${PRONOUN_WORDS.join("|")})\\b`, "giu"
 
 /** A run of digits — the cheapest possible "is this a new fact" signal, and
  *  reordering/punctuation never changes a digit run. */
-const NUMBER_PATTERN = /\d+(?:[.,]\d+)?/g;
+export const NUMBER_PATTERN = /\d+(?:[.,]\d+)?/g;
 
 /** A capitalised word — candidate proper noun or place, in any script this
  *  journal's locales use. `\p{Lu}` (Unicode "uppercase letter") rather than
  *  a hand-picked Latin range, which is what let a Hungarian capital like
  *  "Ő" or "Ű" through unchecked — B2190's second follow-up. */
-const WORD_PATTERN = /[\p{L}][\p{L}'’-]*/gu;
-const CAPITALISED = /^\p{Lu}/u;
+export const WORD_PATTERN = /[\p{L}][\p{L}'’-]*/gu;
+export const CAPITALISED = /^\p{Lu}/u;
 
 /** Accents are dropped too: "uton" tidied to "úton" is spelling, not a new
  *  fact (TIX-2 persona round, Hungarian typed without accents). */
-function normalise(word: string): string {
+export function normalise(word: string): string {
   return word.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/['’]/g, "");
 }
 
 /** Loose stem: the first five characters (or the whole word if shorter) —
  *  enough to match "Graham's" against "grahams" and "Pariba" against
  *  "Paribas" without pulling in a real stemmer. */
-function stem(word: string): string {
+export function stem(word: string): string {
   const n = normalise(word);
   return n.length <= 5 ? n : n.slice(0, 5);
 }
 
 /** Every word in `text`, normalised and stemmed, for a cheap "did the input
  *  already have something like this" check. */
-function wordStems(text: string): Set<string> {
+export function wordStems(text: string): Set<string> {
   const stems = new Set<string>();
   for (const match of text.matchAll(WORD_PATTERN)) stems.add(stem(match[0]));
   return stems;
