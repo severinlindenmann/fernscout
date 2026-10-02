@@ -4640,8 +4640,8 @@
   "studio.preview.takeDownNote": "You can take it down any time. People who already read it keep what they saw.",
   "studio.published.told": "Your {count} readers can read it. {app} were told in the app, {mail} by email.",
   "studio.published.toldEveryone": "Anyone can read it. {app} were told in the app, {mail} by email.",
-    "studio.published.pageTitle": "Published",
-"studio.published.sendLink": "Send the link",
+  "studio.published.pageTitle": "Published",
+  "studio.published.sendLink": "Send the link",
   "studio.published.sendLinkSub": "Share it, or copy it to send yourself",
   "studio.published.nextDay": "Write the next day",
   "studio.published.nextDaySub": "Keep going while it's fresh",
@@ -4721,5 +4721,11 @@
   "me.phone.allowed": "Allowed",
   "me.phone.denied": "Not allowed — change it in Settings",
   "me.phone.settings": "Permissions",
-  "me.phone.settingsBody": "Location, microphone, camera, photos and notifications for Fernscout"
+  "me.phone.settingsBody": "Location, microphone, camera, photos and notifications for Fernscout",
+  "photobook.print.readerCopy": "A reader's copy",
+  "photobook.readerBought.body": "A reader of {trip} has ordered their own printed copy of the book, and it has gone to print. No other details are shared here.",
+  "photobook.readerBought.footer": "Sent because a reader ordered their own copy of your photobook. This notice is always sent.",
+  "photobook.readerBought.preheader": "A reader bought their own copy",
+  "photobook.readerBought.subject": "A reader ordered a copy of {trip}",
+  "photobook.readerBought.title": "A reader ordered their own copy"
 }

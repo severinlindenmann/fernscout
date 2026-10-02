@@ -4649,8 +4649,8 @@
   "studio.preview.takeDownNote": "Vous pouvez le retirer à tout moment. Ceux qui l'ont déjà lu gardent ce qu'ils ont vu.",
   "studio.published.told": "Vos {count} lecteurs peuvent le lire. {app} ont été prévenus dans l'app, {mail} par e-mail.",
   "studio.published.toldEveryone": "Tout le monde peut le lire. {app} ont été prévenus dans l'app, {mail} par e-mail.",
-    "studio.published.pageTitle": "Publié",
-"studio.published.sendLink": "Envoyer le lien",
+  "studio.published.pageTitle": "Publié",
+  "studio.published.sendLink": "Envoyer le lien",
   "studio.published.sendLinkSub": "Partagez-le, ou copiez-le pour l'envoyer vous-même",
   "studio.published.nextDay": "Écrire le jour suivant",
   "studio.published.nextDaySub": "Continuez pendant que c'est frais",
@@ -4730,5 +4730,11 @@
   "me.phone.allowed": "Autorisé",
   "me.phone.denied": "Non autorisé – à changer dans Réglages",
   "me.phone.settings": "Autorisations",
-  "me.phone.settingsBody": "Position, micro, appareil photo, photos et notifications pour Fernscout"
+  "me.phone.settingsBody": "Position, micro, appareil photo, photos et notifications pour Fernscout",
+  "photobook.print.readerCopy": "L’exemplaire d’un lecteur",
+  "photobook.readerBought.body": "Un lecteur ou une lectrice de {trip} a commandé son propre exemplaire imprimé du livre, et il est parti à l’impression. Aucune autre information n’est partagée ici.",
+  "photobook.readerBought.footer": "Envoyé parce qu’un lecteur a commandé son propre exemplaire de ton livre photo. Cet avis est toujours envoyé.",
+  "photobook.readerBought.preheader": "Un lecteur a commandé son propre exemplaire",
+  "photobook.readerBought.subject": "Un lecteur a commandé un exemplaire de {trip}",
+  "photobook.readerBought.title": "Un lecteur a commandé son propre exemplaire"
 }

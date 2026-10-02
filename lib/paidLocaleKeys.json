@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "82e6c175d5c0e044b83418a8c14eb3055b59ce81",
+  "generatedFrom": "9084c440418f74e8ea2af65ebadf2d5ebd71bb1e",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -439,6 +439,7 @@
     "photobook.print.noRecipients",
     "photobook.print.orderIntro",
     "photobook.print.orderIntro.one",
+    "photobook.print.readerCopy",
     "photobook.print.receiptTitle",
     "photobook.print.refusedRefunded",
     "photobook.print.refusedRefundedNoAddress",
@@ -479,6 +480,11 @@
     "photobook.read.phoneHint",
     "photobook.reader.failed",
     "photobook.reader.start",
+    "photobook.readerBought.body",
+    "photobook.readerBought.footer",
+    "photobook.readerBought.preheader",
+    "photobook.readerBought.subject",
+    "photobook.readerBought.title",
     "photobook.receipt.body",
     "photobook.receipt.bodyVolumes",
     "photobook.receipt.cost",

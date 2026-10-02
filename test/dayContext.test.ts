@@ -258,6 +258,39 @@ describe("renderDayPack / packText / allowedText", () => {
   });
 });
 
+describe("ownWords (B2698)", () => {
+  test("buildDayContext uses the owner's own pre-compose words as notes, not the AI's stored content", () => {
+    writeDayFixture(dir, OWNER, TRIP, {
+      slug: "own-words-day",
+      date: "2026-05-02",
+      time: "20:00",
+      location: "Lisbon",
+      country: "Portugal",
+      coordinates: LISBON,
+      content: "A tidied, composed account of the evening.",
+    });
+    // `ownWords` has no fixture field of its own (it is owner-only, not a
+    // thing a reasonable fixture should make easy to seed) — patched onto
+    // the file directly, the same way `test/export.test.ts` does for the
+    // same field.
+    const file = path.join(dir, OWNER, "trips", TRIP, "entries", "2026-05-02-own-words-day.json");
+    const stored = JSON.parse(fs.readFileSync(file, "utf8"));
+    stored.ownWords = "went out, ate too much, forgot the name of the place";
+    fs.writeFileSync(file, JSON.stringify(stored, null, 2));
+
+    const pack = buildDayContext(OWNER, TRIP, "own-words-day")!;
+    const notes = pack.notes.map((n) => n.text).join(" ");
+    expect(notes).toContain("forgot the name of the place");
+    expect(notes).not.toContain("tidied, composed account");
+  });
+
+  test("a day with no ownWords still uses its stored content, as before", () => {
+    const pack = buildDayContext(OWNER, TRIP, "departure")!;
+    const notes = pack.notes.map((n) => n.text).join(" ");
+    expect(notes).toContain("Slow morning");
+  });
+});
+
 describe("one part of a day (persona round, 2 Oct)", () => {
   test("another part of the same date never becomes this part's notes", async () => {
     writeDayFixture(dir, OWNER, TRIP, {

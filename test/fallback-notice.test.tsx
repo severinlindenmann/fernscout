@@ -78,4 +78,29 @@ describe("the fallback notice", () => {
       }
     }
   });
+
+  // B2700 — a day carries its own `language`, separate from the journal's
+  // `defaultLocale` (`writtenLocale` here). Ilona wrote her day in Hungarian
+  // in an English-default journal; a Hungarian reader of her own words was
+  // told "Written in English" because the fallback read the *journal's*
+  // language rather than the day's.
+  test("a day with its own language is read against that language, not the journal's", () => {
+    const hungarianDay = { ...UNTRANSLATED, language: "hu" } as Entry;
+
+    // The Hungarian reader reads her own language: no notice at all.
+    const own = read("hu", "en", hungarianDay);
+    expect(own).not.toContain("data-fallback-notice");
+
+    // An English reader of the journal (its own default) sees the day is in
+    // Hungarian — not "written in English", which the journal-wide default
+    // used to claim about every day regardless of what it actually said.
+    const english = read("en", "en", hungarianDay);
+    expect(english).toContain("data-fallback-notice");
+    expect(english).toContain("Written in Hungarian");
+
+    // A day with no `language` of its own still falls back to the journal's
+    // default exactly as before.
+    const noLanguage = read("de", "en", UNTRANSLATED);
+    expect(noLanguage).toContain("Auf Englisch geschrieben");
+  });
 });

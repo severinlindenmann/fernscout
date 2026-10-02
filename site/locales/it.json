@@ -4649,8 +4649,8 @@
   "studio.preview.takeDownNote": "Puoi ritirarlo in qualsiasi momento. Chi lo ha già letto mantiene ciò che ha visto.",
   "studio.published.told": "I tuoi {count} lettori possono leggerlo. {app} sono stati avvisati nell'app, {mail} via e-mail.",
   "studio.published.toldEveryone": "Chiunque può leggerlo. {app} sono stati avvisati nell'app, {mail} via e-mail.",
-    "studio.published.pageTitle": "Pubblicato",
-"studio.published.sendLink": "Invia il link",
+  "studio.published.pageTitle": "Pubblicato",
+  "studio.published.sendLink": "Invia il link",
   "studio.published.sendLinkSub": "Condividilo, o copialo per inviarlo tu stesso",
   "studio.published.nextDay": "Scrivi il giorno successivo",
   "studio.published.nextDaySub": "Continua finché è fresco",
@@ -4730,5 +4730,11 @@
   "me.phone.allowed": "Consentito",
   "me.phone.denied": "Non consentito – cambialo in Impostazioni",
   "me.phone.settings": "Autorizzazioni",
-  "me.phone.settingsBody": "Posizione, microfono, fotocamera, foto e notifiche per Fernscout"
+  "me.phone.settingsBody": "Posizione, microfono, fotocamera, foto e notifiche per Fernscout",
+  "photobook.print.readerCopy": "La copia di un lettore",
+  "photobook.readerBought.body": "Un lettore di {trip} ha ordinato una propria copia stampata del libro, ed è andata in stampa. Qui non viene condiviso nessun altro dato.",
+  "photobook.readerBought.footer": "Inviata perché un lettore ha ordinato una propria copia del tuo fotolibro. Questo avviso viene sempre inviato.",
+  "photobook.readerBought.preheader": "Un lettore ha ordinato una propria copia",
+  "photobook.readerBought.subject": "Un lettore ha ordinato una copia di {trip}",
+  "photobook.readerBought.title": "Un lettore ha ordinato una propria copia"
 }

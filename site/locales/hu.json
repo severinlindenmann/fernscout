@@ -4646,8 +4646,8 @@
   "studio.preview.takeDownNote": "Bármikor visszavonhatod. Akik már elolvasták, megtartják, amit láttak.",
   "studio.published.told": "A {count} olvasód el tudja olvasni. {app} értesítést kapott az appban, {mail} e-mailben.",
   "studio.published.toldEveryone": "Bárki elolvashatja. {app} értesítést kapott az appban, {mail} e-mailben.",
-    "studio.published.pageTitle": "Közzétéve",
-"studio.published.sendLink": "Link küldése",
+  "studio.published.pageTitle": "Közzétéve",
+  "studio.published.sendLink": "Link küldése",
   "studio.published.sendLinkSub": "Oszd meg, vagy másold ki, hogy magad küldd el",
   "studio.published.nextDay": "A következő nap megírása",
   "studio.published.nextDaySub": "Folytasd, amíg friss",
@@ -4727,5 +4727,11 @@
   "me.phone.allowed": "Engedélyezve",
   "me.phone.denied": "Nincs engedélyezve – a Beállításokban módosíthatod",
   "me.phone.settings": "Engedélyek",
-  "me.phone.settingsBody": "Helyzet, mikrofon, kamera, fotók és értesítések a Fernscout számára"
+  "me.phone.settingsBody": "Helyzet, mikrofon, kamera, fotók és értesítések a Fernscout számára",
+  "photobook.print.readerCopy": "Egy olvasó példánya",
+  "photobook.readerBought.body": "A(z) {trip} egyik olvasója megrendelte a könyv saját, nyomtatott példányát, és az nyomdába került. Itt más adatot nem osztunk meg.",
+  "photobook.readerBought.footer": "Azért küldtük, mert valaki megrendelte a fotókönyved saját példányát. Ezt az értesítést mindig elküldjük.",
+  "photobook.readerBought.preheader": "Valaki megrendelte a saját példányát",
+  "photobook.readerBought.subject": "Valaki rendelt egy példányt a(z) {trip} könyvéből",
+  "photobook.readerBought.title": "Valaki megrendelte a saját példányát"
 }

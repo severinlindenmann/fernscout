@@ -37,6 +37,8 @@
   ],
   "weather": true,
   "travelScene": "default",
+  "language": "en",
+  "ownWords": "rode the 28 end to end, everyone says dont. rode it back, seats free by then. hill way too steep for a tram, brakes",
   "declined": {
     "translations": "this short trip is written in English only",
     "visibility": "shown to everyone the trip already lets in"
