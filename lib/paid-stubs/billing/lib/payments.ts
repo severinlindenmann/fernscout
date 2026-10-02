@@ -5,7 +5,7 @@ type PaymentMethod = "twint" | "card" | "admin";
 export type Payment = {
   id: string;
   owner: string;
-  credits: number;
+  units: number;
   amountRappen: number;
   status: PaymentStatus;
   method: PaymentMethod | null;
