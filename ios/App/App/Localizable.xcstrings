@@ -1,0 +1,286 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "connectionTrouble.cantReach.body" : {
+      "comment" : "B2731 — %@ is the host the app could not reach.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Telefon ist online, aber %@ antwortet nicht. Vielleicht startet er gerade neu oder ist umgezogen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The phone is online, but %@ isn’t answering. It may be restarting or moved."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le téléphone est en ligne, mais %@ ne répond pas. Il est peut-être en train de redémarrer ou a changé d’adresse."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A telefon online van, de a %@ nem válaszol. Lehet, hogy újraindul, vagy máshová költözött."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il telefono è online, ma %@ non risponde. Potrebbe essere in riavvio o essersi spostato."
+          }
+        }
+      }
+    },
+    "connectionTrouble.cantReach.title" : {
+      "comment" : "B2731 — never \"server is down\": a restart or a move look the same from here.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Server antwortet nicht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can’t reach this server"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de joindre ce serveur"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez a szerver nem érhető el"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossibile raggiungere questo server"
+          }
+        }
+      }
+    },
+    "connectionTrouble.noInternet.body" : {
+      "comment" : "B2731 — %@ is the host the app was trying to open.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Telefon hat keine Verbindung, darum kann %@ nicht öffnen. Nichts, was du gespeichert hast, ist verloren."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This phone has no connection, so %@ can’t open. Nothing you saved is lost."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ce téléphone n’a pas de connexion, donc %@ ne peut pas s’ouvrir. Rien de ce que tu as enregistré n’est perdu."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ennek a telefonnak nincs kapcsolata, ezért a %@ nem tud megnyílni. Semmi, amit elmentettél, nem veszett el."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questo telefono non ha connessione, quindi %@ non può aprirsi. Niente di ciò che hai salvato è andato perso."
+          }
+        }
+      }
+    },
+    "connectionTrouble.noInternet.title" : {
+      "comment" : "B2731",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Internetverbindung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No internet connection"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pas de connexion internet"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nincs internetkapcsolat"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nessuna connessione a internet"
+          }
+        }
+      }
+    },
+    "connectionTrouble.openDefault" : {
+      "comment" : "B2731 — %@ is the build's own default server's host, never hard-coded, so a self-hoster's own shell reads correctly.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stattdessen %@ öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open %@ instead"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir %@ à la place"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inkább a %@ megnyitása"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri invece %@"
+          }
+        }
+      }
+    },
+    "connectionTrouble.openDefaultCaption" : {
+      "comment" : "B2731 — makes clear this switches to a different journal, not a copy of the current one.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ist ein anderes Fernscout, keine Kopie dieses Journals."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is a different Fernscout, not a copy of this journal."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ est un autre Fernscout, pas une copie de ce journal."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A %@ egy másik Fernscout, nem ennek a naplónak a másolata."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ è un altro Fernscout, non una copia di questo diario."
+          }
+        }
+      }
+    },
+    "connectionTrouble.recordingOn" : {
+      "comment" : "B2731 — shown only when Recorder.shared has an armed trip; reassures that an interrupted connection does not stop the recording.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Routenaufzeichnung: an, bleibt auf dem Telefon"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route recording: on, kept on the phone"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enregistrement du trajet : activé, reste sur le téléphone"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Útvonalrögzítés: be, a telefonon marad"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrazione del percorso: attiva, resta sul telefono"
+          }
+        }
+      }
+    },
+    "connectionTrouble.tryAgain" : {
+      "comment" : "B2731",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réessayer"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próbáld újra"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Riprova"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

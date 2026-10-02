@@ -1,5 +1,7 @@
 import UIKit
 import Capacitor
+import Network
+import SwiftUI
 import WebKit
 
 /// The bridge with the app's own plugins registered — B2175. The storyboard
@@ -9,7 +11,29 @@ class ViewController: CAPBridgeViewController {
     /// choice of the owner's replaced it — what `ServerChoice.reset` goes
     /// back to.
     private(set) static var defaultServerURL: String?
-    private var checkedChosenServer = false
+
+    /// Held strongly because `WKWebView.navigationDelegate` is `weak` —
+    /// without this the observer would be deallocated the instant
+    /// `capacitorDidLoad()` returns.
+    private var navigationFailureObserver: NetworkFailureObserver?
+    private var pathMonitor: NWPathMonitor?
+    private var pathSatisfied = true
+    private var troubleHost: UIHostingController<ConnectionTroubleView>?
+    private var trouble: ConnectionTroubleKind?
+
+    /// `-FernscoutForceOffline` — compiled out of Release — lets a Simulator
+    /// run exercise the "No internet" screen without an airplane-mode
+    /// toggle or a Link Conditioner profile.
+    #if DEBUG
+    private lazy var forcedOffline = ProcessInfo.processInfo.arguments.contains("-FernscoutForceOffline")
+    #endif
+
+    private var isOffline: Bool {
+        #if DEBUG
+        if forcedOffline { return true }
+        #endif
+        return !pathSatisfied
+    }
 
     /// Bring your own server: the owner's chosen address, when there is one,
     /// replaces the build's before the bridge reads it, so the WebView, the
@@ -36,6 +60,91 @@ class ViewController: CAPBridgeViewController {
         // own pushState history the same as any other back-forward move.
         webView?.allowsBackForwardNavigationGestures = true
         exposeAppVersion()
+        observeNetworkFailures()
+    }
+
+    /// B2731 — a failed main-frame load (no connection, or the chosen server
+    /// not answering) used to leave a blank WebView. The bridge's own
+    /// `WebViewDelegationHandler` is already `webView.navigationDelegate` by
+    /// the time `capacitorDidLoad()` runs (set in `prepareWebView`, called
+    /// earlier in `loadView()`); `capacitorBridge` itself is private to
+    /// `CAPBridgeViewController`, so reading it back off the public,
+    /// `fileprivate(set)` `webView` is the only way to reach it without
+    /// forking Capacitor in `node_modules`. Composing in front of it (see
+    /// `NetworkFailureObserver`) is the hook this gives us.
+    private func observeNetworkFailures() {
+        guard let original = webView?.navigationDelegate else { return }
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.pathSatisfied = path.status == .satisfied
+                self?.retryIfPathSatisfied()
+            }
+        }
+        monitor.start(queue: .global(qos: .utility))
+        pathMonitor = monitor
+
+        let observer = NetworkFailureObserver(
+            inner: original,
+            isOffline: { [weak self] in self?.isOffline ?? false },
+            onSuccess: { [weak self] in self?.dismissTrouble() },
+            onFailure: { [weak self] kind in self?.presentTrouble(kind) }
+        )
+        navigationFailureObserver = observer
+        webView?.navigationDelegate = observer
+    }
+
+    private func retryIfPathSatisfied() {
+        guard trouble != nil, pathSatisfied else { return }
+        tryAgain()
+    }
+
+    private func tryAgain() {
+        guard let url = bridge?.config.appStartServerURL else { return }
+        webView?.load(URLRequest(url: url))
+    }
+
+    private func presentTrouble(_ kind: ConnectionTroubleKind) {
+        trouble = kind
+        let view = ConnectionTroubleView(
+            kind: kind,
+            host: bridge?.config.serverURL.host ?? "",
+            recordingArmed: !Recorder.shared.armedTripIds().armed.isEmpty,
+            customServerChosen: ServerChoiceStore.chosen != nil,
+            defaultServerHost: Self.defaultServerURL.flatMap { URL(string: $0)?.host } ?? "",
+            onTryAgain: { [weak self] in self?.tryAgain() },
+            onOpenDefaultServer: { ServerChoicePlugin.switchServer(to: nil) }
+        )
+        if let host = troubleHost {
+            host.rootView = view
+            return
+        }
+        // `self.view` *is* the WebView (`loadView()` sets `view = webView` and
+        // is `final`, so there is no separate container to lay this over) —
+        // laid on top as a proper child view controller, the standard
+        // `UIHostingController` containment dance.
+        let host = UIHostingController(rootView: view)
+        host.view.backgroundColor = .clear
+        addChild(host)
+        host.view.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(host.view)
+        NSLayoutConstraint.activate([
+            host.view.topAnchor.constraint(equalTo: self.view.topAnchor),
+            host.view.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            host.view.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            host.view.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+        ])
+        host.didMove(toParent: self)
+        troubleHost = host
+    }
+
+    private func dismissTrouble() {
+        guard trouble != nil else { return }
+        trouble = nil
+        troubleHost?.willMove(toParent: nil)
+        troubleHost?.view.removeFromSuperview()
+        troubleHost?.removeFromParent()
+        troubleHost = nil
     }
 
     /// `window.FernscoutApp = { version, build }` on every page, before any
@@ -59,13 +168,4 @@ class ViewController: CAPBridgeViewController {
         webView?.configuration.userContentController.addUserScript(script)
     }
 
-    override open func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        guard !checkedChosenServer else { return }
-        checkedChosenServer = true
-        ServerChoicePlugin.checkChosenServerAnswers { [weak self] in
-            guard let url = self?.bridge?.config.appStartServerURL else { return }
-            self?.webView?.load(URLRequest(url: url))
-        }
-    }
 }
