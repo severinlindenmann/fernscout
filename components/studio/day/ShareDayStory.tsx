@@ -453,7 +453,7 @@ export default function ShareDayStory({
           <ReadAlongLink username={username} initial={readAlong} onLiveChange={setReadAlongUrl} />
           {readAlongUrl && (
             <label className="flex items-center justify-between gap-3 rounded-xl border border-line-quiet bg-surface-subtle px-3 py-2">
-              <span className="text-sm text-ink-strong">{t("studio.share.addLink")}</span>
+              <span className="text-sm text-ink-strong">{t("studio.share.readAlong.onStory")}</span>
               <input
                 type="checkbox"
                 checked={includeLink}

@@ -160,16 +160,16 @@ async function renderPanelPng(facts: StoryFacts, line: string | undefined): Prom
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <StoryMark size={30} />
           {facts.dayLabel && (
-            <div style={{ display: "flex", fontSize: 22, fontWeight: 700, letterSpacing: 2, color: "#ffd23f", textTransform: "uppercase" }}>
+            <div style={{ display: "flex", fontSize: 32, fontWeight: 700, letterSpacing: 2, color: "#ffd23f", textTransform: "uppercase" }}>
               {facts.dayLabel} · {facts.dateLabel}
             </div>
           )}
         </div>
-        <div style={{ display: "flex", marginTop: 12, fontSize: 48, fontWeight: 700, color: "#fffaf0", lineHeight: 1.1 }}>
+        <div style={{ display: "flex", marginTop: 12, fontSize: 80, fontWeight: 700, color: "#fffaf0", lineHeight: 1.1 }}>
           {facts.headline}
         </div>
         {facts.subLine && (
-          <div style={{ display: "flex", marginTop: 12, fontSize: 24, color: "#d8dee8" }}>{facts.subLine}</div>
+          <div style={{ display: "flex", marginTop: 12, fontSize: 36, color: "#d8dee8" }}>{facts.subLine}</div>
         )}
         <div
           style={{
@@ -178,7 +178,7 @@ async function renderPanelPng(facts: StoryFacts, line: string | undefined): Prom
             paddingTop: 16,
             height: 80,
             borderTop: "2px solid #253145",
-            fontSize: 24,
+            fontSize: 32,
             lineHeight: 1.35,
             color: "#aeb7c5",
             fontStyle: line && facts.link && line.includes(facts.link.replace(/^https?:\/\//, "")) ? "normal" : "italic",

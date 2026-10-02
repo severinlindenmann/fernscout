@@ -1004,6 +1004,7 @@
   "studio.share.failed": "Cela n'a pas fonctionné. Réessayez.",
   "studio.share.readAlong.groupName": "Depuis mes stories",
   "studio.share.readAlong.onCard": "Demander à nous suivre",
+  "studio.share.readAlong.onStory": "Mettre ce lien dans la story",
   "studio.share.readAlong.noneTitle": "Ajouter un lien « Demander à nous suivre »",
   "studio.share.readAlong.noneBody": "C'est une demande, pas une invitation : la personne qui clique donne un nom, confirme un e-mail ou un numéro, puis attend — personne n'entre avant que tu dises oui. Les demandes arrivent dans le groupe « Depuis mes stories ». Une fois ton oui donné, elle peut lire tous les voyages que tu partages avec les invités, y compris les prochains. Les voyages privés restent fermés.",
   "studio.share.readAlong.turnOn": "Activer",

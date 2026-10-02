@@ -1004,6 +1004,7 @@
   "studio.share.failed": "Non ha funzionato. Riprova.",
   "studio.share.readAlong.groupName": "Dalle mie storie",
   "studio.share.readAlong.onCard": "Chiedi di seguirci",
+  "studio.share.readAlong.onStory": "Metti questo link nella storia",
   "studio.share.readAlong.noneTitle": "Aggiungi un link \"Chiedi di seguirci\"",
   "studio.share.readAlong.noneBody": "È una richiesta, non un invito: chi tocca il link indica un nome, conferma un'email o un numero, e aspetta — nessuno entra finché non dici sì. Le richieste arrivano nel gruppo \"Dalle mie storie\". Una volta detto sì, potrà leggere ogni viaggio che condividi con gli ospiti, anche i prossimi. I viaggi privati restano chiusi.",
   "studio.share.readAlong.turnOn": "Attiva",

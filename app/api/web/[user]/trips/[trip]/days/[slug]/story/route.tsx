@@ -140,19 +140,19 @@ function PhotoCard({
         {facts.dayLabel && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ display: "flex", width: 12, height: 12, background: COLORS.yellow400, transform: "rotate(45deg)" }} />
-            <div style={{ display: "flex", fontSize: 24, fontWeight: 700, letterSpacing: 2, color: COLORS.yellow400, textTransform: "uppercase" }}>
+            <div style={{ display: "flex", fontSize: 32, fontWeight: 700, letterSpacing: 2, color: COLORS.yellow400, textTransform: "uppercase" }}>
               {facts.dayLabel} · {facts.dateLabel}
             </div>
           </div>
         )}
-        <div style={{ display: "flex", marginTop: 14, fontSize: 56, fontWeight: 700, color: COLORS.cream50, lineHeight: 1.1 }}>
+        <div style={{ display: "flex", marginTop: 14, fontSize: 80, fontWeight: 700, color: COLORS.cream50, lineHeight: 1.1 }}>
           {facts.headline}
         </div>
         {facts.subLine && (
-          <div style={{ display: "flex", marginTop: 16, fontSize: 28, color: COLORS.navy200 }}>{facts.subLine}</div>
+          <div style={{ display: "flex", marginTop: 16, fontSize: 38, color: COLORS.navy200 }}>{facts.subLine}</div>
         )}
         {caption && (
-          <div style={{ display: "flex", marginTop: 16, fontSize: 24, fontStyle: "italic", color: COLORS.navy300 }}>{caption}</div>
+          <div style={{ display: "flex", marginTop: 16, fontSize: 32, fontStyle: "italic", color: COLORS.navy300 }}>{caption}</div>
         )}
         {facts.link && facts.readAlong && (
           <div
@@ -165,7 +165,7 @@ function PhotoCard({
               color: COLORS.navy900,
               borderRadius: 16,
               padding: "12px 18px",
-              fontSize: 22,
+              fontSize: 30,
               fontWeight: 700,
             }}
           >
@@ -173,7 +173,7 @@ function PhotoCard({
           </div>
         )}
         {facts.link && !facts.readAlong && (
-          <div style={{ display: "flex", marginTop: 24, fontSize: 22, color: COLORS.navy300, fontFamily: "monospace" }}>
+          <div style={{ display: "flex", marginTop: 24, fontSize: 28, color: COLORS.navy300, fontFamily: "monospace" }}>
             {facts.link.replace(/^https?:\/\//, "")}
           </div>
         )}
@@ -227,18 +227,18 @@ function PostcardCard({
             transform: "rotate(45deg)",
           }}
         />
-        <div style={{ display: "flex", fontSize: 22, fontWeight: 700, letterSpacing: 1, color: COLORS.navy600, textTransform: "uppercase" }}>
+        <div style={{ display: "flex", fontSize: 30, fontWeight: 700, letterSpacing: 1, color: COLORS.navy600, textTransform: "uppercase" }}>
           {facts.dayLabel ? `${facts.dayLabel} · ${facts.dateLabel}` : facts.dateLabel}
         </div>
       </div>
-      <div style={{ display: "flex", marginTop: 10, fontSize: 56, fontWeight: 700, color: COLORS.navy900, lineHeight: 1.1 }}>
+      <div style={{ display: "flex", marginTop: 10, fontSize: 80, fontWeight: 700, color: COLORS.navy900, lineHeight: 1.1 }}>
         {facts.headline}
       </div>
       {facts.subLine && (
-        <div style={{ display: "flex", marginTop: 10, fontSize: 26, color: COLORS.navy600 }}>{facts.subLine}</div>
+        <div style={{ display: "flex", marginTop: 10, fontSize: 36, color: COLORS.navy600 }}>{facts.subLine}</div>
       )}
       {caption && (
-        <div style={{ display: "flex", marginTop: 10, fontSize: 24, fontStyle: "italic", color: COLORS.navy600 }}>{caption}</div>
+        <div style={{ display: "flex", marginTop: 10, fontSize: 32, fontStyle: "italic", color: COLORS.navy600 }}>{caption}</div>
       )}
       <div
         style={{
@@ -253,7 +253,7 @@ function PostcardCard({
       >
         <Pill site={site} dark={false} />
         {facts.link && (
-          <div style={{ display: "flex", fontSize: 20, color: COLORS.navy600, fontFamily: "monospace" }}>
+          <div style={{ display: "flex", fontSize: 26, color: COLORS.navy600, fontFamily: "monospace" }}>
             {facts.readAlong ? `${facts.readAlongLabel}: ${facts.link.replace(/^https?:\/\//, "")}` : facts.link.replace(/^https?:\/\//, "")}
           </div>
         )}
@@ -276,7 +276,7 @@ function CollageCard({ facts, photos, site }: { facts: StoryFacts; photos: strin
               display: "flex",
               background: COLORS.yellow400,
               color: COLORS.navy900,
-              fontSize: 22,
+              fontSize: 28,
               fontWeight: 700,
               padding: "8px 18px",
               borderRadius: 999,
@@ -299,14 +299,14 @@ function CollageCard({ facts, photos, site }: { facts: StoryFacts; photos: strin
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", marginTop: 28 }}>
-        <div style={{ display: "flex", fontSize: 44, fontWeight: 700, color: COLORS.cream50 }}>{facts.headline}</div>
-        <div style={{ display: "flex", marginTop: 10, fontSize: 26, color: COLORS.navy200 }}>
+        <div style={{ display: "flex", fontSize: 64, fontWeight: 700, color: COLORS.cream50 }}>{facts.headline}</div>
+        <div style={{ display: "flex", marginTop: 10, fontSize: 34, color: COLORS.navy200 }}>
           {[facts.dateLabel, facts.headline === facts.place ? undefined : facts.place].filter(Boolean).join(" · ")}
         </div>
         {facts.link && (
           <div style={{ display: "flex", marginTop: 16, alignItems: "center", gap: 10 }}>
             <div style={{ display: "flex", width: 10, height: 10, borderRadius: 999, background: COLORS.green500 }} />
-            <div style={{ display: "flex", fontSize: 20, color: COLORS.navy300, fontFamily: "monospace" }}>
+            <div style={{ display: "flex", fontSize: 26, color: COLORS.navy300, fontFamily: "monospace" }}>
               {facts.readAlong ? `${facts.readAlongLabel} ${facts.link.replace(/^https?:\/\//, "")}` : facts.link.replace(/^https?:\/\//, "")}
             </div>
           </div>

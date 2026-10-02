@@ -4361,6 +4361,7 @@ export type TranslationKey =
   | "studio.share.readAlong.noneBody"
   | "studio.share.readAlong.noneTitle"
   | "studio.share.readAlong.onCard"
+  | "studio.share.readAlong.onStory"
   | "studio.share.readAlong.pause"
   | "studio.share.readAlong.pausedStays"
   | "studio.share.readAlong.pausedTitle"

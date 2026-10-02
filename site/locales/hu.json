@@ -2493,6 +2493,7 @@
   "studio.share.failed": "Ez nem sikerült. Próbáld újra.",
   "studio.share.readAlong.groupName": "A sztorijaimból",
   "studio.share.readAlong.onCard": "Kérj olvasói hozzáférést",
+  "studio.share.readAlong.onStory": "Tedd ezt a linket a történetbe",
   "studio.share.readAlong.noneTitle": "\"Kérj olvasói hozzáférést\" link hozzáadása",
   "studio.share.readAlong.noneBody": "Ez egy kérés, nem meghívás: aki rákoppint, megad egy nevet, igazol egy e-mailt vagy számot, és vár — senki nem jut be, amíg nem mondasz igent. A kérések a \"A sztorijaimból\" csoportba kerülnek. Ha igent mondasz, minden utazást olvashat, amit a vendégekkel megosztasz, a jövőbelieket is. A privát utazások zárva maradnak.",
   "studio.share.readAlong.turnOn": "Bekapcsolás",

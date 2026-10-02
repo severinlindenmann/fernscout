@@ -1005,6 +1005,7 @@
   "studio.share.failed": "That did not work. Try again.",
   "studio.share.readAlong.groupName": "From my stories",
   "studio.share.readAlong.onCard": "Ask to read along",
+  "studio.share.readAlong.onStory": "Put this link on the story",
   "studio.share.readAlong.noneTitle": "Add an \"Ask to read along\" link",
   "studio.share.readAlong.noneBody": "This is a request, not an invite: whoever taps it gives a name, proves an email or phone, and waits — nobody gets in until you say yes. Requests land in the group \"From my stories\". Once you say yes, they can read every trip you share with readers, including future ones. Private trips stay closed.",
   "studio.share.readAlong.turnOn": "Turn it on",
