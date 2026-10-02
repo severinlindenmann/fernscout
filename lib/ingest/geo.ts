@@ -258,7 +258,30 @@ export function reverseGeocode(
     band,
     (i) => plainDistance(i) - prominenceKm(index.records.readUInt8(i * RECORD_SIZE + 10)),
   );
-  return best < 0 ? null : readPlace(index, best, lat, lng);
+  if (best < 0) return null;
+  const winner = readPlace(index, best, lat, lng);
+  if (!townOnly) return winner;
+
+  // B2561: a city's districts are not all flagged as sections (Ho Chi Minh
+  // City's "Quận Ba" is a plain populated place), so the winner can be a
+  // district of a city that is itself in range. Within the same 20 km
+  // prominence cap, a place with at least ten times the population is the
+  // town the map should name.
+  let bigger = -1;
+  let biggerKm = Infinity;
+  const from = lowerBound(index.lats, lat - 20 / KM_PER_DEGREE);
+  const to = lowerBound(index.lats, lat + 20 / KM_PER_DEGREE);
+  for (let i = from; i < to; i++) {
+    const at = i * RECORD_SIZE;
+    if (index.records.readUInt8(at + 11)) continue;
+    if (decodePopulation(index.records.readUInt8(at + 10)) < winner.population * 10) continue;
+    const km = distanceKm(lat, lng, index.lats[i], index.records.readInt32BE(at + 4) / 1e5);
+    if (km <= 20 && km < biggerKm) {
+      biggerKm = km;
+      bigger = i;
+    }
+  }
+  return bigger < 0 ? winner : readPlace(index, bigger, lat, lng);
 }
 
 /** A town the map may label: enough to draw it, and nothing more. */
