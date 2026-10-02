@@ -211,7 +211,9 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
             {t("studio.day.edit.statusDraft")}
           </span>
           <Link
-            href={`${journalPath(encodeURIComponent(username))}/studio/day/publish?day=${encodeURIComponent(editable.day.lead.slug)}&trip=${encodeURIComponent(editable.tripId)}`}
+            // B2677 — the chosen-draft moment moved to Preview, which finds
+            // every part of this trip/date on its own.
+            href={`${journalPath(encodeURIComponent(username))}/studio/day/preview?trip=${encodeURIComponent(editable.tripId)}&date=${encodeURIComponent(editable.day.date)}`}
             className="font-medium text-ink-strong underline underline-offset-2"
           >
             {t("studio.day.edit.draftPublishFrom")}

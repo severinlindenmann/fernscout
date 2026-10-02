@@ -130,13 +130,14 @@ describe("the day page, since the ask row went — B2309", () => {
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(false);
   });
 
-  test("a draft day still offers the publish row, into the studio's publish page with this day chosen", async () => {
+  test("a draft day still offers the publish row, into Preview with this day's trip and date chosen", async () => {
     const host = await dayPage(true, true);
     const link = [...host.querySelectorAll("a")].find((anchor) =>
       anchor.textContent?.includes("Publish this day"),
     ) as HTMLAnchorElement;
-    // B2169 — the studio page (B2140), not the retired room.
-    expect(link.getAttribute("href")).toBe("/@alex/studio/day/publish?day=bellinzona&trip=reise-2026");
+    // B2169 — the studio page (B2140), not the retired room; B2677 moved
+    // the chosen moment itself to Preview.
+    expect(link.getAttribute("href")).toBe("/@alex/studio/day/preview?trip=reise-2026&date=2026-08-01");
     expect(host.innerHTML).not.toContain('href="/agent');
   });
 
