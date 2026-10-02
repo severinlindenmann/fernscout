@@ -773,7 +773,6 @@
   "photobook.order.check.textFits": "Le texte tient sur chaque page",
   "photobook.order.check.textFitsNo": "Certaines journées sont raccourcies pour tenir sur leur page — ouvre une journée pour lui en donner une deuxième.",
   "photobook.print.noFilesFailed": "Ce livre n’a jamais été fabriqué, il n’y a donc rien à télécharger.",
-  "photobook.read.phoneHint": "Fais défiler le livre. Écarte deux doigts sur une page pour l’agrandir ; la barre du bas indique l’étape de la page où tu te trouves.",
   "photobook.status.buildFailed": "Non fabriqué",
   "photobook.status.building": "En fabrication",
   "photobook.status.awaitingPayment": "En attente de paiement",
@@ -3786,7 +3785,6 @@
   "photobook.order.more.startOverSub": "choisir à nouveau langue, longueur et format · demande d’abord",
   "photobook.order.more.resetSub": "tes propres modifications des pages sont perdues · demande d’abord",
   "photobook.order.bookDetails": "Détails du livre",
-  "photobook.order.passSub": "{spreads} doubles pages · environ {minutes} minutes",
   "photobook.order.checksOkShort": "Qualité d’impression vérifiée",
   "photobook.order.checksDetails": "Détails",
   "photobook.order.done.see": "Regardé",
@@ -4724,7 +4722,7 @@
   "photobook.pass.pageLineRange": "{name} · p. {from}–{to}",
   "photobook.first.budgetLeftOut": "{count} photos laissées de côté",
   "photobook.first.budgetLeftOut.one": "1 photo laissée de côté",
-  "photobook.first.budgetLeftOutShow": "Les montrer",
+  "photobook.first.budgetLeftOutShow": "Les voir et en remettre",
   "photobook.print.readerCopy": "L’exemplaire d’un lecteur",
   "photobook.readerBought.body": "Un lecteur ou une lectrice de {trip} a commandé son propre exemplaire imprimé du livre, et il est parti à l’impression. Aucune autre information n’est partagée ici.",
   "photobook.readerBought.footer": "Envoyé parce qu’un lecteur a commandé son propre exemplaire de ton livre photo. Cet avis est toujours envoyé.",
@@ -4738,5 +4736,12 @@
   "studio.day.dateOutsideTrip.chooseTrip": "Choisir le voyage",
   "studio.day.dateOutsideTrip.pickDate": "Choisir une autre date",
   "studio.day.photos.chooseLabel": "Choisir des photos",
-  "studio.published.pageTitle": "Publié"
+  "studio.published.pageTitle": "Publié",
+  "photobook.first.skipShort": "Passer ›",
+  "photobook.first.coverMore": "+{count} autres",
+  "photobook.order.passButton": "Modifier page par page · environ {minutes} min",
+  "photobook.read.headingShort": "Ton livre",
+  "photobook.read.hintShort": "Feuilleter · pincer une page pour zoomer",
+  "photobook.read.editShort": "Modifier",
+  "photobook.read.orderPrice": "Commander ce livre · {price}"
 }

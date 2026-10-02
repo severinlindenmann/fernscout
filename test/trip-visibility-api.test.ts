@@ -107,11 +107,12 @@ beforeEach(async () => {
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.SESSION_SECRET = "trip-visibility-api-test-secret-trip-vis";
+  process.env.CONTACTS_ENCRYPTION_KEY = "77".repeat(32);
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true } },
+      features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
   fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
@@ -134,6 +135,7 @@ afterEach(async () => {
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.SESSION_SECRET;
+  delete process.env.CONTACTS_ENCRYPTION_KEY;
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
@@ -153,6 +155,13 @@ describe("GET the visibility fields, through the trip document", () => {
   test("a trip-scoped token may still read it — GET is not owner-only in v2", async () => {
     const owner = await ownerToken();
     await putTrip(fullTrip(), owner);
+    // B2218: the read now asks `mayWriteTrip`, so the buddy needs a real place.
+    const { grantContactAccess } = await import("@/lib/contacts");
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    const granted = await grantContactAccess("alex", { name: "Guest", email: "guest@example.test", locale: "en" });
+    if (!granted.ok) throw new Error("no place");
+    await claimTripPlace("alex", TRIP, granted.contact.id, null);
+    await approveTripPlaces("alex", granted.contact.id);
     const scoped = await scopedToken("guest@example.test");
     const { status } = await getTrip(scoped);
     expect(status).toBe(200);

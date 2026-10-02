@@ -30,6 +30,7 @@ import { photobookPhotoRefs } from "@/lib/studio/reshapeDay";
 import { isExpired, isPending, listOrders as listPostcardOrders } from "@paid/postcard/lib/postcard/orders";
 
 import { journalPath } from "@/lib/journalPath";
+import { readJsonBody } from "@/lib/api/jsonBody";
 export const dynamic = "force-dynamic";
 
 /**
@@ -216,7 +217,9 @@ export async function DELETE(
   const day = stem ? readDayFile(user, tripId, stem) : null;
   if (!stem || !day) return Response.json({ error: "unknown_day" }, { status: 404 });
 
-  const body = (await request.json().catch(() => ({}))) as { takeDown?: unknown; acceptPhotobookGaps?: unknown };
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as { takeDown?: unknown; acceptPhotobookGaps?: unknown };
   if (day.status === "published" && body?.takeDown !== true) {
     return Response.json(
       {

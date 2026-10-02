@@ -31,6 +31,8 @@ import {
   ownsUser,
   resolveBearer,
 } from "@/lib/api/v2/auth";
+import { mayWriteTrip } from "@/lib/api/auth";
+import type { Trip } from "@/lib/types";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { skillDocPath } from "@/lib/api/skillDocMeta";
 import { serverSite } from "@/lib/site";
@@ -84,8 +86,8 @@ export async function GET(request: Request, { params }: RouteCtx) {
   // stopped at `ownsUser`, which any bearer of the journal satisfies —
   // including `write:gps`, which reads positions only and must not read a
   // trip's full days, drafts and plan. `write:gps` refuses itself here; a
-  // trip-scoped token's own read of a trip it does not hold is a
-  // pre-existing gap left to B2218, not widened by this line.
+  // trip-scoped token's own read of a trip it does not hold is refused
+  // below by `mayWriteTrip`, the gate the days routes use.
   if (isGpsWriteScope(bearer.session)) return gpsWriteOnlyRefusal();
 
   const stored = readTripFile(user, trip);
@@ -94,6 +96,10 @@ export async function GET(request: Request, { params }: RouteCtx) {
     if (redirect) return redirect;
     return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
   }
+  // B2218 — a `write:trip:<A>` token reaches trip A only; trip B answers the
+  // same 404 a missing trip does, so the refusal does not enumerate trips.
+  const tripLike = { username: user, id: trip, ref: `${user}/${trip}`, people: stored.people } as unknown as Trip;
+  if (!(await mayWriteTrip(bearer.session, tripLike)).ok) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
 
   // B2009 — `plan.private` is the owner's alone. `ownsUser` above only
   // proved this bearer belongs to the journal (an owner-scoped token, or one

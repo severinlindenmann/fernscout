@@ -6,6 +6,7 @@
 import { isValidTripId, renameTrip } from "@/lib/tripRename";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,9 @@ export async function POST(
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null) as Record<string, unknown> | null;
   const id = body && typeof body.id === "string" ? body.id : "";
   if (!isValidTripId(id)) {
     return Response.json({ error: "invalid_trip_id" }, { status: 400 });

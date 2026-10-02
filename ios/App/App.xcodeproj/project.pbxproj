@@ -21,6 +21,8 @@
 		B2330A000000000000000004 /* MediaUploadSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2330A000000000000000003 /* MediaUploadSession.swift */; };
 		B2598A000000000000000002 /* AppleIAPPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2598A000000000000000001 /* AppleIAPPlugin.swift */; };
 		B2657A000000000000000002 /* InAppCheckoutPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2657A000000000000000001 /* InAppCheckoutPlugin.swift */; };
+		B2731A000000000000000002 /* ConnectionTroubleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2731A000000000000000001 /* ConnectionTroubleView.swift */; };
+		B2731A000000000000000004 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B2731A000000000000000003 /* Localizable.xcstrings */; };
 		B2196A000000000000000011 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B2196A000000000000000007 /* InfoPlist.strings */; };
 		B2175A000000000000000015 /* ShareInbox.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2175A000000000000000002 /* ShareInbox.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
@@ -52,6 +54,8 @@
 		B2330A000000000000000003 /* MediaUploadSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaUploadSession.swift; sourceTree = "<group>"; };
 		B2598A000000000000000001 /* AppleIAPPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIAPPlugin.swift; sourceTree = "<group>"; };
 		B2657A000000000000000001 /* InAppCheckoutPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppCheckoutPlugin.swift; sourceTree = "<group>"; };
+		B2731A000000000000000001 /* ConnectionTroubleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionTroubleView.swift; sourceTree = "<group>"; };
+		B2731A000000000000000003 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		B2598A000000000000000003 /* Fernscout.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Fernscout.storekit; sourceTree = "<group>"; };
 		B2196A000000000000000008 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B2196A000000000000000009 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -124,6 +128,8 @@
 				B2598A000000000000000001 /* AppleIAPPlugin.swift */,
 				B2598A000000000000000003 /* Fernscout.storekit */,
 				B2657A000000000000000001 /* InAppCheckoutPlugin.swift */,
+				B2731A000000000000000001 /* ConnectionTroubleView.swift */,
+				B2731A000000000000000003 /* Localizable.xcstrings */,
 				B2175A00000000000000000F /* App.entitlements */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -226,6 +232,8 @@
 				en,
 				de,
 				hu,
+				fr,
+				it,
 				Base,
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
@@ -263,6 +271,7 @@
 				B2123A0000000000000000A2 /* PrivacyInfo.xcprivacy in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				B2196A000000000000000011 /* InfoPlist.strings in Resources */,
+				B2731A000000000000000004 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -294,6 +303,7 @@
 				B2330A000000000000000004 /* MediaUploadSession.swift in Sources */,
 				B2598A000000000000000002 /* AppleIAPPlugin.swift in Sources */,
 				B2657A000000000000000002 /* InAppCheckoutPlugin.swift in Sources */,
+				B2731A000000000000000002 /* ConnectionTroubleView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

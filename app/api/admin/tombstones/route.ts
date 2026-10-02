@@ -1,6 +1,7 @@
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { clearTombstone, journalTombstone } from "@/lib/tombstones";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const username = typeof body.user === "string" ? body.user : "";
   // Nothing checks for a live journal of the same name, because there cannot
   // be one: `isReservedUsername` counts a tombstone as taken, so `getUsernames`

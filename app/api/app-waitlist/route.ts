@@ -1,6 +1,7 @@
 import { addToWaitlist, iosAppStoreUrl, iosAppWaitlistAvailable, isValidWaitlistEmail } from "@/lib/appWaitlist";
 import { isEnabled } from "@/lib/capabilities";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const email = typeof body.email === "string" ? body.email.trim() : "";
   const locale = typeof body.locale === "string" ? body.locale.trim() : undefined;
   if (!isValidWaitlistEmail(email)) {
