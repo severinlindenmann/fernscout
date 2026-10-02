@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, House, PenLine, Users } from "lucide-react";
+import { BookOpen, House, PenLine, Users, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import AccountChip from "@/components/AccountChip";
 import type { HomeJournal } from "@/components/HomeJournals";
@@ -92,13 +92,16 @@ export default function SignedInHeader({
             </nav>
           )}
           <div className="flex items-center gap-1">
-            {/* Not on a phone, where it pushes into the name; /me offers it too. */}
+            {/* Not on a phone, where it pushes into the name; /me offers it too.
+                B2521: a wrench, not a word — only the operator ever sees it. */}
             {admin && (
               <Link
                 href="/admin"
-                className="hidden min-h-11 items-center rounded-full px-2.5 text-xs font-bold text-ink-secondary sm:flex transition-colors hover:bg-surface-subtle hover:text-ink-strong"
+                aria-label={t("home.operator")}
+                title={t("home.operator")}
+                className={`hidden h-11 w-11 items-center justify-center rounded-full text-ink-secondary sm:flex transition-colors hover:bg-surface-subtle hover:text-ink-strong ${FOCUS}`}
               >
-                {t("home.operator")}
+                <Wrench aria-hidden className="h-[18px] w-[18px]" strokeWidth={2} />
               </Link>
             )}
             <ThemeSwitcher subtle />
