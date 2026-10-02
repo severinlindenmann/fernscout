@@ -39,6 +39,33 @@ private struct Fix {
     }
 }
 
+/// B2730 — a final upload `finalUploadThenPurge` could not confirm
+/// delivered, kept narrowly enough to retry safely: just the one trip it was
+/// recorded for, the exact server and user it was bound for, and the exact
+/// snapshot text already built. Never the whole buffer format or an
+/// `ArmedTrip` — a disarmed trip's record is already gone from `armed` by
+/// the time this exists, and re-deriving a request from it later must not
+/// depend on any of that having survived. Mirrors `bufferURL`'s own
+/// storage choice (security review, 2026-09-24, finding 3): nothing but
+/// this recorder ever reads raw positions, so this stays in the app's own
+/// protected, non-backed-up storage rather than the shared app-group
+/// container the rest of this file's state lives in.
+private struct PendingUpload: Codable {
+    let tripId: String
+    let base: String
+    let user: String
+    /// ISO 8601, set once when first created and never refreshed on a
+    /// retry — the 7-day ceiling (B2730's own acceptance) counts from when
+    /// the data first could not be sent, not from the most recent attempt.
+    let createdAt: String
+    let text: String
+    /// Carried along so a 401 on retry can still post the one-time notice
+    /// in the owner's own language, the same as the original attempt did —
+    /// by retry time the trip is no longer in `armed` or `stopped` to read
+    /// it back from.
+    let unauthorizedBody: String
+}
+
 /// The whole of B2196: one singleton, owned by `AppDelegate`, that arms
 /// itself against a trip's dates, tracks location in the background with no
 /// timer (iOS gives a background app none), buffers fixes to disk and
@@ -156,6 +183,7 @@ final class Recorder: NSObject {
         manager.pausesLocationUpdatesAutomatically = manager.authorizationStatus == .authorizedAlways
         applyStopRule()
         if !armed.isEmpty { beginTracking() }
+        retryPendingUpload() // B2730 — every launch, including a background relaunch
     }
 
     // MARK: - Timeline-style tracking
@@ -367,8 +395,11 @@ final class Recorder: NSObject {
             // in the same file — see the doc comment on `purgeBuffer`.
             endTracking()
             // Security review (2026-09-24), finding 4 — nothing left armed,
-            // nothing left to upload with.
-            GpsCredentialStore.clear()
+            // nothing left to upload with. B2730: `finalUploadThenPurge`
+            // itself now decides this (`clearCredentialIfUnneeded()`) once
+            // the final upload's own outcome is known, rather than clearing
+            // unconditionally here before that outcome exists — a failed
+            // final upload needs this same token to retry.
         }
     }
 
@@ -587,9 +618,10 @@ final class Recorder: NSObject {
                 // attempt before the buffer goes.
                 finalUploadThenPurge(tripId: lastStopped?.id, lastStopped?.trip)
                 endTracking()
-                // Security review (2026-09-24), finding 4 — nothing left
-                // armed, nothing left to upload with.
-                GpsCredentialStore.clear()
+                // Security review (2026-09-24), finding 4; B2730 — see the
+                // matching comment in `disarm()`: `finalUploadThenPurge`
+                // itself clears the credential once it knows whether a
+                // pending upload still needs it.
             }
         }
     }
@@ -623,6 +655,54 @@ final class Recorder: NSObject {
     func debugForceCooldown() {
         defaults?.set(true, forKey: Self.debugForceCooldownKey)
         applyStopRule()
+    }
+    #endif
+
+    #if DEBUG
+    /// B2730 test hooks — called only from `AppDelegate`'s own
+    /// `#if DEBUG` launch-argument handling, so this ticket's pending-upload
+    /// behaviour (a Stop the network could not reach, a 400 drop, the 7-day
+    /// drop) is provable in the Simulator with no real GPS movement and no
+    /// WebView sign-in flow. All compiled out of Release.
+
+    /// Appends one fix straight to the buffer, bypassing CoreLocation and
+    /// the armed-window check — the Simulator has no real movement to
+    /// generate one from.
+    func debugInjectFix(lat: Double, lon: Double) {
+        appendFix(Fix(t: Int(Date().timeIntervalSince1970), lat: lat, lon: lon, mode: nil))
+    }
+
+    /// Dumps a small JSON snapshot of internal state to a fixed debug file
+    /// in Application Support, purely so a test run can read it back from
+    /// outside the sandbox (`xcrun simctl get_app_container … data`).
+    func debugDumpState() {
+        let dict: [String: Any] = [
+            "armed": Array(armed.keys),
+            "stopped": Array(stopped.keys),
+            "declined": Array(declined),
+            "lastError": lastError ?? NSNull(),
+            "hasCredential": GpsCredentialStore.load() != nil,
+            "bufferExists": FileManager.default.fileExists(atPath: bufferURL.path),
+            "pendingExists": FileManager.default.fileExists(atPath: pendingUploadURL.path),
+        ]
+        let dir = (try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true))
+            ?? FileManager.default.temporaryDirectory
+        let url = dir.appendingPathComponent("b2730-debug-dump.json")
+        if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+
+    /// Rewrites the pending upload's `createdAt` to look `days` old, so the
+    /// 7-day drop (`retryPendingUpload`) can be proven without waiting a
+    /// week for it.
+    func debugAgePendingUpload(days: Int) {
+        guard let pending = loadPendingUpload() else { return }
+        let aged = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+        savePendingUpload(tripId: pending.tripId, trip: ArmedTrip(
+            title: "", start: "", end: "", user: pending.user, base: pending.base,
+            armedAt: "", openEnded: false, stopBody: "", unauthorizedBody: pending.unauthorizedBody
+        ), text: pending.text, createdAt: ISO8601DateFormatter().string(from: aged))
     }
     #endif
 
@@ -715,6 +795,57 @@ final class Recorder: NSObject {
         try? FileManager.default.removeItem(at: bufferURL)
     }
 
+    // MARK: - Pending final upload (B2730)
+
+    /// Same directory and hardening as `bufferURL` — see `PendingUpload`'s
+    /// own doc comment for why this is not the app-group container.
+    private var pendingUploadURL: URL {
+        let dir = (try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true))
+            ?? FileManager.default.temporaryDirectory
+        return dir.appendingPathComponent("route-pending-upload.json")
+    }
+
+    private func loadPendingUpload() -> PendingUpload? {
+        guard let data = try? Data(contentsOf: pendingUploadURL) else { return nil }
+        return try? JSONDecoder().decode(PendingUpload.self, from: data)
+    }
+
+    /// ponytail: one pending slot, like the one shared buffer — correct
+    /// because `finalUploadThenPurge` only ever runs once `armed` is empty,
+    /// so there is only ever one trip's final snapshot outstanding at a
+    /// time; a later call overwrites whatever did not get sent before it,
+    /// same upgrade path as `purgeBuffer`'s own note if that ever changes.
+    private func savePendingUpload(tripId: String, trip: ArmedTrip, text: String, createdAt: String = ISO8601DateFormatter().string(from: Date())) {
+        let pending = PendingUpload(tripId: tripId, base: trip.base, user: trip.user, createdAt: createdAt, text: text, unauthorizedBody: trip.unauthorizedBody)
+        guard let data = try? JSONEncoder().encode(pending) else { return }
+        try? data.write(to: pendingUploadURL, options: .atomic)
+        harden(pendingUploadURL)
+    }
+
+    private func clearPendingUpload() {
+        try? FileManager.default.removeItem(at: pendingUploadURL)
+    }
+
+    /// The server this app currently points at, without needing a bridge —
+    /// `start()` can run from a background relaunch with no WebView at all.
+    /// The owner's own bring-your-own-server choice if they made one, else
+    /// the build's default once some bridge has loaded it at least once in
+    /// this process. `nil` only means "not known yet", never "no server" —
+    /// a pending upload is left alone rather than dropped on that
+    /// uncertainty.
+    private var chosenServerBase: String? {
+        ServerChoiceStore.chosen ?? ViewController.defaultServerURL
+    }
+
+    /// Security review (2026-09-24), finding 4, extended by B2730 — the
+    /// `write:gps` token is only truly unneeded once nothing is armed *and*
+    /// no pending upload still needs it to retry; clearing it the moment a
+    /// trip stops would strand a pending upload with no way to ever retry.
+    private func clearCredentialIfUnneeded() {
+        guard armed.isEmpty, loadPendingUpload() == nil else { return }
+        GpsCredentialStore.clear()
+    }
+
     // MARK: - Upload
 
     private static let uploadInterval: TimeInterval = 30 * 60
@@ -763,7 +894,7 @@ final class Recorder: NSObject {
         let report = stateReport(tripId: tripId, trip: trip)
         let fingerprint = Self.stateFingerprint(report)
         guard let request = uploadRequest(
-            trip: trip, credential: credential, text: snapshot.joined(separator: "\n"), state: report
+            base: trip.base, user: trip.user, credential: credential, text: snapshot.joined(separator: "\n"), state: report
         ) else { return }
 
         backgroundTask = UIApplication.shared.beginBackgroundTask { [weak self] in
@@ -871,7 +1002,7 @@ final class Recorder: NSObject {
         let report = stateReport(tripId: tripId, trip: trip)
         let fingerprint = Self.stateFingerprint(report)
         guard lastSentState[tripId] != fingerprint else { return }
-        guard let request = uploadRequest(trip: trip, credential: credential, text: "", state: report) else { return }
+        guard let request = uploadRequest(base: trip.base, user: trip.user, credential: credential, text: "", state: report) else { return }
         URLSession.shared.dataTask(with: request) { [weak self] _, response, _ in
             guard let self, let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return }
             var sent = self.lastSentState
@@ -893,8 +1024,8 @@ final class Recorder: NSObject {
         }
     }
 
-    private func uploadRequest(trip: ArmedTrip, credential: GpsCredential, text: String, state: [String: Any]? = nil) -> URLRequest? {
-        guard let url = URL(string: "\(trip.base)/api/v2/\(trip.user)/import") else { return nil }
+    private func uploadRequest(base: String, user: String, credential: GpsCredential, text: String, state: [String: Any]? = nil) -> URLRequest? {
+        guard let url = URL(string: "\(base)/api/v2/\(user)/import") else { return nil }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "content-type")
@@ -908,16 +1039,25 @@ final class Recorder: NSObject {
     /// Security review (2026-09-24), finding 9 — one last upload attempt
     /// when nothing stays armed (owner Stop, or the cooldown ending),
     /// rather than silently discarding whatever was recorded since the last
-    /// successful upload. The buffer is purged either way — on a 2xx, on
-    /// any failure, and on the background task simply running out of time —
-    /// `finish()` is the only path to `purgeBuffer()` and it is reachable
-    /// from both the network callback and the expiration handler.
+    /// successful upload. The buffer itself is always purged here — the
+    /// fixes it held either went out just now, got dropped as unrecoverable,
+    /// or were just copied into `PendingUpload` to retry from there instead
+    /// — never purged *and* lost. B2730 — a non-2xx, a transport error or
+    /// the background task running out of time before a response arrives no
+    /// longer purges the snapshot outright: it is kept as a `PendingUpload`
+    /// (`retryPendingUpload()`, called from `start()` and `foreground()`)
+    /// instead, bound to this one trip/base/user so it can never be replayed
+    /// against a different server or journal. The classification below
+    /// mirrors `maybeUpload`'s own switch exactly, on purpose — a stopped
+    /// trip's last snapshot should not be treated more or less leniently
+    /// than a running one's.
     private func finalUploadThenPurge(tripId: String?, _ trip: ArmedTrip?) {
-        guard let trip, let credential = GpsCredentialStore.load() else {
+        guard let trip, let tripId else {
             purgeBuffer()
+            clearCredentialIfUnneeded()
             return
         }
-        let snapshot = readBufferSnapshot()
+        let text = readBufferSnapshot().joined(separator: "\n")
         // B2542 — this trip is no longer armed by the time this runs (Stop,
         // or the cooldown ending), so its own last report says `armed:
         // false` rather than reusing `stateReport`'s "still armed" default —
@@ -929,23 +1069,138 @@ final class Recorder: NSObject {
         // server's own B2542 fix now accepts, and disarming with nothing
         // freshly recorded must still tell the studio recording stopped,
         // not leave it reading whatever the last real upload said.
-        let state = tripId.map { stateReport(tripId: $0, trip: trip, armed: false) }
+        let state = stateReport(tripId: tripId, trip: trip, armed: false)
+        guard let credential = GpsCredentialStore.load() else {
+            // No token to even attempt with — B2730 keeps the snapshot the
+            // same as a 401 would, so a fresh token (`setToken`, from the
+            // studio's own global "unauthorized" check) plus the next
+            // launch or foreground can still deliver it.
+            savePendingUpload(tripId: tripId, trip: trip, text: text)
+            purgeBuffer()
+            return
+        }
         guard let request = uploadRequest(
-            trip: trip, credential: credential, text: snapshot.joined(separator: "\n"), state: state
+            base: trip.base, user: trip.user, credential: credential, text: text, state: state
         ) else {
             purgeBuffer()
+            clearCredentialIfUnneeded()
             return
         }
         var task = UIBackgroundTaskIdentifier.invalid
         var done = false
-        let finish: () -> Void = { [weak self] in
+        let finish: (Bool) -> Void = { [weak self] keepPending in
             guard !done else { return }
             done = true
+            if keepPending {
+                self?.savePendingUpload(tripId: tripId, trip: trip, text: text)
+            } else {
+                self?.clearPendingUpload()
+            }
             self?.purgeBuffer()
+            self?.clearCredentialIfUnneeded() // no-op while `keepPending` left a file behind
             if task != .invalid { UIApplication.shared.endBackgroundTask(task) }
         }
-        task = UIApplication.shared.beginBackgroundTask { finish() }
-        URLSession.shared.dataTask(with: request) { _, _, _ in finish() }.resume()
+        // Ran out of background time before the request settled — the
+        // outcome is unknown, so this keeps the snapshot rather than
+        // guessing it succeeded (B2730).
+        task = UIApplication.shared.beginBackgroundTask { finish(true) }
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            guard let self else { finish(true); return }
+            guard let http = response as? HTTPURLResponse else {
+                finish(true) // offline or another transport error — B2730
+                return
+            }
+            switch http.statusCode {
+            case 200...299:
+                finish(false)
+            case 401:
+                self.lastError = "unauthorized"
+                if !self.unauthorizedNoticePosted {
+                    self.unauthorizedNoticePosted = true
+                    self.postLocalNotice(body: trip.unauthorizedBody)
+                }
+                finish(true) // the token may be renewed — B2730
+            case 400:
+                if Self.errorCode(from: data) == "storage_full" {
+                    self.lastError = "storage_full"
+                    finish(true)
+                } else {
+                    finish(false) // a contract refusal — drop the bad snapshot
+                }
+            case 408, 429:
+                finish(true) // transient — B2730
+            case 402...499:
+                self.lastError = Self.errorCode(from: data) ?? "http_\(http.statusCode)"
+                finish(false) // definitive refusal
+            default:
+                finish(true) // 5xx or otherwise transient — B2730
+            }
+        }.resume()
+    }
+
+    /// B2730 — retries a `PendingUpload` a previous Stop (or the cooldown
+    /// ending) could not deliver. Called from `start()` (every launch,
+    /// including a background relaunch) and `foreground()` (every time the
+    /// app comes back), the same two triggers an armed trip's own upload
+    /// already gets. No `state` on this request — the trip was already
+    /// reported as stopped by the attempt that created this pending upload
+    /// (or by a previous retry of it); there is nothing new to say about
+    /// recording state from here.
+    private func retryPendingUpload() {
+        guard let pending = loadPendingUpload() else { return }
+        guard let created = ISO8601DateFormatter().date(from: pending.createdAt),
+              Date().timeIntervalSince(created) <= 7 * 24 * 60 * 60 else {
+            clearPendingUpload() // unreadable, or older than B2730's 7-day ceiling
+            clearCredentialIfUnneeded()
+            return
+        }
+        // Never resurrect a snapshot for a server the owner is no longer
+        // pointed at (bring-your-own-server) — `nil` here just means "not
+        // known yet" (no bridge has loaded in this process yet), not "no
+        // server", so the retry is skipped this once rather than the
+        // pending file being dropped on that uncertainty.
+        if let chosen = chosenServerBase, chosen != pending.base {
+            clearPendingUpload()
+            clearCredentialIfUnneeded()
+            return
+        }
+        guard let credential = GpsCredentialStore.load() else { return } // no token yet — try again next time
+        guard let request = uploadRequest(base: pending.base, user: pending.user, credential: credential, text: pending.text) else {
+            clearPendingUpload() // cannot even form the request — nothing to retry with
+            clearCredentialIfUnneeded()
+            return
+        }
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            guard let self else { return }
+            guard let http = response as? HTTPURLResponse else { return } // offline again — keep it, try later
+            switch http.statusCode {
+            case 200...299:
+                self.clearPendingUpload()
+                self.clearCredentialIfUnneeded()
+            case 401:
+                self.lastError = "unauthorized"
+                if !self.unauthorizedNoticePosted {
+                    self.unauthorizedNoticePosted = true
+                    self.postLocalNotice(body: pending.unauthorizedBody)
+                }
+                // kept — see the guard above, a fresh token may still land
+            case 400:
+                if Self.errorCode(from: data) == "storage_full" {
+                    self.lastError = "storage_full"
+                } else {
+                    self.clearPendingUpload() // a contract refusal — drop it
+                    self.clearCredentialIfUnneeded()
+                }
+            case 408, 429:
+                break // transient — keep it, try again later
+            case 402...499:
+                self.lastError = Self.errorCode(from: data) ?? "http_\(http.statusCode)"
+                self.clearPendingUpload() // definitive refusal
+                self.clearCredentialIfUnneeded()
+            default:
+                break // 5xx — transient
+            }
+        }.resume()
     }
 
     private func postLocalNotice(body: String) {
@@ -1087,6 +1342,7 @@ extension Recorder {
     func foreground() {
         applyStopRule()
         maybeUpload(force: true)
+        retryPendingUpload() // B2730
     }
 
     /// `UIApplication.openSettingsURLString` — B2198's Settings link for the
