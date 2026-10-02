@@ -7,7 +7,6 @@ import { CalendarDays, CloudSun, MapPin } from "lucide-react";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import RecordButton from "@/components/RecordButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
-import PolishText from "@/components/studio/day/PolishText";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
 import { hasOutbox, newIntent, openOutboxStore, pendingDayDates } from "@/lib/outbox";
@@ -22,8 +21,6 @@ import { ADD_DAY_RESUME_EXPIRY_MS, addDayExpiresOn, addDayFlowId, readAddDaySnap
 import { useStep } from "@/lib/studio/useStep";
 import StepBody from "@/components/studio/StepBody";
 import DayExtras, { NO_EXTRAS, extrasToWrite, lineProblem, type DayExtrasValue } from "@/components/studio/day/DayExtras";
-import SpeakFlow, { RatherTalk, TellByChoice } from "@/components/studio/day/SpeakFlow";
-import type { TellBy } from "@/lib/studio/speak";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
 import { partTimeOfDay, splitIntoParts, waitingSheetPreselectsAll, type DayPart } from "@/lib/studio/dayParts";
@@ -144,7 +141,6 @@ export default function AddDayFlow({
   trips,
   writtenDatesByTrip,
   proposal,
-  polishAiAvailable = null,
   routeRecordingAvailable = false,
   weatherAvailable = false,
   addressLookupAvailable = false,
@@ -152,9 +148,7 @@ export default function AddDayFlow({
   consents = { words: false, photos: false, speech: false },
   providers = { words: "", speech: null },
   speech: speechProp = null,
-  readersByTrip = {},
   initialTripId,
-  tellBy = null,
   initialPhotos,
   currencies = [],
 }: {
@@ -163,11 +157,6 @@ export default function AddDayFlow({
   /** ISO dates already written, per trip id (B1989's `DayStrip`). */
   writtenDatesByTrip: Record<string, string[]>;
   proposal: { trip: { id: string; title: string; status: string }; reasonKey: string; today: string } | null;
-  /** "Polish my text" (B2190/B2591): whether the plan still has an AI day or
-   *  turn to spend on it, or `null` when it may not be offered at all —
-   *  helper off, or no consent to send words — read on the server.
-   *  `PolishText` renders nothing on null. */
-  polishAiAvailable?: boolean | null;
   /** B2200, D1 — whether the page may ask `day/place` for a suggestion at
    *  all. Off means the route is never called. */
   routeRecordingAvailable?: boolean;
@@ -188,15 +177,8 @@ export default function AddDayFlow({
   /** The transcription capability's own facts, `null` when it is off — the
    *  microphone is then absent, not broken. */
   speech?: { consented: boolean; provider: string; aiAvailable: boolean | null } | null;
-  /** Who besides the owner can see a draft on each trip (`draftsVisibleTo`:
-   *  the people on the trip), by name, for the saved sentence. */
-  readersByTrip?: Record<string, string[]>;
   /** `?trip=<id>` — trip/new's done screen links here with the trip it made. */
   initialTripId?: string;
-  /** B2194 — the owner's "How do you like to tell it?", `null` when never
-   *  asked. Only read with `speech` on: without transcription neither the
-   *  question nor the spoken questions exist. */
-  tellBy?: TellBy | null;
   /** `?photos=<date>|undated` — a hub day card (B2193): exactly that day's
    *  waiting photographs are chosen, whatever a stored draft had chosen. */
   initialPhotos?: string;
@@ -359,13 +341,6 @@ export default function AddDayFlow({
   const [saveQueued, setSaveQueued] = useState(false);
   const [writeError, setWriteError] = useState<{ message: string; mediaProblems?: MediaProblem[] } | null>(null);
   const [restoredFrom, setRestoredFrom] = useState<string | null>(null);
-  // B2194 — asked once, then `?mode=speak` or the remembered "speak" opens the
-  // spoken questions; `?mode=type` is the composer, whatever was chosen.
-  const [tellByNow, setTellByNow] = useState(tellBy);
-  const [spoken, setSpoken] = useState(false);
-  const mode = params.get("mode");
-  const askTellBy = !!speech && tellByNow === null && mode === null;
-  const speaking = !!speech && (mode === "speak" || (mode !== "type" && tellByNow === "speak"));
 
   const dirty = content.trim() !== "" || title.trim() !== "" || dateOverride !== "" || tripOverride !== "";
   // B2676 — one flowId per day, never suffixed per part: the bug this
@@ -1350,27 +1325,6 @@ export default function AddDayFlow({
     setReceiptAdded(true);
   }
 
-  // ── day by voice (B2194) ────────────────────────────────────────────
-  function chooseTellBy(choice: TellBy) {
-    setTellByNow(choice);
-    // Remembered for next time; if this fails the question simply comes back.
-    void fetch(`/api/web/${encodeURIComponent(username)}/studio/tell-by`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tellBy: choice }),
-    }).catch(() => {});
-  }
-  /** Leaves the spoken questions for the composer, with what was said (added
-   *  after anything already typed, never over it). */
-  function toComposer(said?: string) {
-    if (said) setContent((prev) => (prev.trim() ? `${prev}\n\n${said}` : said));
-    if (said !== undefined) setSpoken(true);
-    const q = new URLSearchParams(params.toString());
-    q.delete("q");
-    q.set("mode", "type");
-    router.replace(`${journalPath(username)}/studio/day/new?${q.toString()}`);
-  }
-
   // ── rendering ───────────────────────────────────────────────────────
   // B2330 — offline, "Done" is a hard navigation rather than a soft one: the
   // worker never serves an RSC fetch from its kept cache (`sw.js`'s own
@@ -1385,30 +1339,6 @@ export default function AddDayFlow({
       <div className="studio-step">
         <DoneScreen username={username} done={t("studio.day.queued.done")} />
         <p className="mt-2 text-sm text-ink-secondary">{t("studio.day.queued.detail")}</p>
-        <StepPrimary onClick={toStudio} label={t("studio.day.saved.done")} />
-      </div>
-    );
-  }
-
-  if (outcome === "saved" && createdSlug) {
-    const readers = readersByTrip[tripId] ?? [];
-    return (
-      <div className="studio-step">
-        <DoneScreen
-          username={username}
-          done={
-            readers.length > 0
-              ? t("studio.day.saved.youAnd", { people: readers.join(", ") })
-              : t("studio.day.saved.onlyYou")
-          }
-        />
-        {content.trim() && <p className="mt-4 line-clamp-3 text-sm text-ink-body">{content}</p>}
-        <Link
-          href={`${journalPath(username)}/studio/day/publish?day=${encodeURIComponent(createdSlug)}&trip=${encodeURIComponent(tripId)}`}
-          className={`mt-4 inline-flex items-center ${LINK}`}
-        >
-          {t("studio.day.saved.share")}
-        </Link>
         <StepPrimary onClick={toStudio} label={t("studio.day.saved.done")} />
       </div>
     );
@@ -1436,24 +1366,8 @@ export default function AddDayFlow({
     );
   }
 
-  if (askTellBy) return <TellByChoice onChoose={chooseTellBy} />;
-  if (speaking && speech) {
-    const fact = chosenPhotos.find((i) => i.location)?.location;
-    return (
-      <SpeakFlow
-        username={username}
-        date={date}
-        speech={speech}
-        photoFact={fact ? { count: chosenPhotos.filter((i) => i.location === fact).length, place: fact } : null}
-        onDone={toComposer}
-        onType={() => toComposer()}
-      />
-    );
-  }
-
-  // First run shows one part at a time; everyone else sees the whole page —
-  // and so does somebody who has just told the day by voice.
-  const part = firstRun && !spoken ? step : null;
+  // First run shows one part at a time; everyone else sees the whole page.
+  const part = firstRun ? step : null;
   const show = (p: (typeof FIRST_RUN)[number]) => part === null || part === p || part === "save";
 
   const written = writtenDatesByTrip[tripId] ?? [];
@@ -1971,15 +1885,6 @@ export default function AddDayFlow({
                 )}
               </div>
               <p className="mt-1 text-xs text-ink-secondary">{t("studio.day.whatHappened.nothingInvented")}</p>
-              <RatherTalk username={username} speech={speech} tellBy={tellByNow} />
-              {/* B2190 — "Polish my text", directly under the box it rewrites. */}
-              <PolishText
-                username={username}
-                trip={tripId}
-                text={content}
-                onUse={setContent}
-                aiAvailable={polishAiAvailable}
-              />
             </>
           ) : (
             // B2676, decision 7 — every part stacked on this same page, each

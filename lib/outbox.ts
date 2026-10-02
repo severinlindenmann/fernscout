@@ -238,8 +238,9 @@ export async function runOutbox(
       // the same multipart the inbox route already accepts from a live
       // upload, so the queued photograph is never re-encoded on its way in.
       const isUpload = intent.kind === "media.upload" && intent.blob;
-      // B2331 — a voice note (`SpeakFlow`'s own recording, queued while the
-      // server could not be reached) also carries its audio as `intent.blob`
+      // B2331 — a voice note (RecordButton's own `onOffline` recording,
+      // queued while the server could not be reached) also carries its audio
+      // as `intent.blob`
       // rather than in `body`, but the transcribe route
       // (`app/api/helper/[user]/transcribe/route.ts`) takes JSON with the
       // audio as base64, never multipart the way the inbox route does — so
@@ -498,8 +499,8 @@ export async function pendingDayDates(store: OutboxStore, user: string): Promise
 
 /** B2331, D4 — one `voice.note` that has come back transcribed but has not
  *  yet been shown to the owner: `date` is the day it was recorded for
- *  (`SpeakFlow`'s own queueing), `text` is exactly what the transcribe route
- *  answered. */
+ *  (RecordButton's own `onOffline` queueing), `text` is exactly what the
+ *  transcribe route answered. */
 export interface PendingTranscript {
   id: string;
   date: string;

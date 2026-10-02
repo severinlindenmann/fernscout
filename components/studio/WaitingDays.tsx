@@ -74,7 +74,7 @@ export default function WaitingDays({ username, model, canWrite }: { username: s
               )}
             </span>
             {canWrite && (
-              <Link href={`${journalPath(username)}/studio/day/new?photos=${card.date}&from=hub`} className={PILL}>
+              <Link href={`${journalPath(username)}/studio/day/new?photos=${card.date}`} className={PILL}>
                 {t("studio.hub.waiting.write")}
               </Link>
             )}
@@ -91,7 +91,7 @@ export default function WaitingDays({ username, model, canWrite }: { username: s
               </span>
               <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">{t("studio.hub.waiting.undatedHint")}</span>
             </span>
-            <Link href={`${journalPath(username)}/studio/day/new?photos=${UNDATED}&from=hub`} className={PILL}>
+            <Link href={`${journalPath(username)}/studio/day/new?photos=${UNDATED}`} className={PILL}>
               {t("studio.hub.waiting.chooseDay")}
             </Link>
           </li>

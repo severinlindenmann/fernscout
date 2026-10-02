@@ -10,8 +10,6 @@ import { getUser } from "@/lib/users";
 import { knownCurrencies } from "@/lib/rates";
 import { getTrips } from "@/lib/trips";
 import { earliestTodayISO } from "@/lib/tripTime";
-import { isEnabled } from "@/lib/capabilities";
-import { readTellBy } from "@/lib/studio/tellBy";
 
 /**
  * Journal settings — B2017, moved whole from the owner block on
@@ -78,7 +76,6 @@ export default async function StudioJournalPage({ params }: PageProps<"/at/[user
         knownCurrencies={knownCurrencies()}
         reminders={reminders}
         tipsOn={journal.owner.tips?.optIn ?? false}
-        tellBy={isEnabled("transcription", user) ? { current: readTellBy(user) } : undefined}
       />
     </StudioPage>
   );

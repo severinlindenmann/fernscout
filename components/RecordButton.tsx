@@ -196,18 +196,18 @@ export default function RecordButton({
   aiAvailable?: boolean | null;
   /**
    * B2331, D4 — given by a host that has somewhere to queue a recording it
-   * cannot send right now (`SpeakFlow`, the outbox), and only while that
-   * host believes the server is unreachable. When set, a finished recording
-   * (the same size/length checks `send()` always applied) goes here instead
-   * of straight to the transcribe route — this component still records,
-   * meters and releases the microphone exactly as it always does; it simply
-   * never makes the network call itself. `language`/`locale` are the same
-   * two values `send()` would have sent, so the host can build the same
-   * request once there is a connection to make it with.
+   * cannot send right now (the outbox), and only while that host believes
+   * the server is unreachable. When set, a finished recording (the same
+   * size/length checks `send()` always applied) goes here instead of
+   * straight to the transcribe route — this component still records, meters
+   * and releases the microphone exactly as it always does; it simply never
+   * makes the network call itself. `language`/`locale` are the same two
+   * values `send()` would have sent, so the host can build the same request
+   * once there is a connection to make it with.
    *
-   * Left `undefined` (every caller but `SpeakFlow`, and `SpeakFlow` itself
-   * whenever it believes the server is reachable) and every existing caller
-   * is unchanged.
+   * Left `undefined` by every current caller (B2679 removed the one host
+   * that set it, the spoken-questions flow) — every existing caller is
+   * unchanged.
    */
   onOffline?: (blob: Blob, heldSeconds: number, language: string, locale: string) => void;
 }) {
@@ -571,7 +571,7 @@ export default function RecordButton({
           href="/prices"
           className={`text-sm font-semibold underline underline-offset-2 ${hero ? "text-cream-50" : "text-ink-strong"}`}
         >
-          {t("studio.day.polish.error.aiDaysUsed.link")}
+          {t("studio.day.aiDaysUsed.seePlans")}
         </Link>
       </div>
     );

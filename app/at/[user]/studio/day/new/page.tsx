@@ -8,10 +8,7 @@ import { speechProvider } from "@/lib/helper/transcribe";
 import { aiDaysStatus, mayUseAi } from "@paid/billing/lib/aiDays";
 import AiDaysChip from "@/components/studio/day/AiDaysChip";
 import { PLANS, chf } from "@paid/billing/lib/plans";
-import { getTrips } from "@/lib/trips";
 import { journalCurrencies } from "@/lib/rates";
-import { namesOnTrip } from "@/lib/tripPeople";
-import { readTellBy } from "@/lib/studio/tellBy";
 import { proposeAddDayTrip, tripsForAddDay, writtenDatesForTrip } from "@/lib/studio/day";
 
 export const dynamic = "force-dynamic";
@@ -65,12 +62,10 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
   const addressLookupAvailable = isEnabled("addressLookup", user);
   const helperOn = isEnabled("helper", user);
   const speechEnabled = isEnabled("transcription", user);
-  // B2234/B2591 — the plan's AI-day gate, read once and shared by the
-  // spoken questions' own before-the-tap check and "Polish my text", both of
-  // which need an active plan or unused Free days (`mayUseAi`) but take no
-  // AI day themselves.
+  // B2234/B2591 — the plan's AI-day gate for the microphone, read once —
+  // whether an active plan or unused Free days (`mayUseAi`) still has room
+  // for a transcription.
   const aiAvailable = wordsAssistAvailable || speechEnabled ? (await mayUseAi(user)).ok : null;
-  const polishAiAvailable = wordsAssistAvailable ? aiAvailable : null;
   const speech = speechEnabled
     ? {
         consented: hasHelperConsent(user, "speech"),
@@ -78,12 +73,6 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
         aiAvailable,
       }
     : null;
-  // Who else sees a draft on each trip — `draftsVisibleTo` lets in the owner
-  // and the people on the trip, which is exactly `namesOnTrip` after the
-  // owner's own name. Names only, never an address.
-  const readersByTrip = Object.fromEntries(
-    await Promise.all(getTrips(user).map(async (t) => [t.id, (await namesOnTrip(t)).slice(1).filter(Boolean)] as const)),
-  );
 
   // B2591 — the "AI days X of Y" chip, canvas draft "Studio: AI days used
   // up" (board Wall.dc.html). Absent with `billing` off or an unlimited
@@ -109,7 +98,6 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
         trips={trips}
         writtenDatesByTrip={writtenDatesByTrip}
         proposal={proposal}
-        polishAiAvailable={polishAiAvailable}
         routeRecordingAvailable={routeRecordingAvailable}
         weatherAvailable={weatherAvailable}
         addressLookupAvailable={addressLookupAvailable}
@@ -121,9 +109,7 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
         }}
         providers={{ words: currentHelperProvider("words"), speech: speechEnabled ? speechProvider() : null }}
         speech={speech}
-        readersByTrip={readersByTrip}
         initialTripId={typeof trip === "string" ? trip : undefined}
-        tellBy={speech ? readTellBy(user) : null}
         // B2193 — `?photos=<date>|undated`, a hub day card.
         initialPhotos={typeof photos === "string" ? photos : undefined}
         currencies={journalCurrencies(user)}

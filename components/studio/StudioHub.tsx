@@ -11,7 +11,6 @@ import {
   Library,
   Mailbox,
   MapPinned,
-  Mic,
   PackageOpen,
   Printer,
   Search,
@@ -68,22 +67,21 @@ type HeroModel = {
   title: string;
   description: string;
   cta: string;
-  /** B2304 — the small link beside the hero that switches mode ("write
-   *  instead" / "speak instead") or offers the exception to the state's own
-   *  rule ("tell about a day anyway" between trips). Absent when there is
-   *  no second path worth naming. */
+  /** B2304 — the small link beside the hero, used only for "Change it" once
+   *  today is already told. Absent when there is no second path worth
+   *  naming. */
   altLink?: { href: string; label: string };
 };
 
 /**
  * The one hero, chosen by state (B2304, spec §"Only the top of the page
  * changes"). Replaces the old always-both TellToday-card-plus-Hero-card
- * stack: on a phone the owner is either mid-trip (write or speak about
- * today, or told already), a day from departure (plan), or between trips
- * (start one) — never more than one of those is true, so only one card is
- * ever the right one to lead with.
+ * stack: on a phone the owner is either mid-trip (write today, or told
+ * already), a day from departure (plan), or between trips (start one) —
+ * never more than one of those is true, so only one card is ever the right
+ * one to lead with.
  */
-function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T): HeroModel {
+function heroFor(model: StudioHubModel, username: string, t: T): HeroModel {
   if (model.kind === "empty") {
     return {
       href: `${journalPath(username)}/studio/trip/new`,
@@ -102,7 +100,7 @@ function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T):
       // than the generic "Today is told".
       const day = model.toldTodayDay;
       return {
-        href: `${journalPath(username)}/studio/day/new?from=hub`,
+        href: `${journalPath(username)}/studio/day/new`,
         Icon: CalendarPlus,
         title: t("studio.hub.addDay.toldToday.title", { title: day?.title || t("studio.day.collision.untitled") }),
         description: day?.published ? t("studio.hub.addDay.toldToday.published") : t("studio.hub.addDay.toldToday.subtitle"),
@@ -110,18 +108,8 @@ function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T):
         altLink: { href: `${journalPath(username)}/studio/day/edit`, label: t("studio.hub.addDay.change") },
       };
     }
-    if (speak) {
-      return {
-        href: `${journalPath(username)}/studio/day/new?mode=speak&from=hub`,
-        Icon: Mic,
-        title: t("studio.hub.speak.title"),
-        description: t("studio.hub.speak.subtitle"),
-        cta: t("studio.hub.speak.cta"),
-        altLink: { href: `${journalPath(username)}/studio/day/new?from=hub`, label: t("studio.hub.hero.writeInstead") },
-      };
-    }
     return {
-      href: `${journalPath(username)}/studio/day/new?from=hub`,
+      href: `${journalPath(username)}/studio/day/new`,
       Icon: CalendarPlus,
       title: t("studio.hub.addDay.title"),
       description: t("studio.hub.addDay.subtitle", { trip: trip.title }),
@@ -151,7 +139,6 @@ function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T):
     title: t("studio.hub.betweenTrips.title"),
     description: t("studio.hub.item.newTrip.description"),
     cta: t("studio.hub.newTrip.cta"),
-    altLink: speak ? { href: `${journalPath(username)}/studio/day/new?mode=speak&from=hub`, label: t("studio.hub.hero.tellAnyway") } : undefined,
   };
 }
 
@@ -167,13 +154,9 @@ function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T):
 export default function StudioHub({
   username,
   model,
-  speak = false,
 }: {
   username: string;
   model: StudioHubModel;
-  /** B2194 — the owner chose to tell days by voice, and transcription is on:
-   *  the hero becomes the mic, during a trip, until today is told. */
-  speak?: boolean;
 }) {
   // The iPhone connects itself for Photos → Share the first time the studio
   // opens; the status lives on /me — B2206.
@@ -189,7 +172,7 @@ export default function StudioHub({
   // their own bar.
   useStudioBar(null, { replace: true });
 
-  const hero = heroFor(model, speak, username, t);
+  const hero = heroFor(model, username, t);
 
   const halfDone = (
     <HalfDone username={username} runs={model.resumableImports} postcard={model.postcardSuggestion} unfinished={model.print.unfinished} />
@@ -417,7 +400,7 @@ function DuringTripRows({
     <ul data-during-trip-rows className="mt-3 divide-y divide-line-faint rounded-2xl border border-line-faint bg-surface-raised px-2.5">
       <li>
         <Link
-          href={`${journalPath(username)}/studio/day/new?photos=${waitingFirstDate}&from=hub`}
+          href={`${journalPath(username)}/studio/day/new?photos=${waitingFirstDate}`}
           className="flex min-h-11 items-center gap-3 rounded-[10px] px-1.5 py-2 transition-colors hover:bg-surface-neutral
                      focus-visible:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         >

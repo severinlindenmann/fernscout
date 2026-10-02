@@ -419,12 +419,10 @@ describe("AddDayFlow, one page — B2188", () => {
   });
 
   test("Preview → saves and goes to Preview for this trip and date", async () => {
-    props = { readersByTrip: { reise: ["Hans", "Viki"] } };
     await mount();
     await click("Preview →");
-    // B2677 — the readers-named "Saved." sentence and its own share link
-    // were the old inline done screen's; Preview (not exercised by this
-    // unit test) now says who reads it.
+    // B2677 — the old inline "Saved." done screen (and its reader-named
+    // sentence) is gone; Preview now says who reads it.
     expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
   });
 
@@ -474,21 +472,6 @@ describe("AddDayFlow, one page — B2188", () => {
     await click("Preview →");
     expect(text()).toContain("The day was not made.");
     expect(text()).toContain("Nothing at all was written");
-  });
-
-  test("Polish my text sits under the box when the page hands it an available plan, and is absent on null", async () => {
-    const words = "We walked along the river all morning and then ate far too many pastries by the tower.";
-    await mount();
-    type(container.querySelector("textarea") as HTMLTextAreaElement, words);
-    await flush();
-    expect(text()).not.toContain("Polish my text");
-
-    act(() => root!.unmount());
-    container.remove();
-    props = { polishAiAvailable: true };
-    await mount();
-    expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toBe(words);
-    expect(text()).toContain("Polish my text");
   });
 
   test("More details is collapsed and remembered", async () => {
