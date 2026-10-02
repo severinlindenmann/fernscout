@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useMemo, useState, useSyncExternalStore } from "react";
 import { Lock, Play, Share2 } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { journalPath } from "@/lib/journalPath";
@@ -50,6 +50,12 @@ export default function ShareDayStory({
 }) {
   const { t } = useI18n();
   const canCollage = photos.length >= 3;
+  const looks: Look[] = [
+    "photo",
+    "postcard",
+    ...(canCollage ? (["collage"] as const) : []),
+    ...(videoAvailable && photos.length > 0 ? (["video"] as const) : []),
+  ];
   const [look, setLook] = useState<Look>("photo");
   const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
   const [caption, setCaption] = useState(initialCaption);
@@ -141,36 +147,70 @@ export default function ShareDayStory({
   }
 
   const tileClass = (active: boolean) =>
-    `flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-xs font-semibold ${
+    `flex flex-col gap-1.5 rounded-xl border p-1.5 text-left text-xs font-semibold ${
       active
         ? "border-[#2f6fed] ring-2 ring-[#2f6fed] bg-surface-raised text-ink-strong"
         : "border-line-quiet bg-surface-raised text-ink-secondary hover:border-line-prominent"
     }`;
 
+  // A small sketch of each look, from the day's own photos — what the drafts
+  // showed. Drawn here rather than by asking the server for four cards.
+  const [first, second, third] = photos;
+  const thumb = (src: string | undefined, className: string) =>
+    src ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={src} alt="" className={`block object-cover ${className}`} />
+    ) : (
+      <span className={`block bg-navy-600 ${className}`} />
+    );
+  const sketch: Record<Look, ReactNode> = {
+    photo: (
+      <span className="flex aspect-[9/16] w-full flex-col overflow-hidden rounded-md bg-navy-950">
+        {thumb(first?.src, "h-[70%] w-full")}
+        <span className="m-1.5 block h-1.5 w-3/4 rounded-sm bg-cream-50/80" />
+      </span>
+    ),
+    postcard: (
+      <span className="flex aspect-[9/16] w-full flex-col gap-1 overflow-hidden rounded-md bg-cream-100 p-1.5">
+        <span className="block bg-cream-50 p-0.5">{thumb(first?.src, "aspect-[4/5] w-full")}</span>
+        <span className="block h-1.5 w-3/4 rounded-sm bg-navy-900/70" />
+      </span>
+    ),
+    collage: (
+      <span className="grid aspect-[9/16] w-full grid-cols-2 content-start gap-0.5 overflow-hidden rounded-md bg-navy-900 p-1">
+        {thumb(first?.src, "col-span-2 aspect-[4/3] w-full rounded-sm")}
+        {thumb(second?.src, "aspect-square w-full rounded-sm")}
+        {thumb(third?.src, "aspect-square w-full rounded-sm")}
+      </span>
+    ),
+    video: (
+      <span className="relative block aspect-[9/16] w-full overflow-hidden rounded-md bg-navy-950">
+        {thumb(second?.src ?? first?.src, "h-full w-full")}
+        <span className="absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-navy-950 text-yellow-400">
+          <Play aria-hidden className="h-3.5 w-3.5" />
+        </span>
+        <span className="absolute bottom-1 right-1 rounded bg-navy-950 px-1 text-[10px] font-semibold text-cream-50">0:08</span>
+      </span>
+    ),
+  };
+
   return (
     <div className="flex flex-col gap-5">
       <div>
         <p className="text-sm font-semibold text-ink-strong">{t("studio.share.pickLook")}</p>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <button type="button" aria-pressed={look === "photo"} className={tileClass(look === "photo")} onClick={() => setLook("photo")}>
-            {t("studio.share.look.photo")}
-          </button>
-          <button type="button" aria-pressed={look === "postcard"} className={tileClass(look === "postcard")} onClick={() => setLook("postcard")}>
-            {t("studio.share.look.postcard")}
-          </button>
-          {canCollage && (
-            <button type="button" aria-pressed={look === "collage"} className={tileClass(look === "collage")} onClick={() => setLook("collage")}>
-              {t("studio.share.look.collage")}
+        <div className="mt-2 grid grid-cols-4 gap-2 sm:max-w-md">
+          {looks.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={look === option}
+              className={tileClass(look === option)}
+              onClick={() => setLook(option)}
+            >
+              {sketch[option]}
+              <span className="px-0.5">{t(`studio.share.look.${option}`)}</span>
             </button>
-          )}
-          {videoAvailable && photos.length > 0 && (
-            <button type="button" aria-pressed={look === "video"} className={tileClass(look === "video")} onClick={() => setLook("video")}>
-              <span className="flex items-center gap-1">
-                <Play aria-hidden className="h-3.5 w-3.5" /> {t("studio.share.look.video")}
-              </span>
-              <span className="text-[11px] font-normal text-ink-secondary">0:08</span>
-            </button>
-          )}
+          ))}
         </div>
       </div>
 

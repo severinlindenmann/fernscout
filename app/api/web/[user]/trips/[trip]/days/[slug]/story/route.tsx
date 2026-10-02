@@ -45,8 +45,8 @@ const COLORS = {
 function Pill({ site, dark }: { site: string; dark: boolean }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <StoryMark size={34} />
-      <div style={{ display: "flex", fontSize: 22, fontWeight: 700, color: dark ? COLORS.cream50 : COLORS.navy900 }}>
+      <StoryMark size={52} />
+      <div style={{ display: "flex", fontSize: 32, fontWeight: 700, color: dark ? COLORS.cream50 : COLORS.navy900 }}>
         {site}
       </div>
     </div>
@@ -73,24 +73,31 @@ function EmptyPanel({ background }: { background: string }) {
 /** Look A — the published-looking card: a hero photo and a navy caption
  * panel underneath. */
 function PhotoCard({ facts, photo, site }: { facts: StoryFacts; photo: string | null; site: string }) {
-  // The pill sits ABOVE the photo rather than floated over it — next/og's
-  // satori renderer does not reliably paint a `position: absolute` child
-  // above a later, non-positioned sibling the way a browser would (tried and
-  // confirmed by eye: the photo painted over it regardless of z-index).
-  // Normal flow is the lazy fix that is guaranteed to render; the small
-  // bar reads the same as a floating pill at this size.
+  // The pill floats over the photo's top-left corner, as drawn. satori paints
+  // in document order and ignores z-index, so the pill comes AFTER the image
+  // in the markup — placed first, the photo painted over it.
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", background: COLORS.navy950 }}>
-      <div style={{ display: "flex", padding: "28px 40px 16px" }}>
-        <Pill site={site} dark />
-      </div>
-      <div style={{ display: "flex", width: "100%", height: "64%" }}>
+      <div style={{ display: "flex", position: "relative", width: "100%", height: "68%" }}>
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <EmptyPanel background={COLORS.navy900} />
         )}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            left: 40,
+            top: 40,
+            padding: "10px 22px 10px 10px",
+            borderRadius: 999,
+            background: COLORS.navy950,
+          }}
+        >
+          <Pill site={site} dark />
+        </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", flex: 1, background: COLORS.navy950, padding: "48px 56px" }}>
         {facts.dayLabel && (
