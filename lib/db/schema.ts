@@ -571,7 +571,7 @@ type UsageTable = {
 
 /**
  * A month of `usage` rows an owner no longer needs kept at full grain —
- * `063-usage-monthly-totals` (B2605). `foldUsageOlderThan` (lib/usage.ts)
+ * `064-usage-monthly-totals` (B2605). `foldUsageOlderThan` (lib/usage.ts)
  * groups rows older than its retention window by owner, month (`YYYY-MM`)
  * and provider, adds the group into this table, then deletes the source
  * rows; a night that folds the same still-aging month twice adds onto the
