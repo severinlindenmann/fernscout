@@ -15,7 +15,7 @@ import type { Trip } from "./types";
  * composed. Kept as a pure function, separate from the `ImageResponse`
  * layout, so a test can assert on the facts without decoding a PNG.
  */
-export type StoryPhoto = { src: string; caption?: string };
+type StoryPhoto = { src: string; caption?: string };
 
 export type StoryFacts = {
   title: string;

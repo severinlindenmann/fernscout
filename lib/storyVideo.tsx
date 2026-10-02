@@ -49,7 +49,7 @@ export function storyVideoCacheKey(parts: {
   return hash.digest("hex").slice(0, 32);
 }
 
-export function readCachedStoryVideo(key: string): Buffer | null {
+function readCachedStoryVideo(key: string): Buffer | null {
   try {
     return fs.readFileSync(path.join(cacheDir(), `${key}.mp4`));
   } catch {
