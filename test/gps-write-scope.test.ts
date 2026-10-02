@@ -547,6 +547,30 @@ describe("the merge-time security review's findings (B2204, 2026-09-24)", () => 
   });
 });
 
+describe("a trip-scoped token reads only its own trip — B2218", () => {
+  test("GET /trips/{trip}: write:trip:<A> reads A, gets 404 for B, owner reads both", async () => {
+    const OTHER = "other-2026";
+    writeTripFixture(OWNER, { id: OTHER, title: "Other", start: "2026-07-01", end: "2026-07-02", status: "past", visibility: "private", intro: "x" });
+    const { issueCode, verifyCode, tripWriteScope } = await import("@/lib/auth");
+    const email = "buddy@example.test";
+    const { grantContactAccess } = await import("@/lib/contacts");
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    const granted = await grantContactAccess(OWNER, { name: "Buddy", email, locale: "en" });
+    if (!granted.ok) throw new Error("no place");
+    await claimTripPlace(OWNER, TRIP, granted.contact.id, null);
+    await approveTripPlaces(OWNER, granted.contact.id);
+    const { code } = await issueCode(OWNER, email, "agent", { trip: TRIP });
+    const session = await verifyCode(OWNER, email, code, "agent", tripWriteScope(TRIP));
+    if (!session.ok) throw new Error("no trip token");
+    const read = (token: string, trip: string) =>
+      call("@/app/api/v2/[user]/trips/[trip]/route", token, { method: "GET" }, { user: OWNER, trip, __url: `/api/v2/${OWNER}/trips/${trip}` });
+    expect((await read(session.token, TRIP)).status).toBe(200);
+    expect((await read(session.token, OTHER)).status).toBe(404);
+    const owner = await ownerAgentToken();
+    expect((await read(owner, OTHER)).status).toBe(200);
+  });
+});
+
 describe("the claim, derived rather than hand-listed", () => {
   /**
    * Every EXPORTED HANDLER (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`) under
