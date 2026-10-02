@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
-import { useNativeShell } from "@/components/nativeShell";
+import { APPLE_EULA_URL, useNativeShell } from "@/components/nativeShell";
 import { useSite } from "@/components/SiteProvider";
 import type { PlanSummary } from "@/lib/billingSummary";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
@@ -297,17 +297,23 @@ function ApplePlanPrice({ plan }: { plan: "pass" | "plus" }) {
 }
 
 /** "Terms" and "Privacy", App Store guideline 3.1.2's other requirement
- *  before a subscription purchase — both point at the one legal page this
- *  instance has (`/legal`, `lib/legal.ts`); there is no separate terms
- *  document to link instead. Shown only in the shell, next to Restore —
- *  B2658. */
+ *  before a subscription purchase. Privacy points at this instance's own
+ *  legal page (`/legal#privacy`, `lib/legal.ts`); Terms points at Apple's
+ *  own standard EULA (`APPLE_EULA_URL`), since there is no separate terms
+ *  document here and Apple's agreement already governs the StoreKit
+ *  purchase — B2724. Shown only in the shell, next to Restore — B2658. */
 function AppleLegalLinks() {
   const { t } = useI18n();
   return (
     <p className="mt-3 flex gap-4 text-sm">
-      <Link href="/legal" className="font-semibold text-ink-body underline decoration-line-strong underline-offset-2 hover:text-ink-strong">
+      <a
+        href={APPLE_EULA_URL}
+        target="_blank"
+        rel="noreferrer"
+        className="font-semibold text-ink-body underline decoration-line-strong underline-offset-2 hover:text-ink-strong"
+      >
         {t("billing.terms")}
-      </Link>
+      </a>
       <Link href="/legal#privacy" className="font-semibold text-ink-body underline decoration-line-strong underline-offset-2 hover:text-ink-strong">
         {t("billing.privacy")}
       </Link>
