@@ -605,6 +605,7 @@ function CancelPlanButton({ username, label }: { username: string; label: string
  *  report, not a silent gap. */
 function StorageAddonButton({ username, label }: { username: string; label: string }) {
   const { t } = useI18n();
+  const native = useNativeShell();
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<"idle" | "failed" | "sent">("idle");
 
@@ -615,6 +616,11 @@ function StorageAddonButton({ username, label }: { username: string; label: stri
     setBusy(false);
     setState(response?.ok ? "sent" : "failed");
   }
+
+  // B2682: inside the iPhone shell a priced digital extra may only be sold
+  // through Apple (App Store guideline 3.1.1); there is no Apple product for
+  // storage, so the offer is absent there, the same as the web plan prices.
+  if (native) return null;
 
   return (
     <div>
