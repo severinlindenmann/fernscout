@@ -64,6 +64,7 @@ import * as composeOutcomes from "./062-compose-outcomes";
 import * as paymentsUnits from "./063-payments-units";
 import * as usageMonthlyTotals from "./064-usage-monthly-totals";
 import * as storageAddons from "./065-storage-addons";
+import * as vouchers from "./066-vouchers";
 
 /**
  * Every migration, listed by hand.
@@ -143,6 +144,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "063-payments-units": paymentsUnits,
   "064-usage-monthly-totals": usageMonthlyTotals,
   "065-storage-addons": storageAddons,
+  "066-vouchers": vouchers,
 };
 
 /**

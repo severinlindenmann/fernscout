@@ -63,6 +63,10 @@ export async function entitlementHistory(_owner: string): Promise<Entitlement[]>
   return [];
 }
 
+export async function livePassEndsAt(_owner: string): Promise<string | null> {
+  return null;
+}
+
 export type GrantPlanInput = {
   owner: string;
   plan: "pass" | "plus";

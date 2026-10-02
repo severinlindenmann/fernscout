@@ -261,6 +261,8 @@ describe("the /me plan status card", () => {
           source: "stripe",
           postcards: { used: 2, allowed: 3 },
           bookDiscountRappen: 1000,
+        passEndsAt: null,
+        vouchers: [],
         })}
       />,
     );
@@ -285,6 +287,8 @@ describe("the /me plan status card", () => {
           source: null,
           postcards: null,
           bookDiscountRappen: 0,
+        passEndsAt: null,
+        vouchers: [],
         })}
       />,
     );

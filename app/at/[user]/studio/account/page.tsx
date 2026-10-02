@@ -121,6 +121,7 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
           aiDays: PLANS.tripPass.aiDays,
           storageGb: PLANS.tripPass.storageGb,
           includedPostcards: PLANS.tripPass.includedPostcards,
+          appUpgradeVoucherRappen: PLANS.tripPass.appUpgradeVoucherRappen,
         },
       }
     : undefined;

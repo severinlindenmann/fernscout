@@ -330,7 +330,16 @@ function AppleLegalLinks() {
  */
 export type PlanOptionFacts = {
   plus: { priceChf: number; aiDays: number; storageGb: number; includedPostcards: number };
-  pass: { priceChf: number; days: number; aiDays: number; storageGb: number; includedPostcards: number };
+  pass: {
+    priceChf: number;
+    days: number;
+    aiDays: number;
+    storageGb: number;
+    includedPostcards: number;
+    /** The app's own upgrade-voucher amount, in rappen — B2726, read from
+     *  `PLANS.tripPass.appUpgradeVoucherRappen` by the page, never copied. */
+    appUpgradeVoucherRappen: number;
+  };
 };
 
 /** Buy a plan, or ask the operator to grant it when no Stripe key is
@@ -762,6 +771,24 @@ function YourPlanPanel({
             </span>
           </div>
         )}
+        {plan.vouchers.map((voucher) => (
+          <div key={`${voucher.appliesTo}-${voucher.amountRappen}-${voucher.expiresAt}`} className="flex items-baseline justify-between text-sm">
+            <span className="font-semibold text-ink-strong">{t("billing.voucherLabel")}</span>
+            <span className="text-ink-body">
+              {t(
+                voucher.appliesTo === "photobook"
+                  ? "billing.voucherPhotobook"
+                  : voucher.appliesTo === "postcard"
+                    ? "billing.voucherPostcard"
+                    : "billing.voucherPrint",
+                {
+                  amount: `CHF ${(voucher.amountRappen / 100).toFixed(2)}`,
+                  date: voucher.expiresAt ? voucher.expiresAt.slice(0, 10) : "",
+                },
+              )}
+            </span>
+          </div>
+        ))}
       </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
@@ -775,22 +802,38 @@ function YourPlanPanel({
           button inside each, Plus first. */}
       {plan.plan !== "plus" && (
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-          <PlanOptionTile
-            username={username}
-            plan="plus"
-            name={t("plans.plus")}
-            tag={t("billing.tilePlusTag")}
-            price={chf(planOptions.plus.priceChf)}
-            cadence={t("billing.tilePlusCadence")}
-            facts={[
-              t("billing.tileAiDaysYear", { days: String(planOptions.plus.aiDays) }),
-              `${planOptions.plus.storageGb} GB`,
-              tn("billing.tilePostcards", planOptions.plus.includedPostcards, {
-                count: String(planOptions.plus.includedPostcards),
-              }),
-            ]}
-            buyLabel={t("billing.buyPlus")}
-          />
+          <div className="flex-1">
+            {/* Apple allows no first-subscriber discount on Plus (3.1.1), so
+                the app offers a photobook voucher instead, only while the
+                pass that would otherwise have earned the web's own CHF 19
+                credit is still live — B2726. Web-only owners keep that
+                credit (`billing.passCounts`, in `PlanOptionTile`'s own
+                `note`) and never see this line. */}
+            {native && plan.passEndsAt && (
+              <p className="mb-2 text-sm font-semibold text-ink-strong">
+                {t("billing.appUpgradeVoucherOffer", {
+                  date: plan.passEndsAt.slice(0, 10),
+                  amount: `CHF ${(planOptions.pass.appUpgradeVoucherRappen / 100).toFixed(2)}`,
+                })}
+              </p>
+            )}
+            <PlanOptionTile
+              username={username}
+              plan="plus"
+              name={t("plans.plus")}
+              tag={t("billing.tilePlusTag")}
+              price={chf(planOptions.plus.priceChf)}
+              cadence={t("billing.tilePlusCadence")}
+              facts={[
+                t("billing.tileAiDaysYear", { days: String(planOptions.plus.aiDays) }),
+                `${planOptions.plus.storageGb} GB`,
+                tn("billing.tilePostcards", planOptions.plus.includedPostcards, {
+                  count: String(planOptions.plus.includedPostcards),
+                }),
+              ]}
+              buyLabel={t("billing.buyPlus")}
+            />
+          </div>
           {plan.plan === "free" && (
             <PlanOptionTile
               username={username}

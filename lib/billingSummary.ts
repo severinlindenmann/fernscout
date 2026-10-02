@@ -1,8 +1,9 @@
 import "server-only";
 import { isEnabled } from "@/lib/capabilities";
-import { entitlementHistory, planOf, type PlanKey } from "@paid/billing/lib/entitlements";
+import { entitlementHistory, livePassEndsAt, planOf, type PlanKey } from "@paid/billing/lib/entitlements";
 import { aiDaysStatus } from "@paid/billing/lib/aiDays";
 import { peekIncludedUsage } from "@paid/billing/lib/print-usage";
+import { availableVouchers, type VoucherKind } from "@paid/billing/lib/vouchers";
 
 /**
  * One owner's plan, read the one way — B2622.
@@ -34,6 +35,15 @@ export type PlanSummary = {
   postcards: { used: number; allowed: number } | null;
   /** Rappen off every photobook — 0 off Free and the pass. */
   bookDiscountRappen: number;
+  /** A live Trip pass's own `ends_at`, only when there is no Plus yet — the
+   *  app's own upgrade offer (B2726): "subscribe before it ends and get a
+   *  photobook voucher". `null` on Plus, on Free with no pass, or with
+   *  `billing` off (never reached — `planSummaryFor` returns `undefined`
+   *  there instead). */
+  passEndsAt: string | null;
+  /** This journal's unused, unexpired vouchers — B2726. Empty, never
+   *  absent, with none to show. */
+  vouchers: { appliesTo: VoucherKind; amountRappen: number; expiresAt: string | null }[];
 };
 
 /** The same period key `paid/postcard/lib/postcard/pricing.ts`'s own
@@ -63,6 +73,24 @@ export async function planSummaryFor(username: string): Promise<PlanSummary | un
         )
       : null;
 
+  // A live pass, only while there is no Plus to overshadow it — the same
+  // "Plus beats pass" rank `planOf()` itself already applies, read straight
+  // (not from `current`, which only ever reports the single best plan).
+  const passEndsAt = current.unlimited || current.plan === "plus" ? null : await livePassEndsAt(username);
+
+  const vouchers = current.unlimited
+    ? []
+    : await Promise.all(
+        (["photobook", "postcard"] as const).map((kind) => availableVouchers(username, kind)),
+      ).then((lists) =>
+        lists
+          .flat()
+          // A "print" voucher (either kind) would otherwise be listed twice —
+          // once per `kind` queried above.
+          .filter((v, i, all) => all.findIndex((o) => o.id === v.id) === i)
+          .map((v) => ({ appliesTo: v.appliesTo, amountRappen: v.amountRappen, expiresAt: v.expiresAt })),
+      );
+
   return {
     plan: current.plan,
     periodEnd: current.unlimited ? null : current.periodEnd,
@@ -77,5 +105,7 @@ export async function planSummaryFor(username: string): Promise<PlanSummary | un
     source: current.source,
     postcards,
     bookDiscountRappen: current.unlimited ? 0 : current.limits.bookDiscountRappen,
+    passEndsAt,
+    vouchers,
   };
 }

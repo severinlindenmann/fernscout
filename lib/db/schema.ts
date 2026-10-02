@@ -1025,6 +1025,24 @@ type StorageAddonsTable = {
   created_at: string;
 };
 
+/**
+ * A fixed-amount discount off one print — B2726. See migration
+ * `066-vouchers` for the full reasoning; one row is one use.
+ */
+type VouchersTable = {
+  id: string;
+  owner_id: string | null;
+  code: string | null;
+  applies_to: string;
+  amount_rappen: number;
+  source: string;
+  source_ref: string | null;
+  created_at: string;
+  expires_at: string | null;
+  used_at: string | null;
+  used_ref: string | null;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -1067,6 +1085,7 @@ export type Database = {
   tell_choices: TellChoicesTable;
   compose_outcomes: ComposeOutcomesTable;
   storage_addons: StorageAddonsTable;
+  vouchers: VouchersTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1111,4 +1130,5 @@ export const TABLE_NAMES = [
   "print_included_usage",
   "compose_outcomes",
   "storage_addons",
+  "vouchers",
 ] as const satisfies readonly (keyof Database)[];
