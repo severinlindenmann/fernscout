@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideReplay, runOutbox, newIntent, pendingDayDates, type OutboxIntent, type OutboxStore } from "@/lib/outbox";
+import { decideReplay, runOutbox, newIntent, pendingDayDates, pendingDayPhotos, type OutboxIntent, type OutboxStore } from "@/lib/outbox";
 
 /** An in-memory `OutboxStore` — no IndexedDB in the Vitest node environment,
  *  and the whole point of splitting the module is that the runner never
@@ -486,5 +486,41 @@ describe("pendingDayDates", () => {
     ]);
     const dates = await pendingDayDates(store, "severin");
     expect(dates).toEqual(new Set(["2026-04-02", "2026-04-03"]));
+  });
+});
+
+describe("Edit a day's photographs offline (B2371)", () => {
+  const url = "/at/severin/trips/t/day/d/photos";
+  const add = (id: string, bytes: string) =>
+    newIntent({ user: "severin", kind: "day.photo.add", method: "POST", url, body: { filename: `${id}.jpg` }, blob: new Blob([bytes]) });
+  const remove = (src: string) => newIntent({ user: "severin", kind: "day.photo.remove", method: "DELETE", url, body: { src: [src] } });
+
+  it("reads queued adds and removals back for that day only; cancelling an intent drops it", async () => {
+    const a = add("a", "x");
+    const r = remove("one.jpg");
+    const other = { ...remove("two.jpg"), url: "/at/severin/trips/t/day/e/photos" };
+    const store = memoryStore([a, r, other]);
+    const queued = await pendingDayPhotos(store, "severin", url);
+    expect(queued.adds.map((x) => x.filename)).toEqual(["a.jpg"]);
+    expect(queued.removes.map((x) => x.src)).toEqual(["one.jpg"]);
+    await store.remove(a.id);
+    expect((await pendingDayPhotos(store, "severin", url)).adds).toEqual([]);
+  });
+
+  it("replays the add as the original bytes to the day's own door, then the removal, and empties the queue", async () => {
+    const store = memoryStore([add("a", "original-bytes"), remove("one.jpg")]);
+    const calls: { url: string; method?: string; body?: BodyInit | null }[] = [];
+    const fetchImpl = (async (u: string, init?: RequestInit) => {
+      calls.push({ url: u, method: init?.method, body: init?.body });
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const nativeUpload = async () => true; // must never be offered a day photo
+    const outcome = await runOutbox(store, "severin", fetchImpl, nativeUpload);
+    expect(outcome.done).toBe(2);
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([`POST ${url}`, `DELETE ${url}`]);
+    const file = (calls[0].body as FormData).get("files") as File;
+    expect(await file.text()).toBe("original-bytes");
+    expect(calls[1].body).toBe(JSON.stringify({ src: ["one.jpg"] }));
+    expect(store.rows).toHaveLength(0);
   });
 });

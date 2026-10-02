@@ -1851,6 +1851,7 @@
       "studio.day.field.weather",
       "studio.day.month.nextMonth",
       "studio.day.month.prevMonth",
+      "studio.day.photos.pendingUpload",
       "studio.day.queued.detail",
       "studio.day.queued.done",
       "studio.day.strip.dayWithEntry",
