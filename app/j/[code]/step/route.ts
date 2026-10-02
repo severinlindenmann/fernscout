@@ -27,7 +27,7 @@ import { mailDisabledReason } from "@/lib/mail";
 import { setNewsConsent } from "@/lib/newsConsent";
 import { whatsappCountryCode } from "@/lib/contactNumber";
 import { isMessageable, subjectPhone } from "@/lib/phone";
-import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
+import { clientIp, emailCodeAllowed, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
 import { claimTripPlace, isPersonOn } from "@/lib/tripPeople";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
@@ -100,6 +100,9 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
     }
     case "verify": {
       const email = normaliseEmail(value);
+      // A link already at its daily cap answers before the code is spent, so
+      // a capped newcomer can still use the same code once the window passes.
+      if (isEmail(email) && (await linkCappedFor(invite, email))) return answer({ error: "rate_limited" }, 429);
       const session = isEmail(email) ? await verifyGuestCode(owner, email, text("code"), request.headers.get("accept-language")) : null;
       if (!session) return answer({ error: "invalid_code" }, 401);
       await setGuestSessionCookies(session.token, session.subject, request.headers.get("user-agent"));
@@ -208,6 +211,13 @@ type Settled = { status: "in" | "waiting"; known: boolean };
  * one) is not a way to flood the owner's queue; somebody the owner already
  * knows (`existing`) never counts against it. */
 const NEW_REQUEST_PER_LINK_LIMIT = { max: 30, windowMs: 24 * 60 * 60 * 1000 };
+
+/** Whether this address would be refused by the per-link cap — a peek that
+ * spends nothing; `joinProved` still does the counting. */
+async function linkCappedFor(invite: JoinInvite, email: string): Promise<boolean> {
+  if (await getContactByEmail(invite.owner, email)) return false;
+  return !rateLimitStatus("join-new-request-link", invite.id, NEW_REQUEST_PER_LINK_LIMIT).ok;
+}
 
 /**
  * An address this request just proved. A new person gets a `pending` row with

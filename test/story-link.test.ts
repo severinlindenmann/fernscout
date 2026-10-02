@@ -297,5 +297,12 @@ describe("the per-link daily cap on new requests", () => {
 
     const { getContactByEmail } = await import("@/lib/contacts");
     expect(await getContactByEmail(OWNER, email31)).toBeNull();
+
+    // The refusal came before the code was spent: once the window has
+    // passed, the same code still works.
+    const { resetRateLimitsForTests } = await import("@/lib/rateLimit");
+    resetRateLimitsForTests();
+    const later = await joinStep(code, { action: "verify", name: "Over", value: email31, locale: "en", code: codeMailed(email31) });
+    expect(later.status).toBe(200);
   }, 30_000);
 });

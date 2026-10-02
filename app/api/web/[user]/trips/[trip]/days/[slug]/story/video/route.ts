@@ -70,7 +70,8 @@ export async function GET(
   const facts = storyCardFacts({ day, dayNumber, tripTitle: tripFile.title, link, readAlong, locale: owner.defaultLocale });
 
   const key = storyVideoCacheKey({
-    dayJson: JSON.stringify({ day }),
+    // dayNumber: "Day N" counts from the trip start, which lives outside the day.
+    dayJson: JSON.stringify({ day, dayNumber }),
     photoFiles: segments.map((s) => s.file),
     tripTitle: tripFile.title,
     locale: owner.defaultLocale,
