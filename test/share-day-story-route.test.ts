@@ -68,7 +68,6 @@ async function setupTripAndDay(opts: { visibility?: "public" | "private" | "gues
     start: "2026-09-01",
     end: "2026-09-10",
     visibility: opts.visibility ?? "public",
-    listed: true,
     declined: {
       rates: "none",
       costs: "none",

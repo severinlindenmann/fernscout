@@ -20,9 +20,11 @@ describe("PublishDayFlow's done screen", () => {
     const doneBlock = source.slice(source.indexOf("if (done) {"), source.indexOf("if (chosen) {"));
     expect(doneBlock).toContain("studio/day/share?trip=");
     expect(doneBlock).toContain('t("studio.share.title")');
-    // "First" — the share card's own object literal appears in the source
+    // "First" — within the publish branch's own array (after the
+    // `takeDown ? […] : […]` split), the share card's object literal comes
     // before the "open the published day" card's.
-    expect(doneBlock.indexOf("studio.share.title")).toBeLessThan(doneBlock.indexOf("dayHref(done)"));
+    const publishBranch = doneBlock.slice(doneBlock.indexOf("            : ["));
+    expect(publishBranch.indexOf("studio.share.title")).toBeLessThan(publishBranch.indexOf("dayHref(done)"));
     // Never offered on the take-down screen — nothing to share once a day
     // is off the site, and `takeDown` branches the `next` array for exactly
     // that reason.

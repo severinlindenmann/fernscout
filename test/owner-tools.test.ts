@@ -125,8 +125,9 @@ describe("the owner's block under a day", () => {
     // the same "{day && day.published &&" DayNotify's own render sits
     // behind, just above it in the file.
     const shareLabelAt = tools.indexOf("owner.shareStory");
-    const gate = tools.slice(0, shareLabelAt).match(/\{day && day\.published && \([^]*$/)?.[0] ?? "";
-    expect(gate.length, "share tile must be behind its own 'day && day.published' gate").toBeGreaterThan(0);
-    expect(gate).not.toContain("DayNotify"); // confirms this is the SECOND such gate, not the first
+    const before = tools.slice(0, shareLabelAt);
+    const gateAt = before.lastIndexOf("{day && day.published && (");
+    expect(gateAt, "share tile must be behind its own 'day && day.published' gate").toBeGreaterThan(-1);
+    expect(before.slice(gateAt)).not.toContain("DayNotify"); // this is the SECOND such gate, not the first
   });
 });
