@@ -1,3 +1,4 @@
+// @scans components/map/**
 import fs from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";

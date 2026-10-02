@@ -32,9 +32,11 @@ export function titleCollidesWithExisting(title: string, existing: ExistingDayOn
  *  page). The first part is a second entry exactly when the day was already
  *  accepted onto an existing date ("Yes, add to that day"); every part after
  *  it is always a second entry, onto the day the first part itself just
- *  created. `time` is each part's own first photo's time (`DayPart.from`),
- *  which is what a second entry's address needs to tell two entries on one
- *  date apart. */
+ *  created. `time` is each part's own first photo's time (`DayPart.from`) —
+ *  shown and written when there is one, but never required: B2701 found the
+ *  route's own gate demanding it even for a legitimately timeless part,
+ *  `createDraft`'s own `nextUntitledSlug` already gives an untitled second
+ *  entry its own address with no time at all. */
 export type PartCommitPlan = { index: number; secondEntry: boolean; time: string };
 
 export function partCommitPlan(

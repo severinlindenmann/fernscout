@@ -562,17 +562,34 @@ describe("B2193 — waiting photographs as day cards", () => {
  */
 describe("B2304 — the hero, chosen by state", () => {
   test("during a trip, told already: names the day, says it is not published, not to tell about today again", () => {
-    const el = render({ ...FULL_BASE, toldToday: true, toldTodayDay: { title: "Baths and the bastion", published: false } });
+    const el = render({
+      ...FULL_BASE,
+      toldToday: true,
+      toldTodayDay: { title: "Baths and the bastion", published: false, slug: "baths-and-the-bastion" },
+    });
     const hero = el.querySelector("a[data-hero]")!;
     // B2676, decision 10 — "Today: “{title}” · Not published yet".
     expect(hero.textContent).toContain("Baths and the bastion");
     expect(hero.textContent).toContain("Not published yet");
     expect(hero.textContent).toContain("Continue today");
-    expect(hero.getAttribute("href")).toBe("/@alex/studio/day/new");
+    // B2702 — opens the day just written, on the edit flow, never a fresh
+    // "day/new" that would ask "Add this to it?" about its own words.
+    expect(hero.getAttribute("href")).toBe("/@alex/studio/day/edit?slug=baths-and-the-bastion");
     const alt = el.querySelector("a[data-hero-alt]")!;
     expect(alt.textContent).toBe("Change it");
     expect(alt.getAttribute("href")).toBe("/@alex/studio/day/edit");
     expect(el.textContent).not.toContain("Tell about today");
+  });
+
+  test("B2702 — a day with no title is named by its date, never 'Untitled'", () => {
+    const el = render({
+      ...FULL_BASE,
+      toldToday: true,
+      toldTodayDay: { title: "", published: false, slug: "2026-01-05" },
+    });
+    const hero = el.querySelector("a[data-hero]")!;
+    expect(hero.textContent).not.toContain("Untitled");
+    expect(hero.getAttribute("href")).toBe("/@alex/studio/day/edit?slug=2026-01-05");
   });
 
   test("a trip starting tomorrow gets the plan hero, not a generic 'start a trip' one", () => {

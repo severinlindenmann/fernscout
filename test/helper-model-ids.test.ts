@@ -1,3 +1,4 @@
+// @scans app/**, components/**, lib/**, site/config.json, lib/helper/models.ts
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

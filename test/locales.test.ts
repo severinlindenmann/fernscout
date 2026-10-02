@@ -1,3 +1,4 @@
+// @scans site/locales/**, lib/i18n.ts
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";

@@ -1,3 +1,4 @@
+// @scans components/studio/**, site/locales/en.json
 import fs from "node:fs";
 import path from "node:path";
 import { paidCounterparts } from "./support/openCore";

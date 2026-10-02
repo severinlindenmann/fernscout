@@ -1,3 +1,4 @@
+// @scans app/**, lib/gps/api.ts, lib/sync/manifest.ts
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";

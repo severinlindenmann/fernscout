@@ -137,15 +137,27 @@ async function pickTwoFiles() {
   await act(async () => input.dispatchEvent(new Event("change", { bubbles: true })));
   await flush();
 }
-/** B2232 — waiting photographs from other days are chosen by hand, from
- *  "Add more from what's waiting"; a chosen one's day-mates then join the grid. */
+/** B2232/B2683 — waiting photographs from other days are chosen from the
+ *  "＋ Add photos" sheet's own Waiting tab (the old standalone "Add more
+ *  from what's waiting" disclosure is gone, B2683 bug 2): open it, pick
+ *  every tile, confirm. A chosen one's day-mates then join the grid. */
 async function chooseEveryWaitingPhoto() {
+  const opener =
+    (container.querySelector('button[aria-label="Add photos"]') as HTMLButtonElement | null) ??
+    (Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Add photos")) as HTMLButtonElement);
+  await act(async () => opener.click());
+  await flush();
   for (;;) {
-    const next = container.querySelector('[data-photo][aria-pressed="false"]') as HTMLButtonElement | null;
-    if (!next) return;
+    const next = container.querySelector('[role="dialog"] [data-photo][aria-pressed="false"]') as HTMLButtonElement | null;
+    if (!next) break;
     await act(async () => next.click());
     await flush();
   }
+  const confirm = Array.from(container.querySelectorAll('[role="dialog"] button')).find(
+    (b) => /^Add \d+ photos?$/.test(b.textContent?.trim() ?? "") || b.textContent?.trim() === "Choose photos",
+  ) as HTMLButtonElement;
+  await act(async () => confirm.click());
+  await flush();
 }
 const text = () => container.textContent ?? "";
 const dateChip = () => container.querySelector('[data-chip="date"]')?.textContent ?? "";
@@ -293,23 +305,30 @@ describe("AddDayFlow, one page — B2188", () => {
     const at = (id: string, takenAt?: string): Item => ({ ...A, id, filename: `${id}.jpg`, takenAt });
     const TODAYS = [at("t1", `${TODAY}T08:00:00`), at("t2", `${TODAY}T12:00:00`), at("t3", `${TODAY}T18:00:00`)];
     const OTHERS = [at("o1", "2025-11-03T10:00:00"), at("o2", "2025-11-04T10:00:00"), at("o3", "2024-05-01T10:00:00"), at("o4"), at("o5")];
-    const grid = () => Array.from(container.querySelectorAll("ul:not([data-waiting-photos] ul) [data-photo]"), (b) => b.getAttribute("data-photo"));
-    const waiting = () => Array.from(container.querySelectorAll("[data-waiting-photos] [data-photo]"), (b) => b.getAttribute("data-photo"));
+    const grid = () => Array.from(container.querySelectorAll('ul:not([role="dialog"] ul) [data-photo]'), (b) => b.getAttribute("data-photo"));
+    const waiting = () => Array.from(container.querySelectorAll('[role="dialog"] [data-photo]'), (b) => b.getAttribute("data-photo"));
 
-    test("3 photographs taken today and 5 others: only the 3, the rest behind 'Add more from what's waiting'", async () => {
+    test("3 photographs taken today and 5 others: only the 3, the rest reachable from the '＋ Add photos' sheet's Waiting tab", async () => {
       inbox = [...OTHERS, ...TODAYS];
       await mount();
       expect(grid()).toEqual(["t1.jpg", "t2.jpg", "t3.jpg"]);
       expect(text()).toContain("3 chosen");
-      expect(text()).toContain("Add more from what's waiting (5)");
-      expect(waiting()).toEqual(["o1.jpg", "o2.jpg", "o3.jpg", "o4.jpg", "o5.jpg"]);
+      // B2683, bug 2 — no second, standalone "waiting" disclosure on the page.
+      expect(text()).not.toContain("Add more from what's waiting");
 
-      // Tapping one there adds it to the day, and the count says so.
-      await act(async () => (container.querySelector('[data-waiting-photos] [data-photo="o4.jpg"]') as HTMLButtonElement).click());
+      const addTile = Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Add photos")) as HTMLButtonElement;
+      await act(async () => addTile.click());
       await flush();
+      // The sheet's Waiting tab groups by day, most recent first (o4/o5 have
+      // no date at all, so they sort last) — not upload order.
+      expect(waiting()).toEqual(["o2.jpg", "o1.jpg", "o3.jpg", "o4.jpg", "o5.jpg"]);
+
+      // Tapping one there and confirming adds it to the day.
+      await act(async () => (container.querySelector('[role="dialog"] [data-photo="o4.jpg"]') as HTMLButtonElement).click());
+      await flush();
+      await click("Add 1 photo");
       expect(grid()).toEqual(["o4.jpg", "t1.jpg", "t2.jpg", "t3.jpg"]);
       expect(text()).toContain("4 chosen");
-      expect(text()).toContain("Add more from what's waiting (4)");
       await click("Preview →");
       expect((commitBody as unknown as { mediaInboxIds: string[] }).mediaInboxIds).toEqual(["o4", "t1", "t2", "t3"]);
     });
@@ -320,7 +339,6 @@ describe("AddDayFlow, one page — B2188", () => {
       await mount();
       expect(grid()).toEqual(["o1.jpg"]);
       expect(text()).toContain("1 chosen");
-      expect(text()).toContain("Add more from what's waiting (7)");
       await pickTwoFiles();
       expect(grid()).toEqual(["o1.jpg", "01.jpg", "02.jpg"]);
       expect(text()).toContain("3 chosen");

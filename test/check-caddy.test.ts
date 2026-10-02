@@ -1,3 +1,4 @@
+// @scans app/api/**, paid/**, deploy/*.caddy
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";

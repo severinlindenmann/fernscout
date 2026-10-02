@@ -1,3 +1,4 @@
+// @scans lib/**, app/**, paid/**, site/locales/en.json
 import { describe, expect, test } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
