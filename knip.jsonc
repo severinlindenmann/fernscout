@@ -27,6 +27,11 @@
     // CLIs. `npm run <name>` is the caller, and package.json is not an import
     // graph, so every one of these looks unreferenced from the inside.
     "scripts/*.{ts,mts,mjs}",
+    // B2692's eval harness: `scripts/*.{ts,mts,mjs}` above only covers
+    // `scripts/`'s own top level, not this nested directory. `run.mts` and
+    // `report.mts` are the two `npm run eval:compose*` entry points.
+    "scripts/eval-compose/run.mts",
+    "scripts/eval-compose/report-cli.mts",
     // A skill's own tooling — run by an agent following the SKILL.md beside it.
     ".claude/skills/**/*.mjs",
     // The v2 contract, phase 0 (B1587): schemas written as the reviewable

@@ -1,0 +1,171 @@
+[
+  {
+    "id": "hard-thin-one-liner",
+    "label": "thin one-liner — story must come back null",
+    "pack": {
+      "journal": { "language": "en", "languageName": "English", "partySize": 1 },
+      "trip": { "title": "test-eval-compose solo trip", "start": "2026-01-01", "end": "2026-01-10", "dayIndex": "day 3 of 10", "companions": [] },
+      "date": "2026-01-03",
+      "facts": [{ "id": "date", "kind": "owner", "text": "2026-01-03, day 3 of 10" }],
+      "notes": [{ "id": "n1", "kind": "owner", "text": "train again." }],
+      "photos": [],
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  },
+  {
+    "id": "hard-sarcasm",
+    "label": "sarcasm — must not be read as literal praise",
+    "pack": {
+      "journal": { "language": "en", "languageName": "English", "partySize": 2 },
+      "trip": { "title": "test-eval-compose city break", "start": "2026-02-01", "end": "2026-02-05", "dayIndex": "day 2 of 5", "companions": ["Jo"] },
+      "date": "2026-02-02",
+      "facts": [
+        { "id": "date", "kind": "owner", "text": "2026-02-02, day 2 of 5" },
+        { "id": "place", "kind": "owner", "text": "Testville, Nowhereland" }
+      ],
+      "notes": [
+        { "id": "n1", "kind": "owner", "text": "oh great, another museum that's 'closed for renovation', what a fantastic surprise, truly the highlight of the trip." },
+        { "id": "n2", "kind": "owner", "text": "we ate at the hotel instead." }
+      ],
+      "photos": [],
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  },
+  {
+    "id": "hard-mixed-language",
+    "label": "mixed German/English notes — language must not be invented or blended silently",
+    "pack": {
+      "journal": { "language": "de", "languageName": "Deutsch", "partySize": 1 },
+      "trip": { "title": "test-eval-compose Zwischenstopp", "start": "2026-03-01", "end": "2026-03-04", "dayIndex": "day 2 of 4", "companions": [] },
+      "date": "2026-03-02",
+      "facts": [{ "id": "date", "kind": "owner", "text": "2026-03-02, day 2 of 4" }],
+      "notes": [
+        { "id": "n1", "kind": "owner", "text": "checked in late, the front desk guy was so nice though" },
+        { "id": "n2", "kind": "owner", "text": "dann noch schnell was gegessen, war ok." }
+      ],
+      "photos": [],
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  },
+  {
+    "id": "hard-weather-contradiction",
+    "label": "owner's memory of weather contradicts the measured reading — both stay, neither resolves the other",
+    "pack": {
+      "journal": { "language": "en", "languageName": "English", "partySize": 1 },
+      "trip": { "title": "test-eval-compose weather check", "start": "2026-04-01", "end": "2026-04-06", "dayIndex": "day 4 of 6", "companions": [] },
+      "date": "2026-04-04",
+      "facts": [
+        { "id": "date", "kind": "owner", "text": "2026-04-04, day 4 of 6" },
+        { "id": "place", "kind": "owner", "text": "Testburg, Nowhereland" },
+        { "id": "weather", "kind": "measured", "text": "22–27°C, clear sky", "attrs": { "source": "Open-Meteo" } }
+      ],
+      "notes": [{ "id": "n1", "kind": "owner", "text": "froze all day, felt like it never got above ten degrees." }],
+      "photos": [],
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  },
+  {
+    "id": "hard-plan-not-outcome",
+    "label": "a plan/condition sentence — must stay a plan, never be written as what happened",
+    "pack": {
+      "journal": { "language": "en", "languageName": "English", "partySize": 2 },
+      "trip": { "title": "test-eval-compose contingency day", "start": "2026-05-01", "end": "2026-05-07", "dayIndex": "day 5 of 7", "companions": ["Sam"] },
+      "date": "2026-05-05",
+      "facts": [{ "id": "date", "kind": "owner", "text": "2026-05-05, day 5 of 7" }],
+      "notes": [{ "id": "n1", "kind": "owner", "text": "if it rains tomorrow we'll go to the aquarium instead of the hike, otherwise the hike." }],
+      "photos": [],
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  },
+  {
+    "id": "hard-rough-german-typos",
+    "label": "rough lowercase German notes with typos — tidy spelling/accents only, invent nothing",
+    "pack": {
+      "journal": { "language": "de", "languageName": "Deutsch", "partySize": 1 },
+      "trip": { "title": "test-eval-compose Tippfehler", "start": "2026-06-01", "end": "2026-06-05", "dayIndex": "day 2 of 5", "companions": [] },
+      "date": "2026-06-02",
+      "facts": [{ "id": "date", "kind": "owner", "text": "2026-06-02, day 2 of 5" }],
+      "notes": [
+        { "id": "n1", "kind": "owner", "text": "heut frueh los, bus verpasst, dann 2h gewartet am bahnhof, nervig" },
+        { "id": "n2", "kind": "owner", "text": "am ende doch noch rechtzeitig angekommen zum konzert" }
+      ],
+      "photos": [],
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  },
+  {
+    "id": "hard-photo-only",
+    "label": "a photo-only day — nothing to write but what the captions and camera clock say",
+    "pack": {
+      "journal": { "language": "en", "languageName": "English", "partySize": 1 },
+      "trip": { "title": "test-eval-compose quiet day", "start": "2026-07-01", "end": "2026-07-09", "dayIndex": "day 6 of 9", "companions": [] },
+      "date": "2026-07-06",
+      "facts": [{ "id": "date", "kind": "owner", "text": "2026-07-06, day 6 of 9" }],
+      "notes": [],
+      "photos": [
+        { "id": "p1", "kind": "seen", "text": "A narrow street with washing lines strung between the buildings", "attrs": { "camera_time": "09:12" } },
+        { "id": "p1-caption", "kind": "owner", "text": "near the market" },
+        { "id": "p2", "kind": "seen", "text": "A plate of grilled fish with lemon and a small salad", "attrs": { "camera_time": "13:40" } }
+      ],
+      "photoSpan": { "id": "photoSpan", "kind": "measured", "text": "camera clock 09:12–13:40, 2 photos" },
+      "photoSpanRaw": { "from": "09:12", "to": "13:40", "count": 2 },
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  },
+  {
+    "id": "hard-long-rambling",
+    "label": "long rambling notes — close should stay close to the notes' own length, story capped at 3x",
+    "pack": {
+      "journal": { "language": "en", "languageName": "English", "partySize": 2 },
+      "trip": { "title": "test-eval-compose long day", "start": "2026-08-01", "end": "2026-08-20", "dayIndex": "day 11 of 20", "companions": ["Nic"] },
+      "date": "2026-08-11",
+      "facts": [
+        { "id": "date", "kind": "owner", "text": "2026-08-11, day 11 of 20" },
+        { "id": "place", "kind": "owner", "text": "Testfjord, Nowhereland" }
+      ],
+      "notes": [
+        { "id": "n1", "kind": "owner", "text": "up at six, the ferry was already loading when we got to the dock, barely made it." },
+        { "id": "n2", "kind": "owner", "text": "two hours out on deck, cold, saw what might have been a seal but could have been a log." },
+        { "id": "n3", "kind": "owner", "text": "landed, long walk up to the viewpoint, Nic's knee started acting up halfway so we went slow." },
+        { "id": "n4", "kind": "owner", "text": "lunch was bread and cheese we'd brought, no shops up there." },
+        { "id": "n5", "kind": "owner", "text": "walked back down a different way, missed the three o'clock ferry, waited two more hours." },
+        { "id": "n6", "kind": "owner", "text": "home late, too tired to cook, just bread again." }
+      ],
+      "photos": [],
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  },
+  {
+    "id": "hard-camera-time-not-activity",
+    "label": "camera clock present, no note gives a clock time — composed text must not invent one",
+    "pack": {
+      "journal": { "language": "en", "languageName": "English", "partySize": 1 },
+      "trip": { "title": "test-eval-compose camera clock", "start": "2026-09-01", "end": "2026-09-03", "dayIndex": "day 2 of 3", "companions": [] },
+      "date": "2026-09-02",
+      "facts": [{ "id": "date", "kind": "owner", "text": "2026-09-02, day 2 of 3" }],
+      "notes": [{ "id": "n1", "kind": "owner", "text": "wandered around the old harbour in the afternoon, took some photos." }],
+      "photos": [
+        { "id": "p1", "kind": "seen", "text": "Fishing boats tied up along a stone quay", "attrs": { "camera_time": "15:47" } }
+      ],
+      "route": [],
+      "neighbours": [],
+      "voiceSamples": []
+    }
+  }
+]

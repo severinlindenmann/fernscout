@@ -196,3 +196,68 @@ describe("8 — titles", () => {
 test("every locale's banned list is non-empty", () => {
   for (const lang of ["en", "de", "fr", "it", "hu"]) expect(BANNED_PHRASES[lang]?.length).toBeGreaterThan(0);
 });
+
+describe("tuning after the owner's own days (B2688)", () => {
+  const de: GuardItem[] = [
+    { id: "date", kind: "owner", text: "2025-06-07, day 2 of 5" },
+    { id: "n1", kind: "owner", text: "heut frueh los, bus verpasst" },
+    { id: "p1", kind: "seen", text: "Ein Steg an einem See, ein Herrenhaus dahinter" },
+  ];
+  const deCtx = (over: Partial<GuardContext> = {}) => ctx({ items: de, language: "de", languages: ["de"], ...over });
+  const withNames = (text: string, names: string[], sources: string[]): ComposeVariant => ({
+    titles: [],
+    paragraphs: [{ sentences: [{ text, names, sources }] }],
+  });
+
+  test("German nouns are not names: a tidied note passes", () => {
+    expect(reasons(withNames("Heute früh los, den Bus verpasst.", [], ["n1"]), "close", deCtx()).ok).toBe(true);
+  });
+  test("a reported name the sources lack fails, in German too", () => {
+    const v = reasons(withNames("Am Steg in Vemdalen.", ["Vemdalen"], ["p1"]), "story", deCtx());
+    expect(v.reasons.join()).toMatch(/name "Vemdalen" not in its sources/);
+  });
+  test("a word sharing its first four letters with a cited word is grounded", () => {
+    const v = reasons(one("Heute los, Bus verpasst.", ["n1"]), "close", ctx({ items: de }));
+    expect(v.reasons.join()).not.toMatch(/Heute/);
+  });
+  test("a photo-told story may run past three times a short note", () => {
+    const text = "Heute früh los. Ein Steg an einem See, dahinter ein Herrenhaus, still und hell, und weiter hinten noch einmal der Steg mit dem See.";
+    expect(reasons(one(text, ["n1", "p1"]), "story", deCtx()).reasons.join()).toMatch(/at most 15/);
+    expect(reasons(one(text, ["n1", "p1"]), "story", deCtx({ storyFloor: 70 })).ok).toBe(true);
+  });
+});
+
+describe("photographs alone say what they show (B2688 eval)", () => {
+  const items: GuardItem[] = [
+    { id: "n1", kind: "owner", text: "Nachtschlitteln." },
+    { id: "p1", kind: "seen", text: "Zwei Personen mit Stirnlampen im Schnee zwischen kahlen Bäumen" },
+  ];
+  const c = () => ctx({ items, language: "de", languages: ["de"], partySize: 3, storyFloor: 70 });
+  test("a head count from a photo is struck", () => {
+    expect(reasons(one("Mit Stirnlampen standen sie zu zweit im Schnee.", ["p1"]), "story", c()).reasons.join()).toMatch(/zu zweit/);
+  });
+  test("a time of day from a photo is struck", () => {
+    expect(reasons(one("Abends Stirnlampen im Schnee.", ["p1"]), "story", c()).reasons.join()).toMatch(/Abends/);
+  });
+  test("what the photo shows passes", () => {
+    expect(reasons(one("Stirnlampen im Schnee, zwischen kahlen Bäumen.", ["p1"]), "story", c()).ok).toBe(true);
+  });
+  test("the same words pass when a note carries them", () => {
+    expect(reasons(one("Nachtschlitteln, später Stirnlampen im Schnee.", ["n1", "p1"]), "story", c()).reasons.join()).not.toMatch(/photographs alone/);
+  });
+});
+
+describe("eval round 4 gaps (B2688)", () => {
+  test("a possessive grounds the name: Nic for Nic's", () => {
+    const items: GuardItem[] = [{ id: "n3", kind: "owner", text: "Nic's knee started acting up halfway." }];
+    expect(reasons(one("Halfway up, Nic's knee started acting up.", ["n3"]), "close", ctx({ items })).reasons.join()).not.toMatch(/Nic/);
+  });
+  test("citing weather beside a photo is still photographs alone", () => {
+    const items: GuardItem[] = [
+      { id: "p4", kind: "seen", text: "Zwei Personen in Rettungswesten auf einem Segelboot" },
+      { id: "weather", kind: "measured", text: "17–28°C, clear" },
+    ];
+    const v = reasons(one("Dann zwei in Rettungswesten, bei 17 bis 28°C.", ["p4", "weather"]), "story", ctx({ items, language: "de", languages: ["de"], storyFloor: 70 }));
+    expect(v.reasons.join()).toMatch(/photographs alone/);
+  });
+});
