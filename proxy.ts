@@ -1,5 +1,8 @@
+import fs from "node:fs";
+import path from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
 import { loadServerConfig } from "@/lib/config";
+import { contentRoot } from "@/lib/contentRoot";
 import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, splitLanguagePath, splitMarkdownPath } from "@/lib/languagePaths";
 import { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER, SEARCH_HEADER } from "@/lib/requestKeys";
 import { formatRequestLine } from "@/lib/requestLog";
@@ -111,7 +114,14 @@ function goneFor(username: string, rest: string): NextResponse | null {
   const segments = rest.split("/").filter(Boolean);
   if (segments[0] === "trips" && segments[1]) {
     const trip = tripTombstone(username, segments[1]);
-    if (trip) return gonePage(trip);
+    // B2672: belt and braces. `createTrip`/`renameTrip` already clear the
+    // tombstone the moment the id is live again, but a tombstone that
+    // somehow outlives that (a hand-restored backup, a race) must not keep
+    // answering 410 for a folder that is sitting right there — one more
+    // `existsSync`, the same cost `tripTombstone` above already paid.
+    if (trip && !fs.existsSync(path.join(contentRoot(), username, "trips", segments[1]))) {
+      return gonePage(trip);
+    }
   }
   return null;
 }
