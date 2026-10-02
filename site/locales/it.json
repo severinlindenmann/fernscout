@@ -4671,5 +4671,6 @@
   "studio.published.toldNobody": "I tuoi {count} lettori possono leggerla. Nessuno è stato avvisato.",
   "studio.published.toldNobody.one": "Il tuo lettore può leggerla. Nessuno è stato avvisato.",
   "studio.published.toldEveryoneNobody": "Chiunque può leggerla. Nessuno è stato avvisato.",
-  "studio.hub.addDay.toldToday.untitled": "Oggi ha già una giornata"
+  "studio.hub.addDay.toldToday.untitled": "Oggi ha già una giornata",
+  "studio.day.writeFailed.alreadySaved": "L’ultima modifica non è stata salvata. La giornata resta salvata come bozza: torna indietro e riprova."
 }

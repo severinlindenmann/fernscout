@@ -4662,5 +4662,6 @@
   "studio.published.toldNobody": "Your {count} readers can read it. Nobody was told.",
   "studio.published.toldNobody.one": "Your 1 reader can read it. Nobody was told.",
   "studio.published.toldEveryoneNobody": "Anyone can read it. Nobody was told.",
-  "studio.hub.addDay.toldToday.untitled": "Today has a day"
+  "studio.hub.addDay.toldToday.untitled": "Today has a day",
+  "studio.day.writeFailed.alreadySaved": "That last change did not save. The day itself is kept as a draft — go back and try again."
 }

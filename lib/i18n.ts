@@ -2992,6 +2992,7 @@ export type TranslationKey =
   | "studio.day.which.dateLabel"
   | "studio.day.which.reasonCurrent"
   | "studio.day.which.reasonPast"
+  | "studio.day.writeFailed.alreadySaved"
   | "studio.day.writeFailed.back"
   | "studio.day.writeFailed.backToCheck"
   | "studio.day.writeFailed.banner"

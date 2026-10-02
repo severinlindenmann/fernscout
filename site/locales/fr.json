@@ -4671,5 +4671,6 @@
   "studio.published.toldNobody": "Tes {count} lecteurs peuvent la lire. Personne n’a été prévenu.",
   "studio.published.toldNobody.one": "Ton lecteur peut la lire. Personne n’a été prévenu.",
   "studio.published.toldEveryoneNobody": "Tout le monde peut la lire. Personne n’a été prévenu.",
-  "studio.hub.addDay.toldToday.untitled": "Aujourd’hui a déjà une journée"
+  "studio.hub.addDay.toldToday.untitled": "Aujourd’hui a déjà une journée",
+  "studio.day.writeFailed.alreadySaved": "La dernière modification n’a pas été enregistrée. La journée reste gardée en brouillon — reviens et réessaie."
 }

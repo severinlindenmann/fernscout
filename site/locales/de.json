@@ -4667,5 +4667,6 @@
   "studio.published.toldNobody": "Deine {count} Leserinnen und Leser können ihn lesen. Niemand wurde benachrichtigt.",
   "studio.published.toldNobody.one": "Deine eine Leserin oder dein einer Leser kann ihn lesen. Niemand wurde benachrichtigt.",
   "studio.published.toldEveryoneNobody": "Alle können ihn lesen. Niemand wurde benachrichtigt.",
-  "studio.hub.addDay.toldToday.untitled": "Heute hat schon einen Tag"
+  "studio.hub.addDay.toldToday.untitled": "Heute hat schon einen Tag",
+  "studio.day.writeFailed.alreadySaved": "Die letzte Änderung wurde nicht gespeichert. Der Tag selbst bleibt als Entwurf erhalten – geh zurück und versuch es noch einmal."
 }

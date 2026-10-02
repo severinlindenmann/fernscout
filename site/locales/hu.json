@@ -4668,5 +4668,6 @@
   "studio.published.toldNobody": "{count} olvasód olvashatja. Senki sem kapott értesítést.",
   "studio.published.toldNobody.one": "Az egy olvasód olvashatja. Senki sem kapott értesítést.",
   "studio.published.toldEveryoneNobody": "Bárki olvashatja. Senki sem kapott értesítést.",
-  "studio.hub.addDay.toldToday.untitled": "Ma már van egy nap"
+  "studio.hub.addDay.toldToday.untitled": "Ma már van egy nap",
+  "studio.day.writeFailed.alreadySaved": "Az utolsó módosítás nem mentődött el. Maga a nap piszkozatként megmaradt – lépj vissza, és próbáld újra."
 }

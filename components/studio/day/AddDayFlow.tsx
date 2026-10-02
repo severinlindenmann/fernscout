@@ -1,5 +1,6 @@
 "use client";
 
+import { NO_PROSE } from "@/lib/helper/draft";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -995,7 +996,9 @@ export default function AddDayFlow({
     const patched = await fetch(`/api/helper/${encodeURIComponent(username)}/day`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ trip: tripId, slug, title, content }),
+      // A day with photos and no words keeps the same "no words" marker
+      // day/new writes — the PATCH refuses an empty string outright.
+      body: JSON.stringify({ trip: tripId, slug, title, content: content.trim() ? content : NO_PROSE }),
     }).catch(() => null);
     return !!patched?.ok;
   }
@@ -1019,7 +1022,7 @@ export default function AddDayFlow({
         if (createdSlug) {
           const ok = await patchExisting(createdSlug);
           if (!ok) {
-            setWriteError({ message: t("studio.day.writeFailed.message") });
+            setWriteError({ message: t("studio.day.writeFailed.alreadySaved") });
             setOutcome("writeFailed");
             return;
           }
@@ -1090,7 +1093,7 @@ export default function AddDayFlow({
         if (step.index === 0 && createdSlug) {
           const ok = await patchExisting(createdSlug);
           if (!ok) {
-            setWriteError({ message: t("studio.day.writeFailed.message") });
+            setWriteError({ message: t("studio.day.writeFailed.alreadySaved") });
             setOutcome("writeFailed");
             return;
           }
