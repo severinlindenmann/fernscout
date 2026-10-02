@@ -4719,7 +4719,7 @@
   "photobook.pass.pageLineRange": "{name} · p. {from}–{to}",
   "photobook.first.budgetLeftOut": "{count} foto escluse",
   "photobook.first.budgetLeftOut.one": "1 foto esclusa",
-  "photobook.first.budgetLeftOutShow": "Mostrale",
+  "photobook.first.budgetLeftOutShow": "Guardale e rimettine qualcuna",
   "photobook.print.readerCopy": "La copia di un lettore",
   "photobook.readerBought.body": "Un lettore di {trip} ha ordinato una propria copia stampata del libro, ed è andata in stampa. Qui non viene condiviso nessun altro dato.",
   "photobook.readerBought.footer": "Inviata perché un lettore ha ordinato una propria copia del tuo fotolibro. Questo avviso viene sempre inviato.",

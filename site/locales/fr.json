@@ -4719,7 +4719,7 @@
   "photobook.pass.pageLineRange": "{name} · p. {from}–{to}",
   "photobook.first.budgetLeftOut": "{count} photos laissées de côté",
   "photobook.first.budgetLeftOut.one": "1 photo laissée de côté",
-  "photobook.first.budgetLeftOutShow": "Les montrer",
+  "photobook.first.budgetLeftOutShow": "Les voir et en remettre",
   "photobook.print.readerCopy": "L’exemplaire d’un lecteur",
   "photobook.readerBought.body": "Un lecteur ou une lectrice de {trip} a commandé son propre exemplaire imprimé du livre, et il est parti à l’impression. Aucune autre information n’est partagée ici.",
   "photobook.readerBought.footer": "Envoyé parce qu’un lecteur a commandé son propre exemplaire de ton livre photo. Cet avis est toujours envoyé.",

@@ -4715,7 +4715,7 @@
   "photobook.pass.pageLineRange": "{name} · S. {from}–{to}",
   "photobook.first.budgetLeftOut": "{count} Fotos weggelassen",
   "photobook.first.budgetLeftOut.one": "1 Foto weggelassen",
-  "photobook.first.budgetLeftOutShow": "Zeigen",
+  "photobook.first.budgetLeftOutShow": "Ansehen und zurückholen",
   "photobook.print.readerCopy": "Exemplar einer Leserin oder eines Lesers",
   "photobook.readerBought.body": "Eine Leserin oder ein Leser von {trip} hat ein eigenes gedrucktes Exemplar des Buches bestellt, und es ist im Druck. Weitere Angaben werden hier nicht genannt.",
   "photobook.readerBought.footer": "Gesendet, weil jemand ein eigenes Exemplar deines Fotobuchs bestellt hat. Dieser Hinweis wird immer gesendet.",

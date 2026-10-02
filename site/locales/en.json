@@ -4710,7 +4710,7 @@
   "photobook.pass.pageLineRange": "{name} · p. {from}–{to}",
   "photobook.first.budgetLeftOut": "{count} photos left out",
   "photobook.first.budgetLeftOut.one": "1 photo left out",
-  "photobook.first.budgetLeftOutShow": "Show them",
+  "photobook.first.budgetLeftOutShow": "Look, and put any back",
   "photobook.print.readerCopy": "A reader's copy",
   "photobook.readerBought.body": "A reader of {trip} has ordered their own printed copy of the book, and it has gone to print. No other details are shared here.",
   "photobook.readerBought.footer": "Sent because a reader ordered their own copy of your photobook. This notice is always sent.",

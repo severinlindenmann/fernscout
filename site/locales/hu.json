@@ -4716,7 +4716,7 @@
   "photobook.pass.pageLineRange": "{name} · {from}–{to}. o.",
   "photobook.first.budgetLeftOut": "{count} fotó kimaradt",
   "photobook.first.budgetLeftOut.one": "1 fotó kimaradt",
-  "photobook.first.budgetLeftOutShow": "Mutasd",
+  "photobook.first.budgetLeftOutShow": "Nézd meg, és tedd vissza, amit szeretnél",
   "photobook.print.readerCopy": "Egy olvasó példánya",
   "photobook.readerBought.body": "A(z) {trip} egyik olvasója megrendelte a könyv saját, nyomtatott példányát, és az nyomdába került. Itt más adatot nem osztunk meg.",
   "photobook.readerBought.footer": "Azért küldtük, mert valaki megrendelte a fotókönyved saját példányát. Ezt az értesítést mindig elküldjük.",
