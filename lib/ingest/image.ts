@@ -202,7 +202,10 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
   );
   // Awaited rather than `spawnSync`, which held every other request on the
   // server for as long as the conversion took. See lib/ingest/run.ts.
-  const run = await runProcess(decoder.command, decoder.args(file, temp));
+  // B2262: a decoder that hangs is killed, and counts as a failure below.
+  const run = await runProcess(decoder.command, decoder.args(file, temp), {
+    timeout: Number(process.env.FERNSCOUT_HEIF_TIMEOUT_MS) || 30_000,
+  });
   if (run.status !== 0 || !fs.existsSync(temp)) {
     fs.rmSync(path.dirname(temp), { recursive: true, force: true });
     throw new UndecodableImageError(file, `${failure} (${decoder.command} could not convert it)`);
@@ -234,7 +237,13 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
     m?.width && m.height ? [Math.min(m.width, m.height), Math.max(m.width, m.height)] : undefined;
   const a = pair(redeclared);
   const b = pair(got);
-  if (a && b && (a[0] !== b[0] || a[1] !== b[1])) {
+  // B2262: an output whose size cannot be read (past the pixel cap, or not an
+  // image) is refused, not waved through with the check skipped.
+  if (!b) {
+    fs.rmSync(path.dirname(temp), { recursive: true, force: true });
+    throw new UndecodableImageError(file, `${decoder.command} returned output whose size could not be read`);
+  }
+  if (a && (a[0] !== b[0] || a[1] !== b[1])) {
     fs.rmSync(path.dirname(temp), { recursive: true, force: true });
     throw new UndecodableImageError(
       file,
@@ -328,6 +337,29 @@ export async function makeDerivative(
 
   const { data, info } = await pipeline.toBuffer({ resolveWithObject: true });
   return { bytes: data, width: info.width, height: info.height, format };
+}
+
+/**
+ * B1528: a full-resolution JPEG to keep beside a camera file the printers
+ * cannot embed (HEIC, PNG, WebP…). The one function ingest and both upload
+ * routes call; each writes the result next to the original, as `name`, in
+ * `originals/`. The camera file itself is never replaced or removed.
+ *
+ * Null when the original is already a JPEG. Same encoder settings as the
+ * photobook's own print JPEGs (quality 88, 4:4:4), orientation baked in, ICC
+ * profile kept, no EXIF or GPS. Not resized: the pixel count is already
+ * bounded by `MAX_DECODE_PIXELS` at the decode.
+ */
+export async function printJpegFor(
+  source: DecodedSource,
+  originalName: string,
+): Promise<{ name: string; bytes: Buffer } | null> {
+  if (/\.jpe?g$/i.test(originalName)) return null;
+  const bytes = await oriented(source)
+    .keepIccProfile()
+    .jpeg({ quality: 88, chromaSubsampling: "4:4:4", progressive: false })
+    .toBuffer();
+  return { name: `${path.basename(originalName, path.extname(originalName))}.jpg`, bytes };
 }
 
 /** Extensions ingest treats as photographs. */
