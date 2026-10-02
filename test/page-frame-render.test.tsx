@@ -1,3 +1,4 @@
+// @scans app/at/**
 import { describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import path from "node:path";

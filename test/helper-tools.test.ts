@@ -1,3 +1,4 @@
+// @scans lib/helper/tools/**, site/locales/**
 import { describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";

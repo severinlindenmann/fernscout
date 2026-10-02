@@ -1,3 +1,4 @@
+// @scans app/api/v2/**, app/api/auth/**, app/docs/api/page.tsx
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
