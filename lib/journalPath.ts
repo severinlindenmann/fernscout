@@ -48,6 +48,29 @@ export function journalPath(username: string, rest = ""): string {
 }
 
 /**
+ * The `mailto:` for a reader's "report this journal" link, or undefined
+ * where it does not belong — B2723 (App Store guideline 1.2). Never for the
+ * journal's own owner, and never where the operator named no monitored
+ * address (`site.operatorEmail`) at all. The subject names the journal
+ * address itself, e.g. "Report: fernscout.ch/@example", built from the
+ * site's own `url` and `base` rather than a hardcoded host.
+ *
+ * No imports, like the rest of this file: `lib/site.ts` is `server-only`, so
+ * the client-rendered footer that needs this (app/TripStory.tsx) cannot
+ * import a value from it directly.
+ */
+export function reportMailto(site: {
+  isOwner: boolean;
+  operatorEmail?: string;
+  url: string;
+  base: string;
+}): string | undefined {
+  if (site.isOwner || !site.operatorEmail) return undefined;
+  const host = site.url.replace(/^https?:\/\//, "");
+  return `mailto:${site.operatorEmail}?subject=${encodeURIComponent(`Report: ${host}${site.base}`)}`;
+}
+
+/**
  * The journal a path belongs to, and what follows its name — or null for any
  * path that is not a journal's. Accepts `%40` for the `@`, which some apps
  * write when they copy a link.

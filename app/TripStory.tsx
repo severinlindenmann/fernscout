@@ -14,6 +14,7 @@ import StoryPager, { buildSteps } from "@/components/StoryPager";
 import TripHero from "@/components/TripHero";
 import type { CardMeta } from "@/lib/map/tripCard";
 import { useI18n } from "@/components/LocaleProvider";
+import { useOptionalSite } from "@/components/SiteProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
 import { WindowLedger } from "@/lib/dayLoader";
@@ -31,7 +32,7 @@ import type { DaySummary, PhotobookEntry } from "@/lib/types";
 import type { StoryDay } from "@/lib/prose";
 import type { HeroStats } from "@/components/TripHero";
 
-import { journalPath } from "@/lib/journalPath";
+import { journalPath, reportMailto } from "@/lib/journalPath";
 /** How many days either side of the one on screen are kept loaded. Mirrors
  * `STORY_WINDOW` on the server; the client asks for the same shape. */
 const WINDOW = 2;
@@ -102,6 +103,13 @@ export default function TripStory({
   // unexpected case where that ever stops being true — reactions degrade to
   // inert rather than crash the story page.
   const trip = useTrip();
+  const site = useOptionalSite();
+
+  // App Store guideline 1.2 — B2723. `reportMailto` is the pure part
+  // (lib/journalPath.ts, so a client component can import it without
+  // pulling in `lib/site.ts`'s `server-only` guard); `site` is absent only
+  // if `SiteProvider` ever stopped wrapping this component.
+  const reportHref = site ? reportMailto(site) : undefined;
 
   const steps = useMemo(() => buildSteps(index), [index]);
 
@@ -645,15 +653,29 @@ export default function TripStory({
         </main>
       </div>
 
-      {/* B2485 — the way from somebody's shared trip to what made it. */}
-      {madeWith && (
-        <footer className="mx-auto w-full max-w-5xl px-4 pt-6 text-center text-xs text-ink-secondary sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center underline decoration-line-quiet underline-offset-2 hover:text-ink-strong"
-          >
-            {t("story.madeWith", { name: madeWith })}
-          </Link>
+      {/* B2485 — the way from somebody's shared trip to what made it.
+          B2723 — and, quietly beside it, a reader's way to report this
+          journal (App Store guideline 1.2). Two separate conditions, one
+          footer: `madeWith` only names a public, non-guest trip, while the
+          report link is any reader who is not this journal's owner. */}
+      {(madeWith || reportHref) && (
+        <footer className="mx-auto flex w-full max-w-5xl flex-col items-center gap-1 px-4 pt-6 text-center text-xs text-ink-secondary sm:px-6 lg:px-8">
+          {madeWith && (
+            <Link
+              href="/"
+              className="inline-flex min-h-11 items-center underline decoration-line-quiet underline-offset-2 hover:text-ink-strong"
+            >
+              {t("story.madeWith", { name: madeWith })}
+            </Link>
+          )}
+          {reportHref && (
+            <a
+              href={reportHref}
+              className="inline-flex min-h-11 items-center underline decoration-line-quiet underline-offset-2 hover:text-ink-strong"
+            >
+              {t("story.report")}
+            </a>
+          )}
         </footer>
       )}
 

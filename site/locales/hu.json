@@ -2157,6 +2157,7 @@
   "story.dayFailed": "Ezt a napot nem sikerült betölteni. Ellenőrizd a kapcsolatot, majd lépj vissza egy napot és ismét előre.",
   "story.dayLoading": "Ez a nap betöltődik…",
   "story.madeWith": "Készítve: {name}",
+  "story.report": "Napló bejelentése",
   "story.empty": "Még nincsenek napok.",
   "story.emptyOwner.body": "Ennek az útnak még nincsenek napjai. Kezdj el egyet a stúdiódban – fényképek, pár szó, és piszkozatként vár, amíg közzé nem teszed.",
   "story.emptyOwner.cta": "Első nap hozzáadása",
