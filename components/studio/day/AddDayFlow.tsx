@@ -304,6 +304,11 @@ export default function AddDayFlow({
     };
   }, [username, outcome]);
   const [mismatchKept, setMismatchKept] = useState(false);
+  // B2683, bug 5 — the computed date (from the photographs) lands outside
+  // every trip, usually sample photographs with a wrong EXIF date; asked
+  // about once, same shape as the mismatch banner above it, rather than
+  // silently moving the day.
+  const [dateOutsideTripKept, setDateOutsideTripKept] = useState(false);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -430,6 +435,7 @@ export default function AddDayFlow({
     setCreatedSlug(null);
     setParts(null);
     setPartWords([]);
+    setDateOutsideTripKept(false);
     setExistingOnDate(null);
     existingAskedFor.current = null;
     // Not `reset()`: that stops the draft being kept at all, and the page
@@ -1401,11 +1407,11 @@ export default function AddDayFlow({
   const pickDate = (d: string) => {
     setConfirmedSecondEntry(false);
     setMismatchKept(false);
+    setDateOutsideTripKept(false);
     setDateOverride(d);
   };
   const split = splitDayPhotos(inboxItems ?? [], date, new Set([...selectedIds, ...ownIds]));
   const dayPhotos = split.own;
-  const waitingPhotos = split.others;
   // B2646 — the route's place suggestion, shown once: inside the place
   // panel while it is open, as its own card otherwise.
   const suggestionCard = placeSuggestion && !placeSuggestionDismissed && placeEmpty ? (
@@ -1528,15 +1534,17 @@ export default function AddDayFlow({
           {existingOnDate && !confirmedSecondEntry && (
             <div data-existing-on-date className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
               <p className="text-sm text-ink-body">
-                {t("studio.day.existing.banner", { date: formatLongDate(date), title: existingOnDate.title || t("studio.day.collision.untitled") })}
+                {/* B2702 — a day with no title is named by its date, never
+                    the literal word "Untitled". */}
+                {t("studio.day.existing.banner", { date: formatLongDate(date), title: existingOnDate.title || formatLongDate(date) })}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    // A second entry on a date is told apart by its time
-                    // (the server refuses one without): the first chosen
-                    // photo's own clock when there is one, else asked below.
+                    // B2701 — a time is never required any more; still
+                    // prefilled from the first chosen photo's own clock when
+                    // there is one, since it is still shown and still real.
                     const first = chosenPhotos.find((i) => i.takenAt && i.takenAt.length >= 16);
                     if (!time && first?.takenAt) setTime(first.takenAt.slice(11, 16));
                     setConfirmedSecondEntry(true);
@@ -1553,7 +1561,7 @@ export default function AddDayFlow({
           )}
           {existingOnDate && confirmedSecondEntry && (
             <label data-existing-time className="mt-2 flex flex-wrap items-center gap-3 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3 text-sm text-ink-body">
-              <span>{t("studio.day.existing.partOf", { title: existingOnDate.title || t("studio.day.collision.untitled") })}</span>
+              <span>{t("studio.day.existing.partOf", { title: existingOnDate.title || formatLongDate(date) })}</span>
               <input
                 type="time"
                 value={time}
@@ -1680,14 +1688,9 @@ export default function AddDayFlow({
                   </li>
                 )}
               </ul>
-              {waitingPhotos.length > 0 && (
-                <details data-waiting-photos className="mt-2">
-                  <summary className="cursor-pointer text-sm font-semibold text-ink-body underline underline-offset-2">
-                    {t("studio.day.photos.moreWaiting", { count: String(waitingPhotos.length) })}
-                  </summary>
-                  <ul className="mt-2 grid grid-cols-4 gap-1.5">{waitingPhotos.map(tile)}</ul>
-                </details>
-              )}
+              {/* B2683, bug 2 — the "Add more from what's waiting" disclosure is
+                  gone: the "＋ Add photos" tile above opens the sheet, whose
+                  own Waiting tab already covers exactly this. */}
             </>
           )}
           {/* B2677, bug 5 — the redundant "Choose files" button is gone;
@@ -1727,6 +1730,29 @@ export default function AddDayFlow({
               </div>
             </div>
           )}
+          {/* B2683, bug 5 — the computed date (read off the photographs)
+              falls outside every trip, which used to move the day there
+              silently (the Simulator's own 2012 sample photos, for one).
+              `mismatched` is empty here exactly because every chosen photo
+              now agrees with `date` — the outlier case the banner above
+              answers — so this is the other one: all of them agree, and
+              none of them belong to a trip. */}
+          {fromPhotos && mismatched.length === 0 && !containing && !dateOutsideTripKept && (
+            <div className="mt-3 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3 text-sm text-ink-body">
+              <p>{t("studio.day.dateOutsideTrip.question", { date: formatLongDate(date), trip: trip?.title ?? "" })}</p>
+              <div className="mt-2 flex flex-col items-start">
+                <button type="button" onClick={() => setDateOutsideTripKept(true)} className={LINK}>
+                  {t("studio.day.dateOutsideTrip.useAnyway")}
+                </button>
+                <button type="button" onClick={() => setSheet("date")} className={LINK}>
+                  {t("studio.day.dateOutsideTrip.chooseTrip")}
+                </button>
+                <button type="button" onClick={() => setSheet("date")} className={LINK}>
+                  {t("studio.day.dateOutsideTrip.pickDate")}
+                </button>
+              </div>
+            </div>
+          )}
           {part === "photos" && (
             <StepPrimary onClick={() => go("words")} label={t("studio.day.firstRun.toWords")} />
           )}
@@ -1736,13 +1762,21 @@ export default function AddDayFlow({
       {show("save") && (
         <>
           <div className="mt-3 flex flex-wrap gap-2">
-            {placeLabel || hasCoords ? (
+            {placeLabel ? (
               <button type="button" data-chip="place" aria-expanded={sheet === "place"} onClick={() => setSheet(sheet === "place" ? null : "place")} className={CHIP}>
                 <MapPin aria-hidden className="h-4 w-4 flex-none text-ink-secondary" />
-                <span>{placeLabel || t("studio.day.chip.position", { lat: place.lat!.toFixed(3), lng: place.lng!.toFixed(3) })}</span>
+                <span>{placeLabel}</span>
                 <small className="text-xs text-ink-secondary">
                   {placeEdited ? t("studio.day.source.chosen") : t("studio.day.source.photos")}
                 </small>
+              </button>
+            ) : hasCoords ? (
+              // B2683, bug 4 — coordinates with no resolved name never show
+              // as raw numbers; the chip still opens the place panel, which
+              // can name it.
+              <button type="button" data-chip="place" aria-expanded={sheet === "place"} onClick={() => setSheet(sheet === "place" ? null : "place")} className={CHIP}>
+                <MapPin aria-hidden className="h-4 w-4 flex-none text-ink-secondary" />
+                <span>{t("studio.day.chip.unnamed")}</span>
               </button>
             ) : (
               <button type="button" data-chip="place" aria-expanded={sheet === "place"} onClick={() => setSheet(sheet === "place" ? null : "place")} className={CHIP}>
@@ -1757,7 +1791,10 @@ export default function AddDayFlow({
                     the generic "Weather" label. */}
                 <span>{weatherReading ? weatherChipLabel(weatherReading) : t("studio.day.chip.weather")}</span>
                 <small className="text-xs text-ink-secondary">
-                  {weatherOn ? t("studio.day.source.weather") : t("studio.day.source.weatherOff")}
+                  {/* B2683, bug 3 — once a reading exists, it was already
+                      looked up; the future-tense "looked up when you save"
+                      is only ever true before there is one. */}
+                  {weatherOn ? t(weatherReading ? "studio.day.source.weatherDone" : "studio.day.source.weather") : t("studio.day.source.weatherOff")}
                 </small>
               </button>
             )}
@@ -2255,7 +2292,14 @@ export default function AddDayFlow({
 
             {photoSheetTab === "device" && (
               <div className="mt-3">
-                <PhotoPicker id="studio-day-photo-sheet-device" chosen={[]} accept="image/*,video/*" onPick={pickFromDevice} showChosen={false} />
+                <PhotoPicker
+                  id="studio-day-photo-sheet-device"
+                  chosen={[]}
+                  accept="image/*,video/*"
+                  onPick={pickFromDevice}
+                  showChosen={false}
+                  chooseLabel={t("studio.day.photos.chooseLabel")}
+                />
                 {uploading > 0 && (
                   <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
                 )}

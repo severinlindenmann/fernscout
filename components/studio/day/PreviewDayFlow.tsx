@@ -545,6 +545,18 @@ export default function PreviewDayFlow({
     </BusyButton>
   ), { replace: true, desktop: true });
 
+  // B2683, bug 1 — `StudioPage`'s own h1 is server-rendered once as
+  // "Preview" and never re-renders on this purely client-side state change
+  // (no navigation happens on publish, by design — see the publish
+  // handler's own "no-refresh" notes). `StudioPage` itself takes no hooks on
+  // purpose, so it cannot read `published`; this is the one place that
+  // knows both.
+  useEffect(() => {
+    if (!published) return;
+    const h1 = document.getElementById("studio-page-title");
+    if (h1) h1.textContent = t("studio.published.pageTitle");
+  }, [published, t]);
+
   if (published) {
     const nobodyTold = published.told.app === 0 && published.told.mail === 0;
     const readerLine =
