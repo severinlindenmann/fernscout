@@ -1,286 +1,1301 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "connectionTrouble.cantReach.body" : {
-      "comment" : "B2731 — %@ is the host the app could not reach.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Das Telefon ist online, aber %@ antwortet nicht. Vielleicht startet er gerade neu oder ist umgezogen."
+  "sourceLanguage": "en",
+  "strings": {
+    "connectionTrouble.cantReach.body": {
+      "comment": "B2731 — %@ is the host the app could not reach.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Telefon ist online, aber %@ antwortet nicht. Vielleicht startet er gerade neu oder ist umgezogen."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The phone is online, but %@ isn’t answering. It may be restarting or moved."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The phone is online, but %@ isn’t answering. It may be restarting or moved."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le téléphone est en ligne, mais %@ ne répond pas. Il est peut-être en train de redémarrer ou a changé d’adresse."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le téléphone est en ligne, mais %@ ne répond pas. Il est peut-être en train de redémarrer ou a changé d’adresse."
           }
         },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A telefon online van, de a %@ nem válaszol. Lehet, hogy újraindul, vagy máshová költözött."
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A telefon online van, de a %@ nem válaszol. Lehet, hogy újraindul, vagy máshová költözött."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il telefono è online, ma %@ non risponde. Potrebbe essere in riavvio o essersi spostato."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il telefono è online, ma %@ non risponde. Potrebbe essere in riavvio o essersi spostato."
           }
         }
       }
     },
-    "connectionTrouble.cantReach.title" : {
-      "comment" : "B2731 — never \"server is down\": a restart or a move look the same from here.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieser Server antwortet nicht"
+    "connectionTrouble.cantReach.title": {
+      "comment": "B2731 — never \"server is down\": a restart or a move look the same from here.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Server antwortet nicht"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Can’t reach this server"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t reach this server"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de joindre ce serveur"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de joindre ce serveur"
           }
         },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ez a szerver nem érhető el"
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ez a szerver nem érhető el"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossibile raggiungere questo server"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile raggiungere questo server"
           }
         }
       }
     },
-    "connectionTrouble.noInternet.body" : {
-      "comment" : "B2731 — %@ is the host the app was trying to open.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieses Telefon hat keine Verbindung, darum kann %@ nicht öffnen. Nichts, was du gespeichert hast, ist verloren."
+    "connectionTrouble.noInternet.body": {
+      "comment": "B2731 — %@ is the host the app was trying to open.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Telefon hat keine Verbindung, darum kann %@ nicht öffnen. Nichts, was du gespeichert hast, ist verloren."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This phone has no connection, so %@ can’t open. Nothing you saved is lost."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This phone has no connection, so %@ can’t open. Nothing you saved is lost."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ce téléphone n’a pas de connexion, donc %@ ne peut pas s’ouvrir. Rien de ce que tu as enregistré n’est perdu."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce téléphone n’a pas de connexion, donc %@ ne peut pas s’ouvrir. Rien de ce que tu as enregistré n’est perdu."
           }
         },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ennek a telefonnak nincs kapcsolata, ezért a %@ nem tud megnyílni. Semmi, amit elmentettél, nem veszett el."
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ennek a telefonnak nincs kapcsolata, ezért a %@ nem tud megnyílni. Semmi, amit elmentettél, nem veszett el."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questo telefono non ha connessione, quindi %@ non può aprirsi. Niente di ciò che hai salvato è andato perso."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questo telefono non ha connessione, quindi %@ non può aprirsi. Niente di ciò che hai salvato è andato perso."
           }
         }
       }
     },
-    "connectionTrouble.noInternet.title" : {
-      "comment" : "B2731",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Internetverbindung"
+    "connectionTrouble.noInternet.title": {
+      "comment": "B2731",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Internetverbindung"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No internet connection"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No internet connection"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pas de connexion internet"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas de connexion internet"
           }
         },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nincs internetkapcsolat"
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nincs internetkapcsolat"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessuna connessione a internet"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessuna connessione a internet"
           }
         }
       }
     },
-    "connectionTrouble.openDefault" : {
-      "comment" : "B2731 — %@ is the build's own default server's host, never hard-coded, so a self-hoster's own shell reads correctly.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stattdessen %@ öffnen"
+    "connectionTrouble.openDefault": {
+      "comment": "B2731 — %@ is the build's own default server's host, never hard-coded, so a self-hoster's own shell reads correctly.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stattdessen %@ öffnen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open %@ instead"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open %@ instead"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ouvrir %@ à la place"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir %@ à la place"
           }
         },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inkább a %@ megnyitása"
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inkább a %@ megnyitása"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Apri invece %@"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri invece %@"
           }
         }
       }
     },
-    "connectionTrouble.openDefaultCaption" : {
-      "comment" : "B2731 — makes clear this switches to a different journal, not a copy of the current one.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ ist ein anderes Fernscout, keine Kopie dieses Journals."
+    "connectionTrouble.openDefaultCaption": {
+      "comment": "B2731 — makes clear this switches to a different journal, not a copy of the current one.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist ein anderes Fernscout, keine Kopie dieses Journals."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ is a different Fernscout, not a copy of this journal."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is a different Fernscout, not a copy of this journal."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ est un autre Fernscout, pas une copie de ce journal."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est un autre Fernscout, pas une copie de ce journal."
           }
         },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A %@ egy másik Fernscout, nem ennek a naplónak a másolata."
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A %@ egy másik Fernscout, nem ennek a naplónak a másolata."
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ è un altro Fernscout, non una copia di questo diario."
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ è un altro Fernscout, non una copia di questo diario."
           }
         }
       }
     },
-    "connectionTrouble.recordingOn" : {
-      "comment" : "B2731 — shown only when Recorder.shared has an armed trip; reassures that an interrupted connection does not stop the recording.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Routenaufzeichnung: an, bleibt auf dem Telefon"
+    "connectionTrouble.recordingOn": {
+      "comment": "B2731 — shown only when Recorder.shared has an armed trip; reassures that an interrupted connection does not stop the recording.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Routenaufzeichnung: an, bleibt auf dem Telefon"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Route recording: on, kept on the phone"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Route recording: on, kept on the phone"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enregistrement du trajet : activé, reste sur le téléphone"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrement du trajet : activé, reste sur le téléphone"
           }
         },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Útvonalrögzítés: be, a telefonon marad"
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Útvonalrögzítés: be, a telefonon marad"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registrazione del percorso: attiva, resta sul telefono"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrazione del percorso: attiva, resta sul telefono"
           }
         }
       }
     },
-    "connectionTrouble.tryAgain" : {
-      "comment" : "B2731",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erneut versuchen"
+    "connectionTrouble.tryAgain": {
+      "comment": "B2731",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut versuchen"
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Try again"
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réessayer"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer"
           }
         },
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Próbáld újra"
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próbáld újra"
           }
         },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Riprova"
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprova"
           }
         }
       }
+    },
+    "saveToInbox.choosePhotos": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos auswählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose photos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir des photos"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fényképek kiválasztása"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli foto"
+          }
+        }
+      },
+      "comment": "B2732"
+    },
+    "saveToInbox.footer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Originale bleiben auf diesem iPhone, bis der Server jedes einzelne bestätigt hat. Nichts kommt auf einen Tag oder wird veröffentlicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Originals stay on this phone until the server confirms each one. Nothing goes on a day or gets published."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les originaux restent sur ce téléphone jusqu'à ce que le serveur confirme chacun d'eux. Rien n'est placé sur un jour ni publié."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Az eredetik a telefonon maradnak, amíg a szerver mindegyiket vissza nem igazolja. Semmi sem kerül egy napra, és semmi sem jelenik meg nyilvánosan."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gli originali restano su questo telefono finché il server non conferma ciascuno. Niente viene messo su un giorno né pubblicato."
+          }
+        }
+      },
+      "comment": "B2732"
+    },
+    "saveToInbox.onThisPhone": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem iPhone"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On this phone"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur ce téléphone"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ezen a telefonon"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Su questo telefono"
+          }
+        }
+      },
+      "comment": "B2732 — heading of the waiting/sent/reconnect/refused list."
+    },
+    "saveToInbox.openStudioInbox": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postfach im Studio öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the inbox in the studio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir la boîte de réception dans le studio"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Postafiók megnyitása a stúdióban"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri la posta in arrivo nello studio"
+          }
+        }
+      },
+      "comment": "B2732 — opens /@<user>/studio/inbox in the WebView."
+    },
+    "saveToInbox.photosWaiting": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fotos warten: %d"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos waiting: %d"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos en attente : %d"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Váró fényképek: %d"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto in attesa: %d"
+          }
+        }
+      },
+      "comment": "B2732/B2731 — the can't-reach screen's own row; %d is the waiting count."
+    },
+    "saveToInbox.remove.confirm": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eltávolítás"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovi"
+          }
+        }
+      },
+      "comment": "B2732"
+    },
+    "saveToInbox.remove.message": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Foto wurde nie gesendet — es bleibt auf deinem iPhone."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This photo was never sent — it stays on your phone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette photo n'a jamais été envoyée — elle reste sur votre téléphone."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ez a fénykép sosem lett elküldve — a telefonodon marad."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa foto non è mai stata inviata — resta sul tuo telefono."
+          }
+        }
+      },
+      "comment": "B2732"
+    },
+    "saveToInbox.remove.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus dieser Liste entfernen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from this list?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer de cette liste ?"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eltávolítod a listáról?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rimuovere da questo elenco?"
+          }
+        }
+      },
+      "comment": "B2732 — swipe-to-remove confirmation."
+    },
+    "saveToInbox.save": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d Fotos ins Postfach sichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save %d photos to inbox"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer %d photos dans la boîte de réception"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d fénykép mentése a postafiókba"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva %d foto nella posta in arrivo"
+          }
+        }
+      },
+      "comment": "B2732 — %d is the photo count, plural; the primary yellow button."
+    },
+    "saveToInbox.save.one": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 Foto ins Postfach sichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save 1 photo to inbox"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer 1 photo dans la boîte de réception"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 fénykép mentése a postafiókba"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva 1 foto nella posta in arrivo"
+          }
+        }
+      },
+      "comment": "B2732 — the singular of saveToInbox.save."
+    },
+    "saveToInbox.state.reconnect": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Neuverbinden die App öffnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the app to reconnect"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir l'app pour se reconnecter"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nyisd meg az appot az újracsatlakozáshoz"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri l'app per riconnetterti"
+          }
+        }
+      },
+      "comment": "B2732 — a 401; the item is kept and retried once reconnected."
+    },
+    "saveToInbox.state.sent": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im Postfach"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In your inbox"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dans la boîte de réception"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A postafiókban"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nella posta in arrivo"
+          }
+        }
+      },
+      "comment": "B2732 — shown for a session after the server confirmed it."
+    },
+    "saveToInbox.state.waiting": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wartet"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Várakozik"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In attesa"
+          }
+        }
+      },
+      "comment": "B2732"
+    },
+    "saveToInbox.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ins Postfach sichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save to inbox"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer dans la boîte de réception"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mentés a postafiókba"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva nella posta in arrivo"
+          }
+        }
+      },
+      "comment": "B2732 — the sheet's own title, the quick action and the can't-reach button."
+    },
+    "saveToInboxIntent.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ins Fernscout-Postfach sichern"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save to Fernscout inbox"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer dans la boîte de réception Fernscout"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mentés a Fernscout postafiókba"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salva nella posta in arrivo di Fernscout"
+          }
+        }
+      },
+      "comment": "B2732 — the App Shortcut's own phrase (Siri/Shortcuts/Spotlight)."
+    },
+    "shareInbox.allTrips": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Reisen (%d)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All trips (%d)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tous les voyages (%d)"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Összes út (%d)"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutti i viaggi (%d)"
+          }
+        }
+      },
+      "comment": "B2175/B2735 — %d is the trip count. Also used by B2732's sheet."
+    },
+    "shareInbox.decideLater": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Später entscheiden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decide later"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Décider plus tard"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Döntsd el később"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decidi più tardi"
+          }
+        }
+      },
+      "comment": "B2175/B2735 — also used by B2732's sheet."
+    },
+    "shareInbox.decideLater.detail": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Landet bei „Was noch wartet“"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lands in What's waiting"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atterrit dans « Ce qui attend »"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Az „Ami még vár” listára kerül"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finisce in “Cosa è in attesa”"
+          }
+        }
+      },
+      "comment": "B2175/B2735"
+    },
+    "shareInbox.handingOver": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird übergeben …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handing over…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transmission…"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Átadás…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consegna…"
+          }
+        }
+      },
+      "comment": "B2175/B2735"
+    },
+    "shareInbox.noTripsYet": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch keine Reisen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No trips yet"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas encore de voyage"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Még nincs út"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nessun viaggio ancora"
+          }
+        }
+      },
+      "comment": "B2175/B2735"
+    },
+    "shareInbox.nothingToTake": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hier ist nichts, was Fernscout übernehmen kann."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing here that Fernscout can take."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il n'y a rien ici que Fernscout puisse récupérer."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Itt nincs semmi, amit a Fernscout átvehetne."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qui non c'è nulla che Fernscout possa prendere."
+          }
+        }
+      },
+      "comment": "B2175/B2735"
+    },
+    "shareInbox.onItsWayToInbox": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterwegs zu „Was noch wartet“"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On its way to What's waiting"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En route vers « Ce qui attend »"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Úton van az „Ami még vár” listára"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In arrivo a “Cosa è in attesa”"
+          }
+        }
+      },
+      "comment": "B2175/B2735"
+    },
+    "shareInbox.onItsWayToTrip": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterwegs zu „%@“"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On its way to “%@”"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En route vers « %@ »"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Úton van ide: „%@”"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In arrivo a “%@”"
+          }
+        }
+      },
+      "comment": "B2175/B2735 — %@ is the trip title."
+    },
+    "shareInbox.openOnce": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne Fernscout einmal und teile dann erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Fernscout once, then share again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez Fernscout une fois, puis partagez à nouveau."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nyisd meg egyszer a Fernscoutot, majd oszd meg újra."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Fernscout una volta, poi condividi di nuovo."
+          }
+        }
+      },
+      "comment": "B2175/B2735"
+    },
+    "shareInbox.reconnect": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öffne Fernscout einmal, um dieses iPhone neu zu verbinden, und teile dann erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Fernscout once to reconnect this iPhone, then share again."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrez Fernscout une fois pour reconnecter cet iPhone, puis partagez à nouveau."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nyisd meg egyszer a Fernscoutot, hogy újra összekapcsold ezt az iPhone-t, majd oszd meg újra."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Fernscout una volta per riconnettere questo iPhone, poi condividi di nuovo."
+          }
+        }
+      },
+      "comment": "B2175/B2735"
+    },
+    "shareInbox.underWay": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterwegs"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Under way"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En cours"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folyamatban"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In corso"
+          }
+        }
+      },
+      "comment": "B2175/B2735 — also used by B2732's sheet."
+    },
+    "shareInbox.uploading": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d Fotos · lädt im Hintergrund hoch, Originale bleiben erhalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d photographs · uploads in the background, originals intact."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d photos · envoi en arrière-plan, originaux intacts."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d fénykép · háttérben töltődik fel, az eredetik megmaradnak."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d foto · caricamento in background, originali intatti."
+          }
+        }
+      },
+      "comment": "B2175/B2735 — %d is the photo count, plural."
+    },
+    "shareInbox.uploading.one": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 Foto · lädt im Hintergrund hoch, Original bleibt erhalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 photograph · uploads in the background, original intact."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 photo · envoi en arrière-plan, original intact."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 fénykép · háttérben töltődik fel, az eredeti megmarad."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 foto · caricamento in background, originale intatto."
+          }
+        }
+      },
+      "comment": "B2175/B2735 — the singular of shareInbox.uploading."
+    },
+    "shareInbox.whichTrip": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu welcher Reise gehört das?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which trip is this?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À quel voyage cela appartient-il ?"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melyik úthoz tartozik ez?"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A quale viaggio appartiene?"
+          }
+        }
+      },
+      "comment": "B2175/B2735 — also used by the app's own Save-to-inbox sheet, B2732."
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

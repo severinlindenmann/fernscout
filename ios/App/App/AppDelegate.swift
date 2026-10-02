@@ -35,6 +35,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // uploads; this covers an ordinary launch (icon tap) while some are
         // still in flight.
         MediaUploadSession.shared.rejoin()
+        // B2732 — same reattach for the "Save to inbox" queue, plus a retry
+        // of anything still `waiting`/`reconnect` and the quick action's own
+        // presence, which only reflects "is a credential stored" once this
+        // runs.
+        InboxQueue.shared.rejoin()
+        InboxQueue.shared.sendAll()
+        SaveToInboxDoors.syncQuickAction()
         #if DEBUG
         handleB2730TestArgs()
         #endif
@@ -85,6 +92,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         if args.contains("-b2730Dump") {
             Recorder.shared.debugDumpState()
         }
+        // B2732 — a DEBUG-only hook so "Save to inbox" can be proven in the
+        // Simulator with no studio "Connect this iPhone" round trip: stores
+        // a `ShareCredential` with a token minted by hand (an ordinary
+        // `fs_agent_…` token from `POST /api/auth/<user>/codes/redeem`) and
+        // syncs the quick action exactly as `ShareInboxPlugin.connect` would.
+        if let base = value(after: "-b2732SetCredential"), let user = value(after: "-b2732User"), let token = value(after: "-b2732Token") {
+            let expires = value(after: "-b2732Expires") ?? "2099-01-01T00:00:00Z"
+            _ = ShareCredentialStore.save(ShareCredential(base: base, user: user, token: token, expiresAt: expires))
+            SaveToInboxDoors.syncQuickAction()
+        }
+        if args.contains("-b2732ClearCredential") {
+            ShareCredentialStore.clear()
+            SaveToInboxDoors.syncQuickAction()
+        }
     }
     #endif
 
@@ -95,12 +116,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     /// this hands it, which is the system's own signal that it is safe to
     /// suspend the app again.
     func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void) {
-        guard identifier == MediaUploadSession.identifier else {
+        switch identifier {
+        case MediaUploadSession.identifier:
+            MediaUploadSession.shared.backgroundCompletion = completionHandler
+            MediaUploadSession.shared.rejoin()
+        case InboxQueue.identifier:
+            // B2732 — same dance as `MediaUploadSession`, its own fixed
+            // identifier so a relaunch purely to report finished tasks
+            // reattaches this session's delegate to them.
+            InboxQueue.shared.backgroundCompletion = completionHandler
+            InboxQueue.shared.rejoin()
+        default:
             completionHandler()
-            return
         }
-        MediaUploadSession.shared.backgroundCompletion = completionHandler
-        MediaUploadSession.shared.rejoin()
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
@@ -155,6 +183,10 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     /// B2697 — a sign-in link that launched the app cold. The bridge does not
     /// exist yet in `willConnectTo`, so it is loaded once the scene is active.
     private var pendingLink: URL?
+    /// B2732 — a quick-action tap that launched the app cold; UIKit hands it
+    /// here rather than to `windowScene(_:performActionFor:)` in that case,
+    /// so the sheet it asks for is shown once the scene is active too.
+    private var pendingShortcut: UIApplicationShortcutItem?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         // A launch by URL or activity arrives here rather than through the
@@ -166,6 +198,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             pendingLink = activity.webpageURL
             _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: activity, restorationHandler: { _ in })
         }
+        pendingShortcut = connectionOptions.shortcutItem
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
@@ -173,6 +206,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             pendingLink = nil
             openInBridge(url)
         }
+        if let shortcut = pendingShortcut {
+            pendingShortcut = nil
+            _ = SaveToInboxDoors.handle(shortcut)
+        }
+    }
+
+    /// A quick-action tap while the app was already running or backgrounded
+    /// — UIKit calls this instead of handing it through `willConnectTo`.
+    func windowScene(_ windowScene: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
+        completionHandler(SaveToInboxDoors.handle(shortcutItem))
     }
 
     /// B2697 — a universal link (`applinks:` in App.entitlements, claimed by
@@ -192,6 +235,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // B2196 — the recorder's other upload trigger, beside "30 minutes
         // since the last one".
         Recorder.shared.foreground()
+        // B2732 — the inbox queue's own retry point beside launch and the
+        // network path becoming satisfied again.
+        InboxQueue.shared.sendAll()
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {

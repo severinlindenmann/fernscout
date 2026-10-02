@@ -24,6 +24,9 @@ public class ShareInboxPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         let ok = ShareCredentialStore.save(ShareCredential(base: base, user: user, token: token, expiresAt: expiresAt))
+        // B2732 — the quick action and App Shortcut only exist with a
+        // credential stored; sync on every connect, not just at launch.
+        if ok { SaveToInboxDoors.syncQuickAction() }
         ok ? call.resolve(["connected": true, "expiresAt": expiresAt]) : call.reject("could not store the credential")
     }
 
@@ -48,6 +51,7 @@ public class ShareInboxPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func disconnect(_ call: CAPPluginCall) {
         ShareCredentialStore.clear()
+        SaveToInboxDoors.syncQuickAction()
         call.resolve(["connected": false])
     }
 }
