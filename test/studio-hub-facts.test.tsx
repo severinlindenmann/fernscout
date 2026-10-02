@@ -52,7 +52,7 @@ const NO_FACTS: HubFacts = { drafts: 0, inboxCount: 0, inboxBytes: 0, planStarts
 
 const FULL: Extract<StudioHubModel, { kind: "full" }> = {
   kind: "full",
-  account: { purchasesOpen: 0, storage: null },
+  account: { storage: null },
   print: { unfinished: [], recentOrders: [] },
   addDayTrip: { id: "alps", title: "Alps", current: true },
   toldToday: false,
@@ -110,7 +110,7 @@ describe("the Half done strip", () => {
     expect(strip(await render(FULL))).toBeNull();
     act(() => root?.unmount());
     container?.remove();
-    expect(strip(await render({ kind: "empty", account: { purchasesOpen: 0, storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] }))).toBeNull();
+    expect(strip(await render({ kind: "empty", account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] }))).toBeNull();
   });
 
   test("gathers the add-day draft, each import and the postcard suggestion, under the hero", async () => {
@@ -169,11 +169,10 @@ describe("B2134 — hub facts and layout", () => {
     expect(chipOn(el, "/@alex/studio/inbox")).toBe("2 files · 494 KB");
   });
 
-  test("the account row carries an amber open purchase and storage", async () => {
-    const el = await render({ ...FULL, account: { purchasesOpen: 1, storage: { usedBytes: 4 * GB, limitBytes: 10 * GB } } });
+  test("the account row carries storage", async () => {
+    const el = await render({ ...FULL, account: { storage: { usedBytes: 4 * GB, limitBytes: 10 * GB } } });
     const chips = Array.from(el.querySelectorAll('a[href="/@alex/studio/account"] [data-fact]'));
-    expect(chips.map((c) => c.textContent)).toEqual(["1 open", "4.0 of 10 GB"]);
-    expect(chips.map((c) => c.hasAttribute("data-amber"))).toEqual([true, false]);
+    expect(chips.map((c) => c.textContent)).toEqual(["4.0 of 10 GB"]);
   });
 
   test("no balance, nothing open and no ceiling: no chips on that row", async () => {
@@ -182,7 +181,7 @@ describe("B2134 — hub facts and layout", () => {
   });
 
   test("storage under a gigabyte keeps its own unit", async () => {
-    const el = await render({ ...FULL, account: { purchasesOpen: 0, storage: { usedBytes: 3 * 1024 ** 2, limitBytes: 10 * GB } } });
+    const el = await render({ ...FULL, account: { storage: { usedBytes: 3 * 1024 ** 2, limitBytes: 10 * GB } } });
     expect(el.querySelector('a[href="/@alex/studio/account"] [data-fact]')?.textContent).toBe("3 MB of 10 GB");
   });
 

@@ -6,6 +6,10 @@
 	<array>
 		<string>group.ch.fernscout.app</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:fernscout.ch</string>
+	</array>
 	<key>aps-environment</key>
 	<string>development</string>
 </dict>
