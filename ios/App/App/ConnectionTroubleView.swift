@@ -118,7 +118,13 @@ struct ConnectionTroubleView: View {
     private var cream: Color { Color(red: 0xff / 255, green: 0xfa / 255, blue: 0xf0 / 255) }
     private var inkGround: Color { Color(red: 0x14 / 255, green: 0x1b / 255, blue: 0x24 / 255) }
     private var ink: Color { Color(red: 0x1e / 255, green: 0x29 / 255, blue: 0x3b / 255) }
-    private var muted: Color { Color(red: 0x5a / 255, green: 0x6a / 255, blue: 0x80 / 255) }
+    /// #5a6a80 on cream; #9aa8bb on the ink ground — #5a6a80 there is only
+    /// ~3:1, under the 4.5:1 body text needs.
+    private var muted: Color {
+        colorScheme == .dark
+            ? Color(red: 0x9a / 255, green: 0xa8 / 255, blue: 0xbb / 255)
+            : Color(red: 0x5a / 255, green: 0x6a / 255, blue: 0x80 / 255)
+    }
     private var yellow: Color { Color(red: 0xff / 255, green: 0xd2 / 255, blue: 0x3f / 255) }
 
     private var background: Color { colorScheme == .dark ? inkGround : cream }
