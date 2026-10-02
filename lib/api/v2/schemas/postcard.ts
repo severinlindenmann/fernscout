@@ -61,10 +61,14 @@ export const postcardOrderDoc = z.object({
   /**
    * `each`/`total`, in rappen, priced from the owner's plan
    * (`paid/postcard/lib/postcard/pricing.ts`) rather than a fixed constant.
+   * `voucherRappen` (B2726) is what a voucher took off on top of the plan's
+   * own price — `0` with none spent — so `total` is never a number nobody
+   * can account for from `each` and the recipient count alone.
    */
   price: z.strictObject({
     each: z.number(),
     total: z.number(),
+    voucherRappen: z.number(),
   }),
   expiresAt: z.string(),
   createdAt: z.string(),
