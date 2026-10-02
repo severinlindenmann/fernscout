@@ -6,6 +6,7 @@ import { journalReader } from "@/lib/contacts/session";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
 import { resolveViewer } from "@/lib/viewer";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,9 @@ export const dynamic = "force-dynamic";
  * `AGENTS.md`.
  */
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const username = typeof body.user === "string" ? body.user : "";
   const user = getUser(username);
 

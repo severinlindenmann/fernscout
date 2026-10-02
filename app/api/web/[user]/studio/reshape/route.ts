@@ -10,6 +10,7 @@ import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { dayForEdit } from "@/lib/studio/editDay";
 import { moveDayTransactional, splitDayTransactional, mergeDaysTransactional, referenceSweep } from "@/lib/studio/reshapeDay";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   const refused = await gate(request, user);
   if (refused) return refused;
 
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null) as Record<string, unknown> | null;
   if (!body || typeof body.op !== "string") return Response.json({ error: "invalid_request" }, { status: 400 });
 
   if (body.op === "move") {

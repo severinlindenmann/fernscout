@@ -38,6 +38,7 @@ import { readContactsFile } from "@/lib/contacts/readImport";
 import { storageRefusal, withStorageQuota } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 import { REQUEST_MAX_BYTES } from "@/lib/validate/media";
+import { readBoundedJson } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,16 @@ type Body = {
  * refusing `inbox` here, before the file is ever opened, is what keeps a
  * positions-only token from being handed an arbitrary owner file — and,
  * previously, that file's own parser error text — back in the response. */
+const tooLarge = () =>
+  fail(
+    "body_too_large",
+    `${ERROR_CODES.body_too_large} A years-long export is bigger than that — put it in the ` +
+      "inbox in pieces, or split it by month and import each one; the store merges and " +
+      "thins across calls.",
+    undefined,
+    413,
+  );
+
 async function bytesFrom(
   request: Request,
   user: string,
@@ -116,7 +127,10 @@ async function bytesFrom(
     };
   }
 
-  const body = (await request.json().catch(() => null)) as Body | null;
+  // A chunked body declares no Content-Length, so count it as it arrives (B2261).
+  const read = await readBoundedJson(request, REQUEST_MAX_BYTES);
+  if (read.tooLarge) return { error: tooLarge() };
+  const body = (read.value ?? null) as Body | null;
   if (!body || typeof body !== "object") {
     return { error: fail("invalid_body", ERROR_CODES.invalid_body, undefined, 400) };
   }
@@ -171,14 +185,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
   // Before the body is touched, like the media route.
   const declared = Number(request.headers.get("content-length") ?? "");
   if (Number.isFinite(declared) && declared > REQUEST_MAX_BYTES) {
-    return fail(
-      "body_too_large",
-      `${ERROR_CODES.body_too_large} A years-long export is bigger than that — put it in the ` +
-        "inbox in pieces, or split it by month and import each one; the store merges and " +
-        "thins across calls.",
-      undefined,
-      413,
-    );
+    return tooLarge();
   }
 
   const source = await bytesFrom(request, user, isOwnerToken);

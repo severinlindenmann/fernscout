@@ -2,6 +2,7 @@ import { isInstanceAdmin } from "@/lib/adminGate";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { SmsApiError, SmsSwitchedOffError, sendSms } from "@/lib/sms";
 import { toE164 } from "@/lib/phone";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const to = toE164(typeof body.to === "string" ? body.to : "");
   const text = typeof body.body === "string" ? body.body.trim() : "";
   if (!to) {

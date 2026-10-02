@@ -11,6 +11,7 @@ import { smsUnreachable } from "@/lib/sms";
 import { toE164 } from "@/lib/phone";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { fail, ok } from "@/lib/api/v2/route";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,9 @@ export async function POST(request: Request) {
     return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   /**
    * `channel: "sms"` is the fallback beside inbound mode — B1316: the person
    * with no WhatsApp asks for a code by SMS instead. Only meaningful there;

@@ -13,6 +13,7 @@
 import { applyTripPatch } from "@/app/api/v2/[user]/trips/[trip]/route";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,9 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
   // here to keep this door narrow, once inside `applyTripPatch`, which is
   // the one place that actually parses and validates it.
   const clone = request.clone();
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null) as Record<string, unknown> | null;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
