@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { decidePaidLocaleKeysAction } from "../scripts/paid-locale-keys-lib.mjs";
+import { checkPaidAgainstOriginMain, decidePaidLocaleKeysAction } from "../scripts/paid-locale-keys-lib.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -105,6 +105,63 @@ describe("decidePaidLocaleKeysAction", () => {
       force: true,
     });
     expect(decision.action).toBe("write");
+  });
+});
+
+/**
+ * B2712 — i18n-keys.mjs also refuses when paid/'s HEAD never reached paid's
+ * own origin/main, separately from decidePaidLocaleKeysAction's check
+ * against the last generation.
+ */
+describe("checkPaidAgainstOriginMain", () => {
+  const isAncestorOf =
+    (ancestors: Record<string, string[]>) =>
+    (ancestor: string, descendant: string) =>
+      (ancestors[descendant] ?? []).includes(ancestor) || ancestor === descendant;
+
+  test("no origin/main known locally — nothing to compare against, proceeds", () => {
+    const result = checkPaidAgainstOriginMain({ headSha: "abc123", originMainSha: null });
+    expect(result.ok).toBe(true);
+    expect(result.warning).toBeUndefined();
+  });
+
+  test("HEAD is origin/main — proceeds with no warning", () => {
+    const result = checkPaidAgainstOriginMain({ headSha: "abc123", originMainSha: "abc123" });
+    expect(result.ok).toBe(true);
+    expect(result.warning).toBeUndefined();
+  });
+
+  test("HEAD is behind origin/main — proceeds, but warns", () => {
+    const result = checkPaidAgainstOriginMain({
+      headSha: "abc123",
+      originMainSha: "def456",
+      isAncestor: isAncestorOf({ def456: ["abc123"] }),
+    });
+    expect(result.ok).toBe(true);
+    expect(result.warning).toMatch(/behind origin\/main/);
+  });
+
+  test("HEAD holds a commit origin/main does not have — refuses", () => {
+    const result = checkPaidAgainstOriginMain({
+      headSha: "abc123",
+      originMainSha: "def456",
+      isAncestor: isAncestorOf({}),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/not on paid origin\/main/);
+    expect(result.message).toContain("abc123");
+    expect(result.message).toContain("def456");
+  });
+
+  test("--force overrides an unmerged HEAD, but still warns", () => {
+    const result = checkPaidAgainstOriginMain({
+      headSha: "abc123",
+      originMainSha: "def456",
+      isAncestor: isAncestorOf({}),
+      force: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(result.warning).toMatch(/--force/);
   });
 });
 

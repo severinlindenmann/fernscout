@@ -11,7 +11,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import ts from "typescript";
 import { computeLocaleScopes, formatLocaleScopes } from "./locale-scopes-lib.mjs";
-import { decidePaidLocaleKeysAction } from "./paid-locale-keys-lib.mjs";
+import { checkPaidAgainstOriginMain, decidePaidLocaleKeysAction } from "./paid-locale-keys-lib.mjs";
 
 const ROOT = path.join(import.meta.dirname, "..");
 
@@ -131,24 +131,48 @@ const previous = fs.existsSync(paidLocaleKeysFile) ? JSON.parse(fs.readFileSync(
 const previousGeneratedFrom = previous?.generatedFrom ?? null;
 
 const git = (args) => execFileSync("git", ["-C", paidDir, ...args], { encoding: "utf8" }).trim();
+const isAncestor = (ancestor, descendant) => {
+  try {
+    execFileSync("git", ["-C", paidDir, "merge-base", "--is-ancestor", ancestor, descendant]);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
-const decision = paidExists
+let decision = paidExists
   ? decidePaidLocaleKeysAction({
       paidExists: true,
       paidDirty: git(["status", "--porcelain"]).length > 0,
       previousGeneratedFrom,
       currentCommit: git(["rev-parse", "HEAD"]),
-      isAncestor: (ancestor, descendant) => {
-        try {
-          execFileSync("git", ["-C", paidDir, "merge-base", "--is-ancestor", ancestor, descendant]);
-          return true;
-        } catch {
-          return false;
-        }
-      },
+      isAncestor,
       force,
     })
   : decidePaidLocaleKeysAction({ paidExists: false });
+
+// B2712 — also refuse a paid/ HEAD that never reached paid's own
+// origin/main, not only one behind its last generation (see
+// checkPaidAgainstOriginMain's own comment). Skipped when origin/main is not
+// known locally (no fetch happened) rather than failing the whole run on that.
+if (paidExists && decision.action === "write") {
+  const headSha = git(["rev-parse", "HEAD"]);
+  let originMainSha = null;
+  try {
+    originMainSha = execFileSync("git", ["-C", paidDir, "rev-parse", "origin/main"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    // no origin/main ref locally — nothing to compare against.
+  }
+  const originCheck = checkPaidAgainstOriginMain({ headSha, originMainSha, isAncestor, force });
+  if (!originCheck.ok) {
+    decision = { action: "refuse", message: originCheck.message };
+  } else if (originCheck.warning) {
+    console.log(originCheck.warning);
+  }
+}
 
 if (decision.action === "skip" || decision.action === "refuse") {
   console.log(decision.message);
