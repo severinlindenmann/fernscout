@@ -876,6 +876,7 @@ export default function AddDayFlow({
       confirmSecondEntry: opts.secondEntry,
     };
     try {
+      // no-refresh: a quiet autosave while the owner is typing — a refresh here would re-render the page under them; Preview and the hub read fresh on navigation.
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/day/new`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -1095,6 +1096,7 @@ export default function AddDayFlow({
         // `PATCH /day` a person editing an existing day already uses.
         const newPhotoIds = chosenPhotos.map((i) => i.id).filter((id) => !attachedIdsRef.current.has(id));
         if (newPhotoIds.length > 0) {
+          // no-refresh: a quiet autosave while the owner is typing — a refresh here would re-render the page under them; Preview and the hub read fresh on navigation.
           const attached = await fetch(`/api/helper/${encodeURIComponent(username)}/day/attach`, {
             method: "POST",
             headers: { "content-type": "application/json" },
@@ -1102,6 +1104,7 @@ export default function AddDayFlow({
           }).catch(() => null);
           if (attached?.ok) newPhotoIds.forEach((id) => attachedIdsRef.current.add(id));
         }
+        // no-refresh: a quiet autosave while the owner is typing — a refresh here would re-render the page under them; Preview and the hub read fresh on navigation.
         const patched = await fetch(`/api/helper/${encodeURIComponent(username)}/day`, {
           method: "PATCH",
           headers: { "content-type": "application/json" },
