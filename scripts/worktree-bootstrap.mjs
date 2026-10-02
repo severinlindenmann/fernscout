@@ -34,6 +34,21 @@ if (listed.status !== 0) fail(listed.stderr || "Could not inspect git worktrees.
 const main = parseWorktreeList(listed.stdout).find((entry) => entry.branch === "refs/heads/main");
 if (!main?.worktree) fail("Could not find the shared checkout on branch main.");
 
+// Refuses a staged content/example/ path (runtime artefacts from a persona
+// or browser test run have landed there via `git add -A` before, B2710) —
+// repo-wide via core.hooksPath, so it also protects peers' worktrees sharing
+// this checkout's .git, without blocking any commit that leaves
+// content/example/ alone. ALLOW_EXAMPLE_CONTENT=1 is the real override, for
+// an intentional edit to the example journal.
+function installPreCommitHook() {
+  const hooksPath = "scripts/git-hooks";
+  const current = run("git", ["config", "--get", "core.hooksPath"]);
+  if (current.status === 0 && current.stdout.trim() === hooksPath) return;
+  const set = run("git", ["config", "core.hooksPath", hooksPath]);
+  if (set.status !== 0) fail(set.stderr || set.stdout || "Could not install the pre-commit hook.");
+  console.log(`Installed the repo's pre-commit hook (core.hooksPath=${hooksPath}).`);
+}
+
 function bootstrapPaidWorktree() {
   const appBranch = run("git", ["rev-parse", "--abbrev-ref", "HEAD"]).stdout.trim();
   const plan = paidWorktreePlan(main.worktree, root, appBranch, {
@@ -47,9 +62,18 @@ function bootstrapPaidWorktree() {
   }
   const added = run("git", ["-C", plan.mainPaid, ...plan.args]);
   if (added.status !== 0) fail(added.stderr || added.stdout || "Could not add the paid worktree.");
-  console.log(`Added a paid worktree at ${plan.targetPaid} on branch ${plan.branch}.`);
+  console.log(
+    plan.detached
+      ? `Added a detached paid worktree at ${plan.targetPaid} (app checkout is on a detached HEAD, so there is no branch to mirror).`
+      : `Added a paid worktree at ${plan.targetPaid} on branch ${plan.branch}.`,
+  );
 }
 
+// Setup steps that must run every time, even on a rerun of an interrupted
+// bootstrap — kept as a flat list so another one (e.g. B2712's
+// `git config merge.localejson.driver`) is a one-line addition here, not a
+// change to the flow around it.
+installPreCommitHook();
 bootstrapPaidWorktree();
 
 const source = path.join(main.worktree, "node_modules");
@@ -66,20 +90,37 @@ function linkHarnessSkills() {
   console.log(`Linked this worktree's .claude/skills to the harness at ${harnessSkills}.`);
 }
 
+function runTypegen() {
+  const typegen = run("npx", ["next", "typegen"]);
+  if (typegen.status !== 0) fail(typegen.stderr || typegen.stdout || "`next typegen` failed.");
+}
+
 const expectedHash = lockfileHash(lockfile);
 let replaceModules = false;
 if (fs.existsSync(modules)) {
-  const stampedHash = fs.existsSync(lockStamp) ? fs.readFileSync(lockStamp, "utf8").trim() : null;
+  const stampExists = fs.existsSync(lockStamp);
+  const stampedHash = stampExists ? fs.readFileSync(lockStamp, "utf8").trim() : null;
   if (stampedHash === expectedHash) {
     console.log(`Worktree dependencies already match package-lock.json (Node ${process.versions.node}).`);
     linkHarnessSkills();
+    runTypegen();
     process.exit(0);
   }
-  if (!refresh) {
-    fail(
-      "This worktree already has node_modules, but its package-lock provenance is missing or stale.\n" +
-        "Run `npm run worktree:bootstrap -- --refresh` to replace only this worktree's dependency clone.",
-    );
+  if (stampExists) {
+    // The stamp exists and names a different lockfile hash: these
+    // node_modules were cloned for a package-lock.json that has since
+    // changed. That is a real staleness only --refresh should resolve.
+    if (!refresh) {
+      fail(
+        "This worktree already has node_modules, but its package-lock provenance is stale.\n" +
+          "Run `npm run worktree:bootstrap -- --refresh` to replace only this worktree's dependency clone.",
+      );
+    }
+  } else {
+    // No stamp at all — not staleness, but an interrupted previous
+    // bootstrap that copied node_modules and died before writing the stamp
+    // (B2710). Nothing to refuse: redo the clone without requiring --refresh.
+    console.log("No dependency stamp found (an earlier bootstrap was interrupted) — redoing the dependency clone.");
   }
   replaceModules = true;
 }
@@ -113,3 +154,4 @@ console.log(
 );
 
 linkHarnessSkills();
+runTypegen();
