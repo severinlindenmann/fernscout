@@ -12,6 +12,7 @@ import { PHOTO_VISIBILITIES } from "../../../photos";
 import { TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "../../../validate/entry";
 import { COST_CATEGORIES } from "../../../costFormat";
 import { RESERVED_SOURCES } from "../../../weather";
+import { MAINTAINED_LOCALES } from "../../../i18n";
 import {
   checkPatchConflicts,
   checkRequiredOrDeclined,
@@ -271,6 +272,19 @@ const dayBase = z
     travelScene: z.enum(TRAVEL_SCENE_VARIANTS).optional(),
     /** Content nobody lived, written to prove the pipeline works. */
     test: z.boolean().optional(),
+    /** The language this day's own `content`/`title` is written in — absent
+     * means the journal's own `defaultLocale` (B2700). Compose sets it from
+     * what it detected itself writing; nothing else guesses it. */
+    language: z.enum(MAINTAINED_LOCALES).optional(),
+    /** The owner's own words, kept beside `content` once a compose round has
+     * replaced it — B2698. Owner-only: written once (the server refuses a
+     * second write, `applyEditToDay`), read back only on this owner-gated
+     * door (both `/api/v2/.../days/{slug}` and the cookie-side
+     * `/api/web/.../days/{slug}` require the owner) and deliberately never
+     * copied onto `Entry` (`lib/entries.ts`), the object every reader-facing
+     * read, export and page is built from — so it cannot reach a reader
+     * whichever door is widened later. */
+    ownWords: z.string().optional(),
   });
 
 export const dayWrite = dayBase.extend({ costs: costLines.optional() }).superRefine((doc, ctx) =>

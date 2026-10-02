@@ -264,6 +264,46 @@ describe("the derived tail — B2536", () => {
     }
   });
 
+  // B2714 — B2610's fix reads every date through `.toISOString()`, never a
+  // local getter, so it should not care what timezone the *process* (not
+  // the walk's own longitude) thinks it is in. Proved rather than assumed:
+  // Kiritimati (UTC+14) is about as far from this suite's usual UTC as a
+  // real server's TZ can get, and 23:30 UTC is well past local midnight
+  // there — the shape of edge this ticket worried a hidden `getDate()` or
+  // `toLocaleDateString()` could trip on.
+  test("the tail survives at 23:30 UTC under TZ=Pacific/Kiritimati", () => {
+    const realTz = process.env.TZ;
+    process.env.TZ = "Pacific/Kiritimati";
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-09-30T23:30:00.000Z"));
+      const pinnedNow = Date.now();
+      const start = new Date(pinnedNow - 30 * 3600_000).toISOString().slice(0, 10);
+      const end = new Date(pinnedNow).toISOString().slice(0, 10);
+      const edgeTrip = "kiritimati-2026";
+      writeTripFixture(OWNER, {
+        id: edgeTrip,
+        start,
+        end,
+        visibility: "guest",
+        listed: false,
+        people: [{ name: "Robin", email: ROBIN_EMAIL }],
+        intro: "x",
+      });
+      const recent = recentWalk(pinnedNow - 60_000, 41, 2);
+      appendFixes(OWNER, recent);
+      deriveTripTrack(OWNER, { id: edgeTrip, start, end });
+
+      const tail = readTail(OWNER, edgeTrip);
+      expect(tail).toBeDefined();
+      expect(tail!.segments.flatMap((s) => s.points).length).toBeGreaterThan(0);
+    } finally {
+      vi.useRealTimers();
+      if (realTz === undefined) delete process.env.TZ;
+      else process.env.TZ = realTz;
+    }
+  });
+
   test("a trip that ended yesterday never shows today's walk in its tail (B2610's extra day is only for a trip ending today)", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     try {

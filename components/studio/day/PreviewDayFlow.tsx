@@ -16,6 +16,7 @@ import { missingConsentScopes, type ConsentScopes } from "@/lib/studio/featureCo
 import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
 import { addAllAiTags, matchingUsedBeforeTags, mergeTags, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer, type LanguageAnswer } from "@/lib/studio/languageAnswer";
+import { dayLanguageFor, offerLocalesFor } from "@/lib/studio/dayLanguage";
 import { initialSuggestionState, pickTitle, applyCompose, undoCompose, type SuggestionState } from "@/lib/studio/suggestionState";
 import { hashInputs, readComposeCache, writeComposeCache } from "@/lib/studio/composeCache";
 import { wordDiff } from "@/lib/studio/wordDiff";
@@ -33,6 +34,8 @@ type Entry = {
   tags?: string[];
   visibility?: "" | "guest" | "private";
   gallery: Photo[];
+  /** B2700 — absent means the journal's own `defaultLocale`. */
+  language?: string;
 };
 
 /** `mode: "compose"`'s own response (B2688/B2689) — a per-sentence source so
@@ -143,6 +146,17 @@ export default function PreviewDayFlow({
   // moment it is applied and compared back against it at save time to tell
   // "kept" from "edited" (B2693).
   const [appliedText, setAppliedText] = useState("");
+
+  // B2700 — the main part's own language: what is already saved on the day,
+  // else what this visit's own compose detected (not yet saved), else the
+  // journal's `defaultLocale` — the same fallback order `LocaleProvider`
+  // reads a published day with. `otherLocales` (a prop, `user.locales` minus
+  // `defaultLocale`) is reconstructed back to the journal's whole locale
+  // list and re-filtered against the day's own language, so a day written
+  // in a non-default language is offered every OTHER language the journal
+  // has, defaultLocale included, not "every language but the journal's own".
+  const dayLanguage = dayLanguageFor(entries[0]?.language, composeResult?.language, defaultLocale);
+  const offerLocales = offerLocalesFor(dayLanguage, defaultLocale, otherLocales);
 
 
   // Languages (B2677 item 4) — one remembered answer per trip, applied to
@@ -401,8 +415,8 @@ export default function PreviewDayFlow({
       const content = finalContent(i);
       if (!content.trim()) continue; // write-day refuses an empty translate.
       const title = finalTitle(i);
-      for (const toLocale of otherLocales) {
-        const r = await post("day/write-day", { trip: rows[i].tripId, mode: "translate", to: toLocale, title, content, date: rows[i].date });
+      for (const toLocale of offerLocales) {
+        const r = await post("day/write-day", { trip: rows[i].tripId, slug: rows[i].slug, mode: "translate", to: toLocale, title, content, date: rows[i].date });
         if (r.ok) {
           const part = i;
           setLangDrafts((prev) => prev.map((d, at) => (at === part ? { ...d, [toLocale]: { title: String(r.json?.title ?? ""), content: String(r.json?.content ?? "") } } : d)));
@@ -456,6 +470,16 @@ export default function PreviewDayFlow({
         const composedText = composeResult[applied]!.text;
         const savedText = appliedText;
         body.content = savedText;
+        // B2700 — the language compose detected itself writing in, so a day
+        // composed in a different language than the journal's own is read
+        // back correctly (the fallback notice, the translate offer) rather
+        // than assumed to be the journal's `defaultLocale`.
+        body.language = composeResult.language;
+        // B2698 — the owner's own words, from before this compose round
+        // touched `content`; the server only keeps the first one it is
+        // ever sent (`applyEditToDay`), so a later "Use this" never
+        // overwrites it with the AI's own text.
+        body.ownWords = ownWords(entry);
         // B2693 — counted once, right before the write it describes: kept
         // (saved exactly as composed) or edited (anything else, with a
         // word-level edit distance computed server-side from both texts
@@ -892,12 +916,12 @@ export default function PreviewDayFlow({
 
       {/* Languages — item 4. B2677, bug 9 — ONE row for every other locale,
           not one repeated per locale. */}
-      {otherLocales.length > 0 && (
+      {offerLocales.length > 0 && (
         <div className="mt-5">
           <p className="text-sm font-semibold text-ink-strong">
             {t("studio.preview.languagesTitle", {
-              languages: new Intl.ListFormat(locale, { type: "conjunction" }).format(otherLocales.map((l) => languageName(l))),
-              language: languageName(defaultLocale),
+              languages: new Intl.ListFormat(locale, { type: "conjunction" }).format(offerLocales.map((l) => languageName(l))),
+              language: languageName(dayLanguage),
             })}
           </p>
           <div className="mt-2 space-y-2">
@@ -924,7 +948,7 @@ export default function PreviewDayFlow({
                     // Held against the main part only (index 0) — the one
                     // part this page offers a review box for.
                     setLangDrafts((prev) =>
-                      prev.map((d, at) => (at === 0 ? { ...d, ...Object.fromEntries(otherLocales.map((l) => [l, d[l] ?? { title: "", content: "" }])) } : d)),
+                      prev.map((d, at) => (at === 0 ? { ...d, ...Object.fromEntries(offerLocales.map((l) => [l, d[l] ?? { title: "", content: "" }])) } : d)),
                     );
                     setLangAnswer("mine");
                     saveLanguageAnswer(username, tripId, "mine");
@@ -934,7 +958,7 @@ export default function PreviewDayFlow({
                   {t("studio.preview.writeMyself")}
                 </button>
                 <button type="button" onClick={declineLanguage} className="min-h-10 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong">
-                  {t("studio.preview.languageFine", { language: languageName(defaultLocale) })}
+                  {t("studio.preview.languageFine", { language: languageName(dayLanguage) })}
                 </button>
               </div>
             )}
@@ -942,7 +966,7 @@ export default function PreviewDayFlow({
                 main part's text (B2685: every part is translated and
                 persisted; this is the one review box the page offers). */}
             {langAnswer === "translate" &&
-              otherLocales.map((toLocale) => (
+              offerLocales.map((toLocale) => (
                 <details key={toLocale} className="rounded-xl border border-line-strong px-3 py-2">
                   <summary className="cursor-pointer text-sm font-semibold text-ink-strong">{languageName(toLocale)}</summary>
                   {langDrafts[0]?.[toLocale] ? (
@@ -960,7 +984,7 @@ export default function PreviewDayFlow({
               ))}
             {/* "Write it myself" — one textarea per locale, the main part. */}
             {langAnswer === "mine" &&
-              otherLocales.map((toLocale) => (
+              offerLocales.map((toLocale) => (
                 <label key={toLocale} className="block text-xs font-semibold uppercase tracking-wide text-ink-secondary">
                   {languageName(toLocale)}
                   <textarea

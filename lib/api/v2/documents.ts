@@ -149,6 +149,8 @@ export function dayToJson(day: DayFile): string {
     weather: day.weather,
     travelScene: day.travelScene,
     test: day.test,
+    language: day.language,
+    ownWords: day.ownWords,
     declined: day.declined,
     status: day.status,
   };
@@ -231,6 +233,8 @@ export function dayFromJson(slug: string, raw: string): DayFile {
   if (data.weather !== undefined) day.weather = data.weather as DayFile["weather"];
   if (data.travelScene !== undefined) day.travelScene = data.travelScene as DayFile["travelScene"];
   if (data.test !== undefined) day.test = data.test as DayFile["test"];
+  if (data.language !== undefined) day.language = data.language as DayFile["language"];
+  if (data.ownWords !== undefined) day.ownWords = data.ownWords as DayFile["ownWords"];
   if (data.declined !== undefined) day.declined = data.declined as DayFile["declined"];
 
   // v1's per-field decline keys (`without`, `unrecorded`, `coordinates:

@@ -65,7 +65,7 @@ export async function generateMetadata({
   // either way).
   const locale = await requestLocale();
   const writtenLocale = defaultLocaleFor(user);
-  const title = titleWithLocation(localizedEntryTitle(entry, locale, writtenLocale), entry.location);
+  const title = titleWithLocation(localizedEntryTitle(entry, locale, entry.language ?? writtenLocale), entry.location);
   const url = `${journalPath(user)}/day/${entry.slug}`;
 
   return {

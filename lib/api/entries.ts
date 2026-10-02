@@ -1110,6 +1110,18 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
   weather?: boolean;
   /** A reading the caller took themselves, or `null` to remove one. */
   weatherData?: DayWeather | null;
+  /**
+   * The owner's own words, from before a compose round touched `content` —
+   * B2698. Written once, on the first "Use this": once the day already has
+   * one, a later edit (another "Use this", a plain words edit) leaves it
+   * alone, so a re-compose keeps building on what the owner actually wrote
+   * rather than drifting onto the AI's own text. Never read back to anyone
+   * but the owner — see `DayFile["ownWords"]`'s own comment.
+   */
+  ownWords?: string;
+  /** The language this day's own words are written in — B2700. Compose sets
+   * this from what it detected itself writing; nothing else guesses it. */
+  language?: DayFile["language"];
 };
 
 /** `Record<src, caption|"">`/`Record<src, PhotoVisibility|null>` applied to
@@ -1290,6 +1302,16 @@ function applyEditToDay(day: DayFile, input: EditInput): DayFile {
   }
   if (input.content !== undefined) {
     next.content = input.content.trim();
+  }
+  // First-write only (B2698) — once the day already has its own words, a
+  // later PATCH (another "Use this", a plain edit) leaves them alone.
+  if (input.ownWords !== undefined && next.ownWords === undefined) {
+    const real = input.ownWords.trim();
+    if (real) next.ownWords = real;
+  }
+  if (input.language !== undefined) {
+    if (input.language) next.language = input.language;
+    else delete next.language;
   }
 
   // B1907 — only when this call named a country. An edit that says nothing

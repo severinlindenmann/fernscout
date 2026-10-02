@@ -117,6 +117,10 @@ const DAY_SAMPLES: Record<string, unknown> = {
   title: "Ein Tag",
   date: "2026-09-10",
   content: "Die Prosa des Tages.",
+  // B2700/B2698: the text above is German, so the day says so; ownWords is
+  // the owner's own rough notes the prose was composed from.
+  language: "de",
+  ownWords: "prosa des tages, roh notiert",
   // B1612 FINDING: sending `media` currently crashes PUT .../days/{slug}
   // with an uncaught ZodError rather than a 201. `toStoredMedia`
   // (lib/api/v2/days.ts) stamps every item with a placeholder `type:

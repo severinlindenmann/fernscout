@@ -21,6 +21,7 @@ import { declinesIn, missingFrom } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { MAINTAINED_LOCALES } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,16 @@ function number(value: unknown): number | undefined {
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+/** `body.language`, when it is one of the journal's maintained locales —
+ * compose's own `language`, B2700. Anything else is silently dropped rather
+ * than refused: a caller sending something stale must not take the rest of
+ * a words-save down with it. */
+function locale(value: unknown): (typeof MAINTAINED_LOCALES)[number] | undefined {
+  return typeof value === "string" && (MAINTAINED_LOCALES as readonly string[]).includes(value)
+    ? (value as (typeof MAINTAINED_LOCALES)[number])
+    : undefined;
 }
 
 /** `body.tags`, when it is a real list of words rather than a decline
@@ -306,6 +317,8 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
     ...(typeof body.content === "string" ? { content: body.content } : {}),
     ...(captions ? { captions } : {}),
     ...(photoVisibility ? { photoVisibility } : {}),
+    ...(typeof body.ownWords === "string" ? { ownWords: body.ownWords } : {}),
+    ...(locale(body.language) ? { language: locale(body.language) } : {}),
     ...declinesIn(body),
   };
   if (Object.keys(input).length === 0) {
