@@ -4693,6 +4693,7 @@
   "studio.preview.composeClose": "Close to my words",
   "studio.preview.composeStory": "As a story",
   "studio.preview.composeSources": "Show where this came from",
+  "studio.preview.composeNothing": "Nothing to write from yet — the assistant only uses what you tell it. Add a line or two on the Write page and it can suggest a version.",
   "studio.preview.composeSourcesHide": "Hide where this came from",
   "studio.preview.composeSourceOwner": "your note",
   "studio.preview.composeSourceMeasured": "measured",

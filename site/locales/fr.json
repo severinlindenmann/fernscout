@@ -4702,6 +4702,7 @@
   "studio.preview.composeClose": "Proche de mes mots",
   "studio.preview.composeStory": "En récit",
   "studio.preview.composeSources": "Montrer d'où ça vient",
+  "studio.preview.composeNothing": "Rien à partir de quoi écrire pour l’instant – l’assistant n’utilise que ce que tu lui dis. Ajoute une ligne ou deux sur la page Écrire et il pourra proposer une version.",
   "studio.preview.composeSourcesHide": "Masquer d’où cela vient",
   "studio.preview.composeSourceOwner": "votre note",
   "studio.preview.composeSourceMeasured": "mesuré",

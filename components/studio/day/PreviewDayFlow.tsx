@@ -50,7 +50,7 @@ type ComposeResult = {
   tags: string[];
   missing: ComposeMissing[];
 };
-type ComposeStatus = "idle" | "consenting" | "working" | "ready" | "error";
+type ComposeStatus = "idle" | "consenting" | "working" | "ready" | "error" | "nothing";
 const MAX_COMPOSE_ANSWERS = 3;
 
 const PRIMARY = "min-h-11 flex-1 rounded-full bg-yellow-400 px-4 text-base font-semibold text-yellow-950 disabled:opacity-50";
@@ -266,7 +266,10 @@ export default function PreviewDayFlow({
     setComposeStatus("working");
     const r = await post("day/write-day", { trip: chosen.tripId, slug: chosen.slug, mode: "compose", answers });
     if (!r.ok || !r.json) {
-      setComposeStatus("error");
+      // 400 no_notes or 422 compose_rejected: nothing the assistant could
+      // write without inventing — say so, rather than a silent retry button
+      // that would spend again for the same answer (prod, 2 Oct).
+      setComposeStatus(r.status === 400 || r.status === 422 ? "nothing" : "error");
       return;
     }
     const result = r.json as unknown as ComposeResult;
@@ -302,8 +305,10 @@ export default function PreviewDayFlow({
     const entry = entries[0];
     if (!entry || !helperEnabled || composeAutoStarted.current) return;
     if (missingConsentScopes("compose", consentNow).length > 0) return;
-    const hasWords = words(ownWords(entry)) > 0;
-    if (!hasWords && entry.gallery.length === 0) return;
+    // Only a day with words starts on its own: a photos-only day may have
+    // too few descriptions to tell, and an automatic call there is spent
+    // for nothing (prod, 2 Oct).
+    if (words(ownWords(entry)) === 0) return;
     composeAutoStarted.current = true;
     void (async () => {
       const hash = composeHash(composeAnswers);
@@ -701,6 +706,8 @@ export default function PreviewDayFlow({
             onConfirm={() => void confirmComposeConsent()}
             onCancel={() => setComposeConsenting(false)}
           />
+        ) : composeStatus === "nothing" ? (
+          <p className="text-sm text-ink-secondary">{t("studio.preview.composeNothing")}</p>
         ) : composeStatus === "idle" || composeStatus === "error" ? (
           <button type="button" onClick={onComposeSuggestTap} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong">
             {t("studio.preview.composeSuggest")}

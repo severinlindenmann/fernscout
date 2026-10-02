@@ -1,6 +1,7 @@
 import { isEnabled } from "@/lib/capabilities";
 import { checkAiDay, recordAiDay } from "@paid/billing/lib/aiDays";
 import { buildDayContext, renderDayPack } from "@/lib/helper/dayContext";
+import { STORY_MIN_SEEN } from "@/lib/helper/composeGuard";
 import { ComposeRejected, composeDay } from "@/lib/helper/compose";
 import { tagsUsedBefore } from "@/lib/studio/tagsUsedBefore";
 import { hasHelperConsent } from "@/lib/helper/consent";
@@ -158,7 +159,11 @@ async function compose(user: string, tripId: string, body: Record<string, unknow
     return Response.json({ error: "unknown_day" }, { status: 404 });
   }
   const words = [...pack.notes.map((n) => n.text), ...answers].join(" ");
-  if (words.trim() === "" && pack.photos.length === 0) {
+  // No words and too few described photos to tell anything: a model call
+  // can only come back empty (prod, 2 Oct: one photo, no words, "close:
+  // empty", a call paid for nothing). Refused before any spend.
+  const seen = pack.photos.filter((p) => p.kind === "seen").length;
+  if (words.trim() === "" && seen < STORY_MIN_SEEN) {
     refused(user, "draft_words", "no_notes");
     return Response.json({ error: "no_notes" }, { status: 400 });
   }
