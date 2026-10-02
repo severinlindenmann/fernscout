@@ -20,6 +20,7 @@ import {
 } from "../photos/described";
 import { modelFor } from "./models";
 import { describeWaiting } from "./server";
+import { describeDate } from "./tools/resolve";
 import { recordUsage, type Operation } from "../usage";
 import type { Block, Proposal } from "./blocks";
 import type { Say } from "./intents";
@@ -2676,7 +2677,7 @@ export async function answerInThread(
    * WhatsApp composes nothing at all.
    */
   const waiting = describeWaiting(username);
-  const trailing = [pending, waiting].filter((part) => part !== "").join("\n");
+  const trailing = [pending, waiting, describeDate(username, said)].filter((part) => part !== "").join("\n");
   messages.push({ role: "user" as const, content: trailing === "" ? said : `${said}\n${trailing}` });
 
   const looked: string[] = [];
