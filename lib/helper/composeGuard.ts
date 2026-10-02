@@ -221,6 +221,9 @@ function numbersIn(text: string): Set<string> {
 function grounded(word: string, stems: Set<string>, citedWords: string[]): boolean {
   if (stems.has(stem(word))) return true;
   const n = normalise(word);
+  // A short name is grounded when a cited word starts with it: "Nic" in
+  // "Nic's knee".
+  if (citedWords.some((w) => w === n || w.startsWith(`${n}'`) || w.startsWith(`${n}’`))) return true;
   if (n.length < 4) return false;
   return citedWords.some((w) => w.length >= 4 && w.startsWith(n.slice(0, 4)) && n.startsWith(w.slice(0, 4)));
 }
