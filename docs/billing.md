@@ -140,3 +140,19 @@ Storage quota follows the plan directly: Free 2 GB, pass and Plus 10 GB, plus
 whatever extra GB a Plus owner has bought. `lib/storageQuota.ts` reads
 `planOf()` and existing content over quota is never touched — only a new
 upload past the ceiling is refused.
+
+**The +10 GB add-on is Plus's own yearly Stripe subscription, not a line on
+the plan's own one** — B2629. Its own table, `storage_addons`
+(`paid/billing/lib/storage-addon.ts`), so a plan's rank logic in
+`entitlements.ts` never has to know an add-on exists: `purchasedBytes()`
+simply asks "is there a live row for this owner" and adds
+`PLANS.plus.extraStorageGb` worth of bytes when there is. Bought from the
+account page's "Add 10 GB" button (`/api/web/[user]/billing/storage-addon`,
+Plus-only, refuses a second purchase while one is already live) through a
+real Checkout Session when Stripe is configured, or the same operator-mail
+dry run every other checkout here falls back to without one. It ends with
+Plus — `customer.subscription.deleted` on the *Plus* subscription also
+cancels and ends any live add-on, so nobody keeps paying for 10 extra
+gigabytes on a plan that no longer exists — or on its own cancellation
+(`customer.subscription.deleted` on the add-on's own subscription), always
+at the end of the period already paid for, the same as Plus itself.

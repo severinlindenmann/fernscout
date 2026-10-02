@@ -983,6 +983,22 @@ type ComposeOutcomesTable = {
   occurred_at: string;
 };
 
+/**
+ * The Plus +10 GB storage add-on — B2629. See migration `063-storage-addons`
+ * for why this is its own table rather than an `entitlements` row.
+ */
+type StorageAddonsTable = {
+  id: string;
+  owner_id: string;
+  source: string;
+  provider_ref: string | null;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  cancel_at_period_end: Generated<number>;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -1023,6 +1039,7 @@ export type Database = {
   print_included_usage: PrintIncludedUsageTable;
   tell_choices: TellChoicesTable;
   compose_outcomes: ComposeOutcomesTable;
+  storage_addons: StorageAddonsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1065,4 +1082,5 @@ export const TABLE_NAMES = [
   "stripe_customers",
   "print_included_usage",
   "compose_outcomes",
+  "storage_addons",
 ] as const satisfies readonly (keyof Database)[];

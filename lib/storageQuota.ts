@@ -4,6 +4,8 @@ import path from "node:path";
 
 import { isEnabled } from "./capabilities";
 import { planOf } from "@paid/billing/lib/entitlements";
+import { liveStorageAddon } from "@paid/billing/lib/storage-addon";
+import { PLANS } from "@paid/billing/lib/plans";
 import { loadUserConfig, serverMediaCeiling } from "./config";
 import { mediaOriginalsRoot } from "./media";
 import { getUser, userDir } from "./users";
@@ -102,15 +104,16 @@ export function formatBytes(n: number): string {
 
 /**
  * What this journal bought in extra room on top of its plan — B661, retired
- * by B2592. The credit-funded "+5 GB" purchase this once counted
- * (`credit_ledger`'s own `storage` rows) is gone with the credit system;
- * Plus's own +10 GB add-on is priced in francs and already folded into
- * `configuredLimit`'s own `plan.limits.storageGb` above. Always zero now —
- * kept as a function, not inlined, so a franc-priced extension (once one
- * exists) has one place to add its own count.
+ * by B2592, rebuilt for real by B2629. The credit-funded "+5 GB" purchase
+ * this once counted (`credit_ledger`'s own `storage` rows) is gone with the
+ * credit system; Plus's own +10 GB/year add-on is the franc-priced
+ * replacement — a live row in `storage_addons` adds `extraStorageGb` worth
+ * of bytes, read from `PLANS` rather than hardcoded so a price or size
+ * change here never disagrees with the checkout that sold it.
  */
-async function purchasedBytes(_username: string): Promise<number> {
-  return 0;
+async function purchasedBytes(username: string): Promise<number> {
+  const addon = await liveStorageAddon(username);
+  return addon ? PLANS.plus.extraStorageGb * 1024 ** 3 : 0;
 }
 
 /**
