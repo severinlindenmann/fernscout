@@ -112,6 +112,12 @@ describe("every test that reads the source tree declares what it scans", () => {
   });
 
   test("every declared @scans header still names a real source path", () => {
+    // An open-repo test is allowed to name a `paid/…` path in its own header
+    // (it reads `paid/` only when present, same as the test itself does at
+    // runtime) — but public CI has no `paid/` checkout at all, so a `paid`
+    // base cannot be held to "exists on disk" there. Everything else stays
+    // strict: a real clone always has `app`, `components`, `lib`, and so on.
+    const paidPresent = fs.existsSync(path.join(ROOT, "paid"));
     const files = TEST_DIRS.flatMap(testFiles);
     const bad: string[] = [];
     for (const file of files) {
@@ -122,7 +128,9 @@ describe("every test that reads the source tree declares what it scans", () => {
       const globs = header.replace(/^\s*\/\/\s*@scans\s+/, "").split(",").map((g) => g.trim());
       for (const glob of globs) {
         const base = glob.split("*")[0].replace(/\/+$/, "");
-        if (base && !fs.existsSync(path.join(ROOT, base)) && !fs.existsSync(path.join(ROOT, path.dirname(base)))) {
+        if (!base) continue;
+        if (!paidPresent && (base === "paid" || base.startsWith("paid/"))) continue;
+        if (!fs.existsSync(path.join(ROOT, base)) && !fs.existsSync(path.join(ROOT, path.dirname(base)))) {
           bad.push(`${path.relative(ROOT, file)}: @scans path does not exist: ${glob}`);
         }
       }
