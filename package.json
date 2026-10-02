@@ -39,6 +39,8 @@
     "test:future-clock": "FERNSCOUT_TEST_CLOCK_OFFSET_DAYS=365 vitest run",
     "check:changed": "node scripts/check-changed.mjs",
     "helper:bench": "tsx --conditions=react-server scripts/paid.mts whatsapp/scripts/helper-bench.mts",
+  "eval:compose": "tsx --conditions=react-server scripts/eval-compose/run.mts",
+  "eval:compose:report": "tsx scripts/eval-compose/report-cli.mts",
     "worktree:bootstrap": "node scripts/worktree-bootstrap.mjs",
     "verify": "node scripts/verify.mjs",
     "seed:example": "node scripts/seed-example-content.mjs",

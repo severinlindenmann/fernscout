@@ -161,7 +161,7 @@ function logUsage(
  * property 1 in `lib/usage.ts`. The person has their answer by the time this
  * runs and must keep it whatever happens here.
  */
-async function book(
+export async function book(
   owner: string,
   operation: Operation,
   usage:
