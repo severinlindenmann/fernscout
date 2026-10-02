@@ -3890,7 +3890,7 @@
   "studio.day.existing.yes": "Ja, zu diesem Tag hinzufügen",
   "studio.day.existing.no": "Nein, ein anderes Datum",
   "studio.day.photos.add": "Fotos hinzufügen",
-  "studio.day.photos.nonePendingYet": "Gerade wartet nichts — füge unten vom Gerät welche hinzu.",
+  "studio.day.photos.nonePendingYet": "Gerade wartet nichts – nimm „Dieses Gerät“ oder „Kamera“.",
   "studio.day.parts.count": "{count} Teile",
   "studio.day.parts.count.one": "1 Teil",
   "studio.day.parts.keepAsOne": "Als einen behalten",
@@ -4666,5 +4666,6 @@
   "studio.day.existing.timeNeeded": "Gib diesem Teil eine Uhrzeit – daran erkennt man ihn im Tag.",
   "studio.published.toldNobody": "Deine {count} Leserinnen und Leser können ihn lesen. Niemand wurde benachrichtigt.",
   "studio.published.toldNobody.one": "Deine eine Leserin oder dein einer Leser kann ihn lesen. Niemand wurde benachrichtigt.",
-  "studio.published.toldEveryoneNobody": "Alle können ihn lesen. Niemand wurde benachrichtigt."
+  "studio.published.toldEveryoneNobody": "Alle können ihn lesen. Niemand wurde benachrichtigt.",
+  "studio.hub.addDay.toldToday.untitled": "Heute hat schon einen Tag"
 }

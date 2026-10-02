@@ -102,7 +102,7 @@ function heroFor(model: StudioHubModel, username: string, t: T): HeroModel {
       return {
         href: `${journalPath(username)}/studio/day/new`,
         Icon: CalendarPlus,
-        title: t("studio.hub.addDay.toldToday.title", { title: day?.title || t("studio.day.collision.untitled") }),
+        title: day?.title ? t("studio.hub.addDay.toldToday.title", { title: day.title }) : t("studio.hub.addDay.toldToday.untitled"),
         description: day?.published ? t("studio.hub.addDay.toldToday.published") : t("studio.hub.addDay.toldToday.subtitle"),
         cta: t("studio.hub.addDay.toldToday.cta"),
         altLink: { href: `${journalPath(username)}/studio/day/edit`, label: t("studio.hub.addDay.change") },

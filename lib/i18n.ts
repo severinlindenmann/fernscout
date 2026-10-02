@@ -3147,6 +3147,7 @@ export type TranslationKey =
   | "studio.hub.addDay.toldToday.published"
   | "studio.hub.addDay.toldToday.subtitle"
   | "studio.hub.addDay.toldToday.title"
+  | "studio.hub.addDay.toldToday.untitled"
   | "studio.hub.allOrders"
   | "studio.hub.betweenTrips.title"
   | "studio.hub.cannotRun.changeDay"

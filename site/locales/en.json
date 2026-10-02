@@ -3905,7 +3905,7 @@
   "studio.day.existing.yes": "Yes, add to that day",
   "studio.day.existing.no": "No, a different date",
   "studio.day.photos.add": "Add photos",
-  "studio.day.photos.nonePendingYet": "Nothing waiting right now — add from this phone below.",
+  "studio.day.photos.nonePendingYet": "Nothing waiting right now — use This phone or Camera.",
   "studio.day.parts.count": "{count} parts",
   "studio.day.parts.count.one": "1 part",
   "studio.day.parts.keepAsOne": "Keep as one",
@@ -4661,5 +4661,6 @@
   "studio.day.existing.timeNeeded": "Give this part a time — it is what tells it apart from the rest of the day.",
   "studio.published.toldNobody": "Your {count} readers can read it. Nobody was told.",
   "studio.published.toldNobody.one": "Your 1 reader can read it. Nobody was told.",
-  "studio.published.toldEveryoneNobody": "Anyone can read it. Nobody was told."
+  "studio.published.toldEveryoneNobody": "Anyone can read it. Nobody was told.",
+  "studio.hub.addDay.toldToday.untitled": "Today has a day"
 }

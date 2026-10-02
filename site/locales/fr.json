@@ -3890,7 +3890,7 @@
   "studio.day.existing.yes": "Oui, l'ajouter à ce jour",
   "studio.day.existing.no": "Non, une autre date",
   "studio.day.photos.add": "Ajouter des photos",
-  "studio.day.photos.nonePendingYet": "Rien n'attend pour l'instant — ajoutez depuis ce téléphone ci-dessous.",
+  "studio.day.photos.nonePendingYet": "Rien n’attend pour l’instant — utilise « Ce téléphone » ou « Appareil photo ».",
   "studio.day.parts.count": "{count} parties",
   "studio.day.parts.count.one": "1 partie",
   "studio.day.parts.keepAsOne": "Garder en un seul",
@@ -4670,5 +4670,6 @@
   "studio.day.existing.timeNeeded": "Donne une heure à cette partie : c’est ce qui la distingue du reste de la journée.",
   "studio.published.toldNobody": "Tes {count} lecteurs peuvent la lire. Personne n’a été prévenu.",
   "studio.published.toldNobody.one": "Ton lecteur peut la lire. Personne n’a été prévenu.",
-  "studio.published.toldEveryoneNobody": "Tout le monde peut la lire. Personne n’a été prévenu."
+  "studio.published.toldEveryoneNobody": "Tout le monde peut la lire. Personne n’a été prévenu.",
+  "studio.hub.addDay.toldToday.untitled": "Aujourd’hui a déjà une journée"
 }
