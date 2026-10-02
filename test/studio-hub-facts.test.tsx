@@ -236,3 +236,18 @@ describe("draft chips on the Print rows", () => {
     expect(chipOn(empty, "/@alex/studio/postcard")).toBeNull();
   });
 });
+
+// B2678 — "Share as a story" for the latest published day of the current trip.
+describe("the hub's Share as a story card", () => {
+  test("offers it when the model names a latest published day", async () => {
+    const el = await render({ ...FULL, latestPublishedDay: { tripId: "alps", slug: "up", title: "Up the pass", date: "2025-01-01" } });
+    const link = [...el.querySelectorAll("a")].find((a) => a.getAttribute("href") === "/@alex/studio/day/share?trip=alps&day=up");
+    expect(link, el.innerHTML.slice(0, 800)).toBeTruthy();
+    expect(el.textContent).toContain("Up the pass");
+  });
+
+  test("is absent when the model has none", async () => {
+    const el = await render({ ...FULL, latestPublishedDay: null });
+    expect([...el.querySelectorAll("a")].some((a) => a.getAttribute("href")?.startsWith("/@alex/studio/day/share"))).toBe(false);
+  });
+});

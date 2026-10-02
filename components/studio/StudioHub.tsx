@@ -315,6 +315,20 @@ export default function StudioHub({
           <ScheduleRouteNotices username={username} trips={model.routeRecordingTrips} />
         </>
       )}
+      {model.latestPublishedDay && (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-line-quiet bg-surface-raised p-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-ink-strong">{t("studio.share.title")}</p>
+            <p className="truncate text-sm text-ink-secondary">{model.latestPublishedDay.title}</p>
+          </div>
+          <Link
+            href={`${journalPath(username)}/studio/day/share?trip=${encodeURIComponent(model.latestPublishedDay.tripId)}&day=${encodeURIComponent(model.latestPublishedDay.slug)}`}
+            className="flex min-h-11 flex-none items-center rounded-full bg-yellow-400 px-4 text-sm font-semibold text-navy-900 hover:bg-yellow-300"
+          >
+            {t("studio.share.whatNextLabel")}
+          </Link>
+        </div>
+      )}
       {halfDone}
       </div>
 

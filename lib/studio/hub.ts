@@ -90,6 +90,11 @@ export type StudioHubModel =
        *  Continue today" wording (V2.1 decision 10). `undefined` exactly
        *  when `toldToday` is false/absent — there is no day to name. */
       toldTodayDay?: { title: string; published: boolean };
+      /** B2678 — the most recently published day of `addDayTrip`, for the
+       *  hub's own "Share as a story" card. `undefined` on a model built
+       *  without it (the private features repo's own fixtures, same as
+       *  `toldToday`); `null` once computed and there is none to offer. */
+      latestPublishedDay?: { tripId: string; slug: string; title: string; date: string } | null;
       /** The nearest trip that has not started yet — B2011's own hub card,
        *  "Plan a trip". `null` hides that card outright rather than showing
        *  it disabled: a journal with nothing upcoming has nothing to plan,
@@ -321,6 +326,20 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
       : undefined;
   const toldToday = toldTodayEntry !== undefined;
   const toldTodayDay = toldTodayEntry ? { title: toldTodayEntry.title, published: !toldTodayEntry.draft } : undefined;
+  // B2678 — the hub's own "Share as a story" card: the latest published
+  // entry of `addDayTrip` only (never a different trip's), most recent date
+  // first; a day with several parts shares one date, so `.find` on the
+  // date-sorted list is the lead entry either way.
+  const latestPublishedEntry = addDayTrip
+    ? daysByTrip
+        .find((t) => t.id === addDayTrip.id)
+        ?.days.flatMap((d) => d.entries)
+        .filter((e) => !e.draft)
+        .sort((a, b) => b.date.localeCompare(a.date))[0]
+    : undefined;
+  const latestPublishedDay = latestPublishedEntry
+    ? { tripId: addDayTrip!.id, slug: latestPublishedEntry.slug, title: latestPublishedEntry.title, date: latestPublishedEntry.date }
+    : null;
   const inbox = inboxSummary(username);
   // B2133 — the readers page's own count (confirmed requests only), not
   // every pending row: one model, so chip and page cannot disagree.
@@ -331,6 +350,7 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
     addDayTrip,
     toldToday,
     toldTodayDay,
+    latestPublishedDay,
     planTrip,
     cannotRun: {
       postcard: !isEnabled("postcards", username),
