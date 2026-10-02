@@ -28,7 +28,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <StoreKitConfigurationFileReference
-         identifier = "../App/Fernscout.storekit">
+         identifier = "../../App/Fernscout.storekit">
       </StoreKitConfigurationFileReference>
       <Testables>
       </Testables>
@@ -44,7 +44,7 @@
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
       <StoreKitConfigurationFileReference
-         identifier = "../App/Fernscout.storekit">
+         identifier = "../../App/Fernscout.storekit">
       </StoreKitConfigurationFileReference>
       <BuildableProductRunnable
          runnableDebuggingMode = "0">

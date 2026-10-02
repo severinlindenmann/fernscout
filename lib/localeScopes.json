@@ -2863,6 +2863,7 @@
       "billing.postcardsLabel",
       "billing.postcardsLeft",
       "billing.privacy",
+      "billing.purchaseUnavailable",
       "billing.renews",
       "billing.restoreCount",
       "billing.restoreCount.one",

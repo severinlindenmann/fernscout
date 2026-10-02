@@ -345,7 +345,7 @@ function BuyPlanButton({
   const { t } = useI18n();
   const native = useNativeShell();
   const [busy, setBusy] = useState(false);
-  const [state, setState] = useState<"idle" | "failed" | "sent">("idle");
+  const [state, setState] = useState<"idle" | "failed" | "unavailable" | "sent">("idle");
 
   async function buy() {
     setBusy(true);
@@ -356,7 +356,10 @@ function BuyPlanButton({
       const result = await buyApplePlan(username, plan).catch(() => ({ ok: false as const, reason: "failed" as const }));
       setBusy(false);
       if (!result.ok) {
-        if (result.reason !== "cancelled") setState("failed");
+        // "unavailable" (the product never resolved from the store) gets its
+        // own plain message rather than the generic retry one — B2670.
+        if (result.reason === "unavailable") setState("unavailable");
+        else if (result.reason !== "cancelled") setState("failed");
         return;
       }
       window.location.reload();
@@ -398,6 +401,11 @@ function BuyPlanButton({
           {t("billing.checkoutFailed")}
         </span>
       )}
+      {state === "unavailable" && (
+        <span role="status" className="mt-1 block text-sm text-coral-600">
+          {t("billing.purchaseUnavailable")}
+        </span>
+      )}
       {state === "sent" && (
         <span role="status" className="mt-1 block text-sm text-ink-secondary">
           {t("billing.dryRunSent")}
@@ -433,6 +441,14 @@ function PlanOptionTile({
   facts: string[];
   buyLabel: string;
 }) {
+  // The shell sells through Apple, so the tile shows only Apple's own
+  // localized price (App Store guideline 3.1.1/3.1.2) — never this web
+  // price/cadence header, which would otherwise sit above Apple's own price
+  // inside `BuyPlanButton` and read as two different charges — B2670. The
+  // Apple price itself is `ApplePlanPrice`, rendered below the Buy button
+  // only once it has actually loaded; there is deliberately no price here
+  // while it is still loading rather than showing this web one.
+  const native = useNativeShell();
   return (
     <div className="flex-1 rounded-xl border border-line-quiet bg-surface-base p-4">
       <p className="flex flex-wrap items-center justify-between gap-2">
@@ -443,10 +459,12 @@ function PlanOptionTile({
           </span>
         )}
       </p>
-      <p className="mt-1 flex items-baseline gap-1.5">
-        <span className="font-display text-xl font-semibold text-ink-strong">{price}</span>
-        <span className="text-sm text-ink-secondary">{cadence}</span>
-      </p>
+      {!native && (
+        <p className="mt-1 flex items-baseline gap-1.5">
+          <span className="font-display text-xl font-semibold text-ink-strong">{price}</span>
+          <span className="text-sm text-ink-secondary">{cadence}</span>
+        </p>
+      )}
       <ul className="mt-2 space-y-1 text-sm text-ink-body">
         {facts.map((fact) => (
           <li key={fact}>{fact}</li>

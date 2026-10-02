@@ -227,7 +227,10 @@ describe("the signed-in header", () => {
     expect(html).not.toContain("safe-area-inset-bottom");
     expect(html).toContain('href="/me"');
     expect(html).not.toContain('href="/admin"');
-    expect(header([journal({ role: "guest" })], true, true)).toContain('href="/admin"');
+    const operator = header([journal({ role: "guest" })], true, true);
+    expect(operator).toContain('href="/admin"');
+    // B2521: a wrench, not a visible word (the mocked Link keeps only href).
+    expect(operator).toMatch(/href="\/admin"><svg[^>]*lucide-wrench/);
   });
 });
 
