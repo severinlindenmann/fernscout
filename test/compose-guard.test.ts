@@ -246,3 +246,18 @@ describe("photographs alone say what they show (B2688 eval)", () => {
     expect(reasons(one("Nachtschlitteln, später Stirnlampen im Schnee.", ["n1", "p1"]), "story", c()).reasons.join()).not.toMatch(/photographs alone/);
   });
 });
+
+describe("eval round 4 gaps (B2688)", () => {
+  test("a possessive grounds the name: Nic for Nic's", () => {
+    const items: GuardItem[] = [{ id: "n3", kind: "owner", text: "Nic's knee started acting up halfway." }];
+    expect(reasons(one("Halfway up, Nic's knee started acting up.", ["n3"]), "close", ctx({ items })).reasons.join()).not.toMatch(/Nic/);
+  });
+  test("citing weather beside a photo is still photographs alone", () => {
+    const items: GuardItem[] = [
+      { id: "p4", kind: "seen", text: "Zwei Personen in Rettungswesten auf einem Segelboot" },
+      { id: "weather", kind: "measured", text: "17–28°C, clear" },
+    ];
+    const v = reasons(one("Dann zwei in Rettungswesten, bei 17 bis 28°C.", ["p4", "weather"]), "story", ctx({ items, language: "de", languages: ["de"], storyFloor: 70 }));
+    expect(v.reasons.join()).toMatch(/photographs alone/);
+  });
+});

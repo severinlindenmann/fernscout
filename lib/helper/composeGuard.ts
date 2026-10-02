@@ -155,7 +155,7 @@ const PHOTO_ONLY_OVERREACH = new RegExp(
     "zu (?:zweit|dritt|viert|fünft)",
     "\\b(?:zwei|drei|vier|fünf|sechs|\\d+) (?:Personen|Leute|Menschen)\\b",
     "\\b(?:two|three|four|five|six|\\d+) (?:people|of us)\\b",
-    "\\b(?:abends|morgens|mittags|nachmittags|später|danach|anschliessend|anschließend|zuerst|zum schluss|am abend|am morgen|am nachmittag)\\b",
+    "\\b(?:abends|morgens|mittags|nachmittags|später|dann|danach|anschliessend|anschließend|zuerst|zum schluss|am abend|am morgen|am nachmittag)\\b",
     "\\b(?:in the (?:morning|evening|afternoon)|later|afterwards|then|first|finally|at night)\\b",
     "\\b(?:le soir|le matin|ensuite|puis|la sera|la mattina|poi|dopo|este|reggel|aztán|később)\\b",
   ].join("|"),
@@ -237,9 +237,9 @@ function numbersIn(text: string): Set<string> {
 function grounded(word: string, stems: Set<string>, citedWords: string[]): boolean {
   if (stems.has(stem(word))) return true;
   const n = normalise(word);
-  // A short name is grounded when a cited word starts with it: "Nic" in
-  // "Nic's knee".
-  if (citedWords.some((w) => w === n || w.startsWith(`${n}'`) || w.startsWith(`${n}’`))) return true;
+  // A name is grounded by its possessive: `normalise` drops the apostrophe,
+  // so "Nic's" is "nics" and German "Vikis" is "vikis" (B2688 eval).
+  if (citedWords.some((w) => w === n || w === `${n}s`)) return true;
   if (n.length < 4) return false;
   return citedWords.some((w) => w.length >= 4 && w.startsWith(n.slice(0, 4)) && n.startsWith(w.slice(0, 4)));
 }
@@ -313,7 +313,9 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
 
     // 2b — a sentence resting only on photographs says what they show: no
     // "we", no head count, no time of day or order of events.
-    if (cited.length > 0 && cited.every((i) => i.kind === "seen")) {
+    // Measured items (weather) carry no people and no order, so only an
+    // owner item can lift this: "p4, weather" is still photographs alone.
+    if (cited.some((i) => i.kind === "seen") && !cited.some((i) => i.kind === "owner")) {
       const overreach = PHOTO_ONLY_OVERREACH.exec(text)?.[0] ?? usesWe(text);
       if (overreach) reasons.push(`${label} "${overreach}" from photographs alone`);
     }
