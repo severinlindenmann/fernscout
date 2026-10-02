@@ -50,6 +50,24 @@ export function toggleTag(selected: ReadonlySet<string>, tag: string): Set<strin
   return next;
 }
 
+/** B2685 — the day's own photographs offered to `mode: "tags"`, mirroring
+ *  the route's own `TAG_PHOTO_MAX` cap (`write-day/route.ts`) so a multi-part
+ *  day never sends more than the server would use anyway. Images only —
+ *  `write-day` never sends a video frame to the tagger. */
+export const TAG_PHOTO_MAX = 6;
+
+export function tagPhotoIds(entries: readonly { gallery: readonly { src: string; type: "image" | "video" }[] }[]): string[] {
+  const ids: string[] = [];
+  for (const entry of entries) {
+    for (const photo of entry.gallery) {
+      if (photo.type !== "image") continue;
+      ids.push(photo.src);
+      if (ids.length >= TAG_PHOTO_MAX) return ids;
+    }
+  }
+  return ids;
+}
+
 /** B2677, bug 12 — the journal's whole tag history is not a suggestion;
  *  only a tag that actually names something in this day (a word in its own
  *  text, or its place) is offered, and never more than `max` of them. Pure:
