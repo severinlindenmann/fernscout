@@ -5,7 +5,7 @@ import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";
 import { getTrip } from "@/lib/trips";
 import { journalPath } from "@/lib/journalPath";
-import { storyDayLink, storyPhotos } from "@/lib/storyCard";
+import { storyCaption, storyDayLink, storyPhotos } from "@/lib/storyCard";
 import { videoToolsAvailable } from "@/lib/storyVideo";
 
 export const dynamic = "force-dynamic";
@@ -61,12 +61,7 @@ export default async function StudioShareDayPage({
   const photos = storyPhotos(day)
     .map((item) => ({ src: `${journalPath(user)}${item.src}`, caption: item.caption }));
 
-  const firstSentence = day.content.trim().match(/^[^.!?]*[.!?]/)?.[0]?.trim();
-  // The day title + "." + the day's own first sentence — the owner's own
-  // words only, per the brief. A title already ending in punctuation
-  // (rare — titles are plain phrases) is not given a second one.
-  const titleLine = /[.!?]$/.test(day.title) ? day.title : `${day.title}.`;
-  const caption = [titleLine, firstSentence].filter(Boolean).join(" ").trim();
+  const caption = storyCaption(day.title, day.content);
 
   return (
     <StudioPage username={user} group="write" title={title}>

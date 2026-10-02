@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, beforeEach } from "vitest";
-import { publishAudienceLabel } from "@/lib/studio/publishAudience";
-import { addAllAiTags, mergeTags, toggleTag } from "@/lib/studio/tagsMerge";
+import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
+import { addAllAiTags, matchingUsedBeforeTags, mergeTags, toggleTag } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer } from "@/lib/studio/languageAnswer";
 import { initialSuggestionState, pickTitle, addCaptions, acceptSpelling } from "@/lib/studio/suggestionState";
 
@@ -43,6 +43,58 @@ describe("mergeTags — B2677 place + used-before + AI, deduped", () => {
     const selected = new Set(["paris"]);
     expect(toggleTag(selected, "museum")).toEqual(new Set(["paris", "museum"]));
     expect(toggleTag(new Set(["paris", "museum"]), "paris")).toEqual(new Set(["museum"]));
+  });
+});
+
+describe("matchingUsedBeforeTags — B2677, bug 12: not the whole history", () => {
+  it("keeps only a tag that appears as a whole word in the day's own words", () => {
+    expect(matchingUsedBeforeTags(["museum", "wildfire", "colorado"], "We saw a museum today.", null)).toEqual(["museum"]);
+  });
+  it("is case-insensitive, and matches the place exactly", () => {
+    expect(matchingUsedBeforeTags(["Paris"], "Nothing about it here.", "paris")).toEqual(["paris"]);
+  });
+  it("never matches a substring that is not its own word", () => {
+    expect(matchingUsedBeforeTags(["art"], "We went to a party.", null)).toEqual([]);
+  });
+  it("caps the result at max (default 5)", () => {
+    const words = "one two three four five six";
+    expect(matchingUsedBeforeTags(["one", "two", "three", "four", "five", "six"], words, null)).toEqual([
+      "one", "two", "three", "four", "five",
+    ]);
+  });
+  it("drops nothing that matches neither words nor place", () => {
+    expect(matchingUsedBeforeTags(["colorado"], "A quiet day at home.", "paris")).toEqual([]);
+  });
+});
+
+describe("readersFact — B2677, bug 11", () => {
+  it("is 'everyone' for public/link, or when readerCount is null", () => {
+    expect(readersFact("public", 9)).toEqual({ kind: "everyone" });
+    expect(readersFact("link", 9)).toEqual({ kind: "everyone" });
+    expect(readersFact("private", null)).toEqual({ kind: "everyone" });
+  });
+  it("names which count private/guest is counting", () => {
+    expect(readersFact("private", 2)).toEqual({ kind: "private", count: 2 });
+    expect(readersFact("guest", 14)).toEqual({ kind: "guest", count: 14 });
+  });
+});
+
+describe("messageFact — B2677, bug 11: why nobody is told, said plainly", () => {
+  it("is serverOff when the server sends no notifications at all", () => {
+    expect(messageFact({ pushOn: false, mailOn: false, hasReaders: true, explicitChoice: true, push: 0, mail: 0 })).toEqual({ kind: "serverOff" });
+  });
+  it("is noneYet when nobody has notifications on, and nothing was chosen", () => {
+    expect(messageFact({ pushOn: true, mailOn: true, hasReaders: false, explicitChoice: false, push: 0, mail: 0 })).toEqual({ kind: "noneYet" });
+  });
+  it("is chosenNone when the owner narrowed the audience to nobody", () => {
+    expect(messageFact({ pushOn: true, mailOn: true, hasReaders: true, explicitChoice: true, push: 0, mail: 0 })).toEqual({ kind: "chosenNone" });
+  });
+  it("carries the real counts otherwise", () => {
+    expect(messageFact({ pushOn: true, mailOn: true, hasReaders: true, explicitChoice: false, push: 8, mail: 5 })).toEqual({
+      kind: "counts",
+      push: 8,
+      mail: 5,
+    });
   });
 });
 

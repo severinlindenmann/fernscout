@@ -67,7 +67,6 @@ export default async function StudioPreviewDayPage({ searchParams, params }: Pag
         username={user}
         tripId={tripId}
         tripTitle={chosen.tripTitle}
-        date={date}
         chosen={chosen}
         also={also}
         blank={blank}

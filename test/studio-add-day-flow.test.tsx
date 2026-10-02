@@ -118,8 +118,20 @@ function type(el: HTMLInputElement | HTMLTextAreaElement, value: string) {
   Object.getOwnPropertyDescriptor(proto, "value")!.set!.call(el, value);
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
+/** B2677, bugs 5/6 — "This phone" lives in the one photo sheet now, never a
+ *  standalone picker on the page itself; open it (the empty tile when there
+ *  are no photos yet, or the grid's own "＋Add" cell otherwise), switch to
+ *  its device tab, then pick. The sheet closes itself on a successful pick. */
 async function pickTwoFiles() {
-  const input = container.querySelector("input[type=file]") as HTMLInputElement;
+  const opener =
+    (container.querySelector('button[aria-label="Add photos"]') as HTMLButtonElement | null) ??
+    (Array.from(container.querySelectorAll("button")).find((b) => b.textContent?.includes("Add photos")) as HTMLButtonElement);
+  await act(async () => opener.click());
+  await flush();
+  const deviceTab = Array.from(container.querySelectorAll('[role="tab"]')).find((b) => b.textContent === "This phone") as HTMLButtonElement;
+  await act(async () => deviceTab.click());
+  await flush();
+  const input = container.querySelector("#studio-day-photo-sheet-device") as HTMLInputElement;
   const files = [new File(["a"], "01.jpg", { type: "image/jpeg" }), new File(["b"], "02.jpg", { type: "image/jpeg" })];
   Object.defineProperty(input, "files", { configurable: true, value: files });
   await act(async () => input.dispatchEvent(new Event("change", { bubbles: true })));
@@ -369,6 +381,43 @@ describe("AddDayFlow, one page — B2188", () => {
     expect((commitBody as unknown as { weather: boolean }).weather).toBe(true);
   });
 
+  test("B2677, bug 1 — opening the page writes nothing until there are words or a photo", async () => {
+    vi.useFakeTimers();
+    try {
+      await mount();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      const dayNewCalls = vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/day/new"));
+      expect(dayNewCalls.length).toBe(0);
+      expect(text()).toContain("Not saved yet");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test("B2677, bug 2 — Preview → patches the day autosave already created, never POSTs day/new a second time", async () => {
+    vi.useFakeTimers();
+    try {
+      await mount();
+      type(container.querySelector("textarea") as HTMLTextAreaElement, "A short note.");
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/day/new")).length).toBe(1);
+      await act(async () => {
+        button("Preview →").click();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes("/day/new")).length).toBe(1);
+      expect(
+        vi.mocked(fetch).mock.calls.some(([url, init]) => String(url).endsWith("/day") && (init as RequestInit | undefined)?.method === "PATCH"),
+      ).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   test("Preview → saves and goes to Preview for this trip and date", async () => {
     props = { readersByTrip: { reise: ["Hans", "Viki"] } };
     await mount();
@@ -379,74 +428,52 @@ describe("AddDayFlow, one page — B2188", () => {
     expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
   });
 
-  test("a date with a draft day offers to add to it, and a second entry with a time", async () => {
+  /**
+   * B2677, bug 3 — the old full-screen collision takeover ("Two days on one
+   * date is almost never what somebody means…", "Make a second update on
+   * this date") is gone. A 409 `date_has_day` from the write now surfaces
+   * only as the same inline "Add this to it?" card `day/for-date` already
+   * asks ahead of time — one shape, whether the race was caught early or
+   * only at the write itself, and whether the existing day is a draft or
+   * already published.
+   */
+  test("a 409 date_has_day on Preview → surfaces the inline 'Add this to it?' card, and a second entry goes through", async () => {
     dayNew = () =>
       commitBody?.confirmSecondEntry
         ? Response.json({ ok: true, slug: `${TODAY}-second` }, { status: 201 })
         : Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
     await mount();
     await click("Preview →");
-    expect(text()).toContain("already has a day");
-    expect([...container.querySelectorAll("a")].find((a) => a.textContent === "Add to that day instead")?.getAttribute("href")).toBe(
-      "/@alex/studio/day/edit?slug=first",
-    );
+    expect(text()).toContain("already has");
+    expect(text()).toContain("Add this to it?");
     type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
     await flush();
-    await click("Make a second update on this date");
+    await click("Yes, add to that day");
+    await click("Preview →");
     expect(commitBody).toMatchObject({ confirmSecondEntry: true, time: "18:00" });
     // B2677 — a second update's own "Preview →" goes to Preview too.
     expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
   });
 
-  test("a date with a published day offers to change it, not to add to it", async () => {
+  test("the same inline card surfaces for a published day too — no separate 'change instead' screen", async () => {
     dayNew = () => Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "published" } }, { status: 409 });
     await mount();
     await click("Preview →");
-    expect(text()).toContain("Change that day instead");
-    expect(text()).not.toContain("Add to that day instead");
+    expect(text()).toContain("Add this to it?");
+    expect(text()).not.toContain("Change that day instead");
   });
 
-  /**
-   * B2108 — the collision screen let a second entry through once a time was
-   * named, but the address on disk is date + title only (createDraft's own
-   * slug logic, untouched here): naming a time never told two same-titled
-   * entries apart, and the person learned that at the very end with a
-   * day_exists 400. This is fixed two ways — caught here separately:
-   *
-   * 1. Client-side: once the collision screen's own title matches the day
-   *    already there, it says so and offers the title field, before a
-   *    server round trip is even made.
-   * 2. Server-side, in case the client-side check ever misses a case
-   *    (accent folding, whitespace): a day_exists/slug_taken answer stays on
-   *    the collision screen rather than falling to the generic
-   *    write-failed one.
-   */
-  test("a same-titled second entry is caught before the round trip: the confirm button is disabled and says why", async () => {
-    dayNew = () => Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
-    await mount();
-    type(container.querySelector('input[name="title"]') as HTMLInputElement, "First");
-    await flush();
-    await click("Preview →");
-    expect(text()).toContain("already has a day");
-    type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
-    await flush();
-    expect(text()).toContain("This title is the same as the day above's.");
-    const confirm = button("Make a second update on this date");
-    expect(confirm.disabled).toBe(true);
-  });
-
-  test("a day_exists answer from the server keeps the collision screen up, not the generic write-failed one", async () => {
+  test("a day_exists answer (a same-titled second entry) falls back to the generic write-failed screen", async () => {
     dayNew = () =>
       commitBody?.confirmSecondEntry
         ? Response.json({ error: "day_exists", detail: { ok: false, code: "day_exists" } }, { status: 400 })
         : Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
     await mount();
     await click("Preview →");
-    type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
-    await flush();
-    await click("Make a second update on this date");
-    expect(text()).toContain("already has a day");
-    expect(text()).not.toContain("Nothing at all was written");
+    await click("Yes, add to that day");
+    await click("Preview →");
+    expect(text()).toContain("The day was not made.");
+    expect(text()).toContain("Nothing at all was written");
   });
 
   test("Polish my text sits under the box when the page hands it an available plan, and is absent on null", async () => {

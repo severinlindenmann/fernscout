@@ -88,8 +88,11 @@ async function type(el: HTMLInputElement | HTMLSelectElement, value: string) {
   await flush();
 }
 
-/** One cost line, the train, and two tags — typed as a person would. */
-async function fillExtras() {
+/** One cost line, the train, and — on a page that still offers it — two
+ *  tags, typed as a person would. B2677, bug 7: tags moved to Preview and
+ *  are off Write's own "More details" (`showTags={false}`), so the Add a
+ *  day test below calls this with `tags: false`. */
+async function fillExtras({ tags = true }: { tags?: boolean } = {}) {
   await click("Add a cost");
   const line = container.querySelector("[data-cost-line]")!;
   await type(line.querySelector('input[type="text"]')!, "Train to Lugano");
@@ -99,6 +102,7 @@ async function fillExtras() {
   await type(line.querySelector('input[type="number"]')!, "23.40");
   expect(line.querySelector('[role="alert"]')).toBeNull();
   await type(container.querySelector('select[name="transportMode"]')!, "train");
+  if (!tags) return;
   const tag = container.querySelector<HTMLInputElement>("[data-day-extras] input:not([type=number])[id]")!;
   await type(tag, "Lake Side");
   await click("Add");
@@ -136,7 +140,7 @@ describe("Add a day — More details (B2233)", () => {
     />
   );
 
-  test("costs, how you travelled and tags ride the one save; the currency is the journal's", async () => {
+  test("costs and how you travelled ride the one save; the currency is the journal's — tags are not here (B2677, bug 7)", async () => {
     await mount(flow);
     // Collapsed, the page has no dropdown.
     expect(container.querySelector("[data-day-extras]")).toBeNull();
@@ -147,14 +151,16 @@ describe("Add a day — More details (B2233)", () => {
     });
     await flush();
     expect(Array.from(container.querySelectorAll("[data-day-extras] select"), (s) => s.getAttribute("name"))).toContain("transportMode");
-    await fillExtras();
+    // B2677, bug 7 — tags moved to Preview; Write's own field for them is gone.
+    expect(container.querySelector('[data-day-extras] input[id]:not([type="number"])')).toBeNull();
+    await fillExtras({ tags: false });
     const currency = container.querySelector<HTMLSelectElement>("[data-cost-line] select")!;
     expect(Array.from(currency.options, (o) => o.value)).toEqual(["CHF", "EUR"]);
     await type(currency, "EUR");
     await click("Preview →");
     expect(sent!.costs).toEqual([{ label: "Train to Lugano", amount: 23.4, currency: "EUR" }]);
     expect(sent!.transportMode).toBe("train");
-    expect(sent!.tags).toEqual(["lake-side", "rain"]);
+    expect(sent).not.toHaveProperty("tags");
     expect(sent!.declined).toEqual({});
   });
 

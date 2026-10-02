@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import BusyButton from "@/components/BusyButton";
@@ -13,8 +12,8 @@ import TellWho, { tellCounts, type TellProps } from "@/components/studio/day/Tel
 import { journalPath } from "@/lib/journalPath";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { missingConsentScopes, type ConsentScopes } from "@/lib/studio/featureConsent";
-import { publishAudienceLabel } from "@/lib/studio/publishAudience";
-import { addAllAiTags, mergeTags, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
+import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
+import { addAllAiTags, matchingUsedBeforeTags, mergeTags, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer, type LanguageAnswer } from "@/lib/studio/languageAnswer";
 import { initialSuggestionState, pickTitle, addCaptions, acceptSpelling, undoSpelling, type SuggestionState } from "@/lib/studio/suggestionState";
 import type { PublishRow } from "@/lib/studio/publishDay";
@@ -62,7 +61,6 @@ export default function PreviewDayFlow({
   username,
   tripId,
   tripTitle,
-  date,
   chosen,
   also,
   blank,
@@ -77,7 +75,6 @@ export default function PreviewDayFlow({
   username: string;
   tripId: string;
   tripTitle: string;
-  date: string;
   chosen: PublishRow;
   also: PublishRow[];
   blank: string[];
@@ -90,8 +87,7 @@ export default function PreviewDayFlow({
   helperEnabled: boolean;
   consent: { words: boolean; photos: boolean };
 }) {
-  const { t, tn, formatLongDate, languageName } = useI18n();
-  const router = useRouter();
+  const { t, tn, formatLongDate, languageName, locale } = useI18n();
   const online = useOnline();
   const user = encodeURIComponent(username);
   const rows = [chosen, ...also];
@@ -233,7 +229,11 @@ export default function PreviewDayFlow({
   }
 
   const place = entries[0]?.location ?? null;
-  const tagChips: TagChip[] = mergeTags(place, usedBeforeTags, aiTags, selectedTags);
+  // B2677, bug 12 — only a "used before" tag that actually matches this
+  // day's own words or place is offered, never the journal's whole history.
+  const dayWords = entries.map((e) => `${e?.title ?? ""} ${e?.content ?? ""}`).join(" ");
+  const matchedUsedBeforeTags = matchingUsedBeforeTags(usedBeforeTags, dayWords, place);
+  const tagChips: TagChip[] = mergeTags(place, matchedUsedBeforeTags, aiTags, selectedTags);
 
   // Tags, translations and this day's visibility are held here and written
   // once, in order, by `persistChoices` right before publishing — never one
@@ -242,26 +242,32 @@ export default function PreviewDayFlow({
     setSelectedTags(next);
   }
 
-  // Languages — ✦ Translate / Write it myself / "<language> is fine".
-  async function runTranslate(locale: string) {
+  // Languages — ✦ Translate / Write it myself / "<language> is fine". B2677,
+  // bug 9 — one row for every other locale together, not one per locale:
+  // Translate runs each of `otherLocales` in turn (a later one still runs
+  // even if an earlier one fails, so one bad response never blocks the
+  // rest).
+  async function runTranslate() {
     if (missingConsentScopes("translate", consentNow).length > 0) {
       setTranslateConsenting(true);
       return;
     }
     setTranslating(true);
-    const r = await post("day/write-day", { trip: chosen.tripId, mode: "translate", to: locale, title: entries[0]?.title ?? "", content: entries[0]?.content ?? "", date: chosen.date });
-    setTranslating(false);
-    if (r.ok) {
-      setLangDrafts((prev) => ({ ...prev, [locale]: { title: String(r.json?.title ?? ""), content: String(r.json?.content ?? "") } }));
-      setLangAnswer("translate");
-      saveLanguageAnswer(username, tripId, "translate");
+    for (const toLocale of otherLocales) {
+      const r = await post("day/write-day", { trip: chosen.tripId, mode: "translate", to: toLocale, title: entries[0]?.title ?? "", content: entries[0]?.content ?? "", date: chosen.date });
+      if (r.ok) {
+        setLangDrafts((prev) => ({ ...prev, [toLocale]: { title: String(r.json?.title ?? ""), content: String(r.json?.content ?? "") } }));
+      }
     }
+    setTranslating(false);
+    setLangAnswer("translate");
+    saveLanguageAnswer(username, tripId, "translate");
   }
 
-  async function confirmTranslateConsent(locale: string) {
+  async function confirmTranslateConsent() {
     await agree("words");
     setTranslateConsenting(false);
-    void runTranslate(locale);
+    void runTranslate();
   }
 
   function saveTranslations() {
@@ -300,7 +306,7 @@ export default function PreviewDayFlow({
       if (ss.titleChoice && ss.titleChoice !== entry?.title) body.title = ss.titleChoice;
       if (ss.captionsOn && idea.captions && Object.keys(idea.captions).length > 0) body.captions = idea.captions;
       if (Object.keys(body).length === 2) continue;
-      // no-refresh: the publish that follows refreshes the router once.
+      // no-refresh: these are persisted right before the publish call below, which itself never refreshes either (B2677, bug 14) — the page navigates away or shows PublishedDay next, never stays here stale.
       const response = await fetch(`/api/helper/${user}/day`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -319,7 +325,7 @@ export default function PreviewDayFlow({
     if (Object.keys(patch).length > 0) {
       const dayUrl = `/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(main)}`;
       const head = await fetch(dayUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null) as { etag?: string } | null;
-      // no-refresh: the publish that follows refreshes the router once.
+      // no-refresh: these are persisted right before the publish call below, which itself never refreshes either (B2677, bug 14) — the page navigates away or shows PublishedDay next, never stays here stale.
       const response = await fetch(dayUrl, {
         method: "PATCH",
         headers: { "content-type": "application/json", ...(head?.etag ? { "if-match": head.etag } : {}) },
@@ -347,11 +353,11 @@ export default function PreviewDayFlow({
       ...(slugs.length > 1 ? { parts: slugs.slice(1) } : {}),
       tell: { groups: tellGroups, mail: tellMail && counts.mailable > 0 },
     });
+    // no-refresh: B2677 bug 14 — PublishedDay below needs this draft still readable; a refresh races it and loses. Next navigation re-reads fresh.
     const response = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body }).catch(() => null);
     const json = (await response?.json().catch(() => null)) as { told?: { app: number; mail: number } } | null;
     setPublishing(false);
     if (response?.ok) {
-      router.refresh();
       setPublished({ told: json?.told ?? { app: 0, mail: 0 }, slug: slugs[0] });
       return;
     }
@@ -384,13 +390,20 @@ export default function PreviewDayFlow({
   const nameOf = entries[0]?.title || formatLongDate(chosen.date);
   const backHref = `${journalPath(username)}/studio/day/publish`;
 
+  // B2677, bug 11 — the two fact rows that replace the old reader box.
+  const readers1 = readersFact(chosen.audience, readers?.length ?? null);
+  const readerNames = readers && readers.length > 0 && readers.length <= 8 ? new Intl.ListFormat(locale, { type: "conjunction" }).format(readers) : null;
+  const message1 = messageFact({ pushOn: tell.pushOn, mailOn: tell.mailOn, hasReaders: tell.people.length > 0 || tell.anonymousPush > 0, explicitChoice: tellGroups !== null, push: counts.push, mail: tellMail ? counts.mailable : 0 });
+
   return (
     <div className="mt-2">
       <Link href={backHref} className="inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
         {t("studio.publish.backToDrafts")}
       </Link>
       <h2 className="mt-3 font-display text-lg font-semibold text-ink-strong">{nameOf}</h2>
-      <p className="text-sm text-ink-secondary">{tripTitle} · {formatLongDate(date)}</p>
+      {/* B2677, bug 15 — the date is already the heading above when there is
+          no title (`nameOf`); the subtitle names only the trip. */}
+      <p className="text-sm text-ink-secondary">{tripTitle}</p>
 
       {/* Day card(s) — B2677 item 1. */}
       <ol className="mt-4 space-y-5">
@@ -418,6 +431,16 @@ export default function PreviewDayFlow({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img key={p.src} src={`${p.src}?w=480`} alt={s.captions?.[p.src] ?? p.caption ?? ""} className="h-28 w-full object-cover" />
                   ))}
+                  {/* B2677, bug 13 — the grid's own last cell, not only the
+                      empty-state link below; the same Edit target (it can
+                      add photos too). */}
+                  <Link
+                    href={addPhotosHref}
+                    aria-label={t("studio.preview.addPhotos")}
+                    className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-surface-subtle text-xs font-semibold text-ink-strong"
+                  >
+                    <span aria-hidden className="text-lg leading-none">＋</span>
+                  </Link>
                 </div>
               ) : (
                 <Link href={addPhotosHref} className="block px-4 py-3 text-sm font-semibold text-ink-body underline underline-offset-2">
@@ -494,7 +517,10 @@ export default function PreviewDayFlow({
         })}
       </ol>
 
-      {/* ✦ Suggest — item 2. */}
+      {/* ✦ Suggest — item 2. B2677, bug 10 — absent, not disabled, with
+          `helper` off (AGENTS.md: a capability off is never a greyed-out
+          button). */}
+      {helperEnabled && (
       <div className="mt-4">
         {suggestConsenting ? (
           <ConfirmPanel
@@ -506,11 +532,12 @@ export default function PreviewDayFlow({
             onCancel={() => setSuggestConsenting(false)}
           />
         ) : (
-          <button type="button" disabled={suggesting || !helperEnabled} onClick={onSuggestTap} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong disabled:opacity-50">
+          <button type="button" disabled={suggesting} onClick={onSuggestTap} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong disabled:opacity-50">
             {suggesting ? t("studio.check.working") : suggested ? t("studio.preview.suggestAgain") : t("studio.preview.suggest")}
           </button>
         )}
       </div>
+      )}
 
       {/* Tags — item 3. */}
       <div className="mt-5">
@@ -523,9 +550,13 @@ export default function PreviewDayFlow({
               aria-pressed={chip.selected}
               onClick={() => saveTags(toggleTag(selectedTags, chip.tag))}
               className={`min-h-9 rounded-full border px-3 text-sm font-semibold ${
-                chip.selected ? "border-line-ink bg-action-strong text-on-action" : chip.source === "ai" ? "border-dashed border-line-strong text-ink-strong" : "border-line-strong text-ink-strong"
+                // B2677, bug 12 — selected is dark with a check; every
+                // unselected chip (a suggestion, whatever source it is) is
+                // dashed, never solid-bordered.
+                chip.selected ? "border-line-ink bg-action-strong text-on-action" : "border-dashed border-line-strong text-ink-strong"
               }`}
             >
+              {chip.selected ? "✓ " : ""}
               {chip.tag}
             </button>
           ))}
@@ -553,72 +584,127 @@ export default function PreviewDayFlow({
         </div>
       </div>
 
-      {/* Languages — item 4. */}
+      {/* Languages — item 4. B2677, bug 9 — ONE row for every other locale,
+          not one repeated per locale. */}
       {otherLocales.length > 0 && (
         <div className="mt-5">
-          <p className="text-sm font-semibold text-ink-strong">{t("studio.preview.languagesTitle", { reader: languageName(otherLocales[0]), language: languageName(defaultLocale) })}</p>
-          {otherLocales.map((locale) => (
-            <div key={locale} className="mt-2 space-y-2">
-              {translateConsenting ? (
-                <ConfirmPanel
-                  label={t("studio.preview.translateConsentLabel")}
-                  question={t("studio.preview.translateConsent")}
-                  confirmLabel={t("studio.preview.translateConsentConfirm")}
-                  busy={false}
-                  onConfirm={() => void confirmTranslateConsent(locale)}
-                  onCancel={() => setTranslateConsenting(false)}
-                />
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" disabled={translating} onClick={() => void runTranslate(locale)} className="min-h-10 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong disabled:opacity-50">
+          <p className="text-sm font-semibold text-ink-strong">
+            {t("studio.preview.languagesTitle", {
+              languages: new Intl.ListFormat(locale, { type: "conjunction" }).format(otherLocales.map((l) => languageName(l))),
+              language: languageName(defaultLocale),
+            })}
+          </p>
+          <div className="mt-2 space-y-2">
+            {translateConsenting ? (
+              <ConfirmPanel
+                label={t("studio.preview.translateConsentLabel")}
+                question={t("studio.preview.translateConsent")}
+                confirmLabel={t("studio.preview.translateConsentConfirm")}
+                busy={false}
+                onConfirm={() => void confirmTranslateConsent()}
+                onCancel={() => setTranslateConsenting(false)}
+              />
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {/* B2677, bug 10 — absent, not disabled, with `helper` off. */}
+                {helperEnabled && (
+                  <button type="button" disabled={translating} onClick={() => void runTranslate()} className="min-h-10 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong disabled:opacity-50">
                     {translating ? t("studio.check.working") : t("studio.preview.translate")}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLangDrafts((prev) => ({ ...prev, [locale]: prev[locale] ?? { title: "", content: "" } }));
-                      setLangAnswer("mine");
-                      saveLanguageAnswer(username, tripId, "mine");
-                    }}
-                    className="min-h-10 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong"
-                  >
-                    {t("studio.preview.writeMyself")}
-                  </button>
-                  <button type="button" onClick={declineLanguage} className="min-h-10 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong">
-                    {t("studio.preview.languageFine", { language: languageName(defaultLocale) })}
-                  </button>
-                </div>
-              )}
-              {langDrafts[locale] && (
-                <textarea
-                  value={langDrafts[locale].content}
-                  onChange={(e) => setLangDrafts((prev) => ({ ...prev, [locale]: { ...prev[locale], content: e.target.value } }))}
-                  onBlur={() => saveTranslations()}
-                  rows={4}
-                  className="w-full rounded-xl border border-line-strong bg-surface-raised px-3 py-2 text-sm text-ink-strong"
-                />
-              )}
-              {langAnswer === "default" && <p className="text-sm text-ink-secondary">{t("studio.preview.languageFineNote", { language: languageName(defaultLocale) })}</p>}
-            </div>
-          ))}
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLangDrafts((prev) => {
+                      const next = { ...prev };
+                      for (const toLocale of otherLocales) next[toLocale] = next[toLocale] ?? { title: "", content: "" };
+                      return next;
+                    });
+                    setLangAnswer("mine");
+                    saveLanguageAnswer(username, tripId, "mine");
+                  }}
+                  className="min-h-10 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong"
+                >
+                  {t("studio.preview.writeMyself")}
+                </button>
+                <button type="button" onClick={declineLanguage} className="min-h-10 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink-strong">
+                  {t("studio.preview.languageFine", { language: languageName(defaultLocale) })}
+                </button>
+              </div>
+            )}
+            {/* ✦ Translate's own results — one collapsible per locale. */}
+            {langAnswer === "translate" &&
+              otherLocales.map((toLocale) => (
+                <details key={toLocale} className="rounded-xl border border-line-strong px-3 py-2">
+                  <summary className="cursor-pointer text-sm font-semibold text-ink-strong">{languageName(toLocale)}</summary>
+                  {langDrafts[toLocale] ? (
+                    <textarea
+                      value={langDrafts[toLocale].content}
+                      onChange={(e) => setLangDrafts((prev) => ({ ...prev, [toLocale]: { ...prev[toLocale], content: e.target.value } }))}
+                      onBlur={() => saveTranslations()}
+                      rows={4}
+                      className="mt-2 w-full rounded-xl border border-line-strong bg-surface-raised px-3 py-2 text-sm text-ink-strong"
+                    />
+                  ) : (
+                    <p className="mt-2 text-sm text-ink-secondary">{t("studio.check.working")}</p>
+                  )}
+                </details>
+              ))}
+            {/* "Write it myself" — one textarea per locale. */}
+            {langAnswer === "mine" &&
+              otherLocales.map((toLocale) => (
+                <label key={toLocale} className="block text-xs font-semibold uppercase tracking-wide text-ink-secondary">
+                  {languageName(toLocale)}
+                  <textarea
+                    value={langDrafts[toLocale]?.content ?? ""}
+                    onChange={(e) => setLangDrafts((prev) => ({ ...prev, [toLocale]: { title: prev[toLocale]?.title ?? "", content: e.target.value } }))}
+                    onBlur={() => saveTranslations()}
+                    rows={4}
+                    className="mt-1 w-full rounded-xl border border-line-strong bg-surface-raised px-3 py-2 text-sm font-normal normal-case text-ink-strong"
+                  />
+                </label>
+              ))}
+            {langAnswer === "default" && <p className="text-sm text-ink-secondary">{t("studio.preview.languageFineNote", { language: languageName(defaultLocale) })}</p>}
+          </div>
         </div>
       )}
 
-      {/* Readers / Message — item 5. */}
+      {/* Readers / Message — item 5. B2677, bug 11 — the two fact rows the
+          design calls for, replacing the old explanatory sentences
+          ("Publishing tells nobody: nobody you chose has app notifications
+          or email on."). */}
       <dl className="mt-5 space-y-3 rounded-xl border border-line-faint bg-surface-subtle px-4 py-3 text-sm text-ink-body">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <dt className="font-semibold text-ink-strong">{t("studio.publish.whoTitle")}</dt>
-            <dd data-audience={chosen.audience}>{t(`studio.publish.who.${chosen.audience}` as TranslationKey)}</dd>
+            <dt className="font-semibold text-ink-strong">{t("studio.preview.readersTitle")}</dt>
+            <dd data-audience={chosen.audience}>
+              {readers1.kind === "everyone"
+                ? t("studio.preview.readers.everyone")
+                : readers1.kind === "private"
+                  ? tn("studio.preview.readers.private", readers1.count, { count: String(readers1.count) })
+                  : tn("studio.preview.readers.guest", readers1.count, { count: String(readers1.count) })}
+              {readers1.kind !== "everyone" && <span className="block text-ink-secondary">{readerNames ?? t("studio.preview.readers.onlyThem")}</span>}
+            </dd>
           </div>
           <button type="button" onClick={() => setChanging((v) => !v)} className="min-h-9 flex-none rounded-full border border-line-strong px-3 text-xs font-semibold text-ink-strong">
             {t("studio.preview.change")}
           </button>
         </div>
         <div>
-          <dt className="font-semibold text-ink-strong">{t("studio.publish.tellTitle")}</dt>
+          <dt className="font-semibold text-ink-strong">{t("studio.preview.messageTitle")}</dt>
           <dd>
-            {counts.told > 0 ? tn("studio.publish.tellSummary", counts.told, { count: String(counts.told) }) : t("studio.publish.tellNobody")}
+            {message1.kind === "serverOff"
+              ? t("studio.preview.message.serverOff")
+              : message1.kind === "noneYet"
+                ? t("studio.preview.message.noneYet")
+                : message1.kind === "chosenNone"
+                  ? t("studio.preview.message.chosenNone")
+                  : [
+                      message1.push > 0 ? tn("studio.preview.message.app", message1.push, { count: String(message1.push) }) : null,
+                      message1.mail > 0 ? tn("studio.preview.message.mail", message1.mail, { count: String(message1.mail) }) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
           </dd>
         </div>
         {changing && (
@@ -643,11 +729,9 @@ export default function PreviewDayFlow({
       <p className="mt-4 text-sm text-ink-secondary">{t("studio.preview.takeDownNote")}</p>
       {!online && <p className="mt-2 text-sm text-ink-secondary">{t("studio.publish.offline")}</p>}
       {publishError && <p role="alert" className="mt-2 text-sm text-coral-600">{publishError}</p>}
-      <div className="mt-2 md:hidden">
-        <BusyButton busy={publishing} type="button" className={PRIMARY} disabled={!online} onClick={() => void doPublish()}>
-          {publishLabel}
-        </BusyButton>
-      </div>
+      {/* B2677, bug 8 — one primary button, the sticky bar's own
+          (`useStudioBar(..., { desktop: true })` above already shows it on
+          both desktop and phone); this page never draws a second one. */}
     </div>
   );
 }

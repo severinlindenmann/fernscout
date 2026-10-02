@@ -74,6 +74,19 @@ export function storyCardFacts(args: {
 }
 
 /**
+ * "Share as a story"'s own caption (B2665) — the day's title as a sentence,
+ * then its own first sentence, the owner's own words only. B2677, bug 16:
+ * an untitled day (`title` blank) gets no bare "." of its own — joined with
+ * `.filter(Boolean)`, a lone "." is still truthy, which opened the caption
+ * with ". " before any real words.
+ */
+export function storyCaption(title: string, content: string): string {
+  const firstSentence = content.trim().match(/^[^.!?]*[.!?]/)?.[0]?.trim();
+  const titleLine = title ? (/[.!?]$/.test(title) ? title : `${title}.`) : "";
+  return [titleLine, firstSentence].filter(Boolean).join(" ").trim();
+}
+
+/**
  * The photographs a story may carry: the day's images, minus any the owner
  * held back with a label of their own. A story goes to a public feed, so a
  * photo kept for a closer circle is never offered for one by default; the

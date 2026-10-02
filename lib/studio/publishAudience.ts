@@ -16,3 +16,37 @@ export function publishAudienceLabel(audience: PublishAudience, readerCount: num
   if (audience === "public" || audience === "link" || readerCount == null) return { kind: "everyone" };
   return { kind: "readers", count: readerCount };
 }
+
+/** B2677, bug 11 — Preview's "Readers" fact row. "Everyone · public" for a
+ *  public/link day; otherwise names which of `private`'s own trip people or
+ *  `guest`'s own approved readers the count is counting. */
+export type ReadersFact = { kind: "everyone" } | { kind: "private"; count: number } | { kind: "guest"; count: number };
+
+export function readersFact(audience: PublishAudience, readerCount: number | null | undefined): ReadersFact {
+  if (audience === "public" || audience === "link" || readerCount == null) return { kind: "everyone" };
+  return { kind: audience === "private" ? "private" : "guest", count: readerCount };
+}
+
+/** B2677, bug 11 — Preview's "Message" fact row. The old sentence
+ *  ("Publishing tells nobody…") never said *why* — off at the server, no
+ *  reader has notifications on yet, or the owner's own narrowed choice —
+ *  so it read as broken rather than as the truth. Pure: the same inputs
+ *  `TellWho`'s own `tellCounts` already produces, plus whether the owner
+ *  touched the "Who to tell" chips at all (`selected !== null`). */
+export type MessageFact = { kind: "serverOff" } | { kind: "noneYet" } | { kind: "chosenNone" } | { kind: "counts"; push: number; mail: number };
+
+export function messageFact(opts: {
+  pushOn: boolean;
+  mailOn: boolean;
+  hasReaders: boolean;
+  explicitChoice: boolean;
+  push: number;
+  mail: number;
+}): MessageFact {
+  if (!opts.pushOn && !opts.mailOn) return { kind: "serverOff" };
+  if (opts.push === 0 && opts.mail === 0) {
+    if (opts.hasReaders && opts.explicitChoice) return { kind: "chosenNone" };
+    return { kind: "noneYet" };
+  }
+  return { kind: "counts", push: opts.push, mail: opts.mail };
+}

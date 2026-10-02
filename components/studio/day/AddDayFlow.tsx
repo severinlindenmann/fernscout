@@ -27,7 +27,7 @@ import type { TellBy } from "@/lib/studio/speak";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
 import { partTimeOfDay, splitIntoParts, waitingSheetPreselectsAll, type DayPart } from "@/lib/studio/dayParts";
-import { partCommitPlan, titleCollidesWithExisting } from "@/lib/studio/dayCollision";
+import { partCommitPlan } from "@/lib/studio/dayCollision";
 import { missingConsentScopes } from "@/lib/studio/featureConsent";
 import { writePreviewUrl } from "@/lib/studio/previewUrl";
 import { weatherGroup, type DayWeather } from "@/lib/weather";
@@ -41,7 +41,7 @@ const FIRST_RUN = ["photos", "words", "save"] as const;
 /** The trip `<select>`'s own "+ New trip…" row — never a real trip id, so
  *  it can never collide with one. */
 const NEW_TRIP_OPTION = "__new__";
-type Outcome = "collision" | "saved" | "writeFailed" | "queued";
+type Outcome = "saved" | "writeFailed" | "queued";
 type Sheet = "date" | "place" | "weather" | null;
 /** `lib/addressLookup.ts`'s own `GeocodeCandidate`, read back by hand: that
  *  module is `server-only`, so a client component declares the wire shape
@@ -227,14 +227,13 @@ export default function AddDayFlow({
   const [sheet, setSheet] = useState<Sheet>(null);
   const [tripOverride, setTripOverride] = useState("");
   const [dateOverride, setDateOverride] = useState("");
-  const [collision, setCollision] = useState<ExistingDayOnDate | null>(null);
   const [time, setTime] = useState("");
   const [confirmedSecondEntry, setConfirmedSecondEntry] = useState(false);
   // B2676, decision 4 — the date already has a day, asked about inline
   // rather than only discovered by a 409 at write time. `GET day/for-date`
   // is asked once per (trip, date); the server's own check at write time
-  // (`collision`/`outcome === "collision"` below) stays the real guard for
-  // the race case.
+  // (a 409 `date_has_day`, folded back into this same state — B2677, bug 3)
+  // stays the real guard for the race case.
   const [existingOnDate, setExistingOnDate] = useState<ExistingDayOnDate | null>(null);
   const existingAskedFor = useRef<string | null>(null);
   // B2676, decision 7 — parts stacked on one page rather than stepped
@@ -480,6 +479,22 @@ export default function AddDayFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** B2677, bug 6 — This phone/Camera "upload and select immediately"; the
+   *  sheet (the only caller left, since bug 5) closes itself rather than
+   *  leaving the owner to dismiss it by hand. A part target gets its ids
+   *  attached here, synchronously with the close, rather than through the
+   *  growth-tracking effect above — that effect reads `photoSheetTarget`
+   *  after this same render, by which point the close below has already
+   *  cleared it, so it would never see which part these ids belong to. */
+  function closePhotoSheetAfterPick(newIds: string[]) {
+    if (typeof photoSheetTarget === "number") {
+      const i = photoSheetTarget;
+      setParts((prev) => (prev ? prev.map((p, idx) => (idx === i ? { ...p, ids: [...new Set([...p.ids, ...newIds])] } : p)) : prev));
+      selectedIdsAtSheetOpen.current = [...selectedIdsAtSheetOpen.current, ...newIds];
+    }
+    setPhotoSheetTarget(null);
+  }
+
   /** Uploads in the background: the page stays usable, and a Save pressed
    *  meanwhile waits for them (`saveQueued`) rather than leaving them out. */
   async function pickFromDevice(files: FileList | null) {
@@ -501,9 +516,11 @@ export default function AddDayFlow({
         return;
       }
       const items = json.items ?? [];
+      const newIds = items.map((i) => i.id);
       setInboxItems((prev) => mergeById(prev ?? [], items));
-      setSelectedIds((prev) => [...new Set([...prev, ...items.map((i) => i.id)])]);
-      setOwnIds((prev) => [...prev, ...items.map((i) => i.id)]);
+      setSelectedIds((prev) => [...new Set([...prev, ...newIds])]);
+      setOwnIds((prev) => [...prev, ...newIds]);
+      closePhotoSheetAfterPick(newIds);
     } catch {
       // A network error (offline, or the server unreachable) rather than a
       // rejection the server actually sent — B2330 queues the original file
@@ -531,10 +548,12 @@ export default function AddDayFlow({
         placeholders.push({ id, filename: f.name, bytes: f.size, uploadedAt: new Date().toISOString() });
         urls[id] = URL.createObjectURL(f);
       }
+      const newIds = placeholders.map((i) => i.id);
       setPendingPhotoUrls((prev) => ({ ...prev, ...urls }));
       setInboxItems((prev) => mergeById(prev ?? [], placeholders));
-      setSelectedIds((prev) => [...new Set([...prev, ...placeholders.map((i) => i.id)])]);
-      setOwnIds((prev) => [...prev, ...placeholders.map((i) => i.id)]);
+      setSelectedIds((prev) => [...new Set([...prev, ...newIds])]);
+      setOwnIds((prev) => [...prev, ...newIds]);
+      closePhotoSheetAfterPick(newIds);
     } finally {
       setUploading((u) => u - n);
     }
@@ -569,6 +588,18 @@ export default function AddDayFlow({
     const thisDay = waitingGroups().find((g) => g.date === date);
     setSheetPicked(new Set(thisDay && waitingSheetPreselectsAll(thisDay.items.length) ? thisDay.items.map((i) => i.id) : []));
   }
+
+  // B2677, bug 6 — Escape closes the photo sheet the same way the backdrop
+  // tap already does; without this, This phone and Camera (no Cancel of
+  // their own before this ticket) had no keyboard way out at all.
+  useEffect(() => {
+    if (photoSheetTarget === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPhotoSheetTarget(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [photoSheetTarget]);
 
   function toggleSheetPicked(id: string) {
     setSheetPicked((prev) => {
@@ -933,17 +964,60 @@ export default function AddDayFlow({
     setOutcome("queued");
   }
 
+  // B2676 — which chosen photographs autosave (or a later patch) has
+  // already attached to `createdSlug`, so a repeat never resends one.
+  const attachedIdsRef = useRef<Set<string>>(new Set());
+
+  /** Saves the words/title and any newly chosen photographs onto a day that
+   *  already exists (autosave created it) — `day/attach` + the same `PATCH
+   *  /day` an edit already uses, never a second `day/new` (B2677, bug 2:
+   *  "Preview →" must not collide with the day autosave just saved). */
+  async function patchExisting(slug: string): Promise<boolean> {
+    const newPhotoIds = chosenPhotos.map((i) => i.id).filter((id) => !attachedIdsRef.current.has(id));
+    if (newPhotoIds.length > 0) {
+      const attached = await fetch(`/api/helper/${encodeURIComponent(username)}/day/attach`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ trip: tripId, slug, files: newPhotoIds }),
+      }).catch(() => null);
+      if (attached?.ok) newPhotoIds.forEach((id) => attachedIdsRef.current.add(id));
+    }
+    const patched = await fetch(`/api/helper/${encodeURIComponent(username)}/day`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trip: tripId, slug, title, content }),
+    }).catch(() => null);
+    return !!patched?.ok;
+  }
+
   async function commit(secondEntryOverride?: boolean) {
-    // The collision screen's own "Confirm" calls `setConfirmedSecondEntry(true)`
-    // and `commit(true)` in the same handler — a state update is not visible
-    // to the closure that scheduled it, so the explicit override is what the
-    // very next write actually sees, same as it always had to be here.
+    // The inline "Add this to it?" card's own "Yes" calls
+    // `setConfirmedSecondEntry(true)` and `commit(true)` in the same
+    // handler — a state update is not visible to the closure that scheduled
+    // it, so the explicit override is what the very next write actually
+    // sees.
     const effectiveSecondEntry = secondEntryOverride ?? confirmedSecondEntry;
     setBusy(true);
     setWriteError(null);
     try {
       if (parts === null) {
-        // The plain, unsplit day — unchanged from before this ticket.
+        // B2677, bug 2 — autosave may already have created this day; "Save"
+        // and "Preview →" both land here, and neither may ever POST
+        // `day/new` a second time onto its own draft (that is exactly the
+        // 409 this used to cause). Once `createdSlug` exists, the same
+        // attach+PATCH autosave itself uses finishes the save instead.
+        if (createdSlug) {
+          const ok = await patchExisting(createdSlug);
+          if (!ok) {
+            setWriteError({ message: t("studio.day.writeFailed.message") });
+            setOutcome("writeFailed");
+            return;
+          }
+          reset();
+          router.refresh();
+          router.push(writePreviewUrl(username, createdSlug, tripId, date));
+          return;
+        }
         const result = await writeOnePart({
           content,
           photoIds: chosenPhotos.map((i) => i.id),
@@ -977,16 +1051,14 @@ export default function AddDayFlow({
           setOutcome("writeFailed");
           return;
         }
+        // B2677, bug 3 — the old full-screen collision takeover is gone; a
+        // 409 date_has_day surfaces only as the inline "Add this to it?"
+        // card (the same one `day/for-date` already asks ahead of time),
+        // never a separate screen.
         if (result.error === "date_has_day" && result.existing) {
-          setCollision(result.existing);
-          setOutcome("collision");
-          return;
-        }
-        // B2108 — the collision screen already let this through once (a time
-        // was named); the address is still date + title, so a second entry
-        // with the *same* title as the first collides regardless.
-        if (result.error === "day_exists" || result.error === "slug_taken") {
-          setOutcome("collision");
+          existingAskedFor.current = `${tripId}\u0000${date}`;
+          setExistingOnDate(result.existing);
+          setConfirmedSecondEntry(false);
           return;
         }
         setWriteError({ message: t("studio.day.writeFailed.message"), mediaProblems: mediaProblemsFrom(result.error, result.detail) });
@@ -1001,6 +1073,21 @@ export default function AddDayFlow({
       const plan = partCommitPlan(parts, effectiveSecondEntry);
       const slugs: string[] = [];
       for (const step of plan) {
+        // B2677, bug 2 — part 0 may already be the day autosave created
+        // before the split was accepted (`setParts` never clears
+        // `createdSlug`); that part is patched, same as the unsplit path
+        // above, never POSTed onto itself a second time.
+        if (step.index === 0 && createdSlug) {
+          const ok = await patchExisting(createdSlug);
+          if (!ok) {
+            setWriteError({ message: t("studio.day.writeFailed.message") });
+            setOutcome("writeFailed");
+            return;
+          }
+          slugs.push(createdSlug);
+          setPartSlugs((prev) => ({ ...prev, 0: createdSlug }));
+          continue;
+        }
         const part = parts[step.index];
         const result = await writeOnePart({
           content: partWords[step.index] ?? "",
@@ -1010,13 +1097,13 @@ export default function AddDayFlow({
           withTitleAndExtras: step.index === 0,
         });
         if (!result.ok) {
+          // B2677, bug 3 — the old full-screen collision takeover is gone;
+          // a 409 date_has_day on a later part surfaces as the inline "Add
+          // this to it?" card, the same as the unsplit path above.
           if (result.error === "date_has_day" && result.existing) {
-            setCollision(result.existing);
-            setOutcome("collision");
-            return;
-          }
-          if (result.error === "day_exists" || result.error === "slug_taken") {
-            setOutcome("collision");
+            existingAskedFor.current = `${tripId}\u0000${date}`;
+            setExistingOnDate(result.existing);
+            setConfirmedSecondEntry(false);
             return;
           }
           setWriteError({ message: t("studio.day.writeFailed.message"), mediaProblems: mediaProblemsFrom(result.error, result.detail) });
@@ -1059,7 +1146,6 @@ export default function AddDayFlow({
   // before anybody presses the button. Debounced ~1.5s, and only once there
   // is a trip and a date to write against. Scoped to the base/unsplit day:
   // split parts 2+ are created together at Save/Preview (Build notes).
-  const attachedIdsRef = useRef<Set<string>>(new Set());
   const autosaveSignature = JSON.stringify({
     tripId, date, content, title, place, weatherOn, extras,
     photoIds: chosenPhotos.map((i) => i.id).sort(),
@@ -1068,6 +1154,10 @@ export default function AddDayFlow({
   useEffect(() => {
     if (parts !== null) return;
     if (!tripId || !date || !online) return;
+    // B2677, bug 1 — opening the page is not writing to it: nothing is
+    // saved until there are words or a photograph, so a draft nobody typed
+    // into is never created just by visiting `/studio/day/new`.
+    if (!createdSlug && content.trim() === "" && chosenPhotos.length === 0) return;
     // Waits for the inline "Add this to it?" to be answered — autosaving
     // into a day that already exists, before the owner said yes, would be
     // exactly the collision this ask exists to avoid.
@@ -1095,26 +1185,10 @@ export default function AddDayFlow({
           setAutosaveState("saved");
           return;
         }
-        // Already created — a later photograph is attached (`day/attach`,
-        // never a second `day/new`), and the words go through the same
-        // `PATCH /day` a person editing an existing day already uses.
-        const newPhotoIds = chosenPhotos.map((i) => i.id).filter((id) => !attachedIdsRef.current.has(id));
-        if (newPhotoIds.length > 0) {
-          // no-refresh: a quiet autosave while the owner is typing — a refresh here would re-render the page under them; Preview and the hub read fresh on navigation.
-          const attached = await fetch(`/api/helper/${encodeURIComponent(username)}/day/attach`, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ trip: tripId, slug: createdSlug, files: newPhotoIds }),
-          }).catch(() => null);
-          if (attached?.ok) newPhotoIds.forEach((id) => attachedIdsRef.current.add(id));
-        }
-        // no-refresh: a quiet autosave while the owner is typing — a refresh here would re-render the page under them; Preview and the hub read fresh on navigation.
-        const patched = await fetch(`/api/helper/${encodeURIComponent(username)}/day`, {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ trip: tripId, slug: createdSlug, title, content }),
-        }).catch(() => null);
-        if (patched?.ok) {
+        // Already created — the same attach+PATCH "Save"/"Preview →" use
+        // once a draft exists (`patchExisting`), never a second `day/new`.
+        const ok = await patchExisting(createdSlug);
+        if (ok) {
           lastAutosaved.current = autosaveSignature;
           setAutosaveState("saved");
         } else {
@@ -1301,70 +1375,10 @@ export default function AddDayFlow({
     );
   }
 
-  if (outcome === "collision" && collision) {
-    // B2108 — the address is date + title only (`createDraft`'s own slug
-    // logic, deliberately untouched here). A time never tells two entries
-    // apart on disk; only a different title does, so once this one matches
-    // the day above, offer the title field right here rather than let the
-    // owner answer everything and learn it at the very end.
-    const titleClash = titleCollidesWithExisting(title, collision);
-    return (
-      <div className="studio-step mt-4">
-        <div className="rounded-xl border border-coral-300 bg-coral-50 px-4 py-3 text-sm text-ink-body">
-          <p className="font-semibold text-ink-strong">{t("studio.day.collision.banner", { date: formatLongDate(date) })}</p>
-        </div>
-        <div className="mt-3 rounded-xl border border-line-strong px-4 py-3">
-          <p className="text-sm font-semibold text-ink-strong">{collision.title || t("studio.day.collision.untitled")}</p>
-        </div>
-        <div className="mt-4 flex flex-col items-start gap-1">
-          {/* A draft can take more; a published day is changed, not added to. */}
-          <Link href={`${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(collision.slug)}`} className={LINK}>
-            {collision.status === "draft" ? t("studio.day.collision.addToDay") : t("studio.day.collision.changeInstead")}
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              setOutcome(null);
-              setSheet("date");
-            }}
-            className={LINK}
-          >
-            {t("studio.day.collision.pickAnother")}
-          </button>
-        </div>
-        <p className="mt-4 text-sm text-ink-secondary">{t("studio.day.collision.secondEntryHint")}</p>
-        {titleClash && (
-          <p role="alert" className="mt-2 text-sm text-coral-600">{t("studio.day.collision.titleMustDiffer")}</p>
-        )}
-        {titleClash && (
-          <label className={`mt-2 ${LABEL}`}>
-            {t("studio.day.whatHappened.titleLabel")}
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("studio.day.whatHappened.titlePlaceholder")}
-              className={FIELD}
-            />
-          </label>
-        )}
-        <label className={`mt-2 ${LABEL}`}>
-          {t("studio.day.collision.timeLabel")}
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={TIME_FIELD} />
-        </label>
-        <StepPrimary
-          busy={busy}
-          disabled={!time || titleClash}
-          tone="bg-yellow-400 text-yellow-950"
-          onClick={() => {
-            setConfirmedSecondEntry(true);
-            void commit(true);
-          }}
-          label={t("studio.day.collision.confirmSecond")}
-        />
-      </div>
-    );
-  }
+  // B2677, bug 3 — the old full-screen collision takeover ("Two days on
+  // one date is almost never what somebody means…") is gone. A 409
+  // date_has_day now only ever surfaces as the inline "Add this to it?"
+  // card below, the same one `day/for-date` already asks ahead of time.
 
   if (outcome === "writeFailed") {
     return (
@@ -1480,9 +1494,10 @@ export default function AddDayFlow({
 
   return (
     <StepBody step={part ?? "page"}>
+      {/* B2677, bug 4 — `GroupMark` on `StudioPage` already names this group
+          ("Write"); the status row says only what has actually happened. */}
       {show("save") && (
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-xs uppercase tracking-wide text-ink-secondary">{t("studio.day.eyebrow")}</span>
+        <div className="flex items-center justify-end">
           <span data-save-state className="font-mono text-xs text-ink-secondary">
             {saveStateText}
           </span>
@@ -1675,7 +1690,9 @@ export default function AddDayFlow({
               )}
             </>
           )}
-          <PhotoPicker id="studio-day-photo-picker" chosen={[]} accept="image/*,video/*" onPick={pickFromDevice} showChosen={false} />
+          {/* B2677, bug 5 — the redundant "Choose files" button is gone;
+              the "＋ Add photos" tile above opens the sheet, whose own
+              This phone tab (`PhotoPicker`) covers it. */}
           {uploading > 0 && (
             <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
           )}
@@ -2016,7 +2033,9 @@ export default function AddDayFlow({
                 Mounted only while open: the collapsed page has no dropdown. */}
             {detailsOpen && (
               <div className="mb-3">
-                <DayExtras value={extras} onChange={setExtras} currencies={currencies} routeTravel={routeTravel} />
+                {/* B2677, bug 7 — tags moved to Preview; Write keeps only
+                    title, time, costs and travel. */}
+                <DayExtras value={extras} onChange={setExtras} currencies={currencies} routeTravel={routeTravel} showTags={false} />
                 {/* B2676 — "📷 From a receipt", in the Costs section: absent
                     with `helper` off (AGENTS.md: absent, not broken), and
                     enabled only once the draft is saved and has photos
@@ -2247,6 +2266,15 @@ export default function AddDayFlow({
                 {uploading > 0 && (
                   <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
                 )}
+                {/* B2677, bug 6 — every tab needs its own way out, not only
+                    a tap on the backdrop. */}
+                <button
+                  type="button"
+                  onClick={() => setPhotoSheetTarget(null)}
+                  className="mt-3 min-h-11 rounded-full border border-line-strong px-4 text-base font-semibold text-ink-strong"
+                >
+                  {t("studio.day.sheet.cancel")}
+                </button>
               </div>
             )}
 
@@ -2268,6 +2296,13 @@ export default function AddDayFlow({
                 {uploading > 0 && (
                   <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setPhotoSheetTarget(null)}
+                  className="mt-3 min-h-11 w-full rounded-full border border-line-strong px-4 text-base font-semibold text-ink-strong"
+                >
+                  {t("studio.day.sheet.cancel")}
+                </button>
               </div>
             )}
           </div>

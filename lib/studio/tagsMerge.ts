@@ -49,3 +49,22 @@ export function toggleTag(selected: ReadonlySet<string>, tag: string): Set<strin
   else next.add(key);
   return next;
 }
+
+/** B2677, bug 12 — the journal's whole tag history is not a suggestion;
+ *  only a tag that actually names something in this day (a word in its own
+ *  text, or its place) is offered, and never more than `max` of them. Pure:
+ *  a plain word-boundary, case-insensitive match against the day's words,
+ *  or an exact match against the place. */
+export function matchingUsedBeforeTags(usedBefore: readonly string[], words: string, place: string | null, max = 5): string[] {
+  const haystack = words.toLowerCase();
+  const placeKey = place?.trim().toLowerCase() || null;
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matches = usedBefore
+    .map((raw) => raw.trim().toLowerCase())
+    .filter((tag) => {
+      if (!tag) return false;
+      if (placeKey && tag === placeKey) return true;
+      return new RegExp(`\\b${escape(tag)}\\b`).test(haystack);
+    });
+  return matches.slice(0, max);
+}

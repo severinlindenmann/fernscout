@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { storyCardFacts, dayNumberOf, storyDayLink, storyPhotos } from "@/lib/storyCard";
+import { storyCardFacts, storyCaption, dayNumberOf, storyDayLink, storyPhotos } from "@/lib/storyCard";
 import { segmentLine, segmentStarts, withRenderSlot } from "@/lib/storyVideo";
 import type { Trip } from "@/lib/types";
 import type { DayFile } from "@/lib/api/v2/documents";
@@ -151,6 +151,23 @@ describe("video segments — B2665", () => {
 
   test("the line switches halfway through each crossfade", () => {
     expect(segmentStarts(3, 2.8, 0.4).map((t) => Number(t.toFixed(2)))).toEqual([0, 2.6, 5.0]);
+  });
+});
+
+describe("storyCaption — B2677, bug 16", () => {
+  test("joins the title as a sentence with the day's own first sentence", () => {
+    expect(storyCaption("Up the Narrows", "Walked along the river to Belém. Then home.")).toBe(
+      "Up the Narrows. Walked along the river to Belém.",
+    );
+  });
+  test("an untitled day opens with the first sentence, never a bare '.'", () => {
+    expect(storyCaption("", "Walked along the river to Belém.")).toBe("Walked along the river to Belém.");
+  });
+  test("a title already ending in punctuation is not given a second one", () => {
+    expect(storyCaption("Up the Narrows!", "It rained.")).toBe("Up the Narrows! It rained.");
+  });
+  test("no words at all is an empty caption, never invented", () => {
+    expect(storyCaption("", "")).toBe("");
   });
 });
 
