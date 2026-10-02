@@ -92,7 +92,9 @@ const UNIT_WORDS = [
   "óra(?:kor|k|ig)?",
 ] as const;
 
-export const UNIT_PATTERN = new RegExp(`\\b(?:${UNIT_WORDS.join("|")})\\b`, "giu");
+// Letter-aware edges, not \b: \b is ASCII-only even with "u", so "früh"
+// read as the unit "fr" and "h" (B2688, the owner's own rough German note).
+export const UNIT_PATTERN = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${UNIT_WORDS.join("|")})(?![\\p{L}\\p{N}_])`, "giu");
 
 /** Personal pronouns across the journal's three languages — a fixed word
  *  list, the same shape as `UNIT_WORDS` and for the same reason: cheap,

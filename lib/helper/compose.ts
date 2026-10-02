@@ -6,6 +6,8 @@ import { book } from "./model";
 import { modelFor } from "./models";
 import {
   BANNED_PHRASES,
+  STORY_FLOOR_WORDS,
+  STORY_MIN_SEEN,
   STORY_MIN_WORDS,
   checkVariant,
   keptTitles,
@@ -54,7 +56,8 @@ THE TRUTH RULE — it outranks everything here, including making the entry bette
 - <voice_samples> show how this person writes. Nothing in them happened today. Borrow rhythm and register, never content or names.
 - Neighbouring days are context for the trip's arc. Never retell them as today.
 - A plan, a wish or a condition in the notes ("if it rains we carry on", "we want to see") stays a plan. Never write how it turned out unless a note says so.
-- Names, numbers and units in a sentence are checked by code against the items that sentence cites. Cite every item a sentence takes a name, number, time or fact from: a sentence naming the day's place cites place, one giving a temperature cites weather. A sentence that cites nothing may only connect; it carries no detail of its own.
+- Names, numbers and units in a sentence are checked by code against the items that sentence cites. Cite every item a sentence takes a name, number, time or fact from: a sentence naming the day's place cites place, one giving a temperature cites weather, one describing a photo cites that photo. A sentence that cites nothing may only connect; it carries no detail of its own.
+- List in "names" every proper name, place, person, brand and number the sentence writes, exactly as written. Code checks each one against the sentence's sources.
 
 Language: write in the language of the notes (normally the journal language). Keep names, dishes and quoted words as the writer wrote them. Say plainly what happened; when a literal word is available, use it. Readers recognise these words as machine-written, so use them only when the same word is in the notes:
 ${BANNED_LINES}
@@ -62,8 +65,8 @@ No rhetorical questions, no closing line about what the day meant.
 
 Output, in this order:
 1. used: the pack ids you will build on, most important first. Decide this before writing.
-2. close: the writer's own words, tidied — spelling, punctuation, accents restored only where unmistakable, fragments joined where the subject is already in the notes. Nearly every sentence cites a note id. About as long as the notes.
-3. story: the same material told as a short entry — an opening that drops the reader into the day, details in an order that carries, an ending that stops. At most about three times the notes' length. If the notes are too thin to tell (under ~25 words, or one sentence), return null: a story built on one line is padding.
+2. close: the writer's own words, tidied — spelling, punctuation, accents restored only where unmistakable, fragments joined where the subject is already in the notes. Every note stays in the language it was written in: never translate a note, even when the notes mix languages. Nothing from photos, weather or place goes into close. Nearly every sentence cites a note id. About as long as the notes.
+3. story: the same material told as a short entry — an opening that drops the reader into the day, details in an order that carries, an ending that stops. At most about three times the notes' length. Many writers note only a line and let the photos tell the day: when the notes are short but three or more photos are described, the story may also say what those photos show — as seen, never as something anyone did — in at most about 70 words, with the writer's line kept as written. Return null when there is nothing to tell beyond the notes (short notes and fewer than three described photos): a story built on one line is padding.
 4. Each sentence lists sources: the pack ids it rests on.
 5. titles: up to two per variant, kind label (pack nouns) | quote (a phrase lifted word for word from the notes) | pair (two things from the day joined). Prefer a quote when the notes have a vivid phrase. Every word of a title is in the pack.
 6. tags: up to 6 lowercase hyphenated English slugs naming an activity, a kind of place, a food, a way of travelling or a plain topic actually in the day ("hiking", "street-food", "rain"); reuse <existing_tags> first.
@@ -79,7 +82,7 @@ Output, in this order:
     <n id="n1" kind="owner">train to ljubljana, slept most of it</n>
   </notes>
 </day_pack>
-{"language":"en","used":["n1"],"close":{"titles":[{"text":"Train to Ljubljana","kind":"label","sources":["n1"]}],"paragraphs":[{"sentences":[{"text":"Train to Ljubljana, slept most of it.","sources":["n1"]}]}]},"story":null,"tags":["train"],"missing":[{"question":"Anything you saw from the window?","about":"moment"}]}
+{"language":"en","used":["n1"],"close":{"titles":[{"text":"Train to Ljubljana","kind":"label","sources":["n1"]}],"paragraphs":[{"sentences":[{"text":"Train to Ljubljana, slept most of it.","names":["Ljubljana"],"sources":["n1"]}]}]},"story":null,"tags":["train"],"missing":[{"question":"Anything you saw from the window?","about":"moment"}]}
 </example>
 
 <example name="rich German notes: close against story, a measured fact, a seen photo">
@@ -95,7 +98,7 @@ Output, in this order:
   </notes>
   <photo id="p1" kind="seen" camera_time="11:40">Ein weisses Schloss auf einem Felsen über grauem Meer</photo>
 </day_pack>
-{"language":"de","used":["n1","n3","n2","p1","weather"],"close":{"titles":[{"text":"Beste bisher","kind":"quote","sources":["n3"]}],"paragraphs":[{"sentences":[{"text":"Mit dem Bus nach Miramare, das Schloss war wegen Renovation zu.","sources":["n1"]},{"text":"Dafür im Park gesessen, bis der Regen kam.","sources":["n2"]},{"text":"Abends Fischsuppe bei Nonna Rosa, die beste bisher, 14 Euro.","sources":["n3"]}]}]},"story":{"titles":[{"text":"Miramare und die Fischsuppe","kind":"pair","sources":["n1","n3"]}],"paragraphs":[{"sentences":[{"text":"Das Schloss Miramare war wegen Renovation zu.","sources":["n1"]},{"text":"Weiss auf seinem Felsen über dem grauen Meer, und nur von aussen zu sehen.","sources":["p1","n1"]},{"text":"Dafür sassen wir im Park, bis der Regen kam, bei 14 bis 19°C.","sources":["n2","weather"]}]},{"sentences":[{"text":"Abends dann Fischsuppe bei Nonna Rosa: 14 Euro, und die beste bisher.","sources":["n3"]}]}]},"tags":["castle","rain","seafood"],"missing":[{"question":"Was war in der Fischsuppe?","about":"food"}]}
+{"language":"de","used":["n1","n3","n2","p1","weather"],"close":{"titles":[{"text":"Beste bisher","kind":"quote","sources":["n3"]}],"paragraphs":[{"sentences":[{"text":"Mit dem Bus nach Miramare, das Schloss war wegen Renovation zu.","names":["Miramare"],"sources":["n1"]},{"text":"Dafür im Park gesessen, bis der Regen kam.","names":[],"sources":["n2"]},{"text":"Abends Fischsuppe bei Nonna Rosa, die beste bisher, 14 Euro.","names":["Nonna Rosa", "14"],"sources":["n3"]}]}]},"story":{"titles":[{"text":"Miramare und die Fischsuppe","kind":"pair","sources":["n1","n3"]}],"paragraphs":[{"sentences":[{"text":"Das Schloss Miramare war wegen Renovation zu.","names":["Miramare"],"sources":["n1"]},{"text":"Weiss auf seinem Felsen über dem grauen Meer, und nur von aussen zu sehen.","names":[],"sources":["p1","n1"]},{"text":"Dafür sassen wir im Park, bis der Regen kam, bei 14 bis 19°C.","names":["14", "19"],"sources":["n2","weather"]}]},{"sentences":[{"text":"Abends dann Fischsuppe bei Nonna Rosa: 14 Euro, und die beste bisher.","names":["Nonna Rosa", "14"],"sources":["n3"]}]}]},"tags":["castle","rain","seafood"],"missing":[{"question":"Was war in der Fischsuppe?","about":"food"}]}
 Why: the close keeps the writer's fragments; the story reorders them and uses the photo only for what it shows. 11:40 is the camera clock, so no time is written. "wir" because party_size is 2.
 </example>
 
@@ -108,7 +111,7 @@ Why: the close keeps the writer's fragments; the story reorders them and uses th
   </notes>
 </day_pack>
 Rejected story sentence: "We wandered the cobbled lanes of the old town." — no source says wandering or cobbled lanes, and "we" with party_size 1 and notes that never say it.
-Written instead: {"text":"Old town in the morning.","sources":["n1"]}
+Written instead: {"text":"Old town in the morning.","names":[],"sources":["n1"]}
 </example>
 </examples>`;
 
@@ -135,8 +138,8 @@ const VARIANT_SCHEMA = {
             type: "array",
             items: {
               type: "object",
-              properties: { text: { type: "string" }, sources: SOURCES },
-              required: ["text", "sources"],
+              properties: { text: { type: "string" }, names: { type: "array", items: { type: "string" } }, sources: SOURCES },
+              required: ["text", "names", "sources"],
               additionalProperties: false,
             },
           },
@@ -291,7 +294,9 @@ export async function composeDay(
   const items = citable(pack);
   const byId = new Map(items.map((i) => [i.id, i]));
   const message = composeUserMessage(pack, opts.existingTags ?? []);
-  const thin = ownerWordCount(items) < STORY_MIN_WORDS;
+  const seen = items.filter((i) => i.kind === "seen").length;
+  const photoTold = seen >= STORY_MIN_SEEN;
+  const thin = ownerWordCount(items) < STORY_MIN_WORDS && !photoTold;
 
   const first = await callModel(message, opts.owner);
   const ctx: GuardContext = {
@@ -300,6 +305,8 @@ export async function composeDay(
     date: pack.date,
     partySize: pack.journal.partySize,
     languages: [first.language, pack.journal.language],
+    language: first.language,
+    storyFloor: photoTold ? STORY_FLOOR_WORDS : 0,
   };
   const dropped: string[] = [];
 
@@ -311,7 +318,7 @@ export async function composeDay(
   };
 
   const slots: Slot[] = thin ? ["close"] : ["close", "story"];
-  if (thin && first.story) dropped.push(`story: notes under ${STORY_MIN_WORDS} words`);
+  if (thin && first.story) dropped.push(`story: notes under ${STORY_MIN_WORDS} words and under ${STORY_MIN_SEEN} described photos`);
   const results = new Map(slots.map((slot) => [slot, judge(first, slot)]));
 
   // One retry when the only thing wrong anywhere is a banned phrase.

@@ -32,7 +32,11 @@ import { CAPITALISED, NUMBER_PATTERN, UNIT_PATTERN, WORD_PATTERN, normalise, ste
  */
 
 export type GuardItem = { id: string; kind: PackKind; text: string };
-export type ComposeSentence = { text: string; sources: string[] };
+/** `names`: every proper name, place, person, brand or number the sentence
+ *  writes, as the model reports it — checked against the sentence's own
+ *  sources. It is what lets German (every noun capitalised) be checked at
+ *  all: there the capital-letter scan below cannot tell a name from a noun. */
+export type ComposeSentence = { text: string; names?: string[]; sources: string[] };
 export type TitleKind = "label" | "quote" | "pair";
 export type ComposeTitle = { text: string; kind: TitleKind; sources: string[] };
 export type ComposeVariant = { titles: ComposeTitle[]; paragraphs: { sentences: ComposeSentence[] }[] };
@@ -48,6 +52,12 @@ export type GuardContext = {
   partySize?: number;
   /** Languages whose banned list applies (output's and journal's). */
   languages: string[];
+  /** The output language; in German every noun is capitalised, so only the
+   *  reported `names` are checked there, not every capital. */
+  language?: string;
+  /** A story may be at least this many words, whatever the notes' length —
+   *  a short note on a day the photos describe (B2688 tuning). */
+  storyFloor?: number;
 };
 
 export type VariantVerdict = { ok: boolean; reasons: string[]; banned: string[] };
@@ -198,6 +208,15 @@ function numbersIn(text: string): Set<string> {
   return new Set(Array.from(text.matchAll(NUMBER_PATTERN), (m) => m[0]));
 }
 
+/** A word's stem is in `stems`, or a cited word shares its first four
+ *  letters both ways — "Heute" for a note's "heut", "Bus" for "bus". */
+function grounded(word: string, stems: Set<string>, citedWords: string[]): boolean {
+  if (stems.has(stem(word))) return true;
+  const n = normalise(word);
+  if (n.length < 4) return false;
+  return citedWords.some((w) => w.length >= 4 && w.startsWith(n.slice(0, 4)) && n.startsWith(w.slice(0, 4)));
+}
+
 function unitsIn(text: string): Set<string> {
   return new Set(Array.from(text.matchAll(UNIT_PATTERN), (m) => m[0].toLowerCase()));
 }
@@ -224,13 +243,6 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
   const voiceNumbers = numbersIn(voiceAll);
   const dateNames = namesOfDate(ctx.date);
   const whole = variantText(variant);
-  // Words the variant itself writes in lowercase somewhere — a capital on
-  // one of these at a sentence start is grammar, not a name.
-  const lowerWords = new Set(
-    Array.from(whole.matchAll(WORD_PATTERN), (m) => m[0])
-      .filter((w) => !CAPITALISED.test(w))
-      .map(normalise),
-  );
   const sentences = sentencesOf(variant);
 
   if (sentences.length === 0) reasons.push(`${which}: empty`);
@@ -247,6 +259,7 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
     const cited = sentence.sources.map((id) => byId.get(id)!);
     const citedText = cited.map((i) => i.text).join("\n");
     const citedStems = wordStems(citedText);
+    const citedWords = Array.from(citedText.matchAll(WORD_PATTERN), (m) => normalise(m[0]));
     const citedNotes = cited.filter((i) => isNote(i.id)).map((i) => i.text).join("\n");
 
     // 3 — clock times only from the owner's own words; then strip them so
@@ -268,6 +281,17 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
       if (!citedUnits.has(u)) reasons.push(`${label} unit ${u} not in its sources`);
     }
 
+    // 2 — every name the model reports, word by word, from its own sources.
+    for (const name of sentence.names ?? []) {
+      for (const m of name.matchAll(WORD_PATTERN)) {
+        const w = m[0];
+        if (normalise(w).length <= 1) continue;
+        if (voiceStems.has(stem(w)) && !packStems.has(stem(w))) reasons.push(`${label} "${w}" only in a voice sample`);
+        else if (!grounded(w, citedStems, citedWords)) reasons.push(`${label} name "${w}" not in its sources`);
+      }
+    }
+    const nounsCapitalised = ctx.language === "de";
+
     const words = Array.from(text.matchAll(WORD_PATTERN), (m) => m[0]);
     for (const [index, word] of words.entries()) {
       const n = normalise(word);
@@ -283,17 +307,20 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
         continue;
       }
       if (!CAPITALISED.test(word) || n.length <= 1) continue;
-      // A sentence's first word is capitalised by grammar, not because it
-      // is a name: a short function word, or one the variant also writes in
-      // lowercase, is not checked as a name.
-      if (index === 0 && (n.length <= 3 || lowerWords.has(n))) continue;
+      // A sentence's first word is capitalised by grammar, and in German so
+      // is every noun: there the reported names above are the check. Only a
+      // word that is already somewhere in the pack can pass as a first word.
+      if (nounsCapitalised && !voiceStems.has(s)) continue;
+      if (index === 0 && n.length <= 3) continue;
       // 6 — a name only a voice sample has is a leak, whatever it cites.
       if (voiceStems.has(s) && !packStems.has(s)) {
         reasons.push(`${label} "${word}" only in a voice sample`);
         continue;
       }
-      if (citedStems.has(s)) continue;
-      if (index === 0 && packStems.has(s)) continue;
+      if (grounded(word, citedStems, citedWords)) continue;
+      // A first word is capitalised by grammar; a name there is caught by
+      // the reported names above.
+      if (index === 0) continue;
       reasons.push(`${label} "${word}" not in its sources`);
     }
   }
@@ -305,7 +332,7 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
   // 7 — length.
   const base = ownerWordCount(ctx.items);
   const words = wordCount(whole);
-  const cap = which === "story" ? base * 3 : Math.max(12, Math.ceil(base * 1.3) + 3);
+  const cap = which === "story" ? Math.max(base * 3, ctx.storyFloor ?? 0) : Math.max(12, Math.ceil(base * 1.3) + 3);
   if (words > cap) reasons.push(`${which}: ${words} words, at most ${cap}`);
 
   // 4 — banned phrases, kept apart for the one retry.
@@ -314,8 +341,12 @@ export function checkVariant(ctx: GuardContext, variant: ComposeVariant, which: 
   return { ok: reasons.length === 0 && banned.length === 0, reasons, banned };
 }
 
-/** Under this many owner words a story is padding — forced to null. */
+/** Under this many owner words a story is padding — forced to null — unless
+ *  the photos describe the day (`STORY_MIN_SEEN` described photos or more). */
 export const STORY_MIN_WORDS = 25;
+export const STORY_MIN_SEEN = 3;
+/** The words a photo-told story may use when the notes are short. */
+export const STORY_FLOOR_WORDS = 70;
 
 /** Guard 8 — titles grounded in the pack; a quote must be in the notes.
  *  Returns the kept titles and why any were dropped. */

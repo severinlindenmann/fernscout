@@ -72,7 +72,8 @@ function escapeXml(s: string): string {
 function splitNotes(text: string): string[] {
   return text
     .split(/\r?\n+/)
-    .flatMap((line) => line.split(/(?<=[.!?])\s+(?=\S)/))
+    // Not after a digit: "Der 60. Geburtstag" is one note, not two.
+    .flatMap((line) => line.split(/(?<=[^\d\s][.!?])\s+(?=\S)/))
     .map((s) => s.trim())
     .filter(Boolean);
 }
