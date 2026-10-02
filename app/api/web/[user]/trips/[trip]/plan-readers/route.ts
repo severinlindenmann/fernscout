@@ -15,6 +15,7 @@ import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { readTripFile } from "@/lib/api/v2/store";
 import { PLAN_READERS } from "@/lib/tripWrite";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,9 @@ export async function PATCH(
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const body = (await request.json().catch(() => null)) as { readers?: unknown } | null;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null) as { readers?: unknown } | null;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }

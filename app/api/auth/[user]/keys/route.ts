@@ -12,6 +12,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { fail, ok } from "@/lib/api/v2/route";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -213,7 +214,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/auth
   const caller = await guard(user, request);
   if (caller instanceof Response) return caller;
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const id = typeof body.revoke === "string" ? body.revoke : "";
   if (!id) {
     return fail("invalid_request", 'Send {"revoke": "<key id>"}.', undefined, 400);

@@ -1,5 +1,6 @@
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { listMessages, recipientHash } from "@/lib/messages/log";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  const body = (await request.json().catch(() => null)) as { query?: unknown } | null;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null) as { query?: unknown } | null;
   const query = (typeof body?.query === "string" ? body.query : "").trim().slice(0, 320);
   if (!query) return Response.json({ rows: [] });
 

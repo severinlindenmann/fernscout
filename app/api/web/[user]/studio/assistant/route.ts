@@ -8,6 +8,7 @@
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { isAssistantChoice, ASSISTANT_CHOICES, readAssistantChoice, writeAssistantChoice } from "@/lib/studio/assistantChoice";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,9 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
   const refused = await gate(request, user);
   if (refused) return refused;
 
-  const body = (await request.json().catch(() => null)) as { assistant?: unknown } | null;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? null) as { assistant?: unknown } | null;
   if (!isAssistantChoice(body?.assistant)) {
     return Response.json(
       { error: "invalid_assistant", message: `assistant must be one of: ${ASSISTANT_CHOICES.join(", ")}.` },

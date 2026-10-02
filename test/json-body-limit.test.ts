@@ -4,35 +4,27 @@ import { describe, expect, test } from "vitest";
 import { JSON_BODY_MAX_BYTES, readJsonBody } from "@/lib/api/jsonBody";
 
 /**
- * B2243 — every JSON door under `/api/v2/**` and `/api/helper/**` reads its
- * body through `readJson` or `readJsonBody`, both held to
- * `JSON_BODY_MAX_BYTES`. The v2 OpenAPI document promises a 413 on every
- * JSON operation because of this; a route that goes back to a bare
- * `request.json()` would make that promise false.
+ * B2243, B2261 — every JSON door reads its body through `readJson`,
+ * `readJsonBody` or `readBoundedJson`, all held to a ceiling. The v2 OpenAPI
+ * document promises a 413 on every JSON operation because of this; a route
+ * that goes back to a bare `request.json()` would make that promise false.
  *
  * Derived from the tree, not a list: a new route file is covered the moment
- * it exists.
+ * it exists. Every route root — the app's and the private clone's.
  */
-const ROOTS = ["app/api/v2", "app/api/helper"];
-
-/** Not JSON-bounded on purpose, each with its own limit. */
-const OWN_LIMIT: Record<string, string> = {
-  "app/api/v2/[user]/import/route.ts":
-    "a years-long export arrives as JSON text; bounded by REQUEST_MAX_BYTES on Content-Length instead",
-};
+const ROOTS = ["app", "paid"].filter((root) => fs.existsSync(root));
 
 function routeFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const p = path.join(dir, entry.name);
-    if (entry.isDirectory()) return routeFiles(p);
+    if (entry.isDirectory()) return entry.name === "node_modules" ? [] : routeFiles(p);
     return entry.name === "route.ts" ? [p] : [];
   });
 }
 
 describe("JSON request bodies have a ceiling", () => {
-  test("no v2 or helper route parses a body with a bare request.json()", () => {
+  test("no route parses a body with a bare request.json()", () => {
     const offenders = ROOTS.flatMap(routeFiles)
-      .filter((file) => !(file in OWN_LIMIT))
       .filter((file) => /\b(request|req)\.json\(\)/.test(fs.readFileSync(file, "utf8")));
     expect(offenders).toEqual([]);
   });
@@ -61,5 +53,38 @@ describe("JSON request bodies have a ceiling", () => {
     const result = await readJsonBody(request);
     expect(result.ok).toBe(false);
     expect(request.bodyUsed).toBe(false);
+  });
+});
+
+describe("the doors outside v2 answer 413 over the ceiling", () => {
+  const big = () =>
+    new Request("https://t.test/x", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": String(JSON_BODY_MAX_BYTES + 1) },
+      body: "{}",
+    });
+
+  test("public doors that read the body before any capability gate", async () => {
+    const { POST: push, DELETE: unsubscribe } = await import("@/app/api/push/subscribe/route");
+    const { POST: react } = await import("@/app/api/reactions/route");
+    for (const handler of [push, unsubscribe, react]) {
+      expect((await handler(big())).status).toBe(413);
+    }
+  });
+
+  test("a chunked import body, which declares no Content-Length, is counted", async () => {
+    const { readBoundedJson } = await import("@/lib/api/jsonBody");
+    const { REQUEST_MAX_BYTES } = await import("@/lib/validate/media");
+    const chunk = new Uint8Array(1024 * 1024).fill(32);
+    let sent = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(c) {
+        if (sent++ > REQUEST_MAX_BYTES / chunk.byteLength + 1) return c.close();
+        c.enqueue(chunk);
+      },
+    });
+    const request = new Request("https://t.test/x", { method: "POST", body, duplex: "half" } as RequestInit);
+    expect(request.headers.get("content-length")).toBeNull();
+    expect(await readBoundedJson(request, REQUEST_MAX_BYTES)).toEqual({ tooLarge: true });
   });
 });

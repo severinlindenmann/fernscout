@@ -2,6 +2,7 @@ import { isInstanceAdmin } from "@/lib/adminGate";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isSwitchedOff, listSwitches, setSwitch, SwitchRefused } from "@/lib/messages/switches";
 import { TEMPLATES, type TemplateId } from "@/lib/messages/registry";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const key = typeof body.key === "string" ? body.key : "";
   const off = body.off === true;
   if (!key) {

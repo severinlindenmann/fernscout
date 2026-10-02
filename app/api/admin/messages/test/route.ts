@@ -6,6 +6,7 @@ import { logMessage } from "@/lib/messages/log";
 import { composePreview, isPreviewable, PREVIEW_LOCALES, type PreviewLocale } from "@/lib/messages/fixtures";
 import { TEMPLATES, templateDef, type TemplateId } from "@/lib/messages/registry";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "no_admin_address", message: "FERNSCOUT_ADMIN_EMAIL is not set." }, { status: 400 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  const bodyRead = await readJsonBody(request);
+  if (!bodyRead.ok) return bodyRead.response;
+  const body = (bodyRead.value ?? {}) as Record<string, unknown>;
   const template = body.template as TemplateId | undefined;
   const locale = (typeof body.locale === "string" ? body.locale : "en") as PreviewLocale;
   if (!template || !(template in TEMPLATES) || templateDef(template).channel !== "mail") {
