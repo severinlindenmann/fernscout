@@ -5,6 +5,7 @@ import { contentRoot } from "./contentRoot";
 import { ID_RE } from "./tripWrite";
 import { forgetEntries } from "./entries";
 import { getTrip, tripDir, tripRef } from "./trips";
+import { clearTripTombstone } from "./tombstones";
 import { getDatabase, TABLE_NAMES } from "./db";
 import { sql } from "kysely";
 
@@ -168,6 +169,10 @@ export async function renameTrip(
 
   forgetEntries(tripRef(username, oldId));
   forgetEntries(tripRef(username, newId));
+
+  // B2672: renaming onto a tombstoned id is the same reclaim createTrip
+  // already does for a fresh id.
+  clearTripTombstone(username, newId);
 
   return { ok: true, id: newId };
 }

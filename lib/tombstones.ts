@@ -152,3 +152,20 @@ export function clearTombstone(username: string): void {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
   }
 }
+
+/**
+ * Remove a trip's tombstone — B2672, the trip-level mirror of
+ * `clearTombstone` above. The same owner reclaiming the same id, by creating
+ * a trip or renaming one onto it, has made the reservation do its job; a
+ * tombstone left behind would keep `proxy.ts`'s `goneFor()` answering `410`
+ * for a trip that now exists again.
+ */
+export function clearTripTombstone(username: string, tripId: string): void {
+  const file = tripPath(username, tripId);
+  if (!file) return;
+  try {
+    fs.unlinkSync(file);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+}

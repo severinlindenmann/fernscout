@@ -25,6 +25,7 @@ import {
   SKIN,
 } from "./travellers/vocabulary";
 import { TRACKS, parseTracks, tracksLines } from "./tracks";
+import { clearTripTombstone } from "./tombstones";
 import { getTrip, MAX_TRIP_PEOPLE, isPersonEmail, tripRef } from "./trips";
 import { getUser } from "./users";
 import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
@@ -1489,6 +1490,12 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
         " This is a bug; please report it.",
     };
   }
+
+  // B2672: this id is live again under the same owner — the same reasoning
+  // `clearTombstone` already applies to a recreated journal. Every caller
+  // benefits (the helper trip route, `lib/extract/commit.ts`,
+  // `lib/polarsteps/api.ts`), since they all go through this one function.
+  clearTripTombstone(username, id);
 
   return { ok: true, id, ref };
 }
