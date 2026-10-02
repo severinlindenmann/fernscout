@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "86959a7c2e7e9acebc83439f8f53c773eed8a548",
+  "generatedFrom": "1b5a5a6d66204eb57f236345977dffe7e1d08310",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -474,10 +474,13 @@
     "photobook.read.changedFirst",
     "photobook.read.changedSince",
     "photobook.read.changedSince.one",
+    "photobook.read.editShort",
     "photobook.read.editStop",
     "photobook.read.heading",
+    "photobook.read.headingShort",
+    "photobook.read.hintShort",
     "photobook.read.order",
-    "photobook.read.phoneHint",
+    "photobook.read.orderPrice",
     "photobook.reader.failed",
     "photobook.reader.start",
     "photobook.readerBought.body",

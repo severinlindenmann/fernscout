@@ -762,7 +762,6 @@
   "photobook.order.check.textFits": "A szöveg minden oldalon elfér",
   "photobook.order.check.textFitsNo": "Néhány nap szövege rövidítve fér el az oldalon — nyisd meg az adott napot, és adj neki még egy oldalt.",
   "photobook.print.noFilesFailed": "Ez a könyv nem készült el, így nincs mit letölteni.",
-  "photobook.read.phoneHint": "Görgess végig a könyvön. Egy oldalt csippentéssel nagyíthatsz; az alsó sáv mindig megnevezi az épp látott oldal megállóját.",
   "photobook.status.buildFailed": "Nem készült el",
   "photobook.status.building": "Készül",
   "photobook.status.awaitingPayment": "Fizetésre vár",
@@ -3787,7 +3786,6 @@
   "photobook.order.more.startOverSub": "nyelv, terjedelem és formátum újra · előbb megkérdez",
   "photobook.order.more.resetSub": "az oldalakon végzett módosításaid elvesznek · előbb megkérdez",
   "photobook.order.bookDetails": "A könyv adatai",
-  "photobook.order.passSub": "{spreads} oldalpár · körülbelül {minutes} perc",
   "photobook.order.checksOkShort": "Nyomdai minőség ellenőrizve",
   "photobook.order.checksDetails": "Részletek",
   "photobook.order.done.see": "Megnézve",
@@ -4733,5 +4731,9 @@
   "studio.published.pageTitle": "Közzétéve",
   "photobook.first.skipShort": "Kihagyás ›",
   "photobook.first.coverMore": "+{count} további",
-  "photobook.order.passButton": "Oldalanként szerkesztés · kb. {minutes} perc"
+  "photobook.order.passButton": "Oldalanként szerkesztés · kb. {minutes} perc",
+  "photobook.read.headingShort": "A könyved",
+  "photobook.read.hintShort": "Lapozz végig · két ujjal nagyíts",
+  "photobook.read.editShort": "Szerkesztés",
+  "photobook.read.orderPrice": "Könyv megrendelése · {price}"
 }

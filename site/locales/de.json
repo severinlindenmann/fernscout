@@ -773,7 +773,6 @@
   "photobook.order.check.textFits": "Der Text passt auf jede Seite",
   "photobook.order.check.textFitsNo": "Einzelne Tage werden gekürzt, damit sie auf die Seite passen — öffne einen Tag und gib ihm eine zweite.",
   "photobook.print.noFilesFailed": "Dieses Buch wurde nie gemacht, es gibt also nichts herunterzuladen.",
-  "photobook.read.phoneHint": "Scrolle durch das Buch. Zum Vergrößern eine Seite aufziehen; der Balken unten nennt den Stopp der Seite, auf der du bist.",
   "photobook.status.buildFailed": "Nicht gemacht",
   "photobook.status.building": "Wird gemacht",
   "photobook.status.awaitingPayment": "Wartet auf Zahlung",
@@ -3786,7 +3785,6 @@
   "photobook.order.more.startOverSub": "Sprache, Umfang, Format neu wählen · fragt zuerst",
   "photobook.order.more.resetSub": "deine Änderungen an Seiten gehen verloren · fragt zuerst",
   "photobook.order.bookDetails": "Buchdetails",
-  "photobook.order.passSub": "{spreads} Doppelseiten · etwa {minutes} Minuten",
   "photobook.order.checksOkShort": "Druckqualität geprüft",
   "photobook.order.checksDetails": "Details",
   "photobook.order.done.see": "Angesehen",
@@ -4732,5 +4730,9 @@
   "studio.published.pageTitle": "Veröffentlicht",
   "photobook.first.skipShort": "Überspringen ›",
   "photobook.first.coverMore": "+{count} weitere",
-  "photobook.order.passButton": "Seite für Seite bearbeiten · etwa {minutes} Min."
+  "photobook.order.passButton": "Seite für Seite bearbeiten · etwa {minutes} Min.",
+  "photobook.read.headingShort": "Dein Buch",
+  "photobook.read.hintShort": "Durchblättern · Seite mit zwei Fingern vergrössern",
+  "photobook.read.editShort": "Bearbeiten",
+  "photobook.read.orderPrice": "Dieses Buch bestellen · {price}"
 }
