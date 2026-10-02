@@ -291,6 +291,12 @@ export type SessionStats = {
  * B935, B936 and B968 were each a proposal no press could accept, and all
  * three were found by a person driving the live site rather than by anything
  * that counted.
+ *
+ * **A press counts only against a proposal** of the same tool in the same
+ * conversation (B2695); a refusal always counts. Every write through a helper route records a press,
+ * and since the studio writes through those routes too, counting them all
+ * read 21 presses of 4 proposals — 525%. A write nobody proposed is the
+ * owner using the studio, not an answer to the helper.
  */
 export async function sessionStats(since: string): Promise<SessionStats[]> {
   try {
@@ -304,6 +310,15 @@ export async function sessionStats(since: string): Promise<SessionStats[]> {
 
     type Building = SessionStats & { seen: Set<string>; fired: Map<string, number> };
     const byOwner = new Map<string, Building>();
+    // What each conversation proposed, per tool, still waiting for a press.
+    const waiting = new Map<string, number>();
+    const key = (session: string, tool: string) => `${session}\u0000${tool}`;
+    for (const row of rows) {
+      if (row.kind !== "turn" || row.proposed === "") continue;
+      for (const tool of row.proposed.split(",")) {
+        waiting.set(key(row.session_id, tool), (waiting.get(key(row.session_id, tool)) ?? 0) + 1);
+      }
+    }
     for (const row of rows) {
       let stat = byOwner.get(row.owner_id);
       if (!stat) {
@@ -326,10 +341,17 @@ export async function sessionStats(since: string): Promise<SessionStats[]> {
         stat.turns += 1;
         if (row.proposed !== "") stat.proposed += row.proposed.split(",").length;
         if (row.guard !== "") stat.fired.set(row.guard, (stat.fired.get(row.guard) ?? 0) + 1);
-      } else if (row.ok) {
-        stat.pressed += 1;
       } else {
-        stat.refused += 1;
+        // Every refusal counts — it is a write the server would not make,
+        // whoever asked — and leaves the proposal standing for a retry.
+        if (!row.ok) {
+          stat.refused += 1;
+          continue;
+        }
+        const left = waiting.get(key(row.session_id, row.proposed)) ?? 0;
+        if (left === 0) continue;
+        waiting.set(key(row.session_id, row.proposed), left - 1);
+        stat.pressed += 1;
       }
     }
 

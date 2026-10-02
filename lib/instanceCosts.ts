@@ -2,7 +2,7 @@ import "server-only";
 import { loadServerConfig } from "./config";
 import { getDatabaseOrNull } from "./db";
 import { crossRate } from "./currency";
-import { paymentsAwaiting, paymentsPaidSince, takings, type Payment } from "@paid/billing/lib/payments";
+import { paymentsPaidSince, takings, type Payment } from "@paid/billing/lib/payments";
 import { loadEcbRates } from "./rates";
 import { getUsernames } from "./users";
 import {
@@ -482,9 +482,6 @@ export function byOperation(
 /** @public open core: paid/ uses this (tagged by open-core/split). */
 export type Dashboard = {
   since: string;
-  /** Purchases still waiting for the operator to approve — B774. The queue
-   *  this page exists to surface; empty is the normal state. */
-  awaiting: Payment[];
   /** Purchases settled in the window, newest first. */
   paid: Payment[];
   /** What those came to, in rappen, with admin grants excluded. */
@@ -503,12 +500,11 @@ export type Dashboard = {
 
 /** The whole page, in one call. */
 export async function dashboard(since: string): Promise<Dashboard> {
-  const [totals, print, sends, journals, awaiting, paid] = await Promise.all([
+  const [totals, print, sends, journals, paid] = await Promise.all([
     usageSince(since),
     printCosts(since),
     sendCounts(since),
     journalRows(since),
-    paymentsAwaiting(),
     paymentsPaidSince(since),
   ]);
   const providers = priceUsage(totals);
@@ -519,7 +515,6 @@ export async function dashboard(since: string): Promise<Dashboard> {
   );
   return {
     since,
-    awaiting,
     paid,
     takenRappen: takings(paid),
     providers,
