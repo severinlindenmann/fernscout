@@ -623,7 +623,7 @@ describe("deleting a journal", () => {
       .values({
         id: "pay-1",
         owner_id: user,
-        credits: 30,
+        units: 30,
         amount_rappen: 4500,
         status: "paid",
         method: "card",
@@ -661,11 +661,11 @@ describe("deleting a journal", () => {
 
     const payment = await db.selectFrom("payments").selectAll().where("id", "=", "pay-1").executeTakeFirst();
     expect(payment).toBeTruthy();
-    // Kept: the bookkeeping facts — amount, credits bought, status, method,
+    // Kept: the bookkeeping facts — amount, units bought, status, method,
     // both dates and the Stripe reference.
     expect(payment).toMatchObject({
       amount_rappen: 4500,
-      credits: 30,
+      units: 30,
       status: "paid",
       method: "card",
       created_at: now,

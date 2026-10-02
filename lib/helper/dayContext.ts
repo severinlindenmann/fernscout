@@ -72,24 +72,25 @@ function escapeXml(s: string): string {
 function splitNotes(text: string): string[] {
   return text
     .split(/\r?\n+/)
-    .flatMap((line) => line.split(/(?<=[.!?])\s+(?=\S)/))
+    // Not after a digit: "Der 60. Geburtstag" is one note, not two.
+    .flatMap((line) => line.split(/(?<=[^\d\s][.!?])\s+(?=\S)/))
     .map((s) => s.trim())
     .filter(Boolean);
 }
 
+// Whole degrees, and rain or wind only when there was enough to matter: a
+// story read "bei 9 bis 24.1°C, 0.2mm, wind up to 11km/h" (B2688 eval).
 function weatherText(w: DayWeather): string {
   const parts: string[] = [];
-  if (w.tempMin !== undefined || w.tempMax !== undefined) {
-    parts.push(
-      w.tempMin !== undefined && w.tempMax !== undefined && w.tempMin !== w.tempMax
-        ? `${w.tempMin}–${w.tempMax}°C`
-        : `${w.tempMax ?? w.tempMin}°C`,
-    );
+  const min = w.tempMin === undefined ? undefined : Math.round(w.tempMin);
+  const max = w.tempMax === undefined ? undefined : Math.round(w.tempMax);
+  if (min !== undefined || max !== undefined) {
+    parts.push(min !== undefined && max !== undefined && min !== max ? `${min}–${max}°C` : `${max ?? min}°C`);
   }
   const group = weatherGroup(w.code);
   if (group) parts.push(group);
-  if (w.precipitation !== undefined) parts.push(`${w.precipitation}mm precipitation`);
-  if (w.windMax !== undefined) parts.push(`wind up to ${w.windMax}km/h`);
+  if (w.precipitation !== undefined && w.precipitation >= 5) parts.push(`${Math.round(w.precipitation)}mm precipitation`);
+  if (w.windMax !== undefined && w.windMax >= 40) parts.push(`wind up to ${Math.round(w.windMax)}km/h`);
   return parts.join(", ");
 }
 
@@ -109,8 +110,9 @@ function companionsOf(trip: Trip): string[] {
 
 /** Travellers if drawn, else people + the owner, else unknown — never
  * guessed beyond that (B2687's own rule). */
+// Travellers are drawn figures (lib/travellers), not a head count — an
+// example trip draws five beside two companions — so only people count.
 function partySizeOf(trip: Trip): number | undefined {
-  if (trip.travellers.length > 0) return trip.travellers.length;
   if (trip.people.length > 0) return trip.people.length + 1;
   return undefined;
 }

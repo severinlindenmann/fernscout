@@ -332,6 +332,24 @@ describe("what the operator can read", () => {
     expect(JSON.stringify(stat)).not.toContain("mach mir");
   });
 
+  test("a write nobody proposed is not a press — B2695", async () => {
+    await recordTurn({ ...TURN, session: "s", proposed: ["start_day"] });
+    // The studio writing through the same routes, twice, with no proposal.
+    await recordPress({ owner: "alex", session: "s", tool: "set_day_words", ok: true });
+    await recordPress({ owner: "alex", session: "s", tool: "add_day", ok: false, error: "date_has_day" });
+    // A refusal leaves the proposal standing; the retry is its press.
+    await recordPress({ owner: "alex", session: "s", tool: "start_day", ok: false, error: "unknown_trip" });
+    await recordPress({ owner: "alex", session: "s", tool: "start_day", ok: true });
+    // A second press of the same proposal is not a second press.
+    await recordPress({ owner: "alex", session: "s", tool: "start_day", ok: true });
+
+    const [stat] = await sessionStats("2000-01-01T00:00:00.000Z");
+    expect(stat.proposed).toBe(1);
+    expect(stat.pressed).toBe(1);
+    // Refusals are the server's answer, whoever asked: both count.
+    expect(stat.refused).toBe(2);
+  });
+
   test("and whether the words are theirs to read", async () => {
     await recordTurn(TURN);
     // On unless somebody said otherwise.

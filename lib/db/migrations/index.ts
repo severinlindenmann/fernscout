@@ -60,6 +60,8 @@ import * as planReminderSends from "./058-plan-reminder-sends";
 import * as printIncludedUsage from "./059-print-included-usage";
 import * as dropCredits from "./060-drop-credits";
 import * as tellChoices from "./061-tell-choices";
+import * as composeOutcomes from "./062-compose-outcomes";
+import * as paymentsUnits from "./063-payments-units";
 
 /**
  * Every migration, listed by hand.
@@ -135,6 +137,8 @@ export const MIGRATIONS: Record<string, Migration> = {
   "059-print-included-usage": printIncludedUsage,
   "060-drop-credits": dropCredits,
   "061-tell-choices": tellChoices,
+  "062-compose-outcomes": composeOutcomes,
+  "063-payments-units": paymentsUnits,
 };
 
 /**

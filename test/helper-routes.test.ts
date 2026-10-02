@@ -266,8 +266,10 @@ describe("the helper routes", () => {
   // Sixty-eight: `tags` (B2675) — the journal's own earlier day tags for the
   // studio's Preview, read from disk with no AI call. Same cookie, same owner
   // check.
-  test("there are sixty-eight of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(68);
+  // Sixty-nine: `day/compose-outcome` (B2693) — whether a composed day was
+  // kept, edited or discarded, counts only. Same cookie, same owner check.
+  test("there are sixty-nine of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(69);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

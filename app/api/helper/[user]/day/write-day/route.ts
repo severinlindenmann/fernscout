@@ -1,6 +1,8 @@
 import { isEnabled } from "@/lib/capabilities";
 import { checkAiDay, recordAiDay } from "@paid/billing/lib/aiDays";
-import { buildDayContext } from "@/lib/helper/dayContext";
+import { buildDayContext, renderDayPack } from "@/lib/helper/dayContext";
+import { ComposeRejected, composeDay } from "@/lib/helper/compose";
+import { tagsUsedBefore } from "@/lib/studio/tagsUsedBefore";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import {
   HELPER_PROVIDER,
@@ -108,6 +110,125 @@ async function resolvePhotoImages(user: string, photoIds: string[]): Promise<Pho
   return images;
 }
 
+const ANSWERS_MAX = 3;
+const ANSWER_MAX_CHARS = 500;
+const EXISTING_TAGS_MAX = 40;
+
+/**
+ * `mode: "compose"` — B2688. `{trip, slug, answers?}` in; the day's facts
+ * come from `buildDayContext` here on the server, never from the client.
+ * Same gates in the same order as every other mode (rate limit above, then
+ * cheap input checks, consent, idempotency, the AI day, the model), and the
+ * same refund rule: an AI day is recorded only once a variant survived its
+ * guards (`lib/helper/composeGuard.ts`).
+ *
+ * Consent is `words` only. No photograph leaves the machine here: what the
+ * pack carries about a picture is its already-written description text and
+ * the owner's own caption — words the `photos` consent already covered when
+ * the description was made.
+ */
+async function compose(user: string, tripId: string, body: Record<string, unknown>): Promise<Response> {
+  const slug = text(body.slug);
+  if (slug === "") {
+    refused(user, "draft_words", "no_slug");
+    return Response.json({ error: "no_slug", message: "compose needs the day's slug." }, { status: 400 });
+  }
+  const rawAnswers = body.answers ?? [];
+  if (
+    !Array.isArray(rawAnswers) ||
+    rawAnswers.length > ANSWERS_MAX ||
+    rawAnswers.some((a) => typeof a !== "string" || a.length > ANSWER_MAX_CHARS)
+  ) {
+    refused(user, "draft_words", "invalid_answers");
+    return Response.json(
+      {
+        error: "invalid_answers",
+        message: `answers is at most ${ANSWERS_MAX} strings of at most ${ANSWER_MAX_CHARS} characters each.`,
+        maxCount: ANSWERS_MAX,
+        maxChars: ANSWER_MAX_CHARS,
+      },
+      { status: 400 },
+    );
+  }
+  const answers = (rawAnswers as string[]).map((a) => a.trim()).filter((a) => a !== "");
+
+  const pack = buildDayContext(user, tripId, slug, { voiceSamples: 2 });
+  if (!pack) {
+    refused(user, "draft_words", "unknown_day");
+    return Response.json({ error: "unknown_day" }, { status: 404 });
+  }
+  const words = [...pack.notes.map((n) => n.text), ...answers].join(" ");
+  if (words.trim() === "" && pack.photos.length === 0) {
+    refused(user, "draft_words", "no_notes");
+    return Response.json({ error: "no_notes" }, { status: 400 });
+  }
+  // B2223 — the same input ceiling as the other modes, measured on what
+  // the server itself would send.
+  if (words.length > WRITE_DAY_NOTES_MAX_CHARS) {
+    refused(user, "draft_words", "notes_too_long");
+    return Response.json(
+      {
+        error: "notes_too_long",
+        message: `Notes can be at most ${WRITE_DAY_NOTES_MAX_CHARS} characters; these are ${words.length}.`,
+        maxChars: WRITE_DAY_NOTES_MAX_CHARS,
+      },
+      { status: 413 },
+    );
+  }
+
+  if (!hasHelperConsent(user, "words")) {
+    return Response.json({ error: "consent_required" }, { status: 403 });
+  }
+
+  const supplied = text(body.idempotency_key);
+  const key = supplied === "" ? null : idempotencyKey(user, "helper.write-day", supplied);
+  // The pack is in the fingerprint: the same key after the day's words
+  // changed is a different call, not a replay of the old answer.
+  const fingerprint = fingerprintOf({ mode: "compose", tripId, slug, answers, pack: renderDayPack(pack) });
+  const recalled = await recall<Record<string, unknown>>(key, fingerprint);
+  if (recalled.kind === "replay") return Response.json(recalled.value);
+  if (recalled.kind === "conflict") {
+    return Response.json({ error: "idempotency_conflict" }, { status: 409 });
+  }
+
+  const gate = await checkAiDay(user, tripId, pack.date);
+  if (!gate.ok) {
+    refused(user, "draft_words", "plan_limit");
+    return Response.json(gate.refusal, { status: 402 });
+  }
+
+  let composed;
+  try {
+    composed = await composeDay(pack, {
+      answers,
+      existingTags: tagsUsedBefore(user).slice(0, EXISTING_TAGS_MAX),
+      owner: user,
+    });
+  } catch (error) {
+    if (error instanceof ComposeRejected) {
+      refused(user, "draft_words", "compose_rejected");
+      return Response.json({ error: "compose_rejected", dropped: error.reasons }, { status: 422 });
+    }
+    refused(user, "draft_words", "model_failed");
+    return Response.json({ error: "model_failed" }, { status: 502 });
+  }
+  await recordAiDay(user, tripId, pack.date);
+
+  const answer = {
+    ok: true,
+    language: composed.language,
+    close: composed.close,
+    story: composed.story,
+    tags: tagsFrom(composed.tags),
+    missing: composed.missing,
+    dropped: composed.dropped,
+    aiDay: pack.date,
+    provider: HELPER_PROVIDER,
+  };
+  await remember(key, fingerprint, answer);
+  return Response.json(answer);
+}
+
 export async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/write-day">,
@@ -140,6 +261,8 @@ export async function POST(
     refused(user, "draft_words", "unknown_trip");
     return Response.json({ error: "unknown_trip" }, { status: 404 });
   }
+
+  if (text(body.mode) === "compose") return compose(user, tripId, body);
 
   // `polish` (B2190) reworks the owner's own already-written text; `titles`
   // (TIX-2) suggests up to two short titles from the notes alone;

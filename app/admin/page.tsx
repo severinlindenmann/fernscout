@@ -200,7 +200,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     else if (row.status === "skipped") bucket.skipped += row.count;
   }
   const messageSwitches = await listSwitches();
-  const money = takingsBreakdown(data.paid, data.awaiting);
+  const money = takingsBreakdown(data.paid);
   const stones = allTombstones();
   const byName = new Map(report.journals.map((row) => [row.username, row]));
   const ceiling = loadServerConfig().media.perUserBytes;
@@ -217,7 +217,6 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   );
 
   const raised = attention({
-    awaiting: data.awaiting,
     health: healthNow,
     troubles: troubleRows,
     journals: report.journals,
@@ -275,7 +274,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
             <div className="lg:col-span-2">
               <NeedsYou items={needs} hidden={hidden} acks={acks} health={healthNow} />
             </div>
-            <HealthSummary health={healthNow} troubles={troubleRows} />
+            <HealthSummary health={healthNow} raised={raised} needs={needs} />
           </div>
           <Verdict data={data} daily={daily} paid={paidTwice} days={days} activity={activity} journals={report.journals.length} helper={helper} />
           <div className="mt-5 grid gap-5 lg:grid-cols-3">
@@ -533,18 +532,13 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
 /** The word beside each entry, so a kind is read before its sentence is. */
 const KIND_LABEL: Record<Attend["kind"], string> = {
-  approve: "Approve",
   fault: "Fault",
   backup: "Backup",
   disk: "Disk",
 };
 
-/**
- * Where an entry's fix lives on this page, when it lives here at all. An
- * approval has none on purpose: see `NeedsYou`.
- */
-function whereFixed(item: Attend): { href: string; label: string } | null {
-  if (item.kind === "approve") return null;
+/** Where an entry's fix lives on this page. */
+function whereFixed(item: Attend): { href: string; label: string } {
   if (item.kind === "disk") {
     const name = item.id.slice("disk:".length);
     return { href: `#journals/${encodeURIComponent(name)}`, label: "Open journal" };
@@ -555,14 +549,8 @@ function whereFixed(item: Attend): { href: string; label: string } | null {
 /**
  * Everything that wants a person, first on Overview — B1181, over B774.
  *
- * **It shows, and it cannot approve.** Approval spends a single-use token that
- * was mailed to the operator: nothing reachable over HTTP raises an
- * entitlement. Rendering that token here would put a grant-raising
- * credential into a browser tab, a screenshot and
- * a scrollback — exactly what B425 avoided by putting it in a mailbox — so it
- * is not selected by the query that feeds this, and the entry says where the
- * link is instead of carrying a button. Every other kind links to the section
- * where its fix is.
+ * **It shows, and it never acts.** Every kind links to the section where its
+ * fix is.
  *
  * **Acknowledge and snooze both hide, and neither fixes anything.** An
  * acknowledgement holds until the entry gets worse or goes away; a snooze is
@@ -671,10 +659,12 @@ function NeedsYou({
  * Overview, so "is anything broken" is answered without leaving the page. The
  * Instance section is where each line is in full.
  */
-function HealthSummary({ health, troubles }: { health: Health; troubles: Trouble[] }) {
+function HealthSummary({ health, raised, needs }: { health: Health; raised: Attend[]; needs: Attend[] }) {
   const on = health.capabilities.filter((one) => one.state === "on").length;
   const off = health.capabilities.filter((one) => one.state === "off").length;
   const faults = health.capabilities.filter((one) => one.state === "fault").length;
+  const open = needs.filter((one) => one.kind === "fault").length;
+  const answered = raised.filter((one) => one.kind === "fault").length - open;
   const lines: { label: string; detail: string; tone: "ok" | "bad" | "quiet" }[] = [
     {
       label: "Deployed",
@@ -695,9 +685,12 @@ function HealthSummary({ health, troubles }: { health: Health; troubles: Trouble
         health.backup.secondary.state === "ok" ? "ok" : health.backup.secondary.state === "unknown" ? "quiet" : "bad",
     },
     {
+      // B2695 — what is still open, the same reading as the band beside it:
+      // an acknowledged fault kept this line red while the band said
+      // "nothing new needs you".
       label: "Faults",
-      detail: String(health.wrong.length + troubles.length),
-      tone: health.wrong.length + troubles.length === 0 ? "ok" : "bad",
+      detail: `${open}${answered ? ` · ${answered} acknowledged` : ""}`,
+      tone: open === 0 ? "ok" : "bad",
     },
     {
       label: "Capabilities",
@@ -1189,20 +1182,13 @@ function TakingsPanel({ money, paid, days }: { money: Takings; paid: Payment[]; 
           </li>
         ))}
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-ink-body">Waiting on you</span>
-          <span className="font-mono text-sm text-ink-strong">
-            {formatChf(money.waitingRappen)}
-            {money.waitingCount > 0 ? ` · ${money.waitingCount}` : ""}
-          </span>
-        </li>
-        <li className="flex items-baseline justify-between gap-3 py-2">
           <span className="text-sm text-ink-body">Refunded</span>
           <span className="font-mono text-sm text-ink-strong">{formatChf(money.refundedRappen)}</span>
         </li>
         <li className="flex items-baseline justify-between gap-3 py-2">
           <span className="text-sm text-ink-body">Given by hand</span>
           <span className="font-mono text-sm text-ink-strong">
-            {money.grantedCredits} credits
+            {money.grantedUnits} units (historical)
           </span>
         </li>
       </ul>
@@ -1405,7 +1391,7 @@ function Purchases({
           <li key={payment.id} className="py-2">
             <div className="flex items-baseline justify-between gap-3">
               <span className="min-w-0 break-words text-sm text-ink-strong">
-                {payment.credits} credits (historical — this instance no longer sells credits)
+                {payment.units} units (historical — this instance no longer sells them)
               </span>
               <span className="shrink-0 font-mono text-sm text-ink-strong">
                 {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}

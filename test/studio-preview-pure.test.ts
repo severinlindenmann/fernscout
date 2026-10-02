@@ -3,7 +3,9 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
 import { addAllAiTags, matchingUsedBeforeTags, mergeTags, tagPhotoIds, TAG_PHOTO_MAX, toggleTag } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer } from "@/lib/studio/languageAnswer";
-import { initialSuggestionState, pickTitle, addCaptions, acceptSpelling } from "@/lib/studio/suggestionState";
+import { initialSuggestionState, pickTitle, applyCompose, undoCompose } from "@/lib/studio/suggestionState";
+import { hashInputs, readComposeCache, writeComposeCache, clearComposeCache } from "@/lib/studio/composeCache";
+import { wordDiff } from "@/lib/studio/wordDiff";
 
 describe("publishAudienceLabel — B2677 the primary button names the audience", () => {
   it("names the reader count for a private/guest day", () => {
@@ -131,13 +133,60 @@ describe("languageAnswer — B2677 remembered per trip", () => {
   });
 });
 
-describe("suggestionState — B2677 nothing applied before a tap", () => {
-  it("starts with the date as the title, captions off, spelling untouched", () => {
-    const s = initialSuggestionState();
-    expect(s).toEqual({ titleChoice: null, captionsOn: false, spellingApplied: false });
+describe("hashInputs/composeCache — B2689 reopening with nothing changed fires no call", () => {
+  const key = { username: "ana", tripId: "italy-2026", slug: "day-1" };
+  beforeEach(() => window.sessionStorage.clear());
+  it("hashes the same inputs to the same value", () => {
+    expect(hashInputs("notes", ["a.jpg"], [])).toBe(hashInputs("notes", ["a.jpg"], []));
   });
-  it("only changes what was explicitly tapped", () => {
-    const s = acceptSpelling(addCaptions(pickTitle(initialSuggestionState(), "A title")));
-    expect(s).toEqual({ titleChoice: "A title", captionsOn: true, spellingApplied: true });
+  it("a different note, photo or answer changes the hash", () => {
+    const base = hashInputs("notes", ["a.jpg"], []);
+    expect(hashInputs("other notes", ["a.jpg"], [])).not.toBe(base);
+    expect(hashInputs("notes", ["a.jpg", "b.jpg"], [])).not.toBe(base);
+    expect(hashInputs("notes", ["a.jpg"], ["an answer"])).not.toBe(base);
+  });
+  it("writes and reads back a cache hit only for the matching hash", () => {
+    const hash = hashInputs("notes", [], []);
+    expect(readComposeCache(key, hash)).toBeNull();
+    writeComposeCache(key, hash, { ok: true });
+    expect(readComposeCache(key, hash)).toEqual({ ok: true });
+    expect(readComposeCache(key, hashInputs("different", [], []))).toBeNull();
+  });
+  it("clearComposeCache removes it", () => {
+    const hash = hashInputs("notes", [], []);
+    writeComposeCache(key, hash, { ok: true });
+    clearComposeCache(key);
+    expect(readComposeCache(key, hash)).toBeNull();
+  });
+});
+
+describe("wordDiff — B2689 'what changed' underlines only the words that differ", () => {
+  it("marks nothing changed when the text is identical", () => {
+    expect(wordDiff("a quiet day", "a quiet day")).toEqual([
+      { text: "a", changed: false },
+      { text: "quiet", changed: false },
+      { text: "day", changed: false },
+    ]);
+  });
+  it("marks an inserted or changed word, keeping the rest unchanged", () => {
+    const diff = wordDiff("train to Ljubljana", "Train to beautiful Ljubljana");
+    expect(diff.map((d) => d.changed)).toEqual([false, false, true, false]);
+  });
+  it("is case/punctuation-insensitive for matching, not for display", () => {
+    const diff = wordDiff("slept most of it", "Slept most of it.");
+    expect(diff.every((d) => !d.changed)).toBe(true);
+    expect(diff[0].text).toBe("Slept");
+  });
+});
+
+describe("suggestionState — B2689 nothing composed is applied before a tap", () => {
+  it("starts with the date as the title and nothing composed applied", () => {
+    const s = initialSuggestionState();
+    expect(s).toEqual({ titleChoice: null, composeApplied: null });
+  });
+  it("only changes what was explicitly tapped, and undo clears it again", () => {
+    const applied = applyCompose(pickTitle(initialSuggestionState(), "A title"), "story");
+    expect(applied).toEqual({ titleChoice: "A title", composeApplied: "story" });
+    expect(undoCompose(applied)).toEqual({ titleChoice: "A title", composeApplied: null });
   });
 });

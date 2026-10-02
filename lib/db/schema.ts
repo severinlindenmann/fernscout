@@ -469,7 +469,11 @@ type DayNotificationsTable = {
 type PaymentsTable = {
   id: string;
   owner_id: string;
-  credits: number;
+  /** The old credit pack's size — renamed from `credits` by B2631 once the
+   *  credit system itself (B2592) and every route that wrote this table
+   *  (B2623) were gone; kept only as a bookkeeping fact on already-settled
+   *  rows, never fed a new one again. */
+  units: number;
   amount_rappen: number;
   status: Generated<string>;
   /** "twint" | "card", null until the mock Pay button is pressed. */
@@ -968,6 +972,21 @@ type PrintIncludedUsageTable = {
   used: Generated<number>;
 };
 
+/**
+ * Whether a composed day was kept, edited or thrown away — B2693. See
+ * migration `062-compose-outcomes`. Counts only; never the text.
+ */
+type ComposeOutcomesTable = {
+  id: string;
+  owner_id: string;
+  /** `close` | `story` | `none` (no variant was used at all). */
+  variant: string;
+  /** `kept` | `edited` | `discarded`. */
+  outcome: string;
+  edit_distance: number;
+  occurred_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -1007,6 +1026,7 @@ export type Database = {
   stripe_customers: StripeCustomersTable;
   print_included_usage: PrintIncludedUsageTable;
   tell_choices: TellChoicesTable;
+  compose_outcomes: ComposeOutcomesTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1048,4 +1068,5 @@ export const TABLE_NAMES = [
   "ai_days",
   "stripe_customers",
   "print_included_usage",
+  "compose_outcomes",
 ] as const satisfies readonly (keyof Database)[];
