@@ -78,8 +78,9 @@ export type Takings = {
   /** Given back. Reported separately rather than netted off, because a refund
    *  is an event worth seeing and a net figure hides it. */
   refundedRappen: number;
-  /** Credits handed over by the operator, which cost the buyer nothing. */
-  grantedCredits: number;
+  /** Units of the old credit pack handed over by the operator, by hand —
+   *  historical only; no route grants these anymore. */
+  grantedUnits: number;
 };
 
 /**
@@ -94,7 +95,7 @@ export function takingsBreakdown(paid: Payment[]): Takings {
   const byMethod = new Map<string, { rappen: number; count: number }>();
   let paidRappen = 0;
   let refundedRappen = 0;
-  let grantedCredits = 0;
+  let grantedUnits = 0;
 
   for (const payment of paid) {
     if (payment.status === "refunded") {
@@ -102,7 +103,7 @@ export function takingsBreakdown(paid: Payment[]): Takings {
       continue;
     }
     if (payment.method === "admin") {
-      grantedCredits += payment.credits;
+      grantedUnits += payment.units;
       continue;
     }
     paidRappen += payment.amountRappen;
@@ -119,7 +120,7 @@ export function takingsBreakdown(paid: Payment[]): Takings {
       .map(([method, row]) => ({ method, ...row }))
       .sort((a, b) => b.rappen - a.rappen),
     refundedRappen,
-    grantedCredits,
+    grantedUnits,
   };
 }
 
@@ -137,7 +138,7 @@ export async function paymentsByOwner(): Promise<Record<string, Payment[]>> {
       .select([
         "id",
         "owner_id",
-        "credits",
+        "units",
         "amount_rappen",
         "status",
         "method",
@@ -154,7 +155,7 @@ export async function paymentsByOwner(): Promise<Record<string, Payment[]>> {
       (found[row.owner_id] ??= []).push({
         id: row.id,
         owner: row.owner_id,
-        credits: row.credits,
+        units: row.units,
         amountRappen: row.amount_rappen,
         status: row.status as Payment["status"],
         method: (row.method as Payment["method"]) ?? null,

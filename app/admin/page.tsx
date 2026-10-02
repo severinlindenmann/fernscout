@@ -1188,7 +1188,7 @@ function TakingsPanel({ money, paid, days }: { money: Takings; paid: Payment[]; 
         <li className="flex items-baseline justify-between gap-3 py-2">
           <span className="text-sm text-ink-body">Given by hand</span>
           <span className="font-mono text-sm text-ink-strong">
-            {money.grantedCredits} credits
+            {money.grantedUnits} units (historical)
           </span>
         </li>
       </ul>
@@ -1391,7 +1391,7 @@ function Purchases({
           <li key={payment.id} className="py-2">
             <div className="flex items-baseline justify-between gap-3">
               <span className="min-w-0 break-words text-sm text-ink-strong">
-                {payment.credits} credits (historical — this instance no longer sells credits)
+                {payment.units} units (historical — this instance no longer sells them)
               </span>
               <span className="shrink-0 font-mono text-sm text-ink-strong">
                 {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}
