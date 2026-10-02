@@ -29,14 +29,8 @@ export async function POST(
   if (!trip) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
 
   const gate = await mayWriteTrip(bearer.session, trip);
-  if (!gate.ok) {
-    return fail(
-      "forbidden",
-      "This token's access to this trip has been revoked. Ask the owner for a new one.",
-      undefined,
-      403,
-    );
-  }
+  // Same answer as a missing trip, so a trip-scoped token cannot enumerate ids (B2219).
+  if (!gate.ok) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
 
   const parsed = await readJson(request);
   if (!parsed.ok) return parsed.response;
