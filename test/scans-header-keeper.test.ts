@@ -118,6 +118,7 @@ describe("every test that reads the source tree declares what it scans", () => {
     // base cannot be held to "exists on disk" there. Everything else stays
     // strict: a real clone always has `app`, `components`, `lib`, and so on.
     const paidPresent = fs.existsSync(path.join(ROOT, "paid"));
+    const skillsPresent = fs.existsSync(path.join(ROOT, ".claude/skills"));
     const files = TEST_DIRS.flatMap(testFiles);
     const bad: string[] = [];
     for (const file of files) {
@@ -130,6 +131,8 @@ describe("every test that reads the source tree declares what it scans", () => {
         const base = glob.split("*")[0].replace(/\/+$/, "");
         if (!base) continue;
         if (!paidPresent && (base === "paid" || base.startsWith("paid/"))) continue;
+        // .claude/skills is a gitignored link to the harness, absent on CI.
+        if (!skillsPresent && base.startsWith(".claude/skills")) continue;
         if (!fs.existsSync(path.join(ROOT, base)) && !fs.existsSync(path.join(ROOT, path.dirname(base)))) {
           bad.push(`${path.relative(ROOT, file)}: @scans path does not exist: ${glob}`);
         }
