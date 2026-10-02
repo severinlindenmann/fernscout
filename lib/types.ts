@@ -337,6 +337,16 @@ export type Entry = {
    * like the absence it is not.
    */
   unrecorded?: Track[];
+  /**
+   * The language this day's own `title`/`content` is written in — B2700.
+   * Absent means the journal's own `defaultLocale`; a day written in a
+   * different language than its journal (compose detects and sets this) is
+   * otherwise assumed to be in the journal's language everywhere a reader's
+   * fallback notice, the translate offer or a translation's source is
+   * decided, which told a Hungarian reader of an English journal her own
+   * Hungarian day was "written in English".
+   */
+  language?: Locale;
 };
 
 /** One calendar day, which may hold several updates ("branches"). */

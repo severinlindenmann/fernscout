@@ -378,6 +378,39 @@ describe("PATCH /api/v2/{user}/trips/{trip}/days/{slug} — merges", () => {
   });
 });
 
+describe("PUT/PATCH /api/v2/{user}/trips/{trip}/days/{slug} — language and ownWords (B2698/B2700)", () => {
+  test("language round-trips: written and read back; absent by default", async () => {
+    const token = await ownerToken();
+    const put = await putDay(TRIP_ID, "2026-06-20-nyelv", fullDayBody("2026-06-20-nyelv", { language: "hu" }), token);
+    expect(put.status, JSON.stringify(put.body)).toBe(201);
+    expect(put.body.language).toBe("hu");
+
+    const got = await getDay(TRIP_ID, "2026-06-20-nyelv", token);
+    expect(got.body.language).toBe("hu");
+
+    const absent = await putDay(TRIP_ID, "2026-06-21-nincs", fullDayBody("2026-06-21-nincs"), token);
+    expect(absent.body.language).toBeUndefined();
+  });
+
+  // The first-write-only guarantee (`applyEditToDay`) is the owner's own
+  // compose flow's rule, enforced on the studio wizard's own door
+  // (`/api/helper/{user}/day`, see `test/helper-day-flow.test.ts`) — this
+  // door is the generic agent contract, so it round-trips the field like
+  // any other; `ownWords` simply has nothing to say by default.
+  test("ownWords round-trips through the owner-gated v2 door; absent from a fresh day with none", async () => {
+    const token = await ownerToken();
+    const put = await putDay(TRIP_ID, "2026-06-22-words", fullDayBody("2026-06-22-words", { ownWords: "We just walked around." }), token);
+    expect(put.status, JSON.stringify(put.body)).toBe(201);
+    expect(put.body.ownWords).toBe("We just walked around.");
+
+    const got = await getDay(TRIP_ID, "2026-06-22-words", token);
+    expect(got.body.ownWords).toBe("We just walked around.");
+
+    const fresh = await putDay(TRIP_ID, "2026-06-23-fresh", fullDayBody("2026-06-23-fresh"), token);
+    expect(fresh.body.ownWords).toBeUndefined();
+  });
+});
+
 describe("PUT /api/v2/{user}/trips/{trip}/days/{slug} — echo-tolerance (V2)", () => {
   test("GET the document, change one field, PUT the whole thing back — it works", async () => {
     const token = await ownerToken();

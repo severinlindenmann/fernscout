@@ -25,6 +25,7 @@ import { defaultLocaleFor, localesFor } from "@/lib/locales";
 import { mediaKey } from "@/lib/photos";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
+import { readDayFile, resolveDayStem } from "@/lib/api/v2/store";
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { parseWeather, weatherFactLine } from "@/lib/weather";
 
@@ -357,14 +358,19 @@ export async function POST(
   // B2675 — the target language, `translate` mode only, checked before
   // consent and before the AI-day gate like every other cheap input check
   // above: a model has no way to know what a journal declares, so this is
-  // the route's own job. Never the journal's own language (`defaultLocale`
-  // — the language a day's own title/content is already written in, the
-  // same reading `exemptSingleLocaleTranslations` gives it, lib/api/v2/write.ts)
-  // and always one `user.locales` actually lists.
+  // the route's own job. Never the language this day's own title/content is
+  // already written in — `defaultLocale` for a day that declares none of
+  // its own (B2700's `language`, read off the stored day by its `slug` when
+  // the caller names one, same as `exemptSingleLocaleTranslations` gives
+  // the journal as a whole, lib/api/v2/write.ts) — and always one
+  // `user.locales` actually lists.
   const toLocale = mode === "translate" ? text(body.to) : "";
   if (mode === "translate") {
     const locales = localesFor(user);
-    const own = defaultLocaleFor(user);
+    const translateSlug = text(body.slug);
+    const storedDay =
+      translateSlug !== "" ? readDayFile(user, tripId, resolveDayStem(user, tripId, translateSlug) ?? translateSlug) : null;
+    const own = storedDay?.language || defaultLocaleFor(user);
     if (toLocale === "" || toLocale === own || !locales.includes(toLocale)) {
       refused(user, "draft_words", "invalid_locale");
       return Response.json(

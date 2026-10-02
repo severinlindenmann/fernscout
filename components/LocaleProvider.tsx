@@ -168,19 +168,25 @@ export default function LocaleProvider({
      * written locale) pair is its own dictionary key instead.
      */
     const localized = (entry: Entry) => {
+      // B2700 — a day's own language, when it declared one (compose
+      // detects and sets it), else the journal's own `defaultLocale`. A
+      // Hungarian day in an English journal used to be read against the
+      // journal's language for this whole function, so a Hungarian reader
+      // of her own Hungarian words was told "written in English".
+      const entryLanguage = entry.language ?? writtenLocale;
       // A day started in the room with no title yet (B1442) has `title: ""`
       // rather than an invented one — every reader falls back to the date it
       // already knows how to format, the same date-only card every other
       // untitled surface here shows, rather than an empty heading.
-      if (locale === writtenLocale) {
+      if (locale === entryLanguage) {
         return { title: entry.title || formatLongDate(entry.date), content: entry.content };
       }
       const tr = entry.translations?.[locale];
-      const title = localizedEntryTitle(entry, locale, writtenLocale);
+      const title = localizedEntryTitle(entry, locale, entryLanguage);
       return {
         title: title || formatLongDate(entry.date),
         content: tr?.content ?? entry.content,
-        fallbackNotice: tr === undefined ? (`fallback.writtenIn.${writtenLocale}` as TranslationKey) : undefined,
+        fallbackNotice: tr === undefined ? (`fallback.writtenIn.${entryLanguage}` as TranslationKey) : undefined,
       };
     };
 

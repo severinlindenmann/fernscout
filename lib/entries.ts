@@ -496,6 +496,7 @@ function readAllEntriesFromDisk(ref: string): Entry[] {
       // records something that happened must not be able to acquire a banner
       // saying it did not because somebody wrote `test: no`.
       test: day.test === true || undefined,
+      language: day.language,
       // B325. `parseWeather` drops anything missing a source or a timestamp,
       // which is the same rule the API applies on the way in — a file edited
       // by hand into a shape the door would have refused must not render as

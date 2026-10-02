@@ -103,6 +103,28 @@ function isDraftEntry(file: string): boolean {
   }
 }
 
+/** Whether `file` is a day file that carries `ownWords` — B2698, see the
+ * `open-to-link` branch above. */
+function ownWordsEntry(file: string): boolean {
+  if (path.extname(file) !== ".json") return false;
+  if (path.basename(path.dirname(file)) !== "entries") return false;
+  try {
+    const data = JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
+    return data.ownWords !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+/** `file`'s own bytes, with `ownWords` removed — same indentation `dayToJson`
+ * writes, so a real export differs from the file on disk by exactly the one
+ * key this scope must not carry. */
+function strippedOwnWords(file: string): string {
+  const data = JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
+  delete data.ownWords;
+  return JSON.stringify(data, null, 2) + "\n";
+}
+
 /**
  * Any path segment beginning with a dot — `.DS_Store` wherever the Finder
  * left one, `.fingerprints/`, `.ingest.json` at a trip's root. Internal
@@ -278,6 +300,19 @@ function appendUserContent(
       // left to filter it through" reasoning applies once it is on a bearer
       // token's own machine.
       if (relative === "recorder-state.json") continue;
+      // B2698 — the owner's own pre-compose words. `entries/*.json` is
+      // copied raw everywhere else in this function (the whole pitch of
+      // this file is "unzip and it's the content folder back"), but
+      // `open-to-link` is the one scope an anonymous reader receives, and
+      // `ownWords` is owner-only by the same rule `track-recent.json` and
+      // `declined` get: no reader-facing gate is left once it is a file on
+      // somebody else's machine. Stripped here, in place of the raw copy,
+      // rather than kept off `Entry` and left on disk unexamined — a day
+      // file is not reconstructed from `Entry` on this path at all.
+      if (scope === "open-to-link" && ownWordsEntry(file)) {
+        archive.append(Buffer.from(strippedOwnWords(file)), { name });
+        continue;
+      }
       archive.file(file, { name });
     }
 

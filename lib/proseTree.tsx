@@ -61,13 +61,16 @@ function walk(node: ReactNode): ProseNode[] {
 /**
  * The window's days with their prose drawn, in the language `locale` reads
  * them in — the same choice `LocaleProvider.localized` makes for the title,
- * through the same `contentFor`.
+ * through the same `contentFor`. `writtenLocale` is the journal's own
+ * `defaultLocale`, the fallback for any entry that declares no `language`
+ * of its own (B2700) — see `LocaleProvider.localized` for why the fallback
+ * is per-entry rather than one locale for the whole window.
  */
 export function withProse(days: Day[], locale: string, writtenLocale: string): StoryDay[] {
   return days.map((day) => {
     const prose: DayProse = {};
     for (const entry of day.entries) {
-      prose[entry.slug] = proseTree(contentFor(entry, locale, writtenLocale));
+      prose[entry.slug] = proseTree(contentFor(entry, locale, entry.language ?? writtenLocale));
     }
     return { ...day, prose };
   });
