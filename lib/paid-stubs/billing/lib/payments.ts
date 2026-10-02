@@ -5,7 +5,7 @@ type PaymentMethod = "twint" | "card" | "admin";
 export type Payment = {
   id: string;
   owner: string;
-  credits: number;
+  units: number;
   amountRappen: number;
   status: PaymentStatus;
   method: PaymentMethod | null;
@@ -15,12 +15,6 @@ export type Payment = {
   providerRef: string | null;
 };
 
-export async function listPayments(_owner: string, _limit = 8): Promise<Payment[]> {
-  return [];
-}
-export async function paymentsAwaiting(): Promise<Payment[]> {
-  return [];
-}
 export async function paymentsPaidSince(_since: string): Promise<Payment[]> {
   return [];
 }

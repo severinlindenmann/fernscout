@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { storyCardFacts, storyCaption, dayNumberOf, storyDayLink, storyPhotos } from "@/lib/storyCard";
+import { storyCardFacts, storyCaption, storyDayLink, storyPhotos, storyShareLink } from "@/lib/storyCard";
 import { segmentLine, segmentStarts, withRenderSlot } from "@/lib/storyVideo";
 import type { Trip } from "@/lib/types";
 import type { DayFile } from "@/lib/api/v2/documents";
@@ -87,16 +87,29 @@ describe("storyCardFacts", () => {
   });
 });
 
-describe("dayNumberOf", () => {
-  test("is 1-based, by position among the trip's own sorted day stems", () => {
-    const stems = ["2025-09-05-a", "2025-09-06-b", "2025-09-07-c"];
-    expect(dayNumberOf(stems, "2025-09-05-a")).toBe(1);
-    expect(dayNumberOf(stems, "2025-09-06-b")).toBe(2);
-    expect(dayNumberOf(stems, "2025-09-07-c")).toBe(3);
+describe("storyCardFacts — headline and sub-line fallback (B2665 round 2)", () => {
+  test("an untitled day's headline is its own place; the sub-line drops the place and keeps only the temperature", () => {
+    const facts = storyCardFacts({ day: baseDay({ title: "" }), dayNumber: 1, tripTitle: "Eighteen days", link: null, locale: "en" });
+    expect(facts.headline).toBe("Zion National Park");
+    expect(facts.subLine).toBe("13–25 °C");
   });
 
-  test("is null for a stem that is not among them, rather than a wrong number", () => {
-    expect(dayNumberOf(["2025-09-05-a"], "2099-01-01-nope")).toBeNull();
+  test("an untitled day with no place falls back to the trip's own title", () => {
+    const facts = storyCardFacts({
+      day: baseDay({ title: "", location: undefined, weather: undefined }),
+      dayNumber: 1,
+      tripTitle: "Eighteen days",
+      link: null,
+      locale: "en",
+    });
+    expect(facts.headline).toBe("Eighteen days");
+    expect(facts.subLine).toBeUndefined();
+  });
+
+  test("a titled day keeps its own place on the sub-line, with the temperature", () => {
+    const facts = storyCardFacts({ day: baseDay(), dayNumber: 1, tripTitle: "T", link: null, locale: "en" });
+    expect(facts.headline).toBe("Up the Narrows");
+    expect(facts.subLine).toBe("Zion National Park · 13–25 °C");
   });
 });
 
@@ -115,6 +128,42 @@ describe("storyDayLink — B2665", () => {
     expect(storyDayLink("alex", "t", "d", trip("public"), baseDay({ status: "draft" }))).toBeNull();
     expect(storyDayLink("alex", "t", "d", trip("public"), baseDay({ visibility: "guest" } as Partial<DayFile>))).toBeNull();
     expect(storyDayLink("alex", "t", "d", undefined, baseDay())).toBeNull();
+  });
+});
+
+describe("storyShareLink — B2665 round 2", () => {
+  const trip = (visibility: string) => ({ visibility }) as unknown as Trip;
+
+  test("a public trip's published day keeps its plain link, read-along or not", async () => {
+    const withReadAlong = await storyShareLink("alex", "t", "d", trip("public"), baseDay(), true);
+    expect(withReadAlong).toMatchObject({ readAlong: false });
+    expect(withReadAlong.url).toMatch(/\/day\/d$/);
+    const without = await storyShareLink("alex", "t", "d", trip("public"), baseDay(), false);
+    expect(without).toEqual(withReadAlong);
+  });
+
+  test("a private trip never carries a link, even if read-along is requested", async () => {
+    expect(await storyShareLink("alex", "t", "d", trip("private"), baseDay(), true)).toEqual({
+      url: null,
+      readAlong: false,
+    });
+  });
+
+  test("a readers-only trip carries nothing unless the caller asked for the read-along link", async () => {
+    expect(await storyShareLink("alex", "t", "d", trip("guest"), baseDay(), false)).toEqual({
+      url: null,
+      readAlong: false,
+    });
+  });
+
+  test("a readers-only trip with no journal to resolve never carries a link even when asked", async () => {
+    // No journal named "alex" exists in this test's environment, so the
+    // feature reads as unavailable — the same answer a journal with
+    // contacts off would give.
+    expect(await storyShareLink("alex", "t", "d", trip("guest"), baseDay(), true)).toEqual({
+      url: null,
+      readAlong: false,
+    });
   });
 });
 
@@ -138,15 +187,22 @@ describe("video segments — B2665", () => {
     { file: "c.jpg" },
   ];
 
-  test("each photo shows its own caption; the last gives its line to the link", () => {
-    expect(segmentLine(segments, 0, "https://t.test/@a/trips/x/day/y")).toBe("The water going over");
-    expect(segmentLine(segments, 1, "https://t.test/@a/trips/x/day/y")).toBe("Steps down into the fog");
-    expect(segmentLine(segments, 2, "https://t.test/@a/trips/x/day/y")).toBe("t.test/@a/trips/x/day/y");
+  test("with captions on, each photo shows its own caption; the last gives its line to the link", () => {
+    expect(segmentLine(segments, 0, "https://t.test/@a/trips/x/day/y", true)).toBe("The water going over");
+    expect(segmentLine(segments, 1, "https://t.test/@a/trips/x/day/y", true)).toBe("Steps down into the fog");
+    expect(segmentLine(segments, 2, "https://t.test/@a/trips/x/day/y", true)).toBe("t.test/@a/trips/x/day/y");
   });
 
-  test("without a link the last photo keeps its own caption, or nothing", () => {
-    expect(segmentLine(segments, 2, undefined)).toBeUndefined();
-    expect(segmentLine([{ file: "a.jpg", caption: "Only one" }], 0, undefined)).toBe("Only one");
+  test("without a link, with captions on, the last photo keeps its own caption, or nothing", () => {
+    expect(segmentLine(segments, 2, undefined, true)).toBeUndefined();
+    expect(segmentLine([{ file: "a.jpg", caption: "Only one" }], 0, undefined, true)).toBe("Only one");
+  });
+
+  test("with captions off, every non-last line is empty; the last still carries the link", () => {
+    expect(segmentLine(segments, 0, "https://t.test/@a/trips/x/day/y", false)).toBeUndefined();
+    expect(segmentLine(segments, 1, "https://t.test/@a/trips/x/day/y", false)).toBeUndefined();
+    expect(segmentLine(segments, 2, "https://t.test/@a/trips/x/day/y", false)).toBe("t.test/@a/trips/x/day/y");
+    expect(segmentLine(segments, 2, undefined, false)).toBeUndefined();
   });
 
   test("the line switches halfway through each crossfade", () => {
@@ -154,20 +210,42 @@ describe("video segments — B2665", () => {
   });
 });
 
-describe("storyCaption — B2677, bug 16", () => {
+describe("storyCaption — B2677 bug 16, reworked B2665 round 2", () => {
+  const day = (title: string, content: string) => ({ title, content });
+
   test("joins the title as a sentence with the day's own first sentence", () => {
-    expect(storyCaption("Up the Narrows", "Walked along the river to Belém. Then home.")).toBe(
+    expect(storyCaption(day("Up the Narrows", "Walked along the river to Belém. Then home."))).toBe(
       "Up the Narrows. Walked along the river to Belém.",
     );
   });
   test("an untitled day opens with the first sentence, never a bare '.'", () => {
-    expect(storyCaption("", "Walked along the river to Belém.")).toBe("Walked along the river to Belém.");
+    expect(storyCaption(day("", "Walked along the river to Belém."))).toBe("Walked along the river to Belém.");
   });
   test("a title already ending in punctuation is not given a second one", () => {
-    expect(storyCaption("Up the Narrows!", "It rained.")).toBe("Up the Narrows! It rained.");
+    expect(storyCaption(day("Up the Narrows!", "It rained."))).toBe("Up the Narrows! It rained.");
   });
   test("no words at all is an empty caption, never invented", () => {
-    expect(storyCaption("", "")).toBe("");
+    expect(storyCaption(day("", ""))).toBe("");
+  });
+  test("a title of punctuation only contributes nothing, same as no title", () => {
+    expect(storyCaption(day(".", "It rained."))).toBe("It rained.");
+    expect(storyCaption(day("…", "It rained."))).toBe("It rained.");
+  });
+  test("content that is only punctuation yields nothing, never a bare '.' or '…'", () => {
+    expect(storyCaption(day("", "."))).toBe("");
+    expect(storyCaption(day("", "…"))).toBe("");
+  });
+  test("a sentence with no terminal punctuation is kept whole, not dropped", () => {
+    expect(storyCaption(day("", "Walked all day and never once stopped to think about it"))).toBe(
+      "Walked all day and never once stopped to think about it",
+    );
+  });
+  test("a very long run without terminal punctuation is trimmed to ~200 chars at a word boundary", () => {
+    const content = `Walked ${"a".repeat(220)} along the river`;
+    const result = storyCaption(day("", content));
+    expect(result.length).toBeLessThanOrEqual(201);
+    expect(result.endsWith("…")).toBe(true);
+    expect(result).not.toContain(" …");
   });
 });
 

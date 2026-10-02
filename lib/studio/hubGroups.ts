@@ -43,7 +43,7 @@ export type Row = {
   /** B2067 — a neutral fact for the chip on the right, only when non-zero. */
   fact?: string;
   /** B2134 — a row of chips in place of the line (Credits & storage): the
-   *  balance, an amber "N open" for a purchase awaiting approval, storage. */
+   *  balance, storage. */
   factLine?: { text: string; amber?: boolean }[];
 };
 
@@ -71,9 +71,6 @@ function storageFact({ usedBytes, limitBytes }: { usedBytes: number; limitBytes:
  */
 export function journalRows(username: string, t: T, tn: TN, locale: string, analyticsEnabled: boolean, account: HubAccount): Row[] {
   const factLine = [
-    ...(account.purchasesOpen
-      ? [{ text: tn("studio.hub.fact.purchasesOpen", account.purchasesOpen, { count: String(account.purchasesOpen) }), amber: true }]
-      : []),
     ...(account.storage ? [{ text: storageFact(account.storage, t, locale) }] : []),
   ];
   return [

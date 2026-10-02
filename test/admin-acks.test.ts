@@ -86,18 +86,6 @@ describe("an acknowledged entry", () => {
     expect(out.shown).toEqual([]);
   });
 
-  test("a purchase filed after the queue was acknowledged shows through", () => {
-    // `level` for the queue is the newest request as a number, so this is the
-    // same rule and not a special case — and it is the one entry where getting
-    // it wrong loses somebody's money in a suppression.
-    const acked = Date.parse("2026-09-08T10:00:00.000Z");
-    const out = applyAcks(
-      [entry({ id: "approve", kind: "approve", level: Date.parse("2026-09-10T08:00:00.000Z") })],
-      [ack({ entryId: "approve", level: acked })],
-    );
-    expect(out.shown.map((one) => one.id)).toEqual(["approve"]);
-  });
-
   test("an older press of the same entry does not hold once it has ended", () => {
     // The history keeps every press, so the same entry legitimately has
     // several rows. Only the live one may hide anything — reading the wrong
@@ -124,7 +112,7 @@ describe("an acknowledged entry", () => {
     // The direction a failure has to fall in: `listAcks` answers with nothing
     // when it cannot read, and a failure to read the suppressions must never
     // look like a suppression.
-    const items = [entry(), entry({ id: "approve", kind: "approve", level: 1 })];
+    const items = [entry(), entry({ id: "disk:eva", kind: "disk", level: 95 })];
     expect(applyAcks(items, []).shown).toHaveLength(2);
   });
 });
