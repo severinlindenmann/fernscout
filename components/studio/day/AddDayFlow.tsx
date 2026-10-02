@@ -252,6 +252,12 @@ export default function AddDayFlow({
     setParts((prev) => (prev ? prev.map((p, idx) => (idx === i ? { ...p, ids: [...new Set([...p.ids, ...added])] } : p)) : prev));
     selectedIdsAtSheetOpen.current = selectedIds;
   }, [selectedIds, photoSheetTarget]);
+  // B2677 — "＋ Add photos" on Preview links back here with `&add=photos`
+  // so its own photo sheet opens over Write rather than Write opening blank.
+  useEffect(() => {
+    if (params.get("add") === "photos") setPhotoSheetTarget("day");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   // B2330 — a photo picked with no server reachable: queued in the outbox as
