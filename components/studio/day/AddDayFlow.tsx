@@ -26,7 +26,9 @@ import type { TellBy } from "@/lib/studio/speak";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
 import { splitIntoParts, type DayPart } from "@/lib/studio/dayParts";
-import { slugify } from "@/lib/slug";
+import { partCommitPlan, titleCollidesWithExisting } from "@/lib/studio/dayCollision";
+import { writePreviewUrl } from "@/lib/studio/previewUrl";
+import { weatherGroup, type DayWeather } from "@/lib/weather";
 
 import { journalPath } from "@/lib/journalPath";
 /** First-run mode (B2188, owner decision D1 "C inside A"): the same page,
@@ -140,8 +142,6 @@ export default function AddDayFlow({
   tellBy = null,
   initialPhotos,
   currencies = [],
-  asPart = null,
-  onSplit,
 }: {
   username: string;
   trips: { id: string; title: string; start: string; end: string }[];
@@ -175,46 +175,25 @@ export default function AddDayFlow({
   initialPhotos?: string;
   /** B2233 — `journalCurrencies`, base first, for a cost line. */
   currencies?: string[];
-  /**
-   * TIX-2 — this composer writes one part of a longer flow (`DayFlow`). Its
-   * photos are exactly `photoIds`, its time starts at `time` (the part's
-   * first photo), a later part of the same date goes in as a second entry,
-   * and saving hands the new day to `onSaved` instead of showing the saved
-   * screen. Polish moves to the flow's check step; the microphone follows the
-   * owner's assistant choice; the first-run steps and the "how do you like to
-   * tell it" question belong to the flow, not to each part.
-   */
-  asPart?: {
-    key: string;
-    photoIds: string[] | null;
-    time: string;
-    /** The part's last photo's time — the end of its stretch of route. */
-    until?: string;
-    secondEntry: boolean;
-    label: string;
-    assistant: boolean;
-    /** B2627 — words typed in the composer before it was split into parts,
-     *  kept for this part alone (the flow hands them to part 1 only). */
-    initialContent?: string;
-    onSaved: (saved: { slug: string; trip: string; date: string }) => void;
-  } | null;
-  /**
-   * B2627 — offered when this instance is the plain composer (no `asPart`,
-   * or `asPart.photoIds` not yet narrowed to one part) and its own chosen
-   * photographs fall into two or more parts by the same rule a waiting-day
-   * card already offers. Called with those parts and the words typed so
-   * far; the flow (`DayFlow`) takes it from there — this composer never
-   * splits by itself.
-   */
-  onSplit?: (parts: DayPart[], content: string) => void;
 }) {
   const { t, tn, formatLongDate } = useI18n();
+  /** `17°, sunny` — the weather chip's own real value, B2676. Metric only:
+   *  a chip is not the place to re-fight `DayWeather.tsx`'s unit handling. */
+  function weatherChipLabel(reading: DayWeather): string {
+    const temp = reading.tempMax ?? reading.tempMin;
+    const tempText = temp !== undefined ? `${Math.round(temp)}°` : "";
+    const group = weatherGroup(reading.code);
+    const groupText = group ? t(`weather.${group}` as TranslationKey).toLowerCase() : "";
+    return [tempText, groupText].filter(Boolean).join(", ") || t("studio.day.chip.weather");
+  }
   const router = useRouter();
   const params = useSearchParams();
   const todayIso = proposal?.today ?? new Date().toISOString().slice(0, 10);
-  const firstRun = !asPart && Object.values(writtenDatesByTrip).every((dates) => dates.length === 0);
-  // TIX-2 — inside the flow, the microphone is the assistant's: off, it is absent.
-  const speech = asPart && !asPart.assistant ? null : speechProp;
+  const firstRun = Object.values(writtenDatesByTrip).every((dates) => dates.length === 0);
+  // B2676 — the microphone follows the `transcription` capability alone
+  // (`speechProp`, read server-side); there is no assistant switch in front
+  // of it any more, and `RecordButton` asks its own per-use consent.
+  const speech = speechProp;
   const proposedToday = proposal?.trip.status === "current" ? proposal.today : "";
 
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -222,8 +201,30 @@ export default function AddDayFlow({
   const [tripOverride, setTripOverride] = useState("");
   const [dateOverride, setDateOverride] = useState("");
   const [collision, setCollision] = useState<ExistingDayOnDate | null>(null);
-  const [time, setTime] = useState(asPart?.time ?? "");
-  const [confirmedSecondEntry, setConfirmedSecondEntry] = useState(asPart?.secondEntry ?? false);
+  const [time, setTime] = useState("");
+  const [confirmedSecondEntry, setConfirmedSecondEntry] = useState(false);
+  // B2676, decision 4 — the date already has a day, asked about inline
+  // rather than only discovered by a 409 at write time. `GET day/for-date`
+  // is asked once per (trip, date); the server's own check at write time
+  // (`collision`/`outcome === "collision"` below) stays the real guard for
+  // the race case.
+  const [existingOnDate, setExistingOnDate] = useState<ExistingDayOnDate | null>(null);
+  const existingAskedFor = useRef<string | null>(null);
+  // B2676, decision 7 — parts stacked on one page rather than stepped
+  // through. `null` is "not split"; split, each part keeps its own words
+  // (`partWords`, index-aligned with `parts`) and its own slice of the
+  // chosen photographs (`part.ids`).
+  const [parts, setParts] = useState<DayPart[] | null>(null);
+  const [partWords, setPartWords] = useState<string[]>([]);
+  // B2676, decision 2 — the status line, and the slug(s) a background save
+  // has already created. `createdSlug` is the base day (part 0, or the
+  // whole day when unsplit); `partSlugs[i]` (i > 0) is each later part's
+  // own entry, filled in only by an explicit Save/Preview — see the Build
+  // notes on why autosave itself stops at the base day.
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+  const [, setPartSlugs] = useState<Record<number, string>>({});
+  const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [weatherReading, setWeatherReading] = useState<DayWeather | null>(null);
 
   const [inboxItems, setInboxItems] = useState<InboxMediaItem[] | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -231,6 +232,24 @@ export default function AddDayFlow({
   // B2232 — brought in for this day: a card's photographs, this visit's uploads.
   const [ownIds, setOwnIds] = useState<string[]>([]);
   const [showAllPhotos, setShowAllPhotos] = useState(false);
+  // B2676 — the one "＋ Add photos" sheet, opened from the strip's own first
+  // tile, the empty-state tile, or a part's own "＋ Add"; `"day"` is the
+  // unsplit day, a number is that part's index. Picking from what is
+  // waiting goes straight through the existing `toggleSelected`/`tile()`
+  // this page already had; a part's own `ids` picks up a newly-chosen
+  // photograph through the effect below, keyed off `selectedIds` growing
+  // while the sheet is open for it.
+  const [photoSheetTarget, setPhotoSheetTarget] = useState<"day" | number | null>(null);
+  const selectedIdsAtSheetOpen = useRef<string[]>([]);
+  useEffect(() => {
+    if (typeof photoSheetTarget !== "number") return;
+    const added = selectedIds.filter((id) => !selectedIdsAtSheetOpen.current.includes(id));
+    if (added.length === 0) return;
+    const i = photoSheetTarget;
+    setParts((prev) => (prev ? prev.map((p, idx) => (idx === i ? { ...p, ids: [...new Set([...p.ids, ...added])] } : p)) : prev));
+    selectedIdsAtSheetOpen.current = selectedIds;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds, photoSheetTarget]);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   // B2330 — a photo picked with no server reachable: queued in the outbox as
@@ -257,7 +276,7 @@ export default function AddDayFlow({
   const [mismatchKept, setMismatchKept] = useState(false);
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState(asPart?.initialContent ?? "");
+  const [content, setContent] = useState("");
   // B2627 — "Keep it one day" dismisses the inline split offer for exactly
   // this set of chosen photographs; picking a different photo brings it back.
   const [splitDismissedFor, setSplitDismissedFor] = useState<string | null>(null);
@@ -284,19 +303,22 @@ export default function AddDayFlow({
   const [busy, setBusy] = useState(false);
   const [saveQueued, setSaveQueued] = useState(false);
   const [writeError, setWriteError] = useState<{ message: string; mediaProblems?: MediaProblem[] } | null>(null);
-  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const [restoredFrom, setRestoredFrom] = useState<string | null>(null);
   // B2194 — asked once, then `?mode=speak` or the remembered "speak" opens the
   // spoken questions; `?mode=type` is the composer, whatever was chosen.
   const [tellByNow, setTellByNow] = useState(tellBy);
   const [spoken, setSpoken] = useState(false);
   const mode = params.get("mode");
-  const askTellBy = !asPart && !!speech && tellByNow === null && mode === null;
-  const speaking = !asPart && !!speech && (mode === "speak" || (mode !== "type" && tellByNow === "speak"));
+  const askTellBy = !!speech && tellByNow === null && mode === null;
+  const speaking = !!speech && (mode === "speak" || (mode !== "type" && tellByNow === "speak"));
 
   const dirty = content.trim() !== "" || title.trim() !== "" || dateOverride !== "" || tripOverride !== "";
+  // B2676 — one flowId per day, never suffixed per part: the bug this
+  // fixes (`addDayResume.ts`'s own doc comment) was exactly a suffixed key
+  // here disagreeing with `readAddDaySnapshot`'s plain one, so "Continue"
+  // on the hub never found what this page had just saved.
   const { step, index, total, go, reset } = useStep(FIRST_RUN, {
-    flowId: asPart ? `${addDayFlowId(username)}:${asPart.key}` : addDayFlowId(username),
+    flowId: addDayFlowId(username),
     draft: {
       // `step` is what the hub's strip reads: a page nobody has typed on is
       // not "half done".
@@ -307,6 +329,7 @@ export default function AddDayFlow({
         date: dateOverride,
         tripOverride, dateOverride, time, confirmedSecondEntry, selectedIds, photosInit: photosInit.current,
         mismatchKept, title, content, placeEdited, location, country, lat, lng, weatherOn, extras,
+        parts, partWords, createdSlug,
       }),
       set: (d) => {
         if (typeof d.savedAt === "string" && Date.now() - Date.parse(d.savedAt) > ADD_DAY_RESUME_EXPIRY_MS) return;
@@ -329,6 +352,9 @@ export default function AddDayFlow({
         num(d.lng, setLng);
         bool(d.weatherOn, setWeatherOn);
         if (d.extras && typeof d.extras === "object") setExtras({ ...NO_EXTRAS, ...(d.extras as Partial<DayExtrasValue>) });
+        if (Array.isArray(d.parts)) setParts(d.parts as DayPart[]);
+        if (Array.isArray(d.partWords)) setPartWords(d.partWords.filter((x): x is string => typeof x === "string"));
+        str(d.createdSlug, setCreatedSlug);
       },
     },
   });
@@ -380,11 +406,9 @@ export default function AddDayFlow({
       .then((json: { media?: InboxMediaItem[] }) => {
         const items = oldestFirst(json.media ?? []);
         setInboxItems((prev) => mergeById(items, prev ?? []));
-        if (asPart?.photoIds || initialPhotos) {
+        if (initialPhotos) {
           photosInit.current = true;
-          const card = asPart?.photoIds
-            ? items.filter((i) => asPart.photoIds!.includes(i.id)).map((i) => i.id)
-            : photosInGroup(items, initialPhotos!).map((i) => i.id);
+          const card = photosInGroup(items, initialPhotos).map((i) => i.id);
           setSelectedIds(card);
           setOwnIds(card);
           setDateOverride("");
@@ -460,6 +484,11 @@ export default function AddDayFlow({
     }
   }
 
+  function openPhotoSheet(target: "day" | number) {
+    selectedIdsAtSheetOpen.current = selectedIds;
+    setPhotoSheetTarget(target);
+  }
+
   function toggleSelected(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
@@ -467,15 +496,13 @@ export default function AddDayFlow({
   /** What will be written: the list's own order, deduplicated by id. */
   const chosenPhotos = (inboxItems ?? []).filter((i) => selectedIds.includes(i.id));
 
-  // B2627 — the composer's own chosen photographs, offered as parts the same
-  // way a waiting-day card already is. Never while this instance is already
-  // one part of that flow (`asPart.photoIds` narrowed), never with no
-  // `onSplit` to hand the choice to, and never while any chosen photograph
-  // is still an offline-queued placeholder with no real `takenAt` to split
-  // on yet.
+  // B2627/B2676 — the composer's own chosen photographs, offered as parts.
+  // Never while already split (`parts` set — "Keep as one" clears it before
+  // this can offer again), and never while any chosen photograph is still
+  // an offline-queued placeholder with no real `takenAt` to split on yet.
   const pendingChosen = chosenPhotos.some((i) => i.id in pendingPhotoUrls);
   const splitCandidate =
-    !asPart?.photoIds && onSplit && !pendingChosen
+    parts === null && !pendingChosen
       ? splitIntoParts(chosenPhotos.map((i) => ({ id: i.id, takenAt: i.takenAt, lat: i.lat, lon: i.lon }))).parts
       : [];
   const chosenSignature = selectedIds.slice().sort().join(",");
@@ -522,6 +549,30 @@ export default function AddDayFlow({
   const mismatched = date ? chosenPhotos.filter((i) => i.takenAt && i.takenAt.slice(0, 10) !== date) : [];
   // B2193 — photographs from several days are split on the hub, one card each.
   const photoDays = new Set(chosenPhotos.map((i) => photoDay(i.takenAt)).filter(Boolean)).size;
+
+  // ── "Add this to it?" (B2676, decision 4) ───────────────────────────
+  // Asked inline the moment a date is chosen, not only discovered at save
+  // time — `day/for-date` exists for exactly this (its own doc comment).
+  useEffect(() => {
+    const key = `${tripId}\u0000${date}`;
+    if (!online || !tripId || !date || existingAskedFor.current === key) return;
+    existingAskedFor.current = key;
+    setExistingOnDate(null);
+    setConfirmedSecondEntry(false);
+    let cancelled = false;
+    fetch(`/api/helper/${encodeURIComponent(username)}/day/for-date?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { ok?: boolean; existing?: ExistingDayOnDate | null } | null) => {
+        if (!cancelled) setExistingOnDate(json?.ok ? (json.existing ?? null) : null);
+      })
+      .catch(() => {
+        existingAskedFor.current = null;
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [online, tripId, date]);
 
   function editPlace(next: { location?: string; country?: string }) {
     if (!placeEdited) {
@@ -587,8 +638,9 @@ export default function AddDayFlow({
   useEffect(() => {
     if (!detailsOpen || !online || !routeRecordingAvailable || !tripId || !date) return;
     let cancelled = false;
-    const span = asPart ? `${asPart.time ? `&from=${asPart.time}` : ""}${asPart.until ? `&to=${asPart.until}` : ""}` : "";
-    fetch(`/api/helper/${encodeURIComponent(username)}/day/travel?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}${span}`)
+    // B2676 — travel is a day-level fact (the chips sit above every part,
+    // shared), never one part's own stretch any more.
+    fetch(`/api/helper/${encodeURIComponent(username)}/day/travel?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((json: { travel?: { modes?: { mode: string; km: number }[] } | null } | null) => {
         if (!cancelled) setRouteTravel(json?.travel?.modes ?? null);
@@ -611,25 +663,39 @@ export default function AddDayFlow({
   }
 
   // ── the write ───────────────────────────────────────────────────────
-  async function commit(secondEntry = confirmedSecondEntry) {
-    setBusy(true);
-    setWriteError(null);
+
+  type PartWriteResult =
+    | { ok: true; slug: string }
+    | { ok: false; error: string; detail?: unknown; existing?: ExistingDayOnDate; network?: true };
+
+  /** One day document — the base/unsplit day, or one part of a split one.
+   *  Never shows an outcome screen itself; the caller (`commit` below)
+   *  decides what a result means for the whole save. */
+  async function writeOnePart(opts: {
+    content: string;
+    photoIds: string[];
+    time: string;
+    secondEntry: boolean;
+    withTitleAndExtras: boolean;
+  }): Promise<PartWriteResult> {
     const payload = {
       trip: tripId,
       date,
-      time: time || undefined,
-      // Never generated: a blank title stays blank.
-      title,
-      content,
+      time: opts.time || undefined,
+      // Never generated: a blank title stays blank. Only the base day of a
+      // split carries one — B2676 drops title off every part but the
+      // first (title/tags move to Preview, B2677, which is not this).
+      title: opts.withTitleAndExtras ? title : "",
+      content: opts.content,
       location: place.location || undefined,
       country: place.country || undefined,
       lat: place.lat,
       lng: place.lng,
       weather,
-      mediaInboxIds: chosenPhotos.map((i) => i.id),
-      ...extrasToWrite(extras),
+      mediaInboxIds: opts.photoIds,
+      ...(opts.withTitleAndExtras ? extrasToWrite(extras) : {}),
       declined: {},
-      confirmSecondEntry: secondEntry,
+      confirmSecondEntry: opts.secondEntry,
     };
     try {
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/day/new`, {
@@ -641,71 +707,146 @@ export default function AddDayFlow({
         | { ok: true; slug: string }
         | { error: string; detail?: unknown; existing?: ExistingDayOnDate }
         | null;
-      if (json && "error" in json && json.error === "date_has_day" && json.existing) {
-        setCollision(json.existing);
-        setOutcome("collision");
-        return;
+      if (json && "ok" in json && json.ok) {
+        // B2058 — the route answers with the v2 day id (`<date>-<slug>`).
+        const created = json.slug.startsWith(`${date}-`) ? json.slug.slice(date.length + 1) : json.slug;
+        return { ok: true, slug: created };
       }
-      // B2108 — the collision screen already let this through once (a time
-      // was named); the address is still date + title, so a second entry
-      // with the *same* title as the first collides regardless. Stay on the
-      // collision screen rather than the generic write-failed one, so the
-      // title field is right there to fix.
-      if (json && "error" in json && (json.error === "day_exists" || json.error === "slug_taken")) {
-        setOutcome("collision");
-        return;
-      }
-      if (!res.ok || !json || !("ok" in json)) {
-        const error = json && "error" in json ? json.error : undefined;
-        const detail = json && "detail" in json ? json.detail : undefined;
-        setWriteError({ message: t("studio.day.writeFailed.message"), mediaProblems: mediaProblemsFrom(error, detail) });
+      const error = json && "error" in json ? json.error : "unknown";
+      const detail = json && "detail" in json ? json.detail : undefined;
+      const existing = json && "existing" in json ? json.existing : undefined;
+      return { ok: false, error, detail, existing };
+    } catch {
+      return { ok: false, error: "network", network: true };
+    }
+  }
+
+  /** Queues the base/unsplit write in the offline outbox — B2330. Never
+   *  used for a split part: a day queued offline has no server slug yet, so
+   *  a second part with nothing to attach to cannot queue the same way. */
+  async function queueOffline(opts: { content: string; photoIds: string[]; time: string; secondEntry: boolean }) {
+    const store = openOutboxStore();
+    await store.add(
+      newIntent({
+        user: username,
+        kind: "day.new",
+        method: "POST",
+        url: `/api/helper/${encodeURIComponent(username)}/day/new`,
+        body: {
+          trip: tripId,
+          date,
+          time: opts.time || undefined,
+          title,
+          content: opts.content,
+          location: place.location || undefined,
+          country: place.country || undefined,
+          lat: place.lat,
+          lng: place.lng,
+          weather,
+          mediaInboxIds: opts.photoIds,
+          ...extrasToWrite(extras),
+          declined: {},
+          confirmSecondEntry: opts.secondEntry,
+        },
+      }),
+    );
+    setOutcome("queued");
+  }
+
+  async function commit(secondEntryOverride?: boolean) {
+    // The collision screen's own "Confirm" calls `setConfirmedSecondEntry(true)`
+    // and `commit(true)` in the same handler — a state update is not visible
+    // to the closure that scheduled it, so the explicit override is what the
+    // very next write actually sees, same as it always had to be here.
+    const effectiveSecondEntry = secondEntryOverride ?? confirmedSecondEntry;
+    setBusy(true);
+    setWriteError(null);
+    try {
+      if (parts === null) {
+        // The plain, unsplit day — unchanged from before this ticket.
+        const result = await writeOnePart({
+          content,
+          photoIds: chosenPhotos.map((i) => i.id),
+          time,
+          secondEntry: effectiveSecondEntry,
+          withTitleAndExtras: true,
+        });
+        if (result.ok) {
+          setCreatedSlug(result.slug);
+          setOutcome("saved");
+          reset();
+          // B2549 — the studio's own lists and the trip page have one more day.
+          router.refresh();
+          return;
+        }
+        if (result.network) {
+          // A network error (not a rejection the server actually sent) —
+          // B2330 queues the write itself, in order after any of its own
+          // photographs still queued as `media.upload` (both created
+          // through the same outbox, so replay always sends the photos
+          // first). Not `reset()`: see `queueOffline`'s own callers below —
+          // the draft is harmless left behind.
+          if (hasOutbox()) {
+            await queueOffline({ content, photoIds: chosenPhotos.map((i) => i.id), time, secondEntry: effectiveSecondEntry });
+            return;
+          }
+          setWriteError({ message: t("studio.day.writeFailed.message") });
+          setOutcome("writeFailed");
+          return;
+        }
+        if (result.error === "date_has_day" && result.existing) {
+          setCollision(result.existing);
+          setOutcome("collision");
+          return;
+        }
+        // B2108 — the collision screen already let this through once (a time
+        // was named); the address is still date + title, so a second entry
+        // with the *same* title as the first collides regardless.
+        if (result.error === "day_exists" || result.error === "slug_taken") {
+          setOutcome("collision");
+          return;
+        }
+        setWriteError({ message: t("studio.day.writeFailed.message"), mediaProblems: mediaProblemsFrom(result.error, result.detail) });
         setOutcome("writeFailed");
         return;
       }
-      // B2058 — the route answers with the v2 day id (`<date>-<slug>`).
-      const created = json.slug.startsWith(`${date}-`) ? json.slug.slice(date.length + 1) : json.slug;
-      if (asPart) {
-        reset();
-        router.refresh();
-        asPart.onSaved({ slug: created, trip: tripId, date });
-        return;
+
+      // B2676, decision 7 — split: one write per part, in the order the
+      // plan gives (the first a second entry only when "Add this to it?"
+      // was accepted; every part after it always is, onto the day the
+      // first part just created).
+      const plan = partCommitPlan(parts, effectiveSecondEntry);
+      const slugs: string[] = [];
+      for (const step of plan) {
+        const part = parts[step.index];
+        const result = await writeOnePart({
+          content: partWords[step.index] ?? "",
+          photoIds: part.ids,
+          time: step.time,
+          secondEntry: step.secondEntry,
+          withTitleAndExtras: step.index === 0,
+        });
+        if (!result.ok) {
+          if (result.error === "date_has_day" && result.existing) {
+            setCollision(result.existing);
+            setOutcome("collision");
+            return;
+          }
+          if (result.error === "day_exists" || result.error === "slug_taken") {
+            setOutcome("collision");
+            return;
+          }
+          setWriteError({ message: t("studio.day.writeFailed.message"), mediaProblems: mediaProblemsFrom(result.error, result.detail) });
+          setOutcome("writeFailed");
+          return;
+        }
+        slugs.push(result.slug);
+        setPartSlugs((prev) => ({ ...prev, [step.index]: result.slug }));
+        if (step.index === 0) setCreatedSlug(result.slug);
       }
-      setCreatedSlug(created);
-      setOutcome("saved");
       reset();
-      // B2549 — the studio's own lists and the trip page have one more day.
       router.refresh();
-    } catch {
-      // A network error (not a rejection the server actually sent) — B2330
-      // queues the write itself, in order after any of its own photographs
-      // still queued as `media.upload` (both created through the same
-      // outbox, so replay always sends the photos first). A day queued
-      // offline has no server slug yet, so "saved" (which needs one, for the
-      // publish link) is never shown for it — "queued" instead.
-      if (hasOutbox()) {
-        const store = openOutboxStore();
-        await store.add(
-          newIntent({
-            user: username,
-            kind: "day.new",
-            method: "POST",
-            url: `/api/helper/${encodeURIComponent(username)}/day/new`,
-            body: payload,
-          }),
-        );
-        setOutcome("queued");
-        // Not `reset()` here (unlike the "saved" branch above): it clears the
-        // draft with its own `router.replace`, a soft navigation — offline,
-        // that fetch fails, and this page is itself on the SW's kept
-        // allowlist so the browser can fall back to reloading *this* page
-        // from the personal cache, wiping the "queued" screen the owner was
-        // just shown for one they never asked to leave. The draft is harmless
-        // left behind: this outcome screen replaces the whole form either way,
-        // and `toStudio` below is the only navigation this outcome offers.
-        return;
-      }
-      setWriteError({ message: t("studio.day.writeFailed.message") });
-      setOutcome("writeFailed");
+      router.push(writePreviewUrl(username, slugs[0], tripId, slugs.slice(1)));
     } finally {
       setBusy(false);
     }
@@ -727,6 +868,96 @@ export default function AddDayFlow({
     if (uploading > 0) setSaveQueued(true);
     else void commit();
   }
+
+  // ── background autosave (B2676, decision 2) ──────────────────────────
+  // "Check the day silently writes the draft" was the old bug; this is the
+  // opposite shape on purpose — the status line always says what actually
+  // happened, and this effect is the only thing that makes "Saved" true
+  // before anybody presses the button. Debounced ~1.5s, and only once there
+  // is a trip and a date to write against. Scoped to the base/unsplit day:
+  // split parts 2+ are created together at Save/Preview (Build notes).
+  const attachedIdsRef = useRef<Set<string>>(new Set());
+  const autosaveSignature = JSON.stringify({
+    tripId, date, content, title, place, weatherOn, extras,
+    photoIds: chosenPhotos.map((i) => i.id).sort(),
+  });
+  const lastAutosaved = useRef<string | null>(null);
+  useEffect(() => {
+    if (parts !== null) return;
+    if (!tripId || !date || !online) return;
+    // Waits for the inline "Add this to it?" to be answered — autosaving
+    // into a day that already exists, before the owner said yes, would be
+    // exactly the collision this ask exists to avoid.
+    if (existingOnDate && !confirmedSecondEntry) return;
+    if (outcome) return;
+    if (lastAutosaved.current === autosaveSignature) return;
+    const timer = setTimeout(() => {
+      void (async () => {
+        setAutosaveState("saving");
+        if (!createdSlug) {
+          const result = await writeOnePart({
+            content,
+            photoIds: chosenPhotos.map((i) => i.id),
+            time,
+            secondEntry: confirmedSecondEntry,
+            withTitleAndExtras: true,
+          });
+          if (!result.ok) {
+            setAutosaveState("failed");
+            return;
+          }
+          attachedIdsRef.current = new Set(chosenPhotos.map((i) => i.id));
+          setCreatedSlug(result.slug);
+          lastAutosaved.current = autosaveSignature;
+          setAutosaveState("saved");
+          return;
+        }
+        // Already created — a later photograph is attached (`day/attach`,
+        // never a second `day/new`), and the words go through the same
+        // `PATCH /day` a person editing an existing day already uses.
+        const newPhotoIds = chosenPhotos.map((i) => i.id).filter((id) => !attachedIdsRef.current.has(id));
+        if (newPhotoIds.length > 0) {
+          const attached = await fetch(`/api/helper/${encodeURIComponent(username)}/day/attach`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ trip: tripId, slug: createdSlug, files: newPhotoIds }),
+          }).catch(() => null);
+          if (attached?.ok) newPhotoIds.forEach((id) => attachedIdsRef.current.add(id));
+        }
+        const patched = await fetch(`/api/helper/${encodeURIComponent(username)}/day`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ trip: tripId, slug: createdSlug, title, content }),
+        }).catch(() => null);
+        if (patched?.ok) {
+          lastAutosaved.current = autosaveSignature;
+          setAutosaveState("saved");
+        } else {
+          setAutosaveState("failed");
+        }
+      })();
+    }, 1500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autosaveSignature, parts, tripId, date, online, createdSlug, existingOnDate, confirmedSecondEntry, outcome]);
+
+  // The weather chip's own real value (B2676) — once the day exists, the
+  // server has already tried the lookup at creation (`day/new`'s own
+  // `fillDayWeatherQuietly`); this reads it back rather than guessing.
+  useEffect(() => {
+    if (!createdSlug || !weatherAvailable || !hasCoords) return;
+    let cancelled = false;
+    fetch(`/api/helper/${encodeURIComponent(username)}/day?trip=${encodeURIComponent(tripId)}&slug=${encodeURIComponent(createdSlug)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { ok?: boolean; draft?: { weather?: DayWeather } } | null) => {
+        if (!cancelled && json?.draft?.weather) setWeatherReading(json.draft.weather);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createdSlug, weatherAvailable, hasCoords, tripId, username, autosaveState]);
 
   // ── day by voice (B2194) ────────────────────────────────────────────
   function chooseTellBy(choice: TellBy) {
@@ -798,7 +1029,7 @@ export default function AddDayFlow({
     // apart on disk; only a different title does, so once this one matches
     // the day above, offer the title field right here rather than let the
     // owner answer everything and learn it at the very end.
-    const titleClash = title.trim() !== "" && slugify(title) === collision.slug;
+    const titleClash = titleCollidesWithExisting(title, collision);
     return (
       <div className="studio-step mt-4">
         <div className="rounded-xl border border-coral-300 bg-coral-50 px-4 py-3 text-sm text-ink-body">
@@ -901,11 +1132,8 @@ export default function AddDayFlow({
     setDateOverride(d);
   };
   const split = splitDayPhotos(inboxItems ?? [], date, new Set([...selectedIds, ...ownIds]));
-  // TIX-2 — a part shows its own photographs; the rest of the date's wait
-  // under "Add more", so a tap never moves one into the wrong part by accident.
-  const inPart = (i: InboxMediaItem) => !asPart?.photoIds || asPart.photoIds.includes(i.id) || selectedIds.includes(i.id) || ownIds.includes(i.id);
-  const dayPhotos = split.own.filter(inPart);
-  const waitingPhotos = [...split.own.filter((i) => !inPart(i)), ...split.others];
+  const dayPhotos = split.own;
+  const waitingPhotos = split.others;
   // B2646 — the route's place suggestion, shown once: inside the place
   // panel while it is open, as its own card otherwise.
   const suggestionCard = placeSuggestion && !placeSuggestionDismissed && placeEmpty ? (
@@ -957,8 +1185,31 @@ export default function AddDayFlow({
     );
   };
 
+  // B2676, decision 2 — the status line says the truth, never "writes
+  // silently" (P-whatever the collision screen's old wording was): what has
+  // actually happened on the server, not what the button is about to do.
+  const saveStateKey = !online
+    ? "studio.day.status.offline"
+    : uploading > 0
+      ? "studio.day.status.uploading"
+      : autosaveState === "saving"
+        ? "studio.day.status.saving"
+        : createdSlug
+          ? "studio.day.status.saved"
+          : "studio.day.status.notSaved";
+  const saveStateText =
+    saveStateKey === "studio.day.status.uploading" ? tn(saveStateKey, uploading, { count: String(uploading) }) : t(saveStateKey);
+
   return (
     <StepBody step={part ?? "page"}>
+      {show("save") && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono text-xs uppercase tracking-wide text-ink-secondary">{t("studio.day.eyebrow")}</span>
+          <span data-save-state className="font-mono text-xs text-ink-secondary">
+            {saveStateText}
+          </span>
+        </div>
+      )}
       {restoredFrom && dirty && (
         <p className="mt-2 rounded-xl bg-surface-subtle px-4 py-2 text-sm text-ink-body">
           {t("studio.day.resume.title")}. {t("studio.day.resume.expiresAt", { date: formatLongDate(addDayExpiresOn(restoredFrom)) })}{" "}
@@ -998,6 +1249,28 @@ export default function AddDayFlow({
               </span>
             </span>
           </button>
+          {/* B2676, decision 4 — "Add this to it?" inline, the moment the
+              date is known to already carry a day — never the full-screen
+              takeover the server's own 409 (below) still falls back to. */}
+          {existingOnDate && !confirmedSecondEntry && (
+            <div data-existing-on-date className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3">
+              <p className="text-sm text-ink-body">
+                {t("studio.day.existing.banner", { date: formatLongDate(date), title: existingOnDate.title || t("studio.day.collision.untitled") })}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmedSecondEntry(true)}
+                  className="min-h-11 rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action"
+                >
+                  {t("studio.day.existing.yes")}
+                </button>
+                <button type="button" onClick={() => setSheet("date")} className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong">
+                  {t("studio.day.existing.no")}
+                </button>
+              </div>
+            </div>
+          )}
           {/* B2645 — a photo with no date in it: ask, with today one tap away
               when today is inside the trip. Nothing is filled in by itself. */}
           {!date && (
@@ -1055,12 +1328,37 @@ export default function AddDayFlow({
         <div className="mt-4">
           {part === "photos" && <p className="mb-2 text-base text-ink-body">{t("studio.day.firstRun.photos")}</p>}
           {inboxItems === null && <p className="text-sm text-ink-secondary">{t("studio.day.photos.loading")}</p>}
+          {/* B2676 — the big empty-state tile, the Write page's own first
+              photo-adding door (acceptance: "the empty tile"). */}
+          {inboxItems !== null && dayPhotos.length === 0 && (
+            <button
+              type="button"
+              onClick={() => openPhotoSheet("day")}
+              className="flex min-h-28 w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-line-strong text-ink-strong"
+            >
+              <span aria-hidden className="text-2xl leading-none">＋</span>
+              <span className="font-semibold">{t("studio.day.photos.add")}</span>
+            </button>
+          )}
           {inboxItems !== null && inboxItems.length > 0 && (
             <>
               <p className="mb-2 text-sm text-ink-secondary">
                 {t("studio.day.photos.chosen", { count: String(chosenPhotos.length) })}
               </p>
               <ul className="grid grid-cols-4 gap-1.5">
+                {dayPhotos.length > 0 && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => openPhotoSheet("day")}
+                      aria-label={t("studio.day.photos.add")}
+                      className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-line-strong text-xs font-semibold text-ink-strong"
+                    >
+                      <span aria-hidden className="text-lg leading-none">＋</span>
+                      {t("studio.day.photos.add")}
+                    </button>
+                  </li>
+                )}
                 {shownPhotos.map(tile)}
                 {!showAllPhotos && dayPhotos.length > 8 && (
                   <li>
@@ -1145,7 +1443,9 @@ export default function AddDayFlow({
             {weatherAvailable && hasCoords && date && (
               <button type="button" data-chip="weather" aria-expanded={sheet === "weather"} onClick={() => setSheet(sheet === "weather" ? null : "weather")} className={CHIP}>
                 <CloudSun aria-hidden className="h-4 w-4 flex-none text-ink-secondary" />
-                <span>{t("studio.day.chip.weather")}</span>
+                {/* B2676 — the real looked-up value once there is one, never
+                    the generic "Weather" label. */}
+                <span>{weatherReading ? weatherChipLabel(weatherReading) : t("studio.day.chip.weather")}</span>
                 <small className="text-xs text-ink-secondary">
                   {weatherOn ? t("studio.day.source.weather") : t("studio.day.source.weatherOff")}
                 </small>
@@ -1227,45 +1527,46 @@ export default function AddDayFlow({
                   {t("studio.flow.splitNo")}
                 </button>
                 <button type="button" className={SPLIT_PRIMARY} onClick={() => {
-                    // The one-day draft is not left behind to be offered
-                    // back later: the parts carry these photos and words now.
-                    reset();
-                    onSplit!(splitCandidate, content);
+                    // B2676 — split in place: no second mounted composer,
+                    // no parent to hand the choice to. Words already typed
+                    // ride into part 1, visibly (decision 7).
+                    setParts(splitCandidate);
+                    setPartWords(splitCandidate.map((_, i) => (i === 0 ? content : "")));
+                    setContent("");
+                    setSplitDismissedFor(null);
                   }}>
                   {tn("studio.flow.splitYes", splitCandidate.length, { count: String(splitCandidate.length) })}
                 </button>
               </div>
             </div>
           )}
-          <label htmlFor="studio-day-words" className={part === "words" ? "block font-display text-lg font-semibold text-ink-strong" : LABEL}>
-            {t("studio.day.whatHappened.heading")}
-          </label>
-          <div className="relative mt-1">
-            <textarea
-              id="studio-day-words"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={t("studio.day.text.placeholder")}
-              className={`block min-h-32 w-full rounded-xl border border-line-strong bg-surface-base px-3 py-2 text-base text-ink-body ${speech ? "pr-14" : ""}`}
-            />
-            {speech && (
-              <RecordButton
-                username={username}
-                consented={speech.consented}
-                provider={speech.provider}
-                compact
-                hold={false}
-                onText={(said) => setContent((prev) => (prev ? `${prev} ${said}` : said))}
-              />
-            )}
-          </div>
-          <p className="mt-1 text-xs text-ink-secondary">{t("studio.day.whatHappened.nothingInvented")}</p>
-          {!asPart && (
+          {parts === null ? (
             <>
-              {/* B2236 — the quiet way back to Speak once it isn't the answer. */}
+              <label htmlFor="studio-day-words" className={part === "words" ? "block font-display text-lg font-semibold text-ink-strong" : LABEL}>
+                {t("studio.day.whatHappened.heading")}
+              </label>
+              <div className="relative mt-1">
+                <textarea
+                  id="studio-day-words"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={t("studio.day.text.placeholder")}
+                  className={`block min-h-32 w-full rounded-xl border border-line-strong bg-surface-base px-3 py-2 text-base text-ink-body ${speech ? "pr-14" : ""}`}
+                />
+                {speech && (
+                  <RecordButton
+                    username={username}
+                    consented={speech.consented}
+                    provider={speech.provider}
+                    compact
+                    hold={false}
+                    onText={(said) => setContent((prev) => (prev ? `${prev} ${said}` : said))}
+                  />
+                )}
+              </div>
+              <p className="mt-1 text-xs text-ink-secondary">{t("studio.day.whatHappened.nothingInvented")}</p>
               <RatherTalk username={username} speech={speech} tellBy={tellByNow} />
-              {/* B2190 — "Polish my text", directly under the box it rewrites.
-                  TIX-2: inside the flow it is the check step's job. */}
+              {/* B2190 — "Polish my text", directly under the box it rewrites. */}
               <PolishText
                 username={username}
                 trip={tripId}
@@ -1274,6 +1575,76 @@ export default function AddDayFlow({
                 aiAvailable={polishAiAvailable}
               />
             </>
+          ) : (
+            // B2676, decision 7 — every part stacked on this same page, each
+            // with its own photos, words and mic. "Keep as one" reverses it,
+            // folding whatever part 1 holds back into the single box.
+            <div data-day-parts className="space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-ink-strong">
+                  {tn("studio.day.parts.count", parts.length, { count: String(parts.length) })}
+                </span>
+                <button
+                  type="button"
+                  className={LINK}
+                  onClick={() => {
+                    setContent(partWords[0] ?? "");
+                    setParts(null);
+                    setPartWords([]);
+                  }}
+                >
+                  {t("studio.day.parts.keepAsOne")}
+                </button>
+              </div>
+              {parts.map((p, i) => {
+                const partPhotos = chosenPhotos.filter((item) => p.ids.includes(item.id));
+                const range = [p.from, p.to].filter(Boolean).join("–");
+                return (
+                  <div key={i} className="rounded-2xl border border-line-strong bg-surface-raised p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-ink-strong">
+                        {t("studio.flow.partHeading", { index: String(i + 1), total: String(parts.length) })}
+                      </span>
+                      {range && <span className="text-xs text-ink-secondary">{range}</span>}
+                    </div>
+                    <ul className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+                      {partPhotos.map(tile)}
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => openPhotoSheet(i)}
+                          className="flex aspect-square w-16 flex-none flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-line-strong text-xs font-semibold text-ink-strong"
+                        >
+                          <span aria-hidden className="text-lg leading-none">＋</span>
+                          {t("studio.day.photos.add")}
+                        </button>
+                      </li>
+                    </ul>
+                    <div className="relative mt-2">
+                      <textarea
+                        value={partWords[i] ?? ""}
+                        onChange={(e) => setPartWords((prev) => prev.map((w, idx) => (idx === i ? e.target.value : w)))}
+                        placeholder={t("studio.day.text.placeholder")}
+                        className={`block min-h-24 w-full rounded-xl border border-line-strong bg-surface-base px-3 py-2 text-base text-ink-body ${speech ? "pr-14" : ""}`}
+                      />
+                      {speech && (
+                        <RecordButton
+                          username={username}
+                          consented={speech.consented}
+                          provider={speech.provider}
+                          compact
+                          hold={false}
+                          onText={(said) =>
+                            setPartWords((prev) => prev.map((w, idx) => (idx === i ? (w ? `${w} ${said}` : said) : w)))
+                          }
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-xs text-ink-secondary">{t("studio.day.whatHappened.nothingInvented")}</p>
+            </div>
           )}
           {part === "words" && <StepPrimary onClick={() => go("save")} label={t("studio.day.firstRun.toSave")} />}
         </div>
@@ -1342,9 +1713,53 @@ export default function AddDayFlow({
                 if (blocker !== "cost") target?.focus();
               });
             }}
-            label={asPart?.label ?? t("studio.day.save")}
+            label={t("studio.day.previewCta")}
           />
         </>
+      )}
+
+      {/* B2676 — the one "＋ Add photos" sheet, opened from the strip, the
+          empty tile or a part's own "＋ Add". Picking a waiting photograph
+          reuses the same `tile()`/`toggleSelected` the strip already has;
+          uploading a new one reuses the same `PhotoPicker`/`pickFromDevice`. */}
+      {photoSheetTarget !== null && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("studio.day.photos.add")}
+          className="fixed inset-0 z-30 flex items-end bg-ink-strong/40"
+          onClick={() => setPhotoSheetTarget(null)}
+        >
+          <div
+            className="max-h-[80vh] w-full overflow-y-auto rounded-t-3xl bg-surface-raised p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-ink-strong">{t("studio.day.photos.add")}</h2>
+              <button type="button" onClick={() => setPhotoSheetTarget(null)} className={LINK}>
+                {t("studio.day.sheet.close")}
+              </button>
+            </div>
+            {waitingPhotos.length > 0 ? (
+              <ul className="mt-3 grid grid-cols-4 gap-1.5">{waitingPhotos.map(tile)}</ul>
+            ) : (
+              <p className="mt-3 text-sm text-ink-secondary">{t("studio.day.photos.nonePendingYet")}</p>
+            )}
+            <div className="mt-3">
+              <PhotoPicker id="studio-day-photo-sheet-picker" chosen={[]} accept="image/*,video/*" onPick={pickFromDevice} showChosen={false} />
+            </div>
+            {uploading > 0 && (
+              <p className="mt-1 text-sm text-ink-secondary">{tn("studio.day.photos.uploadingCount", uploading, { count: String(uploading) })}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => setPhotoSheetTarget(null)}
+              className="mt-3 min-h-11 w-full rounded-full bg-action-strong px-4 text-base font-semibold text-on-action"
+            >
+              {t("studio.day.sheet.done")}
+            </button>
+          </div>
+        </div>
       )}
     </StepBody>
   );

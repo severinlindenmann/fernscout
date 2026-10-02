@@ -671,7 +671,7 @@ describe("B2304/B2600 — during a trip, at most one shortcut row", () => {
     });
     const rows = el.querySelectorAll("[data-during-trip-rows] a");
     expect(rows).toHaveLength(1);
-    expect(rows[0].textContent).toContain("Photos waiting for words");
+    expect(rows[0].textContent).toContain("Waiting");
     expect(rows[0].textContent).toContain("2 days");
   });
 
@@ -688,7 +688,7 @@ describe("B2304/B2600 — during a trip, at most one shortcut row", () => {
     });
     const rows = Array.from(el.querySelectorAll("[data-during-trip-rows] a"));
     expect(rows.length).toBe(1);
-    expect(rows[0].textContent).toContain("Photos waiting for words");
+    expect(rows[0].textContent).toContain("Waiting");
     expect(el.querySelector("[data-during-trip-rows] [data-fact]")).toBeNull();
   });
 
