@@ -116,9 +116,12 @@ export default function RouteRecordSection({
   useEffect(() => {
     if (!native) return;
     let live = true;
-    void getLockScreenTripName().then((on) => {
-      if (live) setLockScreenTripNameState(on);
-    });
+    // A shell built before B2733 has no such method: the read rejects and
+    // the switch stays absent rather than offering a choice it cannot keep.
+    void getLockScreenTripName().then(
+      (on) => { if (live) setLockScreenTripNameState(on); },
+      () => {},
+    );
     const load = async () => {
       const s = await refresh();
       if (!live || !s) return;
@@ -259,7 +262,9 @@ export default function RouteRecordSection({
           <button type="button" disabled={busy} onClick={() => void stop()} className={BUTTON}>
             {t("studio.record.stop")}
           </button>
-          <LockScreenTripNameToggle on={lockScreenTripName} onChange={setLockScreenTripNameState} />
+          {lockScreenTripName !== undefined && (
+            <LockScreenTripNameToggle on={lockScreenTripName} onChange={setLockScreenTripNameState} />
+          )}
         </div>
       )}
 
@@ -346,13 +351,12 @@ export default function RouteRecordSection({
 
 /** B2733 — the Lock Screen's own trip-name opt-in. Only ever rendered while
  *  recording is on (the toggle's own native state has nothing to apply to
- *  otherwise); `on === undefined` while the native read is still in flight,
- *  rendered as off rather than blocking the rest of the section on it. */
-function LockScreenTripNameToggle({ on, onChange }: { on: boolean | undefined; onChange: (on: boolean) => void }) {
+ *  otherwise), and only once the shell has answered what it currently is. */
+function LockScreenTripNameToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const toggle = async () => {
-    const next = !(on ?? false);
+    const next = !on;
     setBusy(true);
     try {
       await setLockScreenTripName(next);
@@ -365,7 +369,7 @@ function LockScreenTripNameToggle({ on, onChange }: { on: boolean | undefined; o
   };
   return (
     <div className="mt-4 flex items-start gap-3">
-      <Switch on={on ?? false} busy={busy} label={t("studio.record.lockScreenTripName.label")} onChange={() => void toggle()} />
+      <Switch on={on} busy={busy} label={t("studio.record.lockScreenTripName.label")} onChange={() => void toggle()} />
       <div>
         <p className="text-sm text-ink-strong">{t("studio.record.lockScreenTripName.label")}</p>
         <p className="text-xs text-ink-secondary">{t("studio.record.lockScreenTripName.hint")}</p>
