@@ -5,32 +5,22 @@
  * session transcripts — with a scanner that is a plain string match, not
  * scoped to `className`, JSX, or even to source files. A class name typed in
  * a sentence anywhere in any of those was compiling into the shipped bundle
- * — B1840. The two `@source` lines below are the actual allowlist: the only
- * two directories that ever hold a `className` this app renders. Narrower
+ * — B1840. The `@source` lines below are the actual allowlist: the only
+ * directories that ever hold a `className` this app renders. Narrower
  * than excluding today's offenders one directory at a time, and it stays
  * correct the next time an agent's own scratch files land somewhere new.
  */
 @import "tailwindcss" source(none);
 @source "../app";
 @source "../components";
-/* The schools and tour-operator pages (B2450) live only in the private
-   paid/ checkout; without it this path does not exist and adds nothing. */
-@source "../paid/orgs";
-/* The pricing section and /prices (B2506, B2509), same arrangement. */
-@source "../paid/billing";
-/* The answer pages (B2489), same arrangement. */
-@source "../paid/guides";
-/* B2659 — the postcard and photobook composers, and the shared order view
-   they both feed (`OrderListItem`, the orders list), render real
-   `className`s too and were missing from this allowlist entirely: any
-   utility class not *also* typed verbatim somewhere under `app/` or
-   `components/` silently compiled to nothing, which is why the postcard
-   write step's "What it says" legend (`text-[0.62rem]`, found nowhere else
-   in the app) rendered at the browser's default font size and sat on top of
-   the message instead of on the card's own border. */
-@source "../paid/postcard";
-@source "../paid/photobook";
-@source "../paid/printOrder";
+/* Every paid/ area renders real `className`s (orgs B2450, billing B2506,
+   guides B2489, postcard/photobook/printOrder B2659, switch B2470), and a
+   per-area line kept going stale. One directory instead; its tests and docs
+   hold class names in prose, so they stay out (B1840). Without the private
+   paid/ checkout the path does not exist and adds nothing. */
+@source "../paid";
+@source not "../paid/test";
+@source not "../paid/docs";
 @plugin "@tailwindcss/typography";
 
 :root {
