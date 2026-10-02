@@ -109,8 +109,9 @@ function companionsOf(trip: Trip): string[] {
 
 /** Travellers if drawn, else people + the owner, else unknown — never
  * guessed beyond that (B2687's own rule). */
+// Travellers are drawn figures (lib/travellers), not a head count — an
+// example trip draws five beside two companions — so only people count.
 function partySizeOf(trip: Trip): number | undefined {
-  if (trip.travellers.length > 0) return trip.travellers.length;
   if (trip.people.length > 0) return trip.people.length + 1;
   return undefined;
 }
