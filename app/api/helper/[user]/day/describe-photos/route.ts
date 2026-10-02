@@ -3,7 +3,8 @@ import { isEnabled } from "@/lib/capabilities";
 import { DESCRIBE_PHOTO_WIDTH } from "@/lib/helper/limits";
 import { checkAiDay, recordAiDay } from "@paid/billing/lib/aiDays";
 import { hasHelperConsent } from "@/lib/helper/consent";
-import { describeImage, HELPER_MODEL, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
+import { describeImage, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
+import { modelFor } from "@/lib/helper/models";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { defaultLocaleFor, localesFor } from "@/lib/locales";
 import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
@@ -180,7 +181,7 @@ export async function POST(
           const image: PhotoImage = { base64: resized.toString("base64"), mediaType: "image/webp" };
           const form = await describeImage(image, user, locales);
           writeTripSidecar(ref, photo.relPath, {
-            described: describedBlock(form, HELPER_MODEL, photo.file),
+            described: describedBlock(form, modelFor("vision"), photo.file),
           });
           described.set(photo.index, form.caption[locale] ?? "");
           sent += 1;
