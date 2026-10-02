@@ -52,6 +52,19 @@ function bootstrapPaidWorktree() {
 
 bootstrapPaidWorktree();
 
+// B2712 — `.gitattributes` names this driver for site/locales/*.json, but
+// git only honours a driver it knows about: `git config` registers it,
+// which a fresh worktree never did. Idempotent and cheap, so it runs on
+// every bootstrap rather than needing its own flag.
+function registerLocaleMergeDriver() {
+  run("git", ["config", "merge.localejson.name", "Fernscout locale JSON (site/locales/*.json)"]);
+  const configured = run("git", ["config", "merge.localejson.driver", "node scripts/merge-locale-json.mjs %O %A %B"]);
+  if (configured.status !== 0) {
+    console.warn(`Could not register the locale JSON merge driver: ${configured.stderr || configured.stdout}`);
+  }
+}
+registerLocaleMergeDriver();
+
 const source = path.join(main.worktree, "node_modules");
 if (!fs.existsSync(path.join(source, "next", "package.json"))) {
   fail(`The shared checkout has no usable node_modules at ${source}; run npm ci there first.`);
