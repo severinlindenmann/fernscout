@@ -751,7 +751,7 @@ export default function PreviewDayFlow({
                 <p className="whitespace-pre-line">
                   {composeTab === "close"
                     ? wordDiff(ownWords(entries[0]), composeResult.close!.text).map((tok, idx) => (
-                        <span key={idx} className={tok.changed ? "underline decoration-yellow-500 decoration-2 underline-offset-2" : ""}>
+                        <span key={idx} className={tok.changed ? "underline decoration-yellow-400 decoration-2 underline-offset-2" : ""}>
                           {tok.text}{" "}
                         </span>
                       ))
