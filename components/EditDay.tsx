@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { PhotoPicker } from "@/components/PhotoPicker";
@@ -14,8 +14,10 @@ import {
   newIntent,
   openOutboxStore,
   pendingConflicts,
+  pendingDayPhotos,
   pendingVoiceTranscripts,
   type DayEditConflict,
+  type PendingDayPhotos,
   type PendingTranscript,
 } from "@/lib/outbox";
 import ConflictCard from "@/components/studio/day/ConflictCard";
@@ -280,6 +282,39 @@ export default function EditDay({
   const [mediaReasons, setMediaReasons] = useState<Record<number, string>>({});
   const [previewOpen, setPreviewOpen] = useState(false);
 
+  /** B2371 — photograph adds and removals queued for this day's `photos/`
+   *  door while offline, per update index, read from the outbox (so a
+   *  reopened panel shows them) rather than held only in this render. */
+  const [queuedPhotos, setQueuedPhotos] = useState<PendingDayPhotos[]>([]);
+  const refreshQueuedPhotos = useCallback(() => {
+    if (!hasOutbox()) return Promise.resolve();
+    const store = openOutboxStore();
+    return Promise.all(
+      day.entries.map((entry) =>
+        pendingDayPhotos(
+          store,
+          username,
+          `${journalPath(encodeURIComponent(username))}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(entry.slug)}/photos`,
+        ),
+      ),
+    ).then(setQueuedPhotos);
+  }, [username, tripId, day.entries]);
+  useEffect(() => {
+    void refreshQueuedPhotos();
+  }, [refreshQueuedPhotos]);
+  // A queued file's own bytes are its thumbnail, exactly as Add a day does.
+  const queuedThumbs = useMemo(() => {
+    const urls: Record<string, string> = {};
+    for (const row of queuedPhotos) for (const a of row.adds) urls[a.id] = URL.createObjectURL(a.blob);
+    return urls;
+  }, [queuedPhotos]);
+  useEffect(() => () => Object.values(queuedThumbs).forEach((u) => URL.revokeObjectURL(u)), [queuedThumbs]);
+  /** Cancels one queued intent — "Remove" on a queued add, "Keep after all"
+   *  on a queued removal. Nothing was sent, so nothing to ask. */
+  function cancelQueuedPhoto(id: string) {
+    void openOutboxStore().remove(id).then(refreshQueuedPhotos);
+  }
+
   const set = (at: number, patch: Partial<Draft>) =>
     setDrafts((prev) =>
       prev.map((draft, i) => (i === at ? { ...draft, ...patch } : draft)),
@@ -309,6 +344,9 @@ export default function EditDay({
     const was = draftOf(day.entries[at]);
     const now = drafts[at];
     const patch: Record<string, unknown> = {};
+    // B2371 — a photograph already queued to come off is as gone as one
+    // marked now: a caption edit must not write it back into `media`.
+    gone = [...gone, ...(queuedPhotos[at]?.removes.map((r) => r.src) ?? [])];
     if (now.title !== was.title) patch.title = now.title;
     if (now.time !== was.time) patch.time = now.time;
     if (now.location !== was.location) patch.location = now.location;
@@ -369,8 +407,9 @@ export default function EditDay({
   function emptiedEntries(): number[] {
     return day.entries.flatMap((entry, at) => {
       if (entry.gallery.length === 0) return [];
-      const remaining = entry.gallery.filter((item) => !dropping.includes(item.src)).length;
-      const addingCount = (adding[at] ?? []).length;
+      const queuedGone = queuedPhotos[at]?.removes.map((r) => r.src) ?? [];
+      const remaining = entry.gallery.filter((item) => !dropping.includes(item.src) && !queuedGone.includes(item.src)).length;
+      const addingCount = (adding[at] ?? []).length + (queuedPhotos[at]?.adds.length ?? 0);
       return remaining === 0 && addingCount === 0 ? [at] : [];
     });
   }
@@ -441,16 +480,30 @@ export default function EditDay({
     // Pictures first, words after. A caption belongs to a photograph, so a
     // file has to be on the day before the same save can say what it shows —
     // and a photograph on its way off must not be captioned on the way.
+    // B2371 — a network error (not a refusal) on a photograph is queued
+    // instead of failing, but only after the words below are queued, so the
+    // replay applies the day's `If-Match` edit before a photograph changes
+    // the document's version underneath it.
+    const photoIntents: ReturnType<typeof newIntent>[] = [];
+    const canQueue = !!onSaved && hasOutbox();
     for (const [at, entry] of day.entries.entries()) {
       const files = adding[at] ?? [];
+      const photosUrl = dayUrl(entry.slug, "photos");
       if (files.length > 0) {
         const form = new FormData();
         for (const file of files) form.append("files", file);
-        const response = await fetch(dayUrl(entry.slug, "photos"), {
-          method: "POST",
-          body: form,
-        }).catch(() => null);
-        if (!response?.ok) {
+        let offline = false;
+        const response = await fetch(photosUrl, { method: "POST", body: form }).catch(() => {
+          offline = true;
+          return null;
+        });
+        if (offline && canQueue) {
+          for (const file of files) {
+            photoIntents.push(
+              newIntent({ user: username, kind: "day.photo.add", method: "POST", url: photosUrl, body: { filename: file.name }, blob: file }),
+            );
+          }
+        } else if (!response?.ok) {
           setBusy(false);
           setFailed(entry.slug);
           return;
@@ -460,12 +513,20 @@ export default function EditDay({
         .filter((item) => dropping.includes(item.src))
         .map((i) => i.src);
       if (gone.length > 0) {
-        const response = await fetch(dayUrl(entry.slug, "photos"), {
+        let offline = false;
+        const response = await fetch(photosUrl, {
           method: "DELETE",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ src: gone }),
-        }).catch(() => null);
-        if (!response?.ok) {
+        }).catch(() => {
+          offline = true;
+          return null;
+        });
+        if (offline && canQueue) {
+          for (const src of gone) {
+            photoIntents.push(newIntent({ user: username, kind: "day.photo.remove", method: "DELETE", url: photosUrl, body: { src: [src] } }));
+          }
+        } else if (!response?.ok) {
           setBusy(false);
           setFailed(entry.slug);
           return;
@@ -545,6 +606,14 @@ export default function EditDay({
       }
     }
 
+    if (photoIntents.length > 0) {
+      const store = openOutboxStore();
+      for (const intent of photoIntents) await store.add(intent);
+      setAdding({});
+      setDropping([]);
+      await refreshQueuedPhotos();
+      queuedOffline = true;
+    }
     if (queuedOffline) {
       setBusy(false);
       onSaved?.({ queued: true });
@@ -970,7 +1039,11 @@ export default function EditDay({
               {t("edit.photos")}
             </p>
             {day.entries[at].gallery.map((item) => {
-              const going = dropping.includes(item.src);
+              // B2371 — a removal already queued reads like one marked now,
+              // plus Add a day's "Waiting to send" strip, and its button
+              // cancels the queued intent instead of unmarking.
+              const queuedRemoval = queuedPhotos[at]?.removes.find((r) => r.src === item.src);
+              const going = dropping.includes(item.src) || !!queuedRemoval;
               return (
                 <div
                   key={item.src}
@@ -981,16 +1054,23 @@ export default function EditDay({
                         `srcset` — but it does want a sized copy through the
                         media route's resize, not the stored 2000px photograph
                         (or clip still) it used to be handed. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={mediaLoader({ src: item.poster ?? item.src, width: 128 })}
-                    alt={item.alt ?? item.caption ?? ""}
-                    width={64}
-                    height={64}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-16 w-16 shrink-0 rounded object-cover"
-                  />
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={mediaLoader({ src: item.poster ?? item.src, width: 128 })}
+                      alt={item.alt ?? item.caption ?? ""}
+                      width={64}
+                      height={64}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-16 w-16 object-cover"
+                    />
+                    {queuedRemoval && (
+                      <span className="absolute inset-x-0 bottom-0 truncate bg-surface-raised/90 px-1 py-0.5 text-[10px] font-semibold text-ink-body">
+                        {t("studio.day.photos.pendingUpload")}
+                      </span>
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <input
                       value={draft.captions[item.src] ?? ""}
@@ -1032,11 +1112,13 @@ export default function EditDay({
                       <button
                         type="button"
                         onClick={() =>
-                          setDropping((prev) =>
-                            going
-                              ? prev.filter((s) => s !== item.src)
-                              : [...prev, item.src],
-                          )
+                          queuedRemoval
+                            ? cancelQueuedPhoto(queuedRemoval.id)
+                            : setDropping((prev) =>
+                                going
+                                  ? prev.filter((s) => s !== item.src)
+                                  : [...prev, item.src],
+                              )
                         }
                         className="min-h-11 shrink-0 rounded-full border border-line-strong px-3 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle"
                       >
@@ -1047,6 +1129,36 @@ export default function EditDay({
                 </div>
               );
             })}
+
+            {(queuedPhotos[at]?.adds ?? []).map((add) => (
+              <div key={add.id} className="mt-2 flex gap-2 rounded-lg border border-line-quiet p-2">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded">
+                  {queuedThumbs[add.id] && (
+                    // eslint-disable-next-line @next/next/no-img-element -- the file's own local bytes, not an optimisable asset
+                    <img
+                      src={queuedThumbs[add.id]}
+                      alt={`${add.filename} — ${t("studio.day.photos.pendingUpload")}`}
+                      width={64}
+                      height={64}
+                      className="h-16 w-16 object-cover"
+                    />
+                  )}
+                  <span className="absolute inset-x-0 bottom-0 truncate bg-surface-raised/90 px-1 py-0.5 text-[10px] font-semibold text-ink-body">
+                    {t("studio.day.photos.pendingUpload")}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <p className="min-w-0 flex-1 truncate text-sm text-ink-body">{add.filename}</p>
+                  <button
+                    type="button"
+                    onClick={() => cancelQueuedPhoto(add.id)}
+                    className="min-h-11 shrink-0 rounded-full border border-line-strong px-3 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle"
+                  >
+                    {t("edit.removePhoto")}
+                  </button>
+                </div>
+              </div>
+            ))}
 
             {/* B1012 — the picker B768 already wrote, rather than a second
                 bare `<input type="file">`. A bare one draws its own button and

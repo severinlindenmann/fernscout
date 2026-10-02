@@ -237,7 +237,12 @@ export async function runOutbox(
       // as `intent.blob` rather than in `intent.body` (JSON only) — sent as
       // the same multipart the inbox route already accepts from a live
       // upload, so the queued photograph is never re-encoded on its way in.
-      const isUpload = intent.kind === "media.upload" && intent.blob;
+      // B2371 — `day.photo.add` is the same multipart, posted straight to an
+      // existing day's own `photos/` door (Edit a day): no inbox, so no
+      // placeholder to remap and nothing for the native uploader (whose
+      // route is the inbox) to take over.
+      const isInboxUpload = intent.kind === "media.upload";
+      const isUpload = (isInboxUpload || intent.kind === "day.photo.add") && intent.blob;
       // B2331 — a voice note (RecordButton's own `onOffline` recording,
       // queued while the server could not be reached) also carries its audio
       // as `intent.blob`
@@ -247,7 +252,7 @@ export async function runOutbox(
       // this folds it into the plain JSON body instead of sending its own
       // form, the one difference from `media.upload`'s own branch below.
       const isVoiceNote = intent.kind === "voice.note" && intent.blob;
-      if (isUpload && intent.nativeUpload) {
+      if (isUpload && isInboxUpload && intent.nativeUpload) {
         // Already handed to the native uploader on an earlier pass.
         // `drainNativeUploads` runs before this and removes the intent the
         // moment native reports it finished, so still finding it here means
@@ -256,7 +261,7 @@ export async function runOutbox(
         outcome.stoppedForRetry = true;
         break;
       }
-      if (isUpload && nativeUpload && (await nativeUpload(intent))) {
+      if (isUpload && isInboxUpload && nativeUpload && (await nativeUpload(intent))) {
         await store.markNativeUpload(intent.id, true);
         outcome.stoppedForRetry = true;
         break;
@@ -593,4 +598,30 @@ export async function keepPhoneVersion(
  *  it. */
 export async function keepServerVersion(store: OutboxStore, conflict: DayEditConflict): Promise<void> {
   await store.remove(conflict.id);
+}
+
+/** B2371 — what Edit a day has queued for one day's `photos/` door: files to
+ *  add (the original `Blob`) and photographs to take off, each its own intent
+ *  so "Remove" / "Keep after all" cancels exactly one. Read straight off the
+ *  outbox, so a reopened panel shows what is waiting. */
+export interface PendingDayPhotos {
+  adds: { id: string; filename: string; blob: Blob }[];
+  removes: { id: string; src: string }[];
+}
+
+export async function pendingDayPhotos(store: OutboxStore, user: string, url: string): Promise<PendingDayPhotos> {
+  const rows = (await store.list(user)).filter((r) => r.state === "pending" && r.url === url);
+  return {
+    adds: rows.flatMap((r) =>
+      r.kind === "day.photo.add" && r.blob
+        ? [{ id: r.id, filename: (r.body as { filename?: string } | null)?.filename ?? "photo", blob: r.blob }]
+        : [],
+    ),
+    removes: rows.flatMap((r) => {
+      const src = (r.body as { src?: unknown } | null)?.src;
+      return r.kind === "day.photo.remove" && Array.isArray(src) && typeof src[0] === "string"
+        ? [{ id: r.id, src: src[0] as string }]
+        : [];
+    }),
+  };
 }
