@@ -163,26 +163,10 @@ export default function PageHeader({
     wasOpen.current = menuOpen;
   }, [menuOpen]);
 
-  // B2666 — on a notched iPhone shell, `body`'s own top padding (globals.css)
-  // reserves the inset for pages that have no header of their own to cover
-  // the clock. This header covers it instead (its own `pt-[…]` below clears
-  // the inset for its content, and `sticky top-0` already starts it at the
-  // very top of the page), so the body's reservation is dead weight here —
-  // not cancelled by a negative margin, which only moves a box within its
-  // parent's padding rather than shrinking that padding, which is exactly
-  // why that old technique left the page exactly one inset taller than the
-  // viewport. Publishing this var while mounted (the same way `ShowcaseBar`
-  // publishes `--fs-showcase-bar`) steps `body` aside instead.
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty("--fs-header-top", "0px");
-    return () => {
-      root.style.removeProperty("--fs-header-top");
-    };
-  }, []);
 
   return (
     <header
+      data-page-header=""
       className={`sticky top-0 z-30 border-b border-line-quiet bg-surface-subtle/95 px-4 pb-2.5 pt-[calc(env(safe-area-inset-top,0px)+0.625rem)] backdrop-blur motion-safe:transition-transform motion-safe:duration-200 sm:px-6 sm:pb-3 sm:pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] ${
         hidden ? "max-lg:-translate-y-full" : ""
       }`}

@@ -989,15 +989,18 @@ body {
      operator's banner, a trip's title — sat behind the clock.
      `PageHeader` covers the status bar itself (its own padding clears the
      inset for its content, and its background already starts at the very
-     top of the page) and publishes `--fs-header-top: 0px` on `html` while
-     mounted (B2666) so this rule steps aside rather than reserving the same
+     top of the page), so a body holding one drops this padding (B2666, in
+     CSS so the first paint is already right) rather than reserving the same
      inset a second time — doubled, because a negative margin only moves a
      box within its parent's padding, it does not shrink that padding, so
      `body`'s own reservation was never cancelled and the page grew taller
      than the viewport by exactly the inset, pushing every sticky footer
      below the fold. Pages with nothing of their own to cover the clock (no
      `PageHeader` — the landing page, the docs) keep the fallback. */
-  padding-top: var(--fs-header-top, env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+}
+body:has([data-page-header]) {
+  padding-top: 0;
 }
 
 @keyframes fs-assemble-in {
