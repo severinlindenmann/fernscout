@@ -48,14 +48,17 @@ async function mount(props: Partial<React.ComponentProps<typeof ShareDayStory>> 
 }
 
 test("the preview comes before the look picker", async () => {
+  // B2665 round 2 — the preview panel is always this one wrapper (loading,
+  // failed or showing the prepared file, depending on `prepareState`); a
+  // real fetch is not stubbed here, so without network access it settles
+  // into its "failed" state, but its position in the markup is what this
+  // test is actually about.
   await mount();
-  const order = [...container!.querySelectorAll("img, button")].map((el) => el.className);
-  const previewIndex = order.findIndex((c) => c.includes("max-h-[480px]"));
-  const lookButtonIndex = [...container!.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")][0]
-    ? [...container!.querySelectorAll("button, img")].indexOf([...container!.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")][0] as Element)
-    : -1;
-  expect(previewIndex).toBeGreaterThanOrEqual(0);
-  expect(lookButtonIndex).toBeGreaterThan(previewIndex);
+  const preview = container!.querySelector('[data-testid="story-preview"]');
+  const lookButton = container!.querySelector("button[aria-pressed]");
+  expect(preview).not.toBeNull();
+  expect(lookButton).not.toBeNull();
+  expect(preview!.compareDocumentPosition(lookButton!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 const photoGridTiles = (el: HTMLElement) => [...el.querySelectorAll<HTMLButtonElement>("button[aria-pressed]")].filter((b) => b.className.includes("h-16 w-16"));

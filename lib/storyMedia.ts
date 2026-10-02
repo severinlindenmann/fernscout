@@ -1,5 +1,4 @@
 import "server-only";
-import fs from "node:fs";
 import { resolveMediaFile, contentTypeFor } from "./media";
 
 /**
@@ -23,13 +22,29 @@ export function storyPhotoFile(username: string, src: string): string | null {
   return file;
 }
 
-export function storyPhotoDataUri(username: string, src: string): string | null {
+/**
+ * A photo named on a day, smart-cropped (sharp's attention strategy — the
+ * same guess a thumbnail would make) to the box it will actually fill on a
+ * story card, at twice the box's own size so a 1x render still reads sharp.
+ * B2665 round 2: before this, the full photo was handed to `objectFit:
+ * cover` and whichever edge the browser happened to keep was whatever edge
+ * it was — attention-cropping first means the subject itself survives.
+ */
+export async function storyPhotoCroppedDataUri(
+  username: string,
+  src: string,
+  box: { width: number; height: number },
+): Promise<string | null> {
   const file = storyPhotoFile(username, src);
   if (!file) return null;
   try {
-    const bytes = fs.readFileSync(file);
-    const type = contentTypeFor(file);
-    return `data:${type};base64,${bytes.toString("base64")}`;
+    const sharp = (await import("sharp")).default;
+    const bytes = await sharp(file, { failOn: "error" })
+      .rotate()
+      .resize(box.width * 2, box.height * 2, { fit: "cover", position: sharp.strategy.attention })
+      .jpeg({ quality: 82 })
+      .toBuffer();
+    return `data:image/jpeg;base64,${bytes.toString("base64")}`;
   } catch {
     return null;
   }
