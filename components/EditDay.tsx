@@ -55,11 +55,27 @@ type Draft = {
   extras: DayExtrasValue;
 };
 
-/** B2073 — a field's name is a mono eyebrow, the studio's own label face. */
-const EYEBROW = "font-mono text-[11px] font-medium uppercase tracking-[.06em] text-ink-secondary";
+/** B2764 — the same label and field the Write page (`AddDayFlow`) draws, so
+ *  both read as one app. Values copied, not invented. */
+const LABEL = "block text-xs font-semibold uppercase tracking-wide text-ink-secondary";
+const FIELD = "mt-1 block min-h-11 w-full min-w-0 rounded-xl border border-line-strong bg-surface-base px-3 text-base text-ink-body sm:text-sm";
+/** The tab for the entry's own words; translations are tabs by language code. */
+const ORIGINAL = "";
 
-const FIELD =
-  "w-full rounded-lg border border-line-quiet bg-surface-raised px-3 py-2 text-sm text-ink-strong focus:border-line-prominent focus:outline-none";
+/** One "Day details" row: its name and current value, opening its editor in
+ *  place. Native `<details>`, so the editor stays mounted while closed. */
+function DetailRow({ label, value, children }: { label: string; value: string; children: React.ReactNode }) {
+  return (
+    <details className="group">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-2 text-[15px] text-ink-strong [&::-webkit-details-marker]:hidden">
+        <span className="flex-1">{label}</span>
+        <em className="min-w-0 truncate text-sm not-italic text-ink-secondary">{value || "—"}</em>
+        <span aria-hidden className="text-ink-secondary transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div className="px-4 pb-4">{children}</div>
+    </details>
+  );
+}
 
 function draftOf(entry: Entry): Draft {
   return {
@@ -154,6 +170,8 @@ export default function EditDay({
   onSaved,
   calendar,
   currencies,
+  originalLocale,
+  manage,
 }: {
   username: string;
   tripId: string;
@@ -203,8 +221,15 @@ export default function EditDay({
    *  costs, how the day travelled and tags; absent (`StoryPager`, whose day
    *  is the reader's copy) it does not. */
   currencies?: string[];
+  /** B2764 — the journal's own language, named on the original tab. */
+  originalLocale?: string;
+  /** B2764 — more actions for the Manage section (the studio's delete). */
+  manage?: React.ReactNode;
 }) {
-  const { t, tn, formatLongDate, languageName } = useI18n();
+  const { t, tn, formatLongDate, languageName, locale } = useI18n();
+  const [tab, setTab] = useState(ORIGINAL);
+  // The languages the day already has — the panel adds none.
+  const tabCodes = [...new Set(day.entries.flatMap((e) => Object.keys(e.translations ?? {})))];
   const [date, setDate] = useState(day.date);
   const [drafts, setDrafts] = useState<Draft[]>(() => day.entries.map(draftOf));
   const [busy, setBusy] = useState(false);
@@ -918,124 +943,83 @@ export default function EditDay({
           </div>
         </section>
       ))}
-      {drafts.map((draft, at) => (
+      {tabCodes.length > 0 && (
+        <div
+          role="tablist"
+          aria-label={t("edit.languages")}
+          className="mt-4 flex gap-1 overflow-x-auto rounded-full border border-line-quiet bg-surface-base p-1"
+        >
+          {[ORIGINAL, ...tabCodes].map((code) => {
+            const on = code === tab;
+            return (
+              <button
+                key={code}
+                type="button"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setTab(code)}
+                className={`min-h-11 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-semibold ${on ? "bg-action-strong text-on-action" : "text-ink-secondary hover:bg-surface-subtle"}`}
+              >
+                {code === ORIGINAL
+                  ? t("edit.originalTab", { language: languageName(originalLocale ?? locale) })
+                  : languageName(code)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {drafts.map((draft, at) => {
+        // An update that lacks the chosen language shows its own words: the
+        // panel adds no language a day does not have.
+        const code = tab !== ORIGINAL && draft.translations[tab] ? tab : ORIGINAL;
+        const said = code === ORIGINAL ? null : draft.translations[code];
+        const setSaid = (patch: Partial<{ title: string; content: string }>) =>
+          set(at, { translations: { ...draft.translations, [code]: { ...said!, ...patch } } });
+        const language = languageName(code);
+        const titleEmptied = draft.title.trim() === "" && (day.entries[at].title ?? "") !== "";
+        return (
         <div
           key={day.entries[at].slug}
           className={at === 0 && inStudioBar ? "" : "mt-4 border-t border-line-quiet pt-3"}
         >
           {day.entries.length > 1 && (
-            <p className="text-xs font-semibold text-ink-secondary">
+            <p className="mt-2 text-xs font-semibold text-ink-secondary">
               {formatLongDate(day.date)} · {at + 1}/{day.entries.length}
             </p>
           )}
 
-          <label className="mt-2 block">
-            <span className={EYEBROW}>
-              {t("edit.title")}
-            </span>
-            <input
-              value={draft.title}
-              onChange={(event) => set(at, { title: event.target.value })}
-              aria-invalid={draft.title.trim() === "" && (day.entries[at].title ?? "") !== ""}
-              className={`mt-1 ${FIELD}`}
-            />
-          </label>
-          {draft.title.trim() === "" && (day.entries[at].title ?? "") !== "" && (
-            <p role="alert" className="mt-1 text-sm text-coral-600">
-              {t("edit.titleNeeded")}
-            </p>
-          )}
-
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            <label className="block">
-              <span className={EYEBROW}>
-                {t("edit.time")}
-              </span>
+          <div className="mt-3 space-y-3 rounded-2xl border border-line-quiet bg-surface-raised p-4">
+            <label className={`block ${LABEL}`}>
+              {said ? t("edit.titleIn", { language }) : t("edit.title")}
               <input
-                value={draft.time}
-                placeholder="14:00"
-                onChange={(event) => set(at, { time: event.target.value })}
-                className={`mt-1 ${FIELD}`}
+                value={said ? said.title : draft.title}
+                onChange={(event) => (said ? setSaid({ title: event.target.value }) : set(at, { title: event.target.value }))}
+                aria-invalid={!said && titleEmptied}
+                className={`${FIELD} font-display text-[22px] font-semibold normal-case tracking-normal sm:text-[22px]`}
               />
             </label>
-            <label className="block">
-              <span className={EYEBROW}>
-                {t("edit.place")}
-              </span>
-              <input
-                value={draft.location}
-                onChange={(event) => set(at, { location: event.target.value })}
-                className={`mt-1 ${FIELD}`}
+            {!said && titleEmptied && (
+              <p role="alert" className="text-sm text-coral-600">
+                {t("edit.titleNeeded")}
+              </p>
+            )}
+            <label className={`block ${LABEL}`}>
+              {t("edit.whatHappened")}
+              <textarea
+                rows={said ? 6 : 8}
+                value={said ? said.content : draft.content}
+                onChange={(event) => (said ? setSaid({ content: event.target.value }) : set(at, { content: event.target.value }))}
+                className={`${FIELD} py-3 font-sans normal-case leading-6 tracking-normal`}
               />
             </label>
           </div>
-
-          <label className="mt-2 block">
-            <span className={EYEBROW}>
-              {t("edit.text")}
-            </span>
-            <textarea
-              rows={10}
-              value={draft.content}
-              onChange={(event) => set(at, { content: event.target.value })}
-              className={`mt-1 ${FIELD} font-mono leading-6`}
-            />
-          </label>
-
-          {Object.entries(draft.translations).map(([code, said]) => (
-            <div key={code} className="mt-2 rounded-lg bg-surface-subtle p-2">
-              <p className="text-xs font-semibold text-ink-body">
-                {t("edit.inLanguage", { language: languageName(code) })}
-              </p>
-              <input
-                value={said.title}
-                onChange={(event) =>
-                  set(at, {
-                    translations: {
-                      ...draft.translations,
-                      [code]: { ...said, title: event.target.value },
-                    },
-                  })
-                }
-                className={`mt-1 ${FIELD}`}
-              />
-              <textarea
-                rows={6}
-                value={said.content}
-                onChange={(event) =>
-                  set(at, {
-                    translations: {
-                      ...draft.translations,
-                      [code]: { ...said, content: event.target.value },
-                    },
-                  })
-                }
-                className={`mt-1 ${FIELD} font-mono leading-6`}
-              />
-            </div>
-          ))}
-
-          {currencies && (
-            <div className="mt-3">
-              <DayExtras
-                value={draft.extras}
-                onChange={(extras) => set(at, { extras })}
-                currencies={currencies}
-                keep={{
-                  costs: day.entries[at].costs.length > 0,
-                  transportMode: !!day.entries[at].transport?.mode,
-                  tags: day.entries[at].tags.length > 0,
-                }}
-              />
-            </div>
-          )}
 
           {/* The pictures of this update — B980 round 2. A caption and a
               label are fields of the day and go with the words on save; a
               removal and an upload are their own calls to `photos/`, and
               nothing leaves disk until the same press. */}
-          <div className="mt-3">
-            <p className={EYEBROW}>
+          <div className="mt-5">
+            <p className={LABEL}>
               {t("edit.photos")}
             </p>
             {day.entries[at].gallery.map((item) => {
@@ -1168,7 +1152,7 @@ export default function EditDay({
                 and video: a correction to a day adds nothing else, and there
                 is no inbox behind this panel to sort a receipt into. */}
             <div className="mt-2">
-              <span className={EYEBROW}>
+              <span className={LABEL}>
                 {t("edit.addPhotos")}
               </span>
               <PhotoPicker
@@ -1182,38 +1166,77 @@ export default function EditDay({
             </div>
           </div>
 
-          {/* A label narrows and never widens — B632. There is no "public"
-              here for that reason: the trip's own visibility is the ceiling
-              and this can only sit under it. */}
-          <label className="mt-2 block">
-            <span className={EYEBROW}>
-              {t("edit.whoSees")}
-            </span>
-            <select
-              value={draft.visibility}
-              onChange={(event) =>
-                set(at, {
-                  visibility: event.target.value as Draft["visibility"],
-                })
-              }
-              className={`mt-1 ${FIELD}`}
-            >
-              <option value="">{t("edit.seenAsTrip")}</option>
-              <option value="guest">{t("agent.tool.visibilityGuest")}</option>
-              <option value="private">
-                {t("agent.tool.visibilityPrivate")}
-              </option>
-            </select>
-          </label>
+          <div className="mt-5">
+            <p className={LABEL}>{t("edit.details")}</p>
+            <div className="mt-1 divide-y divide-line-quiet overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
+              {at === 0 && (
+                <DetailRow label={t("edit.date")} value={formatLongDate(date, { year: true })}>
+                  <DateField label={t("edit.date")} labelClassName={LABEL} value={date} onChange={setDate} {...calendar} />
+                </DetailRow>
+              )}
+              <DetailRow label={t("edit.place")} value={draft.location}>
+                <input
+                  aria-label={t("edit.place")}
+                  value={draft.location}
+                  onChange={(event) => set(at, { location: event.target.value })}
+                  className={FIELD}
+                />
+              </DetailRow>
+              <DetailRow label={t("edit.time")} value={draft.time}>
+                <input
+                  aria-label={t("edit.time")}
+                  value={draft.time}
+                  placeholder="14:00"
+                  onChange={(event) => set(at, { time: event.target.value })}
+                  className={FIELD}
+                />
+              </DetailRow>
+              {currencies && (
+                <DetailRow
+                  label={t("edit.costsTravel")}
+                  value={draft.extras.costs.length > 0 ? String(draft.extras.costs.length) : ""}
+                >
+                  <DayExtras
+                    value={draft.extras}
+                    onChange={(extras) => set(at, { extras })}
+                    currencies={currencies}
+                    keep={{
+                      costs: day.entries[at].costs.length > 0,
+                      transportMode: !!day.entries[at].transport?.mode,
+                      tags: day.entries[at].tags.length > 0,
+                    }}
+                  />
+                </DetailRow>
+              )}
+              {/* A label narrows and never widens — B632. There is no "public"
+                  here for that reason: the trip's own visibility is the ceiling
+                  and this can only sit under it. */}
+              <DetailRow
+                label={t("edit.whoSees")}
+                value={draft.visibility === "" ? t("edit.seenAsTrip") : t(draft.visibility === "guest" ? "agent.tool.visibilityGuest" : "agent.tool.visibilityPrivate")}
+              >
+                <select
+                  aria-label={t("edit.whoSees")}
+                  value={draft.visibility}
+                  onChange={(event) =>
+                    set(at, {
+                      visibility: event.target.value as Draft["visibility"],
+                    })
+                  }
+                  className={FIELD}
+                >
+                  <option value="">{t("edit.seenAsTrip")}</option>
+                  <option value="guest">{t("agent.tool.visibilityGuest")}</option>
+                  <option value="private">
+                    {t("agent.tool.visibilityPrivate")}
+                  </option>
+                </select>
+              </DetailRow>
+            </div>
+          </div>
         </div>
-      ))}
-
-      {/* The date belongs to the day rather than to one update — below every
-          update's own fields, since it is the one a correction least often
-          touches. */}
-      <div className="mt-4">
-        <DateField label={t("edit.date")} labelClassName={`block ${EYEBROW}`} value={date} onChange={setDate} {...calendar} />
-      </div>
+        );
+      })}
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {inStudioBar ? (
@@ -1245,34 +1268,41 @@ export default function EditDay({
             </BusyButton>
           </>
         )}
-        {/* Only where there is something left to take down — a day whose
-            every update is already a draft has nothing this button would do. */}
-        {!takingDown && day.entries.some((entry) => !entry.draft) && (
-          <button
-            type="button"
-            onClick={() => setTakingDown(true)}
-            className="min-h-11 rounded-full border border-coral-300 px-4 text-xs font-semibold text-coral-600 transition-colors hover:bg-coral-50"
-          >
-            {t("edit.takeDown")}
-          </button>
-        )}
       </div>
 
-      {/* Its own press, its own confirmation — B28. Never a side effect of
-          Save, and never a `window.confirm` — B633/B668. */}
-      {takingDown && (
-        <div className="mt-3">
-          <ConfirmPanel
-            label={t("edit.takeDown")}
-            question={t("edit.takeDownQuestion")}
-            confirmLabel={t("edit.takeDownConfirm")}
-            busy={busy}
-            error={failed ? t("edit.failed") : undefined}
-            onConfirm={() => void takeDown()}
-            onCancel={() => setTakingDown(false)}
-          />
+      <div className="mt-8 border-t border-line-quiet pt-6">
+        <p className={LABEL}>{t("edit.manage")}</p>
+        <div className="mt-2 flex flex-col items-start gap-1">
+          {/* Only where there is something left to take down — a day whose
+              every update is already a draft has nothing this button would do. */}
+          {!takingDown && day.entries.some((entry) => !entry.draft) && (
+            <button
+              type="button"
+              onClick={() => setTakingDown(true)}
+              className="min-h-11 rounded-full border border-coral-300 px-4 text-sm font-semibold text-coral-600 transition-colors hover:bg-coral-50"
+            >
+              {t("edit.takeDown")}
+            </button>
+          )}
+          {manage}
         </div>
-      )}
+
+        {/* Its own press, its own confirmation — B28. Never a side effect of
+            Save, and never a `window.confirm` — B633/B668. */}
+        {takingDown && (
+          <div className="mt-3">
+            <ConfirmPanel
+              label={t("edit.takeDown")}
+              question={t("edit.takeDownQuestion")}
+              confirmLabel={t("edit.takeDownConfirm")}
+              busy={busy}
+              error={failed ? t("edit.failed") : undefined}
+              onConfirm={() => void takeDown()}
+              onCancel={() => setTakingDown(false)}
+            />
+          </div>
+        )}
+      </div>
 
       {failed && !takingDown && (
         <p role="alert" className="mt-2 text-xs text-coral-600">

@@ -1,6 +1,6 @@
 import EditDayFlow from "@/components/studio/day/EditDayFlow";
 import StudioPage from "@/components/studio/StudioPage";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { defaultLocaleFor, requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { daysForEditPicker, dayForEdit } from "@/lib/studio/editDay";
 
@@ -48,7 +48,7 @@ export default async function StudioEditDayPage({
       title={translateIn(locale, "studio.hub.item.changeDay.title")}
       lede={chosen ? undefined : translateIn(locale, "studio.day.edit.consequence")}
     >
-      <EditDayFlow username={user} picker={picker} chosenSlug={typeof slug === "string" ? slug : undefined} editable={chosen} />
+      <EditDayFlow username={user} picker={picker} chosenSlug={typeof slug === "string" ? slug : undefined} editable={chosen} originalLocale={defaultLocaleFor(user)} />
     </StudioPage>
   );
 }

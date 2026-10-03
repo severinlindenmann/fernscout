@@ -10,6 +10,7 @@ import { tripCalendar } from "@/components/studio/DateField";
 import { useI18n } from "@/components/LocaleProvider";
 import type { EditablePickerTrip, EditableDay } from "@/lib/studio/editDay";
 import { cutEditPicker, editPickerHasMore } from "@/lib/studio/pickerCut";
+import { dayOfTrip } from "@/lib/studio/monthGrid";
 
 import { journalPath } from "@/lib/journalPath";
 /**
@@ -40,6 +41,7 @@ export default function EditDayFlow({
   picker,
   chosenSlug,
   editable,
+  originalLocale,
 }: {
   username: string;
   picker: EditablePickerTrip[];
@@ -48,6 +50,8 @@ export default function EditDayFlow({
    *  honest failure). */
   chosenSlug?: string;
   editable: EditableDay | null;
+  /** The journal's own language, named on EditDay's original tab. */
+  originalLocale?: string;
 }) {
   const { t, formatLongDate } = useI18n();
   const [query, setQuery] = useState("");
@@ -83,7 +87,7 @@ export default function EditDayFlow({
   const visible = searching || showAll ? filtered : cutEditPicker(picker);
   const hasMore = !searching && !showAll && editPickerHasMore(picker);
 
-  if (editable) return <ChosenDay username={username} editable={editable} picker={picker} />;
+  if (editable) return <ChosenDay username={username} editable={editable} picker={picker} originalLocale={originalLocale} />;
 
   return (
     <>
@@ -171,7 +175,7 @@ export default function EditDayFlow({
 
 /** E2 — one day chosen. Its own component so the picker (E1) never needs
  *  the router. */
-function ChosenDay({ username, editable, picker }: { username: string; editable: EditableDay; picker: EditablePickerTrip[] }) {
+function ChosenDay({ username, editable, picker, originalLocale }: { username: string; editable: EditableDay; picker: EditablePickerTrip[]; originalLocale?: string }) {
   const { t, formatLongDate } = useI18n();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
@@ -200,8 +204,17 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
       <Link href={`${journalPath(encodeURIComponent(username))}/studio/day/edit`} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
         {t("studio.day.edit.backToPicker")}
       </Link>
-      <h2 className="mt-3 font-display text-lg font-semibold text-ink-strong">{title}</h2>
-      <p className="text-sm text-ink-secondary">{editable.tripTitle}</p>
+      {/* B2764 — the page's own heading is the date; the day's title is the
+          first field below, so it stays here only for assistive technology. */}
+      <p className="mt-3 text-xs font-bold uppercase tracking-wide text-ink-secondary">
+        {editable.tripStart && editable.day.date >= editable.tripStart
+          ? t("edit.headerDay", { trip: editable.tripTitle, n: String(dayOfTrip(editable.day.date, editable.tripStart)) })
+          : editable.tripTitle}
+      </p>
+      <p className="mt-1 font-display text-[26px] font-semibold leading-tight text-ink-strong">
+        {formatLongDate(editable.day.date, { year: true })}
+      </p>
+      <h2 className="sr-only">{title}</h2>
       {/* B2058 — a fact, not a prompt: this form has no publishing, so
           the pill says where a draft is published from and offers nothing
           to press here. */}
@@ -233,6 +246,14 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
         tripId={editable.tripId}
         day={editable.day}
         currencies={editable.currencies}
+        originalLocale={originalLocale}
+        manage={
+          <DeleteDay
+            username={username}
+            day={{ tripId: editable.tripId, slug: editable.day.lead.slug, title, published: !editable.day.lead.draft }}
+            onDone={() => setDeleted(true)}
+          />
+        }
         calendar={tripCalendar(picker, { id: editable.tripId, start: editable.tripStart, end: editable.tripEnd })}
         confirmBeforeSave
         inStudioBar
@@ -266,12 +287,6 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
         </p>
       </div>
 
-      {/* B2259 — last and quiet, below everything the page is for. */}
-      <DeleteDay
-        username={username}
-        day={{ tripId: editable.tripId, slug: editable.day.lead.slug, title, published: !editable.day.lead.draft }}
-        onDone={() => setDeleted(true)}
-      />
     </>
   );
 }
