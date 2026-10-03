@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CircleCheck, Images, PencilLine, Share2, UserPlus } from "lucide-react";
+import {
+  CircleCheck,
+  Images,
+  PencilLine,
+  Share2,
+  UserPlus,
+} from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { journalPath } from "@/lib/journalPath";
 
@@ -34,7 +40,14 @@ export default function PublishedDay({
   thumb: string | null;
   /** B2776 — empty when someone besides the owner can open the day; else the
    *  ways to let somebody in (`reachActions`), shown instead of "Send the link". */
-  reach: { key: "studio.reach.addSomeone" | "studio.reach.letReadersIn" | "studio.reach.inviteReader" | "studio.reach.changeWho"; href: string }[];
+  reach: {
+    key:
+      | "studio.reach.addSomeone"
+      | "studio.reach.letReadersIn"
+      | "studio.reach.inviteReader"
+      | "studio.reach.changeWho";
+    href: string;
+  }[];
 }) {
   const { t } = useI18n();
   const [shared, setShared] = useState(false);
@@ -45,7 +58,10 @@ export default function PublishedDay({
   // this just has to land there, not reopen a sheet that page has no such
   // thing for.
   const addPhotosHref = `${journalPath(username)}/studio/day/edit?slug=${encodeURIComponent(slug)}`;
-  const fullLink = typeof window !== "undefined" ? `${window.location.origin}${dayHref}` : dayHref;
+  const fullLink =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${dayHref}`
+      : dayHref;
 
   async function sendLink() {
     try {
@@ -65,68 +81,137 @@ export default function PublishedDay({
     }
   }
 
-  const rows: { icon: React.ReactNode; title: string; sub: string; onClick?: () => void; href?: string }[] = [
+  const rows: {
+    icon: React.ReactNode;
+    title: string;
+    sub: string;
+    onClick?: () => void;
+    href?: string;
+  }[] = [
     ...(reach.length === 0
-      ? [{ icon: <Share2 aria-hidden className="h-5 w-5" />, title: t("studio.published.sendLink"), sub: t("studio.published.sendLinkSub"), onClick: () => void sendLink() }]
-      : reach.map((a) => ({ icon: <UserPlus aria-hidden className="h-5 w-5" />, title: t(a.key), sub: t("studio.reach.sub"), href: a.href }))),
-    { icon: <PencilLine aria-hidden className="h-5 w-5" />, title: t("studio.published.nextDay"), sub: t("studio.published.nextDaySub"), href: writeHref },
-    { icon: <Images aria-hidden className="h-5 w-5" />, title: t("studio.published.addPhotos"), sub: t("studio.published.addPhotosSub"), href: addPhotosHref },
+      ? [
+          {
+            icon: <Share2 aria-hidden className="h-5 w-5" />,
+            title: t("studio.published.sendLink"),
+            sub: t("studio.published.sendLinkSub"),
+            onClick: () => void sendLink(),
+          },
+        ]
+      : reach.map((a) => ({
+          icon: <UserPlus aria-hidden className="h-5 w-5" />,
+          title: t(a.key),
+          sub: t("studio.reach.sub"),
+          href: a.href,
+        }))),
+    {
+      icon: <PencilLine aria-hidden className="h-5 w-5" />,
+      title: t("studio.published.nextDay"),
+      sub: t("studio.published.nextDaySub"),
+      href: writeHref,
+    },
+    {
+      icon: <Images aria-hidden className="h-5 w-5" />,
+      title: t("studio.published.addPhotos"),
+      sub: t("studio.published.addPhotosSub"),
+      href: addPhotosHref,
+    },
   ];
 
   return (
     <div className="mt-4">
-      <div role="status" className="flex items-start gap-3 rounded-2xl border border-green-500/40 bg-green-100 px-4 py-4 text-ink-strong">
-        <CircleCheck aria-hidden className="mt-0.5 h-6 w-6 flex-none text-green-700" />
+      <div
+        role="status"
+        className="flex items-start gap-3 rounded-2xl border border-green-500/40 bg-green-100 px-4 py-4 text-ink-strong"
+      >
+        <CircleCheck
+          aria-hidden
+          className="mt-0.5 h-6 w-6 flex-none text-green-700"
+        />
         <div className="min-w-0">
-          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">{t("studio.published.pageTitle")}</p>
-          <p className="mt-0.5 font-display text-[22px] font-semibold leading-tight">{title}</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">
+            {t("studio.published.pageTitle")}
+          </p>
+          <p className="mt-0.5 font-display text-[22px] font-semibold leading-tight">
+            {title}
+          </p>
           <p className="mt-2 text-base leading-snug">{readerLine}</p>
-          <Link href={dayHref} className="mt-3 inline-flex min-h-11 items-center font-semibold underline underline-offset-2">
+          <Link
+            href={dayHref}
+            className="mt-3 inline-flex min-h-11 items-center font-semibold underline underline-offset-2"
+          >
             {t("studio.published.seeDay")}
           </Link>
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
-        {thumb && (
-          <div className="flex h-[120px] items-center justify-center bg-surface-subtle">
-            {/* eslint-disable-next-line @next/next/no-img-element -- a small story-look thumbnail. */}
-            <img src={`${thumb}&w=240`} alt="" className="h-[108px] w-[86px] rounded-lg object-cover" />
+      {/* B-2822: no story card while nobody but the owner can open the day —
+          a story would point people at a page that refuses them. */}
+      {reach.length === 0 && (
+        <div className="mt-5 overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
+          {thumb && (
+            <div className="flex h-[120px] items-center justify-center bg-surface-subtle">
+              {/* eslint-disable-next-line @next/next/no-img-element -- a small story-look thumbnail. */}
+              <img
+                src={`${thumb}&w=240`}
+                alt=""
+                className="h-[108px] w-[86px] rounded-lg object-cover"
+              />
+            </div>
+          )}
+          <div className="p-4">
+            <p className="font-display text-xl font-semibold text-ink-strong">
+              {t("studio.share.title")}
+            </p>
+            <p className="mt-1 text-base text-ink-secondary">
+              {t("studio.share.whatNextBody")}
+            </p>
+            <Link
+              href={shareHref}
+              className="mt-4 flex h-[50px] items-center justify-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-navy-900 hover:bg-yellow-300"
+            >
+              {t("studio.share.whatNextLabel")}
+            </Link>
           </div>
-        )}
-        <div className="p-4">
-          <p className="font-display text-xl font-semibold text-ink-strong">{t("studio.share.title")}</p>
-          <p className="mt-1 text-base text-ink-secondary">{t("studio.share.whatNextBody")}</p>
-          <Link
-            href={shareHref}
-            className="mt-4 flex h-[50px] items-center justify-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-navy-900 hover:bg-yellow-300"
-          >
-            {t("studio.share.whatNextLabel")}
-          </Link>
         </div>
-      </div>
+      )}
 
       <div className="mt-3 divide-y divide-line-faint overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
         {rows.map((row) => {
           const body = (
             <>
-              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-surface-subtle text-ink-body">{row.icon}</span>
+              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-surface-subtle text-ink-body">
+                {row.icon}
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-ink-strong">{row.title}</span>
-                <span className="block text-sm leading-[1.45] text-ink-secondary">{row.href ? row.sub : shared && row.title === t("studio.published.sendLink") ? t("studio.share.done") : row.sub}</span>
+                <span className="block font-semibold text-ink-strong">
+                  {row.title}
+                </span>
+                <span className="block text-sm leading-[1.45] text-ink-secondary">
+                  {row.href
+                    ? row.sub
+                    : shared && row.title === t("studio.published.sendLink")
+                      ? t("studio.share.done")
+                      : row.sub}
+                </span>
               </span>
               <span aria-hidden className="text-ink-faint">
                 ›
               </span>
             </>
           );
-          const cls = "flex min-h-14 w-full items-center gap-3 px-4 py-[18px] text-left hover:bg-surface-subtle";
+          const cls =
+            "flex min-h-14 w-full items-center gap-3 px-4 py-[18px] text-left hover:bg-surface-subtle";
           return row.href ? (
             <Link key={row.title} href={row.href} className={cls}>
               {body}
             </Link>
           ) : (
-            <button key={row.title} type="button" onClick={row.onClick} className={cls}>
+            <button
+              key={row.title}
+              type="button"
+              onClick={row.onClick}
+              className={cls}
+            >
               {body}
             </button>
           );

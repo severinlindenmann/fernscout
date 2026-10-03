@@ -70,6 +70,7 @@ describe("B2765 PublishedDay", () => {
   test("B2776 — Send the link only when someone can open the day; otherwise the two doors", () => {
     const open = render(<PublishedDay username="alex" tripId="t" slug="d" title="Sunday" readerLine="x" thumb={null} reach={[]} />);
     expect(open.textContent).toContain("Send the link");
+    expect(open.textContent).toContain("Share as a story");
     act(() => root?.unmount());
     container?.remove();
     const closed = render(
@@ -88,6 +89,8 @@ describe("B2765 PublishedDay", () => {
     );
     expect(closed.textContent).not.toContain("Send the link");
     expect(closed.textContent).toContain("Add someone to this trip");
+    // B-2822 — no story for a day nobody else can open.
+    expect(closed.textContent).not.toContain("Share as a story");
     expect(closed.querySelector('a[href="/@alex/studio/trip/visibility?trip=t"]')?.textContent).toContain("Let your readers in");
   });
 
