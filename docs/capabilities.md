@@ -54,6 +54,7 @@ what it would generate.
 | `contacts` | server-wide | — |
 | `costs` | server-wide | — |
 | `extract` | per journal | — |
+| `groupTrips` | per journal | — |
 | `helper` | server-wide | — |
 | `iosApp` | server-wide | — |
 | `logging` | server-wide | — |
