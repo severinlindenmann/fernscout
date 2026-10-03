@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import {
   CalendarPlus,
@@ -55,7 +55,15 @@ const DOOR_HUE = { newTrip: "var(--color-yellow-400)", polarsteps: "var(--color-
 /** B2810 — per journal, per device; storage can be blocked, so both ends are
  *  guarded and a failure just means the welcome shows again. */
 const welcomeKey = (username: string) => `fs.studioWelcomeSkipped.${username}`;
+const WELCOME_EVENT = "fs-studio-welcome";
+const subscribeWelcome = (cb: () => void) => {
+  window.addEventListener(WELCOME_EVENT, cb);
+  return () => window.removeEventListener(WELCOME_EVENT, cb);
+};
+// Remembered for the page's life even where storage is blocked.
+const skippedNow = new Set<string>();
 function readWelcomeSkipped(username: string): boolean {
+  if (skippedNow.has(username)) return true;
   try {
     return localStorage.getItem(welcomeKey(username)) === "1";
   } catch {
@@ -63,11 +71,13 @@ function readWelcomeSkipped(username: string): boolean {
   }
 }
 function writeWelcomeSkipped(username: string) {
+  skippedNow.add(username);
   try {
     localStorage.setItem(welcomeKey(username), "1");
   } catch {
-    /* the welcome shows again next time */
+    /* the welcome shows again next visit */
   }
+  window.dispatchEvent(new Event(WELCOME_EVENT));
 }
 
 /** B2600 — "Everything else"'s four cards: a tinted icon, a title and (on
@@ -193,8 +203,11 @@ export default function StudioHub({
   const [query, setQuery] = useState("");
   // B2810 — the first-visit welcome is shown once per journal per device;
   // `null` until the browser has been asked (nothing flashes meanwhile).
-  const [skipped, setSkipped] = useState<boolean | null>(null);
-  useEffect(() => setSkipped(readWelcomeSkipped(username)), [username]);
+  const skipped = useSyncExternalStore(
+    subscribeWelcome,
+    () => readWelcomeSkipped(username),
+    () => null,
+  );
 
   // B2304 — no floating pill on the hub any more: it repeated the hero and
   // two of the group grid's own rows, one more "door" on a page about
@@ -293,7 +306,6 @@ export default function StudioHub({
             type="button"
             onClick={() => {
               writeWelcomeSkipped(username);
-              setSkipped(true);
             }}
             className="mt-3 inline-flex min-h-11 items-center rounded px-4 text-[15px] font-semibold text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
