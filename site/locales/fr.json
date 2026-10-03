@@ -4915,6 +4915,7 @@
   "studio.speak.nearLimit": "Cet enregistrement s’arrête à 15:00, puis il est transcrit.",
   "studio.speak.tryAgain": "Réessayer",
   "studio.speak.discardRecording": "Abandonner l’enregistrement",
+  "studio.speak.tooShort": "C’était trop court pour être écrit — abandonne-le et parle à nouveau.",
   "studio.speak.discardAsk": "Jeter {time} ?",
   "studio.speak.discardConfirm": "Jeter l’enregistrement",
   "studio.speak.notSure": "Tu ne sais pas quoi dire ?",

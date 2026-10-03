@@ -4915,6 +4915,7 @@
   "studio.speak.nearLimit": "Questa registrazione si ferma a 15:00 e poi viene trascritta.",
   "studio.speak.tryAgain": "Riprova",
   "studio.speak.discardRecording": "Scarta la registrazione",
+  "studio.speak.tooShort": "Era troppo breve per essere trascritto — scartalo e parla di nuovo.",
   "studio.speak.discardAsk": "Buttare {time}?",
   "studio.speak.discardConfirm": "Butta la registrazione",
   "studio.speak.notSure": "Non sai cosa dire?",

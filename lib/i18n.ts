@@ -4577,6 +4577,7 @@ export type TranslationKey =
   | "studio.speak.q.met"
   | "studio.speak.resumeLabel"
   | "studio.speak.speak"
+  | "studio.speak.tooShort"
   | "studio.speak.tryAgain"
   | "studio.speak.undo"
   | "studio.statement.check.heading"

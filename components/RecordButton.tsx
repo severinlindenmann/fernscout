@@ -247,6 +247,7 @@ export default function RecordButton({
   // The host's choice wins outright where there is one; there is no select to
   // disagree with it, and nothing is remembered from it either.
   const language = fixedLanguage ?? chosen;
+  const inSheet = !!sheet;
   const [error, setError] = useState("");
   // What a screen reader is told, and the only thing about this button that is
   // spoken while it runs — B794.
@@ -527,7 +528,7 @@ export default function RecordButton({
       // is not sent. It used to be dropped in silence as well — which, from
       // the outside, is a microphone that listened and then did nothing at
       // all. B995: say so, since it is the whole of what happened.
-      setError(t("agent.speechTooShort"));
+      setError(inSheet ? t("studio.speak.tooShort") : t("agent.speechTooShort"));
     };
     recorder.current = media;
     started.current = Date.now();
@@ -579,7 +580,7 @@ export default function RecordButton({
       wantStop.current = false;
       media.stop();
     }
-  }, [busy, recording, send, stopMeter, t, onOffline, onSettled, language, locale]);
+  }, [busy, recording, send, stopMeter, t, onOffline, onSettled, language, locale, inSheet]);
 
   function stop() {
     if (recorder.current?.state === "recording" || recorder.current?.state === "paused") {
