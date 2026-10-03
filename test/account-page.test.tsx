@@ -279,6 +279,21 @@ describe("the plan panel", () => {
     expect(html).toContain("CHF 10.00 off each");
   });
 
+  // B2770 — an operator's voucher may carry no expiry; it must not read "until ".
+  test("lists active vouchers, with an expiry only when there is one", () => {
+    const html = render({
+      plan: {
+        ...plusRenewing,
+        vouchers: [
+          { appliesTo: "photobook", amountRappen: 2500, expiresAt: null },
+          { appliesTo: "postcard", amountRappen: 300, expiresAt: "2026-12-31T23:59:59.000Z" },
+        ],
+      },
+    });
+    expect(html).toContain("CHF 25.00 off a photobook<");
+    expect(html).toContain("CHF 3.00 off a postcard, until Thursday, 31 December");
+  });
+
   test("a live Stripe subscription gets a cancel link and what it means", () => {
     const html = render({ plan: plusRenewing });
     expect(html).toContain("Cancel Plus");

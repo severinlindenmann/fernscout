@@ -12,6 +12,7 @@ export type OrderRow = {
   );
   createdAt: string;
   chf: string;
+  voucherChf: string | null;
 };
 export type UnfinishedPrint =
   | { kind: "postcard"; id: string; href: string; recipients: string[]; updatedAt: string }
