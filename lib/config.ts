@@ -496,6 +496,13 @@ export type ServerConfig = {
    * keeps: never a float for money.
    */
   costs: CostConfig;
+  /**
+   * What the operator's providers are judged against — B1646. Only the three
+   * providers whose own API returns a balance have a line, in the currency
+   * that API answers in (never converted). Absent means the figure is shown
+   * with no Low/OK judgement.
+   */
+  providers: Partial<Record<"stannp" | "twilio" | "deepgram", { lowBelow: number }>>;
 };
 
 /**
@@ -1116,9 +1123,33 @@ export function parseServerConfig(raw: unknown): ServerConfig {
     features: parseFeatures(src.features, problems),
     media: parseMediaLimits(src.media),
     costs: parseCosts(src.costs, problems),
+    providers: parseProviders(src.providers, problems),
   };
   if (problems.length > 0) throw new ConfigError(problems, serverConfigPath());
   return config;
+}
+
+/** `providers.<name>.lowBelow` — B1646. A positive number in the provider's own currency. */
+function parseProviders(raw: unknown, problems: string[]): ServerConfig["providers"] {
+  const found: ServerConfig["providers"] = {};
+  if (raw === undefined || raw === null) return found;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    problems.push("providers must be an object, or absent");
+    return found;
+  }
+  for (const [name, entry] of Object.entries(raw as Record<string, unknown>)) {
+    if (name !== "stannp" && name !== "twilio" && name !== "deepgram") {
+      problems.push(`providers.${name} is not a provider with a readable balance (stannp, twilio, deepgram)`);
+      continue;
+    }
+    const low = (entry as { lowBelow?: unknown } | null)?.lowBelow;
+    if (typeof low !== "number" || !Number.isFinite(low) || low <= 0) {
+      problems.push(`providers.${name}.lowBelow must be a number above zero, in the currency ${name}'s own API reports`);
+      continue;
+    }
+    found[name] = { lowBelow: low };
+  }
+  return found;
 }
 
 /** A whole, non-negative number of rappen, or a recorded problem. Money is
