@@ -751,6 +751,11 @@ const USER_DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   ...DEFAULT_FEATURES,
   mail: { ...DEFAULT_FEATURES.mail, enabled: true },
   whatsapp: { ...DEFAULT_FEATURES.whatsapp, enabled: true },
+  // B-2830: on fernscout.ch only one journal had ever written the key, and no
+  // screen writes it, so every other owner (App Review's included) had no route
+  // recording at all. Recording is still armed per trip by the owner and iOS
+  // still asks for Always; the server switch stays the ceiling.
+  routeRecording: { ...DEFAULT_FEATURES.routeRecording, enabled: true },
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {

@@ -549,6 +549,20 @@ describe("a journal that has never mentioned mail has not switched it off", () =
     expect(journal({ mail: { enabled: true } }), "stated yes").toBe(true);
     expect(journal({ mail: { enabled: false } }), "stated no — the only no").toBe(false);
 
+    // B-2830: route recording is the same kind of journal switch.
+    const recording = (features?: Record<string, unknown>) =>
+      parseUserConfig("j", {
+        title: "T",
+        owner: { name: "R", nickname: "R", email: OWNER },
+        ...(features ? { features } : {}),
+      }).features.routeRecording.enabled;
+    expect(recording(), "route recording: absent inherits the server").toBe(true);
+    expect(recording({ routeRecording: { enabled: false } }), "route recording: stated no").toBe(false);
+    expect(
+      parseServerConfig({ site: { name: "T", url: "https://t.test" } }).features.routeRecording.enabled,
+      "the server's own default stays off",
+    ).toBe(false);
+
     // The server's own default is untouched and must stay off: it is the one
     // holding the credentials, and AGENTS.md's "off by default" is about this
     // file. A journal saying yes above cannot reach past it.
