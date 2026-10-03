@@ -182,9 +182,18 @@ describe("proving a number", () => {
     const refusedBody = (await refused.json()) as { error: string };
     expect(refusedBody.error).toBe("tel_taken");
 
-    // And a third attempt to prove it is refused before a code is sent.
-    const third = await phoneRequest(await signupToken("third@example.test"), "41760000003");
-    expect(third.status).toBe(409);
+    // A third person's request is answered like any other (no oracle); proving
+    // possession is what gets the refusal.
+    const thirdToken = await signupToken("third@example.test");
+    const third = await phoneRequest(thirdToken, "41760000003");
+    expect(third.status).toBe(202);
+    const { id } = (await third.json()) as { id: string };
+    const files = fs.readdirSync(path.join(dir, "phone"));
+    const { code } = JSON.parse(
+      fs.readFileSync(path.join(dir, "phone", files[files.length - 1]), "utf8"),
+    ) as { code: string };
+    const redeemed = await phoneVerify(thirdToken, id, code);
+    expect(redeemed.status).toBe(409);
   });
 
   test("a national number with no country code is refused", async () => {

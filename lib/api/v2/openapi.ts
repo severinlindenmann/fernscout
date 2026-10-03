@@ -2061,7 +2061,6 @@ function buildPaths(): Record<string, PathItem> {
           ref("sms_disabled", 404),
           ref("invalid_request", 400, "tel missing or not a number with a country code"),
           ref("sms_unreachable", 400, "this server's number cannot reach that number's country"),
-          ref("tel_taken", 409, "that number already keeps a journal on this server (checked before any code is sent)"),
           ref("too_many_requests", 429, "3/number/day, 5/address/day, 50/instance/day"),
           ref("verification_failed", 503),
         ]),

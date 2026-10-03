@@ -9,7 +9,6 @@ import { smsPhoneVerify } from "@/lib/phoneVerify/sms";
 import { rateLimitFor } from "@/lib/rateLimit";
 import { smsUnreachable } from "@/lib/sms";
 import { toE164 } from "@/lib/phone";
-import { journalForNumber } from "@/lib/registry";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { fail, ok } from "@/lib/api/v2/route";
 import { readJsonBody } from "@/lib/api/jsonBody";
@@ -176,9 +175,10 @@ export async function POST(request: Request) {
   const perInstance = rateLimitFor("phone-verify-instance", "*", PER_INSTANCE);
   if (!perInstance.ok) return tooMany("instance", perInstance.retryAfter);
 
-  // B2805. Before anything is sent: a number that already keeps a journal is
-  // refused here, after the ceilings so a probe spends the address's budget.
-  if (journalForNumber(tel)) return fail("tel_taken", ERROR_CODES.tel_taken, undefined, 409);
+  // B2805: deliberately NO "this number already keeps a journal" check here.
+  // Nothing is proven yet, so answering it would tell any signup-token holder
+  // which numbers have journals. The check runs once possession is proven —
+  // at code redeem and at the inbound WhatsApp claim — and again at create.
 
   const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
 

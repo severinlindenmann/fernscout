@@ -219,14 +219,14 @@ describe("B2804 resume", () => {
 });
 
 describe("B2805 tel_taken at proof time", () => {
-  test("SMS request: refused before any code is written", async () => {
+  test("SMS request: answers the same for a number with and without a journal (no oracle)", async () => {
     await ownJournal("first@example.test", "first-one", "41760000003");
-    const files = () => fs.readdirSync(path.join(dir, "phone")).length;
-    const before = files();
-    const res = await phoneRequest(await signupToken("second@example.test"), "41760000003");
-    expect(res.status).toBe(409);
-    expect(((await res.json()) as { error: string }).error).toBe("tel_taken");
-    expect(files()).toBe(before);
+    const taken = await phoneRequest(await signupToken("second@example.test"), "41760000003");
+    const free = await phoneRequest(await signupToken("other@example.test"), "41760000009");
+    expect(taken.status).toBe(free.status);
+    expect(Object.keys((await taken.json()) as object).sort()).toEqual(
+      Object.keys((await free.json()) as object).sort(),
+    );
   });
 
   test("SMS redeem: a number taken between request and redeem is refused and not recorded", async () => {
