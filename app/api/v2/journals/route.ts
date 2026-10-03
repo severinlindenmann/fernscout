@@ -140,7 +140,7 @@ export async function POST(request: Request) {
 
   // B2778. A bad address, title or owner is refused before anyone proves a
   // phone for it. createJournal checks again below, for races.
-  const prechecked = precheckJournal({ ...body, ownerEmail: session.email });
+  const prechecked = precheckJournal({ ...body, visibility: body.visibility as "public" | "guest" | "private", ownerEmail: session.email });
   if (!prechecked.ok) return refuseCreate(prechecked);
 
   const exempt = isAdminEmail(session.email) || body.username.startsWith("test-");
