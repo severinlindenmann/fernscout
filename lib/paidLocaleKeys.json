@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "d193518e6c23571f5f0ae803ba274df3fecb138f",
+  "generatedFrom": "106e86c5cba205bb0c9a4ec2c32272292924820b",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -605,6 +605,11 @@
     "postcard.discard.details",
     "postcard.discard.failed",
     "postcard.discard.question",
+    "postcard.dispatched.body",
+    "postcard.dispatched.bodyNoDay",
+    "postcard.dispatched.preheader",
+    "postcard.dispatched.subject",
+    "postcard.dispatched.title",
     "postcard.failed",
     "postcard.ineligible.noAddress",
     "postcard.ineligible.noConsent",
