@@ -126,7 +126,7 @@ function RestCard({ label, note, children }: { label: string; note?: string; chi
  * swatch spec §7.2's storyboard actually draws, without risking a colour
  * that silently renders as nothing once the CSS is purged.
  */
-const ACCENT_SWATCH: Record<string, string> = {
+export const ACCENT_SWATCH: Record<string, string> = {
   sky: "bg-sky-400",
   yellow: "bg-yellow-400",
   green: "bg-green-500",
@@ -565,7 +565,8 @@ export default function NewTripFlow({
                   className={`h-9 w-9 rounded-full border-2 ${ACCENT_SWATCH[a] ?? "bg-surface-subtle"} ${
                     accent === a && !accentSkipped ? "border-ink-strong" : "border-transparent"
                   }`}
-                  aria-label={a}
+                  aria-label={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
+              title={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
                 />
               ))}
               <button

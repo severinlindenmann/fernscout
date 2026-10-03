@@ -205,7 +205,7 @@ describe("NewTripFlow — one screen, B2187", () => {
     });
     const tagline = container.querySelector('[data-more-settings] input[type=text]') as HTMLInputElement;
     act(() => type(tagline, "Too much cheese"));
-    act(() => (container.querySelector('[data-more-settings] button[aria-label="sky"]') as HTMLButtonElement).click());
+    act(() => (container.querySelector('[data-more-settings] button[aria-label="Sky blue"]') as HTMLButtonElement).click());
     act(() => button("Show a locked card").click());
     await create();
     expect(sent(fetchMock)).toMatchObject({

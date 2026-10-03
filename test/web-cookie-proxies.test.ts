@@ -246,6 +246,37 @@ describe("PATCH /api/web/{user}/trips/{trip} — a trip's own details", { shuffl
   });
 });
 
+describe("PATCH /api/web/{user}/trips/{trip} — costs visibility (B1028)", { shuffle: false }, () => {
+  const stored = {
+    budget: { total: 900, currency: "CHF" },
+    items: [{ label: "Tent", amount: 120 }],
+    note: "Booked early",
+    visibility: "public",
+  };
+  const withCosts = () => {
+    const doc = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
+    delete doc.declined.costs;
+    doc.costs = stored;
+    fs.writeFileSync(tripFile(), JSON.stringify(doc));
+  };
+  const patch = async (costs: unknown) => {
+    const { PATCH } = await import("@/app/api/web/[user]/trips/[trip]/route");
+    return PATCH(req(`https://t.test/api/web/${OWNER}/trips/${TRIP}`, "PATCH", { costs }), tripParams);
+  };
+
+  test("the studio's save (stored costs, only visibility changed) keeps budget, items and note", async () => {
+    withCosts();
+    expect((await patch({ ...stored, visibility: "guests" })).status).toBe(200);
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).costs).toEqual({ ...stored, visibility: "guests" });
+  });
+
+  test("why: costs is shallow-merged, so a bare visibility would wipe them", async () => {
+    withCosts();
+    expect((await patch({ visibility: "guests" })).status).toBe(200);
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).costs).toEqual({ visibility: "guests" });
+  });
+});
+
 describe("PATCH /api/web/{user}/trips/{trip}/visibility — narrowed to audience", { shuffle: false }, () => {
   test("a bearer token is refused before the owner is even asked about", async () => {
     const { PATCH } = await import("@/app/api/web/[user]/trips/[trip]/visibility/route");

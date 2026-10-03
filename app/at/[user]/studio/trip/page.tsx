@@ -47,7 +47,7 @@ export default async function StudioTripEditPage({
 
   const resolvedId = tripId ?? (trips.length === 1 ? trips[0].id : null);
   const fullTrip = resolvedId ? tripForEdit(user, resolvedId) : undefined;
-  const trip = fullTrip ? tripEditPanel(fullTrip) : undefined;
+  const trip = fullTrip ? tripEditPanel(fullTrip, isEnabled("costs", user)) : undefined;
   // B2198 — read server-side, the same way `wordsAssistAvailable` is on the
   // add-a-day page: a capability the client never has to ask for.
   const routeRecordingAvailable = isEnabled("routeRecording", user);

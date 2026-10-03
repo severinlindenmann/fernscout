@@ -1,6 +1,6 @@
 import "server-only";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
-import { PLAN_READERS } from "@/lib/tripWrite";
+import { ACCENTS, PLAN_READERS } from "@/lib/tripWrite";
 import type { PlanReaders, Trip } from "@/lib/types";
 
 /**
@@ -48,9 +48,20 @@ export type TripEditPanel = {
   planLevels: readonly PlanReaders[];
   /** Whether the plan-reader cards may name the budget total. */
   costsPublic: boolean;
+  /** B1028 — opening words, card colour and who sees the money. */
+  intro: string;
+  accent: string | null;
+  accents: readonly string[];
+  /** Whether the journal has costs on; absent control when not. */
+  costsAvailable: boolean;
+  /** The stored costs section. A save sends it back whole with only
+   *  `visibility` changed: `applyTripPatch` shallow-merges `costs`, so a
+   *  bare `{visibility}` would wipe the budget, items and note. */
+  costsSection?: Trip["costsSection"];
+  hasTranslations: boolean;
 };
 
-export function tripEditPanel(trip: Trip): TripEditPanel {
+export function tripEditPanel(trip: Trip, costsAvailable: boolean): TripEditPanel {
   return {
     id: trip.id,
     title: trip.title,
@@ -64,5 +75,11 @@ export function tripEditPanel(trip: Trip): TripEditPanel {
     planReaders: trip.planSection?.readers ?? "map",
     planLevels: PLAN_READERS,
     costsPublic: trip.costsVisibility === "public",
+    intro: trip.intro ?? "",
+    accent: trip.accent ?? null,
+    accents: ACCENTS,
+    costsAvailable,
+    costsSection: trip.costsSection,
+    hasTranslations: Object.keys(trip.translations ?? {}).length > 0,
   };
 }
