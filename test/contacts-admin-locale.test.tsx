@@ -82,7 +82,7 @@ vi.mock("@/lib/contacts/session", () => ({ isOwner: async () => true }));
 // B630: the page also derives owner/buddy/guest per row — irrelevant to which
 // language the chrome renders in, but a real call needs a configured
 // database this test has none of.
-vi.mock("@/lib/grants", () => ({ contactsWithReadGrant: async () => new Set() }));
+vi.mock("@/lib/grants", () => ({ contactsWithReadGrant: async () => new Set(), closeCircleContacts: async () => new Set() }));
 vi.mock("@/lib/trips", () => ({ getTrips: () => [] }));
 vi.mock("@/lib/site", () => ({ serverSite: () => ({ url: "https://example.test" }) }));
 

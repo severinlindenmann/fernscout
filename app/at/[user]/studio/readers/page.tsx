@@ -6,8 +6,9 @@ import { listGroups } from "@/lib/contacts/groups";
 import type { AdminContact } from "@/components/studio/readers/shared";
 import StudioPage from "@/components/studio/StudioPage";
 import { isOpenToApprovedGuest } from "@/lib/access";
+import { getAllEntries } from "@/lib/entries";
 import { isEnabled } from "@/lib/capabilities";
-import { contactsWithReadGrant } from "@/lib/grants";
+import { closeCircleContacts, contactsWithReadGrant } from "@/lib/grants";
 import { deviceCountByContact } from "@/lib/push";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { contactKey } from "@/lib/contacts";
@@ -148,6 +149,7 @@ export default async function ContactsAdminPage({
     trips.map(async (trip) => ({ id: trip.id, title: trip.title, people: await peopleOf(trip) })),
   );
   const liveGrants = await contactsWithReadGrant(username, new Date());
+  const closeGrants = await closeCircleContacts(username, new Date());
 
   // B1301 — a request `claimTripPlace` wrote, that nothing has opened yet.
   // The normal case is a `pending` contact's first trip, already visible from
@@ -179,6 +181,7 @@ export default async function ContactsAdminPage({
       ownEmail,
       tripMemberships,
       contact.status === "active" && liveGrants.has(contact.id),
+      closeGrants.has(contact.id),
     ),
     pendingTrips: (pendingTripIds.get(contact.id) ?? []).map(tripTitle),
     phone: contact.phone,
@@ -213,6 +216,15 @@ export default async function ContactsAdminPage({
         // B300, corrected by B638: would an approved guest find anything to
         // read at all — a `guest` or a `public` trip; only `private` fails.
         hasGuestTrip={trips.some(isOpenToApprovedGuest)}
+        // B1749 — promoting somebody opens nothing while nothing is Private.
+        hasPrivate={trips.some(
+          (trip) =>
+            trip.visibility === "private" ||
+            getAllEntries(trip.ref, { includeDrafts: true, reader: "person" }).some(
+              (entry) =>
+                entry.visibility === "private" || entry.gallery.some((item) => item.visibility === "private"),
+            ),
+        )}
         // B319: the notification mail's own request.
         highlightId={typeof highlight === "string" ? highlight : undefined}
         postcardsEnabled={isEnabled("postcards", username)}

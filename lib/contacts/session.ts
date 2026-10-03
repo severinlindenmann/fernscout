@@ -3,7 +3,7 @@ import { cache } from "react";
 import { isAdminEmail } from "../admin";
 import { isJournalWideScope, resolveSession } from "../auth";
 import { resolveAccess } from "../auth/handshake";
-import { hasReadGrant } from "../grants";
+import { grantScopeOf } from "../grants";
 import { getUser } from "../users";
 import { getContactByEmail, type ContactRecord } from "./index";
 
@@ -110,8 +110,11 @@ export type JournalReader = {
   email: string | null;
   /** Their contact record here, whatever state it is in. */
   contact: ContactRecord | null;
-  /** The question. See `isJournalGuest`. */
+  /** The question. See `isJournalGuest`. True for either tier. */
   guest: boolean;
+  /** B1749 — a guest whose live grant is the close tier, which also opens
+   * `private`. Always a subset of `guest`. */
+  close: boolean;
 };
 
 /**
@@ -142,7 +145,7 @@ export const journalReader = cache(lookUpJournalReader);
  * note in lib/auth/index.ts): a gated trip page asks this from the layout's
  * gate, from `mayReadTrip`, from `readFor`'s reader level, from
  * `mayViewCosts` and from the switcher's `listableTrips` — two queries each
- * time (`getContactByEmail`, then `hasReadGrant`) for one answer that cannot
+ * time (`getContactByEmail`, then `grantScopeOf`) for one answer that cannot
  * change during the render. Per request only, a pass-through outside one, so
  * the routes that approve, revoke or redeem and then ask again
  * (`app/api/contacts/**`) still read the row they just wrote; and keyed on the
@@ -152,13 +155,14 @@ async function lookUpJournalReader(username: string): Promise<JournalReader> {
   // B410: the address may arrive on this journal's session or on an
   // instance-wide identity, and being a guest here is a question about the
   // address. Everything below is unchanged — an identity opens nothing on its
-  // own, and `hasReadGrant` is still asked on every request.
+  // own, and `grantScopeOf` is still asked on every request.
   const { email } = await resolveAccess(username);
-  if (!email) return { email: null, contact: null, guest: false };
+  if (!email) return { email: null, contact: null, guest: false, close: false };
 
   const contact = await getContactByEmail(username, email);
-  if (!contact || contact.status !== "active") return { email, contact, guest: false };
-  return { email, contact, guest: await hasReadGrant(username, contact.id) };
+  if (!contact || contact.status !== "active") return { email, contact, guest: false, close: false };
+  const scope = await grantScopeOf(username, contact.id);
+  return { email, contact, guest: scope !== null, close: scope === "close" };
 }
 
 /** Whether the person asking has been let into this journal. */

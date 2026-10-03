@@ -31,7 +31,7 @@ import {
   revokeInvite,
   type Invite,
 } from "@/lib/contacts/invites";
-import { contactsWithReadGrant } from "@/lib/grants";
+import { closeCircleContacts, contactsWithReadGrant, GRANT_SCOPES, setGrantScope } from "@/lib/grants";
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendApprovedMail, sendInviteMail } from "@/lib/contacts/mail";
 import { relationshipsFor, type ContactRelationship } from "@/lib/contacts/relationships";
@@ -172,6 +172,7 @@ export async function GET(request: Request) {
     trips.map(async (trip) => ({ id: trip.id, title: trip.title, people: await peopleOf(trip) })),
   );
   const liveGrants = await contactsWithReadGrant(username, new Date());
+  const closeGrants = await closeCircleContacts(username, new Date());
 
   return Response.json({
     contacts: (await listContacts(username)).map((contact) =>
@@ -184,6 +185,7 @@ export async function GET(request: Request) {
           ownEmail,
           tripMemberships,
           contact.status === "active" && liveGrants.has(contact.id),
+          closeGrants.has(contact.id),
         ),
       ),
     ),
@@ -227,6 +229,24 @@ export async function POST(request: Request) {
         contact: ownerView(contact),
         tripsOpened: tripsOpenedTitles,
       });
+    }
+    /**
+     * B1749 — move an approved contact between the two tiers of the grant:
+     * `{ action: "circle", id, scope: "close" | "read" }`. `close` opens what
+     * is marked `private` as well; `read` takes that away again, at trip,
+     * day and photograph level in the same page load. Only an existing live
+     * grant moves, so this can never let anybody in who was not approved.
+     * The tier is read back on the list as `relationship.closeCircle`.
+     */
+    case "circle": {
+      const scope = GRANT_SCOPES.find((candidate) => candidate === body.scope);
+      if (!scope) return Response.json({ error: "unknown_scope", scopes: GRANT_SCOPES }, { status: 400 });
+      const contact = await getContact(username, id);
+      if (!contact) return Response.json({ error: "unknown_contact" }, { status: 404 });
+      if (contact.status !== "active" || !(await setGrantScope(username, id, scope))) {
+        return Response.json({ error: "not_approved" }, { status: 409 });
+      }
+      return Response.json({ ok: true, contact: ownerView(contact), scope });
     }
     case "revoke": {
       const contact = await revokeContact(username, id);

@@ -1,10 +1,10 @@
 import "server-only";
 import type { Metadata } from "next";
-import { isOpenToLink, maySeeCosts } from "./access";
+import { isOpenToApprovedGuest, isOpenToCloseCircle, isOpenToLink, maySeeCosts } from "./access";
 import { resolveAccess } from "./auth/handshake";
 import { isEnabled } from "./capabilities";
 import { isAdminEmail } from "./admin";
-import { isJournalGuest, isOwner, journalReader } from "./contacts/session";
+import { isOwner, journalReader, type JournalReader } from "./contacts/session";
 import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import type { ReadOptions } from "./entries";
 import type { ReaderLevel } from "./photos";
@@ -51,13 +51,11 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
   // read their own week, and for a `private` trip they are the only way in.
   if (await isTravellerOn(trip)) return true;
 
-  // `private` is the people who were there, and nobody else — not the people
-  // the owner has let into the journal. It is the
-  // one thing being a guest does not widen, and the reason there are three
-  // visibility values rather than two: invite the family to the journal and
-  // every non-public trip becomes theirs to read unless one word can hold a
-  // trip back.
-  if (trip.visibility === "private") return false;
+  // `private` is the people who were there and the owner's close circle
+  // (B1749) — not the people the owner has merely let into the journal. It is
+  // the one thing being an ordinary guest does not widen, and the reason there
+  // are three visibility values rather than two. `guestMayRead` below decides
+  // it with the same predicate days and photographs use.
 
   // `guest`: an invitation to the journal, and nothing else.
   //
@@ -74,7 +72,21 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
   // every address on earth. Put a `session !== null` test anywhere above this
   // line and every closed trip on the instance becomes readable by anyone with
   // an inbox. See `test/access-gate.test.ts`, "a signed-in stranger".
-  return isJournalGuest(trip.username);
+  return guestMayRead(trip);
+}
+
+/**
+ * B1749 — what the journal's grant lets this reader open on this trip: a
+ * `read` grant opens `guest` and `public`; a `close` grant adds `private`.
+ * The only place the grant's tier meets a trip, shared by every gate here.
+ */
+function readerMayRead(reader: JournalReader, trip: Trip): boolean {
+  if (!reader.guest) return false;
+  return reader.close ? isOpenToCloseCircle(trip) : isOpenToApprovedGuest(trip);
+}
+
+async function guestMayRead(trip: Trip): Promise<boolean> {
+  return readerMayRead(await journalReader(trip.username), trip);
 }
 
 /**
@@ -164,12 +176,13 @@ export async function draftsVisibleTo(trip: Trip, request?: Request): Promise<Dr
 export async function readerLevelFor(trip: Trip, request?: Request): Promise<ReaderLevel> {
   if (await isTravellerOn(trip)) return "person";
   if (await isOwner(trip.username, request)) return "person";
-  // `private` is the people who were there. Nobody the journal let in gets a
-  // level above `public` on it, so a `guest` photograph on a `private` trip is
-  // seen by the travellers and by nobody else — the label narrows, it cannot
-  // widen (lib/photos.ts).
-  if (trip.visibility === "private") return "public";
-  return (await isJournalGuest(trip.username)) ? "guest" : "public";
+  // `private` is the people who were there and the close circle: an ordinary
+  // guest gets `public` on it, so a `guest` photograph on a `private` trip is
+  // seen by the travellers and the close circle and nobody else — the label
+  // narrows, it cannot widen (lib/photos.ts).
+  const reader = await journalReader(trip.username);
+  if (!readerMayRead(reader, trip)) return "public";
+  return reader.close ? "close" : "guest";
 }
 
 /**
@@ -294,8 +307,7 @@ export async function isGuestOf(trip: Trip): Promise<boolean> {
   // And whoever owns the journal, including the instance admin of B480 — who
   // is not on the trip, so the line above cannot answer for them.
   if (await isOwner(trip.username)) return true;
-  if (trip.visibility === "private") return false;
-  return isJournalGuest(trip.username);
+  return guestMayRead(trip);
 }
 
 /**
@@ -382,11 +394,11 @@ export async function mayReadLiveTrack(trip: Trip): Promise<boolean> {
   // Asked of the viewer here too, not left to the caller's own gate: the
   // setting alone must never hand a stranger the live tail.
   if (trip.visibility === "guest") {
-    return trip.guestsLive && ((await isTravellerOn(trip)) || (await isJournalGuest(trip.username)));
+    return trip.guestsLive && ((await isTravellerOn(trip)) || (await guestMayRead(trip)));
   }
-  // "private" — the only readers `mayReadTrip` admits at all are the
-  // travellers (the owner is already handled above).
-  return isTravellerOn(trip);
+  // "private" — travellers, and the close circle (B1749); the owner is
+  // already handled above.
+  return (await isTravellerOn(trip)) || (await guestMayRead(trip));
 }
 
 /**
@@ -414,7 +426,9 @@ export async function mayReadLiveTrack(trip: Trip): Promise<boolean> {
 export async function guestBlockedByPrivateTrip(trip: Trip): Promise<boolean> {
   if (await isTravellerOn(trip)) return false;
   if (trip.visibility !== "private") return false;
-  return isJournalGuest(trip.username);
+  // A close-circle contact is not blocked by it (B1749).
+  const reader = await journalReader(trip.username);
+  return reader.guest && !reader.close;
 }
 
 /**
@@ -463,7 +477,7 @@ export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
   // asked when somebody is signed in — the switcher renders on every page,
   // including for strangers.
   const owner = email && username ? username : undefined;
-  const guest = owner !== undefined && (await isJournalGuest(owner));
+  const reader = owner !== undefined ? await journalReader(owner) : null;
   /**
    * B584. `mayReadTrip` opens every trip in a journal to the journal's owner
    * *and*, since B480, to the instance's admin address; this list knew only
@@ -493,14 +507,11 @@ export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
     if (journalOwner) return true;
     // A trip you were on is listed for you: it is yours to find again.
     if (owner === trip.username && isPersonOnWith(trip, email, redeemed)) return true;
-    // `private` is nobody else's — not even a guest of the journal's, which
-    // `mayReadTrip` refuses before it asks anything else. Listing it here
-    // would advertise a trip the switcher cannot open.
-    if (trip.visibility === "private") return false;
     // A guest of the journal: the same question the panel on `/@<user>/me` asks
     // and the same one the gate asks, so the switcher, the panel and the gate
-    // name one set of trips between them (B41, B45).
-    return guest && owner === trip.username;
+    // name one set of trips between them (B41, B45). `private` is listed only
+    // for the close circle — `readerMayRead` is that one answer (B1749).
+    return reader !== null && owner === trip.username && readerMayRead(reader, trip);
   });
 }
 

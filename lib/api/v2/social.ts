@@ -11,6 +11,7 @@ import { fail } from "./route";
 import type { Invite } from "../../contacts/invites";
 import type { ContactRecord } from "../../contacts";
 import { normaliseEmail } from "../../contacts";
+import { closeCircleContacts } from "../../grants";
 import { relationshipsFor } from "../../contacts/relationships";
 import { peopleOf, pendingTripRequestsFor } from "../../tripPeople";
 import { getTrips } from "../../trips";
@@ -71,6 +72,7 @@ export type ContactDocContext = {
   ownerEmail: string | null;
   trips: { id: string; title: string; people: string[] }[];
   pendingMap: Map<string, string[]>;
+  closeIds: Set<string>;
 };
 
 /** Read once per list, and once per single-document GET — never per row. */
@@ -81,7 +83,8 @@ export async function sharedContactContext(owner: string): Promise<ContactDocCon
     getTrips(owner).map(async (trip) => ({ id: trip.id, title: trip.title, people: await peopleOf(trip) })),
   );
   const pendingMap = await pendingTripRequestsFor(owner);
-  return { ownerEmail, trips, pendingMap };
+  const closeIds = await closeCircleContacts(owner, new Date());
+  return { ownerEmail, trips, pendingMap, closeIds };
 }
 
 /**
@@ -109,6 +112,7 @@ export function contactToDoc(contact: ContactRecord, ctx: ContactDocContext): Co
       ctx.ownerEmail,
       ctx.trips,
       contact.status === "active",
+      ctx.closeIds.has(contact.id),
     ),
     pendingTrips: ctx.pendingMap.get(contact.id) ?? [],
   };

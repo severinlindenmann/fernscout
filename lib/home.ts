@@ -4,7 +4,7 @@ import { isAdminEmail } from "./admin";
 import { planSummaryFor, type PlanSummary } from "./billingSummary";
 import { getContactByEmail } from "./contacts";
 import { getAllEntries } from "./entries";
-import { hasReadGrant } from "./grants";
+import { grantScopeOf } from "./grants";
 import { getTrips } from "./trips";
 import { getUser, getUsernames, listedUsernames } from "./users";
 import { tripsVisibleTo, type ViewerTrip } from "./viewer";
@@ -140,17 +140,18 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
     // already in at the strongest level, and two indexed queries per journal
     // per page view is worth avoiding when the result cannot matter.
     let guest = false;
+    let close = false;
     if (!owner) {
       const contact = await getContactByEmail(username, email);
-      guest = Boolean(
-        contact && contact.status === "active" && (await hasReadGrant(username, contact.id)),
-      );
+      const scope = contact && contact.status === "active" ? await grantScopeOf(username, contact.id) : null;
+      guest = scope !== null;
+      close = scope === "close";
     }
 
     // The detail `/` draws (B2508) only for a journal that is really theirs:
     // the operator's rows show a title and a count, so somebody else's draft
     // titles and photographs are not shipped to them for nothing.
-    const trips = await tripsVisibleTo(username, { email, owner, guest }, { detail: !admin });
+    const trips = await tripsVisibleTo(username, { email, owner, guest, close }, { detail: !admin });
 
     // The journal-level reason, strongest first. `traveller` is read off the
     // trips rather than asked separately: being on a trip *is* what makes

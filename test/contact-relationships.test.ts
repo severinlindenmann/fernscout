@@ -26,6 +26,7 @@ describe("relationshipsFor", () => {
     expect(result).toEqual({
       owner: false,
       guest: false,
+      closeCircle: false,
       buddyOf: [{ id: "alps-2024", title: "The Alps" }],
     });
   });
@@ -40,7 +41,7 @@ describe("relationshipsFor", () => {
 
   test("a guest, and nothing else", () => {
     const result = relationshipsFor("gran@example.test", "owner@example.test", trips, true);
-    expect(result).toEqual({ owner: false, guest: true, buddyOf: [] });
+    expect(result).toEqual({ owner: false, guest: true, closeCircle: false, buddyOf: [] });
   });
 
   test("two at once, both said rather than one picked", () => {

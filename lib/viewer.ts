@@ -185,8 +185,10 @@ export type Standing = {
   email: string | null;
   /** True when this is the journal's owner. */
   owner: boolean;
-  /** True when they hold a live `read` grant here. */
+  /** True when they hold a live grant here, of either tier. */
   guest: boolean;
+  /** B1749 — true when that grant is the close circle's, which opens `private`. */
+  close?: boolean;
 };
 
 /**
@@ -200,7 +202,7 @@ export type Standing = {
  */
 export async function tripsVisibleTo(
   username: string,
-  { email, owner, guest }: Standing,
+  { email, owner, guest, close = false }: Standing,
   { detail = false }: { detail?: boolean } = {},
 ): Promise<ViewerTrip[]> {
   const trips = getTrips(username);
@@ -237,14 +239,17 @@ export async function tripsVisibleTo(
       // `guest`-labelled updates too (the same branch `readerLevelFor` takes
       // for a trip that is not `private`), so their actual level here is
       // `"guest"`, not `"public"`, whatever `through` says for the row.
-      visible.push(describe(trip, "public", current, guest ? "guest" : "public", detail));
+      visible.push(describe(trip, "public", current, guest ? (close ? "close" : "guest") : "public", detail));
     } else if (trip.visibility === "guest" && guest) {
       // A guest of the *journal*, and nothing narrower: this arm used to also
       // ask `grants?.has(trip.id)`, a per-trip grant nothing ever issued,
       // removed with the column in `007-journal-wide-grants`. A trip held back
       // from the people who are otherwise let in is `private`, and `private`
       // never reaches here.
-      visible.push(describe(trip, "guest", current, "guest", detail));
+      visible.push(describe(trip, "guest", current, close ? "close" : "guest", detail));
+    } else if (trip.visibility === "private" && close) {
+      // B1749 — the close circle reads what is held back from the rest.
+      visible.push(describe(trip, "guest", current, "close", detail));
     }
   }
   return visible;
@@ -258,7 +263,7 @@ export async function resolveViewer(username: string): Promise<Viewer> {
   // — all three from `journalReader`, which is also what `mayReadTrip` asks.
   // The panel computing its own answer is exactly how this page came to list
   // trips the gate then refused (B41).
-  const { email, contact, guest } = await journalReader(username);
+  const { email, contact, guest, close } = await journalReader(username);
   const owner = await isOwner(username);
 
   return {
@@ -266,6 +271,6 @@ export async function resolveViewer(username: string): Promise<Viewer> {
     name: contact?.name ?? undefined,
     owner,
     guest,
-    trips: await tripsVisibleTo(username, { email, owner, guest }),
+    trips: await tripsVisibleTo(username, { email, owner, guest, close }),
   };
 }

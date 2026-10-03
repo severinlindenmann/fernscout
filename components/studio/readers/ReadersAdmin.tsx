@@ -39,6 +39,7 @@ export default function ReadersAdmin({
   invites,
   trips = [],
   hasGuestTrip,
+  hasPrivate = false,
   highlightId,
   postcardsEnabled = true,
   pushEnabled = false,
@@ -56,6 +57,8 @@ export default function ReadersAdmin({
   trips?: { id: string; title: string }[];
   /** Whether an approved guest could read any trip at all (B300, B638). */
   hasGuestTrip: boolean;
+  /** B1749 — whether any trip, day or photograph is marked Private yet. */
+  hasPrivate?: boolean;
   locales: string[];
   dictionary: Record<string, string>;
   contacts: AdminContact[];
@@ -151,12 +154,27 @@ export default function ReadersAdmin({
     }));
   }
 
+  /** B1749 — move somebody between the tiers, then say it on their card
+   * (which jumps to the other section and would lose any note kept in it). */
+  async function circle(contact: AdminContact, scope: "close" | "read") {
+    const name = contact.name ?? contact.email;
+    const response = await act({ action: "circle", id: contact.id, scope });
+    setNotes((previous) => ({
+      ...previous,
+      [contact.id]: response?.ok
+        ? { text: t(scope === "close" ? "readers.close.added" : "readers.close.removed", { name }) }
+        : { text: t("contact.ownerActionFailed"), failed: true },
+    }));
+  }
+
   // TIX-6 — the group chips narrow every list at once; the counts in each
   // heading are what is shown, the chip counts say what is there in total.
   const shown = (rows: AdminContact[]) => rows.filter((contact) => matchesFilter(contact, filter, groups));
   const split = splitReaders(contacts, ownEmail);
-  const invited = shown([...split.readingNow.filter(notOpenedYet), ...split.waitingOnThem]);
-  const reading = shown(split.readingNow.filter((contact) => !notOpenedYet(contact)));
+  const inCircle = (contact: AdminContact) => contact.relationship.closeCircle === true;
+  const closeRows = shown(split.readingNow.filter(inCircle));
+  const invited = shown([...split.readingNow.filter((c) => notOpenedYet(c) && !inCircle(c)), ...split.waitingOnThem]);
+  const reading = shown(split.readingNow.filter((contact) => !notOpenedYet(contact) && !inCircle(contact)));
 
   const guestFormEnv: GuestFormEnv = {
     fallbackLocale: locale,
@@ -181,6 +199,8 @@ export default function ReadersAdmin({
     defaultCountryCode,
     act: (body) => void act(body),
     confirmed: (contact, action, readOnly) => void confirmed(contact, action, readOnly),
+    circle: (contact, scope) => void circle(contact, scope),
+    hasPrivate,
     refresh,
     onEdit: setEditing,
     via: (contact) => viaLabel(contact.createdVia, invites, trips, t),
@@ -246,6 +266,14 @@ export default function ReadersAdmin({
       <ReaderGroup title={t("contact.ownerPending")} rows={shown(split.waitingOnYou)} kind="asking" env={env} />
       <ReaderGroup title={t("readers.group.invited")} rows={invited} kind="invited" env={env} />
       <ReaderGroup title={t("contact.ownerNotInvited")} rows={shown(split.notInvited)} kind="notInvited" env={env} />
+      <ReaderGroup
+        title={t("readers.group.close")}
+        rows={closeRows}
+        kind="reading"
+        env={env}
+        hint={t("readers.group.closeHint")}
+        empty={filter === "all" ? t("readers.group.closeEmpty") : t("readers.groups.emptyFilter")}
+      />
       <ReaderGroup
         title={t("readers.group.reading")}
         rows={reading}
