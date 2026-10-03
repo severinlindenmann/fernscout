@@ -113,6 +113,78 @@ describe("the signup wizard", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  // B2774 — a failed code request says why and stays on the email step.
+  test.each([
+    [429, { "retry-after": "3264" }, /Wait about 55 minutes/],
+    [429, {}, /Wait a little/],
+    [503, {}, /cannot send mail right now/],
+    [404, {}, /Signing up is switched off/],
+  ])("a %i from the code door is said on the email step", async (status, headers, message) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status,
+          headers: new Headers(headers),
+          json: async () => ({ error: "x" }),
+        }),
+      ),
+    );
+    root = createRoot(container!);
+    act(() => {
+      root!.render(
+        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
+      );
+    });
+    typeInto(input("signup-email"), "new@example.test");
+    await submit();
+    expect(container!.textContent).toMatch(message);
+    expect(container!.textContent).not.toMatch(/code is on its way/);
+    expect(input("signup-email")).not.toBeNull();
+    expect(input("signup-code")).toBeNull();
+  });
+
+  // B2778 — a refusal of the address after the phone proof returns to the
+  // form with the reason at the address field, and an unusable address is
+  // explained inline instead of only disabling Create.
+  test("an address refused after the phone step goes back to the form, and a bad one says why", async () => {
+    const responses: Array<Record<string, unknown>> = [
+      { ok: true, json: async () => ({ status: "accepted" }) },
+      { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
+      { ok: false, json: async () => ({ error: "phone_required", mode: "sms" }) },
+      { ok: true, json: async () => ({ id: "p1" }) }, // phone request
+      { ok: true, json: async () => ({ ok: true }) }, // phone redeem
+      { ok: false, json: async () => ({ error: "username_taken" }) }, // create again
+    ];
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(responses.shift()!)));
+    root = createRoot(container!);
+    act(() => {
+      root!.render(
+        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
+      );
+    });
+    typeInto(input("signup-email"), "new@example.test");
+    await submit();
+    typeInto(input("signup-code"), "123456");
+    await submit();
+    typeInto(input("signup-title"), "My Journal");
+    typeInto(input("signup-username"), "Anna_X!");
+    expect(container!.textContent).toMatch(/That address isn't allowed/);
+    typeInto(input("signup-username"), "taken-one");
+    typeInto(input("signup-owner-name"), "Robin Traveller");
+    typeInto(input("signup-owner-nickname"), "Robin");
+    typeInto(input("signup-currency"), "EUR");
+    await submit(); // create -> phone_required -> phone step
+    typeInto(input("signup-tel"), "76 000 00 01");
+    await submit(); // phone request
+    typeInto(input("signup-phone-code"), "123456");
+    await submit(); // redeem -> create -> username_taken
+    expect(container!.textContent).toMatch(/already being used by another journal/);
+    expect(input("signup-username")).not.toBeNull();
+    expect(input("signup-username").value).toBe("taken-one");
+  });
+
   /**
    * B838 — the two language questions, and the one that was hardcoded.
    *

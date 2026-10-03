@@ -800,8 +800,8 @@ export async function spendCode(
  * retire its link. That is the intended state, not a workaround: `verifyCode`
  * has nothing to match.
  */
-export async function issueStandingLink(owner: string, email: string): Promise<string> {
-  return insertLinkRow(owner, email, { standing: true, ttlMs: CODE_TTL_MS });
+export async function issueStandingLink(owner: string, email: string, destination?: string): Promise<string> {
+  return insertLinkRow(owner, email, { standing: true, ttlMs: CODE_TTL_MS, destination });
 }
 
 /**
@@ -853,7 +853,7 @@ export async function issueRelayLink(owner: string, email: string): Promise<stri
 async function insertLinkRow(
   owner: string,
   email: string,
-  { standing, ttlMs }: { standing: boolean; ttlMs: number },
+  { standing, ttlMs, destination }: { standing: boolean; ttlMs: number; destination?: string },
 ): Promise<string> {
   const { db } = await getDatabase();
   const linkToken = generateLinkToken();
@@ -868,8 +868,9 @@ async function insertLinkRow(
       link_hash: hashSecret(linkToken),
       link_consumed_at: null,
       // Neither of these is sent from a page, so neither has a page to return
-      // to. The welcome mail's link and the relay link both open the journal.
-      link_dest: null,
+      // to. The relay link opens the journal; the welcome mail's link names
+      // the studio (B2775) — checked by `safeDestination` on the way out too.
+      link_dest: destination ? safeDestination(owner, destination) : null,
       kind: "guest",
       // Both link-only credentials are guest sessions, which read and have
       // nothing to narrow.

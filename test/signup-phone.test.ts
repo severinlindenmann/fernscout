@@ -135,6 +135,24 @@ describe("proving a number", () => {
     expect(body.error).toBe("phone_required");
   });
 
+  // B2778 — a bad address is refused before anyone proves a phone for it.
+  test("a taken, reserved or invalid address is refused before phone_required", async () => {
+    const token = await signupToken("early@example.test");
+    fs.mkdirSync(path.join(dir, "taken-name"));
+    for (const [username, status, error] of [
+      ["taken-name", 409, "username_taken"],
+      ["api", 403, "reserved_username"],
+      ["Anna_X!", 400, "invalid_username"],
+    ] as const) {
+      const result = await createJournalCall(token, { username });
+      expect(result.status, username).toBe(status);
+      expect(((await result.json()) as { error: string }).error, username).toBe(error);
+    }
+    // A good address still reaches the phone step, as before.
+    const good = await createJournalCall(token, { username: "fresh-name" });
+    expect(((await good.json()) as { error: string }).error).toBe("phone_required");
+  });
+
   test("once proven, the number is attached to the journal automatically", async () => {
     const token = await signupToken("proven@example.test");
     const started = await phoneRequest(token, "41760000002");

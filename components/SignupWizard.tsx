@@ -55,6 +55,9 @@ function rememberLocale(code: string) {
  * is what actually decides; this never has to be the last word. */
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
+/** The refusals of the address itself — B2778. */
+const ADDRESS_REFUSALS = ["invalid_username", "deleted_username", "reserved_username", "username_taken"];
+
 type Step =
   | "email"
   | "code"
@@ -153,6 +156,8 @@ export default function SignupWizard({
   const [step, setStep] = useState<Step>("email");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** B2778 — a refusal of the address itself, shown at the address field. */
+  const [usernameError, setUsernameError] = useState<string | null>(null);
 
   const [email, setEmail] = useState(prefillEmail ?? "");
   // The host is only knowable in the browser; the server renders without it.
@@ -307,12 +312,32 @@ export default function SignupWizard({
       body: JSON.stringify({ for: "signup", email: value }),
     }).catch(() => null);
     setBusy(false);
-    if (response?.status === 403) {
+    // B2774. Every failure the door can answer is said here, on the email
+    // step; only the uniform 202 moves on. The 202 is also what the silent
+    // per-address cap answers, which is why the sent copy says "if".
+    if (response && response.status !== 202 && !response.ok) {
       const json = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (json?.error === "signup_not_invited") {
+      if (response.status === 403 && json?.error === "signup_not_invited") {
         setError(t("agent.error.signup_not_invited"));
-        return;
+      } else if (response.status === 429) {
+        const seconds = Number(response.headers.get("retry-after"));
+        setError(
+          seconds > 0
+            ? t("agent.error.too_many_requests_wait", { minutes: String(Math.ceil(seconds / 60)) })
+            : t("agent.error.too_many_requests"),
+        );
+      } else if (response.status === 503) {
+        setError(t("agent.error.mail_unavailable"));
+      } else if (response.status === 404) {
+        setError(t("agent.error.signup_disabled"));
+      } else {
+        setError(t("agent.signupFailed"));
       }
+      return;
+    }
+    if (!response) {
+      setError(t("agent.signupFailed"));
+      return;
     }
     setStep("code");
   }
@@ -347,6 +372,7 @@ export default function SignupWizard({
   async function createJournal() {
     setBusy(true);
     setError(null);
+    setUsernameError(null);
     const result = await post(
       "/api/v2/journals",
       {
@@ -361,10 +387,18 @@ export default function SignupWizard({
         tips,
       },
       signupToken,
-      ["phone_required"],
+      ["phone_required", ...ADDRESS_REFUSALS],
     );
     setBusy(false);
     if (!result) return;
+    // B2778. The address was refused after the phone was proven. The proof
+    // lives on the signup session, so the form's next Create needs no new
+    // passcode — back to the form, the message at the address field.
+    if (typeof result.error === "string" && ADDRESS_REFUSALS.includes(result.error)) {
+      setUsernameError(t(`agent.error.${result.error}` as TranslationKey));
+      setStep("journal");
+      return;
+    }
     // The server wants a proven number as well as the proven address
     // (B1064/B1065). The wizard finds out here rather than asking up
     // front, so an exempt instance never shows the step at all.
@@ -793,10 +827,19 @@ export default function SignupWizard({
                 id="signup-username"
                 required
                 value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                onChange={(e) => {
+                  setUsername(e.target.value.toLowerCase());
+                  setUsernameError(null);
+                }}
+                aria-invalid={Boolean(usernameError) || (username !== "" && !USERNAME_RE.test(username))}
                 className={input}
               />
             </div>
+            {(usernameError || (username !== "" && !USERNAME_RE.test(username))) && (
+              <p role="alert" className="mt-2 text-sm leading-6 text-coral-600">
+                {usernameError ?? t("agent.error.invalid_username")}
+              </p>
+            )}
             {/* The address exactly as it will be written down and shared —
                 the `@` is what tells a reader it is a person's journal. */}
             <p className="mt-2 break-all text-sm leading-6 text-ink-secondary">
