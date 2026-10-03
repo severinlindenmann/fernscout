@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ChevronDown, Languages, Mic } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import RecordButton from "@/components/RecordButton";
@@ -42,29 +42,35 @@ export default function SpeakTray({
   const { t, locale } = useI18n();
   const key = `fs.speech.${username}`;
   const journalLanguage = defaultLanguage ?? speechLanguageFor(null, null, locale) ?? "en";
-  const [override, setOverride] = useState("");
-  useEffect(() => {
-    try {
-      setOverride(window.localStorage.getItem(key) ?? "");
-    } catch {
-      // No storage: the journal's language, which is right anyway.
-    }
-  }, [key]);
+  // "" on the server and until the browser answers; storage that throws is
+  // the journal's language, which is right anyway.
+  const override = useSyncExternalStore(
+    (notify) => {
+      window.addEventListener("storage", notify);
+      return () => window.removeEventListener("storage", notify);
+    },
+    () => {
+      try {
+        return window.localStorage.getItem(key) ?? "";
+      } catch {
+        return "";
+      }
+    },
+    () => "",
+  );
   const language = speechLanguageFor(override, journalLanguage) ?? journalLanguage;
   const label = SPEECH_LANGUAGE_LABEL[language];
 
   const [open, setOpen] = useState(false);
   const [picking, setPicking] = useState(false);
   const [added, setAdded] = useState<{ said: string; text: string; seconds: number; label: string } | null>(null);
-  const latest = useRef(value);
-  latest.current = value;
 
   function pick(code: SpeechLanguage) {
-    setOverride(code);
     try {
       window.localStorage.setItem(key, code);
+      window.dispatchEvent(new Event("storage"));
     } catch {
-      // Forgotten on reload; still used now.
+      // Forgotten on reload and not shown now either; say nothing.
     }
     setPicking(false);
   }
@@ -119,7 +125,7 @@ export default function SpeakTray({
           hold={false}
           sheet={{ onClose: () => setOpen(false), languageLabel: label }}
           onText={(said, _uncertain, held) => {
-            const text = appendSpoken(latest.current, said);
+            const text = appendSpoken(value, said);
             setValue(() => text);
             setAdded({ said, text, seconds: held ?? 0, label });
           }}

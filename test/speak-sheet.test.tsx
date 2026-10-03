@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, useState } from "react";
+import { act, useEffect, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import LocaleProvider from "@/components/LocaleProvider";
@@ -65,7 +65,9 @@ afterEach(() => {
 let current = "";
 function Host({ initial, defaultLanguage }: { initial: string; defaultLanguage?: "en" | "de" | "de-CH" }) {
   const [value, setValue] = useState(initial);
-  current = value;
+  useEffect(() => {
+    current = value;
+  });
   return (
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <SpeakTray
