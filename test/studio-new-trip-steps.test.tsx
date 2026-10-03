@@ -171,12 +171,17 @@ describe("NewTripFlow — one screen, B2187", () => {
     expect("teaser" in body).toBe(false);
   });
 
-  test("done on a private trip: one action, the first day of the trip just made; the draft is gone", async () => {
+  test("done on a private trip: the first day, then who reads along — people or letting readers in, never a readers invite (B2776)", async () => {
     vi.stubGlobal("fetch", created());
     mount();
     fillStepOne();
     await create();
-    expect(doneLinks()).toEqual([["Add the first day", "/@alex/studio/day/new?trip=round-the-alps-2026"]]);
+    expect(doneLinks()).toEqual([
+      ["Add the first day", "/@alex/studio/day/new?trip=round-the-alps-2026"],
+      ["Add someone to this trip", "/@alex/studio/people"],
+      ["Let your readers in", "/@alex/studio/trip/visibility?trip=round-the-alps-2026"],
+    ]);
+    expect(container.querySelector(".studio-done-card:nth-child(2)")?.textContent).toContain("Who reads along?");
     expect(sessionStorage.getItem("studio:newTrip:alex")).toBeNull();
   });
 

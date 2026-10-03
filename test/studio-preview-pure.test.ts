@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, beforeEach } from "vitest";
-import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
+import { messageFact, publishAudienceLabel, reachActions, readersFact } from "@/lib/studio/publishAudience";
 import { addAllAiTags, matchingUsedBeforeTags, mergeTags, tagPhotoIds, TAG_PHOTO_MAX, toggleTag } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer } from "@/lib/studio/languageAnswer";
 import { initialSuggestionState, pickTitle, applyCompose, undoCompose } from "@/lib/studio/suggestionState";
@@ -18,6 +18,24 @@ describe("publishAudienceLabel — B2677 the primary button names the audience",
   });
   it("says 'everyone' when readersOf returned null (anyone, no names)", () => {
     expect(publishAudienceLabel("private", null)).toEqual({ kind: "everyone" });
+  });
+});
+
+describe("B2776 — a closed trip nobody else can open never says 0 readers", () => {
+  it("private and guest days with no readers are 'onlyYou'; public stays 'everyone'", () => {
+    expect(publishAudienceLabel("private", 0)).toEqual({ kind: "onlyYou" });
+    expect(publishAudienceLabel("guest", 0)).toEqual({ kind: "onlyYou" });
+    expect(publishAudienceLabel("public", 0)).toEqual({ kind: "everyone" });
+  });
+  it("a private trip's doors are People and the trip's visibility, never the readers invite", () => {
+    expect(reachActions("private", "/@a", "t 1")).toEqual([
+      { key: "studio.reach.addSomeone", href: "/@a/studio/people" },
+      { key: "studio.reach.letReadersIn", href: "/@a/studio/trip/visibility?trip=t%201" },
+    ]);
+    expect(reachActions("private", "/@a", "t").some((a) => a.href.includes("readers#invite"))).toBe(false);
+  });
+  it("a guest trip with no readers yet offers the readers invite and the visibility page", () => {
+    expect(reachActions("guest", "/@a", "t").map((a) => a.key)).toEqual(["studio.reach.inviteReader", "studio.reach.changeWho"]);
   });
 });
 
