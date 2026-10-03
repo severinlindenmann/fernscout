@@ -184,7 +184,32 @@ describe("Edit a trip — one page (B2072)", () => {
     planReaders: "map" as const,
     planLevels: ["map", "details"] as const,
     costsPublic: false,
+    intro: "",
+    accent: null,
+    accents: ["sky", "yellow"] as const,
+    costsAvailable: true,
+    hasTranslations: false,
   };
+
+  test("costs: absent when the capability is off; a visibility save sends the stored costs whole (B1028)", async () => {
+    const stored = { budget: { total: 900, currency: "CHF" }, items: [{ label: "Tent", amount: 120 }], note: "Booked early", visibility: "public" as const };
+    const noCosts = render(<TripEditFlow username="alex" trips={[{ id: "lisbon", title: "Lisbon" }]} trip={{ ...panel, costsAvailable: false }} />);
+    expect(noCosts.querySelector("#section-costs")).toBeNull();
+    act(() => root?.unmount());
+    container?.remove();
+
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const el = render(
+      <TripEditFlow username="alex" trips={[{ id: "lisbon", title: "Lisbon" }]} trip={{ ...panel, costsPublic: true, costsSection: stored }} />,
+    );
+    const guests = [...el.querySelectorAll<HTMLInputElement>("#section-costs input[type=radio]")][1];
+    await act(async () => guests.click());
+    const save = [...el.querySelectorAll("button")].find((b) => b.textContent === "Save")!;
+    await act(async () => save.click());
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string).costs).toEqual({ ...stored, visibility: "guests" });
+  });
 
   test("the bar's one primary is the Save", () => {
     const el = render(<TripEditFlow username="alex" trips={[{ id: "lisbon", title: "Lisbon" }]} trip={panel} />);
@@ -223,6 +248,11 @@ describe("Record my route — native and capability gated (B2198)", () => {
     planReaders: "map" as const,
     planLevels: ["map", "details"] as const,
     costsPublic: false,
+    intro: "",
+    accent: null,
+    accents: ["sky", "yellow"] as const,
+    costsAvailable: true,
+    hasTranslations: false,
   };
   const trips = [{ id: "lisbon", title: "Lisbon" }];
 
