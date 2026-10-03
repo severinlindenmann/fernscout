@@ -174,7 +174,7 @@ export default function SignupWizard({
   const host = useSyncExternalStore(noSubscription, () => window.location.host, () => "");
   const proven = Boolean(prefillEmail) && email.trim().toLowerCase() === prefillEmail!.toLowerCase();
   const [code, setCode] = useState("");
-  const [signupToken, setSignupToken] = useState("");
+  const [signupToken, setSignupToken] = useState(initialSignupToken ?? "");
 
   const [title, setTitle] = useState("");
   const [username, setUsername] = useState("");
@@ -309,8 +309,9 @@ export default function SignupWizard({
 
   useEffect(() => {
     if (!initialSignupToken) return;
-    setSignupToken(initialSignupToken);
-    void continueFrom(initialSignupToken, true);
+    (async () => {
+      await continueFrom(initialSignupToken, true);
+    })();
     // Once, on mount, like the effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
