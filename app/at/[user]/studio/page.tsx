@@ -1,6 +1,7 @@
 import StudioHub from "@/components/studio/StudioHub";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { buildStudioHubModel } from "@/lib/studio/hub";
+import { groupTripsStudioRow } from "@paid/groups/lib/studioRow";
 
 export const dynamic = "force-dynamic";
 // B2549 — keep this page in the client Router Cache for 30s after a
@@ -29,6 +30,7 @@ export const unstable_dynamicStaleTime = 30;
 export default async function StudioHubPage({ params }: PageProps<"/at/[user]/studio">) {
   const { user } = await params;
   await requireStudioOwner(user);
-  const model = await buildStudioHubModel(user);
-  return <StudioHub username={user} model={model} />;
+  const [model, groupTripsRow] = await Promise.all([buildStudioHubModel(user), groupTripsStudioRow()]);
+  // B-2837: the group trips prototype's row, only while its switch is on; off, not even the prop is sent.
+  return <StudioHub username={user} model={model} {...(groupTripsRow ? { groupTripsRow } : {})} />;
 }

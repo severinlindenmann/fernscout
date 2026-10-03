@@ -184,7 +184,11 @@ self.addEventListener("activate", (event) => {
             // cleared by signing out, by a 401, and by a different identity
             // arriving — see `rememberPersonal`.
             .filter(
-              (k) => !k.endsWith(VERSION) && !k.startsWith(PERSONAL_PREFIX) && !k.startsWith(KEPT_PREFIX),
+              (k) =>
+                !k.endsWith(VERSION) &&
+                !k.startsWith(PERSONAL_PREFIX) &&
+                !k.startsWith(KEPT_PREFIX) &&
+                !k.startsWith(MEMBER_PREFIX),
             )
             .map((k) => caches.delete(k)),
         ),
@@ -272,6 +276,7 @@ async function navigationFallback(request) {
   for (const options of [undefined, { ignoreSearch: true }]) {
     const hit =
       (await matchPersonalStudio(request, options)) ||
+      (await matchMemberPage(request)) ||
       (await matchShared(request, options)) ||
       (await matchKept(request, options));
     if (isDocument(hit)) return hit;
@@ -498,7 +503,10 @@ function fetchOrKept(request, onResponse) {
       settled = true;
       resolve(res);
     };
-    const fallback = () => matchKept(request).then((kept) => done(kept || unavailable()));
+    const fallback = () =>
+      matchKept(request)
+        .then((kept) => kept || matchMemberAsset(request))
+        .then((kept) => done(kept || unavailable()));
     const timer = setTimeout(fallback, NAV_TIMEOUT_MS);
     fetch(request)
       .then((res) => {
@@ -616,6 +624,105 @@ async function unkeepTrip(client, user, trip) {
 }
 
 /**
+ * A group trip's page kept for a member with no Fernscout account — B-2837
+ * (D27), group trips prototype.
+ *
+ * Such a member has no identity this worker could name a personal cache
+ * after: who they are on the trip lives in the page (their member session),
+ * not in a Fernscout sign-in. So the page says so — `fernscout-group-member`
+ * with the trip and the member — and the worker keeps exactly one address,
+ * `/g/<trip>`, and the build's scripts it needs, in `member-<trip>-<member>`.
+ *
+ * - **One trip, one member.** The copy is looked up only by the trip in the
+ *   address being opened, so one trip's page never answers for another; a
+ *   second member arriving on the same trip replaces the first one's copy.
+ * - **A fallback, never a first answer**, like every other kept copy: online,
+ *   the server answers, and its answer refreshes the copy.
+ * - **Gone with the membership.** Leaving or being removed
+ *   (`fernscout-group-forget`) and a page the server refuses (401, 403, 404,
+ *   410) delete it. Signing a Fernscout identity out does not: it was never
+ *   that identity's.
+ * - Everything else keeps `private, no-store`: the shared runtime cache is
+ *   untouched, and `isStudioKeepPath` is not widened by this.
+ */
+const MEMBER_PREFIX = "member-";
+const GROUP_ID = /^[a-z0-9]{12}$/;
+const MEMBER_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const GROUP_PAGE = /^\/g\/([a-z0-9]{12})$/;
+
+const groupPageKey = (gid) => new URL(`/g/${gid}`, self.location.origin).href;
+
+async function memberCacheOf(gid) {
+  const name = (await caches.keys()).find((k) => k.startsWith(`${MEMBER_PREFIX}${gid}-`));
+  return name ? caches.open(name) : undefined;
+}
+
+async function storeMemberPage(cache, gid, response) {
+  if (!isDocument(response)) return;
+  await cache.put(groupPageKey(gid), response.clone());
+  for (const a of assetsOf(await response.text())) {
+    const key = new URL(a, self.location.origin).href;
+    if (await cache.match(key)) continue;
+    try {
+      const res = await fetch(key);
+      if (res.ok) await cache.put(key, res);
+    } catch {
+      // The network-first navigation fetches it again next time.
+    }
+  }
+}
+
+async function forgetMemberPage(gid) {
+  const keys = await caches.keys();
+  await Promise.all(
+    keys.filter((k) => k.startsWith(`${MEMBER_PREFIX}${gid ? `${gid}-` : ""}`)).map((k) => caches.delete(k)),
+  );
+}
+
+async function keepMemberPage(gid, member) {
+  const mine = `${MEMBER_PREFIX}${gid}-${member}`;
+  const keys = await caches.keys();
+  await Promise.all(
+    keys.filter((k) => k.startsWith(`${MEMBER_PREFIX}${gid}-`) && k !== mine).map((k) => caches.delete(k)),
+  );
+  const cache = await caches.open(mine);
+  // Already held: the navigation handler keeps it fresh, so no second request per visit.
+  if (await cache.match(groupPageKey(gid))) return;
+  try {
+    const res = await fetch(groupPageKey(gid));
+    if (res.ok) await storeMemberPage(cache, gid, res);
+    else await forgetMemberPage(gid);
+  } catch {
+    // Offline when asked: kept on the next visit with a network.
+  }
+}
+
+/** An online answer for `/g/<trip>`: a refusal forgets the copy, a page refreshes one already kept. */
+async function refreshMemberPage(gid, response) {
+  if ([401, 403, 404, 410].includes(response.status)) return forgetMemberPage(gid);
+  const cache = await memberCacheOf(gid);
+  if (cache && response.ok) await storeMemberPage(cache, gid, response);
+}
+
+async function matchMemberPage(request) {
+  const m = GROUP_PAGE.exec(new URL(request.url).pathname);
+  if (!m) return undefined;
+  const cache = await memberCacheOf(m[1]);
+  return cache ? (await cache.match(groupPageKey(m[1]))) || undefined : undefined;
+}
+
+/** The build's own scripts a kept member page needs: public files, never a page. */
+async function matchMemberAsset(request) {
+  if (!new URL(request.url).pathname.startsWith("/_next/static/")) return undefined;
+  for (const name of await caches.keys()) {
+    if (!name.startsWith(MEMBER_PREFIX)) continue;
+    const hit = await (await caches.open(name)).match(request);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/**
  * The signed-in home payload: network first, cache only as a fallback.
  *
  * Never stale-while-revalidate, which is how the rest of the JSON on this site
@@ -658,6 +765,12 @@ self.addEventListener("message", (event) => {
     event.waitUntil(keepTrip(event.source, String(data.user), String(data.trip)));
   } else if (data.type === "fernscout-unkeep" && data.user && data.trip) {
     event.waitUntil(unkeepTrip(event.source, String(data.user), String(data.trip)));
+  } else if (data.type === "fernscout-group-member" && GROUP_ID.test(data.gid) && MEMBER_ID.test(data.member)) {
+    event.waitUntil(keepMemberPage(data.gid, data.member));
+  } else if (data.type === "fernscout-group-forget") {
+    // No trip named: every trip this phone kept (the prototype's Reset). A malformed one: nothing.
+    if (data.gid === undefined) event.waitUntil(forgetMemberPage(""));
+    else if (GROUP_ID.test(data.gid)) event.waitUntil(forgetMemberPage(data.gid));
   }
 });
 
@@ -716,6 +829,8 @@ self.addEventListener("fetch", (event) => {
             if (res.ok && isStudioKeepPath(url.pathname)) {
               event.waitUntil(rememberPersonalStudio(request, res.clone()));
             }
+            const group = GROUP_PAGE.exec(url.pathname);
+            if (group) event.waitUntil(refreshMemberPage(group[1], res.clone()));
             done(res);
           })
           .catch(() => {

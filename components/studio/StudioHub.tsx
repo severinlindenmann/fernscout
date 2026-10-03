@@ -14,6 +14,7 @@ import {
   Printer,
   Search,
   Trash2,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -161,9 +162,12 @@ function heroFor(model: StudioHubModel, username: string, t: T, formatLongDate: 
 export default function StudioHub({
   username,
   model,
+  groupTripsRow,
 }: {
   username: string;
   model: StudioHubModel;
+  /** B-2837 — the group trips prototype's one row (D24); absent unless its server switch is on. */
+  groupTripsRow?: { href: string; title: string; description: string };
 }) {
   // The iPhone connects itself for Photos → Share the first time the studio
   // opens; the status lives on /me — B2206.
@@ -340,6 +344,11 @@ export default function StudioHub({
                         <HubRow row={row} dense />
                       </li>
                     ))}
+                    {groupTripsRow && (
+                      <li>
+                        <HubRow row={{ ...groupTripsRow, Icon: Users }} dense />
+                      </li>
+                    )}
                   </ul>
                   <ul id="people" className="divide-y divide-line-faint border-t border-line-faint lg:divide-y-0 lg:border-t-0">
                     {peopleOnlyRows.map((row) => (

@@ -92,7 +92,7 @@ function fakeCaches(entries: Cached[]) {
       return undefined;
     },
     open: async (name?: string) =>
-      name && (name.startsWith("personal-") || name.startsWith("kept-")) ? openNamed(name) : cache,
+      name && (name.startsWith("personal-") || name.startsWith("kept-") || name.startsWith("member-")) ? openNamed(name) : cache,
     keys: async () => [...named.keys()],
     delete: async (name: string) => named.delete(name),
   };
@@ -1064,5 +1064,142 @@ describe("the studio kept for the signed-in owner — B2329", () => {
     });
     await Promise.all(pending);
     expect([...caches.named.keys()].filter((k) => k.startsWith("personal-"))).toEqual([]);
+  });
+});
+
+/**
+ * B-2837 (D27, group trips prototype) — a member with no Fernscout account
+ * keeps their own trip's page, under a cache named after that trip and that
+ * member, and nothing else. The page tells the worker who it is
+ * (`fernscout-group-member`); leaving, being removed or the server refusing
+ * the page takes the copy away.
+ */
+describe("a group trip's page kept for a member without an account — B-2837", () => {
+  const A = "k7m2qp9xw4ta";
+  const B = "f1m5kl8ss5b0";
+  const PAGE_A = `https://journal.test/g/${A}`;
+  const PAGE_B = `https://journal.test/g/${B}`;
+  const CHUNK = "https://journal.test/_next/static/chunks/app-1234.js";
+
+  function page(body: string, status = 200) {
+    return new Response(body, {
+      status,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate" },
+    });
+  }
+
+  async function visit(handlers: Handlers, url: string) {
+    let response: Response | undefined;
+    const pending: Promise<unknown>[] = [];
+    await new Promise<void>((resolve) => {
+      handlers.fetch({
+        request: { url, method: "GET", mode: "navigate", headers: { get: () => null } },
+        respondWith: (value: Promise<Response>) => {
+          void Promise.resolve(value).then((r) => {
+            response = r;
+            resolve();
+          });
+        },
+        waitUntil: (p: Promise<unknown>) => pending.push(p),
+      });
+    });
+    await Promise.all(pending);
+    return response;
+  }
+
+  async function tell(handlers: Handlers, data: Record<string, unknown>) {
+    const pending: Promise<unknown>[] = [];
+    handlers.message({ data, waitUntil: (p: Promise<unknown>) => pending.push(p) });
+    await Promise.all(pending);
+  }
+
+  const online = (status = 200) => async (request: { url: string } | string) => {
+    const url = typeof request === "string" ? request : request.url;
+    if (url === CHUNK) return new Response("chunk", { headers: { "content-type": "application/javascript" } });
+    if (url.startsWith("https://journal.test/g/")) return page(`<html><script src="/_next/static/chunks/app-1234.js"></script>${url}</html>`, status);
+    if (url === HOME) return new Response(JSON.stringify({ id: null }), { headers: { "content-type": "application/json" } });
+    return new Response("");
+  };
+
+  /** The member caches of one worker, copied into a fresh one that has no network. */
+  function offlineWith(caches: ReturnType<typeof fakeCaches>) {
+    const offline = loadWorkerWithCaches(async () => {
+      throw new Error("offline");
+    });
+    for (const [name, store] of caches.named) offline.caches.named.set(name, store);
+    return offline;
+  }
+
+  test("kept under the trip and the member, with no Fernscout identity; never in the shared or personal caches", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await run(handlers, HOME); // a browser with nobody signed in: id null
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    const kept = caches.named.get(`member-${A}-m_lea`);
+    expect([...kept!.keys()].sort()).toEqual([CHUNK, PAGE_A].sort());
+    expect([...caches.named.keys()].filter((k) => k.startsWith("personal-") && k !== "personal-pointer")).toEqual([]);
+    expect(caches.written).toEqual([]);
+  });
+
+  test("offline, the member's own trip page and its scripts open from it", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    const offline = offlineWith(caches);
+    const res = await visit(offline.handlers, `${PAGE_A}?as=student&trip=school`);
+    expect(await res?.text()).toContain(PAGE_A);
+    expect(await (await run(offline.handlers, CHUNK))?.text()).toBe("chunk");
+  });
+
+  test("never another trip's page, and never the trip's manage pages", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    const offline = offlineWith(caches);
+    expect(await (await visit(offline.handlers, PAGE_B))?.text()).not.toContain(PAGE_A);
+    expect(await (await visit(offline.handlers, `${PAGE_A}/manage/people`))?.text()).not.toContain(PAGE_A);
+  });
+
+  test("a second member on the same phone replaces the first member's copy; another trip's stays", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    await tell(handlers, { type: "fernscout-group-member", gid: B, member: "m_marco" });
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_noah" });
+    expect([...caches.named.keys()].filter((k) => k.startsWith("member-")).sort()).toEqual([`member-${A}-m_noah`, `member-${B}-m_marco`].sort());
+  });
+
+  test("leaving or being removed takes the copy away; a page the server refuses does too", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    await tell(handlers, { type: "fernscout-group-member", gid: B, member: "m_marco" });
+    await tell(handlers, { type: "fernscout-group-forget", gid: A });
+    expect([...caches.named.keys()].filter((k) => k.startsWith("member-"))).toEqual([`member-${B}-m_marco`]);
+
+    const refusing = loadWorkerWithCaches(online(404));
+    for (const [name, store] of caches.named) refusing.caches.named.set(name, store);
+    await visit(refusing.handlers, PAGE_B);
+    expect([...refusing.caches.named.keys()].filter((k) => k.startsWith("member-"))).toEqual([]);
+  });
+
+  test("nothing is kept for a malformed trip or member, and a malformed forget forgets nothing", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: "../studio", member: "m_lea" });
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "a/b" });
+    expect([...caches.named.keys()].filter((k) => k.startsWith("member-"))).toEqual([]);
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    await tell(handlers, { type: "fernscout-group-forget", gid: "nope" });
+    expect([...caches.named.keys()].filter((k) => k.startsWith("member-"))).toEqual([`member-${A}-m_lea`]);
+  });
+
+  test("signing a Fernscout identity out leaves a member's trip page alone; it is not that identity's", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    await tell(handlers, { type: "fernscout-signed-out" });
+    expect(caches.named.has(`member-${A}-m_lea`)).toBe(true);
+  });
+
+  test("the studio's own allowlist is unchanged by it", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    await visit(handlers, "https://journal.test/@alex/studio/orders");
+    expect([...caches.named.keys()].filter((k) => k.startsWith("member-"))).toEqual([`member-${A}-m_lea`]);
+    expect([...caches.named.get(`member-${A}-m_lea`)!.keys()]).not.toContain("https://journal.test/@alex/studio/orders");
   });
 });
