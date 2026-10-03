@@ -243,7 +243,7 @@ describe("PATCH /api/v2/{user} — echo-tolerant round trip (V2)", () => {
 
     const { status, body } = await patchJournal(token, attempt);
     expect(status).toBe(400);
-    expect(body.message).toMatch(/baseCurrency can no longer be changed.*already holds a cost/s);
+    expect(body.message).toMatch(/baseCurrency can no longer be changed[\s\S]*already holds a cost/);
 
     // An unchanged echo is still fine.
     const same = { ...doc };

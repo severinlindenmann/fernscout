@@ -214,7 +214,9 @@ describe("journalHasAnyCost (B2806)", () => {
       end: "2026-01-31",
       status: "past",
       intro: "Body.",
-      costs: { items: [{ label: "Visa", amount: 40, category: "other" }] },
+      // Items with no budget: the fixture type insists on a budget, real
+      // imported trips do not always carry one.
+      costs: { items: [{ label: "Visa", amount: 40, category: "other" }] } as never,
     });
     clearUserCache();
     expect(journalHasAnyCost("itemy")).toBe(true);
