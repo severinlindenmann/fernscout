@@ -3,6 +3,7 @@ import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { getPendingSignup } from "@/lib/signup/pending";
+import { journalsOwnedBy } from "@/lib/journals";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { whatsappCountryCode } from "@/lib/contactNumber";
@@ -32,6 +33,11 @@ export default async function Welcome() {
   const resume = identity?.email
     ? Boolean(await getPendingSignup(identity.email).catch(() => null))
     : false;
+  // B-2811. A cookie-proven address that already keeps a journal is offered
+  // its studio at once: the wizard would only end in `too_many_journals` and a
+  // second code for an address this device already proved. Read from the
+  // identity cookie's own address, so it names nobody else's journal.
+  const ownedJournal = identity?.email ? (journalsOwnedBy(identity.email)[0] ?? null) : null;
   return (
     // B2531: the slim header — somebody here is mid-task, not browsing.
     <PageShell slim>
@@ -40,6 +46,7 @@ export default async function Welcome() {
       codeMinutes={CODE_TTL_MINUTES}
       identityEmail={identity?.email ?? null}
       resume={resume}
+      ownedJournal={ownedJournal}
       signupEnabled={isEnabled("signup")}
       phoneCountryCode={whatsappCountryCode() ?? null}
       contactEmail={serverSite().operatorEmail ?? null}

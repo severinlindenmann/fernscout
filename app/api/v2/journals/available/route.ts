@@ -7,8 +7,10 @@
 // journal-unscoped utility route.
 import { fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
-import { isReservedUsername, isValidUsername } from "@/lib/users";
+import fs from "node:fs";
+import { isReservedUsername, isValidUsername, userDir } from "@/lib/users";
 import { getUser } from "@/lib/users";
+import { isDeletedUsername } from "@/lib/tombstones";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,14 @@ export async function GET(request: Request) {
   if (!isValidUsername(username)) {
     return ok({ username, available: false, reason: "invalid_username" });
   }
-  if (getUser(username)) {
+  // B-2808. The same questions `createJournal` asks, in a stranger-safe voice:
+  // a folder on disk (even one with no readable config) and a deleted
+  // journal's tombstone both read as plain "taken" — this route is open, so it
+  // must not say a name once belonged to somebody. The create call still
+  // answers `deleted_username` to the one address entitled to know.
+  // (The registry locks are keyed by email and number, not by name, so there
+  // is no lock for a name to be found here.)
+  if (getUser(username) || fs.existsSync(userDir(username)) || isDeletedUsername(username)) {
     return ok({ username, available: false, reason: "username_taken" });
   }
   if (isReservedUsername(username)) {

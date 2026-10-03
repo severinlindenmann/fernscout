@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 // B2531: the kit's yellow pill; the square button is retired.
-import { PILL_PRIMARY } from "@/components/landing/styles";
+import { PILL_GHOST, PILL_PRIMARY } from "@/components/landing/styles";
 import { useI18n } from "@/components/LocaleProvider";
 import TelField from "@/components/TelField";
 import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
-import { journalPath } from "@/lib/journalPath";
+import { journalPath, suggestionsFor, usernameFrom, USERNAME_RE } from "@/lib/journalPath";
+import { CURRENCY_FOR_COUNTRY } from "@/lib/countryCurrency";
+import { regionDefaults } from "@/lib/regionDefaults";
 
 /** `window.location.host` never changes under a mounted page. */
 const noSubscription = () => () => {};
@@ -50,11 +53,6 @@ function rememberLocale(code: string) {
   document.cookie = `${LOCALE_COOKIE}=${code}; path=/; max-age=${year}; samesite=lax`;
 }
 
-/** Same shape as `USERNAME_RE` in `lib/users.ts` — checked again here only so
- * a person sees why the button is disabled before they press it. The server
- * is what actually decides; this never has to be the last word. */
-const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
-
 /** The refusals of the address itself — B2778. */
 const ADDRESS_REFUSALS = ["invalid_username", "deleted_username", "reserved_username", "username_taken"];
 
@@ -65,8 +63,60 @@ type Step =
   | "phone"
   | "phone-code"
   | "phone-wa"
-  | "journal"
+  | "name"
   | "signing-in";
+
+/** The browser keeps the name-step fields for this tab only — a reload lands
+ *  back on the unfinished step with what was typed (B-2808). */
+const DRAFT_KEY = "fs-signup-draft";
+type Draft = {
+  name?: string;
+  addressEdited?: boolean;
+  addressInput?: string;
+  titleOverride?: string | null;
+  listed?: boolean;
+  currencyPick?: string | null;
+  defaultLocale?: string;
+};
+function loadDraft(): Draft {
+  try {
+    return JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? "{}") as Draft;
+  } catch {
+    return {};
+  }
+}
+function saveDraft(draft: Draft | null) {
+  try {
+    if (draft) sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    else sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // Private mode or blocked storage: the form simply is not remembered.
+  }
+}
+
+const COMMON_CURRENCIES = ["CHF", "EUR", "USD", "HUF"];
+const ALL_CURRENCIES = [...new Set(Object.values(CURRENCY_FOR_COUNTRY))].sort();
+const RESEND_SECONDS = 30;
+
+const subscribeNothing = () => () => {};
+const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(navigator.languages ?? [navigator.language])].join(","));
+
+/** Asks the open availability route; `ok: null` means "could not tell" — the
+ *  server's create call decides then. */
+async function checkAddress(username: string): Promise<{ ok: boolean | null; reason?: string }> {
+  try {
+    const response = await fetch(`/api/v2/journals/available?username=${encodeURIComponent(username)}`);
+    const json = (await response.json()) as { available?: boolean; reason?: string };
+    if (!response.ok || typeof json.available !== "boolean") return { ok: null };
+    return { ok: json.available, reason: json.reason };
+  } catch {
+    return { ok: null };
+  }
+}
+
+function clock(seconds: number) {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
 
 /**
  * A brand-new visitor's whole way in — B688, mounted at `/welcome` since
@@ -98,15 +148,15 @@ type Step =
  * | The script asks | Here |
  * | --- | --- |
  * | email address | the first step |
- * | the journal's address (`username`) | asked, with the hint above the field, because it is permanent (B809) |
- * | what the journal is called (`title`) | asked |
- * | public or guest (`visibility`) | asked |
- * | their name and what the site calls them (`ownerName`, `ownerNickname`) | asked, as two labelled questions — never one inferred from the other (B809) |
- * | which language they write in (`defaultLocale`) | asked — until B838 it was read off the browser and never put |
- * | which languages a reader may switch into (`locales`) | asked — until B838 it was hardcoded to `[defaultLocale]`, which is B277 by construction |
- * | what they count money in (`baseCurrency`) | asked — B839 added it to both, since it is the one field nothing can change afterwards |
+ * | (the phone proof) | the second step, right after the address is proven — WhatsApp first, SMS behind it (B-2808) |
+ * | their name (`ownerName`, `ownerNickname`) and the journal's title (`title`) | ONE field, "Your name", sent as all three. The owner's decision, overriding B809's two fields for the browser door only — the API still takes them separately, and the title is editable in the advanced settings |
+ * | the journal's address (`username`) | suggested from the name with `usernameFrom`, checked live against `/api/v2/journals/available`, permanent (B809) |
+ * | public or guest (`visibility`) | a default sent explicitly: guest, "List my journal in search engines" off in the advanced settings turns public on (`me.journalListed`) |
+ * | which language they write in (`defaultLocale`) | the browser's (B838), shown on the summary card and editable in the advanced settings |
+ * | which languages a reader may switch into (`locales`) | `[defaultLocale]` — one more is a promise to write every day twice (B294), made on the journal itself later |
+ * | what they count money in (`baseCurrency`) | the browser region's (B-2807), never guessed from a language alone: with no region the card says "Choose" and Create stays disabled |
  *
- * Everything else `POST /api/v2/journals` accepts — `tagline`,
+* Everything else `POST /api/v2/journals` accepts — `tagline`,
  * `startLocation`, `units`, `displayCurrencies` — is absent here on purpose:
  * each is correctable later at `PATCH /api/v2/<user>`, and a question
  * with a good default and a way back does not belong in front of somebody who
@@ -136,103 +186,82 @@ export default function SignupWizard({
   /** The reader's current UI language — offered as the journal's own
    * starting language, changeable before the journal is created. */
   locale: string;
-  /** How long the code lasts, from `CODE_TTL_MINUTES` — passed rather than
-   * imported, the same reason `IdentitySignIn` takes it as a prop. */
+  /** How long the code lasts, from `CODE_TTL_MINUTES`. */
   codeMinutes: string;
   /** Called once the browser holds a session for the new journal. */
   onSignedIn: (username: string, signedIn: boolean) => void;
   /** Called when the verified address turns out to already own a journal —
-   * B1568. The door swaps this wizard for its sign-in form; before this the
-   * person learned it from `createJournal`, after the journal form and a
-   * proven phone number. */
+   * B1568. The door swaps this wizard for its sign-in form. */
   onAlreadyOwns: () => void;
-  /** B2357 — `whatsappCountryCode()`, this instance's own declared dialling
-   *  convention. Used only to prefill the phone step's country box and to
-   *  name the restriction in `agent.phoneSmsIntro`; absent (the default for
-   *  a fresh clone with no such config) prefills nothing and the SMS
-   *  sentence names no country. Never a hardcoded "41" — that guessed at
-   *  every reader being Swiss regardless of which operator ran this code. */
+  /** B2357 — `whatsappCountryCode()`, this instance's own dialling
+   *  convention: the SMS country box's fallback when the browser names no
+   *  region (B-2807). Absent prefills nothing. */
   phoneCountryCode?: string | null;
-  /** `serverSite().operatorEmail` — B2357. Absent (a fresh clone that has not
-   *  set one) means "no WhatsApp" points nowhere rather than at a
-   *  fernscout.ch address that is not this operator's. */
+  /** `serverSite().operatorEmail` — B2357. */
   contactEmail?: string | null;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [step, setStep] = useState<Step>("email");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** B2778 — a refusal of the address itself, shown at the address field. */
-  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [telTaken, setTelTaken] = useState(false);
 
   const [email, setEmail] = useState(prefillEmail ?? "");
-  // The host is only knowable in the browser; the server renders without it.
   const host = useSyncExternalStore(noSubscription, () => window.location.host, () => "");
+  const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
+  const defaults = useMemo(() => regionDefaults(languages ? languages.split(",") : []), [languages]);
   const proven = Boolean(prefillEmail) && email.trim().toLowerCase() === prefillEmail!.toLowerCase();
   const [code, setCode] = useState("");
   const [signupToken, setSignupToken] = useState("");
+  /** Resend countdown: when it ends, and a ticking clock to compare with. */
+  const [resendAt, setResendAt] = useState(0);
+  const [now, setNow] = useState(0);
 
-  const [title, setTitle] = useState("");
-  const [username, setUsername] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [ownerNickname, setOwnerNickname] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "guest">("public");
+  // The name step. Fields come back from this tab's draft after a reload.
+  const [draft] = useState<Draft>(() => (typeof window === "undefined" ? {} : loadDraft()));
+  const [name, setName] = useState(draft.name ?? "");
+  const [addressEdited, setAddressEdited] = useState(draft.addressEdited ?? false);
+  const [addressInput, setAddressInput] = useState(draft.addressInput ?? "");
+  const [titleOverride, setTitleOverride] = useState<string | null>(draft.titleOverride ?? null);
+  const [listed, setListed] = useState(draft.listed ?? false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [otherCurrency, setOtherCurrency] = useState(false);
   /** The browser's language is the *starting point* of the question, never
-   * the answer to it — B838. A German speaker on a phone somebody else set
-   * up in English is the exact person tested twice on this instance. */
+   * the answer to it — B838. */
   const [defaultLocale, setDefaultLocale] = useState(
-    (MAINTAINED_LOCALES as readonly string[]).includes(locale) ? locale : "en",
+    draft.defaultLocale ?? ((MAINTAINED_LOCALES as readonly string[]).includes(locale) ? locale : "en"),
   );
-  /**
-   * The answer is applied to the person who gave it — B1185. Saying
-   * "German" here used to change only the journal being created; the rest
-   * of the wizard, and the agent room after it, stayed in English. The
-   * cookie is the same one `LocaleSwitcher` writes, and `router.refresh()`
-   * re-renders the server half in the new language while this component's
-   * own state survives.
-   */
-  const router = useRouter();
-  function chooseLanguage(code: string) {
-    setDefaultLocale(code);
-    rememberLocale(code);
-    router.refresh();
-  }
-  /** The *extra* languages a reader may switch into — `defaultLocale` is
-   * always sent as well and is not in here, so changing the answer above
-   * cannot leave a journal whose own language is not on offer to its
-   * readers (which `POST /api/v2/journals` refuses outright). */
-  const [extraLocales, setExtraLocales] = useState<string[]>([]);
-  /** Empty, required, and deliberately not guessed — B839. It is the one
-   * field `setJournalProfile` refuses for ever after, so a value prefilled
-   * from a language ("de" is Germany, Austria *and* Switzerland) would be a
-   * permanent decision nobody was asked about. The examples are in the hint
-   * and the datalist, where they are visible without being chosen. */
-  const [baseCurrency, setBaseCurrency] = useState("");
+  /** `null` = the person has not picked, so the browser region's currency (if
+   *  it names one) stands. Never guessed from a language alone — B839. */
+  const [currencyPick, setCurrencyPick] = useState<string | null>(draft.currencyPick ?? null);
+  const currency = currencyPick ?? defaults.currency ?? "";
 
-  /**
-   * The phone step — B1222. Only reached when `POST /api/v2/journals`
-   * answers `phone_required`, so an instance whose operator address or
-   * `test-` prefix exempts it never sees these, and neither does one that
-   * drops the requirement. The passcode arrives over WhatsApp; the step
-   * says so, and says where somebody without WhatsApp can turn.
-   */
-  const [telCc, setTelCc] = useState(phoneCountryCode ?? "");
+  const suggested = usernameFrom(name);
+  const username = addressEdited ? addressInput : suggested;
+  const title = titleOverride ?? name;
+
+  // The phone step.
+  const [telPick, setTelPick] = useState<string | null>(null);
   const [telNational, setTelNational] = useState("");
+  const telCc = telPick ?? defaults.cc ?? phoneCountryCode ?? "";
   const [phoneId, setPhoneId] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
-  /** B1234 — the inbound proof: no number typed, no code; a wa.me link
-   * with a one-time token, and a poll that waits for the webhook. */
   const [waLink, setWaLink] = useState("");
+  const [waOpened, setWaOpened] = useState(false);
   const [waExpired, setWaExpired] = useState(false);
-  /** B1316 — whether this server offers "get the code by SMS" beside the
-   * WhatsApp confirmation, and whether the person took it. `smsChannel`
-   * decides the wording on the phone steps: telling somebody a code is
-   * arriving "using WhatsApp" while it arrives by SMS would be the exact
-   * kind of untrue sentence the helper's net exists for. */
+  const [waChecking, setWaChecking] = useState(false);
   const [smsFallback, setSmsFallback] = useState(false);
   const [smsChannel, setSmsChannel] = useState(false);
-  /** B2804 — show "Welcome back" once the wizard resumed a signup. */
+  const [mode, setMode] = useState<string>("code");
   const [welcomeBack, setWelcomeBack] = useState(false);
+  const pollRef = useRef<(() => Promise<void>) | null>(null);
+
+  function chooseLanguage(next: string) {
+    setDefaultLocale(next);
+    rememberLocale(next);
+    router.refresh();
+  }
 
   async function post(
     path: string,
@@ -250,19 +279,19 @@ export default function SignupWizard({
       },
       body: JSON.stringify(body),
     }).catch(() => null);
-    const json = (await response?.json().catch(() => null)) as Record<
-      string,
-      unknown
-    > | null;
+    const json = (await response?.json().catch(() => null)) as Record<string, unknown> | null;
     if (!response?.ok) {
       if (typeof json?.error === "string" && passthrough?.includes(json.error)) {
         return json;
       }
+      // B-2808: a number that already keeps a journal is a way forward (sign
+      // in to it), not an error line.
+      if (json?.error === "tel_taken") {
+        setTelTaken(true);
+        return null;
+      }
       // A known cause gets its own sentence, in the reader's own language —
-      // never the API's own machine-facing message, which is written for an
-      // agent and names endpoints and tokens (B1250). Anything else falls to
-      // one honest, generic sentence: nothing typed so far was lost, and
-      // nothing here says what actually happened, because we do not know.
+      // never the API's own machine-facing message (B1250).
       if (typeof json?.error === "string" && (SIGNUP_FAILURES as readonly string[]).includes(json.error)) {
         setError(t(`agent.error.${json.error}` as TranslationKey));
         return null;
@@ -274,32 +303,30 @@ export default function SignupWizard({
   }
 
   /**
-   * B2804. With a signup token in hand, ask where the signup stands and jump
-   * to the step still open: a number already proven (possibly on another
-   * device) goes straight to the journal form; an address resumed from the
-   * identity cookie goes to the phone step. Anything unexpected falls back to
-   * the journal form, which is where this always went.
+   * With a signup token in hand, ask where the signup stands and go to the
+   * step still open (B2804). The phone comes right after the address (B-2808):
+   * a proven number, or an instance that does not ask for one, goes straight
+   * to the name. Anything unexpected falls back to the name step — a create
+   * that then answers `phone_required` still finds its way to the phone.
    */
   async function continueFrom(token: string, resumed: boolean) {
     const response = await fetch("/api/auth/signup/state", {
       headers: { authorization: `Bearer ${token}` },
     }).catch(() => null);
     const state = (await response?.json().catch(() => null)) as Record<string, unknown> | null;
+    setWelcomeBack(resumed);
     if (!response?.ok || !state) {
-      setStep("journal");
+      setStep("name");
       return;
     }
     if (state.smsFallback === true) setSmsFallback(true);
-    if (state.phoneProven === true) {
-      setWelcomeBack(true);
-      setStep("journal");
-    } else if (resumed && state.phoneRequired === true) {
-      setWelcomeBack(true);
-      if (state.mode === "whatsapp-inbound") await requestWaLink(token);
-      else setStep("phone");
+    if (typeof state.mode === "string") setMode(state.mode);
+    if (state.phoneProven === true || state.phoneRequired === false) {
+      setStep("name");
+    } else if (state.mode === "whatsapp-inbound") {
+      await requestWaLink(token);
     } else {
-      setWelcomeBack(resumed);
-      setStep("journal");
+      setStep("phone");
     }
   }
 
@@ -319,6 +346,54 @@ export default function SignupWizard({
     // Once, on mount: the prop is a server-side fact about this page load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // One clock for both resend countdowns.
+  useEffect(() => {
+    if (step !== "code" && step !== "phone-code") return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [step]);
+  const resendLeft = Math.max(0, Math.ceil((resendAt - now) / 1000));
+  function startCountdown() {
+    const stamp = Date.now();
+    setNow(stamp);
+    setResendAt(stamp + RESEND_SECONDS * 1000);
+  }
+
+  /** Asks for a code; says why in words when it cannot (B2774). `true` only
+   *  for the uniform 202. */
+  async function sendCode(value: string): Promise<boolean> {
+    const response = await fetch("/api/auth/codes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ for: "signup", email: value }),
+    }).catch(() => null);
+    if (response && response.status !== 202 && !response.ok) {
+      const json = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (response.status === 403 && json?.error === "signup_not_invited") {
+        setError(t("agent.error.signup_not_invited"));
+      } else if (response.status === 429) {
+        const seconds = Number(response.headers.get("retry-after"));
+        setError(
+          seconds > 0
+            ? t("agent.error.too_many_requests_wait", { minutes: String(Math.ceil(seconds / 60)) })
+            : t("agent.error.too_many_requests"),
+        );
+      } else if (response.status === 503) {
+        setError(t("agent.error.mail_unavailable"));
+      } else if (response.status === 404) {
+        setError(t("agent.error.signup_disabled"));
+      } else {
+        setError(t("agent.signupFailed"));
+      }
+      return false;
+    }
+    if (!response) {
+      setError(t("agent.signupFailed"));
+      return false;
+    }
+    return true;
+  }
 
   async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -348,71 +423,36 @@ export default function SignupWizard({
       // `not_signed_in`: the cookie lapsed, or it names a phone number.
       // The ordinary code below still works for the address typed.
     }
-    /**
-     * The answer is deliberately not read — the door answers 202 whether or
-     * not the address is known, so there is nothing here to branch on.
-     *
-     * With one exception, B1693: an invite-only instance refuses an address
-     * nobody named, and moving on to "a code is on its way" would leave that
-     * person waiting for a mail that is never coming. That refusal is about
-     * the instance rather than about the address, so saying it discloses
-     * nothing the landing page does not.
-     */
-    const response = await fetch("/api/auth/codes", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "signup", email: value }),
-    }).catch(() => null);
+    const sent = await sendCode(value);
     setBusy(false);
-    // B2774. Every failure the door can answer is said here, on the email
-    // step; only the uniform 202 moves on. The 202 is also what the silent
-    // per-address cap answers, which is why the sent copy says "if".
-    if (response && response.status !== 202 && !response.ok) {
-      const json = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (response.status === 403 && json?.error === "signup_not_invited") {
-        setError(t("agent.error.signup_not_invited"));
-      } else if (response.status === 429) {
-        const seconds = Number(response.headers.get("retry-after"));
-        setError(
-          seconds > 0
-            ? t("agent.error.too_many_requests_wait", { minutes: String(Math.ceil(seconds / 60)) })
-            : t("agent.error.too_many_requests"),
-        );
-      } else if (response.status === 503) {
-        setError(t("agent.error.mail_unavailable"));
-      } else if (response.status === 404) {
-        setError(t("agent.error.signup_disabled"));
-      } else {
-        setError(t("agent.signupFailed"));
-      }
-      return;
-    }
-    if (!response) {
-      setError(t("agent.signupFailed"));
-      return;
-    }
+    if (!sent) return;
+    setCode("");
+    startCountdown();
     setStep("code");
   }
 
-  async function verifyCode(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(
-      /\D/g,
-      "",
-    );
-    setCode(value);
+  async function resendEmailCode() {
+    setError(null);
+    if (await sendCode(email)) startCountdown();
+  }
+
+  async function verifyCode(digits: string) {
     setBusy(true);
     setError(null);
     const result = await post(
       "/api/auth/codes/redeem",
-      { for: "signup", email, code: value },
+      { for: "signup", email, code: digits },
       undefined,
-      ["too_many_journals"],
+      ["too_many_journals", "invalid_code"],
     );
     setBusy(false);
     if (!result) return;
-    // The address is proven and already owns a journal — B1568. Said here,
-    // where the answer became knowable, not after the phone step.
+    if (result.error === "invalid_code") {
+      setError(t("signupPage.codeWrong"));
+      setCode("");
+      return;
+    }
+    // The address is proven and already owns a journal — B1568.
     if (result.error === "too_many_journals") {
       setStep("owns");
       return;
@@ -424,58 +464,50 @@ export default function SignupWizard({
   async function createJournal() {
     setBusy(true);
     setError(null);
-    setUsernameError(null);
     const result = await post(
       "/api/v2/journals",
       {
-        title,
+        // One name field: the byline, what the site calls them and the
+        // journal's title start as the same words (B-2808).
+        title: title.trim(),
         username,
-        ownerName,
-        ownerNickname,
-        visibility,
+        ownerName: name.trim(),
+        ownerNickname: name.trim(),
+        visibility: listed ? "public" : "guest",
         defaultLocale,
-        locales: [defaultLocale, ...extraLocales],
-        baseCurrency,
+        locales: [defaultLocale],
+        baseCurrency: currency,
       },
       signupToken,
       ["phone_required", ...ADDRESS_REFUSALS],
     );
     setBusy(false);
     if (!result) return;
-    // B2778. The address was refused after the phone was proven. The proof
-    // lives on the signup session, so the form's next Create needs no new
-    // passcode — back to the form, the message at the address field.
+    // The address was refused after all (a race, or the live check could not
+    // answer). The name stays; the message sits at the address field.
     if (typeof result.error === "string" && ADDRESS_REFUSALS.includes(result.error)) {
-      setUsernameError(t(`agent.error.${result.error}` as TranslationKey));
-      setStep("journal");
+      setError(t(`agent.error.${result.error}` as TranslationKey));
+      setAddressEdited(true);
+      setAddressInput(username);
+      setStep("name");
       return;
     }
-    // The server wants a proven number as well as the proven address
-    // (B1064/B1065). The wizard finds out here rather than asking up
-    // front, so an exempt instance never shows the step at all.
+    // Unreachable on an instance that asks for the phone up front, but kept:
+    // an exempt state that changed mid-signup still ends on the phone step.
     if (result.error === "phone_required") {
       setSmsFallback(result.smsFallback === true);
+      if (typeof result.mode === "string") setMode(result.mode);
       if (result.mode === "whatsapp-inbound") await requestWaLink();
       else setStep("phone");
       return;
     }
-    // The agent token in `result.token` is deliberately not kept: since
-    // B2170 nothing here writes into the journal, so there is nothing for it
-    // to authorise.
+    // The agent token in `result.token` is deliberately not kept (B2170).
+    saveDraft(null);
     const user = result.user as string;
     setStep("signing-in");
     setBusy(true);
-    // The one-press relay link, spent here rather than by a press — there is
-    // nobody left to press it, the wizard already asked everything it needs
-    // to. `signIn` is `${base}/@${username}/s/${token}?lang=xx` (`signInUrl`
-    // in `lib/auth`); the token is the path after the last "/s/", without the
-    // query — B2170 found the old `split("/s/").pop()` sent "?lang=en" as part
-    // of the token, so this call always failed. The same call the welcome
-    // mail's button makes (`components/SignInButton.tsx`); it is what sets
-    // the owner's session cookie, server-side.
-    //
-    // A plain `fetch`, not `post()`: a refusal here is not "the server did
-    // not create your journal" — it did.
+    // The one-press relay link, spent here rather than by a press (B2170): the
+    // token is the path after the last "/s/", without the query.
     const signIn = typeof result.signIn === "string" ? result.signIn : "";
     const linkToken = signIn ? (new URL(signIn, window.location.href).pathname.split("/s/").pop() ?? "") : "";
     const redeemed = linkToken
@@ -486,51 +518,38 @@ export default function SignupWizard({
         }).catch(() => null)
       : null;
     setBusy(false);
-    // Sent on whether or not that took: the journal exists regardless, and
-    // the page decides where somebody without a session goes rather than
-    // stranding them here with a journal made and no way forward.
     onSignedIn(user, redeemed?.ok === true);
-  }
-
-  /** The number is proven. Resumed phone-first, the journal form is still
-   * empty and comes next; reached from the form, the create goes on. */
-  async function afterPhoneProof() {
-    if (!title || !username) {
-      setBusy(false);
-      setStep("journal");
-      return;
-    }
-    await createJournal();
-  }
-
-  async function createJournalStep(event: React.FormEvent) {
-    event.preventDefault();
-    await createJournal();
   }
 
   async function requestWaLink(token = signupToken) {
     setBusy(true);
     setError(null);
     setWaExpired(false);
+    setWaOpened(false);
     const result = await post("/api/auth/signup/phone", {}, token);
     setBusy(false);
     if (!result) return;
     setPhoneId(result.id as string);
     setWaLink(typeof result.link === "string" ? result.link : "");
     if (result.smsFallback === true) setSmsFallback(true);
+    setMode("whatsapp-inbound");
     setStep("phone-wa");
   }
 
   /**
-   * The poll. Every few seconds while the phone-wa step is showing, ask
-   * whether the webhook has seen the message; `ok` carries on into the
-   * create that sent us here, `expired` offers a fresh link. Transient
-   * fetch failures are simply the next tick's problem.
+   * The poll — every few seconds while the WhatsApp step shows, at once when
+   * "Check again" is pressed, and again whenever the tab comes back to the
+   * front (a phone that went to WhatsApp and returned). `ok` moves on to the
+   * name, `expired` offers a fresh link.
    */
   useEffect(() => {
     if (step !== "phone-wa" || !phoneId || waExpired) return;
     let done = false;
+    let running = false;
     const tick = async () => {
+      if (done || running) return;
+      running = true;
+      setWaChecking(true);
       const response = await fetch("/api/auth/signup/phone/redeem", {
         method: "POST",
         headers: {
@@ -540,30 +559,39 @@ export default function SignupWizard({
         body: JSON.stringify({ id: phoneId }),
       }).catch(() => null);
       const json = (await response?.json().catch(() => null)) as Record<string, unknown> | null;
+      running = false;
+      setWaChecking(false);
       if (done || !json) return;
       if (json.ok) {
         done = true;
-        clearInterval(timer);
-        await afterPhoneProof();
+        setStep("name");
       } else if (json.error === "tel_taken") {
         done = true;
-        clearInterval(timer);
-        setError(t("agent.error.tel_taken"));
+        setTelTaken(true);
         setWaExpired(true);
       } else if (json.status === "expired") {
         setWaExpired(true);
       }
     };
+    pollRef.current = tick;
     const timer = setInterval(tick, 2500);
+    const back = () => {
+      if (document.visibilityState === "visible") void tick();
+    };
+    document.addEventListener("visibilitychange", back);
+    window.addEventListener("focus", back);
     return () => {
       done = true;
+      pollRef.current = null;
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", back);
+      window.removeEventListener("focus", back);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, phoneId, waExpired]);
 
-  async function requestPhoneCode(event: React.FormEvent) {
-    event.preventDefault();
+  async function sendPhoneCode(event?: React.FormEvent) {
+    event?.preventDefault();
     setBusy(true);
     setError(null);
     const result = await post(
@@ -577,33 +605,78 @@ export default function SignupWizard({
     if (!result) return;
     setPhoneId(result.id as string);
     setPhoneCode("");
+    startCountdown();
     setStep("phone-code");
   }
 
-  async function verifyPhoneCode(event: React.FormEvent) {
-    event.preventDefault();
+  async function verifyPhoneCode(digits: string) {
     setBusy(true);
     setError(null);
     const result = await post(
       "/api/auth/signup/phone/redeem",
-      { id: phoneId, code: phoneCode },
+      { id: phoneId, code: digits },
       signupToken,
       ["invalid_code"],
     );
-    if (!result) {
-      setBusy(false);
-      return;
-    }
+    setBusy(false);
+    if (!result) return;
     if (result.error === "invalid_code") {
-      setBusy(false);
       setError(t("agent.phoneWrong"));
       setPhoneCode("");
       return;
     }
-    // The number is proven and attached to the signup token — retry the
-    // create that sent us here. `createJournal` manages busy itself.
-    await afterPhoneProof();
+    // The number is proven and attached to the signup token.
+    setStep("name");
   }
+
+  // The name step's live address check, debounced, and — for a taken name —
+  // each suggestion checked before it is shown.
+  const [avail, setAvail] = useState<{ name: string; ok: boolean | null; reason?: string } | null>(null);
+  const [chips, setChips] = useState<{ name: string; list: string[] }>({ name: "", list: [] });
+  useEffect(() => {
+    if (step !== "name" || !USERNAME_RE.test(username)) return;
+    let stale = false;
+    const timer = setTimeout(async () => {
+      const result = await checkAddress(username);
+      if (!stale) setAvail({ name: username, ...result });
+    }, 350);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [step, username]);
+  const status: "empty" | "invalid" | "checking" | "ok" | "taken" | "unknown" =
+    username === ""
+      ? "empty"
+      : !USERNAME_RE.test(username) || (avail?.name === username && avail.reason === "invalid_username")
+        ? "invalid"
+        : avail?.name !== username
+          ? "checking"
+          : avail.ok === true
+            ? "ok"
+            : avail.ok === false
+              ? "taken"
+              : "unknown";
+  const isTaken = status === "taken";
+  useEffect(() => {
+    if (step !== "name" || !isTaken) return;
+    let stale = false;
+    (async () => {
+      const candidates = suggestionsFor(name).filter((c) => c !== username);
+      const checked = await Promise.all(candidates.map(async (c) => ((await checkAddress(c)).ok === true ? c : null)));
+      if (!stale) setChips({ name, list: checked.filter((c): c is string => c !== null) });
+    })();
+    return () => {
+      stale = true;
+    };
+    // The suggestions come from the typed name only; the taken address is
+    // just the trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, isTaken, name]);
+
+  useEffect(() => {
+    if (step === "name") saveDraft({ name, addressEdited, addressInput, titleOverride, listed, currencyPick, defaultLocale });
+  }, [step, name, addressEdited, addressInput, titleOverride, listed, currencyPick, defaultLocale]);
 
   const label =
     "block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary";
@@ -612,36 +685,165 @@ export default function SignupWizard({
     "focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500";
   const input =
     "block w-full border-0 bg-transparent p-0 text-base text-ink-strong focus:outline-none focus:ring-0";
+  const quietLink = "min-h-11 text-base text-ink-secondary underline underline-offset-4";
+  const select =
+    "mt-1 block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-3 py-2 text-base text-ink-strong";
+
+  /** One six-digit box: paste works, and the sixth digit submits. */
+  function codeBox(id: string, value: string, setValue: (v: string) => void, submit: (digits: string) => void) {
+    return (
+      <div className={field}>
+        <label className={label} htmlFor={id}>
+          {t("me.signInCode")}
+        </label>
+        <input
+          id={id}
+          name="code"
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          required
+          disabled={busy}
+          value={value}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+            setValue(digits);
+            if (digits.length === 6) submit(digits);
+          }}
+          className={`${input} font-mono text-2xl tracking-[0.3em]`}
+        />
+      </div>
+    );
+  }
+  const checking = (text: string) => (
+    <p className="mt-3 flex items-center gap-2 text-base leading-7 text-ink-body" role="status">
+      {busy && <span aria-hidden className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-line-strong border-t-transparent" />}
+      {busy ? text : " "}
+    </p>
+  );
+  const countdown = (again: () => void, wrong: () => void, wrongLabel: string) => (
+    <p className="mt-3 flex flex-wrap items-center gap-x-4 text-base text-ink-secondary">
+      <button type="button" onClick={wrong} className={quietLink}>
+        {wrongLabel}
+      </button>
+      {resendLeft > 0 ? (
+        <span>{t("signupPage.resendIn", { time: clock(resendLeft) })}</span>
+      ) : (
+        <button type="button" onClick={again} className={quietLink}>
+          {t("signupPage.resend")}
+        </button>
+      )}
+    </p>
+  );
+
+  const stepNumber = step === "email" || step === "code" || step === "owns" ? 1 : step === "name" || step === "signing-in" ? 3 : 2;
+  const stepLabels = [t("signupPage.stepEmail"), t("signupPage.stepPhone"), t("signupPage.stepName")];
+
+  const addressTakenText = t("signupPage.addressTaken", { address: `${host}${journalPath(username)}`, name: name.trim() });
+  const showAddressField = isTaken || addressEdited || (suggested === "" && name.trim() !== "");
+  const addressField = (
+    <div>
+      <div className={field}>
+        <label className={label} htmlFor="signup-username">
+          {t("signupPage.addressChoose")}
+        </label>
+        <div className="flex items-baseline text-base text-ink-strong">
+          <span className="shrink-0 text-ink-secondary">{host}/@</span>
+          <input
+            id="signup-username"
+            value={username}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            onChange={(e) => {
+              setAddressEdited(true);
+              setAddressInput(e.target.value.toLowerCase());
+              setError(null);
+            }}
+            aria-invalid={status === "invalid" || isTaken}
+            className={input}
+          />
+        </div>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-ink-secondary" role="status">
+        {status === "ok"
+          ? t("signupPage.addressFree")
+          : status === "checking"
+            ? t("signupPage.addressChecking")
+            : status === "invalid"
+              ? t("agent.error.invalid_username")
+              : t("signupPage.addressRules")}
+      </p>
+      {isTaken && chips.name === name && chips.list.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {chips.list.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => {
+                setAddressEdited(true);
+                setAddressInput(c);
+              }}
+              className="min-h-11 rounded-full border border-line-strong bg-surface-base px-4 text-sm text-ink-strong"
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const knownCurrency = (c: string) => COMMON_CURRENCIES.includes(c) || c === defaults.currency;
+  const currencyOptions = defaults.currency && !COMMON_CURRENCIES.includes(defaults.currency) ? [defaults.currency, ...COMMON_CURRENCIES] : COMMON_CURRENCIES;
+  const currencyName = (c: string) => {
+    try {
+      return new Intl.DisplayNames([locale], { type: "currency" }).of(c);
+    } catch {
+      return undefined;
+    }
+  };
+  const selectValue = otherCurrency || (currency !== "" && !knownCurrency(currency)) ? "__other" : currency;
+  const canCreate = !busy && name.trim() !== "" && title.trim() !== "" && (status === "ok" || status === "unknown") && /^[A-Z]{3}$/.test(currency);
 
   return (
     <section className="rounded-2xl border border-line-quiet bg-surface-base p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {/* The "owns" heading is the door's own question — B1568: "New
-            here?" above "this address already owns a journal" contradicted
-            itself; the question the sentence below answers does not. */}
-        {step === "owns" ? t("agent.haveJournal") : t("agent.startTitle")}
-      </h2>
-      {/* B1370 — the phone-wa step ("Noch ein Schritt: Bestätige deine
-          Telefonnummer per WhatsApp") is a confirmation, not a fresh pitch;
-          the intro above belongs to the steps that still need to sell the
-          idea, not to the one that is only waiting on a tap in WhatsApp. */}
-      {/* The "owns" step is excluded too — the pitch above a sentence saying
-          this address already has a journal would contradict it (B1568) —
-          and so is "signing-in": the journal exists by then, and selling it
-          again would say nothing of that (B1292). */}
-      {step !== "phone-wa" && step !== "owns" && step !== "signing-in" && (
-        <p className="mt-2 text-base leading-7 text-ink-body">
-          {t("agent.startIntro")}
-        </p>
+      {step !== "owns" && step !== "signing-in" && (
+        <ol aria-label={t("signupPage.stepsLabel")} className="mb-5 flex gap-1.5 text-[13px] font-semibold text-ink-secondary">
+          {stepLabels.map((text, index) => (
+            <li key={text} className="flex-1" aria-current={index + 1 === stepNumber ? "step" : undefined}>
+              <span className={`mb-1.5 block h-1.5 rounded-full ${index + 1 <= stepNumber ? "bg-blue-500" : "bg-line-quiet"}`} />
+              {index + 1} {text}
+              {index + 1 < stepNumber ? " ✓" : ""}
+            </li>
+          ))}
+        </ol>
       )}
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
+        {step === "owns"
+          ? t("agent.haveJournal")
+          : step === "phone" || step === "phone-code" || step === "phone-wa"
+            ? t("signupPage.phoneTitle")
+            : step === "name"
+              ? t("signupPage.nameTitle")
+              : t("agent.startTitle")}
+      </h2>
 
-      {welcomeBack && step !== "email" && step !== "code" && step !== "signing-in" && (
-        <p className="mt-4 text-base leading-7 text-ink-body">{t("signupPage.welcomeBack")}</p>
+      {welcomeBack && (step === "phone" || step === "phone-wa" || step === "name") && (
+        <p className="mt-2 text-base leading-7 text-ink-body">{t("signupPage.welcomeBack")}</p>
       )}
 
       {error && (
         <p role="alert" className="mt-4 text-base leading-7 text-coral-600">
           {error}
+        </p>
+      )}
+      {telTaken && (
+        <p role="alert" className="mt-4 text-base leading-7 text-coral-600">
+          {t("signupPage.telTaken")}{" "}
+          <Link href="/?start=1" className="underline underline-offset-4">
+            {t("signupPage.telTakenLink")}
+          </Link>
         </p>
       )}
 
@@ -664,56 +866,43 @@ export default function SignupWizard({
             />
           </div>
           {/* No `disabled={email === ""}` — B787. Autofill can set the field
-              without firing `onChange`, leaving that state stale; `required`
-              above is what refuses a genuinely empty submit, natively. */}
+              without firing `onChange`, leaving that state stale. */}
           <BusyButton
             busy={busy}
             type="submit"
             className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={proven ? undefined : t("me.signInSending")}
           >
-            {proven ? t("agent.startVerify") : t("me.signInSend")}
+            {t("agent.startVerify")}
           </BusyButton>
-          {proven && (
-            <p className="mt-2 text-sm leading-6 text-ink-secondary">{t("signupPage.provenHint")}</p>
-          )}
+          <p className="mt-3 text-sm leading-6 text-ink-secondary">
+            {proven ? t("signupPage.provenAs", { email: prefillEmail! }) : t("signupPage.reminderNotice")}
+          </p>
         </form>
       )}
 
       {step === "code" && (
-        <form onSubmit={verifyCode}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (code.length === 6) void verifyCode(code);
+          }}
+        >
           <p className="mt-2 text-base leading-7 text-ink-body">
             {t("agent.startCodeSent", { minutes: codeMinutes })}
           </p>
-          <div className={field}>
-            <label className={label} htmlFor="signup-code">
-              {t("me.signInCode")}
-            </label>
-            <input
-              id="signup-code"
-              name="code"
-              autoComplete="one-time-code"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              // `minLength` makes "fewer than 6 digits" a submit the browser
-              // itself refuses (B787), rather than one gated on React state
-              // that autofill or a code-filling keyboard can bypass.
-              minLength={6}
-              maxLength={6}
-              required
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              className={`${input} font-mono text-2xl tracking-[0.3em]`}
-            />
-          </div>
-          <BusyButton
-            busy={busy}
-            type="submit"
-            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
-            busyLabel={t("me.signInSending")}
-          >
-            {t("agent.startVerify")}
-          </BusyButton>
+          <p className="mt-1 break-all text-base font-semibold text-ink-strong">{email}</p>
+          {codeBox("signup-code", code, setCode, verifyCode)}
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">{t("signupPage.codeAuto")}</p>
+          {checking(t("signupPage.codeChecking"))}
+          {countdown(
+            () => void resendEmailCode(),
+            () => {
+              setError(null);
+              setStep("email");
+            },
+            t("signupPage.wrongAddress"),
+          )}
         </form>
       )}
 
@@ -732,11 +921,78 @@ export default function SignupWizard({
         </div>
       )}
 
+      {step === "phone-wa" && (
+        <div>
+          <p className="mt-2 text-base leading-7 text-ink-body">{t("signupPage.phoneWhy")}</p>
+          {!waOpened ? (
+            <>
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setWaOpened(true)}
+                className={`mt-4 block w-full text-center ${PILL_PRIMARY}`}
+              >
+                {t("agent.phoneWaOpen")}
+              </a>
+              <p className="mt-2 text-sm leading-6 text-ink-secondary">{t("signupPage.waHint")}</p>
+              {smsFallback && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSmsChannel(true);
+                    setStep("phone");
+                  }}
+                  className={`mt-4 block w-full text-center ${PILL_GHOST}`}
+                >
+                  {t("signupPage.smsInstead")}
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="mt-4 flex items-center gap-2 text-base leading-7 text-ink-body" role="status">
+                {!waExpired && (
+                  <span aria-hidden className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line-strong border-t-transparent" />
+                )}
+                {waExpired ? t("agent.phoneWaExpired") : t("agent.phoneWaWaiting")}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-x-5">
+                {waExpired ? (
+                  <button type="button" onClick={() => void requestWaLink()} className={quietLink}>
+                    {t("agent.phoneWaRetry")}
+                  </button>
+                ) : (
+                  <>
+                    <a href={waLink} target="_blank" rel="noreferrer" className={`${quietLink} inline-flex items-center`}>
+                      {t("signupPage.waOpenAgain")}
+                    </a>
+                    <button type="button" onClick={() => void pollRef.current?.()} className={quietLink}>
+                      {waChecking ? t("signupPage.waChecking") : t("signupPage.waCheck")}
+                    </button>
+                  </>
+                )}
+                {smsFallback && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSmsChannel(true);
+                      setStep("phone");
+                    }}
+                    className={quietLink}
+                  >
+                    {t("signupPage.smsInsteadShort")}
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {step === "phone" && (
-        <form onSubmit={requestPhoneCode}>
-          <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("agent.phoneIntro")}
-          </p>
+        <form onSubmit={sendPhoneCode}>
+          <p className="mt-2 text-base leading-7 text-ink-body">{t("signupPage.phoneWhy")}</p>
           <div className="mt-4">
             <span className={label}>{t("agent.phoneLabel")}</span>
             <TelField
@@ -744,7 +1000,7 @@ export default function SignupWizard({
               cc={telCc}
               national={telNational}
               onChange={(cc, national) => {
-                setTelCc(cc);
+                setTelPick(cc);
                 setTelNational(national);
               }}
               labelCountry={t("contact.telCountry")}
@@ -771,332 +1027,220 @@ export default function SignupWizard({
             className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={t("me.signInSending")}
           >
-            {t("agent.phoneSend")}
+            {smsChannel ? t("signupPage.smsSend") : t("agent.phoneSend")}
           </BusyButton>
+          {mode === "whatsapp-inbound" && (
+            <button type="button" onClick={() => void requestWaLink()} className={`mt-3 ${quietLink}`}>
+              {t("agent.phoneWaOpen")}
+            </button>
+          )}
         </form>
       )}
 
       {step === "phone-code" && (
-        <form onSubmit={verifyPhoneCode}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (phoneCode.length === 6) void verifyPhoneCode(phoneCode);
+          }}
+        >
           <p className="mt-2 text-base leading-7 text-ink-body">
+            {t("signupPage.telSent", { tel: `+${telCc} ${telNational}` })}
+            {" — "}
             {smsChannel ? t("agent.phoneSmsCodeSent") : t("agent.phoneCodeSent")}
           </p>
-          <div className={field}>
-            <label className={label} htmlFor="signup-phone-code">
-              {t("me.signInCode")}
-            </label>
-            <input
-              id="signup-phone-code"
-              name="code"
-              autoComplete="one-time-code"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              minLength={6}
-              maxLength={6}
-              required
-              value={phoneCode}
-              onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, ""))}
-              className={`${input} font-mono text-2xl tracking-[0.3em]`}
-            />
-          </div>
-          <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {contactEmail
-              ? t("agent.phoneNoWhatsapp", { email: contactEmail })
-              : t("agent.phoneNoWhatsappNoAddress")}
-          </p>
-          <BusyButton
-            busy={busy}
-            type="submit"
-            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
-            busyLabel={t("me.signInSending")}
-          >
-            {t("agent.startVerify")}
-          </BusyButton>
-          <button
-            type="button"
-            onClick={() => setStep("phone")}
-            className="mt-3 min-h-11 text-base text-ink-secondary underline underline-offset-4"
-          >
-            {t("agent.phoneAgain")}
-          </button>
+          {codeBox("signup-phone-code", phoneCode, setPhoneCode, verifyPhoneCode)}
+          {checking(t("signupPage.codeChecking"))}
+          {countdown(
+            () => void sendPhoneCode(),
+            () => {
+              setError(null);
+              setStep("phone");
+            },
+            t("signupPage.telWrong"),
+          )}
         </form>
       )}
 
-      {step === "phone-wa" && (
-        <div>
-          <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("agent.phoneWaIntro")}
-          </p>
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noreferrer"
-            className={`mt-4 block w-full text-center ${PILL_PRIMARY}`}
-          >
-            {t("agent.phoneWaOpen")}
-          </a>
-          <p className="mt-3 text-base leading-7 text-ink-body" role="status">
-            {waExpired ? t("agent.phoneWaExpired") : t("agent.phoneWaWaiting")}
-          </p>
-          {waExpired && (
-            <button
-              type="button"
-              onClick={() => requestWaLink()}
-              className="mt-2 min-h-11 text-base text-ink-secondary underline underline-offset-4"
-            >
-              {t("agent.phoneWaRetry")}
-            </button>
-          )}
-          {/* B1316 — the way out for somebody without WhatsApp, where this
-              server can actually deliver an SMS. The contact line stays for
-              whoever the SMS cannot reach either. */}
-          {smsFallback && (
-            <button
-              type="button"
-              onClick={() => {
-                setSmsChannel(true);
-                setStep("phone");
-              }}
-              className="mt-3 block min-h-11 text-base text-ink-secondary underline underline-offset-4"
-            >
-              {t("agent.phoneSmsOffer")}
-            </button>
-          )}
-        </div>
-      )}
-
-      {step === "journal" && (
-        <form onSubmit={createJournalStep}>
+      {step === "name" && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (canCreate) void createJournal();
+          }}
+        >
           <div className={field}>
-            <label className={label} htmlFor="signup-title">
-              {t("agent.journalNameLabel")}
+            <label className={label} htmlFor="signup-name">
+              {t("signupPage.stepName")}
             </label>
             <input
-              id="signup-title"
+              id="signup-name"
               required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className={input}
             />
           </div>
-          {/* B809 — above the field, not below it. A tester chose an address
-              and only then read that it was going to be a web address, which
-              is the one thing here that cannot be corrected afterwards.
-              B1293: the hint still reads as the *title* field's, sitting
-              just under it with nothing marking where it stops belonging —
-              so this is a banded group now, set apart from the field above
-              rather than merely below it. */}
-          <div className="mt-6 rounded-xl border border-line-quiet bg-surface-base p-4">
-            <p className="text-sm leading-6 text-ink-secondary">
-              {t("agent.usernameHint")}
-            </p>
-            <div className={`${field} mt-2`}>
-              <label className={label} htmlFor="signup-username">
-                {t("agent.usernameLabel")}
-              </label>
-              <input
-                id="signup-username"
-                required
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value.toLowerCase());
-                  setUsernameError(null);
-                }}
-                aria-invalid={Boolean(usernameError) || (username !== "" && !USERNAME_RE.test(username))}
-                className={input}
-              />
-            </div>
-            {(usernameError || (username !== "" && !USERNAME_RE.test(username))) && (
-              <p role="alert" className="mt-2 text-sm leading-6 text-coral-600">
-                {usernameError ?? t("agent.error.invalid_username")}
-              </p>
-            )}
-            {/* The address exactly as it will be written down and shared —
-                the `@` is what tells a reader it is a person's journal. */}
-            <p className="mt-2 break-all text-sm leading-6 text-ink-secondary">
-              {t("agent.usernamePreview", {
-                address: `${host}${journalPath(username.trim() || "…")}`,
-              })}
-            </p>
-          </div>
-          {/* B809 — two name fields a tester could not tell apart, so he put
-              "Kevin" in both. They are genuinely two things: `owner.name` is
-              the byline on a trip, `owner.nickname` is what the site says in
-              a sentence. `/agent.md` is emphatic that both are asked and
-              neither is inferred from the other, so the answer is to say
-              what each is for rather than to collapse them. */}
-          <div className={field}>
-            <label className={label} htmlFor="signup-owner-name">
-              {t("agent.ownerNameLabel")}
-            </label>
-            <input
-              id="signup-owner-name"
-              required
-              value={ownerName}
-              onChange={(e) => setOwnerName(e.target.value)}
-              className={input}
-            />
-          </div>
-          <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {t("agent.ownerNameHint")}
-          </p>
-          <div className={field}>
-            <label className={label} htmlFor="signup-owner-nickname">
-              {t("agent.ownerNicknameLabel")}
-            </label>
-            <input
-              id="signup-owner-nickname"
-              required
-              value={ownerNickname}
-              onChange={(e) => setOwnerNickname(e.target.value)}
-              className={input}
-            />
-          </div>
-          <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {t("agent.ownerNicknameHint")}
-          </p>
 
-          {/* B838, first half — which language the owner writes in. It was
-              read off the browser and never asked, so a German speaker whose
-              phone is in English got an English journal. */}
-          <p className={`${label} mt-5`}>{t("agent.localeLabel")}</p>
-          <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {t("agent.localeHint")}
-          </p>
-          <div className="mt-2 space-y-2">
-            {MAINTAINED_LOCALES.map((code) => (
-              <label
-                key={code}
-                className="flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong"
-              >
-                <input
-                  type="radio"
-                  name="signup-locale"
-                  value={code}
-                  checked={defaultLocale === code}
-                  onChange={() => {
-                    chooseLanguage(code);
-                    // Whatever the new one is, it is no longer an *extra*.
-                    setExtraLocales((prev) => prev.filter((c) => c !== code));
-                  }}
-                />
-                {LOCALE_LABEL[code] ?? code}
-              </label>
-            ))}
-          </div>
+          {!advancedOpen && (
+            <>
+              {isTaken ? (
+                <p role="alert" className="mt-3 text-sm leading-6 text-coral-600">
+                  {addressTakenText}
+                </p>
+              ) : (
+                <p className="mt-3 text-sm leading-6 text-ink-secondary">{t("signupPage.nameHint")}</p>
+              )}
+              {!isTaken && username !== "" && !showAddressField && (
+                <p className="mt-1 break-all text-sm leading-6 text-ink-strong" role="status">
+                  <span className="font-semibold">{host}{journalPath(username)}</span>
+                  {" · "}
+                  {status === "ok" ? t("signupPage.addressAvailable") : status === "checking" ? t("signupPage.addressChecking") : ""}
+                  <br />
+                  <span className="text-ink-secondary">{t("signupPage.addressPermanent")}</span>{" "}
+                  <button type="button" onClick={() => { setAddressEdited(true); setAddressInput(username); }} className="text-ink-secondary underline underline-offset-4">
+                    {t("signupPage.addressChange")}
+                  </button>
+                </p>
+              )}
+              {showAddressField && <div className="mt-2">{addressField}</div>}
 
-          {/* B838, second half — the different question, and the one that
-              was hardcoded to `[defaultLocale]`, which is B277 reproduced by
-              construction: a journal with no switcher and no page to add one
-              from. The hint says what a second language commits somebody to
-              (B294), because it is a promise to write everything twice. */}
-          <p className={`${label} mt-5`}>{t("agent.readerLocalesLabel")}</p>
-          <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {t("agent.readerLocalesHint")}
-          </p>
-          <div className="mt-2 space-y-2">
-            {MAINTAINED_LOCALES.filter((code) => code !== defaultLocale).map(
-              (code) => (
-                <label
-                  key={code}
-                  className="flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong"
+              <div className="mt-5 rounded-xl border border-line-quiet bg-surface-base p-4">
+                <p className="text-base font-semibold text-ink-strong">{t("signupPage.cardTitle")}</p>
+                <dl className="mt-2 divide-y divide-line-quiet text-base">
+                  <div className="flex justify-between gap-3 py-2">
+                    <dt className="text-ink-secondary">{t("signupPage.cardLanguage")}</dt>
+                    <dd className="text-ink-strong">{LOCALE_LABEL[defaultLocale] ?? defaultLocale}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3 py-2">
+                    <dt className="text-ink-secondary">{t("signupPage.cardCurrency")}</dt>
+                    <dd className="text-ink-strong">
+                      {currency ? (
+                        currency
+                      ) : (
+                        <button type="button" onClick={() => setAdvancedOpen(true)} className="underline underline-offset-4">
+                          {t("signupPage.cardChoose")}
+                        </button>
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3 py-2">
+                    <dt className="text-ink-secondary">{t("signupPage.cardSearch")}</dt>
+                    <dd className="text-ink-strong">{listed ? t("signupPage.cardSearchOn") : t("signupPage.cardSearchOff")}</dd>
+                  </div>
+                </dl>
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen(true)}
+                  className="mt-2 flex min-h-12 w-full items-center justify-between rounded-xl border border-line-quiet px-4 text-left text-base font-semibold text-ink-strong"
                 >
-                  <input
-                    type="checkbox"
-                    name="signup-reader-locales"
-                    value={code}
-                    checked={extraLocales.includes(code)}
-                    onChange={(e) =>
-                      setExtraLocales((prev) =>
-                        e.target.checked
-                          ? [...prev, code]
-                          : prev.filter((c) => c !== code),
-                      )
-                    }
-                  />
-                  {LOCALE_LABEL[code] ?? code}
+                  {t("signupPage.editAdvanced")}
+                  <span aria-hidden>›</span>
+                </button>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-ink-secondary">{t("signupPage.tripNote")}</p>
+            </>
+          )}
+
+          {advancedOpen && (
+            <div className="mt-5 rounded-xl border border-line-quiet bg-surface-base p-4">
+              <p className="text-base font-semibold text-ink-strong">{t("signupPage.advTitle")}</p>
+              <div className="mt-2">{addressField}</div>
+              <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("signupPage.addressPermanent")}</p>
+              <div className={field}>
+                <label className={label} htmlFor="signup-title">
+                  {t("signupPage.advTitleLabel")}
                 </label>
-              ),
-            )}
-          </div>
-
-          {/* B839 — the one permanent field, asked at the one moment it can
-              still be answered. `setJournalProfile` refuses it for ever
-              after, on purpose: every cost in the journal is denominated
-              against it — `JOURNAL_FIELD_REFUSALS.baseCurrency` in
-              lib/journals.ts says changing it later would silently re-read
-              rather than re-price every bare amount ever written, with no
-              way back short of editing every entry.
-              B1293's own ticket text called this one "freely correctable
-              later" and proposed moving the hint below the field to match
-              name and nickname; the code above says the opposite — this is
-              exactly as permanent as the address, so it gets the address's
-              treatment (B809: read before you type) rather than the
-              nickname's. Grouped in its own band instead, for the same
-              reason the username one is now — not moved. */}
-          <div className="mt-6 rounded-xl border border-line-quiet bg-surface-base p-4">
-            <p className="text-sm leading-6 text-ink-secondary">
-              {t("agent.currencyHint")}
-            </p>
-            <div className={`${field} mt-2`}>
-              <label className={label} htmlFor="signup-currency">
-                {t("agent.currencyLabel")}
-              </label>
-              <input
-                id="signup-currency"
-                required
-                maxLength={3}
-                // Native, so a phone offers the right keyboard and the browser
-                // says why the button will not go — the server checks it too.
-                pattern="[A-Za-z]{3}"
-                autoComplete="off"
-                list="signup-currency-codes"
-                value={baseCurrency}
-                onChange={(e) => setBaseCurrency(e.target.value.toUpperCase())}
-                className={input}
-              />
-            </div>
-            <datalist id="signup-currency-codes">
-              {["EUR", "CHF", "HUF", "GBP", "USD"].map((code) => (
-                <option key={code} value={code} />
-              ))}
-            </datalist>
-          </div>
-
-          <p className={`${label} mt-5`}>{t("agent.visibilityLabel")}</p>
-          <div className="mt-2 space-y-2">
-            {(["public", "guest"] as const).map((option) => (
-              <label
-                key={option}
-                className="flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong"
-              >
                 <input
-                  type="radio"
-                  name="signup-visibility"
-                  value={option}
-                  checked={visibility === option}
-                  onChange={() => setVisibility(option)}
+                  id="signup-title"
+                  value={title}
+                  onChange={(e) => setTitleOverride(e.target.value)}
+                  className={input}
                 />
-                {t(
-                  option === "public"
-                    ? "agent.visibilityPublic"
-                    : "agent.visibilityGuest",
-                )}
+              </div>
+              <label className="mt-5 flex items-start gap-3 text-base text-ink-strong">
+                <input
+                  id="signup-listed"
+                  type="checkbox"
+                  checked={listed}
+                  onChange={(e) => setListed(e.target.checked)}
+                  className="mt-1 h-5 w-5"
+                />
+                <span>
+                  <span className="block font-semibold">{t("me.journalListed")}</span>
+                  <span className="block text-sm leading-6 text-ink-secondary">{t("signupPage.advListedHint")}</span>
+                </span>
               </label>
-            ))}
-          </div>
+              <label className="mt-5 block text-base font-semibold text-ink-strong" htmlFor="signup-locale">
+                {t("signupPage.cardLanguage")}
+              </label>
+              <select id="signup-locale" value={defaultLocale} onChange={(e) => chooseLanguage(e.target.value)} className={select}>
+                {MAINTAINED_LOCALES.map((code) => (
+                  <option key={code} value={code}>
+                    {LOCALE_LABEL[code] ?? code}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("signupPage.advLocaleHint")}</p>
+              <label className="mt-5 block text-base font-semibold text-ink-strong" htmlFor="signup-currency">
+                {t("signupPage.cardCurrency")}
+              </label>
+              <select
+                id="signup-currency"
+                value={selectValue}
+                onChange={(e) => {
+                  if (e.target.value === "__other") {
+                    setOtherCurrency(true);
+                    setCurrencyPick("");
+                  } else {
+                    setOtherCurrency(false);
+                    setCurrencyPick(e.target.value);
+                  }
+                }}
+                className={select}
+              >
+                {currency === "" && !otherCurrency && <option value="">{t("signupPage.cardChoose")}</option>}
+                {currencyOptions.map((code) => (
+                  <option key={code} value={code}>
+                    {currencyName(code) ? `${code} — ${currencyName(code)}` : code}
+                  </option>
+                ))}
+                <option value="__other">{t("signupPage.currencyOther")}</option>
+              </select>
+              {selectValue === "__other" && (
+                <>
+                  <input
+                    id="signup-currency-other"
+                    list="signup-currency-codes"
+                    maxLength={3}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    placeholder={t("signupPage.currencySearch")}
+                    value={currency}
+                    onChange={(e) => setCurrencyPick(e.target.value.toUpperCase())}
+                    className={`${select} font-mono`}
+                  />
+                  <datalist id="signup-currency-codes">
+                    {ALL_CURRENCIES.map((code) => (
+                      <option key={code} value={code}>
+                        {currencyName(code)}
+                      </option>
+                    ))}
+                  </datalist>
+                </>
+              )}
+              <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("signupPage.advCurrencyHint")}</p>
+              <button type="button" onClick={() => setAdvancedOpen(false)} className={`mt-4 ${quietLink}`}>
+                {t("signupPage.backToSummary")}
+              </button>
+            </div>
+          )}
 
           <BusyButton
             busy={busy}
             type="submit"
-            disabled={
-              busy ||
-              !title ||
-              !USERNAME_RE.test(username) ||
-              !ownerName ||
-              !ownerNickname ||
-              !/^[A-Z]{3}$/.test(baseCurrency)
-            }
+            disabled={!canCreate}
             className={`mt-5 w-full ${PILL_PRIMARY} disabled:opacity-50`}
             busyLabel={t("agent.creatingJournal")}
           >

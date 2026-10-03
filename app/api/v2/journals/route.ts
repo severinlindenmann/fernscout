@@ -144,6 +144,10 @@ export async function POST(request: Request) {
   const prechecked = precheckJournal({ ...body, visibility: body.visibility as "public" | "guest" | "private", ownerEmail: session.email });
   if (!prechecked.ok) return refuseCreate(prechecked);
 
+  // B-2808. The `test-` address exemption is API-only now: the browser wizard
+  // proves the phone BEFORE the address exists (email, phone, name), so a
+  // person in the wizard is never exempt by what they will type later. An
+  // agent that names its address in the create call still is.
   const exempt = isAdminEmail(session.email) || body.username.startsWith("test-");
   if (!exempt && !session.phone) {
     return refuse(

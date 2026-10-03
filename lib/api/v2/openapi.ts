@@ -886,7 +886,8 @@ function buildPaths(): Record<string, PathItem> {
 
   paths["/api/v2/journals/available"] = {
     get: {
-      summary: "Whether a username is free to sign up with — send ?username=.",
+      summary:
+        "Whether a username is free to sign up with — send ?username=. A name that is a folder on disk or belonged to a deleted journal reads as username_taken, never as a deletion.",
       responses: {
         ...jsonResponse(200, usernameAvailability, "always 200 — availability is reported in the body, not the status"),
         ...refusalResponses([ref("invalid_request", 400, "no ?username= given")]),
