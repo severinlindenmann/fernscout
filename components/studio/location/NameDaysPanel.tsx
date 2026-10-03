@@ -77,9 +77,12 @@ export default function NameDaysPanel({ username, tripId, rows }: { username: st
               <span className="flex-1 text-sm">
                 <span className="font-semibold text-ink-strong">{formatLongDate(r.date)}</span>
                 {r.published && (
-                  <span className="ml-2 rounded-full bg-surface-neutral px-2 py-0.5 text-xs font-bold text-ink-secondary">
-                    {t("studio.location.nameDays.published")}
-                  </span>
+                  <>
+                    {" "}
+                    <span className="ml-2 rounded-full bg-surface-neutral px-2 py-0.5 text-xs font-bold text-ink-secondary">
+                      {t("studio.location.nameDays.published")}
+                    </span>
+                  </>
                 )}
                 <br />
                 <span className="text-ink-body">{r.place}</span>
