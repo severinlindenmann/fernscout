@@ -146,6 +146,11 @@ export async function POST(request: Request) {
   if (req.for === "signup") {
     const owned = journalsOwnedBy(email);
     if (owned.length >= MAX_JOURNALS_PER_EMAIL) {
+      // B-2811. The code just proved this address, so the browser gets the
+      // identity an identity code would have left, and the wizard can offer
+      // the studio instead of a second code. `user` is the redeemer's own
+      // journal, never another address's.
+      await tryIssueIdentity(email, request);
       return fail(
         "too_many_journals",
         owned.length === 1
@@ -154,6 +159,7 @@ export async function POST(request: Request) {
           : `This address already owns ${owned.length} journals (${owned.join(", ")}), which is ` +
             `the limit on this server.`,
         {
+          user: owned[0],
           next:
             `To write to one of them instead, POST /api/auth/codes with ` +
             `{"user": "${owned[0]}", "email": "${email}", "for": "write"}, then redeem the ` +
@@ -172,13 +178,7 @@ export async function POST(request: Request) {
    * mail. Guarded like `setGuestSessionCookies`: a failure here must not turn
    * a proven address into a 500. The token itself still leaves in the body.
    */
-  if (req.for === "signup" && isEnabled("auth")) {
-    try {
-      await issueIdentityCookie(email, request.headers.get("user-agent"));
-    } catch (err) {
-      console.warn("[auth] signup code proved the address, but no identity could be issued:", err);
-    }
-  }
+  if (req.for === "signup") await tryIssueIdentity(email, request);
 
   // "write" or "signup" — the token is the whole body.
   return ok({
@@ -188,6 +188,17 @@ export async function POST(request: Request) {
     scope: req.for,
     ...(needsJournal ? { user: owner } : {}),
   });
+}
+
+/** Guarded like `setGuestSessionCookies`: a failure must not turn a proven
+ * address into a 500. */
+async function tryIssueIdentity(email: string, request: Request): Promise<void> {
+  if (!isEnabled("auth")) return;
+  try {
+    await issueIdentityCookie(email, request.headers.get("user-agent"));
+  } catch (err) {
+    console.warn("[auth] signup code proved the address, but no identity could be issued:", err);
+  }
 }
 
 /**

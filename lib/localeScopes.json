@@ -73,6 +73,7 @@
       "err.crashTitle",
       "err.goToJournal",
       "err.notFoundTitle",
+      "err.notSignedInTitle",
       "err.offlineBody",
       "err.offlineNotKept",
       "err.offlineTitle",

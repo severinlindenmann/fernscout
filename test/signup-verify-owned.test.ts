@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { POST } from "@/app/api/auth/codes/redeem/route";
 import { NO_JOURNAL, issueCode } from "@/lib/auth";
 import { clearConfigCache } from "@/lib/config";
@@ -23,6 +23,11 @@ import { clearUserCache } from "@/lib/users";
  * "who is on this server" oracle the uniform 202 on /api/auth/signup/request
  * exists to prevent.
  */
+
+const jar: { set: string[] } = { set: [] };
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined, set: (name: string) => jar.set.push(name) }),
+}));
 
 let dir: string;
 
@@ -66,6 +71,7 @@ beforeEach(async () => {
   );
   clearConfigCache();
   clearUserCache();
+  jar.set = [];
 
   const { migrateToLatest } = await import("@/lib/db/migrate");
   await migrateToLatest(await getDatabase());
@@ -90,6 +96,24 @@ describe("POST /api/auth/codes/redeem (for: signup) for an address at the journa
     expect(body.error).toBe("too_many_journals");
     expect(body.message).toContain("robin");
     expect(body.token).toBeUndefined();
+  });
+
+  // B-2811: the code proved the address, so the identity cookie is set (as an
+  // identity code would) and the 409 names only the redeemer's own journal.
+  test("sets fs_identity and names the redeemer's own journal", async () => {
+    const { code } = await issueCode(NO_JOURNAL, "owner@example.test", "signup");
+    const response = await verify({ email: "owner@example.test", code });
+    expect(response.status).toBe(409);
+    expect(jar.set).toContain("fs_identity");
+    const body = (await response.json()) as { details: { user: string } };
+    expect(body.details.user).toBe("robin");
+  });
+
+  test("a wrong code sets no cookie and names nothing", async () => {
+    await issueCode(NO_JOURNAL, "owner@example.test", "signup");
+    const response = await verify({ email: "owner@example.test", code: "000000" });
+    expect(jar.set).toEqual([]);
+    expect(JSON.stringify(await response.json())).not.toContain("robin");
   });
 
   test("but only after the code proves the address — a wrong code stays invalid_code", async () => {
