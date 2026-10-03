@@ -81,9 +81,9 @@ afterEach(async () => {
 
 describe("invite-only signup", () => {
   test("a config that says nothing about signup takes nobody", async () => {
+    // B-2780: the same 202 a listed address gets, and no mail.
     const response = await ask("stranger@example.test");
-    expect(response.status).toBe(403);
-    expect((await response.json()).error).toBe("signup_not_invited");
+    expect(response.status).toBe(202);
     expect(mailsWritten()).toEqual([]);
   });
 
@@ -97,7 +97,7 @@ describe("invite-only signup", () => {
 
     await removeInvite("guest@example.test");
     const refused = await ask("guest@example.test");
-    expect(refused.status).toBe(403);
+    expect(refused.status).toBe(202);
     // Still the one mail from the allowed attempt.
     expect(mailsWritten()).toHaveLength(1);
   });
@@ -125,6 +125,7 @@ describe("invite-only signup", () => {
     const listed = await ask("guest@example.test");
     expect(listed.status).toBe(202);
     const stranger = await ask("stranger@example.test");
-    expect(stranger.status).toBe(403);
+    expect(stranger.status).toBe(202);
+    expect(mailsWritten()).toHaveLength(1);
   });
 });

@@ -16,12 +16,14 @@ import { useI18n } from "@/components/LocaleProvider";
 export default function SignupResume({
   token,
   signupEnabled,
+  inviteOnly,
   codeMinutes,
   phoneCountryCode,
   contactEmail,
 }: {
   token: string;
   signupEnabled: boolean;
+  inviteOnly?: boolean;
   codeMinutes: string;
   phoneCountryCode: string | null;
   contactEmail: string | null;
@@ -56,6 +58,7 @@ export default function SignupResume({
         identityEmail={null}
         initialSignupToken={signupToken}
         signupEnabled={signupEnabled}
+        inviteOnly={inviteOnly}
         phoneCountryCode={phoneCountryCode}
         contactEmail={contactEmail}
       />

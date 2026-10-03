@@ -5018,5 +5018,13 @@
   "signupPage.currencyOther": "Altra…",
   "signupPage.currencySearch": "Codice valuta, per esempio JPY",
   "signupPage.welcomeStudio": "Tieni già @{user} — apri il tuo studio",
-  "signupPage.welcomeStudioOpen": "Apri il tuo studio"
+  "signupPage.welcomeStudioOpen": "Apri il tuo studio",
+  "inviteApproved.subject": "Ci sei: inizia il tuo diario su {site}",
+  "inviteApproved.title": "Ci sei",
+  "inviteApproved.body": "La persona che gestisce {site} ha aggiunto il tuo indirizzo, quindi puoi iniziare il tuo diario. Il pulsante lo apre solo per questo indirizzo. Funziona una volta sola e per 7 giorni.",
+  "inviteApproved.button": "Inizia il mio diario",
+  "inviteApproved.why": "Ricevi questo perché hai chiesto un invito per {site}.",
+  "signupPage.codeSentInvited": "Se questo indirizzo è invitato, un codice è in arrivo. È valido per {minutes} minuti.",
+  "signupPage.requestInvite": "Non ancora invitato? Chiedi un invito",
+  "inviteRequest.alreadyInvited": "Già invitato? Inizia da qui"
 }

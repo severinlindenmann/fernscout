@@ -172,6 +172,8 @@ export default function SignupWizard({
   onAlreadyOwns,
   phoneCountryCode,
   contactEmail,
+  inviteOnly,
+  inviteRequest,
 }: {
   /** Prefilled when the visitor already carries an identity cookie — they
    * proved this address once already, so while the field still holds it the
@@ -203,6 +205,10 @@ export default function SignupWizard({
   phoneCountryCode?: string | null;
   /** `serverSite().operatorEmail` — B2357. */
   contactEmail?: string | null;
+  /** B-2780 — invite-only server: the code request answers alike for every address. */
+  inviteOnly?: boolean;
+  /** B-2773 — `/invite` exists: the email step links it. */
+  inviteRequest?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -901,6 +907,13 @@ export default function SignupWizard({
           <p className="mt-3 text-sm leading-6 text-ink-secondary">
             {proven ? t("signupPage.provenAs", { email: prefillEmail! }) : t("signupPage.reminderNotice")}
           </p>
+          {inviteRequest && (
+            <p className="mt-3 text-sm leading-6">
+              <Link href="/invite" className="underline underline-offset-4">
+                {t("signupPage.requestInvite")}
+              </Link>
+            </p>
+          )}
         </form>
       )}
 
@@ -912,7 +925,7 @@ export default function SignupWizard({
           }}
         >
           <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("agent.startCodeSent", { minutes: codeMinutes })}
+            {t(inviteOnly ? "signupPage.codeSentInvited" : "agent.startCodeSent", { minutes: codeMinutes })}
           </p>
           <p className="mt-1 break-all text-base font-semibold text-ink-strong">{email}</p>
           {codeBox("signup-code", code, setCode, verifyCode)}

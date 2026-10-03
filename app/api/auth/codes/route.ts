@@ -181,16 +181,13 @@ async function handleSignup(
   accepted: () => Response,
 ) {
   /**
-   * B1693. The whole of invite-only is here: an address nobody has named is
-   * never sent a code. Said out loud rather than faked as a success — the
-   * common case is a person who was never added, or who mistyped, and both
-   * of those wait for a mail that will never come otherwise. It leaks that
-   * this instance is invite-only, which is a thing its landing page says
-   * anyway, and not who is on the list.
+   * B1693, B-2780. The whole of invite-only is here: an address nobody has
+   * named is never sent a code. The answer is the same 202 either way — a
+   * 403 here let anyone probe who is on the list. The person who was never
+   * added waits for no mail; the wizard says "if this address is invited"
+   * and /welcome offers the request form.
    */
-  if (!(await signupAllowed(req.email))) {
-    return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
-  }
+  if (!(await signupAllowed(req.email))) return accepted();
   if (!emailCodeAllowed(req.email)) return accepted();
 
   const locale = pickLocale(

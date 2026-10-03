@@ -5014,5 +5014,13 @@
   "signupPage.currencyOther": "Andere…",
   "signupPage.currencySearch": "Währungscode, zum Beispiel JPY",
   "signupPage.welcomeStudio": "Du führst schon @{user} — öffne dein Studio",
-  "signupPage.welcomeStudioOpen": "Studio öffnen"
+  "signupPage.welcomeStudioOpen": "Studio öffnen",
+  "inviteApproved.subject": "Du bist dabei: Starte dein Tagebuch auf {site}",
+  "inviteApproved.title": "Du bist dabei",
+  "inviteApproved.body": "Die Person, die {site} betreibt, hat deine Adresse hinzugefügt, damit du dein Tagebuch starten kannst. Der Button öffnet es nur für diese Adresse. Er funktioniert einmal und 7 Tage lang.",
+  "inviteApproved.button": "Mein Tagebuch starten",
+  "inviteApproved.why": "Du bekommst das, weil du eine Einladung für {site} angefragt hast.",
+  "signupPage.codeSentInvited": "Wenn diese Adresse eingeladen ist, ist ein Code unterwegs. Er gilt {minutes} Minuten.",
+  "signupPage.requestInvite": "Noch nicht eingeladen? Einladung anfragen",
+  "inviteRequest.alreadyInvited": "Schon eingeladen? Hier geht's los"
 }
