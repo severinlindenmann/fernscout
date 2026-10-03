@@ -17,6 +17,7 @@ import type { PlanReaders } from "@/lib/types";
 import type { TripEditPanel } from "@/lib/studio/tripEdit";
 import { slugify } from "@/lib/tripId";
 import DateField from "@/components/studio/DateField";
+import { ACCENT_SWATCH } from "@/components/studio/trip/NewTripFlow";
 
 import { journalPath } from "@/lib/journalPath";
 const INPUT = "mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong";
@@ -180,6 +181,9 @@ export default function TripEditFlow({
   const [start, setStart] = useState(trip?.start ?? "");
   const [end, setEnd] = useState(trip?.end ?? "");
   const [readers, setReaders] = useState<PlanReaders>(trip?.planReaders ?? "map");
+  const [intro, setIntro] = useState(trip?.intro ?? "");
+  const [accent, setAccent] = useState<string | null>(trip?.accent ?? null);
+  const [costs, setCosts] = useState<"public" | "guests">(trip?.costsPublic ? "public" : "guests");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -201,6 +205,9 @@ export default function TripEditFlow({
   if (!trip) return <TripPicker base={`${journalPath(username)}/studio/trip`} trips={trips} />;
 
   const detailsDirty = title.trim() !== trip.title || tagline.trim() !== trip.tagline || start !== trip.start || end !== trip.end;
+  const introDirty = intro.trim() !== trip.intro;
+  const accentDirty = accent !== trip.accent;
+  const costsDirty = trip.costsAvailable && costs !== (trip.costsPublic ? "public" : "guests");
   const readersDirty = trip.hasPlan && readers !== trip.planReaders;
 
   async function save() {
@@ -214,7 +221,19 @@ export default function TripEditFlow({
       fetch(url, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
     // v2 carries a trip's dates as one object (`dates: {from, to}`).
     const sent: (Response | null)[] = [];
-    if (detailsDirty) sent.push(await patch(base, { title, tagline, dates: { from: start, to: end } }));
+    if (detailsDirty || introDirty || accentDirty || costsDirty) {
+      sent.push(
+        await patch(base, {
+          title,
+          tagline,
+          dates: { from: start, to: end },
+          // null removes the field; costs goes back whole, see TripEditPanel.
+          ...(introDirty ? { intro: intro.trim() || null } : {}),
+          ...(accentDirty ? { accent } : {}),
+          ...(costsDirty ? { costs: { ...trip.costsSection, visibility: costs } } : {}),
+        }),
+      );
+    }
     if (readersDirty && sent.every((r) => r?.ok)) sent.push(await patch(`${base}/plan-readers`, { readers }));
     setBusy(false);
     const failed = sent.find((r) => !r?.ok);
@@ -252,6 +271,40 @@ export default function TripEditFlow({
           <span className="text-sm font-semibold text-ink-strong">{t("me.tripTagline")}</span>
           <input type="text" value={tagline} maxLength={300} onChange={(e) => setTagline(e.target.value)} className={INPUT} />
         </label>
+        <label className="mt-3 block">
+          <span className="text-sm font-semibold text-ink-strong">{t("studio.newTrip.gather2.introLabel")}</span>
+          <textarea value={intro} rows={4} onChange={(e) => setIntro(e.target.value)} className={`${INPUT} min-h-22 resize-y`} />
+        </label>
+        <p className="mt-1.5 text-sm text-ink-secondary">
+          {t("studio.tripEdit.intro.hint")}
+          {trip.hasTranslations && ` ${t("studio.tripEdit.intro.translated")}`}
+        </p>
+        <p className="mt-3 text-sm font-semibold text-ink-strong">{t("studio.newTrip.gather2.accentLabel")}</p>
+        <div role="group" aria-label={t("studio.newTrip.gather2.accentLabel")} className="mt-2 flex flex-wrap items-center gap-2">
+          {trip.accents.map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => setAccent(a)}
+              aria-pressed={accent === a}
+              aria-label={a}
+              className={`h-10 w-10 rounded-full border-2 ${ACCENT_SWATCH[a] ?? "bg-surface-subtle"} ${
+                accent === a ? "border-ink-strong" : "border-transparent"
+              }`}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => setAccent(null)}
+            aria-pressed={accent === null}
+            className={`min-h-10 rounded-full border px-3 text-sm font-semibold ${
+              accent === null ? "border-ink-strong text-ink-strong" : "border-line-strong text-ink-secondary"
+            }`}
+          >
+            {t("studio.tripEdit.accent.none")}
+          </button>
+        </div>
+        <p className="mt-1.5 text-sm text-ink-secondary">{t("studio.tripEdit.accent.hint")}</p>
       </section>
 
       <section className="mt-6 border-t border-line-quiet pt-6">
@@ -292,6 +345,27 @@ export default function TripEditFlow({
             {t("studio.tripEdit.readers.change")}
           </Link>
         </div>
+        {trip.costsAvailable && (
+          <div id="section-costs" className="mt-4 border-l-2 border-line-quiet pl-3.5">
+            <p className="text-sm font-semibold text-ink-strong">{t("studio.tripEdit.costs.label")}</p>
+            <div role="radiogroup" aria-label={t("studio.tripEdit.costs.label")} className="mt-2 flex flex-wrap gap-2">
+              {(["public", "guests"] as const).map((v) => (
+                <label
+                  key={v}
+                  className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold text-ink-strong ${
+                    costs === v ? "border-2 border-ink-strong bg-surface-subtle" : "border-line-strong bg-surface-raised"
+                  }`}
+                >
+                  <input type="radio" name="costs-visibility" checked={costs === v} onChange={() => setCosts(v)} className="h-4 w-4" />
+                  {t(`studio.tripEdit.costs.${v}` as TranslationKey)}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1.5 text-sm text-ink-secondary">
+              {t(`studio.tripEdit.costs.hint.${trip.visibility}` as TranslationKey)}
+            </p>
+          </div>
+        )}
       </section>
 
       {trip.hasPlan && (
@@ -309,7 +383,7 @@ export default function TripEditFlow({
 
       <div className="mt-6">
         <StepPrimary
-          disabled={!(detailsDirty || readersDirty) || title.trim() === ""}
+          disabled={!(detailsDirty || introDirty || accentDirty || costsDirty || readersDirty) || title.trim() === ""}
           busy={busy}
           done={done}
           shake={problem}
