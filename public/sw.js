@@ -641,7 +641,12 @@ async function unkeepTrip(client, user, trip) {
  * - **Gone with the membership.** Leaving or being removed
  *   (`fernscout-group-forget`) and a page the server refuses (401, 403, 404,
  *   410) delete it. Signing a Fernscout identity out does not: it was never
- *   that identity's.
+ *   that identity's. A 5xx, a redirect or a non-HTML answer leaves it as it is.
+ * - **Known limit, prototype only:** the copy is per trip, and any online
+ *   navigation to `/g/<trip>` refreshes it, whoever is in the browser now. That
+ *   is safe only while the `/g/<trip>` HTML carries no identity (the prototype's
+ *   page is a shell; who you are lives in the browser). A real build that
+ *   server-renders member data must key the refresh by member first.
  * - Everything else keeps `private, no-store`: the shared runtime cache is
  *   untouched, and `isStudioKeepPath` is not widened by this.
  */
@@ -658,10 +663,15 @@ async function memberCacheOf(gid) {
 }
 
 async function storeMemberPage(cache, gid, response) {
-  if (!isDocument(response)) return;
+  // A redirect (to a sign-in, to another trip) is not this trip's page: never kept under its address.
+  if (!isDocument(response) || response.redirected) return;
   await cache.put(groupPageKey(gid), response.clone());
-  for (const a of assetsOf(await response.text())) {
-    const key = new URL(a, self.location.origin).href;
+  const wanted = new Set(assetsOf(await response.text()).map((a) => new URL(a, self.location.origin).href));
+  // The build's files of an older page go, so a kept copy does not grow with every deploy.
+  for (const key of await cache.keys()) {
+    if (new URL(key.url).pathname.startsWith("/_next/static/") && !wanted.has(key.url)) await cache.delete(key);
+  }
+  for (const key of wanted) {
     if (await cache.match(key)) continue;
     try {
       const res = await fetch(key);

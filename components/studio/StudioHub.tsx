@@ -192,10 +192,14 @@ export default function StudioHub({
   // Hooks run unconditionally, before the empty-state's own early return —
   // `buildHubGroups` only accepts the "full" model, so the empty branch is
   // handed an empty array it never renders.
-  const allGroups = useMemo(
-    () => (model.kind === "full" ? buildHubGroups(model, username, t, tn, locale) : []),
-    [model, username, t, tn, locale],
-  );
+  const allGroups = useMemo(() => {
+    if (model.kind !== "full") return [];
+    const built = buildHubGroups(model, username, t, tn, locale);
+    // B-2837 — the group trips row is findable in the search too, under Trips & people.
+    return groupTripsRow
+      ? built.map((g) => (g.group === "tripsPeople" ? { ...g, rows: [...g.rows, { ...groupTripsRow, Icon: Users }] } : g))
+      : built;
+  }, [model, username, t, tn, locale, groupTripsRow]);
   const groups = useMemo(() => filterHubGroups(allGroups, query), [allGroups, query]);
 
   // B2600 — the four "Everything else" cards, closed by default on phone

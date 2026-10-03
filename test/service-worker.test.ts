@@ -73,6 +73,7 @@ function fakeCaches(entries: Cached[]) {
       },
       keys: async () => [...store!.keys()].map((url) => ({ url })),
       match: async (k: { url: string } | string) => store!.get(key(k))?.clone(),
+      delete: async (k: { url: string } | string) => store!.delete(key(k)),
     };
   };
 
@@ -1193,6 +1194,63 @@ describe("a group trip's page kept for a member without an account — B-2837", 
     await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
     await tell(handlers, { type: "fernscout-signed-out" });
     expect(caches.named.has(`member-${A}-m_lea`)).toBe(true);
+  });
+
+  test("a redirected answer is never kept, on the first visit or on a refresh", async () => {
+    // A real Response keeps `redirected` through clone(); the test's own copies must too.
+    const markRedirected = (res: Response): Response => {
+      const clone = res.clone.bind(res);
+      Object.defineProperty(res, "redirected", { value: true });
+      Object.defineProperty(res, "clone", { value: () => markRedirected(clone()) });
+      return res;
+    };
+    const redirected = async (request: { url: string } | string) => {
+      const res = await online()(request);
+      return (res.headers.get("content-type") ?? "").includes("html") ? markRedirected(res) : res;
+    };
+    const first = loadWorkerWithCaches(redirected);
+    await tell(first.handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    expect([...(first.caches.named.get(`member-${A}-m_lea`)?.keys() ?? [])]).not.toContain(PAGE_A);
+
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    // Online again, the trip page now answers with a redirect to a sign-in page.
+    const later = loadWorkerWithCaches(async () => {
+      return markRedirected(page("<html>sign in</html>"));
+    });
+    for (const [name, store] of caches.named) later.caches.named.set(name, store);
+    await visit(later.handlers, PAGE_A);
+    expect(await (await caches.named.get(`member-${A}-m_lea`)!.get(PAGE_A)!.clone()).text()).toContain(PAGE_A);
+  });
+
+  test("a refresh after a deploy drops the old build's files and keeps the new ones", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    const NEW = "https://journal.test/_next/static/chunks/app-5678.js";
+    const deployed = loadWorkerWithCaches(async (request: { url: string } | string) => {
+      const url = typeof request === "string" ? request : request.url;
+      if (url === NEW) return new Response("new chunk", { headers: { "content-type": "application/javascript" } });
+      return page(`<html><script src="/_next/static/chunks/app-5678.js"></script>${url}</html>`);
+    });
+    for (const [name, store] of caches.named) deployed.caches.named.set(name, store);
+    await visit(deployed.handlers, PAGE_A);
+    expect([...caches.named.get(`member-${A}-m_lea`)!.keys()].sort()).toEqual([NEW, PAGE_A].sort());
+  });
+
+  test("a 5xx or a non-HTML answer online leaves the kept copy as it was", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(online());
+    await tell(handlers, { type: "fernscout-group-member", gid: A, member: "m_lea" });
+    const before = [...caches.named.get(`member-${A}-m_lea`)!.keys()].sort();
+    for (const answer of [
+      () => new Response("down", { status: 502, headers: { "content-type": "text/html" } }),
+      () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } }),
+    ]) {
+      const w = loadWorkerWithCaches(async () => answer());
+      for (const [name, store] of caches.named) w.caches.named.set(name, store);
+      await visit(w.handlers, PAGE_A);
+      expect([...caches.named.get(`member-${A}-m_lea`)!.keys()].sort()).toEqual(before);
+      expect(await caches.named.get(`member-${A}-m_lea`)!.get(PAGE_A)!.clone().text()).toContain(PAGE_A);
+    }
   });
 
   test("the studio's own allowlist is unchanged by it", async () => {
