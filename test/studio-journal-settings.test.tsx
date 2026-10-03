@@ -214,3 +214,24 @@ describe("the owner's names — B2816", () => {
     expect(saveButtons()[0].disabled).toBe(true);
   });
 });
+
+describe("remove the owner's number — B2833", () => {
+  const removeButton = () =>
+    Array.from(container!.querySelectorAll("button")).find((b) => b.textContent === "Remove this number");
+
+  test("no button without a number", async () => {
+    await mount();
+    expect(removeButton()).toBeUndefined();
+  });
+
+  test("a number offers the button, asks first, then deletes through the owner door", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await mount([], { ...journal, ownerTel: "41760000033" });
+    await act(async () => removeButton()!.click());
+    expect(fetchMock).not.toHaveBeenCalled();
+    const confirm = Array.from(container!.querySelectorAll("button")).find((b) => b.textContent === "Remove the number")!;
+    await act(async () => confirm.click());
+    expect(fetchMock).toHaveBeenCalledWith("/api/web/alex/owner-tel", { method: "DELETE" });
+  });
+});

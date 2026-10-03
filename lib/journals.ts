@@ -908,6 +908,21 @@ export function setJournalFeatures(
   return { ok: true, username, features: journalFeatures(now), changed };
 }
 
+/**
+ * Drop the proven-number fields from `owner` — B2833. The config half of
+ * `clearOwnerTel` (lib/ownerTel.ts), which is the only caller: without it
+ * `reconcile()` rebuilds the registry lock from `owner.telProvenAt` and the
+ * number is locked to this journal again.
+ */
+export function clearOwnerTelFromConfig(username: string) {
+  return editUserConfigFile(username, (raw) => {
+    const owner = (raw.owner ?? {}) as Record<string, unknown>;
+    if (!("tel" in owner || "telProvenAt" in owner || "telProvenMethod" in owner)) return null;
+    const { tel: _t, telProvenAt: _a, telProvenMethod: _m, ...rest } = owner;
+    return { ...raw, owner: rest };
+  });
+}
+
 export type SetOwnerTipsResult =
   | { ok: true }
   | { ok: false; error: string; message: string };
