@@ -289,6 +289,20 @@ describe("removal language never reaches the model — B817", () => {
 /* --------------------------------------------------------- the thread --- */
 
 describe("the conversation", () => {
+  test("a date inside exactly one trip rides on the message as a fact line — B1760", async () => {
+    create.mockResolvedValueOnce(says("Gut."));
+    await ask("3.5 eger burg sehr heiss");
+    const last = (sent[0].messages as { content: string }[]).at(-1)!.content;
+    expect(last).toContain("2026-05-03");
+    expect(last).toContain("(reise)");
+  });
+
+  test("a date outside every trip adds nothing — B1760", async () => {
+    create.mockResolvedValueOnce(says("Gut."));
+    await ask("3.8 eger burg sehr heiss");
+    expect((sent[0].messages as { content: string }[]).at(-1)!.content).toBe("3.8 eger burg sehr heiss");
+  });
+
   test("survives a second turn without the person repeating the first", async () => {
     create
       .mockResolvedValueOnce(says("Die Reise heisst Die Reise."))

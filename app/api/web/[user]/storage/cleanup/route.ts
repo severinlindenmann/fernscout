@@ -34,10 +34,6 @@ async function guard(request: Request, user: string): Promise<Response | null> {
   return null;
 }
 
-function includesStaged(request: Request): boolean {
-  return new URL(request.url).searchParams.get("staged") === "1";
-}
-
 export async function GET(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/storage/cleanup">,
@@ -46,7 +42,7 @@ export async function GET(
   const refused = await guard(request, user);
   if (refused) return refused;
 
-  const plan = await cleanupPlan(user, includesStaged(request));
+  const plan = await cleanupPlan(user);
   return Response.json({ ...plan, human: formatBytes(plan.bytes) });
 }
 
@@ -66,7 +62,7 @@ export async function POST(
     );
   }
 
-  const result = await runCleanup(user, includesStaged(request));
+  const result = await runCleanup(user);
   return Response.json({
     ...result,
     human: formatBytes(result.bytes),

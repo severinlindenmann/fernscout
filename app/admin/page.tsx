@@ -8,6 +8,7 @@ import AdminPlanGrant from "@paid/billing/routes/admin/AdminPlanGrant";
 import Journals from "./Journals";
 import MessageOwner from "./MessageOwner";
 import MessagesPanel from "./messages/MessagesPanel";
+import ProvidersOrders from "./ProvidersOrders";
 import ReleaseName from "./ReleaseName";
 import Shell, { type Section } from "./Shell";
 import SmsThreads from "./SmsThreads";
@@ -60,6 +61,7 @@ import type { Tombstone } from "@/lib/tombstones";
 import { sessionStats, type SessionStats } from "@/lib/helper/sessions";
 import { formatBytes } from "@/lib/storageQuota";
 import { loadServerConfig } from "@/lib/config";
+import { providerAttention, readProviders } from "@/lib/providers/read";
 import { OPERATION_LABEL } from "@/lib/operations";
 import type { JournalRow as StatusRow } from "@/lib/statusReport";
 
@@ -165,6 +167,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     invites,
     appWaitlist,
     inviteRequests,
+    providersReport,
   ] = await Promise.all([
     dashboard(from),
     dailyCosts(ago(chartDays), chartDays),
@@ -182,6 +185,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     listInvites(),
     listAppWaitlist(),
     listInviteRequests(),
+    readProviders(),
   ]);
 
   const costs = loadServerConfig().costs;
@@ -221,6 +225,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     troubles: troubleRows,
     journals: report.journals,
     ceiling,
+    extra: providerAttention(providersReport, new Set(troubleRows.map((one) => one.ref))),
   });
 
   // What the operator has already answered — B1203. The sweep runs against the
@@ -233,6 +238,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   // The Instance badge counts what is wrong with the instance — the faults and
   // the backups still standing, not the whole band.
   const alerts = needs.filter((one) => one.kind === "fault" || one.kind === "backup").length;
+  const providerAlerts = needs.filter((one) => one.kind === "provider" || one.kind === "order").length;
 
   const feed = activityFeed(
     {
@@ -503,6 +509,15 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       ),
     },
     {
+      id: "providers",
+      label: "Providers",
+      icon: "providers",
+      lede: "What each provider holds for this instance right now, and every print order across journals.",
+      badge: providerAlerts,
+      badgeTone: "alert",
+      panel: <ProvidersOrders initial={providersReport} nowIso={new Date().toISOString()} />,
+    },
+    {
       id: "activity",
       label: "Activity",
       icon: "activity",
@@ -535,6 +550,8 @@ const KIND_LABEL: Record<Attend["kind"], string> = {
   fault: "Fault",
   backup: "Backup",
   disk: "Disk",
+  provider: "Provider",
+  order: "Order",
 };
 
 /** Where an entry's fix lives on this page. */
@@ -543,6 +560,7 @@ function whereFixed(item: Attend): { href: string; label: string } {
     const name = item.id.slice("disk:".length);
     return { href: `#journals/${encodeURIComponent(name)}`, label: "Open journal" };
   }
+  if (item.kind === "provider" || item.kind === "order") return { href: "#providers", label: "See providers" };
   return { href: "#instance", label: item.kind === "backup" ? "See backups" : "See instance" };
 }
 

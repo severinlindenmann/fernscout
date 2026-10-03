@@ -25,6 +25,8 @@ import { countryCodeFor } from "../flags";
 import type { TranslationKey } from "../i18n";
 import { translateIn } from "../locales";
 import { getUser } from "../users";
+import { checkTranslations } from "./v2/write";
+import type { ProblemRow } from "./v2/incomplete";
 import { reverseGeocode } from "../ingest/geo";
 // One slugify for the whole codebase (B77). This module used to carry its
 // own, which stripped a German umlaut down to its bare vowel and disagreed
@@ -70,6 +72,10 @@ export type CostInput = {
   currency?: string;
   category?: string;
 };
+
+/** The four facts a position normally answers through the address lookup (B1661). */
+const GEO_FIELDS = ["location", "country", "countryCode", "timezone"] as const;
+type GeoField = (typeof GEO_FIELDS)[number];
 
 export type DraftInput = {
   /**
@@ -122,6 +128,14 @@ export type DraftInput = {
    * what somebody said.
    */
   translations?: Record<string, { title: string; content: string }>;
+  /**
+   * B1661 — a caller that asked and was told there is no answer for one of
+   * these says so here: the four facts the address lookup normally fills, and
+   * `translations`. `no` is "nothing to record", `unknown` is "nobody has it".
+   * Written to the day's `declined` map; a real value on the field itself
+   * always wins and is never declined.
+   */
+  declinedExtra?: Partial<Record<GeoField | "translations", "no" | typeof UNKNOWN>>;
   /**
    * This whole update, held back from readers the trip otherwise lets in —
    * B632. The same two words `photoVisibility` takes, meaning the same two
@@ -610,7 +624,82 @@ function buildDeclined(input: Partial<DraftInput>): DayFile["declined"] {
     if (answer === false) declined[DECLINE_KEY[track]] = declineText(track, "no");
     else if (answer === UNKNOWN) declined[DECLINE_KEY[track]] = declineText(track, "unknown");
   }
+  // B1661 — a declined position cascades: the four lookup facts have nothing
+  // to come from, so each still unanswered is declined with that reason. A
+  // caller's own decline for one of them wins over the cascade.
+  const positionDeclined = answerFor(input, "coordinates") === false || answerFor(input, "coordinates") === UNKNOWN;
+  for (const field of [...GEO_FIELDS, "translations"] as const) {
+    const said = input.declinedExtra?.[field];
+    if (said) {
+      declined[field] =
+        said === "no" ? `Nothing to record: this day's ${field}.` : `Not recorded: this day's ${field} is unknown.`;
+    } else if (positionDeclined && field !== "translations" && !input[field]) {
+      declined[field] = `No position was recorded for this day, so its ${field} is not known.`;
+    }
+  }
   return Object.keys(declined).length ? (declined as DayFile["declined"]) : undefined;
+}
+
+/**
+ * B1661 — the place and translations a helper caller supplied, read off a
+ * request body: a real value, or "none"/"unknown" for a decline. A tool's
+ * arguments are strings only, so `translations` may arrive as JSON text.
+ */
+export function geoAnswersIn(body: Record<string, unknown>): Partial<DraftInput> {
+  const out: Partial<DraftInput> = {};
+  const declinedExtra: NonNullable<DraftInput["declinedExtra"]> = {};
+  const said = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  for (const f of GEO_FIELDS) {
+    const v = said(body[f]);
+    if (v === "none") declinedExtra[f] = "no";
+    else if (v === UNKNOWN) declinedExtra[f] = UNKNOWN;
+    else if (v) out[f] = v;
+  }
+  let t = body.translations;
+  if (typeof t === "string") {
+    const v = t.trim();
+    if (v === "none") declinedExtra.translations = "no";
+    else if (v === UNKNOWN) declinedExtra.translations = UNKNOWN;
+    try {
+      t = JSON.parse(v);
+    } catch {
+      t = undefined;
+    }
+  }
+  if (t && typeof t === "object" && !Array.isArray(t)) out.translations = t as DraftInput["translations"];
+  if (Object.keys(declinedExtra).length) out.declinedExtra = declinedExtra;
+  return out;
+}
+
+/**
+ * B1661 — what a helper day write still owes beyond `missingFrom`: the four
+ * lookup facts when a position exists but the lookup (off, or found nothing)
+ * left them empty, and `translations` when the journal declares more than one
+ * language. A declined position cascades in `buildDayFile` and owes nothing
+ * here. `invalid` is `checkTranslations`' own refusal, passed through.
+ */
+export function dayGaps(
+  user: string,
+  input: Partial<DraftInput>,
+): { missing: string[]; invalid?: ProblemRow[] } {
+  const missing: string[] = [];
+  if (typeof input.lat === "number" && typeof input.lng === "number") {
+    const answered: Record<GeoField, unknown> = {
+      location: input.location,
+      country: input.country,
+      countryCode: input.countryCode || (input.country && countryCodeFor(input.country)),
+      timezone: input.timezone || timezoneForCoordinates(input.lat, input.lng),
+    };
+    missing.push(...GEO_FIELDS.filter((f) => !answered[f] && !input.declinedExtra?.[f]));
+  }
+  const journal = getUser(user);
+  const locales = journal?.locales ?? [];
+  if (locales.length > 1 && !input.declinedExtra?.translations) {
+    const check = checkTranslations(input.translations, locales, journal?.defaultLocale ?? "en");
+    if (check?.kind === "invalid") return { missing, invalid: check.problems };
+    if (!input.translations || check?.kind === "incomplete") missing.push("translations");
+  }
+  return { missing };
 }
 
 /** A fresh `DayFile` from a validated `DraftInput` — the create half of the

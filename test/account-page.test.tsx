@@ -103,7 +103,7 @@ describe("the storage card", () => {
       { key: "trip:bus-2026", label: "The bus year", human: "3.0 GB", share: 60 },
       { key: "photobooks", label: "Photobooks", human: "1.0 GB", share: 20 },
     ],
-    reclaimable: { human: "1.0 GB", files: 6, hasStagedFiles: false },
+    reclaimable: { human: "1.0 GB", files: 6 },
   };
 
   test("names every row and its size, not only the colours", () => {
@@ -123,11 +123,21 @@ describe("the storage card", () => {
 
   test("with nothing to reclaim, says nothing rather than explaining itself", () => {
     const html = render({
-      storage: { ...storage, reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false } },
+      storage: { ...storage, reclaimable: { human: "0 KB", files: 0 } },
     });
     expect(html).not.toContain("Free up");
     expect(html).not.toContain("nothing to clean up");
     expect(html).toContain("4.2 GB of 5.0 GB used");
+  });
+
+  // B1392 — the row shows with nothing else reclaimable, and is absent at zero.
+  test("offers to delete staged files whenever any are staged", () => {
+    const staged = { human: "3 MB", files: [{ id: "a", name: "IMG_1.jpeg", human: "2 MB", day: null }] };
+    const html = render({ storage: { ...storage, reclaimable: { human: "0 KB", files: 0 }, staged } });
+    expect(html).toContain("1 file waiting, 3 MB");
+    expect(html).toContain("Delete them…");
+    expect(html).not.toContain("Free up");
+    expect(render({ storage })).not.toContain("waiting,");
   });
 
   test("warns past ninety per cent, and not below it", () => {
@@ -242,7 +252,7 @@ describe("the plan panel", () => {
         percent: 41,
         excess: null,
         rows: [],
-        reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false },
+        reclaimable: { human: "0 KB", files: 0 },
       },
     });
     expect(html.indexOf("Your plan")).toBeLessThan(html.indexOf("Storage"));
@@ -260,7 +270,7 @@ describe("the plan panel", () => {
         percent: 41,
         excess: null,
         rows: [],
-        reclaimable: { human: "0 KB", files: 0, hasStagedFiles: false },
+        reclaimable: { human: "0 KB", files: 0 },
       },
     });
     expect(html).toContain("34 of 100");
