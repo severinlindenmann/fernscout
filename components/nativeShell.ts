@@ -409,6 +409,9 @@ type LocationRecorderPlugin = {
    *  holding the phone can read the Lock Screen). */
   getLockScreenTripName(): Promise<{ on: boolean }>;
   setLockScreenTripName(options: { on: boolean }): Promise<void>;
+  /** B2766 — the Live Activity's two switches. */
+  getActivityPrefs(): Promise<ActivityPrefs>;
+  setActivityPrefs(options: Partial<ActivityPrefs>): Promise<void>;
 };
 const LocationRecorder = registerPlugin<LocationRecorderPlugin>("LocationRecorder");
 
@@ -477,6 +480,19 @@ export function getLockScreenTripName(): Promise<boolean> {
 
 export function setLockScreenTripName(on: boolean): Promise<void> {
   return LocationRecorder.setLockScreenTripName({ on });
+}
+
+/** B2766 — iOS shows a running Live Activity on the Lock Screen and in the
+ *  Dynamic Island together: `lockScreen` off means no activity at all,
+ *  `island` off means its Island regions stay empty. Defaults on / off. */
+export type ActivityPrefs = { lockScreen: boolean; island: boolean };
+
+export function getActivityPrefs(): Promise<ActivityPrefs> {
+  return LocationRecorder.getActivityPrefs();
+}
+
+export function setActivityPrefs(prefs: Partial<ActivityPrefs>): Promise<void> {
+  return LocationRecorder.setActivityPrefs(prefs);
 }
 
 /** Fewer than this many days left on the `write:gps` token and it is worth

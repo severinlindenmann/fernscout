@@ -258,7 +258,7 @@ describe("the plan panel", () => {
     expect(html.indexOf("Your plan")).toBeLessThan(html.indexOf("Storage"));
     expect(html).toContain("Plus");
     expect(html).toContain("Active");
-    expect(html).toContain("Renews 2027-09-30");
+    expect(html).toContain("Renews Thursday, 30 September 2027");
   });
 
   test("meters AI days, storage, postcards and the photobook discount", () => {
@@ -282,7 +282,7 @@ describe("the plan panel", () => {
   test("a live Stripe subscription gets a cancel link and what it means", () => {
     const html = render({ plan: plusRenewing });
     expect(html).toContain("Cancel Plus");
-    expect(html).toContain("runs until 2027-09-30");
+    expect(html).toContain("runs until Thursday, 30 September 2027");
     expect(html).toContain("Payment method and receipts");
   });
 
@@ -304,8 +304,8 @@ describe("the plan panel", () => {
     const html = render({ plan: pass });
     expect(html).not.toContain("Cancel");
     expect(html).toContain("Ending");
-    expect(html).toContain("Ends 2026-11-01");
-    expect(html).toContain("ends on 2026-11-01");
+    expect(html).toContain("Ends Sunday, 1 November");
+    expect(html).toContain("ends on Sunday, 1 November");
     expect(html).not.toContain("off each"); // no photobook discount on the pass
   });
 

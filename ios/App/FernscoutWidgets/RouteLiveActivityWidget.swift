@@ -119,40 +119,49 @@ struct RouteLiveActivityWidget: Widget {
             // `RouteColor.yellow` for the needs-attention accent and the
             // system's own default (light) text otherwise, never the Lock
             // Screen card's dark `ink`, which would be close to invisible here.
+            // B2766 — the owner's Island switch; off (the default) leaves
+            // every region empty, so only the system's own pill remains.
+            let island = state.showsIsland == true
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    mark(36)
+                    if island { mark(36) }
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(String(format: String(localized: "routeActivity.compactDay", bundle: .main), state.dayNumber))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if island {
+                        Text(String(format: String(localized: "routeActivity.compactDay", bundle: .main), state.dayNumber))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(headline(state))
-                            .font(.subheadline.weight(.semibold))
-                        if state.state == "ended" {
-                            Text("routeActivity.ended", bundle: .main).font(.caption)
-                        } else if needsAttention(state.state) {
-                            Text(needsYouBody(state.state)).font(.caption)
-                        } else {
-                            if let lastSentAt = state.lastSentAt {
-                                Text(String(format: String(localized: "routeActivity.lastSent", bundle: .main), lastSentAt.formatted(date: .omitted, time: .shortened))).font(.caption)
-                            }
-                            if let recordsUntil = state.recordsUntil {
-                                Text(String(format: String(localized: "routeActivity.recordsUntil", bundle: .main), recordsUntil.formatted(date: .abbreviated, time: .omitted))).font(.caption2)
+                    if island {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(headline(state))
+                                .font(.subheadline.weight(.semibold))
+                            if state.state == "ended" {
+                                Text("routeActivity.ended", bundle: .main).font(.caption)
+                            } else if needsAttention(state.state) {
+                                Text(needsYouBody(state.state)).font(.caption)
+                            } else {
+                                if let lastSentAt = state.lastSentAt {
+                                    Text(String(format: String(localized: "routeActivity.lastSent", bundle: .main), lastSentAt.formatted(date: .omitted, time: .shortened))).font(.caption)
+                                }
+                                if let recordsUntil = state.recordsUntil {
+                                    Text(String(format: String(localized: "routeActivity.recordsUntil", bundle: .main), recordsUntil.formatted(date: .abbreviated, time: .omitted))).font(.caption2)
+                                }
                             }
                         }
                     }
                 }
             } compactLeading: {
-                mark(22)
+                if island { mark(22) }
             } compactTrailing: {
-                Text(String(format: String(localized: "routeActivity.compactDay", bundle: .main), state.dayNumber))
-                    .font(.caption2)
+                if island {
+                    Text(String(format: String(localized: "routeActivity.compactDay", bundle: .main), state.dayNumber))
+                        .font(.caption2)
+                }
             } minimal: {
-                mark(22)
+                if island { mark(22) }
             }
             .widgetURL(routeURL(context.attributes))
         }
