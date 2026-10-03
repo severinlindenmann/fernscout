@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { isEnabled } from "@/lib/capabilities";
 import { deriveTripTrack, discardImportedHistory, importGps, isRefusal } from "@/lib/gps/api";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { isJournalOwnerCookie } from "@/lib/contacts/session";
 import { findInboxFile } from "@/lib/inbox";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { withStorageQuota } from "@/lib/storageQuota";
@@ -52,7 +53,9 @@ type Body = {
 
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/import">) {
   const { user } = await params;
-  if (!(await isHelperOwner(user))) {
+  // B2346: the journal's own owner only — isHelperOwner admits the operator's
+  // admin cookie (B480), who must not import or discard a person's location.
+  if (!(await isHelperOwner(user)) || !(await isJournalOwnerCookie(user))) {
     return notYourJournal(request, user);
   }
 

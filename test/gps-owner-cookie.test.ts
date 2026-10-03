@@ -93,6 +93,33 @@ describe("web zones door", () => {
     as("owner");
     expect((await GET(new Request(url), ctx)).status).toBe(200);
   });
+
+  test("the operator's cookie cannot import or discard a journal's GPS history (B2346)", async () => {
+    const { POST } = await import("@/app/api/helper/[user]/import/route");
+    const { storeInboxFile } = await import("@/lib/inbox");
+    const { gpsMonthsHeld } = await import("@/lib/gps/api");
+    const start = Date.parse("2026-06-22T09:00:00Z") / 1000;
+    const jsonl = Array.from({ length: 40 }, (_, i) =>
+      JSON.stringify([start + i * 60, Number((37.1 + i * 0.004).toFixed(5)), -8.5]),
+    ).join("\n");
+    const { entry } = storeInboxFile(OWNER, "files", "walk.jsonl", Buffer.from(jsonl), {});
+    const call = (body: object) =>
+      POST(
+        new Request(`https://example.test/api/helper/${OWNER}/import`, { method: "POST", body: JSON.stringify(body) }),
+        { params: Promise.resolve({ user: OWNER }) } as never,
+      );
+    as("admin");
+    for (const body of [{ inbox: entry.id }, { inbox: entry.id, commit: true, trips: [], discard: true }]) {
+      const res = await call(body);
+      expect(res.status).toBe(404);
+      expect((await res.json()).error).toBe("not_your_journal");
+    }
+    expect(gpsMonthsHeld(OWNER)).toEqual([]);
+    as("owner");
+    const ok = await call({ inbox: entry.id, commit: true, trips: [], discard: true });
+    expect(ok.status).toBe(200);
+    expect((await ok.json()).discarded).toBe(true);
+  });
 });
 
 // A GPS door asks "is this the journal's owner?" with isJournalOwnerCookie,
@@ -103,7 +130,7 @@ test("no gps door calls plain isOwner", () => {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const f = path.join(d, e.name);
       if (e.isDirectory()) walk(f);
-      else if (/\/gps(\/|-token\/)/.test(f) && /\bisOwner\(/.test(fs.readFileSync(f, "utf8"))) bad.push(f);
+      else if (/\/(gps(\/|-token\/)|helper\/\[user\]\/import\/)/.test(f) && /\bisOwner\(/.test(fs.readFileSync(f, "utf8"))) bad.push(f);
     }
   };
   walk(path.join(process.cwd(), "app/api"));
