@@ -1,4 +1,4 @@
-import { ContactRound, Library, Milestone, NotebookPen, PackageOpen, Printer, type LucideIcon } from "lucide-react";
+import { ContactRound, Library, Milestone, NotebookPen, Import, Printer, type LucideIcon } from "lucide-react";
 import type { TranslationKey } from "@/lib/i18n";
 
 /**
@@ -16,7 +16,7 @@ export const GROUP_HUE: Record<StudioGroup, { hue: string; labelKey: Translation
   write: { hue: "#d69b0a", labelKey: "studio.hub.group.write", icon: NotebookPen }, // yellow-600
   plan: { hue: "#3fa9c4", labelKey: "studio.hub.group.plan", icon: Milestone }, // sky-500
   people: { hue: "#22c55e", labelKey: "studio.hub.group.people", icon: ContactRound }, // green-500
-  bringIn: { hue: "#5a6a80", labelKey: "studio.hub.group.bringIn", icon: PackageOpen }, // navy-500
+  bringIn: { hue: "#5a6a80", labelKey: "studio.hub.group.bringIn", icon: Import }, // navy-500
   print: { hue: "#713f12", labelKey: "studio.hub.group.print", icon: Printer }, // yellow-900
   journal: { hue: "#aeb7c5", labelKey: "studio.hub.group.journal", icon: Library }, // navy-300
 };
