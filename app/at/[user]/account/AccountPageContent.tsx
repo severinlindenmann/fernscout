@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CreditCard, HardDrive } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { CreditCard, Gift, HardDrive } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -9,6 +9,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import { APPLE_EULA_URL, useNativeShell } from "@/components/nativeShell";
 import { useSite } from "@/components/SiteProvider";
 import type { PlanSummary } from "@/lib/billingSummary";
+import { formatChf } from "@/lib/money";
 import OrderListItem from "@paid/printOrder/components/OrderListItem";
 import type { OrderRow } from "@paid/printOrder/lib/orders";
 
@@ -548,6 +549,7 @@ function PlanOptionTile({
   cadence,
   facts,
   buyLabel,
+  coupon,
 }: {
   username: string;
   plan: "pass" | "plus";
@@ -557,6 +559,10 @@ function PlanOptionTile({
   cadence: string;
   facts: string[];
   buyLabel: string;
+  /** The app-upgrade voucher coupon (B2756) — rendered right under the
+   *  title row, above everything else in the tile, so it reads as part of
+   *  this plan's own offer rather than a separate sentence above the card. */
+  coupon?: ReactNode;
 }) {
   // The shell sells through Apple, so the tile shows only Apple's own
   // localized price (App Store guideline 3.1.1/3.1.2) — never this web
@@ -576,6 +582,7 @@ function PlanOptionTile({
           </span>
         )}
       </p>
+      {coupon && <div className="mt-2">{coupon}</div>}
       {!native && (
         <p className="mt-1 flex items-baseline gap-1.5">
           <span className="font-display text-xl font-semibold text-ink-strong">{price}</span>
@@ -780,6 +787,26 @@ function MeterRow({ label, value, percent }: { label: string; value: string; per
   );
 }
 
+/** A coupon-style callout — gift icon, brand yellow tint, dashed accent
+ *  border — for both the app-upgrade voucher offer and a held voucher
+ *  (B2756; both used to read as a plain sentence). `compact` drops the
+ *  gap down to one line for the held-voucher case inside the meter list. */
+function CouponCallout({ headline, line, compact }: { headline: string; line?: string; compact?: boolean }) {
+  return (
+    <div
+      className={`flex items-start gap-2.5 rounded-xl border-[1.5px] border-dashed border-yellow-600 bg-yellow-50 ${
+        compact ? "px-3 py-2" : "p-3"
+      }`}
+    >
+      <Gift className="mt-0.5 h-4 w-4 shrink-0 text-ink-strong" aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold leading-tight text-ink-strong">{headline}</p>
+        {line && <p className="mt-0.5 text-sm leading-snug text-ink-body">{line}</p>}
+      </div>
+    </div>
+  );
+}
+
 function YourPlanPanel({
   username,
   plan,
@@ -793,7 +820,7 @@ function YourPlanPanel({
   storage?: StoragePanel;
   planOptions: PlanOptionFacts;
 }) {
-  const { t, tn } = useI18n();
+  const { t, tn, formatLongDate } = useI18n();
   const native = useNativeShell();
   const planTag = t(`plans.${plan.plan}` as "plans.free");
   const dateStr = plan.periodEnd ? plan.periodEnd.slice(0, 10) : null;
@@ -821,7 +848,7 @@ function YourPlanPanel({
       </div>
       {dateStr && (
         <p className="mt-1 text-sm text-ink-secondary">
-          {t(plan.renews ? "billing.renews" : "billing.ends", { date: dateStr })}
+          {t(plan.renews ? "billing.renews" : "billing.ends", { date: formatLongDate(dateStr, { year: true }) })}
         </p>
       )}
 
@@ -862,22 +889,21 @@ function YourPlanPanel({
           </div>
         )}
         {plan.vouchers.map((voucher) => (
-          <div key={`${voucher.appliesTo}-${voucher.amountRappen}-${voucher.expiresAt}`} className="flex items-baseline justify-between text-sm">
-            <span className="font-semibold text-ink-strong">{t("billing.voucherLabel")}</span>
-            <span className="text-ink-body">
-              {t(
-                voucher.appliesTo === "photobook"
-                  ? "billing.voucherPhotobook"
-                  : voucher.appliesTo === "postcard"
-                    ? "billing.voucherPostcard"
-                    : "billing.voucherPrint",
-                {
-                  amount: `CHF ${(voucher.amountRappen / 100).toFixed(2)}`,
-                  date: voucher.expiresAt ? voucher.expiresAt.slice(0, 10) : "",
-                },
-              )}
-            </span>
-          </div>
+          <CouponCallout
+            key={`${voucher.appliesTo}-${voucher.amountRappen}-${voucher.expiresAt}`}
+            compact
+            headline={t(
+              voucher.appliesTo === "photobook"
+                ? "billing.voucherPhotobook"
+                : voucher.appliesTo === "postcard"
+                  ? "billing.voucherPostcard"
+                  : "billing.voucherPrint",
+              {
+                amount: formatChf(voucher.amountRappen),
+                date: voucher.expiresAt ? formatLongDate(voucher.expiresAt.slice(0, 10), { year: true }) : "",
+              },
+            )}
+          />
         ))}
       </div>
 
@@ -893,20 +919,6 @@ function YourPlanPanel({
       {plan.plan !== "plus" && (
         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           <div className="flex-1">
-            {/* Apple allows no first-subscriber discount on Plus (3.1.1), so
-                the app offers a photobook voucher instead, only while the
-                pass that would otherwise have earned the web's own CHF 19
-                credit is still live — B2726. Web-only owners keep that
-                credit (`billing.passCounts`, in `PlanOptionTile`'s own
-                `note`) and never see this line. */}
-            {native && plan.passEndsAt && (
-              <p className="mb-2 text-sm font-semibold text-ink-strong">
-                {t("billing.appUpgradeVoucherOffer", {
-                  date: plan.passEndsAt.slice(0, 10),
-                  amount: `CHF ${(planOptions.pass.appUpgradeVoucherRappen / 100).toFixed(2)}`,
-                })}
-              </p>
-            )}
             <PlanOptionTile
               username={username}
               plan="plus"
@@ -922,6 +934,26 @@ function YourPlanPanel({
                 }),
               ]}
               buyLabel={t("billing.buyPlus")}
+              // Apple allows no first-subscriber discount on Plus (3.1.1), so
+              // the app offers a photobook voucher instead, only while the
+              // pass that would otherwise have earned the web's own CHF 19
+              // credit is still live — B2726. Web-only owners keep that
+              // credit (`billing.passCounts`, in `PlanOptionTile`'s own
+              // `note`) and never see this coupon. Moved inside the tile
+              // itself, as a coupon callout, rather than a sentence above it
+              // — B2756.
+              coupon={
+                native && plan.passEndsAt ? (
+                  <CouponCallout
+                    headline={t("billing.appUpgradeVoucherHeadline", {
+                      amount: formatChf(planOptions.pass.appUpgradeVoucherRappen),
+                    })}
+                    line={t("billing.appUpgradeVoucherLine", {
+                      date: formatLongDate(plan.passEndsAt.slice(0, 10), { year: true }),
+                    })}
+                  />
+                ) : undefined
+              }
             />
           </div>
           {plan.plan === "free" && (
@@ -955,7 +987,10 @@ function YourPlanPanel({
 
       {dateStr && (
         <p className="mt-3 text-sm leading-6 text-ink-secondary">
-          {t(plan.renews ? "billing.cancelExplain" : "billing.endsExplain", { plan: planTag, date: dateStr })}
+          {t(plan.renews ? "billing.cancelExplain" : "billing.endsExplain", {
+            plan: planTag,
+            date: formatLongDate(dateStr, { year: true }),
+          })}
         </p>
       )}
 
