@@ -3642,7 +3642,6 @@
   "photobook.pass.notInBook": "Pas dans le livre",
   "photobook.pass.ghostBadge": "Laissée de côté",
   "photobook.pass.ghostNote": "pas imprimée · les pages suivantes remontent",
-  "photobook.pass.thisStop": "Ta page · {page}",
   "photobook.pass.otherStop": "{name} · page {page}",
   "photobook.pass.otherStopEnds": "Fin de {name}",
   "photobook.pass.otherStopBegins": "Début de {name}",
@@ -4869,8 +4868,6 @@
   "billing.voucherPhotobook": "{amount} de réduction sur un livre photo, jusqu'au {date}",
   "billing.voucherPostcard": "{amount} de réduction sur une carte postale, jusqu'au {date}",
   "billing.voucherPrint": "{amount} de réduction sur un tirage, jusqu'au {date}",
-  "billing.appUpgradeVoucherHeadline": "+ bon de {amount} pour un livre photo",
-  "billing.appUpgradeVoucherLine": "Abonnez-vous avant le {date}, quand votre Trip pass se termine.",
   "studio.tripEdit.readers.caption": "Seulement ce voyage. Qui peut entrer dans ton journal, c'est sous",
   "studio.tripEdit.intro.hint": "Le paragraphe en haut de la page du voyage.",
   "studio.tripEdit.intro.translated": "Cela change les mots que tu écris ici. Les versions traduites gardent leur ancien texte jusqu’à ce que tu les changes.",
@@ -4907,5 +4904,9 @@
   "studio.newTrip.route.remind.off": "Les rappels sont désactivés pour Fernscout, donc rien ne demandera.",
   "studio.permissions.keysNotPeople": "Pas pour des personnes — pour laisser quelqu’un lire, va dans",
   "studio.permissions.leavesLede": "Tes mots, ta voix et tes photos — ce qui part chez Anthropic ou Deepgram, et ce qui reste ici.",
-  "studio.people.typeIn.needEmail": "Continuer se débloque dès qu’une personne a un nom et un e-mail."
+  "studio.people.typeIn.needEmail": "Continuer se débloque dès qu’une personne a un nom et un e-mail.",
+  "photobook.pass.ownLine": "p. {pages} · ce jour",
+  "photobook.pass.whyShared": "Pourquoi un autre jour sur cette double page ?",
+  "billing.appUpgradeVoucherHeadline": "+ bon de {amount} pour un livre photo",
+  "billing.appUpgradeVoucherLine": "Abonnez-vous avant le {date}, quand votre Trip pass se termine."
 }

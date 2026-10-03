@@ -3673,7 +3673,6 @@
   "photobook.pass.notInBook": "Not in the book",
   "photobook.pass.ghostBadge": "Left out",
   "photobook.pass.ghostNote": "not printed · the pages after it move up",
-  "photobook.pass.thisStop": "Your page · {page}",
   "photobook.pass.otherStop": "{name} · page {page}",
   "photobook.pass.otherStopEnds": "End of {name}",
   "photobook.pass.otherStopBegins": "Start of {name}",
@@ -4860,8 +4859,6 @@
   "billing.voucherPhotobook": "{amount} off a photobook, until {date}",
   "billing.voucherPostcard": "{amount} off a postcard, until {date}",
   "billing.voucherPrint": "{amount} off a print, until {date}",
-  "billing.appUpgradeVoucherHeadline": "+ {amount} photobook voucher",
-  "billing.appUpgradeVoucherLine": "Subscribe before {date}, when your Trip pass ends.",
   "studio.tripEdit.readers.caption": "Just this trip. Who is let into your journal at all is under",
   "studio.tripEdit.intro.hint": "The paragraph at the top of the trip page.",
   "studio.tripEdit.intro.translated": "This changes the words you write here. Translated versions keep their old text until you change them.",
@@ -4898,5 +4895,9 @@
   "studio.newTrip.route.remind.off": "Reminders are off for Fernscout, so nothing will ask.",
   "studio.permissions.keysNotPeople": "Not for people — to let somebody read, go to",
   "studio.permissions.leavesLede": "Your words, voice and photographs — which go to Anthropic or Deepgram, and which stay here.",
-  "studio.people.typeIn.needEmail": "Continue unlocks once one person has both a name and an email."
+  "studio.people.typeIn.needEmail": "Continue unlocks once one person has both a name and an email.",
+  "photobook.pass.ownLine": "p. {pages} · this day",
+  "photobook.pass.whyShared": "Why is another day on this spread?",
+  "billing.appUpgradeVoucherHeadline": "+ {amount} photobook voucher",
+  "billing.appUpgradeVoucherLine": "Subscribe before {date}, when your Trip pass ends."
 }
