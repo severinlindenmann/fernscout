@@ -4493,7 +4493,7 @@
   "op.spendButton": "Open the operator page",
   "op.spendFooter": "Sent once for the day, by the nightly check. Set costs.alertDailyRappen to 0 to stop these.",
   "op.messageFooter": "From the operator of {site}, about your journal {user}. Reply to this mail to answer.",
-  "code.phoneVerify": "{code} is your {site} code. It expires in 30 minutes.",
+  "code.phoneVerify": "{code} is your {site} code. It expires in 30 minutes.\n\n@{host} #{code}",
   "mail.whyLabel": "Why you got this:",
   "smsStop.title": "Ferma gli SMS",
   "smsStop.question": "Fermare i messaggi SMS sui nuovi giorni da {journal}?",

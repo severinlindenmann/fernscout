@@ -4493,7 +4493,7 @@
   "op.spendButton": "Betreiberseite öffnen",
   "op.spendFooter": "Wird einmal pro Tag von der nächtlichen Prüfung gesendet. Setze costs.alertDailyRappen auf 0, um dies zu stoppen.",
   "op.messageFooter": "Vom Betreiber von {site}, zu deinem Journal {user}. Antworte auf diese Mail, um zu antworten.",
-  "code.phoneVerify": "{code} ist dein Code für {site}. Er läuft in 30 Minuten ab.",
+  "code.phoneVerify": "{code} ist dein Code für {site}. Er läuft in 30 Minuten ab.\n\n@{host} #{code}",
   "mail.whyLabel": "Warum du das bekommst:",
   "smsStop.title": "SMS abbestellen",
   "smsStop.question": "Keine SMS mehr über neue Tage von {journal}?",
