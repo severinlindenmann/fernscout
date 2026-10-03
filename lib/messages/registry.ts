@@ -22,6 +22,11 @@ export const FAMILIES = {
 
 export type Family = keyof typeof FAMILIES;
 
+/** A template's class: its own override, else its family's. */
+export function classOf(def: { family: Family; class?: "required" | "service" | "optional" }) {
+  return def.class ?? FAMILIES[def.family].class;
+}
+
 export const CHANNELS = ["mail", "sms", "wa", "push", "share"] as const;
 export type Channel = (typeof CHANNELS)[number];
 
@@ -33,6 +38,8 @@ export type TemplateDef = {
   /** One line, English, for admin's catalogue — not shown to a recipient. */
   kind: string;
   audience: Audience;
+  /** Overrides the family's class for this one template. */
+  class?: "required" | "service" | "optional";
   /** Only present when the send site lives in the private `paid/` package —
    * the registry test only requires those a call site when `paid/` (or
    * `$WT/paid`) actually exists. */
@@ -79,7 +86,7 @@ export const TEMPLATES = {
   // -- mail: news / nudge (open core) --------------------------------------
   "news.mail": { family: "news", channel: "mail", kind: "day published", audience: "reader" },
   "nudge.evening": { family: "nudge", channel: "mail", kind: "evening reminder to write", audience: "owner" },
-  "nudge.first.mail": { family: "nudge", channel: "mail", kind: "first-trip nudge", audience: "owner" },
+  "nudge.first.mail": { family: "nudge", channel: "mail", kind: "first-trip nudge", audience: "owner", class: "service" },
 
   // -- mail: operator (open core) ------------------------------------------
   "op.spend": { family: "operator", channel: "mail", kind: "nightly spend alert", audience: "operator" },
@@ -108,7 +115,7 @@ export const TEMPLATES = {
 
   // -- push (open core) -------------------------------------------------------
   "news.push": { family: "news", channel: "push", kind: "day published", audience: "reader" },
-  "nudge.first.push": { family: "nudge", channel: "push", kind: "first-trip nudge", audience: "owner" },
+  "nudge.first.push": { family: "nudge", channel: "push", kind: "first-trip nudge", audience: "owner", class: "service" },
 } as const satisfies Record<string, TemplateDef>;
 
 export type TemplateId = keyof typeof TEMPLATES;
@@ -225,7 +232,7 @@ export const FLOWS = [
     label: "First-trip nudge",
     nodes: [
       { id: "created", type: "trigger", label: "A journal is created", to: [{ id: "tips" }] },
-      { id: "tips", type: "check", label: "Tips checked at signup?", to: [{ id: "wait2" }] },
+      { id: "tips", type: "check", label: "Owner has not stopped these reminders?", to: [{ id: "wait2" }] },
       { id: "wait2", type: "wait", label: "Two days go by with no trip", to: [{ id: "pushCheck" }] },
       {
         id: "pushCheck",
@@ -233,12 +240,10 @@ export const FLOWS = [
         label: "Owner's own device subscribed to push?",
         to: [{ id: "push", label: "Yes" }, { id: "wait3", label: "No" }],
       },
-      { id: "push", type: "send", label: "Push the nudge", template: "nudge.first.push", to: [{ id: "wait5" }] },
-      { id: "wait5", type: "wait", label: "Three more days go by with no trip", to: [{ id: "mailAfterPush" }] },
-      { id: "mailAfterPush", type: "send", label: "Mail the nudge too", template: "nudge.first.mail", to: [{ id: "stop" }] },
+      { id: "push", type: "send", label: "Push the nudge", template: "nudge.first.push", to: [{ id: "stop" }] },
       { id: "wait3", type: "wait", label: "One more day goes by with no trip", to: [{ id: "mailOnly" }] },
       { id: "mailOnly", type: "send", label: "Mail the nudge", template: "nudge.first.mail", to: [{ id: "stop" }] },
-      { id: "stop", type: "stop", label: "Sent once, ever, per account", to: [] },
+      { id: "stop", type: "stop", label: "One reminder in total, per account", to: [] },
     ],
   },
   {

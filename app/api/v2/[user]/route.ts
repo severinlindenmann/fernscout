@@ -4,6 +4,7 @@
 // golden contract's own line for every route. DELETE is the one untouchable
 // safety shape: it removes nothing, answers 202, and the second step happens
 // in a mailbox — see lib/deletions.ts.
+import { tipsActive } from "@/lib/config";
 import type { ZodType } from "zod";
 import { journalDoc, journalPatch, journalWrite, JOURNAL_DECLINABLES, ownerEmailPending, type JournalDoc } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
@@ -33,7 +34,7 @@ const DECLINABLE_FIELDS = JOURNAL_DECLINABLES.map((d) => d.field);
  * here because signup accepts it; changed from the studio journal settings,
  * not through this document. */
 function tipsOf(user: string): boolean {
-  return Boolean(getUser(user)?.owner.tips?.optIn);
+  return tipsActive(getUser(user)?.owner.tips);
 }
 
 /** The stored document, as `journalDoc` — never thrown, since this file only

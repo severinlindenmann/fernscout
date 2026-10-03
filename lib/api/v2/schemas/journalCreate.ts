@@ -41,11 +41,10 @@ const base = z.strictObject({
   baseCurrency: z.string().optional(),
   displayCurrencies: z.array(z.string()).optional(),
   units: z.enum(["metric", "imperial"]).optional(),
-  /** The getting-started tips checkbox — B2447 (W44 D5). Unticked (absent
-   * or `false`) by default, on every journal: a pre-ticked box is not valid
-   * consent under the GDPR (CJEU Planet49). `true` opts into the first-trip
-   * nudge (`docs/plans/W44-messages.md`); an owner turns it off again from
-   * the studio journal settings, never here. */
+  /** Deprecated and ignored since B2809. Every new journal gets the one
+   * first-trip service message (no opt-in); the owner stops it from the
+   * message's "Stop these" link or the studio journal settings, never here.
+   * Still accepted so older callers do not break. */
   tips: z.boolean().optional(),
 });
 

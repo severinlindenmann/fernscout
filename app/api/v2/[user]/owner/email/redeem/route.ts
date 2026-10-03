@@ -8,6 +8,7 @@
 // (`revokeSessionsForAddress`, `lib/auth`) and mails the old address that it
 // happened — a change nobody can undo must not be silent to the person it
 // takes the journal from.
+import { tipsActive } from "@/lib/config";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { etagFor, fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -75,7 +76,7 @@ export async function POST(
   }
 
   const now = getUser(user)!;
-  const echo = journalDoc.parse({ ...journalV2Fields(now), username: user, tips: Boolean(now.owner.tips?.optIn) });
+  const echo = journalDoc.parse({ ...journalV2Fields(now), username: user, tips: tipsActive(now.owner.tips) });
   return ok(echo, { etag: etagFor(echo) });
 }
 

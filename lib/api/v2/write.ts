@@ -313,7 +313,7 @@ export const JOURNAL_IMMUTABLE_FIELDS: readonly Immutable[] = [
   {
     path: ["tips"],
     refusal:
-      "tips is read-only here: it is what the owner chose at signup, and only the owner turns it off, " +
+      "tips is read-only here: it says whether the first-trip reminder is still on, and only the owner turns it off, " +
       "in the studio's journal settings.",
     // Server-owned like `username`: not in the write schema, so a byte-
     // identical echo is removed before the strict parse (B2447).

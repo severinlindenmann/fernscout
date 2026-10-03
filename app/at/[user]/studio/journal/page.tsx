@@ -1,3 +1,4 @@
+import { tipsActive } from "@/lib/config";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import JournalPageContent, { type JournalPanel, type ReminderRow } from "./JournalPageContent";
@@ -75,7 +76,7 @@ export default async function StudioJournalPage({ params }: PageProps<"/at/[user
         journal={journalPanel}
         knownCurrencies={knownCurrencies()}
         reminders={reminders}
-        tipsOn={journal.owner.tips?.optIn ?? false}
+        tipsOn={tipsActive(journal.owner.tips)}
       />
     </StudioPage>
   );

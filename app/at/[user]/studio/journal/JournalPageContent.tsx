@@ -106,9 +106,8 @@ export default function JournalPageContent({
    *  table prices. The picker offers these and nothing typed (B2143). */
   knownCurrencies: string[];
   reminders: ReminderRow[];
-  /** The getting-started tips checkbox's current answer — B2447. `false`
-   *  for a journal that never turned it on, exactly like the signup box it
-   *  mirrors. */
+  /** Whether the once-only first-trip reminder is still wanted — B2809.
+   *  `false` = the owner stopped it (or the journal predates it). */
   tipsOn: boolean;
 }) {
   const { t, tn, locale } = useI18n();

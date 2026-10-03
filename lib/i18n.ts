@@ -306,7 +306,6 @@ export type TranslationKey =
   | "agent.statementConsentLabel"
   | "agent.stillHasAQuestion"
   | "agent.theListIsAbove"
-  | "agent.tipsLabel"
   | "agent.tool.addContact"
   | "agent.tool.addContactAccept"
   | "agent.tool.addContactDone"

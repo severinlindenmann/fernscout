@@ -120,10 +120,9 @@ export type NewJournal = {
    * business (`lib/registry.ts:reconcile`). */
   ownerTelProvenAt?: string;
   ownerTelProvenMethod?: "sms" | "operator" | "whatsapp-inbound";
-  /** The getting-started tips checkbox, unticked by default — B2447 (W44
-   * D5). `true` writes `owner.tips: { optIn: true, at: <now> }`; anything
-   * else writes nothing, which is the same "never asked" state a journal
-   * created before this field existed is in. */
+  /** Ignored since B2809 — every new journal gets the first-trip service
+   * message (`owner.tips: { basis: "service", at }`); kept so older callers
+   * still type-check. */
   tips?: boolean;
 };
 
@@ -388,7 +387,7 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       ...(input.ownerTel ? { tel: input.ownerTel } : {}),
       ...(input.ownerTel && input.ownerTelProvenAt ? { telProvenAt: input.ownerTelProvenAt } : {}),
       ...(input.ownerTel && input.ownerTelProvenMethod ? { telProvenMethod: input.ownerTelProvenMethod } : {}),
-      ...(input.tips ? { tips: { optIn: true, at: new Date().toISOString() } } : {}),
+      tips: { basis: "service", at: new Date().toISOString() },
     },
     // Written only when it is `guest`, and never as the old word `private`
     // even when that is what the caller sent — see `normalizeJournalVisibility`.
@@ -922,7 +921,7 @@ export function setOwnerTips(username: string, optIn: boolean): SetOwnerTipsResu
       typeof owner.tips === "object" && owner.tips !== null && !Array.isArray(owner.tips)
         ? { ...(owner.tips as Record<string, unknown>) }
         : {};
-    if (existing.optIn === optIn) return null;
+    if ((existing.optIn !== false) === optIn) return null;
     const tips = { ...existing, optIn, at: typeof existing.at === "string" ? existing.at : new Date().toISOString() };
     return { ...raw, owner: { ...owner, tips } };
   });

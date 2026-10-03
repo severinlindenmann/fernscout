@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FAMILIES, FLOWS, TEMPLATES, templateDef, type Flow, type TemplateId } from "@/lib/messages/registry";
+import { classOf, FLOWS, TEMPLATES, templateDef, type Flow, type TemplateId } from "@/lib/messages/registry";
 import { ChannelBadge, CHANNEL_LABEL } from "./ChannelIcon";
 import MessageSwitch from "./Switch";
 import Preview from "./Preview";
@@ -103,7 +103,7 @@ export default function FlowStory({
   function sendRow(node: FlowNode) {
     const id = node.template as TemplateId;
     const def = templateDef(id);
-    const cls = FAMILIES[TEMPLATES[id].family].class;
+    const cls = classOf(TEMPLATES[id]);
     const isOff = isFlowNodeOff(flow, id, off);
     const c = counts[id] ?? { sent: 0, skipped: 0 };
     return (
