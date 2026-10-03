@@ -12,29 +12,26 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { createJournal } from "@/lib/journals";
 import { typeInto } from "./support/type-input";
+import { calls, settle, stubWizardFetch } from "./support/wizard-fetch";
 
 /**
- * B688 — a visitor with no journal, now at `/welcome` (B2170).
- *
- * No network call anywhere here: `global.fetch` is stubbed with the exact
- * shapes `/api/auth/codes` and `/api/auth/codes/redeem` (both `for: "signup"`)
- * and `/api/v1/journals` already answer with, so what is under test is the
- * component reading those answers — not the routes themselves, which have
- * their own tests (`test/signup-token.test.ts`, `paid/test/signup-credit-grant.test.ts`).
+ * B688 / B-2808 — a visitor with no journal, at `/welcome`: email, phone,
+ * then one name. No network call anywhere: `fetch` is stubbed with the exact
+ * shapes the signup routes answer, so what is under test is the component
+ * reading those answers (the routes have their own tests).
  */
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => {}, refresh: () => {} }),
 }));
-vi.mock("next/link", () => ({
-  default: ({ href, children }: { href: string; children: React.ReactNode }) => (
-    <a href={href}>{children}</a>
-  ),
-}));
 
 function withLocale(node: React.ReactNode) {
   return <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>{node}</LocaleProvider>;
 }
+
+const STATE_NO_PHONE = { emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false };
+const CREATED = { ok: true, token: "agent-token", user: "robin", signIn: "https://example.test/@robin/s/link-token?lang=en" };
+const free = (url: string) => ({ available: true, username: new URL(url, "http://t").searchParams.get("username") });
 
 describe("the signup wizard", () => {
   let root: Root | undefined;
@@ -43,6 +40,8 @@ describe("the signup wizard", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
+    sessionStorage.clear();
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["de-CH", "de"]);
   });
 
   afterEach(() => {
@@ -51,67 +50,67 @@ describe("the signup wizard", () => {
     root = undefined;
     container = undefined;
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
   });
 
-  function input(id: string): HTMLInputElement {
-    return container!.querySelector(`#${id}`) as HTMLInputElement;
-  }
-
-  function form(): HTMLFormElement {
-    return container!.querySelector("form") as HTMLFormElement;
-  }
+  const input = (id: string) => container!.querySelector(`#${id}`) as HTMLInputElement;
+  const text = () => container!.textContent ?? "";
+  const button = (label: RegExp) =>
+    [...container!.querySelectorAll("button, a")].find((b) => label.test(b.textContent ?? "")) as HTMLElement;
 
   async function submit() {
     await act(async () => {
-      form().requestSubmit();
-      await Promise.resolve();
-      await Promise.resolve();
+      container!.querySelector("form")!.requestSubmit();
     });
+    await settle();
   }
-
-  test("surfaces a reserved username's own reason, in words", async () => {
-    const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
-      { ok: true, json: async () => ({ status: "accepted" }) }, // signup/request
-      { ok: true, json: async () => ({ ok: true, token: "signup-token" }) }, // signup/verify
-      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false }) }, // signup/state (B2804)
-      {
-        ok: false,
-        json: async () => ({
-          error: "reserved_username",
-          message: '"agent" is reserved by this server — it would shadow one of its own routes.',
-        }),
-      }, // POST /api/v1/journals
-    ];
-    const fetchMock = vi.fn(() => Promise.resolve(responses.shift()!));
-    vi.stubGlobal("fetch", fetchMock);
-
+  async function type(id: string, value: string, wait = 0) {
+    await act(async () => typeInto(input(id), value));
+    await settle(wait);
+  }
+  async function click(el: HTMLElement) {
+    await act(async () => el.click());
+    await settle();
+  }
+  function mount(props: Partial<React.ComponentProps<typeof SignupWizard>> = {}) {
     root = createRoot(container!);
     act(() => {
       root!.render(
-        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
+        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} {...props} />),
       );
     });
-
-    typeInto(input("signup-email"), "new@example.test");
+  }
+  /** Email and code, ending wherever the state route sends it. */
+  async function toToken() {
+    await type("signup-email", "new@example.test");
     await submit();
+    await type("signup-code", "123456");
+  }
+  const baseRoutes = {
+    "POST /api/auth/codes": { __status: 202, status: "accepted" },
+    "POST /api/auth/codes/redeem": { ok: true, token: "signup-token" },
+    "GET /api/auth/signup/state": STATE_NO_PHONE,
+    "GET /api/v2/journals/available": free,
+  };
 
-    typeInto(input("signup-code"), "123456");
+  // ── step 1: email ───────────────────────────────────────────────────────
+  test("the email step is one field, one notice line and no checkbox", () => {
+    mount();
+    expect(container!.querySelectorAll("input")).toHaveLength(1);
+    expect(container!.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(text()).toContain("If you stop halfway, we'll mail you once with a link to continue.");
+    expect(text()).toContain("1 Email");
+    expect(text()).toContain("2 Phone");
+    expect(text()).toContain("3 Your name");
+  });
+
+  test("an identity holder is told no code is needed and goes straight on", async () => {
+    stubWizardFetch({ ...baseRoutes, "POST /api/auth/signup/identity": { token: "signup-token" } });
+    mount({ email: "me@example.test" });
+    expect(text()).toContain("You're signed in as me@example.test, so no code is needed");
     await submit();
-
-    typeInto(input("signup-title"), "My Journal");
-    typeInto(input("signup-username"), "agent");
-    typeInto(input("signup-owner-name"), "Robin Traveller");
-    typeInto(input("signup-owner-nickname"), "Robin");
-    // B839 — the form will not submit without it.
-    typeInto(input("signup-currency"), "EUR");
-    await submit();
-
-    // B1250 — the wizard renders its own person-facing sentence for a known
-    // cause, not the API's machine-facing message (which names routes and
-    // tokens for an agent reading it, not a person).
-    expect(container!.textContent).toMatch(/is reserved on this server/);
-    // No network call ever left this test — every response above was a stub.
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(calls.map((c) => c.url)).not.toContain("/api/auth/codes");
+    expect(input("signup-name")).not.toBeNull();
   });
 
   // B2774 — a failed code request says why and stays on the email step.
@@ -124,155 +123,319 @@ describe("the signup wizard", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() =>
-        Promise.resolve({
-          ok: false,
-          status,
-          headers: new Headers(headers),
-          json: async () => ({ error: "x" }),
-        }),
+        Promise.resolve({ ok: false, status, headers: new Headers(headers), json: async () => ({ error: "x" }) }),
       ),
     );
-    root = createRoot(container!);
-    act(() => {
-      root!.render(
-        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
-      );
-    });
-    typeInto(input("signup-email"), "new@example.test");
+    mount();
+    await type("signup-email", "new@example.test");
     await submit();
-    expect(container!.textContent).toMatch(message);
-    expect(container!.textContent).not.toMatch(/code is on its way/);
+    expect(text()).toMatch(message);
+    expect(text()).not.toMatch(/code is on its way/);
     expect(input("signup-email")).not.toBeNull();
     expect(input("signup-code")).toBeNull();
   });
 
-  // B2778 — a refusal of the address after the phone proof returns to the
-  // form with the reason at the address field, and an unusable address is
-  // explained inline instead of only disabling Create.
-  test("an address refused after the phone step goes back to the form, and a bad one says why", async () => {
-    const responses: Array<Record<string, unknown>> = [
-      { ok: true, json: async () => ({ status: "accepted" }) },
-      { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
-      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: true, mode: "code", smsFallback: false }) }, // signup/state (B2804)
-      { ok: false, json: async () => ({ error: "phone_required", mode: "sms" }) },
-      { ok: true, json: async () => ({ id: "p1" }) }, // phone request
-      { ok: true, json: async () => ({ ok: true }) }, // phone redeem
-      { ok: false, json: async () => ({ error: "username_taken" }) }, // create again
-    ];
-    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(responses.shift()!)));
-    root = createRoot(container!);
-    act(() => {
-      root!.render(
-        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
-      );
-    });
-    typeInto(input("signup-email"), "new@example.test");
+  // ── step 1b: the code ───────────────────────────────────────────────────
+  test("the code is one input that checks by itself after the sixth digit", async () => {
+    stubWizardFetch(baseRoutes);
+    mount();
+    await type("signup-email", "new@example.test");
     await submit();
-    typeInto(input("signup-code"), "123456");
-    await submit();
-    typeInto(input("signup-title"), "My Journal");
-    typeInto(input("signup-username"), "Anna_X!");
-    expect(container!.textContent).toMatch(/That address isn't allowed/);
-    typeInto(input("signup-username"), "taken-one");
-    typeInto(input("signup-owner-name"), "Robin Traveller");
-    typeInto(input("signup-owner-nickname"), "Robin");
-    typeInto(input("signup-currency"), "EUR");
-    await submit(); // create -> phone_required -> phone step
-    typeInto(input("signup-tel"), "76 000 00 01");
-    await submit(); // phone request
-    typeInto(input("signup-phone-code"), "123456");
-    await submit(); // redeem -> create -> username_taken
-    expect(container!.textContent).toMatch(/already being used by another journal/);
-    expect(input("signup-username")).not.toBeNull();
-    expect(input("signup-username").value).toBe("taken-one");
+    const box = input("signup-code");
+    expect(container!.querySelectorAll("input")).toHaveLength(1);
+    expect(box.autocomplete).toBe("one-time-code");
+    expect(box.inputMode).toBe("numeric");
+    await type("signup-code", "12345");
+    expect(calls.some((c) => c.url === "/api/auth/codes/redeem")).toBe(false);
+    // A paste with a space still lands as six digits.
+    await type("signup-code", "123 456");
+    const redeem = calls.find((c) => c.url === "/api/auth/codes/redeem");
+    expect(redeem?.body).toEqual({ for: "signup", email: "new@example.test", code: "123456" });
   });
 
-  /**
-   * B838 — the two language questions, and the one that was hardcoded.
-   *
-   * `locales: [defaultLocale]` on line 139 meant every journal the helper
-   * created had no switcher, which is B277 reproduced by construction. What
-   * this asserts is the whole of the fix: the body carries the languages the
-   * person ticked, not one derived from the browser they happen to be
-   * holding.
-   */
-  test("sends the languages chosen, not the one the browser was in", async () => {
-    const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
-      { ok: true, json: async () => ({ status: "accepted" }) },
-      { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
-      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false }) }, // signup/state (B2804)
-      {
-        ok: true,
-        json: async () => ({
-          ok: true,
-          token: "agent-token",
-          user: "robin",
-          signIn: "",
-          url: "https://example.test/robin",
-        }),
+  test("a wrong or expired code is said in words and the box is emptied", async () => {
+    stubWizardFetch({ ...baseRoutes, "POST /api/auth/codes/redeem": { __status: 401, error: "invalid_code" } });
+    mount();
+    await toToken();
+    expect(text()).toMatch(/isn't right, or it has expired/);
+    expect(input("signup-code").value).toBe("");
+  });
+
+  test("resend counts down from 30 s, and Wrong address goes back to the email", async () => {
+    stubWizardFetch(baseRoutes);
+    mount();
+    await type("signup-email", "new@example.test");
+    await submit();
+    expect(text()).toContain("Send again in 0:30");
+    await click(button(/Wrong address\?/));
+    expect(input("signup-email")).not.toBeNull();
+    expect(input("signup-email").value).toBe("new@example.test");
+  });
+
+  // ── step 2: the phone ───────────────────────────────────────────────────
+  const inbound = {
+    ...baseRoutes,
+    "GET /api/auth/signup/state": { ...STATE_NO_PHONE, phoneRequired: true, mode: "whatsapp-inbound", smsFallback: true },
+    "POST /api/auth/signup/phone": { __status: 202, id: "p1", link: "https://wa.me/41000?text=x", smsFallback: true, mode: "whatsapp-inbound" },
+  };
+
+  test("WhatsApp first: Open WhatsApp, nothing typed, then a waiting state that Check again polls", async () => {
+    const pending = [{ status: "pending" }, { status: "pending" }, { ok: true, tel: "41760000001" }];
+    stubWizardFetch({ ...inbound, "POST /api/auth/signup/phone/redeem": pending });
+    mount();
+    await toToken();
+    expect(text()).toContain("Your phone number");
+    expect(text()).toContain("Only you see it. It keeps one journal per number");
+    expect(text()).toContain("Send the prepared message as it is, then come back here.");
+    expect(container!.querySelector("#signup-tel")).toBeNull();
+    const open = button(/Open WhatsApp/) as HTMLAnchorElement;
+    expect(open.getAttribute("href")).toBe("https://wa.me/41000?text=x");
+    expect(button(/No WhatsApp\? Use SMS instead/)).toBeTruthy();
+    await click(open);
+    expect(text()).toContain("Waiting for your message");
+    expect(button(/Open WhatsApp again/)).toBeTruthy();
+    expect(button(/Use SMS instead/)).toBeTruthy();
+    const before = calls.filter((c) => c.url === "/api/auth/signup/phone/redeem").length;
+    await click(button(/Check again/));
+    expect(calls.filter((c) => c.url === "/api/auth/signup/phone/redeem").length).toBeGreaterThan(before);
+  });
+
+  test("coming back to the tab re-polls at once and moves on to the name", async () => {
+    stubWizardFetch({ ...inbound, "POST /api/auth/signup/phone/redeem": { ok: true, tel: "41760000001" } });
+    mount();
+    await toToken();
+    await click(button(/Open WhatsApp/));
+    expect(input("signup-name")).toBeNull();
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await settle();
+    expect(input("signup-name")).not.toBeNull();
+  });
+
+  test("SMS: the country defaults to the browser region, and its code checks by itself", async () => {
+    stubWizardFetch({
+      ...inbound,
+      "POST /api/auth/signup/phone/redeem": [{ status: "pending" }, { ok: true, tel: "41760000001" }],
+    });
+    mount({ phoneCountryCode: "49" });
+    await toToken();
+    await click(button(/No WhatsApp\? Use SMS instead/));
+    // de-CH: +41, not the operator's +49.
+    expect(input("signup-tel-cc").value).toContain("+41");
+    await type("signup-tel", "76 000 00 01");
+    expect(button(/Text me a code/)).toBeTruthy();
+    await submit();
+    const request = calls.filter((c) => c.url === "/api/auth/signup/phone").pop()!;
+    expect(request.body).toEqual({ tel: "+41 76 000 00 01", channel: "sms" });
+    expect(text()).toContain("Code sent to +41 76 000 00 01");
+    await type("signup-phone-code", "654321");
+    const redeem = calls.filter((c) => c.url === "/api/auth/signup/phone/redeem").pop()!;
+    expect(redeem.body).toEqual({ id: "p1", code: "654321" });
+    expect(input("signup-name")).not.toBeNull();
+  });
+
+  test("with no browser region the operator's country stands", async () => {
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["en"]);
+    stubWizardFetch({ ...baseRoutes, "GET /api/auth/signup/state": { ...STATE_NO_PHONE, phoneRequired: true, mode: "code" } });
+    mount({ phoneCountryCode: "49" });
+    await toToken();
+    expect(input("signup-tel-cc").value).toContain("+49");
+  });
+
+  test("a number that already keeps a journal, found after proof, offers sign-in", async () => {
+    stubWizardFetch({
+      ...baseRoutes,
+      "GET /api/auth/signup/state": { ...STATE_NO_PHONE, phoneRequired: true, mode: "code" },
+      "POST /api/auth/signup/phone": { __status: 202, id: "p1" },
+      "POST /api/auth/signup/phone/redeem": { __status: 409, error: "tel_taken" },
+    });
+    mount();
+    await toToken();
+    await type("signup-tel", "76 000 00 01");
+    await submit();
+    await type("signup-phone-code", "123456");
+    expect(text()).toContain("That number already keeps a journal — sign in to it instead");
+    expect(container!.querySelector('a[href="/?start=1"]')).not.toBeNull();
+  });
+
+  test("an instance that asks for no phone skips the step", async () => {
+    stubWizardFetch(baseRoutes);
+    mount();
+    await toToken();
+    expect(input("signup-name")).not.toBeNull();
+    expect(calls.some((c) => c.url.startsWith("/api/auth/signup/phone"))).toBe(false);
+  });
+
+  // ── step 3: the name ────────────────────────────────────────────────────
+  test("one name field suggests an address, checks it live and says it is permanent", async () => {
+    stubWizardFetch(baseRoutes);
+    mount();
+    await toToken();
+    expect(container!.querySelectorAll("#signup-name")).toHaveLength(1);
+    await type("signup-name", "Robin Traveller", 450);
+    expect(text()).toContain("/@robin-traveller");
+    expect(text()).toContain("Available");
+    expect(text()).toContain("The address can't be changed later.");
+    expect(text()).toContain("Choose a different address");
+    expect(text()).toContain("Your journal starts like this");
+    expect(text()).toContain("Asked not to list it");
+    expect(text()).toContain("Who can read each trip is set on the trip itself.");
+    expect(calls.some((c) => c.url.includes("available?username=robin-traveller"))).toBe(true);
+  });
+
+  test("a taken name keeps the name, asks for an address and offers only free ideas", async () => {
+    stubWizardFetch({
+      ...baseRoutes,
+      "GET /api/v2/journals/available": (url: string) => {
+        const u = new URL(url, "http://t").searchParams.get("username");
+        return { available: u !== "example" && u !== "example-2", reason: "username_taken" };
       },
-    ];
-    // Typed, because this test reads the request body back out — which is
-    // the whole assertion: what the form *sent*, not what it drew.
-    const fetchMock = vi.fn((_url: string, init?: { body?: string }) =>
-      Promise.resolve(responses.shift()!),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-
-    root = createRoot(container!);
-    act(() => {
-      // The browser is in English; the person writes in German and wants a
-      // Hungarian switcher. Neither answer is guessable from `locale`.
-      root!.render(
-        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
-      );
     });
-
-    typeInto(input("signup-email"), "new@example.test");
-    await submit();
-    typeInto(input("signup-code"), "123456");
-    await submit();
-
-    for (const [id, value] of [
-      ["signup-title", "Mein Journal"],
-      ["signup-username", "robin"],
-      ["signup-owner-name", "Robin Traveller"],
-      ["signup-owner-nickname", "Robin"],
-      ["signup-currency", "EUR"],
-    ] as const) {
-      typeInto(input(id), value);
-    }
-
-    function radio(name: string, value: string): HTMLInputElement {
-      return container!.querySelector(`input[name="${name}"][value="${value}"]`) as HTMLInputElement;
-    }
-    await act(async () => {
-      radio("signup-locale", "de").click();
-    });
-    await act(async () => {
-      radio("signup-reader-locales", "hu").click();
-    });
-    await submit();
-
-    const body = JSON.parse(fetchMock.mock.calls[3][1]?.body ?? "{}") as Record<string, unknown>;
-    expect(body.defaultLocale).toBe("de");
-    expect(body.locales).toEqual(["de", "hu"]);
-    // B839 — asked, not defaulted to the francs `createJournal` used to write.
-    expect(body.baseCurrency).toBe("EUR");
-    // B1292 — once the journal exists the pitch is not shown again. B2170
-    // removed the trip step that used to print the journal's address here;
-    // what follows a create now is signing in and handing over to the page.
-    expect(container!.textContent).not.toMatch(/Start your own journal/);
-    expect(container!.textContent).toContain("Signing you in");
+    mount();
+    await toToken();
+    await type("signup-name", "Example", 450);
+    await settle(50);
+    expect(text()).toMatch(/\/@example is taken\. You stay “Example” — only your address needs to be different\./);
+    expect(input("signup-username")).not.toBeNull();
+    expect(input("signup-name").value).toBe("Example");
+    const chips = [...container!.querySelectorAll("button")].map((b) => b.textContent);
+    expect(chips).toContain(`example-${new Date().getFullYear()}`);
+    expect(chips).toContain("example-3");
+    expect(chips).not.toContain("example-2");
+    await click(button(/^example-3$/));
+    await settle(450);
+    expect(input("signup-username").value).toBe("example-3");
+    expect(text()).toContain("Free");
   });
 
+  test("a name that makes no address (李) shows the address field at once", async () => {
+    stubWizardFetch(baseRoutes);
+    mount();
+    await toToken();
+    await type("signup-name", "李", 450);
+    expect(input("signup-username")).not.toBeNull();
+    expect(input("signup-username").value).toBe("");
+    expect(button(/Create my journal/).hasAttribute("disabled")).toBe(true);
+  });
+
+  test("Create sends the one name three ways and every default explicitly", async () => {
+    stubWizardFetch({ ...baseRoutes, "POST /api/v2/journals": CREATED, "POST /api/auth/links/redeem": { ok: true } });
+    const onSignedIn = vi.fn();
+    mount({ onSignedIn });
+    await toToken();
+    await type("signup-name", "Robin Traveller", 450);
+    await submit();
+    const body = calls.find((c) => c.url === "/api/v2/journals")!.body;
+    expect(body).toEqual({
+      title: "Robin Traveller",
+      username: "robin-traveller",
+      ownerName: "Robin Traveller",
+      ownerNickname: "Robin Traveller",
+      visibility: "guest",
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF", // de-CH
+    });
+    const redeem = calls.find((c) => c.url === "/api/auth/links/redeem")!;
+    expect(redeem.body).toEqual({ user: "robin", token: "link-token", for: "read" });
+    expect(onSignedIn).toHaveBeenCalledWith("robin", true);
+    // Never a trip write, and the draft is gone once the journal exists.
+    expect(calls.some((c) => c.url.includes("/trips/"))).toBe(false);
+    expect(sessionStorage.getItem("fs-signup-draft")).toBeNull();
+  });
+
+  test("with no browser region the currency is never guessed: Choose, and Create waits", async () => {
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["en"]);
+    stubWizardFetch({ ...baseRoutes, "POST /api/v2/journals": CREATED });
+    mount();
+    await toToken();
+    await type("signup-name", "Robin", 450);
+    expect(text()).toMatch(/Currency\s*Choose/);
+    expect(button(/Create my journal/).hasAttribute("disabled")).toBe(true);
+    await click(button(/Edit advanced settings/));
+    const select = input("signup-currency") as unknown as HTMLSelectElement;
+    await act(async () => {
+      select.value = "EUR";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await settle();
+    expect(button(/Create my journal/).hasAttribute("disabled")).toBe(false);
+    await submit();
+    expect(calls.find((c) => c.url === "/api/v2/journals")!.body.baseCurrency).toBe("EUR");
+  });
+
+  test("advanced settings are honoured: search engines, language, title, address", async () => {
+    stubWizardFetch({ ...baseRoutes, "POST /api/v2/journals": CREATED, "POST /api/auth/links/redeem": { ok: true } });
+    mount();
+    await toToken();
+    await type("signup-name", "Robin", 450);
+    await click(button(/Edit advanced settings/));
+    expect(button(/Back to the summary/)).toBeTruthy();
+    await click(input("signup-listed"));
+    const lang = input("signup-locale") as unknown as HTMLSelectElement;
+    await act(async () => {
+      lang.value = "de";
+      lang.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await type("signup-title", "Mein Journal");
+    await type("signup-username", "robin-unterwegs", 450);
+    await click(button(/Back to the summary/));
+    expect(text()).toContain("Deutsch");
+    expect(text()).toContain("May list it");
+    await submit();
+    const body = calls.find((c) => c.url === "/api/v2/journals")!.body;
+    expect(body).toMatchObject({
+      title: "Mein Journal",
+      username: "robin-unterwegs",
+      ownerName: "Robin",
+      visibility: "public",
+      defaultLocale: "de",
+      locales: ["de"],
+    });
+  });
+
+  test("an address refused at create returns to the form with the name kept and the reason shown", async () => {
+    stubWizardFetch({ ...baseRoutes, "POST /api/v2/journals": { __status: 409, error: "username_taken" } });
+    mount();
+    await toToken();
+    await type("signup-name", "Robin", 450);
+    await submit();
+    expect(text()).toMatch(/already being used by another journal/);
+    expect(input("signup-name").value).toBe("Robin");
+    expect(input("signup-username")).not.toBeNull();
+  });
+
+  // ── resume ──────────────────────────────────────────────────────────────
+  test("resuming lands on the unfinished step with Welcome back", async () => {
+    stubWizardFetch({
+      ...inbound,
+      "POST /api/auth/signup/identity": { token: "signup-token" },
+    });
+    mount({ email: "me@example.test", resume: true });
+    await settle();
+    expect(text()).toContain("Welcome back — your email is confirmed.");
+    expect(button(/Open WhatsApp/)).toBeTruthy();
+    expect(input("signup-email")).toBeNull();
+  });
+
+  test("a reload on the name step restores the fields from this tab's draft", async () => {
+    sessionStorage.setItem("fs-signup-draft", JSON.stringify({ name: "Robin", listed: true, defaultLocale: "de" }));
+    stubWizardFetch({ ...baseRoutes, "POST /api/auth/signup/identity": { token: "signup-token" } });
+    mount({ email: "me@example.test", resume: true });
+    await settle(450);
+    expect(text()).toContain("Welcome back");
+    expect(input("signup-name").value).toBe("Robin");
+    expect(text()).toContain("May list it");
+    expect(text()).toContain("Deutsch");
+  });
+
+  // ── what the form sends is what the journal becomes ─────────────────────
   /**
    * B838 again, from the other end: the journal that comes out of this form
-   * has a switcher, which is the thing B277 found missing. `localesFor`
-   * reads the config the route writes, so this is the property the ticket
-   * actually asks for rather than a restatement of the request body.
+   * has a switcher. `localesFor` reads the config the route writes.
    */
-  test("two languages ticked is a journal with a switcher", async () => {
+  test("the languages the form sends make a journal with a switcher", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-wizard-"));
     process.env.CONTENT_DIR = dir;
     fs.writeFileSync(
@@ -294,7 +457,6 @@ describe("the signup wizard", () => {
         ownerName: "Robin Traveller",
         ownerNickname: "Robin",
         visibility: "public",
-        // Exactly what the form now sends.
         defaultLocale: "de",
         locales: ["de", "hu"],
         baseCurrency: "EUR",
@@ -310,74 +472,5 @@ describe("the signup wizard", () => {
       clearLocaleCache();
       fs.rmSync(dir, { recursive: true, force: true });
     }
-  });
-
-  /**
-   * B2170 — the wizard ends at the journal. The trip step (B1674) went: the
-   * studio's "A new trip" makes the first trip. What this pins is the end of
-   * the flow: the create answer's one-press link is spent for a session,
-   * the username is handed to the page, and nothing writes a trip.
-   */
-  test("the journal step signs in and hands over; no trip is written", async () => {
-    const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
-      { ok: true, json: async () => ({ status: "accepted" }) }, // codes
-      { ok: true, json: async () => ({ ok: true, token: "signup-token" }) }, // codes/redeem
-      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false }) }, // signup/state (B2804)
-      {
-        ok: true,
-        json: async () => ({
-          ok: true,
-          token: "agent-token",
-          user: "robin",
-          // \`signInUrl\` appends the journal's language; B2170 found it sent as
-          // part of the token.
-          signIn: "https://example.test/robin/s/link-token?lang=en",
-          url: "https://example.test/robin",
-        }),
-      }, // POST /api/v2/journals
-      { ok: true, json: async () => ({ ok: true }) }, // links/redeem
-    ];
-    const fetchMock = vi.fn((_url: string, _init?: RequestInit) => Promise.resolve(responses.shift()!));
-    vi.stubGlobal("fetch", fetchMock);
-    const onSignedIn = vi.fn();
-
-    root = createRoot(container!);
-    act(() => {
-      root!.render(
-        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={onSignedIn} onAlreadyOwns={() => {}} />),
-      );
-    });
-
-    typeInto(input("signup-email"), "new@example.test");
-    await submit();
-    typeInto(input("signup-code"), "123456");
-    await submit();
-    for (const [id, value] of [
-      ["signup-title", "My Journal"],
-      ["signup-username", "robin"],
-      ["signup-owner-name", "Robin Traveller"],
-      ["signup-owner-nickname", "Robin"],
-      ["signup-currency", "EUR"],
-    ] as const) {
-      typeInto(input(id), value);
-    }
-    await submit();
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(fetchMock).toHaveBeenCalledTimes(5);
-    const [url, init] = fetchMock.mock.calls[4] as [string, RequestInit];
-    expect(url).toBe("/api/auth/links/redeem");
-    expect(JSON.parse(String(init.body))).toEqual({ user: "robin", token: "link-token", for: "read" });
-    // Never a bearer token on the sign-in call, and never a trip write.
-    expect((init.headers as Record<string, string>).authorization).toBeUndefined();
-    for (const [calledUrl, calledInit] of fetchMock.mock.calls as [string, RequestInit][]) {
-      expect(calledUrl).not.toContain("/trips/");
-      // B2804: the one read the wizard makes is the signup state (a GET).
-      if (calledUrl === "/api/auth/signup/state") continue;
-      expect(calledInit.method).toBe("POST");
-    }
-    expect(onSignedIn).toHaveBeenCalledWith("robin", true);
   });
 });
