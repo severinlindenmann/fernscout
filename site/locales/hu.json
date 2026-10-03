@@ -4976,5 +4976,6 @@
   "studio.hub.first.polarsteps.hint": "Az exportod (user_data.zip), piszkozatként.",
   "studio.hub.first.photos.title": "Kezdés fényképekből",
   "studio.hub.first.photos.hint": "A fényképeiből, a készítésük ideje szerint napokra rendezve.",
-  "studio.hub.first.skip": "Kihagyom — előbb körülnézek"
+  "studio.hub.first.skip": "Kihagyom — előbb körülnézek",
+  "landing.helperCta": "Írjunk most →"
 }

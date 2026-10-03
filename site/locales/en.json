@@ -4970,5 +4970,6 @@
   "studio.hub.first.photos.title": "Start from photos",
   "studio.hub.first.photos.hint": "From its photographs, sorted into days by when they were taken.",
   "studio.hub.first.skip": "Skip — I’ll look around first",
-  "landing.startJournal": "Start your journal"
+  "landing.startJournal": "Start your journal",
+  "landing.helperCta": "Start writing →"
 }
