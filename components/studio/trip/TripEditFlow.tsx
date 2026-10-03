@@ -287,7 +287,8 @@ export default function TripEditFlow({
               type="button"
               onClick={() => setAccent(a)}
               aria-pressed={accent === a}
-              aria-label={a}
+              aria-label={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
+              title={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
               className={`h-10 w-10 rounded-full border-2 ${ACCENT_SWATCH[a] ?? "bg-surface-subtle"} ${
                 accent === a ? "border-ink-strong" : "border-transparent"
               }`}

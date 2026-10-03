@@ -565,7 +565,8 @@ export default function NewTripFlow({
                   className={`h-9 w-9 rounded-full border-2 ${ACCENT_SWATCH[a] ?? "bg-surface-subtle"} ${
                     accent === a && !accentSkipped ? "border-ink-strong" : "border-transparent"
                   }`}
-                  aria-label={a}
+                  aria-label={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
+              title={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
                 />
               ))}
               <button
