@@ -15,6 +15,7 @@ import { useI18n } from "@/components/LocaleProvider";
  */
 export default function SignupResume({
   token,
+  first = false,
   signupEnabled,
   inviteOnly,
   codeMinutes,
@@ -22,6 +23,8 @@ export default function SignupResume({
   contactEmail,
 }: {
   token: string;
+  /** The approval mail's link: a first visit, worded "Start", not "Continue". */
+  first?: boolean;
   signupEnabled: boolean;
   inviteOnly?: boolean;
   codeMinutes: string;
@@ -31,6 +34,7 @@ export default function SignupResume({
   const { t } = useI18n();
   const [state, setState] = useState<"idle" | "working" | "expired" | "owns" | "failed">("idle");
   const [signupToken, setSignupToken] = useState<string | null>(null);
+  const [resumed, setResumed] = useState(true);
 
   async function press() {
     setState("working");
@@ -39,8 +43,9 @@ export default function SignupResume({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
     }).catch(() => null);
-    const body = (await response?.json().catch(() => null)) as { token?: string; error?: string } | null;
+    const body = (await response?.json().catch(() => null)) as { token?: string; error?: string; resumed?: boolean } | null;
     if (response?.ok && typeof body?.token === "string") {
+      setResumed(body.resumed === true);
       setSignupToken(body.token);
       return;
     }
@@ -57,6 +62,7 @@ export default function SignupResume({
         codeMinutes={codeMinutes}
         identityEmail={null}
         initialSignupToken={signupToken}
+        resumed={resumed}
         signupEnabled={signupEnabled}
         inviteOnly={inviteOnly}
         phoneCountryCode={phoneCountryCode}
@@ -68,9 +74,9 @@ export default function SignupResume({
   const dead = state === "expired" || state === "owns";
   return (
     <>
-      <h1 className={TITLE_H1}>{t("signupResume.title")}</h1>
+      <h1 className={TITLE_H1}>{t(first ? "signupResume.startTitle" : "signupResume.title")}</h1>
       <p className="mt-2 text-base text-ink-body">
-        {state === "expired" ? t("signupResume.expired") : state === "owns" ? t("signupResume.owns") : t("signupResume.body")}
+        {state === "expired" ? t("signupResume.expired") : state === "owns" ? t("signupResume.owns") : t(first ? "signupResume.startBody" : "signupResume.body")}
       </p>
       {dead ? (
         <p className="mt-6">
@@ -87,7 +93,7 @@ export default function SignupResume({
             className="inline-flex min-h-12 items-center justify-center rounded-full bg-yellow-400 px-6 text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-60"
             busyLabel={t("signupResume.working")}
           >
-            {t("signupResume.action")}
+            {t(first ? "signupResume.startAction" : "signupResume.action")}
           </BusyButton>
           {state === "failed" && <p className="mt-4 text-base text-ink-body">{t("signupResume.failed")}</p>}
         </div>

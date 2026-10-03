@@ -220,7 +220,7 @@ export default function StudioHub({
   const hero = heroFor(model, username, t, formatLongDate);
 
   const halfDone = (
-    <HalfDone username={username} runs={model.resumableImports} postcard={model.postcardSuggestion} unfinished={model.print.unfinished} />
+    <HalfDone username={username} tripId={model.kind === "full" ? (model.addDayTrip?.id ?? "") : ""} runs={model.resumableImports} postcard={model.postcardSuggestion} unfinished={model.print.unfinished} />
   );
 
   // Hooks run unconditionally, before the empty-state's own early return —
@@ -967,11 +967,14 @@ type CarryRow = { key: string; href: string; Icon: LucideIcon; title: string; de
  */
 function HalfDone({
   username,
+  tripId,
   runs,
   postcard,
   unfinished,
 }: {
   username: string;
+  /** B2826 — the trip whose add-a-day draft this offers to continue. */
+  tripId: string;
   runs: ResumableImportSummary[];
   postcard: PostcardCard | null;
   /** B2135 — postcards not sent and photobook setups not ordered. */
@@ -984,8 +987,8 @@ function HalfDone({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- see the doc comment above.
-    setSnapshot(readAddDaySnapshot(username));
-  }, [username]);
+    setSnapshot(readAddDaySnapshot(username, tripId));
+  }, [username, tripId]);
 
   const carryOn = t("studio.hub.resume.import.cta");
   const rows: CarryRow[] = [
@@ -993,7 +996,7 @@ function HalfDone({
       ? [
           {
             key: "add-day",
-            href: `${journalPath(username)}/studio/day/new`,
+            href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(tripId)}`,
             Icon: CalendarPlus,
             title: t("studio.hub.resume.addDay.title"),
             detail: t("studio.hub.resume.addDay.detail", { date: formatLongDate(addDayExpiresOn(snapshot.savedAt)) }),

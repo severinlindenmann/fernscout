@@ -202,7 +202,7 @@ describe("AddDayFlow, one page — B2188", () => {
     // B2677 — the unsplit day's own "Preview →" now goes straight to
     // Preview rather than showing an inline "Saved" screen of its own.
     expect(currentSearch()).toBe(`trip=reise&date=${TODAY}`);
-    expect(sessionStorage.getItem(addDayStorageKey("alex"))).toBeNull();
+    expect(sessionStorage.getItem(addDayStorageKey("alex", "reise"))).toBeNull();
     expect(errors.mock.calls.filter((c) => String(c[0]).includes("same key"))).toEqual([]);
   });
 
@@ -210,14 +210,14 @@ describe("AddDayFlow, one page — B2188", () => {
     await mount();
     type(container.querySelector("textarea") as HTMLTextAreaElement, "Rain all day");
     await flush();
-    expect(readAddDaySnapshot("alex")).toMatchObject({ step: "page", content: "Rain all day" });
+    expect(readAddDaySnapshot("alex", "reise")).toMatchObject({ step: "page", content: "Rain all day" });
 
     await reload();
     expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toBe("Rain all day");
     expect(text()).toContain("You started a day");
     await click("Start a new day instead");
     expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toBe("");
-    expect(readAddDaySnapshot("alex")).toBeNull();
+    expect(readAddDaySnapshot("alex", "reise")).toBeNull();
   });
 
   test("the date comes from the photographs, counted honestly, and an outlier is asked about inline", async () => {
@@ -272,7 +272,7 @@ describe("AddDayFlow, one page — B2188", () => {
 
     test("?photos=<date> chooses that day's photographs, over a stored draft's choice", async () => {
       inbox = THREE_DAYS;
-      sessionStorage.setItem(addDayStorageKey("alex"), JSON.stringify({ savedAt: new Date().toISOString(), selectedIds: ["d7a"], photosInit: true, dateOverride: "2025-11-07" }));
+      sessionStorage.setItem(addDayStorageKey("alex", "reise"), JSON.stringify({ savedAt: new Date().toISOString(), selectedIds: ["d7a"], photosInit: true, dateOverride: "2025-11-07" }));
       props = { initialPhotos: "2025-11-06" };
       await mount();
       expect(text()).toContain("2 chosen");
@@ -490,6 +490,8 @@ describe("AddDayFlow, one page — B2188", () => {
     await click("Preview →");
     expect(text()).toContain("The day was not made.");
     expect(text()).toContain("Nothing at all was written");
+    // B2826 — a raw error code never reaches the screen.
+    expect(text()).not.toMatch(/day_exists|unknown_day/);
   });
 
   test("More details is collapsed and remembered", async () => {
@@ -533,7 +535,7 @@ describe("B2627 — a long day's photos picked inside the composer are offered a
     expect(textareas[1].value).toBe("");
     // The draft is still kept (now carrying the parts), never cleared out
     // from under somebody who reloads mid-split.
-    expect(sessionStorage.getItem(addDayStorageKey("alex"))).not.toBeNull();
+    expect(sessionStorage.getItem(addDayStorageKey("alex", "reise"))).not.toBeNull();
   });
 
   test("Keep it one day dismisses it for this exact set of photos, not forever", async () => {
@@ -615,6 +617,20 @@ describe("B2676 — a manual place edit clears a photo's own coordinates", () =>
     expect(body.location).toBe("Chur");
     expect(body.lat).toBeUndefined();
     expect(body.lng).toBeUndefined();
+  });
+});
+
+describe("B2826 — a draft started in one trip is not applied in another", () => {
+  test("words typed for 'reise' do not appear when the page opens for 'andere', and no stale slug is fetched", async () => {
+    sessionStorage.setItem(
+      addDayStorageKey("alex", "reise"),
+      JSON.stringify({ savedAt: new Date().toISOString(), step: "page", content: "Words for the first trip.", createdSlug: "stale-slug" }),
+    );
+    props = { initialTripId: "andere" };
+    await mount();
+    expect((container.querySelector("textarea") as HTMLTextAreaElement | null)?.value ?? "").not.toContain("Words for the first trip.");
+    const calls = (fetch as unknown as { mock: { calls: [string][] } }).mock.calls.map((c) => String(c[0]));
+    expect(calls.some((u) => u.includes("slug=stale-slug"))).toBe(false);
   });
 });
 

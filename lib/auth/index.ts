@@ -916,8 +916,17 @@ export async function issueSignupResumeLink(email: string): Promise<string> {
 }
 
 /** Where the signup-resume button points: a press page, never a spend on GET. */
-export function signupResumeUrl(base: string, linkToken: string, locale?: string | null): string {
-  return withLang(`${base.replace(/\/$/, "")}/welcome/r/${linkToken}`, locale);
+export function signupResumeUrl(
+  base: string,
+  linkToken: string,
+  locale?: string | null,
+  /** B-2827: the operator's "You're in" mail is a first visit; the press page
+   * words itself "Start your journal" instead of "Continue". Copy only —
+   * nothing reads it for a decision. */
+  first = false,
+): string {
+  const url = withLang(`${base.replace(/\/$/, "")}/welcome/r/${linkToken}`, locale);
+  return first ? `${url}${url.includes("?") ? "&" : "?"}start=1` : url;
 }
 
 /**

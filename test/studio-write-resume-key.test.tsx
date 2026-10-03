@@ -91,18 +91,18 @@ test("typing on the Write page is found by readAddDaySnapshot — the hub's own 
 
   // The bug: this used to be null — `DayFlow` wrote `studio:addDay:alex:one`
   // while this reads `studio:addDay:alex`.
-  const snapshot = readAddDaySnapshot("alex");
+  const snapshot = readAddDaySnapshot("alex", "reise");
   expect(snapshot).not.toBeNull();
   expect(snapshot?.content).toBe("Our first day.");
   // And the exact key a reload / the hub's own banner looks under.
-  expect(sessionStorage.getItem(addDayStorageKey("alex"))).not.toBeNull();
+  expect(sessionStorage.getItem(addDayStorageKey("alex", "reise"))).not.toBeNull();
 });
 
 describe("the flowId itself", () => {
   test("addDayFlowId has no per-part suffix any more", async () => {
     const { addDayFlowId } = await import("@/lib/studio/addDayResume");
-    expect(addDayFlowId("alex")).toBe("addDay:alex");
-    expect(addDayFlowId("alex")).not.toMatch(/:one$|:part-/);
+    expect(addDayFlowId("alex", "reise")).toBe("addDay:alex:reise");
+    expect(addDayFlowId("alex", "reise")).not.toMatch(/:one$|:part-/);
   });
 });
 
@@ -137,7 +137,7 @@ describe("a kept draft that has since been published (found in the browser, 2026
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await flush();
-    const key = addDayStorageKey("alex");
+    const key = addDayStorageKey("alex", "reise");
     const stored = JSON.parse(sessionStorage.getItem(key)!);
     const withSlug = JSON.stringify(stored).replace('"createdSlug":null', '"createdSlug":"2025-11-10"');
     expect(withSlug).toContain('"createdSlug":"2025-11-10"');

@@ -36,12 +36,15 @@ export type AddDaySnapshot = {
 
 /** The flow's `useStep` id (B2078): its draft is the snapshot, stored under
  *  `useStep`'s own `studio:<flowId>` key, so there is one copy, not two. */
-export function addDayFlowId(username: string): string {
-  return `addDay:${username}`;
+export function addDayFlowId(username: string, tripId: string): string {
+  return `addDay:${username}:${tripId}`;
 }
 
-export function addDayStorageKey(username: string): string {
-  return `studio:${addDayFlowId(username)}`;
+/** B2826 — one draft per trip: a half-written day of one trip is never offered
+ *  in another's flow. The old unkeyed `studio:addDay:<user>` is simply never
+ *  read again (it dies with the tab). */
+export function addDayStorageKey(username: string, tripId: string): string {
+  return `studio:${addDayFlowId(username, tripId)}`;
 }
 
 /** The date (`yyyy-mm-dd`) a saved draft is kept until — pass to
@@ -57,9 +60,9 @@ export function addDayExpiresOn(savedAt: string): string {
  * clears it, so an expired draft cannot be found by one reader after the
  * other already decided it was gone.
  */
-export function readAddDaySnapshot(username: string): AddDaySnapshot | null {
+export function readAddDaySnapshot(username: string, tripId: string): AddDaySnapshot | null {
   try {
-    const key = addDayStorageKey(username);
+    const key = addDayStorageKey(username, tripId);
     const raw = window.sessionStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<AddDaySnapshot> | null;

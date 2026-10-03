@@ -5026,5 +5026,12 @@
   "inviteApproved.why": "Ricevi questo perché hai chiesto un invito per {site}.",
   "signupPage.codeSentInvited": "Se questo indirizzo è invitato, un codice è in arrivo. È valido per {minutes} minuti.",
   "signupPage.requestInvite": "Non ancora invitato? Chiedi un invito",
-  "inviteRequest.alreadyInvited": "Già invitato? Inizia da qui"
+  "inviteRequest.alreadyInvited": "Già invitato? Inizia da qui",
+  "agent.error.invalid_tel": "Non sembra un numero di telefono. Scegli il tuo paese e scrivi il resto, oppure incolla il numero intero con + e il prefisso del paese.",
+  "agent.error.sms_unreachable": "Un SMS non può raggiungere quel paese da questo server. Usa invece la conferma tramite WhatsApp.",
+  "agent.error.phone_code_failed": "Non è stato possibile inviare il codice. Riprova tra un minuto o controlla il numero.",
+  "agent.error.phone_too_many": "Per questo numero o indirizzo sono stati richiesti troppi codici oggi. Riprova più tardi.",
+  "signupResume.startTitle": "Inizia il tuo diario",
+  "signupResume.startBody": "Premi il pulsante e ci sei. Non viene creato nulla finché non hai finito.",
+  "signupResume.startAction": "Inizia il mio diario"
 }

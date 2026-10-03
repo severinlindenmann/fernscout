@@ -5017,5 +5017,12 @@
   "inviteApproved.why": "You got this because you asked for an invite to {site}.",
   "signupPage.codeSentInvited": "If this address is invited, a code is on its way. It works for {minutes} minutes.",
   "signupPage.requestInvite": "Not invited yet? Request an invite",
-  "inviteRequest.alreadyInvited": "Already invited? Start here"
+  "inviteRequest.alreadyInvited": "Already invited? Start here",
+  "agent.error.invalid_tel": "That doesn't look like a phone number. Pick your country and type the rest, or paste the whole number starting with + and its country code.",
+  "agent.error.sms_unreachable": "A text message can't reach that country from this server. Use the WhatsApp confirmation instead.",
+  "agent.error.phone_code_failed": "The code could not be sent. Try again in a minute, or check the number.",
+  "agent.error.phone_too_many": "Too many codes have been asked for this number or address today. Try again later.",
+  "signupResume.startTitle": "Start your journal",
+  "signupResume.startBody": "Press the button and you are in. Nothing is created until you finish.",
+  "signupResume.startAction": "Start my journal"
 }

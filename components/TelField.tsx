@@ -133,6 +133,31 @@ export function guessMisplacedNumber(raw: string): { cc: string; national: strin
   return null;
 }
 
+/**
+ * B-2825. The row this picker shows for a stored dial code. Several
+ * countries share a code (+44: Guernsey, Isle of Man, Jersey, the United
+ * Kingdom; +1; +7), so a caller that knows the region (`GB`) names it and
+ * gets that country; with no region, or one whose code differs, the first
+ * by name stands, as before.
+ */
+export function selectedCountry(cc: string, iso2: string | undefined, locale: string) {
+  const all = filterCountries("", locale);
+  return all.find((d) => d.cc === cc && d.iso2 === iso2) ?? all.find((d) => d.cc === cc);
+}
+
+/**
+ * B-2824. A number pasted whole into the national box ("+41 76 000 00 00")
+ * is split into code and national part rather than stored as "+41 +41 79…".
+ * `null` for anything that is not a leading-plus number with a known code.
+ */
+export function splitPastedNumber(value: string): { cc: string; national: string } | null {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("+")) return null;
+  const spaced = splitTel(trimmed);
+  if (spaced.cc && spaced.national) return spaced;
+  return guessMisplacedNumber(trimmed);
+}
+
 const CONTROL =
   "rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg text-ink-strong";
 
@@ -141,6 +166,7 @@ export default function TelField({
   cc,
   national,
   onChange,
+  iso2,
   labelCountry,
   searchPlaceholder,
   noMatches,
@@ -151,7 +177,9 @@ export default function TelField({
   id: string;
   cc: string;
   national: string;
-  onChange: (cc: string, national: string) => void;
+  onChange: (cc: string, national: string, iso2?: string) => void;
+  /** B-2825: the country (ISO) behind `cc`, for codes several share. */
+  iso2?: string;
   /** `t("contact.telCountry")` — the accessible name of the combobox; there
    * is no visible `<label>` of its own, same as the B385 `<select>` it
    * replaces. */
@@ -180,10 +208,7 @@ export default function TelField({
   // Several rows share a `cc` (`+1`, `+7`); this can only show the first
   // match by name, which is fine — the field never stored which one was
   // meant, before this ticket or after it.
-  const selected = useMemo(
-    () => filterCountries("", locale).find((d) => d.cc === cc),
-    [cc, locale],
-  );
+  const selected = useMemo(() => selectedCountry(cc, iso2, locale), [cc, iso2, locale]);
   const active = filtered[Math.min(highlight, filtered.length - 1)];
 
   // A listbox has no native "click outside to close" the way a <select>'s
@@ -198,7 +223,7 @@ export default function TelField({
   }, [open]);
 
   function choose(d: { iso2: string; cc: string }) {
-    onChange(d.cc, national);
+    onChange(d.cc, national, d.iso2);
     setQuery("");
     setOpen(false);
   }
@@ -309,7 +334,11 @@ export default function TelField({
         type="tel"
         autoComplete="tel-national"
         value={national}
-        onChange={(e) => onChange(cc, e.target.value)}
+        onChange={(e) => {
+          const pasted = splitPastedNumber(e.target.value);
+          if (pasted) onChange(pasted.cc, pasted.national);
+          else onChange(cc, e.target.value, selected?.iso2);
+        }}
       />
     </div>
   );
