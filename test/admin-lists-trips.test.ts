@@ -25,7 +25,13 @@ const { isOwner, isJournalGuest, resolveAccess } = vi.hoisted(() => ({
   resolveAccess: vi.fn(async () => ({ email: "admin@example.test" })),
 }));
 
-vi.mock("@/lib/contacts/session", () => ({ isOwner, isJournalGuest, journalReader: vi.fn() }));
+// `journalReader` is the one question the gate asks since B1749 (guest and
+// close tier together); answered here from the same `isJournalGuest` switch.
+vi.mock("@/lib/contacts/session", () => ({
+  isOwner,
+  isJournalGuest,
+  journalReader: async () => ({ email: "admin@example.test", contact: null, guest: await isJournalGuest(), close: false }),
+}));
 vi.mock("@/lib/auth/handshake", () => ({ resolveAccess }));
 vi.mock("@/lib/tripPeople", () => ({
   isPersonOn: vi.fn(),
