@@ -81,6 +81,7 @@ import {
 import { BOOK_SIZES, COVER_TYPES } from "@paid/photobook/lib/photobook/spec";
 import { HELPER_PROVIDER } from "../../helper/model";
 import { IMPORT_KINDS } from "../../gps/api";
+import { importPhotosDoc, importPhotosResult } from "./schemas/importPhotos";
 import { PAID_AREAS } from "@paid/manifest";
 import { CODE_TTL_MINUTES, GPS_TOKEN_TTL_DAYS, HANDOVER_TTL_MINUTES } from "../../auth";
 import {
@@ -173,6 +174,24 @@ const jsonBody = (schema: z.ZodType, description?: string, declinables?: readonl
     },
   },
 });
+
+// The one multipart request body in the document (B2195); `jsonBody` only
+// knows application/json, so this is written out and cast where it is used.
+const multipartPhotosBody = {
+  description: "multipart/form-data: `file` (repeat for each photograph), `run` (optional)",
+  required: true,
+  content: {
+    "multipart/form-data": {
+      schema: {
+        type: "object",
+        properties: {
+          file: { type: "array", items: { type: "string", format: "binary" } },
+          run: { type: "string", description: "a runId from an earlier call, to add to that run" },
+        },
+      },
+    },
+  },
+};
 
 const jsonResponse = (status: number, schema: z.ZodType, description: string) => ({
   [status]: { description, content: { "application/json": { schema: schemaOf(schema) } } },
@@ -1074,6 +1093,36 @@ function buildPaths(): Record<string, PathItem> {
           ref("storage_full", 400),
           ref("unreadable", 400),
           ref("contract", 400),
+        ]),
+      },
+    },
+  };
+
+  // ── photographs handed over by the iPhone share sheet — B2195 ──────────
+  paths["/api/v2/{user}/import/photos"] = {
+    get: {
+      summary:
+        "The limits on handing photographs over, and the runs already holding some — owner only, and " +
+        "absent (404) when the guided import is off.",
+      responses: {
+        ...jsonResponse(200, importPhotosDoc, "limits, staged bytes, and each run's photograph count"),
+        ...refusalResponses([...ownerRefusals, ref("not_found", 404)]),
+      },
+    },
+    post: {
+      summary:
+        "Stage photographs for the studio's guided import (multipart `file`, at most `maxFilesPerRequest` " +
+        "per call; `run` adds to an earlier run, absent opens a new one — no files at all just opens it). Trip and day are declined: " +
+        "nothing is filed, the owner sorts them into days in the studio, and staged photographs clear " +
+        "after two days unused. Owner token only — a `write:gps` or trip-scoped token is refused.",
+      requestBody: multipartPhotosBody as never,
+      responses: {
+        ...jsonResponse(200, importPhotosResult, "what was staged and what was refused, with the run to resume"),
+        ...refusalResponses([
+          ...ownerRefusals,
+          ref("not_found", 404),
+          ref("expected_multipart", 400),
+          ref("body_too_large", 413),
         ]),
       },
     },

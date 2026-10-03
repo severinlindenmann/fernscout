@@ -11,6 +11,12 @@ import UniformTypeIdentifiers
 /// `POST /api/v2/<user>/media`; iOS finishes them after the sheet closes,
 /// app or no app. HEIC originals go as they are.
 ///
+/// "Start a new trip from these" — B2195 — files nothing: it opens a staging
+/// run (`POST /api/v2/<user>/import/photos`, no files) and hands every item
+/// to that same door with the run id, trip and day declined. The studio's
+/// "Bring in an old trip" picks the run up and sorts it into days; staged
+/// photographs clear after two days unused.
+///
 /// The trip list is cached in the app group so the sheet opens at once and
 /// works without a signal, and refreshed in the background on each open.
 /// No caption here: the person writes it in the studio, in their words.
@@ -26,6 +32,10 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
     private var trips: [TripRow] = []
     private var files: [(url: URL, name: String, mime: String)] = []
     private var collected = false
+    /// Items copied so far, and how many there will be — the sheet's count.
+    private var copied = 0
+    private var expected = 0
+    private var handingOver = false
     /// Three most recent by default — B2183, the owner's ask — the rest
     /// behind one row.
     private var showAll = false
@@ -38,7 +48,7 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
     /// A half sheet that grows with its rows rather than a full page —
     /// iOS lets an extension size itself through `preferredContentSize`.
     private func fitSheet() {
-        let rows = CGFloat(shown.count + (hasMore ? 1 : 0) + 1)
+        let rows = CGFloat(shown.count + (hasMore ? 1 : 0) + 2)
         let height = 8 + 118 + rows * 56 + 44 + 24 + view.safeAreaInsets.bottom
         cardHeight.constant = min(height, view.bounds.height - 60)
         UIView.animate(withDuration: 0.2) { self.view.layoutIfNeeded() }
@@ -123,6 +133,9 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
             self?.files = files
             self?.collected = true
         }
+        // `expected` is known as soon as collection starts: the new-trip row's count.
+        table.reloadData()
+        fitSheet()
     }
 
     // MARK: the list
@@ -211,7 +224,7 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
 
     func numberOfSections(in tableView: UITableView) -> Int { 2 }
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        section == 0 ? shown.count + (hasMore ? 1 : 0) : 1
+        section == 0 ? shown.count + (hasMore ? 1 : 0) : 2
     }
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         section == 0 && trips.isEmpty ? String(localized: "shareInbox.noTripsYet") : nil
@@ -226,6 +239,13 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
             }
             return iconCell("chevron.down", tint: .secondaryLabel, fill: Self.yellowSoft, title: String(format: String(localized: "shareInbox.allTrips"), trips.count), detail: nil)
         }
+        if indexPath.row == 0 {
+            let n = max(expected, files.count)
+            let detail: String? = n == 0 ? nil
+                : n == 1 ? String(localized: "shareInbox.newTrip.detail.one")
+                : String(format: String(localized: "shareInbox.newTrip.detail"), n)
+            return iconCell("plus", tint: Self.navy, fill: Self.yellowSoft, title: String(localized: "shareInbox.newTrip"), detail: detail)
+        }
         return iconCell("tray.fill", tint: Self.navy, fill: Self.creamDeep, title: String(localized: "shareInbox.decideLater"), detail: String(localized: "shareInbox.decideLater.detail"))
     }
     private static func year(_ from: String) -> String { String(from.prefix(4)) }
@@ -237,14 +257,72 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
             fitSheet()
             return
         }
+        let startsTrip = indexPath.section == 1 && indexPath.row == 0
         let trip = indexPath.section == 0 ? shown[indexPath.row] : nil
         table.isHidden = true
         label.isHidden = false
-        label.text = String(localized: "shareInbox.handingOver")
-        send(trip: trip)
+        handingOver = true
+        showProgress()
+        if startsTrip { sendAsNewTrip() } else { send(trip: trip) }
     }
 
     // MARK: the upload
+
+    /// "Handing over 37 of 200…" while items are copied one at a time; the
+    /// plain line before the count is known.
+    private func showProgress() {
+        label.text = expected > 0
+            ? String(format: String(localized: "shareInbox.handingOverCount"), copied, expected)
+            : String(localized: "shareInbox.handingOver")
+    }
+
+    /// Opens a staging run in the foreground (a few hundred bytes — the sheet
+    /// is alive for it), then queues every file as a background upload
+    /// carrying that run id. A failure here says so rather than closing as
+    /// if the photographs were on their way.
+    private func sendAsNewTrip() {
+        guard collected else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in self?.sendAsNewTrip() }
+            return
+        }
+        guard let c = credential else { return }
+        if files.isEmpty {
+            finish(String(localized: "shareInbox.nothingToTake"), after: 2)
+            return
+        }
+        var req = URLRequest(url: URL(string: "\(c.base)/api/v2/\(c.user)/import/photos")!)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(c.token)", forHTTPHeaderField: "Authorization")
+        req.setValue("multipart/form-data; boundary=open", forHTTPHeaderField: "Content-Type")
+        req.httpBody = Data("--open--\r\n".utf8)
+        req.timeoutInterval = 20
+        URLSession.shared.dataTask(with: req) { [weak self] data, response, _ in
+            let runId = (data.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any])?["runId"] as? String
+            DispatchQueue.main.async {
+                guard let self else { return }
+                guard (response as? HTTPURLResponse)?.statusCode == 200, let runId else {
+                    self.finish(String(localized: "shareInbox.studio.failed"), after: 2.5)
+                    return
+                }
+                self.enqueueAll(run: runId, c)
+            }
+        }.resume()
+    }
+
+    /// One item per turn of the run loop so the count on screen keeps moving
+    /// and only one body is ever in memory.
+    private func enqueueAll(run: String, _ c: ShareCredential, from i: Int = 0) {
+        guard i < files.count else {
+            let n = files.count
+            let line = String(format: n == 1 ? String(localized: "shareInbox.studio.line.one") : String(localized: "shareInbox.studio.line"), n)
+            finish(heading: String(localized: "shareInbox.studio.heading"), line: line, sent: true, after: 4.0)
+            return
+        }
+        copied = i
+        showProgress()
+        autoreleasepool { enqueue(files[i], trip: nil, c, run: run) }
+        DispatchQueue.main.async { [weak self] in self?.enqueueAll(run: run, c, from: i + 1) }
+    }
 
     /// Waits for the item copies if the tap came first — a tap is quicker
     /// than a HEIC copy — then hands every file to the background session.
@@ -276,36 +354,52 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
             .appendingPathComponent("share-inbox", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var out: [(URL, String, String)] = []
-        let group = DispatchGroup()
-        for provider in providers {
-            // Photos registers a JPEG it made on the spot *first* and the
-            // original (`public.heic`) second, so a HEIC is only handed over
-            // when asked for by its own type. Any registered non-JPEG image
-            // or movie type is the original; JPEG is the fallback, and it is
-            // also what a camera that shoots JPEG genuinely has (B1750, B2113).
+        // One item at a time — an extension has about 120 MB — so the count
+        // on screen is real. Photos registers a JPEG it made on the spot
+        // *first* and the original (`public.heic`) second, so a HEIC is only
+        // handed over when asked for by its own type. Any registered non-JPEG
+        // image or movie type is the original; JPEG is the fallback, and it is
+        // also what a camera that shoots JPEG genuinely has (B1750, B2113).
+        let wanted: [(NSItemProvider, UTType)] = providers.compactMap { provider in
             let candidates = provider.registeredTypeIdentifiers
                 .compactMap { UTType($0) }
                 .filter { $0.conforms(to: .image) || $0.conforms(to: .movie) }
-            guard let type = candidates.first(where: { $0 != .jpeg }) ?? candidates.first else { continue }
-            group.enter()
+            guard let type = candidates.first(where: { $0 != .jpeg }) ?? candidates.first else { return nil }
+            return (provider, type)
+        }
+        expected = wanted.count
+        func next(_ i: Int) {
+            guard i < wanted.count else {
+                done(out.map { (url: $0.0, name: $0.1, mime: $0.2) })
+                return
+            }
+            let (provider, type) = wanted[i]
             provider.loadFileRepresentation(forTypeIdentifier: type.identifier) { url, _ in
-                defer { group.leave() }
-                guard let url else { return }
-                let name = url.lastPathComponent
-                let dest = dir.appendingPathComponent("\(UUID().uuidString)-\(name)")
-                guard (try? FileManager.default.copyItem(at: url, to: dest)) != nil else { return }
-                let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
-                out.append((dest, name, mime))
+                if let url {
+                    let name = url.lastPathComponent
+                    let dest = dir.appendingPathComponent("\(UUID().uuidString)-\(name)")
+                    if (try? FileManager.default.copyItem(at: url, to: dest)) != nil {
+                        let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+                        out.append((dest, name, mime))
+                    }
+                }
+                DispatchQueue.main.async { [weak self] in
+                    self?.copied = i + 1
+                    if self?.handingOver == true { self?.showProgress() }
+                    next(i + 1)
+                }
             }
         }
-        group.notify(queue: .main) { done(out.map { (url: $0.0, name: $0.1, mime: $0.2) }) }
+        next(0)
     }
 
     /// One multipart body per file, written beside it, then handed to the
     /// background session. With a trip, `intent.trip` is set and the day
     /// declined; without one, trip and day are both declined — the inbox.
-    private func enqueue(_ file: (url: URL, name: String, mime: String), trip: TripRow?, _ c: ShareCredential) {
+    private func enqueue(_ file: (url: URL, name: String, mime: String), trip: TripRow?, _ c: ShareCredential, run: String? = nil) {
         let boundary = "fernscout-\(UUID().uuidString)"
+        // A new-trip share goes to the staging door: no intent, just the run.
+        let staging = run != nil
         var declined: [String: String] = [
             "day": "shared from the iPhone, not placed on a day yet",
             "caption": "to be written in the studio",
@@ -317,7 +411,11 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
               let intentText = String(data: intentData, encoding: .utf8) else { return }
         var body = Data()
         func part(_ s: String) { body.append(s.data(using: .utf8)!) }
-        part("--\(boundary)\r\nContent-Disposition: form-data; name=\"intent\"\r\n\r\n\(intentText)\r\n")
+        if let run {
+            part("--\(boundary)\r\nContent-Disposition: form-data; name=\"run\"\r\n\r\n\(run)\r\n")
+        } else {
+            part("--\(boundary)\r\nContent-Disposition: form-data; name=\"intent\"\r\n\r\n\(intentText)\r\n")
+        }
         // A shared file's name is whatever the sender called it; quotes and
         // line breaks in it must not reach the part's header line.
         let safeName = file.name.unicodeScalars.filter { $0.value >= 32 && $0 != "\"" && $0 != "\\" }.map(String.init).joined()
@@ -329,7 +427,7 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         guard (try? body.write(to: bodyURL)) != nil else { return }
         try? FileManager.default.removeItem(at: file.url)
 
-        var req = URLRequest(url: URL(string: "\(c.base)/api/v2/\(c.user)/media")!)
+        var req = URLRequest(url: URL(string: "\(c.base)/api/v2/\(c.user)/\(staging ? "import/photos" : "media")")!)
         req.httpMethod = "POST"
         req.setValue("Bearer \(c.token)", forHTTPHeaderField: "Authorization")
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")

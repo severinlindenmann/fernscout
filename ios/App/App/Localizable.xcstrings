@@ -1016,6 +1016,286 @@
       },
       "comment": "B2175/B2735"
     },
+    "shareInbox.handingOverCount": {
+      "comment": "B2195 — share sheet, start a new trip — progress while items are copied; first %d is how many are done, second the total.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d von %d werden übergeben …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handing over %d of %d…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transfert de %d sur %d…"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d. átadása, összesen %d…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consegna di %d su %d…"
+          }
+        }
+      }
+    },
+    "shareInbox.newTrip": {
+      "comment": "B2195 — share sheet, start a new trip",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neue Reise daraus beginnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start a new trip from these"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commencer un nouveau voyage avec ces photos"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Új út indítása ezekből"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inizia un nuovo viaggio da queste"
+          }
+        }
+      }
+    },
+    "shareInbox.newTrip.detail": {
+      "comment": "B2195 — share sheet, start a new trip — %d is the photo count, plural.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d Fotos · im Studio auf Tage verteilt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d photographs · sorted into days in the studio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d photos · réparties en jours dans le studio"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d fénykép · a stúdióban napokra bontva"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d foto · divise in giorni nello studio"
+          }
+        }
+      }
+    },
+    "shareInbox.newTrip.detail.one": {
+      "comment": "B2195 — share sheet, start a new trip — the singular of shareInbox.newTrip.detail.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 Foto · im Studio auf Tage verteilt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 photograph · sorted into days in the studio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 photo · répartie en jours dans le studio"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 fénykép · a stúdióban napokra bontva"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 foto · divisa in giorni nello studio"
+          }
+        }
+      }
+    },
+    "shareInbox.studio.failed": {
+      "comment": "B2195 — share sheet, start a new trip — closing card when the hand-over failed.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konnten nicht übergeben werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not hand these over"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de les transférer"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nem sikerült átadni"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossibile consegnarle"
+          }
+        }
+      }
+    },
+    "shareInbox.studio.heading": {
+      "comment": "B2195 — share sheet, start a new trip — closing card heading.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unterwegs ins Studio"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On its way to the studio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En route vers le studio"
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Úton a stúdióba"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In viaggio verso lo studio"
+          }
+        }
+      }
+    },
+    "shareInbox.studio.line": {
+      "comment": "B2195 — share sheet, start a new trip — closing card; %d is the photo count, plural. 'Bring in an old trip' is the studio's own menu entry (studio.hub.item.photos.title) and must match it in each language.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d Fotos · laden im Hintergrund hoch, Originale bleiben erhalten. Öffne Fernscout → Eine alte Reise importieren, innerhalb von zwei Tagen, um sie aufzubauen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d photographs · uploads in the background, originals intact. Open Fernscout → Bring in an old trip within two days to build it."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d photos · envoi en arrière-plan, originaux intacts. Ouvre Fernscout → Importer un ancien voyage dans les deux jours pour le construire."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d fénykép · háttérben töltődik fel, az eredetik megmaradnak. Két napon belül nyisd meg a Fernscoutot → Egy régi út behozása, és építsd fel az utat."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d foto · caricamento in background, originali intatti. Entro due giorni apri Fernscout → Importa un vecchio viaggio per costruirlo."
+          }
+        }
+      }
+    },
+    "shareInbox.studio.line.one": {
+      "comment": "B2195 — share sheet, start a new trip — the singular of shareInbox.studio.line.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 Foto · lädt im Hintergrund hoch, Original bleibt erhalten. Öffne Fernscout → Eine alte Reise importieren, innerhalb von zwei Tagen, um sie aufzubauen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 photograph · uploads in the background, original intact. Open Fernscout → Bring in an old trip within two days to build it."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 photo · envoi en arrière-plan, original intact. Ouvre Fernscout → Importer un ancien voyage dans les deux jours pour le construire."
+          }
+        },
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 fénykép · háttérben töltődik fel, az eredeti megmarad. Két napon belül nyisd meg a Fernscoutot → Egy régi út behozása, és építsd fel az utat."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 foto · caricamento in background, originale intatto. Entro due giorni apri Fernscout → Importa un vecchio viaggio per costruirlo."
+          }
+        }
+      }
+    },
     "shareInbox.noTripsYet": {
       "localizations": {
         "de": {

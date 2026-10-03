@@ -76,6 +76,11 @@ export type RunManifest = {
    */
   language?: SpeechLanguage;
   state: "uploading" | "analysed" | "telling" | "committed";
+  /** Set when the run was opened by the iPhone share sheet
+   *  (`POST /api/v2/<user>/import/photos`, B2195) rather than the studio's
+   *  own picker: trip and mode were never asked there, so resuming it skips
+   *  Step 02 — it is a new trip, typed. */
+  via?: "share";
   photos: PhotoRow[];
   days: DayRow[];
   /** Set once the one free sample description has been taken. */
