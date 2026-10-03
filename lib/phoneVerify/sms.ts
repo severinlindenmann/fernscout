@@ -20,7 +20,10 @@ import type { CheckResult, PhoneVerifyBackend, StartResult } from "./types";
 
 async function start(phone: string, locale: string): Promise<StartResult> {
   const { id, code } = await issuePhoneCode(phone);
-  const sentence = translateIn(locale, "code.phoneVerify", { code, site: loadServerConfig().site.name });
+  // B2813: the last line is the WebOTP origin binding ("@host #code") — the
+  // host is the configured site url's, never a literal.
+  const { name, url } = loadServerConfig().site;
+  const sentence = translateIn(locale, "code.phoneVerify", { code, site: name, host: new URL(url).host });
   await sendSms({ to: phone, body: sentence, template: "code.sms" });
   return { id };
 }

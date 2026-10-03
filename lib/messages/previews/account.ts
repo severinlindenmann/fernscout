@@ -64,7 +64,7 @@ export const accountPreviews: PreviewMap = {
   // only now.
   "code.sms": (locale) => ({
     channel: "sms",
-    text: translateIn(locale, "code.phoneVerify", { code: SAMPLE.code, site: SAMPLE.site }),
+    text: translateIn(locale, "code.phoneVerify", { code: SAMPLE.code, site: SAMPLE.site, host: "example.org" }),
   }),
 
   "invite.mail": (locale) => {

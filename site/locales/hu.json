@@ -4492,7 +4492,7 @@
   "op.spendButton": "Uzemeltetoi oldal megnyitasa",
   "op.spendFooter": "Naponta egyszer kuldve, az ejszakai ellenorzes altal. Allitsd a costs.alertDailyRappen erteket 0-ra a leallitashoz.",
   "op.messageFooter": "A(z) {site} uzemeltetojetol, a(z) {user} journalodrol. Valaszolj erre a levelre.",
-  "code.phoneVerify": "{code} a(z) {site} kodod. 30 percen belul lejar.",
+  "code.phoneVerify": "{code} a(z) {site} kodod. 30 percen belul lejar.\n\n@{host} #{code}",
   "mail.whyLabel": "Miért kaptad ezt:",
   "smsStop.title": "SMS leiratkozás",
   "smsStop.question": "Ne kapj több SMS-t az új napokról ettől: {journal}?",
