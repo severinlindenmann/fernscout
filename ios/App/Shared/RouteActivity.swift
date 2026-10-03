@@ -41,6 +41,11 @@ struct RouteActivityAttributes: ActivityAttributes {
         /// Only set when the owner's own toggle is on; absent, not empty,
         /// otherwise.
         var tripTitle: String?
+        /// B2766 — the owner's "Show in the Dynamic Island" switch (default
+        /// off). iOS always gives a running activity the Island; off draws
+        /// every Island region empty, leaving only the system's own pill.
+        /// Optional so a state encoded without it decodes as off.
+        var showsIsland: Bool?
     }
 
     /// Nothing fixed per-activity beyond the trip id — everything else

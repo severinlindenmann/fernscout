@@ -25,7 +25,8 @@ enum LiveActivityController {
         let recordsUntil = (summary["recordsUntil"] as? String).flatMap { iso.date(from: $0) }
         let tripTitle = summary["tripTitle"] as? String
         return RouteActivityAttributes.ContentState(
-            state: state, dayNumber: dayNumber, lastSentAt: lastSentAt, recordsUntil: recordsUntil, tripTitle: tripTitle
+            state: state, dayNumber: dayNumber, lastSentAt: lastSentAt, recordsUntil: recordsUntil, tripTitle: tripTitle,
+            showsIsland: summary["showsIsland"] as? Bool ?? false
         )
     }
 

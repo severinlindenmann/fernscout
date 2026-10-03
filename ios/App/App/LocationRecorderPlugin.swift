@@ -28,6 +28,8 @@ public class LocationRecorderPlugin: CAPPlugin, CAPBridgedPlugin {
             // B2733 — the Lock Screen's own trip-name opt-in.
             CAPPluginMethod(name: "getLockScreenTripName", returnType: CAPPluginReturnPromise),
             CAPPluginMethod(name: "setLockScreenTripName", returnType: CAPPluginReturnPromise),
+            CAPPluginMethod(name: "getActivityPrefs", returnType: CAPPluginReturnPromise),
+            CAPPluginMethod(name: "setActivityPrefs", returnType: CAPPluginReturnPromise),
         ]
         #if DEBUG
         methods.append(CAPPluginMethod(name: "debugForceCooldown", returnType: CAPPluginReturnPromise))
@@ -278,6 +280,19 @@ public class LocationRecorderPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func setLockScreenTripName(_ call: CAPPluginCall) {
         Recorder.shared.setLockScreenTripName(call.getBool("on") ?? false)
+        call.resolve()
+    }
+
+    /// B2766 — "Show on the Lock Screen" (default on) and "Show in the
+    /// Dynamic Island" (default off).
+    @objc func getActivityPrefs(_ call: CAPPluginCall) {
+        let prefs = Recorder.shared.activityPrefs()
+        call.resolve(["lockScreen": prefs.lockScreen, "island": prefs.island])
+    }
+
+    /// Either key may be left out; only the ones sent change.
+    @objc func setActivityPrefs(_ call: CAPPluginCall) {
+        Recorder.shared.setActivityPrefs(lockScreen: call.getBool("lockScreen"), island: call.getBool("island"))
         call.resolve()
     }
 }
