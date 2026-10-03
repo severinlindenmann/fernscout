@@ -14,6 +14,7 @@ import {
   Search,
   Server,
   Sprout,
+  Ticket,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -42,7 +43,7 @@ import Palette, { type PaletteItem } from "./Palette";
  * count is the badge on Overview — a person waiting is never behind a tap.
  */
 
-type SectionIcon = "overview" | "money" | "journals" | "people" | "messages" | "instance" | "activity" | "providers";
+type SectionIcon = "overview" | "money" | "journals" | "people" | "messages" | "instance" | "activity" | "providers" | "vouchers";
 
 const ICONS: Record<SectionIcon, LucideIcon> = {
   overview: LayoutDashboard,
@@ -53,6 +54,7 @@ const ICONS: Record<SectionIcon, LucideIcon> = {
   instance: Server,
   activity: Activity,
   providers: Plug,
+  vouchers: Ticket,
 };
 
 export type Section = {

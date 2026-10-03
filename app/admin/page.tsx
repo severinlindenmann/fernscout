@@ -5,6 +5,7 @@ import AppWaitlist from "./AppWaitlist";
 import InviteRequests from "./InviteRequests";
 import Invites from "./Invites";
 import AdminPlanGrant from "@paid/billing/routes/admin/AdminPlanGrant";
+import AdminVouchers from "@paid/billing/routes/admin/AdminVouchers";
 import Journals from "./Journals";
 import MessageOwner from "./MessageOwner";
 import MessagesPanel from "./messages/MessagesPanel";
@@ -517,6 +518,18 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
       badgeTone: "alert",
       panel: <ProvidersOrders initial={providersReport} nowIso={new Date().toISOString()} />,
     },
+    // B2767 — the vouchers table is billing's; absent where billing is off.
+    ...(isEnabled("billing")
+      ? [
+          {
+            id: "vouchers",
+            label: "Vouchers",
+            icon: "vouchers" as const,
+            lede: "Every active voucher, and a voucher given to or taken back from a journal.",
+            panel: <AdminVouchers journals={report.journals.map((row) => row.username)} />,
+          },
+        ]
+      : []),
     {
       id: "activity",
       label: "Activity",
