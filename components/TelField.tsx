@@ -146,7 +146,7 @@ export function selectedCountry(cc: string, iso2: string | undefined, locale: st
 }
 
 /**
- * B-2824. A number pasted whole into the national box ("+41 79 555 55 55")
+ * B-2824. A number pasted whole into the national box ("+41 76 000 00 00")
  * is split into code and national part rather than stored as "+41 +41 79…".
  * `null` for anything that is not a leading-plus number with a known code.
  */

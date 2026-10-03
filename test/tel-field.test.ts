@@ -166,11 +166,11 @@ describe("B-2825 the country behind a shared dial code", () => {
 
 describe("B-2824 a whole number pasted into the national box", () => {
   test("splits spaced and unspaced +CC numbers", () => {
-    expect(splitPastedNumber("+41 79 555 55 55")).toEqual({ cc: "41", national: "79 555 55 55" });
-    expect(splitPastedNumber("+41795555555")).toEqual({ cc: "41", national: "795555555" });
+    expect(splitPastedNumber("+41 76 000 00 00")).toEqual({ cc: "41", national: "76 000 00 00" });
+    expect(splitPastedNumber("+41760000000")).toEqual({ cc: "41", national: "760000000" });
   });
   test("leaves an ordinary national number alone", () => {
-    expect(splitPastedNumber("79 555 55 55")).toBeNull();
+    expect(splitPastedNumber("76 000 00 00")).toBeNull();
     expect(splitPastedNumber("+")).toBeNull();
   });
 });

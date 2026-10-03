@@ -260,11 +260,11 @@ describe("the signup wizard", () => {
     vi.spyOn(navigator, "languages", "get").mockReturnValue(["en-GB"]);
     mount();
     await toToken();
-    await type("signup-tel", "+41 79 555 55 55");
-    expect(input("signup-tel").value).toBe("79 555 55 55");
+    await type("signup-tel", "+41 76 000 00 00");
+    expect(input("signup-tel").value).toBe("76 000 00 00");
     expect(input("signup-tel-cc").value).toContain("+41");
     await submit();
-    expect(calls.filter((c) => c.url === "/api/auth/signup/phone").pop()!.body.tel).toBe("+41 79 555 55 55");
+    expect(calls.filter((c) => c.url === "/api/auth/signup/phone").pop()!.body.tel).toBe("+41 76 000 00 00");
   });
 
   test.each([
@@ -280,7 +280,7 @@ describe("the signup wizard", () => {
     });
     mount();
     await toToken();
-    await type("signup-tel", "79 555 55 55");
+    await type("signup-tel", "76 000 00 00");
     await submit();
     expect(text()).toMatch(message);
     expect(text()).not.toContain("did not create your journal");
