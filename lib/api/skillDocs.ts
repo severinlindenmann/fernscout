@@ -138,9 +138,9 @@ function newAccount(): string {
       "exists — send `user` too), `read` (a guest cookie, browser-only) or `identity` (proves " +
       "an address, authorises nothing). The answer is `202 {\"status\": \"accepted\"}` " +
       "for almost every address — a mail either lands or it does not, and the response cannot say " +
-      "which without letting a caller enumerate addresses. Two exceptions actually answer " +
-      "differently: an invite-only instance answers `403 signup_not_invited` to `for: " +
-      "\"signup\"` from an address its operator has not named, and `for: \"write\"` to an " +
+      "which without letting a caller enumerate addresses — on an invite-only instance that " +
+      "includes `for: \"signup\"` from an address the operator has not named: the same 202, and " +
+      "no code is sent. One exception answers differently: `for: \"write\"` to an " +
       "address that neither owns the journal nor is named on any of its trips answers `403 " +
       "not_authorised` — naming a `scope: {\"trip\": \"<trip-id>\"}` the address actually " +
       "belongs to is the fix, not a retry.",

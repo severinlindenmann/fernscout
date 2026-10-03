@@ -200,11 +200,15 @@ describe("B-2780 the code request does not tell who is listed", () => {
     expect(mails().some((m) => m.includes("stranger@example.test"))).toBe(false);
   });
 
-  test("redeeming a signup code for an unlisted address is still refused", async () => {
+  test("redeeming a signup code for an unlisted address is still refused, like a wrong code", async () => {
+    // B-2780: the same 401 invalid_code a wrong code gets, so redeem is no
+    // invite-list oracle either.
     const { code } = await issueCode(NO_JOURNAL, "stranger@example.test", "signup");
     const res = await post(redeemPOST, "/api/auth/codes/redeem", { email: "stranger@example.test", code, for: "signup" });
-    expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe("signup_not_invited");
+    expect(res.status).toBe(401);
+    expect((await res.json()).error).toBe("invalid_code");
+    const wrong = await post(redeemPOST, "/api/auth/codes/redeem", { email: "nobody@example.test", code: "000000", for: "signup" });
+    expect(wrong.status).toBe(401);
   });
 });
 

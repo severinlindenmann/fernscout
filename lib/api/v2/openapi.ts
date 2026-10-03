@@ -2013,10 +2013,9 @@ function buildPaths(): Record<string, PathItem> {
         ...jsonResponse(200, z.union([codesRedeemCookieResponse, codesRedeemTokenResponse]), 'cookie response for "read"/"identity", token response for "write"/"signup"'),
         ...refusalResponses([
           ref("invalid_request", 400),
-          ref("invalid_code", 401, "wrong, expired, burned, or the wrong `for`"),
+          ref("invalid_code", 401, "wrong, expired, burned, the wrong `for`, or (signup) an address not on an invite-only list"),
           ref("signup_disabled", 404),
           ref("auth_disabled", 404),
-          ref("signup_not_invited", 403, "the code is not spent"),
           ref(
             "too_many_journals",
             409,

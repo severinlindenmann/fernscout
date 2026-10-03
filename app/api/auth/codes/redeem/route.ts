@@ -61,12 +61,6 @@ export async function POST(request: Request) {
 
   if (req.for === "signup") {
     if (!isEnabled("signup")) return fail("signup_disabled", ERROR_CODES.signup_disabled, undefined, 404);
-    // B1693. Checked again rather than trusted from the request step: an
-    // address taken off the list after its code was issued must not be able
-    // to spend it.
-    if (!(await signupAllowed(email))) {
-      return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
-    }
   } else if (!isEnabled("auth")) {
     return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
   }
@@ -76,6 +70,15 @@ export async function POST(request: Request) {
     const res = fail("too_many_requests", ERROR_CODES.too_many_requests, { retryAfter: limit.retryAfter }, 429);
     res.headers.set("Retry-After", String(limit.retryAfter));
     return res;
+  }
+
+  // B1693. Checked again rather than trusted from the request step: an
+  // address taken off the list after its code was issued must not be able
+  // to spend it. B-2780: after the rate limit, and with the same answer as a
+  // wrong code — an unlisted address never holds a valid signup code, and a
+  // distinct 403 here told anyone who is on the invite list.
+  if (req.for === "signup" && !(await signupAllowed(email))) {
+    return fail("invalid_code", ERROR_CODES.invalid_code, undefined, 401);
   }
 
   const owner = needsJournal ? req.user! : NO_JOURNAL;
