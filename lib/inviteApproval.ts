@@ -46,7 +46,7 @@ export async function sendInviteApprovalMail(email: string, locale: string | nul
         title: t("inviteApproved.title"),
         body: t("inviteApproved.body", { site: site.name }),
         buttonText: t("inviteApproved.button"),
-        buttonUrl: signupResumeUrl(site.url, linkToken, loc),
+        buttonUrl: signupResumeUrl(site.url, linkToken, loc, true),
         why: t("inviteApproved.why", { site: site.name }),
       }),
     );

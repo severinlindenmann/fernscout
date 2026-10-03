@@ -26,6 +26,7 @@ export default function WelcomeDoor({
   identityEmail,
   resume,
   initialSignupToken,
+  resumed,
   ownedJournal,
   signupEnabled,
   inviteOnly,
@@ -42,6 +43,8 @@ export default function WelcomeDoor({
   resume?: boolean;
   /** B2781 — see `SignupWizard`. */
   initialSignupToken?: string;
+  /** B-2827: that token came from a press with a pending signup already there. */
+  resumed?: boolean;
   /** B-2811 — the journal the identity cookie's address already keeps. It
    *  opens in its studio on that same cookie, with no second code. */
   ownedJournal?: string | null;
@@ -119,6 +122,7 @@ export default function WelcomeDoor({
               email={identityEmail ?? undefined}
               resume={resume}
               initialSignupToken={initialSignupToken}
+              initialResumed={resumed}
               locale={locale}
               codeMinutes={codeMinutes}
               onSignedIn={intoTheStudio}

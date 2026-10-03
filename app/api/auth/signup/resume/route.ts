@@ -4,7 +4,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { signupAllowed } from "@/lib/inviteList";
 import { MAX_JOURNALS_PER_EMAIL, journalsOwnedBy } from "@/lib/journals";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
-import { recordPendingEmail } from "@/lib/signup/pending";
+import { getPendingSignup, recordPendingEmail } from "@/lib/signup/pending";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { fail, ok, readJson } from "@/lib/api/v2/route";
 import { signupResumeRequest } from "@/lib/api/v2/schemas/auth";
@@ -57,7 +57,11 @@ export async function POST(request: Request) {
     return fail("too_many_journals", ERROR_CODES.too_many_journals, undefined, 409);
   }
 
+  // B-2827: `resumed` is true only when a pending signup for this address
+  // existed before this press, i.e. the person really stopped earlier. Copy
+  // only: the wizard says "Welcome back" for it.
+  const resumed = Boolean(await getPendingSignup(email).catch(() => null));
   await recordPendingEmail(email);
   const { token, expiresAt } = await openSignupSession(email);
-  return ok({ ok: true, token, expires: expiresAt, scope: "signup" as const });
+  return ok({ ok: true, token, expires: expiresAt, scope: "signup" as const, resumed });
 }

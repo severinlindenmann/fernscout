@@ -92,6 +92,7 @@ import {
   codesRedeemCookieResponse,
   codesRedeemTokenResponse,
   signupResumeRequest,
+  signupResumeResponse,
   linksRedeemRequest,
   linksRedeemResponse,
 } from "./schemas/auth";
@@ -2153,8 +2154,8 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(
           200,
-          codesRedeemTokenResponse,
-          'the same token codes/redeem returns for "signup" — in the body only, no cookie',
+          signupResumeResponse,
+          'the same token codes/redeem returns for "signup" — in the body only, no cookie; `resumed` is true when a pending signup for the address existed before this press (copy only)',
         ),
         ...refusalResponses([
           ref("signup_disabled", 404),

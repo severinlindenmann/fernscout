@@ -120,6 +120,10 @@ describe("B-2772 approving a request mails a link", () => {
     const body = await pressed.json();
     expect(body.scope).toBe("signup");
     expect(typeof body.token).toBe("string");
+    // B-2827: nothing was pending before this first press, and the mail's
+    // link says so for the press page's wording.
+    expect(body.resumed).toBe(false);
+    expect(/\/welcome\/r\/[A-Za-z0-9_-]+\?(?:lang=\w+&)?start=1/.test(textOf(mails().at(-1) ?? ""))).toBe(true);
     // No identity, guest or session cookie from the press.
     expect(cookiesSet).toEqual([]);
     expect(pressed.headers.get("set-cookie")).toBeNull();
@@ -127,6 +131,14 @@ describe("B-2772 approving a request mails a link", () => {
     const again = await post(resumePOST, "/api/auth/signup/resume", { token });
     expect(again.status).toBe(401);
     expect((await again.json()).error).toBe("invalid_resume_link");
+  });
+
+  test("B-2827: a press when a pending signup already exists says resumed", async () => {
+    await approve("guest@example.test");
+    const { recordPendingEmail } = await import("@/lib/signup/pending");
+    await recordPendingEmail("guest@example.test");
+    const pressed = await post(resumePOST, "/api/auth/signup/resume", { token: pressToken() });
+    expect((await pressed.json()).resumed).toBe(true);
   });
 
   test("a link older than 7 days is refused", async () => {

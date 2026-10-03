@@ -5022,5 +5022,12 @@
   "inviteApproved.why": "Du bekommst das, weil du eine Einladung für {site} angefragt hast.",
   "signupPage.codeSentInvited": "Wenn diese Adresse eingeladen ist, ist ein Code unterwegs. Er gilt {minutes} Minuten.",
   "signupPage.requestInvite": "Noch nicht eingeladen? Einladung anfragen",
-  "inviteRequest.alreadyInvited": "Schon eingeladen? Hier geht's los"
+  "inviteRequest.alreadyInvited": "Schon eingeladen? Hier geht's los",
+  "agent.error.invalid_tel": "Das sieht nicht nach einer Telefonnummer aus. Wähle dein Land und tippe den Rest, oder füge die ganze Nummer mit + und Landesvorwahl ein.",
+  "agent.error.sms_unreachable": "Eine SMS erreicht dieses Land von diesem Server aus nicht. Nimm stattdessen die Bestätigung per WhatsApp.",
+  "agent.error.phone_code_failed": "Der Code konnte nicht gesendet werden. Versuche es in einer Minute nochmal oder prüfe die Nummer.",
+  "agent.error.phone_too_many": "Für diese Nummer oder Adresse wurden heute zu viele Codes angefordert. Versuche es später nochmal.",
+  "signupResume.startTitle": "Starte dein Journal",
+  "signupResume.startBody": "Tippe auf den Knopf und du bist drin. Es wird erst etwas angelegt, wenn du fertig bist.",
+  "signupResume.startAction": "Mein Journal starten"
 }

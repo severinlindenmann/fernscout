@@ -5023,5 +5023,12 @@
   "inviteApproved.why": "Azért kaptad ezt, mert meghívót kértél ide: {site}.",
   "signupPage.codeSentInvited": "Ha ez a cím meg van hívva, egy kód már úton van. {minutes} percig érvényes.",
   "signupPage.requestInvite": "Még nem hívtak meg? Kérj meghívót",
-  "inviteRequest.alreadyInvited": "Már meghívtak? Itt kezdheted"
+  "inviteRequest.alreadyInvited": "Már meghívtak? Itt kezdheted",
+  "agent.error.invalid_tel": "Ez nem tűnik telefonszámnak. Válaszd ki az országot és írd be a többit, vagy illeszd be a teljes számot + jellel és országhívóval.",
+  "agent.error.sms_unreachable": "Ebbe az országba erről a szerverről nem érhető el SMS. Használd helyette a WhatsApp-megerősítést.",
+  "agent.error.phone_code_failed": "A kódot nem sikerült elküldeni. Próbáld újra egy perc múlva, vagy ellenőrizd a számot.",
+  "agent.error.phone_too_many": "Ehhez a számhoz vagy címhez ma túl sok kódot kértek. Próbáld újra később.",
+  "signupResume.startTitle": "Kezdd el a naplódat",
+  "signupResume.startBody": "Nyomd meg a gombot, és már bent is vagy. Semmi nem jön létre, amíg be nem fejezed.",
+  "signupResume.startAction": "Napló indítása"
 }

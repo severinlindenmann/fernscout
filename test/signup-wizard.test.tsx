@@ -243,6 +243,57 @@ describe("the signup wizard", () => {
     expect(input("signup-tel-cc").value).toContain("+49");
   });
 
+  test("B-2825: an en-GB browser preselects the United Kingdom, not Guernsey", async () => {
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["en-GB", "en"]);
+    stubWizardFetch({ ...baseRoutes, "GET /api/auth/signup/state": { ...STATE_NO_PHONE, phoneRequired: true, mode: "code" } });
+    mount();
+    await toToken();
+    expect(input("signup-tel-cc").value).toContain("🇬🇧");
+  });
+
+  test("B-2824: a pasted +CC number in the national box is split before it is sent", async () => {
+    stubWizardFetch({
+      ...baseRoutes,
+      "GET /api/auth/signup/state": { ...STATE_NO_PHONE, phoneRequired: true, mode: "code" },
+      "POST /api/auth/signup/phone": { __status: 202, id: "p1" },
+    });
+    vi.spyOn(navigator, "languages", "get").mockReturnValue(["en-GB"]);
+    mount();
+    await toToken();
+    await type("signup-tel", "+41 79 555 55 55");
+    expect(input("signup-tel").value).toBe("79 555 55 55");
+    expect(input("signup-tel-cc").value).toContain("+41");
+    await submit();
+    expect(calls.filter((c) => c.url === "/api/auth/signup/phone").pop()!.body.tel).toBe("+41 79 555 55 55");
+  });
+
+  test.each([
+    ["invalid_request", 400, /doesn't look like a phone number/],
+    ["sms_unreachable", 400, /text message can't reach that country/],
+    ["verification_failed", 503, /code could not be sent/],
+    ["too_many_requests", 429, /Too many codes have been asked for this number/],
+  ])("B-2824: the phone request's %s gets its own sentence", async (error, status, message) => {
+    stubWizardFetch({
+      ...baseRoutes,
+      "GET /api/auth/signup/state": { ...STATE_NO_PHONE, phoneRequired: true, mode: "code" },
+      "POST /api/auth/signup/phone": { __status: status, error },
+    });
+    mount();
+    await toToken();
+    await type("signup-tel", "79 555 55 55");
+    await submit();
+    expect(text()).toMatch(message);
+    expect(text()).not.toContain("did not create your journal");
+  });
+
+  test("B-2827: a signup token from a first press does not say Welcome back", async () => {
+    stubWizardFetch(baseRoutes);
+    mount({ initialSignupToken: "signup-token", initialResumed: false });
+    await settle();
+    expect(input("signup-name")).not.toBeNull();
+    expect(text()).not.toContain("Welcome back");
+  });
+
   test("a number that already keeps a journal, found after proof, offers sign-in", async () => {
     stubWizardFetch({
       ...baseRoutes,
