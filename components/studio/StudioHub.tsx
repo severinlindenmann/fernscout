@@ -220,7 +220,7 @@ export default function StudioHub({
   const hero = heroFor(model, username, t, formatLongDate);
 
   const halfDone = (
-    <HalfDone username={username} tripId={model.addDayTrip?.id ?? ""} runs={model.resumableImports} postcard={model.postcardSuggestion} unfinished={model.print.unfinished} />
+    <HalfDone username={username} tripId={model.kind === "full" ? (model.addDayTrip?.id ?? "") : ""} runs={model.resumableImports} postcard={model.postcardSuggestion} unfinished={model.print.unfinished} />
   );
 
   // Hooks run unconditionally, before the empty-state's own early return —
