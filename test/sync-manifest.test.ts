@@ -229,6 +229,17 @@ describe("the manifest", () => {
    * rediscover that a folder mirroring the journal would otherwise come down
    * without a single caption, description or measurement in it.
    */
+  test("a trip's roster.json (minors' names) never syncs, and the sync door refuses it (B2435)", async () => {
+    write(`trips/${TRIP}/roster.json`, JSON.stringify({ students: [{ id: "a1", name: "Lea" }], duty: {} }));
+    const { inSync, clearSyncHashCache } = await import("@/lib/sync/manifest");
+    expect(inSync(`trips/${TRIP}/roster.json`)).toBe(false);
+    clearSyncHashCache();
+    const token = await tokenFor(OWNER_EMAIL);
+    const { body } = await manifest(token);
+    expect(body.files!.map((f) => f.path)).not.toContain(`trips/${TRIP}/roster.json`);
+    expect((await fetchFile(`trips/${TRIP}/roster.json`, token)).status).not.toBe(200);
+  });
+
   test("a trip's meta/ sidecars sync — they are the photographs' own facts", async () => {
     write(`trips/${TRIP}/meta/over-the-susten/01.jpg.meta.json`, JSON.stringify({ caption: "said once" }));
     const { inSync } = await import("@/lib/sync/manifest");

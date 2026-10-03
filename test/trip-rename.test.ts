@@ -304,6 +304,23 @@ describe("the old address, after a rename", () => {
     expect(response.headers.get("location")).toBe(`https://t.test/api/v2/${USER}/trips/japan-2027-fixed`);
   });
 
+  test("a token scoped to another trip learns nothing about a renamed trip: uniform 404, no Location (B2218)", async () => {
+    makeTrip("japan-2027");
+    makeTrip("other-2027");
+    await renameTrip(USER, "japan-2027", "japan-2027-fixed");
+    const token = await tripScopedToken("other-2027");
+
+    const response = await getTripRoute(
+      new Request(`https://t.test/api/v2/${USER}/trips/japan-2027`, {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+      { params: Promise.resolve({ user: USER, trip: "japan-2027" }) },
+    );
+    expect(response.status).toBe(404);
+    expect(response.headers.get("location")).toBeNull();
+    expect((await response.json()).error).toBe("unknown_trip");
+  });
+
   test("a trip nobody ever renamed still answers unknown_trip, not a redirect", async () => {
     const token = await ownerToken();
     const response = await getTripRoute(

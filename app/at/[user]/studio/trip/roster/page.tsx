@@ -6,7 +6,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { readRoster } from "@/lib/groupRoster";
 import { journalPath } from "@/lib/journalPath";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { requireStudioOwner } from "@/lib/studio/pageGate";
+import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
 import { tripForEdit, tripsForEdit } from "@/lib/studio/tripEdit";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,8 @@ export const dynamic = "force-dynamic";
 export default async function StudioTripRosterPage({ params, searchParams }: PageProps<"/at/[user]/studio/trip/roster">) {
   const { user } = await params;
   await requireStudioOwner(user);
+  // Minors' names: the operator gets the same 404 a stranger does.
+  if (!(await isJournalOwner(user))) notFound();
   if (!isEnabled("groupTrips", user)) notFound();
   const { trip: tripParam } = await searchParams;
   const locale = await requestLocale();

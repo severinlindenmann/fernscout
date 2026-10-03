@@ -127,7 +127,9 @@ const BASE_MANIFEST_FILE = ".fernscout-sync.json";
  * nothing worth keeping on either side, and this one especially must never
  * leave the trip's own reader-facing gate.
  */
-const DERIVED_FILES = new Set(["track.json", "track-recent.json", "track-edits.json", "recorder-state.json"]);
+// `roster.json` (B2435) is not derived: it holds minors' first names, owner
+// cookie only — no bearer token may relay it. It stays in the owner's export.
+const DERIVED_FILES = new Set(["track.json", "track-recent.json", "track-edits.json", "recorder-state.json", "roster.json"]);
 // `recorder-state.json` (B2542) is the phone's own latest armed/permission
 // report for one trip — never a coordinate, but still owner-only content a
 // `write:content` bearer token has no business relaying in bulk, the same

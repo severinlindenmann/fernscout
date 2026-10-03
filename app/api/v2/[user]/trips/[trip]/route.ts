@@ -92,8 +92,16 @@ export async function GET(request: Request, { params }: RouteCtx) {
 
   const stored = readTripFile(user, trip);
   if (!stored) {
+    // The renamed-trip redirect names another trip's new id, so it answers
+    // only a caller whose scope reaches that trip — a refused caller gets the
+    // same uniform 404 as a missing one.
     const redirect = renamedTripRedirect(request, user, trip);
-    if (redirect) return redirect;
+    if (redirect) {
+      const target = resolveRenamedTripId(user, trip);
+      const targetStored = readTripFile(user, target);
+      const targetLike = { username: user, id: target, ref: `${user}/${target}`, people: targetStored?.people } as unknown as Trip;
+      if ((await mayWriteTrip(bearer.session, targetLike)).ok) return redirect;
+    }
     return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
   }
   // B2218 — a `write:trip:<A>` token reaches trip A only; trip B answers the
@@ -595,15 +603,17 @@ export async function DELETE(request: Request, { params }: RouteCtx) {
   if (stone && !readTripFile(user, trip)) {
     return fail("gone", `"${trip}" was deleted on ${stone.deletedAt.slice(0, 10)}. There is nothing left to delete.`, undefined, 410);
   }
-  if (!readTripFile(user, trip)) {
-    const redirect = renamedTripRedirect(request, user, trip);
-    if (redirect) return redirect;
-  }
 
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
+
+  // After the owner check: the redirect names another trip's new id.
+  if (!readTripFile(user, trip)) {
+    const redirect = renamedTripRedirect(request, user, trip);
+    if (redirect) return redirect;
+  }
 
   const asked = await requestDeletion({ kind: "trip", username: user, tripId: trip }, { sessionId: bearer.session.id });
   if (!asked.ok) {
