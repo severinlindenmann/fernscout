@@ -69,62 +69,61 @@ export default function PublishedDay({
 
   return (
     <div className="mt-4">
-      <div role="status" className="flex items-start gap-2.5 rounded-2xl border border-green-500/40 bg-green-100 px-4 py-3 text-sm text-ink-strong">
-        <CircleCheck aria-hidden className="mt-px h-5 w-5 flex-none text-green-700" />
-        <div>
-          <Link href={dayHref} className="font-semibold underline underline-offset-2">
-            {title}
+      <div role="status" className="flex items-start gap-3 rounded-2xl border border-green-500/40 bg-green-100 px-4 py-4 text-ink-strong">
+        <CircleCheck aria-hidden className="mt-0.5 h-6 w-6 flex-none text-green-700" />
+        <div className="min-w-0">
+          <p className="font-display text-[22px] font-semibold leading-tight">{t("studio.published.headline", { title })}</p>
+          <p className="mt-2 text-base leading-snug">{readerLine}</p>
+          <Link href={dayHref} className="mt-3 inline-flex min-h-11 items-center font-semibold underline underline-offset-2">
+            {t("studio.published.seeDay")}
           </Link>
-          <p className="mt-0.5">{readerLine}</p>
         </div>
       </div>
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
-        <div className="flex items-center gap-3 p-4">
+        <div className="flex h-[120px] items-center justify-center bg-surface-subtle">
           {thumb && (
             // eslint-disable-next-line @next/next/no-img-element -- a small story-look thumbnail.
-            <img src={`${thumb}&w=120`} alt="" className="h-20 w-14 flex-none rounded-lg object-cover" />
+            <img src={`${thumb}&w=240`} alt="" className="h-[108px] w-[86px] rounded-lg object-cover" />
           )}
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-ink-strong">{t("studio.share.title")}</p>
-            <p className="text-sm text-ink-secondary">{t("studio.share.whatNextBody")}</p>
-          </div>
         </div>
-        <Link
-          href={shareHref}
-          className="flex min-h-11 items-center justify-center rounded-full bg-yellow-400 px-5 text-sm font-semibold text-navy-900 hover:bg-yellow-300"
-          style={{ margin: "0 1rem 1rem" }}
-        >
-          {t("studio.share.whatNextLabel")}
-        </Link>
+        <div className="p-4">
+          <p className="font-display text-xl font-semibold text-ink-strong">{t("studio.share.title")}</p>
+          <p className="mt-1 text-base text-ink-secondary">{t("studio.share.whatNextBody")}</p>
+          <Link
+            href={shareHref}
+            className="mt-4 flex h-[50px] items-center justify-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-navy-900 hover:bg-yellow-300"
+          >
+            {t("studio.share.whatNextLabel")}
+          </Link>
+        </div>
       </div>
 
       <div className="mt-3 divide-y divide-line-faint overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
-        {rows.map((row) =>
-          row.href ? (
-            <Link key={row.title} href={row.href} className="flex min-h-16 items-center gap-3 px-4 hover:bg-surface-subtle">
+        {rows.map((row) => {
+          const body = (
+            <>
               <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-surface-subtle text-ink-body">{row.icon}</span>
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold text-ink-strong">{row.title}</span>
-                <span className="block text-sm text-ink-secondary">{row.sub}</span>
+                <span className="block text-sm leading-[1.45] text-ink-secondary">{row.href ? row.sub : shared && row.title === t("studio.published.sendLink") ? t("studio.share.done") : row.sub}</span>
               </span>
               <span aria-hidden className="text-ink-faint">
                 ›
               </span>
+            </>
+          );
+          const cls = "flex min-h-14 w-full items-center gap-3 px-4 py-[18px] text-left hover:bg-surface-subtle";
+          return row.href ? (
+            <Link key={row.title} href={row.href} className={cls}>
+              {body}
             </Link>
           ) : (
-            <button key={row.title} type="button" onClick={row.onClick} className="flex min-h-16 w-full items-center gap-3 px-4 text-left hover:bg-surface-subtle">
-              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-surface-subtle text-ink-body">{row.icon}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold text-ink-strong">{row.title}</span>
-                <span className="block text-sm text-ink-secondary">{shared && row.title === t("studio.published.sendLink") ? t("studio.share.done") : row.sub}</span>
-              </span>
-              <span aria-hidden className="text-ink-faint">
-                ›
-              </span>
+            <button key={row.title} type="button" onClick={row.onClick} className={cls}>
+              {body}
             </button>
-          ),
-        )}
+          );
+        })}
       </div>
     </div>
   );

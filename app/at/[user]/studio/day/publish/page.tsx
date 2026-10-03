@@ -38,6 +38,7 @@ export default async function StudioPublishDayPage({
     <StudioPage
       username={user}
       group="write"
+      hideGroups
       title={translateIn(locale, takeDown ? "studio.publish.titleDown" : "studio.hub.item.publishDay.title")}
       lede={chosen ? undefined : translateIn(locale, takeDown ? "studio.publish.ledeDown" : "studio.publish.lede")}
     >

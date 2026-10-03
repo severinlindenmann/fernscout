@@ -69,7 +69,7 @@ export default async function StudioPreviewDayPage({ searchParams, params }: Pag
   const speech = speechEnabled ? { consented: hasHelperConsent(user, "speech"), provider: speechProvider() } : null;
 
   return (
-    <StudioPage username={user} group="write" title={title}>
+    <StudioPage username={user} group="write" hideGroups title={title}>
       <PreviewDayFlow
         username={user}
         tripId={tripId}

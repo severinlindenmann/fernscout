@@ -4900,5 +4900,8 @@
   "studio.newTrip.route.remind.off": "Az emlékeztetők ki vannak kapcsolva a Fernscoutnál, ezért semmi sem kérdez rá.",
   "studio.permissions.keysNotPeople": "Nem embereknek — ha valakit olvasni szeretnél hagyni, menj ide:",
   "studio.permissions.leavesLede": "A szavaid, a hangod és a fényképeid — mi megy az Anthropichoz vagy a Deepgramhoz, és mi marad itt.",
-  "studio.people.typeIn.needEmail": "A Tovább akkor aktiválódik, ha egy embernél megvan a név és az e-mail-cím is."
+  "studio.people.typeIn.needEmail": "A Tovább akkor aktiválódik, ha egy embernél megvan a név és az e-mail-cím is.",
+  "studio.published.headline": "{title} közzétéve",
+  "studio.published.seeDay": "A nap megtekintése",
+  "studio.published.toldNoReaders": "Felkerült a naplódba. Még senki sem olvas — küldd el a linket valakinek."
 }
