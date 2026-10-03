@@ -244,4 +244,26 @@ final class InboxQueue: NSObject, URLSessionDataDelegate {
             self?.backgroundCompletion = nil
         }
     }
+
+    #if DEBUG
+    /// B2734 — a DEBUG-only launch-argument hook so the widget's "N photos
+    /// waiting" line can be proven in the Simulator with no real photo and
+    /// no real (necessarily unreachable) upload — writes exactly the same
+    /// summary shape `writeSummary` does, through the same `UserDefaults`
+    /// API a real `add`/`send` would use, so the widget extension's own
+    /// `UserDefaults(suiteName:)` read sees it reliably (unlike poking the
+    /// app-group plist file directly from outside the process, which a
+    /// live app's own CFPreferences cache can silently clobber on its next
+    /// write). Never touches `records`, so it never creates a file this
+    /// queue would try to send.
+    func debugSetWaiting(_ n: Int) {
+        let summary: [String: Any] = ["waiting": n, "updatedAt": ISO8601DateFormatter().string(from: Date())]
+        if let data = try? JSONSerialization.data(withJSONObject: summary) {
+            Self.defaults?.set(data, forKey: Self.summaryKey)
+        }
+        #if canImport(WidgetKit)
+        if #available(iOS 14.0, *) { WidgetCenter.shared.reloadAllTimelines() }
+        #endif
+    }
+    #endif
 }

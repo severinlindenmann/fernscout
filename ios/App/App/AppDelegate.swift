@@ -154,6 +154,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             ShareCredentialStore.clear()
             SaveToInboxDoors.syncQuickAction()
         }
+        // B2734 — a DEBUG-only hook for the widget's own "N photos waiting"
+        // line; see `InboxQueue.debugSetWaiting`.
+        if let n = value(after: "-b2734SetWaiting"), let count = Int(n) {
+            InboxQueue.shared.debugSetWaiting(count)
+        }
     }
     #endif
 

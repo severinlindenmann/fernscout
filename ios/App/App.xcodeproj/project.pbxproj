@@ -51,6 +51,8 @@
 		B2733A000000000000000012 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000011 /* Assets.xcassets */; };
 		B2733A000000000000000013 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = B2731A000000000000000003 /* Localizable.xcstrings */; };
 		B2733A000000000000000015 /* FernscoutWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2733A000000000000000014 /* FernscoutWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B2734A000000000000000002 /* FernscoutWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2734A000000000000000001 /* FernscoutWidget.swift */; };
+		B2734A000000000000000003 /* ShareCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2175A00000000000000000A /* ShareCredential.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -102,6 +104,7 @@
 		B2733A000000000000000010 /* FernscoutWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FernscoutWidgets.entitlements; sourceTree = "<group>"; };
 		B2733A000000000000000011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B2733A000000000000000014 /* FernscoutWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FernscoutWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B2734A000000000000000001 /* FernscoutWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FernscoutWidget.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -215,6 +218,7 @@
 				B2733A000000000000000009 /* FernscoutWidgetsBundle.swift */,
 				B2733A00000000000000000B /* RouteLiveActivityWidget.swift */,
 				B2733A00000000000000000D /* RouteControlWidget.swift */,
+				B2734A000000000000000001 /* FernscoutWidget.swift */,
 				B2733A000000000000000011 /* Assets.xcassets */,
 				B2733A00000000000000000F /* Info.plist */,
 				B2733A000000000000000010 /* FernscoutWidgets.entitlements */,
@@ -414,9 +418,11 @@
 			files = (
 				B2733A000000000000000003 /* RouteActivity.swift in Sources */,
 				B2733A000000000000000006 /* RouteActivityDoors.swift in Sources */,
+				B2734A000000000000000003 /* ShareCredential.swift in Sources */,
 				B2733A00000000000000000A /* FernscoutWidgetsBundle.swift in Sources */,
 				B2733A00000000000000000C /* RouteLiveActivityWidget.swift in Sources */,
 				B2733A00000000000000000E /* RouteControlWidget.swift in Sources */,
+				B2734A000000000000000002 /* FernscoutWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
