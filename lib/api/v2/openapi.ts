@@ -2017,6 +2017,11 @@ function buildPaths(): Record<string, PathItem> {
           ref("signup_disabled", 404),
           ref("auth_disabled", 404),
           ref("signup_not_invited", 403, "the code is not spent"),
+          ref(
+            "too_many_journals",
+            409,
+            'for "signup": this address already keeps a journal — the code proved it, so the identity cookie is set and `details.user` names that address\'s own journal (nobody else\'s)',
+          ),
           ref("too_many_requests", 429),
         ]),
       },
