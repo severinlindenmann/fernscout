@@ -1025,7 +1025,10 @@ export async function approveContact(
     .select(["id", "expires_at"])
     .where("owner_id", "=", owner)
     .where("contact_id", "=", id)
-    .where("scope", "=", "read")
+    // Either tier: re-approving a close-circle contact must not write a
+    // second row beside theirs (B1749). A revoked contact has no row, so
+    // letting them back in writes a fresh `read` — a Reader, never Close.
+    .where("scope", "in", ["read", "close"])
     .executeTakeFirst();
 
   if (!grant) {

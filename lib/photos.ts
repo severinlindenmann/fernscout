@@ -38,7 +38,7 @@ export function mediaKey(src: string): string {
  * The two words mean the same populations they mean on a trip, which is why
  * they are the same two words: `guest` is everybody the owner has let into the
  * journal, plus whoever holds an approved place on the trip; `private` is the
- * owner, plus whoever holds that approved place — never a bare `people:`
+ * owner, the owner's close circle (B1749), plus whoever holds that approved place — never a bare `people:`
  * byline entry, which grants nothing on its own (D3, B2297; `lib/tripPeople.ts`
  * and `isTravellerOn` in `lib/tripGate.ts` are the actual gate).
  */
@@ -51,11 +51,12 @@ export type PhotoVisibility = (typeof PHOTO_VISIBILITIES)[number];
  *
  * `person` is somebody who was on the trip, or the journal's owner — which
  * since B480 can also be the instance's admin. `guest` is an approved contact
- * of the *journal*. `public` is everybody else, including a signed-in stranger:
+ * of the *journal*; `close` is one the owner placed in the close circle
+ * (B1749), who also reads what is marked `private`. `public` is everybody else, including a signed-in stranger:
  * proving an address opens nothing on its own (see the long note at the end of
  * `mayReadTrip`).
  */
-const READER_LEVELS = ["public", "guest", "person"] as const;
+const READER_LEVELS = ["public", "guest", "close", "person"] as const;
 
 export type ReaderLevel = (typeof READER_LEVELS)[number];
 
@@ -80,7 +81,7 @@ export function parsePhotoVisibility(raw: unknown): PhotoVisibility | undefined 
 /** How much a label demands, on `READER_LEVELS`' scale. */
 const DEMANDS: Record<PhotoVisibility, ReaderLevel> = {
   guest: "guest",
-  private: "person",
+  private: "close",
 };
 
 /**

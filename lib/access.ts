@@ -1,4 +1,5 @@
 import "server-only";
+import { maySeePhoto } from "./photos";
 import type { Trip } from "./types";
 
 import { journalPath } from "./journalPath";
@@ -85,6 +86,17 @@ export function isOpenToLink(trip: Trip): boolean {
  */
 export function isOpenToApprovedGuest(trip: Trip): boolean {
   return isOpenToLink(trip) || trip.visibility === "guest";
+}
+
+/**
+ * B1749 — whether a contact in the owner's close circle may read this trip:
+ * everything an approved guest may, plus `private`. The one predicate trips,
+ * days and photographs all share — `private` demands the `close` rung of
+ * `lib/photos.ts`' ladder, and that ladder is the only place the order is
+ * written, so the three gates cannot come to disagree.
+ */
+export function isOpenToCloseCircle(trip: Trip): boolean {
+  return trip.visibility === "private" ? maySeePhoto("private", "close") : isOpenToApprovedGuest(trip);
 }
 
 /**

@@ -4,7 +4,7 @@ import { readDayFile, resolveDayStem } from "@/lib/api/v2/store";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts, type ContactRecord } from "@/lib/contacts";
 import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
-import { contactsWithReadGrant } from "@/lib/grants";
+import { closeCircleContacts, contactsWithReadGrant } from "@/lib/grants";
 import { peopleOf } from "@/lib/tripPeople";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
@@ -80,7 +80,7 @@ export function blankFieldsOf(username: string, row: PublishRow): string[] {
  * `null` for a public or link day: "anyone" has no names. A private day is
  * the people who actually hold the trip (`peopleOf`: the owner, or a granted
  * `trip_people` place — a bare `people:` entry is a byline, not access,
- * since D3/B2297); a guest day adds everyone let into the journal (an active
+ * since D3/B2297) and the close circle (B1749); a guest day adds everyone let into the journal (an active
  * contact holding a live read grant — `journalReader`'s own two conditions). A name is the
  * trip's nickname or name for that address, else the contact's name, else
  * the address itself — this is the owner's own page.
@@ -93,10 +93,12 @@ export async function readersOf(username: string, row: PublishRow): Promise<stri
   let contacts: ContactRecord[] = [];
   if (isEnabled("contacts", username)) {
     contacts = await listContacts(username).catch(() => []);
-    if (row.audience === "guest") {
-      const live = await contactsWithReadGrant(username, new Date()).catch(() => new Set<string>());
-      for (const c of contacts) if (c.status === "active" && live.has(c.id)) addresses.add(c.email);
-    }
+    // A guest day adds everyone let in; a private day adds the close circle
+    // (B1749) — the only contacts a private day opens to.
+    const live = await (row.audience === "guest" ? contactsWithReadGrant : closeCircleContacts)(username, new Date()).catch(
+      () => new Set<string>(),
+    );
+    for (const c of contacts) if (c.status === "active" && live.has(c.id)) addresses.add(c.email);
   }
   const own = getUser(username)?.owner.email?.trim().toLowerCase();
   if (own) addresses.delete(own);

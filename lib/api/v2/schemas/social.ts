@@ -107,6 +107,8 @@ export const contactDoc = z.strictObject({
     .strictObject({
       owner: z.boolean(),
       guest: z.boolean(),
+      /** In the owner's close circle (B1749): a guest who also reads what is marked `private`, at trip, day and photograph level. Set only by the owner, from Studio › Readers. */
+      closeCircle: z.boolean(),
       buddyOf: z.array(z.strictObject({ id: z.string(), title: z.string() })),
     })
     .nullable(),

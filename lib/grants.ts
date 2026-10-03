@@ -45,7 +45,35 @@ export function grantIsLive(expiresAt: string | null, now: Date): boolean {
 }
 
 /**
- * Whether one contact holds a live `read` grant on this journal.
+ * The two tiers a grant's `scope` can hold (B1749). `read` opens what a guest
+ * sees; `close` opens that and everything marked `private`. A contact has one
+ * row, so one tier — never both. `lib/access.ts` decides what each opens.
+ */
+export const GRANT_SCOPES = ["read", "close"] as const;
+export type GrantScope = (typeof GRANT_SCOPES)[number];
+
+/** A contact's live tier on this journal, or null when they hold no live grant. */
+export async function grantScopeOf(
+  owner: string,
+  contactId: string,
+  now: Date = new Date(),
+): Promise<GrantScope | null> {
+  const { db } = await getDatabase();
+  const rows = await db
+    .selectFrom("access_grants")
+    .select(["expires_at", "scope"])
+    .where("owner_id", "=", owner)
+    .where("contact_id", "=", contactId)
+    .where("scope", "in", [...GRANT_SCOPES])
+    .execute();
+  const live = rows.filter((row) => grantIsLive(row.expires_at, now));
+  // Fail closed to the lower tier should two rows ever exist.
+  if (live.length === 0) return null;
+  return live.some((row) => row.scope === "read") ? "read" : "close";
+}
+
+/**
+ * Whether one contact holds a live grant of either tier on this journal.
  *
  * A single indexed row, because this is asked during a page render — once per
  * gated trip page, for a signed-in reader only. The anonymous case never gets
@@ -56,36 +84,63 @@ export async function hasReadGrant(
   contactId: string,
   now: Date = new Date(),
 ): Promise<boolean> {
-  const { db } = await getDatabase();
-  const row = await db
-    .selectFrom("access_grants")
-    .select(["expires_at"])
-    .where("owner_id", "=", owner)
-    .where("contact_id", "=", contactId)
-    .where("scope", "=", "read")
-    .executeTakeFirst();
-  return row !== undefined && grantIsLive(row.expires_at, now);
+  return (await grantScopeOf(owner, contactId, now)) !== null;
 }
 
 /**
- * Every contact of this owner holding a live `read` grant.
+ * Move a contact between the tiers. Only an existing live grant moves — this
+ * never creates one (`approveContact` is the only writer of that), so a
+ * revoked or never-approved contact cannot be promoted into access.
+ */
+export async function setGrantScope(
+  owner: string,
+  contactId: string,
+  scope: GrantScope,
+  now: Date = new Date(),
+): Promise<boolean> {
+  if ((await grantScopeOf(owner, contactId, now)) === null) return false;
+  const { db } = await getDatabase();
+  await db
+    .updateTable("access_grants")
+    .set({ scope })
+    .where("owner_id", "=", owner)
+    .where("contact_id", "=", contactId)
+    .where("scope", "in", [...GRANT_SCOPES])
+    .execute();
+  return true;
+}
+
+/**
+ * Every contact of this owner holding a live grant, of either tier.
  *
  * One query for the whole digest run rather than one per contact: fifty
  * readers is not a lot of rows, and a per-contact query inside the send loop is
  * how a cron job starts taking minutes.
  */
 export async function contactsWithReadGrant(owner: string, now: Date): Promise<Set<string>> {
+  return new Set((await grantScopes(owner, now)).keys());
+}
+
+/** The contacts of this owner in the close circle (live `close` grants). */
+export async function closeCircleContacts(owner: string, now: Date): Promise<Set<string>> {
+  const out = new Set<string>();
+  for (const [id, scope] of await grantScopes(owner, now)) if (scope === "close") out.add(id);
+  return out;
+}
+
+async function grantScopes(owner: string, now: Date): Promise<Map<string, GrantScope>> {
   const { db } = await getDatabase();
   const rows = await db
     .selectFrom("access_grants")
-    .select(["contact_id", "expires_at"])
+    .select(["contact_id", "expires_at", "scope"])
     .where("owner_id", "=", owner)
-    .where("scope", "=", "read")
+    .where("scope", "in", [...GRANT_SCOPES])
     .execute();
 
-  const out = new Set<string>();
+  const out = new Map<string, GrantScope>();
   for (const row of rows) {
-    if (grantIsLive(row.expires_at, now)) out.add(row.contact_id);
+    if (!grantIsLive(row.expires_at, now)) continue;
+    if (out.get(row.contact_id) !== "read") out.set(row.contact_id, row.scope as GrantScope);
   }
   return out;
 }
