@@ -5,7 +5,7 @@ import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import { Mic, Pause } from "lucide-react";
 import ConfirmPanel from "@/components/ConfirmPanel";
-import SpeakSheet, { type SpeakPhase } from "@/components/SpeakSheet";
+import SpeakSheet, { type SpeakAnchor, type SpeakPhase } from "@/components/SpeakSheet";
 import { useI18n } from "@/components/LocaleProvider";
 import {
   MAX_SPEECH_SECONDS,
@@ -225,7 +225,7 @@ export default function RecordButton({
    * discarded or cancelled. `language` (the host's explicit one) is what is
    * sent and `languageLabel` is what it is called on the sheet.
    */
-  sheet?: { onClose: () => void; languageLabel: string };
+  sheet?: { onClose: () => void; languageLabel: string; anchor?: SpeakAnchor };
 }) {
   const { t, locale } = useI18n();
   // B2234/B2591 — say so before the tap: "would the route refuse anyway",
@@ -670,6 +670,7 @@ export default function RecordButton({
     return (
       <SpeakSheet
         phase={phase}
+        anchor={sheet.anchor}
         seconds={shown}
         level={paused ? 0 : level}
         languageLabel={sheet.languageLabel}

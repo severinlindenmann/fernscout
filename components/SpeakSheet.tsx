@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Languages, Mic } from "lucide-react";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -15,8 +15,34 @@ import { clock, SPEAK_QUESTIONS } from "@/lib/studio/speak";
  */
 export type SpeakPhase = "listening" | "paused" | "working" | "failed" | "notice";
 
+/** Where the Speak pill that opened the sheet sits, in viewport px. */
+export type SpeakAnchor = { top: number; bottom: number; left: number };
+
+const WIDE = "(min-width: 768px)";
+const POPOVER_W = 380;
+
+// No matchMedia (an old WebView, jsdom) reads as a phone: the sheet, never broken.
+const wideQuery = () => (typeof window.matchMedia === "function" ? window.matchMedia(WIDE) : null);
+
+function subscribeWide(change: () => void) {
+  const q = wideQuery();
+  q?.addEventListener("change", change);
+  return () => q?.removeEventListener("change", change);
+}
+
+/** B2784 — on a wide screen the sheet is a popover beside its pill: below it
+ *  when there is room, above otherwise, kept 16px inside the viewport. */
+function popoverStyle(anchor: SpeakAnchor): React.CSSProperties {
+  const left = Math.min(Math.max(16, anchor.left), window.innerWidth - POPOVER_W - 16);
+  const below = window.innerHeight - anchor.bottom > anchor.top;
+  return below
+    ? { left, top: anchor.bottom + 8, width: POPOVER_W, maxHeight: window.innerHeight - anchor.bottom - 24 }
+    : { left, bottom: window.innerHeight - anchor.top + 8, width: POPOVER_W, maxHeight: anchor.top - 24 };
+}
+
 export default function SpeakSheet({
   phase,
+  anchor,
   seconds,
   level,
   languageLabel,
@@ -33,6 +59,8 @@ export default function SpeakSheet({
   onCancelDiscard,
 }: {
   phase: SpeakPhase;
+  /** The pill that opened it; without one a wide screen gets the sheet too. */
+  anchor?: SpeakAnchor;
   seconds: number;
   level: number;
   languageLabel: string;
@@ -59,6 +87,8 @@ export default function SpeakSheet({
   useEffect(() => {
     mic.current?.focus();
   }, [hasMic]);
+  const wide = useSyncExternalStore(subscribeWide, () => wideQuery()?.matches ?? false, () => false);
+  const pop = wide && !!anchor;
   const paused = phase === "paused";
   const live = phase === "listening";
   const status =
@@ -67,11 +97,16 @@ export default function SpeakSheet({
   // In the body, not in the page: a page section with its own stacking would paint over a fixed child.
   return createPortal(
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("studio.speak.label")}>
-      <div className={`fs-speak-scrim absolute inset-0 bg-overlay-strong/70 ${leaving ? "fs-speak-out" : ""}`} aria-hidden />
+      <div className={`fs-speak-scrim absolute inset-0 ${pop ? "bg-overlay-strong/30" : "bg-overlay-strong/70"} ${leaving ? "fs-speak-out" : ""}`} aria-hidden />
       <div
-        className={`fs-speak-sheet absolute inset-x-0 bottom-0 top-11 mx-auto flex max-w-md flex-col items-center rounded-t-[28px] border-t border-line-quiet bg-surface-base px-4 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] ${leaving ? "fs-speak-out" : ""}`}
+        style={pop && anchor ? popoverStyle(anchor) : undefined}
+        className={`flex flex-col items-center overflow-y-auto bg-surface-base ${
+          pop
+            ? "fs-speak-pop absolute rounded-3xl border border-line-quiet px-4 pt-3 pb-4 shadow-2xl"
+            : "fs-speak-sheet absolute inset-x-0 bottom-0 mx-auto max-h-[calc(100dvh-2.75rem)] max-w-md rounded-t-[28px] border-t border-line-quiet px-4 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+        } ${leaving ? "fs-speak-out" : ""}`}
       >
-        <span aria-hidden className="h-[5px] w-10 rounded-full bg-line-strong" />
+        {!pop && <span aria-hidden className="h-[5px] w-10 shrink-0 rounded-full bg-line-strong" />}
         <div className="mt-1 flex w-full items-center justify-between">
           <button type="button" onClick={onDiscard} className="min-h-11 px-2 text-base font-semibold text-ink-secondary">
             {t("studio.speak.discard")}
@@ -96,10 +131,10 @@ export default function SpeakSheet({
         )}
 
         {notice ? (
-          <div className="mt-10 w-full">{notice}</div>
+          <div className={`${pop ? "mt-4" : "mt-10"} w-full`}>{notice}</div>
         ) : (
           <>
-            <div className="fs-speak-mic relative mt-12 h-40 w-40">
+            <div className={`fs-speak-mic relative shrink-0 ${pop ? "mt-4 h-28 w-28" : "mt-8 h-40 w-40"}`}>
               {live && (
                 <>
                   <span aria-hidden className="fs-mic-ring absolute inset-0 rounded-full border-2 border-coral-400" />
@@ -119,10 +154,10 @@ export default function SpeakSheet({
                     : "bg-mic-fill text-on-deep shadow-[0_12px_48px_rgba(194,51,74,0.4)]"
                 }`}
               >
-                <Mic className="h-14 w-14" strokeWidth={2} aria-hidden />
+                <Mic className={pop ? "h-10 w-10" : "h-14 w-14"} strokeWidth={2} aria-hidden />
               </button>
             </div>
-            <div aria-hidden className="mt-7 flex h-[34px] items-end gap-1">
+            <div aria-hidden className={`${pop ? "mt-5" : "mt-7"} flex h-[34px] items-end gap-1`}>
               {Array.from({ length: 12 }, (_, i) => {
                 // ponytail: a fixed zig-zag moved by the one level reading,
                 // not a spectrum; per-bar analyser bins if it must look less uniform.
@@ -161,11 +196,10 @@ export default function SpeakSheet({
           </>
         )}
 
-        <div className="flex-1" />
         {hasMic && (
-          <div className="fs-speak-q w-full text-center">
+          <div className={`fs-speak-q w-full text-center ${pop ? "mt-5" : "mt-8"}`}>
             <p className="text-xs font-bold uppercase tracking-wide text-ink-secondary">{t("studio.speak.notSure")}</p>
-            <p className="mt-2 font-display text-2xl leading-snug font-semibold text-ink-strong">
+            <p className={`mt-2 font-display leading-snug font-semibold text-ink-strong ${pop ? "text-xl" : "text-2xl"}`}>
               {t(`studio.speak.q.${SPEAK_QUESTIONS[q]}`)}
             </p>
             <button
@@ -183,7 +217,7 @@ export default function SpeakSheet({
             type="button"
             disabled={phase !== "listening" && !paused}
             onClick={onFinish}
-            className="h-[50px] w-full rounded-full bg-yellow-400 text-[17px] font-semibold text-yellow-950 disabled:opacity-50"
+            className="h-[50px] w-full shrink-0 rounded-full bg-yellow-400 text-[17px] font-semibold text-yellow-950 disabled:opacity-50"
           >
             {t("studio.speak.finish")}
           </button>

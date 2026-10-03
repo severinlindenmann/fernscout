@@ -799,15 +799,18 @@ body {
 @keyframes fs-speak-flash { from { background-color: var(--color-coral-100); } to { background-color: transparent; } }
 .fs-mic-ring { animation: fs-mic-ring 1.8s var(--ease-out) infinite; }
 .fs-speak-sheet { animation: fs-speak-rise 380ms var(--ease-ios) both; }
+@keyframes fs-speak-popin { from { opacity: 0; transform: translateY(6px) scale(0.96); } to { opacity: 1; transform: none; } }
+.fs-speak-pop { animation: fs-speak-popin 200ms var(--ease-out) both; }
 .fs-speak-scrim { animation: fs-speak-fade 240ms ease-out both; }
 .fs-speak-mic { animation: fs-speak-grow 380ms var(--ease-ios) both; }
 .fs-speak-q { animation: fs-speak-q 560ms var(--ease-out) 120ms both; }
 .fs-speak-added { animation: fs-speak-flash 1.2s ease-out both; }
 .fs-speak-sheet.fs-speak-out { animation: fs-speak-rise 240ms var(--ease-ios) reverse both; }
 .fs-speak-scrim.fs-speak-out { animation: fs-speak-fade 240ms ease-out reverse both; }
+.fs-speak-pop.fs-speak-out { animation: fs-speak-popin 160ms var(--ease-out) reverse both; }
 @media (prefers-reduced-motion: reduce) {
   .fs-mic-ring { display: none; }
-  .fs-speak-sheet, .fs-speak-sheet.fs-speak-out { animation: fs-speak-fade 150ms linear both; }
+  .fs-speak-sheet, .fs-speak-sheet.fs-speak-out, .fs-speak-pop, .fs-speak-pop.fs-speak-out { animation: fs-speak-fade 150ms linear both; }
   .fs-speak-mic, .fs-speak-q { animation: none; }
   .fs-speak-added { animation: none; }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import type { SpeakAnchor } from "@/components/SpeakSheet";
 import { createPortal } from "react-dom";
 import { ChevronDown, Languages, Mic } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
@@ -62,7 +63,7 @@ export default function SpeakTray({
   const language = speechLanguageFor(override, journalLanguage) ?? journalLanguage;
   const label = SPEECH_LANGUAGE_LABEL[language];
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<SpeakAnchor | null>(null);
   const [picking, setPicking] = useState(false);
   const [added, setAdded] = useState<{ said: string; text: string; seconds: number; label: string } | null>(null);
 
@@ -81,7 +82,10 @@ export default function SpeakTray({
       <div className="flex flex-wrap items-center gap-2 border-t border-line-quiet bg-surface-raised px-3 py-2">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setOpen({ top: r.top, bottom: r.bottom, left: r.left });
+          }}
           className="flex min-h-11 items-center gap-2 rounded-full bg-mic-fill px-5 text-base font-semibold text-on-deep transition-transform duration-75 active:scale-[0.96]"
         >
           <Mic className="h-5 w-5" aria-hidden />
@@ -124,7 +128,7 @@ export default function SpeakTray({
           trip={trip}
           language={language}
           hold={false}
-          sheet={{ onClose: () => setOpen(false), languageLabel: label }}
+          sheet={{ onClose: () => setOpen(null), languageLabel: label, anchor: open }}
           onText={(said, _uncertain, held) => {
             const text = appendSpoken(value, said);
             setValue(() => text);
