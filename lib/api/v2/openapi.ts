@@ -1976,7 +1976,9 @@ function buildPaths(): Record<string, PathItem> {
           '`scope.trip` is only meaningful with `for: "write"`. Always answers 202 whether or not ' +
           "the address owns anything, so this cannot be used to discover which addresses exist — the " +
           'one exception is `for: "write"` to an address that owns nothing and is on no named trip, ' +
-          "which answers 403 rather than leaving you waiting for a code that never comes. A new " +
+          "which answers 403 rather than leaving you waiting for a code that never comes. On an " +
+          'invite-only server `for: "signup"` answers 202 for an unlisted address too and sends ' +
+          "nothing (B-2780). A new " +
           "request invalidates the previous code. A reader signs in by email only — the mobile-number " +
           "channel B2294 once offered here is retired (B2597).",
       ),
@@ -1990,7 +1992,6 @@ function buildPaths(): Record<string, PathItem> {
           ref("mail_disabled", 503, "nothing issued; any code already held is still live"),
           ref("mail_failed", 503),
           ref("not_authorised", 403, 'for: "write" to an address that owns nothing and is on no named trip'),
-          ref("signup_not_invited", 403),
           ref("too_many_requests", 429, "narrower for write than for read"),
         ]),
       },
@@ -2012,10 +2013,14 @@ function buildPaths(): Record<string, PathItem> {
         ...jsonResponse(200, z.union([codesRedeemCookieResponse, codesRedeemTokenResponse]), 'cookie response for "read"/"identity", token response for "write"/"signup"'),
         ...refusalResponses([
           ref("invalid_request", 400),
-          ref("invalid_code", 401, "wrong, expired, burned, or the wrong `for`"),
+          ref("invalid_code", 401, "wrong, expired, burned, the wrong `for`, or (signup) an address not on an invite-only list"),
           ref("signup_disabled", 404),
           ref("auth_disabled", 404),
-          ref("signup_not_invited", 403, "the code is not spent"),
+          ref(
+            "too_many_journals",
+            409,
+            'for "signup": this address already keeps a journal — the code proved it, so the identity cookie is set and `details.user` names that address\'s own journal (nobody else\'s)',
+          ),
           ref("too_many_requests", 429),
         ]),
       },

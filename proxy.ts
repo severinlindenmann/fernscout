@@ -200,6 +200,21 @@ function loggingEnabled(): boolean {
   }
 }
 
+/** `features.auth.enabled`, read directly for the reason `loggingEnabled`
+ * gives. */
+function authEnabled(): boolean {
+  try {
+    return loadServerConfig().features.auth.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
+/** The two session cookie names, as `lib/auth` spells them (it is
+ * server-only); `test/studio-signin.test.ts` keeps them equal. */
+const IDENTITY_COOKIE_NAME = "fs_identity";
+const GUEST_COOKIE_NAME = "fs_session";
+
 /**
  * One line to stdout, method + path + user agent, when the capability above
  * is on. See `lib/requestLog.ts` for the format and for why status,
@@ -291,6 +306,24 @@ export default function proxy(request: NextRequest) {
     // `lib/api/markdownTwin.ts`.
     const gone = target && !target.twin ? goneFor(journal.username, journal.rest) : null;
     if (gone) return gone;
+  }
+
+  // B-2779. Nobody carrying either session cookie, asking for any studio
+  // address: one generic sign-in page, the same for a journal that exists
+  // and one that does not. Cookie presence only — the proxy does no database
+  // work — so a stale cookie still reaches the page's own gate (a 404).
+  if (
+    journal &&
+    request.method === "GET" &&
+    (journal.rest === "/studio" || journal.rest.startsWith("/studio/")) &&
+    !request.cookies.has(IDENTITY_COOKIE_NAME) &&
+    !request.cookies.has(GUEST_COOKIE_NAME) &&
+    authEnabled()
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/studio-signin";
+    request.headers.set(PATH_HEADER, "/studio-signin");
+    return NextResponse.rewrite(url, { request });
   }
 
   // The public path, `@` included: this is what the root layout and the

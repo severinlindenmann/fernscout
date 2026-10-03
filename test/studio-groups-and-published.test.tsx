@@ -52,7 +52,7 @@ describe("B2763 groups button", () => {
 
 describe("B2765 PublishedDay", () => {
   test("headline, reader line, 44px link and roomy rows", () => {
-    const el = render(<PublishedDay username="alex" tripId="t" slug="d" title="Sunday" readerLine="It's on your journal." thumb={null} />);
+    const el = render(<PublishedDay username="alex" tripId="t" slug="d" title="Sunday" readerLine="It's on your journal." thumb={null} reach={[]} />);
     expect(el.textContent).toContain("Published");
     expect(el.textContent).toContain("Sunday");
     expect(el.querySelector(".h-\\[120px\\]")).toBeNull(); // no thumb, no preview area
@@ -63,13 +63,41 @@ describe("B2765 PublishedDay", () => {
     for (const r of rows) expect(r.className).toContain("py-[18px]");
     act(() => root?.unmount());
     container?.remove();
-    const withThumb = render(<PublishedDay username="alex" tripId="t" slug="d" title="Sunday" readerLine="x" thumb="/t?look=photo" />);
+    const withThumb = render(<PublishedDay username="alex" tripId="t" slug="d" title="Sunday" readerLine="x" thumb="/t?look=photo" reach={[]} />);
     expect(withThumb.querySelector(".h-\\[120px\\] img")).not.toBeNull();
+  });
+
+  test("B2776 — Send the link only when someone can open the day; otherwise the two doors", () => {
+    const open = render(<PublishedDay username="alex" tripId="t" slug="d" title="Sunday" readerLine="x" thumb={null} reach={[]} />);
+    expect(open.textContent).toContain("Send the link");
+    expect(open.textContent).toContain("Share as a story");
+    act(() => root?.unmount());
+    container?.remove();
+    const closed = render(
+      <PublishedDay
+        username="alex"
+        tripId="t"
+        slug="d"
+        title="Sunday"
+        readerLine="x"
+        thumb={null}
+        reach={[
+          { key: "studio.reach.addSomeone", href: "/@alex/studio/people" },
+          { key: "studio.reach.letReadersIn", href: "/@alex/studio/trip/visibility?trip=t" },
+        ]}
+      />,
+    );
+    expect(closed.textContent).not.toContain("Send the link");
+    expect(closed.textContent).toContain("Add someone to this trip");
+    // B-2822 — no story for a day nobody else can open.
+    expect(closed.textContent).not.toContain("Share as a story");
+    expect(closed.querySelector('a[href="/@alex/studio/trip/visibility?trip=t"]')?.textContent).toContain("Let your readers in");
   });
 
   test("zero-reader string never says 'Your 0 readers'", () => {
     const d = dictionaryFor("en");
-    expect(d["studio.published.toldNoReaders"]).toMatch(/Nobody reads along yet/);
-    expect(d["studio.published.toldNoReaders"]).not.toMatch(/\b0\b/);
+    // B2776 — no longer "send the link": nobody else can open a closed trip.
+    expect(d["studio.published.toldOnlyYou"]).toMatch(/Only you can open it/);
+    expect(d["studio.published.toldOnlyYou"]).not.toMatch(/\b0\b/);
   });
 });

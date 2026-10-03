@@ -8,10 +8,11 @@ import type { MigrationDb } from "./types";
  * address, the address itself the primary key, so adding the same person
  * twice is one row rather than a second the first can disagree with.
  *
- * **An entry is permission to be sent the first code, and nothing else.** A
- * listed address still does the whole normal signup — email code, phone
- * number, phone verification. Nothing here is a credential, nothing here is
- * pre-verified, and a row is not consumed by a signup: the owner chose
+ * **An entry is permission to start, and nothing else.** A listed address
+ * still proves its mailbox — by the emailed code, or (B-2772, amending
+ * B1693) by the single-use link the operator's approval mails — and then does
+ * the normal rest: phone number, phone verification. Nothing here is a
+ * credential, nothing here is pre-verified, and a row is not consumed by a signup: the owner chose
  * permanent-until-removed so a signup that dies half-way can be restarted
  * without the operator being asked to re-add somebody.
  *

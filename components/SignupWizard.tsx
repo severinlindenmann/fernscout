@@ -172,6 +172,8 @@ export default function SignupWizard({
   onAlreadyOwns,
   phoneCountryCode,
   contactEmail,
+  inviteOnly,
+  inviteRequest,
 }: {
   /** Prefilled when the visitor already carries an identity cookie — they
    * proved this address once already, so while the field still holds it the
@@ -203,10 +205,15 @@ export default function SignupWizard({
   phoneCountryCode?: string | null;
   /** `serverSite().operatorEmail` — B2357. */
   contactEmail?: string | null;
+  /** B-2780 — invite-only server: the code request answers alike for every address. */
+  inviteOnly?: boolean;
+  /** B-2773 — `/invite` exists: the email step links it. */
+  inviteRequest?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState<Step>("email");
+  const [ownedUser, setOwnedUser] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [telTaken, setTelTaken] = useState(false);
@@ -472,6 +479,10 @@ export default function SignupWizard({
     }
     // The address is proven and already owns a journal — B1568.
     if (result.error === "too_many_journals") {
+      // B-2811: the 409 carries this address's own journal and the identity
+      // cookie, so the studio opens without a second code.
+      const user = (result.details as { user?: unknown } | undefined)?.user;
+      if (typeof user === "string") setOwnedUser(user);
       setStep("owns");
       return;
     }
@@ -896,6 +907,13 @@ export default function SignupWizard({
           <p className="mt-3 text-sm leading-6 text-ink-secondary">
             {proven ? t("signupPage.provenAs", { email: prefillEmail! }) : t("signupPage.reminderNotice")}
           </p>
+          {inviteRequest && (
+            <p className="mt-3 text-sm leading-6">
+              <Link href="/invite" className="underline underline-offset-4">
+                {t("signupPage.requestInvite")}
+              </Link>
+            </p>
+          )}
         </form>
       )}
 
@@ -907,7 +925,7 @@ export default function SignupWizard({
           }}
         >
           <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("agent.startCodeSent", { minutes: codeMinutes })}
+            {t(inviteOnly ? "signupPage.codeSentInvited" : "agent.startCodeSent", { minutes: codeMinutes })}
           </p>
           <p className="mt-1 break-all text-base font-semibold text-ink-strong">{email}</p>
           {codeBox("signup-code", code, setCode, verifyCode)}
@@ -927,15 +945,20 @@ export default function SignupWizard({
       {step === "owns" && (
         <div>
           <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("agent.error.too_many_journals")}
+            {ownedUser ? t("signupPage.welcomeStudio", { user: ownedUser }) : t("agent.error.too_many_journals")}
           </p>
-          <button
-            type="button"
-            onClick={onAlreadyOwns}
-            className={`mt-4 w-full ${PILL_PRIMARY}`}
-          >
-            {t("agent.haveJournalYes")}
-          </button>
+          {ownedUser ? (
+            <a
+              href={`${journalPath(encodeURIComponent(ownedUser))}/studio`}
+              className={`mt-4 block w-full text-center ${PILL_PRIMARY}`}
+            >
+              {t("signupPage.welcomeStudioOpen")}
+            </a>
+          ) : (
+            <button type="button" onClick={onAlreadyOwns} className={`mt-4 w-full ${PILL_PRIMARY}`}>
+              {t("agent.haveJournalYes")}
+            </button>
+          )}
         </div>
       )}
 

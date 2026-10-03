@@ -28,6 +28,8 @@ export default function WelcomeDoor({
   initialSignupToken,
   ownedJournal,
   signupEnabled,
+  inviteOnly,
+  inviteRequest,
   phoneCountryCode,
   contactEmail,
 }: {
@@ -44,6 +46,10 @@ export default function WelcomeDoor({
    *  opens in its studio on that same cookie, with no second code. */
   ownedJournal?: string | null;
   signupEnabled: boolean;
+  /** B-2780 — this server takes only listed addresses; the sent notice says "if invited". */
+  inviteOnly?: boolean;
+  /** B-2773 — `/invite` exists here; the email step links it. */
+  inviteRequest?: boolean;
   /** `whatsappCountryCode()` — `lib/contactNumber.ts` is server-only, so this
    *  instance's own dialling-code convention (`features.whatsapp.defaultCountryCode`)
    *  arrives as a prop rather than a second import. Absent (or not passed at
@@ -119,6 +125,8 @@ export default function WelcomeDoor({
               onAlreadyOwns={() => setOwns(true)}
               phoneCountryCode={phoneCountryCode}
               contactEmail={contactEmail}
+              inviteOnly={inviteOnly}
+              inviteRequest={inviteRequest}
             />
             <p className="mt-4">
               <Link href="/?start=1" className={`text-sm ${TEXT_LINK}`}>

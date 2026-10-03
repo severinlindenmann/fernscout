@@ -14,7 +14,7 @@ import TellWho, { tellCounts, type TellProps } from "@/components/studio/day/Tel
 import { journalPath } from "@/lib/journalPath";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { missingConsentScopes, type ConsentScopes } from "@/lib/studio/featureConsent";
-import { messageFact, publishAudienceLabel, readersFact } from "@/lib/studio/publishAudience";
+import { messageFact, publishAudienceLabel, reachActions, readersFact } from "@/lib/studio/publishAudience";
 import { addAllAiTags, matchingUsedBeforeTags, mergeTags, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer, type LanguageAnswer } from "@/lib/studio/languageAnswer";
 import { dayLanguageFor, offerLocalesFor } from "@/lib/studio/dayLanguage";
@@ -537,7 +537,9 @@ export default function PreviewDayFlow({
   }
 
   const audienceLabel = publishAudienceLabel(chosen.audience, readers?.length ?? null);
-  const publishLabel = audienceLabel.kind === "everyone" ? t("studio.preview.publishEveryone") : tn("studio.preview.publishReaders", audienceLabel.count, { count: String(audienceLabel.count) });
+  const onlyYou = audienceLabel.kind === "onlyYou";
+  const reach = onlyYou ? reachActions(chosen.audience, journalPath(username), chosen.tripId) : [];
+  const publishLabel = audienceLabel.kind === "everyone" ? t("studio.preview.publishEveryone") : audienceLabel.kind === "onlyYou" ? t("studio.preview.publishOnlyYou") : tn("studio.preview.publishReaders", audienceLabel.count, { count: String(audienceLabel.count) });
 
   async function doPublish() {
     setPublishing(true);
@@ -589,10 +591,10 @@ export default function PreviewDayFlow({
   if (published) {
     const nobodyTold = published.told.app === 0 && published.told.mail === 0;
     const readerLine =
-      audienceLabel.kind === "readers"
-        ? audienceLabel.count === 0
-          ? t("studio.published.toldNoReaders")
-          : nobodyTold
+      audienceLabel.kind === "onlyYou"
+        ? t("studio.published.toldOnlyYou")
+        : audienceLabel.kind === "readers"
+        ? nobodyTold
           ? tn("studio.published.toldNobody", audienceLabel.count, { count: String(audienceLabel.count) })
           : tn("studio.published.told", audienceLabel.count, { count: String(audienceLabel.count), app: String(published.told.app), mail: String(published.told.mail) })
         : nobodyTold
@@ -605,6 +607,7 @@ export default function PreviewDayFlow({
         slug={published.slug}
         title={suggestionState[0]?.titleChoice || entries[0]?.title || formatLongDate(chosen.date)}
         readerLine={readerLine}
+        reach={reach}
         thumb={entries[0]?.gallery.length ? `/api/web/${user}/trips/${encodeURIComponent(chosen.tripId)}/days/${encodeURIComponent(published.slug)}/story?look=photo` : null}
       />
     );
@@ -1025,6 +1028,18 @@ export default function PreviewDayFlow({
           design calls for, replacing the old explanatory sentences
           ("Publishing tells nobody: nobody you chose has app notifications
           or email on."). */}
+      {onlyYou && (
+        <div data-only-you className="mt-5 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3 text-sm text-ink-body">
+          <p className="font-semibold text-ink-strong">{t("studio.preview.onlyYou")}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {reach.map((a) => (
+              <Link key={a.key} href={a.href} className="inline-flex min-h-11 items-center rounded-full border border-line-strong px-4 font-semibold text-ink-strong hover:bg-surface-raised">
+                {t(a.key)}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
       <dl className="mt-5 space-y-3 rounded-xl border border-line-faint bg-surface-subtle px-4 py-3 text-sm text-ink-body">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -1032,10 +1047,12 @@ export default function PreviewDayFlow({
             <dd data-audience={chosen.audience}>
               {readers1.kind === "everyone"
                 ? t("studio.preview.readers.everyone")
+                : readers1.count === 0
+                  ? t("studio.preview.readers.nobody")
                 : readers1.kind === "private"
                   ? tn("studio.preview.readers.private", readers1.count, { count: String(readers1.count) })
                   : tn("studio.preview.readers.guest", readers1.count, { count: String(readers1.count) })}
-              {readers1.kind !== "everyone" && <span className="block text-ink-secondary">{readerNames ?? t("studio.preview.readers.onlyThem")}</span>}
+              {readers1.kind !== "everyone" && readers1.count > 0 && <span className="block text-ink-secondary">{readerNames ?? t("studio.preview.readers.onlyThem")}</span>}
             </dd>
           </div>
           <button type="button" onClick={() => setChanging((v) => !v)} className="min-h-9 flex-none rounded-full border border-line-strong px-3 text-xs font-semibold text-ink-strong">

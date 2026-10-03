@@ -515,6 +515,9 @@ export default function NewTripFlow({
   const titleMissing = titleLeft && !title.trim();
   const endBeforeStart = Boolean(start && end && end < start);
 
+  // B2776 — widening a private trip to the journal's readers is the trip's own
+  // visibility page (the one existing write, with its preview), not a new one.
+  const letIn = { href: `${journalPath(username)}/studio/trip/visibility?trip=${encodeURIComponent(createdId ?? "")}`, label: t("studio.reach.letReadersIn") };
   const whoKey = visibility === "public" ? "public" : visibility === "guest" ? "guest" : "private";
   const onTrip = company === "named" && namedContacts.length > 0;
 
@@ -1143,10 +1146,10 @@ export default function NewTripFlow({
                 href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(createdId)}`,
                 label: t("studio.newTrip.done.addFirstDay"),
               },
-              // B2187 — one way to let somebody in, said before the tap.
-              // People named on the trip are on it already and are invited
-              // from People; otherwise a journal invite, which only opens a
-              // trip that is not private — so a private trip offers none.
+              // B2187 / B2776 — "who reads along?" is asked after every trip.
+              // A private trip is the people on it (and the close circle), so
+              // a journal invite would open nothing: its doors are People and
+              // widening the trip. A shared trip offers the readers invite.
               ...(onTrip
                 ? [
                     {
@@ -1154,6 +1157,7 @@ export default function NewTripFlow({
                       body: t("studio.newTrip.done.invite.note"),
                       href: `${journalPath(username)}/studio/people`,
                       label: t("studio.newTrip.done.invite.cta"),
+                      ...(visibility === "private" ? { also: [letIn] } : {}),
                     },
                   ]
                 : visibility !== "private"
@@ -1165,7 +1169,15 @@ export default function NewTripFlow({
                         label: t("studio.newTrip.done.readAlong.cta"),
                       },
                     ]
-                  : []),
+                  : [
+                      {
+                        title: t("studio.newTrip.done.whoReads.title"),
+                        body: t("studio.newTrip.done.whoReads.body"),
+                        href: `${journalPath(username)}/studio/people`,
+                        label: t("studio.reach.addSomeone"),
+                        also: [letIn],
+                      },
+                    ]),
             ] as [DoneNext] | [DoneNext, DoneNext]}
           />
           {routeFrom && (

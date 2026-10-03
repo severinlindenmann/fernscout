@@ -386,8 +386,8 @@ function appleEnvironmentsNote(name: FeatureName): string | undefined {
  * can do it at all — a database and a `SESSION_SECRET` — and
  * `features.signup.inviteOnly` is what narrows it. That default is `true`, so
  * the ordinary state of a fresh instance is a capability reporting `enabled:
- * true` while `POST /api/auth/codes` answers `403 signup_not_invited` to
- * everybody the operator has not named.
+ * true` while nobody the operator has not named can make a journal (since
+ * B-2780 the code request answers them the same 202 and sends nothing).
  *
  * Both halves are right and the pair reads as a contradiction, which is what
  * B1694 found: an operator checking `/api/health` on a closed alpha is told
@@ -409,7 +409,7 @@ function signupNote(name: FeatureName, feature: Record<string, unknown>): string
   // — `hasDatabase()` below reads the environment variable rather than opening
   // a handle, for the same reason.
   return feature.inviteOnly !== false
-    ? 'features.signup.inviteOnly is true — only addresses this instance\'s operator has named in /admin can make a journal; everybody else is refused with "signup_not_invited"'
+    ? 'features.signup.inviteOnly is true — only addresses this instance\'s operator has named in /admin can make a journal; anybody else gets no code, and creating a journal refuses them with "signup_not_invited"'
     : "features.signup.inviteOnly is false — anybody with an email address can make a journal on this instance";
 }
 
