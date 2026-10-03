@@ -1102,7 +1102,6 @@
   "landing.copyInstruction": "Utasítás másolása",
   "landing.handBody": "Másold ki, és illeszd be egy saját ügynöködbe a kezdéshez.",
   "landing.handTitle": "Ezt add az ügynöködnek",
-  "landing.helperCta": "Írjunk most →",
   "landing.hero": "Az utad, elmesélve az otthoniaknak.",
   "landing.ledeApp": "Útinapló, amit a családod a böngészőben olvas: nincs jelszó, nincs hírfolyam. Írj pár sort, és tedd hozzá a fotóidat.",
   "landing.ledeBook": "Útinapló, amit a családod a böngészőben olvas: nincs app, nincs jelszó, nincs hírfolyam. Írj pár sort, tedd hozzá a fotóidat, és őrizd meg az utat könyvként.",
@@ -1411,7 +1410,7 @@
   "me.keysUntil": "érvényes: {date}",
   "me.keysUnused": "még nem használták",
   "me.keysUsed": "utoljára használva: {date}",
-  "me.newHereCta": "Új vagy itt? Indíts saját útinaplót, amit az ügynököd ír helyetted.",
+  "me.newHereCta": "Új vagy itt? Indíts saját útinaplót.",
   "me.nothing": "Még semmi. Kérd meg azt, aki ideküldött, hogy hívjon meg.",
   "me.notifyLede": "Kapj értesítést ezen az eszközön, amikor új nap jelenik meg itt. Bármikor kikapcsolhatod.",
   "me.newsTitle": "Hírek a Fernscouttól",
@@ -4968,5 +4967,14 @@
   "signupResume.ownsAction": "Bejelentkezés",
   "signupResume.title": "Regisztráció folytatása",
   "signupResume.working": "Megnyitás…",
-  "wa.phoneLinkTaken": "Ehhez a számhoz már tartozik napló a(z) {site} oldalán. Inkább itt jelentkezz be: {host}."
+  "wa.phoneLinkTaken": "Ehhez a számhoz már tartozik napló a(z) {site} oldalán. Inkább itt jelentkezz be: {host}.",
+  "landing.startJournal": "Indítsd el az útinaplódat",
+  "studio.hub.first.title": "Üdv, {name}",
+  "studio.hub.first.titleAnon": "Üdv",
+  "studio.hub.first.body": "Az útinaplód itt található: {address}. Még semmi sincs közzétéve. Hogyan szeretnéd kezdeni?",
+  "studio.hub.first.newTrip.hint": "Egy cím, két dátum, és hogy ki olvashatja. Nagyjából egy perc.",
+  "studio.hub.first.polarsteps.hint": "Az exportod (user_data.zip), piszkozatként.",
+  "studio.hub.first.photos.title": "Kezdés fényképekből",
+  "studio.hub.first.photos.hint": "A fényképeiből, a készítésük ideje szerint napokra rendezve.",
+  "studio.hub.first.skip": "Kihagyom — előbb körülnézek"
 }

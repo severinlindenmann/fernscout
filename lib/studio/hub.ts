@@ -14,6 +14,9 @@ import type { WaitingDays } from "@/lib/studio/dayCards";
 import { getTrip, getTrips, parseTripRef, tripRef } from "@/lib/trips";
 import { daysUntil, readerTodayISO } from "@/lib/tripTime";
 
+import { PAID_AREAS } from "@paid/manifest";
+import { ownerShortName, serverSite } from "@/lib/site";
+import { getUser } from "@/lib/users";
 import { journalPath } from "../journalPath";
 /**
  * What `/[user]/studio` (B1829) needs to render its three non-default
@@ -34,6 +37,11 @@ export type StudioHubModel =
       kind: "empty";
       /** B2577 — features.extract is off: Bring in an old trip greys. */
       extractOff: boolean;
+      /** B2810 — the first-visit welcome: the owner's short name (null when
+       *  none), the journal's address without a scheme, and which doors the
+       *  instance actually carries. A door whose capability is off is not
+       *  offered at all. */
+      welcome: { nickname: string | null; address: string; polarsteps: boolean };
       /** A journal can have a half-done photographs import before it has
        *  its first trip at all — `TripModeStep` (Step 02 of that flow)
        *  offers "a new trip" from inside the import itself, so an empty
@@ -286,6 +294,14 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
     return {
       kind: "empty",
       extractOff: !isEnabled("extract", username),
+      welcome: {
+        nickname: (() => {
+          const user = getUser(username);
+          return user ? (ownerShortName(user) ?? null) : null;
+        })(),
+        address: `${serverSite().url.replace(/^https?:\/\//, "")}${journalPath(username)}`,
+        polarsteps: PAID_AREAS.includes("switch"),
+      },
       account,
       print,
       resumableImports: resumableImports(username),

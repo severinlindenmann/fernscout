@@ -1342,7 +1342,6 @@
   "landing.copyInstruction": "Copier l’instruction",
   "landing.handBody": "Copie ce texte et colle-le dans ton propre agent pour commencer.",
   "landing.handTitle": "Donne ceci à ton agent",
-  "landing.helperCta": "Commencer à écrire →",
   "landing.hero": "Ton voyage, raconté aux gens restés à la maison.",
   "landing.ledeApp": "Un journal de voyage que ta famille lit dans le navigateur : pas de mot de passe, pas de fil d’actualité. Écris quelques lignes et ajoute tes photos.",
   "landing.ledeBook": "Un journal de voyage que ta famille lit dans le navigateur : pas d’app, pas de mot de passe, pas de fil d’actualité. Écris quelques lignes, ajoute tes photos, et garde le voyage comme un livre.",
@@ -1651,7 +1650,7 @@
   "me.keysUntil": "valable jusqu’au {date}",
   "me.keysUnused": "pas encore utilisée",
   "me.keysUsed": "dernière utilisation {date}",
-  "me.newHereCta": "Nouveau ici ? Commence ton propre journal de voyage, écrit pour toi par ton agent.",
+  "me.newHereCta": "Nouveau ici ? Commence ton propre journal de voyage.",
   "me.nothing": "Rien pour l’instant. Demande à la personne qui t’a envoyé ici de t’inviter.",
   "me.notifyLede": "Reçois une notification sur cet appareil quand une nouvelle journée est publiée ici. Tu peux la désactiver à tout moment.",
   "me.newsTitle": "Nouvelles de Fernscout",
@@ -4971,5 +4970,14 @@
   "signupResume.ownsAction": "Se connecter",
   "signupResume.title": "Poursuivre ton inscription",
   "signupResume.working": "Ouverture…",
-  "wa.phoneLinkTaken": "Ce numéro tient déjà un journal sur {site}. Connecte-toi plutôt sur {host}."
+  "wa.phoneLinkTaken": "Ce numéro tient déjà un journal sur {site}. Connecte-toi plutôt sur {host}.",
+  "studio.hub.first.title": "Bienvenue, {name}",
+  "studio.hub.first.titleAnon": "Bienvenue",
+  "studio.hub.first.body": "Ton journal est à l’adresse {address}. Rien n’est encore publié. Par où veux-tu commencer ?",
+  "studio.hub.first.newTrip.hint": "Un titre, deux dates et qui peut le lire. Environ une minute.",
+  "studio.hub.first.polarsteps.hint": "Ton export (user_data.zip), en brouillons.",
+  "studio.hub.first.photos.title": "Partir de photos",
+  "studio.hub.first.photos.hint": "À partir de ses photos, triées par jour selon leur date de prise de vue.",
+  "studio.hub.first.skip": "Passer — je regarde d’abord autour de moi",
+  "landing.startJournal": "Commencer ton journal"
 }

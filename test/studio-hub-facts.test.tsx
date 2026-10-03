@@ -110,7 +110,7 @@ describe("the Half done strip", () => {
     expect(strip(await render(FULL))).toBeNull();
     act(() => root?.unmount());
     container?.remove();
-    expect(strip(await render({ kind: "empty", extractOff: false, account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] }))).toBeNull();
+    expect(strip(await render({ kind: "empty", extractOff: false, welcome: { nickname: null, address: "x/@y", polarsteps: false }, account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] }))).toBeNull();
   });
 
   test("gathers the add-day draft, each import and the postcard suggestion, under the hero", async () => {

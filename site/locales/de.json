@@ -1342,7 +1342,6 @@
   "landing.copyInstruction": "Anweisung kopieren",
   "landing.handBody": "Kopiere das und füge es in einen eigenen Agenten ein, um loszulegen.",
   "landing.handTitle": "Gib das deinem Agenten",
-  "landing.helperCta": "Jetzt schreiben →",
   "landing.hero": "Deine Reise, erzählt für die Menschen zu Hause.",
   "landing.ledeApp": "Ein Reisetagebuch, das deine Familie im Browser liest: kein Passwort, kein Feed. Schreib ein paar Zeilen und füg deine Fotos hinzu.",
   "landing.ledeBook": "Ein Reisetagebuch, das deine Familie im Browser liest: keine App, kein Passwort, kein Feed. Schreib ein paar Zeilen, füg deine Fotos hinzu und behalte die Reise als Buch.",
@@ -1651,7 +1650,7 @@
   "me.keysUntil": "gilt bis {date}",
   "me.keysUnused": "noch nicht benutzt",
   "me.keysUsed": "zuletzt benutzt {date}",
-  "me.newHereCta": "Neu hier? Starte dein eigenes Reisetagebuch, das dein Agent für dich schreibt.",
+  "me.newHereCta": "Neu hier? Starte dein eigenes Reisetagebuch.",
   "me.nothing": "Noch nichts. Bitte die Person, die dich hergeschickt hat, dich einzuladen.",
   "me.notifyLede": "Lass dich auf diesem Gerät benachrichtigen, wenn hier ein neuer Tag veröffentlicht wird. Du kannst das jederzeit wieder ausschalten.",
   "me.newsTitle": "Neuigkeiten von Fernscout",
@@ -4967,5 +4966,14 @@
   "signupResume.ownsAction": "Anmelden",
   "signupResume.title": "Anmeldung fortsetzen",
   "signupResume.working": "Wird geöffnet…",
-  "wa.phoneLinkTaken": "Zu dieser Nummer gibt es auf {site} schon ein Journal. Melde dich stattdessen auf {host} an."
+  "wa.phoneLinkTaken": "Zu dieser Nummer gibt es auf {site} schon ein Journal. Melde dich stattdessen auf {host} an.",
+  "studio.hub.first.title": "Willkommen, {name}",
+  "studio.hub.first.titleAnon": "Willkommen",
+  "studio.hub.first.body": "Dein Reisetagebuch ist unter {address}. Noch ist nichts veröffentlicht. Wie möchtest du anfangen?",
+  "studio.hub.first.newTrip.hint": "Ein Titel, zwei Daten und wer es lesen darf. Etwa eine Minute.",
+  "studio.hub.first.polarsteps.hint": "Dein Export (user_data.zip), als Entwürfe.",
+  "studio.hub.first.photos.title": "Mit Fotos beginnen",
+  "studio.hub.first.photos.hint": "Aus den Fotos, nach Aufnahmezeit in Tage sortiert.",
+  "studio.hub.first.skip": "Überspringen — ich schaue mich erst um",
+  "landing.startJournal": "Dein Reisetagebuch starten"
 }

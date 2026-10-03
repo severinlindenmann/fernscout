@@ -21,7 +21,7 @@ export function landingFlags(locale: string): LandingFlags & { billingEnabled: b
     helperEnabled: isEnabled("helper"),
     postcards: isEnabled("postcards"),
     photobook: isEnabled("photobook"),
-    inviteCta: inviteRequestAvailable() ? "request" : "welcome",
+    inviteCta: inviteRequestAvailable() ? "request" : isEnabled("signup") ? "welcome" : "none",
     billingEnabled,
     planPoint: billingEnabled ? planPoint(locale) : null,
     planFaq: billingEnabled ? planFaq(locale) : [],
@@ -48,8 +48,8 @@ export function landingMarkdown(locale: string): string {
   const cta =
     f.inviteCta === "request"
       ? `[${t("landing.requestInvite")}](${site.url}/invite)`
-      : f.helperEnabled
-        ? `[${t("landing.helperCta")}](${site.url}/welcome)`
+      : f.inviteCta === "welcome"
+        ? `[${t("landing.startJournal")}](${site.url}/welcome)`
         : null;
   const docUrl = `${site.url}/documentation.txt`;
   const agentUrl = `${site.url}/skill/add-a-day.md`;

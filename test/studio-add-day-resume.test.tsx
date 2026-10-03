@@ -135,7 +135,7 @@ describe("StudioHub — half-done 'Add a day' work reaches the hub (H4)", () => 
 
   test("an empty journal's hub surfaces the same draft above its own CTA", async () => {
     writeSnapshot(USERNAME);
-    renderHub({ kind: "empty", extractOff: false, account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] });
+    renderHub({ kind: "empty", extractOff: false, welcome: { nickname: null, address: "x/@y", polarsteps: false }, account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] });
     await act(async () => {});
     expect(container!.textContent).toContain("A day you started, not finished");
   });

@@ -1342,7 +1342,6 @@
   "landing.copyInstruction": "Copy instruction",
   "landing.handBody": "Copy this and paste it into an agent of your own to get started.",
   "landing.handTitle": "Hand this to your agent",
-  "landing.helperCta": "Start writing →",
   "landing.hero": "Your trip, told to the people at home.",
   "landing.ledeApp": "A travel journal your family reads in the browser: no password, no feed. Write a few lines and add your photos.",
   "landing.ledeBook": "A travel journal your family reads in the browser: no app, no password, no feed. Write a few lines, add your photos, and keep the trip as a book.",
@@ -1651,7 +1650,7 @@
   "me.keysUntil": "works until {date}",
   "me.keysUnused": "not used yet",
   "me.keysUsed": "last used {date}",
-  "me.newHereCta": "New here? Start your own travel journal that your agent writes for you.",
+  "me.newHereCta": "New here? Start your own travel journal.",
   "me.nothing": "Nothing yet. Ask whoever sent you here to invite you.",
   "me.notifyLede": "Get a notification on this device when a new day is published here. You can turn it off again at any time.",
   "me.newsTitle": "News from Fernscout",
@@ -4962,5 +4961,14 @@
   "signupResume.ownsAction": "Sign in",
   "signupResume.title": "Continue your signup",
   "signupResume.working": "Opening…",
-  "wa.phoneLinkTaken": "That number already keeps a journal on {site}. Sign in on {host} instead."
+  "wa.phoneLinkTaken": "That number already keeps a journal on {site}. Sign in on {host} instead.",
+  "studio.hub.first.title": "Welcome, {name}",
+  "studio.hub.first.titleAnon": "Welcome",
+  "studio.hub.first.body": "Your journal is at {address}. Nothing is published yet. How would you like to begin?",
+  "studio.hub.first.newTrip.hint": "A title, two dates, and who may read it. About a minute.",
+  "studio.hub.first.polarsteps.hint": "Your export (user_data.zip), as drafts.",
+  "studio.hub.first.photos.title": "Start from photos",
+  "studio.hub.first.photos.hint": "From its photographs, sorted into days by when they were taken.",
+  "studio.hub.first.skip": "Skip — I’ll look around first",
+  "landing.startJournal": "Start your journal"
 }

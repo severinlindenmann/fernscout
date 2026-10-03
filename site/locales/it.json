@@ -1342,7 +1342,6 @@
   "landing.copyInstruction": "Copia istruzione",
   "landing.handBody": "Copia questo testo e incollalo in un tuo agente per cominciare.",
   "landing.handTitle": "Dallo al tuo agente",
-  "landing.helperCta": "Inizia a scrivere →",
   "landing.hero": "Il tuo viaggio, raccontato a chi è rimasto a casa.",
   "landing.ledeApp": "Un diario di viaggio che la tua famiglia legge nel browser: niente password, niente feed. Scrivi qualche riga e aggiungi le tue foto.",
   "landing.ledeBook": "Un diario di viaggio che la tua famiglia legge nel browser: niente app, niente password, niente feed. Scrivi qualche riga, aggiungi le tue foto, e conserva il viaggio come un libro.",
@@ -1651,7 +1650,7 @@
   "me.keysUntil": "valida fino al {date}",
   "me.keysUnused": "non ancora usata",
   "me.keysUsed": "ultimo uso {date}",
-  "me.newHereCta": "Sei nuovo? Inizia il tuo diario di viaggio, scritto per te dal tuo agente.",
+  "me.newHereCta": "Sei nuovo? Inizia il tuo diario di viaggio.",
   "me.nothing": "Ancora niente. Chiedi a chi ti ha mandato qui di invitarti.",
   "me.notifyLede": "Ricevi una notifica su questo dispositivo quando qui viene pubblicato un nuovo giorno. Puoi disattivarla in qualsiasi momento.",
   "me.newsTitle": "Novità da Fernscout",
@@ -4971,5 +4970,14 @@
   "signupResume.ownsAction": "Accedi",
   "signupResume.title": "Continua la tua iscrizione",
   "signupResume.working": "Apertura…",
-  "wa.phoneLinkTaken": "Questo numero tiene già un diario su {site}. Accedi invece su {host}."
+  "wa.phoneLinkTaken": "Questo numero tiene già un diario su {site}. Accedi invece su {host}.",
+  "studio.hub.first.title": "Benvenuto, {name}",
+  "studio.hub.first.titleAnon": "Benvenuto",
+  "studio.hub.first.body": "Il tuo diario è all’indirizzo {address}. Non è ancora stato pubblicato nulla. Da dove vuoi iniziare?",
+  "studio.hub.first.newTrip.hint": "Un titolo, due date e chi può leggerlo. Circa un minuto.",
+  "studio.hub.first.polarsteps.hint": "Il tuo export (user_data.zip), come bozze.",
+  "studio.hub.first.photos.title": "Parti dalle foto",
+  "studio.hub.first.photos.hint": "Dalle sue foto, ordinate in giorni in base a quando sono state scattate.",
+  "studio.hub.first.skip": "Salta — prima do un’occhiata in giro",
+  "landing.startJournal": "Inizia il tuo diario"
 }

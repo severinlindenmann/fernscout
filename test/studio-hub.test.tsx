@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import StudioHub from "@/components/studio/StudioHub";
 import StudioBarProvider from "@/components/studio/StudioBar";
 import LocaleProvider from "@/components/LocaleProvider";
@@ -65,12 +65,17 @@ function render(model: StudioHubModel) {
 const EMPTY_BASE: Extract<StudioHubModel, { kind: "empty" }> = {
   kind: "empty",
   extractOff: false,
+  welcome: { nickname: "Alex", address: "fernscout.ch/@alex", polarsteps: true },
   account: { storage: null },
   print: { unfinished: [], recentOrders: [] },
   resumableImports: [],
   analyticsEnabled: false,
   postcardSuggestion: null, routeRecordingTrips: [],
 };
+
+// B2810 — these tests are about the hub itself; the first-visit welcome has its
+// own file (studio-first-visit.test.tsx). Skipped here, as a returning owner is.
+beforeEach(() => localStorage.setItem("fs.studioWelcomeSkipped.alex", "1"));
 
 describe("H2 — an empty journal", () => {
   test("shows one call to action, not a grid", () => {
