@@ -67,6 +67,7 @@ asks for the same information without them.
 | **Request log** — the page asked for, the time, the browser's name; no IP address | To run and defend the server | Legitimate interest | 14 days |
 | **Copies of mail this site sent** | To see why a sign-in code did not arrive | Legitimate interest | Two days, never backed up |
 | **iPhone app waitlist** — an email address, and the language you asked for | So we can tell you once the app is on the App Store | Consent | Until the app is released, or you ask us to remove it |
+| **Unfinished signups** — an email address you confirmed, the language of the page, and a phone number once you confirmed it | So you can continue where you stopped, on any device, without starting again | Steps before a contract, at your request | Eight days after you confirmed the email address, or until the journal is made — whichever comes first |
 | **Payments, plans and print orders** | Bookkeeping | Contract, and the law (Swiss bookkeeping rules) | Ten years; see [Deleting](#deleting) |
 | **Encrypted backups** of all of the above | So a broken disk does not end a journal | Legitimate interest | 14 days on the server, 7 days in the second copy |
 
