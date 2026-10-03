@@ -25,6 +25,7 @@ export default function WelcomeDoor({
   codeMinutes,
   identityEmail,
   resume,
+  initialSignupToken,
   signupEnabled,
   phoneCountryCode,
   contactEmail,
@@ -36,6 +37,8 @@ export default function WelcomeDoor({
   identityEmail: string | null;
   /** B2804 — that address left a signup half-done; the wizard resumes it. */
   resume?: boolean;
+  /** B2781 — see `SignupWizard`. */
+  initialSignupToken?: string;
   signupEnabled: boolean;
   /** `whatsappCountryCode()` — `lib/contactNumber.ts` is server-only, so this
    *  instance's own dialling-code convention (`features.whatsapp.defaultCountryCode`)
@@ -98,6 +101,7 @@ export default function WelcomeDoor({
             <SignupWizard
               email={identityEmail ?? undefined}
               resume={resume}
+              initialSignupToken={initialSignupToken}
               locale={locale}
               codeMinutes={codeMinutes}
               onSignedIn={intoTheStudio}

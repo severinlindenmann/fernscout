@@ -1,5 +1,5 @@
 import "server-only";
-import { CODE_TTL_MINUTES, NO_JOURNAL, issueCode, revokeCodes } from "./auth";
+import { CODE_TTL_MINUTES, NO_JOURNAL, issueCode, issueSignupResumeLink, revokeCodes, signupResumeUrl } from "./auth";
 import { translateIn } from "./locales";
 import { sendMail } from "./mail";
 import { composeCodeMailContent } from "./mail/codeMail";
@@ -13,8 +13,8 @@ import type { Locale } from "./types";
  * `code.signup.mail`'s composition — B2493. `code` and `askedAt` are already
  * resolved by the caller (`issueCode`, `requestedAt`) — pure otherwise.
  */
-export function composeSignupCodeMail(params: { locale: Locale; code: string; askedAt: string }): MailComposition {
-  const { locale, code, askedAt } = params;
+export function composeSignupCodeMail(params: { locale: Locale; code: string; askedAt: string; resumeUrl?: string }): MailComposition {
+  const { locale, code, askedAt, resumeUrl } = params;
   const site = serverSite();
   const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) => translateIn(locale, key, vars);
   const vars = { site: site.name, code, minutes: CODE_TTL_MINUTES };
@@ -25,6 +25,9 @@ export function composeSignupCodeMail(params: { locale: Locale; code: string; as
     place: site.name,
     title: t("mail.signupTitle"),
     purpose: t("mail.signupWhat"),
+    url: resumeUrl,
+    buttonText: t("mail.signupContinue"),
+    urlNote: t("mail.signupContinueNote"),
     askedAt: t("mail.codeAsked", { when: askedAt }),
     ignoreText: t("mail.signupIgnore"),
     why: t("mail.identityFooter", vars),
@@ -57,9 +60,13 @@ export async function sendSignupCode(email: string, locale: string): Promise<boo
   // again invalidates the earlier code and sends a mail that is word for
   // word the same, so without a stamp the person reads out whichever is
   // nearest and gets `invalid_code` for their trouble.
+  // B2781. The button is a 7-day press-to-spend link that resumes this
+  // signup; a failure to mint it must not cost the person their code.
+  const linkToken = await issueSignupResumeLink(email).catch(() => null);
   const { subject, content } = composeSignupCodeMail({
     locale: locale as Locale,
     code,
+    resumeUrl: linkToken ? signupResumeUrl(serverSite().url, linkToken, locale) : undefined,
     askedAt: requestedAt(locale),
   });
 

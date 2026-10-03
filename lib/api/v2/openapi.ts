@@ -91,6 +91,7 @@ import {
   codesRedeemRequest,
   codesRedeemCookieResponse,
   codesRedeemTokenResponse,
+  signupResumeRequest,
   linksRedeemRequest,
   linksRedeemResponse,
 } from "./schemas/auth";
@@ -2125,6 +2126,34 @@ function buildPaths(): Record<string, PathItem> {
         ...refusalResponses([
           ref("signup_disabled", 404),
           ref("not_signed_in", 401, "no identity cookie, or it names a phone number rather than an address"),
+          ref("signup_not_invited", 403),
+          ref("foreign_origin", 403),
+          ref("too_many_journals", 409),
+          ref("too_many_requests", 429),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/signup/resume"] = {
+    post: {
+      summary:
+        "Spend the signup code mail's \"Continue my signup\" link for a signup token — single use, 7 days, no cookie set.",
+      requestBody: jsonBody(
+        signupResumeRequest,
+        "POST only: a mail scanner follows a link, it does not submit a form, so the press page " +
+          "/welcome/r/<token> spends nothing on GET. The token has the power of the code in the same mail.",
+      ),
+      responses: {
+        ...jsonResponse(
+          200,
+          codesRedeemTokenResponse,
+          'the same token codes/redeem returns for "signup" — in the body only, no cookie',
+        ),
+        ...refusalResponses([
+          ref("signup_disabled", 404),
+          ref("invalid_request", 400),
+          ref("invalid_resume_link", 401, "spent, expired (7 days) or unknown"),
           ref("signup_not_invited", 403),
           ref("foreign_origin", 403),
           ref("too_many_journals", 409),

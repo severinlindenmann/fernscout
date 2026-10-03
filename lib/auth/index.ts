@@ -854,7 +854,7 @@ export async function issueRelayLink(owner: string, email: string): Promise<stri
 async function insertLinkRow(
   owner: string,
   email: string,
-  { standing, ttlMs, destination }: { standing: boolean; ttlMs: number; destination?: string },
+  { standing, ttlMs, destination, kind = "guest" }: { standing: boolean; ttlMs: number; destination?: string; kind?: string },
 ): Promise<string> {
   const { db } = await getDatabase();
   const linkToken = generateLinkToken();
@@ -872,9 +872,9 @@ async function insertLinkRow(
       // to. The relay link opens the journal; the welcome mail's link names
       // the studio (B2775) — checked by `safeDestination` on the way out too.
       link_dest: destination ? safeDestination(owner, destination) : null,
-      kind: "guest",
-      // Both link-only credentials are guest sessions, which read and have
-      // nothing to narrow.
+      kind,
+      // The link-only credentials are guest sessions (which read and have
+      // nothing to narrow), or a signup-resume link (B2781).
       trip_id: null,
       created_at: nowIso(),
       // Read for a relay link, and the thing that makes it expire. For a
@@ -889,6 +889,61 @@ async function insertLinkRow(
     .execute();
 
   return linkToken;
+}
+
+/** How long the signup code mail's "Continue my signup" button works — B2781. */
+export const SIGNUP_RESUME_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SIGNUP_RESUME_KIND = "signup-resume";
+
+/**
+ * The button in the signup code mail — B2781. A link-only row of its own
+ * kind, bound to the address, single use, seven days. Standing, so that
+ * asking for a fresh code (which supersedes the *code*) does not kill it; an
+ * older unspent resume link for the same address is retired here instead, so
+ * only the newest mail's button works.
+ */
+export async function issueSignupResumeLink(email: string): Promise<string> {
+  const { db } = await getDatabase();
+  await db
+    .updateTable("login_codes")
+    .set({ link_consumed_at: nowIso() })
+    .where("owner_id", "=", NO_JOURNAL)
+    .where("kind", "=", SIGNUP_RESUME_KIND)
+    .where("email", "=", normaliseEmail(email))
+    .where("link_consumed_at", "is", null)
+    .execute();
+  return insertLinkRow(NO_JOURNAL, email, { standing: true, ttlMs: SIGNUP_RESUME_TTL_MS, kind: SIGNUP_RESUME_KIND });
+}
+
+/** Where the signup-resume button points: a press page, never a spend on GET. */
+export function signupResumeUrl(base: string, linkToken: string, locale?: string | null): string {
+  return withLang(`${base.replace(/\/$/, "")}/welcome/r/${linkToken}`, locale);
+}
+
+/**
+ * Spend a signup-resume link: returns the address it was bound to, once.
+ * Pure link accounting — the caller applies every signup gate and opens the
+ * signup session. The conditional update makes two simultaneous presses
+ * spend it once.
+ */
+export async function spendSignupResumeLink(linkToken: string): Promise<{ email: string } | null> {
+  const { db } = await getDatabase();
+  const row = await db
+    .selectFrom("login_codes")
+    .selectAll()
+    .where("owner_id", "=", NO_JOURNAL)
+    .where("kind", "=", SIGNUP_RESUME_KIND)
+    .where("link_hash", "=", hashSecret(linkToken.trim()))
+    .where("link_consumed_at", "is", null)
+    .executeTakeFirst();
+  if (!row || new Date(row.expires_at).getTime() < Date.now()) return null;
+  const res = await db
+    .updateTable("login_codes")
+    .set({ link_consumed_at: nowIso() })
+    .where("id", "=", row.id)
+    .where("link_consumed_at", "is", null)
+    .executeTakeFirst();
+  return Number(res.numUpdatedRows ?? 0) === 1 ? { email: row.email } : null;
 }
 
 /**
