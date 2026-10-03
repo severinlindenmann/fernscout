@@ -43,7 +43,7 @@ type PeekResponse = {
 type WriteResponse = {
   ok?: true;
   read?: number;
-  drawn?: { tripId: string; segments: number; points: number }[];
+  drawn?: { tripId: string; segments: number; points: number; daysToName?: number }[];
   discarded?: boolean;
   error?: string;
 };
@@ -258,11 +258,25 @@ export default function LocationFlow({
   // B2082 — done links to the map it just drew (one card per trip, two at
   // most); with no line drawn there is no map to see, so the next thing is
   // the photographs.
-  const drawnNext: DoneNext[] = (result?.drawn ?? []).slice(0, 2).map((d) => ({
-    title: t("studio.location.done.mapTitle", { trip: tripById.get(d.tripId)?.title ?? d.tripId }),
-    href: `${journalPath(username)}/trips/${encodeURIComponent(d.tripId)}/map`,
-    label: t("studio.location.done.seeMap"),
-  }));
+  // B2303 — a trip with existing days this history can name gets one card
+  // to the route page's "Days without a place" in place of its map card.
+  const drawnNext: DoneNext[] = (result?.drawn ?? []).slice(0, 2).map((d) => {
+    const trip = tripById.get(d.tripId)?.title ?? d.tripId;
+    const toName = d.daysToName ?? 0;
+    if (toName > 0) {
+      return {
+        title: tn("studio.location.done.nameDaysTitle", toName, { count: String(toName), trip }),
+        body: t("studio.location.done.nameDaysBody"),
+        href: `${journalPath(username)}/studio/location/${encodeURIComponent(d.tripId)}#name-days`,
+        label: t("studio.location.done.nameDaysCta"),
+      };
+    }
+    return {
+      title: t("studio.location.done.mapTitle", { trip }),
+      href: `${journalPath(username)}/trips/${encodeURIComponent(d.tripId)}/map`,
+      label: t("studio.location.done.seeMap"),
+    };
+  });
   const doneNext: [DoneNext] | [DoneNext, DoneNext] =
     drawnNext.length === 2
       ? [drawnNext[0], drawnNext[1]]

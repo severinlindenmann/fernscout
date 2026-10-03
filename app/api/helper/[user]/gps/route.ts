@@ -1,6 +1,5 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { resolveAccess } from "@/lib/auth/handshake";
-import { getUser } from "@/lib/users";
+import { isJournalOwnerCookie } from "@/lib/contacts/session";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { gpsMonthsHeld, purgeGpsHistory } from "@/lib/gps/api";
 import { gpsPurgeRequest } from "@/lib/api/v2/schemas/gps";
@@ -38,10 +37,7 @@ export const dynamic = "force-dynamic";
 const NO_STORE = { "Cache-Control": "private, no-store" };
 
 async function isOwnerOnly(username: string): Promise<boolean> {
-  if (!(await isHelperOwner(username))) return false;
-  const journal = getUser(username);
-  const access = await resolveAccess(username);
-  return journal !== null && access.email === journal.owner.email;
+  return (await isHelperOwner(username)) && (await isJournalOwnerCookie(username));
 }
 
 export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/gps">) {

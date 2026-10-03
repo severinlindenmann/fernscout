@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import { isEnabled } from "@/lib/capabilities";
+import { proposeDays } from "@/lib/gps/nameDays";
 import { deriveTripTrack, discardImportedHistory, importGps, isRefusal } from "@/lib/gps/api";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { isJournalOwnerCookie } from "@/lib/contacts/session";
 import { findInboxFile } from "@/lib/inbox";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { withStorageQuota } from "@/lib/storageQuota";
@@ -52,7 +54,9 @@ type Body = {
 
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/import">) {
   const { user } = await params;
-  if (!(await isHelperOwner(user))) {
+  // B2346: the journal's own owner only — isHelperOwner admits the operator's
+  // admin cookie (B480), who must not import or discard a person's location.
+  if (!(await isHelperOwner(user)) || !(await isJournalOwnerCookie(user))) {
     return notYourJournal(request, user);
   }
 
@@ -130,12 +134,14 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   // that was the choice (D7).
   if (body.commit === true) {
     const wantedTrips = Array.isArray(body.trips) ? body.trips.filter((t): t is string => typeof t === "string") : [];
-    const drawn: { tripId: string; segments: number; points: number }[] = [];
+    const drawn: { tripId: string; segments: number; points: number; daysToName: number }[] = [];
     for (const tripId of wantedTrips) {
       const trip = getTrip(tripRef(user, tripId));
       if (!trip) continue;
       const track = deriveTripTrack(user, { id: trip.id, start: trip.start, end: trip.end });
-      drawn.push({ tripId, segments: track.segments, points: track.points });
+      // B2303 — how many existing days this history can now name. Only a
+      // count; the places themselves wait on the route page, owner's cookie.
+      drawn.push({ tripId, segments: track.segments, points: track.points, daysToName: proposeDays(user, tripId).length });
     }
     let discarded = false;
     if (body.discard === true && result.from && result.to) {

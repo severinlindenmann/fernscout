@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
+import { todayISO } from "@/components/studio/location/RecordingPlan";
 import {
   armRoute,
   disarmRoute,
@@ -59,6 +60,7 @@ export default function RouteRecordSection({
   trip: { id: string; title: string; start: string; end: string };
 }) {
   const native = useNativeShell();
+  const [localToday] = useState(() => todayISO(Date.now()));
   const { t, locale } = useI18n();
   const [status, setStatus] = useState<RouteRecordStatus | null>(null);
   const [busy, setBusy] = useState(false);
@@ -256,7 +258,10 @@ export default function RouteRecordSection({
       {status?.state === "recording" && (
         <div className="mt-3">
           <p className="text-sm text-ink-strong">
-            {t("studio.record.recordingSince", { since: fmt(status.since) })}
+            {/* Armed ahead of its start: "since" would name a day the trip had not begun. */}
+            {trip.start > localToday
+              ? t("studio.location.plan.recordsFrom", { date: fmtDate(trip.start) })
+              : t("studio.record.recordingSince", { since: fmt(status.since) })}
             {status.lastUploadAt ? ` · ${t("studio.record.lastUpload", { at: fmt(status.lastUploadAt) })}` : ""}
           </p>
           <button type="button" disabled={busy} onClick={() => void stop()} className={BUTTON}>
@@ -381,7 +386,7 @@ function LockScreenTripNameToggle({ on, onChange }: { on: boolean; onChange: (on
 /** Where "Always" stands, always visible under the section — so the owner
  *  can see, and fix, why a route is not being recorded without first
  *  having to notice a gap on the map. */
-function LocationAccessLine({ permission, onFix }: { permission: LocationPermission; onFix: () => void }) {
+export function LocationAccessLine({ permission, onFix }: { permission: LocationPermission; onFix: () => void }) {
   const { t } = useI18n();
   if (permission.status === "always" && permission.precise) {
     return <p className="mt-4 text-sm text-ink-secondary">✓ {t("studio.record.access.always")}</p>;
@@ -412,7 +417,7 @@ function LocationAccessLine({ permission, onFix }: { permission: LocationPermiss
  * still be shown, and the exact Settings path once they cannot — iOS shows
  * the "Change to Always Allow" prompt only once per install.
  */
-function LocationGuide({
+export function LocationGuide({
   permission,
   busy,
   doneLabel,

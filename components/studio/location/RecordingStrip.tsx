@@ -126,9 +126,9 @@ export default function RecordingStrip({
         <>
           <p className="text-sm font-semibold text-ink-strong">{t("studio.location.strip.recording")} · {trip.title}</p>
           {reportedAt && <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.strip.reportedAt", { at: reportedAt })}</p>}
-          {newestAt && (
-            <p className="mt-1 text-sm text-ink-secondary">{t("studio.location.strip.newestPosition", { at: newestAt })}</p>
-          )}
+          <p className="mt-1 text-sm text-ink-secondary">
+            {newestAt ? t("studio.location.strip.newestPosition", { at: newestAt }) : t("studio.location.strip.noPosition")}
+          </p>
         </>
       )}
       </div>

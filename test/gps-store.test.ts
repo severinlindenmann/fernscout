@@ -609,6 +609,30 @@ describe("who may reach the owner-only, position-derived readers — security re
     );
   });
 
+  test("currentTripRecording (B2564) is imported only by the routes overview page", () => {
+    expect(importersOf("currentTripRecording")).toEqual(["app/at/[user]/studio/location/page.tsx"]);
+  });
+
+  test("currentTripRecording answers for a status-current trip only, never the latest past trip (B2564)", async () => {
+    const U = "alex";
+    fs.mkdirSync(path.join(dir, U), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, U, "config.json"),
+      JSON.stringify({
+        title: "A", owner: { name: "A B", nickname: "A" }, defaultLocale: "en",
+        locales: ["en"], baseCurrency: "CHF", displayCurrencies: ["CHF"], units: "metric",
+      }),
+    );
+    writeTripFixture(U, { id: "old", title: "Old", start: "2026-01-01", end: "2026-01-03", status: "past", visibility: "public" });
+    const { clearUserCache } = await import("@/lib/users");
+    clearUserCache();
+    const { currentTripRecording } = await import("@/lib/gps/api");
+    expect(currentTripRecording(U)).toBeNull();
+    writeTripFixture(U, { id: "now", title: "Now", start: "2026-10-01", end: "2026-10-09", status: "current", visibility: "public" });
+    clearUserCache();
+    expect(currentTripRecording(U)).toEqual({ tripId: "now", recording: null });
+  });
+
   test("recordingState is imported nowhere under app/ or components/ — only recordedTrips (lib/gps/api.ts) ever calls it", () => {
     expect(importersOf("recordingState")).toEqual([]);
   });
