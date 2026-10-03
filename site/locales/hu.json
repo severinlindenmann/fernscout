@@ -3639,7 +3639,6 @@
   "photobook.pass.notInBook": "Nincs a könyvben",
   "photobook.pass.ghostBadge": "Kihagyva",
   "photobook.pass.ghostNote": "nem kerül nyomtatásba · a mögötte lévő oldalak előrébb csúsznak",
-  "photobook.pass.thisStop": "A te oldalad · {page}",
   "photobook.pass.otherStop": "{name} · {page}. oldal",
   "photobook.pass.otherStopEnds": "{name} vége",
   "photobook.pass.otherStopBegins": "{name} eleje",
@@ -4900,5 +4899,7 @@
   "studio.newTrip.route.remind.off": "Az emlékeztetők ki vannak kapcsolva a Fernscoutnál, ezért semmi sem kérdez rá.",
   "studio.permissions.keysNotPeople": "Nem embereknek — ha valakit olvasni szeretnél hagyni, menj ide:",
   "studio.permissions.leavesLede": "A szavaid, a hangod és a fényképeid — mi megy az Anthropichoz vagy a Deepgramhoz, és mi marad itt.",
-  "studio.people.typeIn.needEmail": "A Tovább akkor aktiválódik, ha egy embernél megvan a név és az e-mail-cím is."
+  "studio.people.typeIn.needEmail": "A Tovább akkor aktiválódik, ha egy embernél megvan a név és az e-mail-cím is.",
+  "photobook.pass.ownLine": "{pages}. o. · ez a nap",
+  "photobook.pass.whyShared": "Miért van egy másik nap ezen az oldalpáron?"
 }

@@ -3638,7 +3638,6 @@
   "photobook.pass.notInBook": "Pas dans le livre",
   "photobook.pass.ghostBadge": "Laissée de côté",
   "photobook.pass.ghostNote": "pas imprimée · les pages suivantes remontent",
-  "photobook.pass.thisStop": "Ta page · {page}",
   "photobook.pass.otherStop": "{name} · page {page}",
   "photobook.pass.otherStopEnds": "Fin de {name}",
   "photobook.pass.otherStopBegins": "Début de {name}",
@@ -4903,5 +4902,7 @@
   "studio.newTrip.route.remind.off": "Les rappels sont désactivés pour Fernscout, donc rien ne demandera.",
   "studio.permissions.keysNotPeople": "Pas pour des personnes — pour laisser quelqu’un lire, va dans",
   "studio.permissions.leavesLede": "Tes mots, ta voix et tes photos — ce qui part chez Anthropic ou Deepgram, et ce qui reste ici.",
-  "studio.people.typeIn.needEmail": "Continuer se débloque dès qu’une personne a un nom et un e-mail."
+  "studio.people.typeIn.needEmail": "Continuer se débloque dès qu’une personne a un nom et un e-mail.",
+  "photobook.pass.ownLine": "p. {pages} · ce jour",
+  "photobook.pass.whyShared": "Pourquoi un autre jour sur cette double page ?"
 }

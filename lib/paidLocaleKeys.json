@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "98cd8b080ff013af8802dbf1c0a1358a6ec8624d",
+  "generatedFrom": "89b444bfc3517a08116d8649ebae7dbaebea898a",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -405,6 +405,7 @@
     "photobook.pass.otherStopBegins",
     "photobook.pass.otherStopEnds",
     "photobook.pass.outReason",
+    "photobook.pass.ownLine",
     "photobook.pass.page",
     "photobook.pass.pageLine",
     "photobook.pass.pageLineRange",
@@ -423,10 +424,10 @@
     "photobook.pass.state.notYet",
     "photobook.pass.state.seen",
     "photobook.pass.stopN",
-    "photobook.pass.thisStop",
     "photobook.pass.toBook",
     "photobook.pass.toPreview",
     "photobook.pass.undo",
+    "photobook.pass.whyShared",
     "photobook.pay",
     "photobook.payTotal",
     "photobook.planShort",
