@@ -85,6 +85,10 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
   return (
     <StudioPage username={user} group="write" hideGroups title={translateIn(locale, "studio.day.title")} lede={translateIn(locale, "studio.day.lede")}>
       <DayFlow
+        // B-2826 — a fresh composer per trip: a client-side move between two
+        // ?trip= addresses keeps this page mounted, and would otherwise carry
+        // one trip's typed words into the other.
+        key={typeof trip === "string" ? trip : ""}
         // B2649 — the AI-days counter sits in the assistant's own row.
         aiDays={
           <AiDaysChip
