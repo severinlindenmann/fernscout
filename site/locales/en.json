@@ -4915,7 +4915,6 @@
   "me.journalOwnerName": "Your name",
   "me.journalOwnerNickname": "What readers call you",
   "me.journalOwnerNicknameHint": "The short form this site uses for you, for example in a trip’s credits and when it talks about you.",
-  "wa.strangerWelcome": "{site} journals start on the web: {url}/welcome",
   "wa.onb.askCode": "I have sent a six-digit code to {email}. Type it here — it works for {minutes} minutes. If it does not arrive, send your address again and I'll send a new one.",
   "wa.onb.askCurrency": "Last one: what do you count money in? Three letters — CHF, EUR, USD. This is the one thing that can never be changed afterwards, because every total in the journal is added up in it.",
   "wa.onb.askEmail": "What is your email address? It is the only address that can ever get into this journal, so it is the credential rather than a preference.",

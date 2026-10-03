@@ -4921,7 +4921,6 @@
   "me.journalOwnerName": "A neved",
   "me.journalOwnerNickname": "Ahogy az olvasók hívnak",
   "me.journalOwnerNicknameHint": "A rövid név, amellyel ez az oldal említ téged, például egy út készítői között és amikor rólad beszél.",
-  "wa.strangerWelcome": "A {site} útinaplók a weben indulnak: {url}/welcome",
   "wa.onb.askCode": "Küldtem egy hatjegyű kódot erre a címre: {email}. Írd be ide — {minutes} percig érvényes. Ha nem érkezik meg, küldd el újra a címedet, és küldök egy újat.",
   "wa.onb.askCurrency": "Az utolsó: milyen pénznemben számolsz? Három betű — CHF, EUR, USD. Ez az egyetlen, amit később már nem lehet megváltoztatni, mert a naplóban minden összeg ebben áll össze.",
   "wa.onb.askEmail": "Mi az e-mail-címed? Ez az egyetlen cím, amely valaha bejut ebbe a naplóba — tehát nem beállítás, hanem maga a hozzáférés.",

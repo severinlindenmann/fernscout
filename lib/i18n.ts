@@ -5006,7 +5006,6 @@ export type TranslationKey =
   | "wa.speechConsentGranted"
   | "wa.stickerNotSupported"
   | "wa.stopReply"
-  | "wa.strangerWelcome"
   | "wa.teachRung1"
   | "wa.teachRung2"
   | "wa.transcriptEcho"

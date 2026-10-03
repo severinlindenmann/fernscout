@@ -4920,7 +4920,6 @@
   "me.journalOwnerName": "Dein Name",
   "me.journalOwnerNickname": "Wie Leser dich nennen",
   "me.journalOwnerNicknameHint": "Die Kurzform, mit der diese Seite dich nennt, zum Beispiel in den Credits einer Reise und wenn sie von dir spricht.",
-  "wa.strangerWelcome": "{site}-Reisetagebücher beginnen im Web: {url}/welcome",
   "wa.onb.askCode": "Ich habe einen sechsstelligen Code an {email} geschickt. Tippe ihn hier ein — er gilt {minutes} Minuten. Wenn er nicht ankommt, schick mir deine Adresse noch einmal, dann schicke ich einen neuen.",
   "wa.onb.askCurrency": "Zum Schluss: in welcher Währung rechnest du? Drei Buchstaben — CHF, EUR, USD. Das ist das Einzige, was später nie mehr geändert werden kann, denn jede Summe im Tagebuch wird darin zusammengerechnet.",
   "wa.onb.askEmail": "Wie lautet deine E-Mail-Adresse? Sie ist die einzige Adresse, die je in dieses Tagebuch kommt — also kein Wunsch, sondern der Zugang selbst.",

@@ -4924,7 +4924,6 @@
   "me.journalOwnerName": "Il tuo nome",
   "me.journalOwnerNickname": "Come ti chiamano i lettori",
   "me.journalOwnerNicknameHint": "La forma breve che questo sito usa per te, per esempio nei crediti di un viaggio e quando parla di te.",
-  "wa.strangerWelcome": "I diari {site} iniziano sul web: {url}/welcome",
   "wa.onb.askCode": "Ho inviato un codice di sei cifre a {email}. Scrivilo qui — è valido per {minutes} minuti. Se non arriva, inviami di nuovo il tuo indirizzo e te ne manderò uno nuovo.",
   "wa.onb.askCurrency": "Ultima domanda: in che valuta conti i soldi? Tre lettere — CHF, EUR, USD. È l’unica cosa che non si potrà mai più cambiare, perché ogni totale del diario viene sommato in questa valuta.",
   "wa.onb.askEmail": "Qual è il tuo indirizzo email? È l’unico indirizzo che potrà mai accedere a questo diario, quindi è la chiave d’accesso, non una preferenza.",
