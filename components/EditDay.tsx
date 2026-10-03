@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
-import { PhotoPicker } from "@/components/PhotoPicker";
 import PreviewNotice from "@/components/studio/PreviewNotice";
 import DecideList from "@/components/studio/DecideList";
 import DeclineScreen from "@/components/studio/day/DeclineScreen";
@@ -1022,6 +1021,35 @@ export default function EditDay({
             <p className={LABEL}>
               {t("edit.photos")}
             </p>
+            {/* B1012/B2764 — the Write page's dashed add tile. The real input
+                stays in the page (sr-only, so focusable and in the
+                accessibility tree) behind a label that carries our words
+                rather than the browser's, as `PhotoPicker` does (B768). */}
+            <div className="mt-1 flex items-center gap-3">
+              <input
+                id={`edit-add-${at}`}
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                className="peer sr-only"
+                onChange={(event) => {
+                  const files = [...(event.target.files ?? [])];
+                  setAdding((prev) => ({ ...prev, [at]: files }));
+                }}
+              />
+              <label
+                htmlFor={`edit-add-${at}`}
+                className="flex h-[84px] w-[84px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line-strong text-xs font-semibold text-ink-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500"
+              >
+                <span aria-hidden className="text-lg leading-none">＋</span>
+                {t("studio.day.photos.add")}
+              </label>
+              {(adding[at] ?? []).length > 0 && (
+                <p className="text-sm text-ink-secondary">
+                  {t("studio.day.photos.chosen", { count: String((adding[at] ?? []).length) })}
+                </p>
+              )}
+            </div>
             {day.entries[at].gallery.map((item) => {
               // B2371 — a removal already queued reads like one marked now,
               // plus Add a day's "Waiting to send" strip, and its button
@@ -1031,13 +1059,14 @@ export default function EditDay({
               return (
                 <div
                   key={item.src}
-                  className={`mt-2 flex gap-2 rounded-lg border border-line-quiet p-2 ${going ? "opacity-50" : ""}`}
+                  className={`mt-2 rounded-lg border border-line-quiet p-2 ${going ? "opacity-50" : ""}`}
                 >
                   {/* A 64px square. `img` rather than `next/image`: one
                         fixed size behind an owner-only panel wants no
                         `srcset` — but it does want a sized copy through the
                         media route's resize, not the stored 2000px photograph
                         (or clip still) it used to be handed. */}
+                  <div className="flex items-center gap-2">
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -1055,7 +1084,23 @@ export default function EditDay({
                       </span>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          queuedRemoval
+                            ? cancelQueuedPhoto(queuedRemoval.id)
+                            : setDropping((prev) =>
+                                going
+                                  ? prev.filter((s) => s !== item.src)
+                                  : [...prev, item.src],
+                              )
+                        }
+                        className="ml-auto min-h-11 shrink-0 rounded-full border border-line-strong px-3 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle"
+                      >
+                        {t(going ? "edit.keepPhoto" : "edit.removePhoto")}
+                      </button>
+                  </div>
+                  <div className="mt-2 min-w-0">
                     <input
                       value={draft.captions[item.src] ?? ""}
                       placeholder={t("edit.caption")}
@@ -1070,7 +1115,7 @@ export default function EditDay({
                       }
                       className={FIELD}
                     />
-                    <div className="mt-1 flex gap-2">
+                    <div className="mt-1">
                       <select
                         value={draft.photoVisibility[item.src] ?? ""}
                         disabled={going}
@@ -1093,21 +1138,6 @@ export default function EditDay({
                           {t("agent.tool.visibilityPrivate")}
                         </option>
                       </select>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          queuedRemoval
-                            ? cancelQueuedPhoto(queuedRemoval.id)
-                            : setDropping((prev) =>
-                                going
-                                  ? prev.filter((s) => s !== item.src)
-                                  : [...prev, item.src],
-                              )
-                        }
-                        className="min-h-11 shrink-0 rounded-full border border-line-strong px-3 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle"
-                      >
-                        {t(going ? "edit.keepPhoto" : "edit.removePhoto")}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -1143,27 +1173,6 @@ export default function EditDay({
                 </div>
               </div>
             ))}
-
-            {/* B1012 — the picker B768 already wrote, rather than a second
-                bare `<input type="file">`. A bare one draws its own button and
-                its own "No file chosen" in the *browser's* locale, from
-                strings no CSS and no attribute can reach, which is the
-                sentence B768 exists to stop rendering. Narrowed to pictures
-                and video: a correction to a day adds nothing else, and there
-                is no inbox behind this panel to sort a receipt into. */}
-            <div className="mt-2">
-              <span className={LABEL}>
-                {t("edit.addPhotos")}
-              </span>
-              <PhotoPicker
-                id={`edit-add-${at}`}
-                accept="image/*,video/*"
-                chosen={adding[at] ?? []}
-                onPick={(files) =>
-                  setAdding((prev) => ({ ...prev, [at]: [...(files ?? [])] }))
-                }
-              />
-            </div>
           </div>
 
           <div className="mt-5">
