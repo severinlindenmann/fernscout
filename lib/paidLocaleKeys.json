@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "681a070d02c7299be09feaf81bc974d33c5dde80",
+  "generatedFrom": "0140b2fae0ff99d11cbc6366ca89d0ccf019ef02",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -72,6 +72,7 @@
     "order.status.expired",
     "order.status.waiting",
     "orders.empty",
+    "orders.voucherUsed",
     "photobook.awaitingPayment",
     "photobook.blank.binding",
     "photobook.blank.chapter",
