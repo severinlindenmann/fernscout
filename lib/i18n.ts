@@ -4430,7 +4430,6 @@ export type TranslationKey =
   | "studio.publish.whoTitle"
   | "studio.published.addPhotos"
   | "studio.published.addPhotosSub"
-  | "studio.published.headline"
   | "studio.published.nextDay"
   | "studio.published.nextDaySub"
   | "studio.published.pageTitle"

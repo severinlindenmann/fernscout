@@ -53,12 +53,18 @@ describe("B2763 groups button", () => {
 describe("B2765 PublishedDay", () => {
   test("headline, reader line, 44px link and roomy rows", () => {
     const el = render(<PublishedDay username="alex" tripId="t" slug="d" title="Sunday" readerLine="It's on your journal." thumb={null} />);
-    expect(el.textContent).toContain("Sunday is published");
+    expect(el.textContent).toContain("Published");
+    expect(el.textContent).toContain("Sunday");
+    expect(el.querySelector(".h-\\[120px\\]")).toBeNull(); // no thumb, no preview area
     expect(el.textContent).toContain("It's on your journal.");
     expect(el.querySelector("a.min-h-11")?.textContent).toBe("See the day");
     const rows = [...el.querySelectorAll(".divide-y > *")];
     expect(rows).toHaveLength(3);
     for (const r of rows) expect(r.className).toContain("py-[18px]");
+    act(() => root?.unmount());
+    container?.remove();
+    const withThumb = render(<PublishedDay username="alex" tripId="t" slug="d" title="Sunday" readerLine="x" thumb="/t?look=photo" />);
+    expect(withThumb.querySelector(".h-\\[120px\\] img")).not.toBeNull();
   });
 
   test("zero-reader string never says 'Your 0 readers'", () => {

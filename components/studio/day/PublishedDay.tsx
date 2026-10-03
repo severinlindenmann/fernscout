@@ -72,7 +72,8 @@ export default function PublishedDay({
       <div role="status" className="flex items-start gap-3 rounded-2xl border border-green-500/40 bg-green-100 px-4 py-4 text-ink-strong">
         <CircleCheck aria-hidden className="mt-0.5 h-6 w-6 flex-none text-green-700" />
         <div className="min-w-0">
-          <p className="font-display text-[22px] font-semibold leading-tight">{t("studio.published.headline", { title })}</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-green-700">{t("studio.published.pageTitle")}</p>
+          <p className="mt-0.5 font-display text-[22px] font-semibold leading-tight">{title}</p>
           <p className="mt-2 text-base leading-snug">{readerLine}</p>
           <Link href={dayHref} className="mt-3 inline-flex min-h-11 items-center font-semibold underline underline-offset-2">
             {t("studio.published.seeDay")}
@@ -81,12 +82,12 @@ export default function PublishedDay({
       </div>
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
-        <div className="flex h-[120px] items-center justify-center bg-surface-subtle">
-          {thumb && (
-            // eslint-disable-next-line @next/next/no-img-element -- a small story-look thumbnail.
+        {thumb && (
+          <div className="flex h-[120px] items-center justify-center bg-surface-subtle">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a small story-look thumbnail. */}
             <img src={`${thumb}&w=240`} alt="" className="h-[108px] w-[86px] rounded-lg object-cover" />
-          )}
-        </div>
+          </div>
+        )}
         <div className="p-4">
           <p className="font-display text-xl font-semibold text-ink-strong">{t("studio.share.title")}</p>
           <p className="mt-1 text-base text-ink-secondary">{t("studio.share.whatNextBody")}</p>
