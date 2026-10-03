@@ -164,7 +164,15 @@ export type Extent = { minLat: number; maxLat: number; minLon: number; maxLon: n
 
 /** How much of one trip's own date range this read actually touches — for
  * the peek and decide screens' "N of M days" line. Never a coordinate. */
-export type TripCoverage = { tripId: string; days: number; tripDays: number };
+export type TripCoverage = {
+  tripId: string;
+  days: number;
+  tripDays: number;
+  /** B2303 — dates of days that already exist on the trip, name no place and
+   *  have at least one position in this read. Bare dates: never a place name,
+   *  never a coordinate. Present only when the caller passed `unplaced`. */
+  daysWithoutPlace?: string[];
+};
 
 function extentOf(rows: Fix[]): Extent | null {
   if (rows.length === 0) return null;
@@ -183,7 +191,7 @@ function extentOf(rows: Fix[]): Extent | null {
 
 /** Distinct UTC calendar days with at least one row inside `[start, end]`,
  * against the trip's own length in days — B1937's "N of M days" line. */
-function coverageOf(rows: Fix[], trip: { id: string; start: string; end: string }): TripCoverage {
+function coverageOf(rows: Fix[], trip: { id: string; start: string; end: string; unplaced?: string[] }): TripCoverage {
   const from = Date.parse(`${trip.start}T00:00:00Z`);
   const to = Date.parse(`${trip.end}T23:59:59.999Z`);
   const seen = new Set<string>();
@@ -196,7 +204,12 @@ function coverageOf(rows: Fix[], trip: { id: string; start: string; end: string 
   // counts, and that same offset would otherwise round this count up by one.
   const startOfEnd = Date.parse(`${trip.end}T00:00:00Z`);
   const tripDays = Math.max(1, Math.round((startOfEnd - from) / 86_400_000) + 1);
-  return { tripId: trip.id, days: seen.size, tripDays };
+  return {
+    tripId: trip.id,
+    days: seen.size,
+    tripDays,
+    ...(trip.unplaced ? { daysWithoutPlace: trip.unplaced.filter((d) => seen.has(d)).sort() } : {}),
+  };
 }
 
 export type ImportOutcome = {
@@ -318,7 +331,7 @@ export function importGps(
     dryRun?: boolean;
     /** Trips to report coverage for — dates only, never used for anything
      *  but the "N of M days" count. */
-    trips?: { id: string; start: string; end: string }[];
+    trips?: { id: string; start: string; end: string; unplaced?: string[] }[];
   } = {},
 ): ImportOutcome | ImportRefusal {
   const chosen = chooseImporter(text, filename, options.format);

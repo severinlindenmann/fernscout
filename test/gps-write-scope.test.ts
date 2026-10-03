@@ -236,9 +236,23 @@ describe("the one door it opens", () => {
     expect(body.dryRun).toBe(false);
     expect(typeof body.read).toBe("number");
     expect(body).not.toHaveProperty("extent");
+    // B2303 — nor which trips it touches, nor which of their days name no place.
+    expect(body).not.toHaveProperty("coverage");
     // Nor how many positions the owner already held for that month.
     const stored = body.stored as Record<string, unknown> | undefined;
     expect(stored && Object.keys(stored).sort()).toEqual(["months", "read"]);
+  });
+
+  test("B2303 — the owner's token hears bare dates of days without a place, never a place name, and nothing is filled", async () => {
+    const token = await ownerAgentToken();
+    const { status, body } = await importGps(token, { dryRun: true });
+    expect(status).toBe(200);
+    expect(body.coverage).toEqual([{ tripId: TRIP, days: 1, tripDays: 3, daysWithoutPlace: ["2026-06-22"] }]);
+    // Only a date and counts: no place, no coordinate.
+    expect(JSON.stringify(body.coverage)).not.toMatch(/\d{2}\.\d{4,}|name|country/);
+    const { getDays, AS_AUTHOR } = await import("@/lib/entries");
+    const { tripRef } = await import("@/lib/trips");
+    expect(getDays(tripRef(OWNER, TRIP), AS_AUTHOR).every((d) => d.lead.location === "")).toBe(true);
   });
 
   test("refused for kind: contacts", async () => {

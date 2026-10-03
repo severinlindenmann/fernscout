@@ -32,7 +32,8 @@ import {
 import { importPolarsteps, isPolarstepsRefusal } from "@/lib/polarsteps/api";
 import { gpsStateReport } from "@/lib/api/v2/schemas/gps";
 import { writeRecorderState } from "@/lib/gps/recorderState";
-import { getTrip, tripRef } from "@/lib/trips";
+import { unplacedDays } from "@/lib/gps/nameDays";
+import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { resolveRenamedTripId } from "@/lib/tripRename";
 import { readContactsFile } from "@/lib/contacts/readImport";
 import { storageRefusal, withStorageQuota } from "@/lib/storageQuota";
@@ -274,6 +275,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     });
   }
 
+  // B2303 — coverage for the owner's own token only: which trips this upload
+  // touches and, as bare dates, which of their existing days name no place.
+  // Never a proposed place, and a `write:gps` token is told nothing (see
+  // `phone` below).
+  const trips = isOwnerToken
+    ? getTrips(user).map((t) => ({
+        id: t.id,
+        start: t.start,
+        end: t.end,
+        unplaced: unplacedDays(user, t.id).map((d) => d.date),
+      }))
+    : undefined;
   let result: ReturnType<typeof importGps>;
   if (text.trim().length === 0) {
     // B2542 — a state-only ping, nothing to import: most often the phone
@@ -287,10 +300,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     // entirely, since there is nothing to write either way.
     result = { kind: "gps", format: format ?? "fixes", detected: false, read: 0, from: null, to: null, extent: null };
   } else if (dryRun) {
-    result = importGps(user, text, filename, { format, dryRun });
+    result = importGps(user, text, filename, { format, dryRun, trips });
   } else {
     const guard = await withStorageQuota(user, Buffer.byteLength(text), () =>
-      importGps(user, text, filename, { format, dryRun }),
+      importGps(user, text, filename, { format, dryRun, trips }),
     );
     if (!guard.ok) return fail("storage_full", guard.problem, undefined, 400);
     result = guard.value;
@@ -370,7 +383,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     next: dryRun
       ? "Nothing was written. Send the same call without ?dryRun to keep it."
       : "Every trip whose dates overlap this import has had its line re-derived (`rederived`); " +
-        "a reader sees only the days they may read, and nothing from the last 24 hours. The " +
+        "a reader sees only the days they may read, and nothing from the last 24 hours. " +
+        "`coverage[].daysWithoutPlace` lists days that name no place yet; nothing has been " +
+        "filled, the owner does that in the studio. The " +
         "export is still " +
         `in the inbox: \`DELETE /api/v2/${user}/media\` with \`{"src": "inbox:<id>"}\` when ` +
         "you are done with it, because it is the unthinned original of your whole location " +

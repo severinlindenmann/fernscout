@@ -159,7 +159,7 @@ describe("decide — commit, draw, and D7", () => {
       await importRoute(json("/api/helper/owner/import", { inbox: id, commit: true, trips: ["alps-2024"] }), params),
     );
     expect(done.status).toBe(200);
-    expect(done.body.drawn).toEqual([{ tripId: "alps-2024", segments: expect.any(Number), points: expect.any(Number) }]);
+    expect(done.body.drawn).toEqual([{ tripId: "alps-2024", segments: expect.any(Number), points: expect.any(Number), daysToName: expect.any(Number) }]);
     expect(fs.existsSync(path.join(dir, "owner", "trips", "alps-2024", "track.json"))).toBe(true);
     // D7's default: the history stays, unless `discard` was explicitly asked for.
     expect(done.body.discarded).toBe(false);
