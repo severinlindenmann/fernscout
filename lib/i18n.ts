@@ -5028,7 +5028,6 @@ export type TranslationKey =
   | "wa.onb.visPublic"
   | "wa.phoneLinkConfirmed"
   | "wa.phoneLinkExpired"
-  | "wa.phoneLinkTaken"
   | "wa.proposalDeclined"
   | "wa.proposalFailed"
   | "wa.proposalGone"

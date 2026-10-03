@@ -4949,7 +4949,6 @@
   "signupResume.ownsAction": "Se connecter",
   "signupResume.title": "Poursuivre ton inscription",
   "signupResume.working": "Ouverture…",
-  "wa.phoneLinkTaken": "Ce numéro tient déjà un journal sur {site}. Connecte-toi plutôt sur {host}.",
   "studio.hub.first.title": "Bienvenue, {name}",
   "studio.hub.first.titleAnon": "Bienvenue",
   "studio.hub.first.body": "Ton journal est à l’adresse {address}. Rien n’est encore publié. Par où veux-tu commencer ?",
