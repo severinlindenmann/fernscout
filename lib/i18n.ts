@@ -1228,7 +1228,6 @@ export type TranslationKey =
   | "landing.footerTagline"
   | "landing.handBody"
   | "landing.handTitle"
-  | "landing.helperCta"
   | "landing.hero"
   | "landing.heroKicker"
   | "landing.howKeep"
