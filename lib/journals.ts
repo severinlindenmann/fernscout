@@ -183,7 +183,16 @@ function orderedLocales(defaultLocale: string, locales: string[] | undefined): s
   return [defaultLocale, ...rest];
 }
 
-export function createJournal(input: NewJournal): CreateJournalResult {
+/** B2778. Everything about a new journal that is wrong *before* any state is
+ * written: the address (format, tombstone, reserved, taken) and the title and
+ * owner fields. `POST /api/v2/journals` runs it ahead of `phone_required` so
+ * nobody proves a phone for an address that was never going to work, and
+ * `createJournal` runs it again at create time (races). */
+export function precheckJournal(
+  input: Pick<NewJournal, "username" | "ownerEmail" | "title" | "ownerName" | "ownerNickname" | "visibility">,
+):
+  | Extract<CreateJournalResult, { ok: false }>
+  | { ok: true; username: string; visibility: ReturnType<typeof normalizeJournalVisibility> & string; title: string; ownerName: string; ownerNickname: string; ownerEmail: string; owned: string[]; reclaimingTombstone: boolean } {
   const username = input.username.trim().toLowerCase();
   // Normalised once, here, so every later use of `input.visibility` in this
   // function — the file written, and the value handed back — agrees, and so
@@ -323,6 +332,15 @@ export function createJournal(input: NewJournal): CreateJournalResult {
         "from their name.",
     };
   }
+
+  return { ok: true, username, visibility, title, ownerName, ownerNickname, ownerEmail, owned, reclaimingTombstone };
+}
+
+export function createJournal(input: NewJournal): CreateJournalResult {
+  const checked = precheckJournal(input);
+  if (!checked.ok) return checked;
+  const { username, visibility, title, ownerName, ownerNickname, ownerEmail, owned, reclaimingTombstone } = checked;
+  const dir = path.join(contentRoot(), username);
 
   // `ownerEmail` and `owned` are both computed above, where the tombstone
   // check needed them first — reused here rather than recomputed, so the two
@@ -529,9 +547,11 @@ export function composeWelcomeMail(params: {
           // site/locales/*.json.
           text: t(visibility === "guest" ? "welcome.private" : "welcome.public"),
         },
-        { kind: "heading", text: t("welcome.draftsHeading") },
-        { kind: "paragraph", text: t("welcome.draftsRule") },
-        { kind: "paragraph", text: t("welcome.drafts") },
+        // Studio first, for both doors (B2775): the person who typed their
+        // address into the form and the one whose agent did it get the same
+        // true mail. The agent paragraph is last.
+        { kind: "heading", text: t("welcome.studioHeading") },
+        { kind: "paragraph", text: t("welcome.studio") },
         { kind: "heading", text: t("welcome.tokenHeading") },
         {
           kind: "paragraph",
@@ -540,6 +560,7 @@ export function composeWelcomeMail(params: {
             email,
           }),
         },
+        { kind: "paragraph", text: t("welcome.draftsRule") },
       ],
       // The footer follows the body. An English "Sent by …" under a
       // Hungarian letter is the seam that sends somebody to the spam
@@ -608,7 +629,7 @@ export async function sendWelcome(input: {
   let signIn: string | null = null;
   if (isEnabled("auth", input.username)) {
     try {
-      signIn = signInUrl(site.url, input.username, await issueStandingLink(input.username, input.email), locale);
+      signIn = signInUrl(site.url, input.username, await issueStandingLink(input.username, input.email, `${journalPath(input.username)}/studio`), locale);
     } catch (err) {
       console.error(`[journals] no sign-in link for ${input.username}:`, err);
     }
