@@ -70,6 +70,7 @@ Schweizer Recht verlangt dieselben Angaben ohne sie.
 | **Anfrage-Log** — die aufgerufene Seite, die Zeit, der Name des Browsers; keine IP-Adresse | Um den Server zu betreiben und zu schützen | Berechtigtes Interesse | 14 Tage |
 | **Kopien der Mails, die diese Seite verschickt hat** | Um herauszufinden, warum ein Anmeldecode nicht ankam | Berechtigtes Interesse | Zwei Tage, nie im Backup |
 | **Warteliste für die iPhone-App** — eine E-Mail-Adresse und die gewünschte Sprache | Damit wir dich benachrichtigen können, sobald die App im App Store ist | Einwilligung | Bis die App erscheint, oder bis du uns bittest, den Eintrag zu entfernen |
+| **Angefangene Anmeldungen** — eine bestätigte E-Mail-Adresse, die Sprache der Seite und, sobald bestätigt, eine Telefonnummer | Damit du dort weitermachen kannst, wo du aufgehört hast, auf jedem Gerät, ohne von vorn zu beginnen | Vorvertragliche Schritte auf deine Anfrage | Acht Tage nach der Bestätigung der E-Mail-Adresse, oder bis das Tagebuch angelegt ist — je nachdem, was zuerst eintritt |
 | **Zahlungen, Abos und Druckaufträge** | Buchhaltung | Vertrag und Gesetz (Schweizer Buchführungspflicht) | Zehn Jahre; siehe [Löschen](#deleting) |
 | **Verschlüsselte Backups** von allem oben | Damit eine kaputte Festplatte kein Journal beendet | Berechtigtes Interesse | 14 Tage auf dem Server, 7 Tage in der zweiten Kopie |
 
