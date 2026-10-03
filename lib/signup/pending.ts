@@ -1,6 +1,8 @@
 import "server-only";
 import { getDatabase } from "../db";
 import { journalForNumber } from "../registry";
+// The literal, not an import: lib/auth imports this module (adoptPendingSignup).
+const NO_JOURNAL = "*";
 
 /**
  * Pending signups — B2804. What survives a closed tab between "the address
@@ -34,7 +36,7 @@ export async function recordPendingEmail(email: string, locale?: string | null):
   const now = new Date().toISOString();
   await db
     .insertInto("pending_signups")
-    .values({ email: norm(email), email_proven_at: now, locale: locale ?? null, created_at: now })
+    .values({ owner_id: NO_JOURNAL, email: norm(email), email_proven_at: now, locale: locale ?? null, created_at: now })
     .onConflict((oc) => oc.column("email").doUpdateSet({ email_proven_at: now }))
     .execute();
 }

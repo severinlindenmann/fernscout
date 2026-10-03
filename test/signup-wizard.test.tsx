@@ -153,6 +153,7 @@ describe("the signup wizard", () => {
     const responses: Array<Record<string, unknown>> = [
       { ok: true, json: async () => ({ status: "accepted" }) },
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
+      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: true, mode: "code", smsFallback: false }) }, // signup/state (B2804)
       { ok: false, json: async () => ({ error: "phone_required", mode: "sms" }) },
       { ok: true, json: async () => ({ id: "p1" }) }, // phone request
       { ok: true, json: async () => ({ ok: true }) }, // phone redeem

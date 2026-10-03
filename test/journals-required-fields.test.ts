@@ -435,13 +435,13 @@ describe("B839 — the currency nobody can change is the currency everybody is a
     expect(getUser("counts-in-huf")?.displayCurrencies).toContain("HUF");
   });
 
-  test("the script asks it too, and says it is permanent", () => {
+  test("the script asks it too, and says when it stops being correctable (B2806)", () => {
     // The eighth question. An agent creating a journal faces the same
     // permanent choice in the same silence the form did, so the fix is not
     // helper-only.
     const question = firstQuestions("https://t.test").find((q) => q.ask.includes("baseCurrency"));
     expect(question, "the script must ask what they count money in").toBeDefined();
-    expect(question?.because).toMatch(/never be changed/i);
+    expect(question?.because).toMatch(/only until the first cost exists/i);
   });
 
   test("displayCurrencies without the base is refused rather than written unloadable", async () => {

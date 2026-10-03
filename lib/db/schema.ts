@@ -1050,6 +1050,8 @@ type VouchersTable = {
  * B2804. See migration `067-pending-signups`.
  */
 type PendingSignupsTable = {
+  /** Always NO_JOURNAL — no journal exists yet (ROADMAP §0.5). */
+  owner_id: string;
   email: string;
   email_proven_at: string;
   locale: string | null;

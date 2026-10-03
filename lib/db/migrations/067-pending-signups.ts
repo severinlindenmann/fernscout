@@ -12,12 +12,16 @@ import type { MigrationDb } from "./types";
  * are empty until a number is proven. Deleted when the journal is created;
  * swept at `email_proven_at` + 8 days by `scripts/signup-purge.mts`.
  *
+ * `owner_id` is NO_JOURNAL, like `invite_requests`: there is no journal
+ * yet (ROADMAP §0.5 wants the column on every table).
+ *
  * Plain text timestamps and no foreign keys, like every table here, so the
  * same statements run on SQLite and Postgres.
  */
 export async function up(db: MigrationDb): Promise<void> {
   await db.schema
     .createTable("pending_signups")
+    .addColumn("owner_id", "text", (c) => c.notNull())
     .addColumn("email", "text", (c) => c.primaryKey().notNull())
     .addColumn("email_proven_at", "text", (c) => c.notNull())
     .addColumn("locale", "text")
