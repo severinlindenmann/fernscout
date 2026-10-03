@@ -336,7 +336,14 @@ export default function SignupWizard({
 
   useEffect(() => {
     if (!initialSignupToken) return;
-    void continueFrom(initialSignupToken, true);
+    let cancelled = false;
+    (async () => {
+      await Promise.resolve();
+      if (!cancelled) await continueFrom(initialSignupToken, true);
+    })();
+    return () => {
+      cancelled = true;
+    };
     // Once, on mount, like the effect below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
