@@ -4955,5 +4955,17 @@
   "wa.onb.usernameBad": "Das kann keine Adresse sein: 2–31 Zeichen, Kleinbuchstaben, Zahlen und Bindestriche, beginnend mit einem Buchstaben oder einer Zahl.",
   "wa.onb.usernameTaken": "Diese Adresse ist schon vergeben. Versuch eine andere.",
   "wa.onb.visGuest": "Nicht gelistet",
-  "wa.onb.visPublic": "Öffentlich"
+  "wa.onb.visPublic": "Öffentlich",
+  "mail.signupContinue": "Anmeldung fortsetzen",
+  "mail.signupContinueNote": "Mittendrin aufgehört? Dieser Button bringt dich 7 Tage lang dorthin zurück, wo du aufgehört hast.",
+  "signupResume.action": "Anmeldung fortsetzen",
+  "signupResume.body": "Tippe auf den Button und du machst da weiter, wo du aufgehört hast. Es wird nichts angelegt, bis du fertig bist.",
+  "signupResume.expired": "Dieser Link wurde schon benutzt oder ist älter als 7 Tage. Gib deine Adresse ein, dann schicken wir dir stattdessen einen Code.",
+  "signupResume.expiredAction": "Neuen Code anfordern",
+  "signupResume.failed": "Das hat nicht geklappt. Versuche es in einer Minute noch einmal.",
+  "signupResume.owns": "Du führst schon ein Journal — melde dich stattdessen an.",
+  "signupResume.ownsAction": "Anmelden",
+  "signupResume.title": "Anmeldung fortsetzen",
+  "signupResume.working": "Wird geöffnet…",
+  "wa.phoneLinkTaken": "Zu dieser Nummer gibt es auf {site} schon ein Journal. Melde dich stattdessen auf {host} an."
 }

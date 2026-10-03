@@ -115,6 +115,7 @@ type Step =
 export default function SignupWizard({
   email: prefillEmail,
   resume,
+  initialSignupToken,
   locale,
   codeMinutes,
   onSignedIn,
@@ -133,6 +134,9 @@ export default function SignupWizard({
    * the wizard trades the cookie for a signup token and jumps to the step
    * that is still open. */
   resume?: boolean;
+  /** B2781 — a signup token the press page `/welcome/r/<token>` already
+   * minted from the code mail's button; the wizard jumps to the open step. */
+  initialSignupToken?: string;
   /** The reader's current UI language — offered as the journal's own
    * starting language, changeable before the journal is created. */
   locale: string;
@@ -170,7 +174,7 @@ export default function SignupWizard({
   const host = useSyncExternalStore(noSubscription, () => window.location.host, () => "");
   const proven = Boolean(prefillEmail) && email.trim().toLowerCase() === prefillEmail!.toLowerCase();
   const [code, setCode] = useState("");
-  const [signupToken, setSignupToken] = useState("");
+  const [signupToken, setSignupToken] = useState(initialSignupToken ?? "");
 
   const [title, setTitle] = useState("");
   const [username, setUsername] = useState("");
@@ -302,6 +306,15 @@ export default function SignupWizard({
       setStep("journal");
     }
   }
+
+  useEffect(() => {
+    if (!initialSignupToken) return;
+    (async () => {
+      await continueFrom(initialSignupToken, true);
+    })();
+    // Once, on mount, like the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!resume || !prefillEmail) return;

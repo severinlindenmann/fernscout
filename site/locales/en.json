@@ -4950,5 +4950,17 @@
   "wa.onb.usernameBad": "That cannot be an address: 2–31 characters, lowercase letters, digits and dashes, starting with a letter or a digit.",
   "wa.onb.usernameTaken": "That address is taken. Try another.",
   "wa.onb.visGuest": "Unlisted",
-  "wa.onb.visPublic": "Public"
+  "wa.onb.visPublic": "Public",
+  "mail.signupContinue": "Continue my signup",
+  "mail.signupContinueNote": "Stopped halfway? This button takes you back to where you left off for 7 days.",
+  "signupResume.action": "Continue my signup",
+  "signupResume.body": "Press the button and you pick up where you left off. Nothing is created until you finish.",
+  "signupResume.expired": "This link has been used or is more than 7 days old. Enter your address and we'll mail you a code instead.",
+  "signupResume.expiredAction": "Get a new code",
+  "signupResume.failed": "That did not work. Try again in a minute.",
+  "signupResume.owns": "You already keep a journal — sign in instead.",
+  "signupResume.ownsAction": "Sign in",
+  "signupResume.title": "Continue your signup",
+  "signupResume.working": "Opening…",
+  "wa.phoneLinkTaken": "That number already keeps a journal on {site}. Sign in on {host} instead."
 }

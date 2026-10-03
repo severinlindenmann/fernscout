@@ -4956,5 +4956,17 @@
   "wa.onb.usernameBad": "Ez nem lehet cím: 2–31 karakter, kisbetűk, számok és kötőjelek, betűvel vagy számmal kezdve.",
   "wa.onb.usernameTaken": "Ez a cím már foglalt. Próbálj egy másikat.",
   "wa.onb.visGuest": "Nem listázott",
-  "wa.onb.visPublic": "Nyilvános"
+  "wa.onb.visPublic": "Nyilvános",
+  "mail.signupContinue": "Regisztráció folytatása",
+  "mail.signupContinueNote": "Félbehagytad? Ez a gomb 7 napig visszavisz oda, ahol abbahagytad.",
+  "signupResume.action": "Regisztráció folytatása",
+  "signupResume.body": "Nyomd meg a gombot, és ott folytatod, ahol abbahagytad. Semmi nem jön létre, amíg be nem fejezed.",
+  "signupResume.expired": "Ezt a linket már felhasználták, vagy több mint 7 napos. Add meg a címedet, és küldünk helyette egy kódot.",
+  "signupResume.expiredAction": "Új kód kérése",
+  "signupResume.failed": "Nem sikerült. Próbáld újra egy perc múlva.",
+  "signupResume.owns": "Már van naplód — inkább jelentkezz be.",
+  "signupResume.ownsAction": "Bejelentkezés",
+  "signupResume.title": "Regisztráció folytatása",
+  "signupResume.working": "Megnyitás…",
+  "wa.phoneLinkTaken": "Ehhez a számhoz már tartozik napló a(z) {site} oldalán. Inkább itt jelentkezz be: {host}."
 }

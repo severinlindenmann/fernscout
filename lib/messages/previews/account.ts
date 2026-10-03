@@ -54,7 +54,12 @@ export const accountPreviews: PreviewMap = {
     }),
 
   "code.signup.mail": (locale) =>
-    composeSignupCodeMail({ locale, code: SAMPLE.code, askedAt: requestedAt(locale) }),
+    composeSignupCodeMail({
+      locale,
+      code: SAMPLE.code,
+      askedAt: requestedAt(locale),
+      resumeUrl: "https://fernscout.ch/welcome/r/k3x9",
+    }),
 
   "code.ownerEmail.mail": (locale) =>
     composeOwnerEmailCodeMail({ locale, code: SAMPLE.code, siteName: SAMPLE.site, title: SAMPLE.journal }),
