@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
+import { inviteOnly } from "@/lib/inviteList";
+import { inviteRequestAvailable } from "@/lib/inviteRequest";
 import { getPendingSignup } from "@/lib/signup/pending";
 import { journalsOwnedBy } from "@/lib/journals";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -48,6 +50,8 @@ export default async function Welcome() {
       resume={resume}
       ownedJournal={ownedJournal}
       signupEnabled={isEnabled("signup")}
+      inviteOnly={inviteOnly()}
+      inviteRequest={inviteRequestAvailable()}
       phoneCountryCode={whatsappCountryCode() ?? null}
       contactEmail={serverSite().operatorEmail ?? null}
     />

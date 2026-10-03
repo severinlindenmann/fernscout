@@ -2,6 +2,7 @@ import { adminEmail } from "@/lib/admin";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { isEmail } from "@/lib/auth";
 import { addInvite, listInvites, removeInvite } from "@/lib/inviteList";
+import { inviteRequestLocale, sendInviteApprovalMail } from "@/lib/inviteApproval";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
@@ -15,6 +16,11 @@ export const dynamic = "force-dynamic";
  * exist. That matters more here than on most admin routes — this list is the
  * whole of who may make a journal on an invite-only instance, so a door into
  * it that an agent token could reach would be a way of inviting yourself.
+ *
+ * Adding with `notify: true` also mails the address a "You're in" link
+ * (`lib/inviteApproval.ts`) and answers `mail`: sent, failed, off or
+ * has_journal. The link is the signup-resume link — a signup token on a
+ * press, never a cookie — so nothing here can grant more than the entry did.
  *
  * Removing somebody does not touch a journal they already made. An entry is
  * permission to *start*; an existing journal is dealt with on the journals
@@ -45,13 +51,17 @@ export async function POST(request: Request) {
     );
   }
 
+  let mail: Awaited<ReturnType<typeof sendInviteApprovalMail>> | undefined;
   if (action === "remove") {
     await removeInvite(email);
   } else {
     const note = typeof body.note === "string" ? body.note : undefined;
     await addInvite(email, adminEmail() ?? null, note);
+    // B-2772. Only when the caller asks (the Invite requests list does, and
+    // its "Send again"): typing an address into the list stays silent.
+    if (body.notify === true) mail = await sendInviteApprovalMail(email, await inviteRequestLocale(email));
   }
-  return Response.json({ ok: true, action, invites: await listInvites() });
+  return Response.json({ ok: true, action, ...(mail ? { mail } : {}), invites: await listInvites() });
 }
 
 /** The list, for a client that wants it without a reload. */

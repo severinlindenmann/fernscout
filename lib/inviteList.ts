@@ -14,10 +14,13 @@ import { getDatabaseOrNull, nowIso } from "./db";
  * internet the moment it booted would be the wrong default to pick on
  * somebody else's behalf.
  *
- * **An entry earns the first code and nothing else.** Being on the list does
- * not skip the phone step, does not pre-verify anything and is not a
+ * **An entry earns the right to start and nothing else.** Being on the list
+ * does not skip the phone step, does not pre-verify anything and is not a
  * credential — see `035-signup-invites`. The whole control is that an
- * address nobody has named is never sent a signup code by any door.
+ * address nobody has named is never sent a signup code by any door. Since
+ * B-2772 the operator's approval also mails the address a link; it spends
+ * like the code mail's "Continue my signup" button and proves the address
+ * the same way a code does.
  *
  * **`allowed()` answers true with no database.** `signup` already requires
  * one (`lib/capabilities.ts`), so a door that got this far has one; the null

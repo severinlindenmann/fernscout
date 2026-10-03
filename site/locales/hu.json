@@ -5009,5 +5009,13 @@
   "signupPage.currencyOther": "Más…",
   "signupPage.currencySearch": "Pénznem kódja, például JPY",
   "signupPage.welcomeStudio": "Már vezeted a(z) @{user} naplót — nyisd meg a stúdiódat",
-  "signupPage.welcomeStudioOpen": "Stúdió megnyitása"
+  "signupPage.welcomeStudioOpen": "Stúdió megnyitása",
+  "inviteApproved.subject": "Bent vagy: kezdd el a naplódat itt: {site}",
+  "inviteApproved.title": "Bent vagy",
+  "inviteApproved.body": "A(z) {site} üzemeltetője felvette a címedet, így elkezdheted a naplódat. A gomb csak ehhez a címhez nyitja meg. Egyszer működik, és 7 napig.",
+  "inviteApproved.button": "Naplóm elkezdése",
+  "inviteApproved.why": "Azért kaptad ezt, mert meghívót kértél ide: {site}.",
+  "signupPage.codeSentInvited": "Ha ez a cím meg van hívva, egy kód már úton van. {minutes} percig érvényes.",
+  "signupPage.requestInvite": "Még nem hívtak meg? Kérj meghívót",
+  "inviteRequest.alreadyInvited": "Már meghívtak? Itt kezdheted"
 }

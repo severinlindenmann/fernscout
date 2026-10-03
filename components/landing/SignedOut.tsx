@@ -170,6 +170,11 @@ function Hero(props: SignedOutProps & { cta: NavLink | null }) {
             )}
           </div>
         )}
+        {cta?.href === "/invite" && (
+          <Link href="/welcome" className={`text-[15px] ${TEXT_LINK}`}>
+            {t("inviteRequest.alreadyInvited")}
+          </Link>
+        )}
         <AppWaitlistDoor storeUrl={appStoreUrl} waitlistAvailable={appWaitlistAvailable} />
         <ul className="flex flex-col gap-1.5 text-[15px]">
           {points.map((point) => (

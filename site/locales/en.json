@@ -5003,5 +5003,13 @@
   "signupPage.currencyOther": "Other…",
   "signupPage.currencySearch": "Currency code, for example JPY",
   "signupPage.welcomeStudio": "You already keep @{user} — open your studio",
-  "signupPage.welcomeStudioOpen": "Open your studio"
+  "signupPage.welcomeStudioOpen": "Open your studio",
+  "inviteApproved.subject": "You're in: start your journal on {site}",
+  "inviteApproved.title": "You're in",
+  "inviteApproved.body": "The person who runs {site} added your address, so you can start your journal. The button opens it for this address only. It works once and for 7 days.",
+  "inviteApproved.button": "Start my journal",
+  "inviteApproved.why": "You got this because you asked for an invite to {site}.",
+  "signupPage.codeSentInvited": "If this address is invited, a code is on its way. It works for {minutes} minutes.",
+  "signupPage.requestInvite": "Not invited yet? Request an invite",
+  "inviteRequest.alreadyInvited": "Already invited? Start here"
 }

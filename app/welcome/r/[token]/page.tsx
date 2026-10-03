@@ -4,6 +4,7 @@ import { Band } from "@/components/landing/kit";
 import SignupResume from "@/components/SignupResume";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { inviteOnly } from "@/lib/inviteList";
 import { whatsappCountryCode } from "@/lib/contactNumber";
 import { serverSite } from "@/lib/site";
 
@@ -27,6 +28,7 @@ export default async function ResumePage({ params }: PageProps<"/welcome/r/[toke
         <SignupResume
           token={token}
           signupEnabled={isEnabled("signup")}
+          inviteOnly={inviteOnly()}
           codeMinutes={CODE_TTL_MINUTES}
           phoneCountryCode={whatsappCountryCode() ?? null}
           contactEmail={serverSite().operatorEmail ?? null}

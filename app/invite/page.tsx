@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import InviteRequestForm from "@/components/InviteRequestForm";
 import PageShell from "@/components/landing/PageShell";
 import { Band, TITLE_H1 } from "@/components/landing/kit";
+import { TEXT_LINK } from "@/components/landing/styles";
+import Link from "next/link";
 import { isEnabled } from "@/lib/capabilities";
 import { inviteOnly } from "@/lib/inviteList";
 import { inviteRequestAvailable } from "@/lib/inviteRequest";
@@ -49,6 +51,12 @@ export default async function InvitePage() {
           {translateIn(locale, "inviteRequest.intro", { name })}
         </p>
         <InviteRequestForm />
+        {/* B-2773. An approved person lands here from an old habit; /welcome is the door. */}
+        <p className="mt-6">
+          <Link href="/welcome" className={`text-sm ${TEXT_LINK}`}>
+            {translateIn(locale, "inviteRequest.alreadyInvited")}
+          </Link>
+        </p>
       </Band>
     </PageShell>
   );
