@@ -892,17 +892,29 @@ function YourPlanPanel({
           <CouponCallout
             key={`${voucher.appliesTo}-${voucher.amountRappen}-${voucher.expiresAt}`}
             compact
-            headline={t(
-              voucher.appliesTo === "photobook"
-                ? "billing.voucherPhotobook"
-                : voucher.appliesTo === "postcard"
-                  ? "billing.voucherPostcard"
-                  : "billing.voucherPrint",
-              {
-                amount: formatChf(voucher.amountRappen),
-                date: voucher.expiresAt ? formatLongDate(voucher.expiresAt.slice(0, 10), { year: true }) : "",
-              },
-            )}
+            headline={
+              voucher.expiresAt
+                ? t(
+                    voucher.appliesTo === "photobook"
+                      ? "billing.voucherPhotobook"
+                      : voucher.appliesTo === "postcard"
+                        ? "billing.voucherPostcard"
+                        : "billing.voucherPrint",
+                    {
+                      amount: formatChf(voucher.amountRappen),
+                      date: formatLongDate(voucher.expiresAt.slice(0, 10), { year: true }),
+                    },
+                  )
+                : // B2770 — an operator's voucher may have no expiry at all.
+                  t(
+                    voucher.appliesTo === "photobook"
+                      ? "billing.voucherPhotobookOpen"
+                      : voucher.appliesTo === "postcard"
+                        ? "billing.voucherPostcardOpen"
+                        : "billing.voucherPrintOpen",
+                    { amount: formatChf(voucher.amountRappen) },
+                  )
+            }
           />
         ))}
       </div>
