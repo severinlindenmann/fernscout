@@ -578,14 +578,20 @@ export default function PreviewDayFlow({
   useEffect(() => {
     if (!published) return;
     const h1 = document.getElementById("studio-page-title");
-    if (h1) h1.textContent = t("studio.published.pageTitle");
+    // The status card is the headline now (B2765); the h1 stays for screen readers only.
+    if (h1) {
+      h1.textContent = t("studio.published.pageTitle");
+      h1.classList.add("sr-only");
+    }
   }, [published, t]);
 
   if (published) {
     const nobodyTold = published.told.app === 0 && published.told.mail === 0;
     const readerLine =
       audienceLabel.kind === "readers"
-        ? nobodyTold
+        ? audienceLabel.count === 0
+          ? t("studio.published.toldNoReaders")
+          : nobodyTold
           ? tn("studio.published.toldNobody", audienceLabel.count, { count: String(audienceLabel.count) })
           : tn("studio.published.told", audienceLabel.count, { count: String(audienceLabel.count), app: String(published.told.app), mail: String(published.told.mail) })
         : nobodyTold

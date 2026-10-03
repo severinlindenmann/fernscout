@@ -45,6 +45,7 @@ export default async function StudioEditDayPage({
     <StudioPage
       username={user}
       group="write"
+      hideGroups
       title={translateIn(locale, "studio.hub.item.changeDay.title")}
       lede={chosen ? undefined : translateIn(locale, "studio.day.edit.consequence")}
     >
