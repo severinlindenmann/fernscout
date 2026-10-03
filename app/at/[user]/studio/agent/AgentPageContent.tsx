@@ -95,15 +95,18 @@ export default function AgentPageContent({
   return (
     <>
       <details data-keys className="mt-6 border-t border-line-quiet pt-5">
-        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-lg font-semibold text-ink-strong [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
           <ChevronRight
-            className="h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
+            className="mt-1.5 h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
             aria-hidden="true"
           />
-          {t("studio.permissions.keysTitle")}
+          <span>
+            <span className="block font-display text-lg font-semibold text-ink-strong">{t("studio.permissions.keysTitle")}</span>
+            <span className="block text-sm leading-6 text-ink-secondary">{t("studio.permissions.keysLede")}</span>
+          </span>
         </summary>
         <p className="mt-1 text-sm leading-6 text-ink-secondary">
-          {t("studio.permissions.keysLede")} {t("studio.permissions.keysNotPeople")}{" "}
+          {t("studio.permissions.keysNotPeople")}{" "}
           <Link href={journalPath(username, "/studio/readers")} className="font-semibold text-ink-strong underline underline-offset-2">
             {t("studio.hub.item.readers.title")}
           </Link>
@@ -133,14 +136,16 @@ export default function AgentPageContent({
       </details>
 
       <details data-leaves className="mt-8 border-t border-line-quiet pt-5">
-        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-lg font-semibold text-ink-strong [&::-webkit-details-marker]:hidden">
+        <summary className="flex min-h-11 cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
           <ChevronRight
-            className="h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
+            className="mt-1.5 h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
             aria-hidden="true"
           />
-          {t("studio.permissions.leavesTitle")}
+          <span>
+            <span className="block font-display text-lg font-semibold text-ink-strong">{t("studio.permissions.leavesTitle")}</span>
+            <span className="block text-sm leading-6 text-ink-secondary">{t("studio.permissions.leavesLede")}</span>
+          </span>
         </summary>
-        <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("studio.permissions.leavesLede")}</p>
         <ul data-permissions className="mt-3 space-y-2">
           {rows.map((row) => {
             const on = row.granted.length > 0;
