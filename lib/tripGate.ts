@@ -396,9 +396,10 @@ export async function mayReadLiveTrack(trip: Trip): Promise<boolean> {
   if (trip.visibility === "guest") {
     return trip.guestsLive && ((await isTravellerOn(trip)) || (await guestMayRead(trip)));
   }
-  // "private" — travellers, and the close circle (B1749); the owner is
+  // "private" — travellers only. The close circle reads private trips, days
+  // and photographs (B1749), never where the owner is right now. The owner is
   // already handled above.
-  return (await isTravellerOn(trip)) || (await guestMayRead(trip));
+  return isTravellerOn(trip);
 }
 
 /**

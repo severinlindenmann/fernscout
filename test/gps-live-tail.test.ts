@@ -386,6 +386,7 @@ describe("mayReadLiveTrack — B2536", () => {
   const PUBLIC_TRIP = "public-2026";
   const PRIVATE_TRIP = "private-2026";
   const ADMIN_EMAIL = "operator@example.test";
+  const CLOSE_EMAIL = "close@example.test";
   const tokens: Record<string, string | null> = { anonymous: null };
 
   function as(viewer: string) {
@@ -480,6 +481,13 @@ describe("mayReadLiveTrack — B2536", () => {
     });
 
     await addApprovedContact(GUEST_EMAIL);
+    await addApprovedContact(CLOSE_EMAIL);
+    {
+      const { setGrantScope } = await import("@/lib/grants");
+      const { listContacts } = await import("@/lib/contacts");
+      const closeContact = (await listContacts(OWNER)).find((c) => c.email === CLOSE_EMAIL);
+      if (!closeContact || !(await setGrantScope(OWNER, closeContact.id, "close"))) throw new Error("no close contact");
+    }
 
     // A `people:` byline grants nothing since D3 (B2297) — being "on the
     // trip" means holding a granted `trip_people` place, the same mechanism
@@ -499,6 +507,7 @@ describe("mayReadLiveTrack — B2536", () => {
     tokens.owner = await signIn(OWNER_EMAIL);
     tokens.robin = await signIn(ROBIN_EMAIL);
     tokens.guest = await signIn(GUEST_EMAIL);
+    tokens.close = await signIn(CLOSE_EMAIL);
     tokens.stranger = await signIn(STRANGER_EMAIL);
     // The instance operator, signed in to THIS journal (not its own) —
     // exactly how B480's admin reach works: one address, every journal.
@@ -568,6 +577,13 @@ describe("mayReadLiveTrack — B2536", () => {
       as(viewer);
       expect(await mayReadLiveTrack(await trip(PUBLIC_TRIP))).toBe(false);
     }
+  });
+
+  test("a close-circle reader reads a private trip but never its live tail (B1749)", async () => {
+    const { mayReadLiveTrack, mayReadTrip } = await import("@/lib/tripGate");
+    as("close");
+    expect(await mayReadTrip(await trip(PRIVATE_TRIP))).toBe(true);
+    expect(await mayReadLiveTrack(await trip(PRIVATE_TRIP))).toBe(false);
   });
 
   test("a private trip is live for the traveller who was there", async () => {
