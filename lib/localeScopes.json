@@ -2,6 +2,7 @@
   "root": {
     "paid": [
       "billing",
+      "groups",
       "guides",
       "orgs",
       "photobook",

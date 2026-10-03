@@ -62,6 +62,8 @@ const ALWAYS_RESERVED = [
   // The self-hosting docs and the instance's own imprint page.
   "docs",
   "legal",
+  // B2769 — /class, the class-code door
+  "class",
   // The buddy/guest invite link shortener, app/s/[token].
   "s",
   // B2291/B2292 — the per-person welcome link /w/<code> and the group

@@ -32,6 +32,9 @@ const OUTSIDE = [
   // The operator console: a tool with its own shell (B2484), not a page a
   // visitor reaches.
   "app/admin/",
+  // B2769 — the group trip space (/g/…): a private app surface with its own
+  // phone-sized shell, like the studio, not a page a visitor browses.
+  "app/g/",
 ];
 
 /** The brand workbenches draw the app's own components (a day card, a
