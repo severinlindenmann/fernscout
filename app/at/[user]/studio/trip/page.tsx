@@ -4,6 +4,8 @@ import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { tripEditPanel, tripForEdit, tripsForEdit } from "@/lib/studio/tripEdit";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { isEnabled } from "@/lib/capabilities";
+import { readRoster } from "@/lib/groupRoster";
+import { tripDays } from "@/lib/tripDays";
 
 export const dynamic = "force-dynamic";
 // B2549 — keep this page in the client Router Cache for 30s after a
@@ -52,6 +54,14 @@ export default async function StudioTripEditPage({
   // add-a-day page: a capability the client never has to ask for.
   const routeRecordingAvailable = isEnabled("routeRecording", user);
 
+  // B2435 — the roster summary row exists only with features.groupTrips on.
+  let groupRow: { students: number; planned: number; days: number } | undefined;
+  if (trip && isEnabled("groupTrips", user)) {
+    const roster = readRoster(user, trip.id);
+    const days = tripDays(trip.start, trip.end);
+    groupRow = { students: roster.students.length, planned: days.filter((d) => roster.duty[d]?.length).length, days: days.length };
+  }
+
   return (
     <StudioPage
       username={user}
@@ -72,6 +82,7 @@ export default async function StudioTripEditPage({
         trip={trip}
         section={typeof section === "string" ? section : undefined}
         routeRecordingAvailable={routeRecordingAvailable}
+        groupRow={groupRow}
       />
     </StudioPage>
   );

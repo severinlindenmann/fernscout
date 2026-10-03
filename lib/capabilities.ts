@@ -171,6 +171,8 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // beside, or by an admin with a session, neither of which this capability
   // gates — only the `entitlements`/`ai_days` tables it needs to record one.
   billing: { env: [], db: true },
+  // B2435. A roster file beside the trip on disk — nothing else needed.
+  groupTrips: { env: [], db: false },
 };
 
 /** Transport and provider choices carry their own credential requirements.

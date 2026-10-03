@@ -85,6 +85,10 @@ export const FEATURE_NAMES = [
   // takes. On, it needs a database (the `entitlements` table records the
   // plan; `ai_days` records usage) and fails closed on a read error.
   "billing",
+  // B2435. A class camp or group trip: the trip owner (the teacher) keeps a
+  // roster of first names and a per-day duty plan. Slice 1 opens nothing for
+  // anyone else. Off by default and absent (row and page 404) when off.
+  "groupTrips",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -681,6 +685,8 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // `weather`: the provider (AWS's keyless Terrarium tiles) needs no key and
   // no signup.
   mapRelief: { enabled: false },
+  // B2435. Off by default; off means no row on Edit a trip and a 404 page.
+  groupTrips: { enabled: false },
   // B2341. Off by default like every optional capability, and off means the
   // landing page shows no app button at all — a self-hoster's fresh clone
   // has never had an iPhone app to point at. `storeUrl` has no default on

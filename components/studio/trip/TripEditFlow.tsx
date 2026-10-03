@@ -160,6 +160,7 @@ export default function TripEditFlow({
   trip,
   section,
   routeRecordingAvailable,
+  groupRow,
 }: {
   username: string;
   trips: { id: string; title: string }[];
@@ -173,6 +174,9 @@ export default function TripEditFlow({
    *  section itself also checks `useNativeShell()`, so a browser never sees
    *  it, capability on or off. */
   routeRecordingAvailable?: boolean;
+  /** B2435 — present only when features.groupTrips is on: the summary of the
+   *  trip's roster for the one row that opens its own page. */
+  groupRow?: { students: number; planned: number; days: number };
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -325,6 +329,22 @@ export default function TripEditFlow({
           }}
         />
       </section>
+
+      {groupRow && trip && (
+        <section id="section-group" className="mt-6 border-t border-line-quiet pt-6">
+          <h2 className={EYEBROW}>{t("studio.groupTrip.title")}</h2>
+          <p className="mt-2 text-sm text-ink-secondary">
+            {t("studio.groupTrip.row", {
+              students: String(groupRow.students),
+              planned: String(groupRow.planned),
+              days: String(groupRow.days),
+            })}{" "}
+            <Link href={`${journalPath(username)}/studio/trip/roster?trip=${encodeURIComponent(trip.id)}`} className="font-semibold text-ink-strong underline underline-offset-2">
+              {t("studio.groupTrip.open")}
+            </Link>
+          </p>
+        </section>
+      )}
 
       <section id="section-readers" className="mt-6 border-t border-line-quiet pt-6">
         <h2 className={EYEBROW}>{t("me.tripWho")}</h2>
