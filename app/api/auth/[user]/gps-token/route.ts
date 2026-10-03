@@ -1,7 +1,7 @@
 import { GPS_IMPORT_SCOPE, GPS_TOKEN_TTL_DAYS, issueGpsToken } from "@/lib/auth";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isEnabled } from "@/lib/capabilities";
-import { isOwner } from "@/lib/contacts/session";
+import { isJournalOwnerCookie } from "@/lib/contacts/session";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { fail, ok } from "@/lib/api/v2/route";
 import { getUser } from "@/lib/users";
@@ -56,8 +56,8 @@ export async function POST(request: Request, { params }: RouteContext<"/api/auth
   }
 
   // No `request` passed — see the comment above: this is what keeps the
-  // gate cookie-only rather than reusing `isOwner`'s bearer fallback.
-  if (!(await isOwner(user))) {
+  // gate cookie-only rather than reusing `isOwner`'s bearer fallback or its operator widening.
+  if (!(await isJournalOwnerCookie(user))) {
     return fail(
       "forbidden",
       "Only the address that owns this journal, signed in in a browser, may mint a positions " +

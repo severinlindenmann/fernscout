@@ -187,6 +187,19 @@ describe("the helper's own routes never accept a bearer token", () => {
     expect(res.status).toBe(404);
   });
 
+  test("gps/name-days: POST — B2303, the fill behind \"Days without a place\"", async () => {
+    const { POST } = await import("@/app/api/helper/[user]/gps/name-days/route");
+    const res = await POST(
+      bearerOnly("https://t.test/api/helper/alex/gps/name-days", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ trip: "x", dates: ["2026-06-22"] }),
+      }),
+      params,
+    );
+    expect(res.status).toBe(404);
+  });
+
   test("gps/trips: GET — B2226, the route page's own trip list", async () => {
     const { GET } = await import("@/app/api/helper/[user]/gps/trips/route");
     const res = await GET(bearerOnly("https://t.test/api/helper/alex/gps/trips"), params);

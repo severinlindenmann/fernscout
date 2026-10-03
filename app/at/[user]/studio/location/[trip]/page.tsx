@@ -4,6 +4,7 @@ import StudioPage from "@/components/studio/StudioPage";
 import WorldMap from "@/components/WorldMap";
 import DayLineMap from "@/components/studio/location/DayLineMap";
 import RouteMenu from "@/components/studio/location/RouteMenu";
+import NameDaysPanel from "@/components/studio/location/NameDaysPanel";
 import TrackEditsPanel from "@/components/studio/location/TrackEditsPanel";
 import { journalPath } from "@/lib/journalPath";
 import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
@@ -15,6 +16,7 @@ import { tripRef } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
 import { isHiddenPlace } from "@/lib/gps/edits";
 import { kmByMode, ownerTripLine, recordedTrips } from "@/lib/gps/api";
+import { proposeDays } from "@/lib/gps/nameDays";
 import { readerTrack } from "@/lib/gps/track";
 import { primaryStreetMap } from "@/lib/maps/dir";
 import { earliestTodayISO } from "@/lib/tripTime";
@@ -287,6 +289,18 @@ export default async function TripPage({
         <p className="text-sm text-ink-secondary">
           {modes.map(([mode, v]) => `${v} km ${modeLabel(mode, t)}`).join(" · ")}
         </p>
+      )}
+
+      {view === "mine" && (
+        <NameDaysPanel
+          username={user}
+          tripId={tripId}
+          rows={proposeDays(user, tripId).map((d) => ({
+            date: d.date,
+            place: [d.name, d.country].filter(Boolean).join(", "),
+            published: d.published,
+          }))}
+        />
       )}
 
       <TrackEditsPanel username={user} tripId={tripId} canAdd={false} hiddenDays={hiddenDays} />

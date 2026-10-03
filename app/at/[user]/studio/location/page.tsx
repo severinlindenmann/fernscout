@@ -2,13 +2,14 @@ import Link from "next/link";
 import StudioPage from "@/components/studio/StudioPage";
 import GpsZones from "@/components/studio/location/GpsZones";
 import { worldStreetMapUrl } from "@/lib/maps/dir";
+import RecordingPlan from "@/components/studio/location/RecordingPlan";
 import RecordingStrip from "@/components/studio/location/RecordingStrip";
 import TrackThumb from "@/components/studio/location/TrackThumb";
 import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
 import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
-import { getCurrentTrip, getTrips } from "@/lib/trips";
+import { getTrips } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
-import { ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
+import { currentTripRecording, ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
 import { kmBetween } from "@/lib/mapFrame";
 import { journalPath } from "@/lib/journalPath";
 
@@ -86,6 +87,7 @@ export default async function StudioLocationPage({
 
   let tripsSection = null;
   let stripSection = null;
+  let planSection = null;
   if (routeRecordingOn) {
     const recorded = recordedTrips(user);
     const { visible, ordered, pinnedId } = orderAndLimitTrips(recorded, showAll);
@@ -113,28 +115,28 @@ export default async function StudioLocationPage({
       </section>
     );
 
-    // The strip's own trip: the one actually recording, else the current
-    // trip if — and only if — it already has a `recordingState` to show
-    // (`recorded` is the one caller `recordingState` may have, B2226/B2563
-    // security review; a current trip with nothing recorded yet simply has
-    // no state to show here rather than this page reading it a second way).
-    const current = getCurrentTrip(user);
-    const stripEntry = pinnedId
-      ? recorded.find((r) => r.tripId === pinnedId)
-      : current
-        ? recorded.find((r) => r.tripId === current.id)
-        : undefined;
-    const stripTripMeta = stripEntry ? getTrips(user).find((tr) => tr.id === stripEntry.tripId) : undefined;
-    const newest = recorded.reduce<string | undefined>(
-      (max, r) => (!max || r.lastReceived > max ? r.lastReceived : max),
-      undefined,
-    );
+    // The strip's own trip: the one actually recording, else the trip whose
+    // status is "current" — even with no stored position yet (B2564), through
+    // the narrow `currentTripRecording` reader (never a past-trip fallback).
+    const current = currentTripRecording(user);
+    const stripTripId = pinnedId ?? current?.tripId;
+    const stripEntry = recorded.find((r) => r.tripId === stripTripId);
+    const stripTripMeta = stripTripId ? getTrips(user).find((tr) => tr.id === stripTripId) : undefined;
+    // Newest position of the strip's own trip only — never another trip's.
+    const newest = stripEntry && !stripEntry.hasPublishedTrack ? stripEntry.lastReceived : undefined;
     stripSection = (
       <RecordingStrip
         username={user}
         trip={stripTripMeta ? { id: stripTripMeta.id, title: stripTripMeta.title, start: stripTripMeta.start, end: stripTripMeta.end } : null}
-        recording={stripEntry?.recording ?? null}
+        recording={stripEntry?.recording ?? (current && current.tripId === stripTripId ? current.recording : null)}
         newestPosition={newest}
+      />
+    );
+    // B2301 — native-only (the component renders nothing in a browser).
+    planSection = (
+      <RecordingPlan
+        username={user}
+        trips={getTrips(user).map((tr) => ({ id: tr.id, title: tr.title, start: tr.start, end: tr.end }))}
       />
     );
   }
@@ -151,6 +153,7 @@ export default async function StudioLocationPage({
     >
       <div className="flex flex-col gap-4">
         {stripSection}
+        {planSection}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
           {tripsSection}
           <section id="private-places" className="rounded-2xl border border-line-quiet bg-surface-raised p-4 [&>section]:mt-0">

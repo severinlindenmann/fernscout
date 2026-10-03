@@ -33,6 +33,19 @@ import { getContactByEmail, type ContactRecord } from "./index";
  * instance. Unset — which is every instance but the one that sets it — nothing
  * below changes. See `lib/admin.ts` for why it lives in the environment.
  */
+/**
+ * The owner of this journal by address alone, browser cookie only: no
+ * operator widening (B480) and no bearer. The one check every GPS door uses
+ * (B2345) — plain `isOwner` admits the instance operator on every journal,
+ * which is right for support and wrong for a person's location.
+ */
+export async function isJournalOwnerCookie(username: string): Promise<boolean> {
+  const ownerEmail = getUser(username)?.owner.email;
+  if (!ownerEmail) return false;
+  const { email } = await resolveAccess(username);
+  return email === ownerEmail;
+}
+
 export async function isOwner(username: string, request?: Request): Promise<boolean> {
   // A journal that does not exist has no owner, and the admin owns nothing in
   // it either. `owner.email` may still be absent below — an ownerless journal

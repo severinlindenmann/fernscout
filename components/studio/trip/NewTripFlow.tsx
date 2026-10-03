@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/LocaleProvider";
 import StepPrimary from "@/components/studio/StepPrimary";
@@ -9,6 +9,21 @@ import SubmitError from "@/components/studio/SubmitError";
 import DateField from "@/components/studio/DateField";
 import DoneScreen, { type DoneNext } from "@/components/studio/DoneScreen";
 import { useOnline } from "@/components/studio/useOnline";
+import {
+  armRoute,
+  disarmRoute,
+  locationPermission,
+  notificationPermissionStatus,
+  openAppSettings,
+  refreshGpsToken,
+  requestLocationPermission,
+  requestNotificationPermission,
+  useNativeShell,
+  type LocationPermission,
+  type NotificationPermission,
+} from "@/components/nativeShell";
+import { todayISO } from "@/components/studio/location/RecordingPlan";
+import { LocationAccessLine, LocationGuide } from "@/components/studio/trip/RouteRecordSection";
 import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
 import { useStep } from "@/lib/studio/useStep";
 import type { ExistingTripSummary, NewTripContact, NewTripFigure } from "@/lib/studio/newTrip";
@@ -335,6 +350,64 @@ export default function NewTripFlow({
 
   const today = new Date().toISOString().slice(0, 10);
 
+  // B2300 — iPhone app only. "ask" is today's behaviour (the 18:00 notice the
+  // evening before) and sends nothing; only "record" and "decline" call native,
+  // and only once the trip exists.
+  const native = useNativeShell();
+  const online = useOnline();
+  const [route, setRoute] = useState<"record" | "ask" | "decline">("ask");
+  const [routeFrom, setRouteFrom] = useState<string | null>(null);
+  const [locPermission, setLocPermission] = useState<LocationPermission | null>(null);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | null>(null);
+  const [locGuide, setLocGuide] = useState(false);
+  useEffect(() => {
+    if (!native) return;
+    let live = true;
+    const load = () => {
+      void locationPermission().then((p) => live && setLocPermission(p), () => {});
+      void notificationPermissionStatus().then((r) => live && setNotifPermission(r.status), () => {});
+    };
+    load();
+    const onVisible = () => document.visibilityState === "visible" && load();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      live = false;
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [native]);
+  const [localToday] = useState(() => todayISO(Date.now()));
+  const startedAlready = start <= localToday;
+  const routeChoice = startedAlready && route === "ask" ? "undecided" : route;
+
+  /** After the trip id returns: arm, or decline for good. A failed native
+   *  call leaves the trip as made and says nothing it did not do. */
+  async function applyRoute(id: string) {
+    if (!native || !online) return;
+    try {
+      if (route === "decline") {
+        await disarmRoute(id, true);
+      } else if (route === "record") {
+        await refreshGpsToken(username);
+        const status = await armRoute({
+          trip: id,
+          title,
+          start,
+          end,
+          user: username,
+          stopBody: t("studio.record.notice.stopped", { title }),
+          unauthorizedBody: t("studio.record.notice.unauthorized"),
+          confirmTitle: t("studio.record.confirm.title", { title }),
+          confirmBody: t("studio.record.confirm.body"),
+          confirmRecordLabel: t("studio.record.confirm.record"),
+          confirmCancelLabel: t("studio.record.confirm.cancel"),
+        });
+        if (status.state === "recording") setRouteFrom(startedAlready ? localToday : start);
+      }
+    } catch {
+      // Native refused or the plugin is missing — the trip itself is made.
+    }
+  }
+
   /** The wire shape `figuresMode` takes — the same `tripFigures` union
    *  `lib/tripWrite.ts` validates against. */
   function figuresModeWire(): { mode: "off" } | { mode: "journal" } | { mode: "custom"; figures: string[] } {
@@ -395,6 +468,7 @@ export default function NewTripFlow({
         return;
       }
       setCreatedId(json.id);
+      await applyRoute(json.id);
       setOutcome("done");
       reset();
       // B2549 — the studio's own trip list has one more trip now.
@@ -494,6 +568,106 @@ export default function NewTripFlow({
                 range: `${formatShortDate(initialRange.start)} – ${formatShortDate(initialRange.end)}`,
               })}
             </p>
+          )}
+
+          {native && /^\d{4}-\d{2}-\d{2}$/.test(start) && (
+            <>
+              {/* B2300 — the route, answered already like "Who can read it". */}
+              <details data-route-choice className="mt-4 rounded-xl border border-line-strong bg-surface-raised px-4 py-3">
+                <summary
+                  onClick={online ? undefined : (e) => e.preventDefault()}
+                  className={`flex min-h-11 list-none items-center justify-between gap-3 ${online ? "cursor-pointer" : "opacity-60"}`}
+                >
+                  <span>
+                    <span className="block text-sm font-semibold text-ink-strong">{t("studio.newTrip.route.heading")}</span>
+                    <span className="block text-sm text-ink-body">
+                      {routeChoice === "undecided"
+                        ? t("studio.newTrip.route.undecided")
+                        : routeChoice === "record"
+                          ? t(startedAlready ? "studio.newTrip.route.recordToday" : "studio.newTrip.route.record", { date: formatShortDate(start) })
+                          : routeChoice === "ask"
+                            ? t("studio.newTrip.route.ask")
+                            : t("studio.record.notThisTrip")}
+                    </span>
+                  </span>
+                  {online && <span className="text-sm font-semibold text-ink-body underline underline-offset-2">{t("studio.newTrip.who.change")}</span>}
+                </summary>
+                <div className="mt-3 flex flex-col gap-2">
+                  {(startedAlready ? (["record", "decline"] as const) : (["record", "ask", "decline"] as const)).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setRoute(v)}
+                      aria-pressed={routeChoice === v}
+                      className={`rounded-xl border px-4 py-3 text-left ${
+                        routeChoice === v ? "border-action-strong bg-surface-subtle" : "border-line-strong bg-surface-raised"
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold text-ink-strong">
+                        {v === "record"
+                          ? t(startedAlready ? "studio.newTrip.route.recordToday" : "studio.newTrip.route.record", { date: formatShortDate(start) })
+                          : v === "ask"
+                            ? t("studio.newTrip.route.ask")
+                            : t("studio.record.notThisTrip")}
+                      </span>
+                      <span className="block text-xs text-ink-secondary">
+                        {v === "record"
+                          ? t(startedAlready ? "studio.newTrip.route.recordHintToday" : "studio.newTrip.route.recordHint")
+                          : v === "ask"
+                            ? t("studio.newTrip.route.askHint", { date: formatShortDate(new Date(Date.parse(start) - 864e5).toISOString().slice(0, 10)) })
+                            : t("studio.newTrip.route.declineHint")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </details>
+              <p className="mt-2 text-sm text-ink-secondary">
+                {!online
+                  ? t("studio.newTrip.route.line.offline")
+                  : routeChoice === "record"
+                    ? t(startedAlready ? "studio.newTrip.route.line.recordToday" : "studio.newTrip.route.line.record", { date: formatShortDate(start) })
+                    : routeChoice === "ask"
+                      ? t("studio.newTrip.route.line.ask", { date: formatShortDate(new Date(Date.parse(start) - 864e5).toISOString().slice(0, 10)) })
+                      : routeChoice === "decline"
+                        ? t("studio.newTrip.route.line.decline")
+                        : t("studio.newTrip.route.line.undecided")}
+              </p>
+              {online && routeChoice === "record" && locPermission && !locGuide && (
+                <LocationAccessLine permission={locPermission} onFix={() => setLocGuide(true)} />
+              )}
+              {online && routeChoice === "record" && locGuide && locPermission && (
+                <div className="mt-3">
+                  <LocationGuide
+                    permission={locPermission}
+                    busy={false}
+                    doneLabel={t("studio.record.permission.done")}
+                    onAsk={() => void requestLocationPermission().then(setLocPermission, () => {})}
+                    onDone={() => setLocGuide(false)}
+                    onCancel={() => setLocGuide(false)}
+                  />
+                </div>
+              )}
+              {online && routeChoice === "ask" && notifPermission === "unknown" && (
+                <p className="mt-2 text-sm text-ink-strong">
+                  {t("studio.newTrip.route.remind.ask")}{" "}
+                  <button
+                    type="button"
+                    onClick={() => void requestNotificationPermission().then((r) => setNotifPermission(r.status), () => {})}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    {t("studio.newTrip.route.remind.allow")}
+                  </button>
+                </p>
+              )}
+              {online && routeChoice === "ask" && notifPermission === "denied" && (
+                <p className="mt-2 text-sm text-ink-strong">
+                  {t("studio.newTrip.route.remind.off")}{" "}
+                  <button type="button" onClick={() => void openAppSettings()} className="font-semibold underline underline-offset-2">
+                    {t("studio.record.openSettings")}
+                  </button>
+                </p>
+              )}
+            </>
           )}
 
           {/* B2187 — who can read it, answered already: the current choice in
@@ -994,6 +1168,11 @@ export default function NewTripFlow({
                   : []),
             ] as [DoneNext] | [DoneNext, DoneNext]}
           />
+          {routeFrom && (
+            <p data-route-armed className="mt-2 text-sm text-ink-secondary">
+              {t("studio.location.plan.recordsFrom", { date: formatShortDate(routeFrom) })}
+            </p>
+          )}
         </>
       )}
 

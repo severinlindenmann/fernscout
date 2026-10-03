@@ -589,6 +589,21 @@ const gpsImportResult = z.strictObject({
   /** Owner only — B2202: trips whose dates overlap this import, re-derived
    * on the spot. Per-trip ok/fail, never a coordinate. */
   rederived: z.array(z.strictObject({ tripId: z.string(), ok: z.boolean() })).optional(),
+  /** Owner only — B2303: per trip, how much of its date range this upload
+   * touches, and the bare dates (YYYY-MM-DD) of its existing days that name no
+   * place and have positions in this upload. Never a place name or a
+   * coordinate; nothing is filled by this call — the owner does that in the
+   * studio. A `write:gps` caller gets no coverage at all. */
+  coverage: z
+    .array(
+      z.strictObject({
+        tripId: z.string(),
+        days: z.number().int().nonnegative(),
+        tripDays: z.number().int().positive(),
+        daysWithoutPlace: z.array(z.string()).optional(),
+      }),
+    )
+    .optional(),
   dryRun: z.boolean(),
   next: z.string(),
 });
@@ -1034,6 +1049,8 @@ function buildPaths(): Record<string, PathItem> {
         "local date; `locations.json` from the same export goes through this door too, as " +
         '`kind: "gps"`, never through `polarsteps`). Send ?dryRun to preview. JSON ' +
         "`{kind, format?, inbox|text}`, or multipart with `file`. " +
+        'The owner\'s response also carries `coverage` (B2303): per trip, how many of its days the upload touches and ' +
+        "`daysWithoutPlace`, the bare dates of its existing days that name no place; never a place name, and nothing is filled. " +
         'Owner only, with one exception (B2204): a `write:gps` token — minted at ' +
         "POST /api/auth/{user}/gps-token — may call this too, and only this, and only for " +
         '`kind: "gps"` with `dryRun` false or absent; its response has no `extent`. Everything ' +

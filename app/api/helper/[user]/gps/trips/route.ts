@@ -1,6 +1,5 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { resolveAccess } from "@/lib/auth/handshake";
-import { getUser } from "@/lib/users";
+import { isJournalOwnerCookie } from "@/lib/contacts/session";
 import { isEnabled } from "@/lib/capabilities";
 import { recordedTrips } from "@/lib/gps/api";
 
@@ -20,10 +19,7 @@ const NO_STORE = { "Cache-Control": "private, no-store" };
  * re-resolved and compared against `config.json`'s own `owner.email`.
  */
 async function isOwnerOnly(username: string): Promise<boolean> {
-  if (!(await isHelperOwner(username))) return false;
-  const journal = getUser(username);
-  const access = await resolveAccess(username);
-  return journal !== null && access.email === journal.owner.email;
+  return (await isHelperOwner(username)) && (await isJournalOwnerCookie(username));
 }
 
 export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/gps/trips">) {

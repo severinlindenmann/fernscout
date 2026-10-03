@@ -438,9 +438,9 @@ final class Recorder: NSObject {
     /// Built from `base`/`user`, both natively sourced (finding 1's fix),
     /// never from anything the JS side supplies for this purpose.
     private func studioURL(base: String, user: String, trip: String) -> String {
-        let tripQ = trip.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? trip
+        let tripQ = trip.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed) ?? trip
         let userP = user.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? user
-        return "\(base)/@\(userP)/studio/trip?trip=\(tripQ)"
+        return "\(base)/@\(userP)/studio/location#trip-\(tripQ)"
     }
 
     private func scheduleStopNotice(trip: String, end: String, body: String, base: String, user: String) {
