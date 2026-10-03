@@ -50,7 +50,7 @@ describe("EditDay language tabs and labels", () => {
 
   test("tabs are the original plus each existing translation, and switch only the words", async () => {
     await mount(dayWith({ en: { title: "First day", content: "Arrived." } }));
-    expect(tabs()).toEqual(["Deutsch · original", "English"]);
+    expect(tabs()).toEqual(["German · original", "English"]);
     const english = container!.querySelectorAll('[role="tab"]')[1] as HTMLButtonElement;
     await act(async () => english.click());
     expect(container!.textContent).toContain("Title in English");
