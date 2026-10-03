@@ -1,11 +1,5 @@
 import JournalLocaleProvider from "@/components/JournalLocaleProvider";
 import StudioBarProvider from "@/components/studio/StudioBar";
-import StudioSignIn from "@/components/studio/StudioSignIn";
-import { TITLE_H1 } from "@/components/landing/kit";
-import { CODE_TTL_MINUTES } from "@/lib/auth";
-import { resolveAccess } from "@/lib/auth/handshake";
-import { isEnabled } from "@/lib/capabilities";
-import { requestLocale, translateIn } from "@/lib/locales";
 import { offlineKeepTrips } from "@/lib/studio/day";
 
 /**
@@ -28,21 +22,6 @@ import { offlineKeepTrips } from "@/lib/studio/day";
  */
 export default async function StudioLayout({ children, params }: LayoutProps<"/at/[user]/studio">) {
   const { user } = await params;
-  /**
-   * B-2779. Nobody signed in at all: one generic sign-in card, the same bytes
-   * for a journal that exists and one that does not (B1829's no-oracle rule
-   * holds — it names no journal). Anyone signed in falls through to each
-   * page's own gate, so a non-owner still gets the 404.
-   */
-  if (isEnabled("auth") && (await resolveAccess(user)).email === null) {
-    const locale = await requestLocale();
-    return (
-      <main className="mx-auto w-full max-w-xl px-4 py-10">
-        <h1 className={TITLE_H1}>{translateIn(locale, "err.notSignedInTitle")}</h1>
-        <StudioSignIn codeMinutes={CODE_TTL_MINUTES} />
-      </main>
-    );
-  }
   return (
     <JournalLocaleProvider username={user} scope="studio">
       <StudioBarProvider username={user} autoKeepTrips={offlineKeepTrips(user)}>
