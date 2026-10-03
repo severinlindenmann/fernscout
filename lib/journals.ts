@@ -908,6 +908,21 @@ export function setJournalFeatures(
   return { ok: true, username, features: journalFeatures(now), changed };
 }
 
+/**
+ * Drop the proven-number fields from `owner` — B2833. The config half of
+ * `clearOwnerTel` (lib/ownerTel.ts), which is the only caller: without it
+ * `reconcile()` rebuilds the registry lock from `owner.telProvenAt` and the
+ * number is locked to this journal again.
+ */
+export function clearOwnerTelFromConfig(username: string) {
+  return editUserConfigFile(username, (raw) => {
+    const owner = (raw.owner ?? {}) as Record<string, unknown>;
+    if (!("tel" in owner || "telProvenAt" in owner || "telProvenMethod" in owner)) return null;
+    const { tel: _t, telProvenAt: _a, telProvenMethod: _m, ...rest } = owner;
+    return { ...raw, owner: rest };
+  });
+}
+
 export type SetOwnerTipsResult =
   | { ok: true }
   | { ok: false; error: string; message: string };
@@ -1061,7 +1076,7 @@ const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
     "possession of the number is the only way on: POST /api/v2/{user}/owner/tel/verify with " +
     '{"tel": "+41 76 000 00 00"} sends a code, and POST .../verify/redeem with {"id", "code"} ' +
     "writes it once the code is confirmed. GET /api/v2/{user}/owner/tel reads it back, and " +
-    "DELETE clears it.",
+    "DELETE clears it everywhere and releases the one-journal-per-number lock (B-2833).",
   baseCurrency:
     "baseCurrency is not writable through this call. It is changed with PATCH /api/v2/{user}, " +
     "and only while the journal holds no cost anywhere (B2806): a cost written without a " +

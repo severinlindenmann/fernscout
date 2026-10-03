@@ -1,6 +1,8 @@
 import "server-only";
 import { getDatabaseOrNull, nowIso } from "./db";
 import { getUser } from "./users";
+import { clearOwnerTelFromConfig, setJournalFeatures } from "./journals";
+import { release } from "./registry";
 
 /**
  * Where the owner's own telephone number lives now — B1654.
@@ -120,11 +122,37 @@ export async function setOwnerTel(
   await upsert(username, tel, provenAt, provenMethod);
 }
 
-/** Clears the number — the owner's own way of switching their WhatsApp copy
- * back off. Writes a row rather than deleting one, so a number still on disk
- * in `config.json` is not mistaken for "not cleared yet". */
+/** Clears the number completely — B2833. The owner's own way of switching
+ * their WhatsApp copy back off and freeing the number for another journal, so
+ * every place a proven number lives is emptied here and nowhere else:
+ *
+ * - the `owner_tel` row (written, not deleted, so a number still on disk is
+ *   not mistaken for "not cleared yet");
+ * - `owner.tel` / `telProvenAt` / `telProvenMethod` in `config.json`, which
+ *   `reconcile()` would otherwise rebuild the registry lock from;
+ * - the registry lock `.registry/tel/<digits>`, released only if this journal
+ *   holds it (`release` never unlinks another journal's);
+ * - `features.whatsappInbound`, switched on at signup only when the number
+ *   was proven by an inbound WhatsApp message; nothing can reach this
+ *   journal from a number it no longer has. A number proven by SMS never
+ *   touched that flag, so it is left alone.
+ *
+ * Idempotent: clearing an already-empty journal changes nothing. */
 export async function clearOwnerTel(username: string): Promise<void> {
+  const current = await getOwnerTel(username);
+  const user = getUser(username);
+  const fromConfig = user?.owner?.tel ?? null;
   await upsert(username, null, null, null);
+  if (user) {
+    const written = clearOwnerTelFromConfig(username);
+    if (!written.ok) throw new Error(written.message);
+    if (current?.provenMethod === "whatsapp-inbound" || user.owner?.telProvenMethod === "whatsapp-inbound") {
+      setJournalFeatures(username, { whatsappInbound: false });
+    }
+  }
+  for (const tel of new Set([current?.tel, fromConfig])) {
+    if (tel && /^\d{1,15}$/.test(tel)) release(username, null, tel);
+  }
 }
 
 /** The plain shape `ownerTelDoc` (`lib/api/v2/schemas/ownerTel.ts`) parses —
