@@ -28,6 +28,7 @@
     "notify": "tsx --conditions=react-server scripts/notify.mts",
     "reminders:send": "tsx --conditions=react-server scripts/reminders.mts",
     "first-trip:send": "tsx --conditions=react-server scripts/first-trip.mts",
+    "signup:purge": "tsx --conditions=react-server scripts/signup-purge.mts",
     "messages:sweep": "tsx --conditions=react-server scripts/messages-sweep.mts",
     "spend:alert": "tsx --conditions=react-server scripts/spend-alert.mts",
     "usage:fold": "tsx --conditions=react-server scripts/usage-fold.mts",

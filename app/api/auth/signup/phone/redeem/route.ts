@@ -4,6 +4,7 @@ import { signupAllowed } from "@/lib/inviteList";
 import { checkVerification } from "@/lib/phoneVerify";
 import { pollPhoneLink } from "@/lib/phoneVerify/inboundLink";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { journalForNumber } from "@/lib/registry";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { fail, ok } from "@/lib/api/v2/route";
 import { readJsonBody } from "@/lib/api/jsonBody";
@@ -70,7 +71,8 @@ export async function POST(request: Request) {
    * is the caller's own, so there is nothing here to probe.
    */
   if (!code) {
-    const poll = await pollPhoneLink(id, session.id);
+    const poll = await pollPhoneLink(id, session.email);
+    if (poll.status === "tel_taken") return fail("tel_taken", ERROR_CODES.tel_taken, undefined, 409);
     if (poll.status !== "ok") return ok({ status: poll.status });
     await markPhoneProven(session.id, poll.phone, "whatsapp-inbound");
     return ok({
@@ -87,6 +89,10 @@ export async function POST(request: Request) {
     // "expired" from a burned id by probing.
     return fail("invalid_code", ERROR_CODES.invalid_code, undefined, 401);
   }
+
+  // B2805. The person just proved they hold this number, so saying it
+  // already keeps a journal tells them nothing they could not know.
+  if (journalForNumber(result.phone)) return fail("tel_taken", ERROR_CODES.tel_taken, undefined, 409);
 
   // "sms" is the word for every code backend (see owner.telProvenMethod in
   // lib/config.ts) — including the SMS fallback inside inbound mode, where

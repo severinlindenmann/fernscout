@@ -3,6 +3,8 @@ import crypto from "node:crypto";
 import { NO_JOURNAL, hashSecret } from "../auth";
 import { getDatabase } from "../db";
 import { whatsappNumberForUrl } from "../contactNumber";
+import { journalForNumber } from "../registry";
+import { recordPendingPhone } from "../signup/pending";
 
 /**
  * Proving a number by receiving a message from it — B1234.
@@ -19,8 +21,8 @@ import { whatsappNumberForUrl } from "../contactNumber";
  * discipline as every other one-time credential here: only the token's hash
  * is stored, thirty minutes, superseded on reissue, single use. Column
  * reuse, following the file's own precedent: `email` holds the E.164 the
- * webhook proved (empty until then), `trip_id` holds the signup session id
- * the row is bound to, `link_dest` holds the locale the confirmation reply
+ * webhook proved (empty until then), `trip_id` holds the signup address
+ * the row is bound to (B2804: the address, not the session, so a link outlives its tab), `link_dest` holds the locale the confirmation reply
  * should be written in, and `link_consumed_at` is the instant the webhook
  * claimed it.
  */
@@ -59,21 +61,21 @@ function prefillText(token: string): string {
 
 /** Refused (null) when the instance has no WhatsApp number configured —
  * `features.whatsapp.number`, the same one printed beside the helper. */
-export async function createPhoneLink(sessionId: string, locale: string): Promise<PhoneLink | null> {
+export async function createPhoneLink(boundTo: string, locale: string): Promise<PhoneLink | null> {
   const number = whatsappNumberForUrl();
   if (!number) return null;
 
   const { db } = await getDatabase();
   const now = new Date();
 
-  // Supersede this session's earlier links — asking again must not leave two
+  // Supersede this signup's earlier links — asking again must not leave two
   // live tokens.
   await db
     .updateTable("login_codes")
     .set({ consumed_at: now.toISOString() })
     .where("owner_id", "=", NO_JOURNAL)
     .where("kind", "=", KIND)
-    .where("trip_id", "=", sessionId)
+    .where("trip_id", "=", boundTo)
     .where("consumed_at", "is", null)
     .execute();
 
@@ -89,7 +91,7 @@ export async function createPhoneLink(sessionId: string, locale: string): Promis
       link_hash: null,
       link_consumed_at: null,
       link_dest: locale,
-      trip_id: sessionId,
+      trip_id: boundTo,
       kind: KIND,
       created_at: now.toISOString(),
       expires_at: new Date(now.getTime() + TTL_MS).toISOString(),
@@ -109,7 +111,7 @@ export async function createPhoneLink(sessionId: string, locale: string): Promis
 }
 
 /** @public open core: paid/ uses this (tagged by open-core/split). */
-export type ClaimOutcome = { outcome: "confirmed" | "expired"; locale: string } | null;
+export type ClaimOutcome = { outcome: "confirmed" | "expired" | "taken"; locale: string } | null;
 
 /**
  * The webhook's half: a text message that carries a token. `null` means "no
@@ -144,6 +146,13 @@ export async function claimPhoneLink(body: string, from: string): Promise<ClaimO
     .set({ email: from, link_consumed_at: new Date().toISOString() })
     .where("id", "=", row.id)
     .execute();
+  // B2805. A number that already keeps a journal proves nothing new: no
+  // pending proof is written, and the poll answers tel_taken. (The webhook
+  // reply for "taken" is paid/'s to word; today it reads as "expired".)
+  if (journalForNumber(from)) return { outcome: "taken", locale };
+  // B2804. The row is bound to the pending address, never to what the
+  // message says, so this proof cannot land on any other address.
+  await recordPendingPhone(row.trip_id ?? "", from, "whatsapp-inbound");
   return { outcome: "confirmed", locale };
 }
 
@@ -151,26 +160,31 @@ export async function claimPhoneLink(body: string, from: string): Promise<ClaimO
 export type PollResult =
   | { status: "pending" }
   | { status: "ok"; phone: string }
+  | { status: "tel_taken" }
   | { status: "expired" };
 
 /**
- * The browser's half, polled: bound to the session that created the link,
+ * The browser's half, polled: bound to the address that created the link,
  * so one signup cannot collect another's proof. Consumes the row on
  * success — the proof then lives on the signup session, not here.
  */
-export async function pollPhoneLink(id: string, sessionId: string): Promise<PollResult> {
+export async function pollPhoneLink(id: string, boundTo: string): Promise<PollResult> {
   const { db } = await getDatabase();
   const row = await db
     .selectFrom("login_codes")
     .selectAll()
     .where("id", "=", id)
     .where("kind", "=", KIND)
-    .where("trip_id", "=", sessionId)
+    .where("trip_id", "=", boundTo)
     .executeTakeFirst();
 
   if (!row || row.consumed_at) return { status: "expired" };
   if (new Date(row.expires_at).getTime() < Date.now()) return { status: "expired" };
   if (!row.link_consumed_at || !row.email) return { status: "pending" };
+  if (journalForNumber(row.email)) {
+    await db.updateTable("login_codes").set({ consumed_at: new Date().toISOString() }).where("id", "=", row.id).execute();
+    return { status: "tel_taken" };
+  }
 
   await db.updateTable("login_codes").set({ consumed_at: new Date().toISOString() }).where("id", "=", row.id).execute();
   return { status: "ok", phone: row.email };

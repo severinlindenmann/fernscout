@@ -3974,6 +3974,7 @@
   "signupPage.metaTitle": "{name} — inizia il tuo diario",
   "signupPage.haveOne": "Hai già un diario qui? Accedi",
   "signupPage.provenHint": "Hai già effettuato l'accesso con questo indirizzo, quindi non serve un codice.",
+  "signupPage.welcomeBack": "Bentornato — il tuo indirizzo e-mail è confermato.",
   "studio.day.lede": "Le tue foto e qualche parola. Il giorno resta privato finché non scegli di condividerlo.",
   "studio.day.source.chosen": "scelto da te",
   "studio.day.source.photosAll": "da {count} foto",

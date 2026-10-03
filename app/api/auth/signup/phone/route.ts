@@ -9,6 +9,7 @@ import { smsPhoneVerify } from "@/lib/phoneVerify/sms";
 import { rateLimitFor } from "@/lib/rateLimit";
 import { smsUnreachable } from "@/lib/sms";
 import { toE164 } from "@/lib/phone";
+import { journalForNumber } from "@/lib/registry";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { fail, ok } from "@/lib/api/v2/route";
 import { readJsonBody } from "@/lib/api/jsonBody";
@@ -103,7 +104,7 @@ export async function POST(request: Request) {
     if (!perInstance.ok) return tooMany("instance", perInstance.retryAfter);
 
     const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
-    const link = await createPhoneLink(session.id, locale);
+    const link = await createPhoneLink(session.email, locale);
     if (!link) {
       console.error("[signup] phone proof is whatsapp-inbound but features.whatsapp.number is not set");
       return fail(
@@ -174,6 +175,10 @@ export async function POST(request: Request) {
   // per-instance ceiling.
   const perInstance = rateLimitFor("phone-verify-instance", "*", PER_INSTANCE);
   if (!perInstance.ok) return tooMany("instance", perInstance.retryAfter);
+
+  // B2805. Before anything is sent: a number that already keeps a journal is
+  // refused here, after the ceilings so a probe spends the address's budget.
+  if (journalForNumber(tel)) return fail("tel_taken", ERROR_CODES.tel_taken, undefined, 409);
 
   const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
 

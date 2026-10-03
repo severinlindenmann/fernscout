@@ -3974,6 +3974,7 @@
   "signupPage.metaTitle": "{name} — commence ton journal",
   "signupPage.haveOne": "Tu as déjà un journal ici ? Connecte-toi plutôt",
   "signupPage.provenHint": "Tu es déjà connecté avec cette adresse, pas besoin de code.",
+  "signupPage.welcomeBack": "Bon retour — ton adresse e-mail est confirmée.",
   "studio.day.lede": "Tes photos et quelques mots. La journée reste privée jusqu’à ce que tu choisisses de la partager.",
   "studio.day.source.chosen": "choisi par toi",
   "studio.day.source.photosAll": "d’après {count} photos",

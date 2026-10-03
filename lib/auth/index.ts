@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { cache } from "react";
 import { getDatabase } from "../db";
 import { reviewLoginCodeFor } from "./reviewLogin";
+import { getPendingSignup, livePhoneProof, recordPendingEmail, recordPendingPhone } from "../signup/pending";
 
 import { journalPath } from "../journalPath";
 /**
@@ -1109,10 +1110,11 @@ async function openSession(
    */
   const publicId = kind === "identity" ? crypto.randomBytes(16).toString("hex") : null;
 
+  const sessionId = crypto.randomUUID();
   await db
     .insertInto("sessions")
     .values({
-      id: crypto.randomUUID(),
+      id: sessionId,
       owner_id: owner,
       user_id: userId,
       kind,
@@ -1129,6 +1131,11 @@ async function openSession(
       phone_proven_at: null,
     })
     .execute();
+
+  // B2804. A signup session is only ever opened after the address proved
+  // itself (a code, or the identity cookie): remember that, and carry a
+  // number the same address proved earlier into this session.
+  if (kind === "signup") await adoptPendingSignup(sessionId, address, locale);
 
   return { ok: true, token, expiresAt, scope: granted, userId, email: address, publicId };
 }
@@ -1367,6 +1374,28 @@ export async function markPhoneProven(
     .set({ phone, phone_proven_at: nowIso(), phone_proven_method: method })
     .where("id", "=", sessionId)
     .where("kind", "=", "signup")
+    .execute();
+  // B2804. Also on the pending row, so a reload or another device finds it.
+  const owner = await db
+    .selectFrom("sessions")
+    .innerJoin("users", "users.id", "sessions.user_id")
+    .select("users.email as email")
+    .where("sessions.id", "=", sessionId)
+    .where("sessions.kind", "=", "signup")
+    .executeTakeFirst();
+  if (owner) await recordPendingPhone(owner.email, phone, method);
+}
+
+/** The pending-signup half of opening a signup session — B2804. */
+async function adoptPendingSignup(sessionId: string, address: string, locale?: string | null): Promise<void> {
+  await recordPendingEmail(address, locale);
+  const proof = livePhoneProof(await getPendingSignup(address));
+  if (!proof) return;
+  const { db } = await getDatabase();
+  await db
+    .updateTable("sessions")
+    .set({ phone: proof.phone, phone_proven_at: proof.provenAt, phone_proven_method: proof.method })
+    .where("id", "=", sessionId)
     .execute();
 }
 

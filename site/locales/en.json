@@ -4005,6 +4005,7 @@
   "signupPage.metaTitle": "{name} — start your journal",
   "signupPage.haveOne": "Already have a journal here? Sign in instead",
   "signupPage.provenHint": "You're already signed in with this address, so no code is needed.",
+  "signupPage.welcomeBack": "Welcome back — your email is confirmed.",
   "studio.day.lede": "Your photographs and a few words. The day stays private until you choose to share it.",
   "studio.day.source.chosen": "chosen by you",
   "studio.day.source.photosAll": "from {count} photos",

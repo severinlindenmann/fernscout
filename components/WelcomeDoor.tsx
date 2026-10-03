@@ -24,6 +24,7 @@ import { journalPath } from "@/lib/journalPath";
 export default function WelcomeDoor({
   codeMinutes,
   identityEmail,
+  resume,
   signupEnabled,
   phoneCountryCode,
   contactEmail,
@@ -33,6 +34,8 @@ export default function WelcomeDoor({
   /** The address behind a live `fs_identity` cookie. While the field still
    *  holds it, the wizard skips the code (B2522). */
   identityEmail: string | null;
+  /** B2804 — that address left a signup half-done; the wizard resumes it. */
+  resume?: boolean;
   signupEnabled: boolean;
   /** `whatsappCountryCode()` — `lib/contactNumber.ts` is server-only, so this
    *  instance's own dialling-code convention (`features.whatsapp.defaultCountryCode`)
@@ -94,6 +97,7 @@ export default function WelcomeDoor({
           <div className="mt-6">
             <SignupWizard
               email={identityEmail ?? undefined}
+              resume={resume}
               locale={locale}
               codeMinutes={codeMinutes}
               onSignedIn={intoTheStudio}

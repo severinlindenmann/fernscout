@@ -512,6 +512,16 @@ else
   log "WARNING: the first-trip sweep failed — tonight's backup is unaffected"
 fi
 
+# --- 0b0b. The pending-signup sweep (B2804) ---------------------------------
+# A signup that stopped after its address proof keeps a row for eight days so
+# the person can pick it up again; this removes the older ones. Never fatal.
+log "sweeping pending signups"
+if (cd "$APP_DIR" && npm run --silent signup:purge); then
+  log "pending-signup sweep done"
+else
+  log "WARNING: the pending-signup sweep failed — tonight's backup is unaffected"
+fi
+
 # --- 0b1. The message_log sweep (B2438) -------------------------------------
 # Same reasoning again: retention (90 days) is enforced here rather than on a
 # second timer. Never fatal — a failed sweep leaves the log a little larger,

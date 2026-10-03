@@ -159,29 +159,32 @@ describe("proving a number", () => {
   });
 
   test("a number already proven for another journal is refused", async () => {
+    // B2805: a number that already keeps a journal is refused when it is
+    // proven. The create-time check stays for the race — both proved it
+    // while it was free — so this proves both first, then creates.
+    const proveNumber = async (token: string) => {
+      const started = await phoneRequest(token, "41760000003");
+      const { id } = (await started.json()) as { id: string };
+      const files = fs.readdirSync(path.join(dir, "phone"));
+      const { code } = JSON.parse(
+        fs.readFileSync(path.join(dir, "phone", files[files.length - 1]), "utf8"),
+      ) as { code: string };
+      await phoneVerify(token, id, code);
+    };
     const first = await signupToken("first@example.test");
-    const started1 = await phoneRequest(first, "41760000003");
-    const { id: id1 } = (await started1.json()) as { id: string };
-    const files1 = fs.readdirSync(path.join(dir, "phone"));
-    const { code: code1 } = JSON.parse(
-      fs.readFileSync(path.join(dir, "phone", files1[files1.length - 1]), "utf8"),
-    ) as { code: string };
-    await phoneVerify(first, id1, code1);
-    expect((await createJournalCall(first, { username: "owns-it" })).status).toBe(201);
-
+    await proveNumber(first);
     const second = await signupToken("second@example.test");
-    const started2 = await phoneRequest(second, "41760000003");
-    const { id: id2 } = (await started2.json()) as { id: string };
-    const files2 = fs.readdirSync(path.join(dir, "phone"));
-    const { code: code2 } = JSON.parse(
-      fs.readFileSync(path.join(dir, "phone", files2[files2.length - 1]), "utf8"),
-    ) as { code: string };
-    await phoneVerify(second, id2, code2);
+    await proveNumber(second);
+    expect((await createJournalCall(first, { username: "owns-it" })).status).toBe(201);
 
     const refused = await createJournalCall(second, { username: "wants-it-too" });
     expect(refused.status).toBe(409);
     const refusedBody = (await refused.json()) as { error: string };
     expect(refusedBody.error).toBe("tel_taken");
+
+    // And a third attempt to prove it is refused before a code is sent.
+    const third = await phoneRequest(await signupToken("third@example.test"), "41760000003");
+    expect(third.status).toBe(409);
   });
 
   test("a national number with no country code is refused", async () => {

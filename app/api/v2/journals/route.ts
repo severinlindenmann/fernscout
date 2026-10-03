@@ -9,6 +9,7 @@ import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { signupAllowed } from "@/lib/inviteList";
+import { deletePendingSignup } from "@/lib/signup/pending";
 import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
 import {
@@ -194,6 +195,11 @@ export async function POST(request: Request) {
       console.error(`[journals] could not switch the WhatsApp channel on for ${created.username}: ${opted.error}`);
     }
   }
+
+  // B2804. The signup is finished; its pending row has nothing left to resume.
+  await deletePendingSignup(session.email).catch((err) =>
+    console.error(`[journals] could not clear the pending signup for ${created.username}:`, err),
+  );
 
   try {
     await revokeSession(session.id);

@@ -3975,6 +3975,7 @@
   "signupPage.metaTitle": "{name} — indítsd el a naplódat",
   "signupPage.haveOne": "Van már itt naplód? Akkor inkább jelentkezz be",
   "signupPage.provenHint": "Ezzel a címmel már be vagy jelentkezve, ezért nem kell kód.",
+  "signupPage.welcomeBack": "Üdv újra — az e-mail-címed meg van erősítve.",
   "studio.day.lede": "A fényképeid és pár szó. A nap privát marad, amíg meg nem osztod.",
   "studio.day.source.chosen": "te választottad",
   "studio.day.source.photosAll": "{count} fényképből",

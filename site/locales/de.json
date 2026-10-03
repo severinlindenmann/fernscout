@@ -3974,6 +3974,7 @@
   "signupPage.metaTitle": "{name} — dein Tagebuch starten",
   "signupPage.haveOne": "Du hast hier schon ein Tagebuch? Dann melde dich an",
   "signupPage.provenHint": "Du bist mit dieser Adresse schon angemeldet, darum braucht es keinen Code.",
+  "signupPage.welcomeBack": "Willkommen zurück — deine E-Mail-Adresse ist bestätigt.",
   "studio.day.lede": "Deine Fotos und ein paar Worte. Der Tag bleibt privat, bis du ihn teilst.",
   "studio.day.source.chosen": "von dir gewählt",
   "studio.day.source.photosAll": "aus {count} Fotos",
