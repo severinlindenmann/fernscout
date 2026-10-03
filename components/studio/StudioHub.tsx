@@ -11,7 +11,6 @@ import {
   Library,
   Mailbox,
   MapPinned,
-  PackageOpen,
   Printer,
   Search,
   Trash2,
@@ -56,7 +55,7 @@ type T = (key: TranslationKey, vars?: Record<string, string>) => string;
  *  box titles, not a subpage's breadcrumb. */
 const EVERYTHING_CARD: Record<EverythingGroup | "journal", { hue: string; icon: LucideIcon; titleKey: TranslationKey; summaryKey: TranslationKey }> = {
   tripsPeople: { hue: GROUP_HUE.plan.hue, icon: Compass, titleKey: "studio.hub.everything.tripsPeople", summaryKey: "studio.hub.everything.tripsPeople.summary" },
-  bringIn: { hue: GROUP_HUE.bringIn.hue, icon: PackageOpen, titleKey: "studio.hub.group.bringIn", summaryKey: "studio.hub.everything.bringIn.summary" },
+  bringIn: { hue: GROUP_HUE.bringIn.hue, icon: GROUP_HUE.bringIn.icon, titleKey: "studio.hub.group.bringIn", summaryKey: "studio.hub.everything.bringIn.summary" },
   print: { hue: GROUP_HUE.print.hue, icon: Printer, titleKey: "studio.hub.group.print", summaryKey: "studio.hub.everything.print.summary" },
   journal: { hue: GROUP_HUE.journal.hue, icon: Library, titleKey: "studio.hub.everything.journalAccount", summaryKey: "studio.hub.everything.journalAccount.summary" },
 };
