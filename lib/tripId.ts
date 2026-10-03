@@ -13,6 +13,8 @@
 export function slugify(input: string): string {
   return input
     .toLowerCase()
+    // B2815: letters NFKD cannot decompose would otherwise become a dash
+    .replace(/[ßøæœłđðþ]/g, (c) => ({ ß: "ss", ø: "o", æ: "ae", œ: "oe", ł: "l", đ: "d", ð: "d", þ: "th" })[c]!)
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "") // strip the diacritics NFKD split off, not the letter under them
     .replace(/[^a-z0-9]+/g, "-")

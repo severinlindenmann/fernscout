@@ -18,9 +18,11 @@
  * Only the URL carries the `@`. The username itself — the folder under
  * `content/`, the database rows, the `{user}` in `/api/v2/{user}/…` — does not.
  *
- * No imports, on purpose: this is read by `proxy.ts`, server pages, client
- * components and tests alike.
+ * No server-only imports, on purpose: this is read by `proxy.ts`, server pages,
+ * client components and tests alike (`./tripId` is pure).
  */
+
+import { slugify } from "./tripId";
 
 /** Same shape as a trip id: lowercase, digits, dashes, no leading dash.
  *
@@ -31,6 +33,26 @@
  * than in `lib/users.ts` (which re-exports it) because that module is
  * `server-only` and `proxy.ts` needs it too. */
 export const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+
+/** A typed name into a username, or "" when no valid one can be made (B2815).
+ * Shared by the signup wizard and the server. */
+export function usernameFrom(name: string): string {
+  let s = slugify(name);
+  if (s.length > 31) {
+    const cut = s.slice(0, 32).lastIndexOf("-");
+    s = cut > 0 ? s.slice(0, cut) : s.slice(0, 31);
+  }
+  s = s.replace(/-+$/, "");
+  return USERNAME_RE.test(s) ? s : "";
+}
+
+/** Candidates for a taken name, built only from what was typed — the caller
+ * checks each against /available. */
+export function suggestionsFor(name: string, year = new Date().getFullYear()): string[] {
+  const base = usernameFrom(name);
+  if (!base) return [];
+  return [`${base}-${year}`, `${base}-2`, `${base}-3`].map((c) => (c.length > 31 ? `${base.slice(0, 31 - (c.length - base.length))}${c.slice(base.length)}` : c)).filter((c) => USERNAME_RE.test(c));
+}
 
 /** The character that marks a path segment as a journal. */
 const JOURNAL_MARK = "@";
