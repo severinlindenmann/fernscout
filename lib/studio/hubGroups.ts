@@ -1,5 +1,6 @@
 import {
   ArchiveRestore,
+  ArrowRight,
   BookImage,
   BookMarked,
   CalendarPlus,
@@ -13,6 +14,7 @@ import {
   MapPin,
   MapPinned,
   PenLine,
+  Plus,
   Receipt,
   Scissors,
   Send,
@@ -356,4 +358,26 @@ export function rowMatchesQuery(row: Row, query: string): boolean {
 export function filterHubGroups(groups: HubGroup[], query: string): HubGroup[] {
   if (!query.trim()) return groups;
   return groups.map((g) => ({ ...g, rows: g.rows.filter((r) => rowMatchesQuery(r, query)) })).filter((g) => g.rows.length > 0);
+}
+
+/** B2810 — the first-visit studio's doors, in the mockup's order. A door whose
+ *  capability is off is left out, never shown as a dead button. */
+export type FirstVisitDoor = { key: "newTrip" | "polarsteps" | "photos"; href: string; Icon: LucideIcon; title: string; description: string };
+
+export function firstVisitDoors(
+  username: string,
+  welcome: { polarsteps: boolean },
+  extractOff: boolean,
+  t: T,
+): FirstVisitDoor[] {
+  const base = journalPath(username);
+  return [
+    { key: "newTrip", href: `${base}/studio/trip/new`, Icon: Plus, title: t("studio.hub.item.newTrip.title"), description: t("studio.hub.first.newTrip.hint") },
+    ...(welcome.polarsteps
+      ? [{ key: "polarsteps" as const, href: `${base}/studio/import/polarsteps`, Icon: ArrowRight, title: t("studio.hub.item.polarsteps.title"), description: t("studio.hub.first.polarsteps.hint") }]
+      : []),
+    ...(extractOff
+      ? []
+      : [{ key: "photos" as const, href: `${base}/studio/photos`, Icon: Images, title: t("studio.hub.first.photos.title"), description: t("studio.hub.first.photos.hint") }]),
+  ];
 }

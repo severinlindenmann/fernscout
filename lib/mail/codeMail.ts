@@ -40,6 +40,8 @@ export type CodeMailInput = {
    * of typing the code back in. */
   url?: string;
   buttonText?: string;
+  /** A line directly under the button — what pressing it does beyond the code. */
+  urlNote?: string;
   /** The one line that differs per door: what "if you did not ask for
    * this" actually means here (nothing has changed / opened / been
    * created). */
@@ -69,6 +71,7 @@ export function composeCodeMailContent(input: CodeMailInput): MailComposition {
     ...(input.url
       ? ([{ kind: "button", text: input.buttonText ?? "", href: input.url }] as const)
       : []),
+    ...(input.url && input.urlNote ? ([{ kind: "paragraph", text: input.urlNote }] as const) : []),
     { kind: "code", text: input.code },
     ...(input.askedAt ? ([{ kind: "paragraph", text: input.askedAt }] as const) : []),
     { kind: "paragraph", text: input.ignoreText },

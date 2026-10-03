@@ -448,7 +448,9 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
         "the first is exactly the mistake these exist to stop. Splitting the first word off " +
         "a name is wrong for anyone whose given name is not first, and this holds even when " +
         "the person in front of you *is* the owner and just told you their name: ask the " +
-        "second question too, in the form \"what should the site call you?\".",
+        "second question too, in the form \"what should the site call you?\". (The sign-up form in the " +
+        "browser asks one name field and sends it as all three; this API still takes them " +
+        "separately, so keep asking.)",
     },
     {
       ask: "**Which language** they write in",

@@ -56,6 +56,8 @@ export const ERROR_CODES = {
   foreign_origin:
     "This request's Origin is not this site. A cookie-only door that ends sessions answers only " +
     "the site's own pages; retry from the site itself.",
+  invalid_resume_link:
+    "The signup link has been used, is more than 7 days old, or is not one this server issued. Ask for a new code at /api/auth/codes with `\"for\": \"signup\"`; its mail carries a fresh link.",
   not_found: "Nothing at this address.",
   gone: "This journal or trip was deleted. Its name stays reserved and its old URLs answer 410 rather than 404, so this is not a typo — it is a thing that used to be here.",
   deletion_link_used: "This deletion link has already been used. It cannot be used again; the confirmation page names what actually happened.",

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import InviteRequestForm from "@/components/InviteRequestForm";
 import PageShell from "@/components/landing/PageShell";
 import { Band, TITLE_H1 } from "@/components/landing/kit";
+import { isEnabled } from "@/lib/capabilities";
+import { inviteOnly } from "@/lib/inviteList";
 import { inviteRequestAvailable } from "@/lib/inviteRequest";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -25,10 +27,16 @@ export async function generateMetadata(): Promise<Metadata> {
  * setting: the instance has to actually be invite-only, with mail and a
  * database, or there is nothing this page could do. Off, the route 404s
  * exactly like a self-hosted clone with no `iosApp.storeUrl` renders no
- * waitlist form — closed by default, absent rather than broken.
+ * waitlist form — closed by default, absent rather than broken. With signup
+ * open it redirects to `/welcome` instead (B2811).
  */
 export default async function InvitePage() {
-  if (!inviteRequestAvailable()) notFound();
+  if (!inviteRequestAvailable()) {
+    // B2811 — an old "request an invite" link once signup is open goes to
+    // the door that now exists; anywhere else there is nothing to ask for.
+    if (!inviteOnly() && isEnabled("signup")) redirect("/welcome");
+    notFound();
+  }
   const locale = await requestLocale();
   const name = serverSite().name;
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { TITLE_H1 } from "@/components/landing/kit";
-import { TEXT_LINK } from "@/components/landing/styles";
+import { PILL_PRIMARY, TEXT_LINK } from "@/components/landing/styles";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
 import { useI18n } from "@/components/LocaleProvider";
@@ -25,6 +25,8 @@ export default function WelcomeDoor({
   codeMinutes,
   identityEmail,
   resume,
+  initialSignupToken,
+  ownedJournal,
   signupEnabled,
   phoneCountryCode,
   contactEmail,
@@ -36,6 +38,11 @@ export default function WelcomeDoor({
   identityEmail: string | null;
   /** B2804 — that address left a signup half-done; the wizard resumes it. */
   resume?: boolean;
+  /** B2781 — see `SignupWizard`. */
+  initialSignupToken?: string;
+  /** B-2811 — the journal the identity cookie's address already keeps. It
+   *  opens in its studio on that same cookie, with no second code. */
+  ownedJournal?: string | null;
   signupEnabled: boolean;
   /** `whatsappCountryCode()` — `lib/contactNumber.ts` is server-only, so this
    *  instance's own dialling-code convention (`features.whatsapp.defaultCountryCode`)
@@ -86,7 +93,14 @@ export default function WelcomeDoor({
     // page's, `PageShell` and `Band` in app/welcome/page.tsx.
     <>
         <h1 className={TITLE_H1}>{t("signupPage.title")}</h1>
-        {!signupEnabled ? (
+        {ownedJournal ? (
+          <div className="mt-6">
+            <p className="text-base leading-7 text-ink-body">{t("signupPage.welcomeStudio", { user: ownedJournal })}</p>
+            <a href={`${journalPath(encodeURIComponent(ownedJournal))}/studio`} className={`mt-4 block w-full text-center ${PILL_PRIMARY}`}>
+              {t("signupPage.welcomeStudioOpen")}
+            </a>
+          </div>
+        ) : !signupEnabled ? (
           <>
             <p className="mt-2 text-sm text-ink-body">{t("agent.signupOff")}</p>
             <div className="mt-6">{signIn}</div>
@@ -98,6 +112,7 @@ export default function WelcomeDoor({
             <SignupWizard
               email={identityEmail ?? undefined}
               resume={resume}
+              initialSignupToken={initialSignupToken}
               locale={locale}
               codeMinutes={codeMinutes}
               onSignedIn={intoTheStudio}

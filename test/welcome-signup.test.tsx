@@ -8,6 +8,7 @@ import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 import { typeInto } from "./support/type-input";
+import { settle, stubWizardFetch } from "./support/wizard-fetch";
 
 /**
  * B2170 — making a journal from nothing lives at `/welcome` and ends in the
@@ -63,42 +64,32 @@ describe("/welcome", () => {
 
   async function finish(redeemOk: boolean) {
     assign.mockClear();
-    const responses = [
-      { ok: true, json: async () => ({ status: "accepted" }) },
-      { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
-      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false }) }, // signup/state (B2804)
-      {
-        ok: true,
-        json: async () => ({ ok: true, token: "agent-token", user: "robin", signIn: "https://t/@robin/s/tok?lang=en" }),
-      },
-      { ok: redeemOk, json: async () => (redeemOk ? { ok: true } : { error: "link_spent" }) },
-    ];
-    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(responses.shift()!)));
+    stubWizardFetch({
+      "POST /api/auth/codes": { __status: 202, status: "accepted" },
+      "POST /api/auth/codes/redeem": { ok: true, token: "signup-token" },
+      "GET /api/auth/signup/state": { emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false },
+      "GET /api/v2/journals/available": { available: true },
+      "POST /api/v2/journals": { ok: true, token: "agent-token", user: "robin", signIn: "https://t/@robin/s/tok?lang=en" },
+      "POST /api/auth/links/redeem": redeemOk ? { ok: true } : { __status: 410, error: "link_spent" },
+    });
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root: Root = createRoot(container);
     act(() => root.render(door(true)));
     const input = (id: string) => container.querySelector(`#${id}`) as HTMLInputElement;
-    const submit = () =>
-      act(async () => {
-        container.querySelector("form")!.requestSubmit();
-        await Promise.resolve();
-        await Promise.resolve();
-      });
+    const submit = async () => {
+      await act(async () => container.querySelector("form")!.requestSubmit());
+      await settle();
+    };
 
-    typeInto(input("signup-email"), "new@example.test");
+    await act(async () => typeInto(input("signup-email"), "new@example.test"));
     await submit();
-    typeInto(input("signup-code"), "123456");
+    await act(async () => typeInto(input("signup-code"), "123456"));
+    await settle();
+    await act(async () => typeInto(input("signup-name"), "Robin Traveller"));
+    await settle(450);
     await submit();
-    typeInto(input("signup-title"), "My Journal");
-    typeInto(input("signup-username"), "robin");
-    typeInto(input("signup-owner-name"), "Robin Traveller");
-    typeInto(input("signup-owner-nickname"), "Robin");
-    typeInto(input("signup-currency"), "EUR");
-    await submit();
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await settle();
 
     act(() => root.unmount());
     container.remove();
@@ -114,5 +105,16 @@ describe("/welcome", () => {
   test("a sign-in that did not take lands on the journal's own sign-in, not a studio 404", async () => {
     await finish(false);
     expect(assign).toHaveBeenCalledWith("/@robin/me");
+  });
+
+  // B-2811 — an address that already keeps a journal is offered its studio
+  // at once, on the identity it already proved: no wizard, no second code.
+  test("an owner on /welcome is offered their studio, not the wizard", () => {
+    const html = renderToStaticMarkup(
+      withLocale(<WelcomeDoor codeMinutes="20" identityEmail="a@example.test" ownedJournal="anna" signupEnabled />),
+    );
+    expect(html).toContain("You already keep @anna — open your studio");
+    expect(html).toContain('href="/@anna/studio"');
+    expect(html).not.toContain("signup-email");
   });
 });

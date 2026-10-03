@@ -179,9 +179,16 @@ describe("the landing page", () => {
   test("keeps the agent instruction primary when the helper is off", () => {
     const html = renderLanding();
     expect(html).not.toContain('href="/agent"');
-    // No hosted door either: /welcome cannot write without the helper.
-    expect(html).not.toContain('href="/welcome"');
+    // B2811 — the signup door follows the signup capability, not the helper.
+    expect(html).toContain('href="/welcome"');
+    expect(html).toContain("Start your journal");
     expect(html).toContain("Copy instruction");
+  });
+
+  test("shows no signup button where signup is off", () => {
+    const html = renderLanding("en", false, { inviteCta: "none" });
+    expect(html).not.toContain('href="/welcome"');
+    expect(html).not.toContain('href="/invite"');
   });
 
   test("has no WhatsApp link", () => {
@@ -240,7 +247,7 @@ describe("the landing page", () => {
   /**
    * B2506 — one primary door everywhere. While signup is invite-only and the
    * request page exists (B2507) it is "Request an invite"; otherwise it is
-   * `/welcome`, which needs the helper to write.
+   * `/welcome` (B2811: whether the helper is on does not matter).
    */
   test("offers an invite request when the page says so, with its question", () => {
     const html = renderLanding("en", false, { inviteCta: "request" });
@@ -253,7 +260,7 @@ describe("the landing page", () => {
     const html = renderLanding("en", true);
     expect(html).not.toContain('href="/agent"');
     expect(html).toContain('href="/welcome"');
-    expect(html).toContain(translate(dictionaryFor("en"), "landing.helperCta"));
+    expect(html).toContain(translate(dictionaryFor("en"), "landing.startJournal"));
     expect(html).not.toContain('href="/invite"');
     expect(html).not.toContain("Why do I need an invite?");
     // Agent material lives in the footer's docs link and /docs now.
