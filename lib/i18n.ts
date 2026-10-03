@@ -3602,6 +3602,7 @@ export type TranslationKey =
   | "studio.location.strip.changeOnPhone"
   | "studio.location.strip.needsAlways"
   | "studio.location.strip.newestPosition"
+  | "studio.location.strip.noPosition"
   | "studio.location.strip.noReport.body"
   | "studio.location.strip.noReport.title"
   | "studio.location.strip.off"

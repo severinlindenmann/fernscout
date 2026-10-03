@@ -1000,6 +1000,19 @@ export function recordedTrips(username: string): RecordedTrip[] {
   return out;
 }
 
+/**
+ * The CURRENT trip's id and the phone's recorder state — B2564. A narrow
+ * sibling of `recordedTrips` for the routes page's recording strip, so an
+ * armed trip with no stored position yet still shows its state. `status ===
+ * "current"` only: never `getCurrentTrip`'s fallback to the latest past trip.
+ * Reads no position and no coordinate; pinned to the studio location page by
+ * an importersOf keeper in test/gps-store.test.ts.
+ */
+export function currentTripRecording(username: string): { tripId: string; recording: RecordingState | null } | null {
+  const trip = getTrips(username).find((t) => t.status === "current");
+  return trip ? { tripId: trip.id, recording: recordingState(username, trip.id) } : null;
+}
+
 /** What `ownerTripLine` answers with — a thinned, simplified line, tagged
  *  per date, and nothing else `Track` itself carries (no `generated`
  *  instant, which is a fact about the file on disk and not about the

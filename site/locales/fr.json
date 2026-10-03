@@ -4604,6 +4604,7 @@
   "studio.location.strip.recording": "Enregistrement en cours",
   "studio.location.strip.reportedAt": "Téléphone reçu {at}",
   "studio.location.strip.newestPosition": "Position enregistrée la plus récente {at}",
+  "studio.location.strip.noPosition": "Aucune position enregistrée pour l’instant",
   "studio.location.strip.off": "Pas d'enregistrement",
   "studio.location.strip.changeOnPhone": "Change cela sur ton iPhone.",
   "studio.location.strip.needsAlways": "Besoin de « Toujours »",

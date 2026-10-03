@@ -4601,6 +4601,7 @@
   "studio.location.strip.recording": "Rögzítés",
   "studio.location.strip.reportedAt": "A telefon jelentkezett {at}",
   "studio.location.strip.newestPosition": "Legújabb tárolt pozíció {at}",
+  "studio.location.strip.noPosition": "Még nincs tárolt pozíció",
   "studio.location.strip.off": "Nincs rögzítés",
   "studio.location.strip.changeOnPhone": "Ezt az iPhone-odon tudod módosítani.",
   "studio.location.strip.needsAlways": "„Mindig” engedély szükséges",

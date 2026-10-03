@@ -6,9 +6,9 @@ import RecordingStrip from "@/components/studio/location/RecordingStrip";
 import TrackThumb from "@/components/studio/location/TrackThumb";
 import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
 import { isJournalOwner, requireStudioOwner } from "@/lib/studio/pageGate";
-import { getCurrentTrip, getTrips } from "@/lib/trips";
+import { getTrips } from "@/lib/trips";
 import { isEnabled } from "@/lib/capabilities";
-import { ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
+import { currentTripRecording, ownerTripLine, recordedTrips, type RecordedTrip } from "@/lib/gps/api";
 import { kmBetween } from "@/lib/mapFrame";
 import { journalPath } from "@/lib/journalPath";
 
@@ -113,27 +113,20 @@ export default async function StudioLocationPage({
       </section>
     );
 
-    // The strip's own trip: the one actually recording, else the current
-    // trip if — and only if — it already has a `recordingState` to show
-    // (`recorded` is the one caller `recordingState` may have, B2226/B2563
-    // security review; a current trip with nothing recorded yet simply has
-    // no state to show here rather than this page reading it a second way).
-    const current = getCurrentTrip(user);
-    const stripEntry = pinnedId
-      ? recorded.find((r) => r.tripId === pinnedId)
-      : current
-        ? recorded.find((r) => r.tripId === current.id)
-        : undefined;
-    const stripTripMeta = stripEntry ? getTrips(user).find((tr) => tr.id === stripEntry.tripId) : undefined;
-    const newest = recorded.reduce<string | undefined>(
-      (max, r) => (!max || r.lastReceived > max ? r.lastReceived : max),
-      undefined,
-    );
+    // The strip's own trip: the one actually recording, else the trip whose
+    // status is "current" — even with no stored position yet (B2564), through
+    // the narrow `currentTripRecording` reader (never a past-trip fallback).
+    const current = currentTripRecording(user);
+    const stripTripId = pinnedId ?? current?.tripId;
+    const stripEntry = recorded.find((r) => r.tripId === stripTripId);
+    const stripTripMeta = stripTripId ? getTrips(user).find((tr) => tr.id === stripTripId) : undefined;
+    // Newest position of the strip's own trip only — never another trip's.
+    const newest = stripEntry && !stripEntry.hasPublishedTrack ? stripEntry.lastReceived : undefined;
     stripSection = (
       <RecordingStrip
         username={user}
         trip={stripTripMeta ? { id: stripTripMeta.id, title: stripTripMeta.title, start: stripTripMeta.start, end: stripTripMeta.end } : null}
-        recording={stripEntry?.recording ?? null}
+        recording={stripEntry?.recording ?? (current?.tripId === stripTripId ? current.recording : null)}
         newestPosition={newest}
       />
     );

@@ -4604,6 +4604,7 @@
   "studio.location.strip.recording": "In registrazione",
   "studio.location.strip.reportedAt": "Il telefono si è aggiornato {at}",
   "studio.location.strip.newestPosition": "Posizione salvata più recente {at}",
+  "studio.location.strip.noPosition": "Nessuna posizione ancora salvata",
   "studio.location.strip.off": "Nessuna registrazione",
   "studio.location.strip.changeOnPhone": "Cambialo sul tuo iPhone.",
   "studio.location.strip.needsAlways": "Serve \"Sempre\"",

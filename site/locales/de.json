@@ -4600,6 +4600,7 @@
   "studio.location.strip.recording": "Wird aufgezeichnet",
   "studio.location.strip.reportedAt": "Telefon hat sich gemeldet {at}",
   "studio.location.strip.newestPosition": "Neueste gespeicherte Position {at}",
+  "studio.location.strip.noPosition": "Noch keine Position gespeichert",
   "studio.location.strip.off": "Keine Aufzeichnung",
   "studio.location.strip.changeOnPhone": "Ändere es auf deinem iPhone.",
   "studio.location.strip.needsAlways": "Braucht „Immer“",

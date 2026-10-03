@@ -3203,6 +3203,7 @@
   "studio.location.strip.recording": "Recording",
   "studio.location.strip.reportedAt": "Phone reported {at}",
   "studio.location.strip.newestPosition": "Newest stored position {at}",
+  "studio.location.strip.noPosition": "No position stored yet",
   "studio.location.strip.off": "Not recording",
   "studio.location.strip.changeOnPhone": "Change it on your iPhone.",
   "studio.location.strip.needsAlways": "Needs \"Always\"",
