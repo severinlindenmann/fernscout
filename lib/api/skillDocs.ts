@@ -161,7 +161,7 @@ function newAccount(): string {
         visibility: '`public` or `guest` — no default, ask which',
         defaultLocale: "the owner's own language — sets the welcome mail's",
         locales: "which languages a reader may switch into; must include `defaultLocale`",
-        baseCurrency: "**permanent** — every cost in the journal is added up in it",
+        baseCurrency: "every cost in the journal is added up in it — correctable only until the first cost exists",
       }) +
       "\n```",
     "**A `400 phone_required` here means the signup token has no proven phone number yet.** " +
@@ -202,7 +202,7 @@ function addJournal(): string {
         title: "what the journal is called",
         owner: "`{name, nickname, email}` — `email` decides who can get a token, and is refused here",
         locales: "which UI languages this journal offers; the first is the default",
-        baseCurrency: "**permanent, refused on a PATCH** — every cost is already added up in it",
+        baseCurrency: "changeable only while the journal holds no cost anywhere (trip, day or import); refused with the reason after",
         displayCurrencies: "must include `baseCurrency`",
         units: '`"metric"` or `"imperial"`',
         visibility: '`public` or `guest` — whether this instance advertises the journal at all',

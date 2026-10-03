@@ -103,6 +103,8 @@ describe("the journal settings' currency picker", () => {
     title: "Fernscout Demo",
     tagline: "",
     email: "owner@example.test",
+    ownerName: "Alex Walker",
+    ownerNickname: "Alex",
     visibility: "guest",
     units: "metric",
     locales: ["en"],
@@ -110,6 +112,7 @@ describe("the journal settings' currency picker", () => {
     displayCurrencies: ["CHF", "EUR"],
     ownerTel: "",
     baseCurrency: "CHF",
+    baseCurrencyLocked: true,
   };
   const chips = () =>
     [...container!.querySelectorAll("[data-currency-picker] label")].map((l) => l.textContent!.replace("✓", ""));

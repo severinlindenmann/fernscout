@@ -205,16 +205,64 @@ describe("PATCH /api/v2/{user} — echo-tolerant round trip (V2)", () => {
     expect(body.baseCurrency).toBe("CHF");
   });
 
-  test("a CHANGED baseCurrency is refused", async () => {
+  // B2806 — correctable until the first cost exists, anywhere.
+  test("baseCurrency can be changed while the journal holds no cost, and reads back", async () => {
     const token = await ownerToken();
     const { body: doc } = await getJournal(token);
-    const attempt = { ...doc, baseCurrency: "EUR" };
+    const attempt = { ...doc, baseCurrency: "eur" };
+    delete attempt.error;
+    delete attempt.message;
+
+    const { status, body } = await patchJournal(token, attempt);
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.baseCurrency).toBe("EUR");
+    // The base must be in displayCurrencies; the echoed list lacked it.
+    expect(body.displayCurrencies).toContain("EUR");
+    const { body: again } = await getJournal(token);
+    expect(again.baseCurrency).toBe("EUR");
+  });
+
+  test("a CHANGED baseCurrency is refused, with the reason, once a draft day holds a cost", async () => {
+    const { writeTripFixture, writeDayFixture } = await import("./fixtures/content");
+    const { clearUserCache } = await import("@/lib/users");
+    writeTripFixture(OWNER, { id: "t1", title: "T1", start: "2026-01-01", end: "2026-01-05", status: "past", intro: "x" });
+    writeDayFixture(dir, OWNER, "t1", {
+      slug: "d",
+      date: "2026-01-02",
+      title: "D",
+      status: "draft",
+      costs: [{ label: "Lunch", amount: 12, category: "food" }],
+    });
+    clearUserCache();
+
+    const token = await ownerToken();
+    const { body: doc } = await getJournal(token);
+    const attempt = { ...doc, baseCurrency: "USD" };
     delete attempt.error;
     delete attempt.message;
 
     const { status, body } = await patchJournal(token, attempt);
     expect(status).toBe(400);
-    expect(body.message).toMatch(/baseCurrency is not writable/);
+    expect(body.message).toMatch(/baseCurrency can no longer be changed.*already holds a cost/s);
+
+    // An unchanged echo is still fine.
+    const same = { ...doc };
+    delete same.error;
+    delete same.message;
+    expect((await patchJournal(token, same)).status).toBe(200);
+  });
+
+  // B2816 — name and nickname save and read back; the email rides unchanged.
+  test("owner.name and owner.nickname save and read back", async () => {
+    const token = await ownerToken();
+    const { body: doc } = await getJournal(token);
+    const owner = doc.owner as Record<string, string>;
+    const { status, body } = await patchJournal(token, {
+      owner: { name: "Ana T. Traveller", nickname: "Anita", email: owner.email },
+    });
+    expect(status, JSON.stringify(body)).toBe(200);
+    const { body: again } = await getJournal(token);
+    expect(again.owner).toEqual({ name: "Ana T. Traveller", nickname: "Anita", email: owner.email });
   });
 
   // B1733: a CHANGED, syntactically valid owner.email no longer takes this

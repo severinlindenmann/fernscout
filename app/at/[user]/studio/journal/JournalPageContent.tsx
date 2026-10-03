@@ -38,6 +38,9 @@ export type JournalPanel = {
   tagline: string;
   /** Shown, never edited. See `JournalPageContent`. */
   email: string;
+  /** B2816 — the owner's name, and the short form readers see (`owner.nickname`). */
+  ownerName: string;
+  ownerNickname: string;
   /** The rest of `JOURNAL_PROFILE_FIELDS` (`lib/journals.ts`), minus
    *  `manualRates` (out of scope, no form in the B852 mockup this follows)
    *  and `baseCurrency` (never writable — see `JournalPageContent`). Built
@@ -55,6 +58,9 @@ export type JournalPanel = {
   /** Read-only — shown so the refusal on the screen names the value rather
    *  than only the rule. */
   baseCurrency: string;
+  /** B2806 — `journalHasAnyCost`: once any trip, day or import holds a cost
+   *  the base currency is fixed; until then it is a picker. */
+  baseCurrencyLocked: boolean;
 };
 
 /** One trip's evening-reminder switch — B2171. Only trips not yet over. */
@@ -78,9 +84,9 @@ export type ReminderRow = { id: string; title: string; on: boolean };
  * **Read-only, and hint lines rather than fields:** the email (it decides who
  * can obtain a write token, so a stolen cookie must not move the journal to
  * another mailbox); the owner's WhatsApp (proof-only since B1654 — set by
- * phone verification, never by a bare write; B1653); and `baseCurrency`, the
- * one field `setJournalProfile` refuses outright, since a bare amount already
- * written *is* an amount in it. `manualRates` stays API-only (scope, not
+ * phone verification, never by a bare write; B1653). `baseCurrency` is a
+ * picker only while no cost exists anywhere (B2806) — a bare amount already
+ * written *is* an amount in it — and a hint line after. `manualRates` stays API-only (scope, not
  * policy).
  *
  * **Advertise** is `visibility` — "public" is listed on this server's
@@ -115,6 +121,8 @@ export default function JournalPageContent({
   const router = useRouter();
   const [title, setTitle] = useState(journal.title);
   const [tagline, setTagline] = useState(journal.tagline);
+  const [ownerName, setOwnerName] = useState(journal.ownerName);
+  const [ownerNickname, setOwnerNickname] = useState(journal.ownerNickname);
   const [units, setUnits] = useState(journal.units);
   const [defaultLocale, setDefaultLocale] = useState(journal.defaultLocale);
   // Every maintained locale but the default — `defaultLocale` is never one
@@ -122,6 +130,7 @@ export default function JournalPageContent({
   const [extraLocales, setExtraLocales] = useState<string[]>(() =>
     journal.locales.filter((code) => code !== journal.defaultLocale),
   );
+  const [baseCurrency, setBaseCurrency] = useState(journal.baseCurrency);
   const [currencyList, setCurrencyList] = useState(journal.displayCurrencies);
   const [currencySearch, setCurrencySearch] = useState("");
   const [listed, setListed] = useState(journal.visibility === "public");
@@ -140,6 +149,10 @@ export default function JournalPageContent({
   const patch: Record<string, unknown> = {};
   if (title.trim() !== journal.title) patch.title = title.trim();
   if (tagline.trim() !== journal.tagline) patch.tagline = tagline.trim();
+  // v2 takes the owner block whole; the email rides back unchanged (an echo
+  // the server drops), so only name and nickname can move.
+  if (ownerName.trim() !== journal.ownerName || ownerNickname.trim() !== journal.ownerNickname)
+    patch.owner = { name: ownerName.trim(), nickname: ownerNickname.trim(), email: journal.email };
   if (units !== journal.units) patch.units = units;
   if (
     defaultLocale !== journal.defaultLocale ||
@@ -151,7 +164,8 @@ export default function JournalPageContent({
     patch.locales = [defaultLocale, ...extraLocales];
   }
   // Base first, always in — the rule `setJournalProfile` enforces.
-  const baseFirst = (list: string[]) => [journal.baseCurrency, ...list.filter((c) => c !== journal.baseCurrency)];
+  const baseFirst = (list: string[]) => [baseCurrency, ...list.filter((c) => c !== baseCurrency)];
+  if (baseCurrency !== journal.baseCurrency) patch.baseCurrency = baseCurrency;
   if (baseFirst(currencyList).join(", ") !== baseFirst(journal.displayCurrencies).join(", "))
     patch.displayCurrencies = baseFirst(currencyList);
   if (listed !== (journal.visibility === "public")) patch.visibility = listed ? "public" : "guest";
@@ -160,6 +174,8 @@ export default function JournalPageContent({
   const count = Object.keys(patch).length + reminderMoves.length + (tipsMoved ? 1 : 0);
   // A title cannot be cleared — `setJournalProfile` refuses it.
   const titleMissing = title.trim() === "";
+  // Neither owner name may be cleared either — the schema requires both.
+  const ownerMissing = ownerName.trim() === "" || ownerNickname.trim() === "";
 
   // The same swap `SignupWizard` makes (B838): choosing a new default drops
   // it from the extras, since it cannot be both.
@@ -231,6 +247,30 @@ export default function JournalPageContent({
           onChange={(event) => setTagline(event.target.value)}
           className={FIELD_INPUT}
         />
+      </label>
+
+      <label className="block">
+        <span className={EYEBROW}>{t("me.journalOwnerName")}</span>
+        <input
+          type="text"
+          value={ownerName}
+          maxLength={120}
+          autoComplete="name"
+          onChange={(event) => setOwnerName(event.target.value)}
+          className={FIELD_INPUT}
+        />
+      </label>
+
+      <label className="block">
+        <span className={EYEBROW}>{t("me.journalOwnerNickname")}</span>
+        <input
+          type="text"
+          value={ownerNickname}
+          maxLength={60}
+          onChange={(event) => setOwnerNickname(event.target.value)}
+          className={FIELD_INPUT}
+        />
+        <span className={HINT + " block"}>{t("me.journalOwnerNicknameHint")}</span>
       </label>
 
       <fieldset>
@@ -314,17 +354,17 @@ export default function JournalPageContent({
         />
         <div className="mt-2 flex flex-wrap gap-2">
           {[
-            journal.baseCurrency,
+            baseCurrency,
             ...[...new Set([...knownCurrencies, ...currencyList])]
-              .filter((code) => code !== journal.baseCurrency)
+              .filter((code) => code !== baseCurrency)
               .sort(),
           ]
             .filter((code) => {
               const q = currencySearch.trim().toLowerCase();
-              return code === journal.baseCurrency || !q || code.toLowerCase().includes(q) || currencyName(code, locale).toLowerCase().includes(q);
+              return code === baseCurrency || !q || code.toLowerCase().includes(q) || currencyName(code, locale).toLowerCase().includes(q);
             })
             .map((code) => {
-              const base = code === journal.baseCurrency;
+              const base = code === baseCurrency;
               const on = base || currencyList.includes(code);
               return (
                 <label key={code} className={PILL} title={currencyName(code, locale)}>
@@ -346,7 +386,25 @@ export default function JournalPageContent({
             })}
         </div>
         <p className={HINT}>{t("me.journalCurrenciesHint")}</p>
-        <p className={HINT}>{t("me.journalBaseCurrencyFixed", { code: journal.baseCurrency })}</p>
+        {journal.baseCurrencyLocked ? (
+          <p className={HINT}>{t("me.journalBaseCurrencyFixed", { code: baseCurrency })}</p>
+        ) : (
+          <label className="mt-3 block">
+            <span className={EYEBROW}>{t("me.journalBaseCurrency")}</span>
+            <select
+              value={baseCurrency}
+              onChange={(event) => setBaseCurrency(event.target.value)}
+              className={FIELD_INPUT}
+            >
+              {[...new Set([...knownCurrencies, ...currencyList, journal.baseCurrency])].sort().map((code) => (
+                <option key={code} value={code}>
+                  {code} · {currencyName(code, locale)}
+                </option>
+              ))}
+            </select>
+            <span className={HINT + " block"}>{t("me.journalBaseCurrencyHint")}</span>
+          </label>
+        )}
       </fieldset>
 
       <div>
@@ -471,7 +529,7 @@ export default function JournalPageContent({
           label={count === 0 ? t("me.journalSave") : tn("edit.confirmSave.button", count, { count: String(count) })}
           busy={busy}
           busyLabel={t("edit.confirmSave.busy")}
-          disabled={count === 0 || titleMissing}
+          disabled={count === 0 || titleMissing || ownerMissing}
           onClick={() => void save()}
           tone="bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
         />

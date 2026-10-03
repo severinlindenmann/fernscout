@@ -47,6 +47,9 @@ const base = z.strictObject({
   }),
   /** UI languages this journal maintains; the first is the default. */
   locales: z.array(z.string()).min(1),
+  /** Every bare amount is in it. Writable by PATCH only while the journal
+   * holds no cost anywhere (trips, days, imports); refused with the reason
+   * after (B2806). */
   baseCurrency: z.string().length(3),
   /** The currencies cost figures are offered in, alongside conversion.
    * Must include baseCurrency — the journal's own money is always shown. */
