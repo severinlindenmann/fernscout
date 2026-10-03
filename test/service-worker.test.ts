@@ -1024,6 +1024,32 @@ describe("the studio kept for the signed-in owner — B2329", () => {
     expect(await plan?.text()).toBe("<html>plan</html>");
   });
 
+  // B2769 prototype — a group trip's member page joins the allowlist by its
+  // exact shape, /g/<12 chars>; the trip's own manage pages and /g/new never do.
+  test("a group trip's member page is kept and opens offline; its manage pages are not kept", async () => {
+    const GROUP = "https://journal.test/g/k7m2qp9xw4ta";
+    const MANAGE = "https://journal.test/g/k7m2qp9xw4ta/manage/people";
+    const NEW_GROUP = "https://journal.test/g/new";
+    const { handlers, caches } = loadWorkerWithCaches(async (request: { url: string } | string) => {
+      const url = typeof request === "string" ? request : request.url;
+      if (url === HOME) return homePayload("aaaa1111");
+      return studioPage(`<html>${url}</html>`);
+    });
+    await run(handlers, HOME);
+    for (const url of [GROUP, MANAGE, NEW_GROUP]) await visit(handlers, url);
+    const kept = [...caches.named.get("personal-aaaa1111")!.keys()];
+    expect(kept).toContain(GROUP);
+    expect(kept).not.toContain(MANAGE);
+    expect(kept).not.toContain(NEW_GROUP);
+
+    const offline = loadWorkerWithCaches(async () => {
+      throw new Error("offline");
+    });
+    offline.caches.named.set("personal-aaaa1111", caches.named.get("personal-aaaa1111")!);
+    offline.caches.named.set("personal-pointer", caches.named.get("personal-pointer")!);
+    expect(await (await visit(offline.handlers, GROUP))?.text()).toBe(`<html>${GROUP}</html>`);
+  });
+
   /** Same boundary as the home payload's own personal cache — B412. */
   test("signing out clears it, the same as the home payload", async () => {
     const { handlers, caches } = loadWorkerWithCaches(network());

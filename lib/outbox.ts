@@ -242,7 +242,9 @@ export async function runOutbox(
       // placeholder to remap and nothing for the native uploader (whose
       // route is the inbox) to take over.
       const isInboxUpload = intent.kind === "media.upload";
-      const isUpload = (isInboxUpload || intent.kind === "day.photo.add") && intent.blob;
+      // B2769 — the group trips prototype's "group.photo" is the same
+      // multipart, one original per intent, after its post's text.
+      const isUpload = (isInboxUpload || intent.kind === "day.photo.add" || intent.kind === "group.photo") && intent.blob;
       // B2331 — a voice note (RecordButton's own `onOffline` recording,
       // queued while the server could not be reached) also carries its audio
       // as `intent.blob`

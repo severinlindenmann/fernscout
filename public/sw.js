@@ -423,7 +423,9 @@ function isStudioKeepPath(pathname) {
     /^\/[^/]+\/studio\/day\/edit$/.test(pathname) ||
     /^\/[^/]+\/studio\/plan$/.test(pathname) ||
     /^\/[^/]+\/studio\/plan\/[^/]+$/.test(pathname) ||
-    /^\/[^/]+\/studio\/trip\/new$/.test(pathname)
+    /^\/[^/]+\/studio\/trip\/new$/.test(pathname) ||
+    // B2769 prototype: the member page of a group trip
+    /^\/g\/[a-z0-9]{12}$/.test(pathname)
   );
 }
 
