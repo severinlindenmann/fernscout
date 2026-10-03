@@ -1195,7 +1195,8 @@ function buildPaths(): Record<string, PathItem> {
       },
     },
     delete: {
-      summary: "Clear the owner's own number — turns their free WhatsApp copy of a day back off.",
+      summary:
+        "Clear the owner's own number everywhere: the stored number, the config fields and the one-journal-per-number lock, so another journal may prove it; WhatsApp messages from it stop reaching this journal.",
       responses: {
         ...jsonResponse(200, ownerTelDoc, "tel: null"),
         ...refusalResponses(ownerRefusals),
