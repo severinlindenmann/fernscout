@@ -27,7 +27,7 @@ async function scheduleAll(username: string, due: readonly NoticeTrip[], t: T): 
   await scheduleBeforeTripNotices(
     due.map((trip) => ({
       id: trip.id,
-      url: `${journalPath(username)}/studio/trip?trip=${encodeURIComponent(trip.id)}`,
+      url: `${journalPath(username)}/studio/location#trip-${encodeURIComponent(trip.id)}`,
       body: t("studio.record.notice.beforeTrip", { title: trip.title }),
       at: new Date(beforeTripNoticeTime(Date.now(), trip) ?? Date.now()).toISOString(),
     })),

@@ -2,6 +2,7 @@ import Link from "next/link";
 import StudioPage from "@/components/studio/StudioPage";
 import GpsZones from "@/components/studio/location/GpsZones";
 import { worldStreetMapUrl } from "@/lib/maps/dir";
+import RecordingPlan from "@/components/studio/location/RecordingPlan";
 import RecordingStrip from "@/components/studio/location/RecordingStrip";
 import TrackThumb from "@/components/studio/location/TrackThumb";
 import { requestLocale, translateIn, translatePluralIn } from "@/lib/locales";
@@ -86,6 +87,7 @@ export default async function StudioLocationPage({
 
   let tripsSection = null;
   let stripSection = null;
+  let planSection = null;
   if (routeRecordingOn) {
     const recorded = recordedTrips(user);
     const { visible, ordered, pinnedId } = orderAndLimitTrips(recorded, showAll);
@@ -130,6 +132,13 @@ export default async function StudioLocationPage({
         newestPosition={newest}
       />
     );
+    // B2301 — native-only (the component renders nothing in a browser).
+    planSection = (
+      <RecordingPlan
+        username={user}
+        trips={getTrips(user).map((tr) => ({ id: tr.id, title: tr.title, start: tr.start, end: tr.end }))}
+      />
+    );
   }
 
   const streetMapsOn = isEnabled("streetMaps");
@@ -144,6 +153,7 @@ export default async function StudioLocationPage({
     >
       <div className="flex flex-col gap-4">
         {stripSection}
+        {planSection}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:items-start">
           {tripsSection}
           <section id="private-places" className="rounded-2xl border border-line-quiet bg-surface-raised p-4 [&>section]:mt-0">
