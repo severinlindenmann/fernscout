@@ -181,7 +181,6 @@ export async function POST(request: Request) {
     baseCurrency,
     displayCurrencies,
     units: body.units,
-    tips: body.tips,
     ...(session.phone
       ? {
           ownerTel: session.phone,

@@ -208,9 +208,6 @@ export default function SignupWizard({
    * permanent decision nobody was asked about. The examples are in the hint
    * and the datalist, where they are visible without being chosen. */
   const [baseCurrency, setBaseCurrency] = useState("");
-  // Unticked by default for everyone — B2447 (W44 D5). A pre-ticked box is
-  // not valid consent under the GDPR (CJEU Planet49).
-  const [tips, setTips] = useState(false);
 
   /**
    * The phone step — B1222. Only reached when `POST /api/v2/journals`
@@ -439,7 +436,6 @@ export default function SignupWizard({
         defaultLocale,
         locales: [defaultLocale, ...extraLocales],
         baseCurrency,
-        tips,
       },
       signupToken,
       ["phone_required", ...ADDRESS_REFUSALS],
@@ -1089,20 +1085,6 @@ export default function SignupWizard({
               </label>
             ))}
           </div>
-
-          {/* B2447 (W44 D5) — unticked for everyone, always. A pre-ticked
-              box is not valid consent under the GDPR (CJEU Planet49), and
-              German owners are in scope. Gates the first-trip nudge only;
-              turning it off later happens in the studio journal settings. */}
-          <label className="mt-6 flex min-h-11 items-start gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-3 text-sm text-ink-strong">
-            <input
-              type="checkbox"
-              checked={tips}
-              onChange={(e) => setTips(e.target.checked)}
-              className="mt-0.5"
-            />
-            {t("agent.tipsLabel")}
-          </label>
 
           <BusyButton
             busy={busy}

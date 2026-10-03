@@ -11,6 +11,7 @@
 //
 // Replaces `app/api/journal/route.ts`, which wrote through v1's
 // `setJournalProfile` against the pre-B1598 file shape.
+import { tipsActive } from "@/lib/config";
 import { applyJournalPatch } from "@/app/api/v2/[user]/route";
 import { journalDoc } from "@/lib/api/v2/schemas";
 import { isOwner } from "@/lib/contacts/session";
@@ -36,6 +37,6 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: Boolean(journal.owner.tips?.optIn) });
+  const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: tipsActive(journal.owner.tips) });
   return applyJournalPatch(user, stored, request);
 }

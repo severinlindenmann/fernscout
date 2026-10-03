@@ -90,9 +90,9 @@ export const journalDoc = z.object({
   ...base.def.shape,
   // ── server-owned ──
   username: z.string(),
-  /** Whether the owner asked for getting-started tips at signup (B2447,
-   * `tips` on POST /journals). Read-only here: the owner turns it off in the
-   * studio journal settings. */
+  /** Whether the once-only first-trip reminder is still on (B2809): true for
+   * every new journal until the owner stops it. Read-only here: the owner
+   * stops it in the studio journal settings. */
   tips: z.boolean(),
 });
 

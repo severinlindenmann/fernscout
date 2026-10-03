@@ -14,16 +14,17 @@ import { serverSite } from "../site";
 import { earliestTodayISO } from "../tripTime";
 import { getTrips } from "../trips";
 import { getUser, getUsernames } from "../users";
-import type { OwnerTips, UserConfig } from "../config";
+import { tipsActive, type OwnerTips, type UserConfig } from "../config";
 
 import { journalPath } from "../journalPath";
 /**
  * The first-trip nudge — B2447 (W44 D5) and B2448 item 4's push branch.
  *
- * A journal that opted into getting-started tips at signup and never adds a
- * trip hears about it once, ever: a push at day 2 if the owner's own device
- * is subscribed, otherwise a mail at day 3, and — after a push — a mail at
- * day 5 too. `scripts/first-trip.mts` is the only caller, run nightly next
+ * A new journal that never adds a trip hears about it once, ever (B2809):
+ * a service message about the account just opened, no checkbox — one push
+ * at day 2 if the owner's own device is subscribed, otherwise one mail at
+ * day 3; a push is the whole reminder, no mail follows it. The owner can stop
+ * it ("Stop these" in the mail, or the studio journal settings). `scripts/first-trip.mts` is the only caller, run nightly next
  * to `reminders:send` (see `scripts/backup.sh`); this is a library so the
  * logic can be exercised without shelling out, the same split
  * `lib/digest/reminder.ts` uses.
@@ -34,7 +35,6 @@ import { journalPath } from "../journalPath";
 
 const PUSH_AFTER_DAYS = 2;
 const MAIL_AFTER_DAYS = 3;
-const MAIL_AFTER_PUSH_DAYS = 5;
 
 function daysSince(iso: string, today: string): number {
   const start = Date.parse(iso.slice(0, 10));
@@ -64,14 +64,14 @@ async function ownerPushSubscription(username: string): Promise<StoredSubscripti
 
 export type FirstTripCandidate = { username: string; user: UserConfig; tips: OwnerTips; ageDays: number };
 
-/** Every journal that opted into tips, has no trip yet, and has not already
- *  had its once-per-account nudge sent — ordered by `getUsernames()`. */
+/** Every journal whose owner has not stopped the reminder, has no trip yet,
+ *  and has not already had its once-per-account nudge sent — ordered by `getUsernames()`. */
 export function firstTripCandidates(today: string = earliestTodayISO()): FirstTripCandidate[] {
   const out: FirstTripCandidate[] = [];
   for (const username of getUsernames()) {
     const user = getUser(username);
     const tips = user?.owner.tips;
-    if (!user || !tips?.optIn || tips.sentAt) continue;
+    if (!user || !tips || !tipsActive(tips) || tips.sentAt || tips.pushedAt) continue;
     if (getTrips(username).length > 0) continue;
     out.push({ username, user, tips, ageDays: daysSince(tips.at, today) });
   }
@@ -82,12 +82,9 @@ type NudgeAction = { kind: "push" } | { kind: "mail" } | { kind: "none" };
 
 /** What today's sweep does for one candidate — pulled out so the decision
  *  itself needs no journal on disk to test. */
-function decideNudge(candidate: Pick<FirstTripCandidate, "tips" | "ageDays">, hasPush: boolean): NudgeAction {
-  const { tips, ageDays } = candidate;
-  if (hasPush) {
-    if (!tips.pushedAt) return ageDays >= PUSH_AFTER_DAYS ? { kind: "push" } : { kind: "none" };
-    return ageDays >= MAIL_AFTER_PUSH_DAYS ? { kind: "mail" } : { kind: "none" };
-  }
+function decideNudge(candidate: Pick<FirstTripCandidate, "ageDays">, hasPush: boolean): NudgeAction {
+  const { ageDays } = candidate;
+  if (hasPush) return ageDays >= PUSH_AFTER_DAYS ? { kind: "push" } : { kind: "none" };
   return ageDays >= MAIL_AFTER_DAYS ? { kind: "mail" } : { kind: "none" };
 }
 
