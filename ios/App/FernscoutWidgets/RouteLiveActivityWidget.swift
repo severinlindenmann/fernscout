@@ -35,6 +35,18 @@ private func needsYouBody(_ state: String) -> String {
     }
 }
 
+/// B2757 — the app icon's own mark (the extension's `Mark` asset), so the
+/// card and the Island say which app they belong to. Kept in colour: the
+/// rounded navy tile reads on cream, on ink and on the Island's black.
+private func mark(_ size: CGFloat) -> some View {
+    Image("Mark")
+        .resizable()
+        .interpolation(.high)
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
+        .accessibilityHidden(true)
+}
+
 private func routeURL(_ attrs: RouteActivityAttributes) -> URL? {
     URL(string: "fernscout://route/\(attrs.tripId)")
 }
@@ -59,8 +71,7 @@ private struct RouteActivityView: View {
         let state = context.state
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Image(systemName: "point.topleft.down.curvedto.point.filled.bottomright.up")
-                    .foregroundStyle(needsAttention(state.state) ? RouteColor.ink : muted)
+                mark(28)
                 Text(headline(state))
                     .font(.system(.headline, design: .serif))
                     .foregroundStyle(needsAttention(state.state) ? RouteColor.ink : ink)
@@ -110,8 +121,7 @@ struct RouteLiveActivityWidget: Widget {
             // Screen card's dark `ink`, which would be close to invisible here.
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Image(systemName: "point.topleft.down.curvedto.point.filled.bottomright.up")
-                        .foregroundStyle(needsAttention(state.state) ? RouteColor.yellow : .secondary)
+                    mark(36)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     Text(String(format: String(localized: "routeActivity.compactDay", bundle: .main), state.dayNumber))
@@ -137,12 +147,12 @@ struct RouteLiveActivityWidget: Widget {
                     }
                 }
             } compactLeading: {
-                Image(systemName: "point.topleft.down.curvedto.point.filled.bottomright.up")
+                mark(22)
             } compactTrailing: {
                 Text(String(format: String(localized: "routeActivity.compactDay", bundle: .main), state.dayNumber))
                     .font(.caption2)
             } minimal: {
-                Image(systemName: "point.topleft.down.curvedto.point.filled.bottomright.up")
+                mark(22)
             }
             .widgetURL(routeURL(context.attributes))
         }

@@ -57,14 +57,14 @@ afterEach(() => {
   container = undefined;
 });
 
-async function mount() {
+async function mount(bare = false) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
     root!.render(
       <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
-        <RouteRecordSection username="alex" trip={{ id: "reise", title: "Reise", start: "2026-10-01", end: "2026-10-10" }} />
+        <RouteRecordSection username="alex" trip={{ id: "reise", title: "Reise", start: "2026-10-01", end: "2026-10-10" }} bare={bare} />
       </LocaleProvider>,
     );
   });
@@ -177,5 +177,23 @@ describe("RouteRecordSection — access revoked mid-trip", () => {
 
     await click(button("Open Settings"));
     expect(shell.openAppSettings).toHaveBeenCalledOnce();
+  });
+});
+
+/** B2757 — on "Your routes" the card draws its own box: the section opens
+ *  with the trip's name, no top rule and no margin above it. */
+describe("bare, inside the routes card", () => {
+  test("starts with the trip's name, not an empty band and a rule", async () => {
+    await mount(true);
+    const section = container!.querySelector("#section-route")!;
+    expect(section.getAttribute("class")).toBeNull();
+    expect(section.querySelector("h2")?.textContent).toBe("Reise");
+  });
+
+  test("the trip settings page keeps its rule and eyebrow", async () => {
+    await mount();
+    const section = container!.querySelector("#section-route")!;
+    expect(section.className).toContain("border-t");
+    expect(section.querySelector("h2")?.textContent).not.toBe("Reise");
   });
 });

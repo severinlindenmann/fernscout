@@ -639,23 +639,18 @@ final class Recorder: NSObject {
         return bufferCount + pendingCount
     }
 
-    /// `fernscout://route/<tripId>` (the Lock Screen, the Dynamic Island, and
-    /// the Control's "off" state all tap through here) — resolves to this
-    /// trip's own route page when it is still known (armed or recently
-    /// stopped), or to the studio's general location page for whichever trip
-    /// *is* known, so a stale link never opens nothing. `nil` only when
-    /// nothing is armed or stopped at all, in which case the caller leaves
-    /// the tap alone rather than guessing a user to open for.
+    /// `fernscout://route/<tripId>` (the Lock Screen, the Dynamic Island,
+    /// the widgets and the Control's "off" state all tap through here) —
+    /// B2757: always the studio's "Your routes" page, where the recording
+    /// card is, never the single trip's map. The user comes from a trip the
+    /// phone itself knows (armed, recently stopped, or the one named), never
+    /// from the URL; `nil` when the phone knows none, so the tap is left
+    /// alone rather than guessing whose studio to open.
     func routePagePath(tripId: String?) -> String? {
-        func path(user: String, trip: String?) -> String {
-            let userP = user.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? user
-            guard let trip else { return "/@\(userP)/studio/location" }
-            let tripP = trip.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? trip
-            return "/@\(userP)/studio/location/\(tripP)"
-        }
-        if let tripId, let known = lookup(trip: tripId) { return path(user: known.user, trip: tripId) }
-        if let any = armed.first?.value ?? stopped.first?.value { return path(user: any.user, trip: nil) }
-        return nil
+        guard let user = tripId.flatMap({ lookup(trip: $0)?.user })
+            ?? (armed.first?.value ?? stopped.first?.value)?.user else { return nil }
+        let userP = user.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? user
+        return "/@\(userP)/studio/location"
     }
 
     /// B2733 — days since `start`, by the device's calendar: local midnight
