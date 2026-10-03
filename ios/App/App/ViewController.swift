@@ -49,6 +49,7 @@ class ViewController: CAPBridgeViewController {
     }
 
     override open func capacitorDidLoad() {
+        answerBridgeConfigWithoutPrompt()
         bridge?.registerPluginInstance(ShareInboxPlugin())
         bridge?.registerPluginInstance(LocationRecorderPlugin())
         bridge?.registerPluginInstance(ServerChoicePlugin())
@@ -191,6 +192,48 @@ class ViewController: CAPBridgeViewController {
         troubleHost?.view.removeFromSuperview()
         troubleHost?.removeFromParent()
         troubleHost = nil
+    }
+
+    /// B2820 — a blank cream screen on launch. Capacitor's `native-bridge.js`
+    /// (a document-start user script) asks native twice, synchronously, with
+    /// `prompt()` whether CapacitorCookies and CapacitorHttp are on. On iOS
+    /// 27 and 18.3 that sync IPC is sometimes never dispatched by the UI
+    /// process (`WebPageProxy::runJavaScriptPrompt` is never reached), so the
+    /// WebContent process waits forever inside `injectUserScripts`, before
+    /// the parser has built `<html>` — nothing is ever painted, no navigation
+    /// fails, and the trouble screen has nothing to react to. Both answers
+    /// are fixed by `capacitor.config.json` before any page loads, so this
+    /// script, run *before* the bridge's own, answers those two in the page
+    /// and every other `prompt()` goes to WebKit as before. Inserted first by
+    /// re-adding the bridge's scripts after it, since user scripts run in the
+    /// order they were added.
+    private func answerBridgeConfigWithoutPrompt() {
+        guard let controller = webView?.configuration.userContentController,
+              let config = bridge?.config else { return }
+        let answers: [String: String] = [
+            "CapacitorCookies.isEnabled": String(config.getPluginConfig("CapacitorCookies").getBoolean("enabled", false)),
+            "CapacitorHttp": String(config.getPluginConfig("CapacitorHttp").getBoolean("enabled", false)),
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: answers),
+              let json = String(data: data, encoding: .utf8) else { return }
+        let source = """
+        (function () {
+          var answers = \(json), nativePrompt = window.prompt;
+          window.prompt = function (message) {
+            try {
+              var type = JSON.parse(message).type;
+              if (Object.prototype.hasOwnProperty.call(answers, type)) return answers[type];
+            } catch (e) {}
+            return nativePrompt.apply(this, arguments);
+          };
+        })();
+        """
+        // `userScripts` is WebKit's live list, not a snapshot: copy it out
+        // before clearing, or re-adding walks a list that keeps growing.
+        let existing = controller.userScripts.map { $0 }
+        controller.removeAllUserScripts()
+        controller.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        existing.forEach(controller.addUserScript)
     }
 
     /// `window.FernscoutApp = { version, build }` on every page, before any
