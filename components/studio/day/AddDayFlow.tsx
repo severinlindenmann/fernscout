@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, CloudSun, MapPin } from "lucide-react";
 import { PhotoPicker } from "@/components/PhotoPicker";
-import RecordButton from "@/components/RecordButton";
+import SpeakTray from "@/components/studio/day/SpeakTray";
+import type { SpeechLanguage } from "@/lib/helper/speech";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
@@ -177,7 +178,7 @@ export default function AddDayFlow({
   providers?: { words: string; speech: string | null };
   /** The transcription capability's own facts, `null` when it is off — the
    *  microphone is then absent, not broken. */
-  speech?: { consented: boolean; provider: string; aiAvailable: boolean | null } | null;
+  speech?: { consented: boolean; provider: string; aiAvailable: boolean | null; defaultLanguage?: SpeechLanguage } | null;
   /** `?trip=<id>` — trip/new's done screen links here with the trip it made. */
   initialTripId?: string;
   /** `?photos=<date>|undated` — a hub day card (B2193): exactly that day's
@@ -1924,29 +1925,37 @@ export default function AddDayFlow({
               </div>
             </div>
           )}
+          {/* B2762 — the title leads, as it does on Edit. Optional; the same
+              state More details used to hold. One per day: B2676 gives only
+              part 1 the title, so parts get no field of their own. */}
+          <label className={`${LABEL} mb-4`}>
+            {t("studio.day.whatHappened.titleLabel")}
+            <input
+              type="text"
+              name="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("studio.day.whatHappened.titlePlaceholder")}
+              className="mt-1 block min-h-12 w-full min-w-0 rounded-xl border border-line-strong bg-surface-base px-3 font-display text-[22px] font-semibold text-ink-strong"
+            />
+          </label>
           {parts === null ? (
             <>
               <label htmlFor="studio-day-words" className={part === "words" ? "block font-display text-lg font-semibold text-ink-strong" : LABEL}>
                 {t("studio.day.whatHappened.heading")}
               </label>
-              <div className="relative mt-1">
+              <div className="mt-1">
                 <textarea
                   id="studio-day-words"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder={t("studio.day.text.placeholder")}
-                  className={`block min-h-32 w-full rounded-xl border border-line-strong bg-surface-base px-3 py-2 text-base text-ink-body ${speech ? "pr-14" : ""}`}
+                  className={`block min-h-32 w-full border border-line-strong bg-surface-base px-3 py-2 text-base text-ink-body ${speech ? "rounded-t-xl" : "rounded-xl"}`}
                 />
                 {speech && (
-                  <RecordButton
-                    username={username}
-                    consented={speech.consented}
-                    provider={speech.provider}
-                    trip={tripId}
-                    compact
-                    hold={false}
-                    onText={(said) => setContent((prev) => (prev ? `${prev} ${said}` : said))}
-                  />
+                  <div className="overflow-hidden rounded-b-xl border border-t-0 border-line-strong">
+                    <SpeakTray username={username} speech={speech} trip={tripId} defaultLanguage={speech.defaultLanguage} value={content} setValue={setContent} />
+                  </div>
                 )}
               </div>
               <p className="mt-1 text-xs text-ink-secondary">{t("studio.day.whatHappened.nothingInvented")}</p>
@@ -1996,25 +2005,24 @@ export default function AddDayFlow({
                         </button>
                       </li>
                     </ul>
-                    <div className="relative mt-2">
+                    <div className="mt-2">
                       <textarea
                         value={partWords[i] ?? ""}
                         onChange={(e) => setPartWords((prev) => prev.map((w, idx) => (idx === i ? e.target.value : w)))}
                         placeholder={t("studio.day.text.placeholder")}
-                        className={`block min-h-24 w-full rounded-xl border border-line-strong bg-surface-base px-3 py-2 text-base text-ink-body ${speech ? "pr-14" : ""}`}
+                        className={`block min-h-24 w-full border border-line-strong bg-surface-base px-3 py-2 text-base text-ink-body ${speech ? "rounded-t-xl" : "rounded-xl"}`}
                       />
                       {speech && (
-                        <RecordButton
-                          username={username}
-                          consented={speech.consented}
-                          provider={speech.provider}
-                          trip={tripId}
-                          compact
-                          hold={false}
-                          onText={(said) =>
-                            setPartWords((prev) => prev.map((w, idx) => (idx === i ? (w ? `${w} ${said}` : said) : w)))
-                          }
-                        />
+                        <div className="overflow-hidden rounded-b-xl border border-t-0 border-line-strong">
+                          <SpeakTray
+                            username={username}
+                            speech={speech}
+                            trip={tripId}
+                            defaultLanguage={speech.defaultLanguage}
+                            value={partWords[i] ?? ""}
+                            setValue={(fn) => setPartWords((prev) => prev.map((w, idx) => (idx === i ? fn(w) : w)))}
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
@@ -2041,19 +2049,7 @@ export default function AddDayFlow({
               <span className="font-semibold text-ink-strong">{t("studio.day.details.summary")}</span>
               <span className="text-xs text-ink-secondary">{t("studio.day.details.hint")}</span>
             </summary>
-            {/* B2647 — title and time on one row, the time a fixed narrow column. */}
-            <div className="mt-2 mb-2 grid grid-cols-[minmax(0,1fr)_7.5rem] gap-3">
-              <label className={`min-w-0 ${LABEL}`}>
-                {t("studio.day.whatHappened.titleLabel")}
-                <input
-                  type="text"
-                  name="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={t("studio.day.whatHappened.titlePlaceholder")}
-                  className={FIELD}
-                />
-              </label>
+            <div className="mt-2 mb-2 grid grid-cols-[7.5rem] gap-3">
               <label className={`min-w-0 ${LABEL}`}>
                 {t("studio.day.field.time")}
                 <input type="time" name="time" value={time} onChange={(e) => setTime(e.target.value)} className={TIME_FIELD} />
@@ -2064,7 +2060,7 @@ export default function AddDayFlow({
             {detailsOpen && (
               <div className="mb-3">
                 {/* B2677, bug 7 — tags moved to Preview; Write keeps only
-                    title, time, costs and travel. */}
+                    time, costs and travel. */}
                 <DayExtras value={extras} onChange={setExtras} currencies={currencies} routeTravel={routeTravel} showTags={false} />
                 {/* B2676 — "📷 From a receipt", in the Costs section: absent
                     with `helper` off (AGENTS.md: absent, not broken), and

@@ -5,7 +5,8 @@ import { getTellChoice, tellAudience } from "@/lib/digest/tellChoice";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { speechProvider } from "@/lib/helper/transcribe";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { speechLanguageFor } from "@/lib/helper/speech";
+import { defaultLocaleFor, requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { blankFieldsOf, daysToPublish, readersOf } from "@/lib/studio/publishDay";
 import { tagsUsedBefore } from "@/lib/studio/tagsUsedBefore";
@@ -66,7 +67,13 @@ export default async function StudioPreviewDayPage({ searchParams, params }: Pag
   // offers, the same `RecordButton` Write already mounts; its own per-use
   // consent, not gated on an AI-day check here (the answer is typed or
   // spoken, never itself a model call).
-  const speech = speechEnabled ? { consented: hasHelperConsent(user, "speech"), provider: speechProvider() } : null;
+  const speech = speechEnabled
+    ? {
+        consented: hasHelperConsent(user, "speech"),
+        provider: speechProvider(),
+        defaultLanguage: speechLanguageFor(null, defaultLocaleFor(user), locale) ?? ("en" as const),
+      }
+    : null;
 
   return (
     <StudioPage username={user} group="write" title={title}>

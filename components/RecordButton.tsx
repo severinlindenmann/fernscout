@@ -5,6 +5,7 @@ import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import { Mic, Pause } from "lucide-react";
 import ConfirmPanel from "@/components/ConfirmPanel";
+import SpeakSheet, { type SpeakPhase } from "@/components/SpeakSheet";
 import { useI18n } from "@/components/LocaleProvider";
 import {
   MAX_SPEECH_SECONDS,
@@ -80,6 +81,7 @@ export default function RecordButton({
   onSettled,
   aiAvailable,
   onOffline,
+  sheet,
 }: {
   username: string;
   /** Whether this journal has already agreed to its owner's voice being sent
@@ -216,6 +218,14 @@ export default function RecordButton({
    * unchanged.
    */
   onOffline?: (blob: Blob, heldSeconds: number, language: string, locale: string) => void;
+  /**
+   * B2761 — the Speak sheet. Mounted only while the sheet is open: it starts
+   * recording on mount, draws the whole sheet instead of any button (so
+   * `compact`/`hero` are ignored), and calls `onClose` when it is finished,
+   * discarded or cancelled. `language` (the host's explicit one) is what is
+   * sent and `languageLabel` is what it is called on the sheet.
+   */
+  sheet?: { onClose: () => void; languageLabel: string };
 }) {
   const { t, locale } = useI18n();
   // B2234/B2591 — say so before the tap: "would the route refuse anyway",
@@ -245,6 +255,10 @@ export default function RecordButton({
   // `meter()` below and read only to scale the icon; nothing downstream of
   // this component ever sees it.
   const [level, setLevel] = useState(0);
+  // B2761 — the sheet's own states. `paused` is MediaRecorder's own pause.
+  const [paused, setPaused] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -280,6 +294,17 @@ export default function RecordButton({
   // microphone does nothing" — it was listening, indefinitely, and the words
   // never went anywhere.
   const wantStop = useRef(false);
+  // Paused time is not recording time: what the timer and the charge count.
+  const pausedMs = useRef(0);
+  const pauseStart = useRef(0);
+  // Two `start()`s in flight (StrictMode replays the sheet's mount effect).
+  const starting = useRef(false);
+  // The last recording that did not make it, kept so "Try again" can send it.
+  const lastAudio = useRef<{ blob: Blob; held: number } | null>(null);
+  const heldNow = () => {
+    const now = Date.now();
+    return (now - started.current - pausedMs.current - (pauseStart.current ? now - pauseStart.current : 0)) / 1000;
+  };
 
   // The stopwatch, and the ceiling. A hold that reaches the cap stops itself
   // rather than being refused by the server after the fact.
@@ -294,7 +319,7 @@ export default function RecordButton({
   useEffect(() => {
     if (!recording) return;
     const timer = window.setInterval(() => {
-      const elapsed = (Date.now() - started.current) / 1000;
+      const elapsed = heldNow();
       setSeconds(Math.floor(elapsed));
       // The ceiling, and it goes through `stop()` rather than at the recorder
       // directly — B1006. The tick runs every 200ms and the state that ends it
@@ -371,6 +396,17 @@ export default function RecordButton({
     };
   }, [releaseStream]);
 
+  // B2761 — the sheet drops (240ms), then its host unmounts it.
+  const closeSheet = useCallback(() => {
+    setLeaving(true);
+    window.setTimeout(() => sheet?.onClose(), 240);
+  }, [sheet]);
+
+  // B2761 — the sheet starts on the tap that opened it.
+  useEffect(() => {
+    if (sheet && !aiDaysUsedUp) press();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- once, on mount
+
   const send = useCallback(
     async (blob: Blob, held: number) => {
       setBusy(true);
@@ -415,7 +451,9 @@ export default function RecordButton({
           typeof body.uncertainWordOccurrence === "number"
             ? { word: body.uncertainWord, occurrence: body.uncertainWordOccurrence }
             : undefined;
+        lastAudio.current = null;
         if (said !== "") onText(said, uncertain, held);
+        if (sheet) closeSheet();
       } catch (thrown) {
         setError(t("agent.failed", { error: (thrown as Error).message }));
       } finally {
@@ -428,23 +466,26 @@ export default function RecordButton({
         onSettled?.();
       }
     },
-    [language, locale, onSettled, onText, run, trip, t, username],
+    [language, locale, onSettled, onText, run, trip, t, username, sheet, closeSheet],
   );
 
   const start = useCallback(async () => {
-    if (busy || recording) return;
+    if (busy || recording || starting.current) return;
     setError("");
     if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices) {
       setError(t("agent.speechUnsupported"));
       return;
     }
+    starting.current = true;
     let stream: MediaStream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
+      starting.current = false;
       setError(t("agent.speechDenied"));
       return;
     }
+    starting.current = false;
     // A route away during the wait above — B1383. Nobody is left to stop
     // this recording, so it must never start; the microphone this call just
     // opened is the only thing left to release.
@@ -465,11 +506,14 @@ export default function RecordButton({
       streamRef.current = null;
       stopMeter();
       setRecording(false);
+      setPaused(false);
       setAnnounced(t("agent.speechStopped"));
-      const held = (Date.now() - started.current) / 1000;
+      const held = heldNow();
+      pauseStart.current = 0;
       const blob = new Blob(chunks.current, { type: media.mimeType });
       chunks.current = [];
       if (blob.size > 0 && held >= 0.5) {
+        lastAudio.current = { blob, held };
         if (onOffline) {
           onOffline(blob, held, language, locale);
           setSeconds(0);
@@ -487,6 +531,8 @@ export default function RecordButton({
     };
     recorder.current = media;
     started.current = Date.now();
+    pausedMs.current = 0;
+    pauseStart.current = 0;
     setSeconds(0);
     setRecording(true);
     setAnnounced(t("agent.speechStarted"));
@@ -536,7 +582,7 @@ export default function RecordButton({
   }, [busy, recording, send, stopMeter, t, onOffline, onSettled, language, locale]);
 
   function stop() {
-    if (recorder.current?.state === "recording") {
+    if (recorder.current?.state === "recording" || recorder.current?.state === "paused") {
       recorder.current.stop();
       return;
     }
@@ -559,6 +605,7 @@ export default function RecordButton({
       if (!response.ok) throw new Error(String(response.status));
       setConsented(true);
       setConsenting(false);
+      if (sheet) void start();
     } catch (thrown) {
       setError(t("agent.failed", { error: (thrown as Error).message }));
     } finally {
@@ -568,7 +615,7 @@ export default function RecordButton({
 
   // B2234/B2591 — before consent is even asked about: a plan with no AI
   // days left is not something worth a consent dialog for.
-  if (aiDaysUsedUp && !compact) {
+  if (aiDaysUsedUp && !compact && !sheet) {
     return (
       <div className={hero ? "flex flex-col items-center gap-1" : "mt-3"}>
         <p role="status" className={`text-sm ${hero ? "text-center text-cream-50" : "text-ink-secondary"}`}>
@@ -584,8 +631,7 @@ export default function RecordButton({
     );
   }
 
-  if (consenting) {
-    const panel = (
+  const consentPanel = (
       <ConfirmPanel
         label={t("agent.speechConsentLabel")}
         // B781 — one line here, the whole of it behind "why?". The provider is
@@ -604,9 +650,57 @@ export default function RecordButton({
         confirmLabel={t("agent.speechConsentConfirm")}
         busy={busy}
         onConfirm={() => void agree()}
-        onCancel={() => setConsenting(false)}
+        onCancel={() => (sheet ? closeSheet() : setConsenting(false))}
+      />
+  );
+
+  if (sheet) {
+    const kept = lastAudio.current;
+    const shown = kept && !recording ? Math.floor(kept.held) : seconds;
+    const phase: SpeakPhase =
+      aiDaysUsedUp || consenting
+        ? "notice"
+        : busy
+          ? "working"
+          : error && !recording
+            ? "failed"
+            : paused
+              ? "paused"
+              : "listening";
+    return (
+      <SpeakSheet
+        phase={phase}
+        seconds={shown}
+        level={paused ? 0 : level}
+        languageLabel={sheet.languageLabel}
+        error={phase === "failed" ? error : ""}
+        notice={
+          aiDaysUsedUp ? (
+            <div className="flex flex-col items-center gap-1">
+              <p role="status" className="text-center text-sm text-ink-body">{t("agent.speechAiDaysUsedUp")}</p>
+              <Link href="/prices" className="text-sm font-semibold text-ink-strong underline underline-offset-2">
+                {t("studio.day.aiDaysUsed.seePlans")}
+              </Link>
+            </div>
+          ) : consenting ? (
+            consentPanel
+          ) : undefined
+        }
+        nearLimit={recording && seconds >= maxSeconds - 60}
+        confirmDiscard={confirmDiscard}
+        leaving={leaving}
+        onToggle={togglePause}
+        onDiscard={() => (shown > 5 && (recording || kept) ? setConfirmDiscard(true) : discard())}
+        onFinish={stop}
+        onRetry={kept && !busy ? () => void send(kept.blob, kept.held) : undefined}
+        onConfirmDiscard={discard}
+        onCancelDiscard={() => setConfirmDiscard(false)}
       />
     );
+  }
+
+  if (consenting) {
+    const panel = consentPanel;
     // B1377 — `compact` mounts this as one item in the host's own flex row
     // (the composer's field, mic and send button), which used to leave the
     // panel squeezed into whatever the mic's own slot had left: a column a
@@ -623,6 +717,27 @@ export default function RecordButton({
     ) : (
       panel
     );
+  }
+
+  function togglePause() {
+    const media = recorder.current;
+    if (media?.state === "recording") {
+      media.pause();
+      pauseStart.current = Date.now();
+      setPaused(true);
+    } else if (media?.state === "paused") {
+      media.resume();
+      pausedMs.current += Date.now() - pauseStart.current;
+      pauseStart.current = 0;
+      setPaused(false);
+    }
+  }
+
+  /** Nothing is sent: the microphone is let go and the sheet drops. */
+  function discard() {
+    releaseStream();
+    lastAudio.current = null;
+    closeSheet();
   }
 
   /** Consent first, and only then does the microphone ever open. The press is

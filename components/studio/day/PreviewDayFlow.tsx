@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import BusyButton from "@/components/BusyButton";
-import RecordButton from "@/components/RecordButton";
+import SpeakTray from "@/components/studio/day/SpeakTray";
+import type { SpeechLanguage } from "@/lib/helper/speech";
 import { useI18n } from "@/components/LocaleProvider";
 import { useStudioBar } from "@/components/studio/StudioBar";
 import { useOnline } from "@/components/studio/useOnline";
@@ -107,7 +108,7 @@ export default function PreviewDayFlow({
   consent: { words: boolean; photos: boolean };
   /** The one microphone the "missing" questions' answer field offers — null
    *  with `transcription` off, same shape `AddDayFlow` takes. */
-  speech: { consented: boolean; provider: string } | null;
+  speech: { consented: boolean; provider: string; defaultLanguage?: SpeechLanguage } | null;
 }) {
   const { t, tn, formatLongDate, languageName, locale } = useI18n();
   const online = useOnline();
@@ -858,20 +859,21 @@ export default function PreviewDayFlow({
                       placeholder={t("studio.preview.composeAnswerPlaceholder")}
                       className="min-h-10 flex-1 rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body"
                     />
-                    {speech && (
-                      <RecordButton
-                        username={username}
-                        consented={speech.consented}
-                        provider={speech.provider}
-                        trip={chosen.tripId}
-                        compact
-                        hold={false}
-                        onText={(said) => setComposeAnswerDraft((prev) => (prev ? `${prev} ${said}` : said))}
-                      />
-                    )}
                     <button type="button" onClick={() => void addComposeAnswer()} className="min-h-10 rounded-full bg-yellow-400 px-3 text-sm font-semibold text-yellow-950">
                       {t("studio.preview.composeAddAnswer")}
                     </button>
+                  </div>
+                )}
+                {composeAnswering !== null && speech && (
+                  <div className="overflow-hidden rounded-xl border border-line-strong">
+                    <SpeakTray
+                      username={username}
+                      speech={speech}
+                      trip={chosen.tripId}
+                      defaultLanguage={speech.defaultLanguage}
+                      value={composeAnswerDraft}
+                      setValue={setComposeAnswerDraft}
+                    />
                   </div>
                 )}
               </div>
