@@ -79,7 +79,7 @@ export default function RecordingStrip({
   if (native) {
     return (
       <section className="rounded-2xl border border-line-quiet bg-surface-raised p-4">
-        <RouteRecordSection username={username} trip={trip} />
+        <RouteRecordSection username={username} trip={trip} bare />
       </section>
     );
   }

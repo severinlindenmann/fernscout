@@ -55,9 +55,14 @@ function Switch({ on, disabled, busy, label, onChange }: { on: boolean; disabled
 export default function RouteRecordSection({
   username,
   trip,
+  bare = false,
 }: {
   username: string;
   trip: { id: string; title: string; start: string; end: string };
+  /** B2757 — inside the "Your routes" card, which draws its own box: no
+   *  top rule or margin, and the trip's name in place of the eyebrow,
+   *  since that page lists every trip and this card is about one. */
+  bare?: boolean;
 }) {
   const native = useNativeShell();
   const [localToday] = useState(() => todayISO(Date.now()));
@@ -236,8 +241,12 @@ export default function RouteRecordSection({
   const fmtDate = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(new Date(iso));
 
   return (
-    <section id="section-route" className="mt-8 border-t border-line-quiet pt-6">
-      <h2 className={EYEBROW}>{t("studio.tripEdit.section.route")}</h2>
+    <section id="section-route" className={bare ? undefined : "mt-8 border-t border-line-quiet pt-6"}>
+      {bare ? (
+        <h2 className="font-display text-base font-semibold text-ink-strong">{trip.title}</h2>
+      ) : (
+        <h2 className={EYEBROW}>{t("studio.tripEdit.section.route")}</h2>
+      )}
 
       {!status && <p className="mt-3 text-sm text-ink-secondary">{t("studio.record.loading")}</p>}
 
