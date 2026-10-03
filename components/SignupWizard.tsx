@@ -207,6 +207,7 @@ export default function SignupWizard({
   const { t } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState<Step>("email");
+  const [ownedUser, setOwnedUser] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [telTaken, setTelTaken] = useState(false);
@@ -472,6 +473,10 @@ export default function SignupWizard({
     }
     // The address is proven and already owns a journal — B1568.
     if (result.error === "too_many_journals") {
+      // B-2811: the 409 carries this address's own journal and the identity
+      // cookie, so the studio opens without a second code.
+      const user = (result.details as { user?: unknown } | undefined)?.user;
+      if (typeof user === "string") setOwnedUser(user);
       setStep("owns");
       return;
     }
@@ -927,15 +932,20 @@ export default function SignupWizard({
       {step === "owns" && (
         <div>
           <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("agent.error.too_many_journals")}
+            {ownedUser ? t("signupPage.welcomeStudio", { user: ownedUser }) : t("agent.error.too_many_journals")}
           </p>
-          <button
-            type="button"
-            onClick={onAlreadyOwns}
-            className={`mt-4 w-full ${PILL_PRIMARY}`}
-          >
-            {t("agent.haveJournalYes")}
-          </button>
+          {ownedUser ? (
+            <a
+              href={`${journalPath(encodeURIComponent(ownedUser))}/studio`}
+              className={`mt-4 block w-full text-center ${PILL_PRIMARY}`}
+            >
+              {t("signupPage.welcomeStudioOpen")}
+            </a>
+          ) : (
+            <button type="button" onClick={onAlreadyOwns} className={`mt-4 w-full ${PILL_PRIMARY}`}>
+              {t("agent.haveJournalYes")}
+            </button>
+          )}
         </div>
       )}
 
