@@ -2439,7 +2439,7 @@
   "trips.allTrips": "All trips",
   "trips.chip": "Trips",
   "trips.daysAway": "days away",
-  "trips.emptyOwnerBody": "This journal is empty. You do not start a trip here — there is no form, and there never will be. Press the button below for a prompt to hand an agent, and it will set the first one up.",
+  "trips.emptyOwnerBody": "This journal is empty. Your first trip starts in your studio — a title and two dates, and you can change all of it later.",
   "trips.emptyOwnerFilteredBody": "You have a trip, but it is marked `listed: false` — which keeps it out of this list too, not only the sitemap and the switcher. Change its visibility from the studio's trip page.",
   "trips.emptyOwnerFilteredTitle": "Nothing listed here",
   "trips.emptyTitle": "No trips yet",

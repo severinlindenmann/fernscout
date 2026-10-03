@@ -2439,7 +2439,7 @@
   "trips.allTrips": "Tous les voyages",
   "trips.chip": "Voyages",
   "trips.daysAway": "jours avant le départ",
-  "trips.emptyOwnerBody": "Ce journal est vide. Ce n’est pas ici que tu crées un voyage — il n’y a pas de formulaire, et il n’y en aura jamais. Appuie sur le bouton ci-dessous pour obtenir un texte à donner à un agent, et il mettra en place le premier.",
+  "trips.emptyOwnerBody": "Ce journal est vide. Ton premier voyage commence dans ton studio — un titre et deux dates, et tu pourras tout modifier plus tard.",
   "trips.emptyOwnerFilteredBody": "Tu as un voyage, mais il est marqué `listed: false` — ce qui l’exclut aussi de cette liste, pas seulement du plan du site et du sélecteur. Change sa visibilité depuis la page du voyage dans le studio.",
   "trips.emptyOwnerFilteredTitle": "Rien de répertorié ici",
   "trips.emptyTitle": "Aucun voyage pour l’instant",
