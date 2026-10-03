@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
+import { createJournal } from "@/lib/journals";
 import { clearUserCache } from "@/lib/users";
 import { earliestTodayISO } from "@/lib/tripTime";
 import { writeTripFixture } from "./fixtures/content";
@@ -22,11 +23,11 @@ vi.mock("@/lib/push/send", async (original) => ({
 }));
 
 /**
- * B2447 (W44 D5) — the first-trip nudge: a journal that opted into
- * getting-started tips at signup and never adds a trip hears about it once,
- * ever. B2448 item 4: when the owner's own device is subscribed, a push
- * comes first (day 2) and the mail only after (day 5); a reader's
- * subscription never counts as the owner's.
+ * B2447, reworked in B2809 — the first-trip nudge: every new journal that
+ * never adds a trip hears about it once, ever, as a service message (no
+ * opt-in box; `optIn: false` means the owner stopped it). With the owner's
+ * own device subscribed the push (day 2) is the whole reminder; otherwise one
+ * mail at day 3. A reader's subscription never counts as the owner's.
  */
 
 const TODAY = earliestTodayISO();
@@ -51,7 +52,7 @@ function writeSiteConfig() {
   );
 }
 
-function writeJournal(username: string, tips?: { optIn: boolean; at: string; sentAt?: string }) {
+function writeJournal(username: string, tips?: { optIn?: boolean; basis?: "service"; at: string; sentAt?: string }) {
   fs.mkdirSync(path.join(dir, username, "trips"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, username, "config.json"),
@@ -97,7 +98,7 @@ afterEach(() => {
 
 describe("candidates (lib/digest/firstTrip.ts)", () => {
   test("a 4-day-old journal with tips and no trip is a candidate", () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -4) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -4) });
     const candidates = firstTripCandidates(TODAY);
     expect(candidates.map((c) => c.username)).toEqual(["ana"]);
     expect(candidates[0].ageDays).toBe(4);
@@ -109,20 +110,20 @@ describe("candidates (lib/digest/firstTrip.ts)", () => {
   });
 
   test("with a trip, not a candidate even with tips on", () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -4) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -4) });
     writeTripFixture("ana", { id: "spain", title: "Spain", start: TODAY, end: TODAY, visibility: "private", intro: "Intro." });
     expect(firstTripCandidates(TODAY)).toEqual([]);
   });
 
   test("already sent, not a candidate again", () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -10), sentAt: addDays(TODAY, -5) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -10), sentAt: addDays(TODAY, -5) });
     expect(firstTripCandidates(TODAY)).toEqual([]);
   });
 });
 
 describe("the nightly sweep (sweepFirstTrip)", () => {
   test("a 4-day-old journal with tips and no trip gets exactly one mail across two sweeps", async () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -4) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -4) });
 
     const first = await sweepFirstTrip({ dryRun: false });
     expect(first.mailed).toBe(1);
@@ -134,6 +135,35 @@ describe("the nightly sweep (sweepFirstTrip)", () => {
     expect(fs.readdirSync(path.join(data, "mail", "ana"))).toHaveLength(1);
   });
 
+  test("an owner who stopped it (optIn false, old or new journal) gets none", async () => {
+    writeJournal("ana", { optIn: false, at: addDays(TODAY, -10) });
+    writeJournal("bo", { basis: "service", optIn: false, at: addDays(TODAY, -10) });
+    expect(firstTripCandidates(TODAY)).toEqual([]);
+    const result = await sweepFirstTrip({ dryRun: false });
+    expect(result.acted).toEqual([]);
+  });
+
+  test("a journal from before the service message that ticked the box is still reminded", () => {
+    writeJournal("ana", { optIn: true as boolean, at: addDays(TODAY, -4) });
+    expect(firstTripCandidates(TODAY)).toHaveLength(1);
+  });
+
+  test("a journal created through createJournal is nudged with no opt-in, even if tips:false is passed", async () => {
+    const made = createJournal({
+      username: "newbie", title: "Newbie", ownerEmail: "newbie@example.test", ownerName: "N", ownerNickname: "N", tips: false,
+    });
+    expect(made.ok).toBe(true);
+    const file = path.join(dir, "newbie", "config.json");
+    const config = JSON.parse(fs.readFileSync(file, "utf8"));
+    expect(config.owner.tips).toMatchObject({ basis: "service" });
+    config.owner.tips.at = addDays(TODAY, -3);
+    fs.writeFileSync(file, JSON.stringify(config));
+    clearConfigCache();
+    clearUserCache();
+    const result = await sweepFirstTrip({ dryRun: false });
+    expect(result.acted).toEqual([["newbie", "mail"]]);
+  });
+
   test("without tips, none", async () => {
     writeJournal("ana");
     const result = await sweepFirstTrip({ dryRun: false });
@@ -142,7 +172,7 @@ describe("the nightly sweep (sweepFirstTrip)", () => {
   });
 
   test("with a trip, none", async () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -4) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -4) });
     writeTripFixture("ana", { id: "spain", title: "Spain", start: TODAY, end: TODAY, visibility: "private", intro: "Intro." });
     const result = await sweepFirstTrip({ dryRun: false });
     expect(result.mailed).toBe(0);
@@ -150,14 +180,14 @@ describe("the nightly sweep (sweepFirstTrip)", () => {
   });
 
   test("too young (day 2), nothing yet", async () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -2) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -2) });
     const result = await sweepFirstTrip({ dryRun: false });
     expect(result.mailed).toBe(0);
     expect(fs.existsSync(path.join(data, "mail", "ana"))).toBe(false);
   });
 
   test("--dry-run sends nothing and does not mark the journal sent", async () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -4) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -4) });
     const dry = await sweepFirstTrip({ dryRun: true });
     expect(dry.mailed).toBe(0);
     expect(dry.acted).toEqual([["ana", "mail"]]);
@@ -167,8 +197,21 @@ describe("the nightly sweep (sweepFirstTrip)", () => {
     expect(real.mailed).toBe(1);
   });
 
+  test("the mail says why it came and how to stop it", async () => {
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -4) });
+    await sweepFirstTrip({ dryRun: false });
+    const folder = path.join(data, "mail", "ana");
+    const eml = fs.readFileSync(path.join(folder, fs.readdirSync(folder)[0]), "utf8");
+    const text = [...eml.matchAll(/Content-Transfer-Encoding: base64\r?\n(?:[^\r\n]+\r?\n)*\r?\n([A-Za-z0-9+/=\r\n]+)/g)]
+      .map((part) => Buffer.from(part[1].replace(/\s+/g, ""), "base64").toString("utf8"))
+      .join("\n");
+    expect(text).toContain("service message");
+    expect(text).toContain("Stop these");
+    expect(text).not.toContain("turned on");
+  });
+
   test("the mail's manage line points at the studio journal settings", async () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -4) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -4) });
     await sweepFirstTrip({ dryRun: false });
     const folder = path.join(data, "mail", "ana");
     const eml = fs.readFileSync(path.join(folder, fs.readdirSync(folder)[0]), "utf8");
@@ -193,8 +236,8 @@ describe("the owner's own device first (B2448 item 4)", () => {
     });
   }
 
-  test("an owner-subscribed journal is pushed at day 2 and mailed at day 5, once each", async () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -2) });
+  test("an owner-subscribed journal is pushed at day 2 and never mailed after it", async () => {
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -2) });
     await subscribe("ana", "https://push.example.test/owner", true);
 
     const dayTwo = await sweepFirstTrip({ dryRun: false });
@@ -202,21 +245,22 @@ describe("the owner's own device first (B2448 item 4)", () => {
     expect(pushed).toEqual([{ template: "nudge.first.push", endpoints: ["https://push.example.test/owner"] }]);
     expect(fs.existsSync(path.join(data, "mail", "ana"))).toBe(false);
 
-    // Three days later, still no trip: the mail, then never again.
+    // Three days later, still no trip: nothing — the push was the one reminder.
     const config = JSON.parse(fs.readFileSync(path.join(dir, "ana", "config.json"), "utf8"));
     config.owner.tips.at = addDays(TODAY, -5);
     fs.writeFileSync(path.join(dir, "ana", "config.json"), JSON.stringify(config));
     clearConfigCache();
     clearUserCache();
     const dayFive = await sweepFirstTrip({ dryRun: false });
-    expect(dayFive.acted).toEqual([["ana", "mail"]]);
+    expect(dayFive.acted).toEqual([]);
     expect(pushed).toHaveLength(1);
+    expect(fs.existsSync(path.join(data, "mail", "ana"))).toBe(false);
     const again = await sweepFirstTrip({ dryRun: false });
     expect(again.acted).toEqual([]);
   });
 
   test("a reader's subscription never counts as the owner's", async () => {
-    writeJournal("ana", { optIn: true, at: addDays(TODAY, -3) });
+    writeJournal("ana", { basis: "service", at: addDays(TODAY, -3) });
     await subscribe("ana", "https://push.example.test/reader", false);
 
     const result = await sweepFirstTrip({ dryRun: false });

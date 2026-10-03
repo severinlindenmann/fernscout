@@ -47,6 +47,9 @@ const base = z.strictObject({
   }),
   /** UI languages this journal maintains; the first is the default. */
   locales: z.array(z.string()).min(1),
+  /** Every bare amount is in it. Writable by PATCH only while the journal
+   * holds no cost anywhere (trips, days, imports); refused with the reason
+   * after (B2806). */
   baseCurrency: z.string().length(3),
   /** The currencies cost figures are offered in, alongside conversion.
    * Must include baseCurrency — the journal's own money is always shown. */
@@ -87,9 +90,9 @@ export const journalDoc = z.object({
   ...base.def.shape,
   // ── server-owned ──
   username: z.string(),
-  /** Whether the owner asked for getting-started tips at signup (B2447,
-   * `tips` on POST /journals). Read-only here: the owner turns it off in the
-   * studio journal settings. */
+  /** Whether the once-only first-trip reminder is still on (B2809): true for
+   * every new journal until the owner stops it. Read-only here: the owner
+   * stops it in the studio journal settings. */
   tips: z.boolean(),
 });
 

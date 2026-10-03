@@ -37,9 +37,8 @@ export function composeSignupCodeMail(params: { locale: Locale; code: string; as
  *
  * Lifted out of the old `app/api/auth/signup/request/route.ts` (now
  * `app/api/auth/codes/route.ts`'s `for: "signup"` branch) by B1363, which gave
- * the flow a second door: the WhatsApp onboarding
- * (`paid/whatsapp/lib/whatsapp/onboarding.ts`) has to mail the identical code, in the
- * identical letter. Two copies of a code mail is two subjects, two TTLs and
+ * the flow a second door (the WhatsApp chat signup, retired
+ * by B2812) that had to mail the identical code, in the identical letter. Two copies of a code mail is two subjects, two TTLs and
  * two answers to what happens when the send fails — and the third of those
  * is the one that matters, so it is written down once here rather than twice
  * badly.

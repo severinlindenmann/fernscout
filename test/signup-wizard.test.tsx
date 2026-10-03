@@ -73,6 +73,7 @@ describe("the signup wizard", () => {
     const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
       { ok: true, json: async () => ({ status: "accepted" }) }, // signup/request
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) }, // signup/verify
+      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false }) }, // signup/state (B2804)
       {
         ok: false,
         json: async () => ({
@@ -110,7 +111,7 @@ describe("the signup wizard", () => {
     // tokens for an agent reading it, not a person).
     expect(container!.textContent).toMatch(/is reserved on this server/);
     // No network call ever left this test — every response above was a stub.
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   // B2774 — a failed code request says why and stays on the email step.
@@ -152,6 +153,7 @@ describe("the signup wizard", () => {
     const responses: Array<Record<string, unknown>> = [
       { ok: true, json: async () => ({ status: "accepted" }) },
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
+      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: true, mode: "code", smsFallback: false }) }, // signup/state (B2804)
       { ok: false, json: async () => ({ error: "phone_required", mode: "sms" }) },
       { ok: true, json: async () => ({ id: "p1" }) }, // phone request
       { ok: true, json: async () => ({ ok: true }) }, // phone redeem
@@ -198,6 +200,7 @@ describe("the signup wizard", () => {
     const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
       { ok: true, json: async () => ({ status: "accepted" }) },
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
+      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false }) }, // signup/state (B2804)
       {
         ok: true,
         json: async () => ({
@@ -251,7 +254,7 @@ describe("the signup wizard", () => {
     });
     await submit();
 
-    const body = JSON.parse(fetchMock.mock.calls[2][1]?.body ?? "{}") as Record<string, unknown>;
+    const body = JSON.parse(fetchMock.mock.calls[3][1]?.body ?? "{}") as Record<string, unknown>;
     expect(body.defaultLocale).toBe("de");
     expect(body.locales).toEqual(["de", "hu"]);
     // B839 — asked, not defaulted to the francs `createJournal` used to write.
@@ -319,6 +322,7 @@ describe("the signup wizard", () => {
     const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
       { ok: true, json: async () => ({ status: "accepted" }) }, // codes
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) }, // codes/redeem
+      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false }) }, // signup/state (B2804)
       {
         ok: true,
         json: async () => ({
@@ -362,14 +366,16 @@ describe("the signup wizard", () => {
       await Promise.resolve();
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(4);
-    const [url, init] = fetchMock.mock.calls[3] as [string, RequestInit];
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    const [url, init] = fetchMock.mock.calls[4] as [string, RequestInit];
     expect(url).toBe("/api/auth/links/redeem");
     expect(JSON.parse(String(init.body))).toEqual({ user: "robin", token: "link-token", for: "read" });
     // Never a bearer token on the sign-in call, and never a trip write.
     expect((init.headers as Record<string, string>).authorization).toBeUndefined();
     for (const [calledUrl, calledInit] of fetchMock.mock.calls as [string, RequestInit][]) {
       expect(calledUrl).not.toContain("/trips/");
+      // B2804: the one read the wizard makes is the signup state (a GET).
+      if (calledUrl === "/api/auth/signup/state") continue;
       expect(calledInit.method).toBe("POST");
     }
     expect(onSignedIn).toHaveBeenCalledWith("robin", true);

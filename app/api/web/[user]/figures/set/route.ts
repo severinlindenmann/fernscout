@@ -6,6 +6,7 @@
 // the studio and one saved by an agent read back identically. Narrowed to
 // `figures`/`declined` only — everything else about the journal has its own
 // door (`app/api/web/[user]/route.ts`).
+import { tipsActive } from "@/lib/config";
 import { applyJournalPatch } from "@/app/api/v2/[user]/route";
 import { journalDoc } from "@/lib/api/v2/schemas";
 import { isOwner } from "@/lib/contacts/session";
@@ -50,7 +51,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
     return Response.json({ error: "unsupported_field" }, { status: 400 });
   }
 
-  const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: Boolean(journal.owner.tips?.optIn) });
+  const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: tipsActive(journal.owner.tips) });
   // "sections" (B2022, the same mode `applyTripPatch` got in B2011): this
   // door only ever answers the figures question, and must not be refused
   // because a DIFFERENT section — a journal signed up before v2 with no

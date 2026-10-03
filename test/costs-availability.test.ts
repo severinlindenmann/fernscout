@@ -188,3 +188,37 @@ describe("hasCostsData, once it also asks the days", () => {
     expect(costsAvailable("unbudgeted")).toBe(false);
   });
 });
+
+describe("journalHasAnyCost (B2806)", () => {
+  test("false with no costs anywhere; true for a trip budget or a draft day's cost", async () => {
+    const { journalHasAnyCost } = await import("@/lib/costs");
+    expect(journalHasAnyCost("unbudgeted")).toBe(false);
+    expect(journalHasAnyCost("budgeted")).toBe(true);
+    expect(journalHasAnyCost("daycosts")).toBe(true);
+  });
+
+  test("a draft day's cost counts, and so does a trip's cost item", async () => {
+    const { journalHasAnyCost } = await import("@/lib/costs");
+    writeUser("drafty");
+    writeTrip("drafty", "trip-a", false);
+    clearUserCache();
+    expect(journalHasAnyCost("drafty")).toBe(false);
+    writeDayCostEntry("drafty", "trip-a", true);
+    clearUserCache();
+    expect(journalHasAnyCost("drafty")).toBe(true);
+    writeUser("itemy");
+    writeTripFixture("itemy", {
+      id: "trip-a",
+      title: "t",
+      start: "2026-01-01",
+      end: "2026-01-31",
+      status: "past",
+      intro: "Body.",
+      // Items with no budget: the fixture type insists on a budget, real
+      // imported trips do not always carry one.
+      costs: { items: [{ label: "Visa", amount: 40, category: "other" }] } as never,
+    });
+    clearUserCache();
+    expect(journalHasAnyCost("itemy")).toBe(true);
+  });
+});

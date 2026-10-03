@@ -576,6 +576,7 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
           "rates:update",
           "reminders:send",
           "first-trip:send",
+          "signup:purge",
           "messages:sweep",
           "spend:alert",
           "usage:fold",

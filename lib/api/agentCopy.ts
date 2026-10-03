@@ -407,8 +407,8 @@ export type FirstQuestion = { ask: string; because: string };
  * The questions to put to the person before anything else.
  *
  * Every one of them decides something they live with, and none has a default
- * worth guessing. `paid/whatsapp/lib/whatsapp/onboarding.ts` and `components/SignupWizard.tsx`
- * both ask them, in their own shapes, so they are one list rendered twice
+ * worth guessing. `components/SignupWizard.tsx` and the `/agent.md` guide
+ * ask them, in their own shapes, so they are one list rendered twice
  * rather than two lists that will drift.
  *
  * Takes the site URL because the second question is about a URL.
@@ -474,11 +474,11 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
     {
       ask: "**What they count money in** (`baseCurrency`)",
       because:
-        "A three-letter code — every cost anywhere in this journal is added up in it. **It is " +
-        "the one field here that can never be changed**: `PATCH /api/v2/<user>` refuses " +
-        "it outright, because correcting it later would silently re-price every trip already " +
-        "written. Tell them it is permanent when you ask, and send the code rather than the " +
-        "name — \"francs\" is `CHF`.",
+        "A three-letter code — every cost anywhere in this journal is added up in it. **It " +
+        "can be corrected only until the first cost exists**: `PATCH /api/v2/<user>` accepts " +
+        "a new code while no trip, day or import holds a cost, and refuses it with the reason " +
+        "after, because changing it then would silently re-price everything already written. " +
+        "Ask once and get it right, and send the code rather than the name — \"francs\" is `CHF`.",
     },
   ];
 }

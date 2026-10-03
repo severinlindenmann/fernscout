@@ -66,6 +66,7 @@ describe("/welcome", () => {
     const responses = [
       { ok: true, json: async () => ({ status: "accepted" }) },
       { ok: true, json: async () => ({ ok: true, token: "signup-token" }) },
+      { ok: true, json: async () => ({ emailProven: true, phoneProven: false, phoneRequired: false, mode: "code", smsFallback: false }) }, // signup/state (B2804)
       {
         ok: true,
         json: async () => ({ ok: true, token: "agent-token", user: "robin", signIn: "https://t/@robin/s/tok?lang=en" }),

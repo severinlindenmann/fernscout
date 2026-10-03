@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     if (!perInstance.ok) return tooMany("instance", perInstance.retryAfter);
 
     const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
-    const link = await createPhoneLink(session.id, locale);
+    const link = await createPhoneLink(session.email, locale);
     if (!link) {
       console.error("[signup] phone proof is whatsapp-inbound but features.whatsapp.number is not set");
       return fail(
@@ -174,6 +174,11 @@ export async function POST(request: Request) {
   // per-instance ceiling.
   const perInstance = rateLimitFor("phone-verify-instance", "*", PER_INSTANCE);
   if (!perInstance.ok) return tooMany("instance", perInstance.retryAfter);
+
+  // B2805: deliberately NO "this number already keeps a journal" check here.
+  // Nothing is proven yet, so answering it would tell any signup-token holder
+  // which numbers have journals. The check runs once possession is proven —
+  // at code redeem and at the inbound WhatsApp claim — and again at create.
 
   const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")));
 

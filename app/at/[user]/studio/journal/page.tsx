@@ -1,8 +1,10 @@
+import { tipsActive } from "@/lib/config";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import JournalPageContent, { type JournalPanel, type ReminderRow } from "./JournalPageContent";
 import StudioPage from "@/components/studio/StudioPage";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
+import { journalHasAnyCost } from "@/lib/costs";
 import { journalProfile } from "@/lib/journals";
 import { getOwnerTel } from "@/lib/ownerTel";
 import { requestLocale, translateIn } from "@/lib/locales";
@@ -51,6 +53,9 @@ export default async function StudioJournalPage({ params }: PageProps<"/at/[user
     ...journalProfile(journal),
     ownerTel: (await getOwnerTel(user))?.tel ?? "",
     email: journal.owner.email ?? "",
+    ownerName: journal.owner.name,
+    ownerNickname: journal.owner.nickname,
+    baseCurrencyLocked: journalHasAnyCost(user),
   };
 
   // B2171 — the evening reminder's switch, one per trip that can still get
@@ -75,7 +80,7 @@ export default async function StudioJournalPage({ params }: PageProps<"/at/[user
         journal={journalPanel}
         knownCurrencies={knownCurrencies()}
         reminders={reminders}
-        tipsOn={journal.owner.tips?.optIn ?? false}
+        tipsOn={tipsActive(journal.owner.tips)}
       />
     </StudioPage>
   );

@@ -1,7 +1,7 @@
 import "server-only";
 import path from "node:path";
 import { isEnabled } from "./capabilities";
-import { getAllEntries, getDays, type ReadOptions } from "./entries";
+import { AS_AUTHOR, getAllEntries, getDays, type ReadOptions } from "./entries";
 import { getTrip, getTripIds, tripDir, tripRef } from "./trips";
 import { hasBegun, isOver } from "./tripTime";
 import { loadUserConfig } from "./config";
@@ -150,6 +150,24 @@ export function hasCostsData(tripId: string, options?: ReadOptions): boolean {
  */
 function journalHasCosts(username: string): boolean {
   return getTripIds(username).some((id) => hasCostsData(tripRef(username, id)));
+}
+
+/**
+ * Whether this journal holds any money figure anywhere (B2806) — the one
+ * question the base currency's correctability turns on, since a bare amount
+ * IS an amount in the base currency. Wider than `journalHasCosts` on purpose:
+ * drafts count (a draft day's bare amount would be re-read just the same),
+ * so does a trip budget (its `currency` is optional, so a bare total is base
+ * money too), and every cost item in a trip's `costs` section, which is where
+ * imports (Polarsteps, statements) land as well as day `costs:` blocks.
+ */
+export function journalHasAnyCost(username: string): boolean {
+  return getTripIds(username).some((id) => {
+    const ref = tripRef(username, id);
+    const section = getTrip(ref)?.costsSection;
+    if (section && (section.items?.length || section.budget)) return true;
+    return getAllEntries(ref, AS_AUTHOR).some((e) => e.costs.length > 0);
+  });
 }
 
 /**

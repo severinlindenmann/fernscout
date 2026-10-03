@@ -65,6 +65,7 @@ import * as paymentsUnits from "./063-payments-units";
 import * as usageMonthlyTotals from "./064-usage-monthly-totals";
 import * as storageAddons from "./065-storage-addons";
 import * as vouchers from "./066-vouchers";
+import * as pendingSignups from "./067-pending-signups";
 
 /**
  * Every migration, listed by hand.
@@ -145,6 +146,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "064-usage-monthly-totals": usageMonthlyTotals,
   "065-storage-addons": storageAddons,
   "066-vouchers": vouchers,
+  "067-pending-signups": pendingSignups,
 };
 
 /**

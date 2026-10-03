@@ -33,6 +33,8 @@ const journal: JournalPanel = {
   title: "Fernscout Demo",
   tagline: "Five journeys",
   email: "owner@example.test",
+  ownerName: "Alex Walker",
+  ownerNickname: "Alex",
   visibility: "public",
   units: "metric",
   locales: ["en", "de"],
@@ -40,9 +42,10 @@ const journal: JournalPanel = {
   displayCurrencies: ["CHF", "EUR"],
   ownerTel: "",
   baseCurrency: "CHF",
+  baseCurrencyLocked: true,
 };
 
-async function mount(reminders: ReminderRow[] = []) {
+async function mount(reminders: ReminderRow[] = [], panel: JournalPanel = journal) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -50,7 +53,7 @@ async function mount(reminders: ReminderRow[] = []) {
     root!.render(
       <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
         <StudioBarProvider username="alex">
-          <JournalPageContent username="alex" journal={journal} knownCurrencies={["EUR", "GBP", "USD"]} reminders={reminders} tipsOn={false} />
+          <JournalPageContent username="alex" journal={panel} knownCurrencies={["EUR", "GBP", "USD"]} reminders={reminders} tipsOn={false} />
         </StudioBarProvider>
       </LocaleProvider>,
     ),
@@ -101,7 +104,7 @@ describe("journal settings — B2074", () => {
     await mount();
     const toggle = form().querySelector('[role="switch"]') as HTMLButtonElement;
     expect(toggle.getAttribute("aria-checked")).toBe("true");
-    expect(form().textContent).toContain("Listed on this server");
+    expect(form().textContent).toContain("List my journal in search engines");
     await act(async () => toggle.click());
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     expect(saveButtons()[0].textContent).toBe("Save 1 change");
@@ -149,5 +152,65 @@ describe("the evening reminder switch — B2171", () => {
     const section = form().querySelector("[data-journal-reminders]")!;
     expect(section.querySelector('[role="switch"]')).toBeNull();
     expect(section.textContent).toContain("No trip is running or coming up");
+  });
+});
+
+/** B2806 — the base currency is a picker while no cost exists, the "fixed"
+ * line after. */
+describe("the base currency — B2806", () => {
+  test("locked: no picker, the fixed line", async () => {
+    await mount();
+    expect(form().querySelector("select")).toBeNull();
+    expect(form().textContent).toContain("Base currency CHF is fixed");
+  });
+
+  test("unlocked: a picker, and the chosen code is sent as baseCurrency", async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response("{}", { status: 200 });
+      }),
+    );
+    await mount([], { ...journal, baseCurrencyLocked: false });
+    expect(form().textContent).not.toContain("Base currency CHF is fixed");
+    const select = form().querySelector("select") as HTMLSelectElement;
+    expect(select.value).toBe("CHF");
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(select, "EUR");
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await act(async () => saveButtons()[0].click());
+    expect(bodies).toEqual([{ baseCurrency: "EUR" }]);
+  });
+});
+
+/** B2816 — the owner's name and what readers call them are editable. */
+describe("the owner's names — B2816", () => {
+  test("both fields show, and a change is sent as the owner block with the email unchanged", async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response("{}", { status: 200 });
+      }),
+    );
+    await mount();
+    expect(form().textContent).toContain("Your name");
+    expect(form().textContent).toContain("What readers call you");
+    await act(async () => typeInto(inputByValue("Alex Walker"), "Alexandra Walker"));
+    await act(async () => typeInto(inputByValue("Alex"), "Alexa"));
+    await act(async () => saveButtons()[0].click());
+    expect(bodies).toEqual([
+      { owner: { name: "Alexandra Walker", nickname: "Alexa", email: "owner@example.test" } },
+    ]);
+  });
+
+  test("an emptied nickname cannot be saved", async () => {
+    await mount();
+    await act(async () => typeInto(inputByValue("Alex"), ""));
+    expect(saveButtons()[0].disabled).toBe(true);
   });
 });
