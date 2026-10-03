@@ -22,7 +22,7 @@ const BUTTON = "mt-3 min-h-11 rounded-full border border-line-strong px-5 text-b
 const PILL = "shrink-0 rounded-full px-2 py-0.5 text-xs font-bold";
 
 /** Today as YYYY-MM-DD, device-local — the same clock the notices use. */
-function todayISO(now: number): string {
+export function todayISO(now: number): string {
   const d = new Date(now);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
