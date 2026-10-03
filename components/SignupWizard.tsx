@@ -1147,7 +1147,7 @@ export default function SignupWizard({
             <div className="mt-5 rounded-xl border border-line-quiet bg-surface-base p-4">
               <p className="text-base font-semibold text-ink-strong">{t("signupPage.advTitle")}</p>
               <div className="mt-2">{addressField}</div>
-              <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("signupPage.addressPermanent")}</p>
+              {status !== "ok" && <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("signupPage.addressPermanent")}</p>}
               <div className={field}>
                 <label className={label} htmlFor="signup-title">
                   {t("signupPage.advTitleLabel")}
