@@ -871,3 +871,34 @@ describe("B2304/B2641 — the filter, at the top", () => {
   });
 });
 
+
+describe("B2582 — a hub link's name is its title, the rest is its description", () => {
+  const described = (a: Element) =>
+    (a.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean).map((id) => document.getElementById(id)?.textContent ?? "MISSING").join(" ");
+
+  test("every described link names itself by its title and every id resolves", () => {
+    const el = render({ ...FULL_BASE, cannotRun: { ...FULL_BASE.cannotRun, extract: true, readers: true } });
+    const links = [...el.querySelectorAll("a[aria-describedby]")];
+    expect(links.length).toBeGreaterThan(3);
+    for (const a of links) {
+      expect(a.getAttribute("aria-label")).toBeTruthy();
+      expect(described(a)).not.toContain("MISSING");
+      expect(described(a)).not.toBe("");
+    }
+  });
+
+  test("a greyed row keeps its off chip and reason in the description, not the name", () => {
+    const el = render({ ...FULL_BASE, cannotRun: { ...FULL_BASE.cannotRun, extract: true } });
+    const photos = el.querySelector('a[data-row][href$="/studio/photos"]')!;
+    expect(photos.getAttribute("aria-label")).not.toContain("switched off");
+    expect(described(photos)).toContain("Importing is switched off.");
+    expect(described(photos)).toContain("off");
+  });
+
+  test("the hero's call to action is in its description", () => {
+    const hero = render(FULL_BASE).querySelector("a[data-hero]")!;
+    const cta = hero.querySelector("span:last-child")!.textContent;
+    expect(hero.getAttribute("aria-label")).not.toContain(cta!);
+    expect(described(hero)).toContain(cta);
+  });
+});

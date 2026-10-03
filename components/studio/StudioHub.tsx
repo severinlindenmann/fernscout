@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CalendarPlus,
@@ -403,19 +403,22 @@ function DuringTripRows({
   waitingFirstDate: string | null;
 }) {
   const { t, tn } = useI18n();
+  const id = useId();
   if (waitingCount === 0 || !waitingFirstDate) return null;
   return (
     <ul data-during-trip-rows className="mt-3 divide-y divide-line-faint rounded-2xl border border-line-faint bg-surface-raised px-2.5">
       <li>
         <Link
           href={`${journalPath(username)}/studio/day/new?photos=${waitingFirstDate}`}
+          aria-label={t("studio.hub.duringTrip.waiting.title")}
+          aria-describedby={`${id}-d`}
           className="flex min-h-11 items-center gap-3 rounded-[10px] px-1.5 py-2 transition-colors hover:bg-surface-neutral
                      focus-visible:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         >
           <Images className="h-5 w-5 flex-none text-ink-body" aria-hidden strokeWidth={2} />
           <span className="min-w-0 flex-1">
             <span className="block text-[15px] font-semibold leading-tight text-ink-strong">{t("studio.hub.duringTrip.waiting.title")}</span>
-            <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">
+            <span id={`${id}-d`} className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">
               {tn("studio.hub.duringTrip.waiting.detail", waitingCount, { count: String(waitingCount) })}
             </span>
           </span>
@@ -546,6 +549,7 @@ function JournalAccountSection({
   const { t } = useI18n();
   const [tileOpen, setTileOpen] = useState<"export" | "delete" | null>(null);
   const { hue, icon: Icon, titleKey, summaryKey } = EVERYTHING_CARD.journal;
+  const id = useId();
   const toggleTile = (tile: "export" | "delete") => setTileOpen((prev) => (prev === tile ? null : tile));
   const rowClass =
     "flex min-h-11 items-center gap-2.5 rounded-[10px] px-1.5 py-2 text-left text-sm font-semibold transition-colors hover:bg-surface-subtle " +
@@ -587,20 +591,22 @@ function JournalAccountSection({
                     md:flex-row md:flex-wrap md:items-center md:divide-y-0 md:gap-x-5 md:gap-y-1.5
                     lg:flex-col lg:flex-nowrap lg:items-stretch lg:gap-0`}
       >
-        {rows.map((row) => {
+        {rows.map((row, ri) => {
           const off = Boolean(row.reason);
+          const rid = `${id}-${ri}`;
+          const described = [row.reason && `${rid}-d`, off ? `${rid}-o` : row.factLine?.map((_, i) => `${rid}-l${i}`).join(" ")].filter(Boolean).join(" ");
           return (
             <li key={row.href} className="min-w-0 md:w-auto lg:w-full">
-              <Link href={row.href} data-row className={`${rowClass} ${off ? "text-ink-faint" : "text-ink-strong"}`}>
+              <Link href={row.href} data-row aria-label={row.title} aria-describedby={described || undefined} className={`${rowClass} ${off ? "text-ink-faint" : "text-ink-strong"}`}>
                 <row.Icon className="h-4 w-4 flex-none" aria-hidden strokeWidth={2} />
                 <span className="min-w-0">
                   <span className="flex items-center gap-1.5">
                     {row.title}
                     {off ? (
-                      <Chip>{t("studio.hub.chip.off")}</Chip>
+                      <Chip id={`${rid}-o`}>{t("studio.hub.chip.off")}</Chip>
                     ) : (
-                      row.factLine?.map((f) => (
-                        <Chip key={f.text} fact amber={f.amber}>
+                      row.factLine?.map((f, i) => (
+                        <Chip key={f.text} id={`${rid}-l${i}`} fact amber={f.amber}>
                           {f.text}
                         </Chip>
                       ))
@@ -609,7 +615,7 @@ function JournalAccountSection({
                   {/* The reason a row cannot run right now — kept on phone
                       (acceptance §6); the compact desktop row leans on the
                       "off" chip alone, the same way Print's own cards do. */}
-                  {row.reason && <span data-desc className="mt-0.5 block text-[12.5px] italic leading-snug text-ink-secondary md:hidden">{row.reason}</span>}
+                  {row.reason && <span id={`${rid}-d`} data-desc className="mt-0.5 block text-[12.5px] italic leading-snug text-ink-secondary md:hidden">{row.reason}</span>}
                 </span>
               </Link>
             </li>
@@ -635,10 +641,13 @@ function JournalAccountSection({
 }
 
 function Hero({ href, Icon, title, description, cta }: { href: string; Icon: LucideIcon; title: string; description: string; cta: string }) {
+  const id = useId();
   return (
     <Link
       href={href}
       data-hero
+      aria-label={title}
+      aria-describedby={`${id}-d ${id}-c`}
       className="mt-4 flex flex-wrap items-start gap-3 rounded-[20px] border-[1.5px] border-yellow-600 bg-yellow-50 p-4
                  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 sm:items-center sm:px-5 sm:py-5
                  lg:mt-0 lg:gap-5 lg:border-0 lg:bg-transparent lg:p-0"
@@ -652,9 +661,9 @@ function Hero({ href, Icon, title, description, cta }: { href: string; Icon: Luc
       </span>
       <span className="min-w-[200px] flex-1">
         <span className="block font-display text-[23px] font-semibold leading-tight text-ink-strong lg:text-[30px]">{title}</span>
-        <span className="mt-1 block text-sm text-ink-secondary lg:text-[15px]">{description}</span>
+        <span id={`${id}-d`} className="mt-1 block text-sm text-ink-secondary lg:text-[15px]">{description}</span>
       </span>
-      <span className="inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-[15px] font-semibold text-on-action">
+      <span id={`${id}-c`} className="inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-[15px] font-semibold text-on-action">
         {cta}
       </span>
     </Link>
@@ -724,10 +733,18 @@ function HubRow({ row, compact = false, dense = false }: { row: Row; compact?: b
   const { t } = useI18n();
   const off = Boolean(row.reason);
   const line = row.reason ?? row.description;
+  const id = useId();
+  const described = [
+    line && `${id}-d`,
+    off ? `${id}-o` : row.fact && `${id}-f`,
+    ...(!off && row.factLine ? row.factLine.map((_, i) => `${id}-l${i}`) : []),
+  ].filter(Boolean).join(" ");
   return (
     <Link
       href={row.href}
       data-row
+      aria-label={row.title}
+      aria-describedby={described || undefined}
       className={`flex flex-wrap items-center gap-x-3 rounded-[10px] px-1.5 py-[7px] transition-colors hover:bg-surface-neutral
                   focus-visible:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
                     compact && !line ? "min-h-11" : "min-h-[52px]"
@@ -741,10 +758,10 @@ function HubRow({ row, compact = false, dense = false }: { row: Row; compact?: b
           <span className={`min-w-0 flex-1 break-words hyphens-auto font-semibold leading-tight text-ink-strong ${compact ? "text-sm" : "text-[15px]"}`}>
             {row.title}
           </span>
-          {off ? <Chip>{t("studio.hub.chip.off")}</Chip> : row.fact ? <Chip fact>{row.fact}</Chip> : null}
+          {off ? <Chip id={`${id}-o`}>{t("studio.hub.chip.off")}</Chip> : row.fact ? <Chip id={`${id}-f`} fact>{row.fact}</Chip> : null}
         </span>
         {line && (
-          <span data-desc className={`mt-0.5 block text-[12.5px] leading-snug text-ink-secondary ${off ? "italic" : ""} ${dense ? "lg:hidden" : ""}`}>
+          <span id={`${id}-d`} data-desc className={`mt-0.5 block text-[12.5px] leading-snug text-ink-secondary ${off ? "italic" : ""} ${dense ? "lg:hidden" : ""}`}>
             {line}
           </span>
         )}
@@ -753,8 +770,8 @@ function HubRow({ row, compact = false, dense = false }: { row: Row; compact?: b
           so three chips fit in a desktop column; the icon stays on the title. */}
       {row.factLine && !off && (
         <span className="mt-1.5 flex basis-full flex-wrap gap-1 [&>*]:ml-0">
-          {row.factLine.map((f) => (
-            <Chip key={f.text} fact amber={f.amber}>
+          {row.factLine.map((f, i) => (
+            <Chip key={f.text} id={`${id}-l${i}`} fact amber={f.amber}>
               {f.text}
             </Chip>
           ))}
@@ -764,11 +781,12 @@ function HubRow({ row, compact = false, dense = false }: { row: Row; compact?: b
   );
 }
 
-function Chip({ children, fact = false, amber = false }: { children: React.ReactNode; fact?: boolean; amber?: boolean }) {
+function Chip({ children, id, fact = false, amber = false }: { children: React.ReactNode; id?: string; fact?: boolean; amber?: boolean }) {
   // Amber is a fill and a border only; the words stay ink (test/contrast.test.ts).
   const tone = amber ? "border-yellow-600 bg-yellow-100 text-ink-strong" : "border-line-faint bg-surface-neutral text-ink-secondary";
   return (
     <span
+      id={id}
       data-fact={fact || undefined}
       data-amber={amber || undefined}
       className={`ml-auto flex-none whitespace-nowrap rounded-full border px-1.5 py-[5px] font-mono text-[11px] font-medium leading-none ${tone}`}
@@ -871,6 +889,7 @@ function HalfDone({
   unfinished: UnfinishedPrint[];
 }) {
   const { t, tn, locale, formatLongDate, formatShortDate } = useI18n();
+  const id = useId();
   const [snapshot, setSnapshot] = useState<AddDaySnapshot | null>(null);
   const [expanded, setExpanded] = useState(false);
 
@@ -963,19 +982,21 @@ function HalfDone({
         {t("studio.hub.halfDone")}
       </h2>
       <ul>
-        {shown.map((row) => (
+        {shown.map((row, ri) => (
           <li key={row.key}>
             <Link
               href={row.href}
+              aria-label={row.title}
+              aria-describedby={`${id}-${ri}-d ${id}-${ri}-c`}
               className="flex min-h-11 items-center gap-3 rounded-[10px] px-1.5 py-1.5 transition-colors hover:bg-surface-neutral
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
               <row.Icon className="h-5 w-5 flex-none text-ink-body" aria-hidden strokeWidth={2} />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold leading-tight text-ink-strong">{row.title}</span>
-                <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">{row.detail}</span>
+                <span id={`${id}-${ri}-d`} className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">{row.detail}</span>
               </span>
-              <Chip>{row.chip}</Chip>
+              <Chip id={`${id}-${ri}-c`}>{row.chip}</Chip>
             </Link>
           </li>
         ))}
