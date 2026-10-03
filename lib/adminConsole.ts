@@ -879,7 +879,7 @@ export type Attend = {
    */
   id: string;
   /** The kind, which is also the order these are shown in. */
-  kind: "fault" | "backup" | "disk";
+  kind: "fault" | "backup" | "disk" | "provider" | "order";
   title: string;
   detail: string;
   /** The right-hand stamp: how long it has been like this. */
@@ -903,7 +903,7 @@ export type Attend = {
  *  afternoon's worth. */
 const DISK_FULL = 0.9;
 
-const ORDER: Attend["kind"][] = ["fault", "backup", "disk"];
+const ORDER: Attend["kind"][] = ["fault", "backup", "disk", "provider", "order"];
 
 /** Whole days between then and now, for a stamp rather than a duration. */
 function daysSince(when: string | null, now: Date): number | null {
@@ -937,10 +937,12 @@ export function attention(input: {
   troubles: Trouble[];
   journals: StatusReport["journals"];
   ceiling: number | null;
+  /** Entries other modules already built — the providers section's (B1646). */
+  extra?: Attend[];
   now?: Date;
 }): Attend[] {
   const now = input.now ?? new Date();
-  const found: Attend[] = [];
+  const found: Attend[] = [...(input.extra ?? [])];
 
   // A backup's own faults arrive inside `health.wrong` carrying their own
   // `backup` mark, so a stale copy is one entry here rather than one under
