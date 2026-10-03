@@ -161,7 +161,7 @@ export default function GroupRosterFlow({
       </section>
 
       <section className="mt-6 border-t border-line-quiet pt-6">
-        <h2 className={EYEBROW}>{t("studio.groupTrip.plan", { planned: String(plannedDays), days: String(days.length) })}</h2>
+        <h2 className={EYEBROW}>{tn("studio.groupTrip.plan", days.length, { planned: String(plannedDays), days: String(days.length) })}</h2>
         {roster.students.length === 0 ? (
           <p className="mt-3 text-sm text-ink-secondary">{t("studio.groupTrip.addFirst")}</p>
         ) : (

@@ -178,7 +178,7 @@ export default function TripEditFlow({
    *  trip's roster for the one row that opens its own page. */
   groupRow?: { students: number; planned: number; days: number };
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const router = useRouter();
   const [title, setTitle] = useState(trip?.title ?? "");
   const [tagline, setTagline] = useState(trip?.tagline ?? "");
@@ -335,9 +335,8 @@ export default function TripEditFlow({
           <h2 className={EYEBROW}>{t("studio.groupTrip.title")}</h2>
           <p className="mt-2 text-sm text-ink-secondary">
             {t("studio.groupTrip.row", {
-              students: String(groupRow.students),
-              planned: String(groupRow.planned),
-              days: String(groupRow.days),
+              students: tn("studio.groupTrip.studentsPart", groupRow.students, { count: String(groupRow.students) }),
+              plan: tn("studio.groupTrip.daysPlanned", groupRow.days, { planned: String(groupRow.planned), days: String(groupRow.days) }),
             })}{" "}
             <Link href={`${journalPath(username)}/studio/trip/roster?trip=${encodeURIComponent(trip.id)}`} className="font-semibold text-ink-strong underline underline-offset-2">
               {t("studio.groupTrip.open")}
