@@ -36,7 +36,7 @@ describe("PublishedDay — B2678", () => {
     // them, inside one bordered card — `min-h-16`/`divide-y`/one
     // `rounded-2xl border` wrapper around all three, not three separate
     // underlined links loose in the page.
-    expect(source).toContain("min-h-16");
+    expect(source).toContain("min-h-14 w-full"); // B2765: 56px rows with 18px vertical padding, text wraps freely
     expect(source).toContain("divide-y divide-line-faint overflow-hidden rounded-2xl border");
   });
 

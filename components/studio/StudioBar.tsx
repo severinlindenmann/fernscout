@@ -13,7 +13,7 @@ import { journalPath } from "@/lib/journalPath";
 type BarState = { actions: ReactNode; mode: "extend" | "replace"; revealAfterScroll: number; desktop: boolean };
 
 /** What `StudioPage` tells the bar about the page it is drawing — B2069/B2076. */
-type PageState = { group?: StudioGroup; width: "flow" | "board" | "wide" };
+type PageState = { group?: StudioGroup; width: "flow" | "board" | "wide"; /** B2763 — a step of writing a day: Back + primary only. */ hideGroups?: boolean };
 
 type StudioBarContextValue = {
   setBar: (state: BarState) => void;
@@ -221,7 +221,7 @@ export default function StudioBarProvider({
           ) : (
             <>
               {backLink}
-              {page && <GroupSheet username={username} />}
+              {page && !page.hideGroups && <GroupSheet username={username} />}
               {bar?.desktop ? bar.actions : bar?.actions && <div className="contents md:hidden">{bar.actions}</div>}
             </>
           )}
@@ -388,12 +388,12 @@ export function useStudioBar(
  * (the desktop row's). Draws nothing; a no-op outside the provider, so
  * `StudioPage` still renders on its own in a test.
  */
-export function StudioBarPage({ group, width }: PageState) {
+export function StudioBarPage({ group, width, hideGroups }: PageState) {
   const setPage = useContext(StudioBarContext)?.setPage;
   useEffect(() => {
     if (!setPage) return;
-    setPage({ group, width });
+    setPage({ group, width, hideGroups });
     return () => setPage(null);
-  }, [setPage, group, width]);
+  }, [setPage, group, width, hideGroups]);
   return null;
 }
