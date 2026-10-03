@@ -166,7 +166,7 @@ export default async function Root() {
         // `server-only` module that charges it rather than having a dozen
         // numbers drilled through as props. Absent — not empty — on an
         // instance that charges nothing at all. B840.
-        pricing={billingEnabled ? <Pricing locale={locale} cta={inviteCta} /> : null}
+        pricing={billingEnabled ? <Pricing locale={locale} cta={inviteCta === "none" ? undefined : inviteCta} /> : null}
         // B2506. The same prices and plan facts as data, for the hero's
         // plan line, the prints block and the questions. Empty in a public
         // build (the stubs) and with billing off.

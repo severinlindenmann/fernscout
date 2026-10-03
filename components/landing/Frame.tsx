@@ -27,7 +27,7 @@ import { PILL_GHOST, PILL_PRIMARY, PILL_SMALL } from "./styles";
  * everybody (B412's reason, on `Landing`).
  */
 
-export type InviteCta = "request" | "welcome";
+export type InviteCta = "request" | "welcome" | "none";
 /** Whom a page is for — its tint (app/globals.css, `.audience-*`). */
 export type Audience = "personal" | "school" | "operator";
 export type NavLink = { href: string; label: string };
@@ -58,18 +58,19 @@ export type FrameProps = {
 /** The header's links and the one primary door, for `/` or — `away` — for
  * another page, where the section links lead back to `/`. Prints stays on
  * `/` only: the header has no room for a fifth word in German at 1280px. */
-export function useDoors({ inviteCta, helperEnabled, prints, pricing, orgs }: Doors, away = false) {
+export function useDoors({ inviteCta, prints, pricing, orgs }: Doors, away = false) {
   const { t } = useI18n();
   // The one primary door, the same in the header, the hero, the pricing and
-  // the questions: an invite request while signup is invite-only and the
-  // request page exists (B2507), otherwise `/welcome` — where the helper can
-  // write. With the helper off there is no hosted way in, and the agent
-  // instruction below the hero is the door instead (B694, B751).
+  // the questions, decided by the signup capability alone (B2811): an invite
+  // request while signup is invite-only and the request page exists (B2507),
+  // "Start your journal" at /welcome while signup is open, nothing where
+  // signup is off. Whether the helper is on says how a day gets written, not
+  // whether a journal can be made.
   const cta: NavLink | null =
     inviteCta === "request"
       ? { href: "/invite", label: t("landing.requestInvite") }
-      : helperEnabled
-        ? { href: "/welcome", label: t("landing.helperCta") }
+      : inviteCta === "welcome"
+        ? { href: "/welcome", label: t("landing.startJournal") }
         : null;
   const at = away ? "/" : "";
   const nav: NavLink[] = [

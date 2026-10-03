@@ -30,6 +30,7 @@ import { GROUP_HUE, type StudioGroup } from "@/lib/studio/groups";
 import {
   bringInFirstRows,
   buildHubGroups,
+  firstVisitDoors,
   filterHubGroups,
   journalRows,
   peopleRows,
@@ -48,6 +49,26 @@ import { addDayExpiresOn, readAddDaySnapshot, type AddDaySnapshot } from "@/lib/
 
 import { journalPath } from "@/lib/journalPath";
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
+
+const DOOR_HUE = { newTrip: "var(--color-yellow-400)", polarsteps: "var(--color-blue-500)", photos: "var(--color-green-500)" };
+
+/** B2810 — per journal, per device; storage can be blocked, so both ends are
+ *  guarded and a failure just means the welcome shows again. */
+const welcomeKey = (username: string) => `fs.studioWelcomeSkipped.${username}`;
+function readWelcomeSkipped(username: string): boolean {
+  try {
+    return localStorage.getItem(welcomeKey(username)) === "1";
+  } catch {
+    return false;
+  }
+}
+function writeWelcomeSkipped(username: string) {
+  try {
+    localStorage.setItem(welcomeKey(username), "1");
+  } catch {
+    /* the welcome shows again next time */
+  }
+}
 
 /** B2600 — "Everything else"'s four cards: a tinted icon, a title and (on
  *  phone, where they open and close) one summary line. Independent of
@@ -170,6 +191,10 @@ export default function StudioHub({
   useShareInboxAutoConnect(username);
   const { t, tn, locale, formatLongDate } = useI18n();
   const [query, setQuery] = useState("");
+  // B2810 — the first-visit welcome is shown once per journal per device;
+  // `null` until the browser has been asked (nothing flashes meanwhile).
+  const [skipped, setSkipped] = useState<boolean | null>(null);
+  useEffect(() => setSkipped(readWelcomeSkipped(username)), [username]);
 
   // B2304 — no floating pill on the hub any more: it repeated the hero and
   // two of the group grid's own rows, one more "door" on a page about
@@ -225,6 +250,59 @@ export default function StudioHub({
     return s;
   }, [groups, query, journalMatches]);
   const isOpen = (key: string) => openByHand.has(key) || matchingKeys.has(key);
+
+  if (model.kind === "empty" && skipped !== true) {
+    const { nickname, address } = model.welcome;
+    return (
+      <StudioPage
+        username={username}
+        back={false}
+        width="wide"
+        title={nickname ? t("studio.hub.first.title", { name: nickname }) : t("studio.hub.first.titleAnon")}
+        lede={t("studio.hub.first.body", { address })}
+      >
+        <div className={skipped === null ? "invisible" : undefined}>
+          <WaitingDays username={username} model={model.waitingDays} canWrite={false} />
+          {halfDone}
+          <ul className="mt-4 grid max-w-xl gap-3">
+            {firstVisitDoors(username, model.welcome, model.extractOff, t).map(({ key, href, Icon, title, description }, i) => (
+              <li key={key}>
+                <Link
+                  href={href}
+                  data-door={key}
+                  className={`flex min-h-11 items-center gap-3.5 rounded-2xl bg-surface-raised p-4 text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${
+                    i === 0 ? "border-2 border-ink-strong" : "border border-line-faint"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="grid size-11 flex-none place-items-center rounded-xl"
+                    style={{ background: `color-mix(in srgb, ${DOOR_HUE[key]} ${key === "newTrip" ? 100 : 18}%, var(--surface-raised))` }}
+                  >
+                    <Icon size={22} />
+                  </span>
+                  <span>
+                    <b className="block text-base">{title}</b>
+                    <span className="block text-sm text-ink-secondary">{description}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={() => {
+              writeWelcomeSkipped(username);
+              setSkipped(true);
+            }}
+            className="mt-3 inline-flex min-h-11 items-center rounded px-4 text-[15px] font-semibold text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            {t("studio.hub.first.skip")}
+          </button>
+        </div>
+      </StudioPage>
+    );
+  }
 
   if (model.kind === "empty")
     return (

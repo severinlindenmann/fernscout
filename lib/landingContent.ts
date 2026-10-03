@@ -15,7 +15,7 @@ export type LandingFlags = {
   helperEnabled: boolean;
   postcards: boolean;
   photobook: boolean;
-  inviteCta: "request" | "welcome";
+  inviteCta: "request" | "welcome" | "none";
   planPoint?: string | null;
   planFaq?: { q: string; a: string }[];
   /**
