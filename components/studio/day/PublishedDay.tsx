@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CircleCheck, Images, PencilLine, Share2 } from "lucide-react";
+import { CircleCheck, Images, PencilLine, Share2, UserPlus } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { journalPath } from "@/lib/journalPath";
 
@@ -20,6 +20,7 @@ export default function PublishedDay({
   title,
   readerLine,
   thumb,
+  reach,
 }: {
   username: string;
   tripId: string;
@@ -31,6 +32,9 @@ export default function PublishedDay({
   /** The story thumbnail (`…/story?look=photo`), or null when the day has
    *  no photographs to draw one from. */
   thumb: string | null;
+  /** B2776 — empty when someone besides the owner can open the day; else the
+   *  ways to let somebody in (`reachActions`), shown instead of "Send the link". */
+  reach: { key: "studio.reach.addSomeone" | "studio.reach.letReadersIn" | "studio.reach.inviteReader" | "studio.reach.changeWho"; href: string }[];
 }) {
   const { t } = useI18n();
   const [shared, setShared] = useState(false);
@@ -62,7 +66,9 @@ export default function PublishedDay({
   }
 
   const rows: { icon: React.ReactNode; title: string; sub: string; onClick?: () => void; href?: string }[] = [
-    { icon: <Share2 aria-hidden className="h-5 w-5" />, title: t("studio.published.sendLink"), sub: t("studio.published.sendLinkSub"), onClick: () => void sendLink() },
+    ...(reach.length === 0
+      ? [{ icon: <Share2 aria-hidden className="h-5 w-5" />, title: t("studio.published.sendLink"), sub: t("studio.published.sendLinkSub"), onClick: () => void sendLink() }]
+      : reach.map((a) => ({ icon: <UserPlus aria-hidden className="h-5 w-5" />, title: t(a.key), sub: t("studio.reach.sub"), href: a.href }))),
     { icon: <PencilLine aria-hidden className="h-5 w-5" />, title: t("studio.published.nextDay"), sub: t("studio.published.nextDaySub"), href: writeHref },
     { icon: <Images aria-hidden className="h-5 w-5" />, title: t("studio.published.addPhotos"), sub: t("studio.published.addPhotosSub"), href: addPhotosHref },
   ];
