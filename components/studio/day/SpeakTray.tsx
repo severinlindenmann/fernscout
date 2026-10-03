@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Languages, Mic } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import RecordButton from "@/components/RecordButton";
@@ -132,7 +133,8 @@ export default function SpeakTray({
         />
       )}
 
-      {picking && (
+      {picking &&
+        createPortal(
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("studio.speak.langTitle")}>
           <button type="button" aria-label={t("studio.speak.close")} onClick={() => setPicking(false)} className="fs-speak-scrim absolute inset-0 bg-overlay-strong/70" />
           <div className="fs-speak-sheet absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-[28px] border-t border-line-quiet bg-surface-base px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
@@ -156,7 +158,8 @@ export default function SpeakTray({
               ))}
             </ul>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

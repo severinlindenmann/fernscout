@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Languages, Mic } from "lucide-react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
@@ -63,7 +64,8 @@ export default function SpeakSheet({
   const status =
     phase === "working" ? t("agent.speechWorking") : paused ? t("studio.speak.paused") : live ? t("studio.speak.listening") : "";
 
-  return (
+  // In the body, not in the page: a page section with its own stacking would paint over a fixed child.
+  return createPortal(
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("studio.speak.label")}>
       <div className={`fs-speak-scrim absolute inset-0 bg-overlay-strong/70 ${leaving ? "fs-speak-out" : ""}`} aria-hidden />
       <div
@@ -187,6 +189,7 @@ export default function SpeakSheet({
           </button>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
