@@ -881,7 +881,6 @@ export type TranslationKey =
   | "draft.bodyShared"
   | "draft.title"
   | "draft.titleShared"
-  | "edit.addPhotos"
   | "edit.body"
   | "edit.cancel"
   | "edit.caption"
