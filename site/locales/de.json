@@ -2699,7 +2699,7 @@
   "studio.day.edit.tripNote": "Wer die Reise lesen darf und ob sie beworben wird, stellst du hier ein:",
   "studio.day.picker.showMore": "Mehr anzeigen",
   "studio.day.reshape.notFound": "Dieser Tag wurde nicht gefunden.",
-  "studio.day.reshape.title": "Etwas ist falsch abgelegt",
+  "studio.day.reshape.title": "Einen Tag verschieben oder teilen",
   "studio.day.reshape.consequence": "Das ändert, wo ein Tag liegt, nicht was er sagt. Du siehst Vorher und Nachher, bevor sich etwas bewegt.",
   "studio.day.reshape.cta": "Auswählen, was falsch ist",
   "studio.day.reshape.which.stepLabel": "{current} von {total} · was falsch ist",

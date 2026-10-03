@@ -2699,7 +2699,7 @@
   "studio.day.edit.tripNote": "Chi può leggere il viaggio e se è pubblicizzato si imposta in",
   "studio.day.picker.showMore": "Mostra altro",
   "studio.day.reshape.notFound": "Quel giorno non è stato trovato.",
-  "studio.day.reshape.title": "Qualcosa è archiviato nel posto sbagliato",
+  "studio.day.reshape.title": "Sposta o dividi un giorno",
   "studio.day.reshape.consequence": "Questi cambiano dove si trova un giorno, non ciò che dice. Vedrai il prima e il dopo prima che qualcosa si sposti.",
   "studio.day.reshape.cta": "Scegli cosa non va",
   "studio.day.reshape.which.stepLabel": "{current} di {total} · cosa non va",

@@ -2699,7 +2699,7 @@
   "studio.day.edit.tripNote": "Qui peut lire le voyage et s’il est mis en avant se règle ici :",
   "studio.day.picker.showMore": "Afficher plus",
   "studio.day.reshape.notFound": "Ce jour est introuvable.",
-  "studio.day.reshape.title": "Quelque chose est mal classé",
+  "studio.day.reshape.title": "Déplacer ou scinder un jour",
   "studio.day.reshape.consequence": "Ces actions changent l’endroit où se trouve un jour, pas ce qu’il dit. Tu verras l’avant et l’après avant que quoi que ce soit ne bouge.",
   "studio.day.reshape.cta": "Choisir ce qui ne va pas",
   "studio.day.reshape.which.stepLabel": "{current} sur {total} · ce qui ne va pas",

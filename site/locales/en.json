@@ -2699,7 +2699,7 @@
   "studio.day.edit.tripNote": "Who may read the trip and whether it is advertised live under",
   "studio.day.picker.showMore": "Show more",
   "studio.day.reshape.notFound": "That day could not be found.",
-  "studio.day.reshape.title": "Something is filed wrong",
+  "studio.day.reshape.title": "Move or split a day",
   "studio.day.reshape.consequence": "These change where a day lives, not what it says. You will see the before and the after before anything moves.",
   "studio.day.reshape.cta": "Choose what's wrong",
   "studio.day.reshape.which.stepLabel": "{current} of {total} · what went wrong",
