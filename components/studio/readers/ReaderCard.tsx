@@ -49,6 +49,12 @@ export type CardEnv = {
    * asked to write to a trip: true opens the journal-wide read grant and
    * leaves the trip place untouched. */
   confirmed: (contact: AdminContact, action: "letin" | "revoke", readOnly?: boolean) => void;
+  /** B1749 — move an approved contact into or out of the close circle, only
+   * after its ConfirmPanel. */
+  circle: (contact: AdminContact, scope: "close" | "read") => void;
+  /** B1749 — whether anything is marked Private yet; false means promoting
+   * somebody opens nothing today, and the confirm says so. */
+  hasPrivate: boolean;
   /** After NotifyStep sent or was put off: re-read the lists. */
   refresh: () => void;
   onEdit: (contact: AdminContact) => void;
@@ -86,7 +92,7 @@ const PRIMARY =
 const MENU_ITEM =
   "block min-h-11 w-full px-4 py-2 text-left text-sm font-semibold text-ink-strong hover:bg-surface-subtle";
 
-type Asking = "letin" | "decline" | "revoke" | "delete" | "notify" | "menu" | "group" | null;
+type Asking = "letin" | "decline" | "revoke" | "delete" | "notify" | "menu" | "group" | "circle" | null;
 
 /** One person: who they are, what they may do, and what the owner can do
  * about it — every consequential action asks first (B2133, B2291). */
@@ -119,6 +125,8 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
       ? t("readers.role.buddyOf", { trip: buddyOf[0].title })
       : buddyOf.length > 1
         ? env.tn("contact.relationBuddyCount", buddyOf.length, { count: String(buddyOf.length) })
+        : contact.relationship.closeCircle
+          ? t("readers.role.close")
         : kind === "asking"
           ? contact.pendingTrips?.length
             ? t("readers.role.wantsTrip", { trip: contact.pendingTrips.join(", ") })
@@ -229,6 +237,7 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
   // request that never finished — nothing to send it again with.
   const canNotify = kind === "notInvited" || (kind === "invited" && contact.status === "active");
   const close = () => setAsking(null);
+  const inCircle = contact.relationship.closeCircle === true;
 
   return (
     <li
@@ -440,6 +449,11 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
             {t("readers.menu.edit")}
           </button>
           {contact.status === "active" && (
+            <button type="button" className={MENU_ITEM} onClick={() => setAsking("circle")}>
+              {t(inCircle ? "readers.menu.backToReader" : "readers.menu.addClose")}
+            </button>
+          )}
+          {contact.status === "active" && (
             <button type="button" className={MENU_ITEM} onClick={() => setAsking("revoke")}>
               {t("readers.menu.takeAway")}
             </button>
@@ -475,6 +489,30 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
             onConfirm={() => {
               close();
               env.confirmed(contact, "letin", letInReadOnly);
+            }}
+            onCancel={close}
+          />
+        </div>
+      )}
+      {asking === "circle" && (
+        <div className="mt-3">
+          <ConfirmPanel
+            label={t(inCircle ? "readers.menu.backToReader" : "readers.menu.addClose")}
+            question={
+              inCircle
+                ? t("readers.close.removeQuestion", { name: displayName })
+                : [
+                    t("readers.close.addQuestion", { name: displayName }),
+                    env.hasPrivate ? "" : t("readers.close.nothingPrivate"),
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+            }
+            confirmLabel={t(inCircle ? "readers.close.removeConfirm" : "readers.close.addConfirm", { name: first })}
+            busy={busy}
+            onConfirm={() => {
+              close();
+              env.circle(contact, inCircle ? "read" : "close");
             }}
             onCancel={close}
           />
@@ -548,12 +586,15 @@ export function ReaderGroup({
   kind,
   env,
   empty,
+  hint,
 }: {
   title: string;
   rows: AdminContact[];
   kind: CardKind;
   env: CardEnv;
   empty?: string;
+  /** A line under the heading, before the cards (B1749's close circle). */
+  hint?: string;
 }) {
   if (rows.length === 0 && !empty) return null;
   return (
@@ -566,6 +607,7 @@ export function ReaderGroup({
           </span>
         )}
       </h2>
+      {hint && <p className="mt-1 text-sm text-ink-secondary">{hint}</p>}
       {rows.length === 0 ? (
         <p className="mt-3 rounded-2xl bg-surface-subtle px-4 py-3 text-sm text-ink-secondary">{empty}</p>
       ) : (

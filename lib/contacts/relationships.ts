@@ -6,6 +6,8 @@ export type TripMembership = { id: string; title: string; people: string[] };
 export type ContactRelationship = {
   owner: boolean;
   guest: boolean;
+  /** B1749 — in the owner's close circle: also reads what is marked `private`. */
+  closeCircle?: boolean;
   buddyOf: { id: string; title: string }[];
 };
 
@@ -24,11 +26,13 @@ export function relationshipsFor(
   ownerEmail: string | null,
   trips: TripMembership[],
   guest: boolean,
-): ContactRelationship {
+  closeCircle = false,
+): ContactRelationship & { closeCircle: boolean } {
   const address = normaliseEmail(email);
   return {
     owner: ownerEmail !== null && address === ownerEmail,
     guest,
+    closeCircle: guest && closeCircle,
     buddyOf: trips
       .filter((trip) => trip.people.includes(address))
       .map((trip) => ({ id: trip.id, title: trip.title })),

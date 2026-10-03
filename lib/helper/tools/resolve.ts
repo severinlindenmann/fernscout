@@ -1,6 +1,7 @@
 import "server-only";
 import { isEnabled } from "../../capabilities";
 import { listContacts } from "../../contacts";
+import { closeCircleContacts } from "../../grants";
 import { AS_AUTHOR, getAllEntries } from "../../entries";
 import { peopleOf } from "../../tripPeople";
 import { getTrip, getTrips, tripRef } from "../../trips";
@@ -224,7 +225,10 @@ export async function readersOf(username: string, tripId: string, say: Say): Pro
   // nickname was written for), then the contact's stored name.
   const ownerEmail = getUser(username)?.owner.email?.toLowerCase();
   const contacts = isEnabled("contacts", username) ? await listContacts(username) : [];
-  const named = (await peopleOf(trip))
+  // B1749 — plus the close circle, the only contacts a private day opens to.
+  const close = isEnabled("contacts", username) ? await closeCircleContacts(username, new Date()) : new Set<string>();
+  const closeEmails = contacts.filter((c) => c.status === "active" && close.has(c.id)).map((c) => c.email);
+  const named = [...new Set([...(await peopleOf(trip)), ...closeEmails])]
     .filter((email) => email !== ownerEmail)
     .map((email) => {
       const person = trip.people.find((p) => p.email.toLowerCase() === email);
