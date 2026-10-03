@@ -3218,7 +3218,6 @@ export type TranslationKey =
   | "studio.hub.betweenTrips.title"
   | "studio.hub.cannotRun.changeDay"
   | "studio.hub.cannotRun.photobook"
-  | "studio.hub.cannotRun.postcard"
   | "studio.hub.cannotRun.reshapeDay"
   | "studio.hub.cannotRun.visitors"
   | "studio.hub.chip.off"

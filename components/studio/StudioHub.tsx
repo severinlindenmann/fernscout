@@ -234,7 +234,7 @@ export default function StudioHub({
         <WaitingDays username={username} model={model.waitingDays} canWrite={false} />
         {halfDone}
         <div className="mt-3 grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <GroupCard group="bringIn" rows={bringInFirstRows(username, t)} arriveIndex={0} />
+          <GroupCard group="bringIn" rows={bringInFirstRows(username, t, model.extractOff)} arriveIndex={0} />
           <JournalCard username={username} rows={journalRows(username, t, tn, locale, model.analyticsEnabled, model.account)} arriveIndex={1} />
         </div>
       </StudioPage>

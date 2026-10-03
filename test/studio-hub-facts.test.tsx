@@ -57,7 +57,7 @@ const FULL: Extract<StudioHubModel, { kind: "full" }> = {
   addDayTrip: { id: "alps", title: "Alps", current: true },
   toldToday: false,
   planTrip: { id: "jp", title: "Japan" },
-  cannotRun: { postcard: false, photobook: false, changeDay: false, reshapeDay: false },
+  cannotRun: { postcard: false, photobook: false, extract: false, readers: false, changeDay: false, reshapeDay: false },
   resumableImports: [],
   analyticsEnabled: true,
   postcardSuggestion: null, routeRecordingTrips: [],
@@ -110,7 +110,7 @@ describe("the Half done strip", () => {
     expect(strip(await render(FULL))).toBeNull();
     act(() => root?.unmount());
     container?.remove();
-    expect(strip(await render({ kind: "empty", account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] }))).toBeNull();
+    expect(strip(await render({ kind: "empty", extractOff: false, account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] }))).toBeNull();
   });
 
   test("gathers the add-day draft, each import and the postcard suggestion, under the hero", async () => {

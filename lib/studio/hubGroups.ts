@@ -101,13 +101,15 @@ function draftsChip(unfinished: UnfinishedPrint[], kind: UnfinishedPrint["kind"]
 
 /** Photographs and Your route — the Bring in rows an empty journal also
  *  gets, since either can make its first trip. */
-export function bringInFirstRows(username: string, t: T): Row[] {
+export function bringInFirstRows(username: string, t: T, extractOff: boolean): Row[] {
   return [
     {
       href: `${journalPath(username)}/studio/photos`,
       Icon: Images,
       title: t("studio.hub.item.photos.title"),
       description: t("studio.hub.item.photos.description"),
+      // B2577 — the page's own banner string, so menu and page cannot drift.
+      reason: extractOff ? t("studio.extract.off.banner") : undefined,
     },
     {
       href: `${journalPath(username)}/studio/location?from=hub`,
@@ -237,6 +239,7 @@ export function peopleRows(model: Extract<StudioHubModel, { kind: "full" }>, use
       Icon: UserPlus,
       title: t("studio.hub.item.readers.title"),
       description: t("studio.hub.item.readers.description"),
+      reason: model.cannotRun.readers ? t("studio.readers.off.banner") : undefined,
       fact: facts.readersAsking
         ? tn("studio.hub.fact.asking", facts.readersAsking, { count: String(facts.readersAsking) })
         : undefined,
@@ -273,7 +276,7 @@ export function buildHubGroups(
     {
       group: "bringIn",
       rows: [
-        ...bringInFirstRows(username, t),
+        ...bringInFirstRows(username, t, model.cannotRun.extract),
         {
           href: `${journalPath(username)}/studio/statement?from=hub`,
           Icon: Receipt,
@@ -308,7 +311,7 @@ export function buildHubGroups(
           Icon: Send,
           title: t("studio.hub.item.postcard.title"),
           description: t("studio.hub.item.postcard.description"),
-          reason: model.cannotRun.postcard ? t("studio.hub.cannotRun.postcard") : undefined,
+          reason: model.cannotRun.postcard ? t("studio.postcard.off.banner") : undefined,
           fact: draftsChip(model.print.unfinished, "postcard", tn),
         },
         {
