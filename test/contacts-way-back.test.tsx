@@ -76,7 +76,7 @@ vi.mock("@/lib/contacts/session", () => ({ isOwner: async () => true }));
 // B630: the page derives owner/buddy/guest per row, which needs a live
 // database this test has none of — irrelevant to the header being the
 // subject here.
-vi.mock("@/lib/grants", () => ({ contactsWithReadGrant: async () => new Set() }));
+vi.mock("@/lib/grants", () => ({ contactsWithReadGrant: async () => new Set(), closeCircleContacts: async () => new Set() }));
 // The trips a writing link could name. None: the subject here is the header.
 vi.mock("@/lib/trips", () => ({ getTrips: () => [] }));
 vi.mock("@/lib/site", () => ({ serverSite: () => ({ url: "https://example.test" }) }));
