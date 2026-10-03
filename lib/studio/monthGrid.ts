@@ -4,9 +4,12 @@ function parseISO(date: string): Date {
   return new Date(`${date}T00:00:00Z`);
 }
 
-/** Clamp an ISO date to the inclusive caller-supplied bounds. */
+/** Clamp an ISO date to the inclusive caller-supplied bounds. Inverted bounds
+ *  (a trip wholly in the future against a "today" ceiling, B2823) have no valid
+ *  date; the start wins, so the result is stable and a render-time
+ *  `setState(clamp(x))` settles instead of flipping between the two ends. */
 export function clampDate(date: string, start: string, end: string): string {
-  return date < start ? start : date > end ? end : date;
+  return date < start ? start : end >= start && date > end ? end : date;
 }
 
 /** Complete month, with empty cells padding Monday-first weeks. */

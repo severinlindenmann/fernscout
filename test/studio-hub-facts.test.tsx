@@ -115,7 +115,7 @@ describe("the Half done strip", () => {
 
   test("gathers the add-day draft, each import and the postcard suggestion, under the hero", async () => {
     window.sessionStorage.setItem(
-      addDayStorageKey("alex"),
+      addDayStorageKey("alex", "alps"),
       JSON.stringify({ step: "which", tripId: "alps", date: "2026-09-20", title: "", content: "", location: "", country: "", savedAt: new Date().toISOString() }),
     );
     const el = await render({

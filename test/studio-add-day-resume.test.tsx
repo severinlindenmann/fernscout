@@ -27,9 +27,9 @@ vi.mock("@/components/PageHeader", () => ({ default: () => <header /> }));
 
 const USERNAME = "alex";
 
-function writeSnapshot(username: string, overrides: Partial<{ step: string; savedAt: string }> = {}) {
+function writeSnapshot(username: string, overrides: Partial<{ step: string; savedAt: string }> = {}, tripId = "reise") {
   window.sessionStorage.setItem(
-    addDayStorageKey(username),
+    addDayStorageKey(username, tripId),
     JSON.stringify({
       step: "which",
       tripId: "reise",
@@ -48,29 +48,39 @@ beforeEach(() => {
   window.sessionStorage.clear();
 });
 
+describe("B2826 — one draft per trip", () => {
+  test("a draft of one trip is not found under another, and the old unkeyed key is ignored", () => {
+    writeSnapshot(USERNAME);
+    expect(readAddDaySnapshot(USERNAME, "reise")).not.toBeNull();
+    expect(readAddDaySnapshot(USERNAME, "andere")).toBeNull();
+    window.sessionStorage.setItem(`studio:addDay:${USERNAME}`, JSON.stringify({ step: "page", savedAt: new Date().toISOString() }));
+    expect(readAddDaySnapshot(USERNAME, "")).toBeNull();
+  });
+});
+
 describe("readAddDaySnapshot — the one read both the flow and the hub share", () => {
   test("nothing saved: null", () => {
-    expect(readAddDaySnapshot(USERNAME)).toBeNull();
+    expect(readAddDaySnapshot(USERNAME, "reise")).toBeNull();
   });
 
   test("a fresh draft comes back whole", () => {
     writeSnapshot(USERNAME);
-    const snap = readAddDaySnapshot(USERNAME);
+    const snap = readAddDaySnapshot(USERNAME, "reise");
     expect(snap?.step).toBe("which");
     expect(snap?.date).toBe("2025-11-15");
   });
 
   test("a finished flow (\"done\") is not offered as resumable", () => {
     writeSnapshot(USERNAME, { step: "done" });
-    expect(readAddDaySnapshot(USERNAME)).toBeNull();
+    expect(readAddDaySnapshot(USERNAME, "reise")).toBeNull();
   });
 
   test("a draft older than the expiry is forgotten, not resumed", () => {
     const old = new Date(Date.now() - ADD_DAY_RESUME_EXPIRY_MS - 1000).toISOString();
     writeSnapshot(USERNAME, { savedAt: old });
-    expect(readAddDaySnapshot(USERNAME)).toBeNull();
+    expect(readAddDaySnapshot(USERNAME, "reise")).toBeNull();
     // Forgotten means actually cleared, not just skipped this once.
-    expect(window.sessionStorage.getItem(addDayStorageKey(USERNAME))).toBeNull();
+    expect(window.sessionStorage.getItem(addDayStorageKey(USERNAME, "reise"))).toBeNull();
   });
 
   test("addDayExpiresOn is exactly the expiry window after savedAt", () => {
@@ -134,7 +144,8 @@ describe("StudioHub — half-done 'Add a day' work reaches the hub (H4)", () => 
   });
 
   test("an empty journal's hub surfaces the same draft above its own CTA", async () => {
-    writeSnapshot(USERNAME);
+    // No trip yet: the flow keys its draft by the empty trip.
+    writeSnapshot(USERNAME, {}, "");
     renderHub({ kind: "empty", extractOff: false, welcome: { nickname: null, address: "x/@y", polarsteps: false }, account: { storage: null }, print: { unfinished: [], recentOrders: [] }, resumableImports: [], analyticsEnabled: false, postcardSuggestion: null, routeRecordingTrips: [] });
     await act(async () => {});
     expect(container!.textContent).toContain("A day you started, not finished");
