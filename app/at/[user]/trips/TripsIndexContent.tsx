@@ -14,6 +14,7 @@ import { flagFromCode } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
+import { journalPath } from "@/lib/journalPath";
 import { daysUntil } from "@/lib/tripTime";
 import type { MalformedTrip, MalformedTripReason } from "@/lib/trips";
 import { ACCENT_HEX, type TripAccent, type TripStatus, type TripTranslations } from "@/lib/types";
@@ -423,6 +424,12 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
             agent for, the owner already has a trip — it just is not listed. */}
         {empty.owner && !empty.filtered && (
           <div className="mt-6 border-t border-line-quiet pt-5">
+            <Link
+              href={`${journalPath(username)}/studio/trip/new`}
+              className="mb-5 inline-flex min-h-11 items-center rounded-full bg-ink-strong px-5 font-semibold text-surface-raised"
+            >
+              {t("studio.hub.newTrip.cta")}
+            </Link>
             <AgentHandover username={username} />
           </div>
         )}

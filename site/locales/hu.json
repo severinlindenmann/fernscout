@@ -2199,7 +2199,7 @@
   "trips.allTrips": "Összes út",
   "trips.chip": "Utak",
   "trips.daysAway": "nap múlva",
-  "trips.emptyOwnerBody": "Ez a napló még üres. Utat nem itt hozol létre — nincs űrlap, és nem is lesz. Nyomd meg lent a gombot egy szövegért, amit átadhatsz egy ügynöknek, és elkészíti az elsőt.",
+  "trips.emptyOwnerBody": "Ez a napló még üres. Az első utad a stúdiódban indul — egy cím és két dátum, és később mindent átírhatsz.",
   "trips.emptyOwnerFilteredBody": "Van egy utad, de `listed: false` van rajta megjelölve — ez ebből a listából is kihagyja, nemcsak a webhelytérképből és a váltóból. Módosítsd a láthatóságát a stúdió úti oldalán.",
   "trips.emptyOwnerFilteredTitle": "Semmi sincs listázva",
   "trips.emptyTitle": "Még nincs egyetlen út sem",

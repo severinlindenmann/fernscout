@@ -136,9 +136,12 @@ describe("and its owner", () => {
     expect(html).not.toMatch(/read out the code/i);
   });
 
-  test("is told there is no form and never will be", () => {
-    expect(render({ empty: owner })).toMatch(/there is no form, and there never will be/i);
-    expect(render({ empty: owner, locale: "de" })).toMatch(/es gibt kein Formular/i);
+  test("is pointed at the studio's new-trip form, not told there is none", () => {
+    const html = render({ empty: owner });
+    expect(html).not.toMatch(/there is no form/i);
+    expect(html).toContain('href="/@alex/studio/trip/new"');
+    expect(html).toContain(dictionaryFor("en")["studio.hub.newTrip.cta"]);
+    expect(render({ empty: owner, locale: "de" })).not.toMatch(/es gibt kein Formular/i);
   });
 });
 
