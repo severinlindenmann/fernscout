@@ -892,7 +892,7 @@ async function insertLinkRow(
 }
 
 /** How long the signup code mail's "Continue my signup" button works — B2781. */
-export const SIGNUP_RESUME_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SIGNUP_RESUME_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SIGNUP_RESUME_KIND = "signup-resume";
 
 /**

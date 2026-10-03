@@ -98,7 +98,6 @@ export const codesRedeemTokenResponse = z.strictObject({
  * signup code mail's "Continue my signup" link; the answer is
  * `codesRedeemTokenResponse` with `scope: "signup"`. */
 export const signupResumeRequest = z.strictObject({ token: z.string().min(1) });
-export type SignupResumeRequest = z.infer<typeof signupResumeRequest>;
 
 /** `POST /api/auth/links/redeem` request — auth.md §2.3. A link only ever
  * exists for `read` or `identity`: an agent has no browser to follow one, and
