@@ -141,4 +141,13 @@ describe("the sheet", () => {
     await tap(button(/^Undo$/));
     expect(current).toBe("Morning walk.");
   });
+
+  test("a recording too short to send says so in the sheet's own words — B2819", async () => {
+    mount("", "en");
+    await tap(button(/^Speak$/));
+    await tap(button(/Finish recording/));
+    expect(document.body.textContent).toContain("too short to write down");
+    expect(document.body.textContent).not.toContain("hold the button");
+    expect(sent).toBeNull();
+  });
 });

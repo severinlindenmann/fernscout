@@ -4909,6 +4909,7 @@
   "studio.speak.nearLimit": "Diese Aufnahme endet bei 15:00 und wird dann aufgeschrieben.",
   "studio.speak.tryAgain": "Nochmal versuchen",
   "studio.speak.discardRecording": "Aufnahme verwerfen",
+  "studio.speak.tooShort": "Das war zu kurz zum Aufschreiben — verwirf es und sprich noch einmal.",
   "studio.speak.discardAsk": "{time} wegwerfen?",
   "studio.speak.discardConfirm": "Aufnahme wegwerfen",
   "studio.speak.notSure": "Weißt du nicht, was du sagen sollst?",

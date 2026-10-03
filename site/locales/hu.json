@@ -4910,6 +4910,7 @@
   "studio.speak.nearLimit": "Ez a felvétel 15:00-nál megáll, és utána leírjuk.",
   "studio.speak.tryAgain": "Újra",
   "studio.speak.discardRecording": "Felvétel elvetése",
+  "studio.speak.tooShort": "Ez túl rövid volt ahhoz, hogy leírjuk — dobd el, és mondd el újra.",
   "studio.speak.discardAsk": "Eldobod a {time} hosszú felvételt?",
   "studio.speak.discardConfirm": "Felvétel eldobása",
   "studio.speak.notSure": "Nem tudod, mit mondj?",

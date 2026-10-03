@@ -4904,6 +4904,7 @@
   "studio.speak.nearLimit": "This recording stops at 15:00 and is then written down.",
   "studio.speak.tryAgain": "Try again",
   "studio.speak.discardRecording": "Discard recording",
+  "studio.speak.tooShort": "That was too short to write down — discard it and speak again.",
   "studio.speak.discardAsk": "Throw away {time}?",
   "studio.speak.discardConfirm": "Throw away recording",
   "studio.speak.notSure": "Not sure what to say?",
