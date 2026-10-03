@@ -21,7 +21,7 @@ export type Roster = {
   duty: Record<string, string[]>;
 };
 
-export const MAX_STUDENTS = 60;
+const MAX_STUDENTS = 60;
 const NAME_RE = /^[^\p{Cc}]{1,40}$/u;
 
 const EMPTY: Roster = { students: [], duty: {} };
