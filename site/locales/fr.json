@@ -4861,11 +4861,9 @@
   "photobook.read.hintShort": "Feuilleter · pincer une page pour zoomer",
   "photobook.read.editShort": "Modifier",
   "photobook.read.orderPrice": "Commander ce livre · {price}",
-  "billing.voucherLabel": "Bon",
   "billing.voucherPhotobook": "{amount} de réduction sur un livre photo, jusqu'au {date}",
   "billing.voucherPostcard": "{amount} de réduction sur une carte postale, jusqu'au {date}",
   "billing.voucherPrint": "{amount} de réduction sur un tirage, jusqu'au {date}",
-  "billing.appUpgradeVoucherOffer": "Abonnez-vous avant la fin de votre Trip pass le {date} et recevez un bon de {amount} pour un livre photo.",
   "studio.tripEdit.readers.caption": "Seulement ce voyage. Qui peut entrer dans ton journal, c'est sous",
   "studio.tripEdit.intro.hint": "Le paragraphe en haut de la page du voyage.",
   "studio.tripEdit.intro.translated": "Cela change les mots que tu écris ici. Les versions traduites gardent leur ancien texte jusqu’à ce que tu les changes.",
@@ -4904,5 +4902,7 @@
   "studio.permissions.leavesLede": "Tes mots, ta voix et tes photos — ce qui part chez Anthropic ou Deepgram, et ce qui reste ici.",
   "studio.people.typeIn.needEmail": "Continuer se débloque dès qu’une personne a un nom et un e-mail.",
   "photobook.pass.ownLine": "p. {pages} · ce jour",
-  "photobook.pass.whyShared": "Pourquoi un autre jour sur cette double page ?"
+  "photobook.pass.whyShared": "Pourquoi un autre jour sur cette double page ?",
+  "billing.appUpgradeVoucherHeadline": "+ bon de {amount} pour un livre photo",
+  "billing.appUpgradeVoucherLine": "Abonnez-vous avant le {date}, quand votre Trip pass se termine."
 }
