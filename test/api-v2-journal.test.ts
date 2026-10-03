@@ -252,6 +252,19 @@ describe("PATCH /api/v2/{user} — echo-tolerant round trip (V2)", () => {
     expect((await patchJournal(token, same)).status).toBe(200);
   });
 
+  // B2816 — name and nickname save and read back; the email rides unchanged.
+  test("owner.name and owner.nickname save and read back", async () => {
+    const token = await ownerToken();
+    const { body: doc } = await getJournal(token);
+    const owner = doc.owner as Record<string, string>;
+    const { status, body } = await patchJournal(token, {
+      owner: { name: "Ana T. Traveller", nickname: "Anita", email: owner.email },
+    });
+    expect(status, JSON.stringify(body)).toBe(200);
+    const { body: again } = await getJournal(token);
+    expect(again.owner).toEqual({ name: "Ana T. Traveller", nickname: "Anita", email: owner.email });
+  });
+
   // B1733: a CHANGED, syntactically valid owner.email no longer takes this
   // refusal outright — it starts a verification instead (202), proven at
   // `.../owner/email/redeem`. See test/owner-email-change.test.ts for that

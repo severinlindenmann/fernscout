@@ -38,6 +38,9 @@ export type JournalPanel = {
   tagline: string;
   /** Shown, never edited. See `JournalPageContent`. */
   email: string;
+  /** B2816 — the owner's name, and the short form readers see (`owner.nickname`). */
+  ownerName: string;
+  ownerNickname: string;
   /** The rest of `JOURNAL_PROFILE_FIELDS` (`lib/journals.ts`), minus
    *  `manualRates` (out of scope, no form in the B852 mockup this follows)
    *  and `baseCurrency` (never writable — see `JournalPageContent`). Built
@@ -118,6 +121,8 @@ export default function JournalPageContent({
   const router = useRouter();
   const [title, setTitle] = useState(journal.title);
   const [tagline, setTagline] = useState(journal.tagline);
+  const [ownerName, setOwnerName] = useState(journal.ownerName);
+  const [ownerNickname, setOwnerNickname] = useState(journal.ownerNickname);
   const [units, setUnits] = useState(journal.units);
   const [defaultLocale, setDefaultLocale] = useState(journal.defaultLocale);
   // Every maintained locale but the default — `defaultLocale` is never one
@@ -144,6 +149,10 @@ export default function JournalPageContent({
   const patch: Record<string, unknown> = {};
   if (title.trim() !== journal.title) patch.title = title.trim();
   if (tagline.trim() !== journal.tagline) patch.tagline = tagline.trim();
+  // v2 takes the owner block whole; the email rides back unchanged (an echo
+  // the server drops), so only name and nickname can move.
+  if (ownerName.trim() !== journal.ownerName || ownerNickname.trim() !== journal.ownerNickname)
+    patch.owner = { name: ownerName.trim(), nickname: ownerNickname.trim(), email: journal.email };
   if (units !== journal.units) patch.units = units;
   if (
     defaultLocale !== journal.defaultLocale ||
@@ -165,6 +174,8 @@ export default function JournalPageContent({
   const count = Object.keys(patch).length + reminderMoves.length + (tipsMoved ? 1 : 0);
   // A title cannot be cleared — `setJournalProfile` refuses it.
   const titleMissing = title.trim() === "";
+  // Neither owner name may be cleared either — the schema requires both.
+  const ownerMissing = ownerName.trim() === "" || ownerNickname.trim() === "";
 
   // The same swap `SignupWizard` makes (B838): choosing a new default drops
   // it from the extras, since it cannot be both.
@@ -236,6 +247,30 @@ export default function JournalPageContent({
           onChange={(event) => setTagline(event.target.value)}
           className={FIELD_INPUT}
         />
+      </label>
+
+      <label className="block">
+        <span className={EYEBROW}>{t("me.journalOwnerName")}</span>
+        <input
+          type="text"
+          value={ownerName}
+          maxLength={120}
+          autoComplete="name"
+          onChange={(event) => setOwnerName(event.target.value)}
+          className={FIELD_INPUT}
+        />
+      </label>
+
+      <label className="block">
+        <span className={EYEBROW}>{t("me.journalOwnerNickname")}</span>
+        <input
+          type="text"
+          value={ownerNickname}
+          maxLength={60}
+          onChange={(event) => setOwnerNickname(event.target.value)}
+          className={FIELD_INPUT}
+        />
+        <span className={HINT + " block"}>{t("me.journalOwnerNicknameHint")}</span>
       </label>
 
       <fieldset>
@@ -494,7 +529,7 @@ export default function JournalPageContent({
           label={count === 0 ? t("me.journalSave") : tn("edit.confirmSave.button", count, { count: String(count) })}
           busy={busy}
           busyLabel={t("edit.confirmSave.busy")}
-          disabled={count === 0 || titleMissing}
+          disabled={count === 0 || titleMissing || ownerMissing}
           onClick={() => void save()}
           tone="bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
         />

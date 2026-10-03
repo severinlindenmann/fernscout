@@ -52,6 +52,8 @@ export default async function StudioJournalPage({ params }: PageProps<"/at/[user
     ...journalProfile(journal),
     ownerTel: (await getOwnerTel(user))?.tel ?? "",
     email: journal.owner.email ?? "",
+    ownerName: journal.owner.name,
+    ownerNickname: journal.owner.nickname,
     baseCurrencyLocked: journalHasAnyCost(user),
   };
 

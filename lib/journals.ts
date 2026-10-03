@@ -1030,10 +1030,10 @@ type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
  * top-level key a caller would send. */
 const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
   owner:
-    "The owner block is not writable as a whole, and none of it is writable here at all. " +
-    "owner.email decides who can get a token for this journal, so a token cannot move it. The " +
-    "telephone number moved off this call too — B1654, see \"ownerTel\" below. Ask the person " +
-    "who runs the server for anything else in there.",
+    "The owner block is not writable through this call. owner.name and owner.nickname are " +
+    "changed with PATCH /api/v2/{user} (B2816). owner.email decides who can get a token for " +
+    "this journal, so a token cannot move it. The telephone number moved off this call too — " +
+    "B1654, see \"ownerTel\" below. Ask the person who runs the server for anything else in there.",
   ownerTel:
     "The owner's own telephone number moved off this call — B1654 — and there is no bare " +
     "write for it anywhere, agent token or not: a call that could set it to any number would " +

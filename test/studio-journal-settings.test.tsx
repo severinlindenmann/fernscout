@@ -33,6 +33,8 @@ const journal: JournalPanel = {
   title: "Fernscout Demo",
   tagline: "Five journeys",
   email: "owner@example.test",
+  ownerName: "Alex Walker",
+  ownerNickname: "Alex",
   visibility: "public",
   units: "metric",
   locales: ["en", "de"],
@@ -181,5 +183,34 @@ describe("the base currency — B2806", () => {
     });
     await act(async () => saveButtons()[0].click());
     expect(bodies).toEqual([{ baseCurrency: "EUR" }]);
+  });
+});
+
+/** B2816 — the owner's name and what readers call them are editable. */
+describe("the owner's names — B2816", () => {
+  test("both fields show, and a change is sent as the owner block with the email unchanged", async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response("{}", { status: 200 });
+      }),
+    );
+    await mount();
+    expect(form().textContent).toContain("Your name");
+    expect(form().textContent).toContain("What readers call you");
+    await act(async () => typeInto(inputByValue("Alex Walker"), "Alexandra Walker"));
+    await act(async () => typeInto(inputByValue("Alex"), "Alexa"));
+    await act(async () => saveButtons()[0].click());
+    expect(bodies).toEqual([
+      { owner: { name: "Alexandra Walker", nickname: "Alexa", email: "owner@example.test" } },
+    ]);
+  });
+
+  test("an emptied nickname cannot be saved", async () => {
+    await mount();
+    await act(async () => typeInto(inputByValue("Alex"), ""));
+    expect(saveButtons()[0].disabled).toBe(true);
   });
 });
