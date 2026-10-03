@@ -193,6 +193,8 @@
   --on-bright: #1e293b;
   --on-deep: #fffaf0;
   --overlay-strong: #1e293b;
+  /* B2761 — the Speak sheet's mic. Cream on this is 5:1 in both themes (coral-600 flips lighter in dark mode, which is why it is not used). */
+  --mic-fill: #c2334a;
   --overlay-ink: #ffffff;
   --shadow-color: #1e293b;
 
@@ -358,6 +360,7 @@
   --color-on-bright: var(--on-bright);
   --color-on-deep: var(--on-deep);
   --color-overlay-strong: var(--overlay-strong);
+  --color-mic-fill: var(--mic-fill);
   --color-overlay-ink: var(--overlay-ink);
   --color-shadow-color: var(--shadow-color);
 
@@ -782,6 +785,33 @@ body {
    the same keyframe with its own `animation-delay` (set inline, per bar, by
    RecordButton's `hero` branch), which is what turns one shared animation
    into a wave rather than every bar pulsing in lockstep. */
+/* B2761 — the Speak sheet. Slide 380ms on --ease-ios, scrim 240ms; the mic
+   grows up out of the pill's corner; the question rises 8px. Reduced motion:
+   a 150ms cross-fade and no rings. */
+@keyframes fs-mic-ring {
+  from { transform: scale(1); opacity: 0.35; }
+  to { transform: scale(1.35); opacity: 0; }
+}
+@keyframes fs-speak-rise { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fs-speak-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fs-speak-grow { from { transform: translateY(160px) scale(0.3); } to { transform: none; } }
+@keyframes fs-speak-q { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fs-speak-flash { from { background-color: var(--color-coral-100); } to { background-color: transparent; } }
+.fs-mic-ring { animation: fs-mic-ring 1.8s var(--ease-out) infinite; }
+.fs-speak-sheet { animation: fs-speak-rise 380ms var(--ease-ios) both; }
+.fs-speak-scrim { animation: fs-speak-fade 240ms ease-out both; }
+.fs-speak-mic { animation: fs-speak-grow 380ms var(--ease-ios) both; }
+.fs-speak-q { animation: fs-speak-q 560ms var(--ease-out) 120ms both; }
+.fs-speak-added { animation: fs-speak-flash 1.2s ease-out both; }
+.fs-speak-sheet.fs-speak-out { animation: fs-speak-rise 240ms var(--ease-ios) reverse both; }
+.fs-speak-scrim.fs-speak-out { animation: fs-speak-fade 240ms ease-out reverse both; }
+@media (prefers-reduced-motion: reduce) {
+  .fs-mic-ring { display: none; }
+  .fs-speak-sheet, .fs-speak-sheet.fs-speak-out { animation: fs-speak-fade 150ms linear both; }
+  .fs-speak-mic, .fs-speak-q { animation: none; }
+  .fs-speak-added { animation: none; }
+}
+
 @keyframes fs-waveform {
   0%,
   100% {

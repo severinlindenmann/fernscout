@@ -1,10 +1,11 @@
 import DayFlow from "@/components/studio/day/DayFlow";
 import StudioPage from "@/components/studio/StudioPage";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { defaultLocaleFor, requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { isEnabled } from "@/lib/capabilities";
 import { currentHelperProvider, hasHelperConsent } from "@/lib/helper/consent";
 import { speechProvider } from "@/lib/helper/transcribe";
+import { speechLanguageFor } from "@/lib/helper/speech";
 import { aiDaysStatus, mayUseAi } from "@paid/billing/lib/aiDays";
 import AiDaysChip from "@/components/studio/day/AiDaysChip";
 import { PLANS, chf } from "@paid/billing/lib/plans";
@@ -71,6 +72,8 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
         consented: hasHelperConsent(user, "speech"),
         provider: speechProvider(),
         aiAvailable,
+        // B2761 — what the transcribe route will use when nothing is picked.
+        defaultLanguage: speechLanguageFor(null, defaultLocaleFor(user), locale) ?? "en",
       }
     : null;
 
