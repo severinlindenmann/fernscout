@@ -2439,7 +2439,7 @@
   "trips.allTrips": "Alle Reisen",
   "trips.chip": "Reisen",
   "trips.daysAway": "Tage entfernt",
-  "trips.emptyOwnerBody": "Dieses Tagebuch ist noch leer. Reisen legst du hier nicht selbst an — es gibt kein Formular und wird keins geben. Drücke den Knopf unten für einen Text, den du einem Agenten gibst, und er richtet die erste Reise ein.",
+  "trips.emptyOwnerBody": "Dieses Tagebuch ist noch leer. Deine erste Reise beginnt in deinem Studio — ein Titel und zwei Daten, und alles lässt sich später ändern.",
   "trips.emptyOwnerFilteredBody": "Du hast eine Reise, aber sie ist mit `listed: false` markiert — das hält sie auch aus dieser Liste heraus, nicht nur aus der Sitemap und dem Umschalter. Ändere ihre Sichtbarkeit auf der Reiseseite im Studio.",
   "trips.emptyOwnerFilteredTitle": "Nichts aufgeführt",
   "trips.emptyTitle": "Noch keine Reisen",

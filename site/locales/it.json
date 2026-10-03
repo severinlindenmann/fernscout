@@ -2439,7 +2439,7 @@
   "trips.allTrips": "Tutti i viaggi",
   "trips.chip": "Viaggi",
   "trips.daysAway": "giorni mancanti",
-  "trips.emptyOwnerBody": "Questo diario è vuoto. Qui non crei un viaggio — non c’è un modulo, e non ci sarà mai. Premi il pulsante qui sotto per ottenere un testo da dare a un agente, e lui imposterà il primo.",
+  "trips.emptyOwnerBody": "Questo diario è vuoto. Il tuo primo viaggio comincia nel tuo studio — un titolo e due date, e potrai cambiare tutto più tardi.",
   "trips.emptyOwnerFilteredBody": "Hai un viaggio, ma è contrassegnato con `listed: false` — il che lo esclude anche da questo elenco, non solo dalla sitemap e dal selettore. Cambia la sua visibilità dalla pagina del viaggio nello studio.",
   "trips.emptyOwnerFilteredTitle": "Niente in elenco qui",
   "trips.emptyTitle": "Ancora nessun viaggio",
