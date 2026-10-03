@@ -62,7 +62,7 @@ beforeEach(() => {
   });
 });
 
-const row = (rows: { id: string }[], id: string) => rows.find((one) => one.id === id) as never as Record<string, any>;
+const row = (rows: { id: string }[], id: string) => rows.find((one) => one.id === id) as never as { link: { href: string }; low: boolean | null };
 
 describe("readProviders", () => {
   test("shows real figures for Stannp, Twilio and Deepgram, and a link only for the rest", async () => {
