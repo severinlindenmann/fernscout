@@ -7,7 +7,7 @@ import StudioBarProvider from "@/components/studio/StudioBar";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import { translate, plural } from "@/lib/i18n";
-import { buildHubGroups, filterHubGroups } from "@/lib/studio/hubGroups";
+import { buildHubGroups, filterHubGroups, journalRows, rowMatchesQuery } from "@/lib/studio/hubGroups";
 import { typeInto } from "./support/type-input";
 import type { StudioHubModel } from "@/lib/studio/hub";
 
@@ -64,6 +64,7 @@ function render(model: StudioHubModel) {
 
 const EMPTY_BASE: Extract<StudioHubModel, { kind: "empty" }> = {
   kind: "empty",
+  extractOff: false,
   account: { storage: null },
   print: { unfinished: [], recentOrders: [] },
   resumableImports: [],
@@ -140,7 +141,7 @@ const FULL_BASE: Extract<StudioHubModel, { kind: "full" }> = {
   addDayTrip: { id: "alps-2024", title: "Four days round the Alps", current: true },
   toldToday: false,
   planTrip: null,
-  cannotRun: { postcard: false, photobook: false, changeDay: false, reshapeDay: false },
+  cannotRun: { postcard: false, photobook: false, extract: false, readers: false, changeDay: false, reshapeDay: false },
   resumableImports: [],
   analyticsEnabled: false,
   postcardSuggestion: null, routeRecordingTrips: [],
@@ -170,8 +171,33 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
 
   test("printing switched off reads calmly, with no apology", () => {
     const el = render({ ...FULL_BASE, cannotRun: { ...FULL_BASE.cannotRun, postcard: true, photobook: true } });
-    expect(el.textContent).toContain("Printing is switched off on this instance.");
+    expect(el.textContent).toContain("Printing is switched off.");
     expect(el.textContent).not.toMatch(/cannot send postcards\.[^A-Z]*(sorry|our bug|apolog)/i);
+  });
+
+  test("B2577 — Bring in an old trip and Readers grey with their page banner when off", () => {
+    const off = render({ ...FULL_BASE, cannotRun: { ...FULL_BASE.cannotRun, extract: true, readers: true } });
+    const photos = off.querySelector('a[data-row][href$="/studio/photos"]')!;
+    expect(photos.querySelector("[data-desc]")?.textContent).toBe("This journal cannot bring in trips from photographs. Importing is switched off.");
+    expect(photos.textContent).toContain("off");
+    const readers = off.querySelector('a[data-row][href$="/studio/readers"]')!;
+    expect(readers.querySelector("[data-desc]")?.textContent).toBe("This journal keeps no list of readers. Readers are switched off.");
+    expect(readers.textContent).toContain("off");
+  });
+
+  test("B2577 — both rows stay plain when their capability is on", () => {
+    const on = render(FULL_BASE);
+    expect(on.querySelector('a[data-row][href$="/studio/photos"]')!.textContent).not.toContain("switched off");
+    expect(on.querySelector('a[data-row][href$="/studio/readers"]')!.textContent).not.toContain("switched off");
+  });
+
+  test("B2577 — the empty-journal hub greys Bring in an old trip too", () => {
+    const el = render({ ...EMPTY_BASE, extractOff: true });
+    expect(el.querySelector('a[data-row][href$="/studio/photos"]')?.textContent).toContain("Importing is switched off.");
+  });
+
+  test("B2577 — the empty-journal hub keeps it plain when importing is on", () => {
+    expect(render(EMPTY_BASE).querySelector('a[data-row][href$="/studio/photos"]')?.textContent).not.toContain("switched off");
   });
 
   test("D5 — no contacts card under Bring in", () => {
@@ -449,7 +475,7 @@ describe("B2600 — the Desk", () => {
     const rows = Array.from(el.querySelectorAll("#print a[data-row]"));
     expect(rows.length).toBe(2);
     for (const row of rows) {
-      expect(row.querySelector("[data-desc]")?.textContent).toContain("Printing is switched off on this instance.");
+      expect(row.querySelector("[data-desc]")?.textContent).toContain("Printing is switched off.");
       expect(row.textContent).toContain("off");
     }
   });
@@ -728,6 +754,20 @@ describe("B2304/B2641 — the filter, at the top", () => {
     expect(filterHubGroups(groups, "photo")).toEqual(expected);
   });
 
+  test("B2581 — every word must match somewhere in title+description, in any order", () => {
+    const rows = buildHubGroups(FULL_BASE, "alex", t, tn, "en").flatMap((g) => g.rows);
+    const gpx = rows.find((r) => r.title === "GPX files & routes")!;
+    expect(rowMatchesQuery(gpx, "garmin timeline")).toBe(true);
+    expect(rowMatchesQuery(gpx, "timeline garmin")).toBe(true);
+    expect(rowMatchesQuery(gpx, "gpx recorded")).toBe(true); // title word + description word
+    expect(rowMatchesQuery(gpx, "garmin zebra")).toBe(false);
+  });
+
+  test("B2581 — 'delete a day' opens no group through Journal & account", () => {
+    const journal = journalRows("alex", t, tn, "en", true, FULL_BASE.account);
+    expect(journal.some((r) => rowMatchesQuery(r, "delete a day"))).toBe(false);
+  });
+
   test("an empty query changes nothing", () => {
     const groups = buildHubGroups(FULL_BASE, "alex", t, tn, "en");
     expect(filterHubGroups(groups, "")).toBe(groups);
@@ -831,3 +871,34 @@ describe("B2304/B2641 — the filter, at the top", () => {
   });
 });
 
+
+describe("B2582 — a hub link's name is its title, the rest is its description", () => {
+  const described = (a: Element) =>
+    (a.getAttribute("aria-describedby") ?? "").split(" ").filter(Boolean).map((id) => document.getElementById(id)?.textContent ?? "MISSING").join(" ");
+
+  test("every described link names itself by its title and every id resolves", () => {
+    const el = render({ ...FULL_BASE, cannotRun: { ...FULL_BASE.cannotRun, extract: true, readers: true } });
+    const links = [...el.querySelectorAll("a[aria-describedby]")];
+    expect(links.length).toBeGreaterThan(3);
+    for (const a of links) {
+      expect(a.getAttribute("aria-label")).toBeTruthy();
+      expect(described(a)).not.toContain("MISSING");
+      expect(described(a)).not.toBe("");
+    }
+  });
+
+  test("a greyed row keeps its off chip and reason in the description, not the name", () => {
+    const el = render({ ...FULL_BASE, cannotRun: { ...FULL_BASE.cannotRun, extract: true } });
+    const photos = el.querySelector('a[data-row][href$="/studio/photos"]')!;
+    expect(photos.getAttribute("aria-label")).not.toContain("switched off");
+    expect(described(photos)).toContain("Importing is switched off.");
+    expect(described(photos)).toContain("off");
+  });
+
+  test("the hero's call to action is in its description", () => {
+    const hero = render(FULL_BASE).querySelector("a[data-hero]")!;
+    const cta = hero.querySelector("span:last-child")!.textContent;
+    expect(hero.getAttribute("aria-label")).not.toContain(cta!);
+    expect(described(hero)).toContain(cta);
+  });
+});

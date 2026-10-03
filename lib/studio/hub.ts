@@ -32,6 +32,8 @@ import { journalPath } from "../journalPath";
 export type StudioHubModel =
   | {
       kind: "empty";
+      /** B2577 — features.extract is off: Bring in an old trip greys. */
+      extractOff: boolean;
       /** A journal can have a half-done photographs import before it has
        *  its first trip at all — `TripModeStep` (Step 02 of that flow)
        *  offers "a new trip" from inside the import itself, so an empty
@@ -124,6 +126,9 @@ export type StudioHubModel =
         /** The operator switched printing off. */
         postcard: boolean;
         photobook: boolean;
+        /** B2577 — the pages these rows open show a switched-off banner. */
+        extract: boolean;
+        readers: boolean;
         /** There is nothing to act on — no day exists yet to change or to
          *  refile. True only when every trip on this journal has zero days;
          *  the empty-journal state above already covers zero *trips*. */
@@ -280,6 +285,7 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
   if (trips.length === 0) {
     return {
       kind: "empty",
+      extractOff: !isEnabled("extract", username),
       account,
       print,
       resumableImports: resumableImports(username),
@@ -352,6 +358,8 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
     cannotRun: {
       postcard: !isEnabled("postcards", username),
       photobook: !isEnabled("photobook", username),
+      extract: !isEnabled("extract", username),
+      readers: !isEnabled("contacts", username),
       changeDay: totalDays === 0,
       reshapeDay: totalDays === 0,
     },
