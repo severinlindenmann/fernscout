@@ -97,6 +97,11 @@ export const codesRedeemTokenResponse = z.strictObject({
 /** `POST /api/auth/signup/resume` request — B2781. The token is the one in the
  * signup code mail's "Continue my signup" link; the answer is
  * `codesRedeemTokenResponse` with `scope: "signup"`. */
+export const signupResumeResponse = codesRedeemTokenResponse.extend({
+  scope: z.literal("signup"),
+  /** True when a pending signup for the address existed before this press. */
+  resumed: z.boolean(),
+});
 export const signupResumeRequest = z.strictObject({ token: z.string().min(1) });
 
 /** `POST /api/auth/links/redeem` request — auth.md §2.3. A link only ever

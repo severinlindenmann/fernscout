@@ -20,13 +20,16 @@ export const metadata: Metadata = { robots: { index: false, follow: false }, ref
  * token is not checked before rendering, so an anonymous fetch learns
  * nothing about whether a link is live.
  */
-export default async function ResumePage({ params }: PageProps<"/welcome/r/[token]">) {
+export default async function ResumePage({ params, searchParams }: PageProps<"/welcome/r/[token]">) {
   const { token } = await params;
+  // B-2827: set only when minting the operator's approval mail; copy, never trust.
+  const first = (await searchParams).start === "1";
   return (
     <PageShell slim>
       <Band width="reading">
         <SignupResume
           token={token}
+          first={first}
           signupEnabled={isEnabled("signup")}
           inviteOnly={inviteOnly()}
           codeMinutes={CODE_TTL_MINUTES}

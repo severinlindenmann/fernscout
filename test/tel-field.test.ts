@@ -5,6 +5,8 @@ import {
   flagOf,
   guessMisplacedNumber,
   joinTel,
+  selectedCountry,
+  splitPastedNumber,
   splitTel,
 } from "@/components/TelField";
 import { toE164 } from "@/lib/phone";
@@ -146,5 +148,29 @@ describe("flagOf — regional-indicator flags with no image asset (B390)", () =>
 
   test("is case-insensitive, since DIAL_CODES stores upper case but a caller might not", () => {
     expect(flagOf("ch")).toBe(flagOf("CH"));
+  });
+});
+
+describe("B-2825 the country behind a shared dial code", () => {
+  test.each([
+    ["44", "GB", "GB"],
+    ["41", "CH", "CH"],
+    ["1", "US", "US"],
+    ["1", "CA", "CA"],
+    ["1", undefined, "AS"],
+    ["44", "CH", "GG"],
+  ])("+%s with region %s shows %s", (cc, region, expected) => {
+    expect(selectedCountry(cc, region, "en")?.iso2).toBe(expected);
+  });
+});
+
+describe("B-2824 a whole number pasted into the national box", () => {
+  test("splits spaced and unspaced +CC numbers", () => {
+    expect(splitPastedNumber("+41 76 000 00 00")).toEqual({ cc: "41", national: "76 000 00 00" });
+    expect(splitPastedNumber("+41760000000")).toEqual({ cc: "41", national: "760000000" });
+  });
+  test("leaves an ordinary national number alone", () => {
+    expect(splitPastedNumber("76 000 00 00")).toBeNull();
+    expect(splitPastedNumber("+")).toBeNull();
   });
 });

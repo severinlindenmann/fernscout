@@ -53,6 +53,15 @@ function rememberLocale(code: string) {
   document.cookie = `${LOCALE_COOKIE}=${code}; path=/; max-age=${year}; samesite=lax`;
 }
 
+/** B-2824. What the phone request route refuses with (400 `invalid_request`
+ * is its bad-number answer) and the sentence each one gets. */
+const PHONE_FAILURES: Record<string, TranslationKey> = {
+  invalid_request: "agent.error.invalid_tel",
+  sms_unreachable: "agent.error.sms_unreachable",
+  verification_failed: "agent.error.phone_code_failed",
+  too_many_requests: "agent.error.phone_too_many",
+};
+
 /** The refusals of the address itself — B2778. */
 const ADDRESS_REFUSALS = ["invalid_username", "deleted_username", "reserved_username", "username_taken"];
 
@@ -166,6 +175,7 @@ export default function SignupWizard({
   email: prefillEmail,
   resume,
   initialSignupToken,
+  initialResumed,
   locale,
   codeMinutes,
   onSignedIn,
@@ -189,6 +199,9 @@ export default function SignupWizard({
   /** B2781 — a signup token the press page `/welcome/r/<token>` already
    * minted from the code mail's button; the wizard jumps to the open step. */
   initialSignupToken?: string;
+  /** B-2827: whether `initialSignupToken` resumed a signup that really stopped
+   * earlier (the "Welcome back" line); unset counts as yes. */
+  initialResumed?: boolean;
   /** The reader's current UI language — offered as the journal's own
    * starting language, changeable before the journal is created. */
   locale: string;
@@ -255,6 +268,9 @@ export default function SignupWizard({
   // The phone step.
   const [telPick, setTelPick] = useState<string | null>(null);
   const [telNational, setTelNational] = useState("");
+  // B-2825: the country, not just its dial code, so a +44 region shows the
+  // United Kingdom and a +1 one the country the person picked.
+  const [telIso, setTelIso] = useState<string | undefined>(undefined);
   const telCc = telPick ?? defaults.cc ?? phoneCountryCode ?? "";
   const [phoneId, setPhoneId] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
@@ -307,6 +323,14 @@ export default function SignupWizard({
         setError(t(`agent.error.${json.error}` as TranslationKey));
         return null;
       }
+      // B-2824: the phone routes' own refusals, each with its own sentence.
+      if (path.startsWith("/api/auth/signup/phone") && typeof json?.error === "string") {
+        const phoneKey = PHONE_FAILURES[json.error];
+        if (phoneKey) {
+          setError(t(phoneKey));
+          return null;
+        }
+      }
       setError(t("agent.signupFailed"));
       return null;
     }
@@ -346,7 +370,7 @@ export default function SignupWizard({
     let cancelled = false;
     (async () => {
       await Promise.resolve();
-      if (!cancelled) await continueFrom(initialSignupToken, true);
+      if (!cancelled) await continueFrom(initialSignupToken, initialResumed ?? true);
     })();
     return () => {
       cancelled = true;
@@ -1039,9 +1063,11 @@ export default function SignupWizard({
             <TelField
               id="signup-tel"
               cc={telCc}
+              iso2={telPick === null ? (defaults.region ?? undefined) : telIso}
               national={telNational}
-              onChange={(cc, national) => {
+              onChange={(cc, national, iso) => {
                 setTelPick(cc);
+                setTelIso(iso);
                 setTelNational(national);
               }}
               labelCountry={t("contact.telCountry")}
