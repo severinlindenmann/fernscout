@@ -1614,6 +1614,8 @@
   "me.journalCurrencies": "Devises affichées",
   "me.journalCurrenciesHint": "Les devises dans lesquelles un lecteur peut convertir les totaux, et les seules que le studio propose quand tu saisis un coût.",
   "me.journalCurrenciesSearch": "Chercher une devise",
+  "me.journalBaseCurrency": "Devise de base",
+  "me.journalBaseCurrencyHint": "Les montants saisis sans devise comptent dans celle-ci. Tu peux la changer tant qu’aucun coût n’existe ; ensuite elle est fixe.",
   "me.journalBaseCurrencyFixed": "La devise de base {code} est fixe ; elle doit rester dans la liste.",
   "me.journalEmail": "E-mail",
   "me.journalEmailNote": "Cette adresse détermine qui peut obtenir une clé pour ce journal, c’est pourquoi elle ne peut pas être modifiée ici. Demande à la personne qui gère le serveur.",

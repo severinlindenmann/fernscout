@@ -474,11 +474,11 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
     {
       ask: "**What they count money in** (`baseCurrency`)",
       because:
-        "A three-letter code — every cost anywhere in this journal is added up in it. **It is " +
-        "the one field here that can never be changed**: `PATCH /api/v2/<user>` refuses " +
-        "it outright, because correcting it later would silently re-price every trip already " +
-        "written. Tell them it is permanent when you ask, and send the code rather than the " +
-        "name — \"francs\" is `CHF`.",
+        "A three-letter code — every cost anywhere in this journal is added up in it. **It " +
+        "can be corrected only until the first cost exists**: `PATCH /api/v2/<user>` accepts " +
+        "a new code while no trip, day or import holds a cost, and refuses it with the reason " +
+        "after, because changing it then would silently re-price everything already written. " +
+        "Ask once and get it right, and send the code rather than the name — \"francs\" is `CHF`.",
     },
   ];
 }

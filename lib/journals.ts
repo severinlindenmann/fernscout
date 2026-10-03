@@ -986,8 +986,9 @@ export function recordFirstTripNudge(username: string, stage: "pushed" | "sent")
  *   reconvert anything: it silently changes what every bare amount ever
  *   written *meant*. A journal with one trip in it would have its money
  *   re-read rather than re-priced, with no error anywhere and no way back
- *   except editing every entry. It is safe exactly once, when the journal is
- *   created, and that is where it stays — `create_journal` takes it.
+ *   except editing every entry. It is safe while no cost exists anywhere
+ *   (B2806: `journalHasAnyCost`, lib/costs.ts) — v2's PATCH takes it then
+ *   and refuses it with the reason after; this v1 call never takes it.
  * - **`media`** — the journal's narrowing of the server's upload limits. The
  *   server is already a ceiling over it (`narrowest()`, lib/mediaLimits.ts),
  *   so the only thing an agent could achieve is to make the journal accept
@@ -1042,10 +1043,10 @@ const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
     "writes it once the code is confirmed. GET /api/v2/{user}/owner/tel reads it back, and " +
     "DELETE clears it.",
   baseCurrency:
-    "baseCurrency is not writable after a journal exists. A cost written without a currency " +
-    "IS a cost in the base currency, so changing it would not reconvert the money — it would " +
-    "silently change what every amount already recorded means. It is set when the journal is " +
-    "created and stays there.",
+    "baseCurrency is not writable through this call. It is changed with PATCH /api/v2/{user}, " +
+    "and only while the journal holds no cost anywhere (B2806): a cost written without a " +
+    "currency IS a cost in the base currency, so changing it later would silently change what " +
+    "every amount already recorded means.",
   media:
     "media is the operator's, not the journal's. The server's own limits are already a " +
     "ceiling over this block, so writing it could only make this journal accept less than the " +
@@ -1421,8 +1422,8 @@ export function setJournalProfile(
  * A smaller, differently-shaped read of the same `config.json` that
  * `journalProfile` above reads: v2 asks for `owner.name`/`owner.nickname`/
  * `owner.email` (never for `owner.tel`, which stays a v1-only field), for
- * `baseCurrency` (read-only — see `JOURNAL_V2_IMMUTABLE_FIELDS` in
- * `lib/api/v2/write.ts`), and for the new `figures`/`declined` blocks
+ * `baseCurrency` (writable until the first cost exists — B2806, see
+ * `applyJournalPatch`), and for the new `figures`/`declined` blocks
  * `lib/config.ts` now parses; it drops `startLocation` and `manualRates`
  * entirely (decision 5, `docs/v2-migration/00-decisions.md`) and folds
  * `defaultLocale` into "the first entry of `locales`" rather than carrying it

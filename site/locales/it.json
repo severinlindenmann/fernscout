@@ -1614,6 +1614,8 @@
   "me.journalCurrencies": "Valute mostrate",
   "me.journalCurrenciesHint": "Le valute in cui chi legge può convertire i totali, e le sole che lo studio propone quando inserisci un costo.",
   "me.journalCurrenciesSearch": "Cerca una valuta",
+  "me.journalBaseCurrency": "Valuta di base",
+  "me.journalBaseCurrencyHint": "Gli importi inseriti senza valuta contano in questa. Puoi cambiarla finché non esiste nessun costo; dopo è fissa.",
   "me.journalBaseCurrencyFixed": "La valuta di base {code} è fissa; deve restare nell’elenco.",
   "me.journalEmail": "Email",
   "me.journalEmailNote": "Questo indirizzo decide chi può ottenere una chiave per questo diario, per questo non si può cambiare qui. Chiedi a chi gestisce il server.",

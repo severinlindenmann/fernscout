@@ -55,6 +55,9 @@ export type JournalPanel = {
   /** Read-only — shown so the refusal on the screen names the value rather
    *  than only the rule. */
   baseCurrency: string;
+  /** B2806 — `journalHasAnyCost`: once any trip, day or import holds a cost
+   *  the base currency is fixed; until then it is a picker. */
+  baseCurrencyLocked: boolean;
 };
 
 /** One trip's evening-reminder switch — B2171. Only trips not yet over. */
@@ -78,9 +81,9 @@ export type ReminderRow = { id: string; title: string; on: boolean };
  * **Read-only, and hint lines rather than fields:** the email (it decides who
  * can obtain a write token, so a stolen cookie must not move the journal to
  * another mailbox); the owner's WhatsApp (proof-only since B1654 — set by
- * phone verification, never by a bare write; B1653); and `baseCurrency`, the
- * one field `setJournalProfile` refuses outright, since a bare amount already
- * written *is* an amount in it. `manualRates` stays API-only (scope, not
+ * phone verification, never by a bare write; B1653). `baseCurrency` is a
+ * picker only while no cost exists anywhere (B2806) — a bare amount already
+ * written *is* an amount in it — and a hint line after. `manualRates` stays API-only (scope, not
  * policy).
  *
  * **Advertise** is `visibility` — "public" is listed on this server's
@@ -122,6 +125,7 @@ export default function JournalPageContent({
   const [extraLocales, setExtraLocales] = useState<string[]>(() =>
     journal.locales.filter((code) => code !== journal.defaultLocale),
   );
+  const [baseCurrency, setBaseCurrency] = useState(journal.baseCurrency);
   const [currencyList, setCurrencyList] = useState(journal.displayCurrencies);
   const [currencySearch, setCurrencySearch] = useState("");
   const [listed, setListed] = useState(journal.visibility === "public");
@@ -151,7 +155,8 @@ export default function JournalPageContent({
     patch.locales = [defaultLocale, ...extraLocales];
   }
   // Base first, always in — the rule `setJournalProfile` enforces.
-  const baseFirst = (list: string[]) => [journal.baseCurrency, ...list.filter((c) => c !== journal.baseCurrency)];
+  const baseFirst = (list: string[]) => [baseCurrency, ...list.filter((c) => c !== baseCurrency)];
+  if (baseCurrency !== journal.baseCurrency) patch.baseCurrency = baseCurrency;
   if (baseFirst(currencyList).join(", ") !== baseFirst(journal.displayCurrencies).join(", "))
     patch.displayCurrencies = baseFirst(currencyList);
   if (listed !== (journal.visibility === "public")) patch.visibility = listed ? "public" : "guest";
@@ -314,17 +319,17 @@ export default function JournalPageContent({
         />
         <div className="mt-2 flex flex-wrap gap-2">
           {[
-            journal.baseCurrency,
+            baseCurrency,
             ...[...new Set([...knownCurrencies, ...currencyList])]
-              .filter((code) => code !== journal.baseCurrency)
+              .filter((code) => code !== baseCurrency)
               .sort(),
           ]
             .filter((code) => {
               const q = currencySearch.trim().toLowerCase();
-              return code === journal.baseCurrency || !q || code.toLowerCase().includes(q) || currencyName(code, locale).toLowerCase().includes(q);
+              return code === baseCurrency || !q || code.toLowerCase().includes(q) || currencyName(code, locale).toLowerCase().includes(q);
             })
             .map((code) => {
-              const base = code === journal.baseCurrency;
+              const base = code === baseCurrency;
               const on = base || currencyList.includes(code);
               return (
                 <label key={code} className={PILL} title={currencyName(code, locale)}>
@@ -346,7 +351,25 @@ export default function JournalPageContent({
             })}
         </div>
         <p className={HINT}>{t("me.journalCurrenciesHint")}</p>
-        <p className={HINT}>{t("me.journalBaseCurrencyFixed", { code: journal.baseCurrency })}</p>
+        {journal.baseCurrencyLocked ? (
+          <p className={HINT}>{t("me.journalBaseCurrencyFixed", { code: baseCurrency })}</p>
+        ) : (
+          <label className="mt-3 block">
+            <span className={EYEBROW}>{t("me.journalBaseCurrency")}</span>
+            <select
+              value={baseCurrency}
+              onChange={(event) => setBaseCurrency(event.target.value)}
+              className={FIELD_INPUT}
+            >
+              {[...new Set([...knownCurrencies, ...currencyList, journal.baseCurrency])].sort().map((code) => (
+                <option key={code} value={code}>
+                  {code} · {currencyName(code, locale)}
+                </option>
+              ))}
+            </select>
+            <span className={HINT + " block"}>{t("me.journalBaseCurrencyHint")}</span>
+          </label>
+        )}
       </fieldset>
 
       <div>

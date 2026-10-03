@@ -11,6 +11,8 @@ import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api
 import { JOURNAL_IMMUTABLE_FIELDS, clearDeclinedSections, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
 import { mayActAsOwner, ownerOnlyRefusal, outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { journalHasAnyCost } from "@/lib/costs";
+import { normalizeCurrency } from "@/lib/currency";
 import { journalV2Fields, setJournalV2Fields, type JournalV2Fields } from "@/lib/journals";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { journalTombstone } from "@/lib/tombstones";
@@ -170,6 +172,36 @@ export async function applyJournalPatch(
     return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(patchParsed.error), 400);
   }
   const patch = patchParsed.data as Record<string, unknown>;
+
+  // B2806 — the base currency is correctable until the first cost exists:
+  // a bare amount IS an amount in it, so after that a change would silently
+  // change what every recorded amount means. An unchanged echo is dropped.
+  if (typeof patch.baseCurrency === "string") {
+    const next = normalizeCurrency(patch.baseCurrency);
+    if (!next) {
+      return fail("invalid_request", "baseCurrency must be a three-letter currency code such as CHF.", undefined, 400);
+    }
+    if (next === stored.baseCurrency) {
+      delete patch.baseCurrency;
+    } else if (journalHasAnyCost(user)) {
+      return fail(
+        "invalid_request",
+        "baseCurrency can no longer be changed: this journal already holds a cost, and a cost written " +
+          "without a currency IS an amount in the base currency, so changing it would not reconvert " +
+          "anything — it would silently change what every amount already recorded means. It can be " +
+          "changed only while no trip, day or import has a cost in it. Send it back exactly as GET " +
+          "returned it, or leave it out of the patch.",
+        undefined,
+        400,
+      );
+    } else {
+      patch.baseCurrency = next;
+      // displayCurrencies must include the base: carry the new one in, so a
+      // caller sending only baseCurrency (or an echoed list) is not refused.
+      const shown = (patch.displayCurrencies as string[] | undefined) ?? stored.displayCurrencies;
+      patch.displayCurrencies = shown.includes(next) ? shown : [next, ...shown];
+    }
+  }
 
   // The patch only ever answers the questions IT raises (decisions.md). The
   // full asked-or-declined check happens once, below, against the MERGED

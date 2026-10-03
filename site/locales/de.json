@@ -1614,6 +1614,8 @@
   "me.journalCurrencies": "Angezeigte Währungen",
   "me.journalCurrenciesHint": "Die Währungen, in die eine Leserin die Summen umschalten kann — und die einzigen, die das Studio anbietet, wenn du Kosten einträgst.",
   "me.journalCurrenciesSearch": "Währung suchen",
+  "me.journalBaseCurrency": "Basiswährung",
+  "me.journalBaseCurrencyHint": "Beträge ohne Währungsangabe zählen in dieser Währung. Du kannst sie ändern, solange noch keine Kosten erfasst sind; danach steht sie fest.",
   "me.journalBaseCurrencyFixed": "Die Basiswährung {code} steht fest und muss in der Liste bleiben.",
   "me.journalEmail": "E-Mail",
   "me.journalEmailNote": "Diese Adresse entscheidet, wer für dieses Tagebuch einen Schlüssel bekommt — deshalb lässt sie sich hier nicht ändern. Sag es der Person, die den Server betreibt.",

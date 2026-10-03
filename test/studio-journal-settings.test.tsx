@@ -40,9 +40,10 @@ const journal: JournalPanel = {
   displayCurrencies: ["CHF", "EUR"],
   ownerTel: "",
   baseCurrency: "CHF",
+  baseCurrencyLocked: true,
 };
 
-async function mount(reminders: ReminderRow[] = []) {
+async function mount(reminders: ReminderRow[] = [], panel: JournalPanel = journal) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -50,7 +51,7 @@ async function mount(reminders: ReminderRow[] = []) {
     root!.render(
       <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
         <StudioBarProvider username="alex">
-          <JournalPageContent username="alex" journal={journal} knownCurrencies={["EUR", "GBP", "USD"]} reminders={reminders} tipsOn={false} />
+          <JournalPageContent username="alex" journal={panel} knownCurrencies={["EUR", "GBP", "USD"]} reminders={reminders} tipsOn={false} />
         </StudioBarProvider>
       </LocaleProvider>,
     ),
@@ -149,5 +150,36 @@ describe("the evening reminder switch — B2171", () => {
     const section = form().querySelector("[data-journal-reminders]")!;
     expect(section.querySelector('[role="switch"]')).toBeNull();
     expect(section.textContent).toContain("No trip is running or coming up");
+  });
+});
+
+/** B2806 — the base currency is a picker while no cost exists, the "fixed"
+ * line after. */
+describe("the base currency — B2806", () => {
+  test("locked: no picker, the fixed line", async () => {
+    await mount();
+    expect(form().querySelector("select")).toBeNull();
+    expect(form().textContent).toContain("Base currency CHF is fixed");
+  });
+
+  test("unlocked: a picker, and the chosen code is sent as baseCurrency", async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response("{}", { status: 200 });
+      }),
+    );
+    await mount([], { ...journal, baseCurrencyLocked: false });
+    expect(form().textContent).not.toContain("Base currency CHF is fixed");
+    const select = form().querySelector("select") as HTMLSelectElement;
+    expect(select.value).toBe("CHF");
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")!.set!.call(select, "EUR");
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await act(async () => saveButtons()[0].click());
+    expect(bodies).toEqual([{ baseCurrency: "EUR" }]);
   });
 });

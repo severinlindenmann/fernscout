@@ -279,22 +279,15 @@ export const JOURNAL_WRITABLE_FIELDS = [
 ] as const;
 
 /**
- * The journal's echo-tolerant fields — R3 in `06-contract-deltas.md` is
- * `baseCurrency`; `owner.email` is the same shape of rule
+ * The journal's echo-tolerant fields — `owner.email` (R3 in
+ * `06-contract-deltas.md` was `baseCurrency`, which B2806 made writable
+ * until the first cost exists: `applyJournalPatch` decides that) is a rule
  * (`JOURNAL_FIELD_REFUSALS.owner` in `lib/journals.ts`, carried over
  * unchanged from v1: that address decides who can get a token for this
  * journal, so a token must never be able to move it); `username` is not in
  * the write schema at all, so an echoed one has nowhere else to be caught.
  */
 export const JOURNAL_IMMUTABLE_FIELDS: readonly Immutable[] = [
-  {
-    path: ["baseCurrency"],
-    refusal:
-      "baseCurrency is not writable after a journal exists. A cost written without a currency IS " +
-      "a cost in the base currency, so changing it would not reconvert the money — it would " +
-      "silently change what every amount already recorded means. Send it back exactly as GET " +
-      "returned it, or leave it out of the patch.",
-  },
   {
     path: ["owner", "email"],
     refusal:

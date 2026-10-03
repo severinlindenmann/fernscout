@@ -1374,6 +1374,8 @@
   "me.journalCurrencies": "Megjelenített devizanemek",
   "me.journalCurrenciesHint": "A devizanemek, amelyekre egy olvasó átválthatja az összegeket — és az egyetlenek, amelyeket a stúdió felkínál, amikor költséget írsz be.",
   "me.journalCurrenciesSearch": "Devizanem keresése",
+  "me.journalBaseCurrency": "Alapvaluta",
+  "me.journalBaseCurrencyHint": "A pénznem nélkül megadott összegek ebben számítanak. Addig módosíthatod, amíg nincs egyetlen költség sem; utána rögzített.",
   "me.journalBaseCurrencyFixed": "Az alapvaluta ({code}) rögzített, a listában maradnia kell.",
   "me.journalEmail": "E-mail",
   "me.journalEmailNote": "Ez a cím dönti el, ki kaphat kulcsot ehhez a naplóhoz, ezért itt nem módosítható. Szólj annak, aki a kiszolgálót üzemelteti.",
