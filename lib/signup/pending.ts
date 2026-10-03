@@ -17,7 +17,7 @@ const NO_JOURNAL = "*";
 /** The address proof lives this long past its moment before the nightly sweep removes it. */
 const PENDING_TTL_MS = 8 * 24 * 60 * 60 * 1000;
 /** A number proven earlier than this is asked for again. */
-export const PHONE_PROOF_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const PHONE_PROOF_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const norm = (email: string) => email.trim().toLowerCase();
 
