@@ -97,7 +97,7 @@ export default function Lightbox({
           {extra}
           <button
             aria-label={t("a11y.closePhoto")}
-            className="absolute right-4 top-4 z-10 rounded-full bg-overlay-strong/40 p-2 text-overlay-ink/80 hover:bg-overlay-ink/10 hover:text-overlay-ink"
+            className="absolute right-4 top-4 z-10 flex size-11 items-center justify-center rounded-full bg-overlay-strong/40 text-overlay-ink/80 hover:bg-overlay-ink/10 hover:text-overlay-ink"
             onClick={onClose}
           >
             <X className="h-6 w-6" />
