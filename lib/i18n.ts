@@ -2783,6 +2783,7 @@ export type TranslationKey =
   | "signupPage.metaTitle"
   | "signupPage.provenHint"
   | "signupPage.title"
+  | "signupPage.welcomeBack"
   | "smsStop.cancel"
   | "smsStop.confirm"
   | "smsStop.details"

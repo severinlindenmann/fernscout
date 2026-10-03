@@ -4944,5 +4944,6 @@
   "agent.error.too_many_requests": "Too many code requests from your connection just now. Wait a little and try again.",
   "agent.error.too_many_requests_wait": "Too many code requests from your connection just now. Wait about {minutes} minutes and try again.",
   "agent.error.mail_unavailable": "This server cannot send mail right now, so no code was sent. Try again later.",
-  "agent.error.signup_disabled": "Signing up is switched off on this server. Nothing has been sent."
+  "agent.error.signup_disabled": "Signing up is switched off on this server. Nothing has been sent.",
+  "signupPage.welcomeBack": "Welcome back — your email is confirmed."
 }

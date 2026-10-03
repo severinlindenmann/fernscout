@@ -710,6 +710,14 @@ const phoneRedeemResponse = z.union([
   z.strictObject({ status: z.enum(["pending", "expired"]) }),
   z.strictObject({ ok: z.literal(true), tel: z.string(), next: z.string() }),
 ]);
+const signupStateResponse = z.strictObject({
+  emailProven: z.literal(true),
+  phoneProven: z.boolean(),
+  telMasked: z.string().nullable(),
+  phoneRequired: z.boolean(),
+  mode: z.enum(["code", "whatsapp-inbound"]),
+  smsFallback: z.boolean(),
+});
 const handoverIssued = z.strictObject({
   ok: z.literal(true),
   handover: z.string(),
@@ -2079,6 +2087,26 @@ function buildPaths(): Record<string, PathItem> {
           ref("signup_not_invited", 403),
           ref("invalid_request", 400, "no id sent"),
           ref("invalid_code", 401),
+          ref("tel_taken", 409, "the proven number already keeps a journal on this server"),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/signup/state"] = {
+    get: {
+      summary:
+        "Where this signup stands. The signup token from codes/redeem rides as `Authorization: Bearer`. " +
+        "A signup that stopped after the address or the number picks up here: the address proof and a " +
+        "number proven within the last seven days (on any device) survive for eight days, and " +
+        "`phoneProven` says whether this token already carries one. `telMasked` shows only the last two " +
+        "digits; `phoneRequired` is false for the operator's own address.",
+      responses: {
+        ...jsonResponse(200, signupStateResponse, "the open and the proven steps"),
+        ...refusalResponses([
+          ref("signup_disabled", 404),
+          ref("invalid_token", 401),
+          ref("signup_not_invited", 403),
         ]),
       },
     },

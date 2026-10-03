@@ -4953,5 +4953,6 @@
   "agent.error.too_many_requests": "Trop de demandes de code depuis ta connexion à l’instant. Attends un peu et réessaie.",
   "agent.error.too_many_requests_wait": "Trop de demandes de code depuis ta connexion à l’instant. Attends environ {minutes} minutes et réessaie.",
   "agent.error.mail_unavailable": "Ce serveur ne peut pas envoyer de courrier pour le moment, donc aucun code n’a été envoyé. Réessaie plus tard.",
-  "agent.error.signup_disabled": "L’inscription est désactivée sur ce serveur. Rien n’a été envoyé."
+  "agent.error.signup_disabled": "L’inscription est désactivée sur ce serveur. Rien n’a été envoyé.",
+  "signupPage.welcomeBack": "Bon retour — ton adresse e-mail est confirmée."
 }

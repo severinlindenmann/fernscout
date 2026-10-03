@@ -5,7 +5,7 @@ import {
   tripWriteScope,
   verifyCode,
 } from "@/lib/auth";
-import { setGuestSessionCookies, setIdentityCookie } from "@/lib/auth/identityCookie";
+import { issueIdentityCookie, setGuestSessionCookies, setIdentityCookie } from "@/lib/auth/identityCookie";
 import { getContactByEmail, setContactLocaleIfEmpty } from "@/lib/contacts";
 import { isEnabled } from "@/lib/capabilities";
 import { signupAllowed } from "@/lib/inviteList";
@@ -164,7 +164,23 @@ export async function POST(request: Request) {
     }
   }
 
-  // "write" or "signup" — the token is the whole body, and no cookie is set.
+  /**
+   * B2804. The code proved the address, so the browser also gets the same
+   * `fs_identity` an identity code would leave: that is what lets `/welcome`
+   * on this device recognise a half-done signup and trade the cookie for a
+   * fresh signup token (`POST /api/auth/signup/identity`) without a second
+   * mail. Guarded like `setGuestSessionCookies`: a failure here must not turn
+   * a proven address into a 500. The token itself still leaves in the body.
+   */
+  if (req.for === "signup" && isEnabled("auth")) {
+    try {
+      await issueIdentityCookie(email, request.headers.get("user-agent"));
+    } catch (err) {
+      console.warn("[auth] signup code proved the address, but no identity could be issued:", err);
+    }
+  }
+
+  // "write" or "signup" — the token is the whole body.
   return ok({
     ok: true,
     token: result.token,

@@ -1045,6 +1045,20 @@ type VouchersTable = {
   used_ref: string | null;
 };
 
+/**
+ * An address that proved itself at the signup door and has no journal yet —
+ * B2804. See migration `067-pending-signups`.
+ */
+type PendingSignupsTable = {
+  email: string;
+  email_proven_at: string;
+  locale: string | null;
+  phone: string | null;
+  phone_proven_at: string | null;
+  phone_proven_method: string | null;
+  created_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -1088,6 +1102,7 @@ export type Database = {
   compose_outcomes: ComposeOutcomesTable;
   storage_addons: StorageAddonsTable;
   vouchers: VouchersTable;
+  pending_signups: PendingSignupsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1133,4 +1148,5 @@ export const TABLE_NAMES = [
   "compose_outcomes",
   "storage_addons",
   "vouchers",
+  "pending_signups",
 ] as const satisfies readonly (keyof Database)[];

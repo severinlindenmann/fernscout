@@ -114,6 +114,7 @@ type Step =
  */
 export default function SignupWizard({
   email: prefillEmail,
+  resume,
   locale,
   codeMinutes,
   onSignedIn,
@@ -127,6 +128,11 @@ export default function SignupWizard({
    * second code (B2522, `POST /api/auth/signup/identity`). Editing the field
    * is the "not me" path: a different address gets the ordinary code. */
   email?: string;
+  /** B2804 — this address already proved itself and left a signup open
+   * (`getPendingSignup`, read server-side from the identity cookie). On mount
+   * the wizard trades the cookie for a signup token and jumps to the step
+   * that is still open. */
+  resume?: boolean;
   /** The reader's current UI language — offered as the journal's own
    * starting language, changeable before the journal is created. */
   locale: string;
@@ -228,6 +234,8 @@ export default function SignupWizard({
    * kind of untrue sentence the helper's net exists for. */
   const [smsFallback, setSmsFallback] = useState(false);
   const [smsChannel, setSmsChannel] = useState(false);
+  /** B2804 — show "Welcome back" once the wizard resumed a signup. */
+  const [welcomeBack, setWelcomeBack] = useState(false);
 
   async function post(
     path: string,
@@ -268,6 +276,53 @@ export default function SignupWizard({
     return json;
   }
 
+  /**
+   * B2804. With a signup token in hand, ask where the signup stands and jump
+   * to the step still open: a number already proven (possibly on another
+   * device) goes straight to the journal form; an address resumed from the
+   * identity cookie goes to the phone step. Anything unexpected falls back to
+   * the journal form, which is where this always went.
+   */
+  async function continueFrom(token: string, resumed: boolean) {
+    const response = await fetch("/api/auth/signup/state", {
+      headers: { authorization: `Bearer ${token}` },
+    }).catch(() => null);
+    const state = (await response?.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!response?.ok || !state) {
+      setStep("journal");
+      return;
+    }
+    if (state.smsFallback === true) setSmsFallback(true);
+    if (state.phoneProven === true) {
+      setWelcomeBack(true);
+      setStep("journal");
+    } else if (resumed && state.phoneRequired === true) {
+      setWelcomeBack(true);
+      if (state.mode === "whatsapp-inbound") await requestWaLink(token);
+      else setStep("phone");
+    } else {
+      setWelcomeBack(resumed);
+      setStep("journal");
+    }
+  }
+
+  useEffect(() => {
+    if (!resume || !prefillEmail) return;
+    let cancelled = false;
+    (async () => {
+      const response = await fetch("/api/auth/signup/identity", { method: "POST" }).catch(() => null);
+      const json = (await response?.json().catch(() => null)) as Record<string, unknown> | null;
+      if (cancelled || !response?.ok || typeof json?.token !== "string") return;
+      setSignupToken(json.token);
+      await continueFrom(json.token, true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Once, on mount: the prop is a server-side fact about this page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // Read what the field actually holds rather than trusting `email` to
@@ -290,7 +345,7 @@ export default function SignupWizard({
       if (typeof result.token === "string") {
         setBusy(false);
         setSignupToken(result.token);
-        setStep("journal");
+        await continueFrom(result.token, false);
         return;
       }
       // `not_signed_in`: the cookie lapsed, or it names a phone number.
@@ -366,7 +421,7 @@ export default function SignupWizard({
       return;
     }
     setSignupToken(result.token as string);
-    setStep("journal");
+    await continueFrom(result.token as string, false);
   }
 
   async function createJournal() {
@@ -441,16 +496,27 @@ export default function SignupWizard({
     onSignedIn(user, redeemed?.ok === true);
   }
 
+  /** The number is proven. Resumed phone-first, the journal form is still
+   * empty and comes next; reached from the form, the create goes on. */
+  async function afterPhoneProof() {
+    if (!title || !username) {
+      setBusy(false);
+      setStep("journal");
+      return;
+    }
+    await createJournal();
+  }
+
   async function createJournalStep(event: React.FormEvent) {
     event.preventDefault();
     await createJournal();
   }
 
-  async function requestWaLink() {
+  async function requestWaLink(token = signupToken) {
     setBusy(true);
     setError(null);
     setWaExpired(false);
-    const result = await post("/api/auth/signup/phone", {}, signupToken);
+    const result = await post("/api/auth/signup/phone", {}, token);
     setBusy(false);
     if (!result) return;
     setPhoneId(result.id as string);
@@ -482,7 +548,12 @@ export default function SignupWizard({
       if (json.ok) {
         done = true;
         clearInterval(timer);
-        await createJournal();
+        await afterPhoneProof();
+      } else if (json.error === "tel_taken") {
+        done = true;
+        clearInterval(timer);
+        setError(t("agent.error.tel_taken"));
+        setWaExpired(true);
       } else if (json.status === "expired") {
         setWaExpired(true);
       }
@@ -535,7 +606,7 @@ export default function SignupWizard({
     }
     // The number is proven and attached to the signup token — retry the
     // create that sent us here. `createJournal` manages busy itself.
-    await createJournal();
+    await afterPhoneProof();
   }
 
   const label =
@@ -566,6 +637,10 @@ export default function SignupWizard({
         <p className="mt-2 text-base leading-7 text-ink-body">
           {t("agent.startIntro")}
         </p>
+      )}
+
+      {welcomeBack && step !== "email" && step !== "code" && step !== "signing-in" && (
+        <p className="mt-4 text-base leading-7 text-ink-body">{t("signupPage.welcomeBack")}</p>
       )}
 
       {error && (
@@ -770,7 +845,7 @@ export default function SignupWizard({
           {waExpired && (
             <button
               type="button"
-              onClick={requestWaLink}
+              onClick={() => requestWaLink()}
               className="mt-2 min-h-11 text-base text-ink-secondary underline underline-offset-4"
             >
               {t("agent.phoneWaRetry")}

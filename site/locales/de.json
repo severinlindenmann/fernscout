@@ -4949,5 +4949,6 @@
   "agent.error.too_many_requests": "Von deiner Verbindung kamen gerade zu viele Code-Anfragen. Warte einen Moment und versuche es erneut.",
   "agent.error.too_many_requests_wait": "Von deiner Verbindung kamen gerade zu viele Code-Anfragen. Warte etwa {minutes} Minuten und versuche es erneut.",
   "agent.error.mail_unavailable": "Dieser Server kann gerade keine E-Mails senden, daher wurde kein Code verschickt. Versuche es später erneut.",
-  "agent.error.signup_disabled": "Die Anmeldung ist auf diesem Server ausgeschaltet. Es wurde nichts gesendet."
+  "agent.error.signup_disabled": "Die Anmeldung ist auf diesem Server ausgeschaltet. Es wurde nichts gesendet.",
+  "signupPage.welcomeBack": "Willkommen zurück — deine E-Mail-Adresse ist bestätigt."
 }

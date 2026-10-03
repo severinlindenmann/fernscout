@@ -4950,5 +4950,6 @@
   "agent.error.too_many_requests": "A kapcsolatodról épp túl sok kódkérés érkezett. Várj egy kicsit, és próbáld újra.",
   "agent.error.too_many_requests_wait": "A kapcsolatodról épp túl sok kódkérés érkezett. Várj nagyjából {minutes} percet, és próbáld újra.",
   "agent.error.mail_unavailable": "Ez a szerver most nem tud levelet küldeni, ezért nem ment el kód. Próbáld újra később.",
-  "agent.error.signup_disabled": "A regisztráció ki van kapcsolva ezen a szerveren. Semmi nem lett elküldve."
+  "agent.error.signup_disabled": "A regisztráció ki van kapcsolva ezen a szerveren. Semmi nem lett elküldve.",
+  "signupPage.welcomeBack": "Üdv újra — az e-mail-címed meg van erősítve."
 }
