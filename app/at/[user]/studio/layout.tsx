@@ -1,8 +1,7 @@
 import JournalLocaleProvider from "@/components/JournalLocaleProvider";
 import StudioBarProvider from "@/components/studio/StudioBar";
 import StudioSignIn from "@/components/studio/StudioSignIn";
-import PageShell from "@/components/landing/PageShell";
-import { Band, TITLE_H1 } from "@/components/landing/kit";
+import { TITLE_H1 } from "@/components/landing/kit";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
@@ -38,12 +37,10 @@ export default async function StudioLayout({ children, params }: LayoutProps<"/a
   if (isEnabled("auth") && (await resolveAccess(user)).email === null) {
     const locale = await requestLocale();
     return (
-      <PageShell slim>
-        <Band width="reading">
-          <h1 className={TITLE_H1}>{translateIn(locale, "err.notSignedInTitle")}</h1>
-          <StudioSignIn codeMinutes={CODE_TTL_MINUTES} />
-        </Band>
-      </PageShell>
+      <main className="mx-auto w-full max-w-xl px-4 py-10">
+        <h1 className={TITLE_H1}>{translateIn(locale, "err.notSignedInTitle")}</h1>
+        <StudioSignIn codeMinutes={CODE_TTL_MINUTES} />
+      </main>
     );
   }
   return (

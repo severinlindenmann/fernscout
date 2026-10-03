@@ -14,9 +14,6 @@ vi.mock("@/lib/locales", async (orig) => ({
   ...(await orig<typeof import("@/lib/locales")>()),
   requestLocale: async () => "en",
 }));
-vi.mock("@/components/landing/PageShell", () => ({
-  default: ({ children }: { children: React.ReactNode }) => <main>{children}</main>,
-}));
 vi.mock("@/components/JournalLocaleProvider", () => ({
   default: ({ username, children }: { username: string; children: React.ReactNode }) => (
     <div data-journal={username}>{children}</div>
