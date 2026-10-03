@@ -3823,6 +3823,7 @@ export type TranslationKey =
   | "studio.people.typeIn.continue"
   | "studio.people.typeIn.heading"
   | "studio.people.typeIn.intro"
+  | "studio.people.typeIn.needEmail"
   | "studio.people.typeIn.remove"
   | "studio.people.typeIn.stepLabel"
   | "studio.people.upload.button"

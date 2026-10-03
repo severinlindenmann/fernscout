@@ -40,6 +40,7 @@ export default function StepPrimary({
   done,
   shake,
   tone = "bg-action-strong text-on-action",
+  describedBy,
 }: {
   label: string;
   onClick?: () => void;
@@ -54,6 +55,8 @@ export default function StepPrimary({
   /** Colour classes only — DecideList's "do it" step keeps its own yellow
    *  commit colour while sharing this one element definition. */
   tone?: string;
+  /** id of the text that says why the button is disabled. */
+  describedBy?: string;
 }) {
   useStudioBar(
     <BusyButton
@@ -63,6 +66,7 @@ export default function StepPrimary({
       done={done}
       shake={shake}
       disabled={disabled}
+      aria-describedby={describedBy}
       onClick={() => {
         void haptic("light");
         onClick?.();

@@ -560,7 +560,17 @@ export default function PeopleFlow({
             {t("studio.people.typeIn.addAnother")}
           </button>
 
-          <StepPrimary disabled={chosen.length === 0} onClick={() => go("decide")} label={t("studio.people.typeIn.continue")} />
+          {chosen.length === 0 && (
+            <p id="people-typein-why" className="mt-3 text-sm text-ink-secondary">
+              {t("studio.people.typeIn.needEmail")}
+            </p>
+          )}
+          <StepPrimary
+            disabled={chosen.length === 0}
+            describedBy={chosen.length === 0 ? "people-typein-why" : undefined}
+            onClick={() => go("decide")}
+            label={t("studio.people.typeIn.continue")}
+          />
         </div>
       )}
 
