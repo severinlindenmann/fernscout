@@ -394,8 +394,10 @@ be exhaustive about what it refuses to give back:
 Reachable only from the studio's new-day page, under the owner's own browser
 cookie (`isHelperOwner`) — a bearer token, including a journal-wide agent
 token, is refused there by construction, the same as every other page under
-`/@<user>/studio`. Behind `features.routeRecording`, off by default like every
-optional capability; `/api/health` explains why it is off when it is.
+`/@<user>/studio`. Behind `features.routeRecording`: off on a server until the
+operator enables it, like every optional capability; under that ceiling every
+journal has it unless its config writes `false` (B-2830). `/api/health` explains
+why it is off when it is.
 
 ## "Your route" — the owner's own recorded trips, B2226
 
