@@ -7,6 +7,7 @@ import { todayISO } from "@/components/studio/location/RecordingPlan";
 import {
   armRoute,
   disarmRoute,
+  getActivityPrefs,
   getLockScreenTripName,
   keepRecordingRoute,
   locationPermission,
@@ -15,8 +16,10 @@ import {
   refreshGpsToken,
   requestLocationPermission,
   routeStatus,
+  setActivityPrefs,
   setLockScreenTripName,
   useNativeShell,
+  type ActivityPrefs,
   type LocationPermission,
   type RouteRecordStatus,
 } from "@/components/nativeShell";
@@ -78,6 +81,9 @@ export default function RouteRecordSection({
    *  on mount; `undefined` until then, so the checkbox does not flash
    *  unchecked before the real value arrives. */
   const [lockScreenTripName, setLockScreenTripNameState] = useState<boolean | undefined>(undefined);
+  /** B2766 — the Live Activity's own two switches; `undefined` until the
+   *  shell answers, and for good on a shell built before them. */
+  const [activityPrefs, setActivityPrefsState] = useState<ActivityPrefs | undefined>(undefined);
 
   const refresh = useCallback(async () => {
     try {
@@ -127,6 +133,10 @@ export default function RouteRecordSection({
     // the switch stays absent rather than offering a choice it cannot keep.
     void getLockScreenTripName().then(
       (on) => { if (live) setLockScreenTripNameState(on); },
+      () => {},
+    );
+    void getActivityPrefs().then(
+      (prefs) => { if (live) setActivityPrefsState(prefs); },
       () => {},
     );
     const load = async () => {
@@ -276,8 +286,32 @@ export default function RouteRecordSection({
           <button type="button" disabled={busy} onClick={() => void stop()} className={BUTTON}>
             {t("studio.record.stop")}
           </button>
-          {lockScreenTripName !== undefined && (
-            <LockScreenTripNameToggle on={lockScreenTripName} onChange={setLockScreenTripNameState} />
+          {activityPrefs && (
+            <PrefSwitch
+              on={activityPrefs.lockScreen}
+              label={t("studio.record.activity.lockScreen.label")}
+              hint={t("studio.record.activity.lockScreen.hint")}
+              save={(on) => setActivityPrefs({ lockScreen: on })}
+              onChange={(on) => setActivityPrefsState({ ...activityPrefs, lockScreen: on })}
+            />
+          )}
+          {activityPrefs?.lockScreen && (
+            <PrefSwitch
+              on={activityPrefs.island}
+              label={t("studio.record.activity.island.label")}
+              hint={t("studio.record.activity.island.hint")}
+              save={(on) => setActivityPrefs({ island: on })}
+              onChange={(on) => setActivityPrefsState({ ...activityPrefs, island: on })}
+            />
+          )}
+          {lockScreenTripName !== undefined && activityPrefs?.lockScreen !== false && (
+            <PrefSwitch
+              on={lockScreenTripName}
+              label={t("studio.record.lockScreenTripName.label")}
+              hint={t("studio.record.lockScreenTripName.hint")}
+              save={setLockScreenTripName}
+              onChange={setLockScreenTripNameState}
+            />
           )}
         </div>
       )}
@@ -363,30 +397,35 @@ export default function RouteRecordSection({
   );
 }
 
-/** B2733 — the Lock Screen's own trip-name opt-in. Only ever rendered while
- *  recording is on (the toggle's own native state has nothing to apply to
- *  otherwise), and only once the shell has answered what it currently is. */
-function LockScreenTripNameToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) => void }) {
-  const { t } = useI18n();
+/** B2733/B2766 — one of the Lock Screen's own switches (trip name, Lock
+ *  Screen card, Dynamic Island). Only ever rendered while recording is on,
+ *  and only once the shell has answered what the switch currently is. */
+function PrefSwitch({ on, label, hint, save, onChange }: {
+  on: boolean;
+  label: string;
+  hint: string;
+  save: (on: boolean) => Promise<void>;
+  onChange: (on: boolean) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const toggle = async () => {
     const next = !on;
     setBusy(true);
     try {
-      await setLockScreenTripName(next);
+      await save(next);
       onChange(next);
     } catch {
-      // Native call failed — leave the toggle showing what it actually is.
+      // Native call failed — leave the switch showing what it actually is.
     } finally {
       setBusy(false);
     }
   };
   return (
     <div className="mt-4 flex items-start gap-3">
-      <Switch on={on} busy={busy} label={t("studio.record.lockScreenTripName.label")} onChange={() => void toggle()} />
+      <Switch on={on} busy={busy} label={label} onChange={() => void toggle()} />
       <div>
-        <p className="text-sm text-ink-strong">{t("studio.record.lockScreenTripName.label")}</p>
-        <p className="text-xs text-ink-secondary">{t("studio.record.lockScreenTripName.hint")}</p>
+        <p className="text-sm text-ink-strong">{label}</p>
+        <p className="text-xs text-ink-secondary">{hint}</p>
       </div>
     </div>
   );
