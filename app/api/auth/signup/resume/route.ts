@@ -6,7 +6,7 @@ import { MAX_JOURNALS_PER_EMAIL, journalsOwnedBy } from "@/lib/journals";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { recordPendingEmail } from "@/lib/signup/pending";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, readJson } from "@/lib/api/v2/route";
 import { signupResumeRequest } from "@/lib/api/v2/schemas/auth";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,9 @@ export async function POST(request: Request) {
     return res;
   }
 
-  const body = signupResumeRequest.safeParse(await request.json().catch(() => null));
+  const read = await readJson(request);
+  if (!read.ok) return read.response;
+  const body = signupResumeRequest.safeParse(read.value);
   if (!body.success) return fail("invalid_request", ERROR_CODES.invalid_request);
 
   const spent = await spendSignupResumeLink(body.data.token);
