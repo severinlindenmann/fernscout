@@ -160,6 +160,10 @@ final class Recorder: NSObject {
     /// B2733 — the owner's own opt-in to show the trip's name on the Lock
     /// Screen (default off; anyone holding the phone can read it there).
     private static let lockScreenTripNameKey = "lockscreen-trip-name"
+    /// B2766 — the owner's two Live Activity switches. Lock Screen on and
+    /// Island off until they say otherwise; an absent key is that default.
+    private static let activityLockScreenKey = "liveactivity-lockscreen"
+    private static let activityIslandKey = "liveactivity-island"
     private static let summaryKey = "recorder-summary"
 
     private func decode<T: Decodable>(_ data: Data?) -> T? {
@@ -612,6 +616,22 @@ final class Recorder: NSObject {
         defaults?.bool(forKey: Self.lockScreenTripNameKey) ?? false
     }
 
+    /// B2766 — iOS shows a running Live Activity on the Lock Screen and in
+    /// the Dynamic Island together, so "Lock Screen" off means no activity
+    /// at all, and "Island" off means one whose Island regions are empty.
+    func activityPrefs() -> (lockScreen: Bool, island: Bool) {
+        (defaults?.object(forKey: Self.activityLockScreenKey) as? Bool ?? true,
+         defaults?.object(forKey: Self.activityIslandKey) as? Bool ?? false)
+    }
+
+    /// Called from the route page, which is on screen — so turning the Lock
+    /// Screen back on may start a new activity right away.
+    func setActivityPrefs(lockScreen: Bool?, island: Bool?) {
+        if let lockScreen { defaults?.set(lockScreen, forKey: Self.activityLockScreenKey) }
+        if let island { defaults?.set(island, forKey: Self.activityIslandKey) }
+        publishSummary(allowStart: true)
+    }
+
     /// The owner's own toggle — `LocationRecorderPlugin.setLockScreenTripName`.
     /// Republishes at once so a change is visible on the Lock Screen within
     /// the same `update()` ActivityKit allows from anywhere, not just the
@@ -692,7 +712,7 @@ final class Recorder: NSObject {
             if lockScreenTripNameEnabled() { payload["tripTitle"] = endedTrip.title }
             if let data = try? JSONSerialization.data(withJSONObject: payload) { defaults?.set(data, forKey: Self.summaryKey) }
             reloadWidgets()
-            if #available(iOS 16.2, *) { LiveActivityController.end(payload) }
+            if #available(iOS 16.2, *) { syncActivity(payload, ended: true, allowStart: false) }
             return
         }
         guard let (id, trip) = armed.first else {
@@ -717,7 +737,22 @@ final class Recorder: NSObject {
         if lockScreenTripNameEnabled() { payload["tripTitle"] = trip.title }
         if let data = try? JSONSerialization.data(withJSONObject: payload) { defaults?.set(data, forKey: Self.summaryKey) }
         reloadWidgets()
-        if #available(iOS 16.2, *) { LiveActivityController.sync(payload, allowStart: allowStart) }
+        if #available(iOS 16.2, *) { syncActivity(payload, ended: false, allowStart: allowStart) }
+    }
+
+    /// B2766 — the owner's switches decide whether there is an activity at
+    /// all and what its Island shows; the widgets' summary above is written
+    /// either way.
+    @available(iOS 16.2, *)
+    private func syncActivity(_ payload: [String: Any], ended: Bool, allowStart: Bool) {
+        let prefs = activityPrefs()
+        guard prefs.lockScreen else {
+            LiveActivityController.endAllImmediately()
+            return
+        }
+        var content = payload
+        content["showsIsland"] = prefs.island
+        if ended { LiveActivityController.end(content) } else { LiveActivityController.sync(content, allowStart: allowStart) }
     }
 
     /// B2733 — called from `SceneDelegate.sceneDidBecomeActive`, the one

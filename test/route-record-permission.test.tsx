@@ -22,6 +22,8 @@ const shell = vi.hoisted(() => ({
   armRoute: vi.fn(),
   requestLocationPermission: vi.fn(),
   openAppSettings: vi.fn(),
+  prefs: { lockScreen: true, island: false },
+  setActivityPrefs: vi.fn(async () => {}),
 }));
 
 vi.mock("@/components/nativeShell", () => ({
@@ -38,6 +40,9 @@ vi.mock("@/components/nativeShell", () => ({
   // B2733 — the Lock Screen trip-name toggle, read on every mount.
   getLockScreenTripName: async () => false,
   setLockScreenTripName: vi.fn(),
+  // B2766 — the Live Activity's two switches.
+  getActivityPrefs: async () => shell.prefs,
+  setActivityPrefs: shell.setActivityPrefs,
 }));
 
 let root: Root | undefined;
@@ -195,5 +200,36 @@ describe("bare, inside the routes card", () => {
     const section = container!.querySelector("#section-route")!;
     expect(section.className).toContain("border-t");
     expect(section.querySelector("h2")?.textContent).not.toBe("Reise");
+  });
+});
+
+/** B2766 — iOS shows a running Live Activity on the Lock Screen and in the
+ *  Dynamic Island together, so the Island switch only exists while the
+ *  Lock Screen one is on. */
+describe("Live Activity switches", () => {
+  const sw = (label: string) => container!.querySelector(`button[role="switch"][aria-label="${label}"]`);
+  const LOCK = "Show recording on the Lock Screen";
+  const ISLAND = "Show it in the Dynamic Island";
+
+  test("defaults: Lock Screen on, Island off; turning the Island on saves only that", async () => {
+    shell.status = { state: "recording", since: "2026-09-25T10:00:00Z", openEnded: false };
+    shell.prefs = { lockScreen: true, island: false };
+    shell.setActivityPrefs.mockClear();
+    await mount();
+    expect(sw(LOCK)?.getAttribute("aria-checked")).toBe("true");
+    expect(sw(ISLAND)?.getAttribute("aria-checked")).toBe("false");
+    await click(sw(ISLAND));
+    expect(shell.setActivityPrefs).toHaveBeenCalledWith({ island: true });
+    expect(sw(ISLAND)?.getAttribute("aria-checked")).toBe("true");
+  });
+
+  test("Lock Screen off hides the Island and trip-name switches", async () => {
+    shell.status = { state: "recording", since: "2026-09-25T10:00:00Z", openEnded: false };
+    shell.prefs = { lockScreen: true, island: false };
+    await mount();
+    await click(sw(LOCK));
+    expect(shell.setActivityPrefs).toHaveBeenCalledWith({ lockScreen: false });
+    expect(sw(ISLAND)).toBeNull();
+    expect(sw("Show the trip's name on the Lock Screen")).toBeNull();
   });
 });
