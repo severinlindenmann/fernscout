@@ -60,4 +60,14 @@ describe("buildStudioHubModel — latestPublishedDay (B2678)", () => {
     if (model.kind !== "full") return;
     expect(model.latestPublishedDay).toBeNull();
   });
+
+  test("B2828 — null for a day only the owner can open (private trip, nobody else on it)", async () => {
+    writeTripFixture(OWNER, { id: "alps", title: "Alps", start: "2020-01-01", end: "2099-01-01", visibility: "private" });
+    writeDayFixture(dir, OWNER, "alps", { slug: "mine", title: "Mine", date: "2020-06-01", status: "published" });
+
+    const model = await buildStudioHubModel(OWNER);
+    expect(model.kind).toBe("full");
+    if (model.kind !== "full") return;
+    expect(model.latestPublishedDay).toBeNull();
+  });
 });

@@ -135,7 +135,7 @@ const SPLIT_SECONDARY = "min-h-11 rounded-full border border-line-strong px-4 te
  * conformance D1 as amended by B2191).
  *
  * Nothing is written until Save (C1). Every typed answer rides in the
- * session draft (`studio:addDay:<user>`), which the hub's "Half done" strip
+ * session draft (`studio:addDay:<user>:<trip>`, B2826), which the hub's "Half done" strip
  * also reads (`readAddDaySnapshot`).
  */
 export default function AddDayFlow({
@@ -354,8 +354,10 @@ export default function AddDayFlow({
   // fixes (`addDayResume.ts`'s own doc comment) was exactly a suffixed key
   // here disagreeing with `readAddDaySnapshot`'s plain one, so "Continue"
   // on the hub never found what this page had just saved.
+  // B2826 — the draft belongs to the trip this page was opened for.
+  const draftTrip = (initialTripId && trips.some((tr) => tr.id === initialTripId) ? initialTripId : proposal?.trip.id) ?? trips[0]?.id ?? "";
   const { step, index, total, go, reset } = useStep(FIRST_RUN, {
-    flowId: addDayFlowId(username),
+    flowId: addDayFlowId(username, draftTrip),
     draft: {
       // `step` is what the hub's strip reads: a page nobody has typed on is
       // not "half done".
@@ -399,7 +401,7 @@ export default function AddDayFlow({
   // A draft left behind says so once, with when it goes and a way out.
   // After mount: sessionStorage does not exist on the server.
   useEffect(() => {
-    const snapshot = readAddDaySnapshot(username);
+    const snapshot = readAddDaySnapshot(username, draftTrip);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration-safe read of sessionStorage, see above.
     if (snapshot) setRestoredFrom(snapshot.savedAt);
     try {

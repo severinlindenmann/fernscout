@@ -18,6 +18,8 @@ import { PAID_AREAS } from "@paid/manifest";
 import { ownerShortName, serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { journalPath } from "../journalPath";
+import { daysToPublish, readersOf } from "./publishDay";
+import { publishAudienceLabel } from "./publishAudience";
 /**
  * What `/[user]/studio` (B1829) needs to render its three non-default
  * states, computed once, server-side, from the same functions every other
@@ -356,7 +358,14 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
         .filter((e) => !e.draft)
         .sort((a, b) => b.date.localeCompare(a.date))[0]
     : undefined;
-  const latestPublishedDay = latestPublishedEntry
+  // B2828 — the same rule as the published screen (B2822): nobody but the
+  // owner can open the day, so there is nothing to share as a story.
+  const latestRow = latestPublishedEntry
+    ? daysToPublish(username, "published").find((r) => r.tripId === addDayTrip!.id && r.slug === latestPublishedEntry.slug)
+    : undefined;
+  const latestReaders = latestRow ? await readersOf(username, latestRow) : null;
+  const reachable = !latestRow || publishAudienceLabel(latestRow.audience, latestReaders?.length ?? null).kind !== "onlyYou";
+  const latestPublishedDay = latestPublishedEntry && reachable
     ? { tripId: addDayTrip!.id, slug: latestPublishedEntry.slug, title: latestPublishedEntry.title, date: latestPublishedEntry.date }
     : null;
   const inbox = inboxSummary(username);
