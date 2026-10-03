@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ChevronRight, TriangleAlert } from "lucide-react";
 import AgentHandover from "@/components/AgentHandover";
 import AgentKeys from "@/components/AgentKeys";
 import { useI18n } from "@/components/LocaleProvider";
 import SubmitError from "@/components/studio/SubmitError";
 import type { TranslationKey } from "@/lib/i18n";
+import { journalPath } from "@/lib/journalPath";
 
 /** A consent scope as `lib/helper/consent.ts` names it — kept as a plain
  *  union here because that module is server-only. */
@@ -47,7 +49,8 @@ const ROW_TEXT: Record<PermissionRow["id"], { title: TranslationKey; body: Trans
  * disabled switch that says the import asks when it needs it. Every write
  * goes through the existing `/api/helper/{user}/consent` route.
  *
- * **Keys** is collapsed by default: the handover button, the live keys with
+ * Both sections start closed, keys first, each with its one-line purpose
+ * (B2584), so nothing on first view can mint a key. **Keys** holds: the handover button, the live keys with
  * Revoke (which asks first, `AgentKeys`), and "What the agent gets".
  */
 export default function AgentPageContent({
@@ -91,8 +94,53 @@ export default function AgentPageContent({
 
   return (
     <>
-      <section className="mt-6">
-        <h2 className="font-display text-lg font-semibold text-ink-strong">{t("studio.permissions.leavesTitle")}</h2>
+      <details data-keys className="mt-6 border-t border-line-quiet pt-5">
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-lg font-semibold text-ink-strong [&::-webkit-details-marker]:hidden">
+          <ChevronRight
+            className="h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
+            aria-hidden="true"
+          />
+          {t("studio.permissions.keysTitle")}
+        </summary>
+        <p className="mt-1 text-sm leading-6 text-ink-secondary">
+          {t("studio.permissions.keysLede")} {t("studio.permissions.keysNotPeople")}{" "}
+          <Link href={journalPath(username, "/studio/readers")} className="font-semibold text-ink-strong underline underline-offset-2">
+            {t("studio.hub.item.readers.title")}
+          </Link>
+          .
+        </p>
+
+        <AgentHandover username={username} intro={false} onIssued={() => setKeysChanged((n) => n + 1)} />
+
+        {/* The way to take a key back — B283. Renders nothing until there is
+            a live key; Revoke asks first (B2091). */}
+        <AgentKeys username={username} reloadOn={keysChanged} />
+
+        <details className="mt-5">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-base font-semibold text-ink-strong [&::-webkit-details-marker]:hidden">
+            <ChevronRight
+              className="h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
+              aria-hidden="true"
+            />
+            {t("me.tokenTitle")}
+          </summary>
+          <p className="mt-1.5 text-base leading-7 text-ink-body">{t("me.tokenBody")}</p>
+          <div className="mt-3 flex gap-3 rounded-xl border border-coral-300 bg-coral-300/15 p-3.5">
+            <TriangleAlert className="mt-0.5 h-[18px] w-[18px] shrink-0 text-coral-600" aria-hidden="true" />
+            <p className="text-base leading-7 text-ink-strong">{t("me.tokenWarning")}</p>
+          </div>
+        </details>
+      </details>
+
+      <details data-leaves className="mt-8 border-t border-line-quiet pt-5">
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-lg font-semibold text-ink-strong [&::-webkit-details-marker]:hidden">
+          <ChevronRight
+            className="h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
+            aria-hidden="true"
+          />
+          {t("studio.permissions.leavesTitle")}
+        </summary>
+        <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("studio.permissions.leavesLede")}</p>
         <ul data-permissions className="mt-3 space-y-2">
           {rows.map((row) => {
             const on = row.granted.length > 0;
@@ -129,39 +177,8 @@ export default function AgentPageContent({
           })}
         </ul>
         <SubmitError message={error} />
-      </section>
-
-      <details data-keys className="mt-8 border-t border-line-quiet pt-5">
-        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-lg font-semibold text-ink-strong [&::-webkit-details-marker]:hidden">
-          <ChevronRight
-            className="h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
-            aria-hidden="true"
-          />
-          {t("studio.permissions.keysTitle")}
-        </summary>
-        <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("studio.permissions.keysLede")}</p>
-
-        <AgentHandover username={username} intro={false} onIssued={() => setKeysChanged((n) => n + 1)} />
-
-        {/* The way to take a key back — B283. Renders nothing until there is
-            a live key; Revoke asks first (B2091). */}
-        <AgentKeys username={username} reloadOn={keysChanged} />
-
-        <details className="mt-5">
-          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-base font-semibold text-ink-strong [&::-webkit-details-marker]:hidden">
-            <ChevronRight
-              className="h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
-              aria-hidden="true"
-            />
-            {t("me.tokenTitle")}
-          </summary>
-          <p className="mt-1.5 text-base leading-7 text-ink-body">{t("me.tokenBody")}</p>
-          <div className="mt-3 flex gap-3 rounded-xl border border-coral-300 bg-coral-300/15 p-3.5">
-            <TriangleAlert className="mt-0.5 h-[18px] w-[18px] shrink-0 text-coral-600" aria-hidden="true" />
-            <p className="text-base leading-7 text-ink-strong">{t("me.tokenWarning")}</p>
-          </div>
-        </details>
       </details>
+
     </>
   );
 }

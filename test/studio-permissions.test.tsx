@@ -91,6 +91,12 @@ describe("Permissions & keys", () => {
     expect(container!.querySelector("pre")).toBeNull();
     const keys = container!.querySelector("details[data-keys]") as HTMLDetailsElement;
     expect(keys.open).toBe(false);
+    // B2584: both sections closed, keys first, each with its purpose; Readers is linked.
+    const leaves = container!.querySelector("details[data-leaves]") as HTMLDetailsElement;
+    expect(leaves.open).toBe(false);
+    expect(keys.compareDocumentPosition(leaves) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(keys.textContent).toContain(en["studio.permissions.keysNotPeople"]);
+    expect(keys.querySelector('a[href$="/studio/readers"]')).not.toBeNull();
     expect(keys.textContent).toContain(en["me.handoverCreate"]);
     expect(keys.textContent).toContain(en["me.tokenTitle"]);
   });
