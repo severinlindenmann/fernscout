@@ -126,7 +126,7 @@ export default async function StudioLocationPage({
       <RecordingStrip
         username={user}
         trip={stripTripMeta ? { id: stripTripMeta.id, title: stripTripMeta.title, start: stripTripMeta.start, end: stripTripMeta.end } : null}
-        recording={stripEntry?.recording ?? (current?.tripId === stripTripId ? current.recording : null)}
+        recording={stripEntry?.recording ?? (current && current.tripId === stripTripId ? current.recording : null)}
         newestPosition={newest}
       />
     );
