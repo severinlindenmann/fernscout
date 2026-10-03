@@ -545,6 +545,19 @@ describe("mayReadLiveTrack — B2536", () => {
     expect(await mayReadLiveTrack(await trip(PUBLIC_TRIP))).toBe(false);
   });
 
+  test("B2345 — the operator's cookie is refused on the web zones door, GET and PUT; the owner's is not", async () => {
+    const { GET, PUT } = await import("@/app/api/web/[user]/gps/zones/route");
+    const ctx = { params: Promise.resolve({ user: OWNER }) } as never;
+    const url = `https://example.test/api/web/${OWNER}/gps/zones`;
+    as("admin");
+    expect((await GET(new Request(url), ctx)).status).toBe(403);
+    expect((await PUT(new Request(url, { method: "PUT", body: '{"zones":[]}' }), ctx)).status).toBe(403);
+    as("stranger");
+    expect((await GET(new Request(url), ctx)).status).toBe(403);
+    as("owner");
+    expect((await GET(new Request(url), ctx)).status).toBe(200);
+  });
+
   test("a guest trip: live by default, and not when guestsLive is false — for a traveller and for an approved guest alike", async () => {
     const { mayReadLiveTrack } = await import("@/lib/tripGate");
     for (const viewer of ["robin", "guest"]) {
@@ -600,4 +613,19 @@ describe("no bearer door onto the tail — B2536", () => {
     walk(path.join(process.cwd(), "app", "api"));
     expect(hits).toEqual([]);
   });
+});
+
+// B2345 keeper: a GPS door asks "is this the journal's owner?" with
+// isJournalOwnerCookie, never isOwner (which admits the instance operator).
+test("no gps door calls plain isOwner", () => {
+  const bad: string[] = [];
+  const walk = (d: string) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const f = path.join(d, e.name);
+      if (e.isDirectory()) walk(f);
+      else if (/\/gps(\/|-token\/)/.test(f) && /\bisOwner\(/.test(fs.readFileSync(f, "utf8"))) bad.push(f);
+    }
+  };
+  walk(path.join(process.cwd(), "app/api"));
+  expect(bad).toEqual([]);
 });
