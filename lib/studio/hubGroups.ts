@@ -342,9 +342,11 @@ function normalize(s: string): string {
  *  shared with Journal & account, which is never narrowed by the filter
  *  (see `StudioHub.tsx`) but still opens on phone when it has a match. */
 export function rowMatchesQuery(row: Row, query: string): boolean {
-  const q = normalize(query);
-  if (!q) return true;
-  return normalize(row.title).includes(q) || normalize(row.description ?? row.reason ?? "").includes(q);
+  const words = normalize(query).split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  // B2581 — every typed word must appear somewhere in title + description (AND, any order).
+  const hay = normalize(`${row.title} ${row.description ?? row.reason ?? ""}`);
+  return words.every((w) => hay.includes(w));
 }
 
 /** Narrows `groups` (from `buildHubGroups`) to the rows matching `query`,

@@ -7,7 +7,7 @@ import StudioBarProvider from "@/components/studio/StudioBar";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 import { translate, plural } from "@/lib/i18n";
-import { buildHubGroups, filterHubGroups } from "@/lib/studio/hubGroups";
+import { buildHubGroups, filterHubGroups, journalRows, rowMatchesQuery } from "@/lib/studio/hubGroups";
 import { typeInto } from "./support/type-input";
 import type { StudioHubModel } from "@/lib/studio/hub";
 
@@ -752,6 +752,20 @@ describe("B2304/B2641 — the filter, at the top", () => {
       .map((g) => ({ ...g, rows: g.rows.filter((r) => `${r.title} ${r.description ?? r.reason ?? ""}`.toLowerCase().includes("photo")) }))
       .filter((g) => g.rows.length > 0);
     expect(filterHubGroups(groups, "photo")).toEqual(expected);
+  });
+
+  test("B2581 — every word must match somewhere in title+description, in any order", () => {
+    const rows = buildHubGroups(FULL_BASE, "alex", t, tn, "en").flatMap((g) => g.rows);
+    const gpx = rows.find((r) => r.title === "GPX files & routes")!;
+    expect(rowMatchesQuery(gpx, "garmin timeline")).toBe(true);
+    expect(rowMatchesQuery(gpx, "timeline garmin")).toBe(true);
+    expect(rowMatchesQuery(gpx, "gpx recorded")).toBe(true); // title word + description word
+    expect(rowMatchesQuery(gpx, "garmin zebra")).toBe(false);
+  });
+
+  test("B2581 — 'delete a day' opens no group through Journal & account", () => {
+    const journal = journalRows("alex", t, tn, "en", true, FULL_BASE.account);
+    expect(journal.some((r) => rowMatchesQuery(r, "delete a day"))).toBe(false);
   });
 
   test("an empty query changes nothing", () => {
