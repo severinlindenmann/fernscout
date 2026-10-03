@@ -580,6 +580,7 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
           "spend:alert",
           "usage:fold",
           "gap-nudges:send",
+          "postcard:poll",
           "plan-reminders:send",
           "extract:remind",
         ].map((script) => `run --silent ${script}`),

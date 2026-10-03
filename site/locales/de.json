@@ -4800,5 +4800,10 @@
   "billing.voucherPhotobook": "{amount} Rabatt auf ein Fotobuch, bis {date}",
   "billing.voucherPostcard": "{amount} Rabatt auf eine Postkarte, bis {date}",
   "billing.voucherPrint": "{amount} Rabatt auf einen Druck, bis {date}",
-  "billing.appUpgradeVoucherOffer": "Abonniere, bevor dein Trip-Pass am {date} endet, und erhalte einen Fotobuch-Gutschein über {amount}."
+  "billing.appUpgradeVoucherOffer": "Abonniere, bevor dein Trip-Pass am {date} endet, und erhalte einen Fotobuch-Gutschein über {amount}.",
+  "postcard.dispatched.body": "Die Druckerei hat deine Postkartenbestellung zu deinem Tag „{day}“ verschickt. Die Karten kommen meist ein paar Tage danach bei den Empfängern an.",
+  "postcard.dispatched.bodyNoDay": "Die Druckerei hat deine Postkartenbestellung verschickt. Die Karten kommen meist ein paar Tage danach bei den Empfängern an.",
+  "postcard.dispatched.preheader": "Von der Druckerei verschickt",
+  "postcard.dispatched.subject": "Deine Postkartenbestellung ist unterwegs",
+  "postcard.dispatched.title": "Deine Postkarten sind in der Post"
 }

@@ -4801,5 +4801,10 @@
   "billing.voucherPhotobook": "{amount} kedvezmény egy fotókönyvre, {date}-ig",
   "billing.voucherPostcard": "{amount} kedvezmény egy képeslapra, {date}-ig",
   "billing.voucherPrint": "{amount} kedvezmény egy nyomatra, {date}-ig",
-  "billing.appUpgradeVoucherOffer": "Fizess elő, mielőtt az utazási bérleted {date}-n lejár, és kapsz egy {amount} értékű fotókönyv-kupont."
+  "billing.appUpgradeVoucherOffer": "Fizess elő, mielőtt az utazási bérleted {date}-n lejár, és kapsz egy {amount} értékű fotókönyv-kupont.",
+  "postcard.dispatched.body": "A nyomda feladta a(z) „{day}” naphoz tartozó képeslap-rendelésedet. A lapok általában néhány nappal később érkeznek meg a címzettekhez.",
+  "postcard.dispatched.bodyNoDay": "A nyomda feladta a képeslap-rendelésedet. A lapok általában néhány nappal később érkeznek meg a címzettekhez.",
+  "postcard.dispatched.preheader": "A nyomda feladta",
+  "postcard.dispatched.subject": "A képeslap-rendelésedet feladták",
+  "postcard.dispatched.title": "A képeslapjaid úton vannak"
 }

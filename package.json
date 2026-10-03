@@ -32,6 +32,7 @@
     "spend:alert": "tsx --conditions=react-server scripts/spend-alert.mts",
     "usage:fold": "tsx --conditions=react-server scripts/usage-fold.mts",
     "gap-nudges:send": "tsx --conditions=react-server scripts/paid.mts whatsapp/scripts/gap-nudges.mts",
+    "postcard:poll": "tsx --conditions=react-server scripts/paid.mts postcard/scripts/poll-statuses.mts",
     "plan-reminders:send": "tsx --conditions=react-server scripts/paid.mts credits/scripts/plan-reminders.mts",
     "extract:remind": "tsx --conditions=react-server scripts/extract-remind.mts",
     "migrate:trip-people": "tsx --conditions=react-server scripts/migrate-trip-people.mts",

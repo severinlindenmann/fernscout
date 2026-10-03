@@ -4795,5 +4795,10 @@
   "billing.voucherPhotobook": "{amount} off a photobook, until {date}",
   "billing.voucherPostcard": "{amount} off a postcard, until {date}",
   "billing.voucherPrint": "{amount} off a print, until {date}",
-  "billing.appUpgradeVoucherOffer": "Subscribe before your Trip pass ends on {date} and get a {amount} photobook voucher."
+  "billing.appUpgradeVoucherOffer": "Subscribe before your Trip pass ends on {date} and get a {amount} photobook voucher.",
+  "postcard.dispatched.body": "The printer has dispatched your postcard order from your day “{day}”. Cards usually reach their recipients a few days after this.",
+  "postcard.dispatched.bodyNoDay": "The printer has dispatched your postcard order. Cards usually reach their recipients a few days after this.",
+  "postcard.dispatched.preheader": "Dispatched by the printer",
+  "postcard.dispatched.subject": "Your postcard order has been sent",
+  "postcard.dispatched.title": "Your postcards are in the post"
 }

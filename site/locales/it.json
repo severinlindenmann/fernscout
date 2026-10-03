@@ -4804,5 +4804,10 @@
   "billing.voucherPhotobook": "{amount} di sconto su un fotolibro, fino al {date}",
   "billing.voucherPostcard": "{amount} di sconto su una cartolina, fino al {date}",
   "billing.voucherPrint": "{amount} di sconto su una stampa, fino al {date}",
-  "billing.appUpgradeVoucherOffer": "Abbonati prima che il tuo Trip pass termini il {date} e ricevi un buono fotolibro da {amount}."
+  "billing.appUpgradeVoucherOffer": "Abbonati prima che il tuo Trip pass termini il {date} e ricevi un buono fotolibro da {amount}.",
+  "postcard.dispatched.body": "La tipografia ha spedito il tuo ordine di cartoline per la giornata «{day}». Di solito le cartoline arrivano ai destinatari qualche giorno dopo.",
+  "postcard.dispatched.bodyNoDay": "La tipografia ha spedito il tuo ordine di cartoline. Di solito le cartoline arrivano ai destinatari qualche giorno dopo.",
+  "postcard.dispatched.preheader": "Spedito dalla tipografia",
+  "postcard.dispatched.subject": "Il tuo ordine di cartoline è stato spedito",
+  "postcard.dispatched.title": "Le tue cartoline sono in viaggio"
 }

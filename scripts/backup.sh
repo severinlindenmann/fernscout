@@ -556,6 +556,17 @@ else
   log "WARNING: the gap-nudge sweep failed — tonight's backup is unaffected"
 fi
 
+# --- 0a2b. The postcard status poll (B1441) --------------------------------
+# Same reasoning: Stannp has no push for `dispatched` on this account, so the
+# "Order sent" mail would otherwise wait for the owner to open the order page.
+# Throttled per card inside the poll. Never fatal.
+log "polling Stannp for postcard orders"
+if (cd "$APP_DIR" && npm run --silent postcard:poll); then
+  log "postcard poll done"
+else
+  log "WARNING: the postcard poll failed — tonight's backup is unaffected"
+fi
+
 # --- 0a3. The plan-reminder sweep (B2608) -----------------------------------
 # Same reasoning as the gap-nudge sweep just above: the renewal reminder (30
 # days before a Plus renews), "pass ends in N days" and "pass ended", each
