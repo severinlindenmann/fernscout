@@ -284,7 +284,6 @@ const storageDoc = z.strictObject({
   reclaimable: z.strictObject({
     photobooks: z.number(),
     postcards: z.number(),
-    stagedFiles: z.number(),
     bytes: z.number(),
     files: z.number(),
   }),

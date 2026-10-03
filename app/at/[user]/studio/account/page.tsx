@@ -7,6 +7,7 @@ import AccountPageContent, {
 } from "../../account/AccountPageContent";
 import StudioPage from "@/components/studio/StudioPage";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
+import { listStaged } from "@/lib/inbox";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { listAllOrders } from "@paid/printOrder/lib/orders";
 import { cleanupPlan } from "@/lib/storageCleanup";
@@ -58,10 +59,19 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
 
   /** Storage — B664/B821. */
   let storage: StoragePanel | undefined;
+  const locale = await requestLocale();
+  // B1392 — the legend's own labels go through t(); a trip keeps its title.
+  const rowLabel: Record<string, string> = {
+    inbox: translateIn(locale, "me.storageRow.inbox"),
+    photobooks: translateIn(locale, "me.storageRow.photobooks"),
+    postcards: translateIn(locale, "me.storageRow.postcards"),
+    other: translateIn(locale, "me.storageRow.other"),
+  };
+  const stagedFiles = listStaged(user);
   const usage = await storageFor(user);
   if (usage.limitBytes !== null) {
     const limit = usage.limitBytes;
-    const reclaimable = await cleanupPlan(user, true);
+    const reclaimable = await cleanupPlan(user);
     const percent = Math.round((usage.usedBytes / limit) * 100);
     storage = {
       used: formatBytes(usage.usedBytes),
@@ -81,17 +91,24 @@ export default async function StudioAccountPage({ params }: PageProps<"/at/[user
               .sort((a, b) => b.bytes - a.bytes)
               .map((row) => ({
                 key: row.key,
-                label: row.label,
+                label: rowLabel[row.key] ?? row.label,
                 human: formatBytes(row.bytes),
                 share: Math.min(100, (row.bytes / limit) * 100),
               }))
           : [],
+      // Shown whenever anything is staged, whatever the cleanup floor says.
+      staged:
+        stagedFiles.length > 0
+          ? {
+              human: formatBytes(stagedFiles.reduce((n, f) => n + f.bytes, 0)),
+              files: stagedFiles.map((f) => ({ id: f.id, name: f.name, human: formatBytes(f.bytes), day: f.day })),
+            }
+          : undefined,
       reclaimable: {
         human: formatBytes(reclaimable.bytes),
         // "Free up 10 KB" is not an offer — B2090. `files` only decides
         // whether the button shows, so under the floor it reads as nothing.
         files: worthShowing(reclaimable.bytes) ? reclaimable.files : 0,
-        hasStagedFiles: reclaimable.stagedFiles > 0,
       },
     };
   }

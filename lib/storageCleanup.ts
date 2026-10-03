@@ -2,7 +2,6 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 
-import { listInbox, removeInboxFile } from "./inbox";
 import { clearPrunedFiles, getPhotobookOrder, listPrintedOrderIds } from "@paid/photobook/lib/photobook/orders";
 import { dirBytes } from "./storageQuota";
 import { userDir } from "./users";
@@ -31,12 +30,10 @@ import { userDir } from "./users";
  * directory out from under it would be the one way this could break something
  * that was working.
  *
- * **Staged files are opt-in and separate.** The inbox holds photographs
- * somebody has not filed yet — deleting those on a button press is exactly the
- * irreversible thing this codebase is careful about — so `includeStagedFiles`
- * covers `inbox/files/` (the documents nothing reads yet) and nothing else.
- * Staged photographs are never in scope; they are removed one at a time
- * through `DELETE /api/v1/<user>/inbox/<id>`, where a person is looking at
+ * **Staged files are never in scope — B1392.** The inbox holds uploads
+ * somebody has not filed yet; deleting those is exactly the irreversible thing
+ * this codebase is careful about. The account page's own inbox row lists them
+ * by name and deletes exactly what it listed, where a person is looking at
  * what they are removing.
  */
 
@@ -44,7 +41,6 @@ export type CleanupPlan = {
   /** What would go, in bytes, per category. */
   photobooks: number;
   postcards: number;
-  stagedFiles: number;
   /** The total, so a caller does not add up a shape that may grow a field. */
   bytes: number;
   files: number;
@@ -104,36 +100,25 @@ function fileCount(at: string): number {
  * button they see, so the number and the categories are named before anything
  * is deleted rather than reported after.
  */
-export async function cleanupPlan(
-  username: string,
-  includeStagedFiles = false,
-): Promise<CleanupPlan> {
+export async function cleanupPlan(username: string): Promise<CleanupPlan> {
   const books = await prunablePhotobookDirs(username);
   const photobooks = books.reduce((n, b) => n + dirBytes(b.dir), 0);
   const cards = postcardDirs(username);
   const postcards = cards.reduce((n, dir) => n + dirBytes(dir), 0);
 
-  const staged = includeStagedFiles ? listInbox(username).files : [];
-  const stagedFiles = staged.reduce((n, entry) => n + entry.bytes, 0);
-
   return {
     photobooks,
     postcards,
-    stagedFiles,
-    bytes: photobooks + postcards + stagedFiles,
+    bytes: photobooks + postcards,
     files:
       books.reduce((n, b) => n + fileCount(b.dir), 0) +
-      cards.reduce((n, dir) => n + fileCount(dir), 0) +
-      staged.length,
+      cards.reduce((n, dir) => n + fileCount(dir), 0),
   };
 }
 
 /** Do it. Answers with what was actually taken. */
-export async function runCleanup(
-  username: string,
-  includeStagedFiles = false,
-): Promise<CleanupResult> {
-  const plan = await cleanupPlan(username, includeStagedFiles);
+export async function runCleanup(username: string): Promise<CleanupResult> {
+  const plan = await cleanupPlan(username);
 
   for (const book of await prunablePhotobookDirs(username)) {
     fs.rmSync(book.dir, { recursive: true, force: true });
@@ -145,10 +130,6 @@ export async function runCleanup(
 
   for (const dir of postcardDirs(username)) {
     fs.rmSync(dir, { recursive: true, force: true });
-  }
-
-  if (includeStagedFiles) {
-    for (const entry of listInbox(username).files) removeInboxFile(username, entry.id);
   }
 
   return { ...plan, done: true };
