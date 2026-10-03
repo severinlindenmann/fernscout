@@ -4517,6 +4517,7 @@ export type TranslationKey =
   | "studio.tripEdit.lede"
   | "studio.tripEdit.otherTrip"
   | "studio.tripEdit.pick.subtitle"
+  | "studio.tripEdit.readers.caption"
   | "studio.tripEdit.readers.change"
   | "studio.tripEdit.section.address"
   | "studio.tripEdit.section.dates"

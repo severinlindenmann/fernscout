@@ -274,6 +274,13 @@ export default function TripEditFlow({
 
       <section id="section-readers" className="mt-6 border-t border-line-quiet pt-6">
         <h2 className={EYEBROW}>{t("me.tripWho")}</h2>
+        <p className="mt-1 text-sm text-ink-secondary">
+          {t("studio.tripEdit.readers.caption")}{" "}
+          <Link href={`${journalPath(username)}/studio/readers`} className="font-semibold text-ink-strong underline underline-offset-2">
+            {t("studio.hub.item.readers.title")}
+          </Link>
+          {"."}
+        </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <span className="inline-flex min-h-8 items-center rounded-full border border-line-strong bg-surface-subtle px-3 text-sm font-semibold text-ink-strong">
             {t(`studio.visibility.${trip.visibility}.title` as TranslationKey)}
