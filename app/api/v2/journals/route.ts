@@ -24,7 +24,7 @@ import {
 import { normalizeJournalVisibility } from "@/lib/config";
 import { normalizeCurrency } from "@/lib/currency";
 import { skillDocPath } from "@/lib/api/skillDocMeta";
-import { createJournal, sendWelcome, setJournalFeatures } from "@/lib/journals";
+import { createJournal, precheckJournal, sendWelcome, setJournalFeatures } from "@/lib/journals";
 // One sentence, read here and by the guide and the OpenAPI document — never a
 // third hand-written copy (B855). Not a v1 route-glue import: this constant
 // is plain UI-facing text with no request/response shaping of its own.
@@ -71,6 +71,34 @@ export async function POST(request: Request) {
     return fail(code, message, details, status);
   };
 
+  const refuseCreate = (created: { error: string; message: string; next?: string }) => {
+    // `createJournal()`'s own closed set of refusals (lib/journals.ts) —
+    // spelled out here, one literal code per line, rather than cast through a
+    // variable: that is what keeps each word in this list checkable against
+    // ERROR_CODES by test/openapi-contract.test.ts's static scan.
+    const details = created.next ? { next: created.next } : undefined;
+    switch (created.error) {
+      case "invalid_username":
+        return refuse("invalid_username", created.message, details, 400);
+      case "deleted_username":
+        return refuse("deleted_username", created.message, details, 410);
+      case "reserved_username":
+        return refuse("reserved_username", created.message, details, 403);
+      case "username_taken":
+        return refuse("username_taken", created.message, details, 409);
+      case "invalid_title":
+        return refuse("invalid_title", created.message, details, 400);
+      case "invalid_owner":
+        return refuse("invalid_owner", created.message, details, 400);
+      case "too_many_journals":
+        return refuse("too_many_journals", created.message, details, 403);
+      case "tel_taken":
+        return refuse("tel_taken", created.message, details, 409);
+      default:
+        return refuse("invalid_request", created.message, details, 400);
+    }
+  };
+
   const header = request.headers.get("authorization") ?? "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) {
@@ -109,6 +137,11 @@ export async function POST(request: Request) {
     return refuse("invalid_request", ERROR_CODES.invalid_request, problemsFrom(result.error), 400);
   }
   const body = result.data;
+
+  // B2778. A bad address, title or owner is refused before anyone proves a
+  // phone for it. createJournal checks again below, for races.
+  const prechecked = precheckJournal({ ...body, visibility: body.visibility as "public" | "guest" | "private", ownerEmail: session.email });
+  if (!prechecked.ok) return refuseCreate(prechecked);
 
   const exempt = isAdminEmail(session.email) || body.username.startsWith("test-");
   if (!exempt && !session.phone) {
@@ -157,33 +190,7 @@ export async function POST(request: Request) {
       : {}),
   });
 
-  if (!created.ok) {
-    // `createJournal()`'s own closed set of refusals (lib/journals.ts) —
-    // spelled out here, one literal code per line, rather than cast through a
-    // variable: that is what keeps each word in this list checkable against
-    // ERROR_CODES by test/openapi-contract.test.ts's static scan.
-    const details = created.next ? { next: created.next } : undefined;
-    switch (created.error) {
-      case "invalid_username":
-        return refuse("invalid_username", created.message, details, 400);
-      case "deleted_username":
-        return refuse("deleted_username", created.message, details, 410);
-      case "reserved_username":
-        return refuse("reserved_username", created.message, details, 403);
-      case "username_taken":
-        return refuse("username_taken", created.message, details, 409);
-      case "invalid_title":
-        return refuse("invalid_title", created.message, details, 400);
-      case "invalid_owner":
-        return refuse("invalid_owner", created.message, details, 400);
-      case "too_many_journals":
-        return refuse("too_many_journals", created.message, details, 403);
-      case "tel_taken":
-        return refuse("tel_taken", created.message, details, 409);
-      default:
-        return refuse("invalid_request", created.message, details, 400);
-    }
-  }
+  if (!created.ok) return refuseCreate(created);
 
   rateLimitFor("journals-create", ip, CREATED);
   rateLimitFor("journals-create-daily", ip, CREATED_DAILY);

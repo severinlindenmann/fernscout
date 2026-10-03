@@ -195,8 +195,8 @@ describe("before a journal exists, the request's own language decides", () => {
     expect(sent).toHaveLength(1);
 
     expect(sent[0].subject).toMatch(/^\d{6} ist dein Code für Testbed$/);
-    expect(sent[0].text).toContain("Jemand — vermutlich ein Agent");
-    expect(whole(sent[0])).not.toContain("Somebody — probably an agent");
+    expect(sent[0].text).toContain("Du wolltest ein Reisetagebuch mit dieser Adresse beginnen");
+    expect(whole(sent[0])).not.toContain("You asked to start a travel journal");
   });
 
   test("quality values are honoured, so hu;q=0.9 behind an unknown language still wins", async () => {

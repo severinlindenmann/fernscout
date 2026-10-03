@@ -669,6 +669,14 @@ describe("the welcome mail", () => {
     // believing they are only sharing an address.
     expect(body).toMatch(/signs you in/i);
 
+    // B2775 — studio-first, no trip default claimed, and the button lands on
+    // the studio (the link's own destination, spent here).
+    expect(body).toContain("studio");
+    expect(body).not.toMatch(/starts out as|new one here/i);
+    expect(body).not.toMatch(/listed on this server/i);
+    expect(body.indexOf("agent")).toBeGreaterThan(body.indexOf("studio"));
+    expect(result.ok && result.destination).toBe("/@wanderer/studio");
+
     await closeDatabase();
     delete process.env.DATABASE_URL;
     delete process.env.SESSION_SECRET;
