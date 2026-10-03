@@ -104,7 +104,7 @@ describe("journal settings — B2074", () => {
     await mount();
     const toggle = form().querySelector('[role="switch"]') as HTMLButtonElement;
     expect(toggle.getAttribute("aria-checked")).toBe("true");
-    expect(form().textContent).toContain("Listed on this server");
+    expect(form().textContent).toContain("List my journal in search engines");
     await act(async () => toggle.click());
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     expect(saveButtons()[0].textContent).toBe("Save 1 change");
