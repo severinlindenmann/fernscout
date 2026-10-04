@@ -667,6 +667,7 @@
   "err.dayGoneBody": "Elle a peut-être été renommée depuis l’envoi du lien. Le récit va du premier au dernier jour, tu peux donc la retrouver à partir de là.",
   "err.dayGoneTitle": "Cette journée ne figure pas dans ce journal",
   "err.goToJournal": "Aller sur {title}",
+  "err.goToStart": "Aller à la page d’accueil",
   "err.linkExpiredBody": "Les liens envoyés par e-mail expirent volontairement, et un enregistrement supprimé emporte son lien avec lui. Demande-en un nouveau à la personne qui t’a invité.",
   "err.linkExpiredBodyShared": "Ce lien a été arrêté, ou n’a jamais existé. Demande-en un nouveau à la personne qui te l’a partagé.",
   "err.linkExpiredTitle": "Ce lien ne fonctionne plus",

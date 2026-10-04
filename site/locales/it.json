@@ -667,6 +667,7 @@
   "err.dayGoneBody": "Forse è stato rinominato da quando è stato inviato il link. Il racconto va dal primo all’ultimo giorno, quindi puoi trovarlo da lì.",
   "err.dayGoneTitle": "Quel giorno non è in questo diario",
   "err.goToJournal": "Vai a {title}",
+  "err.goToStart": "Vai alla pagina iniziale",
   "err.linkExpiredBody": "I link inviati per email scadono di proposito, e un record eliminato si porta via il suo link. Chiedine uno nuovo a chi ti ha invitato.",
   "err.linkExpiredBodyShared": "Questo link è stato interrotto, o non è mai esistito. Chiedine uno nuovo a chi te l'ha condiviso.",
   "err.linkExpiredTitle": "Questo link ha smesso di funzionare",

@@ -49,6 +49,7 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
           lang={locale}
           title={translateIn(locale, "err.linkExpiredTitle")}
           body={translateIn(locale, "err.linkExpiredBodyShared")}
+          actions={[{ href: "/", label: translateIn(locale, "err.goToStart") }]}
         />
       </PageShell>
     );

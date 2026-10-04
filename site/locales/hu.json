@@ -639,6 +639,7 @@
   "err.dayGoneBody": "Lehet, hogy átnevezték, mióta a linket elküldték. A történet az első naptól az utolsóig végigfut — onnan megtalálod.",
   "err.dayGoneTitle": "Ez a nap nincs ebben a naplóban",
   "err.goToJournal": "Irány {title}",
+  "err.goToStart": "Vissza a kezdőlapra",
   "err.linkExpiredBody": "Az e-mailben küldött linkek szándékosan lejárnak, és a törölt adat viszi magával a linkét is. Kérj újat attól, aki meghívott.",
   "err.linkExpiredBodyShared": "Ez a link le lett állítva, vagy soha nem is létezett. Kérj újat attól, aki megosztotta veled.",
   "err.linkExpiredTitle": "Ez a link már nem működik",

@@ -667,6 +667,7 @@
   "err.dayGoneBody": "It may have been renamed since the link was sent. The story runs from the first day to the last, so you can find it from there.",
   "err.dayGoneTitle": "That day isn’t in this journal",
   "err.goToJournal": "Go to {title}",
+  "err.goToStart": "Go to the start page",
   "err.linkExpiredBody": "Links sent by email expire on purpose, and a deleted record takes its link with it. Ask whoever invited you for a fresh one.",
   "err.linkExpiredBodyShared": "This link was stopped, or never existed. Ask whoever shared it with you for a fresh one.",
   "err.linkExpiredTitle": "This link has stopped working",
