@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
+import BusyButton from "@/components/BusyButton";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import StepBody from "@/components/studio/StepBody";
@@ -120,8 +121,12 @@ export default function FigureCreator({
   existingIds,
   onSaved,
   onCancel,
+  inline = false,
 }: {
   username: string;
+  /** B-2915 — inside a modal dialog the studio bottom bar sits under the
+   *  overlay, so each confirm renders as a button in the creator's own footer. */
+  inline?: boolean;
   /** An existing figure to reshape, or `null` to start a new one. */
   initial: FigureDoc | null;
   /** Who this figure is for — a name, and, when known, the address
@@ -436,8 +441,8 @@ export default function FigureCreator({
             <p className="mt-3 text-sm text-ink-body">{t("studio.figures.start.plainNote")}</p>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <StepPrimary
+          <div className={inline ? SHEET_FOOTER : "mt-4 flex flex-wrap gap-2"}>
+            <Primary inline={inline}
               disabled={startMode === "look" && !selectedPreset}
               onClick={continueFromStart}
               label={t("studio.figures.start.next")}
@@ -515,7 +520,7 @@ export default function FigureCreator({
               )}
 
               <div className="mt-3">
-                <StepPrimary
+                <Primary inline={inline}
                   busy={photoBusy}
                   busyLabel={t("studio.figures.photo.busy")}
                   disabled={!photoFile || !online}
@@ -685,8 +690,8 @@ export default function FigureCreator({
             })}
           </ChipGroup>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <StepPrimary
+          <div className={inline ? SHEET_FOOTER : "mt-4 flex flex-wrap gap-2"}>
+            <Primary inline={inline}
               busy={saving}
               busyLabel={t("studio.figures.shape.busy")}
               onClick={() => void save()}
@@ -706,6 +711,29 @@ export default function FigureCreator({
       )}
       </div>
     </StepBody>
+  );
+}
+
+/** The sticky action row of a phone bottom sheet (B-2915): content scrolls
+ *  above it, the safe area is padded below it. */
+export const SHEET_FOOTER =
+  "sticky bottom-0 -mx-5 -mb-5 mt-4 flex flex-wrap justify-end gap-2 border-t border-line-quiet bg-surface-raised px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3";
+
+/** The step's primary: in the studio bar by default, a plain button when the
+ *  creator sits in a dialog. */
+function Primary({ inline, ...p }: { inline: boolean } & React.ComponentProps<typeof StepPrimary>) {
+  if (!inline) return <StepPrimary {...p} />;
+  return (
+    <BusyButton
+      type="button"
+      busy={p.busy}
+      busyLabel={p.busyLabel}
+      disabled={p.disabled}
+      onClick={p.onClick}
+      className={`min-h-11 rounded-full px-5 text-base font-semibold disabled:opacity-50 ${p.tone ?? "bg-action-strong text-on-action"}`}
+    >
+      {p.label}
+    </BusyButton>
   );
 }
 
