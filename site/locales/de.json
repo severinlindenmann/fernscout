@@ -5009,5 +5009,6 @@
   "codeWait.iphone": "Auf dem iPhone erscheint der Code auch über der Tastatur, sobald die E-Mail da ist.",
   "codeWait.wrongAddress": "Falsche Adresse?",
   "codeWait.resend": "Neuen Code senden",
-  "codeWait.resendIn": "Neuen Code senden in {time}"
+  "codeWait.resendIn": "Neuen Code senden in {time}",
+  "err.goToStart": "Zur Startseite"
 }

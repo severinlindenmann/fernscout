@@ -5004,5 +5004,6 @@
   "codeWait.iphone": "On an iPhone, the code also appears above the keyboard once the email arrives.",
   "codeWait.wrongAddress": "Wrong address?",
   "codeWait.resend": "Send a new code",
-  "codeWait.resendIn": "Send a new code in {time}"
+  "codeWait.resendIn": "Send a new code in {time}",
+  "err.goToStart": "Go to the start page"
 }

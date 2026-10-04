@@ -5013,5 +5013,6 @@
   "codeWait.iphone": "Sur iPhone, le code s'affiche aussi au-dessus du clavier dès que l'e-mail arrive.",
   "codeWait.wrongAddress": "Mauvaise adresse ?",
   "codeWait.resend": "Envoyer un nouveau code",
-  "codeWait.resendIn": "Envoyer un nouveau code dans {time}"
+  "codeWait.resendIn": "Envoyer un nouveau code dans {time}",
+  "err.goToStart": "Aller à la page d’accueil"
 }

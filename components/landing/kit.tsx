@@ -96,7 +96,7 @@ export function Logo({ siteName, badge }: { siteName: string; badge?: string }) 
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icon.svg" alt="" width={38} height={38} className="h-9 w-9" />
-        <span className="font-display text-2xl font-semibold text-ink-strong">{siteName}</span>
+        <span className="font-display text-xl font-semibold text-ink-strong sm:text-2xl">{siteName}</span>
       </Link>
       {badge && (
         <span className="hidden rounded-full bg-tint-ground px-2.5 py-0.5 text-xs font-bold text-tint-ink sm:inline">

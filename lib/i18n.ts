@@ -930,6 +930,7 @@ export type TranslationKey =
   | "err.dayGoneBody"
   | "err.dayGoneTitle"
   | "err.goToJournal"
+  | "err.goToStart"
   | "err.linkExpiredBody"
   | "err.linkExpiredBodyShared"
   | "err.linkExpiredTitle"
