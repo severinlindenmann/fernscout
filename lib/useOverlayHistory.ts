@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useId, useRef } from "react";
 
 const KEY = "fernscoutOverlay";
 
@@ -21,7 +21,7 @@ export function closeAction(pushed: boolean, state: unknown, id: string): "back"
  * Next's own `history.state` is spread, not replaced.
  */
 export function useOverlayHistory(open: boolean, onClose: () => void, push = true): () => void {
-  const id = useRef(`o${Math.random().toString(36).slice(2)}`);
+  const id = { current: useId() };
   const pushed = useRef(false);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
