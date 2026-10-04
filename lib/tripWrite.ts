@@ -1410,7 +1410,9 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     // B2021: a closed trip states this either way (true or false); a public
     // trip never carries the key at all (refused above when true, and never
     // asked in the studio step in the first place).
-    ...(input.teaser !== undefined ? { teaser: input.teaser } : {}),
+    // B2848: a closed trip shows the locked card unless the caller said
+    // otherwise (the owner reversed B2185 D2). A public trip never carries it.
+    ...(visibility !== "public" ? { teaser: input.teaser ?? true } : {}),
     ...(input.test === true ? { test: true } : {}),
     ...(accent ? { accent } : {}),
     // `currencies` names what a cost may actually be spent in — the v1-style

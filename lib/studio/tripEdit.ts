@@ -38,6 +38,7 @@ export type TripEditPanel = {
   visibility: "public" | "guest" | "private";
   listed: boolean;
   teaser?: boolean;
+  translations?: Trip["translations"];
   /** Whether `/studio/trip/plan-readers` has anything to say for this trip —
    *  that page's own empty state already handles the absent case gracefully,
    *  but there is no reason to link to it from here when there is nothing
@@ -71,6 +72,7 @@ export function tripEditPanel(trip: Trip, costsAvailable: boolean): TripEditPane
     visibility: trip.visibility,
     listed: trip.listed,
     teaser: trip.teaser,
+    translations: trip.translations,
     hasPlan: Boolean(trip.planSection),
     planReaders: trip.planSection?.readers ?? "map",
     planLevels: PLAN_READERS,

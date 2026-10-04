@@ -451,6 +451,31 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
 }
 
 /**
+ * One locked card — what a stranger sees for a closed trip. Also rendered by
+ * the studio's trip settings (B2848) as the owner's preview, so the preview
+ * can never drift from what the visitor gets.
+ */
+export function LockedTripCard({ trip }: { trip: LockedTripData }) {
+  const { t, formatLongDate, localizedTrip } = useI18n();
+  const { base } = useSite();
+  return (
+    <Link
+      href={`${base}/trips/${trip.id}`}
+      className="flex flex-col gap-2 rounded-2xl border border-dashed border-line-strong bg-surface-subtle p-5 transition-shadow hover:shadow-md"
+    >
+      <div className="flex items-center gap-2">
+        <Lock aria-hidden className="h-4 w-4 shrink-0 text-ink-muted" />
+        <h3 className="font-display text-lg font-semibold text-ink-strong">{localizedTrip(trip).title}</h3>
+      </div>
+      <p className="text-xs text-ink-secondary">
+        {formatLongDate(trip.start)} — {formatLongDate(trip.end)}
+      </p>
+      <p className="text-sm text-ink-secondary">{t("trips.lockedCard")}</p>
+    </Link>
+  );
+}
+
+/**
  * The closed trips, as cards that say only that they exist — B587.
  *
  * Its own section rather than a variant mixed into the groups above: these are
@@ -464,8 +489,7 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
  * Naming it *here* is the owner's own decision, which is what `teaser:` is.
  */
 function LockedTrips({ trips }: { trips: LockedTripData[] }) {
-  const { t, formatLongDate, localizedTrip } = useI18n();
-  const { base } = useSite();
+  const { t } = useI18n();
   // Same shape as the readable cards above — B1766 capped those, this caps
   // the one list a signed-out stranger actually gets (B1773).
   const [expanded, setExpanded] = useState(false);
@@ -477,22 +501,7 @@ function LockedTrips({ trips }: { trips: LockedTripData[] }) {
       <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{t("trips.lockedSubtitle")}</p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {shown.map((trip) => (
-          <Link
-            key={trip.id}
-            href={`${base}/trips/${trip.id}`}
-            className="flex flex-col gap-2 rounded-2xl border border-dashed border-line-strong bg-surface-subtle p-5 transition-shadow hover:shadow-md"
-          >
-            <div className="flex items-center gap-2">
-              <Lock aria-hidden className="h-4 w-4 shrink-0 text-ink-muted" />
-              <h3 className="font-display text-lg font-semibold text-ink-strong">
-                {localizedTrip(trip).title}
-              </h3>
-            </div>
-            <p className="text-xs text-ink-secondary">
-              {formatLongDate(trip.start)} — {formatLongDate(trip.end)}
-            </p>
-            <p className="text-sm text-ink-secondary">{t("trips.lockedCard")}</p>
-          </Link>
+          <LockedTripCard key={trip.id} trip={trip} />
         ))}
       </div>
       {shown.length < trips.length && (
