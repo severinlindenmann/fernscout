@@ -100,7 +100,7 @@ describe("the envelope on send", () => {
     expect(envelope()).toBeNull();
     // The state change is still legible without the flight: the code field
     // arrives once the (stubbed) request resolves.
-    expect(container!.textContent).toContain("A code is on its way");
+    expect(container!.textContent).toContain("We sent a 6-digit code to");
   });
 
   test("does not play on mount, only on a send", async () => {
