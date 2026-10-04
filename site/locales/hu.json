@@ -3138,6 +3138,8 @@
   "studio.location.import.intro": "Google Idővonal-export, GPX-fájl vagy a saját JSON-formátumunk — a lenti példa megmutatja.",
   "studio.polarsteps.heading": "Importálás Polarstepsből",
   "studio.polarsteps.intro": "Húzd ide a Polarsteps exportodat (user_data.zip), hogy az utazásait vázlatként átvegyük. Semmi nem jelenik meg nyilvánosan, amíg nem mondod.",
+  "studio.polarsteps.export.steps": "Számítógépen: jelentkezz be a polarsteps.com oldalon → Fiókbeállítások → Adataim letöltése → Start My Archive. A Polarsteps e-mailben elküldi a ZIP-fájlt.",
+  "studio.polarsteps.export.guide": "A Polarsteps útmutatója",
   "studio.polarsteps.drop": "Húzd ide az export ZIP-et, vagy koppints a kiválasztáshoz",
   "studio.polarsteps.reading": "Export olvasása…",
   "studio.polarsteps.error.noTrips": "Nem található utazás ebben a ZIP-ben — biztos ez a Polarsteps export?",
@@ -3269,9 +3271,6 @@
   "studio.tripPeople.row.cta": "Hozzáadás",
   "studio.tripPeople.photo.button": "Figurák készítése fotóból",
   "studio.tripPeople.photo.unavailable": "A fotóból készített figurákhoz az asszisztens kell, ami itt nem érhető el. A nevek továbbra is működnek.",
-  "studio.tripPeople.photo.ask.yes": "Igen, használja az asszisztenst",
-  "studio.tripPeople.photo.ask.no": "Most nem",
-  "studio.tripPeople.photo.declined": "A fotós segítség ki van kapcsolva — az asszisztens beállításaiban kapcsolhatod be",
   "studio.tripPeople.photo.title": "Figurák fotóból",
   "studio.tripPeople.photo.consent": "A fotó csak azért megy az asszisztenshez, hogy leírja, hogyan néznek ki az emberek, és nem őrizzük meg. Csak az általad megjelölt személyek kerülnek elküldésre.",
   "studio.tripPeople.photo.choose": "Fotó kiválasztása",
@@ -5030,5 +5029,8 @@
   "studio.flow.leaveStatement": "Kilépek ebből az importból",
   "studio.flow.leaveRoute": "Kilépek az útvonal-importból",
   "studio.flow.leavePolarsteps": "Kilépek ebből az importból",
-  "studio.flow.leavePhotos": "Kilépek a fotóimportból"
+  "studio.flow.leavePhotos": "Kilépek a fotóimportból",
+  "studio.tripPeople.photo.ask.yes": "Igen, használja az asszisztenst",
+  "studio.tripPeople.photo.ask.no": "Most nem",
+  "studio.tripPeople.photo.declined": "A fotós segítség ki van kapcsolva — az asszisztens beállításaiban kapcsolhatod be"
 }
