@@ -1695,7 +1695,6 @@
   "photobooks.reorderHeading": "Ez a könyv újra",
   "photobooks.reorderBody": "{pages} oldal, a nyomda mostani ára: {price}.",
   "photobooks.reorderNoQuote": "A nyomdától most nem lehetett árat kérni. Semmit nem rendeltünk meg.",
-  "photobooks.backToBooks": "Az összes könyved",
   "photobook.pay": "Fizetés",
   "photobook.payTotal": "A könyv megrendelése — {total}",
   "photobook.order.resumePay": "Tovább a fizetéshez — {total}",

@@ -1,5 +1,5 @@
 {
-  "generatedFrom": "e92bbf2957c5940da147288314aadb258fbc72d8",
+  "generatedFrom": "3dc0f3d54cc1b21ecd4bcd25c809e08e9a68f863",
   "keys": [
     "agent.block.postcardIneligible",
     "agent.block.postcardNoRecipients",
@@ -560,7 +560,6 @@
     "photobook.warn.keep",
     "photobooks.again",
     "photobooks.allOrders",
-    "photobooks.backToBooks",
     "photobooks.continue",
     "photobooks.deliveryWindow",
     "photobooks.draftMeta",
@@ -581,7 +580,6 @@
     "photobooks.reorderHeading",
     "photobooks.reorderNoQuote",
     "photobooks.retry",
-    "photobooks.title",
     "postcard.cancelled.body",
     "postcard.cancelled.bodyNoName",
     "postcard.cancelled.preheader",
@@ -725,7 +723,6 @@
     "postcard.step.nextWrite",
     "postcard.step.send",
     "postcard.step.write",
-    "postcard.title",
     "studio.day.save",
     "studio.orders.lede",
     "studio.orders.photobook.body",

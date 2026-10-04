@@ -2237,7 +2237,6 @@ export type TranslationKey =
   | "photobook.warn.keep"
   | "photobooks.again"
   | "photobooks.allOrders"
-  | "photobooks.backToBooks"
   | "photobooks.continue"
   | "photobooks.deliveryWindow"
   | "photobooks.draftMeta"
