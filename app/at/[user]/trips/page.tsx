@@ -12,6 +12,8 @@ import { listableTrips, readFor, signedInAs } from "@/lib/tripGate";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import worldCountries from "@/lib/worldCountries.json";
+import { listVisits, visibleVisits, visitReader } from "@/lib/visited";
+import type { VisitedCardData } from "@/lib/visitedCards";
 import TripsIndexContent, { type EmptyJournal } from "./TripsIndexContent";
 import RouteBoundary from "@/components/RouteBoundary";
 
@@ -140,7 +142,15 @@ async function TripsIndexBody({ user }: { user: string }) {
   const locked = all.filter((t) => t.teaser && !listedRefs.has(t.ref));
 
   const broken = getMalformedTrips(user);
-  const owner = trips.length === 0 || broken.length > 0 ? await isOwner(user) : false;
+  // Always asked now: the owner's "Add a country" button sits on every
+  // variant of this page (B2914), not only on an empty one. Still the cookie
+  // and nothing else, so a stranger's payload carries `false`.
+  const owner = await isOwner(user);
+
+  // Countries visited without a trip (B2914), filtered by who is asking before
+  // anything below draws or counts them. A journal with none on disk never
+  // pays for the reader lookup.
+  const entries = listVisits(user).length > 0 ? visibleVisits(user, await visitReader(user)) : [];
 
   // Shown to the owner only: a stranger sees a malformed trip as simply
   // absent, the same as before B83. Decided before the empty state, because a
@@ -157,7 +167,10 @@ async function TripsIndexBody({ user }: { user: string }) {
   // A locked card is something to see, so the page is not empty — and the
   // "ask for an invite" sentence would be redundant beside a card that is
   // itself a door to the sign-in gate.
-  if (malformed.length === 0 && locked.length === 0) {
+  // A *visible* entry is something to see, like a locked card. Entries this
+  // reader may not see never reach this line (`entries` is the filtered list),
+  // so a journal holding only hidden ones answers exactly as one holding none.
+  if (malformed.length === 0 && locked.length === 0 && entries.length === 0) {
     if (owner) {
       // Genuine emptiness — unchanged by B264. There is no button here, and a
       // trip is made by handing an agent the prompt below.
@@ -314,7 +327,12 @@ async function TripsIndexBody({ user }: { user: string }) {
    * `lib/flagColours.ts` (B370, B375) is retired along with the tint it
    * replaced (B2423).
    */
-  const visits = [...visitsByCode]
+  // Countries with an entry join the same map. One with a trip too stays one
+  // visit; one without has no trips and carries only its entry.
+  const entryByCode = new Map(entries.map((e) => [e.country, e] as const));
+  const allCodes = new Map<string, { id: string; title: string }[]>(visitsByCode);
+  for (const code of entryByCode.keys()) if (!allCodes.has(code)) allCodes.set(code, []);
+  const visits = [...allCodes]
     .map(([code, trips]) => {
       const shape = worldCountries.find((c) => c.code === code);
       // A country with no shape is one Natural Earth cannot name (Antarctica,
@@ -333,6 +351,9 @@ async function TripsIndexBody({ user }: { user: string }) {
             path: shape.path,
             trips,
             x: shape.x,
+            ...(entryByCode.has(code)
+              ? { entry: cardOf(entryByCode.get(code)!, countryNameFor(code, reader, shape.name)) }
+              : {}),
           }
         : null;
     })
@@ -417,6 +438,25 @@ async function TripsIndexBody({ user }: { user: string }) {
   const countries = new Set(
     travelled.flatMap((t) => placesByTrip.get(t.ref)!.map((p) => p.country).filter(Boolean)),
   );
+  // An entry's country adds one only when no readable trip reached it already.
+  const tripCodes = new Set(
+    travelled.flatMap((t) => placesByTrip.get(t.ref)!.map((p) => p.countryCode).filter(Boolean)),
+  );
+  const entryOnly = entries.filter((e) => !tripCodes.has(e.country)).length;
+
+  function cardOf(e: (typeof entries)[number], name: string): VisitedCardData {
+    return {
+      code: e.country,
+      name,
+      ...(e.places !== undefined ? { places: e.places } : {}),
+      ...(e.year !== undefined ? { year: e.year } : {}),
+      ...(e.month !== undefined ? { month: e.month } : {}),
+      ...(e.note !== undefined ? { note: e.note } : {}),
+      ...(e.photo ? { photo: `${journalPath(user)}/visited-media/${e.country}/${e.photo}` } : {}),
+      // Only the owner is told which audience an entry has.
+      ...(owner ? { visibility: e.visibility } : {}),
+    };
+  }
 
   return (
     <TripsIndexContent
@@ -426,6 +466,10 @@ async function TripsIndexBody({ user }: { user: string }) {
       views={views}
       continents={continentButtons}
       empty={empty}
+      owner={owner}
+      // The add form's and the checklist's list — owner only, so a stranger's
+      // payload is the one a journal with no entries gets.
+      {...(owner ? { countryChoices: worldCountries.flatMap((c) => (c.code ? [{ code: c.code, continent: c.continent }] : [])) } : {})}
       malformed={malformed}
       // The code-request form the empty state may show — see EmptyState.
       // Passed unconditionally, like every other page that offers it: it is
@@ -433,7 +477,7 @@ async function TripsIndexBody({ user }: { user: string }) {
       // it over costs nothing on the pages that never render the form.
       codeMinutes={CODE_TTL_MINUTES}
       lifetime={{
-        countries: countries.size,
+        countries: countries.size + entryOnly,
         days: travelled.reduce((n, t) => n + statsByTrip.get(t.ref)!.tripDays, 0),
         photos: travelled.reduce((n, t) => n + statsByTrip.get(t.ref)!.totalMedia, 0),
         trips: travelled.length,
