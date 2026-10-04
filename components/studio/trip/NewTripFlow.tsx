@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/LocaleProvider";
 import StepPrimary from "@/components/studio/StepPrimary";
@@ -39,23 +39,6 @@ const STEPS = ["form"] as const;
 type Outcome = "overlap" | "done" | "writeFailed" | "queued";
 
 const SKIP = "none";
-
-/**
- * One swatch class per `ACCENTS` entry (`lib/tripWrite.ts`), written out
- * literally rather than interpolated (`` `bg-${a}-400` ``) — Tailwind's build
- * only ever picks up class names it can see as whole strings in the source,
- * and `components/SignupWizard.tsx`'s own accent picker sidesteps the same
- * trap by using plain radio labels with no swatch at all. This keeps the
- * swatch spec §7.2's storyboard actually draws, without risking a colour
- * that silently renders as nothing once the CSS is purged.
- */
-export const ACCENT_SWATCH: Record<string, string> = {
-  sky: "bg-sky-400",
-  yellow: "bg-yellow-400",
-  green: "bg-green-500",
-  coral: "bg-coral-400",
-  navy: "bg-navy-400",
-};
 
 /**
  * "A new trip" — B1821, spec §7.2; one screen since B2187.
@@ -123,7 +106,7 @@ export default function NewTripFlow({
   /** The first run of waiting photographs no trip covers, for the link. */
   photoRun?: { start: string; end: string } | null;
 }) {
-  const { t, tn, locale, formatLongDate, formatShortDate, languageName: langName } = useI18n();
+  const { t, tn, formatShortDate } = useI18n();
   const router = useRouter();
 
   const [title, setTitle] = useState("");
