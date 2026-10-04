@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import TravellerBench from "@/components/branding/TravellerBench";
 
 /** One of the workbenches — see `app/docs/branding/page.tsx` for what the
@@ -14,14 +13,6 @@ export default function TravellerBenchPage() {
   return (
     <div className="bg-surface-base">
       <TravellerBench />
-      <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
-        <Link
-          href="/docs/branding"
-          className="text-sm font-semibold text-ink-body underline decoration-blue-500 decoration-2 underline-offset-2 hover:text-ink-strong"
-        >
-          Back to the workbenches
-        </Link>
-      </div>
     </div>
   );
 }

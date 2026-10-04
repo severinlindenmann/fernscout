@@ -6,10 +6,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /**
- * B2187 — "A new trip" is one screen: a name, two dates and who can read it
- * (already "Only you"), then "Create trip". Everything else is under "More
- * settings", collapsed. B2077's session draft still keeps typed work across
- * a reload, and done's "Add the first day" names the trip just made.
+ * B2846 - "A new trip" is one screen: a name, one range calendar and who can
+ * read it, then "Create trip". No "More settings": the create writes what the
+ * old flow wrote with every optional step skipped. B2077's session draft still
+ * keeps typed work across a reload; done has one primary, "Add the first day".
  * `next/navigation` is a stand-in with a real history stack.
  */
 
@@ -47,15 +47,8 @@ function tree() {
           defaultVisibility="private"
           guestCount={0}
           guestsHref="/@alex/studio/readers"
-          accents={["sky"]}
           existingTrips={existingTrips}
           otherLocales={[]}
-          defaultLocale="en"
-          baseCurrency="CHF"
-          currencies={["CHF"]}
-          contacts={[]}
-          figures={[]}
-          journalFigures={[]}
           {...extra}
         />
       </StudioBarProvider>
@@ -88,12 +81,14 @@ function button(text: string): HTMLButtonElement {
 const titleInput = () => container.querySelector("input[type=text]") as HTMLInputElement;
 
 function fillStepOne() {
-  const [start, end] = Array.from(container.querySelectorAll("[data-date-field] input")) as HTMLInputElement[];
-  act(() => {
-    type(titleInput(), "Round the Alps");
-    type(start, "2026-05-10");
-    type(end, "2026-05-15");
-  });
+  act(() => type(titleInput(), "Round the Alps"));
+  // Two taps on the one grid: the first day, then the last (this month's grid).
+  tap(`${thisMonth}-10`);
+  tap(`${thisMonth}-15`);
+}
+const thisMonth = new Date().toISOString().slice(0, 7);
+function tap(date: string) {
+  act(() => (container.querySelector(`[data-date-field] button[data-date="${date}"]`) as HTMLButtonElement).click());
 }
 
 beforeEach(() => {
@@ -114,64 +109,83 @@ const created = () =>
   );
 const sent = (fetchMock: ReturnType<typeof created>) =>
   JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}")) as Record<string, unknown>;
-const more = () => container.querySelector("[data-more-settings]") as HTMLDetailsElement;
 async function create() {
   await act(async () => {
     button("Create trip").click();
   });
   rerender();
 }
-const doneLinks = () =>
-  Array.from(container.querySelectorAll(".studio-done-card a"), (a) => [a.textContent, a.getAttribute("href")]);
+const doneRows = () =>
+  Array.from(container.querySelectorAll("ul a"), (a) => [a.textContent, a.getAttribute("href")]);
 
-describe("NewTripFlow — one screen, B2187", () => {
-  test("one screen: no step counter, no check list; who can read it says 'Only you'; More settings is collapsed", () => {
+describe("NewTripFlow — one screen, B2846", () => {
+  test("only the name, one calendar and who can read it; no More settings; Create waits for both", () => {
     mount();
     const text = container.textContent ?? "";
-    expect(text).not.toMatch(/\d of \d/);
-    expect(container.querySelector("[data-decide-row]")).toBeNull();
+    expect(container.querySelectorAll("input")).toHaveLength(1);
+    expect(container.querySelectorAll("[data-date-field] input")).toHaveLength(0);
+    expect(container.querySelector("[data-more-settings]")).toBeNull();
     expect(text).toContain("What's the trip called?");
+    expect(titleInput().placeholder).toBe("e.g. Greece in May");
     expect(container.querySelector("[data-who-can-read] summary")?.textContent).toContain("Only you");
-    expect(text).toContain("Nothing is published until you publish a day yourself.");
-    expect(more()).not.toBeNull();
-    expect(more().open).toBe(false);
+    expect(container.querySelector("[data-range-summary]")?.textContent).toBe("Tap the first day, then the last.");
     expect(button("Create trip").disabled).toBe(true);
   });
 
-  test("B2238: the locked-card note follows the choice, not always the default", () => {
+  test("two taps pick a range and say it; a tap before the first day starts again", () => {
     mount();
-    expect(container.textContent).toContain('"Show nothing" is chosen for you');
-    act(() => button("Show a locked card").click());
-    expect(container.textContent).toContain("A stranger who finds the link sees a locked card with the trip's title and dates, and nothing else.");
-    expect(container.textContent).not.toContain('"Show nothing" is chosen for you');
-    act(() => button("Show nothing").click());
-    expect(container.textContent).toContain('"Show nothing" is chosen for you');
+    tap(`${thisMonth}-10`);
+    expect(container.querySelector("[data-range-summary]")?.textContent).toContain("1 day");
+    tap(`${thisMonth}-16`);
+    expect(container.querySelector("[data-range-summary]")?.textContent).toMatch(/ – .* · 7 days$/);
+    tap(`${thisMonth}-04`);
+    expect(container.querySelector("[data-range-summary]")?.textContent).toContain("1 day");
   });
 
-  test("a trip is created from a title and two dates alone: private, the four helper fields 'none', no teaser", async () => {
+  test("I'm travelling now sets today as the first day", async () => {
+    const fetchMock = created();
+    vi.stubGlobal("fetch", fetchMock);
+    mount();
+    act(() => type(titleInput(), "Round the Alps"));
+    act(() => button("I'm travelling now").click());
+    await create();
+    const today = new Date().toISOString().slice(0, 10);
+    expect(sent(fetchMock)).toMatchObject({ start: today, end: today });
+  });
+
+  test("Create writes exactly what the old flow wrote with every optional step skipped", async () => {
     const fetchMock = created();
     vi.stubGlobal("fetch", fetchMock);
     mount();
     fillStepOne();
-    expect(more().open).toBe(false);
     expect(button("Create trip").disabled).toBe(false);
     await create();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const body = sent(fetchMock);
-    expect(body).toMatchObject({
+    // Private whatever order the visibilities come in; "none" is the wire
+    // sentinel for a field that was asked and not answered; no teaser field.
+    expect(sent(fetchMock)).toEqual({
       title: "Round the Alps",
-      start: "2026-05-10",
-      end: "2026-05-15",
-      // Private whatever order the journal's visibilities come in (this
-      // tree hands them guest-first) — never the journal's own default.
+      start: `${thisMonth}-10`,
+      end: `${thisMonth}-15`,
       visibility: "private",
       accent: "none",
       tagline: "none",
       intro: "none",
       rates: "none",
+      costsBudget: "none",
+      figuresMode: { mode: "journal" },
+      company: "later",
     });
-    // B2185 — "Show nothing" is the default and sends no field at all.
-    expect("teaser" in body).toBe(false);
+  });
+
+  test("a journal with other languages also sends translations: none", async () => {
+    const fetchMock = created();
+    vi.stubGlobal("fetch", fetchMock);
+    extra = { otherLocales: ["de"] };
+    mount();
+    fillStepOne();
+    await create();
+    expect(sent(fetchMock).translations).toBe("none");
   });
 
   test("B2849: a journal not listed defaults to Invited guests with the guest count, no warning", async () => {
@@ -198,6 +212,8 @@ describe("NewTripFlow — one screen, B2187", () => {
     extra = { defaultVisibility: "public" };
     mount();
     expect(container.querySelector("[data-public-warning]")?.textContent).toContain("Anyone with the link can read it");
+    // The warning replaces the plain line; guest and private keep theirs.
+    expect(container.textContent).not.toContain("Anybody can open the trip now");
     act(() => root!.unmount());
     container.remove();
     sessionStorage.clear();
@@ -208,63 +224,38 @@ describe("NewTripFlow — one screen, B2187", () => {
     expect(container.querySelector("[data-public-warning]")).not.toBeNull();
   });
 
-  test("done on a private trip: the first day, then who reads along — people or letting readers in, never a readers invite (B2776)", async () => {
+  test("done on a private trip: the first day is the one primary; photos and settings are quiet rows", async () => {
     vi.stubGlobal("fetch", created());
     mount();
     fillStepOne();
     await create();
-    expect(doneLinks()).toEqual([
-      ["Add the first day", "/@alex/studio/day/new?trip=round-the-alps-2026"],
-      ["Add someone to this trip", "/@alex/studio/people"],
-      ["Let your readers in", "/@alex/studio/trip/visibility?trip=round-the-alps-2026"],
+    expect(button("Add the first day")).not.toBeNull();
+    expect(doneRows()).toEqual([
+      ["Bring in", "/@alex/studio/photos"],
+      ["Open", "/@alex/studio/trip?trip=round-the-alps-2026"],
     ]);
-    expect(container.querySelector(".studio-done-card:nth-child(2)")?.textContent).toContain("Who reads along?");
     expect(sessionStorage.getItem("studio:newTrip:alex")).toBeNull();
   });
 
-  test("done on a trip guests can read: the first day, then an invite that says it sends an email", async () => {
+  test("done on a trip guests can read adds the read-along row, which says it sends an email", async () => {
     const fetchMock = created();
     vi.stubGlobal("fetch", fetchMock);
     mount();
     fillStepOne();
     act(() => Array.from(container.querySelectorAll<HTMLButtonElement>("[data-who-can-read] button")).find((b) => b.textContent?.startsWith("Invited guests"))!.click());
-    expect(container.querySelector("[data-who-can-read] summary")?.textContent).toContain("Invited guests");
     await create();
     expect(sent(fetchMock).visibility).toBe("guest");
-    expect(doneLinks()).toEqual([
-      ["Add the first day", "/@alex/studio/day/new?trip=round-the-alps-2026"],
-      ["Invite someone (sends an email)", "/@alex/studio/readers#invite"],
-    ]);
+    expect(doneRows().at(-1)).toEqual(["Invite someone (sends an email)", "/@alex/studio/readers#invite"]);
   });
 
-  test("More settings, once opened, still reaches the create: subtitle, colour and the locked card", async () => {
-    const fetchMock = created();
-    vi.stubGlobal("fetch", fetchMock);
+  test("a reload keeps what was typed, the days and who can read it too", () => {
     mount();
     fillStepOne();
-    act(() => {
-      more().open = true;
-    });
-    const tagline = container.querySelector('[data-more-settings] input[type=text]') as HTMLInputElement;
-    act(() => type(tagline, "Too much cheese"));
-    act(() => (container.querySelector('[data-more-settings] button[aria-label="Sky blue"]') as HTMLButtonElement).click());
-    act(() => button("Show a locked card").click());
-    await create();
-    expect(sent(fetchMock)).toMatchObject({
-      title: "Round the Alps",
-      tagline: "Too much cheese",
-      accent: "sky",
-      intro: "none",
-      rates: "none",
-      teaser: true,
-    });
-  });
-
-  test("a reload keeps what was typed", () => {
-    mount();
-    fillStepOne();
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>("[data-who-can-read] button")).find((b) => b.textContent?.startsWith("Public"))!.click());
     reload();
     expect(titleInput().value).toBe("Round the Alps");
+    expect(container.querySelector("[data-range-summary]")?.textContent).toMatch(/ · 6 days$/);
+    expect(container.querySelector("[data-who-can-read] summary")?.textContent).toContain("Anybody");
   });
 
   test("B2136: an old deep link to ?step=decide lands on the one screen, with nothing to commit", () => {
@@ -274,21 +265,16 @@ describe("NewTripFlow — one screen, B2187", () => {
     expect(button("Create trip").disabled).toBe(true);
   });
 
-  test("T3!: dates that include today beside the current trip ask first, and 'That is fine' creates it", async () => {
-    const today = new Date().toISOString().slice(0, 10);
+  test("T3!: dates that include today beside the current trip say so in one line, and 'That is fine' creates it", async () => {
     existingTrips = [{ id: "alps", title: "Alps", start: "2020-01-01", end: "2999-01-01", status: "current" }];
     const fetchMock = created();
     vi.stubGlobal("fetch", fetchMock);
     mount();
-    const [start, end] = Array.from(container.querySelectorAll("[data-date-field] input")) as HTMLInputElement[];
-    act(() => {
-      type(titleInput(), "Round the Alps");
-      type(start, today);
-      type(end, today);
-    });
+    act(() => type(titleInput(), "Round the Alps"));
+    act(() => button("I'm travelling now").click());
     await create();
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(container.textContent).toContain("Two trips now include today");
+    expect(container.textContent).toContain("Two trips cover today. This newer one shows as current.");
     await act(async () => {
       button("That is fine").click();
     });
@@ -301,8 +287,7 @@ describe("B2193 — a trip started from waiting photographs", () => {
     sessionStorage.setItem("studio:newTrip:alex", JSON.stringify({ title: "", start: "", end: "" }));
     extra = { initialRange: { start: "2026-09-20", end: "2026-09-27", photos: 44 }, photoRun: { start: "2026-09-20", end: "2026-09-27" } };
     mount();
-    const [start, end] = Array.from(container.querySelectorAll("[data-date-field] input")) as HTMLInputElement[];
-    expect([start.value, end.value]).toEqual(["Sunday, 20 September", "Sunday, 27 September"]);
+    expect(container.querySelector("[data-range-summary]")?.textContent).toBe("20 Sep – 27 Sep · 8 days");
     expect(titleInput().value).toBe("");
     expect(titleInput().placeholder).not.toBe("");
     expect(container.querySelector("[data-from-photos]")?.textContent).toBe(

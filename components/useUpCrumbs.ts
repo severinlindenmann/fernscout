@@ -6,6 +6,15 @@ import { useSite } from "./SiteProvider";
 import { useTrip } from "./TripProvider";
 import { upTrail, type UpCrumb } from "@/lib/navUp";
 
+// B2855: crumbs that are a named page rather than the root, journal or trip.
+const NAMED = {
+  analytics: "nav.analytics",
+  me: "me.title",
+  studio: "nav.studio",
+  photobooks: "photobooks.title",
+  postcard: "postcard.title",
+} as const;
+
 export type NamedCrumb = UpCrumb & { label: string };
 
 /**
@@ -50,7 +59,9 @@ export function useUpCrumbs(): NamedCrumb[] {
           : site.name
         : crumb.kind === "journal"
           ? t("nav.trips")
-          : trip
+          : crumb.kind in NAMED
+            ? t(NAMED[crumb.kind as keyof typeof NAMED])
+            : trip
             ? localizedTrip(trip.trip).title
             : site.title,
   }));
