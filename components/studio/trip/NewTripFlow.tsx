@@ -522,9 +522,11 @@ export default function NewTripFlow({
               {t("studio.newTrip.who.publicWarning")}
             </p>
           )}
-          <p className="mt-2 text-sm text-ink-secondary">
-            {t(`studio.newTrip.who.line.${whoKey}` as TranslationKey)}
-          </p>
+          {whoKey !== "public" && (
+            <p className="mt-2 text-sm text-ink-secondary">
+              {t(`studio.newTrip.who.line.${whoKey}` as TranslationKey)}
+            </p>
+          )}
 
 
           <div className="mt-4">

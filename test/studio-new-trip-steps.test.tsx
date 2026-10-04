@@ -212,6 +212,8 @@ describe("NewTripFlow — one screen, B2846", () => {
     extra = { defaultVisibility: "public" };
     mount();
     expect(container.querySelector("[data-public-warning]")?.textContent).toContain("Anyone with the link can read it");
+    // The warning replaces the plain line; guest and private keep theirs.
+    expect(container.textContent).not.toContain("Anybody can open the trip now");
     act(() => root!.unmount());
     container.remove();
     sessionStorage.clear();

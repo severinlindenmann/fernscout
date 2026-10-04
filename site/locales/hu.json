@@ -3241,7 +3241,6 @@
   "studio.newTrip.who.change": "módosítás",
   "studio.newTrip.who.line.private": "Semmi sem lesz közzétéve, amíg te magad közzé nem teszel egy napot.",
   "studio.newTrip.who.line.guest": "A vendégeid már most megnyithatják az utat; minden napot akkor látnak, amikor megosztod.",
-  "studio.newTrip.who.line.public": "Bárki már most megnyithatja az utat; minden napot akkor lát, amikor megosztod.",
   "studio.newTrip.who.guestsNone": "Még nincs vendég",
   "studio.newTrip.who.guestsCount": "{count} vendég",
   "studio.newTrip.who.guestsCount.one": "1 vendég",

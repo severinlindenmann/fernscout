@@ -3239,7 +3239,6 @@
   "studio.newTrip.who.change": "cambia",
   "studio.newTrip.who.line.private": "Nulla viene pubblicato finché non pubblichi tu stesso un giorno.",
   "studio.newTrip.who.line.guest": "I tuoi ospiti possono già aprire il viaggio; ogni giorno arriva a loro quando lo condividi.",
-  "studio.newTrip.who.line.public": "Chiunque può già aprire il viaggio; ogni giorno arriva ai lettori quando lo condividi.",
   "studio.newTrip.who.guestsNone": "Ancora nessun ospite",
   "studio.newTrip.who.guestsCount": "{count} ospiti",
   "studio.newTrip.who.guestsCount.one": "1 ospite",

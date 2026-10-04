@@ -3239,7 +3239,6 @@
   "studio.newTrip.who.change": "ändern",
   "studio.newTrip.who.line.private": "Nichts wird veröffentlicht, bis du selbst einen Tag veröffentlichst.",
   "studio.newTrip.who.line.guest": "Deine Gäste können die Reise jetzt öffnen; jeden Tag sehen sie, sobald du ihn teilst.",
-  "studio.newTrip.who.line.public": "Alle können die Reise jetzt öffnen; jeden Tag sehen sie, sobald du ihn teilst.",
   "studio.newTrip.who.guestsNone": "Noch keine Gäste",
   "studio.newTrip.who.guestsCount": "{count} Gäste",
   "studio.newTrip.who.guestsCount.one": "1 Gast",

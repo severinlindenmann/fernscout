@@ -3270,7 +3270,6 @@
   "studio.newTrip.who.change": "change",
   "studio.newTrip.who.line.private": "Nothing is published until you publish a day yourself.",
   "studio.newTrip.who.line.guest": "Your guests can open the trip now; each day reaches them once you share it.",
-  "studio.newTrip.who.line.public": "Anybody can open the trip now; each day reaches them once you share it.",
   "studio.newTrip.who.guestsNone": "No guests yet",
   "studio.newTrip.who.guestsCount": "{count} guests",
   "studio.newTrip.who.guestsCount.one": "1 guest",

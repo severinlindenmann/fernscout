@@ -3882,7 +3882,6 @@ export type TranslationKey =
   | "studio.newTrip.who.guestsNone"
   | "studio.newTrip.who.line.guest"
   | "studio.newTrip.who.line.private"
-  | "studio.newTrip.who.line.public"
   | "studio.newTrip.who.private"
   | "studio.newTrip.who.public"
   | "studio.newTrip.who.publicWarning"
