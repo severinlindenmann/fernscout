@@ -13,6 +13,11 @@ export function closeAction(pushed: boolean, state: unknown, id: string): "back"
   return pushed && mine ? "back" : "direct";
 }
 
+/** After a close that was not Back or X: is our entry still on top and worth popping? */
+export function isStaleEntry(live: boolean, pushed: boolean, state: unknown, id: string): boolean {
+  return !live && closeAction(pushed, state, id) === "back";
+}
+
 /**
  * A full-screen overlay as one history step, so the phone's edge swipe / the
  * browser Back closes the overlay and not the page behind it. Returns the
@@ -23,6 +28,7 @@ export function closeAction(pushed: boolean, state: unknown, id: string): "back"
 export function useOverlayHistory(open: boolean, onClose: () => void, push = true): () => void {
   const id = { current: useId() };
   const pushed = useRef(false);
+  const live = useRef(false);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -35,13 +41,24 @@ export function useOverlayHistory(open: boolean, onClose: () => void, push = tru
       window.history.pushState({ ...window.history.state, [KEY]: id.current }, "");
     }
     pushed.current = true;
+    live.current = true;
     const onPop = () => {
       if (closeAction(true, window.history.state, id.current) === "back") return;
       pushed.current = false;
       onCloseRef.current();
     };
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      live.current = false;
+      // The parent closed it (not Back, not X): drop our entry so the next Back
+      // is not a no-op. Deferred a tick so a strict-mode re-run can keep it.
+      setTimeout(() => {
+        if (!isStaleEntry(live.current, pushed.current, window.history.state, id.current)) return;
+        pushed.current = false;
+        window.history.back();
+      }, 0);
+    };
   }, [open, push]);
 
   return useCallback(() => {
