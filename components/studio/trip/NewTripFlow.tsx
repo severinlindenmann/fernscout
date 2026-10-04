@@ -7,7 +7,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import DateField from "@/components/studio/DateField";
-import DoneScreen, { type DoneNext } from "@/components/studio/DoneScreen";
+import DoneScreen from "@/components/studio/DoneScreen";
 import { useOnline } from "@/components/studio/useOnline";
 import {
   armRoute,
@@ -26,7 +26,7 @@ import { todayISO } from "@/components/studio/location/RecordingPlan";
 import { LocationAccessLine, LocationGuide } from "@/components/studio/trip/RouteRecordSection";
 import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
 import { useStep } from "@/lib/studio/useStep";
-import type { ExistingTripSummary, NewTripContact, NewTripFigure } from "@/lib/studio/newTrip";
+import type { ExistingTripSummary } from "@/lib/studio/newTrip";
 import type { TranslationKey } from "@/lib/i18n";
 import StepBody from "@/components/studio/StepBody";
 
@@ -39,98 +39,6 @@ const STEPS = ["form"] as const;
 type Outcome = "overlap" | "done" | "writeFailed" | "queued";
 
 const SKIP = "none";
-
-/** A pill toggle, always a real tap target — B2021, spec: "every chip a
- *  44px target with a visible label". Used for every one-of-many choice on
- *  the "rest" step (money, languages, figures, company, the locked card). */
-function Chip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold ${
-        active
-          ? "border-action-strong bg-surface-subtle text-ink-strong"
-          : "border-line-strong bg-surface-raised text-ink-secondary"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-/** `GET /api/v2/{user}/figures/preview` — the same route an agent already
- *  confirms a figure through (see that route's own doc comment): read-only,
- *  draws from the query alone, nothing stored. `party` draws several
- *  figures arranged as the hero would; `figure` draws one. */
-function previewSrc(username: string, query: { figure: unknown } | { party: unknown }, size = 64): string {
-  const [key, value] = "figure" in query ? (["figure", query.figure] as const) : (["party", query.party] as const);
-  return `/api/v2/${encodeURIComponent(username)}/figures/preview?${key}=${encodeURIComponent(JSON.stringify(value))}&size=${size}`;
-}
-
-/** One figure in the "choose" picker, or in a read-only preview strip —
- *  B2021, review: "show the figures drawn … as small images with the name
- *  beneath, not name chips." `onClick` absent renders a plain, unselectable
- *  tile (the "these people" and "the journal's set" previews). */
-function FigureTile({
-  username,
-  figure,
-  label,
-  active,
-  onClick,
-}: {
-  username: string;
-  figure: unknown;
-  label: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  const body = (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element -- a live SVG
-          from this journal's own preview route, not a static asset Next's
-          image pipeline could optimise. */}
-      <img src={previewSrc(username, { figure })} alt="" width={56} height={56} className="h-14 w-14" />
-      <span className="max-w-20 truncate text-xs font-semibold text-ink-body">{label}</span>
-    </>
-  );
-  if (!onClick) {
-    return <div className="flex min-h-11 flex-col items-center gap-1 rounded-xl p-2">{body}</div>;
-  }
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`flex min-h-11 flex-col items-center gap-1 rounded-xl border p-2 ${
-        active ? "border-action-strong bg-surface-subtle" : "border-line-strong bg-surface-raised"
-      }`}
-    >
-      {body}
-    </button>
-  );
-}
-
-/** One of the "rest" step's five questions — a label, its answer chips, and
- *  an optional note or expanded control beneath them. */
-function RestCard({ label, note, children }: { label: string; note?: string; children: ReactNode }) {
-  return (
-    <div className="mt-4 rounded-xl border border-line-strong bg-surface-raised p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">{label}</p>
-      <div className="mt-2 flex flex-wrap gap-2">{children}</div>
-      {note && <p className="mt-2 text-xs text-ink-secondary">{note}</p>}
-    </div>
-  );
-}
 
 /**
  * One swatch class per `ACCENTS` entry (`lib/tripWrite.ts`), written out
@@ -191,15 +99,8 @@ export default function NewTripFlow({
   defaultVisibility,
   guestCount,
   guestsHref,
-  accents,
   existingTrips,
   otherLocales,
-  defaultLocale,
-  baseCurrency,
-  currencies,
-  contacts,
-  figures,
-  journalFigures,
   initialRange,
   photoRun = null,
 }: {
@@ -211,20 +112,10 @@ export default function NewTripFlow({
   /** Guests the journal already has, and where the owner sees them. */
   guestCount: number;
   guestsHref: string;
-  /** `ACCENTS` from `lib/tripWrite.ts`, read server-side. */
-  accents: readonly string[];
   /** For T3! — see `lib/studio/newTrip.ts`'s own doc comment. */
   existingTrips: ExistingTripSummary[];
-  /** `lib/studio/newTrip.ts`'s `restForNewTrip` — see its own doc comment. */
+  /** The journal's other languages: only whether there are any matters, because the old flow sent `translations: "none"` then. */
   otherLocales: string[];
-  defaultLocale: string;
-  baseCurrency: string;
-  /** `journalCurrencies` (`lib/rates.ts`) — base first; the only codes this
-   *  flow offers (B2143). */
-  currencies: string[];
-  contacts: NewTripContact[];
-  figures: NewTripFigure[];
-  journalFigures: NewTripFigure[];
   /** B2193 — `?start=&end=` from a hub day card or "start from my photos":
    *  the dates prefilled, and how many waiting photographs they span. The
    *  name is never prefilled (C7). */
@@ -242,43 +133,6 @@ export default function NewTripFlow({
   const [end, setEnd] = useState(initialRange?.end ?? "");
   const [visibility, setVisibility] = useState<string>(defaultVisibility);
 
-  const [accent, setAccent] = useState<string>("");
-  const [accentSkipped, setAccentSkipped] = useState(false);
-  const [tagline, setTagline] = useState("");
-  const [taglineSkipped, setTaglineSkipped] = useState(false);
-  const [intro, setIntro] = useState("");
-  const [introSkipped, setIntroSkipped] = useState(false);
-  const [rates, setRates] = useState("");
-  const [ratesSkipped, setRatesSkipped] = useState(false);
-
-  // "More settings" — B2021's "rest", folded under one disclosure by B2187.
-  // Every one of these has a real default, the locked card included (B2185).
-  const [money, setMoney] = useState<"none" | "budget">("none");
-  const [budgetTotal, setBudgetTotal] = useState("");
-  const [budgetCurrency, setBudgetCurrency] = useState(baseCurrency);
-  const [languages, setLanguages] = useState<"later" | "add">("later");
-  const [languageTitles, setLanguageTitles] = useState<Record<string, string>>({});
-  /** "Subtitles too" — review point 4: one link reveals a subtitle field
-   *  per language, rather than asking for both up front. */
-  const [showSubtitles, setShowSubtitles] = useState(false);
-  const [languageSubtitles, setLanguageSubtitles] = useState<Record<string, string>>({});
-  const [figuresChoice, setFiguresChoice] = useState<"journal" | "none" | "custom">("journal");
-  const [chosenFigures, setChosenFigures] = useState<string[]>([]);
-  /** "See the journal's set" — review point 6: a drawn preview of what "the
-   *  journal's own" actually draws, not just the words. */
-  const [showJournalSet, setShowJournalSet] = useState(false);
-  const [company, setCompany] = useState<"later" | "solo" | "named">("later");
-  const [namedEmails, setNamedEmails] = useState<string[]>([]);
-  /** "Show nothing" preselected, no gate (B2185, owner decision D2) — a
-   *  locked card tells a stranger a closed trip exists at all, so the
-   *  closed-by-default answer is the one nobody has to choose. Turning it
-   *  on is still one tap away, here and in trip settings. */
-  const [teaser, setTeaser] = useState(false);
-
-  const needsTeaser = visibility !== "public";
-  const budgetMissing = money === "budget" && !(Number(budgetTotal) > 0);
-  const figuresMissing = figuresChoice === "custom" && chosenFigures.length === 0;
-  const companyMissing = company === "named" && namedEmails.length === 0;
   // B2077 — every typed answer rides in the session draft, so a reload or
   // the browser's Back keeps it. `set` trusts only the types it expects: a
   // draft is this tab's own sessionStorage, but a stale shape from an older
@@ -286,71 +140,20 @@ export default function NewTripFlow({
   const { step, reset } = useStep(STEPS, {
     flowId: `newTrip:${username}`,
     draft: {
-      get: () => ({
-        title, start, end, visibility, accent, accentSkipped, tagline, taglineSkipped, intro, introSkipped,
-        rates, ratesSkipped, money, budgetTotal, budgetCurrency, languages, languageTitles, showSubtitles,
-        languageSubtitles, figuresChoice, chosenFigures, company, namedEmails, teaser,
-      }),
+      get: () => ({ title, start, end, visibility }),
       set: (d) => {
-        const str = (v: unknown, set: (s: string) => void) => typeof v === "string" && set(v);
-        const bool = (v: unknown, set: (b: boolean) => void) => typeof v === "boolean" && set(v);
-        const rec = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, string>) : null);
-        const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : null);
-        str(d.title, setTitle);
+        if (typeof d.title === "string") setTitle(d.title);
         // Dates the owner just asked for from their photographs beat a draft's.
         if (!initialRange) {
-          str(d.start, setStart);
-          str(d.end, setEnd);
+          if (typeof d.start === "string") setStart(d.start);
+          if (typeof d.end === "string") setEnd(d.end);
         }
         if (typeof d.visibility === "string" && visibilities.includes(d.visibility)) setVisibility(d.visibility);
-        str(d.accent, setAccent);
-        bool(d.accentSkipped, setAccentSkipped);
-        str(d.tagline, setTagline);
-        bool(d.taglineSkipped, setTaglineSkipped);
-        str(d.intro, setIntro);
-        bool(d.introSkipped, setIntroSkipped);
-        str(d.rates, setRates);
-        bool(d.ratesSkipped, setRatesSkipped);
-        if (d.money === "none" || d.money === "budget") setMoney(d.money);
-        str(d.budgetTotal, setBudgetTotal);
-        str(d.budgetCurrency, setBudgetCurrency);
-        if (d.languages === "later" || d.languages === "add") setLanguages(d.languages);
-        const titles = rec(d.languageTitles);
-        if (titles) setLanguageTitles(titles);
-        bool(d.showSubtitles, setShowSubtitles);
-        const subtitles = rec(d.languageSubtitles);
-        if (subtitles) setLanguageSubtitles(subtitles);
-        if (d.figuresChoice === "journal" || d.figuresChoice === "none" || d.figuresChoice === "custom") setFiguresChoice(d.figuresChoice);
-        const chosen = list(d.chosenFigures);
-        if (chosen) setChosenFigures(chosen);
-        if (d.company === "later" || d.company === "solo" || d.company === "named") setCompany(d.company);
-        const named = list(d.namedEmails);
-        if (named) setNamedEmails(named);
-        if (typeof d.teaser === "boolean") setTeaser(d.teaser);
       },
     },
   });
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 
-  const namedContacts = contacts.filter((c) => namedEmails.includes(c.email));
-  // "these people" is *offered*, never switched to for them — spec, and
-  // Codex's own finding: naming somebody with a figure must never silently
-  // change what was already chosen.
-  const namedFigures = figures.filter((f) => f.person && namedEmails.includes(f.person));
-  const namedFigureIds = namedFigures.map((f) => f.id);
-
-  /** Named beside the primary when it is disabled — review point 3: a
-   *  disabled button that says nothing about *why* is the same complaint
-   *  B1901 already fixed for the dates on step one. */
-  const disabledReason = budgetMissing
-    ? t("studio.newTrip.rest.disabled.budget")
-    : figuresMissing
-      ? t("studio.newTrip.rest.disabled.figures")
-      : companyMissing
-        ? t("studio.newTrip.rest.disabled.company")
-        : undefined;
-
-  const [restPressed, setRestPressed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -416,28 +219,6 @@ export default function NewTripFlow({
     }
   }
 
-  /** The wire shape `figuresMode` takes — the same `tripFigures` union
-   *  `lib/tripWrite.ts` validates against. */
-  function figuresModeWire(): { mode: "off" } | { mode: "journal" } | { mode: "custom"; figures: string[] } {
-    if (figuresChoice === "none") return { mode: "off" };
-    if (figuresChoice === "custom") return { mode: "custom", figures: chosenFigures };
-    return { mode: "journal" };
-  }
-
-  /** Only the languages that actually got a title (or, behind "Subtitles
-   *  too", a subtitle) — a language left empty is deferred, not refused
-   *  (spec). */
-  function translationsWire(): Record<string, { title?: string; tagline?: string }> | typeof SKIP {
-    if (languages === "later") return SKIP;
-    const out: Record<string, { title?: string; tagline?: string }> = {};
-    for (const locale of otherLocales) {
-      const title = languageTitles[locale]?.trim();
-      const tagline = showSubtitles ? languageSubtitles[locale]?.trim() : "";
-      if (title || tagline) out[locale] = { ...(title ? { title } : {}), ...(tagline ? { tagline } : {}) };
-    }
-    return Object.keys(out).length > 0 ? out : SKIP;
-  }
-
   async function commit() {
     setBusy(true);
     setWriteError(null);
@@ -447,21 +228,15 @@ export default function NewTripFlow({
       start,
       end,
       visibility,
-      accent: accentSkipped ? SKIP : accent || SKIP,
-      tagline: taglineSkipped ? SKIP : tagline || SKIP,
-      intro: introSkipped ? SKIP : intro || SKIP,
-      rates: ratesSkipped ? SKIP : rates || SKIP,
-      costsBudget:
-        money === "budget" && budgetTotal.trim()
-          ? { total: Number(budgetTotal), currency: budgetCurrency }
-          : SKIP,
-      ...(otherLocales.length > 0 ? { translations: translationsWire() } : {}),
-      figuresMode: figuresModeWire(),
-      company,
-      ...(company === "named" ? { namedPeople: namedContacts } : {}),
-      // "Show nothing" is the default and sends no field at all (B2185)
-      // — only the explicit opt-in reaches the wire.
-      ...(needsTeaser && teaser ? { teaser: true } : {}),
+      // What the old flow wrote with every optional step skipped.
+      accent: SKIP,
+      tagline: SKIP,
+      intro: SKIP,
+      rates: SKIP,
+      costsBudget: SKIP,
+      ...(otherLocales.length > 0 ? { translations: SKIP } : {}),
+      figuresMode: { mode: "journal" },
+      company: "later",
     };
     try {
       const res = await fetch(url, {
@@ -522,12 +297,8 @@ export default function NewTripFlow({
 
   const titleMissing = titleLeft && !title.trim();
   const endBeforeStart = Boolean(start && end && end < start);
-
-  // B2776 — widening a private trip to the journal's readers is the trip's own
-  // visibility page (the one existing write, with its preview), not a new one.
-  const letIn = { href: `${journalPath(username)}/studio/trip/visibility?trip=${encodeURIComponent(createdId ?? "")}`, label: t("studio.reach.letReadersIn") };
+  const days = daysBetween(start, end);
   const whoKey = visibility === "public" ? "public" : visibility === "guest" ? "guest" : "private";
-  const onTrip = company === "named" && namedContacts.length > 0;
 
   return (
     <StepBody step={step}>
@@ -569,9 +340,27 @@ export default function NewTripFlow({
               },
               startLabel: t("studio.newTrip.gather1.startLabel"),
               endLabel: t("studio.newTrip.gather1.endLabel"),
-              endError: endBeforeStart ? t("studio.newTrip.gather1.endBeforeStart") : undefined,
+              gridOnly: true,
             }}
           />
+          <p data-range-summary aria-live="polite" className="mt-2 text-sm font-semibold text-ink-strong">
+            {start && end && !endBeforeStart
+              ? tn("studio.newTrip.range.summary", days, {
+                  range: `${formatShortDate(start)} – ${formatShortDate(end)}`,
+                  count: String(days),
+                })
+              : t("studio.newTrip.range.hint")}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setStart(localToday);
+              setEnd(end && end >= localToday ? end : localToday);
+            }}
+            className="mt-2 inline-flex min-h-11 items-center rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
+          >
+            {t("studio.newTrip.range.now")}
+          </button>
           {initialRange && initialRange.photos > 0 && (
             <p data-from-photos className="mt-2 text-sm text-ink-secondary">
               {tn("studio.newTrip.fromPhotos.summary", initialRange.photos, {
@@ -689,7 +478,7 @@ export default function NewTripFlow({
               <span>
                 <span className="block text-sm font-semibold text-ink-strong">{t("studio.newTrip.gather1.visibilityHeading")}</span>
                 <span className="block text-sm text-ink-body">
-                  {t(onTrip && whoKey === "private" ? "studio.newTrip.who.privateNamed" : (`studio.newTrip.who.${whoKey}` as TranslationKey))}
+                  {t(`studio.newTrip.who.${whoKey}` as TranslationKey)}
                 </span>
               </span>
               <span className="text-sm font-semibold text-ink-body underline underline-offset-2">{t("studio.newTrip.who.change")}</span>
@@ -733,373 +522,12 @@ export default function NewTripFlow({
               {t("studio.newTrip.who.publicWarning")}
             </p>
           )}
-          <p className="mt-2 text-sm text-ink-secondary">
-            {t(`studio.newTrip.who.line.${whoKey}` as TranslationKey)}
-            {onTrip && ` ${t("studio.newTrip.who.namedDrafts")}`}
-          </p>
-
-          {/* B2187 — everything else, collapsed, fed from the same state.
-              Never opened, every answer stays at its default and the four
-              helper fields still go out as "none". */}
-          <details data-more-settings className="mt-4 rounded-xl border border-line-strong bg-surface-raised px-4 py-3">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3">
-              <span>
-                <span className="block text-sm font-semibold text-ink-strong">{t("studio.newTrip.more.label")}</span>
-                <span className="block text-sm text-ink-secondary">{t("studio.newTrip.more.hint")}</span>
-              </span>
-              <span aria-hidden className="text-ink-secondary">›</span>
-            </summary>
-            <p className="mt-3 text-sm text-ink-body">{t("studio.newTrip.rest.lede")}</p>
-
-          <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-              {t("studio.newTrip.gather2.accentLabel")}
+          {whoKey !== "public" && (
+            <p className="mt-2 text-sm text-ink-secondary">
+              {t(`studio.newTrip.who.line.${whoKey}` as TranslationKey)}
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {accents.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  onClick={() => {
-                    setAccent(a);
-                    setAccentSkipped(false);
-                  }}
-                  aria-pressed={accent === a && !accentSkipped}
-                  className={`h-9 w-9 rounded-full border-2 ${ACCENT_SWATCH[a] ?? "bg-surface-subtle"} ${
-                    accent === a && !accentSkipped ? "border-ink-strong" : "border-transparent"
-                  }`}
-                  aria-label={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
-              title={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
-                />
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setAccentSkipped(true);
-                  setAccent("");
-                }}
-                className={`rounded-full border px-3 py-1 text-sm font-semibold ${
-                  accentSkipped ? "border-ink-strong text-ink-strong" : "border-line-strong text-ink-secondary"
-                }`}
-              >
-                {accentSkipped ? t("studio.newTrip.gather2.skipped") : t("studio.newTrip.gather2.skip")}
-              </button>
-            </div>
-          </div>
-
-          <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-            {t("studio.newTrip.gather2.taglineLabel")}
-            <div className="mt-1 flex items-center gap-2">
-              <input
-                type="text"
-                value={tagline}
-                disabled={taglineSkipped}
-                onChange={(e) => {
-                  setTagline(e.target.value);
-                  setTaglineSkipped(false);
-                }}
-                placeholder={t("studio.newTrip.gather2.taglinePlaceholder")}
-                className="block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body disabled:opacity-50"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setTaglineSkipped((v) => !v);
-                  if (!taglineSkipped) setTagline("");
-                }}
-                className="shrink-0 text-sm font-semibold text-ink-body underline underline-offset-2"
-              >
-                {taglineSkipped ? t("studio.newTrip.gather2.skipped") : t("studio.newTrip.gather2.skip")}
-              </button>
-            </div>
-          </label>
-
-          <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-            {t("studio.newTrip.gather2.introLabel")}
-            <textarea
-              value={intro}
-              disabled={introSkipped}
-              onChange={(e) => {
-                setIntro(e.target.value);
-                setIntroSkipped(false);
-              }}
-              className="mt-1 block min-h-20 w-full rounded-xl border border-line-strong bg-surface-base px-3 py-2 text-sm text-ink-body disabled:opacity-50"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setIntroSkipped((v) => !v);
-                if (!introSkipped) setIntro("");
-              }}
-              className="mt-1 text-sm font-semibold text-ink-body underline underline-offset-2"
-            >
-              {introSkipped ? t("studio.newTrip.gather2.skipped") : t("studio.newTrip.gather2.skip")}
-            </button>
-          </label>
-
-          <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-            {t("studio.newTrip.gather2.ratesLabel")}
-            {/* B2143 — the journal's own list, never free text; the base is
-                never "other". Still sent as the comma list the route reads. */}
-            {currencies.length > 1 ? (
-              <div className="mt-1 flex flex-wrap items-center gap-2 normal-case tracking-normal">
-                {currencies.slice(1).map((code) => {
-                  const chosen = rates.split(",").map((c) => c.trim()).filter(Boolean);
-                  const on = chosen.includes(code);
-                  return (
-                    <Chip
-                      key={code}
-                      label={code}
-                      active={on}
-                      onClick={() => {
-                        setRates((on ? chosen.filter((c) => c !== code) : [...chosen, code]).join(", "));
-                        setRatesSkipped(false);
-                      }}
-                    />
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRatesSkipped((v) => !v);
-                    if (!ratesSkipped) setRates("");
-                  }}
-                  className="shrink-0 text-sm font-semibold text-ink-body underline underline-offset-2"
-                >
-                  {ratesSkipped ? t("studio.newTrip.gather2.skipped") : t("studio.newTrip.gather2.skip")}
-                </button>
-              </div>
-            ) : (
-              <span className="mt-1 block text-sm font-normal normal-case tracking-normal text-ink-secondary">
-                {t("studio.newTrip.gather2.ratesNone")}
-              </span>
-            )}
-          </label>
-
-          <div className="mt-4 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3 text-sm text-ink-body">
-            {t("studio.newTrip.gather2.skipNotice")}
-          </div>
-
-          <RestCard label={t("studio.newTrip.rest.money.label")}>
-            <Chip label={t("studio.newTrip.rest.money.none")} active={money === "none"} onClick={() => setMoney("none")} />
-            <Chip label={t("studio.newTrip.rest.money.budget")} active={money === "budget"} onClick={() => setMoney("budget")} />
-          </RestCard>
-          {money === "budget" && (
-            <div className="-mt-2 mb-2 rounded-xl border border-line-strong bg-surface-raised p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-                {t("studio.newTrip.rest.money.budgetLabel", { currency: budgetCurrency })}
-              </p>
-              <div className="mt-2 flex gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  inputMode="decimal"
-                  value={budgetTotal}
-                  onChange={(e) => setBudgetTotal(e.target.value)}
-                  className="min-h-11 flex-1 rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body"
-                />
-                <select
-                  value={budgetCurrency}
-                  onChange={(e) => setBudgetCurrency(e.target.value)}
-                  aria-label={t("studio.newTrip.rest.money.currencyLabel")}
-                  className="min-h-11 w-24 rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body"
-                >
-                  {currencies.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {(() => {
-                const nights = daysBetween(start, end);
-                const total = Number(budgetTotal);
-                return budgetTotal.trim() && Number.isFinite(total) && total > 0 && nights > 0 ? (
-                  <p className="mt-2 text-xs text-ink-secondary">
-                    {tn("studio.newTrip.rest.money.perDay", nights, {
-                      amount: new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(total / nights),
-                      currency: budgetCurrency,
-                      days: String(nights),
-                    })}
-                  </p>
-                ) : null;
-              })()}
-            </div>
           )}
 
-          {otherLocales.length > 0 && (
-            <RestCard
-              label={t("studio.newTrip.rest.languages.label")}
-              // Review point 4: the fallback is true whether or not the
-              // panel is expanded, so the collapsed card says it too.
-              note={t("studio.newTrip.rest.languages.fallback", {
-                title: title || t("studio.newTrip.decide.untitled"),
-              })}
-            >
-              <Chip
-                label={t("studio.newTrip.rest.languages.later", { locale: langName(defaultLocale) })}
-                active={languages === "later"}
-                onClick={() => setLanguages("later")}
-              />
-              <Chip label={t("studio.newTrip.rest.languages.add")} active={languages === "add"} onClick={() => setLanguages("add")} />
-            </RestCard>
-          )}
-          {languages === "add" && otherLocales.length > 0 && (
-            <div className="-mt-2 mb-2 rounded-xl border border-line-strong bg-surface-raised p-4">
-              {otherLocales.map((locale) => (
-                <div key={locale} className="mt-3 first:mt-0">
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-                    {langName(locale)}
-                  </label>
-                  {/* Review point 4: persistent text, not a placeholder that
-                      vanishes the moment somebody starts typing. */}
-                  <p className="mt-1 text-xs text-ink-secondary">
-                    {t("studio.newTrip.rest.languages.fallback", { title: title || t("studio.newTrip.decide.untitled") })}
-                  </p>
-                  <input
-                    type="text"
-                    value={languageTitles[locale] ?? ""}
-                    onChange={(e) => setLanguageTitles((prev) => ({ ...prev, [locale]: e.target.value }))}
-                    className="mt-1 block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body"
-                  />
-                  {showSubtitles && (
-                    <input
-                      type="text"
-                      value={languageSubtitles[locale] ?? ""}
-                      onChange={(e) => setLanguageSubtitles((prev) => ({ ...prev, [locale]: e.target.value }))}
-                      placeholder={t("studio.newTrip.rest.languages.subtitlePlaceholder")}
-                      className="mt-1 block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-3 text-sm text-ink-body"
-                    />
-                  )}
-                </div>
-              ))}
-              {!showSubtitles && (
-                <button
-                  type="button"
-                  onClick={() => setShowSubtitles(true)}
-                  className="mt-3 min-h-11 text-xs font-semibold text-ink-body underline underline-offset-2"
-                >
-                  {t("studio.newTrip.rest.languages.subtitlesToo")}
-                </button>
-              )}
-              <p className="mt-2 text-xs text-ink-secondary">{t("studio.newTrip.rest.languages.deferredNote")}</p>
-            </div>
-          )}
-
-          <RestCard label={t("studio.newTrip.rest.figures.label")}>
-            <Chip label={t("studio.newTrip.rest.figures.journal")} active={figuresChoice === "journal"} onClick={() => setFiguresChoice("journal")} />
-            <Chip label={t("studio.newTrip.rest.figures.none")} active={figuresChoice === "none"} onClick={() => setFiguresChoice("none")} />
-            <Chip label={t("studio.newTrip.rest.figures.choose")} active={figuresChoice === "custom"} onClick={() => setFiguresChoice("custom")} />
-          </RestCard>
-          {figuresChoice === "journal" && journalFigures.length > 0 && (
-            <div className="-mt-2 mb-2">
-              <button
-                type="button"
-                onClick={() => setShowJournalSet((v) => !v)}
-                className="min-h-11 text-xs font-semibold text-ink-body underline underline-offset-2"
-              >
-                {t("studio.newTrip.rest.figures.seeSet")}
-              </button>
-              {/* Review point 6: the words "the journal's own" drawn, not
-                  just asserted. */}
-              {showJournalSet && (
-                <div className="mt-2 flex flex-wrap gap-2 rounded-xl border border-line-strong bg-surface-raised p-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- see FigureTile's own note. */}
-                  <img
-                    src={previewSrc(username, { party: journalFigures }, 96)}
-                    alt=""
-                    width={96}
-                    height={96}
-                    className="h-24"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          {/* Review point 5: "these people" lists exactly what would walk,
-              drawn, before it is ever tapped — offered, never switched to. */}
-          {company === "named" && namedFigures.length > 0 && (
-            <div className="-mt-2 mb-2 rounded-xl border border-line-strong bg-surface-raised p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {namedFigures.map((f) => (
-                  <FigureTile key={f.id} username={username} figure={f} label={f.name ?? f.id} />
-                ))}
-                <Chip
-                  label={t("studio.newTrip.rest.figures.theseNamed")}
-                  active={
-                    figuresChoice === "custom" &&
-                    chosenFigures.length === namedFigureIds.length &&
-                    namedFigureIds.every((id) => chosenFigures.includes(id))
-                  }
-                  onClick={() => {
-                    setFiguresChoice("custom");
-                    setChosenFigures(namedFigureIds);
-                  }}
-                />
-              </div>
-            </div>
-          )}
-          {figuresChoice === "custom" && (
-            <div className="-mt-2 mb-2 rounded-xl border border-line-strong bg-surface-raised p-4">
-              {figures.length === 0 ? (
-                <p className="text-sm text-ink-secondary">{t("studio.newTrip.rest.figures.empty")}</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {figures.map((f) => (
-                    <FigureTile
-                      key={f.id}
-                      username={username}
-                      figure={f}
-                      label={f.name ?? f.id}
-                      active={chosenFigures.includes(f.id)}
-                      onClick={() =>
-                        setChosenFigures((prev) => (prev.includes(f.id) ? prev.filter((id) => id !== f.id) : [...prev, f.id]))
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <RestCard label={t("studio.newTrip.rest.company.label")}>
-            <Chip label={t("studio.newTrip.rest.company.later")} active={company === "later"} onClick={() => setCompany("later")} />
-            <Chip label={t("studio.newTrip.rest.company.solo")} active={company === "solo"} onClick={() => setCompany("solo")} />
-            <Chip label={t("studio.newTrip.rest.company.named")} active={company === "named"} onClick={() => setCompany("named")} />
-          </RestCard>
-          {company === "named" && (
-            <div className="-mt-2 mb-2 rounded-xl border border-line-strong bg-surface-raised p-4">
-              {contacts.length === 0 ? (
-                <p className="text-sm text-ink-secondary">{t("studio.newTrip.rest.company.empty")}</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {contacts.map((c) => (
-                    <Chip
-                      key={c.email}
-                      label={c.name}
-                      active={namedEmails.includes(c.email)}
-                      onClick={() =>
-                        setNamedEmails((prev) => (prev.includes(c.email) ? prev.filter((e) => e !== c.email) : [...prev, c.email]))
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-              <p className="mt-2 text-xs text-ink-secondary">{t("studio.newTrip.rest.company.namedNote")}</p>
-            </div>
-          )}
-
-          {needsTeaser && (
-            <RestCard
-              label={t("studio.newTrip.rest.teaser.label")}
-              note={t(teaser ? "studio.newTrip.rest.teaser.noteShown" : "studio.newTrip.rest.teaser.note")}
-            >
-              <Chip label={t("studio.newTrip.rest.teaser.show")} active={teaser === true} onClick={() => setTeaser(true)} />
-              <Chip label={t("studio.newTrip.rest.teaser.hide")} active={teaser === false} onClick={() => setTeaser(false)} />
-            </RestCard>
-          )}
-
-          </details>
 
           <div className="mt-4">
             {/* B2137: what is still missing reads as a hint until the
@@ -1108,16 +536,10 @@ export default function NewTripFlow({
               disabled={!title.trim() || !start || !end || end < start}
               busy={busy}
               busyLabel={t("studio.newTrip.createBusy")}
-              onClick={() => (disabledReason ? setRestPressed(true) : pressMakeThisTrip())}
+              onClick={pressMakeThisTrip}
               label={t("studio.newTrip.create")}
               tone="bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
             />
-            {disabledReason &&
-              (restPressed ? (
-                <p role="alert" className="text-sm text-coral-600">{disabledReason}</p>
-              ) : (
-                <p className="text-sm text-ink-secondary">{disabledReason}</p>
-              ))}
           </div>
           <p className="mt-3 text-sm text-ink-secondary">{t("studio.newTrip.decide.currentNotice")}</p>
           {photoRun && (photoRun.start !== initialRange?.start || photoRun.end !== initialRange?.end) && (
@@ -1134,12 +556,9 @@ export default function NewTripFlow({
 
       {outcome === "overlap" && overlapWith && (
         <div className="mt-4">
-          <div className="rounded-xl border border-coral-300 bg-coral-50 px-4 py-3 text-sm text-ink-body">
-            <p className="font-semibold text-ink-strong">
-              {t("studio.newTrip.overlap.banner", { other: overlapWith.title, date: formatLongDate(today) })}
-            </p>
-          </div>
-          <p className="mt-3 text-sm text-ink-body">{t("studio.newTrip.overlap.explain")}</p>
+          <p className="rounded-xl border border-coral-300 bg-coral-50 px-4 py-3 text-sm font-semibold text-ink-strong">
+            {t("studio.newTrip.overlap.line")}
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
@@ -1166,46 +585,28 @@ export default function NewTripFlow({
           <DoneScreen
             username={username}
             done={t("studio.newTrip.done.banner", { title: title || t("studio.newTrip.decide.untitled") })}
-            next={[
-              {
-                title: t("studio.newTrip.done.firstDay.title"),
-                href: `${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(createdId)}`,
-                label: t("studio.newTrip.done.addFirstDay"),
-              },
-              // B2187 / B2776 — "who reads along?" is asked after every trip.
-              // A private trip is the people on it (and the close circle), so
-              // a journal invite would open nothing: its doors are People and
-              // widening the trip. A shared trip offers the readers invite.
-              ...(onTrip
-                ? [
-                    {
-                      title: t("studio.newTrip.done.invite.title", { names: namedContacts.map((c) => c.name).join(", ") }),
-                      body: t("studio.newTrip.done.invite.note"),
-                      href: `${journalPath(username)}/studio/people`,
-                      label: t("studio.newTrip.done.invite.cta"),
-                      ...(visibility === "private" ? { also: [letIn] } : {}),
-                    },
-                  ]
-                : visibility !== "private"
-                  ? [
-                      {
-                        title: t("studio.newTrip.done.readAlong.title"),
-                        body: t("studio.newTrip.done.readAlong.body"),
-                        href: `${journalPath(username)}/studio/readers#invite`,
-                        label: t("studio.newTrip.done.readAlong.cta"),
-                      },
-                    ]
-                  : [
-                      {
-                        title: t("studio.newTrip.done.whoReads.title"),
-                        body: t("studio.newTrip.done.whoReads.body"),
-                        href: `${journalPath(username)}/studio/people`,
-                        label: t("studio.reach.addSomeone"),
-                        also: [letIn],
-                      },
-                    ]),
-            ] as [DoneNext] | [DoneNext, DoneNext]}
           />
+          {/* B2846 — one primary, in the bar; everything else a quiet row. */}
+          <StepPrimary
+            onClick={() => router.push(`${journalPath(username)}/studio/day/new?trip=${encodeURIComponent(createdId)}`)}
+            label={t("studio.newTrip.done.addFirstDay")}
+          />
+          <ul className="mt-4 divide-y divide-line-quiet rounded-xl border border-line-quiet bg-surface-raised">
+            {[
+              { title: t("studio.newTrip.done.photos.title"), href: `${journalPath(username)}/studio/photos`, label: t("studio.newTrip.done.row.bringIn") },
+              { title: t("studio.newTrip.done.settings.title"), href: `${journalPath(username)}/studio/trip?trip=${encodeURIComponent(createdId)}`, label: t("studio.newTrip.done.row.open") },
+              ...(visibility !== "private"
+                ? [{ title: t("studio.newTrip.done.readAlong.title"), href: `${journalPath(username)}/studio/readers#invite`, label: t("studio.newTrip.done.readAlong.cta") }]
+                : []),
+            ].map((row) => (
+              <li key={row.href} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 text-sm">
+                <span className="text-ink-body">{row.title}</span>
+                <Link href={row.href} className="shrink-0 font-semibold text-ink-strong underline underline-offset-2">
+                  {row.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
           {routeFrom && (
             <p data-route-armed className="mt-2 text-sm text-ink-secondary">
               {t("studio.location.plan.recordsFrom", { date: formatShortDate(routeFrom) })}
@@ -1231,9 +632,7 @@ export default function NewTripFlow({
   );
 }
 
-/** Whole days a trip spans, inclusive of both ends — "the whole trip
- *  averaged over n days" (spec). 0 when the dates cannot be parsed, so the
- *  per-day line simply does not render rather than divide by zero. */
+/** Whole days a trip spans, inclusive of both ends; 0 when the dates cannot be read. */
 function daysBetween(start: string, end: string): number {
   const a = Date.parse(start);
   const b = Date.parse(end);

@@ -38,6 +38,8 @@ type Range = {
   endLabel: string;
   /** Shown under the last-day field, e.g. "the last day is before the first". */
   endError?: string;
+  /** Only the grid: no typed fields, no Today button (B2846). */
+  gridOnly?: boolean;
 };
 
 type Props = TripCalendar & { labelClassName?: string } & (
@@ -79,7 +81,7 @@ export default function DateField(props: Props) {
 
   return (
     <div data-date-field className="mt-3">
-      {range ? (
+      {range?.gridOnly ? null : range ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <TypedDate label={range.startLabel} labelClassName={labelClassName} value={range.start}
             onCommit={(start) => { range.onChange(start, range.end); setAwaitingEnd(false); }} />
@@ -97,12 +99,14 @@ export default function DateField(props: Props) {
         writtenDates={writtenDates}
         draftDates={draftDates}
       >
-        <div className="mt-2 flex justify-end">
-          <button type="button" onClick={() => pick(localToday())}
-            className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
-            {t("studio.date.today")}
-          </button>
-        </div>
+        {!range?.gridOnly && (
+          <div className="mt-2 flex justify-end">
+            <button type="button" onClick={() => pick(localToday())}
+              className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500">
+              {t("studio.date.today")}
+            </button>
+          </div>
+        )}
       </MonthGrid>
     </div>
   );
