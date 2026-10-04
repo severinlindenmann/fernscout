@@ -5,6 +5,11 @@ import UpLink from "./UpLink";
 import { useLanguageHref } from "./LanguageLink";
 import { READING } from "./landing/kit";
 
+/** B2855: a workbench page (`/docs/branding/<x>`, any language prefix) goes up to the workbench list, not the hub. */
+export function docsUpTarget(pathname: string): "branding" | "hub" {
+  return /^(\/[a-z]{2})?\/docs\/branding\/[^/]+/.test(pathname) ? "branding" : "hub";
+}
+
 /**
  * One step up, out of the documentation — B1728.
  *
@@ -21,19 +26,26 @@ import { READING } from "./landing/kit";
 export default function DocsUpLink({
   hubHref,
   hubLabel,
+  brandingLabel,
   className,
 }: {
   hubHref: string;
   hubLabel: string;
+  brandingLabel: string;
   className?: string;
 }) {
   // `/de/docs` is the hub too, and goes up to `/de` — B2473.
   const to = useLanguageHref();
-  const atHub = usePathname() === to(hubHref);
-  if (atHub) return null;
+  const pathname = usePathname();
+  if (pathname === to(hubHref)) return null;
+  const branding = docsUpTarget(pathname) === "branding";
   return (
     <div className={`${READING} pt-6`}>
-      <UpLink href={hubHref} label={hubLabel} className={className} />
+      <UpLink
+        href={branding ? `${hubHref}/branding` : hubHref}
+        label={branding ? brandingLabel : hubLabel}
+        className={className}
+      />
     </div>
   );
 }

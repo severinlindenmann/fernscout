@@ -41,8 +41,7 @@ describe("DoneScreen", () => {
 
   test("renders no back-to-studio link of its own: the bar has it", () => {
     const html = render(<DoneScreen username="example" done="Saved." next={[card(1)]} />);
-    expect(html).not.toContain("studio.flow.backToStudio");
-    expect(html).not.toContain(en["studio.flow.backToStudio"]);
+    expect(html).not.toContain("Back to the studio");
     expect(html).not.toMatch(/href="\/@example\/studio"/);
   });
 
@@ -69,9 +68,9 @@ function studioSources(): { file: string; source: string }[] {
 }
 
 describe("B2075 — every flow ends on DoneScreen, and the bar holds the only way back", () => {
-  test("no studio component but the bar renders studio.flow.backToStudio", () => {
+  test("only the bar and the header draw a way back, both from studioUp (B2853)", () => {
     const offenders = studioSources()
-      .filter(({ file, source }) => !file.endsWith("StudioBar.tsx") && source.includes("studio.flow.backToStudio"))
+      .filter(({ file, source }) => source.includes("studio.flow.backToStudio") || (/\bup\.href\b/.test(source) && !/StudioBar|StudioHeader/.test(file)))
       .map(({ file }) => file);
     expect(offenders).toEqual([]);
   });

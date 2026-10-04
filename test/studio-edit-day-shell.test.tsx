@@ -13,7 +13,7 @@ import type { Entry } from "@/lib/types";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const refresh = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }), usePathname: () => "/@alex/studio/x", useSearchParams: () => new URLSearchParams() }));
 
 /**
  * B2073 — "Change a day" on the studio shell: a draft says so, Save is the

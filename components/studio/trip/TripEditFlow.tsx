@@ -18,10 +18,18 @@ import type { PlanReaders } from "@/lib/types";
 import type { TripEditPanel } from "@/lib/studio/tripEdit";
 import { slugify } from "@/lib/tripId";
 import DateField from "@/components/studio/DateField";
-import { ACCENT_SWATCH } from "@/components/studio/trip/NewTripFlow";
+import { LockedTripCard } from "@/app/at/[user]/trips/TripsIndexContent";
 
 import { journalPath } from "@/lib/journalPath";
 const INPUT = "mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong";
+/** One stroke colour per `ACCENTS` entry, written out so Tailwind keeps them. */
+const ROUTE_STROKE: Record<string, string> = {
+  sky: "stroke-sky-400",
+  yellow: "stroke-yellow-400",
+  green: "stroke-green-500",
+  coral: "stroke-coral-400",
+  navy: "stroke-navy-400",
+};
 const EYEBROW = "font-mono text-xs uppercase tracking-wide text-ink-secondary";
 
 /**
@@ -193,6 +201,7 @@ export default function TripEditFlow({
   const [readers, setReaders] = useState<PlanReaders>(trip?.planReaders ?? "map");
   const [intro, setIntro] = useState(trip?.intro ?? "");
   const [accent, setAccent] = useState<string | null>(trip?.accent ?? null);
+  const [teaser, setTeaser] = useState(trip?.teaser === true);
   const [costs, setCosts] = useState<"public" | "guests">(trip?.costsPublic ? "public" : "guests");
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -217,6 +226,7 @@ export default function TripEditFlow({
   const detailsDirty = title.trim() !== trip.title || tagline.trim() !== trip.tagline || start !== trip.start || end !== trip.end;
   const introDirty = intro.trim() !== trip.intro;
   const accentDirty = accent !== trip.accent;
+  const teaserDirty = trip.visibility !== "public" && teaser !== (trip.teaser === true);
   const costsDirty = trip.costsAvailable && costs !== (trip.costsPublic ? "public" : "guests");
   const readersDirty = trip.hasPlan && readers !== trip.planReaders;
 
@@ -231,7 +241,7 @@ export default function TripEditFlow({
       fetch(url, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
     // v2 carries a trip's dates as one object (`dates: {from, to}`).
     const sent: (Response | null)[] = [];
-    if (detailsDirty || introDirty || accentDirty || costsDirty) {
+    if (detailsDirty || introDirty || accentDirty || teaserDirty || costsDirty) {
       sent.push(
         await patch(base, {
           title,
@@ -240,6 +250,7 @@ export default function TripEditFlow({
           // null removes the field; costs goes back whole, see TripEditPanel.
           ...(introDirty ? { intro: intro.trim() || null } : {}),
           ...(accentDirty ? { accent } : {}),
+          ...(teaserDirty ? { teaser } : {}),
           ...(costsDirty ? { costs: { ...trip.costsSection, visibility: costs } } : {}),
         }),
       );
@@ -289,33 +300,6 @@ export default function TripEditFlow({
           {t("studio.tripEdit.intro.hint")}
           {trip.hasTranslations && ` ${t("studio.tripEdit.intro.translated")}`}
         </p>
-        <p className="mt-3 text-sm font-semibold text-ink-strong">{t("studio.newTrip.gather2.accentLabel")}</p>
-        <div role="group" aria-label={t("studio.newTrip.gather2.accentLabel")} className="mt-2 flex flex-wrap items-center gap-2">
-          {trip.accents.map((a) => (
-            <button
-              key={a}
-              type="button"
-              onClick={() => setAccent(a)}
-              aria-pressed={accent === a}
-              aria-label={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
-              title={t(`studio.tripEdit.accent.${a}` as TranslationKey)}
-              className={`h-10 w-10 rounded-full border-2 ${ACCENT_SWATCH[a] ?? "bg-surface-subtle"} ${
-                accent === a ? "border-ink-strong" : "border-transparent"
-              }`}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={() => setAccent(null)}
-            aria-pressed={accent === null}
-            className={`min-h-10 rounded-full border px-3 text-sm font-semibold ${
-              accent === null ? "border-ink-strong text-ink-strong" : "border-line-strong text-ink-secondary"
-            }`}
-          >
-            {t("studio.tripEdit.accent.none")}
-          </button>
-        </div>
-        <p className="mt-1.5 text-sm text-ink-secondary">{t("studio.tripEdit.accent.hint")}</p>
       </section>
 
       <section className="mt-6 border-t border-line-quiet pt-6">
@@ -424,9 +408,72 @@ export default function TripEditFlow({
         </section>
       )}
 
+      <section id="section-advanced" className="mt-6 border-t border-line-quiet pt-6">
+        <h2 className={EYEBROW}>{t("studio.tripEdit.advanced")}</h2>
+        <p className="mt-3 text-sm font-semibold text-ink-strong">{t("studio.tripEdit.teaser.label")}</p>
+        {trip.visibility === "public" ? (
+          <p className="mt-1.5 text-sm text-ink-secondary">{t("studio.tripEdit.teaser.public")}</p>
+        ) : (
+          <>
+            <label className="mt-2 flex items-start gap-2.5 text-sm text-ink-body">
+              <input
+                type="checkbox"
+                checked={teaser}
+                onChange={(e) => setTeaser(e.target.checked)}
+                className="mt-0.5 h-4 w-4 flex-none rounded border-line-strong"
+              />
+              <span>
+                {t("visibility.teaser")}
+                <span className="block text-xs text-ink-secondary">{t("visibility.teaserHint")}</span>
+              </span>
+            </label>
+            <p className={`${EYEBROW} mt-3`}>{t("studio.tripEdit.teaser.preview")}</p>
+            {trip.teaser === true ? (
+              // The visitor's own card, not a lookalike. Inert: a preview, not a link.
+              <div inert className="mt-2 max-w-sm" data-locked-card-preview>
+                <LockedTripCard
+                  trip={{ id: trip.id, title: trip.title, start: trip.start, end: trip.end, translations: trip.translations }}
+                />
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-ink-secondary">{t("studio.tripEdit.teaser.off")}</p>
+            )}
+          </>
+        )}
+        <p className="mt-5 text-sm font-semibold text-ink-strong">{t("studio.newTrip.gather2.accentLabel")}</p>
+        <div role="group" aria-label={t("studio.newTrip.gather2.accentLabel")} className="mt-2 flex flex-wrap items-center gap-2">
+          {[...trip.accents, null].map((a) => {
+            const name = a === null ? t("studio.tripEdit.accent.none") : t(`studio.tripEdit.accent.${a}` as TranslationKey);
+            return (
+              <button
+                key={a ?? "none"}
+                type="button"
+                onClick={() => setAccent(a)}
+                aria-pressed={accent === a}
+                title={name}
+                className={`flex min-h-11 items-center gap-2 rounded-full border-2 px-3 text-sm font-semibold ${
+                  accent === a ? "border-ink-strong text-ink-strong" : "border-line-strong text-ink-secondary"
+                }`}
+              >
+                <svg aria-hidden viewBox="0 0 40 16" className={`h-4 w-10 ${a ? ROUTE_STROKE[a] : "stroke-ink-muted"}`} fill="none">
+                  <path
+                    d="M2 12 C 10 12, 12 4, 20 6 S 32 12, 38 3"
+                                        strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={a ? undefined : "1 5"}
+                  />
+                </svg>
+                {name}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-sm text-ink-secondary">{t("studio.tripEdit.accent.hint")}</p>
+      </section>
+
       <div className="mt-6">
         <StepPrimary
-          disabled={!(detailsDirty || introDirty || accentDirty || costsDirty || readersDirty) || title.trim() === ""}
+          disabled={!(detailsDirty || introDirty || accentDirty || teaserDirty || costsDirty || readersDirty) || title.trim() === ""}
           busy={busy}
           done={done}
           shake={problem}

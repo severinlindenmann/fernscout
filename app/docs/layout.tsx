@@ -33,6 +33,7 @@ export default async function DocsLayout({ children }: LayoutProps<"/docs">) {
         <DocsUpLink
           hubHref="/docs"
           hubLabel={translateIn(locale, "docs.title")}
+          brandingLabel={translateIn(locale, "docs.branding")}
           className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
                      transition-colors hover:text-ink-strong
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"

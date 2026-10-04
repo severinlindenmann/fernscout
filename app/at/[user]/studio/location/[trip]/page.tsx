@@ -197,10 +197,7 @@ export default async function TripPage({
 
   return (
     <StudioPage username={user} group="bringIn" title={trip.title}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <Link href={base} className="text-sm font-semibold text-ink-strong underline underline-offset-2">
-          {t("studio.location.tripDetail.back")}
-        </Link>
+      <div className="flex flex-wrap items-start justify-end gap-2">
         <RouteMenu
           username={user}
           tripId={tripId}

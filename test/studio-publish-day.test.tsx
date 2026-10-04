@@ -14,7 +14,7 @@ import { blankFieldsOf, daysToPublish, readersOf, type PublishRow } from "@/lib/
 import { clearUserCache } from "@/lib/users";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }), usePathname: () => "/@alex/studio/x", useSearchParams: () => new URLSearchParams() }));
 
 /**
  * B2140 — "Publish a day". The list is drafts only, nothing is written

@@ -201,9 +201,6 @@ function ChosenDay({ username, editable, picker, originalLocale }: { username: s
   }
   return (
     <>
-      <Link href={`${journalPath(encodeURIComponent(username))}/studio/day/edit`} className="mt-1 inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
-        {t("studio.day.edit.backToPicker")}
-      </Link>
       {/* B2764 — the page's own heading is the date; the day's title is the
           first field below, so it stays here only for assistive technology. */}
       <p className="mt-3 text-xs font-bold uppercase tracking-wide text-ink-secondary">

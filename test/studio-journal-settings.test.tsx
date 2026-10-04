@@ -9,7 +9,7 @@ import { dictionaryFor } from "@/lib/locales";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }), usePathname: () => "/@alex/studio/x", useSearchParams: () => new URLSearchParams() }));
 
 /**
  * B2074 — journal settings had two identical "Save" buttons 1,300px apart,
