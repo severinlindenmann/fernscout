@@ -37,7 +37,6 @@ export default function StudioPage({
   error,
   capabilityOff,
   back = true,
-  hideGroups,
   children,
 }: {
   username: string;
@@ -51,13 +50,11 @@ export default function StudioPage({
   capabilityOff?: { banner: string; body: string };
   /** False only on the hub, which is the studio and has nowhere to go back to. */
   back?: boolean;
-  /** B2763 — a step of writing a day: the bar shows Back + primary, no groups ^. */
-  hideGroups?: boolean;
   children?: React.ReactNode;
 }) {
   return (
     <div>
-      <StudioBarPage group={group} width={width} hideGroups={hideGroups} />
+      <StudioBarPage group={group} width={width} />
       <PageHeader backTo={back ? { href: `${journalPath(username)}/studio`, labelKey: "nav.studio" } : undefined} />
       <main id="main" tabIndex={-1} className={`mx-auto w-full ${WIDTH[width]} px-4 py-8`}>
         {group && <GroupMark group={group} size="sm" />}

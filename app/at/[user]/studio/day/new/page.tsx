@@ -83,7 +83,7 @@ export default async function StudioAddDayPage({ params, searchParams }: PagePro
   const aiStatus = await aiDaysStatus(user);
 
   return (
-    <StudioPage username={user} group="write" hideGroups title={translateIn(locale, "studio.day.title")} lede={translateIn(locale, "studio.day.lede")}>
+    <StudioPage username={user} group="write" title={translateIn(locale, "studio.day.title")} lede={translateIn(locale, "studio.day.lede")}>
       <DayFlow
         // B-2826 — a fresh composer per trip: a client-side move between two
         // ?trip= addresses keeps this page mounted, and would otherwise carry

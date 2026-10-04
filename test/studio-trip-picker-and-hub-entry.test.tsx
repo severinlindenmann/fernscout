@@ -2,15 +2,13 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { STUDIO_GROUPS } from "@/lib/studio/groups";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /**
  * B2141 — moving around the studio: every trip picker filters as you type,
  * a flow opened from the hub (`?from=hub`) starts on its first real step
- * while a direct link still shows the intro, and the bar's chevron beside
- * "← Studio" lists the six groups.
+ * while a direct link still shows the intro.
  */
 
 let query = "";
@@ -101,22 +99,5 @@ describe("?from=hub", () => {
   test("a direct link still shows the intro", () => {
     render(people());
     expect(counter()).toBe("1/4");
-  });
-});
-
-describe("the bar's group sheet", () => {
-  test("lists the six groups, each a link to its hub section", () => {
-    const el = render(<StudioPage username="alex" group="plan" title="Edit a trip" />);
-    const sheet = el.querySelector("details[data-group-sheet]")!;
-    expect(sheet.querySelector("summary")!.getAttribute("aria-label")).toBe("All studio groups");
-    expect([...sheet.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(
-      STUDIO_GROUPS.map((g) => `/@alex/studio#${g}`),
-    );
-    // Escape closes it.
-    act(() => {
-      (sheet as HTMLDetailsElement).open = true;
-      sheet.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    });
-    expect((sheet as HTMLDetailsElement).open).toBe(false);
   });
 });

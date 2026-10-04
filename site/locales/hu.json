@@ -3877,7 +3877,6 @@
   "studio.photos.step.mode": "{current}/{total} · beszéd vagy gépelés",
   "studio.photos.step.upload": "{current}/{total} · a fényképek",
   "studio.photos.step.found": "{current}/{total} · amit találtunk",
-  "studio.flow.groups": "A stúdió összes csoportja",
   "studio.flow.splitTitle": "Ez a nap {count} résznek tűnik",
   "studio.flow.splitTitle.one": "Ez a nap 1 résznek tűnik",
   "studio.flow.partLine": "{index}. rész: {range} · {count} fotó",

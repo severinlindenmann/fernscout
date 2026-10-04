@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 //
-// B2763 — a step of writing a day shows Back + primary only (no groups ^);
-// other studio subpages keep it. B2765 — PublishedDay's headline, zero-reader
+// B2850 — no bottom bar on a page without a primary. B2765 — PublishedDay's headline, zero-reader
 // line and roomy rows.
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -38,15 +37,11 @@ function render(node: React.ReactNode) {
   return container;
 }
 
-describe("B2763 groups button", () => {
-  test("absent on a day page, present on another studio subpage", () => {
-    const day = render(<StudioPage username="alex" group="write" hideGroups title="A day" />);
-    expect(day.querySelector("[data-group-sheet]")).toBeNull();
-    expect(day.querySelector('a[href="/@alex/studio#write"]')).not.toBeNull();
-    act(() => root?.unmount());
-    container?.remove();
-    const loc = render(<StudioPage username="alex" group="write" title="Location" />);
-    expect(loc.querySelector("[data-group-sheet]")).not.toBeNull();
+describe("B2850 bar only with a primary", () => {
+  test("a studio page with no registered primary has no bottom bar and no group sheet", () => {
+    const el = render(<StudioPage username="alex" group="write" title="Location" />);
+    expect(el.querySelector("[data-group-sheet]")).toBeNull();
+    expect(el.querySelector('a[href="/@alex/studio#write"]')).toBeNull();
   });
 });
 

@@ -28,7 +28,7 @@ export default async function StudioReshapeDayPage({ params }: PageProps<"/at/[u
   const trips = getTrips(user).map((t) => ({ id: t.id, title: t.title, start: t.start, end: t.end }));
 
   return (
-    <StudioPage username={user} group="write" hideGroups title={translateIn(await requestLocale(), "studio.day.reshape.title")}>
+    <StudioPage username={user} group="write" title={translateIn(await requestLocale(), "studio.day.reshape.title")}>
       <ReshapeDayFlow username={user} picker={picker} trips={trips} />
     </StudioPage>
   );

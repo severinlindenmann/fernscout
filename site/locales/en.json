@@ -3903,7 +3903,6 @@
   "keep.starting": "Keeping…",
   "keep.title": "Offline on this device",
   "keep.unpersisted": "The browser may still clear it when space runs low.",
-  "studio.flow.groups": "All studio groups",
   "studio.flow.splitTitle": "This day looks like {count} parts",
   "studio.flow.splitTitle.one": "This day looks like 1 part",
   "studio.flow.partLine": "Part {index}: {range} · {count} photos",
