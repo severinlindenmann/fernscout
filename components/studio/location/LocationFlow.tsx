@@ -1,5 +1,6 @@
 "use client";
 
+import { useStudioFlow } from "@/components/studio/StudioBar";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import StepPrimary from "@/components/studio/StepPrimary";
@@ -138,6 +139,9 @@ export default function LocationFlow({
   // B2141: from the hub, the flow opens on its first real step.
   const skipIntro = useSkipIntro();
   const step = urlStep === "what" && skipIntro ? "get" : urlStep;
+  useStudioFlow(
+    urlStep !== STEPS[0] ? { dirty: !!peek || !!inboxId, keeps: "tab", leaveKey: "studio.flow.leaveRoute", onPrevious: back } : null,
+  );
 
   // ── upload → read ───────────────────────────────────────────────────────
   async function runPeek(id: string, filename: string) {

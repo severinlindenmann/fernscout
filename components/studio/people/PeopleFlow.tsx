@@ -1,5 +1,6 @@
 "use client";
 
+import { useStudioFlow } from "@/components/studio/StudioBar";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/components/LocaleProvider";
@@ -125,7 +126,7 @@ export default function PeopleFlow({
 
   // B2079 — what was typed or read rides in the session draft, so a reload
   // or the browser's Back keeps it. `set` trusts only the shapes it expects.
-  const { step: urlStep, total, go, reset } = useStep(STEPS, {
+  const { step: urlStep, total, go, back, reset } = useStep(STEPS, {
     flowId: `people:${username}`,
     // B2136 — "bring" is answered once somebody is chosen to add.
     complete: (s) =>
@@ -158,6 +159,16 @@ export default function PeopleFlow({
   // B2141: from the hub, the flow opens on its first real step.
   const skipIntro = useSkipIntro();
   const step = urlStep === "what" && skipIntro ? "get" : urlStep;
+  useStudioFlow(
+    urlStep !== STEPS[0]
+      ? {
+          dirty: selected.size > 0 || cardPeople.length > 0 || typed.some((r) => r.name.trim() !== "" || r.email.trim() !== ""),
+          keeps: "tab",
+          leaveKey: "studio.flow.leavePeople",
+          onPrevious: back,
+        }
+      : null,
+  );
 
   /** Who the decide step is about — derived from the door, never held twice. */
   const chosen: PersonRow[] =

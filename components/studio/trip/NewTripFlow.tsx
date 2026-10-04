@@ -1,5 +1,6 @@
 "use client";
 
+import { useStudioFlow } from "@/components/studio/StudioBar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -141,6 +142,10 @@ export default function NewTripFlow({
     },
   });
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  // B2854 - one screen, so Cancel is on it from the start; Previous has nowhere to go.
+  useStudioFlow(
+    outcome ? null : { dirty: title.trim() !== "" || (!initialRange && (start !== "" || end !== "")), keeps: "tab", leaveKey: "studio.flow.leaveTrip" },
+  );
 
   const [busy, setBusy] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
