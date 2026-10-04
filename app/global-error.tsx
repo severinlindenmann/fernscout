@@ -123,6 +123,7 @@ export default function GlobalError({
           >
             {say(locale, "err.retry")}
           </button>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- no router in the root error page */}
           <a
             href="/"
             style={{
