@@ -149,10 +149,11 @@ describe("the language of the mail", () => {
     const keys = [
       "mail.codeSubject",
       "mail.identityTitle",
-      "mail.identityButton",
+      "mail.identityLink",
+      "mail.codeLabel",
+      "mail.codeValid",
       "mail.identityApp",
       "mail.identityWhat",
-      "mail.identityLasts",
       "mail.identityIgnore",
       "mail.identityFooter",
     ];
@@ -194,7 +195,7 @@ describe("the language of the mail", () => {
   test("no language writes the code's lifetime into the sentence", async () => {
     const { dictionaryFor } = await import("@/lib/locales");
     for (const locale of ["en", "de", "hu"]) {
-      expect(dictionaryFor(locale)["mail.identityCode"]).toContain("{minutes}");
+      expect(dictionaryFor(locale)["mail.codeValid"]).toContain("{minutes}");
     }
   });
 });

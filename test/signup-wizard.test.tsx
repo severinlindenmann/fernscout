@@ -144,17 +144,19 @@ describe("the signup wizard", () => {
   });
 
   // ── step 1b: the code ───────────────────────────────────────────────────
-  test("the code is one input that checks by itself after the sixth digit", async () => {
+  test("the code is six boxes; a paste fills them and the sixth digit submits", async () => {
     stubWizardFetch(baseRoutes);
     mount();
     await type("signup-email", "new@example.test");
     await submit();
     const box = input("signup-code");
-    expect(container!.querySelectorAll("input")).toHaveLength(1);
+    expect(container!.querySelectorAll('input[name="code"]')).toHaveLength(6);
     expect(box.autocomplete).toBe("one-time-code");
     expect(box.inputMode).toBe("numeric");
     await type("signup-code", "12345");
     expect(calls.some((c) => c.url === "/api/auth/codes/redeem")).toBe(false);
+    const boxes = [...container!.querySelectorAll<HTMLInputElement>('input[name="code"]')];
+    expect(boxes.map((b) => b.value).join("")).toBe("12345");
     // A paste with a space still lands as six digits.
     await type("signup-code", "123 456");
     const redeem = calls.find((c) => c.url === "/api/auth/codes/redeem");
@@ -169,12 +171,16 @@ describe("the signup wizard", () => {
     expect(input("signup-code").value).toBe("");
   });
 
-  test("resend counts down from 30 s, and Wrong address goes back to the email", async () => {
+  test("the sent state names the address and where the mail hides; Send a new code starts locked", async () => {
     stubWizardFetch(baseRoutes);
     mount();
     await type("signup-email", "new@example.test");
     await submit();
-    expect(text()).toContain("Send again in 0:30");
+    expect(text()).toContain("Check your email");
+    expect(text()).toContain("new@example.test");
+    expect(text()).toMatch(/Spam or Junk.*Promotions/);
+    expect((button(/Send a new code/) as HTMLButtonElement).disabled).toBe(true);
+    expect(text()).toContain("Send a new code in 1:00");
     await click(button(/Wrong address\?/));
     expect(input("signup-email")).not.toBeNull();
     expect(input("signup-email").value).toBe("new@example.test");
