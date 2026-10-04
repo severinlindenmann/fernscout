@@ -547,8 +547,10 @@ export type ReminderChannel = "mail";
  */
 export type TripPerson = {
   name: string;
-  /** Lower-cased on parse, because that is what an address is compared as. */
-  email: string;
+  /** Lower-cased on parse, because that is what an address is compared as.
+   *  Absent for a name-only person (B-2847): somebody credited by name who is
+   *  not a contact. Never mailed, invited or matched to a grant or a reader. */
+  email?: string;
   /**
    * What to call them in a byline. Optional, falling back to `name`.
    *

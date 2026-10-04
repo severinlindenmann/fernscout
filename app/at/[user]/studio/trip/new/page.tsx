@@ -10,6 +10,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { readersModel } from "@/lib/readers/model";
 import { getUser } from "@/lib/users";
 import { journalPath } from "@/lib/journalPath";
+import { tripPeopleSheetData } from "@/lib/studio/tripPeopleSheet";
 
 const isoDay = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
 
@@ -60,6 +61,7 @@ export default async function StudioNewTripPage({ params, searchParams }: PagePr
         initialRange={initialRange}
         photoRun={cards.find((c) => c.newTrip)?.newTrip ?? null}
         otherLocales={otherLocales}
+        peopleSheet={await tripPeopleSheetData(user)}
       />
     </StudioPage>
   );

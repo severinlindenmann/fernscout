@@ -40,7 +40,9 @@ const person = z.strictObject({
    * `lib/trips.ts` already reads it as optional off disk. Here because the
    * byline renders it, not because v1 had it. */
   nickname: z.string().trim().min(1).optional(),
-  email: z.email(),
+  /** Optional (B-2847): a name-only person is credited in the byline and is
+   * never mailed, invited or matched to a grant or a reader. */
+  email: z.email().optional(),
 });
 
 /** The currencies money moved in on this trip, against the journal's base.
@@ -314,13 +316,23 @@ const tripBase = z
      * somebody's trip. Unrecognised reads as private on disk; here it is
      * refused outright. */
     visibility: z.enum(VISIBILITIES),
-    /** Who was on the trip — the owner plus anyone else, each name + email.
+    /** Who was on the trip — the owner plus anyone else, each a name and an optional email.
      * B2297 (one door for readers, B2291/B2295): this is the byline only.
      * It grants nothing and mails nobody, whatever it says — write access to
      * a trip comes only from a buddy the owner granted at
      * `/@<user>/studio/readers`, a fact that lives in `trip_people`, not
      * here. */
-    people: z.array(person).min(1).max(MAX_TRIP_PEOPLE),
+    people: z
+      .array(person)
+      .min(1)
+      .max(MAX_TRIP_PEOPLE)
+      .refine(
+        (list) => {
+          const keys = list.map((p) => (p.email ? p.email.toLowerCase() : `name:${p.name}`));
+          return new Set(keys).size === keys.length;
+        },
+        { message: "each person appears once: a duplicate address, or a duplicate name among people without one" },
+      ),
     /** Required on a closed trip (guest/private): may the trip's existence
      * show as a locked card? A boolean is its own answer, so there is no
      * decline path — bring true or false. Refused on a public trip, where

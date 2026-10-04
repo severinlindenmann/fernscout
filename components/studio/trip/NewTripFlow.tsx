@@ -29,6 +29,8 @@ import { useStep } from "@/lib/studio/useStep";
 import type { ExistingTripSummary } from "@/lib/studio/newTrip";
 import type { TranslationKey } from "@/lib/i18n";
 import StepBody from "@/components/studio/StepBody";
+import { TripPeopleRow } from "@/components/studio/trip/TripPeopleSheet";
+import type { TripPeopleSheetData } from "@/lib/studio/tripPeopleSheet";
 
 import { journalPath } from "@/lib/journalPath";
 /** One screen since B2187 — not a wizard, so no step indicator and no
@@ -86,6 +88,7 @@ export default function NewTripFlow({
   otherLocales,
   initialRange,
   photoRun = null,
+  peopleSheet,
 }: {
   username: string;
   /** `VISIBILITIES` from `lib/tripWrite.ts`, read server-side. */
@@ -105,6 +108,8 @@ export default function NewTripFlow({
   initialRange?: { start: string; end: string; photos: number };
   /** The first run of waiting photographs no trip covers, for the link. */
   photoRun?: { start: string; end: string } | null;
+  /** B-2847 — what "Who's on this trip?" needs; opens once after Create. */
+  peopleSheet?: TripPeopleSheetData;
 }) {
   const { t, tn, formatShortDate } = useI18n();
   const router = useRouter();
@@ -589,6 +594,18 @@ export default function NewTripFlow({
                 </Link>
               </li>
             ))}
+            {/* B-2847 — mounts once, when the trip is made: it opens by itself then, and stays a row. */}
+            {peopleSheet && <TripPeopleRow
+              defaultOpen
+              username={username}
+              tripId={createdId}
+              owner={peopleSheet.owner}
+              initialPeople={[]}
+              contacts={peopleSheet.contacts}
+              initialFigures={peopleSheet.figures}
+              figureSet={peopleSheet.journalSet}
+              photoConsent={peopleSheet.photoConsent}
+            />}
           </ul>
           {routeFrom && (
             <p data-route-armed className="mt-2 text-sm text-ink-secondary">

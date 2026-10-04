@@ -90,9 +90,16 @@ export function travellersOf(user: UserConfig, trip: Trip): TripPerson[] {
     nickname: user.owner.nickname,
   };
   const out = [owner];
-  const seen = new Set([owner.email.trim().toLowerCase()]);
+  // An owner without an address is recognised by name, so a name-only entry
+  // for them in `people:` never credits them twice.
+  const seen = new Set([
+    (owner.email ?? "").trim().toLowerCase(),
+    `name:${user.owner.name}`,
+    ...(user.owner.nickname ? [`name:${user.owner.nickname}`] : []),
+  ]);
   for (const person of trip.people) {
-    const email = person.email.trim().toLowerCase();
+    // A name-only person (B-2847) is de-duplicated on the name, never on an address.
+    const email = person.email?.trim().toLowerCase() || `name:${person.name}`;
     if (seen.has(email)) continue;
     seen.add(email);
     out.push(person);

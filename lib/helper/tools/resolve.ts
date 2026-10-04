@@ -231,7 +231,7 @@ export async function readersOf(username: string, tripId: string, say: Say): Pro
   const named = [...new Set([...(await peopleOf(trip)), ...closeEmails])]
     .filter((email) => email !== ownerEmail)
     .map((email) => {
-      const person = trip.people.find((p) => p.email.toLowerCase() === email);
+      const person = trip.people.find((p) => p.email?.toLowerCase() === email);
       return person?.nickname || person?.name || contacts.find((c) => c.email === email)?.name || email;
     });
   return named.length === 0

@@ -1,5 +1,6 @@
 "use client";
 
+import { TripPeopleRow } from "@/components/studio/trip/TripPeopleSheet";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -169,6 +170,7 @@ export default function TripEditFlow({
   section,
   routeRecordingAvailable,
   groupRow,
+  peopleSheet,
 }: {
   username: string;
   trips: { id: string; title: string }[];
@@ -185,6 +187,10 @@ export default function TripEditFlow({
   /** B2435 — present only when features.groupTrips is on: the summary of the
    *  trip's roster for the one row that opens its own page. */
   groupRow?: { students: number; planned: number; days: number };
+  /** B-2847 — the "Who's on this trip?" row; present once a trip is open. */
+  peopleSheet?: Omit<React.ComponentProps<typeof TripPeopleRow>, "username" | "tripId" | "defaultOpen" | "initialFigures"> & {
+    figures: React.ComponentProps<typeof TripPeopleRow>["initialFigures"];
+  };
 }) {
   const { t, tn } = useI18n();
   const router = useRouter();
@@ -313,6 +319,23 @@ export default function TripEditFlow({
           }}
         />
       </section>
+
+      {peopleSheet && trip && (
+        <section id="section-people" className="mt-6 border-t border-line-quiet pt-6">
+          <ul>
+            <TripPeopleRow
+              username={username}
+              tripId={trip.id}
+              owner={peopleSheet.owner}
+              initialPeople={peopleSheet.initialPeople}
+              contacts={peopleSheet.contacts}
+              initialFigures={peopleSheet.figures}
+              figureSet={peopleSheet.figureSet}
+              photoConsent={peopleSheet.photoConsent}
+            />
+          </ul>
+        </section>
+      )}
 
       {groupRow && trip && (
         <section id="section-group" className="mt-6 border-t border-line-quiet pt-6">

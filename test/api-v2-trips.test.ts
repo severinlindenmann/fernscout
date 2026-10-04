@@ -290,6 +290,22 @@ describe("PATCH /api/v2/{user}/trips/{trip} — T6 decline retraction", () => {
   });
 });
 
+describe("PATCH /api/v2/{user}/trips/{trip} — people (B-2847)", () => {
+  test("duplicate names are a 400 and the stored trip is unchanged; a name-only person is kept", async () => {
+    const token = await ownerToken();
+    await putTrip(OWNER, "ppl-trip", fullTrip("ppl-trip"), token);
+    const before = (await getTrip(OWNER, "ppl-trip", token)).body.people;
+
+    const dupe = await patchTrip(OWNER, "ppl-trip", { people: [{ name: "Anna" }, { name: "Anna" }] }, token);
+    expect(dupe.status, JSON.stringify(dupe.body)).toBe(400);
+    expect((await getTrip(OWNER, "ppl-trip", token)).body.people).toEqual(before);
+
+    const ok = await patchTrip(OWNER, "ppl-trip", { people: [{ name: "Tess Traveller", email: OWNER_EMAIL }, { name: "Anna" }] }, token);
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
+    expect(ok.body.people).toEqual([{ name: "Tess Traveller", email: OWNER_EMAIL }, { name: "Anna" }]);
+  });
+});
+
 describe("PATCH /api/v2/{user}/trips/{trip} — cost bounds judge only what is sent (B2243 review F1)", () => {
   test("a stored trip over the bounds still takes a patch; a patch over them is refused", async () => {
     const token = await ownerToken();
