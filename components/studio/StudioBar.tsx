@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import type { TranslationKey } from "@/lib/i18n";
@@ -380,18 +380,22 @@ export function useStudioFlow(
   const dirty = !!flow?.dirty;
   const keeps = flow?.keeps;
   const leaveKey = flow?.leaveKey;
-  const onPrevious = flow?.onPrevious;
+  // `useStep`'s `back` is a fresh closure every render and this hook re-renders
+  // when it registers, so it rides in a ref; as an effect dependency it would loop.
+  const previous = useRef(flow?.onPrevious);
+  previous.current = flow?.onPrevious;
+  const hasPrevious = !!flow?.onPrevious;
+  const onPrevious = useCallback(() => previous.current?.(), []);
   useEffect(() => {
     if (!setFlow || !active || !keeps || !leaveKey) return;
     setFlow({
       dirty,
       question: t(`studio.flow.leave.${keeps}` as TranslationKey),
       leaveLabel: t(leaveKey),
-      onPrevious,
+      onPrevious: hasPrevious ? onPrevious : undefined,
     });
     return () => setFlow(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `onPrevious` is a fresh closure every render; re-registering on every change is the point.
-  }, [setFlow, active, dirty, keeps, leaveKey, onPrevious, t]);
+  }, [setFlow, active, dirty, keeps, leaveKey, hasPrevious, onPrevious, t]);
 }
 
 /**

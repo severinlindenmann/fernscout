@@ -60,6 +60,21 @@ const button = (el: HTMLElement, text: string) =>
   [...el.querySelectorAll("button")].find((b) => b.textContent?.includes(text));
 const click = (b: Element | undefined) => act(() => b!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 
+describe("registration", () => {
+  test("a fresh onPrevious closure on every render (useStep's back) does not loop", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    function Fresh() {
+      const back = () => {}; // new identity each render, like useStep's back
+      useStudioFlow({ dirty: false, keeps: "tab", leaveKey: "studio.flow.leavePeople", onPrevious: back });
+      return <StepPrimary label="Next thing" onClick={() => {}} />;
+    }
+    const el = render(<Fresh />);
+    expect(errorSpy.mock.calls.some((a) => String(a[0]).includes("Maximum update depth"))).toBe(false);
+    expect(button(el, "Previous")).toBeTruthy();
+    errorSpy.mockRestore();
+  });
+});
+
 describe("bar Previous", () => {
   test("replaces the back link beside the step primary and steps back once", () => {
     const onPrevious = vi.fn();
