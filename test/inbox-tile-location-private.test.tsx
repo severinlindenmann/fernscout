@@ -69,7 +69,7 @@ describe("the inbox tile of a location export — B2082", () => {
   });
 });
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }), usePathname: () => "/alex/studio/inbox" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }), usePathname: () => "/alex/studio/inbox", useSearchParams: () => new URLSearchParams() }));
 
 describe("the inbox's selection bar cannot move a location export — B2082", () => {
   test("a selected timeline.json alone offers no move", async () => {

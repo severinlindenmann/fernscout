@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import { useI18n } from "@/components/LocaleProvider";
-import { journalPath } from "@/lib/journalPath";
 import { tripDays } from "@/lib/tripDays";
 import type { Roster } from "@/lib/groupRoster";
 
@@ -92,12 +90,6 @@ export default function GroupRosterFlow({
 
   return (
     <div>
-      <p className="mt-2 text-sm text-ink-secondary">
-        <Link href={`${journalPath(username)}/studio/trip?trip=${encodeURIComponent(trip.id)}`} className={LINK}>
-          {"‹ "}
-          {trip.title}
-        </Link>
-      </p>
       <p className="mt-4 rounded-xl border border-dashed border-line-strong px-3 py-3 text-sm text-ink-body">{t("studio.groupTrip.notice")}</p>
 
       <section className="mt-6">

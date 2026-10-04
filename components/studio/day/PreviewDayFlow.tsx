@@ -614,7 +614,6 @@ export default function PreviewDayFlow({
   }
 
   const nameOf = entries[0]?.title || formatLongDate(chosen.date);
-  const backHref = `${journalPath(username)}/studio/day/publish`;
 
   // B2677, bug 11 — the two fact rows that replace the old reader box.
   const readers1 = readersFact(chosen.audience, readers?.length ?? null);
@@ -623,10 +622,7 @@ export default function PreviewDayFlow({
 
   return (
     <div className="mt-2">
-      <Link href={backHref} className="inline-block text-sm font-semibold text-ink-body underline underline-offset-2">
-        {t("studio.publish.backToDrafts")}
-      </Link>
-      <h2 className="mt-3 font-display text-lg font-semibold text-ink-strong">{nameOf}</h2>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">{nameOf}</h2>
       {/* B2677, bug 15 — the date is already the heading above when there is
           no title (`nameOf`); the subtitle names only the trip. */}
       <p className="text-sm text-ink-secondary">{tripTitle}</p>

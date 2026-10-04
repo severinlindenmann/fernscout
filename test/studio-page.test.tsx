@@ -11,6 +11,10 @@ import { dictionaryFor } from "@/lib/locales";
 vi.mock("@/components/PageHeader", () => ({
   default: ({ backTo }: { backTo?: { href: string } }) => <header data-back={backTo?.href} />,
 }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/@alex/studio/people",
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 function render(props: Partial<React.ComponentProps<typeof StudioPage>> = {}) {
   return renderToStaticMarkup(

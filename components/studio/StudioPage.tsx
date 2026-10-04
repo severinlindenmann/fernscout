@@ -1,4 +1,4 @@
-import PageHeader from "@/components/PageHeader";
+import StudioHeader from "@/components/studio/StudioHeader";
 import StepIndicator from "@/components/extract/StepIndicator";
 import CapabilityOffStep from "@/components/studio/CapabilityOffStep";
 import GroupMark from "@/components/studio/GroupMark";
@@ -6,12 +6,11 @@ import { StudioBarPage } from "@/components/studio/StudioBar";
 import SubmitError from "@/components/studio/SubmitError";
 import type { StudioGroup } from "@/lib/studio/groups";
 
-import { journalPath } from "@/lib/journalPath";
 const WIDTH = { flow: "max-w-xl", board: "max-w-3xl", wide: "max-w-5xl" } as const;
 
 /**
  * The shell every studio page renders through — B2061. Header crumb back to
- * the studio, the group's mark, one h1 naming the thing, an optional step
+ * the page's real parent (`lib/studio/studioUp.ts`, B2853), the group's mark, one h1 naming the thing, an optional step
  * indicator (wizards only; derive `total` from the steps array), one lede
  * sentence, the body, and one `role="alert"` error line at its end (B2070:
  * `SubmitError`, directly above the bar) — or, when the
@@ -37,6 +36,7 @@ export default function StudioPage({
   error,
   capabilityOff,
   back = true,
+  tripId,
   children,
 }: {
   username: string;
@@ -50,12 +50,14 @@ export default function StudioPage({
   capabilityOff?: { banner: string; body: string };
   /** False only on the hub, which is the studio and has nowhere to go back to. */
   back?: boolean;
+  /** The trip this page is about when its address does not carry it (`day/edit?slug=`) - B2853. */
+  tripId?: string;
   children?: React.ReactNode;
 }) {
   return (
     <div>
-      <StudioBarPage group={group} width={width} />
-      <PageHeader backTo={back ? { href: `${journalPath(username)}/studio`, labelKey: "nav.studio" } : undefined} />
+      <StudioBarPage group={group} width={width} tripId={tripId} />
+      <StudioHeader username={username} back={back} tripId={tripId} />
       <main id="main" tabIndex={-1} className={`mx-auto w-full ${WIDTH[width]} px-4 py-8`}>
         {group && <GroupMark group={group} size="sm" />}
         {/* `id` only — B2683, bug 1: a page whose own state can change what

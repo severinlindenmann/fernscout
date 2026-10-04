@@ -189,13 +189,7 @@ export default async function DayPage({
         new Date(`${date}T00:00:00Z`),
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <Link
-          href={`${tripBase}?day=${date}&view=${view}`}
-          className="text-sm font-semibold text-ink-strong underline underline-offset-2"
-        >
-          {trip.title}
-        </Link>
+      <div className="flex flex-wrap items-start justify-end gap-2">
         <RouteMenu username={user} tripId={tripId} tripTitle={trip.title} date={date} backHref={tripBase} />
       </div>
 

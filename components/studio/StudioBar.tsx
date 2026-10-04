@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ActionBar from "@/components/studio/ActionBar";
+import { useStudioUp } from "@/components/studio/StudioHeader";
 import { useOutbox } from "@/components/studio/useOutbox";
 import { useI18n } from "@/components/LocaleProvider";
 import type { StudioGroup } from "@/lib/studio/groups";
@@ -12,7 +13,7 @@ import { journalPath } from "@/lib/journalPath";
 type BarState = { actions: ReactNode; mode: "extend" | "replace"; revealAfterScroll: number; desktop: boolean };
 
 /** What `StudioPage` tells the bar about the page it is drawing — B2069/B2076. */
-type PageState = { group?: StudioGroup; width: "flow" | "board" | "wide" };
+type PageState = { group?: StudioGroup; width: "flow" | "board" | "wide"; tripId?: string };
 
 type StudioBarContextValue = {
   setBar: (state: BarState) => void;
@@ -44,18 +45,16 @@ const StudioBarContext = createContext<StudioBarContextValue | null>(null);
  * already had one keep it by calling `useStudioBar` instead of rendering
  * `ActionBar` themselves.
  *
- * The default, when no page has registered anything: a "Zurück zum Studio"
- * link to `/@{user}/studio` (`studio.flow.backToStudio` — the exact string
- * `PhotobookPick`, `InboxHub` and `PostcardFlow` already used for the same
- * link before this ticket). `extend` keeps that link and adds a page's own
+ * The back link (B2853) is the page's real parent, read from its address by
+ * `lib/studio/studioUp.ts` and named by it - the same answer the header gives
+ * (`StudioHeader`). `extend` keeps that link and adds a page's own
  * actions beside it; `replace` shows only the page's own actions — the hub
  * uses this because the hub *is* the studio, so a link back to itself would
  * be circular, and the inbox/postcard use it while a sheet or a selection
  * is open, so the default back link cannot be tapped by mistake mid-action.
  *
- * B2069: a page drawn through `StudioPage` tells this provider its group
- * (`StudioBarPage`), and the back link returns to that group's anchor on the
- * hub (`/@{user}/studio#plan`) rather than the top of it.
+ * B2069/B2853: a page drawn through `StudioPage` tells this provider its
+ * width and, where its address lacks it, its trip (`StudioBarPage`).
  *
  * B2076: from `md` up the same bar is a static, right-aligned row under the
  * page's column — one element at every width, so the back link and the one
@@ -175,11 +174,12 @@ export default function StudioBarProvider({
   // the same width the hub's own three-pill row gives up a label at
   // (B1996) — so below that width the back link keeps only its icon and
   // lets the primary's own label have the room instead.
+  const up = useStudioUp(username, page?.tripId);
   const hasExtension = bar?.mode !== "replace" && !!bar?.actions;
   const backLink = (
     <Link
-      href={`${journalPath(username)}/studio${page?.group ? `#${page.group}` : ""}`}
-      aria-label={t("studio.flow.backToStudio")}
+      href={up.href}
+      aria-label={t(up.labelKey)}
       className={`flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-line-strong
                  px-4 text-sm font-semibold text-ink-body transition-colors hover:bg-surface-subtle ${
                    // Beside a step primary the link is only an arrow below
@@ -190,7 +190,7 @@ export default function StudioBarProvider({
     >
       <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.2} />
       <span className={hasExtension ? "hidden truncate min-[430px]:inline" : "truncate"}>
-        {t("studio.flow.backToStudio")}
+        {t(up.labelKey)}
       </span>
     </Link>
   );
@@ -332,12 +332,12 @@ export function useStudioBar(
  * (the desktop row's). Draws nothing; a no-op outside the provider, so
  * `StudioPage` still renders on its own in a test.
  */
-export function StudioBarPage({ group, width }: PageState) {
+export function StudioBarPage({ group, width, tripId }: PageState) {
   const setPage = useContext(StudioBarContext)?.setPage;
   useEffect(() => {
     if (!setPage) return;
-    setPage({ group, width });
+    setPage({ group, width, tripId });
     return () => setPage(null);
-  }, [setPage, group, width]);
+  }, [setPage, group, width, tripId]);
   return null;
 }

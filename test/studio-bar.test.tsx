@@ -20,10 +20,18 @@ import { dictionaryFor } from "@/lib/locales";
 // StudioPage's header is covered by its own tests; here only the bar matters.
 vi.mock("@/components/PageHeader", () => ({ default: () => <header /> }));
 
+// B2853 - the bar's back is read from the address (lib/studio/studioUp.ts).
+let mockPath = "/@alex/studio/people";
+vi.mock("next/navigation", () => ({
+  usePathname: () => mockPath,
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 
 afterEach(() => {
+  mockPath = "/@alex/studio/people";
   act(() => root?.unmount());
   container?.remove();
   root = undefined;
@@ -158,7 +166,7 @@ describe("StepPrimary and the desktop row", () => {
     const all = [...el.querySelectorAll("button")].filter((b) => b.textContent?.trim() === "Onwards");
     expect(all).toHaveLength(1);
     // The back link, once — the group sheet's six links (B2141) are not it.
-    expect(backLinks(el, '[href^="/@alex/studio#"]')).toHaveLength(1);
+    expect(backLinks(el, '[href="/@alex/studio"]')).toHaveLength(1);
     const bar = all[0].parentElement!;
     expect(bar.className).not.toMatch(/(^|\s)md:hidden(\s|$)/);
     expect(bar.className.split(/\s+/)).toEqual(expect.arrayContaining(["md:static", "md:justify-end", "md:max-w-xl"]));
@@ -182,29 +190,30 @@ describe("StepPrimary and the desktop row", () => {
     const el = render(<Extending />);
     const more = [...el.querySelectorAll("button")].find((b) => b.textContent === "Show more")!;
     expect(more.parentElement!.className.split(/\s+/)).toContain("md:hidden");
-    expect(backLinks(el, '[href="/@alex/studio#print"]')).toHaveLength(1);
+    expect(backLinks(el, '[href="/@alex/studio"]')).toHaveLength(1);
   });
 });
 
-/** B2069 — the back link returns to the group the page belongs to. */
-describe("the bar's back link carries the page's group", () => {
-  test("with group plan the back href ends in #plan", () => {
+/** B2853 - the bar's back link names and reaches the page's real parent. */
+describe("the bar's back link is the page's parent", () => {
+  test("a nested route names its URL parent", () => {
+    mockPath = "/@alex/studio/location/japan/2026-03-02";
     const el = render(
-      <StudioPage username="alex" group="plan" title="Who sees the plan">
+      <StudioPage username="alex" group="bringIn" title="A day">
         <StepPrimary label="Onwards" onClick={() => {}} />
       </StudioPage>,
     );
-    const back = el.querySelector('a[aria-label="Back to the studio"]') as HTMLAnchorElement;
-    expect(back.getAttribute("href")).toBe("/@alex/studio#plan");
+    const back = el.querySelector('a[aria-label="Routes"]') as HTMLAnchorElement;
+    expect(back.getAttribute("href")).toBe("/@alex/studio/location/japan");
   });
 
-  test("without a group it is /@alex/studio", () => {
+  test("a page with no specific day or trip goes to the studio", () => {
     function Extending() {
       useStudioBar(<button type="button">Plain</button>);
       return <PlainPage />;
     }
     const el = render(<Extending />);
-    const back = el.querySelector('a[aria-label="Back to the studio"]') as HTMLAnchorElement;
+    const back = el.querySelector('a[aria-label="Studio"]') as HTMLAnchorElement;
     expect(back.getAttribute("href")).toBe("/@alex/studio");
   });
 });

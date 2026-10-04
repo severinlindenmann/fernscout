@@ -13,7 +13,7 @@ import { dictionaryFor } from "@/lib/locales";
 import { clearRatesCache, journalCurrencies, knownCurrencies } from "@/lib/rates";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }), usePathname: () => "/@alex/studio/x", useSearchParams: () => new URLSearchParams() }));
 
 /**
  * B2143 — currencies were free text everywhere. The journal now picks its
