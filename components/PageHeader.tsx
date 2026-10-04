@@ -52,10 +52,26 @@ function useHiddenOnScroll(enabled: boolean): boolean {
   return enabled && hidden;
 }
 
+function CancelButton({ label, onClick, className = "" }: { label: string; onClick: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex h-11 shrink-0 items-center gap-1 rounded-full pl-2 pr-3 text-sm font-semibold text-ink-secondary
+                 transition-colors hover:bg-surface-selected/60 hover:text-ink-strong focus-visible:outline-2
+                 focus-visible:outline-offset-2 focus-visible:outline-blue-500 ${className}`}
+    >
+      <X className="h-5 w-5 shrink-0" aria-hidden strokeWidth={2.4} />
+      {label}
+    </button>
+  );
+}
+
 export default function PageHeader({
   children,
   onHome,
   backTo,
+  cancel,
   hideOnScroll = false,
 }: {
   children?: React.ReactNode;
@@ -75,6 +91,8 @@ export default function PageHeader({
    * forking the header for one different word.
    */
   backTo?: { href: string; labelKey: TranslationKey };
+  /** A studio flow's "Cancel" (B2854): takes the back link's place, and the trail's. */
+  cancel?: { label: string; onClick: () => void };
 }) {
   const { localizedTrip, t } = useI18n();
   const hidden = useHiddenOnScroll(hideOnScroll);
@@ -216,7 +234,9 @@ export default function PageHeader({
             journals" for a reader who has some, the instance's own name for a
             stranger — which is what that gate was really protecting.
           */}
-          {crumbs.length > 0 && (
+          {cancel ? (
+            <CancelButton {...cancel} />
+          ) : crumbs.length > 0 && (
             <UpLink
               href={crumbs[0].href}
               label={crumbs[0].label}
@@ -479,7 +499,7 @@ export default function PageHeader({
             reader has, and the one crumb that is `/` takes the instance's own
             name for a reader with no identity. See `useUpCrumbs`.
           */}
-          <UpTrail crumbs={crumbs} />
+          {cancel ? <CancelButton {...cancel} className="-ml-1 mb-0.5" /> : <UpTrail crumbs={crumbs} />}
           {onHome ? (
             <button
               onClick={onHome}

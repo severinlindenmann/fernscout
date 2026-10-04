@@ -1,5 +1,6 @@
 "use client";
 
+import { useStudioFlow } from "@/components/studio/StudioBar";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -52,6 +53,8 @@ export default function PolarstepsImportFlow({ username }: { username: string })
   const [previewText, setPreviewText] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [logs, setLogs] = useState<TripLog[]>([]);
+  // B2854 - once a zip is read, Cancel leaves; the zip itself is never kept.
+  useStudioFlow(trips && !running && logs.length === 0 ? { dirty: true, keeps: "none", leaveKey: "studio.flow.leavePolarsteps" } : null);
 
   async function onFile(picked: File) {
     setFile(picked);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useStudioFlow } from "@/components/studio/StudioBar";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -356,7 +357,7 @@ export default function AddDayFlow({
   // on the hub never found what this page had just saved.
   // B2826 — the draft belongs to the trip this page was opened for.
   const draftTrip = (initialTripId && trips.some((tr) => tr.id === initialTripId) ? initialTripId : proposal?.trip.id) ?? trips[0]?.id ?? "";
-  const { step, index, total, go, reset } = useStep(FIRST_RUN, {
+  const { step, index, total, go, back, reset } = useStep(FIRST_RUN, {
     flowId: addDayFlowId(username, draftTrip),
     draft: {
       // `step` is what the hub's strip reads: a page nobody has typed on is
@@ -397,6 +398,9 @@ export default function AddDayFlow({
       },
     },
   });
+
+  // B2854 - only the first-run wizard has steps to leave or step back from.
+  useStudioFlow(firstRun && index > 0 ? { dirty, keeps: "tab", leaveKey: "studio.flow.leaveDay", onPrevious: back } : null);
 
   // A draft left behind says so once, with when it goes and a way out.
   // After mount: sessionStorage does not exist on the server.

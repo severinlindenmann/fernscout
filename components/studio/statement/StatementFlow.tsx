@@ -1,5 +1,6 @@
 "use client";
 
+import { useStudioFlow } from "@/components/studio/StudioBar";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import StepPrimary from "@/components/studio/StepPrimary";
@@ -172,6 +173,11 @@ export default function StatementFlow({
   // B2141: from the hub, the flow opens on its first real step.
   const skipIntro = useSkipIntro();
   const step = urlStep === "trip" && skipIntro && trips.length <= 1 ? "get" : urlStep;
+  useStudioFlow(
+    urlStep !== STEPS[0]
+      ? { dirty: !!readResult || header.length > 0 || !!inboxId, keeps: "tab", leaveKey: "studio.flow.leaveStatement", onPrevious: back }
+      : null,
+  );
 
   async function callRead(body: Record<string, unknown>): Promise<ApplyReadResponse | null> {
     // no-refresh: a preview read of the statement (no `rows`), never a
