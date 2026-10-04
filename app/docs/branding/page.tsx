@@ -90,14 +90,6 @@ export default function BrandingHubPage() {
         </p>
       </section>
 
-      <p className="mt-10 border-t border-line-quiet pt-6">
-        <Link
-          href="/docs"
-          className="text-sm font-semibold text-ink-body underline decoration-blue-500 decoration-2 underline-offset-2 hover:text-ink-strong"
-        >
-          Back to the documentation
-        </Link>
-      </p>
     </Band>
   );
 }
