@@ -2,7 +2,7 @@ import { CURRENCY_FOR_COUNTRY } from "@/lib/countryCurrency";
 import { COUNTRIES } from "@/lib/countries";
 import { COUNTRY_FOR_TIME_ZONE } from "@/lib/timeZoneCountry";
 
-/** The country of a proven number's digits (`41760000001`). `preferIso` (the
+/** The country of a proven number's digits (`41760000000`). `preferIso` (the
  * country the person picked in the field) settles a shared dial code; without
  * it a code shared by countries with different currencies (+1) names none. */
 export function countryForTel(digits: string, preferIso?: string | null): string | null {
