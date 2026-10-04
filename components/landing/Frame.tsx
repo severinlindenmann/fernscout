@@ -188,7 +188,7 @@ export function HeaderA({
 function HeaderC({ siteName, badge, locales, signedIn }: FrameProps & { signedIn: boolean }) {
   const { t } = useI18n();
   return (
-    <header className={`${WIDE} flex items-center justify-between gap-3 py-4 lg:py-5`}>
+    <header className={`${WIDE} flex items-center justify-between gap-2 py-4 sm:gap-3 lg:py-5`}>
       <Logo siteName={siteName} badge={badge} />
       <div className="flex items-center gap-1.5 sm:gap-2.5">
         <div className="flex items-center gap-1">
@@ -201,7 +201,7 @@ function HeaderC({ siteName, badge, locales, signedIn }: FrameProps & { signedIn
           {t("landing.navHome")}
         </Link>
         {!signedIn && (
-          <Link href="/?start=1" className={`${PILL_GHOST} ${PILL_SMALL}`}>
+          <Link href="/?start=1" className={`${PILL_GHOST} ${PILL_SMALL} !px-3 sm:!px-4`}>
             {t("landing.signIn")}
           </Link>
         )}
