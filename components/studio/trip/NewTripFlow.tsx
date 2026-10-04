@@ -188,6 +188,9 @@ export const ACCENT_SWATCH: Record<string, string> = {
 export default function NewTripFlow({
   username,
   visibilities,
+  defaultVisibility,
+  guestCount,
+  guestsHref,
   accents,
   existingTrips,
   otherLocales,
@@ -203,6 +206,11 @@ export default function NewTripFlow({
   username: string;
   /** `VISIBILITIES` from `lib/tripWrite.ts`, read server-side. */
   visibilities: readonly string[];
+  /** B2849 - "guest", or "public" when the journal asks to be listed. */
+  defaultVisibility: string;
+  /** Guests the journal already has, and where the owner sees them. */
+  guestCount: number;
+  guestsHref: string;
   /** `ACCENTS` from `lib/tripWrite.ts`, read server-side. */
   accents: readonly string[];
   /** For T3! — see `lib/studio/newTrip.ts`'s own doc comment. */
@@ -232,7 +240,7 @@ export default function NewTripFlow({
   const [titleLeft, setTitleLeft] = useState(false);
   const [start, setStart] = useState(initialRange?.start ?? "");
   const [end, setEnd] = useState(initialRange?.end ?? "");
-  const [visibility, setVisibility] = useState<string>("private");
+  const [visibility, setVisibility] = useState<string>(defaultVisibility);
 
   const [accent, setAccent] = useState<string>("");
   const [accentSkipped, setAccentSkipped] = useState(false);
@@ -707,6 +715,24 @@ export default function NewTripFlow({
               ))}
             </div>
           </details>
+          {whoKey === "guest" && (
+            <p className="mt-2 text-sm text-ink-secondary" data-guest-count>
+              {guestCount === 0 ? t("studio.newTrip.who.guestsNone") : tn("studio.newTrip.who.guestsCount", guestCount, { count: String(guestCount) })}
+              {guestCount > 0 && (
+                <>
+                  {" · "}
+                  <Link href={guestsHref} className="font-semibold underline underline-offset-2">
+                    {t("studio.newTrip.who.seeWho")}
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
+          {whoKey === "public" && (
+            <p role="note" data-public-warning className="mt-2 rounded-xl border border-line-strong bg-surface-subtle px-4 py-3 text-sm font-semibold text-ink-strong">
+              {t("studio.newTrip.who.publicWarning")}
+            </p>
+          )}
           <p className="mt-2 text-sm text-ink-secondary">
             {t(`studio.newTrip.who.line.${whoKey}` as TranslationKey)}
             {onTrip && ` ${t("studio.newTrip.who.namedDrafts")}`}

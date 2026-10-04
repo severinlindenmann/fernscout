@@ -44,6 +44,9 @@ function tree() {
         <NewTripFlow
           username="alex"
           visibilities={["guest", "public", "private"]}
+          defaultVisibility="private"
+          guestCount={0}
+          guestsHref="/@alex/studio/readers"
           accents={["sky"]}
           existingTrips={existingTrips}
           otherLocales={[]}
@@ -171,6 +174,40 @@ describe("NewTripFlow — one screen, B2187", () => {
     expect("teaser" in body).toBe(false);
   });
 
+  test("B2849: a journal not listed defaults to Invited guests with the guest count, no warning", async () => {
+    const fetchMock = created();
+    vi.stubGlobal("fetch", fetchMock);
+    extra = { defaultVisibility: "guest", guestCount: 3 };
+    mount();
+    fillStepOne();
+    const card = container.querySelector("[data-who-can-read]")!;
+    expect(card.textContent).toContain("Invited guests");
+    expect(container.querySelector("[data-guest-count]")?.textContent).toContain("3 guests");
+    expect(container.querySelector("[data-public-warning]")).toBeNull();
+    await create();
+    expect(sent(fetchMock).visibility).toBe("guest");
+  });
+
+  test("B2849: no guests yet reads so", () => {
+    extra = { defaultVisibility: "guest", guestCount: 0 };
+    mount();
+    expect(container.querySelector("[data-guest-count]")?.textContent).toBe("No guests yet");
+  });
+
+  test("B2849: a listed journal defaults to Anybody with the public warning; choosing Anybody elsewhere shows it too", () => {
+    extra = { defaultVisibility: "public" };
+    mount();
+    expect(container.querySelector("[data-public-warning]")?.textContent).toContain("Anyone with the link can read it");
+    act(() => root!.unmount());
+    container.remove();
+    sessionStorage.clear();
+    extra = { defaultVisibility: "guest" };
+    mount();
+    expect(container.querySelector("[data-public-warning]")).toBeNull();
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>("[data-who-can-read] button")).find((b) => b.textContent?.startsWith("Public"))!.click());
+    expect(container.querySelector("[data-public-warning]")).not.toBeNull();
+  });
+
   test("done on a private trip: the first day, then who reads along — people or letting readers in, never a readers invite (B2776)", async () => {
     vi.stubGlobal("fetch", created());
     mount();
@@ -190,8 +227,8 @@ describe("NewTripFlow — one screen, B2187", () => {
     vi.stubGlobal("fetch", fetchMock);
     mount();
     fillStepOne();
-    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>("[data-who-can-read] button")).find((b) => b.textContent?.startsWith("Guests"))!.click());
-    expect(container.querySelector("[data-who-can-read] summary")?.textContent).toContain("You and the guests of this journal");
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>("[data-who-can-read] button")).find((b) => b.textContent?.startsWith("Invited guests"))!.click());
+    expect(container.querySelector("[data-who-can-read] summary")?.textContent).toContain("Invited guests");
     await create();
     expect(sent(fetchMock).visibility).toBe("guest");
     expect(doneLinks()).toEqual([
