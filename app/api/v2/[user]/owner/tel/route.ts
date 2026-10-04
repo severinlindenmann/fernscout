@@ -42,7 +42,7 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v2
   // B2833: a number is freed only by the operator, from /admin
   // (/api/admin/owner-tel). An owner or agent token never releases it.
   return fail(
-    "operator_only",
+    "forbidden",
     "Only the operator of this server can free a proven number. Ask them to do it from /admin.",
     undefined,
     403,

@@ -1196,7 +1196,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     delete: {
       summary:
-        "Always refused with 403 operator_only: only the operator of the server frees a proven number, from /admin. Read it back with GET.",
+        "Always refused with 403 forbidden: only the operator of the server frees a proven number, from /admin. Read it back with GET.",
       responses: {
         ...refusalResponses(ownerRefusals),
       },
