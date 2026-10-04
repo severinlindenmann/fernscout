@@ -45,7 +45,10 @@ export function useOverlayHistory(open: boolean, onClose: () => void, push = tru
   }, [open, push]);
 
   return useCallback(() => {
-    if (closeAction(pushed.current, window.history.state, id.current) === "back") window.history.back();
-    else onCloseRef.current();
+    if (closeAction(pushed.current, window.history.state, id.current) === "back") {
+      // The X sits inside a backdrop that also closes: a second call must not pop a second entry.
+      pushed.current = false;
+      window.history.back();
+    } else onCloseRef.current();
   }, []);
 }
