@@ -187,11 +187,12 @@ export function composeCodeMail(params: {
     code,
     place: title,
     title: translateIn(locale, link ? "contact.mailCodeLinkTitle" : "contact.mailCodeTitle"),
+    label: translateIn(locale, "mail.codeLabelOther"),
     purpose: link
       ? translateIn(locale, preapproved ? "contact.mailCodeLinkBodyPreapproved" : "contact.mailCodeLinkBody")
       : translateIn(locale, "contact.mailCodePurpose"),
     url: link ?? undefined,
-    buttonText: link ? translateIn(locale, "contact.mailCodeButton") : undefined,
+    linkText: link ? translateIn(locale, "contact.mailCodeButton") : undefined,
     ignoreText: translateIn(locale, "contact.mailCodeIgnore"),
     why: translateIn(locale, WHY_KEY.codeJournal, { site: title }),
   });

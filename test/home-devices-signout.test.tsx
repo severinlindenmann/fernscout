@@ -6,6 +6,13 @@ import { YourDevices, type HomeDevice } from "@/components/HomeJournals";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
 
+// B-2841 — the iPhone shell's recorder, faked at the Capacitor boundary.
+const recorder = vi.hoisted(() => ({
+  armedTrips: vi.fn(async () => ({ armed: [] as string[], declined: [] as string[] })),
+  disarm: vi.fn(async () => ({ state: "off" })),
+}));
+vi.mock("@capacitor/core", () => ({ registerPlugin: () => recorder }));
+
 /**
  * B2451 — signing out THIS device from the home page's device list used to
  * call only `DELETE /api/v2/me/devices/{id}`, which deliberately revokes the
@@ -23,6 +30,7 @@ let container: HTMLDivElement | undefined;
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  delete (window as unknown as { Capacitor?: unknown }).Capacitor;
   act(() => root?.unmount());
   container?.remove();
   root = undefined;
@@ -95,5 +103,36 @@ describe("YourDevices sign-out (B2451)", () => {
 
     expect(calls).toEqual([{ url: "/api/v2/me/devices/other-one", method: "DELETE" }]);
     expect(onRevoke).toHaveBeenCalledWith("other-one");
+  });
+
+  test("B-2841: in the iPhone app, signing out this device asks first, then stops route recording", async () => {
+    (window as unknown as { Capacitor: unknown }).Capacitor = { isNativePlatform: () => true };
+    recorder.armedTrips.mockResolvedValue({ armed: ["iceland"], declined: [] });
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        calls.push(url);
+        return { ok: true, json: async () => ({ ok: true }) };
+      }),
+    );
+    vi.stubGlobal("location", { ...window.location, reload: vi.fn() });
+
+    await render(vi.fn());
+    await act(async () => {
+      (container!.querySelectorAll("button")[0] as HTMLButtonElement).click();
+    });
+    // The confirmation, not the sign-out.
+    expect(calls).toEqual([]);
+    expect(container!.textContent).toContain("Route recording on this phone stops too.");
+
+    // The panel's own confirm button, after the device list.
+    const confirm = container!.querySelector<HTMLButtonElement>("ul ~ div button");
+    await act(async () => {
+      confirm!.click();
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(calls).toEqual(["/api/auth/logout"]);
+    expect(recorder.disarm).toHaveBeenCalledWith({ trip: "iceland", decline: false });
   });
 });

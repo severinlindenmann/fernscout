@@ -4,7 +4,6 @@ import { translateIn } from "../locales";
 import type { Composition } from "../messages/previews/types";
 import type { Locale } from "../types";
 import { composeCodeMailContent } from "./codeMail";
-import type { MailBlock } from "./template";
 
 type MailComposition = Extract<Composition, { channel: "mail" }>;
 
@@ -60,11 +59,7 @@ export function composeIdentityCodeMail(params: {
   const { locale, code, site, link = null } = params;
   const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) => translateIn(locale, key, vars);
   const vars = { site, code, minutes: CODE_TTL_MINUTES };
-  const purpose: MailBlock[] = [
-    { kind: "paragraph", text: t("mail.identityWhat") },
-    { kind: "paragraph", text: t("mail.identityLasts") },
-    ...(link ? ([{ kind: "paragraph", text: t("mail.identityApp", vars) }] as const) : []),
-  ];
+  const purpose = [t("mail.identityWhat"), ...(link ? [t("mail.identityApp", vars)] : [])];
   return composeCodeMailContent({
     template: "code.identity.mail",
     locale,
@@ -73,7 +68,7 @@ export function composeIdentityCodeMail(params: {
     title: t("mail.identityTitle"),
     purpose,
     url: link ?? undefined,
-    buttonText: link ? t("mail.identityButton") : undefined,
+    linkText: link ? t("mail.identityLink") : undefined,
     ignoreText: t("mail.identityIgnore"),
     why: t("mail.identityFooter", vars),
   });
@@ -105,9 +100,7 @@ export function composeJournalCodeMail(params: {
     ? scopedTripTitle
       ? t("mail.agentScoped", { ...vars, trip: scopedTripTitle })
       : t("mail.agentAll")
-    : link
-      ? t("mail.signinTap", vars)
-      : t("mail.identityCode", vars);
+    : undefined;
   const url = isWrite ? undefined : link ?? undefined;
   return composeCodeMailContent({
     template: "code.journal.mail",
@@ -115,9 +108,10 @@ export function composeJournalCodeMail(params: {
     code,
     place: title,
     title: isWrite ? t("mail.agentTitle") : t("mail.signinSubject", vars),
+    label: isWrite ? t("mail.codeLabelOther") : undefined,
     purpose,
     url,
-    buttonText: url ? t("mail.signinOpen", vars) : undefined,
+    linkText: url ? t("mail.signinOpen", vars) : undefined,
     askedAt: t("mail.codeAsked", { when: askedAt }),
     ignoreText: t("mail.signinIgnore"),
     why: t("mail.identityFooter", vars),
@@ -142,6 +136,7 @@ export function composeOwnerEmailCodeMail(params: {
     code,
     place: title,
     title: t("mail.ownerEmailCodeTitle"),
+    label: t("mail.codeLabelOther"),
     purpose: t("mail.ownerEmailCodeWhat", vars),
     ignoreText: t("mail.ownerEmailCodeIgnore"),
     why: t("mail.identityFooter", vars),

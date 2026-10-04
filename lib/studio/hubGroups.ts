@@ -360,14 +360,13 @@ export function filterHubGroups(groups: HubGroup[], query: string): HubGroup[] {
   return groups.map((g) => ({ ...g, rows: g.rows.filter((r) => rowMatchesQuery(r, query)) })).filter((g) => g.rows.length > 0);
 }
 
-/** B2810 — the first-visit studio's doors, in the mockup's order. A door whose
- *  capability is off is left out, never shown as a dead button. */
-export type FirstVisitDoor = { key: "newTrip" | "polarsteps" | "photos"; href: string; Icon: LucideIcon; title: string; description: string };
+/** B2810 — the first-visit studio's doors, in the mockup's order. Every door
+ *  works with its capability off (B-2842). */
+export type FirstVisitDoor = { key: "newTrip" | "polarsteps" | "import"; href: string; Icon: LucideIcon; title: string; description: string };
 
 export function firstVisitDoors(
   username: string,
   welcome: { polarsteps: boolean },
-  extractOff: boolean,
   t: T,
 ): FirstVisitDoor[] {
   const base = journalPath(username);
@@ -376,8 +375,7 @@ export function firstVisitDoors(
     ...(welcome.polarsteps
       ? [{ key: "polarsteps" as const, href: `${base}/studio/import/polarsteps`, Icon: ArrowRight, title: t("studio.hub.item.polarsteps.title"), description: t("studio.hub.first.polarsteps.hint") }]
       : []),
-    ...(extractOff
-      ? []
-      : [{ key: "photos" as const, href: `${base}/studio/photos`, Icon: Images, title: t("studio.hub.first.photos.title"), description: t("studio.hub.first.photos.hint") }]),
+    // B-2842: always there; with extract off the page behind it offers only the helper.
+    { key: "import", href: `${base}/studio/import`, Icon: Images, title: t("studio.hub.first.photos.title"), description: t("studio.hub.first.photos.hint") },
   ];
 }

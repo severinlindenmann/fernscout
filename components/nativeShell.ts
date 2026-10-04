@@ -14,7 +14,7 @@
  */
 
 import { registerPlugin } from "@capacitor/core";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { OutboxStore } from "@/lib/outbox";
 
 type Bridge = { isNativePlatform?: () => boolean };
@@ -447,6 +447,41 @@ export function keepRecordingRoute(
 
 export function armedOrDeclinedTrips(): Promise<{ armed: string[]; declined: string[] }> {
   return LocationRecorder.armedTrips();
+}
+
+/**
+ * B-2841 — whether this phone is recording a route, read once on mount so a
+ * sign-out can say it will stop it. Always `false` outside the shell.
+ */
+export function useRecordingRoute(): boolean {
+  const [recording, setRecording] = useState(false);
+  useEffect(() => {
+    if (!isNativeShell()) return;
+    let live = true;
+    LocationRecorder.armedTrips().then(
+      ({ armed }) => {
+        if (live) setRecording(armed.length > 0);
+      },
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  return recording;
+}
+
+/**
+ * B-2841 — a sign-out stops every recording trip, the same Stop the route
+ * page makes (final upload, tracking off, Live Activity gone, token
+ * forgotten). Without it the recorder kept uploading for a signed-out phone
+ * whose only Stop button was behind the sign-in just removed. Called only
+ * after the logout succeeded: a failed sign-out leaves recording alone.
+ */
+export async function stopRouteRecording(): Promise<void> {
+  if (!isNativeShell()) return;
+  const { armed } = await LocationRecorder.armedTrips().catch(() => ({ armed: [] as string[] }));
+  for (const trip of armed) await disarmRoute(trip).catch(() => undefined);
 }
 
 export function openAppSettings(): Promise<void> {
