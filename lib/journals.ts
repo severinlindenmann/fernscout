@@ -1076,7 +1076,7 @@ const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
     "possession of the number is the only way on: POST /api/v2/{user}/owner/tel/verify with " +
     '{"tel": "+41 76 000 00 00"} sends a code, and POST .../verify/redeem with {"id", "code"} ' +
     "writes it once the code is confirmed. GET /api/v2/{user}/owner/tel reads it back, and " +
-    "DELETE is refused: only the operator of this server frees a proven number, from /admin.",
+    "there is no DELETE: only the operator of this server frees a proven number, from /admin.",
   baseCurrency:
     "baseCurrency is not writable through this call. It is changed with PATCH /api/v2/{user}, " +
     "and only while the journal holds no cost anywhere (B2806): a cost written without a " +

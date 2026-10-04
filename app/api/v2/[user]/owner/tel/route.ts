@@ -15,7 +15,9 @@
 // `.../verify/redeem` below, which prove possession of the number with a
 // passcode before anything is written — nothing inside a boundary may move
 // the boundary, the same rule `owner.email` already follows one file up.
-// Clearing is the operator's alone (B2833): DELETE here is refused with 403.
+// Clearing is the operator's alone (B2833), from /admin
+// (/api/admin/owner-tel): there is no DELETE here, so an owner or agent token
+// gets 405 and nothing can release a proven number.
 import { ownerTelDoc } from "@/lib/api/v2/schemas";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
@@ -31,20 +33,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
   if (!getUser(user)) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
 
   return ok(ownerTelDoc.parse(await ownerTelDocFields(user)));
-}
-
-export async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]/owner/tel">) {
-  const { user } = await params;
-  const auth = await requireJournalOwner(request, user);
-  if (!auth.ok) return auth.response;
-  if (!getUser(user)) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
-
-  // B2833: a number is freed only by the operator, from /admin
-  // (/api/admin/owner-tel). An owner or agent token never releases it.
-  return fail(
-    "forbidden",
-    "Only the operator of this server can free a proven number. Ask them to do it from /admin.",
-    undefined,
-    403,
-  );
 }

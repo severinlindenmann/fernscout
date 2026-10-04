@@ -1194,13 +1194,6 @@ function buildPaths(): Record<string, PathItem> {
         ...refusalResponses(ownerRefusals),
       },
     },
-    delete: {
-      summary:
-        "Always refused with 403 forbidden: only the operator of the server frees a proven number, from /admin. Read it back with GET.",
-      responses: {
-        ...refusalResponses(ownerRefusals),
-      },
-    },
   };
 
   // There is no PATCH on the resource above — setting the number takes two
