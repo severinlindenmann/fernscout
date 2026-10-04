@@ -114,10 +114,10 @@ what makes each one boot and what its absence looks like.
 | --- | --- | --- |
 | `helper` | `ANTHROPIC_API_KEY` and a database | no writing assistant |
 | `transcription` | a database; `dry-run` needs nothing else, `deepgram` needs `DEEPGRAM_API_KEY` | no dictation |
-| `extract` | `SESSION_SECRET`, `auth` and `helper`, and a journal must switch it on for itself | no guided import of photos into draft days from the studio |
+| `extract` | `SESSION_SECRET`, `auth` and `helper`, and a journal has not written `enabled: false` for itself | no guided import of photos into draft days from the studio |
 | `billing` | a database | model calls and sends are never metered |
 
-`extract` is the studio's guided camera-roll photo import; it does not read
+`extract` is the studio's guided camera-roll photo import. It is per journal and on by default: a journal opts out with `features.extract.enabled: false`, and the server switch still wins. It does not read
 bank or card statements. Statement reading (`/studio/statement` and
 `POST /api/v2/{user}/statements`) needs no feature flag in v2 at all — it is
 reachable whenever a journal's owner is signed in.

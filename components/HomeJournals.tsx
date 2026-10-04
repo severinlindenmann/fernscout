@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
+import ConfirmPanel from "@/components/ConfirmPanel";
+import { stopRouteRecording, useRecordingRoute } from "@/components/nativeShell";
 import { useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import type { PlanSummary } from "@/lib/billingSummary";
@@ -178,6 +180,9 @@ export function YourDevices({
 }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState<string | null>(null);
+  // B-2841 — signing this phone out stops its route recording; say so first.
+  const recording = useRecordingRoute();
+  const [confirmingSelf, setConfirmingSelf] = useState<string | null>(null);
 
   async function revoke(id: string) {
     setBusy(id);
@@ -193,6 +198,7 @@ export function YourDevices({
         const res = await fetch("/api/auth/logout", { method: "POST" });
         if (!res.ok) return;
         tellWorkerSignedOut();
+        await stopRouteRecording(); // B-2841
         window.location.reload();
         return;
       }
@@ -249,7 +255,9 @@ export function YourDevices({
               <BusyButton
                 busy={busy === device.id}
                 type="button"
-                onClick={() => revoke(device.id)}
+                onClick={() =>
+                  device.current && recording ? setConfirmingSelf(device.id) : revoke(device.id)
+                }
                 className="min-h-11 shrink-0 rounded-lg border border-line-quiet px-3 text-sm font-semibold text-ink-strong
                            hover:border-line-ink disabled:opacity-50
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
@@ -260,6 +268,20 @@ export function YourDevices({
           );
         })}
       </ul>
+      {confirmingSelf && (
+        <div className="mt-4">
+          <ConfirmPanel
+            label={t("me.signOut")}
+            question={t("me.signOutStopsRecording")}
+            confirmLabel={t("me.signOut")}
+            busyLabel={t("me.signingOut")}
+            tone="destructive"
+            busy={busy === confirmingSelf}
+            onConfirm={() => void revoke(confirmingSelf)}
+            onCancel={() => setConfirmingSelf(null)}
+          />
+        </div>
+      )}
     </section>
   );
 }

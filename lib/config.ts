@@ -756,6 +756,10 @@ const USER_DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // recording at all. Recording is still armed per trip by the owner and iOS
   // still asks for Always; the server switch stays the ceiling.
   routeRecording: { ...DEFAULT_FEATURES.routeRecording, enabled: true },
+  // B-2842: no journal ever wrote the key and no screen writes it, so "Bring in
+  // an old trip" read "switched off" for everyone. A written false still
+  // mutes; the server switch (and its auth/helper needs) stays the ceiling.
+  extract: { ...DEFAULT_FEATURES.extract, enabled: true },
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {

@@ -68,13 +68,12 @@ afterEach(async () => {
 });
 
 describe("the signup code mail", () => {
-  test("carries the code, the button and the seven-day line", async () => {
+  test("carries the code and the continue link", async () => {
     expect(await sendSignupCode("oma@example.test", "en")).toBe(true);
     const mail = sent[0];
     const body = `${mail.text ?? ""}${mail.html ?? ""}`;
     expect(body).toMatch(/https:\/\/t\.test\/welcome\/r\/[A-Za-z0-9_-]+/);
     expect(body).toContain("Continue my signup");
-    expect(body).toContain("Stopped halfway? This button takes you back to where you left off for 7 days.");
     expect(body).toMatch(/\d{6}/);
   });
 

@@ -50,7 +50,7 @@ import { addDayExpiresOn, readAddDaySnapshot, type AddDaySnapshot } from "@/lib/
 import { journalPath } from "@/lib/journalPath";
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
 
-const DOOR_HUE = { newTrip: "var(--color-yellow-400)", polarsteps: "var(--color-blue-500)", photos: "var(--color-green-500)" };
+const DOOR_HUE = { newTrip: "var(--color-yellow-400)", polarsteps: "var(--color-blue-500)", import: "var(--color-green-500)" };
 
 /** B2810 — per journal, per device; storage can be blocked, so both ends are
  *  guarded and a failure just means the welcome shows again. */
@@ -278,7 +278,7 @@ export default function StudioHub({
           <WaitingDays username={username} model={model.waitingDays} canWrite={false} />
           {halfDone}
           <ul className="mt-4 grid max-w-xl gap-3">
-            {firstVisitDoors(username, model.welcome, model.extractOff, t).map(({ key, href, Icon, title, description }, i) => (
+            {firstVisitDoors(username, model.welcome, t).map(({ key, href, Icon, title, description }, i) => (
               <li key={key}>
                 <Link
                   href={href}
