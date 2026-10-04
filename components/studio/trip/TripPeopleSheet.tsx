@@ -6,7 +6,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import FigureCreator from "@/components/studio/figures/FigureCreator";
 import type { FigureDoc } from "@/lib/api/v2/schemas/figures";
 
-export type SheetPerson = { name: string; email?: string };
+type SheetPerson = { name: string; email?: string };
 
 /**
  * "Who's on this trip?" — B-2847. One list of the people travelling, the
@@ -19,7 +19,7 @@ export type SheetPerson = { name: string; email?: string };
  * A native `<dialog>` opened with `showModal()`: focus is trapped, Escape
  * closes, and it is labelled by its own heading.
  */
-export default function TripPeopleSheet({
+function TripPeopleSheet({
   username,
   tripId,
   owner,
