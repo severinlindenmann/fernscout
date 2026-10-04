@@ -1,5 +1,6 @@
 "use client";
 
+import { useOverlayHistory } from "@/lib/useOverlayHistory";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { mediaLoader, posterSrc } from "./mediaLoader";
@@ -169,7 +170,7 @@ function dateOfFullStep(step: FullStep | undefined): string | undefined {
  */
 export default function SlideShow({
   places,
-  onClose,
+  onClose: onCloseProp,
   startPlaceKey,
   startDate,
   stats,
@@ -194,6 +195,10 @@ export default function SlideShow({
    * Null keeps the SVG map, as before. */
   streetMapUrl?: string | null;
 }) {
+  // One history step (B-2852). A show entered by `?show=1` was the entry
+  // point: nothing is pushed, so closing can never leave the page.
+  const [pushEntry] = useState(() => !new URLSearchParams(window.location.search).has("show"));
+  const onClose = useOverlayHistory(true, onCloseProp, pushEntry);
   const { t, formatShortDate, formatLongDate, locale, localizedTrip } = useI18n();
   const tripForTitle = useTrip()?.trip;
   const tripTitle = tripForTitle ? localizedTrip(tripForTitle).title : "";
