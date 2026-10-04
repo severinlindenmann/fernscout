@@ -51,7 +51,7 @@ export function studioUp(
   if (a === "trip") {
     if (b === "roster") {
       const t = q("trip");
-      return t ? { href: `${prefix}/trip?trip=${e(t)}`, labelKey: "studio.hub.item.tripEdit.title" } : studio;
+      return t ? { href: `${prefix}/trip?trip=${e(t)}`, labelKey: "studio.up.trip" } : studio;
     }
     if (!b || b === "visibility") return trip(q("trip"));
     return studio;
