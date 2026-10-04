@@ -58,7 +58,11 @@ function req(url: string, init: RequestInit & { token?: string } = {}): Request 
 }
 
 const base = () => `https://example.test/api/v2/${OWNER}/visited`;
-const ctx = (code?: string) => ({ params: Promise.resolve(code === undefined ? { user: OWNER } : { user: OWNER, code }) });
+function ctx(): { params: Promise<{ user: string }> };
+function ctx(code: string): { params: Promise<{ user: string; code: string }> };
+function ctx(code?: string) {
+  return { params: Promise.resolve(code === undefined ? { user: OWNER } : { user: OWNER, code }) };
+}
 
 beforeEach(async () => {
   OWNER_EMAIL = `owner-${process.hrtime.bigint()}@example.test`;
