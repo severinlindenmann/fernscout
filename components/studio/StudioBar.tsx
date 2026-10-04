@@ -383,7 +383,9 @@ export function useStudioFlow(
   // `useStep`'s `back` is a fresh closure every render and this hook re-renders
   // when it registers, so it rides in a ref; as an effect dependency it would loop.
   const previous = useRef(flow?.onPrevious);
-  previous.current = flow?.onPrevious;
+  useEffect(() => {
+    previous.current = flow?.onPrevious;
+  });
   const hasPrevious = !!flow?.onPrevious;
   const onPrevious = useCallback(() => previous.current?.(), []);
   useEffect(() => {
