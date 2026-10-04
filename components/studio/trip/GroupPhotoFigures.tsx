@@ -176,7 +176,7 @@ export default function GroupPhotoFigures({
               <button
                 key={m.n}
                 type="button"
-                aria-label={t("studio.tripPeople.photo.markerRemove", { n: m.n })}
+                aria-label={t("studio.tripPeople.photo.markerRemove", { n: String(m.n) })}
                 onClick={(e) => {
                   e.stopPropagation();
                   setMarkers(markers.filter((x) => x !== m));
@@ -195,7 +195,7 @@ export default function GroupPhotoFigures({
               onClick={startDescribing}
               className="min-h-11 rounded-full bg-yellow-400 px-5 font-semibold text-yellow-950 hover:bg-yellow-300 disabled:opacity-50"
             >
-              {t("studio.tripPeople.photo.describe", { count: markers.length })}
+              {t("studio.tripPeople.photo.describe", { count: String(markers.length) })}
             </button>
             <label className={`${btn} inline-flex items-center`}>
               {t("studio.tripPeople.photo.another")}
@@ -250,14 +250,14 @@ export default function GroupPhotoFigures({
                   {c.status === "done" && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       <input
-                        aria-label={t("studio.tripPeople.photo.nameLabel", { n: c.n })}
+                        aria-label={t("studio.tripPeople.photo.nameLabel", { n: String(c.n) })}
                         value={c.name}
                         onChange={(e) => patch(c.n, { name: e.target.value, email: undefined })}
                         autoComplete="off"
                         className="min-h-11 min-w-0 flex-1 rounded-lg border border-line-strong bg-surface-base px-3 text-ink-strong"
                       />
                       <select
-                        aria-label={t("studio.tripPeople.photo.pickLabel", { n: c.n })}
+                        aria-label={t("studio.tripPeople.photo.pickLabel", { n: String(c.n) })}
                         value=""
                         onChange={(e) => {
                           const v = e.target.value;
@@ -303,7 +303,7 @@ export default function GroupPhotoFigures({
             onClick={() => void keep()}
             className="min-h-11 rounded-full bg-yellow-400 px-5 font-semibold text-yellow-950 hover:bg-yellow-300 disabled:opacity-50"
           >
-            {t("studio.tripPeople.photo.keep", { count: live.length })}
+            {t("studio.tripPeople.photo.keep", { count: String(live.length) })}
           </button>
         )}
       </div>
