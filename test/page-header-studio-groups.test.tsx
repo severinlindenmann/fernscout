@@ -11,7 +11,7 @@ import { dictionaryFor } from "@/lib/locales";
 import { STUDIO_GROUPS } from "@/lib/studio/groups";
 import type { SiteSummary } from "@/lib/site";
 
-// B2850 — the bottom bar lost its group chevron; the owner's header menu carries the six groups.
+// B-2917 — the owner's header menu carries the Studio link only, not the six studio groups (B2850 put them there).
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 vi.mock("next/navigation", () => ({
@@ -68,10 +68,10 @@ function openMenu(isOwner: boolean) {
 }
 
 describe("the header menu's studio groups", () => {
-  test("the owner's menu keeps the Studio link and lists the six groups", () => {
+  test("the owner's menu keeps the Studio link and lists none of the groups", () => {
     const hrefs = openMenu(true);
     expect(hrefs).toContain("/alex/studio");
-    for (const g of STUDIO_GROUPS) expect(hrefs).toContain(`/alex/studio#${g}`);
+    for (const g of STUDIO_GROUPS) expect(hrefs).not.toContain(`/alex/studio#${g}`);
   });
 
   test("a non-owner's menu has none", () => {
