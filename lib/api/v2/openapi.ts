@@ -31,6 +31,10 @@ import {
   instanceStatus,
   journalStatus,
   figureDoc,
+  visitedCreate,
+  visitedBatch,
+  visitedPatch,
+  visitedDoc,
   errorEnvelope,
   geocodeRequest,
   geocodeResponse,
@@ -489,6 +493,20 @@ const inboxDeleted = z.strictObject({ ok: z.literal(true), id: z.string(), filen
 
 const figureDeleted = z.strictObject({ deleted: z.string(), dryRun: z.boolean().optional() });
 
+const visitedList = z.strictObject({ visited: z.array(visitedDoc) });
+const visitedBatchResult = z.strictObject({ entries: z.array(visitedDoc), created: z.array(z.string()) });
+const visitedDeleted = z.strictObject({ deleted: z.string() });
+const visitedAdd = z.union([visitedCreate, visitedBatch]);
+const multipartFileBody = {
+  description: "multipart/form-data: the photograph's bytes under `file`",
+  required: true,
+  content: {
+    "multipart/form-data": {
+      schema: { type: "object", properties: { file: { type: "string", format: "binary" } }, required: ["file"] },
+    },
+  },
+};
+
 const contactSelfResult = z.strictObject({ ok: z.literal(true), contact: contactDoc.optional(), dryRun: z.boolean().optional() });
 
 const contactImportResult = z.strictObject({
@@ -825,6 +843,12 @@ const PATH_PARAMETERS: Record<string, { schema: Record<string, unknown>; descrip
       "The id of the thing this path addresses — a figure, an invite, a contact, an order, a " +
       "credential. Client-chosen where the door creates at a client-chosen id, server-issued " +
       "otherwise; either way it comes back in the answer that made it.",
+  },
+  code: {
+    schema: { type: "string", pattern: "^[A-Za-z]{2}$" },
+    description:
+      "A country's ISO 3166-1 alpha-2 code, e.g. `NO` — the id of an entry recorded without a " +
+      "trip. Upper or lower case names the same country; one the world map does not know is refused.",
   },
   src: {
     schema: { type: "string", minLength: 1 },
@@ -1726,6 +1750,65 @@ function buildPaths(): Record<string, PathItem> {
         ...jsonResponse(200, figureDeleted, "deleted"),
         ...refusalResponses([...ownerRefusals, ref("not_found", 404), ref("figure_referenced", 409)]),
       },
+    },
+  };
+  // ── countries visited without a trip (B2914) ────────────────────────
+  paths["/api/v2/{user}/visited"] = {
+    get: {
+      summary:
+        "The countries recorded without a trip. The owner's token sees every entry; any other token sees only `public` ones.",
+      responses: { ...jsonResponse(200, visitedList, "the entries this token may see"), ...refusalResponses([...authRefusals, outOfScope(), noSuchJournal()]) },
+    },
+    post: {
+      summary:
+        "Add one country (`{country, places?, year?, month?, note?, visibility?}`) or many (`{entries: [...]}`). " +
+        "A country that already has an entry answers with that entry unchanged (200, or absent from `created` in a batch) — never a duplicate. Owner only.",
+      requestBody: jsonBody(visitedAdd, "one entry, or `{entries: [...]}`"),
+      responses: {
+        ...jsonResponse(201, visitedDoc, "added (single)"),
+        ...jsonResponse(200, visitedBatchResult, "a batch: every entry as it stands, and which codes were newly added"),
+        ...refusalResponses([...ownerRefusals, ref("invalid_request", 400)]),
+      },
+    },
+  };
+  paths["/api/v2/{user}/visited/{code}"] = {
+    get: {
+      summary: "One country, by its ISO 3166-1 alpha-2 code.",
+      responses: { ...jsonResponse(200, visitedDoc, "the entry"), ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("not_found", 404)]) },
+    },
+    patch: {
+      summary: "Change an entry's places, year, month, note or visibility (`null` clears a field; the photograph has its own call). Owner only.",
+      requestBody: jsonBody(visitedPatch, "the fields to change"),
+      responses: {
+        ...jsonResponse(200, visitedDoc, "the entry as it now stands"),
+        ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("not_found", 404)]),
+      },
+    },
+    delete: {
+      summary: "Remove an entry and its served photograph; the photograph's original is kept. Owner only.",
+      responses: { ...jsonResponse(200, visitedDeleted, "removed"), ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("not_found", 404)]) },
+    },
+  };
+  paths["/api/v2/{user}/visited/{code}/photo"] = {
+    put: {
+      summary: "Set the entry's one photograph (replacing any) through the ordinary image ingest — the original is kept as the print master. Owner only.",
+      requestBody: multipartFileBody as never,
+      responses: {
+        ...jsonResponse(200, visitedDoc, "the entry, with its `photo`"),
+        ...refusalResponses([
+          ...ownerRefusals,
+          ref("invalid_request", 400),
+          ref("not_found", 404),
+          ref("expected_multipart", 400),
+          ref("invalid_media", 400),
+          ref("body_too_large", 413),
+          ref("storage_full", 400),
+        ]),
+      },
+    },
+    delete: {
+      summary: "Detach the entry's photograph (the original is kept). Owner only.",
+      responses: { ...jsonResponse(200, visitedDoc, "the entry without a photo"), ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("not_found", 404)]) },
     },
   };
   paths["/api/v2/{user}/figures/presets"] = {
