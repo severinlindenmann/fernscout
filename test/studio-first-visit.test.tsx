@@ -57,10 +57,10 @@ describe("first visit", () => {
     const el = render(BASE);
     expect(el.textContent).toContain("Welcome, Anna");
     expect(el.textContent).toContain("Your journal is at fernscout.ch/@anna. Nothing is published yet.");
-    expect(doors(el)).toEqual(["newTrip", "polarsteps", "photos"]);
+    expect(doors(el)).toEqual(["newTrip", "polarsteps", "import"]);
     expect(el.querySelector('[data-door="newTrip"]')?.getAttribute("href")).toBe("/@anna/studio/trip/new");
     expect(el.querySelector('[data-door="polarsteps"]')?.getAttribute("href")).toBe("/@anna/studio/import/polarsteps");
-    expect(el.querySelector('[data-door="photos"]')?.getAttribute("href")).toBe("/@anna/studio/photos");
+    expect(el.querySelector('[data-door="import"]')?.getAttribute("href")).toBe("/@anna/studio/import");
   });
 
   test("no nickname: just Welcome; no GPX or settings line", () => {
@@ -70,11 +70,11 @@ describe("first visit", () => {
     expect(el.querySelector('a[href$="/studio/journal"]')).toBeNull();
   });
 
-  test("a door whose capability is off is absent, not a dead button", () => {
-    expect(doors(render({ ...BASE, extractOff: true }))).toEqual(["newTrip", "polarsteps"]);
+  test("B-2842 — the import door stays with extract off; Polarsteps goes where it is not carried", () => {
+    expect(doors(render({ ...BASE, extractOff: true }))).toEqual(["newTrip", "polarsteps", "import"]);
     act(() => root?.unmount());
     container?.remove();
-    expect(doors(render({ ...BASE, welcome: { ...BASE.welcome, polarsteps: false } }))).toEqual(["newTrip", "photos"]);
+    expect(doors(render({ ...BASE, welcome: { ...BASE.welcome, polarsteps: false } }))).toEqual(["newTrip", "import"]);
   });
 
   test("Skip shows the normal hub and is remembered for this journal", () => {

@@ -558,6 +558,19 @@ describe("a journal that has never mentioned mail has not switched it off", () =
       }).features.routeRecording.enabled;
     expect(recording(), "route recording: absent inherits the server").toBe(true);
     expect(recording({ routeRecording: { enabled: false } }), "route recording: stated no").toBe(false);
+    // B-2842: the guided photo import is a journal switch that defaults on.
+    const extract = (features?: Record<string, unknown>) =>
+      parseUserConfig("j", {
+        title: "T",
+        owner: { name: "R", nickname: "R", email: OWNER },
+        ...(features ? { features } : {}),
+      }).features.extract.enabled;
+    expect(extract(), "extract: absent inherits the server").toBe(true);
+    expect(extract({ extract: { enabled: false } }), "extract: stated no").toBe(false);
+    expect(
+      parseServerConfig({ site: { name: "T", url: "https://t.test" } }).features.extract.enabled,
+      "the server's own default stays off",
+    ).toBe(false);
     expect(
       parseServerConfig({ site: { name: "T", url: "https://t.test" } }).features.routeRecording.enabled,
       "the server's own default stays off",
