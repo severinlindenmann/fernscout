@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useLightbox } from "./useLightbox";
+import { useOverlayHistory } from "@/lib/useOverlayHistory";
 import { swipeIntent } from "./swipe";
 
 /**
@@ -38,7 +39,7 @@ import { swipeIntent } from "./swipe";
 export default function Lightbox({
   index,
   count,
-  onClose,
+  onClose: onCloseProp,
   onPrev,
   onNext,
   swipeable = true,
@@ -68,6 +69,7 @@ export default function Lightbox({
   children: ReactNode;
 }) {
   const { t } = useI18n();
+  const onClose = useOverlayHistory(index !== null, onCloseProp);
   const dialog = useLightbox({ open: index !== null, onClose, onPrev, onNext });
 
   // One photograph is not a sequence: there is nowhere for an arrow to go and
@@ -97,7 +99,8 @@ export default function Lightbox({
           {extra}
           <button
             aria-label={t("a11y.closePhoto")}
-            className="absolute right-4 top-4 z-10 rounded-full bg-overlay-strong/40 p-2 text-overlay-ink/80 hover:bg-overlay-ink/10 hover:text-overlay-ink"
+            style={{ top: "max(1rem, env(safe-area-inset-top, 0px))" }}
+            className="absolute right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-overlay-strong/40 text-overlay-ink/80 hover:bg-overlay-ink/10 hover:text-overlay-ink"
             onClick={onClose}
           >
             <X className="h-6 w-6" />

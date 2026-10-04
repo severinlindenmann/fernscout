@@ -396,6 +396,13 @@ function senderAddress(): string {
   return process.env.MAIL_FROM ?? `Fernscout <no-reply@${hostOf(loadServerConfig().site.url)}>`;
 }
 
+/** The bare address code mails come from, for telling a person who to look
+ *  for (B2844) — the display name stripped from `MAIL_FROM`. */
+export function mailSenderAddress(): string {
+  const from = senderAddress();
+  return from.match(/<([^>]+)>/)?.[1] ?? from;
+}
+
 function hostOf(url: string): string {
   try {
     return new URL(url).host;
