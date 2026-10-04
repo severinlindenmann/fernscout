@@ -5032,5 +5032,8 @@
   "studio.flow.leaveStatement": "Quitter cet import",
   "studio.flow.leaveRoute": "Quitter l'import d'itinéraire",
   "studio.flow.leavePolarsteps": "Quitter cet import",
-  "studio.flow.leavePhotos": "Quitter l'import de photos"
+  "studio.flow.leavePhotos": "Quitter l'import de photos",
+  "studio.tripPeople.photo.ask.yes": "Oui, utiliser l’assistant",
+  "studio.tripPeople.photo.ask.no": "Pas maintenant",
+  "studio.tripPeople.photo.declined": "L’aide photo est désactivée — activez-la dans les réglages de l’assistant"
 }

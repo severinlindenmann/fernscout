@@ -5032,5 +5032,8 @@
   "studio.flow.leaveStatement": "Esci da questa importazione",
   "studio.flow.leaveRoute": "Esci dall'importazione del percorso",
   "studio.flow.leavePolarsteps": "Esci da questa importazione",
-  "studio.flow.leavePhotos": "Esci dall'importazione delle foto"
+  "studio.flow.leavePhotos": "Esci dall'importazione delle foto",
+  "studio.tripPeople.photo.ask.yes": "Sì, usa l’assistente",
+  "studio.tripPeople.photo.ask.no": "Non ora",
+  "studio.tripPeople.photo.declined": "L’aiuto con le foto è disattivato — attivalo nelle impostazioni dell’assistente"
 }

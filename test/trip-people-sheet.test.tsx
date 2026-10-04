@@ -117,3 +117,59 @@ describe("Who's on this trip?", () => {
     expect(container.textContent).toContain("Who’s on this trip?");
   });
 });
+
+describe("Who's on this trip? photo consent in place (B-2906)", () => {
+  function renderWith(photoAsk?: { provider: string; declined: boolean }) {
+    act(() =>
+      root.render(
+        <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
+          <ul>
+            <TripPeopleRow
+              defaultOpen
+              username="alex"
+              tripId="t1"
+              owner={{ name: "Alex" }}
+              initialPeople={[]}
+              contacts={[]}
+              initialFigures={[]}
+              figureSet={[]}
+              photoConsent={false}
+              photoAsk={photoAsk}
+            />
+          </ul>
+        </LocaleProvider>,
+      ),
+    );
+  }
+  const button = (text: string) => [...container.querySelectorAll("button")].find((b) => b.textContent === text);
+
+  test("helper off: only the needs-assistant line", () => {
+    expect(container.textContent).toContain("needs the assistant");
+    expect(container.querySelector("[data-photo-ask]")).toBeNull();
+  });
+
+  test("question with provider; Yes posts scope photos and reveals the button", async () => {
+    renderWith({ provider: "Acme Models", declined: false });
+    expect(container.querySelector("[data-photo-ask]")!.textContent).toContain("goes to Acme Models");
+    expect(button("Make figures from a photo")).toBeUndefined();
+    await act(async () => button("Yes, use the assistant")!.click());
+    expect(calls).toEqual([{ url: "/api/helper/alex/consent", method: "POST", body: { scope: "photos" } }]);
+    expect(button("Make figures from a photo")).toBeDefined();
+    expect(container.querySelector("[data-photo-ask]")).toBeNull();
+  });
+
+  test("Not now hides the question and records nothing", () => {
+    renderWith({ provider: "Acme Models", declined: false });
+    act(() => button("Not now")!.click());
+    expect(container.querySelector("[data-photo-ask]")).toBeNull();
+    expect(button("Make figures from a photo")).toBeUndefined();
+    expect(calls).toEqual([]);
+  });
+
+  test("declined earlier: only a quiet link to the assistant settings", () => {
+    renderWith({ provider: "Acme Models", declined: true });
+    expect(container.querySelector("[data-photo-ask]")).toBeNull();
+    const link = container.querySelector<HTMLAnchorElement>('a[href$="/studio/agent"]')!;
+    expect(link.textContent).toContain("Photo help is off");
+  });
+});

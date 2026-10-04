@@ -122,7 +122,9 @@ function cacheKey(...parts: unknown[]): string {
   // Rendering changes must invalidate SVGs already cached on disk. Bump the
   // tag (B2639: clustered discs, sans labels, no chips, thinner track) so an
   // old, cluttered card already on disk re-renders instead of serving stale.
-  return crypto.createHash("sha256").update(JSON.stringify(["clustered-sans-v4", ...parts])).digest("hex").slice(0, 32);
+  // v5 (B-2913): the root carries width/height, so Safari stops drawing a
+  // street-level card as a broken image.
+  return crypto.createHash("sha256").update(JSON.stringify(["clustered-sans-v5", ...parts])).digest("hex").slice(0, 32);
 }
 
 async function renderAndCache(
@@ -255,8 +257,12 @@ function renderSvg(opts: {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
   const parts: string[] = [];
+  // B-2913: an explicit size, never the viewBox alone. WebKit takes an <img>
+  // SVG's intrinsic size from the viewBox, and a street-level day's box is a
+  // fraction of a degree wide — it rounded to 0×0 and showed a broken image.
+  const height = Math.max(1, Math.round((width * frame.h) / frame.w));
   parts.push(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${frame.x} ${frame.y} ${frame.w} ${frame.h}" data-street="${street ? "1" : "0"}" role="img" aria-hidden="true">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${frame.x} ${frame.y} ${frame.w} ${frame.h}" data-street="${street ? "1" : "0"}" role="img" aria-hidden="true">`,
   );
   parts.push(`<rect x="${frame.x}" y="${frame.y}" width="${frame.w}" height="${frame.h}" fill="${palette.sea}"/>`);
 

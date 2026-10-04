@@ -5023,5 +5023,8 @@
   "studio.flow.leaveStatement": "Leave this import",
   "studio.flow.leaveRoute": "Leave this route import",
   "studio.flow.leavePolarsteps": "Leave this import",
-  "studio.flow.leavePhotos": "Leave the photo import"
+  "studio.flow.leavePhotos": "Leave the photo import",
+  "studio.tripPeople.photo.ask.yes": "Yes, use the assistant",
+  "studio.tripPeople.photo.ask.no": "Not now",
+  "studio.tripPeople.photo.declined": "Photo help is off — turn it on in the assistant settings"
 }

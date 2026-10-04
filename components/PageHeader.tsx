@@ -17,7 +17,6 @@ import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
 import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
-import { GROUP_HUE, STUDIO_GROUPS } from "@/lib/studio/groups";
 
 /**
  * Whether the header should be out of the way right now — B2162, the
@@ -388,26 +387,6 @@ export default function PageHeader({
                     />
                     {t("nav.studio")}
                   </Link>
-                  {/* B2850 — the studio's six groups, in the menu now that the
-                      bottom bar's chevron is gone. */}
-                  <ul className="mt-1">
-                    {STUDIO_GROUPS.map((group) => {
-                      const { icon: Icon, labelKey } = GROUP_HUE[group];
-                      return (
-                        <li key={group}>
-                          <Link
-                            href={`${site.base}/studio#${group}`}
-                            onClick={() => setMenuOpen(false)}
-                            className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-ink-body
-                                       transition-colors hover:bg-surface-subtle"
-                          >
-                            <Icon className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.2} />
-                            {t(labelKey)}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
                 </nav>
               )}
               <div className="mt-3">

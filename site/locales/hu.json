@@ -5029,5 +5029,8 @@
   "studio.flow.leaveStatement": "Kilépek ebből az importból",
   "studio.flow.leaveRoute": "Kilépek az útvonal-importból",
   "studio.flow.leavePolarsteps": "Kilépek ebből az importból",
-  "studio.flow.leavePhotos": "Kilépek a fotóimportból"
+  "studio.flow.leavePhotos": "Kilépek a fotóimportból",
+  "studio.tripPeople.photo.ask.yes": "Igen, használja az asszisztenst",
+  "studio.tripPeople.photo.ask.no": "Most nem",
+  "studio.tripPeople.photo.declined": "A fotós segítség ki van kapcsolva — az asszisztens beállításaiban kapcsolhatod be"
 }
