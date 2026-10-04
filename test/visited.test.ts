@@ -338,6 +338,8 @@ describe("api v2", () => {
     expect(withToken.status).toBe(403);
     const signedOut = await web.POST(req(`https://example.test/api/web/${OWNER}/visited`, { method: "POST", body: JSON.stringify({ country: "NO" }) }), ctx());
     expect(signedOut.status).toBe(403);
+    const foreign = await web.POST(req(`https://example.test/api/web/${OWNER}/visited`, { method: "POST", headers: { origin: "https://evil.example" }, body: JSON.stringify({ country: "NO" }) }), ctx());
+    expect(foreign.status).toBe(403);
     expect(fs.existsSync(path.join(dir, OWNER, "visited"))).toBe(false);
   });
 });
