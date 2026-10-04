@@ -26,7 +26,7 @@ export default async function StudioImportPage({ params }: PageProps<"/at/[user]
 
   return (
     <StudioPage username={user} group="bringIn" title={t("studio.import.title")}>
-      <div className="grid max-w-2xl gap-4">
+      <div className="grid gap-4">
         {isEnabled("extract", user) && (
           <section data-card="single" className={card}>
             <h2 className="text-lg font-semibold">{t("studio.import.single.title")}</h2>
