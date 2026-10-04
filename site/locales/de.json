@@ -4989,5 +4989,18 @@
   "studio.newTrip.overlap.line": "Zwei Reisen decken heute ab. Die neuere gilt als aktuell.",
   "studio.newTrip.done.row.bringIn": "Importieren",
   "studio.newTrip.done.row.open": "Öffnen",
-  "studio.newTrip.done.settings.title": "Reiseeinstellungen"
+  "studio.newTrip.done.settings.title": "Reiseeinstellungen",
+  "studio.tripPeople.title": "Wer ist auf dieser Reise dabei?",
+  "studio.tripPeople.note": "Die Mitreisenden. Wer hier hinzugefügt wird, bekommt keine Nachricht und keinen Zugang.",
+  "studio.tripPeople.you": "Du ({name})",
+  "studio.tripPeople.add.label": "Name eingeben oder Kontakt wählen",
+  "studio.tripPeople.add.button": "Hinzufügen",
+  "studio.tripPeople.figure.add": "Figur hinzufügen",
+  "studio.tripPeople.figure.edit": "Bearbeiten",
+  "studio.tripPeople.figureAlt": "Figur von {name}",
+  "studio.tripPeople.remove": "{name} entfernen",
+  "studio.tripPeople.done": "Fertig",
+  "studio.tripPeople.error": "Das wurde nicht gespeichert. Versuch es nochmal.",
+  "studio.tripPeople.row.title": "Wer ist auf dieser Reise dabei?",
+  "studio.tripPeople.row.cta": "Hinzufügen"
 }

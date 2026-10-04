@@ -4993,5 +4993,18 @@
   "studio.newTrip.overlap.line": "Deux voyages couvrent aujourd’hui. Le plus récent est affiché comme actuel.",
   "studio.newTrip.done.row.bringIn": "Importer",
   "studio.newTrip.done.row.open": "Ouvrir",
-  "studio.newTrip.done.settings.title": "Réglages du voyage"
+  "studio.newTrip.done.settings.title": "Réglages du voyage",
+  "studio.tripPeople.title": "Qui voyage sur ce voyage ?",
+  "studio.tripPeople.note": "Les personnes qui voyagent. Ajouter quelqu’un ici n’envoie rien et ne donne aucun accès.",
+  "studio.tripPeople.you": "Vous ({name})",
+  "studio.tripPeople.add.label": "Ajoutez un nom ou choisissez un contact",
+  "studio.tripPeople.add.button": "Ajouter",
+  "studio.tripPeople.figure.add": "Ajouter un personnage",
+  "studio.tripPeople.figure.edit": "Modifier",
+  "studio.tripPeople.figureAlt": "Personnage de {name}",
+  "studio.tripPeople.remove": "Retirer {name}",
+  "studio.tripPeople.done": "Terminé",
+  "studio.tripPeople.error": "Cela n’a pas été enregistré. Réessayez.",
+  "studio.tripPeople.row.title": "Qui voyage sur ce voyage ?",
+  "studio.tripPeople.row.cta": "Ajouter"
 }

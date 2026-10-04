@@ -4984,5 +4984,18 @@
   "studio.newTrip.overlap.line": "Two trips cover today. This newer one shows as current.",
   "studio.newTrip.done.row.bringIn": "Bring in",
   "studio.newTrip.done.row.open": "Open",
-  "studio.newTrip.done.settings.title": "Trip settings"
+  "studio.newTrip.done.settings.title": "Trip settings",
+  "studio.tripPeople.title": "Who’s on this trip?",
+  "studio.tripPeople.note": "The people travelling. Adding someone here sends nothing and gives no access.",
+  "studio.tripPeople.you": "You ({name})",
+  "studio.tripPeople.add.label": "Add a name or pick a contact",
+  "studio.tripPeople.add.button": "Add",
+  "studio.tripPeople.figure.add": "Add figure",
+  "studio.tripPeople.figure.edit": "Edit",
+  "studio.tripPeople.figureAlt": "{name}’s figure",
+  "studio.tripPeople.remove": "Remove {name}",
+  "studio.tripPeople.done": "Done",
+  "studio.tripPeople.error": "That did not save. Try again.",
+  "studio.tripPeople.row.title": "Who’s on this trip?",
+  "studio.tripPeople.row.cta": "Add"
 }

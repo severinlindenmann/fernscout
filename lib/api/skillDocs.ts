@@ -242,7 +242,7 @@ function addATrip(): string {
         title: "what the trip is called",
         dates: "`{from, to}`, both `YYYY-MM-DD` — required, never guessed",
         visibility: '`private`, `public` or `guest` — an explicit choice, never a guessed default',
-        people: "who was on it — `[{name, email, nickname?}]`, 1 to ten. The byline only — it grants no write access and mails nobody; a buddy is added and granted from Studio › Readers, in the owner's own browser",
+        people: "who was on it — `[{name, email?, nickname?}]`, 1 to ten; `email` is optional, a name-only person is credited and never mailed, invited or matched to a reader. The byline only — it grants no write access and mails nobody; a buddy is added and granted from Studio › Readers, in the owner's own browser",
         teaser: "required on a closed trip only: may its existence show as a locked card nobody may open?",
         rates: '`{currencies: ["JPY"], manual?: {"JPY": 148.2}}` — manual rates are units per 1 EUR — or decline it',
         costs: "a budget and preparation spend, or decline it (see /skill/costs.md)",

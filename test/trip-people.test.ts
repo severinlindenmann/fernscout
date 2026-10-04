@@ -5,8 +5,12 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { getTrip, tripRef, MAX_TRIP_PEOPLE } from "@/lib/trips";
+import { peopleBlock } from "@/lib/tripWrite";
+import { travellersOf } from "@/lib/site";
+import { getUser } from "@/lib/users";
 import {
   isPersonOn,
+  namesOnTrip,
   peopleNamedIn,
   peopleOf,
   scopeAllows,
@@ -132,7 +136,6 @@ describe("the people block", () => {
   });
 
   test.each([
-    [{ name: "No address", email: "" }, "a missing address"],
     [{ name: "Bad", email: "not-an-address" }, "an address that is not one"],
     [{ email: "nameless@e.com" }, "a missing name"],
     ["just a string", "an entry that is not a mapping"],
@@ -231,5 +234,58 @@ describe("a narrow request", () => {
     const scope = tripWriteScope(t.id);
     expect(scopeAllows(scope, t)).toBe(true);
     expect(scopeAllows(scope, trip("honeymoon-2027"))).toBe(false);
+  });
+});
+
+/**
+ * B-2847: a person may be named without an address (somebody travelling who
+ * is not a contact). They are credited and nothing else: never mailed,
+ * invited, matched to a grant or counted as a reader.
+ */
+describe("a name-only person", () => {
+  test("writes, reads back, and is credited in the byline", async () => {
+    const written = peopleBlock([{ name: "Maya" }, { name: "Robin", email: "Robin@E.com" }]);
+    expect(written.ok).toBe(true);
+    if (!written.ok) return;
+    expect(written.value).toEqual([{ name: "Maya" }, { name: "Robin", email: "robin@e.com" }]);
+    expect(written.lines.join("\n")).not.toContain("email: \"\"");
+
+    writeTrip("crew-2026", written.value as unknown[]);
+    const t = trip("crew-2026");
+    expect(t.people).toEqual([{ name: "Maya" }, { name: "Robin", email: "robin@e.com" }]);
+    expect(travellersOf(getUser("alex")!, t).map((p) => p.name)).toEqual(["A B", "Maya", "Robin"]);
+    expect(await namesOnTrip(t)).toEqual(["A", "Maya", "Robin"]);
+  });
+
+  test("never reaches a mail, access or reader path", async () => {
+    writeTrip("crew-2026", [{ name: "Maya" }]);
+    const t = trip("crew-2026");
+    // The address lists (reader, mail, grant) carry the owner only.
+    expect(peopleNamedIn(t)).toEqual(["alex@example.com"]);
+    expect(await peopleOf(t)).toEqual(["alex@example.com"]);
+    expect(await isPersonOn(t, "maya")).toBe(false);
+    expect(await isPersonOn(t, "")).toBe(false);
+  });
+
+  test("duplicates are by address when given, else by exact name; a bad address is still refused", () => {
+    expect(peopleBlock([{ name: "Maya" }, { name: "Maya" }]).ok).toBe(false);
+    expect(peopleBlock([{ name: "Maya" }, { name: "Maya", email: "m@e.com" }]).ok).toBe(true);
+    expect(peopleBlock([{ name: "Maya", email: "nope" }]).ok).toBe(false);
+    expect(peopleBlock([{ email: "m@e.com" }]).ok).toBe(false);
+  });
+
+  test("only an absent email means none: empty, null, blank or a number is refused", () => {
+    for (const email of ["", null, "   ", 5]) {
+      expect(peopleBlock([{ name: "Maya", email }]).ok, JSON.stringify(email)).toBe(false);
+    }
+    expect(peopleBlock([{ name: "Maya" }]).ok).toBe(true);
+  });
+
+  test("an owner without an address is credited once, even if listed by name", () => {
+    const user = { owner: { name: "A B", nickname: "A" } } as unknown as Parameters<typeof travellersOf>[0];
+    const credited = (people: unknown[]) =>
+      travellersOf(user, { people } as unknown as Parameters<typeof travellersOf>[1]).map((p) => p.name);
+    expect(credited([{ name: "A B" }, { name: "A" }, { name: "Maya" }])).toEqual(["A B", "Maya"]);
+    expect(credited([])).toEqual(["A B"]);
   });
 });

@@ -44,7 +44,7 @@ import type { StoredSubscription } from "@/lib/repos/types";
 import { journalPath } from "@/lib/journalPath";
 export const dynamic = "force-dynamic";
 
-function tripLike(user: string, tripId: string, people: { name: string; email: string }[]): Trip {
+function tripLike(user: string, tripId: string, people: { name: string; email?: string }[]): Trip {
   return { username: user, id: tripId, ref: `${user}/${tripId}`, people } as unknown as Trip;
 }
 

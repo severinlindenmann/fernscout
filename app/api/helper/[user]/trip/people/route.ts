@@ -74,7 +74,7 @@ export async function PATCH(
   }
 
   const existing = readTripParty(ref)?.people ?? [];
-  const merged = [...existing.filter((one) => one.email.toLowerCase() !== email), { name, email }];
+  const merged = [...existing.filter((one) => one.email?.toLowerCase() !== email), { name, email }];
 
   const result = patchTripParty(ref, "people", merged);
   if (!result.ok) {

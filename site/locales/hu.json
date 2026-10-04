@@ -4990,5 +4990,18 @@
   "studio.newTrip.overlap.line": "Két út fedi le a mai napot. Az újabb számít aktuálisnak.",
   "studio.newTrip.done.row.bringIn": "Behozás",
   "studio.newTrip.done.row.open": "Megnyitás",
-  "studio.newTrip.done.settings.title": "Út beállításai"
+  "studio.newTrip.done.settings.title": "Út beállításai",
+  "studio.tripPeople.title": "Ki utazik ezen az úton?",
+  "studio.tripPeople.note": "Az utazók. Ha itt hozzáadsz valakit, nem megy ki üzenet, és nem kap hozzáférést.",
+  "studio.tripPeople.you": "Te ({name})",
+  "studio.tripPeople.add.label": "Írj be egy nevet, vagy válassz egy kontaktot",
+  "studio.tripPeople.add.button": "Hozzáadás",
+  "studio.tripPeople.figure.add": "Figura hozzáadása",
+  "studio.tripPeople.figure.edit": "Szerkesztés",
+  "studio.tripPeople.figureAlt": "{name} figurája",
+  "studio.tripPeople.remove": "{name} eltávolítása",
+  "studio.tripPeople.done": "Kész",
+  "studio.tripPeople.error": "Ez nem mentődött el. Próbáld újra.",
+  "studio.tripPeople.row.title": "Ki utazik ezen az úton?",
+  "studio.tripPeople.row.cta": "Hozzáadás"
 }

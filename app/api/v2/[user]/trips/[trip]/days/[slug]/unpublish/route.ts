@@ -11,7 +11,7 @@ import type { Trip } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-function tripLike(user: string, tripId: string, people: { name: string; email: string }[]): Trip {
+function tripLike(user: string, tripId: string, people: { name: string; email?: string }[]): Trip {
   return { username: user, id: tripId, ref: `${user}/${tripId}`, people } as unknown as Trip;
 }
 

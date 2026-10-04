@@ -332,8 +332,9 @@ export const TRIP_FIELDS: {
     key: "people",
     required: false,
     what:
-      "Who took the trip: `[{name, email, nickname}]`, at most ten. The byline **and write " +
-      "access** — everyone named may write to the whole trip. Correctable later at " +
+      "Who took the trip: `[{name, email?, nickname?}]`, at most ten. The byline only — it " +
+      "grants no access and mails nobody. `email` is optional: leave it out to credit somebody by " +
+      "name; a person without one is never mailed, invited or matched to a reader. Correctable later at " +
       "`PATCH .../trips/<id>/people`.",
   },
   {
