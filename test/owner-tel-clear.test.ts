@@ -6,7 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { clearUserCache, getUser } from "@/lib/users";
 import { createJournal } from "@/lib/journals";
-import { journalForNumber, reconcile } from "@/lib/registry";
+import { journalForNumber, lockTel, reconcile } from "@/lib/registry";
 import { clearOwnerTel, getOwnerTel, setOwnerTel } from "@/lib/ownerTel";
 
 vi.mock("@/lib/adminGate", () => ({ isInstanceAdmin: vi.fn() }));
@@ -54,6 +54,17 @@ afterEach(async () => {
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
   vi.restoreAllMocks();
+});
+
+describe("lockTel (B2833: a re-verified number is locked too)", () => {
+  test("locks a second number to the journal and refuses it to another journal", () => {
+    expect(make("alex", TEL).ok).toBe(true);
+    expect(lockTel("alex", "41760000099")).toBe(true);
+    expect(journalForNumber("41760000099")).toBe("alex");
+    expect(journalForNumber(TEL)).toBe("alex");
+    expect(lockTel("bea", "41760000099")).toBe(false);
+    expect(lockTel("alex", "41760000099")).toBe(true);
+  });
 });
 
 describe("clearOwnerTel", () => {

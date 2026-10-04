@@ -9,7 +9,7 @@
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
 import { getUser } from "@/lib/users";
-import { journalForNumber } from "@/lib/registry";
+import { journalForNumber, lockTel } from "@/lib/registry";
 import { checkVerification } from "@/lib/phoneVerify";
 import { ownerTelDocFields, setOwnerTel } from "@/lib/ownerTel";
 import { rateLimitFor, clientIp } from "@/lib/rateLimit";
@@ -53,6 +53,12 @@ export async function POST(
   // release(), so both numbers stay bound to the journals that hold them.
   const holder = journalForNumber(checked.phone);
   if (holder && holder !== user) {
+    return fail("tel_taken", "That number already belongs to another journal.", undefined, 409);
+  }
+  // ...and the newly proven number is locked to this journal before it is
+  // stored, so no other journal can sign up with it afterwards.
+  const digits = checked.phone.replace(/\D/g, "");
+  if (digits && !lockTel(user, digits)) {
     return fail("tel_taken", "That number already belongs to another journal.", undefined, 409);
   }
   await setOwnerTel(user, checked.phone, "sms");
