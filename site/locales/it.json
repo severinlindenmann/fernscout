@@ -1935,6 +1935,7 @@
   "photobooks.reorderHeading": "Ordina di nuovo questo libro",
   "photobooks.reorderBody": "{pages} pagine, prezzo appena indicato dalla tipografia: {price}.",
   "photobooks.reorderNoQuote": "Al momento non è stato possibile chiedere alla tipografia un prezzo per questo libro. Non è stato ordinato nulla.",
+  "photobooks.backToBooks": "Tutti i tuoi libri",
   "photobook.pay": "Paga",
   "photobook.payTotal": "Ordina il libro — {total}",
   "photobook.order.resumePay": "Continua al pagamento — {total}",

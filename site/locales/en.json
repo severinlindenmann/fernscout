@@ -1935,6 +1935,7 @@
   "photobooks.reorderHeading": "Order this book again",
   "photobooks.reorderBody": "{pages} pages, priced by the printer just now: {price}.",
   "photobooks.reorderNoQuote": "The printer could not be asked for a price for this book right now. Nothing was ordered.",
+  "photobooks.backToBooks": "All your books",
   "photobook.pay": "Pay",
   "photobook.payTotal": "Order the book — {total}",
   "photobook.order.resumePay": "Continue to payment — {total}",

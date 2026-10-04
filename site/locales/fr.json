@@ -1935,6 +1935,7 @@
   "photobooks.reorderHeading": "Recommander ce livre",
   "photobooks.reorderBody": "{pages} pages, prix calculé à l’instant par l’imprimeur : {price}.",
   "photobooks.reorderNoQuote": "Impossible de demander un prix à l’imprimeur pour ce livre pour l’instant. Rien n’a été commandé.",
+  "photobooks.backToBooks": "Tous tes livres",
   "photobook.pay": "Payer",
   "photobook.payTotal": "Commander le livre — {total}",
   "photobook.order.resumePay": "Continuer vers le paiement — {total}",

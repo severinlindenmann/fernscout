@@ -1935,6 +1935,7 @@
   "photobooks.reorderHeading": "Dieses Buch nochmal bestellen",
   "photobooks.reorderBody": "{pages} Seiten, gerade eben von der Druckerei angeboten: {price}.",
   "photobooks.reorderNoQuote": "Die Druckerei konnte gerade nicht nach einem Preis gefragt werden. Es wurde nichts bestellt.",
+  "photobooks.backToBooks": "Alle deine Bücher",
   "photobook.pay": "Bezahlen",
   "photobook.payTotal": "Buch bestellen — {total}",
   "photobook.order.resumePay": "Weiter zur Zahlung — {total}",
