@@ -2,8 +2,8 @@ import NewTripFlow from "@/components/studio/trip/NewTripFlow";
 import StudioPage from "@/components/studio/StudioPage";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
-import { existingTripsForNewTrip, restForNewTrip } from "@/lib/studio/newTrip";
-import { VISIBILITIES, ACCENTS } from "@/lib/tripWrite";
+import { existingTripsForNewTrip, otherLocalesForNewTrip } from "@/lib/studio/newTrip";
+import { VISIBILITIES } from "@/lib/tripWrite";
 import { waitingDaysFor } from "@/lib/studio/inbox";
 import { defaultTripVisibility } from "@/lib/studio/newTrip";
 import { isEnabled } from "@/lib/capabilities";
@@ -25,14 +25,14 @@ export const unstable_dynamicStaleTime = 30;
 /**
  * "A new trip" — B1821, spec §7.2.
  *
- * `VISIBILITIES` and `ACCENTS` are read here, server-side, and handed down as
+ * `VISIBILITIES` is read here, server-side, and handed down as
  * plain props — `lib/tripWrite.ts` is `server-only` and cannot be imported
  * from `NewTripFlow.tsx` itself (see that component's own doc comment).
  */
 export default async function StudioNewTripPage({ params, searchParams }: PageProps<"/at/[user]/studio/trip/new">) {
   const { user } = await params;
   await requireStudioOwner(user);
-  const rest = await restForNewTrip(user);
+  const otherLocales = otherLocalesForNewTrip(user);
   // B2193 — `?start=&end=` from a hub day card: dates prefilled, and the
   // photographs they span counted from the same grouping the card used.
   const sp = await searchParams;
@@ -56,11 +56,10 @@ export default async function StudioNewTripPage({ params, searchParams }: PagePr
         defaultVisibility={defaultVisibility}
         guestCount={guestCount}
         guestsHref={`${journalPath(user)}/studio/readers`}
-        accents={ACCENTS}
         existingTrips={existingTripsForNewTrip(user)}
         initialRange={initialRange}
         photoRun={cards.find((c) => c.newTrip)?.newTrip ?? null}
-        {...rest}
+        otherLocales={otherLocales}
       />
     </StudioPage>
   );

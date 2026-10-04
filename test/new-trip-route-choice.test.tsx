@@ -73,15 +73,8 @@ async function mount(range: { start: string; end: string }) {
             defaultVisibility="private"
             guestCount={0}
             guestsHref="/@alex/studio/readers"
-            accents={["sky"]}
             existingTrips={[]}
             otherLocales={[]}
-            defaultLocale="en"
-            baseCurrency="CHF"
-            currencies={["CHF"]}
-            contacts={[]}
-            figures={[]}
-            journalFigures={[]}
             initialRange={{ ...range, photos: 0 }}
           />
         </StudioBarProvider>

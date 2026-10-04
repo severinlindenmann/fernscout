@@ -123,15 +123,8 @@ describe("NewTripFlow — trip/new's opening screen announces its title once", (
           defaultVisibility="private"
           guestCount={0}
           guestsHref="/@alex/studio/readers"
-          accents={["sky"]}
           existingTrips={[]}
           otherLocales={[]}
-          defaultLocale="en"
-          baseCurrency="CHF"
-          currencies={["CHF"]}
-          contacts={[]}
-          figures={[]}
-          journalFigures={[]}
         />
         </StudioPage>
       </StudioBarProvider>,
