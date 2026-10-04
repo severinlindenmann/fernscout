@@ -141,7 +141,7 @@ function RestCard({ label, note, children }: { label: string; note?: string; chi
  * swatch spec §7.2's storyboard actually draws, without risking a colour
  * that silently renders as nothing once the CSS is purged.
  */
-export const ACCENT_SWATCH: Record<string, string> = {
+const ACCENT_SWATCH: Record<string, string> = {
   sky: "bg-sky-400",
   yellow: "bg-yellow-400",
   green: "bg-green-500",
