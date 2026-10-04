@@ -1,5 +1,6 @@
 "use client";
 
+import { useStudioFlow } from "@/components/studio/StudioBar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
@@ -125,7 +126,7 @@ export default function ReshapeDayFlow({
   const [resultSlug, setResultSlug] = useState<string | null>(null);
   const [resultTripId, setResultTripId] = useState<string | null>(null);
 
-  const { step: urlStep, go: setStep, reset } = useStep(STEPS, {
+  const { step: urlStep, go: setStep, back, reset } = useStep(STEPS, {
     flowId: `reshape:${username}`,
     complete: (s) =>
       s === "pickOperation"
@@ -161,6 +162,7 @@ export default function ReshapeDayFlow({
   // B2141: from the hub, the flow opens on its first real step.
   const skipIntro = useSkipIntro();
   const step = urlStep === "what" && skipIntro ? "pickOperation" : urlStep;
+  useStudioFlow(urlStep !== STEPS[0] ? { dirty: !!operation, keeps: "tab", leaveKey: "studio.flow.leaveReshape", onPrevious: back } : null);
   /** "n of 4 · <what this screen is>" — the count from `COUNTED`. */
   const stepLabel = (key: string, current: number) =>
     t(key as never, { current: String(current), total: String(COUNTED.length) });

@@ -5015,5 +5015,19 @@
   "studio.tripEdit.teaser.preview": "Ce que voit une personne avec le lien sur ta page de voyages",
   "studio.tripEdit.teaser.off": "Pas de carte verrouillée. Une personne avec le lien ne voit rien de ce voyage.",
   "studio.tripEdit.teaser.public": "Un voyage public est ouvert à tout le monde, il n’a donc pas de carte verrouillée.",
-  "docs.branding": "Ateliers"
+  "docs.branding": "Ateliers",
+  "studio.flow.cancel": "Annuler",
+  "studio.flow.previous": "Précédent",
+  "studio.flow.stay": "Rester ici",
+  "studio.flow.leave.tab": "Ce que tu as saisi reste dans cet onglet, tu pourras le reprendre.",
+  "studio.flow.leave.none": "Ce que tu as saisi ici n'est pas conservé.",
+  "studio.flow.leave.run": "Ce que tu as envoyé reste comme une session que tu peux reprendre depuis cette page.",
+  "studio.flow.leaveTrip": "Quitter ce nouveau voyage",
+  "studio.flow.leaveDay": "Quitter ce jour",
+  "studio.flow.leaveReshape": "Quitter ce changement",
+  "studio.flow.leavePeople": "Quitter cette liste de personnes",
+  "studio.flow.leaveStatement": "Quitter cet import",
+  "studio.flow.leaveRoute": "Quitter l'import d'itinéraire",
+  "studio.flow.leavePolarsteps": "Quitter cet import",
+  "studio.flow.leavePhotos": "Quitter l'import de photos"
 }

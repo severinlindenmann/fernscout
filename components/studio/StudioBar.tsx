@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import type { TranslationKey } from "@/lib/i18n";
 import ActionBar from "@/components/studio/ActionBar";
 import { useStudioUp } from "@/components/studio/StudioHeader";
 import { useOutbox } from "@/components/studio/useOutbox";
@@ -15,7 +16,23 @@ type BarState = { actions: ReactNode; mode: "extend" | "replace"; revealAfterScr
 /** What `StudioPage` tells the bar about the page it is drawing — B2069/B2076. */
 type PageState = { group?: StudioGroup; width: "flow" | "board" | "wide"; tripId?: string };
 
+/**
+ * A flow's header Cancel and bar Previous - B2854. Registered by a wizard
+ * through `useStudioFlow` while a step past the first is open; the header
+ * (`StudioHeader`) turns its back into "Cancel" and the bar swaps its back
+ * link for "Previous". Strings arrive translated.
+ */
+type FlowState = {
+  dirty: boolean;
+  question: string;
+  leaveLabel: string;
+  /** One history step back (`useStep`'s `back`); absent for a flow with no URL steps. */
+  onPrevious?: () => void;
+};
+
 type StudioBarContextValue = {
+  flow: FlowState | null;
+  setFlow: (flow: FlowState | null) => void;
   setBar: (state: BarState) => void;
   clearBar: () => void;
   setPage: (page: PageState | null) => void;
@@ -111,11 +128,12 @@ export default function StudioBarProvider({
   const { t } = useI18n();
   const [bar, setBar] = useState<BarState | null>(null);
   const [page, setPage] = useState<PageState | null>(null);
+  const [flow, setFlow] = useState<FlowState | null>(null);
   const clearBar = useCallback(() => setBar(null), []);
   const outbox = useOutbox(username);
   const value = useMemo(
-    () => ({ setBar, clearBar, setPage, online: outbox.online }),
-    [clearBar, outbox.online],
+    () => ({ setBar, clearBar, setPage, flow, setFlow, online: outbox.online }),
+    [clearBar, flow, outbox.online],
   );
 
   // D6, B2330 — ask the worker to keep whichever of the two named trips it
@@ -176,7 +194,22 @@ export default function StudioBarProvider({
   // lets the primary's own label have the room instead.
   const up = useStudioUp(username, page?.tripId);
   const hasExtension = bar?.mode !== "replace" && !!bar?.actions;
-  const backLink = (
+  // B2854 - in a flow the bottom steps back, one history entry like the edge
+  // swipe; the header's Cancel is what leaves.
+  const backLink = flow?.onPrevious ? (
+    <button
+      type="button"
+      onClick={flow.onPrevious}
+      aria-label={t("studio.flow.previous")}
+      className={`flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-line-strong px-4
+                 text-sm font-semibold text-ink-body transition-colors hover:bg-surface-subtle ${
+                   hasExtension ? "flex-none min-[430px]:min-w-0 min-[430px]:flex-1" : "min-w-0 flex-1"
+                 } md:flex-none`}
+    >
+      <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.2} />
+      <span className={hasExtension ? "hidden truncate min-[430px]:inline" : "truncate"}>{t("studio.flow.previous")}</span>
+    </button>
+  ) : (
     <Link
       href={up.href}
       aria-label={t(up.labelKey)}
@@ -324,6 +357,47 @@ export function useStudioBar(
     return clearBar;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `actions` is a fresh element tree every render by design; re-registering on every change is the point (an inbox move sheet, a postcard selection).
   }, [actions, replace, revealAfterScroll, desktop]);
+}
+
+/** What the header reads: the registered flow, or null on every other page. */
+export function useStudioFlowState(): FlowState | null {
+  return useContext(StudioBarContext)?.flow ?? null;
+}
+
+/**
+ * A wizard's Cancel and Previous - B2854. Pass `null` on the first step and
+ * whenever the flow is not on a step. `keeps` says what leaving leaves
+ * behind, so the confirm never promises more than is true: "tab" - a
+ * `useStep` draft in this tab's sessionStorage; "run" - a server-side run the
+ * photos flow lists to continue; "none" - nothing is kept.
+ */
+export function useStudioFlow(
+  flow: { dirty: boolean; keeps: "tab" | "run" | "none"; leaveKey: TranslationKey; onPrevious?: () => void } | null,
+) {
+  const { t } = useI18n();
+  const setFlow = useContext(StudioBarContext)?.setFlow;
+  const active = !!flow;
+  const dirty = !!flow?.dirty;
+  const keeps = flow?.keeps;
+  const leaveKey = flow?.leaveKey;
+  // `useStep`'s `back` is a fresh closure every render and this hook re-renders
+  // when it registers, so it rides in a ref; as an effect dependency it would loop.
+  const previous = useRef(flow?.onPrevious);
+  useEffect(() => {
+    previous.current = flow?.onPrevious;
+  });
+  const hasPrevious = !!flow?.onPrevious;
+  const onPrevious = useCallback(() => previous.current?.(), []);
+  useEffect(() => {
+    if (!setFlow || !active || !keeps || !leaveKey) return;
+    setFlow({
+      dirty,
+      question: t(`studio.flow.leave.${keeps}` as TranslationKey),
+      leaveLabel: t(leaveKey),
+      onPrevious: hasPrevious ? onPrevious : undefined,
+    });
+    return () => setFlow(null);
+  }, [setFlow, active, dirty, keeps, leaveKey, hasPrevious, onPrevious, t]);
 }
 
 /**

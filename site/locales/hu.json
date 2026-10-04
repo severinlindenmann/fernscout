@@ -5012,5 +5012,19 @@
   "studio.tripEdit.teaser.preview": "Ezt látja a linkkel rendelkező az utazásaid oldalán",
   "studio.tripEdit.teaser.off": "Nincs zárolt kártya. A linkkel rendelkező semmit nem lát erről az utazásról.",
   "studio.tripEdit.teaser.public": "A nyilvános utazás mindenki előtt nyitva áll, ezért nincs zárolt kártyája.",
-  "docs.branding": "Munkapadok"
+  "docs.branding": "Munkapadok",
+  "studio.flow.cancel": "Mégse",
+  "studio.flow.previous": "Előző",
+  "studio.flow.stay": "Maradok",
+  "studio.flow.leave.tab": "Amit beírtál, ebben a lapon megmarad, később folytathatod.",
+  "studio.flow.leave.none": "Amit itt beírtál, nem marad meg.",
+  "studio.flow.leave.run": "Amit elküldtél, futásként megmarad, ezen az oldalon folytathatod.",
+  "studio.flow.leaveTrip": "Kilépek az új útból",
+  "studio.flow.leaveDay": "Kilépek ebből a napból",
+  "studio.flow.leaveReshape": "Kilépek ebből a módosításból",
+  "studio.flow.leavePeople": "Kilépek a személyek listájából",
+  "studio.flow.leaveStatement": "Kilépek ebből az importból",
+  "studio.flow.leaveRoute": "Kilépek az útvonal-importból",
+  "studio.flow.leavePolarsteps": "Kilépek ebből az importból",
+  "studio.flow.leavePhotos": "Kilépek a fotóimportból"
 }

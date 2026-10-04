@@ -5011,5 +5011,19 @@
   "studio.tripEdit.teaser.preview": "Das sieht jemand mit dem Link auf deiner Reisen-Seite",
   "studio.tripEdit.teaser.off": "Keine gesperrte Karte. Wer den Link hat, sieht nichts über diese Reise.",
   "studio.tripEdit.teaser.public": "Eine öffentliche Reise steht allen offen, deshalb hat sie keine gesperrte Karte.",
-  "docs.branding": "Werkbänke"
+  "docs.branding": "Werkbänke",
+  "studio.flow.cancel": "Abbrechen",
+  "studio.flow.previous": "Zurück",
+  "studio.flow.stay": "Hier bleiben",
+  "studio.flow.leave.tab": "Was du eingegeben hast, bleibt in diesem Tab, du kannst später weitermachen.",
+  "studio.flow.leave.none": "Was du hier eingegeben hast, wird nicht gespeichert.",
+  "studio.flow.leave.run": "Was du geschickt hast, bleibt als Lauf, den du auf dieser Seite fortsetzen kannst.",
+  "studio.flow.leaveTrip": "Diese neue Reise verlassen",
+  "studio.flow.leaveDay": "Diesen Tag verlassen",
+  "studio.flow.leaveReshape": "Diese Änderung verlassen",
+  "studio.flow.leavePeople": "Diese Personenliste verlassen",
+  "studio.flow.leaveStatement": "Diesen Import verlassen",
+  "studio.flow.leaveRoute": "Diesen Routen-Import verlassen",
+  "studio.flow.leavePolarsteps": "Diesen Import verlassen",
+  "studio.flow.leavePhotos": "Den Foto-Import verlassen"
 }

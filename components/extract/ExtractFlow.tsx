@@ -1,5 +1,6 @@
 "use client";
 
+import { useStudioFlow } from "@/components/studio/StudioBar";
 import { useEffect, useState } from "react";
 import { commitReadyDays } from "@/components/extract/commitReadyDays";
 import DayBoard from "@/components/extract/DayBoard";
@@ -141,6 +142,8 @@ export default function ExtractFlow({
   // and only its first load after a resume is what this describes).
   const [pendingWillExtend, setPendingWillExtend] = useState<boolean | null>(null);
   const [resumeNotice, setResumeNotice] = useState<ResumeExpiryState | null>(null);
+  // B2854 - a started run is kept on the server and offered again to continue.
+  useStudioFlow(run && !left ? { dirty: true, keeps: "run", leaveKey: "studio.flow.leavePhotos" } : null);
 
   /**
    * `UploadStep` calls this after every attempt, success or partial failure

@@ -5015,5 +5015,19 @@
   "studio.tripEdit.teaser.preview": "Cosa vede chi ha il link nella tua pagina dei viaggi",
   "studio.tripEdit.teaser.off": "Nessuna scheda bloccata. Chi ha il link non vede nulla di questo viaggio.",
   "studio.tripEdit.teaser.public": "Un viaggio pubblico è aperto a tutti, quindi non ha una scheda bloccata.",
-  "docs.branding": "Banchi di lavoro"
+  "docs.branding": "Banchi di lavoro",
+  "studio.flow.cancel": "Annulla",
+  "studio.flow.previous": "Indietro",
+  "studio.flow.stay": "Resta qui",
+  "studio.flow.leave.tab": "Quello che hai inserito resta in questa scheda, potrai riprenderlo.",
+  "studio.flow.leave.none": "Quello che hai inserito qui non viene conservato.",
+  "studio.flow.leave.run": "Quello che hai inviato resta come sessione che puoi riprendere da questa pagina.",
+  "studio.flow.leaveTrip": "Esci da questo nuovo viaggio",
+  "studio.flow.leaveDay": "Esci da questo giorno",
+  "studio.flow.leaveReshape": "Esci da questa modifica",
+  "studio.flow.leavePeople": "Esci da questo elenco di persone",
+  "studio.flow.leaveStatement": "Esci da questa importazione",
+  "studio.flow.leaveRoute": "Esci dall'importazione del percorso",
+  "studio.flow.leavePolarsteps": "Esci da questa importazione",
+  "studio.flow.leavePhotos": "Esci dall'importazione delle foto"
 }

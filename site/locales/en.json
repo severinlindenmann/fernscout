@@ -5006,5 +5006,19 @@
   "studio.tripEdit.teaser.preview": "What someone with the link sees on your trips page",
   "studio.tripEdit.teaser.off": "No locked card. Someone with the link sees nothing about this trip.",
   "studio.tripEdit.teaser.public": "A public trip is open to everybody, so it has no locked card.",
-  "docs.branding": "Workbenches"
+  "docs.branding": "Workbenches",
+  "studio.flow.cancel": "Cancel",
+  "studio.flow.previous": "Previous",
+  "studio.flow.stay": "Stay here",
+  "studio.flow.leave.tab": "What you entered stays in this tab, so you can pick it up again.",
+  "studio.flow.leave.none": "What you entered here is not kept.",
+  "studio.flow.leave.run": "What you sent stays as a run you can continue from this page.",
+  "studio.flow.leaveTrip": "Leave this new trip",
+  "studio.flow.leaveDay": "Leave this day",
+  "studio.flow.leaveReshape": "Leave this change",
+  "studio.flow.leavePeople": "Leave this list of people",
+  "studio.flow.leaveStatement": "Leave this import",
+  "studio.flow.leaveRoute": "Leave this route import",
+  "studio.flow.leavePolarsteps": "Leave this import",
+  "studio.flow.leavePhotos": "Leave the photo import"
 }
