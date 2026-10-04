@@ -201,3 +201,46 @@ test("B2849: a new trip defaults to guest unless the journal asks to be listed",
   expect(defaultTripVisibility("guest")).toBe("guest");
   expect(defaultTripVisibility(undefined)).toBe("guest");
 });
+
+// B2848 — the studio form no longer asks about the locked card, so the
+// route turns it on for a closed trip it made (it is the one caller that
+// sends `company`). Any other caller keeps "absent means no card".
+async function post(extra: Record<string, unknown>) {
+  const { POST: createTripRoute } = await import("@/app/api/helper/[user]/trip/route");
+  const res = await createTripRoute(
+    new Request("https://t.test/api/helper/b2021trav/trip", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: "Reise " + Math.random().toString(36).slice(2, 6),
+        start: "2027-02-12",
+        end: "2027-03-28",
+        accent: "none",
+        tagline: "none",
+        intro: "none",
+        rates: "none",
+        costsBudget: "none",
+        translations: "none",
+        figuresMode: { mode: "journal" },
+        ...extra,
+      }),
+    }),
+    params,
+  );
+  expect(res.status).toBe(201);
+  const { id } = (await res.json()) as { id: string };
+  return readTripFile("b2021trav", id);
+}
+
+test("B2848: the studio form's closed trip gets the locked card on by default, public gets none, an explicit false stays", async () => {
+  expect((await post({ visibility: "private", company: "later" }))?.teaser).toBe(true);
+  expect((await post({ visibility: "guest", company: "later" }))?.teaser).toBe(true);
+  const pub = await post({ visibility: "public", company: "later" });
+  expect(pub && "teaser" in pub).toBe(false);
+  expect((await post({ visibility: "private", company: "later", teaser: false }))?.teaser).toBe(false);
+});
+
+test("B2848: a caller that is not the studio form (no company) gets no locked card", async () => {
+  const doc = await post({ visibility: "private" });
+  expect(doc && "teaser" in doc).toBe(false);
+});

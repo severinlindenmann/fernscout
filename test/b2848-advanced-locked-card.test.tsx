@@ -67,22 +67,14 @@ function make(id: string, extra: Record<string, unknown>) {
   return getTrip(`alex/${id}`)!;
 }
 
-describe("create default", () => {
-  test("a guest and a private trip get the locked card on", () => {
-    expect(make("g", { visibility: "guest" }).teaser).toBe(true);
-    expect(make("p", { visibility: "private" }).teaser).toBe(true);
-  });
-
-  test("an explicit false is kept", () => {
-    expect(make("off", { visibility: "private", teaser: false }).teaser).toBeUndefined();
-    const stored = JSON.parse(fs.readFileSync(path.join(dir, "alex/trips/off/trip.json"), "utf8"));
-    expect(stored.teaser).toBe(false);
-  });
-
-  test("a public trip carries no teaser key", () => {
-    make("pub", { visibility: "public" });
-    const stored = JSON.parse(fs.readFileSync(path.join(dir, "alex/trips/pub/trip.json"), "utf8"));
-    expect("teaser" in stored).toBe(false);
+describe("createTrip itself", () => {
+  test("a closed trip with no teaser gets none (the default lives on the studio path)", () => {
+    for (const v of ["guest", "private"]) {
+      const stored = make(v, { visibility: v });
+      expect(stored.teaser).toBeUndefined();
+    }
+    const raw = JSON.parse(fs.readFileSync(path.join(dir, "alex/trips/guest/trip.json"), "utf8"));
+    expect("teaser" in raw).toBe(false);
   });
 });
 

@@ -21,13 +21,13 @@ import { LockedTripCard } from "@/app/at/[user]/trips/TripsIndexContent";
 
 import { journalPath } from "@/lib/journalPath";
 const INPUT = "mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong";
-/** One text colour per `ACCENTS` entry, written out so Tailwind keeps them. */
-const ROUTE_TEXT: Record<string, string> = {
-  sky: "text-sky-400",
-  yellow: "text-yellow-400",
-  green: "text-green-500",
-  coral: "text-coral-400",
-  navy: "text-navy-400",
+/** One stroke colour per `ACCENTS` entry, written out so Tailwind keeps them. */
+const ROUTE_STROKE: Record<string, string> = {
+  sky: "stroke-sky-400",
+  yellow: "stroke-yellow-400",
+  green: "stroke-green-500",
+  coral: "stroke-coral-400",
+  navy: "stroke-navy-400",
 };
 const EYEBROW = "font-mono text-xs uppercase tracking-wide text-ink-secondary";
 
@@ -432,11 +432,10 @@ export default function TripEditFlow({
                   accent === a ? "border-ink-strong text-ink-strong" : "border-line-strong text-ink-secondary"
                 }`}
               >
-                <svg aria-hidden viewBox="0 0 40 16" className={`h-4 w-10 ${a ? ROUTE_TEXT[a] : "text-ink-muted"}`} fill="none">
+                <svg aria-hidden viewBox="0 0 40 16" className={`h-4 w-10 ${a ? ROUTE_STROKE[a] : "stroke-ink-muted"}`} fill="none">
                   <path
                     d="M2 12 C 10 12, 12 4, 20 6 S 32 12, 38 3"
-                    stroke="currentColor"
-                    strokeWidth="3"
+                                        strokeWidth="3"
                     strokeLinecap="round"
                     strokeDasharray={a ? undefined : "1 5"}
                   />

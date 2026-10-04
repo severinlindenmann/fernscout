@@ -284,14 +284,15 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     namedPeople = cleaned;
   }
 
-  // Absent means no card (B2185, owner decision D2) — a closed trip a
-  // caller never asked about simply stays without one, exactly as every
-  // trip this route made before B2021 did. The studio step's own default
-  // is "show nothing", so it only ever sends `teaser` when the owner picked
-  // "Show a locked card".
+  // B2848: the studio's new-trip form (the one caller that always sends
+  // `company`) gets the locked card on by default for a closed trip, because
+  // it no longer asks. Every other caller of this route, and createTrip
+  // itself, keeps "absent means no card" — nothing else names a trip's title
+  // and dates on the trips page without being asked.
   let teaserAnswer: boolean | undefined;
   const teaserRaw = (body as Record<string, unknown>).teaser;
   if (typeof teaserRaw === "boolean") teaserAnswer = teaserRaw;
+  else if (typeof company === "string" && (visibility === "guest" || visibility === "private")) teaserAnswer = true;
 
   if (isEnabled("helper", user)) {
     const missing = Object.keys(HELPER_TRIP_DECLINE_REASONS).filter(
