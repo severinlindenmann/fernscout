@@ -15,6 +15,7 @@ import type { InboxHubModel, InboxRow } from "@/lib/studio/inbox";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: () => {}, refresh: () => {} }),
   usePathname: () => "/ana/studio/inbox",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const CSV: InboxRow = {
