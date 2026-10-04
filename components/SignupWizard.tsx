@@ -12,7 +12,8 @@ import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
 import { journalPath, suggestionsFor, usernameFrom, USERNAME_RE } from "@/lib/journalPath";
 import { CURRENCY_FOR_COUNTRY } from "@/lib/countryCurrency";
-import { regionDefaults } from "@/lib/regionDefaults";
+import { countryForTel, regionDefaults, resolveCurrency } from "@/lib/regionDefaults";
+import { COUNTRIES } from "@/lib/countries";
 
 /** `window.location.host` never changes under a mounted page. */
 const noSubscription = () => () => {};
@@ -108,6 +109,7 @@ const ALL_CURRENCIES = [...new Set(Object.values(CURRENCY_FOR_COUNTRY))].sort();
 const RESEND_SECONDS = 30;
 
 const subscribeNothing = () => () => {};
+const browserTimeZone = () => (typeof Intl === "undefined" ? "" : (Intl.DateTimeFormat().resolvedOptions().timeZone ?? ""));
 const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(navigator.languages ?? [navigator.language])].join(","));
 
 /** Asks the open availability route; `ok: null` means "could not tell" — the
@@ -259,7 +261,6 @@ export default function SignupWizard({
   /** `null` = the person has not picked, so the browser region's currency (if
    *  it names one) stands. Never guessed from a language alone — B839. */
   const [currencyPick, setCurrencyPick] = useState<string | null>(draft.currencyPick ?? null);
-  const currency = currencyPick ?? defaults.currency ?? "";
 
   const suggested = usernameFrom(name);
   const username = addressEdited ? addressInput : suggested;
@@ -272,6 +273,21 @@ export default function SignupWizard({
   // United Kingdom and a +1 one the country the person picked.
   const [telIso, setTelIso] = useState<string | undefined>(undefined);
   const telCc = telPick ?? defaults.cc ?? phoneCountryCode ?? "";
+  // B-2845: the currency's evidence, best first. The number is the one the
+  // server proved (its redeem answer), never a region default in the field.
+  const [provenTel, setProvenTel] = useState("");
+  const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
+  const resolved = useMemo(
+    () =>
+      resolveCurrency({
+        phoneCountry: provenTel ? countryForTel(provenTel, telIso) : null,
+        timeZone,
+        languages: languages ? languages.split(",") : [],
+      }),
+    [provenTel, telIso, timeZone, languages],
+  );
+  const numberCc = COUNTRIES.find((c) => c.iso2 === resolved.country)?.cc ?? "";
+  const currency = currencyPick ?? resolved.currency ?? "";
   const [phoneId, setPhoneId] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
   const [waLink, setWaLink] = useState("");
@@ -617,6 +633,7 @@ export default function SignupWizard({
       if (done || !json) return;
       if (json.ok) {
         done = true;
+        if (typeof json.tel === "string") setProvenTel(json.tel);
         setStep("name");
       } else if (json.error === "tel_taken") {
         done = true;
@@ -679,6 +696,7 @@ export default function SignupWizard({
       return;
     }
     // The number is proven and attached to the signup token.
+    if (typeof result.tel === "string") setProvenTel(result.tel);
     setStep("name");
   }
 
@@ -847,8 +865,8 @@ export default function SignupWizard({
     </div>
   );
 
-  const knownCurrency = (c: string) => COMMON_CURRENCIES.includes(c) || c === defaults.currency;
-  const currencyOptions = defaults.currency && !COMMON_CURRENCIES.includes(defaults.currency) ? [defaults.currency, ...COMMON_CURRENCIES] : COMMON_CURRENCIES;
+  const knownCurrency = (c: string) => COMMON_CURRENCIES.includes(c) || c === resolved.currency;
+  const currencyOptions = resolved.currency && !COMMON_CURRENCIES.includes(resolved.currency) ? [resolved.currency, ...COMMON_CURRENCIES] : COMMON_CURRENCIES;
   const currencyName = (c: string) => {
     try {
       return new Intl.DisplayNames([locale], { type: "currency" }).of(c);
@@ -1197,6 +1215,43 @@ export default function SignupWizard({
                     <dd className="text-ink-strong">{listed ? t("signupPage.cardSearchOn") : t("signupPage.cardSearchOff")}</dd>
                   </div>
                 </dl>
+                {currencyPick === null && resolved.source && (
+                  <p className="text-sm leading-6 text-ink-secondary" data-testid="signup-currency-source">
+                    {[
+                      currencyName(currency),
+                      resolved.source === "phone"
+                        ? t("signupPage.currencyFromNumber", { cc: `+${numberCc}` })
+                        : resolved.source === "timeZone"
+                          ? t("signupPage.currencyFromZone", { zone: timeZone.split("/").pop()!.replace(/_/g, " ") })
+                          : t("signupPage.currencyFromLanguage"),
+                    ]
+                      .filter(Boolean)
+                      .join(". ")}
+                  </p>
+                )}
+                {resolved.alternatives.length > 0 && (
+                  <div className="mt-3" role="group" aria-labelledby="signup-currency-which">
+                    <p id="signup-currency-which" className="text-base font-semibold text-ink-strong">
+                      {t("signupPage.currencyWhich")}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {[...resolved.alternatives, "__other"].map((code) => (
+                        <button
+                          key={code}
+                          type="button"
+                          aria-pressed={code !== "__other" && currency === code}
+                          onClick={() => {
+                            if (code === "__other") setAdvancedOpen(true);
+                            else setCurrencyPick(code);
+                          }}
+                          className={`min-h-11 rounded-full border px-4 text-base ${currency === code ? "border-ink-strong bg-ink-strong text-surface-base" : "border-line-quiet text-ink-strong"}`}
+                        >
+                          {code === "__other" ? t("signupPage.currencyOther") : code}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => setAdvancedOpen(true)}

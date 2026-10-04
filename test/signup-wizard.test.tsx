@@ -33,6 +33,8 @@ const STATE_NO_PHONE = { emailProven: true, phoneProven: false, phoneRequired: f
 const CREATED = { ok: true, token: "agent-token", user: "robin", signIn: "https://example.test/@robin/s/link-token?lang=en" };
 const free = (url: string) => ({ available: true, username: new URL(url, "http://t").searchParams.get("username") });
 
+const realResolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+
 describe("the signup wizard", () => {
   let root: Root | undefined;
   let container: HTMLDivElement | undefined;
@@ -42,7 +44,13 @@ describe("the signup wizard", () => {
     document.body.appendChild(container);
     sessionStorage.clear();
     vi.spyOn(navigator, "languages", "get").mockReturnValue(["de-CH", "de"]);
+    zone("UTC"); // B-2845: never the machine's own zone
   });
+  function zone(timeZone: string) {
+    vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...realResolvedOptions.call(this), timeZone };
+    });
+  }
 
   afterEach(() => {
     act(() => root?.unmount());
@@ -394,6 +402,54 @@ describe("the signup wizard", () => {
     // Never a trip write, and the draft is gone once the journal exists.
     expect(calls.some((c) => c.url.includes("/trips/"))).toBe(false);
     expect(sessionStorage.getItem("fs-signup-draft")).toBeNull();
+  });
+
+  describe("B-2845: the currency from the proven number and the time zone", () => {
+    const withNumber = (tel: string) =>
+      stubWizardFetch({
+        ...baseRoutes,
+        "GET /api/auth/signup/state": { ...STATE_NO_PHONE, phoneRequired: true, mode: "code" },
+        "POST /api/auth/signup/phone": { __status: 202, id: "p1" },
+        "POST /api/auth/signup/phone/redeem": { ok: true, tel },
+      });
+    async function toName() {
+      await toToken();
+      await type("signup-tel", "76 000 00 01");
+      await submit();
+      await type("signup-phone-code", "654321");
+      await type("signup-name", "Robin", 450);
+    }
+    test("a Swiss number beats an en-GB browser: CHF, no question, with its source", async () => {
+      vi.spyOn(navigator, "languages", "get").mockReturnValue(["en-GB"]);
+      zone("Europe/Zurich");
+      withNumber("41760000001");
+      mount();
+      await toName();
+      expect(text()).toMatch(/Currency\s*CHF/);
+      expect(text()).toContain("From your number (+41).");
+      expect(text()).not.toContain("Which money do you count in?");
+    });
+    test("a number and a time zone that disagree ask, the number's currency preselected", async () => {
+      vi.spyOn(navigator, "languages", "get").mockReturnValue(["en-GB"]);
+      zone("Europe/London");
+      withNumber("41760000001");
+      mount();
+      await toName();
+      expect(text()).toContain("Which money do you count in?");
+      expect(text()).toMatch(/Currency\s*CHF/);
+      await click(button(/^GBP$/));
+      expect(text()).toMatch(/Currency\s*GBP/);
+    });
+    test("with no number the time zone beats the language", async () => {
+      vi.spyOn(navigator, "languages", "get").mockReturnValue(["en-GB"]);
+      zone("Europe/Zurich");
+      stubWizardFetch(baseRoutes);
+      mount();
+      await toToken();
+      await type("signup-name", "Robin", 450);
+      expect(text()).toMatch(/Currency\s*CHF/);
+      expect(text()).toContain("From your time zone (Zurich).");
+    });
   });
 
   test("with no browser region the currency is never guessed: Choose, and Create waits", async () => {
