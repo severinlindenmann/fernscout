@@ -3136,6 +3136,8 @@
   "studio.location.import.intro": "Un export Google Timeline, un fichier GPX ou notre propre format JSON — l’exemple ci-dessous le montre.",
   "studio.polarsteps.heading": "Importer depuis Polarsteps",
   "studio.polarsteps.intro": "Déposez votre export Polarsteps (user_data.zip) pour importer ses voyages comme brouillons. Rien n'est publié avant que vous ne le disiez.",
+  "studio.polarsteps.export.steps": "Sur un ordinateur : connectez-vous sur polarsteps.com → Paramètres du compte → Télécharger mes données → Start My Archive. Polarsteps vous envoie le ZIP par e-mail.",
+  "studio.polarsteps.export.guide": "Le guide de Polarsteps",
   "studio.polarsteps.drop": "Déposez le ZIP d'export ici, ou touchez pour le choisir",
   "studio.polarsteps.reading": "Lecture de l'export…",
   "studio.polarsteps.error.noTrips": "Aucun voyage trouvé dans ce ZIP — est-ce bien l'export Polarsteps ?",
@@ -3267,9 +3269,6 @@
   "studio.tripPeople.row.cta": "Ajouter",
   "studio.tripPeople.photo.button": "Créer des figurines à partir d’une photo",
   "studio.tripPeople.photo.unavailable": "Créer des figurines à partir d’une photo demande l’assistant, qui n’est pas disponible ici. Les noms fonctionnent toujours.",
-  "studio.tripPeople.photo.ask.yes": "Oui, utiliser l’assistant",
-  "studio.tripPeople.photo.ask.no": "Pas maintenant",
-  "studio.tripPeople.photo.declined": "L’aide photo est désactivée — activez-la dans les réglages de l’assistant",
   "studio.tripPeople.photo.title": "Figurines à partir d’une photo",
   "studio.tripPeople.photo.consent": "La photo va à l’assistant uniquement pour décrire l’apparence des personnes, et n’est pas conservée. Seules les personnes que vous marquez sont envoyées.",
   "studio.tripPeople.photo.choose": "Choisir une photo",
@@ -5033,5 +5032,8 @@
   "studio.flow.leaveStatement": "Quitter cet import",
   "studio.flow.leaveRoute": "Quitter l'import d'itinéraire",
   "studio.flow.leavePolarsteps": "Quitter cet import",
-  "studio.flow.leavePhotos": "Quitter l'import de photos"
+  "studio.flow.leavePhotos": "Quitter l'import de photos",
+  "studio.tripPeople.photo.ask.yes": "Oui, utiliser l’assistant",
+  "studio.tripPeople.photo.ask.no": "Pas maintenant",
+  "studio.tripPeople.photo.declined": "L’aide photo est désactivée — activez-la dans les réglages de l’assistant"
 }

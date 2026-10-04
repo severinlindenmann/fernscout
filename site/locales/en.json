@@ -3167,6 +3167,8 @@
   "studio.location.import.intro": "A Google Timeline export, a GPX file, or our own JSON format — the example below shows it.",
   "studio.polarsteps.heading": "Import from Polarsteps",
   "studio.polarsteps.intro": "Drop your Polarsteps export (user_data.zip) to bring its trips in as drafts. Nothing is published until you say so.",
+  "studio.polarsteps.export.steps": "On a computer, log in at polarsteps.com → Account settings → Download my data → Start My Archive. Polarsteps emails you the ZIP.",
+  "studio.polarsteps.export.guide": "Polarsteps' guide",
   "studio.polarsteps.drop": "Drop the export ZIP here, or tap to choose it",
   "studio.polarsteps.reading": "Reading the export…",
   "studio.polarsteps.error.noTrips": "No trips were found in that ZIP — is this the Polarsteps export?",
@@ -3298,9 +3300,6 @@
   "studio.tripPeople.row.cta": "Add",
   "studio.tripPeople.photo.button": "Make figures from a photo",
   "studio.tripPeople.photo.unavailable": "Making figures from a photo needs the assistant, which is not available here. Names still work.",
-  "studio.tripPeople.photo.ask.yes": "Yes, use the assistant",
-  "studio.tripPeople.photo.ask.no": "Not now",
-  "studio.tripPeople.photo.declined": "Photo help is off — turn it on in the assistant settings",
   "studio.tripPeople.photo.title": "Figures from a photo",
   "studio.tripPeople.photo.consent": "The photo goes to the assistant only to describe how people look, and is not kept. Only the people you mark are sent.",
   "studio.tripPeople.photo.choose": "Choose a photo",
@@ -5024,5 +5023,8 @@
   "studio.flow.leaveStatement": "Leave this import",
   "studio.flow.leaveRoute": "Leave this route import",
   "studio.flow.leavePolarsteps": "Leave this import",
-  "studio.flow.leavePhotos": "Leave the photo import"
+  "studio.flow.leavePhotos": "Leave the photo import",
+  "studio.tripPeople.photo.ask.yes": "Yes, use the assistant",
+  "studio.tripPeople.photo.ask.no": "Not now",
+  "studio.tripPeople.photo.declined": "Photo help is off — turn it on in the assistant settings"
 }
