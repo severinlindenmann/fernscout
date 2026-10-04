@@ -273,4 +273,19 @@ describe("a name-only person", () => {
     expect(peopleBlock([{ name: "Maya", email: "nope" }]).ok).toBe(false);
     expect(peopleBlock([{ email: "m@e.com" }]).ok).toBe(false);
   });
+
+  test("only an absent email means none: empty, null, blank or a number is refused", () => {
+    for (const email of ["", null, "   ", 5]) {
+      expect(peopleBlock([{ name: "Maya", email }]).ok, JSON.stringify(email)).toBe(false);
+    }
+    expect(peopleBlock([{ name: "Maya" }]).ok).toBe(true);
+  });
+
+  test("an owner without an address is credited once, even if listed by name", () => {
+    const user = { owner: { name: "A B", nickname: "A" } } as unknown as Parameters<typeof travellersOf>[0];
+    const credited = (people: unknown[]) =>
+      travellersOf(user, { people } as unknown as Parameters<typeof travellersOf>[1]).map((p) => p.name);
+    expect(credited([{ name: "A B" }, { name: "A" }, { name: "Maya" }])).toEqual(["A B", "Maya"]);
+    expect(credited([])).toEqual(["A B"]);
+  });
 });

@@ -322,7 +322,17 @@ const tripBase = z
      * a trip comes only from a buddy the owner granted at
      * `/@<user>/studio/readers`, a fact that lives in `trip_people`, not
      * here. */
-    people: z.array(person).min(1).max(MAX_TRIP_PEOPLE),
+    people: z
+      .array(person)
+      .min(1)
+      .max(MAX_TRIP_PEOPLE)
+      .refine(
+        (list) => {
+          const keys = list.map((p) => (p.email ? p.email.toLowerCase() : `name:${p.name}`));
+          return new Set(keys).size === keys.length;
+        },
+        { message: "each person appears once: a duplicate address, or a duplicate name among people without one" },
+      ),
     /** Required on a closed trip (guest/private): may the trip's existence
      * show as a locked card? A boolean is its own answer, so there is no
      * decline path — bring true or false. Refused on a public trip, where

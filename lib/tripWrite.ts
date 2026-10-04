@@ -400,18 +400,21 @@ export function peopleBlock(raw: unknown): BlockResult {
     }
 
     const name = typeof entry.name === "string" ? entry.name.trim() : "";
+    // Only an absent key means "no email"; "", null, whitespace or a number is
+    // refused below, never silently dropped.
+    const emailGiven = entry.email !== undefined;
     const email = typeof entry.email === "string" ? entry.email.trim().toLowerCase() : "";
     if (!name) {
       return { ok: false, error: "invalid_people", message: `${at}.name is required.` };
     }
     // Optional since B-2847: a name-only person is credited and nothing else.
     // When an email is given it must still be an address.
-    if (email && !isPersonEmail(email)) {
+    if (emailGiven && !isPersonEmail(email)) {
       return {
         ok: false,
         error: "invalid_people",
         message:
-          `${at}.email must be an address when given — ${JSON.stringify(entry.email ?? null)} ` +
+          `${at}.email must be an address when given — ${JSON.stringify(entry.email)} ` +
           `is not one. Leave it out to credit somebody by name only.`,
       };
     }

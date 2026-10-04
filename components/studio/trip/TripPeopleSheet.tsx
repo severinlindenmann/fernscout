@@ -70,10 +70,13 @@ function TripPeopleSheet({
     setBusy(true);
     setError(null);
     try {
-      const byline = [
-        { name: owner.name, ...(owner.email ? { email: owner.email } : {}), ...(owner.nickname ? { nickname: owner.nickname } : {}) },
-        ...next,
-      ];
+      // An owner without an address is always credited anyway, so they are
+      // written only when they have one, or when nobody else is listed (a trip
+      // needs at least one person).
+      const byline =
+        owner.email || next.length === 0
+          ? [{ name: owner.name, ...(owner.email ? { email: owner.email } : {}), ...(owner.nickname ? { nickname: owner.nickname } : {}) }, ...next]
+          : next;
       const res = await fetch(`/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },

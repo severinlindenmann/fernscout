@@ -50,10 +50,14 @@ export function tripPeopleSheetTrip(
   ownerEmail: string | undefined,
   journalSet: string[],
 ): { people: { name: string; email?: string }[]; figureSet: string[] } {
+  const owner = getUser(username)?.owner;
+  const ownerNames = [owner?.name, owner?.nickname].filter((n): n is string => !!n);
   const row = figureTripRows(username).find((r) => r.id === tripId);
   const figureSet = !row || row.answer === "off" || row.answer === "declined" ? [] : row.answer === "custom" ? row.figures : journalSet;
   return {
-    people: (people ?? []).filter((p) => !(ownerEmail && p.email === ownerEmail)).map((p) => ({ name: p.name, ...(p.email ? { email: p.email } : {}) })),
+    people: (people ?? [])
+      .filter((p) => !(ownerEmail && p.email === ownerEmail))
+      .filter((p) => ownerEmail || p.email || !ownerNames.includes(p.name)).map((p) => ({ name: p.name, ...(p.email ? { email: p.email } : {}) })),
     figureSet,
   };
 }
