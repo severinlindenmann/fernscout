@@ -8,6 +8,7 @@ import { mapStyle } from "@/lib/map/style";
 import type { Basemap } from "@/lib/basemap";
 import type { LifetimeView, ContinentButton } from "@/lib/lifetimeMapViews";
 import countryColours from "@/lib/countryColours.json";
+import type { VisitedCardData } from "@/lib/visitedCards";
 
 /** One country somebody has been to, and which trips took them there. */
 export type CountryVisit = {
@@ -32,6 +33,10 @@ export type CountryVisit = {
    * anything drawn — the fill's actual position always comes from `path`.
    */
   x: number;
+  /** Set when the owner recorded this country without a trip (B2914). A
+   * country with no trip and an entry fills like any other, but opens the
+   * preview pane instead of pinning. */
+  entry?: VisitedCardData;
 };
 
 const WORLD_FRAME = { x: 0, y: 0, w: 1000, h: 500, lngScale: 1 };
@@ -91,6 +96,7 @@ export default function LifetimeMap({
   continents = [],
   pinned,
   onPinnedChange,
+  onPreview,
 }: {
   /** Countries visited, and by which trips — for the fill, the legend and
    * the focus/hover label. Empty falls back to nothing drawn but ground:
@@ -114,6 +120,9 @@ export default function LifetimeMap({
    * either side clears without the other. */
   pinned: string | null;
   onPinnedChange: (code: string | null) => void;
+  /** A country with no trip was tapped (B2914): open its entry rather than
+   * pin it — pinning would filter the trip cards to nothing. */
+  onPreview?: (code: string) => void;
 }) {
   const { t, tn } = useI18n();
   const worldLand = useWorldLand();
@@ -307,6 +316,11 @@ export default function LifetimeMap({
   }
 
   function togglePin(code: string) {
+    const v = visits.find((x) => x.code === code);
+    if (v && v.trips.length === 0 && v.entry && onPreview) {
+      onPreview(code);
+      return;
+    }
     setPin(pinned === code ? null : code);
   }
 
@@ -413,7 +427,10 @@ export default function LifetimeMap({
                     }
                   : {};
 
-                const ariaLabel = `${v.name} — ${v.trips.length} ${tn("trips.lifetimeTrips", v.trips.length)}`;
+                const ariaLabel =
+                  v.trips.length === 0
+                    ? v.name
+                    : `${v.name} — ${v.trips.length} ${tn("trips.lifetimeTrips", v.trips.length)}`;
                 const focusRing =
                   "outline-2 outline-offset-1 outline-transparent focus-visible:outline-[var(--map-stop-ring)]";
 
@@ -479,7 +496,8 @@ export default function LifetimeMap({
           className="pointer-events-none fixed z-10 -translate-x-1/2 -translate-y-full rounded-md bg-surface-raised px-2 py-1 text-xs shadow-md"
           style={{ left: hoverPos.x, top: hoverPos.y - 8 }}
         >
-          {flagFromCode(hoverVisit.code)} {hoverVisit.name} · {hoverVisit.trips.length}
+          {flagFromCode(hoverVisit.code)} {hoverVisit.name}
+          {hoverVisit.trips.length > 0 && <> · {hoverVisit.trips.length}</>}
         </div>
       )}
       {filling && (
@@ -500,7 +518,9 @@ export default function LifetimeMap({
             activeCode &&
             byCode.get(activeCode) && (
               <span aria-live="polite">
-                {byCode.get(activeCode)!.name} — {byCode.get(activeCode)!.trips.map((tr) => tr.title).join(", ")}
+                {byCode.get(activeCode)!.name}
+                {byCode.get(activeCode)!.trips.length > 0 &&
+                  ` — ${byCode.get(activeCode)!.trips.map((tr) => tr.title).join(", ")}`}
               </span>
             )
           )}

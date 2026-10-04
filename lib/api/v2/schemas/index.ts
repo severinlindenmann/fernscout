@@ -11,6 +11,7 @@ export type { DayMediaAttachRequest, DayMediaDetachRequest } from "./dayMedia";
 export { instanceStatus, journalStatus } from "./status";
 export { figureDoc, journalFigures, tripFigures } from "./figures";
 export type { FigureDoc } from "./figures";
+export { visitedCreate, visitedBatch, visitedPatch, visitedDoc } from "./visited";
 export { errorEnvelope, incompleteDetails, declineReason } from "./shared";
 export { geocodeRequest, geocodeResponse, geocodeCandidate } from "./geocode";
 export type { GeocodeRequest } from "./geocode";

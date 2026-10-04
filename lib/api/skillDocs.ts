@@ -321,6 +321,19 @@ function addATrip(): string {
       "(`/skill/add-a-day.md`), never as a side effect of shortening a list here. Concurrent " +
       "edits use `If-Match: <etag>` from the last `GET`; a stale or missing one on a create " +
       "retry answers `409 stale_document` carrying the document as it actually stands.",
+    "## Countries without a trip",
+    "A person can record a country they visited without writing a trip for it — only the country " +
+      "is required:",
+    "```http\nPOST   /api/v2/{user}/visited                — {\"country\":\"NO\",\"places?\",\"year?\",\"month?\",\"note?\",\"visibility?\"} or {\"entries\":[…]}\n" +
+      "GET    /api/v2/{user}/visited                — the entries this token may see\n" +
+      "PATCH  /api/v2/{user}/visited/{code}         — change a field (null clears one)\n" +
+      "PUT    /api/v2/{user}/visited/{code}/photo   — multipart, bytes under `file`; one photograph\n" +
+      "DELETE /api/v2/{user}/visited/{code}         — remove the entry\n```",
+    "The country is an ISO 3166-1 code and the entry's id: adding one that is already there " +
+      "answers with the existing entry and changes nothing. `places` and `note` are the person's " +
+      "own words — never filled in from a lookup. A month needs a year. `visibility` is " +
+      "`private`, `guest` or `public`, and defaults to `guest`. Owner only to write; the owner's " +
+      "token sees every entry and any other token only `public` ones.",
     "## Renaming a trip",
     "A trip's id was chosen wrong (a typo, a duplicated year) and there is a real door back:",
     "```http\nPOST /api/v2/{user}/trips/{trip}/rename\nContent-Type: application/json\nAuthorization: Bearer fs_agent_…\n\n" +

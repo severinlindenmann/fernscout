@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { FileWarning, Lock } from "lucide-react";
+import { FileWarning, Lock, Plus } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
 import AgentHandover from "@/components/AgentHandover";
 import GuestSignIn from "@/components/GuestSignIn";
 import PageHeader from "@/components/PageHeader";
+import VisitedChecklist from "@/components/VisitedChecklist";
+import VisitedForm from "@/components/VisitedForm";
+import VisitedPreview from "@/components/VisitedPreview";
 import LifetimeMap, { type CountryVisit } from "@/components/LifetimeMap";
 import type { LifetimeView, ContinentButton } from "@/lib/lifetimeMapViews";
 import { flagFromCode } from "@/lib/flags";
@@ -16,6 +19,7 @@ import { useSite } from "@/components/SiteProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { journalPath } from "@/lib/journalPath";
 import { daysUntil } from "@/lib/tripTime";
+import { entryWhen, mergeEntriesIntoPast, type VisitedCardData } from "@/lib/visitedCards";
 import type { MalformedTrip, MalformedTripReason } from "@/lib/trips";
 import { ACCENT_HEX, type TripAccent, type TripStatus, type TripTranslations } from "@/lib/types";
 
@@ -141,6 +145,8 @@ export default function TripsIndexContent({
   empty = null,
   malformed = [],
   codeMinutes,
+  owner = false,
+  countryChoices = [],
 }: {
   trips: TripCardData[];
   /** Closed trips advertised as locked cards — see `LockedTripData`. */
@@ -161,6 +167,12 @@ export default function TripsIndexContent({
   /** How long a requested code lasts, from `CODE_TTL_MINUTES` — passed down
    * to the code-request form the empty state may offer. See `EmptyState`. */
   codeMinutes: string;
+  /** The viewer is this journal's owner, by browser cookie (B2914). Shows
+   * "Add a country"; false for everyone else, so no control is in their page. */
+  owner?: boolean;
+  /** Every country the map can draw, with its continent — owner only, for the
+   * add form and the checklist. */
+  countryChoices?: { code: string; continent: string }[];
 }) {
   const { t, tn } = useI18n();
 
@@ -184,16 +196,45 @@ export default function TripsIndexContent({
    * lifetime map missing two thirds of a lifetime is a different claim.
    */
   const [expanded, setExpanded] = useState(false);
+
+  /**
+   * Countries visited without a trip (B2914): their cards, the preview pane
+   * and the owner's forms. `visits` was filtered by this reader on the server,
+   * so every entry here is one they may see.
+   */
+  const entryCards = visits.flatMap((v) => (v.entry ? [v.entry] : []));
+  const [sheet, setSheet] = useState<
+    { kind: "preview"; code: string } | { kind: "form"; code?: string } | { kind: "checklist" } | null
+  >(null);
+  const entryByCode = new Map(entryCards.map((e) => [e.code, e] as const));
+  const tripCodes = new Set(visits.filter((v) => v.trips.length > 0).map((v) => v.code));
+  const openAdd = owner ? () => setSheet({ kind: "form" }) : undefined;
   // Decision 7: a pinned country filters the cards to the trips that
   // reached it — continent/area buttons never do (decision 13), which is
   // exactly why that filter lives here on `trips` rather than inside
   // `LifetimeMap`, which only ever narrows its own frame.
   const visibleTrips = pinnedTripIds ? trips.filter((tr) => pinnedTripIds.has(tr.id)) : trips;
-  const shown = expanded ? visibleTrips : visibleTrips.slice(0, TRIPS_SHOWN);
+  // The list in print order: current, upcoming, then the past with entries
+  // merged in by date. A pinned country filters to its trips, so entry cards
+  // step aside (a country with both keeps the trip filter).
+  type ListItem = { kind: "trip"; trip: TripCardData; status: TripStatus } | { kind: "entry"; entry: VisitedCardData; status: "past" };
+  const items: ListItem[] = [
+    ...visibleTrips
+      .filter((tr) => tr.status !== "past")
+      .map((trip): ListItem => ({ kind: "trip", trip, status: trip.status })),
+    ...mergeEntriesIntoPast(
+      visibleTrips.filter((tr) => tr.status === "past"),
+      pinnedTripIds ? [] : entryCards,
+    ).map((i): ListItem =>
+      i.kind === "trip" ? { kind: "trip", trip: i.trip, status: "past" } : { kind: "entry", entry: i.entry, status: "past" },
+    ),
+  ];
+  const shown = expanded ? items : items.slice(0, TRIPS_SHOWN);
   // The card drawn first, whichever group it lands in — its cover is the
   // largest picture near the top of the page, so it is fetched at once
   // rather than when the lazy loader gets round to it.
-  const firstCard = GROUPS.map(({ status }) => shown.find((tr) => tr.status === status)).find(Boolean)?.id;
+  const firstItem = GROUPS.map(({ status }) => shown.find((i) => i.status === status)).find(Boolean);
+  const firstCard = firstItem?.kind === "trip" ? firstItem.trip.id : undefined;
 
   /**
    * The map, in a variable because two branches below can need it.
@@ -211,6 +252,7 @@ export default function TripsIndexContent({
           continents={continents}
           pinned={pinned}
           onPinnedChange={setPinned}
+          onPreview={(code) => setSheet({ kind: "preview", code })}
         />
       </div>
     ) : null;
@@ -219,9 +261,21 @@ export default function TripsIndexContent({
     <div className="min-h-screen">
       <PageHeader />
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
-          {t("trips.title")}
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
+            {t("trips.title")}
+          </h1>
+          {openAdd && (
+            <button
+              type="button"
+              onClick={openAdd}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-body hover:bg-surface-subtle"
+            >
+              <Plus aria-hidden className="h-4 w-4" />
+              {t("visited.add")}
+            </button>
+          )}
+        </div>
         {/* Owner-only, and independent of the empty state: a journal whose only
             trip is malformed is not empty, and one with good trips beside a
             broken one still needs to be told about the broken one. */}
@@ -243,11 +297,26 @@ export default function TripsIndexContent({
           empty, so the empty state would be a second untruth.
         */}
         {empty ? (
-          <EmptyState empty={empty} codeMinutes={codeMinutes} />
-        ) : trips.length === 0 && (malformed.length > 0 || locked.length > 0) ? (
-          // Nothing to total and no cards to group, but a teasered trip's
-          // countries are still worth drawing — see `map`.
-          map
+          <EmptyState empty={empty} codeMinutes={codeMinutes} onAdd={openAdd} />
+        ) : trips.length === 0 && (malformed.length > 0 || locked.length > 0 || entryCards.length > 0) ? (
+          // Nothing to total and no trip cards to group, but a teasered trip's
+          // countries (and countries visited without a trip) are still worth
+          // drawing — see `map` — and the latter have cards of their own.
+          <>
+            {map}
+            {entryCards.length > 0 && (
+              <section className="mt-10">
+                <h2 className="font-display text-xl font-semibold text-ink-strong">{t("trips.past")}</h2>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {mergeEntriesIntoPast<never>([], entryCards).map((i) =>
+                    i.kind === "entry" ? (
+                      <EntryCard key={i.entry.code} entry={i.entry} onOpen={(code) => setSheet({ kind: "preview", code })} />
+                    ) : null,
+                  )}
+                </div>
+              </section>
+            )}
+          </>
         ) : (
           <>
             <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{t("trips.subtitle")}</p>
@@ -290,20 +359,28 @@ export default function TripsIndexContent({
             )}
 
             {GROUPS.map(({ status, key }) => {
-              const group = shown.filter((tr) => tr.status === status);
+              const group = shown.filter((i) => i.status === status);
               if (group.length === 0) return null;
               return (
                 <section key={status} className="mt-10">
                   <h2 className="font-display text-xl font-semibold text-ink-strong">{t(key)}</h2>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    {group.map((trip) => (
-                      <TripCard key={trip.id} trip={trip} first={trip.id === firstCard} />
-                    ))}
+                    {group.map((item) =>
+                      item.kind === "trip" ? (
+                        <TripCard key={item.trip.id} trip={item.trip} first={item.trip.id === firstCard} />
+                      ) : (
+                        <EntryCard
+                          key={`visited-${item.entry.code}`}
+                          entry={item.entry}
+                          onOpen={(code) => setSheet({ kind: "preview", code })}
+                        />
+                      ),
+                    )}
                   </div>
                 </section>
               );
             })}
-            {shown.length < visibleTrips.length && (
+            {shown.length < items.length && (
               <button
                 type="button"
                 onClick={() => setExpanded(true)}
@@ -316,6 +393,34 @@ export default function TripsIndexContent({
         )}
         {locked.length > 0 && <LockedTrips trips={locked} />}
       </main>
+      {sheet?.kind === "preview" && entryByCode.get(sheet.code) && (
+        <VisitedPreview
+          entry={entryByCode.get(sheet.code)!}
+          owner={owner}
+          onEdit={() => setSheet({ kind: "form", code: sheet.code })}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {owner && sheet?.kind === "form" && (
+        <VisitedForm
+          key={sheet.code ?? "new"}
+          initial={sheet.code ? entryByCode.get(sheet.code) : undefined}
+          choices={countryChoices}
+          entries={entryByCode}
+          onSwitch={(entry) => setSheet({ kind: "form", code: entry.code })}
+          onChecklist={() => setSheet({ kind: "checklist" })}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {owner && sheet?.kind === "checklist" && (
+        <VisitedChecklist
+          choices={countryChoices}
+          tripCodes={tripCodes}
+          entryCodes={new Set(entryByCode.keys())}
+          onBack={() => setSheet({ kind: "form" })}
+          onClose={() => setSheet(null)}
+        />
+      )}
     </div>
   );
 }
@@ -399,7 +504,15 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
  * fact B264 closed off (whether there is anything to actually read). Nothing
  * here asks that question.
  */
-function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: string }) {
+function EmptyState({
+  empty,
+  codeMinutes,
+  onAdd,
+}: {
+  empty: EmptyJournal;
+  codeMinutes: string;
+  onAdd?: () => void;
+}) {
   const { t } = useI18n();
   const { username, canSignIn } = useSite();
   const title = empty.owner
@@ -430,6 +543,15 @@ function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: 
             >
               {t("studio.hub.newTrip.cta")}
             </Link>
+            {onAdd && (
+              <button
+                type="button"
+                onClick={onAdd}
+                className="mb-5 ml-3 inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 font-semibold text-ink-body hover:bg-surface-subtle"
+              >
+                {t("visited.add")}
+              </button>
+            )}
             <AgentHandover username={username} />
           </div>
         )}
@@ -578,6 +700,46 @@ function TripCard({ trip, first = false }: { trip: TripCardData; first?: boolean
         )}
       </div>
     </Link>
+  );
+}
+
+/**
+ * A country visited without a trip, in the list beside the trips (B2914): the
+ * trip card's shape with a dashed edge, a cover only when there is a photograph,
+ * the country as the title and no day or photo counts. A button, not a link —
+ * it opens the preview pane.
+ */
+function EntryCard({ entry, onOpen }: { entry: VisitedCardData; onOpen: (code: string) => void }) {
+  const { t, locale } = useI18n();
+  const meta = [entry.places, entryWhen(entry, locale)].filter(Boolean).join(" · ");
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(entry.code)}
+      className="group flex min-h-11 flex-col overflow-hidden rounded-2xl border border-dashed border-line-strong bg-surface-raised text-left transition-shadow hover:shadow-md"
+    >
+      {entry.photo && (
+        <span className="relative block h-40 w-full shrink-0 overflow-hidden bg-surface-muted sm:h-48">
+          <Image
+            src={entry.photo}
+            loader={mediaLoader}
+            alt={entry.name}
+            fill
+            sizes="(min-width: 640px) 50vw, 100vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </span>
+      )}
+      <span className="flex flex-1 flex-col gap-2 p-5">
+        <span className="font-display text-lg font-semibold text-ink-strong">
+          {flagFromCode(entry.code)} {entry.name}
+        </span>
+        {meta && <span className="text-xs text-ink-secondary">{meta}</span>}
+        <span className="mt-1 self-start rounded-md bg-surface-muted px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-ink-secondary">
+          {t("visited.withoutTrip")}
+        </span>
+      </span>
+    </button>
   );
 }
 
