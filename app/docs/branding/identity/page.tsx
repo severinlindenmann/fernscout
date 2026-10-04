@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import EntryContent from "@/components/EntryContent";
 import { contrast, darkHues, GROUNDS, lockup, lockups, palette, screenPalette, verdict } from "@/lib/brand";
 import { readRepoFile, section } from "@/lib/docs";
@@ -403,14 +402,6 @@ export default function IdentityBenchPage() {
           )}
         </div>
 
-        <p className="mt-12 border-t border-line-quiet pt-6">
-          <Link
-            href="/docs/branding"
-            className="text-sm font-semibold text-ink-body underline decoration-blue-500 decoration-2 underline-offset-2 hover:text-ink-strong"
-          >
-            Back to the workbenches
-          </Link>
-        </p>
       </div>
     </div>
   );

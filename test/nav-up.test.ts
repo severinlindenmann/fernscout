@@ -31,8 +31,15 @@ describe("the parent of every page inside a journal", () => {
     ["/alex/map", CURRENT, ["/alex", "/alex/trips", "/"]],
     ["/alex/analytics", CURRENT, ["/alex", "/alex/trips", "/"]],
     ["/alex/day/3", CURRENT, ["/alex", "/alex/trips", "/"]],
-    ["/alex/costs", CURRENT, ["/alex", "/alex/trips", "/"]],
-    ["/alex/weather", CURRENT, ["/alex", "/alex/trips", "/"]],
+    // B2855: costs and weather go up to the analytics page of their scope.
+    ["/alex/costs", CURRENT, ["/alex/analytics", "/alex", "/alex/trips", "/"]],
+    ["/alex/weather", CURRENT, ["/alex/analytics", "/alex", "/alex/trips", "/"]],
+    [`${OTHER}/costs`, OTHER, [`${OTHER}/analytics`, OTHER, "/alex/trips", "/"]],
+    [`${OTHER}/weather`, OTHER, [`${OTHER}/analytics`, OTHER, "/alex/trips", "/"]],
+    ["/alex/about", null, ["/alex/me", "/alex/trips", "/"]],
+    ["/alex/photobooks", null, ["/alex/studio", "/alex/trips", "/"]],
+    ["/alex/photobooks/b1", null, ["/alex/photobooks", "/alex/studio", "/alex/trips", "/"]],
+    ["/alex/postcards/p1", null, ["/alex/studio/postcard", "/alex/studio", "/alex/trips", "/"]],
     [OTHER, OTHER, ["/alex/trips", "/"]],
     [`${OTHER}/gallery`, OTHER, [OTHER, "/alex/trips", "/"]],
     // Journal-level pages belong to the journal, not to whichever trip is
@@ -70,7 +77,7 @@ describe("the parent of every page inside a journal", () => {
 
   test("no chain is longer than the journal is deep", () => {
     for (const [pathname, tripBase] of cases) {
-      expect(upTrail(pathname, { userBase: USER, tripBase }).length).toBeLessThanOrEqual(3);
+      expect(upTrail(pathname, { userBase: USER, tripBase }).length).toBeLessThanOrEqual(4);
     }
   });
 

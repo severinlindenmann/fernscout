@@ -17,8 +17,8 @@
  *
  * The chain is returned **nearest first**, which is the order both consumers
  * want: the phone header takes `[0]` and nothing else, and the trail at `sm`
- * and up reverses it. It is at most three long, because the journal is at most
- * three deep.
+ * and up reverses it. It is at most four long (a photobook or a postcard sits under its
+ * own list, the studio and the journal).
  *
  * One decision worth naming: `/@<user>/trips` is the journal's home here, not
  * `/<user>`. `/<user>` is the *current trip's story* (components/TripProvider)
@@ -36,7 +36,7 @@ export type UpCrumb = {
    * `journal` is this journal, meaning its trip list; `trip` is the story of
    * the trip this page belongs to.
    */
-  kind: "root" | "journal" | "trip";
+  kind: "root" | "journal" | "trip" | "analytics" | "me" | "studio" | "photobooks" | "postcard";
 };
 
 export type UpContext = {
@@ -69,6 +69,27 @@ export function upTrail(pathname: string, { userBase, tripBase }: UpContext): Up
   // itself, so a prefix test alone would make the trip list a page inside the
   // trip it lists.
   if (pathname === journal.href) return [ROOT];
+
+  // B2855: pages that live under a parent the path alone does not name.
+  const rest = pathname.slice(userBase.length);
+  const analyticsBase = tripBase ?? userBase;
+  if (pathname === `${analyticsBase}/costs` || pathname === `${analyticsBase}/weather`) {
+    return [
+      { href: `${analyticsBase}/analytics`, kind: "analytics" },
+      ...(tripBase ? [{ href: tripBase, kind: "trip" as const }] : []),
+      journal,
+      ROOT,
+    ];
+  }
+  if (rest === "/about") return [{ href: `${userBase}/me`, kind: "me" }, journal, ROOT];
+  const studio: UpCrumb = { href: `${userBase}/studio`, kind: "studio" };
+  if (rest === "/photobooks") return [studio, journal, ROOT];
+  if (rest.startsWith("/photobooks/")) {
+    return [{ href: `${userBase}/photobooks`, kind: "photobooks" }, studio, journal, ROOT];
+  }
+  if (rest.startsWith("/postcards/")) {
+    return [{ href: `${userBase}/studio/postcard`, kind: "postcard" }, studio, journal, ROOT];
+  }
 
   if (tripBase) {
     // A trip's own story — one step above it is the journal.
