@@ -128,9 +128,6 @@ describe("a badge after text is its own word (B2093)", () => {
               username="alex"
               trip={{ id: "lisbon", title: "Lisbon", visibility: "public", listed: true, teaser: false, guestsLive: true }}
               visibilities={["private", "public", "guest"]}
-              defaultVisibility="private"
-              guestCount={0}
-              guestsHref="/@alex/studio/readers"
               previews={{ public: preview, guest: preview, private: { ...preview, opens: false } } as never}
             />
           </StudioBarProvider>
