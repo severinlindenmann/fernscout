@@ -3278,6 +3278,7 @@
   "studio.tripPeople.photo.tapHint": "Koppints minden személyre, aki figurát kapjon. Egy számra koppintva eltávolíthatod.",
   "studio.tripPeople.photo.alt": "A fotód. Koppints egy személyre a megjelöléséhez.",
   "studio.tripPeople.photo.markerRemove": "{n}. személy eltávolítása",
+  "studio.tripPeople.photo.keyboardHint": "Billentyűzet: fókuszálj a fotóra, mozgasd a célkeresztet a nyilakkal (Shift a kis lépésekhez), majd Enterrel vagy szóközzel jelölj meg egy személyt.",
   "studio.tripPeople.photo.describe": "{count} megjelölt leírása",
   "studio.tripPeople.photo.nameHint": "Adj nevet minden figurának, vagy vesd el. Semmit nem párosítunk helyetted.",
   "studio.tripPeople.photo.pending": "Leírás folyamatban…",

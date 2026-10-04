@@ -3276,6 +3276,7 @@
   "studio.tripPeople.photo.tapHint": "Tocca ogni persona che deve avere una figura. Tocca un numero per toglierlo.",
   "studio.tripPeople.photo.alt": "La tua foto. Tocca una persona per contrassegnarla.",
   "studio.tripPeople.photo.markerRemove": "Rimuovi la persona {n}",
+  "studio.tripPeople.photo.keyboardHint": "Tastiera: porta il focus sulla foto, sposta il mirino con le frecce (Maiusc per passi piccoli), poi Invio o Spazio per segnare una persona.",
   "studio.tripPeople.photo.describe": "Descrivi {count} contrassegnate",
   "studio.tripPeople.photo.nameHint": "Dai un nome a ogni figura, oppure scartala. Niente viene abbinato al posto tuo.",
   "studio.tripPeople.photo.pending": "Descrizione in corso…",

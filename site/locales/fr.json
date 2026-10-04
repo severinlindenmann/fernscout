@@ -3276,6 +3276,7 @@
   "studio.tripPeople.photo.tapHint": "Touchez chaque personne qui doit avoir une figurine. Touchez un numéro pour le retirer.",
   "studio.tripPeople.photo.alt": "Votre photo. Touchez une personne pour la marquer.",
   "studio.tripPeople.photo.markerRemove": "Retirer la personne {n}",
+  "studio.tripPeople.photo.keyboardHint": "Clavier : placez le focus sur la photo, déplacez le réticule avec les flèches (Maj pour de petits pas), puis Entrée ou Espace pour marquer une personne.",
   "studio.tripPeople.photo.describe": "Décrire {count} marquée(s)",
   "studio.tripPeople.photo.nameHint": "Donnez un nom à chaque figurine, ou écartez-la. Rien n’est associé à votre place.",
   "studio.tripPeople.photo.pending": "Description en cours…",

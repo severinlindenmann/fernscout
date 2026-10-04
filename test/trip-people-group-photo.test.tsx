@@ -128,6 +128,31 @@ describe("figures from a group photo", () => {
     }
   });
 
+  test("keyboard places markers on the same path as a tap: crosshair, 5% and 1% steps, cap of 8", async () => {
+    mount(true);
+    await openAndMark(0);
+    const area = container.querySelector<HTMLElement>('[data-testid="group-photo"]')!;
+    expect(container.querySelector('[data-testid="group-photo-crosshair"]')).toBeNull();
+    await act(async () => area.focus());
+    expect(container.querySelector('[data-testid="group-photo-crosshair"]')).not.toBeNull();
+    const press = (key: string, shiftKey = false) =>
+      act(async () => area.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey, bubbles: true, cancelable: true })));
+    await press("ArrowRight");
+    await press("ArrowDown", true);
+    await press("Enter");
+    const marker = () => [...container.querySelectorAll<HTMLElement>("button[aria-label^='Remove person']")];
+    expect(marker()).toHaveLength(1);
+    expect(parseFloat(marker()[0].style.left)).toBeCloseTo(55, 5);
+    expect(parseFloat(marker()[0].style.top)).toBeCloseTo(51, 5);
+    expect(marker()[0].getAttribute("aria-label")).toBe("Remove person 1");
+    for (let i = 0; i < 10; i++) await press(" ");
+    expect(marker()).toHaveLength(8);
+    await click(byText("Describe 8 marked"));
+    expect(calls.filter((c) => c.url.endsWith("/figures/from-photo"))).toHaveLength(8);
+    expect(crop).toHaveBeenCalledTimes(8);
+    expect(crop).toHaveBeenNthCalledWith(1, cropBox({ x: 0.55, y: 0.51 }, 3000, 2000));
+  });
+
   test("keep stays disabled until every card is named or discarded; nothing is matched", async () => {
     mount(true);
     await openAndMark(2);

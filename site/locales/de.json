@@ -3276,6 +3276,7 @@
   "studio.tripPeople.photo.tapHint": "Tippe jede Person an, die eine Figur bekommen soll. Tippe auf eine Nummer, um sie zu entfernen.",
   "studio.tripPeople.photo.alt": "Dein Foto. Tippe eine Person an, um sie zu markieren.",
   "studio.tripPeople.photo.markerRemove": "Person {n} entfernen",
+  "studio.tripPeople.photo.keyboardHint": "Tastatur: Fokussiere das Foto, bewege das Fadenkreuz mit den Pfeiltasten (Umschalt für kleine Schritte) und drücke Eingabe oder Leertaste, um eine Person zu markieren.",
   "studio.tripPeople.photo.describe": "{count} Markierte beschreiben",
   "studio.tripPeople.photo.nameHint": "Gib jeder Figur einen Namen oder verwirf sie. Nichts wird für dich zugeordnet.",
   "studio.tripPeople.photo.pending": "Wird beschrieben…",
