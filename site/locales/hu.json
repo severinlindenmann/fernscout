@@ -5016,5 +5016,6 @@
   "codeWait.iphone": "iPhone-on a kód a billentyűzet fölött is megjelenik, amint megjön a levél.",
   "codeWait.wrongAddress": "Rossz cím?",
   "codeWait.resend": "Új kód küldése",
-  "codeWait.resendIn": "Új kód küldése: {time} múlva"
+  "codeWait.resendIn": "Új kód küldése: {time} múlva",
+  "err.goToStart": "Vissza a kezdőlapra"
 }

@@ -49,6 +49,14 @@ export default function Error({
         >
           {t("err.retry")}
         </button>
+        {/* B2851: a way out that does not need the crash to clear. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full load: the router may be what crashed */}
+        <a
+          href="/"
+          className="inline-flex min-h-12 items-center justify-center rounded-full border-2 border-line-quiet px-6 text-lg font-semibold text-ink-strong hover:underline"
+        >
+          {t("err.goToStart")}
+        </a>
       </div>
 
       {error.digest && (

@@ -5019,5 +5019,6 @@
   "codeWait.iphone": "Su iPhone il codice compare anche sopra la tastiera appena arriva l'email.",
   "codeWait.wrongAddress": "Indirizzo sbagliato?",
   "codeWait.resend": "Invia un nuovo codice",
-  "codeWait.resendIn": "Invia un nuovo codice tra {time}"
+  "codeWait.resendIn": "Invia un nuovo codice tra {time}",
+  "err.goToStart": "Vai alla pagina iniziale"
 }
