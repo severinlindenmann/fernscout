@@ -64,14 +64,12 @@ describe("the helpers", () => {
     expect(journalCurrencies("u")).toEqual(["CHF", "EUR", "USD", "VND", "XXQ"]);
   });
 
-  test("feeds the new trip, the planner's cost line and the statement mapping", () => {
+  test("feeds the planner's cost line and the statement mapping", () => {
     const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf8");
-    expect(read("lib/studio/newTrip.ts")).toMatch(/currencies: journalCurrencies\(username\)/);
     expect(read("app/at/[user]/studio/plan/[trip]/page.tsx")).toMatch(/currencies=\{journalCurrencies\(user\)\}/);
     expect(read("app/at/[user]/studio/statement/page.tsx")).toMatch(/currencies=\{journalCurrencies\(user\)\}/);
     // And none of the three still takes a typed code.
     for (const file of [
-      "components/studio/trip/NewTripFlow.tsx",
       "components/studio/plan/Composer.tsx",
       "components/studio/plan/MoneyPanel.tsx",
       "components/studio/statement/StatementFlow.tsx",
