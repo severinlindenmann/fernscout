@@ -1196,9 +1196,8 @@ function buildPaths(): Record<string, PathItem> {
     },
     delete: {
       summary:
-        "Clear the owner's own number everywhere: the stored number, the config fields and the one-journal-per-number lock, so another journal may prove it; WhatsApp messages from it stop reaching this journal.",
+        "Always refused with 403 operator_only: only the operator of the server frees a proven number, from /admin. Read it back with GET.",
       responses: {
-        ...jsonResponse(200, ownerTelDoc, "tel: null"),
         ...refusalResponses(ownerRefusals),
       },
     },

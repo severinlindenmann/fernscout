@@ -15,12 +15,12 @@
 // `.../verify/redeem` below, which prove possession of the number with a
 // passcode before anything is written — nothing inside a boundary may move
 // the boundary, the same rule `owner.email` already follows one file up.
-// Clearing is different: it only ever turns a channel off, so it stays here.
+// Clearing is the operator's alone (B2833): DELETE here is refused with 403.
 import { ownerTelDoc } from "@/lib/api/v2/schemas";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
 import { getUser } from "@/lib/users";
-import { clearOwnerTel, ownerTelDocFields } from "@/lib/ownerTel";
+import { ownerTelDocFields } from "@/lib/ownerTel";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +39,12 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v2
   if (!auth.ok) return auth.response;
   if (!getUser(user)) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
 
-  await clearOwnerTel(user);
-  return ok(ownerTelDoc.parse(await ownerTelDocFields(user)));
+  // B2833: a number is freed only by the operator, from /admin
+  // (/api/admin/owner-tel). An owner or agent token never releases it.
+  return fail(
+    "operator_only",
+    "Only the operator of this server can free a proven number. Ask them to do it from /admin.",
+    undefined,
+    403,
+  );
 }

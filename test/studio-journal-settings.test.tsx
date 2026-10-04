@@ -215,23 +215,10 @@ describe("the owner's names — B2816", () => {
   });
 });
 
-describe("remove the owner's number — B2833", () => {
-  const removeButton = () =>
-    Array.from(container!.querySelectorAll("button")).find((b) => b.textContent === "Remove this number");
-
-  test("no button without a number", async () => {
-    await mount();
-    expect(removeButton()).toBeUndefined();
-  });
-
-  test("a number offers the button, asks first, then deletes through the owner door", async () => {
-    const fetchMock = vi.fn(async () => new Response("{}", { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
+describe("the owner cannot remove their number — B2833", () => {
+  test("a proven number shows no remove button", async () => {
     await mount([], { ...journal, ownerTel: "41760000033" });
-    await act(async () => removeButton()!.click());
-    expect(fetchMock).not.toHaveBeenCalled();
-    const confirm = Array.from(container!.querySelectorAll("button")).find((b) => b.textContent === "Remove the number")!;
-    await act(async () => confirm.click());
-    expect(fetchMock).toHaveBeenCalledWith("/api/web/alex/owner-tel", { method: "DELETE" });
+    expect(container!.textContent).toContain("41760000033");
+    expect(Array.from(container!.querySelectorAll("button")).some((b) => /remove.*number/i.test(b.textContent ?? ""))).toBe(false);
   });
 });

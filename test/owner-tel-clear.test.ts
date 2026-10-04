@@ -9,7 +9,7 @@ import { createJournal } from "@/lib/journals";
 import { journalForNumber, reconcile } from "@/lib/registry";
 import { clearOwnerTel, getOwnerTel, setOwnerTel } from "@/lib/ownerTel";
 
-vi.mock("@/lib/contacts/session", () => ({ isOwner: vi.fn() }));
+vi.mock("@/lib/adminGate", () => ({ isInstanceAdmin: vi.fn() }));
 vi.mock("server-only", () => ({}));
 
 /** B2833 — clearing the owner's number frees it everywhere. */
@@ -95,32 +95,54 @@ describe("clearOwnerTel", () => {
   });
 });
 
-describe("DELETE /api/web/{user}/owner-tel", () => {
-  const call = async (headers: Record<string, string> = {}) => {
-    const { DELETE } = await import("@/app/api/web/[user]/owner-tel/route");
-    return DELETE(new Request("https://t.test/api/web/alex/owner-tel", { method: "DELETE", headers }), {
-      params: Promise.resolve({ user: "alex" }),
-    } as never);
+describe("only the operator frees a number (B2833)", () => {
+  const admin = async (yes: boolean) => {
+    const gate = await import("@/lib/adminGate");
+    vi.mocked(gate.isInstanceAdmin).mockResolvedValue(yes);
   };
-  const owner = async (yes: boolean) => {
-    const session = await import("@/lib/contacts/session");
-    vi.mocked(session.isOwner).mockResolvedValue(yes);
+  const post = async (user: string, headers: Record<string, string> = {}) => {
+    const { POST } = await import("@/app/api/admin/owner-tel/route");
+    return POST(
+      new Request("https://t.test/api/admin/owner-tel", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": "10.9.0.1", ...headers },
+        body: JSON.stringify({ user }),
+      }),
+    );
   };
 
-  test("refuses a bearer token, a foreign origin and a non-owner, and changes nothing", async () => {
+  test("the admin route frees row, config and lock, and shows only two digits", async () => {
     make("alex", TEL);
-    await owner(true);
-    expect((await call({ authorization: "Bearer x" })).status).toBe(403);
-    expect((await call({ origin: "https://evil.test" })).status).toBe(403);
-    await owner(false);
-    expect((await call()).status).toBe(403);
+    await setOwnerTel("alex", TEL, "sms");
+    await admin(true);
+    const { GET } = await import("@/app/api/admin/owner-tel/route");
+    const looked = await (await GET(new Request("https://t.test/api/admin/owner-tel?user=alex"))).json();
+    expect(looked.masked).toBe("•".repeat(9) + "33");
+    const res = await post("alex", { origin: "https://t.test" });
+    expect(await res.json()).toMatchObject({ ok: true, freed: true });
+    expect(journalForNumber(TEL)).toBeNull();
+    expect(await getOwnerTel("alex")).toBeNull();
+    expect(JSON.parse(fs.readFileSync(path.join(dir, "alex", "config.json"), "utf8")).owner.tel).toBeUndefined();
+    expect(await (await post("alex")).json()).toMatchObject({ freed: false });
+    expect((await post("nobody")).status).toBe(404);
+  });
+
+  test("a non-admin, a bearer header and a foreign origin change nothing", async () => {
+    make("alex", TEL);
+    await admin(false);
+    expect((await post("alex")).status).toBe(404);
+    await admin(true);
+    expect((await post("alex", { authorization: "Bearer x" })).status).toBe(404);
+    expect((await post("alex", { origin: "https://evil.test" })).status).toBe(403);
     expect(journalForNumber(TEL)).toBe("alex");
   });
 
-  test("the owner's own cookie frees the number", async () => {
+  test("reconcile keeps a lock whose number is still in config even with an empty row", async () => {
     make("alex", TEL);
-    await owner(true);
-    expect((await call({ origin: "https://t.test" })).status).toBe(200);
-    expect(journalForNumber(TEL)).toBeNull();
+    await setOwnerTel("alex", TEL, "sms");
+    const db = await getDatabase();
+    await db.db.updateTable("owner_tel").set({ tel: null }).where("owner_id", "=", "alex").execute();
+    reconcile();
+    expect(journalForNumber(TEL)).toBe("alex");
   });
 });

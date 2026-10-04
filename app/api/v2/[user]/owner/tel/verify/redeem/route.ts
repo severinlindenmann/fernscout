@@ -9,6 +9,7 @@
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
 import { getUser } from "@/lib/users";
+import { journalForNumber } from "@/lib/registry";
 import { checkVerification } from "@/lib/phoneVerify";
 import { ownerTelDocFields, setOwnerTel } from "@/lib/ownerTel";
 import { rateLimitFor, clientIp } from "@/lib/rateLimit";
@@ -47,6 +48,13 @@ export async function POST(
     return fail("invalid_code", "The code is wrong, used, or more than 30 minutes old. Ask for a new one at `.../verify`.", undefined, 401);
   }
 
+  // B2833: a number another journal holds is not this one's to take. Proving a
+  // different number never releases the old lock either: nothing here calls
+  // release(), so both numbers stay bound to the journals that hold them.
+  const holder = journalForNumber(checked.phone);
+  if (holder && holder !== user) {
+    return fail("tel_taken", "That number already belongs to another journal.", undefined, 409);
+  }
   await setOwnerTel(user, checked.phone, "sms");
   return ok(ownerTelDoc.parse(await ownerTelDocFields(user)));
 }
