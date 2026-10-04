@@ -90,7 +90,7 @@ export default function LocaleSwitcher({
             : "border-line-quiet bg-surface-raised text-ink-body hover:border-line-prominent"
         }`}
       >
-        <Languages className="h-3.5 w-3.5" aria-hidden />
+        <Languages className={`h-3.5 w-3.5 ${subtle ? "max-sm:hidden" : ""}`} aria-hidden />
         {LOCALE_SHORT[locale]}
       </button>
 

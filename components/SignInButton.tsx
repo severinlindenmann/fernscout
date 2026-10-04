@@ -59,14 +59,14 @@ export default function SignInButton({
       // The server names where to go next — the page that can issue a fresh
       // code. Falling back here rather than guessing keeps the two in step.
       if (body?.next) {
-        window.location.href = body.next;
+        window.location.replace(body.next);
         return;
       }
       setState("failed");
       return;
     }
 
-    window.location.href = body?.next ?? (username ? journalPath(username) : "/");
+    window.location.replace(body?.next ?? (username ? journalPath(username) : "/"));
   }
 
   return (
