@@ -2,7 +2,7 @@ import "server-only";
 import { isEnabled } from "@/lib/capabilities";
 import { listContacts } from "@/lib/contacts";
 import { MAX_FIGURES_LIMIT, figureTripRows, listFiguresPage } from "@/lib/figures";
-import { hasHelperConsent } from "@/lib/helper/consent";
+import { currentHelperProvider, hasHelperConsent, helperConsent } from "@/lib/helper/consent";
 import { journalV2Fields } from "@/lib/journals";
 import type { FigureDoc } from "@/lib/api/v2/schemas/figures";
 import { getUser } from "@/lib/users";
@@ -20,12 +20,18 @@ export type TripPeopleSheetData = {
   figures: FigureDoc[];
   journalSet: string[];
   photoConsent: boolean;
+  /** Present when the assistant is on but photos were never agreed to for
+   *  today's provider: the sheet may ask in place (B-2906). `declined` is an
+   *  explicit earlier no, which is only linked to, never asked again. */
+  photoAsk?: { provider: string; declined: boolean };
 };
 
 export async function tripPeopleSheetData(username: string): Promise<TripPeopleSheetData> {
   const journal = getUser(username);
   const owner = journal?.owner;
   const journalFields = journal ? journalV2Fields(journal) : undefined;
+  const helperOn = isEnabled("helper", username);
+  const photoConsent = helperOn && hasHelperConsent(username, "photos");
   return {
     owner: {
       name: owner?.nickname || owner?.name || username,
@@ -37,7 +43,10 @@ export async function tripPeopleSheetData(username: string): Promise<TripPeopleS
       : [],
     figures: listFiguresPage(username, { limit: MAX_FIGURES_LIMIT }).items,
     journalSet: journalFields?.figures?.mode === "set" ? journalFields.figures.figures : [],
-    photoConsent: isEnabled("helper", username) && hasHelperConsent(username, "photos"),
+    photoConsent,
+    ...(helperOn && !photoConsent
+      ? { photoAsk: { provider: currentHelperProvider("photos"), declined: !!helperConsent(username)?.declined?.includes("photos") } }
+      : {}),
   };
 }
 

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/LocaleProvider";
 import GroupPhotoFigures from "@/components/studio/trip/GroupPhotoFigures";
 import FigureCreator from "@/components/studio/figures/FigureCreator";
+import { journalPath } from "@/lib/journalPath";
 import type { FigureDoc } from "@/lib/api/v2/schemas/figures";
 
 type SheetPerson = { name: string; email?: string };
@@ -28,7 +30,8 @@ function TripPeopleSheet({
   contacts,
   initialFigures,
   figureSet,
-  photoConsent,
+  photoConsent: photoConsentIn,
+  photoAsk,
   onClose,
 }: {
   username: string;
@@ -41,6 +44,8 @@ function TripPeopleSheet({
   /** The ids of the figures that walk this trip right now. */
   figureSet: string[];
   photoConsent: boolean;
+  /** See `TripPeopleSheetData.photoAsk`. */
+  photoAsk?: { provider: string; declined: boolean };
   onClose: () => void;
 }) {
   const { t } = useI18n();
@@ -54,6 +59,19 @@ function TripPeopleSheet({
   const [fromPhoto, setFromPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [photoConsent, setPhotoConsent] = useState(photoConsentIn);
+  const [askHidden, setAskHidden] = useState(false);
+
+  async function agreePhotos() {
+    // no-refresh: the consent is held in photoConsent right here; the sheet stays open.
+    const res = await fetch(`/api/helper/${encodeURIComponent(username)}/consent`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scope: "photos" }),
+    }).catch(() => null);
+    if (res?.ok) setPhotoConsent(true);
+    else setError(t("studio.tripPeople.error"));
+  }
 
   useEffect(() => {
     const d = dialog.current;
@@ -255,8 +273,33 @@ function TripPeopleSheet({
               >
                 {t("studio.tripPeople.photo.button")}
               </button>
-            ) : (
+            ) : !photoAsk ? (
               <p className="text-sm text-ink-secondary">{t("studio.tripPeople.photo.unavailable")}</p>
+            ) : photoAsk.declined ? (
+              <Link href={`${journalPath(username)}/studio/agent`} className="text-sm text-ink-secondary underline underline-offset-2">
+                {t("studio.tripPeople.photo.declined")}
+              </Link>
+            ) : askHidden ? null : (
+              <div data-photo-ask className="rounded-xl border border-line-quiet bg-surface-raised p-3">
+                <p className="text-sm text-ink-strong">{t("studio.tripPeople.photo.consent")}</p>
+                <p className="mt-1 text-xs text-ink-secondary">{t("me.consentProvider", { provider: photoAsk.provider })}</p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void agreePhotos()}
+                    className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong"
+                  >
+                    {t("studio.tripPeople.photo.ask.yes")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAskHidden(true)}
+                    className="min-h-11 rounded-full px-4 text-sm text-ink-secondary"
+                  >
+                    {t("studio.tripPeople.photo.ask.no")}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
           {error && (

@@ -610,6 +610,7 @@ export default function NewTripFlow({
               initialFigures={peopleSheet.figures}
               figureSet={peopleSheet.journalSet}
               photoConsent={peopleSheet.photoConsent}
+              photoAsk={peopleSheet.photoAsk}
             />}
           </ul>
           {routeFrom && (
