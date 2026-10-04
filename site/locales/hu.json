@@ -3138,6 +3138,8 @@
   "studio.location.import.intro": "Google Idővonal-export, GPX-fájl vagy a saját JSON-formátumunk — a lenti példa megmutatja.",
   "studio.polarsteps.heading": "Importálás Polarstepsből",
   "studio.polarsteps.intro": "Húzd ide a Polarsteps exportodat (user_data.zip), hogy az utazásait vázlatként átvegyük. Semmi nem jelenik meg nyilvánosan, amíg nem mondod.",
+  "studio.polarsteps.export.steps": "Számítógépen: jelentkezz be a polarsteps.com oldalon → Fiókbeállítások → Adataim letöltése → Start My Archive. A Polarsteps e-mailben elküldi a ZIP-fájlt.",
+  "studio.polarsteps.export.guide": "A Polarsteps útmutatója",
   "studio.polarsteps.drop": "Húzd ide az export ZIP-et, vagy koppints a kiválasztáshoz",
   "studio.polarsteps.reading": "Export olvasása…",
   "studio.polarsteps.error.noTrips": "Nem található utazás ebben a ZIP-ben — biztos ez a Polarsteps export?",

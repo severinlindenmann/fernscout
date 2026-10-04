@@ -3167,6 +3167,8 @@
   "studio.location.import.intro": "A Google Timeline export, a GPX file, or our own JSON format — the example below shows it.",
   "studio.polarsteps.heading": "Import from Polarsteps",
   "studio.polarsteps.intro": "Drop your Polarsteps export (user_data.zip) to bring its trips in as drafts. Nothing is published until you say so.",
+  "studio.polarsteps.export.steps": "On a computer, log in at polarsteps.com → Account settings → Download my data → Start My Archive. Polarsteps emails you the ZIP.",
+  "studio.polarsteps.export.guide": "Polarsteps' guide",
   "studio.polarsteps.drop": "Drop the export ZIP here, or tap to choose it",
   "studio.polarsteps.reading": "Reading the export…",
   "studio.polarsteps.error.noTrips": "No trips were found in that ZIP — is this the Polarsteps export?",

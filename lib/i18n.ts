@@ -4385,6 +4385,8 @@ export type TranslationKey =
   | "studio.polarsteps.drop"
   | "studio.polarsteps.error.noTrips"
   | "studio.polarsteps.error.unreadable"
+  | "studio.polarsteps.export.guide"
+  | "studio.polarsteps.export.steps"
   | "studio.polarsteps.heading"
   | "studio.polarsteps.importButton"
   | "studio.polarsteps.intro"
