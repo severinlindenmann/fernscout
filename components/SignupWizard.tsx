@@ -1193,7 +1193,7 @@ export default function SignupWizard({
                     <dt className="text-ink-secondary">{t("signupPage.cardLanguage")}</dt>
                     <dd className="text-ink-strong">{LOCALE_LABEL[defaultLocale] ?? defaultLocale}</dd>
                   </div>
-                  <div className="flex justify-between gap-3 py-2">
+                  <div className="flex flex-wrap justify-between gap-3 py-2">
                     <dt className="text-ink-secondary">{t("signupPage.cardCurrency")}</dt>
                     <dd className="text-ink-strong">
                       {currency ? (
@@ -1204,26 +1204,26 @@ export default function SignupWizard({
                         </button>
                       )}
                     </dd>
+                    {currencyPick === null && resolved.source && (
+                      <dd className="basis-full text-sm leading-6 text-ink-secondary" data-testid="signup-currency-source">
+                        {[
+                          currencyName(currency),
+                          resolved.source === "phone"
+                            ? t("signupPage.currencyFromNumber", { cc: `+${numberCc}` })
+                            : resolved.source === "timeZone"
+                              ? t("signupPage.currencyFromZone", { zone: timeZone.split("/").pop()!.replace(/_/g, " ") })
+                              : t("signupPage.currencyFromLanguage"),
+                        ]
+                          .filter(Boolean)
+                          .join(". ")}
+                      </dd>
+                    )}
                   </div>
                   <div className="flex justify-between gap-3 py-2">
                     <dt className="text-ink-secondary">{t("signupPage.cardSearch")}</dt>
                     <dd className="text-ink-strong">{listed ? t("signupPage.cardSearchOn") : t("signupPage.cardSearchOff")}</dd>
                   </div>
                 </dl>
-                {currencyPick === null && resolved.source && (
-                  <p className="text-sm leading-6 text-ink-secondary" data-testid="signup-currency-source">
-                    {[
-                      currencyName(currency),
-                      resolved.source === "phone"
-                        ? t("signupPage.currencyFromNumber", { cc: `+${numberCc}` })
-                        : resolved.source === "timeZone"
-                          ? t("signupPage.currencyFromZone", { zone: timeZone.split("/").pop()!.replace(/_/g, " ") })
-                          : t("signupPage.currencyFromLanguage"),
-                    ]
-                      .filter(Boolean)
-                      .join(". ")}
-                  </p>
-                )}
                 {resolved.alternatives.length > 0 && (
                   <div className="mt-3" role="group" aria-labelledby="signup-currency-which">
                     <p id="signup-currency-which" className="text-base font-semibold text-ink-strong">
