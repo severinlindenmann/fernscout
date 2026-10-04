@@ -222,7 +222,7 @@ function TripPeopleSheet({
             </div>
           </form>
           {error && (
-            <p role="alert" className="mt-2 text-sm text-coral-700">
+            <p role="alert" className="mt-2 text-sm text-coral-600">
               {error}
             </p>
           )}

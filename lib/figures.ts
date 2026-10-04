@@ -297,7 +297,7 @@ export function figureTripRows(username: string): FigureTripRow[] {
       start: t.start,
       end: t.end,
       status: t.status,
-      people: t.people.map((p) => ({ name: p.name, ...(p.email ? { email: p.email } : {}) })),
+      people: (t.people ?? []).map((p) => ({ name: p.name, ...(p.email ? { email: p.email } : {}) })),
     };
     if (declined || !field) return { ...base, answer: "declined" as const, figures: [], declinedReason: declined };
     if (field.mode === "custom") return { ...base, answer: "custom" as const, figures: field.figures };
