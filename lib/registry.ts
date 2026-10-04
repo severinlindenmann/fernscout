@@ -144,6 +144,16 @@ export function reserve(username: string, email: string, tel: string | null): Re
   return { ok: true };
 }
 
+/** Lock one more number to an existing journal — B2833. An owner who proves
+ * a different number keeps the old one locked too (only the operator frees a
+ * number), and the new one is locked here so no other journal can take it.
+ * `true` when the lock is this journal's (newly or already), `false` when
+ * another journal holds it. Note: a manual `reconcile()` rebuilds tel locks
+ * from `owner.tel` in config only, so it would drop such an extra lock. */
+export function lockTel(username: string, tel: string): boolean {
+  return tryLock(telFile(tel), username, tel);
+}
+
 /** Free a username's locks — B1064's "deleting a journal frees its address
  * and its number." Takes the email/tel rather than re-reading them, since a
  * caller deleting a journal has already read its config and this file must

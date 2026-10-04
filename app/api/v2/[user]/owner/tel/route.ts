@@ -15,12 +15,14 @@
 // `.../verify/redeem` below, which prove possession of the number with a
 // passcode before anything is written — nothing inside a boundary may move
 // the boundary, the same rule `owner.email` already follows one file up.
-// Clearing is different: it only ever turns a channel off, so it stays here.
+// Clearing is the operator's alone (B2833), from /admin
+// (/api/admin/owner-tel): there is no DELETE here, so an owner or agent token
+// gets 405 and nothing can release a proven number.
 import { ownerTelDoc } from "@/lib/api/v2/schemas";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
 import { getUser } from "@/lib/users";
-import { clearOwnerTel, ownerTelDocFields } from "@/lib/ownerTel";
+import { ownerTelDocFields } from "@/lib/ownerTel";
 
 export const dynamic = "force-dynamic";
 
@@ -30,15 +32,5 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
   if (!auth.ok) return auth.response;
   if (!getUser(user)) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
 
-  return ok(ownerTelDoc.parse(await ownerTelDocFields(user)));
-}
-
-export async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]/owner/tel">) {
-  const { user } = await params;
-  const auth = await requireJournalOwner(request, user);
-  if (!auth.ok) return auth.response;
-  if (!getUser(user)) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
-
-  await clearOwnerTel(user);
   return ok(ownerTelDoc.parse(await ownerTelDocFields(user)));
 }

@@ -1194,14 +1194,6 @@ function buildPaths(): Record<string, PathItem> {
         ...refusalResponses(ownerRefusals),
       },
     },
-    delete: {
-      summary:
-        "Clear the owner's own number everywhere: the stored number, the config fields and the one-journal-per-number lock, so another journal may prove it; WhatsApp messages from it stop reaching this journal.",
-      responses: {
-        ...jsonResponse(200, ownerTelDoc, "tel: null"),
-        ...refusalResponses(ownerRefusals),
-      },
-    },
   };
 
   // There is no PATCH on the resource above — setting the number takes two
