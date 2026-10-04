@@ -53,7 +53,7 @@ what it would generate.
 | `billing` | server-wide | — |
 | `contacts` | server-wide | — |
 | `costs` | server-wide | — |
-| `extract` | per journal | — |
+| `extract` | per journal, on unless the journal writes `false` | — |
 | `groupTrips` | per journal | — |
 | `helper` | server-wide | — |
 | `iosApp` | server-wide | — |
@@ -114,7 +114,7 @@ what makes each one boot and what its absence looks like.
 | --- | --- | --- |
 | `helper` | `ANTHROPIC_API_KEY` and a database | no writing assistant |
 | `transcription` | a database; `dry-run` needs nothing else, `deepgram` needs `DEEPGRAM_API_KEY` | no dictation |
-| `extract` | `SESSION_SECRET`, `auth` and `helper`, and a journal must switch it on for itself | no guided import of photos into draft days from the studio |
+| `extract` | `SESSION_SECRET`, `auth` and `helper`, and a journal has not written `enabled: false` for itself | no guided import of photos into draft days from the studio |
 | `billing` | a database | model calls and sends are never metered |
 
 `extract` is the studio's guided camera-roll photo import; it does not read
