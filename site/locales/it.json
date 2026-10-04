@@ -1657,6 +1657,7 @@
   "me.signOut": "Esci",
   "me.signOutBody": "Termina la tua sessione su questo dispositivo. Per tornare ti servirà un nuovo codice via email, quindi esci solo se stai usando il computer di qualcun altro.",
   "me.signOutFailed": "Non ha funzionato, e hai ancora eseguito l’accesso. Riprova.",
+  "me.signOutStopsRecording": "Anche la registrazione del percorso su questo telefono si ferma.",
   "me.signOutTitle": "Uscita",
   "me.signedInAs": "Accesso eseguito come",
   "me.signinExpired": "Quel link era già stato usato, quindi non ti ha fatto entrare. Succede spesso e non è colpa tua: i provider di posta aprono spesso i link di un messaggio prima di te. Chiedi un nuovo codice qui sotto e funzionerà.",

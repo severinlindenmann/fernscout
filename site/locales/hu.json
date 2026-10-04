@@ -1417,6 +1417,7 @@
   "me.signOut": "Kijelentkezés",
   "me.signOutBody": "Ezzel véget ér a munkameneted ezen az eszközön. A visszatéréshez új kódot kérünk e-mailben — csak akkor jelentkezz ki, ha más gépén vagy.",
   "me.signOutFailed": "Ez nem sikerült, továbbra is be vagy jelentkezve. Próbáld újra.",
+  "me.signOutStopsRecording": "Az útvonalrögzítés ezen a telefonon is leáll.",
   "me.signOutTitle": "Kijelentkezés",
   "me.signedInAs": "Bejelentkezve mint",
   "me.signinExpired": "Ezt a hivatkozást már használták, ezért nem engedett be. Ez gyakori, és nem te hibáztál: a levelezőszolgáltatók gyakran előtted megnyitják az üzenetben lévő hivatkozásokat. Kérj lent egy új kódot, és működni fog.",

@@ -1657,6 +1657,7 @@
   "me.signOut": "Sign out",
   "me.signOutBody": "This ends your session on this device. To come back you will need a new code by email, so only sign out if you are on somebody else's computer.",
   "me.signOutFailed": "That did not work, and you are still signed in. Try again.",
+  "me.signOutStopsRecording": "Route recording on this phone stops too.",
   "me.signOutTitle": "Signing out",
   "me.signedInAs": "Signed in as",
   "me.signinExpired": "That link had already been used, so it did not let you in. This is common and it is not something you did wrong: mail providers often open links in a message before you do. Ask for a fresh code below and it will work.",
