@@ -5018,5 +5018,6 @@
   "mail.codeLabel": "Il tuo codice di accesso",
   "mail.codeLabelOther": "Il tuo codice",
   "mail.codeValid": "Digitalo dove l’hai richiesto. Vale per {minutes} minuti.",
-  "mail.identityLink": "Oppure accedi su questo dispositivo"
+  "mail.identityLink": "Oppure accedi su questo dispositivo",
+  "err.goToStart": "Vai alla pagina iniziale"
 }

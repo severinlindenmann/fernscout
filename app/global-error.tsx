@@ -28,30 +28,35 @@ const STRINGS: Record<string, Record<string, string>> = {
     "err.crashTitle": "Something went wrong",
     "err.crashBody": "The page could not be shown. Reloading usually fixes it.",
     "err.retry": "Try again",
+    "err.goToStart": "Go to the start page",
     "err.reference": "Reference: {id}",
   },
   de: {
     "err.crashTitle": "Etwas ist schiefgelaufen",
     "err.crashBody": "Die Seite konnte nicht angezeigt werden. Neu laden hilft meistens.",
     "err.retry": "Nochmal versuchen",
+    "err.goToStart": "Zur Startseite",
     "err.reference": "Referenz: {id}",
   },
   hu: {
     "err.crashTitle": "Valami elromlott",
     "err.crashBody": "Az oldalt nem sikerült megjeleníteni. Az újratöltés általában segít.",
     "err.retry": "Újra",
+    "err.goToStart": "Vissza a kezdőlapra",
     "err.reference": "Hivatkozás: {id}",
   },
   fr: {
     "err.crashTitle": "Un problème est survenu",
     "err.crashBody": "La page n’a pas pu s’afficher. Recharger la page suffit généralement.",
     "err.retry": "Réessayer",
+    "err.goToStart": "Aller à la page d’accueil",
     "err.reference": "Référence : {id}",
   },
   it: {
     "err.crashTitle": "Qualcosa è andato storto",
     "err.crashBody": "Non è stato possibile mostrare la pagina. Di solito basta ricaricarla.",
     "err.retry": "Riprova",
+    "err.goToStart": "Vai alla pagina iniziale",
     "err.reference": "Riferimento: {id}",
   },
 };
@@ -118,6 +123,21 @@ export default function GlobalError({
           >
             {say(locale, "err.retry")}
           </button>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- no router in the root error page */}
+          <a
+            href="/"
+            style={{
+              display: "inline-block",
+              marginTop: "2.25rem",
+              marginLeft: "0.75rem",
+              padding: "0.75rem 1.5rem",
+              fontSize: "1.125rem",
+              fontWeight: 600,
+              color: "#1e293b",
+            }}
+          >
+            {say(locale, "err.goToStart")}
+          </a>
           {error.digest && (
             <p style={{ marginTop: "2rem", fontSize: "0.875rem", color: "#44546c" }}>
               {say(locale, "err.reference", { id: error.digest })}

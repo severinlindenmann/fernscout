@@ -5014,5 +5014,6 @@
   "mail.codeLabel": "Dein Anmeldecode",
   "mail.codeLabelOther": "Dein Code",
   "mail.codeValid": "Tippe ihn dort ein, wo du ihn angefordert hast. Er gilt {minutes} Minuten.",
-  "mail.identityLink": "Oder auf diesem Gerät anmelden"
+  "mail.identityLink": "Oder auf diesem Gerät anmelden",
+  "err.goToStart": "Zur Startseite"
 }

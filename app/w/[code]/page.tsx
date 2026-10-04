@@ -60,6 +60,7 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
           lang={locale}
           title={translateIn(locale, "welcomeLink.unknownTitle")}
           body={translateIn(locale, "welcomeLink.unknownBody")}
+          actions={[{ href: "/", label: translateIn(locale, "err.goToStart") }]}
         />
       </PageShell>
     );

@@ -5015,5 +5015,6 @@
   "mail.codeLabel": "A bejelentkezési kódod",
   "mail.codeLabelOther": "A kódod",
   "mail.codeValid": "Ott írd be, ahol kérted. {minutes} percig érvényes.",
-  "mail.identityLink": "Vagy jelentkezz be ezen az eszközön"
+  "mail.identityLink": "Vagy jelentkezz be ezen az eszközön",
+  "err.goToStart": "Vissza a kezdőlapra"
 }

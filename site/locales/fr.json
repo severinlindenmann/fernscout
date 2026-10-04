@@ -5018,5 +5018,6 @@
   "mail.codeLabel": "Ton code de connexion",
   "mail.codeLabelOther": "Ton code",
   "mail.codeValid": "Saisis-le là où tu l’as demandé. Il est valable {minutes} minutes.",
-  "mail.identityLink": "Ou connecte-toi sur cet appareil"
+  "mail.identityLink": "Ou connecte-toi sur cet appareil",
+  "err.goToStart": "Aller à la page d’accueil"
 }

@@ -5009,5 +5009,6 @@
   "mail.codeLabel": "Your sign-in code",
   "mail.codeLabelOther": "Your code",
   "mail.codeValid": "Type it where you asked for it. It works for {minutes} minutes.",
-  "mail.identityLink": "Or sign in on this device"
+  "mail.identityLink": "Or sign in on this device",
+  "err.goToStart": "Go to the start page"
 }
