@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/LocaleProvider";
 import GroupPhotoFigures from "@/components/studio/trip/GroupPhotoFigures";
-import FigureCreator from "@/components/studio/figures/FigureCreator";
+import FigureCreator, { SHEET_FOOTER } from "@/components/studio/figures/FigureCreator";
 import { journalPath } from "@/lib/journalPath";
 import type { FigureDoc } from "@/lib/api/v2/schemas/figures";
 
@@ -199,7 +199,7 @@ function TripPeopleSheet({
       ref={dialog}
       aria-labelledby="trip-people-title"
       onClose={onClose}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] max-h-[90dvh] overflow-y-auto rounded-2xl border border-line-quiet bg-surface-raised p-5 text-ink-body backdrop:bg-black/40"
+      className="mx-0 mb-0 mt-auto w-full max-w-none max-h-[90dvh] overflow-y-auto rounded-t-2xl border sm:m-auto sm:w-[min(32rem,calc(100vw-2rem))] sm:rounded-2xl border border-line-quiet bg-surface-raised p-5 text-ink-body backdrop:bg-black/40"
     >
       {fromPhoto ? (
         <GroupPhotoFigures
@@ -219,6 +219,7 @@ function TripPeopleSheet({
           existingIds={figures.map((f) => f.id)}
           onSaved={(doc) => void keepFigure(doc)}
           onCancel={() => setCreating(null)}
+          inline
         />
       ) : (
         <>
@@ -307,7 +308,7 @@ function TripPeopleSheet({
               {error}
             </p>
           )}
-          <div className="mt-4 flex justify-end">
+          <div className={SHEET_FOOTER}>
             <button
               type="button"
               onClick={() => dialog.current?.close()}

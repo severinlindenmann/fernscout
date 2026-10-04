@@ -1,5 +1,6 @@
 "use client";
 
+import { SHEET_FOOTER } from "@/components/studio/figures/FigureCreator";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
@@ -328,7 +329,7 @@ export default function GroupPhotoFigures({
           {error}
         </p>
       )}
-      <div className="mt-4 flex justify-end gap-2">
+      <div className={SHEET_FOOTER}>
         <button type="button" onClick={onCancel} className={btn}>
           {t("studio.tripPeople.photo.back")}
         </button>

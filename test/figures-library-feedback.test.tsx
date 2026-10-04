@@ -108,6 +108,8 @@ describe("figure library feedback", () => {
     });
     act(() => button("Continue").click());
     act(() => button("Plain").click());
+    // B-2915: outside a dialog the confirm lives in the studio bar, not in the creator.
+    expect([...container!.querySelectorAll(".studio-step button")].some((b) => b.textContent === "Next")).toBe(false);
     act(() => button("Next").click());
     // B2136 — the creator's screen is ?figure=; Back is the screen before.
     expect(currentSearch()).toBe("figure=shape");
