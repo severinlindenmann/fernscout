@@ -3,6 +3,7 @@
 import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
+import CodeWaitPanel from "@/components/CodeWaitPanel";
 
 /**
  * The way back in, for somebody who has been here before.
@@ -53,14 +54,8 @@ export default function GuestSignIn({
   const [busy, setBusy] = useState(false);
   const [wrong, setWrong] = useState(false);
 
-  async function requestCode(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    // Read what the field actually holds rather than trusting `email` to
-    // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
-    const value = String(new FormData(event.currentTarget).get("email") ?? "");
-    setEmail(value);
-    setBusy(true);
-    await fetch("/api/auth/codes", {
+  const postCode = (value: string) =>
+    fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -70,19 +65,22 @@ export default function GuestSignIn({
         destination,
       }),
     }).catch(() => {});
+
+  async function requestCode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // Read what the field actually holds rather than trusting `email` to
+    // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
+    const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    setEmail(value);
+    setBusy(true);
+    await postCode(value);
     setBusy(false);
     // Always forward, whatever came back. Stopping here for an address we do
     // not know would answer the question the uniform 202 exists to refuse.
     setStep("code");
   }
 
-  async function submitCode(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(
-      /\D/g,
-      "",
-    );
-    setCode(value);
+  async function submitCode(value: string) {
     setBusy(true);
     setWrong(false);
     const response = await fetch("/api/auth/codes/redeem", {
@@ -112,7 +110,7 @@ export default function GuestSignIn({
   return (
     <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
       <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {t("me.signInTitle")}
+        {t(step === "code" ? "codeWait.title" : "me.signInTitle")}
       </h2>
 
       {step === "email" ? (
@@ -151,67 +149,24 @@ export default function GuestSignIn({
           </BusyButton>
         </form>
       ) : (
-        <form onSubmit={submitCode}>
-          {/* The number comes from CODE_TTL_MS, not from the sentence — see
-              CODE_TTL_MINUTES. This is a client component, so it is passed in
-              rather than imported. */}
-          <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("me.signInSent", { minutes: codeMinutes })}
-          </p>
-          <label
-            htmlFor="signin-code"
-            className="mt-4 block text-base font-medium text-ink-body"
-          >
-            {t("me.signInCode")}
-          </label>
-          <input
-            id="signin-code"
-            name="code"
-            // `one-time-code` is what lets a phone offer the code from the
-            // message without the reader typing it out.
-            autoComplete="one-time-code"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            // `minLength` makes "fewer than 6 digits" a submit the browser
-            // itself refuses (B787) rather than one gated on React state
-            // that autofill can bypass.
-            minLength={6}
-            maxLength={6}
-            autoFocus
-            required
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            aria-describedby={wrong ? "signin-error" : undefined}
-            aria-invalid={wrong ? true : undefined}
-            className={`${field} font-mono text-2xl tracking-[0.3em]`}
-          />
-          <p
-            id="signin-error"
-            role="alert"
-            className="mt-3 text-base text-coral-600 empty:mt-0"
-          >
-            {wrong ? t("me.signInWrong") : ""}
-          </p>
-          <BusyButton
-            busy={busy}
-            type="submit"
-            className={button}
-            busyLabel={t("me.signInSending")}
-          >
-            {t("me.signInSubmit")}
-          </BusyButton>
-          <button
-            type="button"
-            onClick={() => {
-              setStep("email");
-              setCode("");
-              setWrong(false);
-            }}
-            className="mt-3 min-h-11 text-base text-ink-secondary underline underline-offset-4"
-          >
-            {t("me.signInAgain")}
-          </button>
-        </form>
+        <CodeWaitPanel
+          id="signin-code"
+          email={email}
+          minutes={codeMinutes}
+          hedged
+          code={code}
+          onCodeChange={setCode}
+          onSubmit={(digits) => void submitCode(digits)}
+          onResend={() => postCode(email)}
+          onWrongAddress={() => {
+            setStep("email");
+            setCode("");
+            setWrong(false);
+          }}
+          busy={busy}
+          errorText={wrong ? t("me.signInWrong") : null}
+          buttonClassName={button}
+        />
       )}
     </section>
   );

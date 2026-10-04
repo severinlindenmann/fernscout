@@ -32,16 +32,15 @@ export type CodeMailInput = {
   /** What this journal or site is called — the subject's "{place}". */
   place: string;
   title: string;
-  /** The door's own purpose, ahead of the code block — a string for one
-   * sentence, or several blocks for a door that needs more (a scoped-trip
-   * note, an app-vs-browser fork). */
-  purpose: MailBlock[] | string;
-  /** A sign-in / redeem button, when this door has a link to press instead
-   * of typing the code back in. */
+  /** The small label over the code; defaults to "Your sign-in code". */
+  label?: string;
+  /** What this door says besides the code — small print, one string or a
+   * few short lines. */
+  purpose?: string[] | string;
+  /** A secondary text link, when this door has one to press instead of
+   * typing the code back in. */
   url?: string;
-  buttonText?: string;
-  /** A line directly under the button — what pressing it does beyond the code. */
-  urlNote?: string;
+  linkText?: string;
   /** The one line that differs per door: what "if you did not ask for
    * this" actually means here (nothing has changed / opened / been
    * created). */
@@ -64,26 +63,24 @@ export type CodeMailInput = {
  */
 export function composeCodeMailContent(input: CodeMailInput): MailComposition {
   const minutes = input.minutes ?? CODE_TTL_MINUTES;
-  const purposeBlocks: MailBlock[] =
-    typeof input.purpose === "string" ? [{ kind: "paragraph", text: input.purpose }] : input.purpose;
-  const blocks: MailBlock[] = [
-    ...purposeBlocks,
-    ...(input.url
-      ? ([{ kind: "button", text: input.buttonText ?? "", href: input.url }] as const)
-      : []),
-    ...(input.url && input.urlNote ? ([{ kind: "paragraph", text: input.urlNote }] as const) : []),
-    { kind: "code", text: input.code },
-    ...(input.askedAt ? ([{ kind: "paragraph", text: input.askedAt }] as const) : []),
-    { kind: "paragraph", text: input.ignoreText },
-  ];
   const vars = { code: input.code, place: input.place, minutes: String(minutes) };
+  const valid = translateIn(input.locale, "mail.codeValid", vars);
+  const purpose = input.purpose === undefined ? [] : typeof input.purpose === "string" ? [input.purpose] : input.purpose;
+  const blocks: MailBlock[] = [
+    { kind: "passcode", label: input.label ?? translateIn(input.locale, "mail.codeLabel"), text: input.code, note: valid },
+    ...(input.url ? ([{ kind: "link", text: input.linkText ?? "", href: input.url }] as const) : []),
+    { kind: "rule" },
+    ...[...purpose, input.ignoreText, ...(input.askedAt ? [input.askedAt] : [])].map(
+      (text): MailBlock => ({ kind: "fine", text }),
+    ),
+  ];
   const subject = translateIn(input.locale, "mail.codeSubject", vars);
   return {
     channel: "mail",
     subject,
     content: {
       template: input.template,
-      preheader: subject,
+      preheader: `${input.code} — ${valid}`,
       title: input.title,
       blocks,
       why: input.why,

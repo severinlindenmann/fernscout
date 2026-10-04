@@ -37,6 +37,14 @@ export type MailBlock =
    * for a fixed-width reader, which is the whole reason it is this kind.
    */
   | { kind: "code"; text: string }
+  /** A one-time code, the point of the letter: small label, the code large
+   * and as selectable text, then a line of what to do with it. */
+  | { kind: "passcode"; label: string; text: string; note: string }
+  /** A plain secondary text link — not a button. */
+  | { kind: "link"; text: string; href: string }
+  /** A horizontal rule, then small grey print ("fine" blocks) after it. */
+  | { kind: "rule" }
+  | { kind: "fine"; text: string }
   /**
    * A table. `rows` are cells in the order `head` names them, and a row may be
    * followed by a `note` — a line of small type spanning the width, for the
@@ -180,6 +188,19 @@ function blockHtml(block: MailBlock): string {
           `color:${INK};white-space:pre">${escapeHtml(block.text)}</pre></div>`,
         "16px",
       );
+    case "passcode":
+      return (
+        `<p style="margin:0 0 6px;font-size:13px;color:${MUTED}">${escapeHtml(block.label)}</p>` +
+        `<p style="margin:0 0 10px;font:700 40px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;` +
+        `letter-spacing:.12em;color:${INK}">${escapeHtml(block.text)}</p>` +
+        `<p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${INK}">${escapeHtml(block.note)}</p>`
+      );
+    case "link":
+      return `<p style="margin:0 0 16px;font-size:15px"><a href="${escapeHtml(block.href)}" style="color:${ACCENT};text-decoration:underline">${escapeHtml(block.text)}</a></p>`;
+    case "rule":
+      return `<hr style="border:none;border-top:1px solid ${RULE};margin:24px 0 12px">`;
+    case "fine":
+      return `<p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:${MUTED}">${escapeHtml(block.text)}</p>`;
     case "table":
       // Wrapped in its own scroller, for the reason the code block above is:
       // the cells do not wrap (a number split over two lines is not a number),
@@ -236,6 +257,14 @@ function blockText(block: MailBlock): string {
     case "meta":
       return block.text;
     case "code":
+      return block.text;
+    case "passcode":
+      return `${block.label}\n${block.text}\n${block.note}`;
+    case "link":
+      return `${block.text}: ${block.href}`;
+    case "rule":
+      return "--";
+    case "fine":
       return block.text;
     case "table": {
       // Padded to the widest cell in each column, header included. The same
@@ -296,7 +325,8 @@ export function renderMail(
       `</tr></table>`,
     `<h1 style="margin:0 0 20px;font-size:24px;line-height:1.25;color:${INK};font-weight:700">${escapeHtml(content.title)}</h1>`,
     ...content.blocks.map(blockHtml),
-    `<hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0 16px">`,
+    // Code mail already ended on its own rule and small print.
+    family === "code" ? "" : `<hr style="border:none;border-top:1px solid #e2e8f0;margin:32px 0 16px">`,
     `<p style="margin:0;font-size:14px;line-height:1.5;color:${MUTED}">` +
       `<strong>${escapeHtml(whyLabel)}</strong> ${escapeHtml(content.why)}`,
     manage ? `<br><a href="${escapeHtml(manage.href)}" style="color:${MUTED}">${escapeHtml(manage.text)}</a>` : "",

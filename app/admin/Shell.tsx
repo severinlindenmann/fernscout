@@ -130,7 +130,7 @@ export default function Shell({
   const active = sections.find((one) => one.id === head) ?? sections[0];
 
   function period(count: number) {
-    router.push(`/admin?days=${count}${window.location.hash}`, { scroll: false });
+    router.replace(`/admin?days=${count}${window.location.hash}`, { scroll: false });
   }
 
   const palette: PaletteItem[] = [

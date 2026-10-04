@@ -15,6 +15,7 @@ import {
 } from "@/components/HomeJournals";
 import { useI18n } from "@/components/LocaleProvider";
 import { SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
+import { stopRouteRecording, useRecordingRoute } from "@/components/nativeShell";
 import { tellWorkerSignedOut } from "@/lib/signedOut";
 
 import { journalPath } from "@/lib/journalPath";
@@ -126,6 +127,7 @@ function SignOutEverywhere({ devices }: { devices: number }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const recording = useRecordingRoute();
 
   async function signOutEverywhere() {
     setBusy(true);
@@ -133,6 +135,7 @@ function SignOutEverywhere({ devices }: { devices: number }) {
     const response = await fetch("/api/v2/me/devices", { method: "DELETE" }).catch(() => null);
     if (response?.ok) {
       tellWorkerSignedOut();
+      await stopRouteRecording(); // B-2841 — this phone is one of "everywhere"
       window.location.reload();
       return;
     }
@@ -146,7 +149,11 @@ function SignOutEverywhere({ devices }: { devices: number }) {
         <ConfirmPanel
           label={t("meAccount.everywhere")}
           question={tn("meAccount.everywhereQuestion", devices, { count: String(devices) })}
-          details={t("meAccount.everywhereDetails")}
+          details={
+            recording
+              ? `${t("meAccount.everywhereDetails")} ${t("me.signOutStopsRecording")}`
+              : t("meAccount.everywhereDetails")
+          }
           confirmLabel={t("meAccount.everywhereConfirm")}
           busyLabel={t("me.signingOut")}
           tone="destructive"
