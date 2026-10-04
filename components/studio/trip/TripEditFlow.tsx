@@ -332,6 +332,7 @@ export default function TripEditFlow({
               initialFigures={peopleSheet.figures}
               figureSet={peopleSheet.figureSet}
               photoConsent={peopleSheet.photoConsent}
+              photoAsk={peopleSheet.photoAsk}
             />
           </ul>
         </section>
