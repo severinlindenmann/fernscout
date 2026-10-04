@@ -53,7 +53,7 @@ export function tripPeopleSheetTrip(
   const row = figureTripRows(username).find((r) => r.id === tripId);
   const figureSet = !row || row.answer === "off" || row.answer === "declined" ? [] : row.answer === "custom" ? row.figures : journalSet;
   return {
-    people: people.filter((p) => !(ownerEmail && p.email === ownerEmail)).map((p) => ({ name: p.name, ...(p.email ? { email: p.email } : {}) })),
+    people: (people ?? []).filter((p) => !(ownerEmail && p.email === ownerEmail)).map((p) => ({ name: p.name, ...(p.email ? { email: p.email } : {}) })),
     figureSet,
   };
 }
