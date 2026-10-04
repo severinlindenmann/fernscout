@@ -222,8 +222,8 @@ describe("LocationFlow on useStep — B2079, B2082", () => {
     expect(container!.querySelector('[role="status"]')?.textContent).toContain("Alps 2024 has a map now.");
     const hrefs = [...container!.querySelectorAll("a")].map((a) => a.getAttribute("href") ?? "");
     expect(hrefs).toContain("/@alex/trips/alps-2024/map");
-    // One way back: the studio bar's own link, and no second one in the body.
-    expect(hrefs.filter((h) => h.startsWith("/@alex/studio") && !h.includes("/studio/"))).toHaveLength(1);
+    // B2850: no primary on the done screen, so no bottom bar, and no back link in the body either.
+    expect(hrefs.filter((h) => h.startsWith("/@alex/studio") && !h.includes("/studio/"))).toHaveLength(0);
     expect(history[history.length - 1]).toBe("");
     expect(sessionStorage.getItem("studio:location:alex")).toBeNull();
   });

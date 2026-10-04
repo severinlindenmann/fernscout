@@ -72,7 +72,7 @@ export default async function StudioShareDayPage({
   const caption = storyCaption(day);
 
   return (
-    <StudioPage username={user} group="write" hideGroups title={title}>
+    <StudioPage username={user} group="write" title={title}>
       <ShareDayStory
         username={user}
         tripId={tripId}

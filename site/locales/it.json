@@ -3875,7 +3875,6 @@
   "keep.starting": "Salvataggio…",
   "keep.title": "Offline su questo dispositivo",
   "keep.unpersisted": "Il browser potrebbe comunque cancellarlo quando manca spazio.",
-  "studio.flow.groups": "Tutte le sezioni dello studio",
   "studio.flow.splitTitle": "Questa giornata sembra fatta di {count} parti",
   "studio.flow.splitTitle.one": "Questa giornata sembra fatta di 1 parte",
   "studio.flow.partLine": "Parte {index}: {range} · {count} foto",

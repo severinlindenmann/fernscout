@@ -1,19 +1,18 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronUp } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import ActionBar from "@/components/studio/ActionBar";
-import GroupMark from "@/components/studio/GroupMark";
 import { useOutbox } from "@/components/studio/useOutbox";
 import { useI18n } from "@/components/LocaleProvider";
-import { STUDIO_GROUPS, type StudioGroup } from "@/lib/studio/groups";
+import type { StudioGroup } from "@/lib/studio/groups";
 
 import { journalPath } from "@/lib/journalPath";
 type BarState = { actions: ReactNode; mode: "extend" | "replace"; revealAfterScroll: number; desktop: boolean };
 
 /** What `StudioPage` tells the bar about the page it is drawing — B2069/B2076. */
-type PageState = { group?: StudioGroup; width: "flow" | "board" | "wide"; /** B2763 — a step of writing a day: Back + primary only. */ hideGroups?: boolean };
+type PageState = { group?: StudioGroup; width: "flow" | "board" | "wide" };
 
 type StudioBarContextValue = {
   setBar: (state: BarState) => void;
@@ -83,8 +82,9 @@ const StudioBarContext = createContext<StudioBarContextValue | null>(null);
  * whatever device actually does grow past `svh`, which this bar already
  * tolerates (it is "last in flow", not fixed).
  *
- * B2141: beside "← Studio" a chevron opens `GroupSheet`, the six groups as
- * links to their hub sections. The back link itself stays one plain tap.
+ * B2850: the bar exists only while a page has registered a primary action
+ * (`useStudioBar` with actions); a page without one gets no bar at all. The
+ * B2141 group chevron is gone — sections live in the header menu and the hub.
  *
  * B2329: a small status pill sits above the bar — offline, or how many
  * queued writes are still waiting, or that they are being sent right now.
@@ -212,7 +212,7 @@ export default function StudioBarProvider({
           conflicts={outbox.conflicts}
           syncing={outbox.syncing}
         />
-        <ActionBar
+        {bar?.actions && <ActionBar
           revealAfterScroll={bar?.revealAfterScroll ?? 0}
           desktop={page && !(bar?.mode === "replace" && !bar.desktop) ? ROW_WIDTH[page.width] : null}
         >
@@ -221,11 +221,10 @@ export default function StudioBarProvider({
           ) : (
             <>
               {backLink}
-              {page && !page.hideGroups && <GroupSheet username={username} />}
               {bar?.desktop ? bar.actions : bar?.actions && <div className="contents md:hidden">{bar.actions}</div>}
             </>
           )}
-        </ActionBar>
+        </ActionBar>}
       </div>
       </div>
     </StudioBarContext.Provider>
@@ -287,61 +286,6 @@ function OutboxPill({
 }
 
 /**
- * The six studio groups, one tap from any subpage — B2141. A `<details>`, so
- * it opens from the keyboard (Enter/Space on the chevron) with no script of
- * its own; Escape and choosing a group close it. It opens upwards: the bar
- * sits at the foot of the page.
- */
-function GroupSheet({ username }: { username: string }) {
-  const { t } = useI18n();
-  const ref = useRef<HTMLDetailsElement>(null);
-  const close = () => {
-    if (ref.current) ref.current.open = false;
-  };
-  return (
-    <details
-      ref={ref}
-      data-group-sheet
-      // Below md the sheet hangs off the sticky bar itself (left-aligned with
-      // the page, never past the viewport's edge); from md, off the chevron.
-      className="flex-none md:relative"
-      onKeyDown={(e) => {
-        if (e.key === "Escape" && ref.current?.open) {
-          close();
-          ref.current.querySelector("summary")?.focus();
-        }
-      }}
-    >
-      <summary
-        aria-label={t("studio.flow.groups")}
-        className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-full border
-                   border-line-strong text-ink-body transition-colors hover:bg-surface-subtle [&::-webkit-details-marker]:hidden"
-      >
-        <ChevronUp className="h-4 w-4" aria-hidden strokeWidth={2.2} />
-      </summary>
-      <nav
-        aria-label={t("studio.flow.groups")}
-        className="absolute bottom-full left-4 z-30 mb-2 w-60 md:left-auto md:right-0 rounded-2xl border border-line-quiet bg-surface-raised p-2 shadow-lg"
-      >
-        <ul>
-          {STUDIO_GROUPS.map((group) => (
-            <li key={group}>
-              <Link
-                href={`${journalPath(username)}/studio#${group}`}
-                onClick={close}
-                className="block rounded-xl px-2 pt-2 pb-0.5 hover:bg-surface-subtle"
-              >
-                <GroupMark group={group} size="sm" />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </details>
-  );
-}
-
-/**
  * B2331 — the shared reachability signal every "needs a signal" feature
  * reads instead of keeping its own. `null` outside the provider (a test
  * that mounts a component on its own with no `StudioBarProvider`), which
@@ -388,12 +332,12 @@ export function useStudioBar(
  * (the desktop row's). Draws nothing; a no-op outside the provider, so
  * `StudioPage` still renders on its own in a test.
  */
-export function StudioBarPage({ group, width, hideGroups }: PageState) {
+export function StudioBarPage({ group, width }: PageState) {
   const setPage = useContext(StudioBarContext)?.setPage;
   useEffect(() => {
     if (!setPage) return;
-    setPage({ group, width, hideGroups });
+    setPage({ group, width });
     return () => setPage(null);
-  }, [setPage, group, width, hideGroups]);
+  }, [setPage, group, width]);
   return null;
 }

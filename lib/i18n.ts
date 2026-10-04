@@ -3285,7 +3285,6 @@ export type TranslationKey =
   | "studio.figures.trip.save"
   | "studio.figures.trip.walks"
   | "studio.flow.backToStudio"
-  | "studio.flow.groups"
   | "studio.flow.partHeading"
   | "studio.flow.partLine"
   | "studio.flow.partLine.one"

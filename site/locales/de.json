@@ -3875,7 +3875,6 @@
   "keep.starting": "Wird behalten …",
   "keep.title": "Offline auf diesem Gerät",
   "keep.unpersisted": "Der Browser kann die Kopie bei Platzmangel trotzdem löschen.",
-  "studio.flow.groups": "Alle Bereiche des Studios",
   "studio.flow.splitTitle": "Dieser Tag sieht nach {count} Teilen aus",
   "studio.flow.splitTitle.one": "Dieser Tag sieht nach 1 Teil aus",
   "studio.flow.partLine": "Teil {index}: {range} · {count} Fotos",

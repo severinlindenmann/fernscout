@@ -3875,7 +3875,6 @@
   "keep.starting": "Enregistrement…",
   "keep.title": "Hors connexion sur cet appareil",
   "keep.unpersisted": "Le navigateur peut encore l’effacer quand l’espace vient à manquer.",
-  "studio.flow.groups": "Tous les groupes du studio",
   "studio.flow.splitTitle": "Cette journée ressemble à {count} parties",
   "studio.flow.splitTitle.one": "Cette journée ressemble à 1 partie",
   "studio.flow.partLine": "Partie {index} : {range} · {count} photos",

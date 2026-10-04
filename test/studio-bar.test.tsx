@@ -57,11 +57,10 @@ function ReplacingPage() {
 }
 
 describe("useStudioBar's default", () => {
-  test("a page that registers nothing gets the back-to-studio link", () => {
+  test("B2850 — a page that registers no primary gets no bottom bar at all", () => {
     const el = render(<PlainPage />);
-    const link = el.querySelector('a[href="/@alex/studio"]');
-    expect(link).not.toBeNull();
-    expect(link!.textContent).toContain("Back to the studio");
+    expect(el.querySelector('a[href="/@alex/studio"]')).toBeNull();
+    expect(el.querySelector(".sticky.border-t")).toBeNull();
   });
 });
 
@@ -145,9 +144,8 @@ describe("StepPrimary/useStudioBar — re-registering on every render converges"
  * bar is not `md:hidden` on a StudioPage. jsdom applies no CSS; the classes
  * are the breakpoint.
  */
-/** Links outside the bar's group sheet (B2141) matching `selector`. */
 function backLinks(el: HTMLElement, selector: string) {
-  return [...el.querySelectorAll(`a${selector}`)].filter((a) => !a.closest("[data-group-sheet]"));
+  return [...el.querySelectorAll(`a${selector}`)];
 }
 
 describe("StepPrimary and the desktop row", () => {
@@ -167,7 +165,11 @@ describe("StepPrimary and the desktop row", () => {
   });
 
   test("the hub (no StudioPage) keeps its bar phone-only", () => {
-    const el = render(<PlainPage />);
+    function Extending() {
+      useStudioBar(<button type="button">Plain</button>);
+      return <PlainPage />;
+    }
+    const el = render(<Extending />);
     const bar = el.querySelector('a[href="/@alex/studio"]')!.parentElement!;
     expect(bar.className.split(/\s+/)).toContain("md:hidden");
   });
@@ -187,13 +189,21 @@ describe("StepPrimary and the desktop row", () => {
 /** B2069 — the back link returns to the group the page belongs to. */
 describe("the bar's back link carries the page's group", () => {
   test("with group plan the back href ends in #plan", () => {
-    const el = render(<StudioPage username="alex" group="plan" title="Who sees the plan" />);
+    const el = render(
+      <StudioPage username="alex" group="plan" title="Who sees the plan">
+        <StepPrimary label="Onwards" onClick={() => {}} />
+      </StudioPage>,
+    );
     const back = el.querySelector('a[aria-label="Back to the studio"]') as HTMLAnchorElement;
     expect(back.getAttribute("href")).toBe("/@alex/studio#plan");
   });
 
   test("without a group it is /@alex/studio", () => {
-    const el = render(<PlainPage />);
+    function Extending() {
+      useStudioBar(<button type="button">Plain</button>);
+      return <PlainPage />;
+    }
+    const el = render(<Extending />);
     const back = el.querySelector('a[aria-label="Back to the studio"]') as HTMLAnchorElement;
     expect(back.getAttribute("href")).toBe("/@alex/studio");
   });
