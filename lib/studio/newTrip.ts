@@ -94,3 +94,8 @@ export async function restForNewTrip(username: string): Promise<NewTripRest> {
     journalFigures,
   };
 }
+
+/** B2849 - a new trip reads "guest" unless the journal asks search engines to list it. */
+export function defaultTripVisibility(journalVisibility: string | undefined): "guest" | "public" {
+  return journalVisibility === "public" ? "public" : "guest";
+}

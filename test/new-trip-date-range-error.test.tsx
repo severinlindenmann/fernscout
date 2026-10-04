@@ -61,6 +61,9 @@ describe("NewTripFlow — an impossible date range says why", () => {
             <NewTripFlow
               username="alex"
               visibilities={["guest", "public", "private"]}
+              defaultVisibility="private"
+              guestCount={0}
+              guestsHref="/@alex/studio/readers"
               accents={["sky"]}
               existingTrips={[]}
               otherLocales={[]}
@@ -110,6 +113,9 @@ describe("NewTripFlow — an impossible date range says why", () => {
             <NewTripFlow
               username="alex"
               visibilities={["guest", "public", "private"]}
+              defaultVisibility="private"
+              guestCount={0}
+              guestsHref="/@alex/studio/readers"
               accents={["sky"]}
               existingTrips={[]}
               otherLocales={[]}

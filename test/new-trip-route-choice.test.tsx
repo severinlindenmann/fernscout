@@ -70,6 +70,9 @@ async function mount(range: { start: string; end: string }) {
           <NewTripFlow
             username="alex"
             visibilities={["guest", "public", "private"]}
+            defaultVisibility="private"
+            guestCount={0}
+            guestsHref="/@alex/studio/readers"
             accents={["sky"]}
             existingTrips={[]}
             otherLocales={[]}

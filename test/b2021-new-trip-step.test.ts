@@ -194,3 +194,10 @@ test("sending teaser on a public trip is refused, not silently written", async (
   const body = (await created.json()) as { error?: string };
   expect(body.error).toBe("invalid_teaser");
 });
+
+test("B2849: a new trip defaults to guest unless the journal asks to be listed", async () => {
+  const { defaultTripVisibility } = await import("@/lib/studio/newTrip");
+  expect(defaultTripVisibility("public")).toBe("public");
+  expect(defaultTripVisibility("guest")).toBe("guest");
+  expect(defaultTripVisibility(undefined)).toBe("guest");
+});

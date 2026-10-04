@@ -5,6 +5,11 @@ import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { existingTripsForNewTrip, restForNewTrip } from "@/lib/studio/newTrip";
 import { VISIBILITIES, ACCENTS } from "@/lib/tripWrite";
 import { waitingDaysFor } from "@/lib/studio/inbox";
+import { defaultTripVisibility } from "@/lib/studio/newTrip";
+import { isEnabled } from "@/lib/capabilities";
+import { readersModel } from "@/lib/readers/model";
+import { getUser } from "@/lib/users";
+import { journalPath } from "@/lib/journalPath";
 
 const isoDay = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
 
@@ -38,12 +43,19 @@ export default async function StudioNewTripPage({ params, searchParams }: PagePr
       ? { start, end, photos: cards.filter((c) => start <= c.date && c.date <= end).reduce((n, c) => n + c.photoIds.length, 0) }
       : undefined;
 
+  // B2849 - guest by default; public only when the journal asks to be listed.
+  const defaultVisibility = defaultTripVisibility(getUser(user)?.visibility);
+  const guestCount = isEnabled("contacts", user) ? (await readersModel(user)).readingNow.length : 0;
+
   return (
     <StudioPage username={user} group="plan" title={translateIn(await requestLocale(), "studio.hub.item.newTrip.title")}>
       <NewTripFlow
         key={initialRange ? `${start}_${end}` : "blank"}
         username={user}
         visibilities={VISIBILITIES}
+        defaultVisibility={defaultVisibility}
+        guestCount={guestCount}
+        guestsHref={`${journalPath(user)}/studio/readers`}
         accents={ACCENTS}
         existingTrips={existingTripsForNewTrip(user)}
         initialRange={initialRange}
