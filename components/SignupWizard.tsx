@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "reac
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
+import CodeWaitPanel from "@/components/CodeWaitPanel";
 // B2531: the kit's yellow pill; the square button is retired.
 import { PILL_GHOST, PILL_PRIMARY } from "@/components/landing/styles";
 import { useI18n } from "@/components/LocaleProvider";
@@ -879,7 +880,7 @@ export default function SignupWizard({
             ? t("signupPage.phoneTitle")
             : step === "name"
               ? t("signupPage.nameTitle")
-              : t("agent.startTitle")}
+              : t(step === "code" ? "codeWait.title" : "agent.startTitle")}
       </h2>
 
       {welcomeBack && (step === "phone" || step === "phone-wa" || step === "name") && (
@@ -942,28 +943,22 @@ export default function SignupWizard({
       )}
 
       {step === "code" && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (code.length === 6) void verifyCode(code);
+        <CodeWaitPanel
+          id="signup-code"
+          email={email}
+          minutes={codeMinutes}
+          hedged={inviteOnly}
+          code={code}
+          onCodeChange={setCode}
+          onSubmit={(digits) => void verifyCode(digits)}
+          onResend={resendEmailCode}
+          onWrongAddress={() => {
+            setError(null);
+            setStep("email");
           }}
-        >
-          <p className="mt-2 text-base leading-7 text-ink-body">
-            {t(inviteOnly ? "signupPage.codeSentInvited" : "agent.startCodeSent", { minutes: codeMinutes })}
-          </p>
-          <p className="mt-1 break-all text-base font-semibold text-ink-strong">{email}</p>
-          {codeBox("signup-code", code, setCode, verifyCode)}
-          <p className="mt-2 text-sm leading-6 text-ink-secondary">{t("signupPage.codeAuto")}</p>
-          {checking(t("signupPage.codeChecking"))}
-          {countdown(
-            () => void resendEmailCode(),
-            () => {
-              setError(null);
-              setStep("email");
-            },
-            t("signupPage.wrongAddress"),
-          )}
-        </form>
+          busy={busy}
+          buttonClassName={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
+        />
       )}
 
       {step === "owns" && (

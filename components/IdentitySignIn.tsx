@@ -7,6 +7,7 @@ import { useReducedMotion } from "motion/react";
 import { PILL_PRIMARY } from "@/components/landing/styles";
 import { useI18n } from "@/components/LocaleProvider";
 import EnvelopeFly from "@/components/EnvelopeFly";
+import CodeWaitPanel from "@/components/CodeWaitPanel";
 
 /**
  * The way in, from the front door — B426.
@@ -126,15 +127,19 @@ export default function IdentitySignIn({
     setStep("code");
   }
 
-  async function submitCode(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    // Same reasoning as `requestCode` above — read what the field actually
-    // holds rather than trusting `code` to have followed autofill.
-    const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(
-      /\D/g,
-      "",
-    );
-    setCode(value);
+  /** "Send a new code" (B2844): the same request, the same two refusals. */
+  async function resendCode() {
+    const response = await fetch("/api/auth/codes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ for: "identity", email }),
+    }).catch(() => null);
+    if (response && (response.status === 404 || response.status === 503)) {
+      setUnavailable(true);
+    }
+  }
+
+  async function submitCode(value: string) {
     setBusy(true);
     setWrong(false);
     const response = await fetch("/api/auth/codes/redeem", {
@@ -165,7 +170,7 @@ export default function IdentitySignIn({
         />
       )}
       <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {t("home.signInTitle")}
+        {t(step === "code" && !unavailable ? "codeWait.title" : "home.signInTitle")}
       </h2>
 
       {unavailable ? (
@@ -241,70 +246,23 @@ export default function IdentitySignIn({
           </p>
         </form>
       ) : (
-        <form onSubmit={submitCode}>
-          {/* The number comes from CODE_TTL_MS, not from the sentence — see
-              CODE_TTL_MINUTES. This is a client component, so it is passed in
-              rather than imported. */}
-          <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("home.signInSent", { minutes: codeMinutes })}
-          </p>
-          <div className="mt-4 min-h-11 rounded-xl border border-line-strong bg-surface-base px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500">
-            <label
-              htmlFor="identity-code"
-              className="block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary"
-            >
-              {t("me.signInCode")}
-            </label>
-            <input
-              id="identity-code"
-              name="code"
-              // `one-time-code` is what lets a phone offer the code from the
-              // message without the reader typing it out.
-              autoComplete="one-time-code"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              // `minLength` is what makes "fewer than 6 digits" a submit the
-              // browser itself refuses (B787) — `disabled={code.length < 6}`
-              // read React state that autofill or a code-filling keyboard can
-              // bypass entirely.
-              minLength={6}
-              maxLength={6}
-              autoFocus
-              required
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              aria-describedby={wrong ? "identity-error" : undefined}
-              aria-invalid={wrong ? true : undefined}
-              className="block w-full border-0 bg-transparent p-0 font-mono text-2xl tracking-[0.3em] text-ink-strong focus:outline-none focus:ring-0 quiet-inner-focus"
-            />
-          </div>
-          <p
-            id="identity-error"
-            role="alert"
-            className="mt-3 text-base text-coral-600 empty:mt-0"
-          >
-            {wrong ? t("me.signInWrong") : ""}
-          </p>
-          <BusyButton
-            busy={busy}
-            type="submit"
-            className={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
-            busyLabel={t("me.signInSending")}
-          >
-            {t("me.signInSubmit")}
-          </BusyButton>
-          <button
-            type="button"
-            onClick={() => {
-              setStep("email");
-              setCode("");
-              setWrong(false);
-            }}
-            className="mt-3 min-h-11 text-base text-ink-secondary underline underline-offset-4"
-          >
-            {t("me.signInAgain")}
-          </button>
-        </form>
+        <CodeWaitPanel
+          id="identity-code"
+          email={email}
+          minutes={codeMinutes}
+          code={code}
+          onCodeChange={setCode}
+          onSubmit={(digits) => void submitCode(digits)}
+          onResend={resendCode}
+          onWrongAddress={() => {
+            setStep("email");
+            setCode("");
+            setWrong(false);
+          }}
+          busy={busy}
+          errorText={wrong ? t("me.signInWrong") : null}
+          buttonClassName={`mt-4 w-full ${PILL_PRIMARY} disabled:opacity-50`}
+        />
       )}
     </section>
   );
