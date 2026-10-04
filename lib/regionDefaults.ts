@@ -1,5 +1,45 @@
 import { CURRENCY_FOR_COUNTRY } from "@/lib/countryCurrency";
 import { COUNTRIES } from "@/lib/countries";
+import { COUNTRY_FOR_TIME_ZONE } from "@/lib/timeZoneCountry";
+
+/** The country of a proven number's digits (`41760000000`). `preferIso` (the
+ * country the person picked in the field) settles a shared dial code; without
+ * it a code shared by countries with different currencies (+1) names none. */
+export function countryForTel(digits: string, preferIso?: string | null): string | null {
+  const cc = [...new Set(COUNTRIES.map((c) => c.cc))].filter((c) => digits.startsWith(c)).sort((a, b) => b.length - a.length)[0];
+  if (!cc) return null;
+  const isos = COUNTRIES.filter((c) => c.cc === cc).map((c) => c.iso2);
+  if (preferIso && isos.includes(preferIso)) return preferIso;
+  return new Set(isos.map((i) => CURRENCY_FOR_COUNTRY[i])).size === 1 ? isos[0] : null;
+}
+
+export type CurrencySource = "phone" | "timeZone" | "language";
+
+/**
+ * B-2845. The journal currency from the best evidence, in order: the country
+ * of the phone number verified in this signup, the device time zone's country,
+ * the browser language's explicit region. A language alone is the weakest
+ * (an iPhone in English (UK) sends en-GB for a Swiss owner). When the phone and
+ * the time zone name different currencies, both come back so the caller can
+ * ask; `currency` is the phone's.
+ */
+export function resolveCurrency(input: {
+  phoneCountry?: string | null;
+  timeZone?: string | null;
+  languages: readonly string[];
+}): { currency: string | null; source: CurrencySource | null; country: string | null; alternatives: string[] } {
+  const phone = input.phoneCountry?.toUpperCase() ?? null;
+  const zone = (input.timeZone && COUNTRY_FOR_TIME_ZONE[input.timeZone]) || null;
+  const lang = browserRegion(input.languages);
+  const phoneCur = (phone && CURRENCY_FOR_COUNTRY[phone]) || null;
+  const zoneCur = (zone && CURRENCY_FOR_COUNTRY[zone]) || null;
+  const langCur = (lang && CURRENCY_FOR_COUNTRY[lang]) || null;
+  const alternatives = phoneCur && zoneCur && phoneCur !== zoneCur ? [phoneCur, zoneCur] : [];
+  if (phoneCur) return { currency: phoneCur, source: "phone", country: phone, alternatives };
+  if (zoneCur) return { currency: zoneCur, source: "timeZone", country: zone, alternatives: [] };
+  if (langCur) return { currency: langCur, source: "language", country: lang, alternatives: [] };
+  return { currency: null, source: null, country: null, alternatives: [] };
+}
 
 /**
  * B-2807. What the browser's own region says about currency and phone country.
