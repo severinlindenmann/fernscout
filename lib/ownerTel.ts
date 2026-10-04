@@ -122,9 +122,10 @@ export async function setOwnerTel(
   await upsert(username, tel, provenAt, provenMethod);
 }
 
-/** Clears the number completely — B2833. The owner's own way of switching
- * their WhatsApp copy back off and freeing the number for another journal, so
- * every place a proven number lives is emptied here and nowhere else:
+/** Clears the number completely — B2833. Called only by the operator's
+ * /admin "Free this phone number" (app/api/admin/owner-tel); an owner or an
+ * agent token cannot release a number, so the one-journal-per-number lock is
+ * the operator's to lift. Every place a proven number lives is emptied here and nowhere else:
  *
  * - the `owner_tel` row (written, not deleted, so a number still on disk is
  *   not mistaken for "not cleared yet");

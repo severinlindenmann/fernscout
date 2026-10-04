@@ -141,24 +141,6 @@ export default function JournalPageContent({
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [removingTel, setRemovingTel] = useState(false);
-  const [telBusy, setTelBusy] = useState(false);
-  const [telError, setTelError] = useState<string | null>(null);
-
-  async function removeTel() {
-    setTelBusy(true);
-    setTelError(null);
-    try {
-      const response = await fetch(`/api/web/${encodeURIComponent(username)}/owner-tel`, { method: "DELETE" });
-      if (!response.ok) throw new Error(String(response.status));
-      setRemovingTel(false);
-      router.refresh();
-    } catch {
-      setTelError(t("me.journalOwnerTelRemoveFailed"));
-    } finally {
-      setTelBusy(false);
-    }
-  }
 
   const extrasWere = journal.locales.filter((code) => code !== journal.defaultLocale);
 
@@ -540,29 +522,6 @@ export default function JournalPageContent({
           </span>{" "}
           {t("me.journalOwnerTelHint")}
         </p>
-        {journal.ownerTel &&
-          (removingTel ? (
-            <ConfirmPanel
-              label={t("me.journalOwnerTelRemove")}
-              question={t("me.journalOwnerTelRemoveQuestion")}
-              details={t("me.journalOwnerTelRemoveDetails")}
-              confirmLabel={t("me.journalOwnerTelRemoveConfirm")}
-              busyLabel={t("me.journalOwnerTelRemoveBusy")}
-              busy={telBusy}
-              error={telError ?? undefined}
-              tone="destructive"
-              onConfirm={() => void removeTel()}
-              onCancel={() => setRemovingTel(false)}
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setRemovingTel(true)}
-              className="min-h-11 text-sm font-semibold text-coral-600 underline underline-offset-2"
-            >
-              {t("me.journalOwnerTelRemove")}
-            </button>
-          ))}
       </div>
 
       <div>

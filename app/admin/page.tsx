@@ -10,6 +10,7 @@ import Journals from "./Journals";
 import MessageOwner from "./MessageOwner";
 import MessagesPanel from "./messages/MessagesPanel";
 import ProvidersOrders from "./ProvidersOrders";
+import FreeNumber from "./FreeNumber";
 import ReleaseName from "./ReleaseName";
 import Shell, { type Section } from "./Shell";
 import SmsThreads from "./SmsThreads";
@@ -1975,6 +1976,9 @@ function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones:
           <span className="font-mono text-sm text-ink-strong">{tripStones.length}</span>
         </li>
       </ul>
+      <div className="mt-6">
+        <FreeNumber />
+      </div>
       {journalStones.length > 0 && (
         <div className="mt-4">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
