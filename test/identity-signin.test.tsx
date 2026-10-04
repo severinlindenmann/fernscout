@@ -113,7 +113,7 @@ describe("the sign-in form", () => {
     const html = render(<IdentitySignIn codeMinutes="30" onDone={() => {}} />);
     // The sentence lives on the second step; what matters here is that the
     // number is interpolated rather than written into the locale field.
-    expect(dictionaryFor("en")["home.signInSent"]).toContain("{minutes}");
+    expect(dictionaryFor("en")["codeWait.valid"]).toContain("{minutes}");
   });
 
   /**
