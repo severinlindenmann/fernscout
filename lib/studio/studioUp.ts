@@ -45,8 +45,8 @@ export function studioUp(
     if (parts.length === 1) return studio;
     // location/<trip>/<date> goes up to that trip's routes page; every other
     // location page goes up to the routes list.
-    const trailing = c && !["import", "history", "places"].includes(b) ? `/${e(b)}` : "";
-    return { href: `${prefix}/location${trailing}`, labelKey: "studio.up.routes" };
+    const tripRoutes = c && !["import", "history", "places"].includes(b);
+    return { href: tripRoutes ? `${prefix}/location/${e(b)}` : `${prefix}/location`, labelKey: "studio.up.routes" };
   }
   if (a === "trip") {
     if (b === "roster") {
