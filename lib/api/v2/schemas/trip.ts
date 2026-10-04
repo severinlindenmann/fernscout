@@ -40,7 +40,9 @@ const person = z.strictObject({
    * `lib/trips.ts` already reads it as optional off disk. Here because the
    * byline renders it, not because v1 had it. */
   nickname: z.string().trim().min(1).optional(),
-  email: z.email(),
+  /** Optional (B-2847): a name-only person is credited in the byline and is
+   * never mailed, invited or matched to a grant or a reader. */
+  email: z.email().optional(),
 });
 
 /** The currencies money moved in on this trip, against the journal's base.
@@ -314,7 +316,7 @@ const tripBase = z
      * somebody's trip. Unrecognised reads as private on disk; here it is
      * refused outright. */
     visibility: z.enum(VISIBILITIES),
-    /** Who was on the trip — the owner plus anyone else, each name + email.
+    /** Who was on the trip — the owner plus anyone else, each a name and an optional email.
      * B2297 (one door for readers, B2291/B2295): this is the byline only.
      * It grants nothing and mails nobody, whatever it says — write access to
      * a trip comes only from a buddy the owner granted at

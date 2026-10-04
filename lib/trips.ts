@@ -173,18 +173,20 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
     const entry = item as Record<string, unknown>;
     const name = String(entry.name ?? "").trim();
     const email = String(entry.email ?? "").trim().toLowerCase();
-    if (!name || !isEmail(email)) {
+    if (!name || (email && !isEmail(email))) {
       console.warn(
-        `[trips] ${folder}/trip.json has a people: entry needing a name and a valid email ` +
+        `[trips] ${folder}/trip.json has a people: entry needing a name and, if given, a valid email ` +
           `(got name "${name}", email "${email}") — ignoring the whole list.`,
       );
       return [];
     }
-    if (seen.has(email)) {
-      console.warn(`[trips] ${folder}/trip.json lists ${email} twice — ignoring the whole list.`);
+    // Duplicates: by address when there is one, otherwise by exact name.
+    const key = email || `name:${name}`;
+    if (seen.has(key)) {
+      console.warn(`[trips] ${folder}/trip.json lists ${email || name} twice — ignoring the whole list.`);
       return [];
     }
-    seen.add(email);
+    seen.add(key);
     const rawNickname = entry.nickname;
     if (rawNickname !== undefined && typeof rawNickname !== "string") {
       console.warn(
@@ -194,7 +196,7 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
       return [];
     }
     const nickname = rawNickname?.trim() || undefined;
-    people.push({ name, email, ...(nickname ? { nickname } : {}) });
+    people.push({ name, ...(email ? { email } : {}), ...(nickname ? { nickname } : {}) });
   }
   return people;
 }

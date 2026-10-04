@@ -6,6 +6,7 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { isEnabled } from "@/lib/capabilities";
 import { readRoster } from "@/lib/groupRoster";
 import { tripDays } from "@/lib/tripDays";
+import { tripPeopleSheetData, tripPeopleSheetTrip } from "@/lib/studio/tripPeopleSheet";
 
 export const dynamic = "force-dynamic";
 // B2549 — keep this page in the client Router Cache for 30s after a
@@ -62,6 +63,14 @@ export default async function StudioTripEditPage({
     groupRow = { students: roster.students.length, planned: days.filter((d) => roster.duty[d]?.length).length, days: days.length };
   }
 
+  // B-2847 - the "Who's on this trip?" sheet, only once a trip is open.
+  let peopleSheet: React.ComponentProps<typeof TripEditFlow>["peopleSheet"];
+  if (trip && fullTrip) {
+    const data = await tripPeopleSheetData(user);
+    const onTrip = tripPeopleSheetTrip(user, trip.id, fullTrip.people, data.owner.email, data.journalSet);
+    peopleSheet = { ...data, initialPeople: onTrip.people, figureSet: onTrip.figureSet };
+  }
+
   return (
     <StudioPage
       username={user}
@@ -83,6 +92,7 @@ export default async function StudioTripEditPage({
         section={typeof section === "string" ? section : undefined}
         routeRecordingAvailable={routeRecordingAvailable}
         groupRow={groupRow}
+        peopleSheet={peopleSheet}
       />
     </StudioPage>
   );

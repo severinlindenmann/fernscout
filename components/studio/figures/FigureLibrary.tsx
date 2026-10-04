@@ -926,7 +926,8 @@ function TripScreen({
   }
 
   const figuresByPerson = new Map(figures.filter((f) => f.person).map((f) => [f.person as string, f]));
-  const missing = trip.people.filter((p) => !figuresByPerson.has(p.email));
+  // A name-only person has no address to link a figure to, so none is offered.
+  const missing = trip.people.flatMap((p) => (p.email && !figuresByPerson.has(p.email) ? [{ name: p.name, email: p.email }] : []));
 
   return (
     <div>

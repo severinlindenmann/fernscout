@@ -146,6 +146,8 @@ async function run(): Promise<void> {
       // place per trip that named them, each scoped to that trip alone.
       const byEmail = new Map<string, { name: string }>();
       for (const person of trip.people) {
+        // A name-only person (B-2847) has no address to make a contact of.
+        if (!person.email) continue;
         const email = person.email.trim().toLowerCase();
         if (email === ownerEmail) {
           counts["skipped-owner"] += 1;

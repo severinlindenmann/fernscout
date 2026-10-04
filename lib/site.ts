@@ -90,9 +90,10 @@ export function travellersOf(user: UserConfig, trip: Trip): TripPerson[] {
     nickname: user.owner.nickname,
   };
   const out = [owner];
-  const seen = new Set([owner.email.trim().toLowerCase()]);
+  const seen = new Set([(owner.email ?? "").trim().toLowerCase()]);
   for (const person of trip.people) {
-    const email = person.email.trim().toLowerCase();
+    // A name-only person (B-2847) is de-duplicated on the name, never on an address.
+    const email = person.email?.trim().toLowerCase() || `name:${person.name}`;
     if (seen.has(email)) continue;
     seen.add(email);
     out.push(person);

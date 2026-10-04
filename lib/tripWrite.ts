@@ -371,7 +371,7 @@ export function peopleBlock(raw: unknown): BlockResult {
   }
 
   const lines = ["people:"];
-  const value: { name: string; email: string; nickname?: string }[] = [];
+  const value: { name: string; email?: string; nickname?: string }[] = [];
   const seen = new Set<string>();
   for (const [index, item] of raw.entries()) {
     const at = `people[${index}]`;
@@ -404,24 +404,26 @@ export function peopleBlock(raw: unknown): BlockResult {
     if (!name) {
       return { ok: false, error: "invalid_people", message: `${at}.name is required.` };
     }
-    if (!isPersonEmail(email)) {
+    // Optional since B-2847: a name-only person is credited and nothing else.
+    // When an email is given it must still be an address.
+    if (email && !isPersonEmail(email)) {
       return {
         ok: false,
         error: "invalid_people",
         message:
-          `${at}.email is required and must be an address — ${JSON.stringify(entry.email ?? null)} ` +
-          `is not one. It is how that person gets a token for this trip, so a placeholder ` +
-          `would give them nothing.`,
+          `${at}.email must be an address when given — ${JSON.stringify(entry.email ?? null)} ` +
+          `is not one. Leave it out to credit somebody by name only.`,
       };
     }
-    if (seen.has(email)) {
+    const key = email || `name:${name}`;
+    if (seen.has(key)) {
       return {
         ok: false,
         error: "invalid_people",
-        message: `${at} lists ${email} again; each person appears once.`,
+        message: `${at} lists ${email || name} again; each person appears once.`,
       };
     }
-    seen.add(email);
+    seen.add(key);
 
     const nickname =
       entry.nickname === undefined || entry.nickname === null
@@ -445,9 +447,9 @@ export function peopleBlock(raw: unknown): BlockResult {
     }
 
     lines.push(`  - name: ${quoteScalar(name)}`);
-    lines.push(`    email: ${quoteScalar(email)}`);
+    if (email) lines.push(`    email: ${quoteScalar(email)}`);
     if (nickname) lines.push(`    nickname: ${quoteScalar(nickname)}`);
-    value.push({ name, email, ...(nickname ? { nickname } : {}) });
+    value.push({ name, ...(email ? { email } : {}), ...(nickname ? { nickname } : {}) });
   }
   return { ok: true, lines, value };
 }

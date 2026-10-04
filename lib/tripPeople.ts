@@ -56,7 +56,8 @@ import { subjectLookup } from "./contacts/crypto";
 export function peopleNamedIn(trip: Trip): string[] {
   const rawOwner = getUser(trip.username)?.owner.email;
   const owner = rawOwner?.trim().toLowerCase();
-  const listed = trip.people.map((p) => p.email);
+  // A name-only person has no address and so is not in this address list.
+  const listed = trip.people.flatMap((p) => (p.email ? [p.email] : []));
   return owner ? [...new Set([owner, ...listed])] : listed;
 }
 
@@ -171,7 +172,8 @@ export async function namesOnTrip(trip: Trip): Promise<string[]> {
   if (ownerEmail) seen.add(ownerEmail);
 
   for (const person of trip.people) {
-    const email = person.email.trim().toLowerCase();
+    // A name-only person (B-2847) has no address: credited, de-duplicated by name.
+    const email = person.email?.trim().toLowerCase() || `name:${person.name}`;
     if (seen.has(email)) continue;
     seen.add(email);
     names.push(person.nickname || person.name);
