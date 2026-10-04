@@ -4776,6 +4776,7 @@ export type TranslationKey =
   | "studio.tripPeople.photo.discard"
   | "studio.tripPeople.photo.failed"
   | "studio.tripPeople.photo.keep"
+  | "studio.tripPeople.photo.keyboardHint"
   | "studio.tripPeople.photo.markerRemove"
   | "studio.tripPeople.photo.me"
   | "studio.tripPeople.photo.nameHint"

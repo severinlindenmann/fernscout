@@ -51,6 +51,8 @@ export default function GroupPhotoFigures({
   const [cards, setCards] = useState<Card[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [cursor, setCursor] = useState({ x: 0.5, y: 0.5 });
+  const [focused, setFocused] = useState(false);
 
   useEffect(() => () => photo.current?.close(), []);
 
@@ -68,13 +70,29 @@ export default function GroupPhotoFigures({
     }
   }
 
-  function tap(e: React.MouseEvent<HTMLDivElement>) {
+  /** The one way a marker is placed: a tap and the keyboard both end here. */
+  function place(x: number, y: number) {
     if (markers.length >= MAX_MARKERS) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width;
-    const y = (e.clientY - r.top) / r.height;
     const n = Math.max(0, ...markers.map((m) => m.n)) + 1;
     setMarkers([...markers, { n, x, y }]);
+  }
+
+  function tap(e: React.MouseEvent<HTMLDivElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    place((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  }
+
+  function key(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget) return; // a marker button keeps its own keys
+    const step = e.shiftKey ? 0.01 : 0.05;
+    const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+    if (d) {
+      e.preventDefault();
+      setCursor((c) => ({ x: Math.min(1, Math.max(0, c.x + d[0])), y: Math.min(1, Math.max(0, c.y + d[1])) }));
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      place(cursor.x, cursor.y);
+    }
   }
 
   const patch = (n: number, change: Partial<Card>) =>
@@ -165,13 +183,31 @@ export default function GroupPhotoFigures({
       {photoUrl && !cards && (
         <>
           <p className="mt-1 text-sm text-ink-secondary">{t("studio.tripPeople.photo.tapHint")}</p>
+          <p id="group-photo-keys" className="sr-only">
+            {t("studio.tripPeople.photo.keyboardHint")}
+          </p>
           <div
             onClick={tap}
+            onKeyDown={key}
+            onFocus={(e) => e.target === e.currentTarget && setFocused(true)}
+            onBlur={(e) => e.target === e.currentTarget && setFocused(false)}
+            tabIndex={0}
+            role="group"
+            aria-label={t("studio.tripPeople.photo.alt")}
+            aria-describedby="group-photo-keys"
             data-testid="group-photo"
-            className="relative mt-3 cursor-crosshair select-none overflow-hidden rounded-lg"
+            className="relative mt-3 cursor-crosshair select-none overflow-hidden rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-strong"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photoUrl} alt={t("studio.tripPeople.photo.alt")} className="block w-full" draggable={false} />
+            {focused && (
+              <span
+                data-testid="group-photo-crosshair"
+                aria-hidden="true"
+                style={{ left: `${cursor.x * 100}%`, top: `${cursor.y * 100}%` }}
+                className="pointer-events-none absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_2px_rgba(0,0,0,0.6)] before:absolute before:left-1/2 before:top-0 before:h-full before:w-0.5 before:-translate-x-1/2 before:bg-white after:absolute after:left-0 after:top-1/2 after:h-0.5 after:w-full after:-translate-y-1/2 after:bg-white"
+              />
+            )}
             {markers.map((m) => (
               <button
                 key={m.n}

@@ -3307,6 +3307,7 @@
   "studio.tripPeople.photo.tapHint": "Tap each person who should get a figure. Tap a number to remove it.",
   "studio.tripPeople.photo.alt": "Your photo. Tap a person to mark them.",
   "studio.tripPeople.photo.markerRemove": "Remove person {n}",
+  "studio.tripPeople.photo.keyboardHint": "Keyboard: focus the photo, move the crosshair with the arrow keys (Shift for small steps), press Enter or Space to mark a person.",
   "studio.tripPeople.photo.describe": "Describe {count} marked",
   "studio.tripPeople.photo.nameHint": "Name each figure, or discard it. Nothing is matched for you.",
   "studio.tripPeople.photo.pending": "Describing…",
