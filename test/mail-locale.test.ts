@@ -131,11 +131,11 @@ describe("a journal that says it is Hungarian gets Hungarian mail", () => {
     expect(sent).toHaveLength(1);
 
     expect(sent[0].subject).toMatch(new RegExp(`^\\d{6} a kódod ehhez: ${TITLE}$`));
-    expect(sent[0].text).toContain("Koppints a gombra");
+    expect(sent[0].text).toContain("Ott írd be, ahol kérted");
     // Not a word of the English original survives, in either part.
     expect(whole(sent[0])).not.toContain("your code for");
     expect(whole(sent[0])).not.toContain("Tap the button");
-    expect(sent[0].html).toContain("Koppints a gombra");
+    expect(sent[0].html).toContain("Ott írd be, ahol kérted");
     // The date the mail was asked for is written in the reader's language too,
     // with no doubled full stop where Hungarian already ends the day with one.
     expect(sent[0].text).toMatch(/Kérve ekkor: \d{2}:\d{2} UTC, \S+ \d+\. Ha van/);
