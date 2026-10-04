@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/LocaleProvider";
+import GroupPhotoFigures from "@/components/studio/trip/GroupPhotoFigures";
 import FigureCreator from "@/components/studio/figures/FigureCreator";
 import type { FigureDoc } from "@/lib/api/v2/schemas/figures";
 
@@ -50,6 +51,7 @@ function TripPeopleSheet({
   const [set, setSet] = useState<string[]>(figureSet);
   const [typed, setTyped] = useState("");
   const [creating, setCreating] = useState<SheetPerson | null>(null);
+  const [fromPhoto, setFromPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -105,9 +107,20 @@ function TripPeopleSheet({
   }
 
   async function keepFigure(doc: FigureDoc) {
-    setFigures((prev) => [...prev.filter((f) => f.id !== doc.id), doc]);
     setCreating(null);
-    const next = set.includes(doc.id) ? set : [...set, doc.id];
+    await keepFigures([doc]);
+  }
+
+  /** Kept figures join the trip's figure set; people the owner named are added
+   *  to the byline the same way a typed name or contact is (no invite). */
+  async function keepFigures(docs: FigureDoc[], named: SheetPerson[] = []) {
+    setFigures((prev) => [...prev.filter((f) => !docs.some((d) => d.id === f.id)), ...docs]);
+    setFromPhoto(false);
+    const fresh = named.filter(
+      (n) => !people.some((p) => (n.email ? p.email === n.email : !p.email && p.name === n.name)),
+    );
+    if (fresh.length) await writePeople([...people, ...fresh]);
+    const next = [...set, ...docs.map((d) => d.id).filter((id) => !set.includes(id))];
     try {
       const res = await fetch(`/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/figures`, {
         method: "PATCH",
@@ -170,7 +183,16 @@ function TripPeopleSheet({
       onClose={onClose}
       className="m-auto w-[min(32rem,calc(100vw-2rem))] max-h-[90dvh] overflow-y-auto rounded-2xl border border-line-quiet bg-surface-raised p-5 text-ink-body backdrop:bg-black/40"
     >
-      {creating ? (
+      {fromPhoto ? (
+        <GroupPhotoFigures
+          username={username}
+          owner={ownerPerson}
+          contacts={contacts}
+          existingIds={figures.map((f) => f.id)}
+          onKept={(docs, named) => void keepFigures(docs, named)}
+          onCancel={() => setFromPhoto(false)}
+        />
+      ) : creating ? (
         <FigureCreator
           username={username}
           initial={figureOf(creating) ?? null}
@@ -224,6 +246,19 @@ function TripPeopleSheet({
               </button>
             </div>
           </form>
+          <div className="mt-3">
+            {photoConsent ? (
+              <button
+                type="button"
+                onClick={() => setFromPhoto(true)}
+                className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong"
+              >
+                {t("studio.tripPeople.photo.button")}
+              </button>
+            ) : (
+              <p className="text-sm text-ink-secondary">{t("studio.tripPeople.photo.unavailable")}</p>
+            )}
+          </div>
           {error && (
             <p role="alert" className="mt-2 text-sm text-coral-600">
               {error}
