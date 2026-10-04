@@ -1582,6 +1582,7 @@ export type TranslationKey =
   | "me.signOut"
   | "me.signOutBody"
   | "me.signOutFailed"
+  | "me.signOutStopsRecording"
   | "me.signOutTitle"
   | "me.signedInAs"
   | "me.signinExpired"

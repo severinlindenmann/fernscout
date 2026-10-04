@@ -4,6 +4,7 @@ import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
+import { stopRouteRecording, useRecordingRoute } from "@/components/nativeShell";
 import { tellWorkerSignedOut } from "@/lib/signedOut";
 import { hasOutbox, openOutboxStore } from "@/lib/outbox";
 
@@ -40,6 +41,7 @@ export default function SignOut({ owner }: { owner?: string }) {
   const [failed, setFailed] = useState(false);
   const [waiting, setWaiting] = useState<number | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const recording = useRecordingRoute();
 
   async function doSignOut() {
     setBusy(true);
@@ -57,6 +59,7 @@ export default function SignOut({ owner }: { owner?: string }) {
       // on this device is not this owner's to keep, and the confirm above
       // already told them what it held.
       if (owner && hasOutbox()) await openOutboxStore().clear(owner).catch(() => undefined);
+      await stopRouteRecording(); // B-2841
       window.location.reload();
       return;
     }
@@ -76,6 +79,11 @@ export default function SignOut({ owner }: { owner?: string }) {
         return;
       }
     }
+    // B-2841 — in the iPhone app, say that recording stops before it does.
+    if (recording) {
+      setConfirming(true);
+      return;
+    }
     void doSignOut();
   }
 
@@ -84,9 +92,14 @@ export default function SignOut({ owner }: { owner?: string }) {
       <section className="mt-8 border-t border-line-quiet pt-6">
         <ConfirmPanel
           label={t("me.signOut")}
-          question={t(waiting === 1 ? "studio.outbox.confirmSignOut.one" : "studio.outbox.confirmSignOut", {
-            n: String(waiting ?? 0),
-          })}
+          question={
+            waiting
+              ? t(waiting === 1 ? "studio.outbox.confirmSignOut.one" : "studio.outbox.confirmSignOut", {
+                  n: String(waiting),
+                })
+              : t("me.signOutStopsRecording")
+          }
+          details={waiting && recording ? t("me.signOutStopsRecording") : undefined}
           confirmLabel={t("studio.outbox.signOutAnyway")}
           busyLabel={t("me.signingOut")}
           tone="destructive"

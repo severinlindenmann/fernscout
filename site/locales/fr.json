@@ -1663,6 +1663,7 @@
   "me.signOut": "Se déconnecter",
   "me.signOutBody": "Cela met fin à ta session sur cet appareil. Pour revenir, il te faudra un nouveau code par e-mail, alors ne te déconnecte que si tu es sur l’ordinateur de quelqu’un d’autre.",
   "me.signOutFailed": "Ça n’a pas marché, et tu es toujours connecté·e. Réessaie.",
+  "me.signOutStopsRecording": "L’enregistrement de l’itinéraire sur ce téléphone s’arrête aussi.",
   "me.signOutTitle": "Déconnexion",
   "me.signedInAs": "Connecté·e en tant que",
   "me.signinExpired": "Ce lien avait déjà été utilisé, il ne t’a donc pas laissé entrer. C’est fréquent et ce n’est pas de ta faute : les fournisseurs de messagerie ouvrent souvent les liens d’un message avant toi. Demande un nouveau code ci-dessous et ça fonctionnera.",
