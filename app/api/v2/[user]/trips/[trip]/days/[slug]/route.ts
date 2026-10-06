@@ -314,7 +314,13 @@ export async function applyDayPatch(
   const stored = readDayFile(user, tripId, slug);
   if (!stored) return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
 
-  const currentDoc = dayDoc.parse(withResolvedTest(dayEchoInput(stored, tripRef(user, tripId)), trip, stored));
+  // B-2928 — the day a caller is PATCHing may be the very one that no longer
+  // validates (a decline reason under 10 characters); refusing to read it
+  // would leave no way to fix it. The ETag is taken over what is stored, and
+  // the merged result is still fully validated below.
+  const currentInput = withResolvedTest(dayEchoInput(stored, tripRef(user, tripId)), trip, stored);
+  const currentParsed = dayDoc.safeParse(currentInput);
+  const currentDoc = currentParsed.success ? currentParsed.data : currentInput;
   const currentEtag = etagFor(currentDoc);
   if (ifMatchStale(request, currentEtag)) {
     return fail("stale_document", ERROR_CODES.stale_document, currentDoc, 409);

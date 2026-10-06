@@ -39,7 +39,7 @@ import { serverSite } from "@/lib/site";
 import { readTripFile, tripFileUnknownKeys, writeTripFile, writeDayFile } from "@/lib/api/v2/store";
 import { toStoredMedia } from "@/lib/api/v2/days";
 import { daylessTripMediaSrcs } from "@/lib/api/v2/media";
-import { buildTripDoc, tripDays } from "@/lib/api/v2/trips";
+import { answeringStoredInvalid, buildTripDoc, tripDays } from "@/lib/api/v2/trips";
 import type { TripFile } from "@/lib/api/v2/documents";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { tripTombstone } from "@/lib/tombstones";
@@ -71,7 +71,11 @@ function daysModeOf(request: Request): "full" | "summaries" | "none" {
   return raw === "summaries" || raw === "none" ? raw : "full";
 }
 
-export async function GET(request: Request, { params }: RouteCtx) {
+export async function GET(request: Request, ctx: RouteCtx) {
+  return answeringStoredInvalid(() => readOneTrip(request, ctx));
+}
+
+async function readOneTrip(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
   // Authenticate BEFORE resolving the journal — B1615. The other order lets
   // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
@@ -127,7 +131,11 @@ export async function GET(request: Request, { params }: RouteCtx) {
  * mechanism doing exactly what it is for: the caller has read the document,
  * holds its etag, and is saying "replace the thing I read").
  */
-export async function PUT(request: Request, { params }: RouteCtx) {
+export async function PUT(request: Request, ctx: RouteCtx) {
+  return answeringStoredInvalid(() => createOrReplaceTrip(request, ctx));
+}
+
+async function createOrReplaceTrip(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
   // Authenticate BEFORE resolving the journal — B1615. The other order lets
   // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
@@ -380,12 +388,22 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
  */
 export type TripPatchMode = "whole" | "sections";
 
-export async function applyTripPatch(
+export function applyTripPatch(
   user: string,
   trip: string,
   journal: NonNullable<ReturnType<typeof getUser>>,
   request: Request,
   mode: TripPatchMode = "whole",
+): Promise<Response> {
+  return answeringStoredInvalid(() => patchTripUnguarded(user, trip, journal, request, mode));
+}
+
+async function patchTripUnguarded(
+  user: string,
+  trip: string,
+  journal: NonNullable<ReturnType<typeof getUser>>,
+  request: Request,
+  mode: TripPatchMode,
 ): Promise<Response> {
   const stored = readTripFile(user, trip);
   if (!stored) {

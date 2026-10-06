@@ -25,7 +25,7 @@ import "server-only";
  * blank, not a client screen's canned-reason parser), so it gets its own
  * name rather than widening that file's narrow contract.
  */
-const REASONS: Readonly<Record<string, string>> = {
+export const REASONS: Readonly<Record<string, string>> = {
   coordinates: "not known — no position in the photos and no place picked from the place list",
   timezone: "not known — no position in the photos and no place picked from the place list",
   country: "not known — no position in the photos and no place picked from the place list",
@@ -35,7 +35,7 @@ const REASONS: Readonly<Record<string, string>> = {
   tags: "no tags chosen",
   media: "no photographs",
   costs: "no costs given",
-  transportMode: "not said",
+  transportMode: "no way of travelling given",
   // Only true once the owner has actually made that choice somewhere real —
   // today that is nowhere, so this is the one reason this file states a
   // claim ahead of the feature that will make it true (B2675's translate

@@ -15,6 +15,33 @@ import { dayEchoInput } from "./days";
 import { tripRef } from "../../trips";
 import { daySummary, tripDoc, type DaySummary } from "./schemas";
 import type { DayFile, TripFile } from "./documents";
+import { ZodError } from "zod";
+import { ERROR_CODES } from "../errorCodes";
+import { fail } from "./route";
+
+/** A stored day or trip that no longer passes the schema every read applies
+ * (B-2928). Carries the day and field so a caller can fix the one thing,
+ * instead of an uncaught ZodError answering 500 on an unrelated edit. */
+export class StoredDocumentInvalid extends Error {
+  constructor(readonly problems: { day?: string; field: string; message: string }[]) {
+    super(problems.map((p) => `${p.day ? `Day "${p.day}", ` : ""}${p.field}: ${p.message}`).join("; "));
+  }
+}
+
+/** Runs a route handler and turns a StoredDocumentInvalid into the named 422. */
+export async function answeringStoredInvalid(run: () => Promise<Response> | Response): Promise<Response> {
+  try {
+    return await run();
+  } catch (e) {
+    if (!(e instanceof StoredDocumentInvalid)) throw e;
+    return fail(
+      "stored_document_invalid",
+      `${ERROR_CODES.stored_document_invalid} ${e.message}`,
+      { problems: e.problems },
+      422,
+    );
+  }
+}
 
 /** Every day file this trip actually has, in slug (date) order. */
 export function tripDays(user: string, tripId: string): DayFile[] {
@@ -108,7 +135,19 @@ export function buildTripDoc(
   // `summaries`/`none` are documented, deliberate narrowings of the same
   // response (V12), so they are returned as plain objects rather than forced
   // through a schema built for a different shape.
-  return daysMode === "full" ? tripDoc.parse(doc) : doc;
+  if (daysMode !== "full") return doc;
+  try {
+    return tripDoc.parse(doc);
+  } catch (e) {
+    if (!(e instanceof ZodError)) throw e;
+    throw new StoredDocumentInvalid(
+      e.issues.map((i) => {
+        const [head, index, ...rest] = i.path;
+        const day = head === "days" && typeof index === "number" ? days[index]?.slug : undefined;
+        return { ...(day ? { day } : {}), field: (day ? rest : i.path).join(".") || "(trip)", message: i.message };
+      }),
+    );
+  }
 }
 
 // `notifyNewPeople`/`TripNotification` used to mail every newly-named,

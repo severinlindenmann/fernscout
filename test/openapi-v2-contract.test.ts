@@ -296,6 +296,9 @@ describe("every error code a route answers with is published", () => {
     "lib/api/tripRates.ts",
     "lib/api/tripVisibility.ts",
     "lib/api/media.ts",
+    // B-2928: the trip routes wrap their handlers in `answeringStoredInvalid`,
+    // which is where `stored_document_invalid` is spoken.
+    "lib/api/v2/trips.ts",
     // B671: the import route answers with `error: result.refusal`, and the
     // refusal words are written here — the same "reaches a caller through a
     // variable" case the list above exists for.
