@@ -1288,7 +1288,13 @@ function buildPaths(): Record<string, PathItem> {
         "summaries and none change the shape of `days` away from what `tripDoc` documents for a plain GET.",
       responses: {
         ...jsonResponse(200, tripDoc, "the trip, with its days inline (mode `full`)"),
-        ...refusalResponses([...authRefusals, outOfScope(), noSuchJournal(), ref("unknown_trip", 404)]),
+        ...refusalResponses([
+          ...authRefusals,
+          outOfScope(),
+          noSuchJournal(),
+          ref("unknown_trip", 404),
+          ref("stored_document_invalid", 422, "a stored day breaks the schema; details.problems names the day and field"),
+        ]),
       },
     },
     put: {
@@ -1304,6 +1310,7 @@ function buildPaths(): Record<string, PathItem> {
           ref("invalid_request", 400),
           ref("incomplete", 422),
           ref("invalid_trip", 400),
+          ref("stored_document_invalid", 422, "a stored day breaks the schema; details.problems names the day and field"),
           ref("invalid_translations", 400),
           ref("invalid_cover", 400),
         ]),
@@ -1320,6 +1327,7 @@ function buildPaths(): Record<string, PathItem> {
           ref("stale_document", 409),
           ref("invalid_request", 400),
           ref("incomplete", 422),
+          ref("stored_document_invalid", 422, "a stored day breaks the schema; details.problems names the day and field"),
           ref("invalid_translations", 400),
           ref("invalid_cover", 400),
         ]),

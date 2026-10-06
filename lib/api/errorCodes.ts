@@ -67,6 +67,7 @@ export const ERROR_CODES = {
   invalid_json: "The body did not parse as JSON. Check the content-type header and the quoting.",
   invalid_request: "The body is missing something this call needs, or a value is not usable. The `message` says which.",
   stale_document: "The document you wrote against has moved on — either it changed since you last read it and your `If-Match` no longer covers the current version, or you PUT a client-chosen id that already exists with no `If-Match` at all (a client-chosen-id create refuses to silently overwrite what is already there). `details` is the document exactly as it stands now, not wrapped in another field: read it, and send `If-Match` with its ETag if you still mean to write.",
+  stored_document_invalid: "The trip or day already on disk breaks a rule the API enforces on every read (for example a decline reason under 10 characters), so it cannot be read or written as it is. `details.problems` names the day, the field and what is wrong. Correct that field with a PATCH to the day, then retry.",
   bad_request: "The body is not usable. The `message` says why.",
   invalid_entry: "One or more fields of the day are wrong. `problems` lists every one at once — field, what arrived, what was expected — so fix them all and send once, rather than a round trip each.",
   invalid_trip: "One or more fields of the trip are wrong; `problems` lists them. A field name that is not a field is refused here rather than dropped, and the hint names the field you probably meant.",

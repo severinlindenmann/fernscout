@@ -8,7 +8,7 @@ import { resolveBearer, ownsUser, outOfScopeRefusal } from "@/lib/api/v2/auth";
 import { writableTrips } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { readTripFile, listTripIds } from "@/lib/api/v2/store";
-import { buildTripDoc } from "@/lib/api/v2/trips";
+import { buildTripDoc, StoredDocumentInvalid } from "@/lib/api/v2/trips";
 import { getUser } from "@/lib/users";
 import type { Trip } from "@/lib/types";
 
@@ -62,7 +62,17 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
   const next = page.length === limit && from + limit < visible.length ? page[page.length - 1].id : undefined;
 
   return ok({
-    trips: page.map(({ id, trip }) => buildTripDoc(user, id, trip, "full")),
+    // A trip whose stored days no longer validate must not hide every other
+    // trip (B-2928): it is listed with day summaries, and its own GET names
+    // the problem.
+    trips: page.map(({ id, trip }) => {
+      try {
+        return buildTripDoc(user, id, trip, "full");
+      } catch (e) {
+        if (e instanceof StoredDocumentInvalid) return buildTripDoc(user, id, trip, "summaries");
+        throw e;
+      }
+    }),
     next_cursor: next,
   });
 }
