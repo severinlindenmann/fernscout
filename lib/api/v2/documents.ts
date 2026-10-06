@@ -325,7 +325,15 @@ export function tripFromJson(raw: string): TripFile {
   if (data.translations !== undefined) trip.translations = data.translations as TripFile["translations"];
   if (data.costs !== undefined) trip.costs = data.costs as TripFile["costs"];
   if (data.plan !== undefined) trip.plan = data.plan as TripFile["plan"];
-  if (data.declined !== undefined) trip.declined = data.declined as TripFile["declined"];
+  if (data.declined !== undefined) {
+    // B-2928 — `buddies` was a declinable question until B2297 removed it; 17
+    // trips written before that still carry `declined.buddies`, which the
+    // strict `declined` schema refuses as an unrecognised key on every full
+    // read. Read and thrown away, like the retired `costs` decline above;
+    // the next write drops it from the file.
+    const { buddies: _retired, ...declined } = data.declined as Record<string, unknown>;
+    if (Object.keys(declined).length > 0) trip.declined = declined as TripFile["declined"];
+  }
 
   // v1's `travellers`, `tracks`, `status`, `startLocation` and `ratesFrom`
   // are read by nothing here and never round-tripped — `travellers` is
