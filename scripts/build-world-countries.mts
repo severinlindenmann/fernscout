@@ -24,6 +24,7 @@ import { feature } from "topojson-client";
 import topology from "world-atlas/countries-110m.json" with { type: "json" };
 import { project, MAP_VIEWBOX } from "../lib/mapProjection.mjs";
 import { COUNTRY_CODES } from "../lib/countryCodes";
+import { filterCountryList } from "../lib/countries";
 
 const NE_ADMIN0 =
   "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson";
@@ -63,6 +64,69 @@ const CONTINENT_OVERRIDES: Record<string, { continent: string; subregion: string
   GF: { continent: "South America", subregion: "South America" },
 };
 
+/**
+ * Small countries — B2930. 1:110m drops every state too small to draw at
+ * world scale (Liechtenstein, Singapore, Åland, most islands), yet the
+ * country picker offers them all and the visited form, the API and the trips
+ * page only accept a code this file carries. Each code the picker offers with
+ * no 110m shape becomes a dot instead: a small octagon at Natural Earth's own
+ * 1:50m label point, so every consumer treats it as an ordinary shape. Not
+ * 50m outlines — ten times the file, and still sub-pixel at world zoom.
+ */
+const NE_ADMIN0_50M =
+  "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson";
+const DOT_RADIUS = 1.5;
+
+/** Codes Natural Earth's 50m admin-0 has no feature of its own for (they sit
+ * inside France, the Netherlands, Norway, Australia, New Zealand or the UK
+ * there), and the open-ocean ones whose "Seven seas" continent has no button:
+ * position and region by hand, regions as the UN geoscheme has them. */
+const DOT_OVERRIDES: Record<string, { lat?: number; lng?: number; continent: string; subregion: string }> = {
+  BQ: { lat: 12.15, lng: -68.27, continent: "North America", subregion: "Caribbean" },
+  CX: { lat: -10.49, lng: 105.62, continent: "Oceania", subregion: "Australia and New Zealand" },
+  CC: { lat: -12.16, lng: 96.87, continent: "Oceania", subregion: "Australia and New Zealand" },
+  GI: { lat: 36.14, lng: -5.35, continent: "Europe", subregion: "Southern Europe" },
+  GP: { lat: 16.25, lng: -61.58, continent: "North America", subregion: "Caribbean" },
+  MQ: { lat: 14.64, lng: -61.02, continent: "North America", subregion: "Caribbean" },
+  YT: { lat: -12.83, lng: 45.17, continent: "Africa", subregion: "Eastern Africa" },
+  RE: { lat: -21.12, lng: 55.54, continent: "Africa", subregion: "Eastern Africa" },
+  SJ: { lat: 78.22, lng: 15.65, continent: "Europe", subregion: "Northern Europe" },
+  TK: { lat: -9.2, lng: -171.85, continent: "Oceania", subregion: "Polynesia" },
+  MV: { continent: "Asia", subregion: "Southern Asia" },
+  IO: { continent: "Africa", subregion: "Eastern Africa" },
+  MU: { continent: "Africa", subregion: "Eastern Africa" },
+  SC: { continent: "Africa", subregion: "Eastern Africa" },
+  SH: { continent: "Africa", subregion: "Western Africa" },
+};
+
+/** ISO 3166-1 alpha-2 → 50m label point and region, for the dots. */
+async function fetchLabelPoints(): Promise<
+  Record<string, { lat: number; lng: number; continent: string; subregion: string }>
+> {
+  const res = await fetch(NE_ADMIN0_50M);
+  if (!res.ok) throw new Error(`Natural Earth 50m admin-0 fetch failed: ${res.status}`);
+  const geo = (await res.json()) as {
+    features: {
+      properties: {
+        ISO_A2?: string;
+        ISO_A2_EH?: string;
+        LABEL_X: number;
+        LABEL_Y: number;
+        CONTINENT: string;
+        SUBREGION: string;
+      };
+    }[];
+  };
+  const iso2 = /^[A-Z]{2}$/;
+  const out: Record<string, { lat: number; lng: number; continent: string; subregion: string }> = {};
+  for (const { properties: p } of geo.features) {
+    const code = iso2.test(p.ISO_A2 ?? "") ? p.ISO_A2 : p.ISO_A2_EH;
+    if (!code || !iso2.test(code)) continue;
+    out[code] = { lat: p.LABEL_Y, lng: p.LABEL_X, continent: p.CONTINENT, subregion: p.SUBREGION };
+  }
+  return out;
+}
+
 const ROOT = path.join(import.meta.dirname, "..");
 const OUT_FILE = path.join(ROOT, "lib", "worldCountries.json");
 
@@ -72,11 +136,13 @@ const OUT_FILE = path.join(ROOT, "lib", "worldCountries.json");
  * in frontmatter. 161 of the 177 features match without help; these are the
  * rest.
  *
- * Antarctica, N. Cyprus and Somaliland are deliberately absent rather than
- * guessed: two are disputed and the third is nobody's holiday. They render as
- * ordinary unvisited land, which is what they are.
+ * N. Cyprus and Somaliland are deliberately absent rather than guessed: both
+ * are disputed, and the country picker does not offer either. They render as
+ * ordinary unvisited land. Antarctica is named (B2930): the picker offers it
+ * and people do go.
  */
 const ALIASES: Record<string, string> = {
+  antarctica: "AQ",
   "w. sahara": "EH",
   "dem. rep. congo": "CD",
   "dominican rep.": "DO",
@@ -278,6 +344,38 @@ async function main() {
 
     emit(code, name, usable, continents);
   }
+
+  const labels = await fetchLabelPoints();
+  const drawn = new Set(out.map((c) => c.code));
+  const dotless: string[] = [];
+  for (const { iso2, name } of filterCountryList("", "en")) {
+    if (drawn.has(iso2)) continue;
+    const at = { ...labels[iso2], ...DOT_OVERRIDES[iso2] };
+    if (at.lat === undefined || at.lng === undefined || !at.continent) {
+      dotless.push(iso2);
+      continue;
+    }
+    const [x, y] = project(at.lat, at.lng);
+    const ring = Array.from({ length: 8 }, (_, i) => {
+      const a = (i * Math.PI) / 4;
+      return `${(x + DOT_RADIUS * Math.cos(a)).toFixed(1)},${(y + DOT_RADIUS * Math.sin(a)).toFixed(1)}`;
+    });
+    const r = (n: number) => +n.toFixed(1);
+    out.push({
+      code: iso2,
+      name,
+      path: `M${ring.join(" L")} Z`,
+      x: r(x),
+      y: r(y),
+      w: DOT_RADIUS * 2,
+      mainBBox: [r(x - DOT_RADIUS), r(y - DOT_RADIUS), r(x + DOT_RADIUS), r(y + DOT_RADIUS)],
+      continent: at.continent,
+      subregion: at.subregion,
+    });
+  }
+  // Every code the picker offers must be accepted; a missing one is a build
+  // failure, not a country the form will refuse.
+  if (dotless.length > 0) throw new Error(`no position for picker codes: ${dotless.join(", ")}`);
 
   fs.writeFileSync(OUT_FILE, JSON.stringify(out));
 
