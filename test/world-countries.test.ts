@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
 import worldCountries from "@/lib/worldCountries.json";
+import { isCountryCode } from "@/lib/api/v2/schemas/visited";
+import { filterCountryList } from "@/lib/countries";
 
 /**
  * B1594 — Natural Earth's admin-0 features are sovereign states, not
@@ -37,5 +39,21 @@ describe("the baked world countries", () => {
     // It really is the part that used to be attached to France: west of -20°.
     const xs = xCoordsOf(gf!.path);
     expect(Math.max(...xs)).toBeLessThan(lngToX(-20));
+  });
+});
+
+/**
+ * B2930 — the country picker offered 244 codes, and the visited form, the API
+ * and the trips page accepted only the 175 that 1:110m draws, so Åland or
+ * Liechtenstein answered "not on the map yet". Derived from the picker's own
+ * list, not a hand list.
+ */
+describe("every country the picker offers is on the map", () => {
+  const byCode = new Map(worldCountries.map((c) => [c.code, c]));
+  test.each(filterCountryList("", "en").map((c) => c.iso2))("%s", (code) => {
+    const shape = byCode.get(code);
+    expect(shape?.path).toBeTruthy();
+    expect(shape?.continent).toBeTruthy();
+    expect(isCountryCode(code)).toBe(true);
   });
 });

@@ -335,8 +335,8 @@ async function TripsIndexBody({ user }: { user: string }) {
   const visits = [...allCodes]
     .map(([code, trips]) => {
       const shape = worldCountries.find((c) => c.code === code);
-      // A country with no shape is one Natural Earth cannot name (Antarctica,
-      // N. Cyprus, Somaliland) or a code nothing matched — dropped rather
+      // A country with no shape is one Natural Earth cannot name (N.
+      // Cyprus, Somaliland) or a code nothing matched — dropped rather
       // than drawn, since there is nothing to draw.
       return shape
         ? {
