@@ -21,7 +21,9 @@ export const FIELD =
   "mt-1 min-h-12 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong";
 export const LABEL = "block text-sm font-semibold text-ink-strong";
 
-/** One screen: content on top, the dots and the buttons at the bottom. */
+/** One screen: content on top, the dots and the buttons right under it —
+ * B-2931: never pinned to a viewport-high box, which pushed them below the
+ * fold under the page header. */
 export function Screen({
   children,
   footer,
@@ -34,9 +36,9 @@ export function Screen({
   labelledBy: string;
 }) {
   return (
-    <section aria-labelledby={labelledBy} className="flex min-h-[calc(100dvh-4rem)] flex-col gap-4">
+    <section aria-labelledby={labelledBy} className="flex flex-col gap-4">
       {children}
-      <div className="mt-auto flex flex-col gap-3 pt-4">
+      <div className="flex flex-col gap-3 pt-4">
         {dots && dots.total > 1 && <Dots {...dots} />}
         {footer}
       </div>
