@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import BusyButton from "@/components/BusyButton";
+import TelField, { joinTel } from "@/components/TelField";
 import {
   AddressFields,
   Alert,
@@ -22,8 +23,34 @@ import {
   type Tick,
 } from "@/components/guide/GuideParts";
 import { translate, type TranslationKey } from "@/lib/i18n";
+import { toE164 } from "@/lib/phone";
+import { regionDefaults } from "@/lib/regionDefaults";
 
 import { journalPath } from "@/lib/journalPath";
+const subscribeNothing = () => () => {};
+const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(navigator.languages ?? [navigator.language])].join(","));
+
+/** B-2933: the name typed before the confirm mail went out, kept in this
+ * browser so the mail's link (which reopens this page signed in) does not ask
+ * for it again. Never in the link itself: `safeDestination` drops a query
+ * string, and a name has no business in a mailed URL. */
+const nameKey = (code: string) => `fernscout.join.${code}.name`;
+function storedName(code: string): string {
+  try {
+    return localStorage.getItem(nameKey(code)) ?? "";
+  } catch {
+    return "";
+  }
+}
+function storeName(code: string, name: string | null) {
+  try {
+    if (name) localStorage.setItem(nameKey(code), name);
+    else localStorage.removeItem(nameKey(code));
+  } catch {
+    // Private mode or blocked storage: the visitor types the name again.
+  }
+}
+
 type Step = "who" | "reach" | "code" | "address" | "notify" | "done";
 
 const ERRORS: Record<string, TranslationKey> = {
@@ -85,14 +112,21 @@ export default function JoinFlow({
   const [step, setStep] = useState<Step>("who");
   const index = steps.indexOf(step);
   const dots = { total: steps.length - 1, current: index, label: t("guide.dots", { n: String(index + 1), total: String(steps.length - 1) }) };
-  const next = () => setStep(steps[index + 1] ?? step);
+  // B-2933: a step change never carries the last step's error along.
+  const go = (to: Step) => {
+    setError(null);
+    setStep(to);
+  };
+  const next = () => go(steps[index + 1] ?? step);
   const seen = useRef<Step>("who");
   useEffect(() => {
     if (seen.current !== step) document.getElementById(`join-${step}`)?.focus();
     seen.current = step;
   }, [step]);
 
-  const [name, setName] = useState("");
+  const remembered = useSyncExternalStore(subscribeNothing, () => storedName(code), () => "");
+  const [typedName, setName] = useState<string | null>(null);
+  const name = typedName ?? remembered;
   // B2597: readers sign in by email only — `caps.sms` is always false now,
   // kept as a prop only so this component degrades the same way it always
   // did when a channel is unavailable.
@@ -141,9 +175,10 @@ export default function JoinFlow({
   async function send() {
     const sent = await call({ action: "send" });
     if (sent) {
+      storeName(code, name.trim());
       setSentTo(String(sent.to ?? value));
       setTyped("");
-      setStep("code");
+      go("code");
     }
   }
   async function verify() {
@@ -153,8 +188,9 @@ export default function JoinFlow({
   /** Somebody already on the page keeps what is stored: no address or
    * channel screens for them, straight to where they stand. */
   function proved(answer: Record<string, unknown>) {
+    storeName(code, null);
     setStatus(answer.status === "in" ? "in" : "waiting");
-    if (answer.known) setStep("done");
+    if (answer.known) go("done");
     else next();
   }
   const hasAddress = Boolean(address.line1.trim() && address.city.trim() && address.country.trim());
@@ -172,7 +208,17 @@ export default function JoinFlow({
   // B2505: a mobile for WhatsApp postcards, typed while the request waits.
   // Kept unproved and never texted: nothing goes to it until the owner lets
   // this person in, and it is never a sign-in number.
-  const [waMobile, setWaMobile] = useState("");
+  // B-2933: flag and dialling code (TelField), the code guessed from the
+  // browser's languages the way signup does until the visitor picks one.
+  const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
+  const region = useMemo(() => regionDefaults(languages ? languages.split(",") : []), [languages]);
+  const [waPick, setWaPick] = useState<{ cc: string; iso2?: string } | null>(null);
+  const waCc = waPick?.cc ?? region.cc ?? "";
+  const [waNational, setWaNational] = useState("");
+  const waMobile = joinTel(waCc, waNational);
+  // The server's own rule (`isMessageable`): with a dialling code picked the
+  // number is international, so no configured default is needed here.
+  const waValid = toE164(waMobile) !== null;
   // B2454: an email added after a mobile-only sign-up, proved by its own code.
   const [addedEmail, setAddedEmail] = useState<string | null>(null);
   const [emailValue, setEmailValue] = useState("");
@@ -224,8 +270,9 @@ export default function JoinFlow({
   const typesMobile = caps.whatsapp && !provedMobile && status === "waiting" && Boolean(wants.wantsWhatsapp);
   async function saveTicks() {
     const choices = Object.fromEntries(ticks.map((tick) => [tick.key, tick.checked && !tick.disabled]));
-    if (typesMobile && !waMobile.trim()) {
-      setError(t("guide.error.phone"));
+    if (typesMobile && !waValid) {
+      // A typed but invalid number already says so under the field.
+      if (!waNational.trim()) setError(t("guide.error.phone"));
       return;
     }
     if (await call({ action: "save", ...choices, ...(typesMobile ? { tel: waMobile.trim() } : {}), wantsNews: news && Boolean(provedEmail) })) next();
@@ -307,7 +354,7 @@ export default function JoinFlow({
         <p className="text-base text-ink-body">{t("join.code.bodyEmail", { to: sentTo })}</p>
         <CodeField id="join-code-input" label={t("guide.code.label")} value={typed} onChange={setTyped} />
         <Alert text={error} />
-        <button type="button" className={QUIET} onClick={() => setStep("reach")}>
+        <button type="button" className={QUIET} onClick={() => go("reach")}>
           {t("join.code.change")}
         </button>
       </Screen>
@@ -405,18 +452,27 @@ export default function JoinFlow({
           </div>
         )}
         {typesMobile && (
-          <label className={LABEL}>
-            {t("join.notify.whatsappMobile")}
-            <input
-              className={FIELD}
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              value={waMobile}
-              onChange={(e) => setWaMobile(e.target.value)}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="join-wa-tel" className={LABEL}>
+              {t("join.notify.whatsappMobile")}
+            </label>
+            <TelField
+              id="join-wa-tel"
+              cc={waCc}
+              iso2={waPick ? waPick.iso2 : (region.region ?? undefined)}
+              national={waNational}
+              onChange={(cc, national, iso2) => {
+                setWaPick({ cc, iso2 });
+                setWaNational(national);
+              }}
+              labelCountry={t("contact.telCountry")}
+              searchPlaceholder={t("contact.telSearchPlaceholder")}
+              noMatches={t("contact.telNoMatches")}
+              locale={locale}
             />
-            <span className="text-sm font-normal text-ink-secondary">{t("join.notify.whatsappLater", vars)}</span>
-          </label>
+            {waNational.trim() && !waValid && <Alert text={t("join.notify.whatsappInvalid")} />}
+            <span className="text-sm text-ink-secondary">{t("join.notify.whatsappLater", vars)}</span>
+          </div>
         )}
         {provedEmail && (
           <Ticks

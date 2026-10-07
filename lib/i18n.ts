@@ -1170,6 +1170,7 @@ export type TranslationKey =
   | "join.notify.recommended"
   | "join.notify.send"
   | "join.notify.whatsappHint"
+  | "join.notify.whatsappInvalid"
   | "join.notify.whatsappLater"
   | "join.notify.whatsappMobile"
   | "join.reach.emailLabel"
