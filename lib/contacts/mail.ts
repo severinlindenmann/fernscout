@@ -211,13 +211,18 @@ export async function sendCodeMail(
    * reader and being let in — "nothing opens yet" is true for the ordinary
    * queued reader and false for this one, so the mail must not say it. */
   preapproved = false,
+  /** B-2935: a code sent from the join flow (`/j/<code>`). Only the press
+   * page's words follow it (`for=join`): it grants nothing and moves no
+   * redirect, and the page still never looks the token up before the press. */
+  purpose?: "join",
 ) {
   // The one named exception (B334): an unconfirmed address is the whole point
   // of a passcode mail — there is nothing yet to have confirmed.
   mayMailContact({ email: to, confirmedAt: null }, { allowUnconfirmed: true });
-  const link = linkToken && isEnabled("auth", username)
+  const signIn = linkToken && isEnabled("auth", username)
     ? signInUrl(baseUrl(), username, linkToken, locale)
     : null;
+  const link = signIn && purpose === "join" ? `${signIn}${signIn.includes("?") ? "&" : "?"}for=join` : signIn;
   const { subject, content } = composeCodeMail({ title: user.title, locale, code, link, preapproved });
   return sendMail(renderMail(to, subject, content, username));
 }
