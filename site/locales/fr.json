@@ -4340,6 +4340,7 @@
   "join.notify.recommended": "recommandé",
   "join.notify.whatsappLater": "Rien n’y est envoyé tant que {owner} ne t’a pas fait entrer.",
   "join.notify.whatsappMobile": "Ton mobile pour WhatsApp",
+  "join.notify.whatsappInvalid": "Ce numéro ne semble pas complet — vérifie les chiffres après l’indicatif du pays.",
   "join.notify.whatsappHint": "Des cartes du voyage de {owner}, directement sur ton téléphone",
   "join.notify.addEmail": "Ajouter aussi un e-mail ?",
   "join.notify.addEmailHint": "L’e-mail est le meilleur moyen de recevoir les nouveaux jours : avec les photos, et sans s’accumuler dans tes SMS.",

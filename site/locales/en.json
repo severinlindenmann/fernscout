@@ -4371,6 +4371,7 @@
   "join.notify.recommended": "recommended",
   "join.notify.whatsappLater": "Nothing is sent to it until {owner} has let you in.",
   "join.notify.whatsappMobile": "Your mobile for WhatsApp",
+  "join.notify.whatsappInvalid": "That number does not look complete — check the digits after the country code.",
   "join.notify.whatsappHint": "Cards from {owner}’s trip, straight to your phone",
   "join.notify.addEmail": "Add an email too?",
   "join.notify.addEmailHint": "Email is how new days reach you best: with the photos, and without piling up in your texts.",

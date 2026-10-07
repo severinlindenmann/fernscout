@@ -4341,6 +4341,7 @@
   "join.notify.recommended": "ajánlott",
   "join.notify.whatsappLater": "Semmit nem küldünk rá, amíg {owner} be nem enged.",
   "join.notify.whatsappMobile": "A mobilszámod a WhatsApphoz",
+  "join.notify.whatsappInvalid": "Ez a szám nem tűnik teljesnek — nézd át az országhívószám utáni számjegyeket.",
   "join.notify.whatsappHint": "Képeslapok {owner} útjáról, egyenesen a telefonodra",
   "join.notify.addEmail": "Megadsz egy e-mail-címet is?",
   "join.notify.addEmailHint": "E-mailben érkeznek a legjobban az új napok: a fotókkal, és nem torlódnak fel az SMS-eid között.",

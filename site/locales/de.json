@@ -4340,6 +4340,7 @@
   "join.notify.recommended": "empfohlen",
   "join.notify.whatsappLater": "Es kommt nichts, bis {owner} dich hereingelassen hat.",
   "join.notify.whatsappMobile": "Deine Handynummer für WhatsApp",
+  "join.notify.whatsappInvalid": "Diese Nummer sieht nicht vollständig aus — prüf die Ziffern nach der Landesvorwahl.",
   "join.notify.whatsappHint": "Karten von {owner}s Reise, direkt aufs Handy",
   "join.notify.addEmail": "Auch eine E-Mail-Adresse?",
   "join.notify.addEmailHint": "Per E-Mail kommen neue Tage am besten an: mit den Fotos, und ohne dass sich deine SMS stapeln.",
