@@ -15,7 +15,7 @@ import { journalPath } from "@/lib/journalPath";
 import { NO_PROSE } from "@/lib/helper/draft";
 import { missingConsentScopes, type ConsentScopes } from "@/lib/studio/featureConsent";
 import { messageFact, publishAudienceLabel, reachActions, readersFact } from "@/lib/studio/publishAudience";
-import { addAllAiTags, matchingUsedBeforeTags, mergeTags, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
+import { addAllAiTags, matchingUsedBeforeTags, mergeTags, tagOf, toggleTag, type TagChip } from "@/lib/studio/tagsMerge";
 import { readLanguageAnswer, saveLanguageAnswer, type LanguageAnswer } from "@/lib/studio/languageAnswer";
 import { dayLanguageFor, offerLocalesFor } from "@/lib/studio/dayLanguage";
 import { initialSuggestionState, pickTitle, applyCompose, undoCompose, type SuggestionState } from "@/lib/studio/suggestionState";
@@ -203,7 +203,7 @@ export default function PreviewDayFlow({
         seededTags.current = true;
         const place = read[0]?.location;
         const already = read.flatMap((e) => e?.tags ?? []);
-        setSelectedTags(new Set([...(place ? [place.toLowerCase()] : []), ...already.map((tg) => tg.toLowerCase())]));
+        setSelectedTags(new Set([...(place ? [place] : []), ...already].map(tagOf).filter(Boolean)));
         if (read[0]?.visibility !== undefined) setVisibility(read[0]!.visibility!);
       }
     })();
@@ -270,7 +270,7 @@ export default function PreviewDayFlow({
       setAiTags(result.tags);
       // "Tags from compose preselected" — merged into the existing
       // selection the same way the place tag is already seeded.
-      setSelectedTags((prev) => new Set([...prev, ...result.tags]));
+      setSelectedTags((prev) => new Set([...prev, ...result.tags.map(tagOf).filter(Boolean)]));
     }
     setComposeStatus("ready");
   }

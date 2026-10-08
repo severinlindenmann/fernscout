@@ -3,7 +3,8 @@
 import { useId, useState } from "react";
 import { X } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
-import { TAG_MAX_LENGTH, TRANSPORT_MODES } from "@/lib/validate/entry";
+import { TRANSPORT_MODES } from "@/lib/validate/entry";
+import { tagOf } from "@/lib/studio/tagsMerge";
 import type { TranslationKey } from "@/lib/i18n";
 import { COST_CATEGORIES } from "@/lib/costFormat";
 
@@ -14,17 +15,6 @@ export const NO_EXTRAS: DayExtrasValue = { costs: [], transportMode: "", tags: [
 
 /** The day schema's own ceiling on tags (`lib/api/v2/schemas/day.ts`). */
 const MAX_TAGS = 10;
-
-/** "Street Food" → "street-food": the slug shape every tag is held to. */
-export function tagOf(raw: string): string {
-  return raw
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, TAG_MAX_LENGTH)
-    .replace(/-+$/, "");
-}
 
 /** A line nobody typed on is ignored; a started one must be whole. */
 const blankLine = (c: CostLine) => c.label.trim() === "" && c.amount.trim() === "";
