@@ -406,6 +406,8 @@ describe("B2503 — the confirm button in a join code mail carries on in the joi
     await joinStep(code, { action: "send", name: "Lina Link", channel: "email", value: email });
     const token = mails(email).at(-1)?.match(/\/@ana\/s\/([A-Za-z0-9_-]+)/)?.[1];
     expect(token).toBeTruthy();
+    // B-2935: the press page words itself for a guest who is not in yet.
+    expect(mails(email).at(-1)).toMatch(/\/@ana\/s\/[A-Za-z0-9_-]+(\?lang=[a-z]{2})?[?&]for=join/);
 
     const { POST } = await import("@/app/api/auth/links/redeem/route");
     const res = await POST(post("/api/auth/links/redeem", { user: OWNER, token, for: "read" }));

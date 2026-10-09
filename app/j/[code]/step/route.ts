@@ -96,7 +96,7 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       // spends (F2): a group link is not a way to bomb somebody's inbox.
       if (!emailCodeAllowed(email)) return answer({ error: "rate_limited" }, 429);
       const { code: six, linkToken } = await issueCode(owner, email, "guest", { destination: `/j/${code}` });
-      await sendCodeMail(owner, user, email, locale, six, linkToken);
+      await sendCodeMail(owner, user, email, locale, six, linkToken, false, "join");
       return answer({ ok: true, to: email });
     }
     case "verify": {
