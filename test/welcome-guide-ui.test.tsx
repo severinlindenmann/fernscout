@@ -319,6 +319,18 @@ describe("the join flow", () => {
   });
 });
 
+describe("the join page reads in the dark theme", () => {
+  // The dark theme remaps yellow-50 to a dark fill but leaves yellow-950 dark,
+  // so that pair is unreadable there (seen on the Spam notice, 9 Oct). Notices
+  // take the surface and ink tokens, which flip together.
+  test("no raw yellow text colour sits on a tinted notice in the join flow", async () => {
+    const fs = await import("node:fs");
+    const src = fs.readFileSync("app/j/[code]/JoinFlow.tsx", "utf8");
+    expect(src).not.toMatch(/bg-yellow-50[^"]*text-yellow-9|text-yellow-9[^"]*bg-yellow-50/);
+    expect(src).not.toMatch(/text-yellow-9(?!50)/);
+  });
+});
+
 describe("the guide never sends a guest to the bare journal address (B2458)", () => {
   test("every exit goes to the page's landing, not /<owner>", async () => {
     const fs = await import("node:fs");
