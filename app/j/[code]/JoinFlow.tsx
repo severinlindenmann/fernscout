@@ -402,7 +402,7 @@ export default function JoinFlow({
                 {i === 0 && <span className="ml-auto rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-950">{t("join.pick.quick")}</span>}
               </span>
               <span className="text-sm text-ink-secondary">{t(labels[w].hint, { to: w === "email" ? email.trim() : tel.trim() })}</span>
-              {w === "email" && <span className="text-sm font-semibold text-yellow-900">{t("join.pick.emailWarn")}</span>}
+              {w === "email" && <span className="text-sm font-semibold text-ink-strong">{t("join.pick.emailWarn")}</span>}
             </button>
           ))}
         </div>
@@ -474,7 +474,7 @@ export default function JoinFlow({
         <Heading id="join-prove">{way === "email" ? t("join.code.inbox") : t("join.code.textTitle")}</Heading>
         <p className="text-base text-ink-body">{way === "email" ? t("join.code.bodyEmail", { to: sentTo }) : t("join.code.bodySms", { to: sentTo })}</p>
         {way === "email" && (
-          <div className="flex flex-col gap-1 rounded-2xl border-2 border-yellow-400 bg-yellow-50 p-4 text-base text-yellow-950">
+          <div className="flex flex-col gap-1 rounded-2xl border-2 border-yellow-400 bg-surface-subtle p-4 text-base text-ink-strong">
             <span className="font-semibold">{t("join.code.spamTitle")}</span>
             <ol className="list-decimal pl-5">
               <li>{t("join.code.spam1")}</li>
