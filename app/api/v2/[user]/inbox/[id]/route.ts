@@ -1,6 +1,6 @@
 // DELETE /api/v2/{user}/inbox/{id} — B1624, phase 2 step 4.
 // No confirmation ceremony: nothing staged here has ever been on the site.
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { findInboxFile, removeInboxFile } from "@/lib/inbox";
@@ -8,7 +8,7 @@ import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/inbox/[id]">,
 ) {
@@ -30,4 +30,4 @@ export async function DELETE(
 
   removeInboxFile(user, id);
   return ok({ ok: true, id: found.entry.id, filename: found.entry.filename });
-}
+}, { route: "/api/v2/[user]/inbox/[id]" });

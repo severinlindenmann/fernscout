@@ -4,7 +4,7 @@
 // unchanged. Every row lands exactly where the public request form leaves
 // one: `pending`, never pre-approved, with its own confirmation mail.
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { fail, ok, readDryRun } from "@/lib/api/v2/route";
+import { fail, ok, readDryRun, withV2Log } from "@/lib/api/v2/route";
 import { importContactRows, type ImportRow, MAX_IMPORT_ROWS } from "@/lib/contacts/importRows";
 import { isEnabled } from "@/lib/capabilities";
 import { getUser } from "@/lib/users";
@@ -12,7 +12,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/contacts/import">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/contacts/import">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
@@ -63,4 +63,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
           "confirms. Nobody has been added to any trip or given anything to read."
         : "Nothing was filed — check `results` for what each row needs.",
   });
-}
+}, { route: "/api/v2/[user]/contacts/import" });

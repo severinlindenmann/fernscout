@@ -1,7 +1,7 @@
 // GET /api/v2/{user}/status — where this journal and this token stand.
 // B1608, phase 2 step 3.
 import { journalStatus } from "@/lib/api/v2/schemas";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { gpsWriteOnlyRefusal, isGpsWriteScope, outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { buildJournalStatus } from "@/lib/api/v2/status";
@@ -9,7 +9,7 @@ import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/status">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/status">) {
   const { user } = await params;
   // Authenticate BEFORE resolving the journal — B1615. The other order lets
   // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
@@ -26,4 +26,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
 
   const status = await buildJournalStatus(user, bearer.session);
   return ok(journalStatus.parse(status));
-}
+}, { route: "/api/v2/[user]/status" });

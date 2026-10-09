@@ -2,7 +2,7 @@
 // `send-whatsapp` die into this — B1612 (phase 2 step 3, parcel B).
 import { sendRequest } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { fail, ok, readJson } from "@/lib/api/v2/route";
+import { fail, ok, readJson, withV2Log } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser } from "@/lib/api/v2/auth";
 import { mayActAsOwner, mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { isTestContent } from "@/lib/access";
@@ -26,7 +26,7 @@ function tripLike(user: string, tripId: string, people: { name: string; email?: 
   return { username: user, id: tripId, ref: `${user}/${tripId}`, people } as unknown as Trip;
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/send">,
 ) {
@@ -81,4 +81,4 @@ export async function POST(
   }
 
   return ok(result);
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]/send" });

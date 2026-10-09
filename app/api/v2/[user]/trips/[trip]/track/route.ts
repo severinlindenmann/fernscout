@@ -2,7 +2,7 @@
 // app/api/v1/[user]/trips/[trip]/track/route.ts onto the v2 plumbing.
 // Domain logic (`deriveTripTrack`) is unchanged.
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { deriveTripTrack } from "@/lib/gps/api";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
  * a document like the ones every other door replaced, and moved here rather
  * than staying behind at `/api/v1`, which is retired (B1734).
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/track">,
 ) {
@@ -66,4 +66,4 @@ export async function POST(
           "`content/<user>/gps/exclude.json` and run this again."
         : `${result.zones} private zones were cut out before the line was written.`,
   });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/track" });

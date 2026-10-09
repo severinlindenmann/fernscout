@@ -8,7 +8,7 @@ import { tipsActive } from "@/lib/config";
 import type { ZodType } from "zod";
 import { journalDoc, journalPatch, journalWrite, JOURNAL_DECLINABLES, ownerEmailPending, type JournalDoc } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
-import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson, withV2Log } from "@/lib/api/v2/route";
 import { JOURNAL_IMMUTABLE_FIELDS, clearDeclinedSections, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
 import { mayActAsOwner, ownerOnlyRefusal, outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -47,7 +47,7 @@ function currentDoc(user: string) {
   return journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: tipsOf(user) });
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
   const { user } = await params;
   // Authenticate BEFORE resolving the journal — B1615. The other order lets
   // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
@@ -69,9 +69,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 
   return ok(stored, { etag: etagFor(stored) });
-}
+}, { route: "/api/v2/[user]" });
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
   const { user } = await params;
   // Authenticate BEFORE resolving the journal — B1615. The other order lets
   // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
@@ -85,7 +85,7 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 
   return applyJournalPatch(user, stored, request);
-}
+}, { route: "/api/v2/[user]" });
 
 /**
  * How a patch is checked against the rest of the document — the journal's
@@ -285,7 +285,7 @@ export async function applyJournalPatch(
  * that page ends anything. Reporting a `202` here as "deleted" is false —
  * say a mail is waiting, and stop.
  */
-export async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]">) {
   const { user } = await params;
 
   // Answered before the token is looked at: deleting a journal revokes every
@@ -344,7 +344,7 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v2
     },
     { status: 202 },
   );
-}
+}, { route: "/api/v2/[user]" });
 
 const DAY = 24 * 60 * 60 * 1000;
 const OWNER_EMAIL_PER_ADDRESS = { max: 5, windowMs: DAY };

@@ -6,7 +6,10 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { ERROR_CODES } from "../errorCodes";
 import { JSON_BODY_MAX_BYTES, jsonBodyTooLargeMessage, readBoundedJson } from "../jsonBody";
-import { formatV2RequestLine } from "../../requestLog";
+import { isEnabled } from "../../capabilities";
+import { formatReqLine } from "../../requestLog";
+import { REQUEST_ID_HEADER } from "../../requestId";
+import { scrubLog } from "../../scrubLog";
 
 /**
  * The IOU paid — B1608, phase 2 step 3. `incomplete` and `stale_document`
@@ -210,28 +213,68 @@ export async function readJson(request: Request): Promise<{ ok: true; value: unk
   return { ok: true, value: read.value };
 }
 
-/**
- * One line per v2 call, metadata only — never a body, never a query string
- * — logged only when the caller has already resolved `features.logging` is
- * on (the same one config read `proxy.ts`'s own `loggingEnabled()` does; see
- * its comment for why this module takes the boolean rather than resolving it
- * itself: asking `lib/capabilities.ts` directly would pull `server-only` into
- * a file routes import for far more than logging). Never throws — a log
- * line lost is not worth trading a response for.
- */
-export function logV2Request(fields: {
-  method: string;
-  path: string;
-  status: number;
-  ms: number;
-  token: string | null;
-  journal: string | null;
-  enabled: boolean;
-}): void {
-  if (!fields.enabled) return;
+/** The `error` code of a standard `fail()` envelope, or null. Never throws. */
+async function errorCodeOf(response: Response): Promise<string | null> {
   try {
-    console.log(formatV2RequestLine(fields));
+    const text = (await response.clone().text()).slice(0, 8192);
+    const code = (JSON.parse(text) as { error?: unknown }).error;
+    return typeof code === "string" ? code.slice(0, 60) : null;
   } catch {
-    // never let a log line take down a response
+    return null;
   }
+}
+
+/**
+ * Wrap a v2 route handler so every call leaves ONE `[req]` line (id, method,
+ * route template, status, duration, journal, error code) when
+ * `features.logging` is on, and a throw leaves a `[req-error]` line with a
+ * scrubbed stack (always) before it is rethrown unchanged (B-2952).
+ * `route` is the template, never the concrete path. The logging itself never
+ * throws and never reads a body or a query string.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withV2Log<H extends (request: Request, ctx: any) => Promise<Response>>(handler: H, opts: { route: string }): H {
+  const wrapped = async (request: Request, ctx: unknown): Promise<Response> => {
+    const started = Date.now();
+    // `request` is optional only because a test may call a zero-argument handler directly.
+    const id = (request as Request | undefined)?.headers?.get(REQUEST_ID_HEADER) ?? "-";
+    const method = (request as Request | undefined)?.method ?? "-";
+    let response: Response;
+    try {
+      response = await handler(request, ctx);
+    } catch (error) {
+      try {
+        const e = error instanceof Error ? error : new Error(String(error));
+        const stack = (e.stack ?? "")
+          .split("\n")
+          .slice(1, 12)
+          .map((l) => `    ${scrubLog(l.trim(), 300)}`);
+        console.error(
+          [`[req-error] ${scrubLog(id, 40)} ${method} ${opts.route} ${scrubLog(e.message, 300)}`, ...stack].join("\n"),
+        );
+      } catch {
+        // a lost log line is not worth changing what Next sees
+      }
+      throw error;
+    }
+    try {
+      if (isEnabled("logging")) {
+        let journal: string | null = null;
+        try {
+          const params = await (ctx as { params?: Promise<Record<string, unknown>> } | undefined)?.params;
+          if (typeof params?.user === "string") journal = params.user;
+        } catch {
+          // no params to read
+        }
+        const err = response.status >= 400 ? await errorCodeOf(response) : null;
+        console.log(
+          formatReqLine({ id, method, route: opts.route, status: response.status, ms: Date.now() - started, journal, err }),
+        );
+      }
+    } catch {
+      // never let a log line take down a response
+    }
+    return response;
+  };
+  return wrapped as unknown as H;
 }

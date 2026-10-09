@@ -7,7 +7,7 @@ import type { ZodType } from "zod";
 import { tripCreate, tripCreateStored, tripPatch, tripPatchStored, tripDoc, TRIP_DECLINABLE_KEYS } from "@/lib/api/v2/schemas";
 import { tripId as tripIdSchema } from "@/lib/api/v2/schemas/shared";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
-import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson, withV2Log } from "@/lib/api/v2/route";
 import {
   TRIP_IMMUTABLE_FIELDS,
   applyNullClears,
@@ -71,9 +71,9 @@ function daysModeOf(request: Request): "full" | "summaries" | "none" {
   return raw === "summaries" || raw === "none" ? raw : "full";
 }
 
-export async function GET(request: Request, ctx: RouteCtx) {
+export const GET = withV2Log(async function GET(request: Request, ctx: RouteCtx) {
   return answeringStoredInvalid(() => readOneTrip(request, ctx));
-}
+}, { route: "/api/v2/[user]/trips/[trip]" });
 
 async function readOneTrip(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
@@ -131,9 +131,9 @@ async function readOneTrip(request: Request, { params }: RouteCtx) {
  * mechanism doing exactly what it is for: the caller has read the document,
  * holds its etag, and is saying "replace the thing I read").
  */
-export async function PUT(request: Request, ctx: RouteCtx) {
+export const PUT = withV2Log(async function PUT(request: Request, ctx: RouteCtx) {
   return answeringStoredInvalid(() => createOrReplaceTrip(request, ctx));
-}
+}, { route: "/api/v2/[user]/trips/[trip]" });
 
 async function createOrReplaceTrip(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
@@ -343,7 +343,7 @@ async function createOrReplaceTrip(request: Request, { params }: RouteCtx) {
  * has an incomplete stored trip is told so the first time anything about it
  * changes, rather than silently accepted.
  */
-export async function PATCH(request: Request, { params }: RouteCtx) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
   // Authenticate BEFORE resolving the journal — B1615. The other order lets
   // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
@@ -358,7 +358,7 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 
   return applyTripPatch(user, trip, journal, request);
-}
+}, { route: "/api/v2/[user]/trips/[trip]" });
 
 /**
  * The write itself, factored out of `PATCH` above so `/api/web/[user]/trips/
@@ -614,7 +614,7 @@ async function patchTripUnguarded(
  * mechanism as `app/api/v2/[user]/route.ts`'s journal DELETE and unchanged
  * per rule 9: the second step happens in a mailbox, never on a bearer token.
  */
-export async function DELETE(request: Request, { params }: RouteCtx) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
 
   const stone = tripTombstone(user, trip);
@@ -664,4 +664,4 @@ export async function DELETE(request: Request, { params }: RouteCtx) {
     },
     { status: 202 },
   );
-}
+}, { route: "/api/v2/[user]/trips/[trip]" });

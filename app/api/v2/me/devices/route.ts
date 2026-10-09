@@ -3,7 +3,7 @@ import { GUEST_COOKIE, IDENTITY_COOKIE, revokeBrowserSessions } from "@/lib/auth
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { foreignOrigin } from "@/lib/auth/originCheck";
 import { isEnabled } from "@/lib/capabilities";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export const dynamic = "force-dynamic";
  * credentials), and origin-checked because `SameSite=lax` is otherwise the
  * only thing between a foreign page and signing somebody out of everything.
  */
-export async function DELETE(request: Request) {
+export const DELETE = withV2Log(async function DELETE(request: Request) {
   if (!isEnabled("auth")) {
     return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
   }
@@ -44,4 +44,4 @@ export async function DELETE(request: Request) {
   jar.delete(IDENTITY_COOKIE);
 
   return ok({ ok: true, revoked });
-}
+}, { route: "/api/v2/me/devices" });

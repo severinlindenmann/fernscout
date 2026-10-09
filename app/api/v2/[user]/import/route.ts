@@ -19,7 +19,7 @@ import {
   requireJournalOwner,
   resolveBearer,
 } from "@/lib/api/v2/auth";
-import { fail, ok, readDryRun } from "@/lib/api/v2/route";
+import { fail, ok, readDryRun, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { findInboxFile } from "@/lib/inbox";
 import {
@@ -56,7 +56,7 @@ export const dynamic = "force-dynamic";
  * that half. Owner only: a location history and a phone's own address book
  * both belong to the whole journal, not to one trip.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/import">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/import">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
@@ -76,7 +76,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
       `\`POST /api/v2/${user}/contacts/import\` files the agreed rows, each pending its own ` +
       "confirmation mail.",
   });
-}
+}, { route: "/api/v2/[user]/import" });
 
 type Body = {
   kind?: unknown;
@@ -153,7 +153,7 @@ async function bytesFrom(
   return { error: fail("no_file", ERROR_CODES.no_file, undefined, 400) };
 }
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/import">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/import">) {
   const { user } = await params;
   // Two callers may reach here — the owner's own journal-wide token, as
   // always, and the narrow `write:gps` token (B2204). Which of those a
@@ -391,4 +391,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
         "you are done with it, because it is the unthinned original of your whole location " +
         "history.",
   });
-}
+}, { route: "/api/v2/[user]/import" });

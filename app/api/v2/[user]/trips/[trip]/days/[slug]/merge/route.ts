@@ -10,7 +10,7 @@
 // path-traversal reasoning.
 import { dayMergeRequest, dayMergeResult } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { ok, readDryRun } from "@/lib/api/v2/route";
+import { ok, readDryRun, withV2Log } from "@/lib/api/v2/route";
 import { gateReshape, bareSlugOf, reshapeFail } from "@/lib/api/v2/reshapeGate";
 import { mergeDaysTransactional } from "@/lib/studio/reshapeDay";
 import { readDayFile } from "@/lib/api/v2/store";
@@ -19,7 +19,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/merge">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/merge">) {
   const { user, trip: tripId, slug } = await params;
   const gate = await gateReshape(request, user, slug);
   if (!gate.ok) return gate.response;
@@ -73,4 +73,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
 
   const survivorStem = merged.slug === slugA ? slug : withSlug;
   return ok(dayMergeResult.parse({ ok: true, slug: survivorStem }));
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]/merge" });

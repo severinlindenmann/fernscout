@@ -2,7 +2,7 @@ import { renderPartySvg } from "@/lib/travellers/render";
 import { MAX_FIGURES, type Figure } from "@/lib/travellers/vocabulary";
 import { parseTravellers } from "@/lib/travellers/parse";
 import { getUser } from "@/lib/users";
-import { fail } from "@/lib/api/v2/route";
+import { fail, withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ export const dynamic = "force-dynamic";
  * Open to anyone who can see the journal, because nothing here is stored or
  * read from disk — the caller supplies the figures and gets a picture back.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/figures/preview">,
 ) {
@@ -98,4 +98,4 @@ export async function GET(
       "cache-control": "no-store",
     },
   });
-}
+}, { route: "/api/v2/[user]/figures/preview" });

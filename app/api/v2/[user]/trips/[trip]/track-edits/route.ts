@@ -14,7 +14,7 @@
 // after its own cookie-only `isOwner` check — the same split `gps/zones`
 // uses for its web twin.
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { etagFor, fail, ifMatchStale, ok, readJson } from "@/lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, ok, readJson, withV2Log } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { trackEditsWrite } from "@/lib/api/v2/schemas/trackEdits";
@@ -97,16 +97,16 @@ export async function trackEditsPutResponse(user: string, tripId: string, reques
   return ok(doc, { etag: etagFor(doc), headers: NO_STORE });
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/track-edits">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/track-edits">) {
   const { user, trip } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return trackEditsGetDoc(user, trip);
-}
+}, { route: "/api/v2/[user]/trips/[trip]/track-edits" });
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/track-edits">) {
+export const PUT = withV2Log(async function PUT(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/track-edits">) {
   const { user, trip } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return trackEditsPutResponse(user, trip, request);
-}
+}, { route: "/api/v2/[user]/trips/[trip]/track-edits" });

@@ -10,7 +10,7 @@
 // `app/api/web/[user]/gps/zones/route.ts` to call in process after its own
 // cookie-only `isOwner` check — the same split `channels`' pair uses.
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { etagFor, fail, ifMatchStale, ok, readJson } from "@/lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, ok, readJson, withV2Log } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { gpsZonesWrite } from "@/lib/api/v2/schemas/gpsZones";
@@ -91,16 +91,16 @@ export async function zonesPutResponse(user: string, request: Request): Promise<
   return ok(doc, { etag: etagFor(doc), headers: NO_STORE });
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/gps/zones">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/gps/zones">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return zonesGetDoc(user);
-}
+}, { route: "/api/v2/[user]/gps/zones" });
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/v2/[user]/gps/zones">) {
+export const PUT = withV2Log(async function PUT(request: Request, { params }: RouteContext<"/api/v2/[user]/gps/zones">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return zonesPutResponse(user, request);
-}
+}, { route: "/api/v2/[user]/gps/zones" });

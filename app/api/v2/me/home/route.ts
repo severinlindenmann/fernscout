@@ -7,7 +7,7 @@ import { resolveIdentity } from "@/lib/auth/handshake";
 import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
 import { journalsFor } from "@/lib/home";
-import { ok } from "@/lib/api/v2/route";
+import { ok, withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ const NO_STORE = { "Cache-Control": "private, no-store" };
  * is a probe fired on every load of `/`, not a protected resource. See the
  * v1 route's own comment (B443) for the full reasoning.
  */
-export async function GET() {
+export const GET = withV2Log(async function GET() {
   const identity = isEnabled("auth") ? await resolveIdentity() : null;
   if (!identity) {
     return ok({ id: null, email: null, journals: [], devices: [], admin: false }, { headers: NO_STORE });
@@ -52,4 +52,4 @@ export async function GET() {
     },
     { headers: NO_STORE },
   );
-}
+}, { route: "/api/v2/me/home" });

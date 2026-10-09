@@ -17,7 +17,7 @@
 // rather than crashing, until that read layer is rebuilt.
 import { publishRequest } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { fail, ok, readDryRun, readJson } from "@/lib/api/v2/route";
+import { fail, ok, readDryRun, readJson, withV2Log } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser } from "@/lib/api/v2/auth";
 import { mayActAsOwner, mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { publishNotice } from "@/lib/api/entries";
@@ -48,7 +48,7 @@ function tripLike(user: string, tripId: string, people: { name: string; email?: 
   return { username: user, id: tripId, ref: `${user}/${tripId}`, people } as unknown as Trip;
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/publish">,
 ) {
@@ -79,7 +79,7 @@ export async function POST(
   }
 
   return applyPublish(request, user, tripId, slug);
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]/publish" });
 
 /**
  * The publish itself, factored out of `POST` above — B2140 — so

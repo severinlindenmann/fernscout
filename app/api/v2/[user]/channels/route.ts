@@ -4,7 +4,7 @@
 // the server's capability, never wider. See social.md §2.6.
 import { channelsPatch } from "@/lib/api/v2/schemas";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { etagFor, fail, ok, readDryRun } from "@/lib/api/v2/route";
+import { etagFor, fail, ok, readDryRun, withV2Log } from "@/lib/api/v2/route";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { setJournalFeatures } from "@/lib/journals";
 import { getUser } from "@/lib/users";
@@ -32,12 +32,12 @@ export function channelsGetDoc(user: string): Response {
   return ok(doc, { etag: etagFor(doc) });
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/channels">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/channels">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return channelsGetDoc(user);
-}
+}, { route: "/api/v2/[user]/channels" });
 
 export async function channelsPatchResponse(user: string, request: Request): Promise<Response> {
   if (!getUser(user)) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
@@ -82,9 +82,9 @@ export async function channelsPatchResponse(user: string, request: Request): Pro
   });
 }
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/[user]/channels">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/v2/[user]/channels">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return channelsPatchResponse(user, request);
-}
+}, { route: "/api/v2/[user]/channels" });

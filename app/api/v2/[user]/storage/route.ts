@@ -11,13 +11,13 @@ import { describeScope } from "@/lib/auth";
 import { resolveBearer, outOfScopeRefusal, ownsUser } from "@/lib/api/v2/auth";
 import { cleanupPlan } from "@/lib/storageCleanup";
 import { storageBreakdown, storageFor } from "@/lib/storageQuota";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/storage">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/storage">) {
   const { user } = await params;
   if (!getUser(user)) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
 
@@ -42,4 +42,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
     breakdown: rows,
     reclaimable: await cleanupPlan(user),
   });
-}
+}, { route: "/api/v2/[user]/storage" });

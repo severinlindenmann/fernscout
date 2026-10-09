@@ -6,7 +6,7 @@
 // else in v2 exercises `addSelfContact`. Name and address come from this
 // journal's own config.json, never from the request — see `addSelfContact`.
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { fail, ok, readDryRun } from "@/lib/api/v2/route";
+import { fail, ok, readDryRun, withV2Log } from "@/lib/api/v2/route";
 import { addSelfContact } from "@/lib/contacts";
 import { isEnabled } from "@/lib/capabilities";
 import { getUser } from "@/lib/users";
@@ -14,7 +14,7 @@ import { contactToDoc, sharedContactContext } from "@/lib/api/v2/social";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/contacts/self">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/contacts/self">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
@@ -32,4 +32,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     return fail("invalid_request", result.error, undefined, 409);
   }
   return ok({ ok: true, contact: contactToDoc(result.contact, await sharedContactContext(user)) });
-}
+}, { route: "/api/v2/[user]/contacts/self" });

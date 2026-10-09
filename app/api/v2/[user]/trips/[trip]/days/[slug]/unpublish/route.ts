@@ -2,7 +2,7 @@
 //
 // The mirror of publish (content.md §1): no body, no sends, same owner-only
 // gate and same `out_of_scope` refusal for a trip-scoped token.
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser } from "@/lib/api/v2/auth";
 import { mayActAsOwner, mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -15,7 +15,7 @@ function tripLike(user: string, tripId: string, people: { name: string; email?: 
   return { username: user, id: tripId, ref: `${user}/${tripId}`, people } as unknown as Trip;
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/unpublish">,
 ) {
@@ -44,7 +44,7 @@ export async function POST(
   }
 
   return applyUnpublish(user, tripId, slug);
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]/unpublish" });
 
 /**
  * The write itself, factored out of `POST` above so

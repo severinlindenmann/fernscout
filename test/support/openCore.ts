@@ -9,7 +9,8 @@ import path from "node:path";
  * does not carry that feature (the shell then falls back to a stub that
  * answers 404, which has nothing to scan).
  */
-const SHELL = /^export \{[^}]*\} from "@paid\/([^"]+)";/;
+// A shell is a re-export, or (B-2952) an import wrapped in withV2Log.
+const SHELL = /^(?:export \{[^}]*\}|import \{[^}]*\b[A-Z]+ as [A-Z]+_\b[^}]*\}) from "@paid\/([^"]+)";/m;
 
 export function routeImplementation(file: string): string | null {
   const match = SHELL.exec(fs.readFileSync(file, "utf8"));

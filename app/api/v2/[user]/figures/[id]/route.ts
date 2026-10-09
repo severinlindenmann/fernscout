@@ -8,7 +8,7 @@ import {
   writeFigureDoc,
 } from "@/lib/figures";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson, withV2Log } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +39,7 @@ function badId(id: string): Response | null {
   );
 }
 
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/figures/[id]">,
 ) {
@@ -55,7 +55,7 @@ export async function GET(
   if (!doc) return fail("not_found", `No figure "${id}" in this journal's library.`, undefined, 404);
 
   return ok(doc, { etag: etagFor(doc) });
-}
+}, { route: "/api/v2/[user]/figures/[id]" });
 
 /**
  * PUT is the create door (S2/V10) — client-chosen id. A retried create (no
@@ -69,7 +69,7 @@ export async function GET(
  * original create, and this refuses it the same shape `trip_exists` refuses
  * one for a trip.
  */
-export async function PUT(
+export const PUT = withV2Log(async function PUT(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/figures/[id]">,
 ) {
@@ -77,7 +77,7 @@ export async function PUT(
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return applyFigurePut(user, id, request);
-}
+}, { route: "/api/v2/[user]/figures/[id]" });
 
 /**
  * The write itself, split out from the bearer-token `PUT` above so the
@@ -150,7 +150,7 @@ export async function applyFigurePut(user: string, id: string, request: Request)
   return ok(result.data, { status: 201, etag: etagFor(result.data) });
 }
 
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/figures/[id]">,
 ) {
@@ -158,7 +158,7 @@ export async function DELETE(
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return applyFigureDelete(user, id, request);
-}
+}, { route: "/api/v2/[user]/figures/[id]" });
 
 /**
  * The delete itself, split out from the bearer-token `DELETE` above so the

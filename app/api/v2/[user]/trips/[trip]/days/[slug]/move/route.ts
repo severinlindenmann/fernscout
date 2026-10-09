@@ -25,7 +25,7 @@
 // and adds nothing of its own that touches a path directly.
 import { dayMoveRequest, dayMoveResult } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { ok, readDryRun } from "@/lib/api/v2/route";
+import { ok, readDryRun, withV2Log } from "@/lib/api/v2/route";
 import { gateReshape, bareSlugOf, reshapeFail } from "@/lib/api/v2/reshapeGate";
 import { v2Slug } from "@/lib/api/v2/days";
 import { moveDayTransactional } from "@/lib/studio/reshapeDay";
@@ -35,7 +35,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/move">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/move">) {
   const { user, trip: fromTripId, slug } = await params;
   const gate = await gateReshape(request, user, slug);
   if (!gate.ok) return gate.response;
@@ -100,4 +100,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
       addressChanged: moved.addressChanged,
     }),
   );
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]/move" });

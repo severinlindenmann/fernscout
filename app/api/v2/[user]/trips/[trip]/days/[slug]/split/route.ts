@@ -11,7 +11,7 @@
 // the same reshapeDay.ts function and inherits the same guards.
 import { daySplitRequest, daySplitResult } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { ok, readDryRun } from "@/lib/api/v2/route";
+import { ok, readDryRun, withV2Log } from "@/lib/api/v2/route";
 import { gateReshape, bareSlugOf, reshapeFail } from "@/lib/api/v2/reshapeGate";
 import { splitDayTransactional } from "@/lib/studio/reshapeDay";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -20,7 +20,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/split">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/split">) {
   const { user, trip: tripId, slug } = await params;
   const gate = await gateReshape(request, user, slug);
   if (!gate.ok) return gate.response;
@@ -81,4 +81,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
       secondSlug: `${datePrefix}-${split.newSlug}`,
     }),
   );
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]/split" });

@@ -5,7 +5,7 @@
 // a bank export always lands in the flat inbox (lib/api/v2/media.ts).
 import fs from "node:fs";
 import { statementRead } from "@/lib/api/v2/schemas";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { findInboxFile } from "@/lib/inbox";
@@ -14,7 +14,7 @@ import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/statements/[src]">,
 ) {
@@ -68,4 +68,4 @@ export async function GET(
     rates: statement.rates,
   });
   return ok(doc);
-}
+}, { route: "/api/v2/[user]/statements/[src]" });

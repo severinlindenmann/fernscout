@@ -7,7 +7,7 @@
 // rows onto days of a trip is ordinary trip-write authority.
 import { costsApplyRequest } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { fail, ok, readJson } from "@/lib/api/v2/route";
+import { fail, ok, readJson, withV2Log } from "@/lib/api/v2/route";
 import { outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { mayWriteTrip } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -16,7 +16,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/costs/apply">,
 ) {
@@ -76,4 +76,4 @@ export async function POST(
         }
       : {}),
   });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/costs/apply" });

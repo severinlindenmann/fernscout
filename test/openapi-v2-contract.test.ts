@@ -42,7 +42,7 @@ function operationEntries(methods: Record<string, Operation>): [string, Operatio
   return Object.entries(methods).filter(([key]) => VERBS.has(key));
 }
 
-const VERB_RE = /export async function (GET|POST|PATCH|PUT|DELETE)\b/g;
+const VERB_RE = /(?:export async function |export const \w+ = withV2Log\(async function )(GET|POST|PATCH|PUT|DELETE)\b/g;
 
 function routeFiles(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

@@ -7,7 +7,7 @@
 // never received the code at that number cannot complete this even while
 // holding a perfectly valid owner token.
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { getUser } from "@/lib/users";
 import { journalForNumber, lockTel } from "@/lib/registry";
 import { checkVerification } from "@/lib/phoneVerify";
@@ -18,7 +18,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/owner/tel/verify/redeem">,
 ) {
@@ -63,4 +63,4 @@ export async function POST(
   }
   await setOwnerTel(user, checked.phone, "sms");
   return ok(ownerTelDoc.parse(await ownerTelDocFields(user)));
-}
+}, { route: "/api/v2/[user]/owner/tel/verify/redeem" });

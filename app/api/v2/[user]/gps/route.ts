@@ -30,18 +30,18 @@
 // signed in, on the studio's location page — `app/api/helper/[user]/gps`,
 // behind `ConfirmPanel`.
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { getUser } from "@/lib/users";
 import { gpsMonthsHeld } from "@/lib/gps/api";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/gps">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/gps">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   if (!getUser(user)) return fail("unknown_user", ERROR_CODES.unknown_user, undefined, 404);
 
   return ok({ monthsHeld: gpsMonthsHeld(user) });
-}
+}, { route: "/api/v2/[user]/gps" });

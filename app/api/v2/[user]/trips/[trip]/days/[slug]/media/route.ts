@@ -16,7 +16,7 @@
 import { dayDoc } from "@/lib/api/v2/schemas";
 import { tripRef } from "@/lib/trips";
 import { dayMediaAttachRequest, dayMediaDetachRequest } from "@/lib/api/v2/schemas/dayMedia";
-import { etagFor, fail, ifMatchStale, ok, readJson } from "@/lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, ok, readJson, withV2Log } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser, outOfScopeRefusal } from "@/lib/api/v2/auth";
 import { mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -66,7 +66,7 @@ function readCurrent(user: string, tripId: string, slug: string, trip: TripFile)
   return { doc, etag: etagFor(doc) };
 }
 
-export async function POST(request: Request, { params }: RouteCtx) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteCtx) {
   const { user, trip: tripId, slug } = await params;
   const gate = await gateTrip(request, user, tripId);
   if (!gate.ok) return gate.response;
@@ -97,9 +97,9 @@ export async function POST(request: Request, { params }: RouteCtx) {
 
   const echo = dayDoc.parse(withResolvedTest(dayEchoInput(result.day, tripRef(user, tripId)), gate.trip, result.day));
   return ok(echo, { etag: etagFor(echo) });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]/media" });
 
-export async function DELETE(request: Request, { params }: RouteCtx) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteCtx) {
   const { user, trip: tripId, slug } = await params;
   const gate = await gateTrip(request, user, tripId);
   if (!gate.ok) return gate.response;
@@ -130,4 +130,4 @@ export async function DELETE(request: Request, { params }: RouteCtx) {
 
   const echo = dayDoc.parse(withResolvedTest(dayEchoInput(result.day, tripRef(user, tripId)), gate.trip, result.day));
   return ok(echo, { etag: etagFor(echo) });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]/media" });

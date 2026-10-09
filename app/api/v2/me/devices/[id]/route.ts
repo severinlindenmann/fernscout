@@ -3,7 +3,7 @@
 import { listIdentities, revokeSession } from "@/lib/auth";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  * `listIdentities` is scoped to the address the credential proves, so an id
  * belonging to anybody else is not in the list and answers `not_found`.
  */
-export async function DELETE(_request: Request, context: RouteContext<"/api/v2/me/devices/[id]">) {
+export const DELETE = withV2Log(async function DELETE(_request: Request, context: RouteContext<"/api/v2/me/devices/[id]">) {
   if (!isEnabled("auth")) {
     return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
   }
@@ -38,4 +38,4 @@ export async function DELETE(_request: Request, context: RouteContext<"/api/v2/m
   // route documents: the token behind it is dead, so the next request
   // resolves to nobody.
   return ok({ ok: true, current: mine.id === identity.id });
-}
+}, { route: "/api/v2/me/devices/[id]" });

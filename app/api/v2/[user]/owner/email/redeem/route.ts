@@ -10,7 +10,7 @@
 // takes the journal from.
 import { tipsActive } from "@/lib/config";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { etagFor, fail, ok } from "@/lib/api/v2/route";
+import { etagFor, fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { journalDoc, ownerEmailRedeem } from "@/lib/api/v2/schemas";
 import { getUser } from "@/lib/users";
@@ -27,7 +27,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/owner/email/redeem">,
 ) {
@@ -78,7 +78,7 @@ export async function POST(
   const now = getUser(user)!;
   const echo = journalDoc.parse({ ...journalV2Fields(now), username: user, tips: tipsActive(now.owner.tips) });
   return ok(echo, { etag: etagFor(echo) });
-}
+}, { route: "/api/v2/[user]/owner/email/redeem" });
 
 /**
  * Best-effort: the ownership move already happened and cannot be undone by

@@ -5,7 +5,7 @@
 // Read-only, no auth needed — it discloses nothing a failed create wouldn't,
 // the same shape `geocode` already sets a precedent for as a bare,
 // journal-unscoped utility route.
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import fs from "node:fs";
 import { isReservedUsername, isValidUsername, userDir } from "@/lib/users";
@@ -14,7 +14,7 @@ import { isDeletedUsername } from "@/lib/tombstones";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export const GET = withV2Log(async function GET(request: Request) {
   const username = new URL(request.url).searchParams.get("username")?.trim().toLowerCase() ?? "";
   if (!username) {
     return fail("invalid_request", `${ERROR_CODES.invalid_request} Send ?username=<the name to check>.`, undefined, 400);
@@ -36,4 +36,4 @@ export async function GET(request: Request) {
     return ok({ username, available: false, reason: "reserved_username" });
   }
   return ok({ username, available: true });
-}
+}, { route: "/api/v2/journals/available" });

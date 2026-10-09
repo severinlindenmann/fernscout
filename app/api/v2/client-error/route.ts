@@ -1,6 +1,6 @@
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { clientErrorRequest } from "@/lib/api/v2/schemas/clientError";
-import { fail, readJson } from "@/lib/api/v2/route";
+import { fail, readJson, withV2Log } from "@/lib/api/v2/route";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { scrubLog } from "@/lib/scrubLog";
 
@@ -9,7 +9,7 @@ import { scrubLog } from "@/lib/scrubLog";
  * Public on purpose: a crash can happen signed out. Stdout only — no database,
  * no file — and never the caller's address. Not gated on features.logging.
  */
-export async function POST(request: Request) {
+export const POST = withV2Log(async function POST(request: Request) {
   const limit = rateLimitFor("client-error", clientIp(request), { max: 30, windowMs: 15 * 60 * 1000 });
   if (!limit.ok) {
     const res = fail("too_many_requests", ERROR_CODES.too_many_requests, { retryAfter: limit.retryAfter }, 429);
@@ -32,4 +32,4 @@ export async function POST(request: Request) {
     .map((l) => `    ${l}`);
   console.error([head, ...stack].join("\n"));
   return new Response(null, { status: 204 });
-}
+}, { route: "/api/v2/client-error" });
