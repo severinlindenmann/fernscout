@@ -434,6 +434,9 @@ export default function MePageContent({
 
         {!viewer.email ? (
           <>
+            {/* Holding a trip link, the keep card above already says who and
+                what; "ask <owner> to invite you" would contradict it. */}
+            {!keepLink && (
             <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
               <h2 className="font-display text-xl font-semibold text-ink-strong">
                 {t("me.strangerTitle")}
@@ -484,6 +487,7 @@ export default function MePageContent({
                 </p>
               )}
             </section>
+            )}
 
             {/* The way back for somebody who has been here before and lost the
                 email they were let in with. */}
