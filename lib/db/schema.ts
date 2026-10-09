@@ -367,6 +367,21 @@ type ReactionsTable = {
   updated_at: string;
 };
 
+type CommentsTable = {
+  id: string;
+  /** The journal's username. */
+  owner_id: string;
+  /** `<username>/<trip>`. */
+  trip_id: string;
+  day_slug: string;
+  /** Ownership checks only; never sent to a client. */
+  author_email: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
+};
+
 type JobsTable = {
   id: string;
   owner_id: string;
@@ -1072,6 +1087,7 @@ export type Database = {
   trip_people: TripPeopleTable;
   push_subscriptions: PushSubscriptionsTable;
   reactions: ReactionsTable;
+  comments: CommentsTable;
   jobs: JobsTable;
   tracking_points: TrackingPointsTable;
   print_orders: PrintOrdersTable;
@@ -1119,6 +1135,7 @@ export const TABLE_NAMES = [
   "trip_people",
   "push_subscriptions",
   "reactions",
+  "comments",
   "jobs",
   "tracking_points",
   "print_orders",

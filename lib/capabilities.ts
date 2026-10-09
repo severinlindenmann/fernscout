@@ -39,6 +39,8 @@ type Requirement = {
 
 const REQUIREMENTS: Record<FeatureName, Requirement> = {
   reactions: { env: [], db: false },
+  // B-2957. A guest comments through a session, so it needs both.
+  comments: { env: ["SESSION_SECRET"], db: true },
   costs: { env: [], db: false },
   push: { env: ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"], db: false },
   // B2115. Backend-specific, like whatsapp/sms/transcription above:
