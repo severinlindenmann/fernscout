@@ -628,7 +628,9 @@ describe("who may reach the owner-only, position-derived readers — security re
     clearUserCache();
     const { currentTripRecording } = await import("@/lib/gps/api");
     expect(currentTripRecording(U)).toBeNull();
-    writeTripFixture(U, { id: "now", title: "Now", start: "2026-10-01", end: "2026-10-09", status: "current", visibility: "public" });
+    // Dates from today, never a fixed day: a trip that ends on a calendar date turns past the day after (B-2945).
+    const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+    writeTripFixture(U, { id: "now", title: "Now", start: day(-8), end: day(400), status: "current", visibility: "public" });
     clearUserCache();
     expect(currentTripRecording(U)).toEqual({ tripId: "now", recording: null });
   });
