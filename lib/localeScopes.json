@@ -6973,6 +6973,7 @@
   "joinFrame": {
     "paid": [],
     "keys": [
+      "code.phoneVerify",
       "contact.addrCountry",
       "contact.addrCountryNoMatches",
       "contact.addrCountrySearchPlaceholder",

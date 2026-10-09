@@ -345,8 +345,8 @@ export default function JoinFlow({
                 onChange={(e) => setEmail(e.target.value)}
                 onBlur={() => setTouched((x) => ({ ...x, email: true }))}
               />
-              {mailError && <span className="mt-1 block text-sm text-coral-600">{mailError}</span>}
             </label>
+            <Alert text={mailError} />
             <div className="flex flex-col gap-1">
               <label htmlFor="join-tel" className={LABEL}>
                 {t("join.who.mobileLabel")}
@@ -365,7 +365,7 @@ export default function JoinFlow({
                 noMatches={t("contact.telNoMatches")}
                 locale={locale}
               />
-              {telError && <span className="text-sm text-coral-600">{telError}</span>}
+              <Alert text={telError} />
             </div>
             {emailOnly && <p className="text-sm text-ink-secondary">{t("join.who.onlyEmail")}</p>}
             {!ways.length && (emailTyped || telTyped) && !mailError && !telError && (
@@ -554,7 +554,7 @@ export default function JoinFlow({
         }
       >
         <Heading id="join-done">
-          <span aria-hidden="true" className="mr-2 inline-grid size-7 place-items-center rounded-full bg-green-700 align-middle text-base text-white">
+          <span aria-hidden="true" className="mr-2">
             ✓
           </span>
           {t("join.ready.title", vars)}
