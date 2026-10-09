@@ -4414,6 +4414,7 @@
   "tripKeep.doneBody": "You can read this trip wherever you sign in with this address. Nothing else of the journal opens.",
   "tripKeep.wrongCode": "That code did not work. Check it and try again.",
   "tripKeep.failed": "That did not work. Try again in a moment.",
+  "tripKeep.removed": "{owner} removed this trip from your saved trips.",
   "tripKeep.signedInAs": "Signed in as {email}.",
   "tripKeep.start": "Start your own journal",
   "tripLink.bar": "Reading with {owner}’s link",

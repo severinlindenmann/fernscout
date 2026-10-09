@@ -61,13 +61,14 @@ async function mint(): Promise<Link> {
 async function keepPost(
   code: string,
   body: Record<string, unknown>,
-  init: { token?: string | null; origin?: string | null } = {},
+  init: { token?: string | null; origin?: string | null; ip?: string } = {},
 ) {
   const { POST } = await import("@/app/t/[code]/keep/route");
   const { openToken } = await import("@/lib/tripLink");
   const token = init.token === undefined ? openToken(code) : init.token;
   const headers: Record<string, string> = { "content-type": "application/json", host: "example.test" };
   if (init.origin !== null) headers.origin = init.origin ?? "https://example.test";
+  if (init.ip) headers["x-forwarded-for"] = init.ip;
   return POST(
     new Request(`https://example.test/t/${code}/keep`, {
       method: "POST",
@@ -296,5 +297,90 @@ describe("AC6 — the keep door's guards", () => {
     const res = await keepPost("abcdefghjkmnpqrs", { action: "send", email: PERSON, name: "Pia", code: live.code, inviteId: live.id });
     expect(res.status).toBe(404);
     expect(await keepRows()).toEqual([]);
+  });
+});
+
+function mailCount(): number {
+  const count = (d: string): number =>
+    fs.existsSync(d) ? fs.readdirSync(d, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? count(path.join(d, e.name)) : /\.eml$/.test(e.name) ? 1 : 0), 0) : 0;
+  return count(dir);
+}
+
+describe("B-2961 — re-keeping after the owner removed the keep", () => {
+  test("answers removed, writes nothing and keeps the row revoked", async () => {
+    const link = await mint();
+    await proveAndKeep(link, PERSON);
+    const { removeKeep } = await import("@/lib/tripLink");
+    const [row] = await keepRows();
+    expect(await removeKeep(OWNER, row.id)).toBe(true);
+    const revokedAt = (await keepRows())[0].revoked_at;
+
+    const res = await proveAndKeep(link, PERSON);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, kept: false, removed: true });
+    const rows = await keepRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].revoked_at).toBe(revokedAt);
+  });
+});
+
+describe("B-2961 — a link stopped while the keep is written keeps nobody", () => {
+  test("the post-insert re-read rolls the insert back", async () => {
+    const link = await mint();
+    await proveAndKeep(link, "first@example.test");
+    const { resolveReadCode, recordKeep } = await import("@/lib/tripLink");
+    const live = (await resolveReadCode(link.code))!;
+    const contact = (await contactOf("first@example.test"))!;
+    await (await db()).deleteFrom("trip_link_keeps").execute();
+    const outcome = await recordKeep(live, contact.id, async (trx) => {
+      await trx.updateTable("contact_invites").set({ revoked_at: "2026-10-01T00:00:00Z" }).where("id", "=", link.id).execute();
+    });
+    expect(outcome).toBe("expired");
+    expect(await keepRows()).toEqual([]);
+  });
+});
+
+describe("B-2961 — send answers alike whether or not a code went out", () => {
+  test("the per-address budget gives the same 200 body and mails nothing more", async () => {
+    const link = await mint();
+    const answers: unknown[] = [];
+    let mailed = 0;
+    for (let i = 0; i < 12; i++) {
+      const before = mailCount();
+      const res = await keepPost(link.code, { action: "send", email: PERSON, name: "Pia" });
+      expect(res.status).toBe(200);
+      answers.push(await res.json());
+      mailed += mailCount() - before;
+    }
+    expect(new Set(answers.map((a) => JSON.stringify(a))).size).toBe(1);
+    expect(mailed).toBe(10); // emailCodeAllowed: ten a day per address
+  });
+
+  test("a link mails at most its daily cap", async () => {
+    const link = await mint();
+    let mailed = 0;
+    for (let i = 0; i < 62; i++) {
+      const before = mailCount();
+      // The per-IP budget is a different limit.
+      const res = await keepPost(link.code, { action: "send", email: `p${i}@example.test`, name: "P" }, { ip: `198.51.100.${i + 1}` });
+      expect(res.status).toBe(200);
+      mailed += mailCount() - before;
+    }
+    expect(mailed).toBe(60);
+  });
+});
+
+describe("B-2962 — deleting a contact deletes their keeps", () => {
+  test("deleteContact removes the contact's trip_link_keeps rows", async () => {
+    const link = await mint();
+    await proveAndKeep(link, PERSON);
+    await proveAndKeep(link, "other@example.test");
+    expect(await keepRows()).toHaveLength(2);
+    const { deleteContact } = await import("@/lib/contacts");
+    const gone = (await contactOf(PERSON))!;
+    expect(await deleteContact(OWNER, gone.id)).toBe(true);
+    const rows = await keepRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].contact_id).not.toBe(gone.id);
   });
 });

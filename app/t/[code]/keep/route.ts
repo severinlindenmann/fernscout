@@ -27,6 +27,8 @@ export const dynamic = "force-dynamic";
 const PER_IP = { max: 40, windowMs: 15 * 60 * 1000 };
 const PER_CODE = { max: 200, windowMs: 60 * 60 * 1000 };
 const NEW_PER_LINK = { max: 30, windowMs: 24 * 60 * 60 * 1000 };
+/** Codes mailed through one link in a day, whoever they go to. */
+const SEND_PER_LINK = { max: 60, windowMs: 24 * 60 * 60 * 1000 };
 const NO = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } as const;
 const answer = (body: unknown, status = 200) => Response.json(body, { status, headers: NO });
 
@@ -74,9 +76,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       const email = normaliseEmail(text("email"));
       if (!isEmail(email)) return answer({ error: "invalid_email" }, 400);
       if (mailDisabledReason(owner)) return answer({ error: "unavailable" }, 503);
-      if (!emailCodeAllowed(email)) return answer({ error: "rate_limited" }, 429);
-      const { code: six } = await issueCode(owner, email, "guest");
-      await sendCodeMail(owner, user, email, locale, six, null);
+      // The same answer whether or not a code went out, so the budgets cannot
+      // be read back as "this address was asked before".
+      if (rateLimitFor("trip-keep-send-link", link.inviteId, SEND_PER_LINK).ok && emailCodeAllowed(email)) {
+        const { code: six } = await issueCode(owner, email, "guest");
+        await sendCodeMail(owner, user, email, locale, six, null);
+      }
       return answer({ ok: true, to: maskEmail(email) });
     }
     case "verify": {
@@ -129,7 +134,11 @@ async function keep(
   if (existing && form.wantsDayMail && !existing.wantsEmailDigest) {
     await updateContactSelf(owner, manageTokenFor(owner, contact.id), { wantsEmailDigest: true });
   }
-  if (!(await recordKeep(link, contact.id))) return answer({ error: "expired" }, 404);
+  const kept = await recordKeep(link, contact.id);
+  if (kept === "expired") return answer({ error: "expired" }, 404);
+  // The owner took this trip off their saved list; keeping it again is theirs
+  // to lift, so say so rather than report a keep that did not happen.
+  if (kept === "removed") return answer({ ok: true, kept: false, removed: true });
   // The owner is told about a new person waiting, once.
   if (!existing && confirmed.needsOwnerNotice) {
     const user = getUser(owner);

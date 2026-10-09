@@ -26,7 +26,7 @@ export default function KeepCard({ link, email }: { link: HomeLink; email: strin
   const [address, setAddress] = useState("");
   const [code, setCode] = useState("");
   const [dayMail, setDayMail] = useState(false);
-  const [step, setStep] = useState<"form" | "code" | "done">(link.kept ? "done" : "form");
+  const [step, setStep] = useState<"form" | "code" | "done" | "removed">(link.kept ? "done" : "form");
   const [to, setTo] = useState(link.kept ? email : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +52,8 @@ export default function KeepCard({ link, email }: { link: HomeLink; email: strin
     e.preventDefault();
     if (email) {
       const data = await post({ action: "join" });
-      if (data?.kept) {
+      if (data?.removed) setStep("removed");
+      else if (data?.kept) {
         setTo(typeof data.to === "string" ? data.to : email);
         setStep("done");
       }
@@ -60,7 +61,8 @@ export default function KeepCard({ link, email }: { link: HomeLink; email: strin
       if (await post({ action: "send", email: address })) setStep("code");
     } else {
       const data = await post({ action: "verify", email: address, code });
-      if (data?.kept) {
+      if (data?.removed) setStep("removed");
+      else if (data?.kept) {
         setTo(typeof data.to === "string" ? data.to : address);
         setStep("done");
       }
@@ -75,7 +77,9 @@ export default function KeepCard({ link, email }: { link: HomeLink; email: strin
       <p className="mt-2 text-sm leading-6 text-ink-body">
         {t("tripKeep.gives", { trip: link.tripTitle, owner: link.ownerName })}
       </p>
-      {step === "done" ? (
+      {step === "removed" ? (
+        <p role="status" className="mt-4 font-semibold text-ink-strong">{t("tripKeep.removed", { owner: link.ownerName })}</p>
+      ) : step === "done" ? (
         <div role="status" className="mt-4">
           <p className="font-semibold text-ink-strong">{t("tripKeep.done", { to: to ?? "" })}</p>
           <p className="mt-1 text-sm leading-6 text-ink-body">{t("tripKeep.doneBody")}</p>
@@ -109,10 +113,12 @@ export default function KeepCard({ link, email }: { link: HomeLink; email: strin
               </div>
             </>
           )}
-          <label className="mt-3 flex min-h-11 items-center gap-3 text-base text-ink-body">
-            <input type="checkbox" checked={dayMail} onChange={(e) => setDayMail(e.target.checked)} className="h-5 w-5" />
-            {t("tripKeep.dayMail")}
-          </label>
+          {step === "form" && (
+            <label className="mt-3 flex min-h-11 items-center gap-3 text-base text-ink-body">
+              <input type="checkbox" checked={dayMail} onChange={(e) => setDayMail(e.target.checked)} className="h-5 w-5" />
+              {t("tripKeep.dayMail")}
+            </label>
+          )}
           {error && <p role="alert" className="mt-2 text-sm text-ink-body">{error}</p>}
           <BusyButton busy={busy} type="submit" className={`mt-3 w-full min-h-11 ${PILL_PRIMARY} disabled:opacity-50`}>
             {t(email ? "tripKeep.keep" : step === "form" ? "tripKeep.send" : "tripKeep.keep")}

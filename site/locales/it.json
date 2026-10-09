@@ -4383,6 +4383,7 @@
   "tripKeep.doneBody": "Puoi leggere questo viaggio ovunque accedi con questo indirizzo. Nient’altro del diario si apre.",
   "tripKeep.wrongCode": "Il codice non ha funzionato. Controllalo e riprova.",
   "tripKeep.failed": "Non ha funzionato. Riprova tra un attimo.",
+  "tripKeep.removed": "{owner} ha tolto questo viaggio dai tuoi viaggi salvati.",
   "tripKeep.signedInAs": "Accesso come {email}.",
   "tripKeep.start": "Inizia il tuo diario",
   "tripLink.bar": "Leggi con il link di {owner}",

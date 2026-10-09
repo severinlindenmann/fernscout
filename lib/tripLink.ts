@@ -1,5 +1,6 @@
 import "server-only";
 import crypto from "node:crypto";
+import type { Kysely } from "kysely";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { accessSecret } from "./access";
@@ -10,6 +11,7 @@ import { getContactByEmail } from "./contacts";
 import { decryptString, hasContactsKey } from "./contacts/crypto";
 import { READ_CODE_RE, readAad } from "./contacts/invites";
 import { getDatabase, getDatabaseOrNull, newId, nowIso } from "./db";
+import type { Database } from "./db/schema";
 import { serverSite } from "./site";
 import { getTrip, tripRef } from "./trips";
 import type { Trip } from "./types";
@@ -173,37 +175,68 @@ export const linkAccess = cache(async (trip: Trip): Promise<"link" | "kept" | nu
 });
 
 /**
- * Records that `contactId` keeps the link's trip. The invite is re-read inside
- * the transaction, so a link stopped between the proof and this write keeps
- * nobody. One row per link per person: a repeat is a no-op. Writes nothing
- * else — a keep is not a grant.
+ * Records that `contactId` keeps the link's trip: `"kept"` (new, or already
+ * kept), `"removed"` when the owner removed this person's keep earlier (nothing
+ * is written: only the owner lifts that, so a re-keep must not report success),
+ * `"expired"` when the link is no longer live. The invite is read inside the
+ * transaction before and again after the insert, so a link stopped between the
+ * proof and this write — or during it — keeps nobody. One row per link per
+ * person. Writes nothing else — a keep is not a grant.
+ *
+ * `afterInsert` runs between the insert and the re-read, for the test of that
+ * race.
  */
-export async function recordKeep(link: ReadLink, contactId: string): Promise<boolean> {
+export async function recordKeep(
+  link: ReadLink,
+  contactId: string,
+  afterInsert?: (trx: Kysely<Database>) => Promise<void>,
+): Promise<"kept" | "removed" | "expired"> {
   const { db } = await getDatabase();
-  return db.transaction().execute(async (trx) => {
-    const row = await trx
-      .selectFrom("contact_invites")
-      .select(["id", "owner_id", "trip_id", "read_code_hash", "revoked_at", "expires_at"])
-      .where("owner_id", "=", link.owner)
-      .where("id", "=", link.inviteId)
-      .where("kind", "=", "read")
-      .executeTakeFirst();
-    if (liveFor(row) === null) return false;
-    await trx
-      .insertInto("trip_link_keeps")
-      .values({
-        id: newId(),
-        owner_id: link.owner,
-        trip_id: link.trip.id,
-        invite_id: link.inviteId,
-        contact_id: contactId,
-        kept_at: nowIso(),
-        revoked_at: null,
-      })
-      .onConflict((c) => c.columns(["owner_id", "invite_id", "contact_id"]).doNothing())
-      .execute();
-    return true;
-  });
+  const liveInvite = async (trx: Kysely<Database>) =>
+    liveFor(
+      await trx
+        .selectFrom("contact_invites")
+        .select(["id", "owner_id", "trip_id", "read_code_hash", "revoked_at", "expires_at"])
+        .where("owner_id", "=", link.owner)
+        .where("id", "=", link.inviteId)
+        .where("kind", "=", "read")
+        .executeTakeFirst(),
+    ) !== null;
+  const ROLLBACK = new Error("link stopped during the keep");
+  try {
+    return await db.transaction().execute(async (trx) => {
+      if (!(await liveInvite(trx))) return "expired";
+      const had = await trx
+        .selectFrom("trip_link_keeps")
+        .select("revoked_at")
+        .where("owner_id", "=", link.owner)
+        .where("invite_id", "=", link.inviteId)
+        .where("contact_id", "=", contactId)
+        .executeTakeFirst();
+      if (had) return had.revoked_at ? "removed" : "kept";
+      await trx
+        .insertInto("trip_link_keeps")
+        .values({
+          id: newId(),
+          owner_id: link.owner,
+          trip_id: link.trip.id,
+          invite_id: link.inviteId,
+          contact_id: contactId,
+          kept_at: nowIso(),
+          revoked_at: null,
+        })
+        .onConflict((c) => c.columns(["owner_id", "invite_id", "contact_id"]).doNothing())
+        .execute();
+      await afterInsert?.(trx);
+      // Stopped while we wrote: undo the keep (no row lock needed, so it is
+      // the same on SQLite and Postgres).
+      if (!(await liveInvite(trx))) throw ROLLBACK;
+      return "kept";
+    });
+  } catch (e) {
+    if (e === ROLLBACK) return "expired";
+    throw e;
+  }
 }
 
 /** The live link in this browser's cookie, for the keep card on /me: the code
