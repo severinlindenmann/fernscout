@@ -68,7 +68,20 @@ function Dots({ total, current, label }: { total: number; current: number; label
 }
 
 /** Six digits, one field: the phone's own one-time-code autofill fills it. */
-export function CodeField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
+export function CodeField({
+  id,
+  label,
+  value,
+  onChange,
+  onComplete,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  /** B2941: fired once with the sixth digit, typed, autofilled or pasted. */
+  onComplete?: (digits: string) => void;
+}) {
   return (
     <label htmlFor={id} className={LABEL}>
       {label}
@@ -80,7 +93,11 @@ export function CodeField({ id, label, value, onChange }: { id: string; label: s
         pattern="[0-9]*"
         maxLength={6}
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+          onChange(digits);
+          if (digits.length === 6 && digits !== value) onComplete?.(digits);
+        }}
       />
     </label>
   );
@@ -102,9 +119,12 @@ export function AddressFields({
   username,
   locale,
   locales,
+  hint,
 }: {
   value: Address;
   onChange: (next: Address) => void;
+  /** B2941: what to type for suggestions to appear (a street and a number). */
+  hint?: string;
   labels: {
     street: string;
     postcode: string;
@@ -149,6 +169,7 @@ export function AddressFields({
           unavailable={labels.addressLookupUnavailable}
           autoComplete="street-address"
         />
+        {enabled && hint && <p className="mt-1 text-sm text-ink-secondary">{hint}</p>}
       </div>
       <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3">
         <label className={LABEL}>
