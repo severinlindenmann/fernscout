@@ -4416,6 +4416,8 @@
   "tripKeep.failed": "That did not work. Try again in a moment.",
   "tripKeep.signedInAs": "Signed in as {email}.",
   "tripKeep.start": "Start your own journal",
+  "tripLink.bar": "Reading with {owner}’s link",
+  "tripLink.barKeep": "Keep it",
   "join.alreadyTitle": "You’re already in",
   "join.alreadyBody": "Nothing to ask for — you can read “{title}” already.",
   "agent.slot.accent": "Colour",

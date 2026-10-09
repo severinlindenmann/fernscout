@@ -82,6 +82,17 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
 }
 
 /**
+ * Whether this request is let in by the trip link's cookie and by nothing else
+ * (B-2964): the gate's own order, so it is false for a public trip (the cookie
+ * is never read), the owner, a traveller, a journal guest and a keeper.
+ */
+export async function linkOnlyReader(trip: Trip): Promise<boolean> {
+  if (isOpenToLink(trip)) return false;
+  if ((await isOwner(trip.username)) || (await isTravellerOn(trip)) || (await guestMayRead(trip))) return false;
+  return (await linkAccess(trip)) === "link";
+}
+
+/**
  * B1749 — what the journal's grant lets this reader open on this trip: a
  * `read` grant opens `guest` and `public`; a `close` grant adds `private`.
  * The only place the grant's tier meets a trip, shared by every gate here.

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import TripGate from "@/components/TripGate";
+import TripLinkBar from "@/components/TripLinkBar";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { awaitingApproval, guestBlockedByPrivateTrip, mayReadTrip, signedInAs } from "@/lib/tripGate";
@@ -46,5 +47,10 @@ export default async function TripPagesLayout({
       />
     );
   }
-  return children;
+  return (
+    <>
+      {current && <TripLinkBar trip={current} />}
+      {children}
+    </>
+  );
 }

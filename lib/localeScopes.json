@@ -2085,6 +2085,8 @@
       "test.title",
       "time.local",
       "time.yourTime",
+      "tripLink.bar",
+      "tripLink.barKeep",
       "tripMap.nextStop",
       "tripMap.previousStop",
       "trips.allTrips",

@@ -4385,6 +4385,8 @@
   "tripKeep.failed": "Non ha funzionato. Riprova tra un attimo.",
   "tripKeep.signedInAs": "Accesso come {email}.",
   "tripKeep.start": "Inizia il tuo diario",
+  "tripLink.bar": "Leggi con il link di {owner}",
+  "tripLink.barKeep": "Tienilo",
   "join.alreadyTitle": "Sei già dentro",
   "join.alreadyBody": "Niente da chiedere — puoi già leggere «{title}».",
   "agent.slot.accent": "Colore",

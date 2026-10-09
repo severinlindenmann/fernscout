@@ -4953,6 +4953,8 @@ export type TranslationKey =
   | "tripKeep.start"
   | "tripKeep.title"
   | "tripKeep.wrongCode"
+  | "tripLink.bar"
+  | "tripLink.barKeep"
   | "tripLink.body"
   | "tripLink.open"
   | "tripLink.signIn"

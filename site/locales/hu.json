@@ -4386,6 +4386,8 @@
   "tripKeep.failed": "Nem sikerült. Próbáld újra egy perc múlva.",
   "tripKeep.signedInAs": "Bejelentkezve mint {email}.",
   "tripKeep.start": "Indítsd el a saját naplódat",
+  "tripLink.bar": "{owner} linkjével olvasol",
+  "tripLink.barKeep": "Megtartom",
   "join.alreadyTitle": "Már bent vagy",
   "join.alreadyBody": "Nincs mit kérned — már olvashatod: „{title}”.",
   "agent.slot.accent": "Szín",
