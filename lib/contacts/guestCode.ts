@@ -1,12 +1,14 @@
 import "server-only";
 import { isEmail, issueCode, revokeCodes, spendCode, verifyCode } from "../auth";
 import { isEnabled } from "../capabilities";
+import { subjectPhone } from "../phone";
 import { emailCodeAllowed } from "../rateLimit";
 import type { Locale } from "../types";
 import { getUser } from "../users";
 import {
   getContact,
   getContactByEmail,
+  markContactPhoneProven,
   normaliseEmail,
   setContactLocaleIfEmpty,
   setProvenEmail,
@@ -172,6 +174,9 @@ export async function verifyGuestCode(
 ): Promise<GuestSession | null> {
   const result = await verifyCode(owner, subject, code, "guest");
   if (!result.ok) return null;
+  // B-2942: a code texted to a number proves it; stamp it on its contact.
+  const digits = subjectPhone(result.email);
+  if (digits) await markContactPhoneProven(owner, digits);
   const contact = await getContactByEmail(owner, result.email);
   if (contact && acceptLanguage) await setContactLocaleIfEmpty(owner, contact.id, fromAcceptLanguage(acceptLanguage));
   return {
