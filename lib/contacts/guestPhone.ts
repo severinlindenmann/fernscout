@@ -10,6 +10,7 @@ import { smsJoinAllowed } from "../rateLimit";
 import { serverSite } from "../site";
 import { sendSms, smsUnreachable } from "../sms";
 import { hasContactsKey } from "./crypto";
+import { getContactByEmail } from "./index";
 
 /**
  * A guest proves a mobile number through a reader link - B-2942, reversing
@@ -91,4 +92,20 @@ export async function sendJoinSmsCode(
     return { ok: false, reason: "send_failed" };
   }
   return { ok: true, to: maskNumber(digits) };
+}
+
+/**
+ * A returning guest asks for a code to the number they signed in with
+ * (`POST /api/auth/codes` with `phone`). Texted only when an active contact of
+ * this journal holds that number; every other case does nothing, so the
+ * caller answers the same 202 for any number. Same limits as the join link.
+ */
+export async function sendReturnSmsCode(
+  owner: string,
+  digits: string,
+  options: { ip: string; locale: string; siteTitle: string },
+): Promise<JoinSmsResult | { ok: false; reason: "no_contact" }> {
+  const contact = await getContactByEmail(owner, phoneSubject(digits));
+  if (!contact || contact.status !== "active") return { ok: false, reason: "no_contact" };
+  return sendJoinSmsCode(owner, `return:${owner}`, digits, options);
 }

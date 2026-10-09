@@ -1,9 +1,10 @@
+import { joinSmsAvailable, joinWhatsappAvailable } from "@/lib/contacts/guestPhone";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { inviteMetadata, inviteSubject } from "@/lib/invitePreview";
 import NoticeShell from "@/components/NoticeShell";
 import PageShell from "@/components/landing/PageShell";
-import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
+import { isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { isJournalGuest, isOwner, journalReader } from "@/lib/contacts/session";
 import { maskEmail, ownerShortName } from "@/lib/contacts/welcome";
@@ -103,11 +104,11 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
           knownEmail={knownEmail}
           caps={{
             mail: !mailDisabledReason(owner),
-            // B2597: readers sign in by email only — no SMS channel here,
-            // whatever this instance's own SMS transport (`isEnabled("sms")`)
-            // is set up for elsewhere (the owner's own phone check).
-            sms: false,
-            whatsapp: isEnabled("whatsapp") && !hasSwitchedOff("whatsapp", owner),
+            // B-2942: a number proves itself by a texted code or a WhatsApp
+            // message-in, for sign-in only; absent when the instance has
+            // either off.
+            sms: await joinSmsAvailable(),
+            whatsapp: joinWhatsappAvailable(),
             postcards: isEnabled("postcards", owner),
           }}
           dictionary={dictionaryFor(locale, "guide")}
