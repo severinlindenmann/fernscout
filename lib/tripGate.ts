@@ -5,7 +5,8 @@ import { resolveAccess } from "./auth/handshake";
 import { isEnabled } from "./capabilities";
 import { isAdminEmail } from "./admin";
 import { isOwner, journalReader, type JournalReader } from "./contacts/session";
-import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
+import { linkAccess } from "./tripLink";
+import { isPersonOn,isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import type { ReadOptions } from "./entries";
 import type { ReaderLevel } from "./photos";
 import type { Trip } from "./types";
@@ -72,7 +73,12 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
   // every address on earth. Put a `session !== null` test anywhere above this
   // line and every closed trip on the instance becomes readable by anyone with
   // an inbox. See `test/access-gate.test.ts`, "a signed-in stranger".
-  return guestMayRead(trip);
+  //
+  // **A trip link is the one other way in** (B2961): a `visibility: guest`
+  // trip, one cookie or one keep, public reader level. It is asked last and
+  // only here, so no other gate (`readerLevelFor`, drafts, the live line)
+  // ever learns about it.
+  return (await guestMayRead(trip)) || (await linkAccess(trip)) !== null;
 }
 
 /**

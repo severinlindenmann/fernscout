@@ -85,13 +85,14 @@ import { journalPath } from "../journalPath";
  * data, and a database dump should not be a list of who was invited.
  */
 
-/** `personal` is decision 19's original; the other two are B33's. */
-export type InviteKind = "personal" | "guest" | "buddy";
+/** `personal` is decision 19's original; `guest` and `buddy` are B33's;
+ * `read` (B2961) opens one guest trip at `/t/<code>` and never asks who. */
+export type InviteKind = "personal" | "guest" | "buddy" | "read";
 
 export type Invite = {
   id: string;
   kind: InviteKind;
-  /** The trip a `buddy` link joins. Null for every other kind. */
+  /** The trip a `buddy` or `read` link names. Null for every other kind. */
   tripId: string | null;
   name: string | null;
   locale: Locale | null;
@@ -133,7 +134,7 @@ export type Invite = {
  * `guest` lead to the same place; only `buddy` leads to write access.
  */
 function toKind(value: string | null | undefined): InviteKind {
-  return value === "guest" || value === "buddy" ? value : "personal";
+  return value === "guest" || value === "buddy" || value === "read" ? value : "personal";
 }
 
 /**
@@ -153,6 +154,24 @@ const MAX_INVITE_TTL_DAYS = 365;
 export function inviteExpiry(days: number = INVITE_TTL_DAYS): string {
   const clamped = Math.min(Math.max(Math.round(days), 1), MAX_INVITE_TTL_DAYS);
   return new Date(Date.now() + clamped * 86_400_000).toISOString();
+}
+
+// The welcome alphabet (no look-alikes), repeated here because `./welcome`
+// imports this module's neighbours and the other direction would be a cycle.
+const READ_ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
+const READ_CODE_LENGTH = 16;
+export const READ_CODE_RE = new RegExp(`^[${READ_ALPHABET}]{${READ_CODE_LENGTH}}$`);
+
+/** 16 characters of `crypto.randomInt`, so no modulo bias: about 79 bits. */
+export function newReadCode(): string {
+  let out = "";
+  for (let i = 0; i < READ_CODE_LENGTH; i++) out += READ_ALPHABET[crypto.randomInt(READ_ALPHABET.length)];
+  return out;
+}
+
+/** Its own prefix, so a read cipher can never be opened as a join or invite one. */
+export function readAad(owner: string, inviteId: string): string {
+  return `read:${owner}:${inviteId}`;
 }
 
 function generateInviteToken(): string {
@@ -196,9 +215,15 @@ export async function createInvite(
   owner: string,
   input: {
     kind?: InviteKind;
-    /** Required for a `buddy` link and refused on any other kind — the caller
-     * checks the trip exists; this only records which one. */
+    /** Required for a `buddy` or `read` link and refused on any other kind —
+     * the caller checks the trip exists; this only records which one. */
     tripId?: string | null;
+    /**
+     * A `read` link only: the owner chose "Until I stop it". The one way a row
+     * of any kind gets no expiry; without it a `read` link takes the default
+     * thirty days when `expiresAt` is not given. Ignored for other kinds.
+     */
+    neverExpires?: boolean;
     name?: string;
     locale?: string;
     expiresAt?: string | null;
@@ -217,12 +242,15 @@ export async function createInvite(
      * `ownGroupId`; this only records it. */
     groupId?: string | null;
   },
-): Promise<{ id: string; token: string; expiresAt: string | null }> {
+): Promise<{ id: string; token: string; expiresAt: string | null; readCode: string | null }> {
   const { db } = await getDatabase();
   const token = generateInviteToken();
   const id = input.id ?? newId();
   const kind = toKind(input.kind);
-  const expiresAt = input.expiresAt ?? null;
+  if (kind === "read" && !input.tripId) throw new Error("A read link names a trip.");
+  const expiresAt =
+    kind === "read" && !input.neverExpires ? (input.expiresAt ?? inviteExpiry()) : (input.expiresAt ?? null);
+  const readCode = kind === "read" ? newReadCode() : null;
 
   await db
     .insertInto("contact_invites")
@@ -233,7 +261,9 @@ export async function createInvite(
       // Only a buddy link has a trip to name. Stored null for the others
       // rather than left to the caller, so a guest link can never be read as
       // a link to join something.
-      trip_id: kind === "buddy" ? (input.tripId ?? null) : null,
+      trip_id: kind === "buddy" || kind === "read" ? (input.tripId ?? null) : null,
+      read_code_hash: readCode ? hashSecret(readCode) : null,
+      read_code_cipher: readCode && hasContactsKey() ? encryptString(readCode, readAad(owner, id)) : null,
       token_hash: hashSecret(token),
       // Beside the hash, never instead of it — B280 and
       // `013-invite-token-cipher`. Null when there is no key, which is the
@@ -251,7 +281,7 @@ export async function createInvite(
     })
     .execute();
 
-  return { id, token, expiresAt };
+  return { id, token, expiresAt, readCode };
 }
 
 /**
@@ -353,7 +383,7 @@ function toInvite(row: {
   return {
     id: row.id,
     kind,
-    tripId: kind === "buddy" ? row.trip_id : null,
+    tripId: kind === "buddy" || kind === "read" ? row.trip_id : null,
     name: row.name,
     locale: parseLocale(row.locale),
     createdAt: row.created_at,
@@ -371,7 +401,7 @@ export async function countInviteUse(owner: string, id: string): Promise<void> {
   const { db } = await getDatabase();
   await db
     .updateTable("contact_invites")
-    .set((eb) => ({ uses: eb("uses", "+", 1) }))
+    .set((eb) => ({ uses: eb("uses", "+", 1), last_used_at: nowIso() }))
     .where("owner_id", "=", owner)
     .where("id", "=", id)
     .execute();
@@ -442,7 +472,7 @@ export async function listInvitesWithLinks(
       // hand somebody a URL that refuses them, which reads as the journal
       // being broken rather than the link being dead.
       url:
-        token && !invite.revokedAt && !isExpired(invite.expiresAt) && invite.kind !== "personal"
+        token && !invite.revokedAt && !isExpired(invite.expiresAt) && invite.kind !== "personal" && invite.kind !== "read"
           ? inviteLinkUrl(base, owner, invite.kind, token)
           : null,
     };

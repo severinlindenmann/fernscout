@@ -35,7 +35,9 @@ function sanitize(value: string): string {
  * docs/runbook.md for why.
  */
 export function formatRequestLine(method: string, path: string, userAgent: string | null): string {
-  return `[request] ${sanitize(method)} ${sanitize(path)} ua="${sanitize(userAgent ?? "-")}"`;
+  // B2961 — a trip link's code is a bearer for one trip; it never reaches a log.
+  const shown = path.replace(/^\/t\/[^/]*/, "/t/•");
+  return `[request] ${sanitize(method)} ${sanitize(shown)} ua="${sanitize(userAgent ?? "-")}"`;
 }
 
 /**

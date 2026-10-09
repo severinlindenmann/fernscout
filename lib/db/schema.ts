@@ -266,6 +266,12 @@ type ContactInvitesTable = {
   /** TIX-6. Where people who join through this link go (`reader_groups.id`),
    * or null. Applied when they ask; never lets anybody in by itself. */
   group_id: string | null;
+  /** B2961. sha-256 of a `read` link's `/t/<code>`, unique across the instance. */
+  read_code_hash: string | null;
+  /** The same code, AES-256-GCM (`read:<owner>:<id>`), so the owner can copy it again. */
+  read_code_cipher: string | null;
+  /** When a `read` link was last opened (the Open press). */
+  last_used_at: string | null;
 };
 
 /** TIX-6. An owner's reader group — `051-reader-groups`. Owner-only; never
@@ -1061,6 +1067,18 @@ type PendingSignupsTable = {
   created_at: string;
 };
 
+/** A person who kept a trip through a `read` link, B2961. One row per link per
+ * contact; `trip_id` so rename and delete sweep it. */
+type TripLinkKeepsTable = {
+  id: string;
+  owner_id: string;
+  trip_id: string;
+  invite_id: string;
+  contact_id: string;
+  kept_at: string;
+  revoked_at: string | null;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -1105,6 +1123,7 @@ export type Database = {
   storage_addons: StorageAddonsTable;
   vouchers: VouchersTable;
   pending_signups: PendingSignupsTable;
+  trip_link_keeps: TripLinkKeepsTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1151,4 +1170,5 @@ export const TABLE_NAMES = [
   "storage_addons",
   "vouchers",
   "pending_signups",
+  "trip_link_keeps",
 ] as const satisfies readonly (keyof Database)[];

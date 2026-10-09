@@ -196,7 +196,12 @@ export default async function ContactsAdminPage({
   const groups = (await listGroups(username)).map(({ id, name, color }) => ({ id, name, color }));
 
   // B2293 — each live link's short `/j/` address.
-  const invites = await withJoinUrls(username, model.invitations);
+  // `read` trip links (B2961) get their own card in the readers rework; until
+  // then this list does not know the kind.
+  const invites = await withJoinUrls(
+    username,
+    model.invitations.flatMap((i) => (i.kind === "read" ? [] : [{ ...i, kind: i.kind }])),
+  );
 
   return (
     // StudioPage carries the header, the crumb back to the studio and the

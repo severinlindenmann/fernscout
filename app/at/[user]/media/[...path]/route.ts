@@ -8,6 +8,7 @@ import { parseWidth } from "@/lib/mediaSizes";
 import { parseRange } from "@/lib/mediaRange";
 import { draftsVisibleTo, mayReadTrip, readerLevelFor } from "@/lib/tripGate";
 import { getTrip } from "@/lib/trips";
+import { linkAccess } from "@/lib/tripLink";
 import { AS_AUTHOR, entryForFolder, getAllEntries } from "@/lib/entries";
 import type { Entry } from "@/lib/types";
 import {
@@ -362,8 +363,11 @@ export async function GET(
   // B2373: a trip that is not public was refused to somebody by the gate
   // above, so no shared cache may keep its photographs either. The reader's
   // own browser still may: the day's long age holds, only `public` goes.
+  // B2961: a reader let in by a trip link may be cut off by Stop, so the
+  // browser must not keep showing them the photograph afterwards.
+  const viaLink = (await linkAccess(trip)) !== null;
   const cacheControl =
-    draft || label
+    draft || label || viaLink
       ? "private, no-store"
       : `${trip.visibility === "public" ? "public" : "private"}, max-age=86400, stale-while-revalidate=604800`;
 
