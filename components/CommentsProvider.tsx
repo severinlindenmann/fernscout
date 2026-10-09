@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
-export type DayComment = {
+type DayComment = {
   id: string;
   /** The display name the guest was invited under, never an email address. */
   author: string;
