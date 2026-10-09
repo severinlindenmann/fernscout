@@ -28,6 +28,7 @@ import { TRACKS, parseTracks, tracksLines } from "./tracks";
 import { clearTripTombstone } from "./tombstones";
 import { getTrip, MAX_TRIP_PEOPLE, isPersonEmail, tripRef } from "./trips";
 import { getUser } from "./users";
+import { samePerson } from "./samePerson";
 import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
 
 /**
@@ -453,6 +454,23 @@ export function peopleBlock(raw: unknown): BlockResult {
     if (email) lines.push(`    email: ${quoteScalar(email)}`);
     if (nickname) lines.push(`    nickname: ${quoteScalar(nickname)}`);
     value.push({ name, ...(email ? { email } : {}), ...(nickname ? { nickname } : {}) });
+  }
+  // B-2949: a name-only entry beside an addressed one of the same name is one
+  // person listed twice (a typed name, then the same person from a contact
+  // card). Refused here, where every door's write passes, rather than kept.
+  for (const [index, one] of value.entries()) {
+    if (one.email) continue;
+    const twin = value.find((other) => other.email && samePerson(one, other));
+    if (twin) {
+      return {
+        ok: false,
+        error: "invalid_people",
+        message:
+          `people[${index}] is ${JSON.stringify(one.name)} with no address, and the list already has ` +
+          `${JSON.stringify(twin.name)} with one — that is the same person twice. Keep the entry with ` +
+          `the address; if they are two people, give them different names.`,
+      };
+    }
   }
   return { ok: true, lines, value };
 }

@@ -269,7 +269,18 @@ describe("a name-only person", () => {
 
   test("duplicates are by address when given, else by exact name; a bad address is still refused", () => {
     expect(peopleBlock([{ name: "Maya" }, { name: "Maya" }]).ok).toBe(false);
-    expect(peopleBlock([{ name: "Maya" }, { name: "Maya", email: "m@e.com" }]).ok).toBe(true);
+    // B-2949: a name-only entry beside an addressed one of the same name is
+    // one person listed twice — refused, in either order, with the fix named.
+    for (const list of [
+      [{ name: "Maya" }, { name: "Maya", email: "m@e.com" }],
+      [{ name: "Maya", email: "m@e.com" }, { name: "maya" }],
+    ]) {
+      const refused = peopleBlock(list);
+      expect(refused.ok).toBe(false);
+      if (!refused.ok) expect(refused.message).toContain("same person twice");
+    }
+    expect(peopleBlock([{ name: "Maya" }, { name: "Robin", email: "r@e.com" }]).ok).toBe(true);
+    expect(peopleBlock([{ name: "Maya", email: "a@e.com" }, { name: "Maya", email: "b@e.com" }]).ok).toBe(true);
     expect(peopleBlock([{ name: "Maya", email: "nope" }]).ok).toBe(false);
     expect(peopleBlock([{ email: "m@e.com" }]).ok).toBe(false);
   });

@@ -453,6 +453,7 @@ export type TranslationKey =
   | "agent.tool.tripPeopleAccept"
   | "agent.tool.tripPeopleDone"
   | "agent.tool.tripPeopleNeedsEmail"
+  | "agent.tool.tripPeopleUpgrade"
   | "agent.tool.tripTracks"
   | "agent.tool.tripTracksAccept"
   | "agent.tool.tripTracksDone"
