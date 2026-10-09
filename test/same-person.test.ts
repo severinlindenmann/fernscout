@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { addPerson, nameOnlyMatch, samePerson } from "@/lib/samePerson";
+import { addPerson, nameOnlyMatch, samePerson, type ListedPerson } from "@/lib/samePerson";
 
 describe("samePerson / addPerson (B-2949)", () => {
   test("the same address is the same person; different addresses are not, whatever the name", () => {
@@ -28,7 +28,7 @@ describe("samePerson / addPerson (B-2949)", () => {
   });
 
   test("somebody already there changes nothing and returns the same list", () => {
-    const list = [{ name: "Nicolas", email: "n@e.com" }];
+    const list: ListedPerson[] = [{ name: "Nicolas", email: "n@e.com" }];
     expect(addPerson(list, { name: "Nicolas" })).toBe(list);
     expect(addPerson(list, { name: "Nicolas", email: "n@e.com" })).toBe(list);
   });
