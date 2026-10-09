@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import { pageRequestId } from "@/lib/requestId";
+import { reportClientError } from "@/lib/reportClientError";
 
 /**
  * The catch-all for a render that threw.
@@ -34,6 +35,7 @@ export default function Error({
 
   useEffect(() => {
     console.error("[fernscout] render failed", error);
+    reportClientError({ message: error.message, stack: error.stack, digest: error.digest });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the document is only readable in the browser
     setRequestId(pageRequestId());
   }, [error]);

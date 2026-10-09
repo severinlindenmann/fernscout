@@ -807,6 +807,30 @@ now a redirect — B311).
 `scripts/deploy.sh` prints whether this is on, the same way it already prints
 backup and Caddy state.
 
+### Client errors (B-2953)
+
+A page that crashes in a browser or in the iOS shell reports itself to
+`POST /api/v2/client-error`: public (a crash can happen signed out), JSON,
+answered `204`. Accepted: `message` (500 characters), `stack` (4000), `route`
+(200), `appVersion` (40), `platform` (`web` or `ios`), optional `requestId`
+and `digest`. Anything else is refused; the caps are in `/api/v2/openapi.json`.
+It is limited to 30 per 15 minutes per client address (bucket `client-error`,
+the address is never logged).
+
+Each report is one stdout entry, not gated on `features.logging`, with no
+database and no file:
+
+```
+[client-error] <requestId|-> <platform> <appVersion> <route> "<message>"
+    <stack line, 4-space indented>
+```
+
+Emails, bearer and `fs_` tokens, long opaque runs and query strings are
+redacted (`lib/scrubLog.ts`). `appVersion` is the first 12 characters of
+`GIT_SHA`, or `unknown` where it is unset. Retention is the journald
+namespace's, 14 days. Find one with `.claude/skills/vps/find-bug.sh` in the
+harness, by the request id the error screen shows.
+
 ---
 
 ## Backups

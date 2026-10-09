@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { pageRequestId } from "@/lib/requestId";
+import { reportClientError } from "@/lib/reportClientError";
 
 /**
  * The floor under everything.
@@ -84,6 +85,7 @@ export default function GlobalError({
 
   useEffect(() => {
     console.error("[fernscout] root layout failed", error);
+    reportClientError({ message: error.message, stack: error.stack, digest: error.digest });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRequestId(pageRequestId());
     // Only the languages this page carries strings for, since there is no

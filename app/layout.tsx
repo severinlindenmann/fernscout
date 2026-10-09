@@ -11,6 +11,7 @@ import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { DARK_THEME_COLOR, LIGHT_THEME_COLOR } from "@/lib/theme";
 import ThemeScript from "@/components/ThemeScript";
+import ErrorReporter from "@/components/ErrorReporter";
 import "./globals.css";
 
 // B1726 — `preload: false` on the latin half too, and it is the opposite of
@@ -155,6 +156,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         {requestId && <meta name="request-id" content={requestId} />}
+        {process.env.GIT_SHA && <meta name="app-version" content={process.env.GIT_SHA.slice(0, 12)} />}
         <ThemeScript />
       </head>
       {/*
@@ -174,6 +176,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       */}
       <body className="flex min-h-full min-w-0 flex-col bg-background text-foreground">
         <ServiceWorkerRegistrar />
+        <ErrorReporter />
         <NavProgress />
         {/* Site identity, the trip list and currency options are all per-user,
             so they are provided by app/at/[user]/layout.tsx rather than here. */}

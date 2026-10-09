@@ -37,6 +37,7 @@ import {
   visitedDoc,
   errorEnvelope,
   geocodeRequest,
+  clientErrorRequest,
   geocodeResponse,
   gpsZonesWrite,
   gpsZonesDoc,
@@ -979,6 +980,23 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(200, deviceRevoked, "revoked"),
         ...refusalResponses([ref("auth_disabled", 404), ref("not_signed_in", 401), ref("no_such_device", 404)]),
+      },
+    },
+  };
+
+  paths["/api/v2/client-error"] = {
+    post: {
+      summary:
+        "Report a crash from the browser or the iOS shell. No auth. Written to the server log only, never stored; 30 per 15 minutes per client address. Caps: message 500, stack 4000, route 200, appVersion 40, requestId and digest 40 characters of [A-Za-z0-9_-].",
+      requestBody: jsonBody(clientErrorRequest, "the crash"),
+      responses: {
+        ...noBodyResponse(204, "logged"),
+        ...refusalResponses([
+          ref("invalid_request", 400),
+          ref("invalid_json", 400),
+          ref("body_too_large", 413),
+          ref("too_many_requests", 429),
+        ]),
       },
     },
   };
