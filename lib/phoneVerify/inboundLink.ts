@@ -146,6 +146,10 @@ export async function claimPhoneLink(body: string, from: string): Promise<ClaimO
     .set({ email: from, link_consumed_at: new Date().toISOString() })
     .where("id", "=", row.id)
     .execute();
+  // B-2942. A reader-link row (bound to `join:...`) only records the sender;
+  // the starting browser's poll compares it with the typed number. It never
+  // becomes a pending signup proof.
+  if (row.trip_id?.startsWith(JOIN_PREFIX)) return { outcome: "confirmed", locale };
   // B2805. A number that already keeps a journal proves nothing new: no
   // pending proof is written, and the poll answers tel_taken. (The webhook
   // reply for "taken" is paid/'s to word; today it reads as "expired".)
@@ -188,4 +192,100 @@ export async function pollPhoneLink(id: string, boundTo: string): Promise<PollRe
 
   await db.updateTable("login_codes").set({ consumed_at: new Date().toISOString() }).where("id", "=", row.id).execute();
   return { status: "ok", phone: row.email };
+}
+
+/**
+ * The reader link's variant - B-2942. Same table, same token and message, but
+ * the row is bound not to a signup address but to
+ * `join:<inviteId>:<sha256(secret)>:<typed digits>`: the link, a secret only
+ * the starting browser holds (an httpOnly cookie), and the number the person
+ * typed. Ten minutes, single use. `claimPhoneLink` records the sender on it
+ * without writing any pending proof.
+ */
+const JOIN_PREFIX = "join:";
+const JOIN_TTL_MS = 10 * 60 * 1000;
+
+function joinBinding(inviteId: string, secret: string, typedDigits: string): string {
+  return `${JOIN_PREFIX}${inviteId}:${hashSecret(secret)}:${typedDigits}`;
+}
+
+type JoinPhoneLink = PhoneLink & { secret: string; expiresAt: string };
+
+export async function createJoinPhoneLink(
+  inviteId: string,
+  typedDigits: string,
+  locale: string,
+  previousSecret?: string | null,
+): Promise<JoinPhoneLink | null> {
+  const number = whatsappNumberForUrl();
+  if (!number) return null;
+  const { db } = await getDatabase();
+  const now = new Date();
+  // Asking again from the same browser supersedes its earlier link.
+  if (previousSecret) {
+    await db
+      .updateTable("login_codes")
+      .set({ consumed_at: now.toISOString() })
+      .where("owner_id", "=", NO_JOURNAL)
+      .where("kind", "=", KIND)
+      .where("trip_id", "like", `${JOIN_PREFIX}${inviteId}:${hashSecret(previousSecret)}:%`)
+      .where("consumed_at", "is", null)
+      .execute();
+  }
+  const secret = crypto.randomBytes(24).toString("base64url");
+  const id = crypto.randomUUID();
+  const token = generateToken();
+  const expiresAt = new Date(now.getTime() + JOIN_TTL_MS).toISOString();
+  await db
+    .insertInto("login_codes")
+    .values({
+      id,
+      owner_id: NO_JOURNAL,
+      email: "",
+      code_hash: hashSecret(token.toUpperCase()),
+      link_hash: null,
+      link_consumed_at: null,
+      link_dest: locale,
+      trip_id: joinBinding(inviteId, secret, typedDigits),
+      kind: KIND,
+      created_at: now.toISOString(),
+      expires_at: expiresAt,
+      consumed_at: null,
+      link_standing: 0,
+      attempts: 0,
+    })
+    .execute();
+  const text = prefillText(token);
+  return { id, token, link: `https://wa.me/${number}?text=${encodeURIComponent(text)}`, text, secret, expiresAt };
+}
+
+type JoinPollResult =
+  | { status: "pending" }
+  | { status: "ok"; phone: string }
+  | { status: "mismatch" }
+  | { status: "expired" };
+
+/**
+ * The starting browser's poll. Another browser (no secret, or another one)
+ * is told "expired" like a row that never existed. A message from any number
+ * but the typed one consumes the row and answers `mismatch`. `ok` is single
+ * use: the row is claimed in one conditional update.
+ */
+export async function pollJoinPhoneLink(id: string, inviteId: string, secret: string): Promise<JoinPollResult> {
+  const { db } = await getDatabase();
+  const row = await db.selectFrom("login_codes").selectAll().where("id", "=", id).where("kind", "=", KIND).executeTakeFirst();
+  const prefix = `${JOIN_PREFIX}${inviteId}:${hashSecret(secret)}:`;
+  if (!row || !row.trip_id?.startsWith(prefix) || row.consumed_at) return { status: "expired" };
+  if (new Date(row.expires_at).getTime() < Date.now()) return { status: "expired" };
+  if (!row.link_consumed_at || !row.email) return { status: "pending" };
+  const typed = row.trip_id.slice(prefix.length);
+  const sender = row.email.replace(/\D/g, "");
+  const taken = await db
+    .updateTable("login_codes")
+    .set({ consumed_at: new Date().toISOString() })
+    .where("id", "=", row.id)
+    .where("consumed_at", "is", null)
+    .executeTakeFirst();
+  if (Number(taken.numUpdatedRows ?? 0) !== 1) return { status: "expired" };
+  return sender === typed && typed ? { status: "ok", phone: typed } : { status: "mismatch" };
 }

@@ -233,6 +233,9 @@ describe("B2597 — no route sends an SMS except the owner's own checks", () => 
   const ALLOWED = new Set([
     // The owner's own signup/phone-verify code (this file's own B1316 suite).
     "lib/phoneVerify/sms.ts",
+    // B-2942 (owner decision 2026-10-09): a reader-link sign-in code, and only
+    // that - day notifications to readers stay email and push.
+    "lib/contacts/guestPhone.ts",
     // The instance operator's own admin panel (B1316) — not a reader or
     // journal-owner channel, and not named in B2597's decision; left as is.
     "app/api/admin/sms/route.ts",
@@ -253,7 +256,7 @@ describe("B2597 — no route sends an SMS except the owner's own checks", () => 
     }
   }
 
-  test("every literal sendSms( call site is one of the two allowed files", () => {
+  test("every literal sendSms( call site is one of the allowed files", () => {
     const root = path.join(__dirname, "..");
     const files: string[] = [];
     for (const top of ["app", "lib"]) walk(path.join(root, top), files);
