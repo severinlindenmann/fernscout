@@ -293,7 +293,7 @@ describe("the welcome guide — the reader's six screens", () => {
   });
 });
 
-describe("the join flow at /j/ — asking, never access", () => {
+describe("the join flow at /j/ — a reader link lets the person in (B-2940)", () => {
   async function newLink(body: Record<string, unknown> = { kind: "guest", name: "Family chat" }) {
     const { POST } = await import("@/app/api/web/[user]/invites/route");
     const res = await POST(post(`/api/web/${OWNER}/invites`, body), { params: Promise.resolve({ user: OWNER }) });
@@ -303,7 +303,7 @@ describe("the join flow at /j/ — asking, never access", () => {
     return { ...json, code: json.joinUrl.split("/j/")[1] };
   }
 
-  test("email: name, code, address, ticks — a confirmed request, nothing granted, the owner told", async () => {
+  test("email: name, code, address, ticks — let in at once, the owner told they joined", async () => {
     const link = await newLink();
     jar.cookies = {};
     const { isJournalGuest } = await import("@/lib/contacts/session");
@@ -317,20 +317,20 @@ describe("the join flow at /j/ — asking, never access", () => {
       value: "anna@example.test",
       code: codeMailed("anna@example.test"),
     });
-    expect(ok.json.status).toBe("waiting");
-    expect(await isJournalGuest(OWNER)).toBe(false);
+    expect(ok.json.status).toBe("in");
+    expect(await isJournalGuest(OWNER)).toBe(true);
     expect((await joinStep(link.code, { action: "save", address: { line1: "Weg 1", postcode: "3000", city: "Bern", country: "CH" }, wantsEmailDigest: true, wantsPostcard: true })).status).toBe(200);
 
     const { getContactByEmail } = await import("@/lib/contacts");
     const anna = (await getContactByEmail(OWNER, "anna@example.test"))!;
-    expect(anna.status).toBe("pending");
+    expect(anna.status).toBe("active");
     expect(anna.confirmedAt).not.toBeNull();
     expect(anna.createdVia).toBe(`invite:${link.id}`);
     expect(anna.wantsEmailDigest).toBe(true);
     expect(anna.postalAddress?.city).toBe("Bern");
     const { readerState } = await import("@/lib/readers/split");
-    expect(readerState(anna)).toBe("waitingOnYou");
-    expect(mails(OWNER_EMAIL).some((m) => m.includes("Anna Keller"))).toBe(true);
+    expect(readerState(anna)).not.toBe("waitingOnYou");
+    expect(mails(OWNER_EMAIL).some((m) => m.includes("Anna Keller") && m.includes("joined through your link"))).toBe(true);
   });
 
   // B2597 retired joining by mobile — the join link asks for an email now,

@@ -210,15 +210,15 @@ describe("invite links carry a group", () => {
     expect(link.status).toBe(404);
   });
 
-  test("somebody new who asks through the link waits, in the link's group — and is not let in", async () => {
+  test("somebody new who joins through the link is let in at once, in the link's group (B-2940)", async () => {
     const family = await groupId("Family");
     const link = await newLink({ kind: "guest", name: "Family chat", group: family });
     expect(link.status).toBe(201);
     expect(link.body.group).toBe(family);
     const out = await joinAs(link.code, "Marco Rossi", "marco@example.test");
-    expect(out.json.status).toBe("waiting");
+    expect(out.json.status).toBe("in");
     const marco = await contactByEmail("marco@example.test");
-    expect(marco.status).toBe("pending");
+    expect(marco.status).toBe("active");
     expect(marco.groupId).toBe(family);
     expect(marco.askedGroupId).toBeNull();
   });

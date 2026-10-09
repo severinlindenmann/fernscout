@@ -61,9 +61,12 @@ and `GET /api/v2/{user}/gps` and `…/gps/zones` (owner cookie). See
 Agent bearer tokens reach `/api/**`, never rendered owner pages. Owner pages
 use browser cookies. An identity cookie proves an email address and grants
 nothing by itself — use the established resolution functions rather than
-making credentials interchangeable for convenience. An invite link on its
-own grants nothing; an invite created with an email address is the
-exception — it pre-approves that address before anyone clicks anything. A
+making credentials interchangeable for convenience. A buddy link on its
+own grants nothing, and an invite created with an email address
+pre-approves that address before anyone clicks anything. A reader link
+(`/j/<code>`, kind guest) is the invitation itself: whoever proves an email
+through it is let in at once (B-2940), and the owner can block them or stop
+the link. A
 postcard or photobook API call creates a proposal, not a paid print. Deleting
 a journal or a trip creates a confirmation email and removes nothing until
 it is clicked; smaller deletes (a draft day, a photo, an invite, a contact)
