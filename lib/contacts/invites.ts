@@ -163,7 +163,7 @@ const READ_CODE_LENGTH = 16;
 export const READ_CODE_RE = new RegExp(`^[${READ_ALPHABET}]{${READ_CODE_LENGTH}}$`);
 
 /** 16 characters of `crypto.randomInt`, so no modulo bias: about 79 bits. */
-export function newReadCode(): string {
+function newReadCode(): string {
   let out = "";
   for (let i = 0; i < READ_CODE_LENGTH; i++) out += READ_ALPHABET[crypto.randomInt(READ_ALPHABET.length)];
   return out;

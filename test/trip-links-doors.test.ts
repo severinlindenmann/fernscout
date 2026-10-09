@@ -238,6 +238,11 @@ describe("AC4 — the two code families never open each other's doors", () => {
     expect(await resolveReadCode(link.readCode!)).toBeNull();
   });
 
+  test("the link the owner copies is the short /t address", async () => {
+    const { readLinkUrl } = await import("@/lib/tripLink");
+    expect(readLinkUrl("abcdefghjkmnpqrs")).toBe("https://example.test/t/abcdefghjkmnpqrs");
+  });
+
   test("a read link has no expiry only when the owner says so", async () => {
     const { createInvite } = await import("@/lib/contacts/invites");
     const dflt = await createInvite(OWNER, { kind: "read", tripId: GUEST_TRIP });
