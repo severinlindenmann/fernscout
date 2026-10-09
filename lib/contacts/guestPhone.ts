@@ -28,7 +28,7 @@ import { getContactByEmail } from "./index";
 const DEFAULT_COUNTRY_CODES = ["41", "49", "43", "33", "39", "423", "36"];
 
 /** Calling codes (digits, no `+`) this instance texts reader-link codes to. */
-export function joinCountryCodes(): string[] {
+function joinCountryCodes(): string[] {
   const configured = (loadServerConfig().features.sms as Record<string, unknown>).joinCountryCodes;
   if (!Array.isArray(configured)) return DEFAULT_COUNTRY_CODES;
   return configured.filter((c): c is string => typeof c === "string").map((c) => c.replace(/\D/g, "")).filter(Boolean);
@@ -55,7 +55,7 @@ export function typedDigits(raw: string): string | null {
   return toE164(raw, whatsappCountryCode());
 }
 
-export type JoinSmsResult =
+type JoinSmsResult =
   | { ok: true; to: string }
   | { ok: false; reason: "unavailable" | "unsupported_country" | "rate_limited" | "send_failed" };
 

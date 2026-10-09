@@ -209,7 +209,7 @@ function joinBinding(inviteId: string, secret: string, typedDigits: string): str
   return `${JOIN_PREFIX}${inviteId}:${hashSecret(secret)}:${typedDigits}`;
 }
 
-export type JoinPhoneLink = PhoneLink & { secret: string; expiresAt: string };
+type JoinPhoneLink = PhoneLink & { secret: string; expiresAt: string };
 
 export async function createJoinPhoneLink(
   inviteId: string,
@@ -259,7 +259,7 @@ export async function createJoinPhoneLink(
   return { id, token, link: `https://wa.me/${number}?text=${encodeURIComponent(text)}`, text, secret, expiresAt };
 }
 
-export type JoinPollResult =
+type JoinPollResult =
   | { status: "pending" }
   | { status: "ok"; phone: string }
   | { status: "mismatch" }

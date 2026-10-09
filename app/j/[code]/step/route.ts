@@ -57,8 +57,9 @@ const answer = (body: unknown, status = 200) => Response.json(body, { status, he
  * block them afterwards. A buddy link, or anybody the link merely found, still
  * ends at a `pending` contact and the owner's Let in (`approveContact`). A mailed invite from before the rebuild
  * (B319) is the one exception it always was: proving *exactly* the address
- * the owner typed lets that person in. B2597: readers sign in by email only
- * — no phone channel, no SMS.
+ * the owner typed lets that person in. B2597: B-2942: a mobile number may be proved
+ * instead (`channel: "sms"` on send and verify, or `wa-start` and `wa-poll`
+ * for a WhatsApp message-in), for sign-in only.
  *
  * - `send` `{ name, value, locale }` — mails a code, within the usual code
  *   budgets; writes nothing about anybody.
