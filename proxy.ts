@@ -224,6 +224,7 @@ const GUEST_COOKIE_NAME = "fs_session";
  * assets excluded — see the matcher's own comment for that choice.
  */
 function logRequest(request: NextRequest): void {
+  if (request.nextUrl.pathname === "/api/health") return; // monitoring pings, ~26% of all lines
   if (!loggingEnabled()) return;
   console.log(formatRequestLine(request.method, request.nextUrl.pathname, request.headers.get("user-agent")));
 }

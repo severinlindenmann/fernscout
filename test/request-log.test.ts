@@ -116,6 +116,16 @@ describe("proxy request logging", () => {
     log.mockRestore();
   });
 
+  test("logs nothing for the health ping, but still logs other paths", () => {
+    writeConfig(true);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    proxy(get("/api/health"));
+    expect(log).not.toHaveBeenCalled();
+    proxy(get("/api/healthz"));
+    expect(log).toHaveBeenCalledTimes(1);
+    log.mockRestore();
+  });
+
   test("logs the instance's own root-level agent documents", () => {
     writeConfig(true);
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
