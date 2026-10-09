@@ -347,7 +347,7 @@ describe("B-2961 — send answers alike whether or not a code went out", () => {
     let mailed = 0;
     for (let i = 0; i < 12; i++) {
       const before = mailCount();
-      const res = await keepPost(link.code, { action: "send", email: PERSON, name: "Pia" });
+      const res = await keepPost(link.code, { action: "send", email: PERSON, name: "Pia" }, { ip: `203.0.113.${i + 1}` });
       expect(res.status).toBe(200);
       answers.push(await res.json());
       mailed += mailCount() - before;
@@ -356,10 +356,28 @@ describe("B-2961 — send answers alike whether or not a code went out", () => {
     expect(mailed).toBe(10); // emailCodeAllowed: ten a day per address
   });
 
+  test("the link's own cap is an honest 429 that names no address, and a single IP is limited too", async () => {
+    const link = await mint();
+    for (let i = 0; i < 60; i++) {
+      expect((await keepPost(link.code, { action: "send", email: `q${i}@example.test`, name: "P" }, { ip: `192.0.2.${i + 1}` })).status).toBe(200);
+    }
+    const capped = await keepPost(link.code, { action: "send", email: "q0@example.test", name: "P" }, { ip: "192.0.2.200" });
+    expect(capped.status).toBe(429);
+    expect(await capped.json()).toEqual({ error: "link_cap" });
+
+    const other = await mint();
+    for (let i = 0; i < 10; i++) {
+      expect((await keepPost(other.code, { action: "send", email: `r${i}@example.test`, name: "P" }, { ip: "192.0.2.250" })).status).toBe(200);
+    }
+    const ipLimited = await keepPost(other.code, { action: "send", email: "r11@example.test", name: "P" }, { ip: "192.0.2.250" });
+    expect(ipLimited.status).toBe(429);
+    expect(await ipLimited.json()).toEqual({ error: "rate_limited" });
+  });
+
   test("a link mails at most its daily cap", async () => {
     const link = await mint();
     let mailed = 0;
-    for (let i = 0; i < 62; i++) {
+    for (let i = 0; i < 60; i++) {
       const before = mailCount();
       // The per-IP budget is a different limit.
       const res = await keepPost(link.code, { action: "send", email: `p${i}@example.test`, name: "P" }, { ip: `198.51.100.${i + 1}` });
@@ -367,6 +385,23 @@ describe("B-2961 — send answers alike whether or not a code went out", () => {
       mailed += mailCount() - before;
     }
     expect(mailed).toBe(60);
+  });
+});
+
+describe("B-2961 — a keep row opens this trip only when it is this owner's, this trip's, live and read-kind", () => {
+  test("other trip, other owner, revoked, or a non-read invite grants nothing", async () => {
+    const link = await mint();
+    await proveAndKeep(link, PERSON);
+    expect(await reads()).toBe(true);
+    const d = await db();
+    for (const set of [{ trip_id: "elsewhere-2026" }, { owner_id: "bob" }, { revoked_at: "2026-10-01T00:00:00Z" }]) {
+      await d.updateTable("trip_link_keeps").set(set).execute();
+      expect(await reads()).toBe(false);
+      await d.updateTable("trip_link_keeps").set({ trip_id: TRIP, owner_id: OWNER, revoked_at: null }).execute();
+      expect(await reads()).toBe(true);
+    }
+    await d.updateTable("contact_invites").set({ kind: "guest" }).where("id", "=", link.id).execute();
+    expect(await reads()).toBe(false);
   });
 });
 

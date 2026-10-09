@@ -27,6 +27,8 @@ export const dynamic = "force-dynamic";
 const PER_IP = { max: 40, windowMs: 15 * 60 * 1000 };
 const PER_CODE = { max: 200, windowMs: 60 * 60 * 1000 };
 const NEW_PER_LINK = { max: 30, windowMs: 24 * 60 * 60 * 1000 };
+/** Codes mailed from one address of the network, per quarter hour. */
+const SEND_PER_IP = { max: 10, windowMs: 15 * 60 * 1000 };
 /** Codes mailed through one link in a day, whoever they go to. */
 const SEND_PER_LINK = { max: 60, windowMs: 24 * 60 * 60 * 1000 };
 const NO = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } as const;
@@ -76,9 +78,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       const email = normaliseEmail(text("email"));
       if (!isEmail(email)) return answer({ error: "invalid_email" }, 400);
       if (mailDisabledReason(owner)) return answer({ error: "unavailable" }, 503);
-      // The same answer whether or not a code went out, so the budgets cannot
-      // be read back as "this address was asked before".
-      if (rateLimitFor("trip-keep-send-link", link.inviteId, SEND_PER_LINK).ok && emailCodeAllowed(email)) {
+      // Per IP and per link are honest 429s: neither says anything about an
+      // address. The per-address and instance budgets answer like a send, so
+      // they cannot be read back as "this address was asked before".
+      if (!rateLimitFor("trip-keep-send-ip", ip, SEND_PER_IP).ok) return answer({ error: "rate_limited" }, 429);
+      if (!rateLimitFor("trip-keep-send-link", link.inviteId, SEND_PER_LINK).ok) return answer({ error: "link_cap" }, 429);
+      if (emailCodeAllowed(email)) {
         const { code: six } = await issueCode(owner, email, "guest");
         await sendCodeMail(owner, user, email, locale, six, null);
       }

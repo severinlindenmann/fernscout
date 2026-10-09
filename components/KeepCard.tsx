@@ -42,7 +42,15 @@ export default function KeepCard({ link, email }: { link: HomeLink; email: strin
     const data = res ? ((await res.json().catch(() => null)) as Record<string, unknown> | null) : null;
     setBusy(false);
     if (!res?.ok || !data) {
-      setError(t(res?.status === 401 && body.action === "verify" ? "tripKeep.wrongCode" : "tripKeep.failed"));
+      setError(
+        t(
+          data?.error === "link_cap"
+            ? "tripKeep.linkCap"
+            : res?.status === 401 && body.action === "verify"
+              ? "tripKeep.wrongCode"
+              : "tripKeep.failed",
+        ),
+      );
       return null;
     }
     return data;

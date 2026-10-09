@@ -4385,6 +4385,7 @@
   "tripKeep.doneBody": "Tu peux lire ce voyage partout où tu te connectes avec cette adresse. Rien d’autre du journal ne s’ouvre.",
   "tripKeep.wrongCode": "Ce code n’a pas marché. Vérifie-le et réessaie.",
   "tripKeep.failed": "Ça n’a pas marché. Réessaie dans un instant.",
+  "tripKeep.linkCap": "Trop de personnes ont utilisé ce lien aujourd’hui. Réessaie demain.",
   "tripKeep.removed": "{owner} a retiré ce voyage de tes voyages enregistrés.",
   "tripKeep.signedInAs": "Connecté en tant que {email}.",
   "tripKeep.start": "Commencer ton propre journal",

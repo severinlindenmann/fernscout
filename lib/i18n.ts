@@ -4947,6 +4947,7 @@ export type TranslationKey =
   | "tripKeep.gives"
   | "tripKeep.heading"
   | "tripKeep.keep"
+  | "tripKeep.linkCap"
   | "tripKeep.name"
   | "tripKeep.note"
   | "tripKeep.removed"
