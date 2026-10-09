@@ -241,6 +241,8 @@ export default function JoinFlow({
   /** Somebody already on the page keeps what is stored: no address screen for
    * them, straight to where they stand. */
   function proved(answer: Record<string, unknown>, order: Step[] = steps) {
+    // Clearing the remembered name must not blank the one this page still shows.
+    setName(name);
     storeName(code, null);
     setStatus(answer.status === "in" ? "in" : "waiting");
     setKnown(Boolean(answer.known));
