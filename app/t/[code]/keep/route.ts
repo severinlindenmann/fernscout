@@ -47,7 +47,7 @@ const answer = (body: unknown, status = 200) => Response.json(body, { status, he
  * - `verify` `{ name, email, code, wantsDayMail }` — proves the address, then keeps.
  * - `join` `{ name, wantsDayMail }` — already signed in with an email: no second code.
  */
-export async function POST(request: Request, { params }: RouteContext<"/t/[code]/keep">) {
+export async function POST(request: Request, { params }: { params: Promise<{ code: string }> }) {
   if (!request.headers.get("origin") || foreignOrigin(request)) return answer(FOREIGN_ORIGIN_REFUSAL, 403);
   const { code } = await params;
   const jsonBody = await readJsonBody(request);
