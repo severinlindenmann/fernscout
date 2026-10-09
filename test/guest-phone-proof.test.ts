@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { writeTripFixture } from "./fixtures/content";
+import { hasPaid } from "./support/openCore";
 
 /**
  * B-2942 - a guest on a reader link proves a mobile number by an SMS code or
@@ -314,7 +315,8 @@ describe("SMS proof on a reader link", () => {
   });
 });
 
-describe("WhatsApp message-in on a reader link", () => {
+// The inbound WhatsApp webhook is a paid feature: without paid/ (public CI) the option is absent by design.
+describe.skipIf(!hasPaid())("WhatsApp message-in on a reader link", () => {
   async function start(code: string, number: string) {
     return joinStep(code, { action: "wa-start", name: "Mira", value: number, locale: "en" });
   }
