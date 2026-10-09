@@ -2,6 +2,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { localToday } from "@/lib/studio/monthGrid";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -86,7 +87,8 @@ function fillStepOne() {
   tap(`${thisMonth}-10`);
   tap(`${thisMonth}-15`);
 }
-const thisMonth = new Date().toISOString().slice(0, 7);
+// The device calendar, as the component reads it: UTC differs for hours around midnight (B-2968).
+const thisMonth = localToday().slice(0, 7);
 function tap(date: string) {
   act(() => (container.querySelector(`[data-date-field] button[data-date="${date}"]`) as HTMLButtonElement).click());
 }
@@ -149,7 +151,7 @@ describe("NewTripFlow — one screen, B2846", () => {
     act(() => type(titleInput(), "Round the Alps"));
     act(() => button("I'm travelling now").click());
     await create();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localToday();
     expect(sent(fetchMock)).toMatchObject({ start: today, end: today });
   });
 
