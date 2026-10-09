@@ -42,19 +42,26 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * whether a link is live is a question worth not answering, and the reader
  * finds out by pressing — which is one press either way.
  */
-export default async function SignInPage({ params }: PageProps<"/at/[user]/s/[token]">) {
+export default async function SignInPage({ params, searchParams }: PageProps<"/at/[user]/s/[token]">) {
   const { user: username, token } = await params;
   const user = getUser(username);
   if (!user || !isEnabled("auth", username)) notFound();
 
   const locale = await requestLocale();
+  // B-2935: a link from the join flow (`for=join`, set by `sendCodeMail`)
+  // reaches somebody who is not in yet and still has a step or two left —
+  // words only; the token is still not looked up before the press.
+  const join = (await searchParams).for === "join";
 
   return (
-    <NoticeShell title={translateIn(locale, "signin.title")} body={translateIn(locale, "signin.body")}>
+    <NoticeShell
+      title={translateIn(locale, join ? "signin.joinTitle" : "signin.title")}
+      body={join ? translateIn(locale, "signin.joinBody", { title: user.title }) : translateIn(locale, "signin.body")}
+    >
       <SignInButton
         username={username}
         token={token}
-        label={translateIn(locale, "signin.action")}
+        label={translateIn(locale, join ? "signin.joinAction" : "signin.action")}
         working={translateIn(locale, "signin.working")}
         failed={translateIn(locale, "signin.failed")}
       />

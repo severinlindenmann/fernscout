@@ -13,6 +13,7 @@ import {
   encryptAddress,
   encryptString,
   hasAnyDetail,
+  hasContactsKey,
   isPostable,
   normaliseAddress,
   phoneAad,
@@ -1448,10 +1449,18 @@ export async function addPersonByOwner(
   return { ok: true, outcome: added.outcome, contact: approved.contact };
 }
 
-// B2597 retired the join link's phone channel and the signed-in reader's
-// "add a proven mobile" path (B2294 (b)/(c)) — `addContactWithProvenPhone`
-// and `setProvenPhone` had no caller left once `./guestCode.ts`'s
-// `proveFirstPhone`/`confirmPhoneProof` were removed.
+/**
+ * A brand-new contact whose first channel is a number a code or an inbound
+ * message has just proved - B2294 (c), restored by B-2942 for the reader
+ * link. Keyed and stamped proven, created `pending`, granted nothing. Only
+ * the join route calls this, after the proof has succeeded.
+ */
+export async function addContactWithProvenPhone(
+  owner: string,
+  input: Omit<AddContactInput, "email"> & { phone: string },
+): Promise<AddContactResult> {
+  return saveContact(owner, input, "proven");
+}
 
 async function saveContact(
   owner: string,
@@ -1585,8 +1594,21 @@ export function contactKey(contact: { id: string; email: string }): string {
   return contact.email ? normaliseEmail(contact.email) : noEmailKey(contact.id);
 }
 
-// B2597 retired `markContactPhoneProven` — no route stamps a proven phone
-// any more, since readers sign in by email only.
+/**
+ * A code or inbound message just proved this number - stamp it on the contact
+ * it belongs to (B2294, B-2942). Leaves an earlier stamp alone.
+ */
+export async function markContactPhoneProven(owner: string, digits: string): Promise<void> {
+  if (!hasContactsKey()) return;
+  const { db } = await getDatabase();
+  await db
+    .updateTable("contacts")
+    .set({ phone_proven_at: nowIso(), updated_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("phone_key", "=", phoneKey(digits))
+    .where("phone_proven_at", "is", null)
+    .execute();
+}
 
 /** The self-serve page: change anything, or leave. `stream`, when given,
  * asks the page to open scrolled to and highlighting that channel — B2442,

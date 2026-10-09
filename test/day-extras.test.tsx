@@ -21,7 +21,8 @@ const { default: EditDayFlow } = await import("@/components/studio/day/EditDayFl
 const { default: StudioBarProvider } = await import("@/components/studio/StudioBar");
 const { default: LocaleProvider } = await import("@/components/LocaleProvider");
 const { dictionaryFor } = await import("@/lib/locales");
-const { extrasToWrite, lineProblem, tagOf } = await import("@/components/studio/day/DayExtras");
+const { extrasToWrite, lineProblem } = await import("@/components/studio/day/DayExtras");
+const { tagOf } = await import("@/lib/studio/tagsMerge");
 
 let root: Root | undefined;
 let container: HTMLDivElement;

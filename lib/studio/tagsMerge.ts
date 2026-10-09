@@ -10,6 +10,23 @@
  * its selection set with the place the first time it builds one; "used
  * before" and AI chips start unselected until tapped or "Add all".
  */
+import { TAG_MAX_LENGTH } from "@/lib/validate/entry";
+
+/** "Street Food" → "street-food", "Tōkyō, Japan" → "tokyo-japan": the slug
+ *  shape the day schema holds every tag to. Accents go the way `slugify`
+ *  drops them; a tag with no Latin letters left becomes "" and is dropped
+ *  (B-2936 — Preview once sent "tokyo, japan" and publish was refused). */
+export function tagOf(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, TAG_MAX_LENGTH)
+    .replace(/-+$/, "");
+}
+
 type TagSource = "place" | "usedBefore" | "ai";
 export type TagChip = { tag: string; source: TagSource; selected: boolean };
 
@@ -22,7 +39,7 @@ export function mergeTags(
   const seen = new Set<string>();
   const chips: TagChip[] = [];
   const add = (tag: string, source: TagSource) => {
-    const key = tag.trim().toLowerCase();
+    const key = tagOf(tag);
     if (!key || seen.has(key)) return;
     seen.add(key);
     chips.push({ tag: key, source, selected: selected.has(key) });
@@ -44,7 +61,8 @@ export function addAllAiTags(chips: readonly TagChip[], selected: ReadonlySet<st
 /** A tap on a chip — on becomes off, off becomes on. */
 export function toggleTag(selected: ReadonlySet<string>, tag: string): Set<string> {
   const next = new Set(selected);
-  const key = tag.trim().toLowerCase();
+  const key = tagOf(tag);
+  if (!key) return next;
   if (next.has(key)) next.delete(key);
   else next.add(key);
   return next;
