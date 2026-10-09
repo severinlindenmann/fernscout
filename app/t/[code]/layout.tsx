@@ -7,7 +7,7 @@ export default async function TripLinkLayout({ children, params }: LayoutProps<"
   const { code } = await params;
   const locale = await frameLocale(code);
   return (
-    <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "joinFrame")}>
+    <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "tripLinkFrame")}>
       {children}
     </LocaleProvider>
   );
