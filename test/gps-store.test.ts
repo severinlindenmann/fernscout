@@ -628,7 +628,10 @@ describe("who may reach the owner-only, position-derived readers — security re
     clearUserCache();
     const { currentTripRecording } = await import("@/lib/gps/api");
     expect(currentTripRecording(U)).toBeNull();
-    writeTripFixture(U, { id: "now", title: "Now", start: "2026-10-01", end: "2026-10-09", status: "current", visibility: "public" });
+    // Built from today, not a calendar date: a fixed end date made this test
+    // fail the day after it passed (B-2956).
+    const around = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+    writeTripFixture(U, { id: "now", title: "Now", start: around(-3), end: around(3), status: "current", visibility: "public" });
     clearUserCache();
     expect(currentTripRecording(U)).toEqual({ tripId: "now", recording: null });
   });
