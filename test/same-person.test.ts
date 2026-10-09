@@ -44,3 +44,17 @@ describe("samePerson / addPerson (B-2949)", () => {
     expect(nameOnlyMatch(list, "JO")).toEqual({ name: "Jo" });
   });
 });
+
+describe("the v2 trip schema refuses the same person twice (B-2949)", () => {
+  test("a name-only entry beside an addressed one of the same name", async () => {
+    const { tripPatch } = await import("@/lib/api/v2/schemas/trip");
+    const refused = tripPatch.safeParse({
+      people: [{ name: "Murielle", email: "m@e.com" }, { name: "Nicolas" }, { name: "Nicolas", email: "n@e.com" }],
+    });
+    expect(refused.success).toBe(false);
+    expect(JSON.stringify(refused.error?.issues)).toContain("give that entry the address");
+    expect(
+      tripPatch.safeParse({ people: [{ name: "Murielle", email: "m@e.com" }, { name: "Nicolas", email: "n@e.com" }] }).success,
+    ).toBe(true);
+  });
+});
