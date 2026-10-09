@@ -280,3 +280,15 @@ describe("AC6 — the code never reaches the request log", () => {
     expect(formatRequestLine("GET", "/j/abc", "ua")).toContain("/j/abc");
   });
 });
+
+describe("B-2961 — /t answers same-origin so the press carries a real Origin", () => {
+  test("the last Referrer-Policy rule for a /t path and the page meta are same-origin", async () => {
+    const nextConfig = (await import("@/next.config")).default;
+    const rules = (await nextConfig.headers!()).filter((r) => r.source === "/:path*" || r.source.startsWith("/t/:code"));
+    const policies = rules.flatMap((r) => r.headers.filter((h) => h.key === "Referrer-Policy").map((h) => h.value));
+    expect(policies.at(-1)).toBe("same-origin");
+    const { generateMetadata } = await import("@/app/t/[code]/page");
+    const meta = await generateMetadata({ params: Promise.resolve({ code: "x" }) } as never);
+    expect(meta.referrer).toBe("same-origin");
+  });
+});

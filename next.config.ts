@@ -368,10 +368,13 @@ const nextConfig: NextConfig = {
       },
       // B2961. A trip link's code, on the same terms (and the press at
       // /t/<code>/open sets a cookie, so nothing here may be kept either).
+      // `same-origin`, not `no-referrer`: with `no-referrer` Chrome sends
+      // `Origin: null` on the page's own form POST, which the strict Origin
+      // check rightly refuses. Cross-origin still gets no referrer at all.
       {
         source: "/t/:code*",
         headers: [
-          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Referrer-Policy", value: "same-origin" },
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },

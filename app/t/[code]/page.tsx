@@ -22,7 +22,8 @@ export async function generateMetadata({ params }: PageProps<"/t/[code]">): Prom
   return {
     title: user?.title ?? "Fernscout",
     robots: { index: false, follow: false },
-    referrer: "no-referrer",
+    // Not `no-referrer`: Chrome then posts the form with `Origin: null`.
+    referrer: "same-origin",
   };
 }
 
