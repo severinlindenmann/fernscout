@@ -453,4 +453,31 @@ describe("return sign-in by number", () => {
     expect(jar.cookies.fs_session).toBeTruthy();
     expect(await contactCount()).toBe(count);
   });
+
+  test("a blocked number is texted nothing and signs nobody in, and answers like an unknown number (B-2948)", async () => {
+    const code = await newLink({ kind: "guest", name: "Group" });
+    await proveBySms(code, "+41 79 700 33 44");
+    const blocked = await holder("+41797003344");
+    const { revokeContact } = await import("@/lib/contacts");
+    await revokeContact(OWNER, blocked!.id);
+    jar.cookies = {};
+
+    const { POST } = await import("@/app/api/auth/codes/route");
+    const { flushAfterResponse } = await import("@/lib/afterResponse");
+    const before = texts().length;
+    const unknown = await POST(post("/api/auth/codes", { for: "read", user: OWNER, phone: "+41 79 700 88 88" }));
+    const known = await POST(post("/api/auth/codes", { for: "read", user: OWNER, phone: "+41 79 700 33 44" }));
+    await flushAfterResponse();
+    expect(known.status).toBe(unknown.status);
+    expect(await known.json()).toEqual(await unknown.json());
+    // The unknown number is never texted; the blocked one must not be either.
+    expect(texts().slice(before).map((t) => t.to)).not.toContain("41797003344");
+
+    // And even with a code issued some other way, redeeming opens nothing.
+    const { POST: redeem } = await import("@/app/api/auth/codes/redeem/route");
+    const res = await redeem(post("/api/auth/codes/redeem", { for: "read", user: OWNER, phone: "+41 79 700 33 44", code: "123456" }));
+    expect(res.status).not.toBe(200);
+    expect(jar.cookies.fs_session).toBeUndefined();
+    expect((await holder("+41797003344"))?.status).toBe("blocked");
+  });
 });

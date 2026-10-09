@@ -16,6 +16,15 @@ export function MailSenderProvider({ address, children }: { address: string; chi
   return <SenderContext.Provider value={address}>{children}</SenderContext.Provider>;
 }
 
+const SmsContext = createContext(false);
+
+/** Whether this instance texts sign-in codes (configuration only), seeded once
+ * by the root layout so no sign-in door threads it through. */
+export function SmsSignInProvider({ enabled, children }: { enabled: boolean; children: React.ReactNode }) {
+  return <SmsContext.Provider value={enabled}>{children}</SmsContext.Provider>;
+}
+export const useSmsSignIn = () => useContext(SmsContext);
+
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /**
@@ -40,6 +49,7 @@ export default function CodeWaitPanel({
   busy,
   errorText,
   buttonClassName,
+  channel = "email",
 }: {
   /** Id of the first box (its label target). */
   id: string;
@@ -55,6 +65,9 @@ export default function CodeWaitPanel({
   busy: boolean;
   errorText?: string | null;
   buttonClassName: string;
+  /** B-2948: "phone" says text and number, and drops the spam advice, which is
+   * about mail. `email` then carries the number as typed. */
+  channel?: "email" | "phone";
 }) {
   const { t } = useI18n();
   const sender = useContext(SenderContext);
@@ -97,7 +110,7 @@ export default function CodeWaitPanel({
       }}
     >
       <p className="mt-2 break-words text-base leading-7 text-ink-body">
-        {t(hedged ? "codeWait.sentIf" : "codeWait.sent", { email })}
+        {channel === "phone" ? t("codeWait.sentIfPhone", { number: email }) : t(hedged ? "codeWait.sentIf" : "codeWait.sent", { email })}
       </p>
       <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("codeWait.valid", { minutes })}</p>
       <label htmlFor={id} className="mt-4 block text-sm font-semibold text-ink-strong">
@@ -126,15 +139,21 @@ export default function CodeWaitPanel({
       <BusyButton busy={busy} type="submit" className={buttonClassName} busyLabel={t("me.signInSending")}>
         {t("me.signInSubmit")}
       </BusyButton>
-      <ol className="mt-5 list-decimal space-y-1 pl-5 text-sm leading-6 text-ink-secondary">
-        <li>{t("codeWait.stepFrom", { sender })}</li>
-        <li>{t("codeWait.stepSpam")}</li>
-        <li>{t("codeWait.stepNotSpam")}</li>
-      </ol>
-      <p className="mt-3 text-sm leading-6 text-ink-secondary">{t("codeWait.iphone")}</p>
+      {channel === "phone" ? (
+        <p className="mt-5 text-sm leading-6 text-ink-secondary">{t("codeWait.iphonePhone")}</p>
+      ) : (
+        <>
+          <ol className="mt-5 list-decimal space-y-1 pl-5 text-sm leading-6 text-ink-secondary">
+            <li>{t("codeWait.stepFrom", { sender })}</li>
+            <li>{t("codeWait.stepSpam")}</li>
+            <li>{t("codeWait.stepNotSpam")}</li>
+          </ol>
+          <p className="mt-3 text-sm leading-6 text-ink-secondary">{t("codeWait.iphone")}</p>
+        </>
+      )}
       <p className="mt-3 flex flex-wrap items-center gap-x-4 text-base text-ink-secondary">
         <button type="button" onClick={onWrongAddress} className={link}>
-          {t("codeWait.wrongAddress")}
+          {channel === "phone" ? t("codeWait.wrongNumber") : t("codeWait.wrongAddress")}
         </button>
         <button
           type="button"
