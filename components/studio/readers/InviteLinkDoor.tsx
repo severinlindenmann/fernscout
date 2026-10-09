@@ -12,8 +12,10 @@ const FIELD =
   "mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong";
 const LABEL = "block text-sm font-semibold text-ink-strong";
 const DAYS = [7, 30, 90] as const;
+// B-2963 — a trip link: 30 days, a year, or 0 = until the owner stops it.
+const READ_DAYS = [30, 365, 0] as const;
 
-type Created = { url: string; note: string; kind: "guest" | "buddy"; tripTitle: string | null; expiresAt: string | null };
+type Created = { url: string; note: string; kind: "guest" | "buddy" | "read"; tripTitle: string | null; expiresAt: string | null };
 
 /**
  * Door 2 · "Share an invite link" — B2291. One link for a group: readers, or
@@ -39,7 +41,7 @@ export default function InviteLinkDoor({
 }: {
   username: string;
   locale: Locale;
-  trips: { id: string; title: string }[];
+  trips: { id: string; title: string; visibility?: string }[];
   t: Translate;
   tn: Count;
   /** TIX-6 — the owner's reader groups; the picker is absent while there are none. */
@@ -51,10 +53,12 @@ export default function InviteLinkDoor({
   siteName?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<"guest" | "buddy">("guest");
+  const [kind, setKind] = useState<"guest" | "buddy" | "read">("guest");
   const [tripId, setTripId] = useState(trips[0]?.id ?? "");
   const [note, setNote] = useState("");
-  const [days, setDays] = useState<(typeof DAYS)[number]>(30);
+  const [days, setDays] = useState<number>(30);
+  const [readTripId, setReadTripId] = useState(trips.find((trip) => trip.visibility === "guest")?.id ?? "");
+  const hasGuestTrip = trips.some((trip) => trip.visibility === "guest");
   const [groupId, setGroupId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,16 +69,21 @@ export default function InviteLinkDoor({
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/web/${encodeURIComponent(username)}/invites`, {
+      const isRead = kind === "read";
+      const response = await fetch(`/api/web/${encodeURIComponent(username)}/${isRead ? "trip-links" : "invites"}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify(
+          isRead
+            ? { trip: readTripId, ...(days === 0 ? { neverExpires: true } : { days }), ...(note.trim() ? { name: note.trim() } : {}) }
+            : {
           kind,
           ...(kind === "buddy" ? { trip: tripId } : {}),
           ...(note.trim() ? { name: note.trim() } : {}),
           expiresAt: new Date(Date.now() + days * 86_400_000).toISOString(),
           ...(groupId ? { group: groupId } : {}),
-        }),
+        },
+        ),
       });
       const body = (await response.json().catch(() => null)) as
         | { url?: string; joinUrl?: string | null; expiresAt?: string | null }
@@ -88,7 +97,10 @@ export default function InviteLinkDoor({
         url,
         note: note.trim(),
         kind,
-        tripTitle: kind === "buddy" ? (trips.find((trip) => trip.id === tripId)?.title ?? null) : null,
+        tripTitle:
+          kind === "buddy" || kind === "read"
+            ? (trips.find((trip) => trip.id === (kind === "read" ? readTripId : tripId))?.title ?? null)
+            : null,
         expiresAt: body?.expiresAt ?? null,
       });
       // no-refresh: onCreated is ReadersAdmin's own `refresh`, which already
@@ -106,6 +118,7 @@ export default function InviteLinkDoor({
     setCreated(null);
     setNote("");
     setKind("guest");
+    setDays(30);
     setError(null);
   }
 
@@ -146,9 +159,9 @@ export default function InviteLinkDoor({
         <form onSubmit={create} className="flex flex-col gap-4">
           <fieldset>
             <legend className="sr-only">{t("readers.link.kindLegend")}</legend>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {(["guest", "buddy"] as const).map((value) => {
-                const disabled = value === "buddy" && trips.length === 0;
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(["guest", "buddy", "read"] as const).map((value) => {
+                const disabled = (value === "buddy" && trips.length === 0) || (value === "read" && !hasGuestTrip);
                 return (
                   <label
                     key={value}
@@ -156,11 +169,14 @@ export default function InviteLinkDoor({
                       kind === value ? "border-2 border-line-ink bg-yellow-50" : "border-line-quiet bg-surface-raised"
                     } ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
                   >
-                    <input type="radio" name="link-kind" className="mt-1 size-4" checked={kind === value} disabled={disabled} onChange={() => setKind(value)} />
+                    <input type="radio" name="link-kind" className="mt-1 size-4" checked={kind === value} disabled={disabled} onChange={() => {
+                        setKind(value);
+                        setDays(value === "read" ? 0 : 30);
+                      }} />
                     <span>
                       <span className="block font-semibold text-ink-strong">{t(`readers.link.kind.${value}`)}</span>
                       <span className="block text-sm text-ink-secondary">
-                        {disabled ? t("readers.add.noTrip") : t(`readers.link.kind.${value}Hint`)}
+                        {disabled ? t(value === "read" ? "readers.link.noGuestTrip" : "readers.add.noTrip") : t(`readers.link.kind.${value}Hint`)}
                       </span>
                     </span>
                   </label>
@@ -180,6 +196,22 @@ export default function InviteLinkDoor({
               </select>
             </label>
           )}
+          {kind === "read" && (
+            <label className={LABEL}>
+              {t("readers.add.trip")}
+              <select className={FIELD} value={readTripId} onChange={(e) => setReadTripId(e.target.value)}>
+                {trips.map((trip) => {
+                  if (trip.visibility === "public") return null;
+                  const open = trip.visibility === "guest";
+                  return (
+                    <option key={trip.id} value={trip.id} disabled={!open}>
+                      {open ? trip.title : `${trip.title} — ${t("readers.link.openToGuestsFirst")}`}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className={LABEL}>
               {t("readers.link.note")}
@@ -187,15 +219,20 @@ export default function InviteLinkDoor({
             </label>
             <label className={LABEL}>
               {t("readers.link.expiry")}
-              <select className={FIELD} value={days} onChange={(e) => setDays(Number(e.target.value) as (typeof DAYS)[number])}>
-                {DAYS.map((value) => (
+              <select className={FIELD} value={days} onChange={(e) => setDays(Number(e.target.value))}>
+                {(kind === "read" ? READ_DAYS : DAYS).map((value) => (
                   <option key={value} value={value}>
-                    {tn("readers.link.days", value, { count: String(value) })}
+                    {value === 0
+                      ? t("readers.link.untilStop")
+                      : value === 365
+                        ? t("readers.link.year")
+                        : tn("readers.link.days", value, { count: String(value) })}
                   </option>
                 ))}
               </select>
             </label>
           </div>
+          {kind !== "read" && (
           <GroupPicker
             groups={groups}
             value={groupId}
@@ -205,7 +242,12 @@ export default function InviteLinkDoor({
             noneLabel={t("readers.groups.none")}
             name="link-group"
           />
-          <p className="text-sm text-ink-secondary">{t("readers.link.promise")}</p>
+          )}
+          <p className="text-sm text-ink-secondary">
+            {kind === "read"
+              ? t("readers.link.promiseRead", { trip: trips.find((trip) => trip.id === readTripId)?.title ?? "" })
+              : t("readers.link.promise")}
+          </p>
           {error && (
             <p role="alert" className="text-sm text-coral-600">
               {error}
@@ -229,7 +271,9 @@ export default function InviteLinkDoor({
               created.note || null,
               created.kind === "buddy"
                 ? t("readers.link.kindBuddyOf", { trip: created.tripTitle ?? "" })
-                : t("readers.link.kind.guest"),
+                : created.kind === "read"
+                  ? t("readers.link.kindReadOf", { trip: created.tripTitle ?? "" })
+                  : t("readers.link.kind.guest"),
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -237,17 +281,20 @@ export default function InviteLinkDoor({
           <ShareLink
             username={username}
             url={created.url}
-            title={created.kind === "buddy" ? (created.tripTitle ?? journalTitle) : journalTitle}
+            title={created.kind !== "guest" ? (created.tripTitle ?? journalTitle) : journalTitle}
             text={t("readers.share.text", {
-              trip: created.kind === "buddy" ? (created.tripTitle ?? journalTitle) : journalTitle,
+              trip: created.kind !== "guest" ? (created.tripTitle ?? journalTitle) : journalTitle,
               site: siteName,
             })}
             t={t}
             big
           />
-          {created.expiresAt && (
+          {created.expiresAt ? (
             <p className="text-sm text-ink-secondary">{t("readers.link.worksUntil", { date: until(created.expiresAt) ?? "" })}</p>
+          ) : (
+            created.kind === "read" && <p className="text-sm text-ink-secondary">{t("readers.link.worksUntilStopped")}</p>
           )}
+          {created.kind !== "read" && (
           <ol className="grid gap-3 border-t border-line-quiet pt-4 sm:grid-cols-3">
             {(["readers.link.step1", "readers.link.step2", "readers.link.step3"] as const).map((key, index) => (
               <li key={key} className="flex gap-2 text-sm text-ink-body">
@@ -258,6 +305,7 @@ export default function InviteLinkDoor({
               </li>
             ))}
           </ol>
+          )}
           <button type="button" className="min-h-11 self-start text-sm font-semibold text-ink-strong underline underline-offset-2" onClick={reset}>
             {t("notifyStep.done")}
           </button>

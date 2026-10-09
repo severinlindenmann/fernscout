@@ -23,6 +23,7 @@ import { previewJournal } from "@/lib/studio/audiencePreview";
 import { pendingTripRequestsFor, peopleOf } from "@/lib/tripPeople";
 import { serverSite } from "@/lib/site";
 import { getTrips } from "@/lib/trips";
+import { liveKeeps, readLinkExtras } from "@/lib/tripLink";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/contactNumber";
 
@@ -159,6 +160,7 @@ export default async function ContactsAdminPage({
   const pendingTripIds = await pendingTripRequestsFor(username);
   const tripTitle = (id: string) => trips.find((trip) => trip.id === id)?.title ?? id;
 
+  const keeps = await liveKeeps(username);
   const contacts: AdminContact[] = all.map((contact) => ({
     id: contact.id,
     name: contact.name,
@@ -191,18 +193,26 @@ export default async function ContactsAdminPage({
     welcomeOpenedAt: contact.welcomeOpenedAt,
     groupId: contact.groupId,
     askedGroupId: contact.askedGroupId,
+    savedTrips: keeps.filter((k) => k.contactId === contact.id).map((k) => ({ keepId: k.id, trip: tripTitle(k.tripId) })),
   }));
   // TIX-6 — the owner's reader groups, labels only.
   const groups = (await listGroups(username)).map(({ id, name, color }) => ({ id, name, color }));
 
-  // B2293 — each live link's short `/j/` address.
-  // `read` trip links (B2961) get their own card in the readers rework; until
-  // then this list does not know the kind.
-  const invites = await withJoinUrls(
-    username,
-    model.invitations.flatMap((i) => (i.kind === "read" ? [] : [{ ...i, kind: i.kind }])),
-  );
-
+  // B2293 — each live link's short `/j/` address. A `read` trip link (B-2963)
+  // carries its `/t/` address, last open and the names of who kept it.
+  const extras = await readLinkExtras(username);
+  const nameOf = new Map(all.map((c) => [c.id, c.name ?? c.email]));
+  const invites = (await withJoinUrls(username, model.invitations)).map((invite) => {
+    const extra = invite.kind === "read" ? extras.get(invite.id) : undefined;
+    return extra
+      ? {
+          ...invite,
+          url: extra.url,
+          lastUsedAt: extra.lastUsedAt,
+          keepers: extra.keeperIds.flatMap((id) => nameOf.get(id) ?? []),
+        }
+      : invite;
+  });
   return (
     // StudioPage carries the header, the crumb back to the studio and the
     // bar (B2092). B2291: two door cards and the groups, nothing else — this
@@ -217,7 +227,7 @@ export default async function ContactsAdminPage({
         groups={groups}
         // `listInvitesWithLinks` (B280): the owner may copy a link again.
         invites={invites}
-        trips={trips.map((trip) => ({ id: trip.id, title: trip.title }))}
+        trips={trips.map((trip) => ({ id: trip.id, title: trip.title, visibility: trip.visibility }))}
         // B300, corrected by B638: would an approved guest find anything to
         // read at all — a `guest` or a `public` trip; only `private` fails.
         hasGuestTrip={trips.some(isOpenToApprovedGuest)}

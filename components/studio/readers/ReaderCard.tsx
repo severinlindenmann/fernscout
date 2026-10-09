@@ -107,6 +107,12 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [copied, setCopied] = useState<"ok" | "failed" | null>(null);
   const [groupFailed, setGroupFailed] = useState(false);
+  // B-2963 — somebody who only saved a trip through a link is let into the
+  // journal read-only (the server drops any buddy request they filed), so
+  // the card never offers the write choice for them.
+  const keeper = contact.createdVia?.startsWith("read:") === true;
+  const pendingTrips = keeper ? undefined : contact.pendingTrips;
+  const [removeFailed, setRemoveFailed] = useState(false);
   const groups = env.groups ?? [];
   const group = groups.find((g) => g.id === contact.groupId) ?? null;
   const offered = groups.find((g) => g.id === contact.askedGroupId) ?? null;
@@ -128,8 +134,8 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
         : contact.relationship.closeCircle
           ? t("readers.role.close")
         : kind === "asking"
-          ? contact.pendingTrips?.length
-            ? t("readers.role.wantsTrip", { trip: contact.pendingTrips.join(", ") })
+          ? pendingTrips?.length
+            ? t("readers.role.wantsTrip", { trip: pendingTrips.join(", ") })
             : t("readers.role.wantsToRead")
           : t("readers.role.reader");
 
@@ -203,6 +209,16 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
           ? t("readers.line.openedOn", { date: longDate(contact.welcomeOpenedAt, locale) })
           : t("readers.line.notOpened"),
     );
+  }
+
+  async function removeSaved(keepId: string) {
+    setRemoveFailed(false);
+    const response = await fetch(
+      `/api/web/${encodeURIComponent(env.username)}/trip-links/keeps/${encodeURIComponent(keepId)}`,
+      { method: "DELETE" },
+    ).catch(() => null);
+    if (!response?.ok) setRemoveFailed(true);
+    env.refresh();
   }
 
   async function copyWelcome() {
@@ -292,6 +308,31 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
               )}
             </p>
             <p className="mt-0.5 text-sm text-ink-secondary">{line.join(" · ")}</p>
+            {contact.savedTrips && contact.savedTrips.length > 0 && (
+              <div className="mt-1 text-sm text-ink-secondary">
+                <p className="font-semibold text-ink-strong">{t("readers.saved.title")}</p>
+                <ul>
+                  {contact.savedTrips.map((saved) => (
+                    <li key={saved.keepId} className="flex items-center gap-2">
+                      <span className="min-w-0 break-words">{saved.trip}</span>
+                      <button
+                        type="button"
+                        aria-label={t("readers.saved.removeLabel", { trip: saved.trip, name: displayName })}
+                        onClick={() => void removeSaved(saved.keepId)}
+                        className="min-h-11 px-2 font-semibold text-ink-strong underline underline-offset-2"
+                      >
+                        {t("readers.saved.remove")}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                {removeFailed && (
+                  <p role="alert" className="text-coral-600">
+                    {t("contact.ownerActionFailed")}
+                  </p>
+                )}
+              </div>
+            )}
             {kind === "asking" && detailsOpen && (
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm text-ink-secondary">
                 {hasEmail && (
@@ -340,7 +381,7 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
               <BusyButton busy={busy} type="button" className={GHOST} aria-expanded={asking === "decline"} onClick={() => setAsking("decline")}>
                 {t("readers.decline")}
               </BusyButton>
-              {contact.pendingTrips?.length ? (
+              {pendingTrips?.length ? (
                 <>
                   <BusyButton
                     busy={busy}
@@ -474,12 +515,12 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
           <ConfirmPanel
             label={kind === "revoked" ? t("readers.letBackIn") : t("readers.letIn", { name: first })}
             question={
-              contact.pendingTrips?.length && !letInReadOnly
-                ? t("readers.letInWriteQuestion", { name: displayName, trip: contact.pendingTrips.join(", ") })
+              pendingTrips?.length && !letInReadOnly
+                ? t("readers.letInWriteQuestion", { name: displayName, trip: pendingTrips.join(", ") })
                 : t("readers.letInQuestion", { name: displayName })
             }
             confirmLabel={
-              contact.pendingTrips?.length
+              pendingTrips?.length
                 ? letInReadOnly
                   ? t("readers.letInReadOnly")
                   : t("readers.letInWrite")

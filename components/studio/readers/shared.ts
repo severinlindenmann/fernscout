@@ -69,6 +69,8 @@ export type AdminContact = {
   groupId?: string | null;
   /** TIX-6. A group a link offered them while in another — Keep or Move. */
   askedGroupId?: string | null;
+  /** B-2963 — trips this person kept through a trip link, each removable. */
+  savedTrips?: { keepId: string; trip: string }[];
 };
 
 /**
@@ -88,8 +90,8 @@ export type AdminInvite = {
   id: string;
   /** What the link leads to. `personal` and `guest` end at reading; only
    * `buddy` ends at write access to a trip. */
-  kind: "personal" | "guest" | "buddy";
-  /** The trip a `buddy` link joins. Null for every other kind. */
+  kind: "personal" | "guest" | "buddy" | "read";
+  /** The trip a `buddy` or `read` link names. Null for every other kind. */
   tripId: string | null;
   name: string | null;
   locale: Locale | null;
@@ -115,6 +117,10 @@ export type AdminInvite = {
   live?: boolean;
   /** TIX-6. Where people who join through this link go. */
   groupId?: string | null;
+  /** B-2963 — `read` links only: when it was last opened, and the names of
+   * the people who kept it. The `/t/` address arrives as `url`. */
+  lastUsedAt?: string | null;
+  keepers?: string[];
 };
 
 /**
@@ -130,6 +136,7 @@ const INVITE_KIND_KEY: Record<AdminInvite["kind"], TranslationKey> = {
   personal: "contact.ownerInvitePersonalTitle",
   guest: "me.inviteGuestTitle",
   buddy: "me.inviteBuddyTitle",
+  read: "readers.link.kind.read",
 };
 
 /**
@@ -175,8 +182,17 @@ export function viaLabel(
   invites: AdminInvite[],
   trips: { id: string; title: string }[],
   t: Translate,
+  pending = false,
 ): string | null {
   if (!createdVia) return null;
+  // B-2963 — somebody who saved a trip through a link and was filed waiting.
+  if (createdVia.startsWith("read:")) {
+    if (!pending) return null;
+    const link = invites.find((candidate) => candidate.id === createdVia.slice("read:".length));
+    return link?.tripId
+      ? t("readers.via.saved", { trip: tripLabel(trips, link.tripId) })
+      : t("readers.via.savedAny");
+  }
   if (createdVia === "owner") return t("contact.ownerViaOwner");
   // B621 — the owner's own row, made by the button on this page. It is
   // filtered out of the lists below, so this only shows on a row written

@@ -7,8 +7,8 @@ import { hashSecret } from "./auth";
 import { resolveAccess } from "./auth/handshake";
 import { isEnabled } from "./capabilities";
 import { getContactByEmail } from "./contacts";
-import { hasContactsKey } from "./contacts/crypto";
-import { READ_CODE_RE } from "./contacts/invites";
+import { decryptString, hasContactsKey } from "./contacts/crypto";
+import { READ_CODE_RE, readAad } from "./contacts/invites";
 import { getDatabase, getDatabaseOrNull, newId, nowIso } from "./db";
 import { serverSite } from "./site";
 import { getTrip, tripRef } from "./trips";
@@ -231,4 +231,93 @@ export async function keepsTrip(owner: string, tripId: string, email: string): P
     .where("revoked_at", "is", null)
     .executeTakeFirst();
   return Boolean(row);
+}
+
+/** Every keep that has not been removed, across this owner's links. */
+export async function liveKeeps(owner: string) {
+  const { db } = await getDatabase();
+  const rows = await db
+    .selectFrom("trip_link_keeps")
+    .select(["id", "invite_id", "trip_id", "contact_id"])
+    .where("owner_id", "=", owner)
+    .where("revoked_at", "is", null)
+    .execute();
+  return rows.map((r) => ({ id: r.id, inviteId: r.invite_id, tripId: r.trip_id, contactId: r.contact_id }));
+}
+
+/** What the Readers page adds to each `read` link (B-2963): the link itself
+ * (decrypted for the owner only, never logged), when it was last opened, and
+ * who kept it. A null `url` means no copy control. */
+export async function readLinkExtras(
+  owner: string,
+): Promise<Map<string, { url: string | null; lastUsedAt: string | null; keeperIds: string[] }>> {
+  const { db } = await getDatabase();
+  const rows = await db
+    .selectFrom("contact_invites")
+    .select(["id", "read_code_cipher", "last_used_at", "revoked_at", "expires_at"])
+    .where("owner_id", "=", owner)
+    .where("kind", "=", "read")
+    .execute();
+  const keeps = await liveKeeps(owner);
+  return new Map(
+    rows.map((r) => {
+      const live = !r.revoked_at && !(r.expires_at && new Date(r.expires_at).getTime() < Date.now());
+      const code =
+        live && r.read_code_cipher ? decryptString(r.read_code_cipher, readAad(owner, r.id), "invite token") : null;
+      return [
+        r.id,
+        {
+          url: code ? readLinkUrl(code) : null,
+          lastUsedAt: r.last_used_at,
+          keeperIds: keeps.filter((k) => k.inviteId === r.id).map((k) => k.contactId),
+        },
+      ];
+    }),
+  );
+}
+
+/** "Stop it and remove the people who kept it": the link and its keeps end in
+ * one transaction. False for an id that is not this owner's `read` link. */
+export async function stopLinkAndKeepers(owner: string, inviteId: string): Promise<boolean> {
+  const { db } = await getDatabase();
+  const now = nowIso();
+  return db.transaction().execute(async (trx) => {
+    const link = await trx
+      .selectFrom("contact_invites")
+      .select("id")
+      .where("owner_id", "=", owner)
+      .where("id", "=", inviteId)
+      .where("kind", "=", "read")
+      .executeTakeFirst();
+    if (!link) return false;
+    await trx
+      .updateTable("contact_invites")
+      .set({ revoked_at: now })
+      .where("owner_id", "=", owner)
+      .where("id", "=", inviteId)
+      .where("revoked_at", "is", null)
+      .execute();
+    await trx
+      .updateTable("trip_link_keeps")
+      .set({ revoked_at: now })
+      .where("owner_id", "=", owner)
+      .where("invite_id", "=", inviteId)
+      .where("revoked_at", "is", null)
+      .execute();
+    return true;
+  });
+}
+
+/** Remove one keep (the person's "Saved trips" line). False when it is not a
+ * live keep of this owner's. */
+export async function removeKeep(owner: string, keepId: string): Promise<boolean> {
+  const { db } = await getDatabase();
+  const done = await db
+    .updateTable("trip_link_keeps")
+    .set({ revoked_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("id", "=", keepId)
+    .where("revoked_at", "is", null)
+    .executeTakeFirst();
+  return Number(done.numUpdatedRows ?? 0) > 0;
 }
