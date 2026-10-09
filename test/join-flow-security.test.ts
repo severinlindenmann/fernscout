@@ -264,7 +264,7 @@ describe("F1 — somebody already on the page keeps what is stored", () => {
 });
 
 describe("pre-approval still means exactly the address the owner typed (B319)", () => {
-  test("proving the mailed address lets them in; another address on the same link asks", async () => {
+  test("proving the mailed address lets them in; on a reader link another address is let in too (B-2940)", async () => {
     const { createInvite } = await import("@/lib/contacts/invites");
     const { joinCodeFor } = await import("@/lib/contacts/welcome");
     const created = await createInvite(OWNER, { kind: "guest", email: "pre@example.test", expiresAt: null });
@@ -276,7 +276,29 @@ describe("pre-approval still means exactly the address the owner typed (B319)", 
     jar.cookies = {};
     await joinStep(code, { action: "send", name: "Fwd", channel: "email", value: "fwd@example.test" });
     const fwd = await joinStep(code, { action: "verify", name: "Fwd", channel: "email", value: "fwd@example.test", code: codeMailed("fwd@example.test") });
-    expect(fwd.json.status).toBe("waiting");
+    expect(fwd.json.status).toBe("in");
+    expect((await contact((await (await import("@/lib/contacts")).getContactByEmail(OWNER, "fwd@example.test"))!.id)).status).toBe("active");
+  });
+
+  test("a buddy link still asks, whoever proves an address (B-2940)", async () => {
+    const code = await newLink({ kind: "buddy", name: "Crew3", trip: TRIP });
+    jar.cookies = {};
+    await joinStep(code, { action: "send", name: "Newbie", channel: "email", value: "newbie@example.test" });
+    const ok = await joinStep(code, { action: "verify", name: "Newbie", channel: "email", value: "newbie@example.test", code: codeMailed("newbie@example.test") });
+    expect(ok.json.status).toBe("waiting");
+    expect((await (await import("@/lib/contacts")).getContactByEmail(OWNER, "newbie@example.test"))?.status).toBe("pending");
+  });
+
+  test("a blocked address on a reader link is never let in, and is not told it was blocked (B-2940)", async () => {
+    const id = await activeReader("Bea Blocked", "bea@example.test");
+    const { revokeContact } = await import("@/lib/contacts");
+    await revokeContact(OWNER, id);
+    const code = await newLink({ kind: "guest", name: "Group5" });
+    jar.cookies = {};
+    await joinStep(code, { action: "send", name: "Bea", channel: "email", value: "bea@example.test" });
+    const ok = await joinStep(code, { action: "verify", name: "Bea", channel: "email", value: "bea@example.test", code: codeMailed("bea@example.test") });
+    expect(ok.json.status).toBe("waiting");
+    expect((await contact(id)).status).toBe("blocked");
   });
 });
 
@@ -377,7 +399,7 @@ describe("B2453 — a second channel and news consent on the join form", () => {
 // B2597 retired joining by mobile entirely — the join link asks for an email.
 
 describe("B2503 — the confirm button in a join code mail carries on in the join guide", () => {
-  test("pressing it lands back on /j/<code>, and the guide then files the request", async () => {
+  test("pressing it lands back on /j/<code>, and the guide then lets them in", async () => {
     await signInOwner();
     const code = await newLink({ kind: "guest", name: "Group" });
     jar.cookies = {};
@@ -395,18 +417,18 @@ describe("B2503 — the confirm button in a join code mail carries on in the joi
     expect(await getContactByEmail(OWNER, email)).toBeNull();
     const joined = await joinStep(code, { action: "join", name: "Lina Link" });
     expect(joined.status).toBe(200);
-    expect((await getContactByEmail(OWNER, email))?.status).toBe("pending");
+    expect((await getContactByEmail(OWNER, email))?.status).toBe("active");
   });
 });
 
-describe("B2505 — a waiting reader leaves a WhatsApp number for digital postcards", () => {
+describe("B2505 — a reader just let in leaves a WhatsApp number for digital postcards", () => {
   async function waitingByEmail(name: string, email: string) {
     await signInOwner();
     const code = await newLink({ kind: "guest", name: "Group" });
     jar.cookies = {};
     await joinStep(code, { action: "send", name, channel: "email", value: email });
     const verified = await joinStep(code, { action: "verify", name, channel: "email", value: email, code: codeMailed(email) });
-    expect(verified.json).toMatchObject({ status: "waiting" });
+    expect(verified.json).toMatchObject({ status: "in" });
     const { getContactByEmail } = await import("@/lib/contacts");
     return { code, id: (await getContactByEmail(OWNER, email))!.id };
   }
@@ -417,7 +439,7 @@ describe("B2505 — a waiting reader leaves a WhatsApp number for digital postca
     const saved = await joinStep(code, { action: "save", wantsEmailDigest: true, wantsWhatsapp: true, tel: "+41 79 555 88 11" });
     expect(saved.status).toBe(200);
     const after = await contact(id);
-    expect(after.status).toBe("pending");
+    expect(after.status).toBe("active");
     expect(after.wantsWhatsapp).toBe(true);
     expect(after.postalAddress?.tel?.replace(/\D/g, "")).toBe("41795558811");
     expect(after.phoneProvenAt).toBeNull();

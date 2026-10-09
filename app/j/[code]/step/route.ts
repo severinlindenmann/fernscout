@@ -43,9 +43,10 @@ const answer = (body: unknown, status = 200) => Response.json(body, { status, he
  * `POST /j/<code>/step` — the group link's join flow (B2293, B2291 "Share an
  * invite link").
  *
- * **Joining is asking.** Every path here ends at a `pending` contact whose
- * address is proved, and the owner's Let in (`approveContact`) is still the
- * only thing that opens anything. A mailed invite from before the rebuild
+ * **A reader link is the invitation** (B-2940). A new person who proves an
+ * address through it is let in at once and the owner is told; the owner can
+ * block them afterwards. A buddy link, or anybody the link merely found, still
+ * ends at a `pending` contact and the owner's Let in (`approveContact`). A mailed invite from before the rebuild
  * (B319) is the one exception it always was: proving *exactly* the address
  * the owner typed lets that person in. B2597: readers sign in by email only
  * — no phone channel, no SMS.
@@ -279,6 +280,21 @@ async function settle(
     return { status: "in", known };
   }
   await countInviteUse(owner, invite.id);
+  // B-2940: a reader link is the invitation. Somebody this very link filed
+  // and who proved their address is let in at once; the owner is told they
+  // joined and can block them. Buddy links (a trip place, write access) and
+  // anybody the link merely found keep the owner's Let in.
+  if (invite.kind === "guest" && !trip && contact.status === "pending" && contact.createdVia === `invite:${invite.id}`) {
+    const approved = await approveContact(owner, contact.id, { onlyTrip: null });
+    if (approved?.contact.status === "active") {
+      if (needsOwnerNotice !== false) {
+        const notified = await notifyOwnerOfRequest(owner, user, approved.contact, { joined: true });
+        if (notified) await markOwnerNotified(owner, contact.id);
+      }
+      return { status: "in", known };
+    }
+    return { status: "waiting", known };
+  }
   if (contact.status === "pending" && invite.emailKey && contact.email && invite.emailKey === contact.email) {
     const approved = await approveContact(owner, contact.id);
     if (approved?.contact.status === "active") return { status: "in", known };
