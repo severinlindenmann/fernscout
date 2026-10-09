@@ -416,10 +416,14 @@ export function composeRequestMail(params: {
   email: string;
   tripTitle?: string | null;
   asked?: boolean;
+  /** B-2940: they were let in by a reader link; the owner is told, not asked. */
+  joined?: boolean;
 }): MailComposition {
-  const { username, title, locale, contactId, name, email, tripTitle = null, asked = false } = params;
+  const { username, title, locale, contactId, name, email, tripTitle = null, asked = false, joined = false } = params;
   const bodyVars = { name, email, trip: tripTitle ?? "" };
-  const bodyKey = tripTitle
+  const bodyKey = joined
+    ? "contact.mailJoinedBody"
+    : tripTitle
     ? "contact.mailRequestBuddyBody"
     : asked
     ? "contact.mailRequestAskedBody"
@@ -427,7 +431,9 @@ export function composeRequestMail(params: {
   // B362 — the subject calling this a follow request was the other half of
   // what B349 fixed in the body; a buddy link is asking to write, not to
   // follow.
-  const subjectKey = tripTitle
+  const subjectKey = joined
+    ? "contact.mailJoinedSubject"
+    : tripTitle
     ? "contact.mailRequestBuddySubject"
     : asked
     ? "contact.mailRequestAskedSubject"
@@ -438,7 +444,7 @@ export function composeRequestMail(params: {
     content: {
       template: "notice.request",
       preheader: translateIn(locale, bodyKey, bodyVars),
-      title: translateIn(locale, "contact.mailRequestTitle"),
+      title: translateIn(locale, joined ? "contact.mailJoinedTitle" : "contact.mailRequestTitle"),
       blocks: [
         {
           kind: "paragraph",
@@ -453,7 +459,7 @@ export function composeRequestMail(params: {
         // "broken" and the owner had no sense that anybody was blocked on
         // them. One line, in the owner's language, saying somebody is
         // waiting on this.
-        { kind: "paragraph", text: translateIn(locale, "contact.mailRequestSoon") },
+        ...(joined ? [] : [{ kind: "paragraph" as const, text: translateIn(locale, "contact.mailRequestSoon") }]),
         {
           kind: "button",
           text: translateIn(locale, "contact.mailRequestButton"),
@@ -470,6 +476,7 @@ export async function notifyOwnerOfRequest(
   username: string,
   user: UserConfig,
   contact: ContactRecord,
+  options: { joined?: boolean } = {},
 ): Promise<boolean> {
   // Does not call `mayMailContact` (B334): this letter is addressed to
   // `user.owner.email` from `config.json`, never to `contact.email` — the
@@ -497,6 +504,7 @@ export async function notifyOwnerOfRequest(
     email: contact.email,
     tripTitle: trip?.title,
     asked,
+    joined: options.joined,
   });
   try {
     const result = await sendMail(renderMail(user.owner.email, subject, content, username));
