@@ -109,7 +109,7 @@ jobs:
             postgres_test_url: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
     services:
       postgres:
-        image: postgres:17-alpine
+        image: public.ecr.aws/docker/library/postgres:17-alpine
         # Only actually used by the postgres leg, but starting it
         # unconditionally per-matrix-entry is simpler than conditional
         # services, and idle Postgres in CI is cheap.
@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17-alpine
+        image: public.ecr.aws/docker/library/postgres:17-alpine
         env:
           POSTGRES_USER: fernscout
           POSTGRES_PASSWORD: fernscout
