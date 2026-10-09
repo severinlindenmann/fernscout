@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 
@@ -60,7 +60,6 @@ export default function CodeWaitPanel({
   const sender = useContext(SenderContext);
   const [left, setLeft] = useState(RESEND_LOCK_SECONDS);
   const [resending, setResending] = useState(false);
-  const boxes = useRef<(HTMLInputElement | null)[]>([]);
   const locked = left > 0;
   useEffect(() => {
     if (!locked) return;
@@ -68,13 +67,11 @@ export default function CodeWaitPanel({
     return () => clearInterval(timer);
   }, [locked]);
 
-  function change(i: number, raw: string) {
-    let digits = raw.replace(/\D/g, "");
-    // Overtyping a filled box leaves two digits; the new one is the last.
-    if (digits.length === 2) digits = digits.slice(1);
-    const next = (code.slice(0, i) + digits).slice(0, 6);
+  /** One field: a typed, pasted or autofilled code lands here whole. Only the
+   * digits count, so "482 915" and "Your code is 482915" both read as 482915. */
+  function change(raw: string) {
+    const next = raw.replace(/\D/g, "").slice(0, 6);
     onCodeChange(next);
-    boxes.current[Math.min(next.length, 5)]?.focus();
     if (next.length === 6 && next !== code) onSubmit(next);
   }
 
@@ -93,8 +90,8 @@ export default function CodeWaitPanel({
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        // What the boxes hold, not what React last heard (B787).
-        const value = new FormData(event.currentTarget).getAll("code").join("").replace(/\D/g, "");
+        // What the field holds, not what React last heard (B787).
+        const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(/\D/g, "");
         onCodeChange(value);
         onSubmit(value);
       }}
@@ -103,37 +100,26 @@ export default function CodeWaitPanel({
         {t(hedged ? "codeWait.sentIf" : "codeWait.sent", { email })}
       </p>
       <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("codeWait.valid", { minutes })}</p>
-      <div role="group" aria-label={t("me.signInCode")} className="mt-4 flex gap-2">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <input
-            key={i}
-            id={i === 0 ? id : undefined}
-            ref={(node) => {
-              boxes.current[i] = node;
-            }}
-            name="code"
-            // `one-time-code` on the first box is what lets a phone offer the
-            // code from the message; it fills all six through `change`.
-            autoComplete={i === 0 ? "one-time-code" : "off"}
-            inputMode="numeric"
-            pattern="[0-9]"
-            required
-            autoFocus={i === 0}
-            disabled={busy}
-            aria-label={t("codeWait.digit", { n: String(i + 1) })}
-            aria-invalid={errorText ? true : undefined}
-            value={code[i] ?? ""}
-            onChange={(e) => change(i, e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Backspace" && !code[i] && i > 0) {
-                onCodeChange(code.slice(0, i - 1));
-                boxes.current[i - 1]?.focus();
-              }
-            }}
-            className="h-12 min-w-0 flex-1 rounded-xl border border-line-strong bg-surface-base text-center font-mono text-2xl text-ink-strong focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        ))}
-      </div>
+      <label htmlFor={id} className="mt-4 block text-sm font-semibold text-ink-strong">
+        {t("me.signInCode")}
+      </label>
+      <input
+        id={id}
+        name="code"
+        // `one-time-code` is what lets a phone offer the code from the message
+        // in one tap; the whole code arrives through `change`.
+        autoComplete="one-time-code"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={12}
+        required
+        autoFocus
+        disabled={busy}
+        aria-invalid={errorText ? true : undefined}
+        value={code}
+        onChange={(e) => change(e.target.value)}
+        className="mt-1 h-14 w-full rounded-xl border border-line-strong bg-surface-base text-center font-mono text-2xl tracking-[0.5em] text-ink-strong focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
       <p role="alert" className="mt-3 text-base text-coral-600 empty:mt-0">
         {errorText ?? ""}
       </p>
