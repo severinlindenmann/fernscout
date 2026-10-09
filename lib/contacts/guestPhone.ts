@@ -44,9 +44,16 @@ export function joinCountryAllowed(digits: string): boolean {
   return joinCountryCodes().some((cc) => digits.startsWith(cc));
 }
 
+/** The configuration half of `joinSmsAvailable`, with no database read: cheap
+ * enough for the root layout to seed a "show the mobile option" hint on every
+ * page. The send route still asks the full question and has the last word. */
+export function joinSmsConfigured(): boolean {
+  return isEnabled("sms") && hasContactsKey() && joinCountryCodes().length > 0;
+}
+
 /** Whether the SMS option exists at all on this instance (and for the operator). */
 export async function joinSmsAvailable(): Promise<boolean> {
-  if (!isEnabled("sms") || !hasContactsKey() || joinCountryCodes().length === 0) return false;
+  if (!joinSmsConfigured()) return false;
   return !(await isSwitchedOff("code.sms"));
 }
 

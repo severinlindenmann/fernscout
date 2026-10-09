@@ -5109,5 +5109,15 @@
   "join.ready.digestHint": "Vous pouvez le désactiver à tout moment.",
   "join.ready.howTitle": "Comment revenir",
   "join.ready.howBodyEmail": "Ajoutez le journal à vos favoris après l’avoir ouvert. Ce navigateur vous reconnaîtra en général. Sur un autre appareil, ou si on vous demande de vous reconnecter, confirmez la même adresse e-mail.",
-  "join.ready.howBodyPhone": "Ajoutez le journal à vos favoris après l’avoir ouvert. Ce navigateur vous reconnaîtra en général. Sur un autre appareil, ou si on vous demande de vous reconnecter, confirmez le même numéro de téléphone."
+  "join.ready.howBodyPhone": "Ajoutez le journal à vos favoris après l’avoir ouvert. Ce navigateur vous reconnaîtra en général. Sur un autre appareil, ou si on vous demande de vous reconnecter, confirmez le même numéro de téléphone.",
+  "me.signInBodyPhone": "Si vous avez rejoint avec votre numéro mobile, saisissez-le ici et nous vous enverrons un code à six chiffres par SMS.",
+  "me.signInPhone": "Votre numéro mobile",
+  "me.signInPhoneBad": "Vérifiez le numéro et le drapeau du pays.",
+  "me.signInPhoneUnavailable": "Nous ne pouvons pas envoyer de SMS à ce numéro d’ici. Utilisez plutôt votre adresse e-mail.",
+  "me.signInUsePhone": "Utiliser plutôt mon numéro mobile",
+  "me.signInUseEmail": "Utiliser plutôt mon adresse e-mail",
+  "codeWait.titlePhone": "Regardez vos messages",
+  "codeWait.sentIfPhone": "Si {number} peut l’utiliser, un code à 6 chiffres arrive par SMS.",
+  "codeWait.iphonePhone": "Sur un iPhone, touchez le code au-dessus du clavier dès que le SMS arrive.",
+  "codeWait.wrongNumber": "Mauvais numéro ?"
 }

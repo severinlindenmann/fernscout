@@ -5106,5 +5106,15 @@
   "join.ready.digestHint": "Bármikor kikapcsolhatod.",
   "join.ready.howTitle": "Hogyan térj vissza",
   "join.ready.howBodyEmail": "Nyitás után tedd könyvjelzőbe a naplót. Ez a böngésző általában emlékezni fog rád. Másik eszközön, vagy ha újra be kell jelentkezned, erősítsd meg ugyanazt az e-mail-címet.",
-  "join.ready.howBodyPhone": "Nyitás után tedd könyvjelzőbe a naplót. Ez a böngésző általában emlékezni fog rád. Másik eszközön, vagy ha újra be kell jelentkezned, erősítsd meg ugyanazt a telefonszámot."
+  "join.ready.howBodyPhone": "Nyitás után tedd könyvjelzőbe a naplót. Ez a böngésző általában emlékezni fog rád. Másik eszközön, vagy ha újra be kell jelentkezned, erősítsd meg ugyanazt a telefonszámot.",
+  "me.signInBodyPhone": "Ha a mobilszámoddal csatlakoztál, add meg itt, és hatjegyű kódot küldünk SMS-ben.",
+  "me.signInPhone": "A mobilszámod",
+  "me.signInPhoneBad": "Ellenőrizd a számot és az ország zászlaját.",
+  "me.signInPhoneUnavailable": "Erre a számra innen nem tudunk SMS-t küldeni. Használd inkább az e-mail-címedet.",
+  "me.signInUsePhone": "Inkább a mobilszámomat használom",
+  "me.signInUseEmail": "Inkább az e-mail-címemet használom",
+  "codeWait.titlePhone": "Nézd meg az üzeneteidet",
+  "codeWait.sentIfPhone": "Ha a(z) {number} használhatja, hatjegyű kód érkezik SMS-ben.",
+  "codeWait.iphonePhone": "iPhone-on koppints a billentyűzet feletti kódra, amint megérkezik az SMS.",
+  "codeWait.wrongNumber": "Rossz a szám?"
 }
