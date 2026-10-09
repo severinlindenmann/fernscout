@@ -197,3 +197,37 @@ describe("linkOnlyReader", () => {
     expect(jar.reads).not.toContain(LINK_COOKIE);
   });
 });
+
+describe("readsOnlyThroughLink", () => {
+  test("true for the cookie and for a keeper; false for nobody, the owner and an approved guest", async () => {
+    const { requestContact, getContactByEmail, approveContact, confirmContactByOwner } = await import("@/lib/contacts");
+    const { getDatabase } = await import("@/lib/db");
+    const { readsOnlyThroughLink } = await import("@/lib/tripGate");
+    const { db } = await getDatabase();
+
+    await asLink(null);
+    expect(await readsOnlyThroughLink(await trip(ALPS))).toBe(false);
+    await asLink(alps);
+    expect(await readsOnlyThroughLink(await trip(ALPS))).toBe(true);
+    jar.cookies.fs_session = await signIn(OWNER_EMAIL);
+    expect(await readsOnlyThroughLink(await trip(ALPS))).toBe(false);
+
+    const keeperMail = "keeper2@example.test";
+    await requestContact(OWNER, { name: "Keeper", email: keeperMail, locale: "en", address: null, wantsEmailDigest: false, wantsPostcard: false, createdVia: `read:${alps.id}` });
+    const keeper = (await getContactByEmail(OWNER, keeperMail))!;
+    await db.insertInto("trip_link_keeps").values({ id: "k-rotl", owner_id: OWNER, trip_id: ALPS, invite_id: alps.id, contact_id: keeper.id, kept_at: "2026-10-01T00:00:00Z", revoked_at: null }).execute();
+    await asLink(null);
+    jar.cookies.fs_session = await signIn(keeperMail);
+    expect(await readsOnlyThroughLink(await trip(ALPS))).toBe(true);
+
+    const guestMail = "guest2@example.test";
+    await requestContact(OWNER, { name: "Guest", email: guestMail, locale: "en", address: null, wantsEmailDigest: false, wantsPostcard: false, createdVia: "request" });
+    const token = await signIn(guestMail);
+    const guest = (await getContactByEmail(OWNER, guestMail))!;
+    await confirmContactByOwner(OWNER, guest.id);
+    expect(await approveContact(OWNER, guest.id)).not.toBeNull();
+    await asLink(alps);
+    jar.cookies.fs_session = token;
+    expect(await readsOnlyThroughLink(await trip(ALPS))).toBe(false);
+  });
+});

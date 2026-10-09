@@ -87,9 +87,23 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
  * is never read), the owner, a traveller, a journal guest and a keeper.
  */
 export async function linkOnlyReader(trip: Trip): Promise<boolean> {
-  if (isOpenToLink(trip)) return false;
-  if ((await isOwner(trip.username)) || (await isTravellerOn(trip)) || (await guestMayRead(trip))) return false;
-  return (await linkAccess(trip)) === "link";
+  return (await linkReadWho(trip)) === "link";
+}
+
+/**
+ * Whether the trip is read through a trip link or a keep and by nothing else:
+ * the same order as `linkOnlyReader`, both states. For a surface built at a
+ * higher reader level than a link gives (the photobook reader copy), which
+ * must stay closed to such a reader.
+ */
+export async function readsOnlyThroughLink(trip: Trip): Promise<boolean> {
+  return (await linkReadWho(trip)) !== null;
+}
+
+async function linkReadWho(trip: Trip): Promise<"link" | "kept" | null> {
+  if (isOpenToLink(trip)) return null;
+  if ((await isOwner(trip.username)) || (await isTravellerOn(trip)) || (await guestMayRead(trip))) return null;
+  return linkAccess(trip);
 }
 
 /**
