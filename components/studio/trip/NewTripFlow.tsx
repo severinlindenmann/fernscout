@@ -152,8 +152,6 @@ export default function NewTripFlow({
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [overlapWith, setOverlapWith] = useState<ExistingTripSummary | null>(null);
 
-  const today = new Date().toISOString().slice(0, 10);
-
   // B2300 — iPhone app only. "ask" is today's behaviour (the 18:00 notice the
   // evening before) and sends nothing; only "record" and "decline" call native,
   // and only once the trip exists.
@@ -278,7 +276,7 @@ export default function NewTripFlow({
    */
   function pressMakeThisTrip() {
     const overlap = existingTrips.find(
-      (candidate) => candidate.status === "current" && start <= today && today <= end,
+      (candidate) => candidate.status === "current" && start <= localToday && localToday <= end,
     );
     if (overlap) {
       setOverlapWith(overlap);
