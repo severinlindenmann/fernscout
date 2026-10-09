@@ -71,18 +71,25 @@ describe("CodeWaitPanel", () => {
     expect(text).toContain("Not spam");
   });
 
-  test("a pasted code fills all six boxes and submits once; autofill attribute stays", () => {
-    expect(boxes()).toHaveLength(6);
+  test("one field: a pasted or autofilled code fills it and submits once; autofill attribute stays", () => {
+    expect(boxes()).toHaveLength(1);
     expect(boxes()[0].autocomplete).toBe("one-time-code");
+    expect(boxes()[0].inputMode).toBe("numeric");
     act(() => setValue(boxes()[0], "123456"));
-    expect(boxes().map((b) => b.value).join("")).toBe("123456");
+    expect(boxes()[0].value).toBe("123456");
     expect(submitted).toEqual(["123456"]);
   });
 
+  test("only the digits count: a spaced or sentence paste reads as the code", () => {
+    act(() => setValue(boxes()[0], "Your code is 482 915"));
+    expect(boxes()[0].value).toBe("482915");
+    expect(submitted).toEqual(["482915"]);
+  });
+
   test("typing digit by digit submits on the sixth, not before", () => {
-    "12345".split("").forEach((d, i) => act(() => setValue(boxes()[i], d)));
+    "12345".split("").forEach((_, i) => act(() => setValue(boxes()[0], "12345".slice(0, i + 1))));
     expect(submitted).toEqual([]);
-    act(() => setValue(boxes()[5], "6"));
+    act(() => setValue(boxes()[0], "123456"));
     expect(submitted).toEqual(["123456"]);
   });
 

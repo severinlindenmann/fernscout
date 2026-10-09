@@ -5036,7 +5036,6 @@
   "codeWait.sent": "Wir haben einen 6-stelligen Code an {email} geschickt.",
   "codeWait.sentIf": "Wenn {email} dafür infrage kommt, ist ein 6-stelliger Code unterwegs.",
   "codeWait.valid": "Er gilt {minutes} Minuten.",
-  "codeWait.digit": "Ziffer {n} von 6",
   "codeWait.stepFrom": "Suche eine E-Mail von {sender} mit dem Betreff „123456 ist dein Code für …“.",
   "codeWait.stepSpam": "Nach einer Minute noch nicht da? Schau im Spam- oder Junk-Ordner nach. In Gmail auch unter „Werbung“ (Promotions).",
   "codeWait.stepNotSpam": "Im Spam gefunden? Markiere sie als „Kein Spam“, dann kommt die nächste an.",
@@ -5155,5 +5154,15 @@
   "join.ready.howTitle": "So kommst du zurück",
   "join.ready.howBodyEmail": "Setze nach dem Öffnen ein Lesezeichen. Dieser Browser erkennt dich meist wieder. Auf einem anderen Gerät oder wenn du dich neu anmelden sollst, bestätige dieselbe E-Mail-Adresse.",
   "join.ready.howBodyPhone": "Setze nach dem Öffnen ein Lesezeichen. Dieser Browser erkennt dich meist wieder. Auf einem anderen Gerät oder wenn du dich neu anmelden sollst, bestätige dieselbe Handynummer.",
-  "agent.tool.tripPeopleUpgrade": "{name} steht schon ohne Adresse in der Namensliste von {trip} — damit kommt die Adresse zu diesem Eintrag, es entsteht kein zweiter."
+  "agent.tool.tripPeopleUpgrade": "{name} steht schon ohne Adresse in der Namensliste von {trip} — damit kommt die Adresse zu diesem Eintrag, es entsteht kein zweiter.",
+  "me.signInBodyPhone": "Wenn du dich mit deiner Handynummer angemeldet hast, gib sie hier ein. Wir schicken dir einen sechsstelligen Code per SMS.",
+  "me.signInPhone": "Deine Handynummer",
+  "me.signInPhoneBad": "Prüfe die Nummer und die Landesflagge.",
+  "me.signInPhoneUnavailable": "An diese Nummer können wir von hier aus keine SMS schicken. Nutze stattdessen deine E-Mail-Adresse.",
+  "me.signInUsePhone": "Stattdessen meine Handynummer nutzen",
+  "me.signInUseEmail": "Stattdessen meine E-Mail-Adresse nutzen",
+  "codeWait.titlePhone": "Schau in deine Nachrichten",
+  "codeWait.sentIfPhone": "Wenn {number} das nutzen kann, ist ein sechsstelliger Code per SMS unterwegs.",
+  "codeWait.iphonePhone": "Auf dem iPhone tippst du auf den Code über der Tastatur, sobald die SMS ankommt.",
+  "codeWait.wrongNumber": "Falsche Nummer?"
 }

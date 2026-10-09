@@ -5031,7 +5031,6 @@
   "codeWait.sent": "We sent a 6-digit code to {email}.",
   "codeWait.sentIf": "If {email} can use this, a 6-digit code is on its way.",
   "codeWait.valid": "It works for {minutes} minutes.",
-  "codeWait.digit": "Digit {n} of 6",
   "codeWait.stepFrom": "Look for an email from {sender} with the subject \"123456 is your code for …\".",
   "codeWait.stepSpam": "Not there after a minute? Check Spam or Junk. In Gmail, also look under Promotions.",
   "codeWait.stepNotSpam": "Found it in spam? Mark it Not spam, so the next one arrives.",
@@ -5150,5 +5149,15 @@
   "join.ready.howTitle": "How to come back",
   "join.ready.howBodyEmail": "Bookmark the journal after opening it. This browser will usually remember you. On another device, or if you are asked to sign in again, confirm the same email address.",
   "join.ready.howBodyPhone": "Bookmark the journal after opening it. This browser will usually remember you. On another device, or if you are asked to sign in again, confirm the same phone number.",
-  "agent.tool.tripPeopleUpgrade": "{name} is already on the byline of {trip} without an address — this adds the address to that entry, not a second one."
+  "agent.tool.tripPeopleUpgrade": "{name} is already on the byline of {trip} without an address — this adds the address to that entry, not a second one.",
+  "me.signInBodyPhone": "If you joined with your mobile number, enter it here and we will text you a six-digit code.",
+  "me.signInPhone": "Your mobile number",
+  "me.signInPhoneBad": "Check the number and the country flag.",
+  "me.signInPhoneUnavailable": "We cannot text that number from here. Use your email address instead.",
+  "me.signInUsePhone": "Use my mobile number instead",
+  "me.signInUseEmail": "Use my email address instead",
+  "codeWait.titlePhone": "Check your messages",
+  "codeWait.sentIfPhone": "If {number} can use this, a 6-digit code is on its way by text.",
+  "codeWait.iphonePhone": "On an iPhone, tap the code above the keyboard when the text arrives.",
+  "codeWait.wrongNumber": "Wrong number?"
 }
