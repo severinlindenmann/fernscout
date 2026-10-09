@@ -169,138 +169,130 @@ describe("the reader's guide", () => {
 });
 
 describe("the join flow", () => {
-  // B2597: readers sign in by email only — the join link's mobile tab and its
-  // "code screen draws a phone for SMS" test are gone with it.
-  test("whose journal, then straight to an email field — no tabs any more", () => {
-    mount(
-      <JoinFlow
-        code="2345678923"
-        owner="ana"
-        title="Two Backpacks"
-        ownerName="Ana"
-        kind="guest"
-        tripTitle={null}
-        knownEmail={null}
-        caps={{ mail: true, sms: false, whatsapp: false, postcards: true }}
-        dictionary={dict}
-        locale="en"
-        locales={["en"]}
-        addressLookupEnabled={false}
-      />,
-    );
-    expect(heading()).toBe(dict["join.who.title"]);
-    press(dict["join.who.go"]);
-    // No name: said, and not moved on.
-    expect(container!.querySelector('[role="alert"]')?.textContent).toBe(dict["join.error.name"]);
-    const input = container!.querySelector("input")!;
+  const joinProps = (caps: { mail: boolean; sms: boolean; whatsapp: boolean; postcards: boolean }) => ({
+    code: "2345678923",
+    owner: "ana",
+    title: "Two Backpacks",
+    ownerName: "Ana",
+    kind: "guest" as const,
+    tripTitle: null,
+    knownEmail: null,
+    caps,
+    dictionary: dict,
+    locale: "en",
+    locales: ["en"],
+    addressLookupEnabled: false,
+  });
+  const typeInto = (input: HTMLInputElement, value: string) => {
     const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
     act(() => {
-      setter.call(input, "Anna");
+      setter.call(input, value);
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
-    press(dict["join.who.go"]);
-    expect(heading()).toBe(fill("join.reach.title", { owner: "Ana" }));
-    expect(container!.querySelectorAll('[role="tab"]')).toHaveLength(0);
-    expect(container!.querySelector('input[type="email"]')).not.toBeNull();
-  });
+  };
+  const leave = (input: HTMLInputElement) => act(() => void input.dispatchEvent(new FocusEvent("focusout", { bubbles: true })));
+  const goButton = () => Array.from(container!.querySelectorAll("button")).find((b) => b.textContent?.trim() === dict["join.who.go"])!;
 
-  test("B2504 — News from Fernscout starts ticked, and is sent as consent unless unticked", async () => {
+  // B2941: name, email and mobile on one page; a bad value is said, and Continue
+  // stays off until one contact is valid.
+  test("B2941 — name, email and mobile on one page; a bad email is said and blocks Continue", async () => {
     const bodies: Record<string, unknown>[] = [];
     const fetchMock = vi.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
       bodies.push(JSON.parse(String(init?.body)));
-      return { ok: true, json: async () => ({ ok: true, status: "waiting" }) } as Response;
+      return { ok: true, json: async () => ({ ok: true, to: "anna@example.test" }) } as Response;
     });
-    mount(
-      <JoinFlow
-        code="2345678923"
-        owner="ana"
-        title="Two Backpacks"
-        ownerName="Ana"
-        kind="guest"
-        tripTitle={null}
-        knownEmail="an•••@example.test"
-        caps={{ mail: true, sms: false, whatsapp: false, postcards: false }}
-        dictionary={dict}
-        locale="en"
-        locales={["en"]}
-        addressLookupEnabled={false}
-      />,
-    );
-    const input = container!.querySelector("input")!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
-    act(() => {
-      setter.call(input, "Anna");
-      input.dispatchEvent(new Event("input", { bubbles: true }));
-    });
+    mount(<JoinFlow {...joinProps({ mail: true, sms: false, whatsapp: false, postcards: false })} />);
+    expect(heading()).toBe(dict["join.who.title"]);
+    expect(container!.querySelector('input[type="email"]')).not.toBeNull();
+    expect(container!.querySelector('input[type="tel"]')).not.toBeNull();
+    expect(goButton().disabled).toBe(true);
+    const [name] = Array.from(container!.querySelectorAll<HTMLInputElement>("input"));
+    typeInto(name, "Anna");
+    const email = container!.querySelector<HTMLInputElement>('input[type="email"]')!;
+    typeInto(email, "anna@");
+    leave(email);
+    expect(container!.textContent).toContain(dict["join.who.errEmail"]);
+    expect(goButton().disabled).toBe(true);
+    typeInto(email, "anna@example.test");
+    expect(container!.textContent).not.toContain(dict["join.who.errEmail"]);
+    expect(container!.textContent).toContain(dict["join.who.onlyEmail"]);
+    expect(goButton().disabled).toBe(false);
     await act(async () => {
-      press(dict["join.who.go"]);
+      goButton().click();
       await Promise.resolve();
     });
-    const news = Array.from(container!.querySelectorAll("label")).find((l) => l.textContent?.includes(dict["join.notify.news"]));
-    expect(news?.querySelector("input")?.checked).toBe(true);
-    const save = Array.from(container!.querySelectorAll("button")).find((b) => b.textContent?.trim() === dict["join.notify.send"]);
-    await act(async () => {
-      save!.click();
-      await Promise.resolve();
-    });
-    expect(bodies.at(-1)).toMatchObject({ action: "save", wantsNews: true });
+    // One way only: no pick screen, the mail goes out and the code page warns about Spam.
+    expect(bodies.at(-1)).toMatchObject({ action: "send", channel: "email", value: "anna@example.test" });
+    expect(heading()).toBe(dict["join.code.inbox"]);
+    expect(container!.textContent).toContain(dict["join.code.spamTitle"]);
+    expect(container!.querySelector<HTMLInputElement>("#join-code-input")?.autocomplete).toBe("one-time-code");
     fetchMock.mockRestore();
   });
 
-  test("B2505 — a waiting reader ticks WhatsApp postcards, types a mobile, and it is saved with the request", async () => {
+  test("B2941 — with a mobile too, WhatsApp comes first and opens a message instead of asking for a code", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock = vi.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body));
+      bodies.push(body);
+      return { ok: true, json: async () => (body.action === "wa-start" ? { ok: true, id: "w1", link: "https://wa.me/41000?text=FS" } : { ok: true }) } as Response;
+    });
+    mount(<JoinFlow {...joinProps({ mail: true, sms: true, whatsapp: true, postcards: false })} />);
+    const [name] = Array.from(container!.querySelectorAll<HTMLInputElement>("input"));
+    typeInto(name, "Anna");
+    typeInto(container!.querySelector<HTMLInputElement>('input[type="email"]')!, "anna@example.test");
+    typeInto(container!.querySelector<HTMLInputElement>('input[type="tel"]')!, "+41 79 555 88 11");
+    await act(async () => {
+      goButton().click();
+      await Promise.resolve();
+    });
+    expect(heading()).toBe(dict["join.pick.title"]);
+    const options = Array.from(container!.querySelectorAll("button")).map((b) => b.textContent ?? "");
+    const at = (label: string) => options.findIndex((o) => o.startsWith(label));
+    expect(at(dict["join.pick.whatsapp"])).toBeGreaterThan(-1);
+    expect(at(dict["join.pick.whatsapp"])).toBeLessThan(at(dict["join.pick.sms"]));
+    expect(at(dict["join.pick.sms"])).toBeLessThan(at(dict["join.pick.email"]));
+    expect(container!.textContent).toContain(dict["join.pick.emailWarn"]);
+    await act(async () => {
+      Array.from(container!.querySelectorAll("button")).find((b) => b.textContent?.startsWith(dict["join.pick.whatsapp"]))!.click();
+      await Promise.resolve();
+    });
+    expect(bodies.at(-1)).toMatchObject({ action: "wa-start" });
+    expect(heading()).toBe(dict["join.wa.title"]);
+    expect(container!.querySelector<HTMLAnchorElement>("a[href^='https://wa.me/']")).not.toBeNull();
+    expect(container!.querySelector("#join-code-input")).toBeNull();
+    fetchMock.mockRestore();
+  });
+
+  // B2943: a person let in by the link sees what was confirmed and one button;
+  // the day letter is a choice, never assumed, and nothing is promised on WhatsApp.
+  test("B2943 — the ready page names the journal and owner, offers choices unticked, and saves them on Open", async () => {
     const bodies: Record<string, unknown>[] = [];
     const fetchMock = vi.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
       bodies.push(JSON.parse(String(init?.body)));
-      return { ok: true, json: async () => ({ ok: true, status: "waiting" }) } as Response;
+      return { ok: true, json: async () => ({ ok: true, status: "in", known: false }) } as Response;
     });
-    mount(
-      <JoinFlow
-        code="2345678923"
-        owner="ana"
-        title="Two Backpacks"
-        ownerName="Ana"
-        kind="guest"
-        tripTitle={null}
-        knownEmail="an•••@example.test"
-        caps={{ mail: true, sms: false, whatsapp: true, postcards: false }}
-        dictionary={dict}
-        locale="en"
-        locales={["en"]}
-        addressLookupEnabled={false}
-      />,
-    );
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
-    const type = (input: HTMLInputElement, value: string) =>
-      act(() => {
-        setter.call(input, value);
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-      });
-    type(container!.querySelector("input")!, "Anna");
+    mount(<JoinFlow {...joinProps({ mail: true, sms: false, whatsapp: true, postcards: false })} knownEmail="an•••@example.test" />);
+    typeInto(container!.querySelector<HTMLInputElement>("input")!, "Anna");
     await act(async () => {
-      press(dict["join.who.go"]);
+      goButton().click();
       await Promise.resolve();
     });
-    const row = Array.from(container!.querySelectorAll("label")).find((l) => l.textContent?.includes(dict["guide.notify.whatsapp"]))!;
-    expect(row.querySelector('[data-testid="postcard-icon"]')).not.toBeNull();
-    const box = row.querySelector("input")!;
-    expect(box.disabled).toBe(false);
-    expect(container!.querySelector('input[type="tel"]')).toBeNull();
-    act(() => box.click());
-    const tel = container!.querySelector<HTMLInputElement>('input[type="tel"]')!;
-    expect(tel).not.toBeNull();
-    // Ticked with no number: said, and nothing posted.
-    const sent = bodies.length;
+    expect(heading()).toContain(fill("join.ready.title", { title: "Two Backpacks" }));
+    expect(container!.textContent).toContain(fill("join.ready.by", { owner: "Ana" }));
+    expect(container!.textContent).toContain(fill("join.ready.bodyEmail", { name: "Anna" }));
+    expect(container!.textContent).toContain(dict["join.ready.howTitle"]);
+    // Nothing about WhatsApp is promised, and the owner is not named as approving.
+    expect(container!.textContent).not.toMatch(/whatsapp/i);
+    expect(container!.textContent).not.toContain("let you in");
+    const box = (label: string) =>
+      Array.from(container!.querySelectorAll("label")).find((l) => l.textContent?.includes(label))?.querySelector("input");
+    expect(box(fill("join.ready.digest", { owner: "Ana" }))?.checked).toBe(false);
+    expect(box(dict["join.notify.news"])?.checked).toBe(true);
     await act(async () => {
-      press(dict["join.notify.send"]);
+      press(dict["guide.notify.open"]);
       await Promise.resolve();
     });
-    expect(bodies.length).toBe(sent);
-    type(tel, "+41 79 555 88 11");
-    await act(async () => {
-      press(dict["join.notify.send"]);
-      await Promise.resolve();
-    });
-    expect(bodies.at(-1)).toMatchObject({ action: "save", wantsWhatsapp: true, tel: "+41 79 555 88 11" });
+    expect(bodies.at(-1)).toMatchObject({ action: "save", wantsEmailDigest: false, wantsNews: true });
     fetchMock.mockRestore();
   });
 

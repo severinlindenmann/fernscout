@@ -267,6 +267,31 @@ export function emailCodeAllowed(email: string): boolean {
   return perInstance.ok;
 }
 
-// B2597 retired the guest SMS sign-in code and the join link's first-phone
-// channel (B2294), along with `smsCodeAllowed`/`firstPhoneCodeAllowed` and
-// their buckets — readers sign in by email only now.
+/**
+ * A reader link's SMS sign-in code - B-2942 (the B2294 buckets, reinstated for
+ * the join link only). A text costs real money and lands in somebody's
+ * pocket, and anybody holding a link can type any number, so every bucket is
+ * tight and all of them must have room (fail closed): per number, per
+ * requester's IP, per link, and a global daily ceiling. Quietly `false`.
+ */
+const SMS_JOIN_LIMITS = {
+  number: { max: 3, windowMs: 60 * 60 * 1000 },
+  ip: { max: 5, windowMs: 60 * 60 * 1000 },
+  link: { max: 50, windowMs: 24 * 60 * 60 * 1000 },
+  instance: { max: 200, windowMs: 24 * 60 * 60 * 1000 },
+};
+
+export function smsJoinAllowed(digits: string, ip: string, linkId: string): boolean {
+  if (!rateLimitFor("sms-join-number", digits, SMS_JOIN_LIMITS.number).ok) return false;
+  if (!rateLimitFor("sms-join-ip", ip, SMS_JOIN_LIMITS.ip).ok) return false;
+  if (!rateLimitFor("sms-join-link", linkId, SMS_JOIN_LIMITS.link).ok) return false;
+  return rateLimitFor("sms-join-instance", "*", SMS_JOIN_LIMITS.instance).ok;
+}
+
+/** Starting a WhatsApp message-in proof on a reader link - same shape. */
+export function waJoinAllowed(digits: string, ip: string, linkId: string): boolean {
+  if (!rateLimitFor("wa-join-number", digits, { max: 5, windowMs: 60 * 60 * 1000 }).ok) return false;
+  if (!rateLimitFor("wa-join-ip", ip, { max: 10, windowMs: 60 * 60 * 1000 }).ok) return false;
+  if (!rateLimitFor("wa-join-link", linkId, { max: 100, windowMs: 24 * 60 * 60 * 1000 }).ok) return false;
+  return rateLimitFor("wa-join-instance", "*", { max: 500, windowMs: 24 * 60 * 60 * 1000 }).ok;
+}

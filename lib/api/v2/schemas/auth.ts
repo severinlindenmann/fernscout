@@ -44,7 +44,12 @@ const tripScope = z.strictObject({ trip: z.string() });
  * the address itself may say so (§0 property 6) and the schema has no way to
  * know which. */
 export const codesRequest = z.strictObject({
-  email: z.string(),
+  /** The address the code goes to. Exactly one of `email` and `phone`. */
+  email: z.string().optional(),
+  /** B-2942: a guest's mobile number, `for: "read"` only. The code is texted
+   * only to a number a person of this journal already holds; the answer is
+   * the same 202 for every number. Include the country code. */
+  phone: z.string().optional(),
   for: z.enum(CREDENTIAL_FOR),
   user: z.string().optional(),
   scope: tripScope.optional(),
@@ -68,7 +73,9 @@ export const codesRequestResponse = z.strictObject({
 
 /** `POST /api/auth/codes/redeem` request — auth.md §2.2. */
 export const codesRedeemRequest = z.strictObject({
-  email: z.string(),
+  /** Exactly one of `email` and `phone` (`phone` is `for: "read"` only). */
+  email: z.string().optional(),
+  phone: z.string().optional(),
   code: z.string(),
   for: z.enum(CREDENTIAL_FOR),
   user: z.string().optional(),
