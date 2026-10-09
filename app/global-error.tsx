@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { pageRequestId } from "@/lib/requestId";
 
 /**
  * The floor under everything.
@@ -30,6 +31,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     "err.retry": "Try again",
     "err.goToStart": "Go to the start page",
     "err.reference": "Reference: {id}",
+    "err.requestId": "Request {id}",
   },
   de: {
     "err.crashTitle": "Etwas ist schiefgelaufen",
@@ -37,6 +39,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     "err.retry": "Nochmal versuchen",
     "err.goToStart": "Zur Startseite",
     "err.reference": "Referenz: {id}",
+    "err.requestId": "Anfrage {id}",
   },
   hu: {
     "err.crashTitle": "Valami elromlott",
@@ -44,6 +47,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     "err.retry": "Újra",
     "err.goToStart": "Vissza a kezdőlapra",
     "err.reference": "Hivatkozás: {id}",
+    "err.requestId": "Kérés: {id}",
   },
   fr: {
     "err.crashTitle": "Un problème est survenu",
@@ -51,6 +55,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     "err.retry": "Réessayer",
     "err.goToStart": "Aller à la page d’accueil",
     "err.reference": "Référence : {id}",
+    "err.requestId": "Requête {id}",
   },
   it: {
     "err.crashTitle": "Qualcosa è andato storto",
@@ -58,6 +63,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     "err.retry": "Riprova",
     "err.goToStart": "Vai alla pagina iniziale",
     "err.reference": "Riferimento: {id}",
+    "err.requestId": "Richiesta {id}",
   },
 };
 
@@ -74,16 +80,18 @@ export default function GlobalError({
   retry: () => void;
 }) {
   const [locale, setLocale] = useState<string>("en");
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     console.error("[fernscout] root layout failed", error);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRequestId(pageRequestId());
     // Only the languages this page carries strings for, since there is no
     // dictionary to load here.
     const known = Object.keys(STRINGS);
     const stored = window.localStorage.getItem(STORAGE_KEY);
     const nav = navigator.language.slice(0, 2).toLowerCase();
     const next = stored && known.includes(stored) ? stored : known.includes(nav) ? nav : null;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (next && next !== "en") setLocale(next);
   }, [error]);
 
@@ -141,6 +149,11 @@ export default function GlobalError({
           {error.digest && (
             <p style={{ marginTop: "2rem", fontSize: "0.875rem", color: "#44546c" }}>
               {say(locale, "err.reference", { id: error.digest })}
+            </p>
+          )}
+          {requestId && (
+            <p style={{ marginTop: "0.5rem", fontSize: "0.875rem", color: "#44546c" }}>
+              {say(locale, "err.requestId", { id: requestId })}
             </p>
           )}
         </main>

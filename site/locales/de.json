@@ -678,6 +678,7 @@
   "err.photobookUnavailableBody": "Die Reise ist noch da — nur diese Seite wird dir nicht angezeigt.",
   "err.photobookUnavailableTitle": "Der Fotobuch-Editor ist hier nicht verfügbar",
   "err.reference": "Referenz {id}",
+  "err.requestId": "Anfrage {id}",
   "err.retry": "Nochmal versuchen",
   "err.searchJournal": "In diesem Tagebuch suchen",
   "err.tripGoneBody": "Sie wurde entfernt oder umbenannt. Die anderen Reisen sind alle noch da.",

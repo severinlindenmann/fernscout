@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import { pageRequestId } from "@/lib/requestId";
 
 /**
  * The catch-all for a render that threw.
@@ -29,9 +30,12 @@ export default function Error({
   retry: () => void;
 }) {
   const { t } = useI18n();
+  const [requestId, setRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     console.error("[fernscout] render failed", error);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the document is only readable in the browser
+    setRequestId(pageRequestId());
   }, [error]);
 
   return (
@@ -63,6 +67,9 @@ export default function Error({
         <p className="mt-8 font-mono text-sm text-ink-secondary">
           {t("err.reference", { id: error.digest })}
         </p>
+      )}
+      {requestId && (
+        <p className="mt-2 font-mono text-sm text-ink-secondary">{t("err.requestId", { id: requestId })}</p>
       )}
     </main>
   );

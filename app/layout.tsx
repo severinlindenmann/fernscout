@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { REQUEST_ID_HEADER } from "@/lib/requestId";
 import type { Metadata, Viewport } from "next";
 import { Fredoka, IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
@@ -143,6 +145,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // needs the same answer for the browser tab, and used to have no answer at
   // all.
   const locale = await requestLocale();
+  const requestId = (await headers()).get(REQUEST_ID_HEADER);
 
   return (
     <html
@@ -151,6 +154,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${fredoka.variable} ${fredokaExt.variable} ${jakarta.variable} ${jakartaExt.variable} ${plexMono.variable} ${plexMonoMedium.variable} h-full antialiased`}
     >
       <head>
+        {requestId && <meta name="request-id" content={requestId} />}
         <ThemeScript />
       </head>
       {/*

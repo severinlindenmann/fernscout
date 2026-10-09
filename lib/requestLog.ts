@@ -29,13 +29,13 @@ function sanitize(value: string): string {
 }
 
 /**
- * `method path ua="…"` — deliberately not JSON. This is read with
+ * `id method path ua="…"` — deliberately not JSON. This is read with
  * `journalctl -u fernscout`, which already timestamps every line; nothing
  * here repeats that. Never an IP address and never a query string — see
  * docs/runbook.md for why.
  */
-export function formatRequestLine(method: string, path: string, userAgent: string | null): string {
-  return `[request] ${sanitize(method)} ${sanitize(path)} ua="${sanitize(userAgent ?? "-")}"`;
+export function formatRequestLine(method: string, path: string, userAgent: string | null, id: string): string {
+  return `[request] ${sanitize(id)} ${sanitize(method)} ${sanitize(path)} ua="${sanitize(userAgent ?? "-")}"`;
 }
 
 /**

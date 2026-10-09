@@ -94,6 +94,7 @@
       "err.pageGoneBody",
       "err.pageGoneTitle",
       "err.reference",
+      "err.requestId",
       "err.retry",
       "err.unknownUserBody",
       "err.unknownUserTitle",

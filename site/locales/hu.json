@@ -650,6 +650,7 @@
   "err.photobookUnavailableBody": "Az út továbbra is itt van — csak ezt az oldalt nem jelenítjük meg neked.",
   "err.photobookUnavailableTitle": "A fotókönyv-készítő itt nem érhető el",
   "err.reference": "Hivatkozás: {id}",
+  "err.requestId": "Kérés: {id}",
   "err.retry": "Újra",
   "err.searchJournal": "Keresés ebben a naplóban",
   "err.tripGoneBody": "Levették vagy átnevezték. A többi út mind a helyén van.",

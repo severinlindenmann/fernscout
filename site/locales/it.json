@@ -678,6 +678,7 @@
   "err.photobookUnavailableBody": "Il viaggio è ancora qui — solo questa pagina non ti viene mostrata.",
   "err.photobookUnavailableTitle": "L’editor di fotolibri non è disponibile qui",
   "err.reference": "Riferimento {id}",
+  "err.requestId": "Richiesta {id}",
   "err.retry": "Riprova",
   "err.searchJournal": "Cerca in questo diario",
   "err.tripGoneBody": "È stato rimosso o rinominato. Gli altri viaggi sono tutti ancora dov’erano.",

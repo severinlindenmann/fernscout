@@ -678,6 +678,7 @@
   "err.photobookUnavailableBody": "Le voyage est toujours là — seule cette page ne t’est pas affichée.",
   "err.photobookUnavailableTitle": "L’atelier de livre photo n’est pas disponible ici",
   "err.reference": "Référence {id}",
+  "err.requestId": "Requête {id}",
   "err.retry": "Réessayer",
   "err.searchJournal": "Rechercher dans ce journal",
   "err.tripGoneBody": "Il a été retiré ou renommé. Les autres voyages sont tous toujours à leur place.",

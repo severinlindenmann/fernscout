@@ -6,6 +6,7 @@ import { contentRoot } from "@/lib/contentRoot";
 import { LANGUAGE_PAGES, MARKDOWN_PAGES, isPathLocale, splitLanguagePath, splitMarkdownPath } from "@/lib/languagePaths";
 import { LOCALE_COOKIE, PATH_HEADER, PATH_LOCALE_HEADER, SEARCH_HEADER } from "@/lib/requestKeys";
 import { formatRequestLine } from "@/lib/requestLog";
+import { REQUEST_ID_HEADER, newRequestId } from "@/lib/requestId";
 import { journalTombstone, tripTombstone, type Tombstone } from "@/lib/tombstones";
 import { JOURNAL_ROUTE_ROOT, USERNAME_RE, journalPath, parseJournalPath } from "@/lib/journalPath";
 
@@ -226,7 +227,14 @@ const GUEST_COOKIE_NAME = "fs_session";
 function logRequest(request: NextRequest): void {
   if (request.nextUrl.pathname === "/api/health") return; // monitoring pings, ~26% of all lines
   if (!loggingEnabled()) return;
-  console.log(formatRequestLine(request.method, request.nextUrl.pathname, request.headers.get("user-agent")));
+  console.log(
+    formatRequestLine(
+      request.method,
+      request.nextUrl.pathname,
+      request.headers.get("user-agent"),
+      request.headers.get(REQUEST_ID_HEADER) ?? "-",
+    ),
+  );
 }
 
 /** Whether a client asked for Markdown ahead of HTML (an agent's fetch, not
@@ -246,7 +254,18 @@ function markdownPage(pathname: string): { locale: string | null; path: string }
   return MARKDOWN_PAGES.includes(pathname) ? { locale: null, path: pathname } : null;
 }
 
-export default function proxy(request: NextRequest) {
+/** B-2951: every response carries a fresh request id. A client-sent one is
+ * overwritten, never trusted; it is also forwarded on the request headers so
+ * the root layout can show it on an error screen. */
+export default function proxy(request: NextRequest): NextResponse {
+  const id = newRequestId();
+  request.headers.set(REQUEST_ID_HEADER, id);
+  const response = route(request);
+  response.headers.set(REQUEST_ID_HEADER, id);
+  return response;
+}
+
+function route(request: NextRequest): NextResponse {
   logRequest(request);
 
   const pathname = request.nextUrl.pathname;
@@ -258,7 +277,7 @@ export default function proxy(request: NextRequest) {
   // reserved name that can never actually be deleted, so a per-request fs
   // stat against `content/.deleted/api.json` would be pure waste, forever,
   // on the hot path this ticket was explicitly told not to slow down.
-  if (pathname.startsWith("/api/")) return NextResponse.next();
+  if (pathname.startsWith("/api/")) return NextResponse.next({ request });
 
   const internal = internalJournalPath(pathname);
   if (internal) return redirectTo(request, internal);

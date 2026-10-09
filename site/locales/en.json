@@ -678,6 +678,7 @@
   "err.photobookUnavailableBody": "The trip is still here — this particular page just isn't shown to you.",
   "err.photobookUnavailableTitle": "The photobook maker isn't available here",
   "err.reference": "Reference {id}",
+  "err.requestId": "Request {id}",
   "err.retry": "Try again",
   "err.searchJournal": "Search this journal",
   "err.tripGoneBody": "It was taken down or renamed. The other trips are all still where they were.",
