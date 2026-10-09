@@ -269,6 +269,7 @@
   "agent.tool.tellReadersDraft": "That day is still a draft — publish it first, and there is nothing to tell anybody about yet.",
   "agent.tool.tellReadersMail": "{date} — “{title}” goes out as a letter to {count} people. It costs nothing.",
   "agent.tool.tripPeople": "{name} joins the byline of {trip} — and can then write to the whole trip, not just read it.",
+  "agent.tool.tripPeopleUpgrade": "{name} is already on the byline of {trip} without an address — this adds the address to that entry, not a second one.",
   "agent.tool.tripPeopleAccept": "Add them to the trip",
   "agent.tool.tripPeopleDone": "They are on the trip, and may now write to it.",
   "agent.tool.tripPeopleNeedsEmail": "I need their name and their email address before I can put this in front of you — say both and I will make the card.",

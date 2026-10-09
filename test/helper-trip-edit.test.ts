@@ -178,6 +178,44 @@ describe("trip_people", () => {
     expect(tripFile()).toContain("Mara");
   });
 
+  // B-2949: a name-only "Mara" (typed in the studio sheet) and the same Mara
+  // with an address (from a contact card) were two entries on the byline.
+  describe("somebody already listed by name only", () => {
+    function listNameOnly() {
+      const file = path.join(dir, "alex", "trips", "reise", "trip.json");
+      const doc = JSON.parse(fs.readFileSync(file, "utf8"));
+      doc.people = [
+        { name: "A B", nickname: "A", email: OWNER_EMAIL },
+        { name: "Mara" },
+      ];
+      fs.writeFileSync(file, JSON.stringify(doc));
+      clearUserCache();
+    }
+    const people = () => JSON.parse(tripFile()).people as { name: string; email?: string }[];
+
+    test("the proposal says the address goes to that entry", async () => {
+      listNameOnly();
+      const proposal = await propose("trip_people", { person: "mara", email: "mara@example.test" });
+      expect(proposal.sentence).toContain("agent.tool.tripPeopleUpgrade");
+    });
+
+    test("pressed, it leaves one Mara, now with the address", async () => {
+      listNameOnly();
+      const proposal = await propose("trip_people", { person: "Mara", email: "mara@example.test" });
+      const res = await patch(tripPeople, "https://t.test/api/helper/alex/trip/people", pressed(proposal));
+      expect(res.status).toBe(200);
+      expect(people().filter((p) => p.name === "Mara")).toEqual([
+        { name: "Mara", email: "mara@example.test" },
+      ]);
+    });
+
+    test("somebody not listed is still a plain addition", async () => {
+      listNameOnly();
+      const proposal = await propose("trip_people", { person: "Robin", email: "robin@example.test" });
+      expect(proposal.sentence).not.toContain("Upgrade");
+    });
+  });
+
   test("with no email, nothing is proposed and there is no button", async () => {
     const ran = await runTool("alex", "trip_people", { trip: "reise", person: "Mara" }, say, "2026-09-07", [], "", WEB_CALLER);
     expect(ran.proposal).toBeUndefined();

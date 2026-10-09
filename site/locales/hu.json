@@ -269,6 +269,7 @@
   "agent.tool.tellReadersDraft": "Ez a nap még vázlat — előbb tedd közzé, egyelőre nincs miről mesélni.",
   "agent.tool.tellReadersMail": "{date} — „{title}” levélként megy ki {count} embernek. Ez ingyenes.",
   "agent.tool.tripPeople": "{name} bekerül {trip} névsorába — és ezután az egész utazáshoz írhat, nemcsak olvashatja.",
+  "agent.tool.tripPeopleUpgrade": "{name} már szerepel {trip} névsorában cím nélkül — ez a címet ahhoz a bejegyzéshez adja, nem hoz létre másodikat.",
   "agent.tool.tripPeopleAccept": "Hozzáadás az utazáshoz",
   "agent.tool.tripPeopleDone": "A személy felkerült az utazásra, és mostantól írhat hozzá.",
   "agent.tool.tripPeopleNeedsEmail": "Szükségem van a nevére és az e-mail-címére, mielőtt ezt eléd tehetném — mondd meg mindkettőt, és elkészítem a kártyát.",

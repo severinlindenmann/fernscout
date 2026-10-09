@@ -7,6 +7,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import GroupPhotoFigures from "@/components/studio/trip/GroupPhotoFigures";
 import FigureCreator, { SHEET_FOOTER } from "@/components/studio/figures/FigureCreator";
 import { journalPath } from "@/lib/journalPath";
+import { addPerson } from "@/lib/samePerson";
 import type { FigureDoc } from "@/lib/api/v2/schemas/figures";
 
 type SheetPerson = { name: string; email?: string };
@@ -120,8 +121,9 @@ function TripPeopleSheet({
   async function add(person: SheetPerson) {
     const name = person.name.trim();
     if (!name || busy) return;
-    if (people.some((p) => (person.email ? p.email === person.email : !p.email && p.name === name))) return;
-    if (await writePeople([...people, { name, ...(person.email ? { email: person.email } : {}) }])) setTyped("");
+    const next = addPerson(people, { name, ...(person.email ? { email: person.email } : {}) });
+    if (next === people) return;
+    if (await writePeople(next)) setTyped("");
   }
 
   async function keepFigure(doc: FigureDoc) {
@@ -134,10 +136,8 @@ function TripPeopleSheet({
   async function keepFigures(docs: FigureDoc[], named: SheetPerson[] = []) {
     setFigures((prev) => [...prev.filter((f) => !docs.some((d) => d.id === f.id)), ...docs]);
     setFromPhoto(false);
-    const fresh = named.filter(
-      (n) => !people.some((p) => (n.email ? p.email === n.email : !p.email && p.name === n.name)),
-    );
-    if (fresh.length) await writePeople([...people, ...fresh]);
+    const merged = named.reduce((list, n) => addPerson(list, n), people);
+    if (merged !== people) await writePeople(merged);
     const next = [...set, ...docs.map((d) => d.id).filter((id) => !set.includes(id))];
     try {
       const res = await fetch(`/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/figures`, {

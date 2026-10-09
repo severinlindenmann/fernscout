@@ -269,6 +269,7 @@
   "agent.tool.tellReadersDraft": "Dieser Tag ist noch ein Entwurf — veröffentliche ihn zuerst, es gibt noch nichts, worüber man erzählen könnte.",
   "agent.tool.tellReadersMail": "{date} — „{title}“ geht als Brief an {count} Personen. Das kostet nichts.",
   "agent.tool.tripPeople": "{name} kommt in die Namensliste von {trip} — und kann danach an der ganzen Reise mitschreiben, nicht nur daran lesen.",
+  "agent.tool.tripPeopleUpgrade": "{name} steht schon ohne Adresse in der Namensliste von {trip} — damit kommt die Adresse zu diesem Eintrag, es entsteht kein zweiter.",
   "agent.tool.tripPeopleAccept": "Zur Reise hinzufügen",
   "agent.tool.tripPeopleDone": "Die Person ist auf der Reise und darf jetzt daran mitschreiben.",
   "agent.tool.tripPeopleNeedsEmail": "Ich brauche Namen und E-Mail-Adresse, bevor ich dir das vorlegen kann — nenn mir beides, dann mache ich die Karte.",

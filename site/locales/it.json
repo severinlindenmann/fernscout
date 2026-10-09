@@ -269,6 +269,7 @@
   "agent.tool.tellReadersDraft": "Quel giorno è ancora una bozza: prima pubblicalo, per ora non c’è niente di cui avvisare nessuno.",
   "agent.tool.tellReadersMail": "{date}, “{title}” parte come lettera per {count} persone. Non costa niente.",
   "agent.tool.tripPeople": "{name} entra tra gli autori di {trip}, e da quel momento può scrivere in tutto il viaggio, non solo leggerlo.",
+  "agent.tool.tripPeopleUpgrade": "{name} è già tra gli autori di {trip} senza indirizzo: l'indirizzo viene aggiunto a quella voce, non ne nasce una seconda.",
   "agent.tool.tripPeopleAccept": "Aggiungi al viaggio",
   "agent.tool.tripPeopleDone": "Ora fa parte del viaggio e può scriverci.",
   "agent.tool.tripPeopleNeedsEmail": "Mi servono il nome e l’indirizzo email prima di potertelo proporre: dimmeli entrambi e preparo la scheda.",
