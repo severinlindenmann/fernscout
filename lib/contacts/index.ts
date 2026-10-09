@@ -1230,6 +1230,15 @@ export async function revokeContact(owner: string, id: string): Promise<ContactR
     .where("contact_id", "=", id)
     .execute();
   await revokeTripPlaces(owner, id);
+  // B-2962: Decline and Take access away end the trips this person kept
+  // through links; letting them in later does not clear this.
+  await db
+    .updateTable("trip_link_keeps")
+    .set({ revoked_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("contact_id", "=", id)
+    .where("revoked_at", "is", null)
+    .execute();
   return getContact(owner, id);
 }
 

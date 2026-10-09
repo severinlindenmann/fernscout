@@ -9,7 +9,7 @@ import { isEnabled } from "./capabilities";
 import { getContactByEmail } from "./contacts";
 import { hasContactsKey } from "./contacts/crypto";
 import { READ_CODE_RE } from "./contacts/invites";
-import { getDatabase, getDatabaseOrNull } from "./db";
+import { getDatabase, getDatabaseOrNull, newId, nowIso } from "./db";
 import { serverSite } from "./site";
 import { getTrip, tripRef } from "./trips";
 import type { Trip } from "./types";
@@ -171,3 +171,64 @@ export const linkAccess = cache(async (trip: Trip): Promise<"link" | "kept" | nu
   if (await cookieOpens(trip)) return "link";
   return null;
 });
+
+/**
+ * Records that `contactId` keeps the link's trip. The invite is re-read inside
+ * the transaction, so a link stopped between the proof and this write keeps
+ * nobody. One row per link per person: a repeat is a no-op. Writes nothing
+ * else — a keep is not a grant.
+ */
+export async function recordKeep(link: ReadLink, contactId: string): Promise<boolean> {
+  const { db } = await getDatabase();
+  return db.transaction().execute(async (trx) => {
+    const row = await trx
+      .selectFrom("contact_invites")
+      .select(["id", "owner_id", "trip_id", "read_code_hash", "revoked_at", "expires_at"])
+      .where("owner_id", "=", link.owner)
+      .where("id", "=", link.inviteId)
+      .where("kind", "=", "read")
+      .executeTakeFirst();
+    if (liveFor(row) === null) return false;
+    await trx
+      .insertInto("trip_link_keeps")
+      .values({
+        id: newId(),
+        owner_id: link.owner,
+        trip_id: link.trip.id,
+        invite_id: link.inviteId,
+        contact_id: contactId,
+        kept_at: nowIso(),
+        revoked_at: null,
+      })
+      .onConflict((c) => c.columns(["owner_id", "invite_id", "contact_id"]).doNothing())
+      .execute();
+    return true;
+  });
+}
+
+/** The live link in this browser's cookie, for the keep card on /me: the code
+ * is the one the holder already has, and goes nowhere else. Null for no
+ * cookie, a stopped or expired link, or a trip no longer shared. */
+export async function cookieLink(): Promise<{ code: string; link: ReadLink } | null> {
+  const raw = (await cookies()).get(LINK_COOKIE)?.value;
+  const m = raw ? COOKIE_VALUE_RE.exec(raw) : null;
+  if (!m) return null;
+  const link = await resolveReadCode(m[2]);
+  return link && link.inviteId === m[1] ? { code: m[2], link } : null;
+}
+
+/** Whether this address already has a live keep on the trip. */
+export async function keepsTrip(owner: string, tripId: string, email: string): Promise<boolean> {
+  const contact = await getContactByEmail(owner, email);
+  if (!contact || contact.status === "blocked") return false;
+  const { db } = await getDatabase();
+  const row = await db
+    .selectFrom("trip_link_keeps")
+    .select("id")
+    .where("owner_id", "=", owner)
+    .where("trip_id", "=", tripId)
+    .where("contact_id", "=", contact.id)
+    .where("revoked_at", "is", null)
+    .executeTakeFirst();
+  return Boolean(row);
+}

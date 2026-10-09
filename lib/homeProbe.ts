@@ -16,6 +16,17 @@ export type HomePayload = {
    *  operator link is offered, and nothing else: `/admin` asks
    *  `isInstanceAdmin()` for itself, so a forged `true` reaches a 404. */
   admin?: boolean;
+  /** The trip link this browser holds, for the keep card — B-2962. */
+  link?: HomeLink | null;
+};
+
+export type HomeLink = {
+  ownerName: string;
+  tripTitle: string;
+  keepPath: string;
+  token: string;
+  signupEnabled: boolean;
+  kept: boolean;
 };
 
 /**
