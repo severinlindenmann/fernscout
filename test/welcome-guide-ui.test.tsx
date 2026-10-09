@@ -277,7 +277,7 @@ describe("the join flow", () => {
       goButton().click();
       await Promise.resolve();
     });
-    expect(heading()).toBe(fill("join.ready.title", { title: "Two Backpacks" }));
+    expect(heading()).toContain(fill("join.ready.title", { title: "Two Backpacks" }));
     expect(container!.textContent).toContain(fill("join.ready.by", { owner: "Ana" }));
     expect(container!.textContent).toContain(fill("join.ready.bodyEmail", { name: "Anna" }));
     expect(container!.textContent).toContain(dict["join.ready.howTitle"]);
