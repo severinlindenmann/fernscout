@@ -292,18 +292,6 @@ export function CodeArt() {
 // B2597 retired `PhoneArt` (the SMS twin of `CodeArt`, B2455) along with the
 // SMS sign-in code it illustrated — readers sign in by email only now.
 
-/** B2505: a stamped card, the size of a line of text — beside "WhatsApp ·
- * digital postcards" on the notify step. */
-export function PostcardIcon() {
-  return (
-    <svg viewBox="0 0 24 18" className="h-4 w-5 shrink-0" aria-hidden data-testid="postcard-icon">
-      <rect x="1" y="1" width="22" height="16" rx="2.5" className="fill-none stroke-current" strokeWidth="1.6" />
-      <rect x="15.5" y="3.5" width="5" height="5.5" rx="0.8" className="fill-yellow-400" />
-      <path d="M4 13.5l3.5-4 2.5 2.5 2-2 3 3.5" className="fill-none stroke-current" strokeWidth="1.4" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 export function PostcardArt() {
   return (
     <svg viewBox="0 0 342 120" className="h-auto w-full" aria-hidden>
