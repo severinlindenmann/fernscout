@@ -580,7 +580,6 @@ export type TranslationKey =
   | "billing.voucherPrint"
   | "billing.voucherPrintOpen"
   | "code.phoneVerify"
-  | "codeWait.digit"
   | "codeWait.iphone"
   | "codeWait.resend"
   | "codeWait.resendIn"

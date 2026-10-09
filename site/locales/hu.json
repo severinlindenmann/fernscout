@@ -4988,7 +4988,6 @@
   "codeWait.sent": "Elküldtünk egy 6 számjegyű kódot ide: {email}.",
   "codeWait.sentIf": "Ha a(z) {email} címmel be lehet lépni, egy 6 számjegyű kód úton van.",
   "codeWait.valid": "{minutes} percig érvényes.",
-  "codeWait.digit": "{n}. számjegy a 6-ból",
   "codeWait.stepFrom": "Keress egy levelet tőle: {sender}, ezzel a tárggyal: „123456 a kódod ehhez: …”.",
   "codeWait.stepSpam": "Egy perc után sincs ott? Nézd meg a Spam vagy Levélszemét mappát. Gmailben a Promóciók fület is.",
   "codeWait.stepNotSpam": "Megtaláltad a spamben? Jelöld „Nem spam”-nek, hogy a következő megérkezzen.",

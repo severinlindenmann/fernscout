@@ -4982,7 +4982,6 @@
   "codeWait.sent": "We sent a 6-digit code to {email}.",
   "codeWait.sentIf": "If {email} can use this, a 6-digit code is on its way.",
   "codeWait.valid": "It works for {minutes} minutes.",
-  "codeWait.digit": "Digit {n} of 6",
   "codeWait.stepFrom": "Look for an email from {sender} with the subject \"123456 is your code for …\".",
   "codeWait.stepSpam": "Not there after a minute? Check Spam or Junk. In Gmail, also look under Promotions.",
   "codeWait.stepNotSpam": "Found it in spam? Mark it Not spam, so the next one arrives.",

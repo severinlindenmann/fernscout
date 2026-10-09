@@ -144,13 +144,13 @@ describe("the signup wizard", () => {
   });
 
   // ── step 1b: the code ───────────────────────────────────────────────────
-  test("the code is six boxes; a paste fills them and the sixth digit submits", async () => {
+  test("the code is one field; a paste fills it and the sixth digit submits", async () => {
     stubWizardFetch(baseRoutes);
     mount();
     await type("signup-email", "new@example.test");
     await submit();
     const box = input("signup-code");
-    expect(container!.querySelectorAll('input[name="code"]')).toHaveLength(6);
+    expect(container!.querySelectorAll('input[name="code"]')).toHaveLength(1);
     expect(box.autocomplete).toBe("one-time-code");
     expect(box.inputMode).toBe("numeric");
     await type("signup-code", "12345");

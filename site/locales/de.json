@@ -4987,7 +4987,6 @@
   "codeWait.sent": "Wir haben einen 6-stelligen Code an {email} geschickt.",
   "codeWait.sentIf": "Wenn {email} dafür infrage kommt, ist ein 6-stelliger Code unterwegs.",
   "codeWait.valid": "Er gilt {minutes} Minuten.",
-  "codeWait.digit": "Ziffer {n} von 6",
   "codeWait.stepFrom": "Suche eine E-Mail von {sender} mit dem Betreff „123456 ist dein Code für …“.",
   "codeWait.stepSpam": "Nach einer Minute noch nicht da? Schau im Spam- oder Junk-Ordner nach. In Gmail auch unter „Werbung“ (Promotions).",
   "codeWait.stepNotSpam": "Im Spam gefunden? Markiere sie als „Kein Spam“, dann kommt die nächste an.",
