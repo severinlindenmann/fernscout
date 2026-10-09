@@ -34,7 +34,13 @@ function joinCountryCodes(): string[] {
   return configured.filter((c): c is string => typeof c === "string").map((c) => c.replace(/\D/g, "")).filter(Boolean);
 }
 
+/** Premium-rate and short-code ranges inside the default countries, never
+ * texted from a reader link (security review, B-2942): a text there costs the
+ * operator money and pays whoever owns the number. */
+const PREMIUM_PREFIXES = ["41900", "41901", "41906", "49900", "49137", "49180", "43900", "43901", "43930", "43939", "3389", "39899", "39892", "3690"];
+
 export function joinCountryAllowed(digits: string): boolean {
+  if (PREMIUM_PREFIXES.some((prefix) => digits.startsWith(prefix))) return false;
   return joinCountryCodes().some((cc) => digits.startsWith(cc));
 }
 
@@ -52,7 +58,13 @@ export function joinWhatsappAvailable(): boolean {
 
 /** A number as typed, as E.164 digits, or null. */
 export function typedDigits(raw: string): string | null {
-  return toE164(raw, whatsappCountryCode());
+  const digits = toE164(raw, whatsappCountryCode());
+  if (!digits) return digits;
+  // "+41 (0)76 ..." and "+41 76 ..." are one phone: drop a trunk 0 typed right
+  // after the country code, so the per-number limits cannot be sidestepped
+  // by formatting (security review, B-2942).
+  const cc = joinCountryCodes().find((code) => digits.startsWith(code) && digits[code.length] === "0");
+  return cc ? `${cc}${digits.slice(cc.length + 1)}` : digits;
 }
 
 type JoinSmsResult =

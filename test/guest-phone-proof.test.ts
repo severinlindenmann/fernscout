@@ -222,6 +222,23 @@ describe("SMS proof on a reader link", () => {
     expect((await send("198.51.100.4")).status).toBe(429);
   });
 
+  test("a trunk 0 after the country code is the same number, not a fresh bucket (security review)", async () => {
+    const code = await newLink({ kind: "guest", name: "Group" });
+    const send = (value: string, ip: string) => joinStep(code, { action: "send", channel: "sms", name: "Mira", value, locale: "en" }, ip);
+    expect((await send("+41 79 410 00 01", "198.51.100.11")).status).toBe(200);
+    expect((await send("+41 (0)79 410 00 01", "198.51.100.12")).status).toBe(200);
+    expect((await send("+41 079 410 00 01", "198.51.100.13")).status).toBe(200);
+    expect((await send("+41 79 410 00 01", "198.51.100.14")).status).toBe(429);
+  });
+
+  test("a premium-rate range inside an allowed country is refused before anything is texted", async () => {
+    const code = await newLink({ kind: "guest", name: "Group" });
+    const before = texts().length;
+    const res = await joinStep(code, { action: "send", channel: "sms", name: "Mira", value: "+41 900 123 456", locale: "en" });
+    expect(res).toMatchObject({ status: 400, json: { error: "unsupported_country" } });
+    expect(texts().length).toBe(before);
+  });
+
   test("per IP: the sixth number from one address is refused", async () => {
     const code = await newLink({ kind: "guest", name: "Group" });
     const send = (n: number) =>
@@ -335,6 +352,22 @@ describe("WhatsApp message-in on a reader link", () => {
     expect((await joinStep(code, { action: "wa-poll", id })).json).toEqual({ status: "expired" });
     expect(jar.cookies.fs_session).toBeUndefined();
     expect(await contactCount()).toBe(before);
+  });
+
+  test("a blocked number that sends the message is answered like anybody and stays blocked (security review)", async () => {
+    const code = await newLink({ kind: "guest", name: "Group" });
+    const { addContact } = await import("@/lib/contacts");
+    const added = await addContact(OWNER, { name: "Blocked", phone: "+41 79 111 22 77", locale: "en", createdVia: "owner" });
+    if (!added.ok) throw new Error("add failed");
+    const { getDatabase } = await import("@/lib/db");
+    const { db } = await getDatabase();
+    await db.updateTable("contacts").set({ status: "blocked" }).where("id", "=", added.contact.id).execute();
+    const started = await start(code, "+41 79 111 22 77");
+    const { claimPhoneLink } = await import("@/lib/phoneVerify/inboundLink");
+    await claimPhoneLink(String(started.json.text), "41791112277");
+    const done = await joinStep(code, { action: "wa-poll", id: String(started.json.id) });
+    expect(done.json).toMatchObject({ ok: true, status: "waiting", known: true });
+    expect((await holder("+41791112277"))?.status).toBe("blocked");
   });
 
   test("another browser cannot collect the proof, and the owner's browser still can", async () => {
