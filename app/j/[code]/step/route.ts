@@ -283,8 +283,9 @@ async function settle(
   // B-2940: a reader link is the invitation. Somebody this very link filed
   // and who proved their address is let in at once; the owner is told they
   // joined and can block them. Buddy links (a trip place, write access) and
-  // anybody the link merely found keep the owner's Let in.
-  if (invite.kind === "guest" && !trip && contact.status === "pending" && contact.createdVia === `invite:${invite.id}`) {
+  // anybody the link merely found keep the owner's Let in. A link mailed to one
+  // address (`emailKey`, B319) admits exactly that address and nobody else.
+  if (invite.kind === "guest" && !invite.emailKey && !trip && contact.status === "pending" && contact.createdVia === `invite:${invite.id}`) {
     const approved = await approveContact(owner, contact.id, { onlyTrip: null });
     if (approved?.contact.status === "active") {
       if (needsOwnerNotice !== false) {

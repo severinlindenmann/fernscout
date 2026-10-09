@@ -264,7 +264,7 @@ describe("F1 — somebody already on the page keeps what is stored", () => {
 });
 
 describe("pre-approval still means exactly the address the owner typed (B319)", () => {
-  test("proving the mailed address lets them in; on a reader link another address is let in too (B-2940)", async () => {
+  test("proving the mailed address lets them in; another address on the same link asks", async () => {
     const { createInvite } = await import("@/lib/contacts/invites");
     const { joinCodeFor } = await import("@/lib/contacts/welcome");
     const created = await createInvite(OWNER, { kind: "guest", email: "pre@example.test", expiresAt: null });
@@ -276,8 +276,7 @@ describe("pre-approval still means exactly the address the owner typed (B319)", 
     jar.cookies = {};
     await joinStep(code, { action: "send", name: "Fwd", channel: "email", value: "fwd@example.test" });
     const fwd = await joinStep(code, { action: "verify", name: "Fwd", channel: "email", value: "fwd@example.test", code: codeMailed("fwd@example.test") });
-    expect(fwd.json.status).toBe("in");
-    expect((await contact((await (await import("@/lib/contacts")).getContactByEmail(OWNER, "fwd@example.test"))!.id)).status).toBe("active");
+    expect(fwd.json.status).toBe("waiting");
   });
 
   test("a buddy link still asks, whoever proves an address (B-2940)", async () => {
