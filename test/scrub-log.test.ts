@@ -31,4 +31,8 @@ describe("scrubLog", () => {
     expect(scrubLog("id 123e4567-e89b-12d3-a456-426614174000", 200)).toBe("id [redacted]");
     expect(scrubLog("a".repeat(40), 200)).toBe("[redacted]");
   });
+  it("redacts a hyphenated mixed-case token but not a slug", () => {
+    expect(scrubLog("t Ab3-Cd4-Ef5-Gh6-Ij7-Kl8-Mn9-Op0 end", 200)).toBe("t [redacted] end");
+    expect(scrubLog("2026-10-01-lisbon-to-porto-and-the-douro", 200)).toBe("2026-10-01-lisbon-to-porto-and-the-douro");
+  });
 });
