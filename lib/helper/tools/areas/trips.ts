@@ -7,6 +7,7 @@ import { listContacts } from "../../../contacts";
 import { ALL_TRACKED, TRACKS, type Track } from "../../../tracks";
 import { VISIBILITIES } from "../../../tripWrite";
 import { getUser } from "../../../users";
+import { nameOnlyMatch } from "../../../samePerson";
 import { flatten, noTrip, resolveTrip } from "../resolve";
 import fs from "node:fs";
 import { findInboxFile, listInbox } from "../../../inbox";
@@ -414,7 +415,14 @@ export const TRIPS_TOOLS: readonly Tool[] = [
         // proposal — B925's rule applied here: a card cannot invite a press
         // it knows will come back `invalid_people`.
         ...(trip && (!name || !email) ? { refuse: "agent.tool.tripPeopleNeedsEmail" } : {}),
-        sentence: say("agent.tool.tripPeople", { name, trip: trip?.title ?? "" }),
+        // B-2949: somebody already on the byline with no address is this
+        // person; say the press adds the address to that entry.
+        sentence: say(
+          trip && email && nameOnlyMatch(getTrip(tripRef(username, trip.id))?.people ?? [], name)
+            ? "agent.tool.tripPeopleUpgrade"
+            : "agent.tool.tripPeople",
+          { name, trip: trip?.title ?? "" },
+        ),
         accept: say("agent.tool.tripPeopleAccept"),
         done: say("agent.tool.tripPeopleDone"),
         fields: [

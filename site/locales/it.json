@@ -5113,5 +5113,6 @@
   "join.ready.digestHint": "Puoi disattivarlo in qualsiasi momento.",
   "join.ready.howTitle": "Come tornare",
   "join.ready.howBodyEmail": "Aggiungi il diario ai segnalibri dopo averlo aperto. Questo browser di solito ti riconosce. Su un altro dispositivo, o se ti viene chiesto di accedere di nuovo, conferma lo stesso indirizzo email.",
-  "join.ready.howBodyPhone": "Aggiungi il diario ai segnalibri dopo averlo aperto. Questo browser di solito ti riconosce. Su un altro dispositivo, o se ti viene chiesto di accedere di nuovo, conferma lo stesso numero di telefono."
+  "join.ready.howBodyPhone": "Aggiungi il diario ai segnalibri dopo averlo aperto. Questo browser di solito ti riconosce. Su un altro dispositivo, o se ti viene chiesto di accedere di nuovo, conferma lo stesso numero di telefono.",
+  "agent.tool.tripPeopleUpgrade": "{name} è già tra gli autori di {trip} senza indirizzo: l'indirizzo viene aggiunto a quella voce, non ne nasce una seconda."
 }

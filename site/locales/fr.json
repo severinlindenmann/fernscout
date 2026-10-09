@@ -5113,5 +5113,6 @@
   "join.ready.digestHint": "Vous pouvez le désactiver à tout moment.",
   "join.ready.howTitle": "Comment revenir",
   "join.ready.howBodyEmail": "Ajoutez le journal à vos favoris après l’avoir ouvert. Ce navigateur vous reconnaîtra en général. Sur un autre appareil, ou si on vous demande de vous reconnecter, confirmez la même adresse e-mail.",
-  "join.ready.howBodyPhone": "Ajoutez le journal à vos favoris après l’avoir ouvert. Ce navigateur vous reconnaîtra en général. Sur un autre appareil, ou si on vous demande de vous reconnecter, confirmez le même numéro de téléphone."
+  "join.ready.howBodyPhone": "Ajoutez le journal à vos favoris après l’avoir ouvert. Ce navigateur vous reconnaîtra en général. Sur un autre appareil, ou si on vous demande de vous reconnecter, confirmez le même numéro de téléphone.",
+  "agent.tool.tripPeopleUpgrade": "{name} figure déjà sans adresse parmi les auteurs de {trip} — l'adresse est ajoutée à cette entrée, pas à une seconde."
 }

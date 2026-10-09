@@ -5109,5 +5109,6 @@
   "join.ready.digestHint": "Du kannst das jederzeit ausschalten.",
   "join.ready.howTitle": "So kommst du zurück",
   "join.ready.howBodyEmail": "Setze nach dem Öffnen ein Lesezeichen. Dieser Browser erkennt dich meist wieder. Auf einem anderen Gerät oder wenn du dich neu anmelden sollst, bestätige dieselbe E-Mail-Adresse.",
-  "join.ready.howBodyPhone": "Setze nach dem Öffnen ein Lesezeichen. Dieser Browser erkennt dich meist wieder. Auf einem anderen Gerät oder wenn du dich neu anmelden sollst, bestätige dieselbe Handynummer."
+  "join.ready.howBodyPhone": "Setze nach dem Öffnen ein Lesezeichen. Dieser Browser erkennt dich meist wieder. Auf einem anderen Gerät oder wenn du dich neu anmelden sollst, bestätige dieselbe Handynummer.",
+  "agent.tool.tripPeopleUpgrade": "{name} steht schon ohne Adresse in der Namensliste von {trip} — damit kommt die Adresse zu diesem Eintrag, es entsteht kein zweiter."
 }

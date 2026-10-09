@@ -578,6 +578,25 @@ function resolveTripFigures(raw: TripFile["figures"], username: string): Figure[
 }
 
 /**
+ * The journal's default party: its v2 selection (`figures: {mode: "set"}`)
+ * resolved from the figure library, else the v1 inline `travellers:`. Trips on
+ * `mode: "journal"` fall back to this via `partyFor`, so the selection has to
+ * arrive here or it is saved and never drawn (B-2959).
+ */
+export function resolveJournalFigures(user: {
+  username: string;
+  figures?: { mode: string; figures?: string[] };
+  travellers: Figure[];
+}): Figure[] {
+  const ids = user.figures?.mode === "set" ? (user.figures.figures ?? []) : [];
+  const drawn = ids
+    .map((id) => readFigureDoc(user.username, id))
+    .filter((doc): doc is FigureDoc => doc !== null)
+    .map(figureDocToFigure);
+  return drawn.length > 0 ? drawn : user.travellers;
+}
+
+/**
  * `content/<user>/figures/<id>.json`, read directly rather than through
  * `lib/figures.ts`'s own `getFigureDoc` — that module imports `tripDir`
  * from this one (for `figureReferences`), so importing it back here would
