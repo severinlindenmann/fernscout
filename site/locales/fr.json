@@ -5113,5 +5113,15 @@
   "join.wa.mismatch": "Ce message vient d’un autre numéro. Utilisez le numéro saisi ou confirmez autrement.",
   "join.wa.expired": "Ce lien a expiré. Rouvrez WhatsApp.",
   "guide.address.lookupHint": "Saisissez la rue et le numéro, par exemple « Bahnhofstrasse 10 ». Des suggestions apparaissent alors.",
-  "join.code.textTitle": "Regardez vos messages"
+  "join.code.textTitle": "Regardez vos messages",
+  "join.ready.title": "Vous pouvez lire {title}",
+  "join.ready.by": "Un journal de voyage de {owner}",
+  "join.ready.bodyEmail": "{name}, votre adresse e-mail est confirmée. Votre accès en lecture est prêt.",
+  "join.ready.bodyPhone": "{name}, votre numéro de téléphone est confirmé. Votre accès en lecture est prêt.",
+  "join.ready.addressSaved": "Votre adresse pour les cartes postales est enregistrée.",
+  "join.ready.digest": "M’envoyer un e-mail quand {owner} publie une nouvelle journée",
+  "join.ready.digestHint": "Vous pouvez le désactiver à tout moment.",
+  "join.ready.howTitle": "Comment revenir",
+  "join.ready.howBodyEmail": "Ajoutez le journal à vos favoris après l’avoir ouvert. Ce navigateur vous reconnaîtra en général. Sur un autre appareil, ou si on vous demande de vous reconnecter, confirmez la même adresse e-mail.",
+  "join.ready.howBodyPhone": "Ajoutez le journal à vos favoris après l’avoir ouvert. Ce navigateur vous reconnaîtra en général. Sur un autre appareil, ou si on vous demande de vous reconnecter, confirmez le même numéro de téléphone."
 }

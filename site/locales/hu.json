@@ -5110,5 +5110,15 @@
   "join.wa.mismatch": "Az üzenet másik számról érkezett. Használd a megadott számot, vagy erősíts meg másképp.",
   "join.wa.expired": "A link lejárt. Nyisd meg újra a WhatsAppot.",
   "guide.address.lookupHint": "Írd be az utcát és a házszámot, például „Bahnhofstrasse 10”. Ekkor javaslatok jelennek meg.",
-  "join.code.textTitle": "Nézd meg az üzeneteidet"
+  "join.code.textTitle": "Nézd meg az üzeneteidet",
+  "join.ready.title": "Olvashatod: {title}",
+  "join.ready.by": "{owner} útinaplója",
+  "join.ready.bodyEmail": "{name}, az e-mail-címed megerősítve. Az olvasói hozzáférésed kész.",
+  "join.ready.bodyPhone": "{name}, a telefonszámod megerősítve. Az olvasói hozzáférésed kész.",
+  "join.ready.addressSaved": "A képeslapokhoz megadott címed el van mentve.",
+  "join.ready.digest": "Küldjetek e-mailt, ha {owner} új napot tesz közzé",
+  "join.ready.digestHint": "Bármikor kikapcsolhatod.",
+  "join.ready.howTitle": "Hogyan térj vissza",
+  "join.ready.howBodyEmail": "Nyitás után tedd könyvjelzőbe a naplót. Ez a böngésző általában emlékezni fog rád. Másik eszközön, vagy ha újra be kell jelentkezned, erősítsd meg ugyanazt az e-mail-címet.",
+  "join.ready.howBodyPhone": "Nyitás után tedd könyvjelzőbe a naplót. Ez a böngésző általában emlékezni fog rád. Másik eszközön, vagy ha újra be kell jelentkezned, erősítsd meg ugyanazt a telefonszámot."
 }

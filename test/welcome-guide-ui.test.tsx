@@ -263,6 +263,39 @@ describe("the join flow", () => {
     fetchMock.mockRestore();
   });
 
+  // B2943: a person let in by the link sees what was confirmed and one button;
+  // the day letter is a choice, never assumed, and nothing is promised on WhatsApp.
+  test("B2943 — the ready page names the journal and owner, offers choices unticked, and saves them on Open", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock = vi.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return { ok: true, json: async () => ({ ok: true, status: "in", known: false }) } as Response;
+    });
+    mount(<JoinFlow {...joinProps({ mail: true, sms: false, whatsapp: true, postcards: false })} knownEmail="an•••@example.test" />);
+    typeInto(container!.querySelector<HTMLInputElement>("input")!, "Anna");
+    await act(async () => {
+      goButton().click();
+      await Promise.resolve();
+    });
+    expect(heading()).toBe(fill("join.ready.title", { title: "Two Backpacks" }));
+    expect(container!.textContent).toContain(fill("join.ready.by", { owner: "Ana" }));
+    expect(container!.textContent).toContain(fill("join.ready.bodyEmail", { name: "Anna" }));
+    expect(container!.textContent).toContain(dict["join.ready.howTitle"]);
+    // Nothing about WhatsApp is promised, and the owner is not named as approving.
+    expect(container!.textContent).not.toMatch(/whatsapp/i);
+    expect(container!.textContent).not.toContain("let you in");
+    const box = (label: string) =>
+      Array.from(container!.querySelectorAll("label")).find((l) => l.textContent?.includes(label))?.querySelector("input");
+    expect(box(fill("join.ready.digest", { owner: "Ana" }))?.checked).toBe(false);
+    expect(box(dict["join.notify.news"])?.checked).toBe(true);
+    await act(async () => {
+      press(dict["guide.notify.open"]);
+      await Promise.resolve();
+    });
+    expect(bodies.at(-1)).toMatchObject({ action: "save", wantsEmailDigest: false, wantsNews: true });
+    fetchMock.mockRestore();
+  });
+
   test("with SMS off there is no mobile tab", () => {
     mount(
       <JoinFlow

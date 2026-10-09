@@ -5113,5 +5113,15 @@
   "join.wa.mismatch": "Il messaggio arriva da un altro numero. Usa il numero inserito o conferma in un altro modo.",
   "join.wa.expired": "Il link è scaduto. Apri di nuovo WhatsApp.",
   "guide.address.lookupHint": "Scrivi via e numero, per esempio «Bahnhofstrasse 10». Appariranno dei suggerimenti.",
-  "join.code.textTitle": "Controlla i tuoi messaggi"
+  "join.code.textTitle": "Controlla i tuoi messaggi",
+  "join.ready.title": "Puoi leggere {title}",
+  "join.ready.by": "Un diario di viaggio di {owner}",
+  "join.ready.bodyEmail": "{name}, il tuo indirizzo email è confermato. Il tuo accesso in lettura è pronto.",
+  "join.ready.bodyPhone": "{name}, il tuo numero di telefono è confermato. Il tuo accesso in lettura è pronto.",
+  "join.ready.addressSaved": "Il tuo indirizzo per le cartoline è salvato.",
+  "join.ready.digest": "Mandami un’email quando {owner} pubblica un nuovo giorno",
+  "join.ready.digestHint": "Puoi disattivarlo in qualsiasi momento.",
+  "join.ready.howTitle": "Come tornare",
+  "join.ready.howBodyEmail": "Aggiungi il diario ai segnalibri dopo averlo aperto. Questo browser di solito ti riconosce. Su un altro dispositivo, o se ti viene chiesto di accedere di nuovo, conferma lo stesso indirizzo email.",
+  "join.ready.howBodyPhone": "Aggiungi il diario ai segnalibri dopo averlo aperto. Questo browser di solito ti riconosce. Su un altro dispositivo, o se ti viene chiesto di accedere di nuovo, conferma lo stesso numero di telefono."
 }

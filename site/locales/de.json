@@ -5108,6 +5108,16 @@
   "join.wa.from": "Sie muss von {number} kommen. Diese Seite geht von selbst weiter.",
   "join.wa.mismatch": "Die Nachricht kam von einer anderen Nummer. Nutze die eingegebene Nummer oder bestätige anders.",
   "join.wa.expired": "Der Link ist abgelaufen. Öffne WhatsApp noch einmal.",
-  "guide.address.lookupHint": "Gib Strasse und Nummer ein, zum Beispiel „Bahnhofstrasse 10“. Dann erscheinen Vorschläge.",
-  "join.code.textTitle": "Schau in deine Nachrichten"
+  "guide.address.lookupHint": "Gib Straße und Nummer ein, zum Beispiel „Bahnhofstrasse 10“. Dann erscheinen Vorschläge.",
+  "join.code.textTitle": "Schau in deine Nachrichten",
+  "join.ready.title": "Du kannst {title} lesen",
+  "join.ready.by": "Ein Reisetagebuch von {owner}",
+  "join.ready.bodyEmail": "{name}, deine E-Mail-Adresse ist bestätigt. Dein Lesezugang ist bereit.",
+  "join.ready.bodyPhone": "{name}, deine Handynummer ist bestätigt. Dein Lesezugang ist bereit.",
+  "join.ready.addressSaved": "Deine Adresse für Postkarten ist gespeichert.",
+  "join.ready.digest": "Schick mir eine E-Mail, wenn {owner} einen neuen Tag veröffentlicht",
+  "join.ready.digestHint": "Du kannst das jederzeit ausschalten.",
+  "join.ready.howTitle": "So kommst du zurück",
+  "join.ready.howBodyEmail": "Setze nach dem Öffnen ein Lesezeichen. Dieser Browser erkennt dich meist wieder. Auf einem anderen Gerät oder wenn du dich neu anmelden sollst, bestätige dieselbe E-Mail-Adresse.",
+  "join.ready.howBodyPhone": "Setze nach dem Öffnen ein Lesezeichen. Dieser Browser erkennt dich meist wieder. Auf einem anderen Gerät oder wenn du dich neu anmelden sollst, bestätige dieselbe Handynummer."
 }

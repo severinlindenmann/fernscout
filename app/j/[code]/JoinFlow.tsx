@@ -16,6 +16,7 @@ import {
   PRIMARY,
   QUIET,
   Screen,
+  Ticks,
   WaitingArt,
   type Address,
 } from "@/components/guide/GuideParts";
@@ -155,6 +156,12 @@ export default function JoinFlow({
   const [typed, setTyped] = useState("");
   const [address, setAddress] = useState<Address>(EMPTY);
   const [status, setStatus] = useState<"in" | "waiting">("waiting");
+  // Somebody already on the page (`known`) keeps what is stored.
+  const [known, setKnown] = useState(false);
+  // The day letter is a choice, never assumed; news from Fernscout starts
+  // ticked, the owner's decision of 27 Sep (B2504), and unticking records nothing.
+  const [digest, setDigest] = useState(false);
+  const [news, setNews] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [whatsapp, setWhatsapp] = useState<{ id: string; link: string } | null>(null);
@@ -236,6 +243,7 @@ export default function JoinFlow({
   function proved(answer: Record<string, unknown>, order: Step[] = steps) {
     storeName(code, null);
     setStatus(answer.status === "in" ? "in" : "waiting");
+    setKnown(Boolean(answer.known));
     setWhatsapp(null);
     if (answer.known) go("done");
     else go(order[order.indexOf(step) + 1] ?? "done");
@@ -523,22 +531,60 @@ export default function JoinFlow({
     );
   }
 
-  return (
-    <Screen
-      labelledBy="join-done"
-      footer={
-        status === "in" ? (
-          <a href={journalPath(owner)} className={`${PRIMARY} grid place-items-center text-center`}>
+  if (status === "in") {
+    // B2943: the owner is not asked and is not named as having approved:
+    // the link was the invitation. Only what was really confirmed is said.
+    const withEmail = Boolean(knownEmail) || way === "email";
+    const fullName = name.trim() || "—";
+    // Somebody already on the page keeps what is stored: no choices to save.
+    const askChoices = withEmail && caps.mail && !known;
+    async function open() {
+      if (askChoices && !(await call({ action: "save", wantsEmailDigest: digest, wantsNews: news }))) return;
+      window.location.assign(journalPath(owner));
+    }
+    return (
+      <Screen
+        labelledBy="join-done"
+        footer={
+          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={open}>
             {t("guide.notify.open")}
-          </a>
-        ) : null
-      }
-    >
+          </BusyButton>
+        }
+      >
+        <Heading id="join-done">
+          <span aria-hidden="true" className="mr-2 inline-grid size-7 place-items-center rounded-full bg-green-700 align-middle text-base text-white">
+            ✓
+          </span>
+          {t("join.ready.title", vars)}
+        </Heading>
+        <p className="text-base font-semibold text-ink-secondary">{t("join.ready.by", vars)}</p>
+        <p className="text-base text-ink-body">
+          {t(withEmail ? "join.ready.bodyEmail" : "join.ready.bodyPhone", { name: fullName })}
+          {address.line1 && hasAddress && address.city ? ` ${t("join.ready.addressSaved")}` : ""}
+        </p>
+        {askChoices && (
+          <Ticks
+            ticks={[
+              { key: "wantsEmailDigest", label: t("join.ready.digest", vars), hint: t("join.ready.digestHint"), checked: digest, disabled: false },
+              { key: "wantsNews", label: t("join.notify.news"), hint: t("join.notify.newsHint", vars), checked: news, disabled: false },
+            ]}
+            onChange={(key, checked) => (key === "wantsNews" ? setNews(checked) : setDigest(checked))}
+          />
+        )}
+        <Alert text={error} />
+        <details className="text-base text-ink-body">
+          <summary className="min-h-11 cursor-pointer py-2 font-semibold text-ink-strong">{t("join.ready.howTitle")}</summary>
+          <p className="pb-2">{t(withEmail ? "join.ready.howBodyEmail" : "join.ready.howBodyPhone")}</p>
+        </details>
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen labelledBy="join-done" footer={null}>
       <WaitingArt />
-      <Heading id="join-done">{status === "in" ? t("join.done.inTitle") : t("join.done.title")}</Heading>
-      <p className="text-base text-ink-body">
-        {status === "in" ? t("join.done.inBody", vars) : t("join.done.bodyEmail", vars)}
-      </p>
+      <Heading id="join-done">{t("join.done.title")}</Heading>
+      <p className="text-base text-ink-body">{t("join.done.bodyEmail", vars)}</p>
     </Screen>
   );
 }

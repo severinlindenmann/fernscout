@@ -5104,5 +5104,15 @@
   "join.wa.mismatch": "That message came from a different number. Use the number you typed, or confirm another way.",
   "join.wa.expired": "That link ran out. Open WhatsApp again.",
   "guide.address.lookupHint": "Type the street and number, for example “Bahnhofstrasse 10”. Suggestions appear then.",
-  "join.code.textTitle": "Check your messages"
+  "join.code.textTitle": "Check your messages",
+  "join.ready.title": "You can read {title}",
+  "join.ready.by": "A travel journal by {owner}",
+  "join.ready.bodyEmail": "{name}, your email address is confirmed. Your reader access is ready.",
+  "join.ready.bodyPhone": "{name}, your phone number is confirmed. Your reader access is ready.",
+  "join.ready.addressSaved": "Your postcard address is saved.",
+  "join.ready.digest": "Email me when {owner} publishes a new day",
+  "join.ready.digestHint": "You can turn this off at any time.",
+  "join.ready.howTitle": "How to come back",
+  "join.ready.howBodyEmail": "Bookmark the journal after opening it. This browser will usually remember you. On another device, or if you are asked to sign in again, confirm the same email address.",
+  "join.ready.howBodyPhone": "Bookmark the journal after opening it. This browser will usually remember you. On another device, or if you are asked to sign in again, confirm the same phone number."
 }
