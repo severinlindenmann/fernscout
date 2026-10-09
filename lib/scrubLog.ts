@@ -10,7 +10,9 @@ export function scrubLog(text: string, max: number): string {
     .replace(/\bBearer\s+\S+/gi, "Bearer [redacted]")
     .replace(/\bfs_[\w-]+/g, "[redacted]")
     .replace(/\?[^\s"'`)]*/g, "?[query]")
-    .replace(/[A-Za-z0-9+/_=-]{24,}/g, "[redacted]")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "[redacted]")
+    // Opaque runs only: "/" and "-" are left out so a route or slug survives.
+    .replace(/[A-Za-z0-9+_=]{24,}/g, "[redacted]")
     .replace(/[\u0000-\u001f\u007f\u2028\u2029]/g, " ");
   return out.length > max ? out.slice(0, max) : out;
 }

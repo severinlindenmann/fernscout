@@ -22,4 +22,13 @@ describe("scrubLog", () => {
   it("truncates", () => {
     expect(scrubLog("x".repeat(50), 10)).toHaveLength(10);
   });
+  it("keeps a real route and slug readable", () => {
+    expect(scrubLog("/@example/trips/parks-2025/day/great-sand-dunes", 200)).toBe(
+      "/@example/trips/parks-2025/day/great-sand-dunes",
+    );
+  });
+  it("redacts a uuid and a long hex run", () => {
+    expect(scrubLog("id 123e4567-e89b-12d3-a456-426614174000", 200)).toBe("id [redacted]");
+    expect(scrubLog("a".repeat(40), 200)).toBe("[redacted]");
+  });
 });
