@@ -4162,6 +4162,8 @@
   "readers.saved.title": "Voyages enregistrés",
   "readers.saved.remove": "Retirer",
   "readers.saved.removeLabel": "Retirer {trip} de {name}",
+  "readers.saved.question": "Retirer {trip} des voyages enregistrés de {name} ? Cette personne ne pourra plus le lire par ce chemin ; tu pourras la laisser entrer de nouveau plus tard.",
+  "readers.saved.confirm": "Retirer {trip}",
   "readers.via.saved": "A enregistré {trip} · pas encore admis dans le journal",
   "readers.via.savedAny": "A enregistré un voyage · pas encore admis dans le journal",
   "readers.group.invited": "Invité·e — pas encore ouvert",

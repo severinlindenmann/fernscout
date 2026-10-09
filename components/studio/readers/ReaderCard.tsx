@@ -92,13 +92,14 @@ const PRIMARY =
 const MENU_ITEM =
   "block min-h-11 w-full px-4 py-2 text-left text-sm font-semibold text-ink-strong hover:bg-surface-subtle";
 
-type Asking = "letin" | "decline" | "revoke" | "delete" | "notify" | "menu" | "group" | "circle" | null;
+type Asking = "letin" | "decline" | "revoke" | "delete" | "notify" | "menu" | "group" | "circle" | "saved" | null;
 
 /** One person: who they are, what they may do, and what the owner can do
  * about it — every consequential action asks first (B2133, B2291). */
 function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardKind; env: CardEnv }) {
   const { t, busy, locale } = env;
   const [asking, setAsking] = useState<Asking>(null);
+  const [savedPick, setSavedPick] = useState<{ keepId: string; trip: string } | null>(null);
   // B2461 — which button under "asking" opened the panel: full write, or
   // read only. Only meaningful while asking === "letin" and the contact has
   // a pending trip; the plain "Let in" path never sets it true.
@@ -318,7 +319,10 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
                       <button
                         type="button"
                         aria-label={t("readers.saved.removeLabel", { trip: saved.trip, name: displayName })}
-                        onClick={() => void removeSaved(saved.keepId)}
+                        onClick={() => {
+                          setSavedPick(saved);
+                          setAsking("saved");
+                        }}
                         className="min-h-11 px-2 font-semibold text-ink-strong underline underline-offset-2"
                       >
                         {t("readers.saved.remove")}
@@ -570,6 +574,22 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
             onConfirm={() => {
               close();
               env.confirmed(contact, "revoke");
+            }}
+            onCancel={close}
+          />
+        </div>
+      )}
+      {asking === "saved" && savedPick && (
+        <div className="mt-3">
+          <ConfirmPanel
+            label={t("readers.saved.remove")}
+            question={t("readers.saved.question", { trip: savedPick.trip, name: displayName })}
+            confirmLabel={t("readers.saved.confirm", { trip: savedPick.trip })}
+            tone="destructive"
+            busy={busy}
+            onConfirm={() => {
+              close();
+              void removeSaved(savedPick.keepId);
             }}
             onCancel={close}
           />

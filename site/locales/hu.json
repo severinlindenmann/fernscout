@@ -4163,6 +4163,8 @@
   "readers.saved.title": "Mentett utazások",
   "readers.saved.remove": "Eltávolítás",
   "readers.saved.removeLabel": "{trip} eltávolítása: {name}",
+  "readers.saved.question": "Eltávolítod a(z) {trip} utazást {name} mentett utazásai közül? Így már nem olvashatja; később újra beengedheted.",
+  "readers.saved.confirm": "{trip} eltávolítása",
   "readers.via.saved": "Elmentette: {trip} · még nincs beengedve a naplóba",
   "readers.via.savedAny": "Elmentett egy utazást · még nincs beengedve a naplóba",
   "readers.group.invited": "Meghívva — még nem nyitotta meg",

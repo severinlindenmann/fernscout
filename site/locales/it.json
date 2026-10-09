@@ -4162,6 +4162,8 @@
   "readers.saved.title": "Viaggi salvati",
   "readers.saved.remove": "Rimuovi",
   "readers.saved.removeLabel": "Rimuovi {trip} da {name}",
+  "readers.saved.question": "Togliere {trip} dai viaggi salvati di {name}? Non potrà più leggerlo in questo modo; potrai farlo entrare di nuovo più tardi.",
+  "readers.saved.confirm": "Togli {trip}",
   "readers.via.saved": "Ha salvato {trip} · non ancora ammesso nel diario",
   "readers.via.savedAny": "Ha salvato un viaggio · non ancora ammesso nel diario",
   "readers.group.invited": "Invitato — non ancora aperto",

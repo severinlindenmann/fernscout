@@ -57,8 +57,13 @@ export default function InviteLinkDoor({
   const [tripId, setTripId] = useState(trips[0]?.id ?? "");
   const [note, setNote] = useState("");
   const [days, setDays] = useState<number>(30);
-  const [readTripId, setReadTripId] = useState(trips.find((trip) => trip.visibility === "guest")?.id ?? "");
+  const [pickedReadTrip, setReadTripId] = useState("");
   const hasGuestTrip = trips.some((trip) => trip.visibility === "guest");
+  // Always a guest trip: the pick if it still is one, else the first. Derived,
+  // so a trip list that arrives or changes after mount cannot leave a private
+  // (disabled) option selected.
+  const readTripId =
+    (trips.find((trip) => trip.id === pickedReadTrip && trip.visibility === "guest") ?? trips.find((trip) => trip.visibility === "guest"))?.id ?? "";
   const [groupId, setGroupId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

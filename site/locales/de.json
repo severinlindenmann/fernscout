@@ -4162,6 +4162,8 @@
   "readers.saved.title": "Gespeicherte Reisen",
   "readers.saved.remove": "Entfernen",
   "readers.saved.removeLabel": "{trip} bei {name} entfernen",
+  "readers.saved.question": "{trip} aus den gemerkten Reisen von {name} entfernen? Auf diesem Weg kann die Person die Reise nicht mehr lesen; du kannst sie später wieder hineinlassen.",
+  "readers.saved.confirm": "{trip} entfernen",
   "readers.via.saved": "Hat {trip} gespeichert · noch nicht ins Journal gelassen",
   "readers.via.savedAny": "Hat eine Reise gespeichert · noch nicht ins Journal gelassen",
   "readers.group.invited": "Eingeladen — noch nicht geöffnet",

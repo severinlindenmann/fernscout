@@ -4193,6 +4193,8 @@
   "readers.saved.title": "Saved trips",
   "readers.saved.remove": "Remove",
   "readers.saved.removeLabel": "Remove {trip} from {name}",
+  "readers.saved.question": "Remove {trip} from {name}’s saved trips? They can no longer read it that way; you can let them back in later.",
+  "readers.saved.confirm": "Remove {trip}",
   "readers.via.saved": "Saved {trip} · not let into the journal",
   "readers.via.savedAny": "Saved a trip · not let into the journal",
   "readers.group.invited": "Invited — not opened yet",
