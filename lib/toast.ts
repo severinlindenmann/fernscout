@@ -2,7 +2,7 @@ import { REQUEST_ID_HEADER } from "@/lib/requestId";
 
 /** B-2929 — one way to raise a toast, and one way to write to the API that
  * raises it for you. Client side only; the host is components/Toasts.tsx. */
-export type Toast = {
+type Toast = {
   id: number;
   kind: "error" | "success";
   /** What the person was doing, already translated ("Saving the day"). */
@@ -28,7 +28,7 @@ export function dismissToast(id: number): void {
   emit();
 }
 
-export function raiseToast(t: Omit<Toast, "id">): void {
+function raiseToast(t: Omit<Toast, "id">): void {
   const id = nextId++;
   toasts = [...toasts, { ...t, id }].slice(-4);
   emit();
