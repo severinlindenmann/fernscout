@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, MapPin } from "lucide-react";
@@ -10,6 +11,8 @@ import { mediaLoader, posterSrc } from "@/components/mediaLoader";
 import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import { flagFor } from "@/lib/flags";
 import { googleMapsHref } from "@/lib/tripMap";
+import Lightbox from "@/components/Lightbox";
+import FullPhoto from "@/components/FullPhoto";
 import type { PlaceView } from "@/components/WorldMap";
 import type { MapDay } from "@/lib/map/mapDays";
 
@@ -112,18 +115,83 @@ export default function MobileMapSheet({
 
   const [snap, setSnap] = useState(PEEK);
 
-  const heights = useMemo(
-    () => [PEEK_PX, Math.round(vh * HALF_MAX_VH), Math.round(vh * FULL_MAX_VH)],
-    [vh],
+  // Computed ahead of the hooks below (and the `days.length === 0` bail-out
+  // further down) because `useSnapDrag` now needs to know whether a day is
+  // selected at all — B2634. Plain lookups, not hooks, so moving them earlier
+  // breaks no rule; `days.findIndex` on an empty array is just -1.
+  const selectedIndex = days.findIndex((d) => d.date === selectedDate);
+  const selectedDay = days[selectedIndex];
+  const selectedPlace = places.find(
+    (p) => selectedDay && selectedDay.date >= p.firstDate && selectedDay.date <= p.lastDate,
   );
+  // B2634 — Codex's suspicion, confirmed: a place that spans several days
+  // (consecutive days at the same spot are merged into one `Place`,
+  // `getPlaces` in lib/entries.ts) kept every one of those days' headline,
+  // gallery and read-day link pinned to `entries[0]` — always the first day
+  // of the stay, whichever of its days was actually selected. Scoped to the
+  // selected day's own entries instead.
+  const dayEntries = selectedDay
+    ? (selectedPlace?.entries.filter((e) => e.date === selectedDay.date) ?? [])
+    : [];
+  const leadEntry = dayEntries[0] ?? selectedPlace?.entries[0];
+  const dayGallery = dayEntries.flatMap((e) => e.gallery ?? []).slice(0, 8);
+
+  // HALF is only ever reachable while a day is selected — B2634. With
+  // nothing selected it has nothing of its own to show, so the handle and a
+  // drag move straight between Peek and Full instead of stopping at an empty
+  // middle panel.
+  const hasSelection = Boolean(selectedDay);
+  const activeSnaps = hasSelection ? [PEEK, HALF, FULL] : [PEEK, FULL];
+
+  // HALF's own height follows its content up to the usual cap, rather than
+  // always claiming the full 42vh even for a short placeless day — B2634.
+  // Measured off the actual rendered body (see `halfBodyRef` below); 0 means
+  // "not measured yet" (HALF isn't open, or no ResizeObserver, e.g. in a
+  // test), so the cap is used until a real measurement lands.
+  const [autoHalfHeight, setAutoHalfHeight] = useState(0);
+  const handleRef = useRef<HTMLButtonElement>(null);
+  const halfBodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const body = halfBodyRef.current;
+    const handleEl = handleRef.current;
+    if (!body || !handleEl || typeof ResizeObserver === "undefined") {
+      setAutoHalfHeight(0);
+      return;
+    }
+    const measure = () =>
+      // +24: the content div's own top/bottom padding the measured body sits
+      // inside (pt-1 + pb-3) — close enough; the 42vh cap is the real safety
+      // net against ever under- or over-shooting this estimate.
+      setAutoHalfHeight(handleEl.offsetHeight + body.offsetHeight + 24);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(body);
+    return () => ro.disconnect();
+  }, [snap, selectedDate, dayGallery.length]);
+
+  const heights = useMemo(() => {
+    const halfCap = Math.round(vh * HALF_MAX_VH);
+    const half = autoHalfHeight > 0 ? Math.min(halfCap, Math.max(PEEK_PX, autoHalfHeight)) : halfCap;
+    return [PEEK_PX, half, Math.round(vh * FULL_MAX_VH)];
+  }, [vh, autoHalfHeight]);
 
   useEffect(() => {
     onInsetChange?.(days.length === 0 || isDesktop ? 0 : heights[snap]);
   }, [onInsetChange, days.length, isDesktop, heights, snap]);
+
+  // A stable array reference unless the set of reachable snaps or their
+  // heights actually changed — `useSnapDrag`'s own effect re-animates to
+  // `heights[index]` whenever its `heights` prop's identity changes, and a
+  // fresh array every render here would re-trigger that for no reason.
+  const activeHeights = useMemo(
+    () => (hasSelection ? [heights[PEEK], heights[HALF], heights[FULL]] : [heights[PEEK], heights[FULL]]),
+    [hasSelection, heights],
+  );
+  const activeIndex = Math.max(0, activeSnaps.indexOf(snap));
   const { height, bind } = useSnapDrag({
-    heights,
-    index: snap,
-    onIndexChange: setSnap,
+    heights: activeHeights,
+    index: activeIndex,
+    onIndexChange: (i) => setSnap(activeSnaps[i]),
     reducedMotion,
   });
 
@@ -145,6 +213,12 @@ export default function MobileMapSheet({
   const dragMoved = useRef(false);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
 
+  // Which of the selected day's own photos is open full screen — B2635.
+  // Reset to closed whenever the selected day itself changes (see
+  // `setOpenPhotoIndex(null)` below), so a lightbox never outlives the day
+  // it was opened from.
+  const [openPhotoIndex, setOpenPhotoIndex] = useState<number | null>(null);
+
   // A new selection — a marker tapped on the map, or a day picked here —
   // opens the sheet to Half, so whichever surface drove it, the result is
   // the same day in view. Not on the very first render (the page's own
@@ -156,15 +230,10 @@ export default function MobileMapSheet({
   if (selectedDate !== lastDate) {
     setLastDate(selectedDate);
     setSnap(selectedDate ? HALF : PEEK);
+    setOpenPhotoIndex(null);
   }
 
   if (days.length === 0) return null;
-
-  const selectedIndex = days.findIndex((d) => d.date === selectedDate);
-  const selectedDay = days[selectedIndex];
-  const selectedPlace = places.find(
-    (p) => selectedDay && selectedDay.date >= p.firstDate && selectedDay.date <= p.lastDate,
-  );
 
   const goToDay = (day: MapDay) => onSelectDate(day.date);
 
@@ -197,8 +266,15 @@ export default function MobileMapSheet({
           onPointerUp={bind.onPointerUp}
           onPointerCancel={bind.onPointerCancel}
           onClick={() => {
-            if (!dragMoved.current) setSnap((s) => (s + 1) % 3);
+            if (dragMoved.current) return;
+            // Cycles only through the snaps actually reachable right now —
+            // HALF is skipped entirely with nothing selected (B2634).
+            setSnap((s) => {
+              const i = activeSnaps.indexOf(s);
+              return activeSnaps[(Math.max(0, i) + 1) % activeSnaps.length];
+            });
           }}
+          ref={handleRef}
           className="flex shrink-0 touch-none items-center justify-center gap-1.5 py-2 text-xs font-semibold text-ink-secondary"
           aria-label={cycleLabel}
         >
@@ -257,7 +333,11 @@ export default function MobileMapSheet({
                         {formatShortDate(day.date)}
                       </span>
                       <span className="truncate">
-                        {day.hasPlace ? day.location : t("map.noPlaceGiven")}
+                        {day.hasPlace
+                          ? day.location
+                          : day.hidden
+                            ? t("map.placeHidden")
+                            : t("map.noPlaceGiven")}
                       </span>
                       <span className="text-[10px] text-ink-secondary">
                         {day.mediaCount} {t("media.count")}
@@ -271,22 +351,35 @@ export default function MobileMapSheet({
           )}
 
           {snap === HALF && selectedDay && (
-            <div className="flex flex-col gap-2 pt-1">
+            <div ref={halfBodyRef} className="flex flex-col gap-2 pt-1">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="font-display text-base font-semibold text-ink-strong">
-                    {selectedDay.hasPlace
-                      ? `${flagFor(selectedDay.country, selectedDay.countryCode)} ${selectedDay.location}`
-                      : t("map.noPlaceGiven")}
-                  </div>
-                  <div className="text-xs text-ink-secondary">{formatShortDate(selectedDay.date)}</div>
+                  {selectedDay.hasPlace ? (
+                    <>
+                      <div className="font-display text-base font-semibold text-ink-strong">
+                        {`${flagFor(selectedDay.country, selectedDay.countryCode)} ${selectedDay.location}`}
+                      </div>
+                      <div className="text-xs text-ink-secondary">{formatShortDate(selectedDay.date)}</div>
+                    </>
+                  ) : (
+                    // A day with no (public) place: the date is the title and
+                    // the reason is a muted second line.
+                    <>
+                      <div className="font-display text-base font-semibold text-ink-strong">
+                        {formatShortDate(selectedDay.date)}
+                      </div>
+                      <div className="text-xs text-ink-secondary">
+                        {selectedDay.hidden ? t("map.placeHidden") : t("map.noPlaceGiven")}
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
                     onClick={() => goToDay(days[(selectedIndex - 1 + days.length) % days.length])}
                     aria-label={t("tripMap.previousStop")}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-line-quiet text-ink-body"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet text-ink-body"
                   >
                     <ChevronLeft className="h-4 w-4" aria-hidden />
                   </button>
@@ -294,84 +387,83 @@ export default function MobileMapSheet({
                     type="button"
                     onClick={() => goToDay(days[(selectedIndex + 1) % days.length])}
                     aria-label={t("tripMap.nextStop")}
-                    className="flex h-9 w-9 items-center justify-center rounded-full border border-line-quiet text-ink-body"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet text-ink-body"
                   >
                     <ChevronRight className="h-4 w-4" aria-hidden />
                   </button>
                 </div>
               </div>
 
-              {selectedPlace && (
-                <>
-                  {(selectedPlace.entries[0]?.headline[locale] ??
-                    Object.values(selectedPlace.entries[0]?.headline ?? {})[0]) && (
-                    <p className="text-sm text-ink-body">
-                      {selectedPlace.entries[0].headline[locale] ??
-                        Object.values(selectedPlace.entries[0].headline)[0]}
-                    </p>
-                  )}
-
-                  {selectedPlace.entries.some((e) => (e.gallery ?? []).length > 0) && (
-                    <div className="flex gap-1.5 overflow-x-auto">
-                      {selectedPlace.entries
-                        .flatMap((e) => e.gallery ?? [])
-                        .slice(0, 8)
-                        .map((m) => (
-                          <span
-                            key={m.src}
-                            className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-md border border-line-quiet bg-surface-muted"
-                          >
-                            {m.type === "video" ? (
-                              <video
-                                src={m.src}
-                                poster={posterSrc(m.poster, POSTER_WIDTH.GRID)}
-                                preload={m.poster ? "none" : "metadata"}
-                                className="h-full w-full object-cover"
-                                muted
-                              />
-                            ) : (
-                              <Image
-                                src={m.src}
-                                loader={mediaLoader}
-                                alt={m.alt ?? m.caption ?? selectedPlace.location}
-                                fill
-                                sizes="64px"
-                                className="object-cover"
-                              />
-                            )}
-                          </span>
-                        ))}
-                    </div>
-                  )}
-
-                  <div className="mt-1 flex flex-wrap gap-2">
-                    <a href={hrefForDay(selectedPlace.entries[0].slug)} className={READ_DAY_BUTTON}>
-                      {t("map.readDay")}
-                      <ArrowRight className="h-4 w-4" aria-hidden />
-                    </a>
-                    <a href={googleMapsHref(selectedPlace)} target="_blank" rel="noreferrer" className={MAPS_BUTTON}>
-                      <MapPin className="h-4 w-4" aria-hidden />
-                      {t("map.googleMapsShort")}
-                    </a>
-                    {onPlay && (
-                      // Starts the show at this day rather than the first.
-                      <button type="button" onClick={() => onPlay(selectedDay.date)} className={MAPS_BUTTON}>
-                        <Clapperboard className="h-4 w-4" aria-hidden />
-                        {t("show.start")}
-                      </button>
-                    )}
-                  </div>
-                </>
+              {leadEntry && (leadEntry.headline[locale] ?? Object.values(leadEntry.headline)[0]) && (
+                <p className="text-sm text-ink-body">
+                  {leadEntry.headline[locale] ?? Object.values(leadEntry.headline)[0]}
+                </p>
               )}
 
-              {!selectedPlace && (
-                <div className="flex">
-                  <a href={hrefForDay(selectedDay.slug)} className={READ_DAY_BUTTON + " flex-none"}>
-                    {t("map.readDay")}
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                  </a>
+              {dayGallery.length > 0 && (
+                <div className="flex gap-1.5 overflow-x-auto">
+                  {dayGallery.map((m, i) => (
+                    <button
+                      key={m.src}
+                      type="button"
+                      onClick={() => setOpenPhotoIndex(i)}
+                      aria-label={m.caption ?? t("a11y.openPhoto")}
+                      className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-md border border-line-quiet bg-surface-muted"
+                    >
+                      {m.type === "video" ? (
+                        <video
+                          src={m.src}
+                          poster={posterSrc(m.poster, POSTER_WIDTH.GRID)}
+                          preload={m.poster ? "none" : "metadata"}
+                          className="h-full w-full object-cover"
+                          muted
+                        />
+                      ) : (
+                        <Image
+                          src={m.src}
+                          loader={mediaLoader}
+                          alt={m.alt ?? m.caption ?? ""}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      )}
+                    </button>
+                  ))}
                 </div>
               )}
+
+              {/* Read on its own full-width row; Maps and Slideshow share the
+                  next as equal columns (a placeless day has no Maps link, so
+                  Slideshow takes the row alone). */}
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                <a href={hrefForDay(selectedDay.slug)} className={READ_DAY_BUTTON + " col-span-2 whitespace-nowrap"}>
+                  {t("map.readDay")}
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </a>
+                {selectedPlace && (
+                  <a
+                    href={googleMapsHref(selectedPlace)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={MAPS_BUTTON + " whitespace-nowrap"}
+                  >
+                    <MapPin className="h-4 w-4" aria-hidden />
+                    {t("map.googleMapsShort")}
+                  </a>
+                )}
+                {onPlay && (
+                  // Starts the show at this day rather than the first.
+                  <button
+                    type="button"
+                    onClick={() => onPlay(selectedDay.date)}
+                    className={MAPS_BUTTON + " whitespace-nowrap" + (selectedPlace ? "" : " col-span-2")}
+                  >
+                    <Clapperboard className="h-4 w-4" aria-hidden />
+                    {t("show.start")}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -393,7 +485,9 @@ export default function MobileMapSheet({
                       <span className="block truncate font-display text-sm font-semibold text-ink-strong">
                         {day.hasPlace
                           ? `${flagFor(day.country, day.countryCode)} ${day.location}`
-                          : t("map.noPlaceGiven")}
+                          : day.hidden
+                            ? t("map.placeHidden")
+                            : t("map.noPlaceGiven")}
                       </span>
                       <span className="block text-xs text-ink-secondary">
                         {formatShortDate(day.date)}
@@ -409,6 +503,36 @@ export default function MobileMapSheet({
           )}
         </div>
       </motion.div>
+
+      {/* B2635 — rendered through a portal to `document.body`, outside this
+          sheet's own `overflow-hidden`/`style.height` box: inside it, a
+          viewer meant to cover the whole screen would instead be clipped to
+          whatever snap the sheet itself is sitting at. */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <Lightbox
+            index={openPhotoIndex}
+            count={dayGallery.length}
+            onClose={() => setOpenPhotoIndex(null)}
+            onPrev={() =>
+              setOpenPhotoIndex((i) => (i === null ? null : (i - 1 + dayGallery.length) % dayGallery.length))
+            }
+            onNext={() => setOpenPhotoIndex((i) => (i === null ? null : (i + 1) % dayGallery.length))}
+            swipeable={openPhotoIndex === null || dayGallery[openPhotoIndex]?.type !== "video"}
+          >
+            {openPhotoIndex !== null && dayGallery[openPhotoIndex] && (
+              <>
+                <FullPhoto item={dayGallery[openPhotoIndex]} />
+                {dayGallery[openPhotoIndex].caption && (
+                  <p className="mt-3 text-center font-display text-base italic text-overlay-ink/90">
+                    {dayGallery[openPhotoIndex].caption}
+                  </p>
+                )}
+              </>
+            )}
+          </Lightbox>,
+          document.body,
+        )}
     </div>
   );
 }

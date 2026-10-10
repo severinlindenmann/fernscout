@@ -5192,5 +5192,6 @@
   "comments.rateLimited": "Trop de commentaires à l'instant. Réessaie dans {minutes} min. Ton texte est conservé.",
   "comments.offline": "Tu sembles être hors ligne. Ton texte est conservé ; réessaie à ton retour.",
   "comments.anonymous": "Un lecteur",
-  "comments.push.body": "{name} a commenté {day}"
+  "comments.push.body": "{name} a commenté {day}",
+  "map.placeHidden": "Lieu non rendu public"
 }

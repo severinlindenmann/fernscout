@@ -5189,5 +5189,6 @@
   "comments.rateLimited": "Most túl sok hozzászólás érkezett. Próbáld újra {minutes} perc múlva. A szöveged megmaradt.",
   "comments.offline": "Úgy tűnik, nincs kapcsolat. A szöveged megmaradt; próbáld újra, ha újra online vagy.",
   "comments.anonymous": "Egy olvasó",
-  "comments.push.body": "{name} hozzászólt ehhez: {day}"
+  "comments.push.body": "{name} hozzászólt ehhez: {day}",
+  "map.placeHidden": "A helyszín nem nyilvános"
 }
