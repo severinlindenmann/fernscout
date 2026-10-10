@@ -233,7 +233,7 @@ async function errorCodeOf(response: Response): Promise<string | null> {
  * throws and never reads a body or a query string.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function withV2Log<H extends (request: Request, ctx: any) => Promise<Response>>(handler: H, opts: { route: string }): H {
+export function withV2Log<H extends (request: Request, ctx: any) => Response | Promise<Response>>(handler: H, opts: { route: string }): H {
   const wrapped = async (request: Request, ctx: unknown): Promise<Response> => {
     const started = Date.now();
     // `request` is optional only because a test may call a zero-argument handler directly.
