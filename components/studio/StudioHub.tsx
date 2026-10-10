@@ -336,7 +336,14 @@ export default function StudioHub({
   const waitingThisTripCount = duringTrip ? (model.waitingDays?.cards.filter((c) => c.trip?.id === model.addDayTrip!.id).length ?? 0) : 0;
 
   const searching = query.trim() !== "";
-  const nothingMatched = searching && groups.length === 0 && !journalMatches;
+  // B-2923 — the Share as a story card filters on its visible words like any row.
+  const shareMatches =
+    !!model.latestPublishedDay &&
+    rowMatchesQuery(
+      { title: t("studio.share.title"), description: `${model.latestPublishedDay.title} ${t("studio.share.whatNextLabel")}` },
+      query,
+    );
+  const nothingMatched = searching && groups.length === 0 && !journalMatches && !shareMatches;
 
   return (
     <StudioPage username={username} back={false} width="wide" title={t("studio.hub.title")}>
@@ -395,7 +402,7 @@ export default function StudioHub({
           <ScheduleRouteNotices username={username} trips={model.routeRecordingTrips} />
         </>
       )}
-      {model.latestPublishedDay && (
+      {model.latestPublishedDay && shareMatches && (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-line-quiet bg-surface-raised p-4">
           <div className="min-w-0">
             <p className="font-semibold text-ink-strong">{t("studio.share.title")}</p>
