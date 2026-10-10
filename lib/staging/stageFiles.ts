@@ -3,7 +3,7 @@ import path from "node:path";
 import { analyseStaged } from "@/lib/extract/analyse";
 import { declaresTooManyPixels } from "@/lib/ingest/image";
 import { VIDEO_EXTENSIONS } from "@/lib/ingest/video";
-import type { PhotoRow, RunManifest } from "./manifest";
+import { readManifest, writeManifest, type PhotoRow, type RunManifest } from "./manifest";
 import { journalStagingBytes, putStagedFile, removeStagedFile } from "./store";
 import { IMAGE_MAX_BYTES, JOURNAL_STAGING_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
 
@@ -81,4 +81,29 @@ export async function stageFiles(user: string, current: RunManifest, files: File
   }
 
   return { accepted, rejected, stagedBytes };
+}
+
+// ponytail: in-process queue per journal; holds only while one Node process serves the instance. Multi-process needs a file lock.
+const queues = new Map<string, Promise<unknown>>();
+
+/**
+ * Stage a batch and append it to the run's manifest, one request at a time per
+ * journal (B-2749). The share sheet uploads in parallel; without this each
+ * request counted the run and the staging ceiling before its awaits, so several
+ * together overshot both. The manifest is re-read inside the lock, so every
+ * request sees the files the one before it accepted.
+ */
+export function stageAndAppend(user: string, current: RunManifest, files: File[]) {
+  const run = (queues.get(user) ?? Promise.resolve()).then(async () => {
+    const latest = readManifest(user, current.runId) ?? current;
+    const { accepted, rejected, stagedBytes } = await stageFiles(user, latest, files);
+    const have = new Set(latest.photos.map((p) => p.id));
+    latest.photos.push(...accepted.filter((p) => !have.has(p.id)));
+    writeManifest(user, latest);
+    return { accepted, rejected, stagedBytes };
+  });
+  const tail = run.catch(() => undefined);
+  queues.set(user, tail);
+  void tail.then(() => queues.get(user) === tail && queues.delete(user));
+  return run;
 }
