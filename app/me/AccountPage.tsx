@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import IdentitySignIn from "@/components/IdentitySignIn";
+import KeepCard from "@/components/KeepCard";
 import SignOut from "@/components/SignOut";
 import { TITLE_H1 } from "@/components/landing/kit";
 import {
@@ -14,7 +15,7 @@ import {
   type MineJournal,
 } from "@/components/HomeJournals";
 import { useI18n } from "@/components/LocaleProvider";
-import { SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
+import { SEEN_KEY, probeHome, type HomeLink, type HomePayload } from "@/lib/homeProbe";
 import { stopRouteRecording, useRecordingRoute } from "@/components/nativeShell";
 import { tellWorkerSignedOut } from "@/lib/signedOut";
 
@@ -194,12 +195,15 @@ export default function AccountPage({
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("loading");
   const [home, setHome] = useState<HomePayload | null>(null);
+  // B-2962: the trip link this browser holds, signed in or not.
+  const [link, setLink] = useState<HomeLink | null>(null);
 
   useEffect(() => {
     let live = true;
     probeHome(() => live)
       .then((data) => {
         if (!live) return;
+        setLink(data?.link ?? null);
         if (!data?.id) {
           window.localStorage.removeItem(SEEN_KEY);
           setPhase("out");
@@ -247,6 +251,7 @@ export default function AccountPage({
           // saying the same thing again was the first thing a check at phone
           // width caught.
           <div className="mt-6">
+            {link && <KeepCard link={link} email={null} />}
             <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.reload()} />
           </div>
         )}
@@ -256,6 +261,8 @@ export default function AccountPage({
             <p className="mt-2 font-mono text-xs text-ink-secondary">
               {t("home.signedInAs", { email: home.email })}
             </p>
+
+            {link && !link.kept && <KeepCard link={link} email={home.email} />}
 
             <section aria-labelledby="account-roles" className="mt-10">
               <h2 id="account-roles" className="font-display text-xl font-semibold text-ink-strong">

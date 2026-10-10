@@ -9,6 +9,7 @@ import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentLi
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
+import KeepCard from "@/components/KeepCard";
 import OfflineTrips from "@/components/OfflineTrips";
 import NeverAskNextDay from "@/components/NeverAskNextDay";
 import NewsConsentOff from "@/components/NewsConsentOff";
@@ -19,6 +20,7 @@ import ConnectionInfo, { type BuildInfo, type Hosting } from "@/components/Conne
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
+import type { HomeLink } from "@/lib/homeProbe";
 import type { TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
 
@@ -232,9 +234,12 @@ export default function MePageContent({
   signinNotice,
   hasAbout = false,
   signupEnabled,
+  keepLink = null,
   build,
   hosting,
 }: {
+  /** B-2962: the trip link this browser holds for this journal, not yet kept. */
+  keepLink?: HomeLink | null;
   viewer: Viewer;
   username: string;
   /** This instance's public base URL. Threaded from the server rather than
@@ -350,6 +355,8 @@ export default function MePageContent({
           {t("me.title")}
         </h1>
 
+        {keepLink && <KeepCard link={keepLink} email={viewer.email} />}
+
         {/*
           Your own details, first — B2462. Used to sit at the very bottom,
           the owner's copy behind a Settings signpost and hidden here
@@ -427,6 +434,9 @@ export default function MePageContent({
 
         {!viewer.email ? (
           <>
+            {/* Holding a trip link, the keep card above already says who and
+                what; "ask <owner> to invite you" would contradict it. */}
+            {!keepLink && (
             <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
               <h2 className="font-display text-xl font-semibold text-ink-strong">
                 {t("me.strangerTitle")}
@@ -477,6 +487,7 @@ export default function MePageContent({
                 </p>
               )}
             </section>
+            )}
 
             {/* The way back for somebody who has been here before and lost the
                 email they were let in with. */}

@@ -54,7 +54,7 @@ export default function ReadersAdmin({
   username: string;
   locale: Locale;
   /** The trips a buddy can be added to, or a buddy link can name. */
-  trips?: { id: string; title: string }[];
+  trips?: { id: string; title: string; visibility?: string }[];
   /** Whether an approved guest could read any trip at all (B300, B638). */
   hasGuestTrip: boolean;
   /** B1749 — whether any trip, day or photograph is marked Private yet. */
@@ -203,7 +203,7 @@ export default function ReadersAdmin({
     hasPrivate,
     refresh,
     onEdit: setEditing,
-    via: (contact) => viaLabel(contact.createdVia, invites, trips, t),
+    via: (contact) => viaLabel(contact.createdVia, invites, trips, t, contact.status === "pending"),
     notes,
     highlightId,
     editingId: editing?.id ?? null,

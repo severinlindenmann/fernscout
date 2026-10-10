@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 import TripGate from "@/components/TripGate";
+import TripLinkBar from "@/components/TripLinkBar";
 import { isIndexable } from "@/lib/access";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
@@ -89,7 +90,14 @@ export default async function TripLayout({
     await renamedTripRedirect(user, id);
     notFound();
   }
-  if (await mayReadTrip(trip)) return children;
+  if (await mayReadTrip(trip)) {
+    return (
+      <>
+        <TripLinkBar trip={trip} />
+        {children}
+      </>
+    );
+  }
   return (
     <TripGate
       username={user}

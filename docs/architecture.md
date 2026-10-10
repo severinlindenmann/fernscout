@@ -48,6 +48,7 @@ serves any trip at the explicit one. Both render the same components.
 | `/@<user>/search` | across the whole journal, not one trip |
 | `/@<user>/me` · `/@<user>/contacts` | the reader's own access, and a permanent redirect to `/@<user>/studio/readers` for the owner |
 | `/@<user>/studio` | the owner's control room — journal settings, agent keys, export, delete, and every trip's own edit page (`/studio/trip?trip=<id>`); plan and storage (`/studio/account`) and visitor analytics (`/studio/visitors`) moved in whole from `/account` and `/me/analytics`, which are now permanent redirects (B2016–B2019) |
+| `/t/<code>` | a trip link (kind read): one press opens that one guest trip's published days at public reader level, no account; the owner stops it on the Readers page, and "Keep it" files a pending person (B2960) |
 | `/@<user>/invite/guest/<token>` · `/@<user>/invite/buddy/<token>` · `/@<user>/c/<token>` · `/@<user>/u/<token>` | reader and buddy invites; confirm; unsubscribe. A reader link leads to reading every `guest`-visibility trip in the journal once approved; a buddy link names one trip and leads to write access to it, plus the same read access a reader gets. `/@<user>/studio/readers` is the only place either kind is made, approved or revoked (B2295) |
 | `/@<user>/feed.xml` · `/@<user>/search-index.json` · `/@<user>/story.json` · `/@<user>/export.zip` | generated |
 | `/@<user>/media/<path>` | media, resized on demand (the grid widths ahead of time, after an upload) and cached |
