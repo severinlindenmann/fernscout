@@ -1,9 +1,17 @@
 import { getDatabaseOrNull } from "../db";
 import { fileReactionRepo } from "./reactionsFile";
 import { filePushRepo } from "./pushFile";
-import type { PushRepo, ReactionRepo } from "./types";
+import { fileCommentRepo } from "./commentsFile";
+import type { CommentRepo, PushRepo, ReactionRepo } from "./types";
 
-export type { PushRepo, ReactionRepo } from "./types";
+export type { CommentRepo, PushRepo, ReactionRepo } from "./types";
+
+export async function commentRepo(): Promise<CommentRepo> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return fileCommentRepo();
+  const { dbCommentRepo } = await import("./commentsDb");
+  return dbCommentRepo(handle);
+}
 
 /**
  * Which backend a repository gets.

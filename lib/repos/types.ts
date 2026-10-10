@@ -11,6 +11,35 @@ import type { Reaction, ReactionCounts, DayCounts } from "../reactionSet";
 
 export type VoteResult = { counts: DayCounts; mine: Reaction | null };
 
+/** A comment as stored. `authorEmail` is for ownership checks and must never
+ * reach a client. */
+export type StoredComment = {
+  id: string;
+  tripId: string;
+  daySlug: string;
+  authorEmail: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  editedAt: string | null;
+};
+
+export type CommentRepo = {
+  /** Oldest first. With `limit`, only the latest that many (still oldest
+   * first); `total` is always the whole count. */
+  list(tripId: string, daySlug: string, limit?: number): Promise<{ comments: StoredComment[]; total: number }>;
+  get(tripId: string, daySlug: string, id: string): Promise<StoredComment | null>;
+  add(comment: Omit<StoredComment, "id" | "editedAt">): Promise<StoredComment>;
+  update(tripId: string, daySlug: string, id: string, body: string): Promise<StoredComment | null>;
+  remove(tripId: string, daySlug: string, id: string): Promise<boolean>;
+  /** Every comment on one trip (`<user>/<trip>`) - the trip is being deleted. */
+  removeForTrip(tripId: string): Promise<void>;
+  /** Every comment one address wrote in one journal - the contact is being deleted. */
+  removeByAuthor(owner: string, authorEmail: string): Promise<void>;
+  /** How many comments this address has written on this trip since `sinceIso`. */
+  countByAuthorSince(tripId: string, authorEmail: string, sinceIso: string): Promise<number>;
+};
+
 export type ReactionRepo = {
   /** Every day's counts for one trip, for the initial page load. */
   getAllCounts(tripId: string): Promise<ReactionCounts>;

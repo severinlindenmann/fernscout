@@ -8,6 +8,7 @@ import { useOptionalSite } from "@/components/SiteProvider";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import CutProse from "./CutProse";
+import DayComments from "./DayComments";
 import DayReactions from "./DayReactions";
 import PushPrompt from "./PushPrompt";
 import DualTime from "./DualTime";
@@ -590,6 +591,7 @@ export function DayCard({
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
         <div className="mt-8 border-t border-line-faint pt-3">
           <DayReactions daySlug={lead.slug} />
+          <DayComments daySlug={lead.slug} />
         </div>
 
         {/*
