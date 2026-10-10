@@ -84,6 +84,8 @@ describe("what the header is told about signing in", () => {
       "base",
       "baseCurrency",
       "canSignIn",
+      // B-2957. Journal-wide: off, the story never asks /api/comments.
+      "commentsEnabled",
       // B1797. Journal-wide and viewer-independent — whether the studio's
       // `extract`-capability flows (`/studio/photos` and beside it, B1825)
       // exist at all here. The studio hub itself is unconditional; see
