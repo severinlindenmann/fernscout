@@ -7,6 +7,7 @@ import { Eye, EyeOff, Users } from "lucide-react";
 import ConfirmPanel from "./ConfirmPanel";
 import VisibilityPopover from "./VisibilityPopover";
 import { useI18n } from "./LocaleProvider";
+import { apiWrite } from "@/lib/toast";
 import { useTrip } from "./TripProvider";
 import { effectiveAudience } from "@/lib/photos";
 import type { Audience, PhotoVisibility } from "@/lib/photos";
@@ -508,7 +509,8 @@ export function EntryVisibility({
         // `/day/<slug>/edit` route is gone and answered 404. "Follows the
         // trip" is a decline, exactly as `EditDay` sends it, which clears the
         // stored value.
-        const response = await fetch(
+        const response = await apiWrite(
+          t("toast.action.visibility"),
           `/api/web/${encodeURIComponent(trip.trip.username)}/trips/${encodeURIComponent(
             trip.trip.id,
           )}/days/${encodeURIComponent(entry.slug)}`,
@@ -519,8 +521,8 @@ export function EntryVisibility({
               value ? { visibility: value } : { declined: { visibility: "shown to everyone the trip lets in" } },
             ),
           },
-        ).catch(() => null);
-        if (!response?.ok) return t("me.journalFailed");
+        );
+        if (!response?.ok) return t("toast.failed", { action: t("toast.action.visibility") });
         reload();
         return null;
       }}

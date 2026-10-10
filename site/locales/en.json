@@ -5183,5 +5183,14 @@
   "comments.rateLimited": "Too many comments just now. Try again in {minutes} min. Your text is kept.",
   "comments.offline": "You seem to be offline. Your text is kept; try again when you are back.",
   "comments.anonymous": "A reader",
-  "comments.push.body": "{name} commented on {day}"
+  "comments.push.body": "{name} commented on {day}",
+  "toast.failed": "{action} did not work",
+  "toast.unknown": "No reason came back. Try again in a moment.",
+  "toast.serverFault": "The server hit a problem. Try again in a moment, and send the reference below if it keeps happening.",
+  "toast.ref": "Reference: {ref}",
+  "toast.dismiss": "Dismiss",
+  "toast.action.editDay": "Saving the day",
+  "toast.action.editTrip": "Saving the trip",
+  "toast.action.visibility": "Changing who can see this",
+  "toast.action.profile": "Saving your settings"
 }

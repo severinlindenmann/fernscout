@@ -8,7 +8,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import DeleteTrip from "@/components/DeleteTrip";
 import { haptic } from "@/components/nativeShell";
 import StepPrimary from "@/components/studio/StepPrimary";
-import SubmitError from "@/components/studio/SubmitError";
+import { apiWrite } from "@/lib/toast";
 import TripPicker from "@/components/studio/trip/TripPicker";
 import RouteRecordSection from "@/components/studio/trip/RouteRecordSection";
 import { PlanReadersChoice } from "@/components/studio/trip/TripPlanReadersFlow";
@@ -238,7 +238,7 @@ export default function TripEditFlow({
     setDone(false);
     const base = `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(trip.id)}`;
     const patch = (url: string, body: unknown) =>
-      fetch(url, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+      apiWrite(t("toast.action.editTrip"), url, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     // v2 carries a trip's dates as one object (`dates: {from, to}`).
     const sent: (Response | null)[] = [];
     if (detailsDirty || introDirty || accentDirty || teaserDirty || costsDirty) {
@@ -257,10 +257,8 @@ export default function TripEditFlow({
     }
     if (readersDirty && sent.every((r) => r?.ok)) sent.push(await patch(`${base}/plan-readers`, { readers }));
     setBusy(false);
-    const failed = sent.find((r) => !r?.ok);
-    if (failed !== undefined) {
-      const said = (await failed?.json().catch(() => null)) as { message?: string } | null;
-      setProblem(said?.message ?? t("me.journalFailed"));
+    if (sent.some((r) => !r?.ok)) {
+      setProblem(t("toast.failed", { action: t("toast.action.editTrip") })); // shakes the button; the toast says why
       void haptic("error");
       return;
     }
@@ -505,7 +503,6 @@ export default function TripEditFlow({
         <h2 className={EYEBROW}>{t("studio.tripEdit.section.delete")}</h2>
         <DeleteTrip username={username} tripId={trip.id} />
       </section>
-      <SubmitError message={problem} />
     </div>
   );
 }

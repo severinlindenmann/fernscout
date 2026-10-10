@@ -5189,5 +5189,14 @@
   "comments.rateLimited": "Most túl sok hozzászólás érkezett. Próbáld újra {minutes} perc múlva. A szöveged megmaradt.",
   "comments.offline": "Úgy tűnik, nincs kapcsolat. A szöveged megmaradt; próbáld újra, ha újra online vagy.",
   "comments.anonymous": "Egy olvasó",
-  "comments.push.body": "{name} hozzászólt ehhez: {day}"
+  "comments.push.body": "{name} hozzászólt ehhez: {day}",
+  "toast.failed": "Nem sikerült: {action}",
+  "toast.unknown": "Nem érkezett ok. Próbáld újra egy pillanat múlva.",
+  "toast.serverFault": "A szerveren hiba történt. Próbáld újra egy pillanat múlva, és küldd el az alábbi hivatkozást, ha ismétlődik.",
+  "toast.ref": "Hivatkozás: {ref}",
+  "toast.dismiss": "Bezárás",
+  "toast.action.editDay": "A nap mentése",
+  "toast.action.editTrip": "Az utazás mentése",
+  "toast.action.visibility": "A láthatóság módosítása",
+  "toast.action.profile": "A beállítások mentése"
 }

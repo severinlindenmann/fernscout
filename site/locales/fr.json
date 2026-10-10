@@ -5192,5 +5192,14 @@
   "comments.rateLimited": "Trop de commentaires à l'instant. Réessaie dans {minutes} min. Ton texte est conservé.",
   "comments.offline": "Tu sembles être hors ligne. Ton texte est conservé ; réessaie à ton retour.",
   "comments.anonymous": "Un lecteur",
-  "comments.push.body": "{name} a commenté {day}"
+  "comments.push.body": "{name} a commenté {day}",
+  "toast.failed": "{action} a échoué",
+  "toast.unknown": "Aucune raison n'a été donnée. Réessaie dans un instant.",
+  "toast.serverFault": "Le serveur a rencontré un problème. Réessaie dans un instant et envoie la référence ci-dessous si cela se répète.",
+  "toast.ref": "Référence : {ref}",
+  "toast.dismiss": "Fermer",
+  "toast.action.editDay": "L'enregistrement du jour",
+  "toast.action.editTrip": "L'enregistrement du voyage",
+  "toast.action.visibility": "Le changement de visibilité",
+  "toast.action.profile": "L'enregistrement de tes réglages"
 }
