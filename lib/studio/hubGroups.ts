@@ -251,6 +251,8 @@ export function peopleRows(model: Extract<StudioHubModel, { kind: "full" }>, use
       Icon: Users,
       title: t("studio.hub.item.people.title"),
       description: t("studio.hub.item.people.description"),
+      // B-2746 — same capability as Readers (contacts), so the same flag.
+      reason: model.cannotRun.readers ? t("studio.people.off.banner") : undefined,
     },
   ];
 }

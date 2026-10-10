@@ -4062,6 +4062,8 @@ export type TranslationKey =
   | "studio.people.have.onTrips"
   | "studio.people.have.removeQuestion"
   | "studio.people.have.selfAuthored"
+  | "studio.people.off.banner"
+  | "studio.people.off.body"
   | "studio.people.peek.cta"
   | "studio.people.peek.cta.one"
   | "studio.people.peek.heading"

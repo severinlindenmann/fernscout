@@ -2831,6 +2831,8 @@
   "studio.day.photos.chosen": "{count} choisies",
   "studio.day.preview.photoCount.one": "{count} photo",
   "studio.people.title": "Qui était là",
+  "studio.people.off.banner": "Ce journal ne tient aucune liste de personnes. Les contacts sont désactivés.",
+  "studio.people.off.body": "Tout le reste du studio fonctionne. La personne qui gère ce serveur peut l’activer — si c’est toi, c’est un réglage dans sa configuration.",
   "studio.people.what.title": "Les personnes qui étaient là",
   "studio.people.what.consequence": "Un journal se lit mieux quand les personnes qui y figurent ont un nom. Importe quelques contacts et tu pourras dire qui faisait partie d’un voyage, puis leur envoyer plus tard une carte postale ou un lien — s’ils le souhaitent.",
   "studio.people.what.promise": "Ajouter quelqu’un lui envoie un seul e-mail pour lui demander s’il souhaite recevoir quoi que ce soit ; rien d’autre n’est jamais envoyé tant qu’il n’a pas dit oui.",

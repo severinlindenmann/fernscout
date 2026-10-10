@@ -2831,6 +2831,8 @@
   "studio.day.photos.chosen": "{count} chosen",
   "studio.day.preview.photoCount.one": "{count} photograph",
   "studio.people.title": "Who was there",
+  "studio.people.off.banner": "This journal keeps no list of people. Contacts are switched off.",
+  "studio.people.off.body": "Everything else in the studio works. Whoever runs this server can switch it on — if that is you, it is a setting in its configuration.",
   "studio.people.what.title": "The people who were there",
   "studio.people.what.consequence": "A journal reads better when the people in it have names. Bring in a few contacts and you can say who was on a trip, and later send them a postcard or a link — if they want one.",
   "studio.people.what.promise": "Adding someone sends them one mail asking whether they want anything; nothing else is ever sent until they say yes.",

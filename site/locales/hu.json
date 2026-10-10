@@ -2833,6 +2833,8 @@
   "studio.day.photos.chosen": "{count} kiválasztva",
   "studio.day.preview.photoCount.one": "{count} fénykép",
   "studio.people.title": "Ki volt ott",
+  "studio.people.off.banner": "Ez a napló nem vezet személylistát. A névjegyek ki vannak kapcsolva.",
+  "studio.people.off.body": "A stúdió minden más része működik. Aki ezt a szervert üzemelteti, be tudja kapcsolni — ha te vagy az, ez egy beállítás a konfigurációban.",
   "studio.people.what.title": "Az emberek, akik ott voltak",
   "studio.people.what.consequence": "Egy napló jobban olvasható, ha a benne szereplő embereknek nevük van. Hozz be néhány névjegyet, és megmondhatod, ki volt veled egy úton, később pedig küldhetsz nekik képeslapot vagy linket — ha szeretnék.",
   "studio.people.what.promise": "Akit hozzáadsz, egyetlen levelet kap, amelyben megkérdezzük, kér-e bármit; amíg igent nem mond, semmi mást nem küldünk neki.",
