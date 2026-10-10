@@ -37,7 +37,7 @@ export type ProviderRow = {
   label: string;
   role: string;
   /** `link`: this provider has no readable balance — the link is where to look. */
-  state: "ok" | "simulated" | "not_set_up" | "failed" | "link";
+  state: "ok" | "simulated" | "not_set_up" | "failed" | "unreadable" | "link";
   note: string;
   amount: { value: number; currency: string | null } | null;
   /** When `amount` was read. On `failed` this is the last good read, not this one. */
@@ -61,9 +61,15 @@ const SIMULATED: Record<BalanceProvider, { value: number; currency: string }> = 
   deepgram: { value: 50, currency: "USD" },
 };
 
+class HttpError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${status}`);
+  }
+}
+
 async function readJson(url: string, headers: Record<string, string>): Promise<unknown> {
   const response = await fetch(url, { headers, signal: AbortSignal.timeout(5_000) });
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  if (!response.ok) throw new HttpError(response.status);
   return response.json();
 }
 
@@ -79,20 +85,10 @@ async function twilioBalance() {
   return { value, currency: body.currency ? body.currency.toUpperCase() : null };
 }
 
-/** Same host rule as lib/helper/transcribe.ts: EU unless DEEPGRAM_API_URL says otherwise. */
-function deepgramOrigin(): string {
-  try {
-    const url = new URL(process.env.DEEPGRAM_API_URL?.trim() ?? "");
-    if (url.protocol === "https:") return url.origin;
-  } catch {
-    // unset or malformed: the EU default
-  }
-  return "https://api.eu.deepgram.com";
-}
-
 async function deepgramBalance() {
   const headers = { Authorization: `Token ${process.env.DEEPGRAM_API_KEY ?? ""}` };
-  const origin = deepgramOrigin();
+  // The management API lives on api.deepgram.com; the EU host serves transcription only (B-2751).
+  const origin = "https://api.deepgram.com";
   const projects = (await readJson(`${origin}/v1/projects`, headers)) as { projects?: { project_id?: string }[] };
   const id = projects.projects?.[0]?.project_id;
   if (!id) throw new Error("no project on this key");
@@ -224,6 +220,10 @@ async function readRow(reader: Reader, now: Date): Promise<ProviderRow> {
     lastGood.set(reader.id, { amount, at: now.toISOString() });
     return row("ok", amount, now.toISOString(), reader.id === "stannp" && !amount.currency ? "Currency not configured (providers.stannp.currency)." : "");
   } catch (error) {
+    // A key without billing access is a fact about the key, not a failed read: no Needs-you alert.
+    if (reader.id === "deepgram" && error instanceof HttpError && error.status === 403) {
+      return row("unreadable", null, null, "Not readable - the key lacks billing:read.");
+    }
     const good = lastGood.get(reader.id);
     return row(
       "failed",
