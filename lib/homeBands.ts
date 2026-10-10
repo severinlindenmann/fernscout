@@ -15,7 +15,7 @@ import type { HomeJournal, HomeTrip } from "@/components/HomeJournals";
 export type BandTrip = { journal: HomeJournal; trip: HomeTrip };
 
 /** A running trip with nothing dated or started this recently is "quiet". */
-export const QUIET_AFTER_DAYS = 10;
+const QUIET_AFTER_DAYS = 10;
 
 /** At most this many upcoming trips are named on `/`. */
 const UPCOMING_SHOWN = 2;
