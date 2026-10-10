@@ -6,6 +6,8 @@
  */
 export function scrubLog(text: string, max: number): string {
   const out = text
+    // A trip, reader or welcome link's code is a bearer; never in a log (B2961).
+    .replace(/\/([tjw])\/[^/\s"'?]+/g, "/$1/•")
     .replace(/-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}/g, "[coords]")
     .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, "[email]")
     .replace(/\bBearer\s+\S+/gi, "Bearer [redacted]")

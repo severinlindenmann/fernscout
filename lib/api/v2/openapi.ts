@@ -587,10 +587,21 @@ const homeJournal = z.strictObject({
   role: z.enum(["admin", "owner", "traveller", "guest"]),
   trips: z.array(homeTrip).describe("no start/cover/days/latest/draft on an `admin` journal"),
 });
+const homeLink = z.strictObject({
+  ownerName: z.string(),
+  tripTitle: z.string(),
+  keepPath: z.string().describe("`/t/<code>`: the address the keep card posts to, with the code this browser already holds"),
+  token: z.string().describe("the CSRF token the keep card sends with its post"),
+  signupEnabled: z.boolean(),
+  kept: z.boolean().describe("this signed-in address already keeps that trip"),
+});
 const homeDoc = z.strictObject({
   id: z.string().nullable(),
   email: z.string().nullable(),
   admin: z.boolean(),
+  link: homeLink
+    .nullable()
+    .describe("the live trip link this browser holds (B-2962), or null; never shown to anyone without the cookie"),
   journals: z.array(homeJournal),
   devices: z.array(homeDevice),
 });

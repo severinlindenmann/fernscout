@@ -44,7 +44,8 @@ export async function invitesListResponse(user: string, request: Request): Promi
   }
   const cursor = url.searchParams.get("cursor") ?? undefined;
 
-  const all = (await listInvites(user)).map(inviteToDoc);
+  // A `read` trip link (B2961) is not part of the v2 invite document.
+  const all = (await listInvites(user)).filter((i) => i.kind !== "read").map(inviteToDoc);
   const { items, nextCursor } = paginate(all, { limit, cursor }, (d) => d.id);
   return ok({ invites: items, next_cursor: nextCursor });
 }

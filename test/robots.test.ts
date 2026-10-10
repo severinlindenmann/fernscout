@@ -10,7 +10,7 @@ describe("robots.txt", () => {
         {
           userAgent: "*",
           allow: "/",
-          disallow: ["/_next/", "/admin", "/*/studio", "/*/me", "/*/account", "/*/payment", "/w/", "/j/"],
+          disallow: ["/_next/", "/admin", "/*/studio", "/*/me", "/*/account", "/*/payment", "/w/", "/j/", "/t/"],
         },
       ],
       sitemap: `${serverSite().url}/sitemap.xml`,

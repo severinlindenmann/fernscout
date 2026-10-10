@@ -153,7 +153,7 @@ export async function joinCodeFor(owner: string, inviteId: string): Promise<stri
   const read = () =>
     db
       .selectFrom("contact_invites")
-      .select(["join_code_hash", "join_code_cipher"])
+      .select(["kind", "join_code_hash", "join_code_cipher"])
       .where("owner_id", "=", owner)
       .where("id", "=", inviteId)
       .executeTakeFirst();
@@ -162,6 +162,9 @@ export async function joinCodeFor(owner: string, inviteId: string): Promise<stri
 
   const row = await read();
   if (!row) return null;
+  // A `read` link has its own code and its own door (`lib/tripLink.ts`); it
+  // never gets a join code, minted or decrypted (B2961).
+  if (row.kind === "read") return null;
   if (row.join_code_hash) return kept(row);
   const code = newCode();
   const minted = await db
@@ -224,7 +227,7 @@ export async function resolveJoinCode(code: string): Promise<JoinInvite | null> 
     .select(["owner_id", "id", "kind", "trip_id", "locale", "revoked_at", "expires_at", "email_key", "group_id"])
     .where("join_code_hash", "=", hashSecret(code))
     .executeTakeFirst();
-  if (!row || row.revoked_at) return null;
+  if (!row || row.revoked_at || row.kind === "read") return null;
   if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) return null;
   const kind = row.kind === "guest" || row.kind === "buddy" ? row.kind : "personal";
   return {

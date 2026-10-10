@@ -38,4 +38,7 @@ describe("scrubLog", () => {
   it("redacts a coordinate pair", () => {
     expect(scrubLog("at 46.8182, 8.2275 failed", 200)).toBe("at [coords] failed");
   });
+  it("hides a trip, reader or welcome link code", () => {
+    expect(scrubLog("/t/abcdefghij/day/x and /j/k2m4p6q8r1", 200)).toBe("/t/•/day/x and /j/•");
+  });
 });

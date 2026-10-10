@@ -71,10 +71,13 @@ export default function LinksList({
   const until = (iso: string) =>
     new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : locale, { day: "numeric", month: "long", timeZone: "UTC" });
 
-  async function stop(id: string) {
+  // "Stop it and remove the people who kept it" (B-2963) is its own route:
+  // the link and its keeps end in one transaction.
+  async function stop(id: string, removeKeepers = false) {
     setBusy(true);
     setFailed(null);
-    const response = await fetch(`/api/web/${encodeURIComponent(username)}/invites/${encodeURIComponent(id)}`, {
+    const base = `/api/web/${encodeURIComponent(username)}/`;
+    const response = await fetch(`${base}${removeKeepers ? "trip-links" : "invites"}/${encodeURIComponent(id)}`, {
       method: "DELETE",
     }).catch(() => null);
     setBusy(false);
@@ -97,16 +100,31 @@ export default function LinksList({
       <ul className="mt-3 space-y-3">
         {live.map((invite) => {
           const isStory = invite.id === storyId;
-          const shareTrip = invite.kind === "buddy" && invite.tripId ? tripLabel(trips, invite.tripId) : journalTitle;
+          const shareTrip = (invite.kind === "buddy" || invite.kind === "read") && invite.tripId ? tripLabel(trips, invite.tripId) : journalTitle;
           const kind = isStory
             ? t("readers.link.kindStory")
             : invite.kind === "buddy" && invite.tripId
               ? t("readers.link.kindBuddyOf", { trip: shareTrip })
-              : t("readers.link.kind.guest");
+              : invite.kind === "read"
+                ? t("readers.link.kindReadOf", { trip: shareTrip })
+                : t("readers.link.kind.guest");
+          const isRead = invite.kind === "read";
+          const keepers = invite.keepers ?? [];
           const url = invite.joinUrl ?? invite.url;
           const facts = [
-            tn("readers.link.used", invite.uses, { count: String(invite.uses) }),
-            invite.expiresAt ? t("readers.link.worksUntil", { date: until(invite.expiresAt) }) : null,
+            isRead
+              ? invite.lastUsedAt
+                ? t("readers.link.openedLast", {
+                    opened: tn("readers.link.opened", invite.uses, { count: String(invite.uses) }),
+                    date: until(invite.lastUsedAt),
+                  })
+                : tn("readers.link.opened", invite.uses, { count: String(invite.uses) })
+              : tn("readers.link.used", invite.uses, { count: String(invite.uses) }),
+            invite.expiresAt
+              ? t("readers.link.worksUntil", { date: until(invite.expiresAt) })
+              : isRead
+                ? t("readers.link.worksUntilStopped")
+                : null,
           ].filter(Boolean);
           return (
             <li key={invite.id} className="rounded-2xl border border-line-quiet bg-surface-raised p-4">
@@ -130,9 +148,12 @@ export default function LinksList({
                     )}
                   </p>
                   <p className="mt-0.5 text-sm text-ink-secondary">{facts.join(" · ")}</p>
+                  {isRead && keepers.length > 0 && (
+                    <p className="mt-0.5 text-sm text-ink-secondary">{t("readers.link.keptBy", { names: keepers.join(", ") })}</p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {url && (
+                  {url && !isRead && (
                     <button
                       type="button"
                       aria-expanded={showing === invite.id}
@@ -161,13 +182,23 @@ export default function LinksList({
                       {isStory ? t("studio.share.readAlong.pause") : t("readers.link.stop")}
                     </button>
                   )}
+                  {isRead && keepers.length > 0 && (
+                    <button
+                      type="button"
+                      aria-expanded={asking === `${invite.id}:remove`}
+                      onClick={() => setAsking(`${invite.id}:remove`)}
+                      className="min-h-11 rounded-xl border border-line-strong bg-surface-raised px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
+                    >
+                      {t("readers.link.stopRemove")}
+                    </button>
+                  )}
                 </div>
               </div>
-              {showing === invite.id && url && (
+              {(isRead ? Boolean(url) : showing === invite.id && url) && (
                 <div className="mt-3">
                   <ShareLink
                     username={username}
-                    url={url}
+                    url={url!}
                     title={shareTrip}
                     text={t("readers.share.text", { trip: shareTrip, site: siteName })}
                     t={t}
@@ -183,6 +214,19 @@ export default function LinksList({
                     tone="destructive"
                     busy={busy}
                     onConfirm={() => void stop(invite.id)}
+                    onCancel={() => setAsking(null)}
+                  />
+                </div>
+              )}
+              {asking === `${invite.id}:remove` && (
+                <div className="mt-3">
+                  <ConfirmPanel
+                    label={t("readers.link.stopRemove")}
+                    question={tn("readers.link.stopRemoveQuestion", keepers.length, { name: invite.name ?? kind, count: String(keepers.length) })}
+                    confirmLabel={t("readers.link.stopRemoveConfirm")}
+                    tone="destructive"
+                    busy={busy}
+                    onConfirm={() => void stop(invite.id, true)}
                     onCancel={() => setAsking(null)}
                   />
                 </div>

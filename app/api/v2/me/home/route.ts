@@ -8,6 +8,9 @@ import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
 import { journalsFor } from "@/lib/home";
 import { ok, withV2Log } from "@/lib/api/v2/route";
+import { cookieLink, keepsTrip, openToken } from "@/lib/tripLink";
+import { ownerShortName } from "@/lib/site";
+import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +29,24 @@ const NO_STORE = { "Cache-Control": "private, no-store" };
  */
 export const GET = withV2Log(async function GET() {
   const identity = isEnabled("auth") ? await resolveIdentity() : null;
+  // B-2962: the trip link this browser holds, for the keep card. Only for the
+  // cookie holder, in this private answer; the path is the one thing the card
+  // posts to, so it carries the code the holder already has.
+  const held = isEnabled("auth") ? await cookieLink() : null;
+  const user = held ? getUser(held.link.owner) : null;
+  const link =
+    held && user
+      ? {
+          ownerName: ownerShortName(user) ?? user.title,
+          tripTitle: held.link.trip.title,
+          keepPath: `/t/${held.code}`,
+          token: openToken(held.code),
+          signupEnabled: isEnabled("signup"),
+          kept: identity ? await keepsTrip(held.link.owner, held.link.trip.id, identity.email) : false,
+        }
+      : null;
   if (!identity) {
-    return ok({ id: null, email: null, journals: [], devices: [], admin: false }, { headers: NO_STORE });
+    return ok({ id: null, email: null, journals: [], devices: [], admin: false, link }, { headers: NO_STORE });
   }
 
   const [journals, devices] = await Promise.all([
@@ -40,6 +59,7 @@ export const GET = withV2Log(async function GET() {
       id: identity.publicId,
       email: identity.email,
       admin: isAdminEmail(identity.email),
+      link,
       journals,
       devices: devices.map((row) => ({
         id: row.id,

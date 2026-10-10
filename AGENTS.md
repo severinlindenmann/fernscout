@@ -66,7 +66,11 @@ own grants nothing, and an invite created with an email address
 pre-approves that address before anyone clicks anything. A reader link
 (`/j/<code>`, kind guest) is the invitation itself: whoever proves an email
 through it is let in at once (B-2940), and the owner can block them or stop
-the link. A
+the link. A trip link
+(`/t/<code>`, kind read) is the exception to "a link on its own grants
+nothing": whoever holds it reads that one guest trip's published days at
+public reader level after one press, with no account, the owner can stop it,
+and keeping it under an email only files a pending person. A
 postcard or photobook API call creates a proposal, not a paid print. Deleting
 a journal or a trip creates a confirmation email and removes nothing until
 it is clicked; smaller deletes (a draft day, a photo, an invite, a contact)
