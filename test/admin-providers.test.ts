@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   admin: true,
-  lowBelow: {} as Record<string, { lowBelow: number }>,
+  lowBelow: {} as Record<string, { lowBelow?: number; currency?: string }>,
   features: {
     sms: { enabled: false },
     transcription: { enabled: false },
@@ -38,11 +38,13 @@ const { CACHE_MS, providerAttention, readProviders, resetProvidersCache } = awai
 const SECRET = "sekrit-token-value";
 const calls: string[] = [];
 let twilioFails = false;
+let deepgramBalanceStatus = 200;
 
 beforeEach(() => {
   resetProvidersCache();
   calls.length = 0;
   twilioFails = false;
+  deepgramBalanceStatus = 200;
   state.admin = true;
   state.lowBelow = {};
   state.features = { sms: { enabled: false }, transcription: { enabled: false }, postcards: { enabled: false } };
@@ -58,6 +60,7 @@ beforeEach(() => {
       return Response.json({ balance: "23.4100", currency: "USD" });
     }
     if (String(url).endsWith("/v1/projects")) return Response.json({ projects: [{ project_id: "p1" }] });
+    if (deepgramBalanceStatus !== 200) return new Response("no", { status: deepgramBalanceStatus });
     return Response.json({ balances: [{ amount: 100.5, units: "usd" }, { amount: 60.53, units: "usd" }] });
   });
 });
@@ -83,6 +86,35 @@ describe("readProviders", () => {
     const { rows } = await readProviders();
     expect(row(rows, "stannp").low).toBe(true);
     expect(row(rows, "twilio").low).toBe(false);
+  });
+
+  test("Stannp names no currency: the configured one is used, otherwise the row says so", async () => {
+    state.stannp.result = { value: 8.14, currency: null };
+    const bare = row((await readProviders()).rows, "stannp") as never as { amount: unknown; note: string };
+    expect(bare).toMatchObject({ amount: { value: 8.14, currency: null }, note: "Currency not configured (providers.stannp.currency)." });
+    resetProvidersCache();
+    state.lowBelow = { stannp: { currency: "GBP" } };
+    expect(row((await readProviders()).rows, "stannp")).toMatchObject({ amount: { value: 8.14, currency: "GBP" }, note: "" });
+  });
+
+  test("Deepgram is read from api.deepgram.com even with an EU DEEPGRAM_API_URL", async () => {
+    vi.stubEnv("DEEPGRAM_API_URL", "https://api.eu.deepgram.com");
+    await readProviders();
+    const dg = calls.filter((url) => url.includes("deepgram"));
+    expect(dg.length).toBe(2);
+    expect(dg.every((url) => url.startsWith("https://api.deepgram.com/v1/projects"))).toBe(true);
+  });
+
+  test("Deepgram 403 is Not readable with no Needs-you alert; a 500 is a failed read with one", async () => {
+    deepgramBalanceStatus = 403;
+    const report = await readProviders();
+    expect(row(report.rows, "deepgram")).toMatchObject({ state: "unreadable", amount: null, note: expect.stringContaining("billing:read") });
+    expect(providerAttention(report).map((one) => one.id)).not.toContain("provider:deepgram:read");
+    resetProvidersCache();
+    deepgramBalanceStatus = 500;
+    const failed = await readProviders();
+    expect(row(failed.rows, "deepgram")).toMatchObject({ state: "failed", error: "HTTP 500" });
+    expect(providerAttention(failed).map((one) => one.id)).toContain("provider:deepgram:read");
   });
 
   test("no key: simulated sample in a dry-run backend, otherwise not set up", async () => {

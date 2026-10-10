@@ -338,3 +338,14 @@ describe("site.repository and site.credit", () => {
     ).toThrow(/countryCode/);
   });
 });
+
+describe("providers.<name>.currency (B-2750)", () => {
+  const server = (providers: unknown) => parseServerConfig({ site: { name: "S" }, providers });
+  test("a currency-only entry parses, uppercased", () => {
+    expect(server({ stannp: { currency: "gbp" } }).providers.stannp).toEqual({ currency: "GBP" });
+  });
+  test("a bad currency or an empty entry is a config problem", () => {
+    expect(() => server({ stannp: { currency: "pounds" } })).toThrow(/three-letter/);
+    expect(() => server({ stannp: {} })).toThrow(/lowBelow, currency/);
+  });
+});

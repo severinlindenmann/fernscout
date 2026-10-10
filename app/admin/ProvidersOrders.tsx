@@ -127,7 +127,7 @@ function Row({ row, now }: { row: ProviderRow; now: number }) {
       <span className={`${TAG} bg-surface-muted text-ink-secondary`}>Not set up</span>
     ) : row.state === "failed" ? (
       <span className={`${TAG} border border-coral-600 bg-coral-50 text-coral-600`}>Could not read</span>
-    ) : row.state === "link" && row.id !== "meta" ? (
+    ) : row.state === "unreadable" || (row.state === "link" && row.id !== "meta") ? (
       <span className={`${TAG} bg-surface-muted text-ink-secondary`}>Not readable</span>
     ) : row.low === true ? (
       <span className={`${TAG} bg-coral-600 text-on-deep`}>Low</span>
@@ -156,7 +156,7 @@ function Row({ row, now }: { row: ProviderRow; now: number }) {
           </span>
         ) : null}{" "}
         {tag}
-        {row.link && (row.state === "link" || row.state === "failed" || row.state === "not_set_up") ? (
+        {row.link && (row.state === "link" || row.state === "failed" || row.state === "unreadable" || row.state === "not_set_up") ? (
           <a href={row.link.href} target="_blank" rel="noreferrer" className="ml-2 text-sm text-ink-body underline">
             {row.link.label}
           </a>

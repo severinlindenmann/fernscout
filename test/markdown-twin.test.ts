@@ -12,6 +12,11 @@ import { clearUserCache } from "@/lib/users";
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));
+const level = vi.hoisted(() => ({ value: null as string | null }));
+vi.mock("@/lib/tripGate", async (orig) => {
+  const real = await orig<typeof import("@/lib/tripGate")>();
+  return { ...real, readerLevelFor: async (...a: Parameters<typeof real.readerLevelFor>) => level.value ?? real.readerLevelFor(...a) };
+});
 import { markdownTwin } from "@/lib/api/markdownTwin";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
@@ -133,6 +138,23 @@ describe("the trip-scoped twin", () => {
   test("refuses a private trip exactly as the page does", async () => {
     const response = await markdownTwin("alex", "secret-2024", "hidden-day");
     expect(response.status).toBe(404);
+  });
+});
+
+describe("B-2971: caching", () => {
+  test("a public answer to a stranger may be shared", async () => {
+    const r = await markdownTwin("alex", "parks-2025", "zion-narrows");
+    expect(r.headers.get("cache-control")).toBe("public, max-age=300");
+  });
+
+  test("an answer read above the public level is never stored", async () => {
+    level.value = "guest";
+    try {
+      const r = await markdownTwin("alex", "parks-2025", "zion-narrows");
+      expect(r.headers.get("cache-control")).toBe("private, no-store");
+    } finally {
+      level.value = null;
+    }
   });
 });
 

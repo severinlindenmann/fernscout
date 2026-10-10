@@ -1456,7 +1456,7 @@
   "mail.signinSubject": "Anmelden bei {title}",
   "mail.signupIgnore": "Wenn du das nicht angefordert hast, ignoriere diese E-Mail — es wurde nichts angelegt.",
   "mail.signupTitle": "Ein Reisetagebuch beginnen",
-  "mail.signupWhat": "Du wolltest ein Reisetagebuch mit dieser Adresse beginnen. Gib diesen Code dort ein, wo du ihn angefordert hast, dann kannst du ein Reisetagebuch anlegen. Wenn ein Agent das für dich erledigt, gib ihm stattdessen den Code.",
+  "mail.signupWhat": "Du wolltest ein Reisetagebuch mit dieser Adresse beginnen. Gib diesen Code dort ein, wo du ihn angefordert hast, dann kannst du ein Reisetagebuch anlegen.",
   "mail.storageAdvice": "Lösche, was du nicht mehr brauchst, oder füge auf deiner eigenen Seite 5 GB hinzu — ein einmaliger Kauf, der nicht verfällt.",
   "mail.storageFooter": "Du bekommst diese Nachricht, weil dir {user} gehört.",
   "mail.storageFullBody": "{user} belegt {used} von {limit} und nimmt keine neuen Fotos und Fotobücher mehr an. An bereits Veröffentlichtem wurde nichts verändert.",
@@ -5197,5 +5197,8 @@
   "toast.action.editDay": "Das Speichern des Tages",
   "toast.action.editTrip": "Das Speichern der Reise",
   "toast.action.visibility": "Das Ändern der Sichtbarkeit",
-  "toast.action.profile": "Das Speichern deiner Einstellungen"
+  "toast.action.profile": "Das Speichern deiner Einstellungen",
+  "studio.people.off.banner": "Dieses Tagebuch führt keine Personenliste. Kontakte sind ausgeschaltet.",
+  "studio.people.off.body": "Alles andere im Studio funktioniert. Wer diesen Server betreibt, kann es einschalten — bist du das, ist es eine Einstellung in der Konfiguration.",
+  "map.placeHidden": "Ort nicht öffentlich"
 }

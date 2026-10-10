@@ -36,6 +36,22 @@ export default async function StudioPeoplePage({
   const { user } = await params;
   await requireStudioOwner(user);
   const { name } = await searchParams;
+  const locale = await requestLocale();
+
+  // B-2746 — contacts off: say so, never a flow whose last press fails.
+  if (!isEnabled("contacts", user)) {
+    return (
+      <StudioPage
+        username={user}
+        group="people"
+        title={translateIn(locale, "studio.people.title")}
+        capabilityOff={{
+          banner: translateIn(locale, "studio.people.off.banner"),
+          body: translateIn(locale, "studio.people.off.body"),
+        }}
+      />
+    );
+  }
 
   const allTrips = getTrips(user);
   const trips = allTrips.map((t) => ({ id: t.id, title: t.title }));
@@ -66,7 +82,7 @@ export default async function StudioPeoplePage({
   }
 
   return (
-    <StudioPage username={user} group="people" title={translateIn(await requestLocale(), "studio.people.title")}>
+    <StudioPage username={user} group="people" title={translateIn(locale, "studio.people.title")}>
       <PeopleFlow
         username={user}
         trips={trips}

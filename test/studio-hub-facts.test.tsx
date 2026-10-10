@@ -245,6 +245,29 @@ describe("the hub's Share as a story card", () => {
     expect(el.textContent).toContain("Up the pass");
   });
 
+  // B-2923 — the hub search filters this card like every other.
+  async function search(el: HTMLElement, value: string) {
+    const input = el.querySelector("input")!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+  const LATEST = { tripId: "alps", slug: "up", title: "Up the pass", date: "2025-01-01" };
+
+  test("a query matching nothing hides it and shows only the empty state", async () => {
+    const el = await render({ ...FULL, latestPublishedDay: LATEST });
+    await search(el, "zzqxnonsense");
+    expect(el.textContent).not.toContain("Up the pass");
+    expect(el.textContent).toContain("zzqxnonsense");
+  });
+
+  test("a query matching its words still shows it", async () => {
+    const el = await render({ ...FULL, latestPublishedDay: LATEST });
+    await search(el, "pass");
+    expect(el.textContent).toContain("Up the pass");
+  });
+
   test("is absent when the model has none", async () => {
     const el = await render({ ...FULL, latestPublishedDay: null });
     expect([...el.querySelectorAll("a")].some((a) => a.getAttribute("href")?.startsWith("/@alex/studio/day/share"))).toBe(false);

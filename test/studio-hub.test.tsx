@@ -188,6 +188,10 @@ describe("H1 — the cannot-run reasons are worded apart", () => {
     const readers = off.querySelector('a[data-row][href$="/studio/readers"]')!;
     expect(readers.querySelector("[data-desc]")?.textContent).toBe("This journal keeps no list of readers. Readers are switched off.");
     expect(readers.textContent).toContain("off");
+    // B-2746 — Who was there is gated by the same capability.
+    const people = off.querySelector('a[data-row][href*="/studio/people"]')!;
+    expect(people.querySelector("[data-desc]")?.textContent).toBe("This journal keeps no list of people. Contacts are switched off.");
+    expect(people.textContent).toContain("off");
   });
 
   test("B2577 — both rows stay plain when their capability is on", () => {

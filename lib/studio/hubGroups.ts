@@ -251,6 +251,8 @@ export function peopleRows(model: Extract<StudioHubModel, { kind: "full" }>, use
       Icon: Users,
       title: t("studio.hub.item.people.title"),
       description: t("studio.hub.item.people.description"),
+      // B-2746 — same capability as Readers (contacts), so the same flag.
+      reason: model.cannotRun.readers ? t("studio.people.off.banner") : undefined,
     },
   ];
 }
@@ -343,7 +345,7 @@ function normalize(s: string): string {
 /** Whether one row matches a raw (not yet normalized) filter query — B2600,
  *  shared with Journal & account, which is never narrowed by the filter
  *  (see `StudioHub.tsx`) but still opens on phone when it has a match. */
-export function rowMatchesQuery(row: Row, query: string): boolean {
+export function rowMatchesQuery(row: Pick<Row, "title" | "description" | "reason">, query: string): boolean {
   const words = normalize(query).split(/\s+/).filter(Boolean);
   if (!words.length) return true;
   // B2581 — every typed word must appear somewhere in title + description (AND, any order).
