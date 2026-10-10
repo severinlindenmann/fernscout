@@ -600,8 +600,8 @@ export default function EditDay({
           queuedOffline = true;
           continue;
         }
+        await toastFailure(t("toast.action.editDay"), null);
         setBusy(false);
-        setFailed(entry.slug);
         return;
       }
       // D12 — refused, not applied over. `applyDayPatch` answers 409
@@ -627,7 +627,6 @@ export default function EditDay({
       if (!response.ok) {
         await toastFailure(t("toast.action.editDay"), response);
         setBusy(false);
-        setFailed(entry.slug);
         return;
       }
     }

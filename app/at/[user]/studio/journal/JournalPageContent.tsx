@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PersonStanding } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
-import ConfirmPanel from "@/components/ConfirmPanel";
 import StepPrimary from "@/components/studio/StepPrimary";
 import { apiWrite } from "@/lib/toast";
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
