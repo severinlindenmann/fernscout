@@ -5193,7 +5193,7 @@
   "toast.unknown": "Es kam kein Grund zurück. Versuch es gleich noch einmal.",
   "toast.serverFault": "Auf dem Server ist ein Problem aufgetreten. Versuch es gleich noch einmal und schick die Referenz unten, falls es wieder passiert.",
   "toast.ref": "Referenz: {ref}",
-  "toast.dismiss": "Schliessen",
+  "toast.dismiss": "Schließen",
   "toast.action.editDay": "Das Speichern des Tages",
   "toast.action.editTrip": "Das Speichern der Reise",
   "toast.action.visibility": "Das Ändern der Sichtbarkeit",
