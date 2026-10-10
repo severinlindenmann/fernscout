@@ -12,6 +12,7 @@ import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { DARK_THEME_COLOR, LIGHT_THEME_COLOR } from "@/lib/theme";
 import ThemeScript from "@/components/ThemeScript";
+import Toasts from "@/components/Toasts";
 import ErrorReporter from "@/components/ErrorReporter";
 import "./globals.css";
 
@@ -189,6 +190,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <MailSenderProvider address={mailSenderAddress()}>
             <SmsSignInProvider enabled={joinSmsConfigured()}>{children}</SmsSignInProvider>
           </MailSenderProvider>
+          <Toasts />
         </LocaleProvider>
       </body>
     </html>
