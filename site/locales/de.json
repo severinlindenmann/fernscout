@@ -1456,7 +1456,7 @@
   "mail.signinSubject": "Anmelden bei {title}",
   "mail.signupIgnore": "Wenn du das nicht angefordert hast, ignoriere diese E-Mail — es wurde nichts angelegt.",
   "mail.signupTitle": "Ein Reisetagebuch beginnen",
-  "mail.signupWhat": "Du wolltest ein Reisetagebuch mit dieser Adresse beginnen. Gib diesen Code dort ein, wo du ihn angefordert hast, dann kannst du ein Reisetagebuch anlegen. Wenn ein Agent das für dich erledigt, gib ihm stattdessen den Code.",
+  "mail.signupWhat": "Du wolltest ein Reisetagebuch mit dieser Adresse beginnen. Gib diesen Code dort ein, wo du ihn angefordert hast, dann kannst du ein Reisetagebuch anlegen.",
   "mail.storageAdvice": "Lösche, was du nicht mehr brauchst, oder füge auf deiner eigenen Seite 5 GB hinzu — ein einmaliger Kauf, der nicht verfällt.",
   "mail.storageFooter": "Du bekommst diese Nachricht, weil dir {user} gehört.",
   "mail.storageFullBody": "{user} belegt {used} von {limit} und nimmt keine neuen Fotos und Fotobücher mehr an. An bereits Veröffentlichtem wurde nichts verändert.",
@@ -2831,6 +2831,8 @@
   "studio.day.photos.chosen": "{count} ausgewählt",
   "studio.day.preview.photoCount.one": "{count} Foto",
   "studio.people.title": "Wer dabei war",
+  "studio.people.off.banner": "Dieses Tagebuch führt keine Personenliste. Kontakte sind ausgeschaltet.",
+  "studio.people.off.body": "Alles andere im Studio funktioniert. Wer diesen Server betreibt, kann es einschalten — bist du das, ist es eine Einstellung in der Konfiguration.",
   "studio.people.what.title": "Die Leute, die dabei waren",
   "studio.people.what.consequence": "Ein Tagebuch liest sich besser, wenn die Menschen darin Namen haben. Bring ein paar Kontakte mit, dann kannst du sagen, wer auf einer Reise dabei war, und ihnen später eine Postkarte oder einen Link schicken — wenn sie das möchten.",
   "studio.people.what.promise": "Wen du hinzufügst, bekommt eine einzige Mail mit der Frage, ob er oder sie überhaupt etwas möchte; sonst wird nichts geschickt, bis die Antwort ja lautet.",
@@ -5188,5 +5190,6 @@
   "comments.rateLimited": "Gerade zu viele Kommentare. Versuche es in {minutes} Min. noch einmal. Dein Text bleibt erhalten.",
   "comments.offline": "Du bist anscheinend offline. Dein Text bleibt erhalten; versuche es noch einmal, wenn du wieder online bist.",
   "comments.anonymous": "Ein Leser",
-  "comments.push.body": "{name} hat {day} kommentiert"
+  "comments.push.body": "{name} hat {day} kommentiert",
+  "map.placeHidden": "Ort nicht öffentlich"
 }

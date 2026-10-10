@@ -1456,7 +1456,7 @@
   "mail.signinSubject": "Sign in to {title}",
   "mail.signupIgnore": "If you did not ask for this, ignore it — nothing has been created.",
   "mail.signupTitle": "Start a journal",
-  "mail.signupWhat": "You asked to start a travel journal at this address. Enter this code where you asked for it and you can create one journal. If an agent is doing this for you, give it the code instead.",
+  "mail.signupWhat": "You asked to start a travel journal at this address. Enter this code where you asked for it and you can create one journal.",
   "mail.storageAdvice": "Delete what you no longer need, or add 5 GB from your own page — it is a one-off purchase and it does not expire.",
   "mail.storageFooter": "Sent because you are the owner of {user}.",
   "mail.storageFullBody": "{user} holds {used} of its {limit} and is refusing new photographs and photobooks. Nothing already published has been touched.",
@@ -2831,6 +2831,8 @@
   "studio.day.photos.chosen": "{count} chosen",
   "studio.day.preview.photoCount.one": "{count} photograph",
   "studio.people.title": "Who was there",
+  "studio.people.off.banner": "This journal keeps no list of people. Contacts are switched off.",
+  "studio.people.off.body": "Everything else in the studio works. Whoever runs this server can switch it on — if that is you, it is a setting in its configuration.",
   "studio.people.what.title": "The people who were there",
   "studio.people.what.consequence": "A journal reads better when the people in it have names. Bring in a few contacts and you can say who was on a trip, and later send them a postcard or a link — if they want one.",
   "studio.people.what.promise": "Adding someone sends them one mail asking whether they want anything; nothing else is ever sent until they say yes.",
@@ -5183,5 +5185,6 @@
   "comments.rateLimited": "Too many comments just now. Try again in {minutes} min. Your text is kept.",
   "comments.offline": "You seem to be offline. Your text is kept; try again when you are back.",
   "comments.anonymous": "A reader",
-  "comments.push.body": "{name} commented on {day}"
+  "comments.push.body": "{name} commented on {day}",
+  "map.placeHidden": "Place kept private"
 }

@@ -1456,7 +1456,7 @@
   "mail.signinSubject": "Accedi a {title}",
   "mail.signupIgnore": "Se non l’hai richiesto tu, ignora questa email: non è stato creato nulla.",
   "mail.signupTitle": "Inizia un diario",
-  "mail.signupWhat": "Hai chiesto di aprire un diario di viaggio con questo indirizzo. Inserisci questo codice dove l’hai richiesto e potrai creare un diario. Se lo fa un agente per te, dagli invece il codice.",
+  "mail.signupWhat": "Hai chiesto di aprire un diario di viaggio con questo indirizzo. Inserisci questo codice dove l’hai richiesto e potrai creare un diario.",
   "mail.storageAdvice": "Elimina ciò che non ti serve più, oppure aggiungi 5 GB dalla tua pagina: è un acquisto una tantum e non scade.",
   "mail.storageFooter": "Inviata perché sei il proprietario di {user}.",
   "mail.storageFullBody": "{user} occupa {used} dei suoi {limit} e rifiuta nuove fotografie e fotolibri. Nulla di ciò che è già pubblicato è stato toccato.",
@@ -2831,6 +2831,8 @@
   "studio.day.photos.chosen": "{count} scelte",
   "studio.day.preview.photoCount.one": "{count} foto",
   "studio.people.title": "Chi c’era",
+  "studio.people.off.banner": "Questo diario non tiene un elenco di persone. I contatti sono disattivati.",
+  "studio.people.off.body": "Tutto il resto dello studio funziona. Chi gestisce questo server può attivarla — se sei tu, è un’impostazione nella configurazione.",
   "studio.people.what.title": "Le persone che c’erano",
   "studio.people.what.consequence": "Un diario si legge meglio quando le persone che ci compaiono hanno un nome. Porta qui qualche contatto e potrai dire chi era in un viaggio, e più avanti mandare loro una cartolina o un link — se lo desiderano.",
   "studio.people.what.promise": "Aggiungere qualcuno gli invia una sola email per chiedere se desidera qualcosa; nient’altro viene mai inviato finché non risponde sì.",
@@ -5192,5 +5194,6 @@
   "comments.rateLimited": "Troppi commenti in questo momento. Riprova tra {minutes} min. Il tuo testo è conservato.",
   "comments.offline": "Sembri essere offline. Il tuo testo è conservato; riprova quando torni online.",
   "comments.anonymous": "Un lettore",
-  "comments.push.body": "{name} ha commentato {day}"
+  "comments.push.body": "{name} ha commentato {day}",
+  "map.placeHidden": "Luogo non pubblico"
 }

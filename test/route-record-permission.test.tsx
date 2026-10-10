@@ -62,14 +62,14 @@ afterEach(() => {
   container = undefined;
 });
 
-async function mount(bare = false) {
+async function mount(bare = false, start = "2026-10-01") {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
     root!.render(
       <LocaleProvider dictionary={dictionaryFor("en")} locale="en">
-        <RouteRecordSection username="alex" trip={{ id: "reise", title: "Reise", start: "2026-10-01", end: "2026-10-10" }} bare={bare} />
+        <RouteRecordSection username="alex" trip={{ id: "reise", title: "Reise", start, end: "2026-10-10" }} bare={bare} />
       </LocaleProvider>,
     );
   });
@@ -231,5 +231,21 @@ describe("Live Activity switches", () => {
     expect(shell.setActivityPrefs).toHaveBeenCalledWith({ lockScreen: false });
     expect(sw(ISLAND)).toBeNull();
     expect(sw("Show the trip's name on the Lock Screen")).toBeNull();
+  });
+});
+
+// B-2747 — a calendar date is not a moment: no day early west of UTC.
+describe("RouteRecordSection — calendar dates", () => {
+  test("a trip starting 2026-12-10 reads 10 Dec, not 9 Dec", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-10-01T12:00:00Z") });
+    try {
+      shell.status = { state: "recording", since: "2026-10-01T10:00:00Z", openEnded: false };
+      shell.permission = { status: "always", precise: true, canAskAlways: false };
+      await mount(false, "2026-12-10");
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(container!.textContent).toContain("10 Dec");
+    expect(container!.textContent).not.toContain("9 Dec");
   });
 });

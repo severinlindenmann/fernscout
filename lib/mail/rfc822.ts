@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Mail } from "./types";
 
 /**
@@ -52,6 +53,9 @@ export function buildMessage(mail: Mail, from: string, date = new Date()): strin
     Subject: encodeHeader(mail.subject),
     Date: date.toUTCString(),
     "MIME-Version": "1.0",
+    // A message without one looks hand-rolled to Gmail and Outlook's filters;
+    // the domain is the From domain so it lines up with SPF/DKIM/DMARC.
+    "Message-ID": `<${randomUUID()}@${from.match(/@([^>\s]+)>?\s*$/)?.[1] ?? "localhost"}>`,
     ...mail.headers,
   };
 

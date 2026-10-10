@@ -1218,7 +1218,7 @@
   "mail.signinSubject": "Bejelentkezés ide: {title}",
   "mail.signupIgnore": "Ha nem te kérted, hagyd figyelmen kívül — semmi nem jött létre.",
   "mail.signupTitle": "Útinapló indítása",
-  "mail.signupWhat": "Útinaplót kezdeményeztél ezzel a címmel. Add meg ezt a kódot ott, ahol kérted, és létrehozhatsz egy útinaplót. Ha ezt egy ügynök intézi helyetted, inkább neki add oda a kódot.",
+  "mail.signupWhat": "Útinaplót kezdeményeztél ezzel a címmel. Add meg ezt a kódot ott, ahol kérted, és létrehozhatsz egy útinaplót.",
   "mail.storageAdvice": "Töröld, amire már nincs szükséged, vagy vegyél hozzá 5 GB-ot a saját oldaladon — egyszeri vásárlás, és nem jár le.",
   "mail.storageFooter": "Azért kapod, mert a(z) {user} napló tulajdonosa vagy.",
   "mail.storageFullBody": "A(z) {user} napló {used} helyet foglal a(z) {limit} keretből, és nem fogad több fényképet vagy fotókönyvet. A már közzétett tartalomhoz semmi nem nyúlt.",
@@ -2833,6 +2833,8 @@
   "studio.day.photos.chosen": "{count} kiválasztva",
   "studio.day.preview.photoCount.one": "{count} fénykép",
   "studio.people.title": "Ki volt ott",
+  "studio.people.off.banner": "Ez a napló nem vezet személylistát. A névjegyek ki vannak kapcsolva.",
+  "studio.people.off.body": "A stúdió minden más része működik. Aki ezt a szervert üzemelteti, be tudja kapcsolni — ha te vagy az, ez egy beállítás a konfigurációban.",
   "studio.people.what.title": "Az emberek, akik ott voltak",
   "studio.people.what.consequence": "Egy napló jobban olvasható, ha a benne szereplő embereknek nevük van. Hozz be néhány névjegyet, és megmondhatod, ki volt veled egy úton, később pedig küldhetsz nekik képeslapot vagy linket — ha szeretnék.",
   "studio.people.what.promise": "Akit hozzáadsz, egyetlen levelet kap, amelyben megkérdezzük, kér-e bármit; amíg igent nem mond, semmi mást nem küldünk neki.",
@@ -5189,5 +5191,6 @@
   "comments.rateLimited": "Most túl sok hozzászólás érkezett. Próbáld újra {minutes} perc múlva. A szöveged megmaradt.",
   "comments.offline": "Úgy tűnik, nincs kapcsolat. A szöveged megmaradt; próbáld újra, ha újra online vagy.",
   "comments.anonymous": "Egy olvasó",
-  "comments.push.body": "{name} hozzászólt ehhez: {day}"
+  "comments.push.body": "{name} hozzászólt ehhez: {day}",
+  "map.placeHidden": "A helyszín nem nyilvános"
 }

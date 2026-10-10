@@ -1,6 +1,6 @@
 import "server-only";
 import { getEntryBySlug } from "../entries";
-import { isTestContent } from "../access";
+import { isOpenToLink, isTestContent } from "../access";
 import { journalTombstone, tripTombstone, type Tombstone } from "../tombstones";
 import { mayReadTrip, readerLevelFor } from "../tripGate";
 import { currentTripRef, getTrip, getTrips, tripRef } from "../trips";
@@ -57,11 +57,17 @@ export async function markdownTwin(
     : await inCurrentTripOrAnyOther(user, slug);
 
   if (!found) return notFound(user, tripId, slug);
+  // B-2971: only what any stranger gets may sit in a shared cache. A day on a
+  // guest/private trip, or one read at a higher level (owner, traveller,
+  // guest), is answered per cookie and must never be stored.
+  const shared =
+    isOpenToLink(found.trip) && (await readerLevelFor(found.trip)) === "public";
   return new Response(render(found.entry, found.trip), {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
       "X-Robots-Tag": "noindex",
-      "Cache-Control": "public, max-age=300",
+      "Cache-Control": shared ? "public, max-age=300" : "private, no-store",
+      Vary: "Cookie",
     },
   });
 }
