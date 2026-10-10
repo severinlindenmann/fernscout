@@ -1456,7 +1456,7 @@
   "mail.signinSubject": "Anmelden bei {title}",
   "mail.signupIgnore": "Wenn du das nicht angefordert hast, ignoriere diese E-Mail — es wurde nichts angelegt.",
   "mail.signupTitle": "Ein Reisetagebuch beginnen",
-  "mail.signupWhat": "Du wolltest ein Reisetagebuch mit dieser Adresse beginnen. Gib diesen Code dort ein, wo du ihn angefordert hast, dann kannst du ein Reisetagebuch anlegen. Wenn ein Agent das für dich erledigt, gib ihm stattdessen den Code.",
+  "mail.signupWhat": "Du wolltest ein Reisetagebuch mit dieser Adresse beginnen. Gib diesen Code dort ein, wo du ihn angefordert hast, dann kannst du ein Reisetagebuch anlegen.",
   "mail.storageAdvice": "Lösche, was du nicht mehr brauchst, oder füge auf deiner eigenen Seite 5 GB hinzu — ein einmaliger Kauf, der nicht verfällt.",
   "mail.storageFooter": "Du bekommst diese Nachricht, weil dir {user} gehört.",
   "mail.storageFullBody": "{user} belegt {used} von {limit} und nimmt keine neuen Fotos und Fotobücher mehr an. An bereits Veröffentlichtem wurde nichts verändert.",

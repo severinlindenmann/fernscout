@@ -1456,7 +1456,7 @@
   "mail.signinSubject": "Accedi a {title}",
   "mail.signupIgnore": "Se non l’hai richiesto tu, ignora questa email: non è stato creato nulla.",
   "mail.signupTitle": "Inizia un diario",
-  "mail.signupWhat": "Hai chiesto di aprire un diario di viaggio con questo indirizzo. Inserisci questo codice dove l’hai richiesto e potrai creare un diario. Se lo fa un agente per te, dagli invece il codice.",
+  "mail.signupWhat": "Hai chiesto di aprire un diario di viaggio con questo indirizzo. Inserisci questo codice dove l’hai richiesto e potrai creare un diario.",
   "mail.storageAdvice": "Elimina ciò che non ti serve più, oppure aggiungi 5 GB dalla tua pagina: è un acquisto una tantum e non scade.",
   "mail.storageFooter": "Inviata perché sei il proprietario di {user}.",
   "mail.storageFullBody": "{user} occupa {used} dei suoi {limit} e rifiuta nuove fotografie e fotolibri. Nulla di ciò che è già pubblicato è stato toccato.",
