@@ -77,7 +77,8 @@ function recentWalk(endMs: number, lat: number, lonBase: number): Fix[] {
 
 describe("the derived tail — B2536", () => {
   const TRIP = "algarve-2026";
-  const now = Date.now();
+  // Pinned midday UTC so "now - 30h" never depends on the hour the suite runs.
+  const now = Date.parse("2026-10-02T12:00:00.000Z");
   // Wide enough to hold both an "old" run (> 24h ago, in track.json) and a
   // "recent" one (< 24h ago, in track-recent.json) regardless of what time
   // of day the suite happens to run.
@@ -85,6 +86,8 @@ describe("the derived tail — B2536", () => {
   const END_DATE = new Date(now).toISOString().slice(0, 10);
 
   beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(now);
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-tail-"));
     process.env.CONTENT_DIR = dir;
     config();
@@ -104,6 +107,7 @@ describe("the derived tail — B2536", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     delete process.env.CONTENT_DIR;
     fs.rmSync(dir, { recursive: true, force: true });
   });
