@@ -9,6 +9,7 @@ import LatestDayButton from "@/components/LatestDayButton";
 import MobileDaySheet from "@/components/MobileDaySheet";
 import PageHeader from "@/components/PageHeader";
 import PagerNav, { type PagerNavState } from "@/components/PagerNav";
+import CommentsProvider from "@/components/CommentsProvider";
 import ReactionsProvider from "@/components/ReactionsProvider";
 import StoryPager, { buildSteps } from "@/components/StoryPager";
 import TripHero from "@/components/TripHero";
@@ -695,7 +696,9 @@ export default function TripStory({
   );
 
   return trip ? (
-    <ReactionsProvider tripId={trip.trip.ref}>{story}</ReactionsProvider>
+    <ReactionsProvider tripId={trip.trip.ref}>
+      <CommentsProvider tripId={trip.trip.ref}>{story}</CommentsProvider>
+    </ReactionsProvider>
   ) : (
     story
   );

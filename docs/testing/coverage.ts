@@ -53,6 +53,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
     flows: ["guest-established-react-to-day"],
     interfaces: ["ui"],
   },
+  comments: { todo: "B-2957 — no persona flow yet; test/comments.test.ts covers the API, the browser check is on the ticket" },
   costs: {
     flows: ["owner-established-add-cost-line"],
     interfaces: ["api"],

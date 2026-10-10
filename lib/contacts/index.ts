@@ -2,6 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { hashSecret, isEmail, resolveSession, revokeSession, verifyCode } from "../auth";
 import { getDatabase, newId, nowIso } from "../db";
+import { commentRepo } from "../repos";
 import { grantIsLive } from "../grants";
 import type { Locale } from "../types";
 import {
@@ -867,6 +868,9 @@ export async function deleteContactSelf(owner: string, token: string): Promise<b
 
 export async function deleteContact(owner: string, id: string): Promise<boolean> {
   const { db } = await getDatabase();
+  const row = await db.selectFrom("contacts").select("email").where("owner_id", "=", owner).where("id", "=", id).executeTakeFirst();
+  // The address would otherwise stay on their comments as a name and email.
+  if (row?.email) await (await commentRepo()).removeByAuthor(owner, row.email);
   return db.transaction().execute(async (trx) => {
     // A person's saved trips go with them (B-2962).
     await trx.deleteFrom("trip_link_keeps").where("owner_id", "=", owner).where("contact_id", "=", id).execute();

@@ -51,6 +51,7 @@ what it would generate.
 | `applePush` | server-wide | — |
 | `auth` | server-wide | — |
 | `billing` | server-wide | — |
+| `comments` | server-wide | — |
 | `contacts` | server-wide | — |
 | `costs` | server-wide | — |
 | `extract` | per journal | — |

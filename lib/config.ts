@@ -17,6 +17,9 @@ import type { Figure } from "./travellers/vocabulary";
 /** Every optional capability. Adding one here is the only place it gets named. */
 export const FEATURE_NAMES = [
   "reactions",
+  // B-2957. Comments under a published day, written by invited guests and the
+  // owner. Off by default; needs a database and SESSION_SECRET.
+  "comments",
   "costs",
   "push",
   // B2115. The iPhone shell's own transport: a `PushManager` subscription
@@ -164,6 +167,7 @@ export const OPERATOR_ONLY_FEATURES = [
   // per-user read for every name here, and `setJournalFeatures` refuses to
   // write any of them.
   "reactions",
+  "comments",
   "push",
   // B2115. Same reasoning as `push` immediately above.
   "applePush",
@@ -593,6 +597,7 @@ export class ConfigError extends Error {
 
 const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   reactions: { enabled: true },
+  comments: { enabled: false },
   costs: { enabled: true },
   push: { enabled: false },
   // B2115. `dry-run` writes the payload under <dataDir>/apns/, so this
