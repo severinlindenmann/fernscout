@@ -573,7 +573,12 @@ const homeTrip = z.strictObject({
   cover: z.string().optional().describe("the chosen cover, else the newest photograph this address may see"),
   days: z.number().int().nonnegative().optional().describe("distinct dates written about that this address may read"),
   latest: homeDay
-    .extend({ image: z.string().optional(), excerpt: z.string().optional() })
+    .extend({
+      image: z.string().optional(),
+      excerpt: z.string().optional(),
+      location: z.string().optional().describe("the place the day names, as published; never a coordinate"),
+      country: z.string().optional(),
+    })
     .optional()
     .describe("the newest day this address may read"),
   draft: homeDay.optional().describe("the owner's newest unpublished day; only when `through` is `owner`"),
@@ -583,6 +588,7 @@ const homeJournal = z.strictObject({
   username: z.string(),
   title: z.string(),
   tagline: z.string(),
+  owner: z.string().optional().describe("the owner's first name or nickname, when the config names one"),
   href: z.string(),
   role: z.enum(["admin", "owner", "traveller", "guest"]),
   trips: z.array(homeTrip).describe("no start/cover/days/latest/draft on an `admin` journal"),

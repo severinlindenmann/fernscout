@@ -42,8 +42,6 @@ export type SignedOutProps = {
   locales?: string[];
   /** The reader strip, or the sign-in form that replaced it. */
   top: ReactNode;
-  /** A browser that was signed in a moment ago, waiting on `/api/v2/me/home`. */
-  skeleton: boolean;
   onSignIn: () => void;
   helperEnabled: boolean;
   docUrl: string;
@@ -102,12 +100,6 @@ export default function SignedOut(props: SignedOutProps) {
       <Stripe />
       {props.top}
       <HeaderA {...props} nav={nav} cta={cta} />
-      {props.skeleton ? (
-        <div aria-hidden className={`${WIDE} animate-pulse space-y-4 py-12`}>
-          <div className="h-12 w-2/3 rounded bg-surface-muted" />
-          <div className="h-40 rounded-xl bg-surface-muted" />
-        </div>
-      ) : (
         <main>
           <Hero {...props} cta={cta} />
           {!helperEnabled && (
@@ -132,7 +124,6 @@ export default function SignedOut(props: SignedOutProps) {
             </div>
           </div>
         </main>
-      )}
       <Footer {...props} />
     </div>
   );

@@ -18,7 +18,14 @@ export type HomePayload = {
   admin?: boolean;
   /** The trip link this browser holds, for the keep card — B-2962. */
   link?: HomeLink | null;
+  /** When the server wrote this answer, from the response's `Date` header —
+   *  B-2975. Added here, never sent by the API. The offline worker serves its
+   *  saved copy with the original header, so an old one means a saved copy. */
+  checkedAt?: number;
 };
+
+/** An answer older than this was not just fetched; the page says so. */
+export const SAVED_COPY_AFTER_MS = 10 * 60_000;
 
 export type HomeLink = {
   ownerName: string;
@@ -57,7 +64,12 @@ export const SEEN_KEY = "fs-home-signed-in";
 export async function probeHome(live: () => boolean = () => true): Promise<HomePayload | null> {
   const fetchHome = () =>
     fetch("/api/v2/me/home", { headers: { accept: "application/json" } }).then(
-      async (res) => (res.ok ? ((await res.json()) as HomePayload) : null),
+      async (res) => {
+        if (!res.ok) return null;
+        const data = (await res.json()) as HomePayload;
+        const at = Date.parse(res.headers?.get?.("date") ?? "");
+        return Number.isNaN(at) ? data : { ...data, checkedAt: at };
+      },
     );
   const data = await fetchHome();
   if (!live() || data?.id) return data;

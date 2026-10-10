@@ -298,6 +298,9 @@ describe("the detail the home page draws", { shuffle: false }, () => {
         date: "2026-08-25",
         title: "The first day",
         content: "We **left** early.",
+        location: "Grindelwald",
+        country: "Switzerland",
+        coordinates: { lat: 46.6244, lng: 8.0411 },
         media: [{ src: "media/open.jpg" }],
       });
       writeDayFixture(dir, user, trip, {
@@ -364,5 +367,18 @@ describe("the detail the home page draws", { shuffle: false }, () => {
     expect(JSON.stringify(journal)).not.toContain("held");
     expect(JSON.stringify(journal)).not.toContain("Not yet");
     expect(trip.cover).toContain("open.jpg");
+  });
+
+  /** B-2975 — the place the day names reaches the card; the position never does,
+   * because this answer is kept in the phone's offline cache. */
+  test("the latest day's place and the owner's name travel, a coordinate never does", async () => {
+    const journal = (await journalsFor(GUS)).find((j) => j.username === OTHER)!;
+    const trip = journal.trips.find((t) => t.id === "invited-2026")!;
+    expect(trip.latest).toMatchObject({ location: "Grindelwald", country: "Switzerland" });
+    expect(journal.owner).toBe(OTHER);
+    const json = JSON.stringify(journal);
+    expect(json).not.toContain("46.62");
+    expect(json).not.toContain("8.04");
+    expect(json).not.toMatch(/"(lat|lng|coordinates)"/);
   });
 });
