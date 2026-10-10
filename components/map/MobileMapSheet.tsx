@@ -175,8 +175,19 @@ export default function MobileMapSheet({
     return [PEEK_PX, half, Math.round(vh * FULL_MAX_VH)];
   }, [vh, autoHalfHeight]);
 
+  // B2650 — the safe-area padding sits on the outer wrapper, outside the
+  // panel whose height is `heights[snap]`, so on a home-indicator iPhone the
+  // sheet covers that much more of the map. Read the settled padding (not the
+  // animating box) and add it to the reported inset.
+  const wrapperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    onInsetChange?.(days.length === 0 || isDesktop ? 0 : heights[snap]);
+    if (days.length === 0 || isDesktop) {
+      onInsetChange?.(0);
+      return;
+    }
+    const wrapper = wrapperRef.current;
+    const safe = wrapper ? parseFloat(getComputedStyle(wrapper).paddingBottom) || 0 : 0;
+    onInsetChange?.(heights[snap] + safe);
   }, [onInsetChange, days.length, isDesktop, heights, snap]);
 
   // A stable array reference unless the set of reachable snaps or their
@@ -241,7 +252,7 @@ export default function MobileMapSheet({
     snap === PEEK ? t("map.thisStop") : snap === HALF ? t("map.everyDay") : t("map.sheet.peek");
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom,0px)] lg:hidden">
+    <div ref={wrapperRef} className="fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom,0px)] lg:hidden">
       <motion.div
         style={{ height }}
         className="flex flex-col overflow-hidden rounded-t-2xl border-t border-line-quiet bg-surface-subtle/95 shadow-[0_-6px_24px_rgba(30,41,59,0.16)] backdrop-blur"

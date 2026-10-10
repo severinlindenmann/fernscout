@@ -449,4 +449,39 @@ describe("MobileMapSheet", () => {
       expect(el.textContent).toContain("Read this day");
     });
   });
+
+  test("B2650: the reported inset includes the wrapper's safe-area padding", () => {
+    const real = window.getComputedStyle;
+    const width = window.innerWidth;
+    window.innerWidth = 390; // jsdom defaults to 1024 = desktop, where the inset is 0
+    const spy = vi
+      .spyOn(window, "getComputedStyle")
+      .mockImplementation((el, pseudo) =>
+        el instanceof HTMLElement && el.className.includes("fixed inset-x-0")
+          ? ({ paddingBottom: "34px" } as CSSStyleDeclaration)
+          : real(el, pseudo),
+      );
+    const insets: number[] = [];
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const p = place();
+    act(() => {
+      root!.render(
+        <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+          <MobileMapSheet
+            days={daysFor([p])}
+            places={[p]}
+            hrefForDay={(s) => `/day/${s}`}
+            selectedDate={null}
+            onSelectDate={() => {}}
+            onInsetChange={(px) => insets.push(px)}
+          />
+        </LocaleProvider>,
+      );
+    });
+    spy.mockRestore();
+    window.innerWidth = width;
+    expect(insets.at(-1)).toBe(118 + 34); // PEEK_PX + safe area
+  });
 });
