@@ -5204,5 +5204,14 @@
   "comments.push.body": "{name} hozzászólt ehhez: {day}",
   "studio.people.off.banner": "Ez a napló nem vezet személylistát. A névjegyek ki vannak kapcsolva.",
   "studio.people.off.body": "A stúdió minden más része működik. Aki ezt a szervert üzemelteti, be tudja kapcsolni — ha te vagy az, ez egy beállítás a konfigurációban.",
-  "map.placeHidden": "A helyszín nem nyilvános"
+  "map.placeHidden": "A helyszín nem nyilvános",
+  "toast.failed": "Nem sikerült: {action}",
+  "toast.unknown": "Nem érkezett ok. Próbáld újra egy pillanat múlva.",
+  "toast.serverFault": "A szerveren hiba történt. Próbáld újra egy pillanat múlva, és küldd el az alábbi hivatkozást, ha ismétlődik.",
+  "toast.ref": "Hivatkozás: {ref}",
+  "toast.dismiss": "Bezárás",
+  "toast.action.editDay": "A nap mentése",
+  "toast.action.editTrip": "Az utazás mentése",
+  "toast.action.visibility": "A láthatóság módosítása",
+  "toast.action.profile": "A beállítások mentése"
 }

@@ -5198,5 +5198,14 @@
   "comments.push.body": "{name} commented on {day}",
   "studio.people.off.banner": "This journal keeps no list of people. Contacts are switched off.",
   "studio.people.off.body": "Everything else in the studio works. Whoever runs this server can switch it on — if that is you, it is a setting in its configuration.",
-  "map.placeHidden": "Place kept private"
+  "map.placeHidden": "Place kept private",
+  "toast.failed": "{action} did not work",
+  "toast.unknown": "No reason came back. Try again in a moment.",
+  "toast.serverFault": "The server hit a problem. Try again in a moment, and send the reference below if it keeps happening.",
+  "toast.ref": "Reference: {ref}",
+  "toast.dismiss": "Dismiss",
+  "toast.action.editDay": "Saving the day",
+  "toast.action.editTrip": "Saving the trip",
+  "toast.action.visibility": "Changing who can see this",
+  "toast.action.profile": "Saving your settings"
 }

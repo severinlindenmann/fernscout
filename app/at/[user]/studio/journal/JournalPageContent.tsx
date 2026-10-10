@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PersonStanding } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
-import ConfirmPanel from "@/components/ConfirmPanel";
 import StepPrimary from "@/components/studio/StepPrimary";
-import SubmitError from "@/components/studio/SubmitError";
+import { apiWrite } from "@/lib/toast";
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "@/lib/i18n";
 import { journalPath } from "@/lib/journalPath";
 
@@ -140,7 +139,6 @@ export default function JournalPageContent({
   );
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const extrasWere = journal.locales.filter((code) => code !== journal.defaultLocale);
 
@@ -187,7 +185,6 @@ export default function JournalPageContent({
   async function save() {
     setBusy(true);
     setSaved(false);
-    setError(null);
     const writes = [
       ...(Object.keys(patch).length > 0 ? [{ url: `/api/web/${encodeURIComponent(username)}`, body: patch }] : []),
       ...reminderMoves.map((row) => ({
@@ -197,15 +194,13 @@ export default function JournalPageContent({
       ...(tipsMoved ? [{ url: `/api/web/${encodeURIComponent(username)}/studio/tips`, body: { optIn: tips } }] : []),
     ];
     for (const write of writes) {
-      const response = await fetch(write.url, {
+      const response = await apiWrite(t("toast.action.profile"), write.url, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(write.body),
-      }).catch(() => null);
+      });
       if (!response?.ok) {
-        const said = (await response?.json().catch(() => null)) as { message?: string } | null;
         setBusy(false);
-        setError(said?.message ?? t("me.journalFailed"));
         // What did go through is on disk; reading again shows it as saved.
         router.refresh();
         return;
@@ -538,7 +533,6 @@ export default function JournalPageContent({
             {t("me.journalSaved")}
           </p>
         )}
-        <SubmitError message={error} />
       </div>
     </div>
   );

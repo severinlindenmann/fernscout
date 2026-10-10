@@ -5207,5 +5207,14 @@
   "comments.push.body": "{name} a commenté {day}",
   "studio.people.off.banner": "Ce journal ne tient aucune liste de personnes. Les contacts sont désactivés.",
   "studio.people.off.body": "Tout le reste du studio fonctionne. La personne qui gère ce serveur peut l’activer — si c’est toi, c’est un réglage dans sa configuration.",
-  "map.placeHidden": "Lieu non rendu public"
+  "map.placeHidden": "Lieu non rendu public",
+  "toast.failed": "{action} a échoué",
+  "toast.unknown": "Aucune raison n'a été donnée. Réessaie dans un instant.",
+  "toast.serverFault": "Le serveur a rencontré un problème. Réessaie dans un instant et envoie la référence ci-dessous si cela se répète.",
+  "toast.ref": "Référence : {ref}",
+  "toast.dismiss": "Fermer",
+  "toast.action.editDay": "L'enregistrement du jour",
+  "toast.action.editTrip": "L'enregistrement du voyage",
+  "toast.action.visibility": "Le changement de visibilité",
+  "toast.action.profile": "L'enregistrement de tes réglages"
 }

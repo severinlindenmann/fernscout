@@ -21,6 +21,7 @@ import {
 } from "@/lib/outbox";
 import ConflictCard from "@/components/studio/day/ConflictCard";
 import { useI18n } from "./LocaleProvider";
+import { toastFailure } from "@/lib/toast";
 import type { Day, Entry } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
 import DateField, { type TripCalendar } from "@/components/studio/DateField";
@@ -599,8 +600,8 @@ export default function EditDay({
           queuedOffline = true;
           continue;
         }
+        await toastFailure(t("toast.action.editDay"), null);
         setBusy(false);
-        setFailed(entry.slug);
         return;
       }
       // D12 — refused, not applied over. `applyDayPatch` answers 409
@@ -624,8 +625,8 @@ export default function EditDay({
         return;
       }
       if (!response.ok) {
+        await toastFailure(t("toast.action.editDay"), response);
         setBusy(false);
-        setFailed(entry.slug);
         return;
       }
     }

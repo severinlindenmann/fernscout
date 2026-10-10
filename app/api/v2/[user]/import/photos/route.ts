@@ -16,7 +16,7 @@ import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { extendOnTouch } from "@/lib/staging/expiry";
 import { listRuns, readManifest, writeManifest, type RunManifest } from "@/lib/staging/manifest";
 import { newRunId } from "@/lib/staging/paths";
-import { MAX_FILES_PER_REQUEST, MAX_FILES_PER_RUN, stageFiles } from "@/lib/staging/stageFiles";
+import { MAX_FILES_PER_REQUEST, MAX_FILES_PER_RUN, stageAndAppend } from "@/lib/staging/stageFiles";
 import { RUN_TTL_MS, sweepStaging } from "@/lib/staging/sweep";
 import { journalStagingBytes } from "@/lib/staging/store";
 import { IMAGE_MAX_BYTES, JOURNAL_STAGING_MAX_BYTES, REQUEST_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
@@ -109,14 +109,7 @@ export const POST = withV2Log(async function POST(request: Request, { params }: 
     };
   }
 
-  const { accepted, rejected, stagedBytes } = await stageFiles(user, current, files);
-  // Background uploads arrive in parallel, each having read the manifest
-  // before its own awaits. Re-read it here, with nothing awaited between
-  // this read and the write, so one request cannot overwrite another's rows.
-  const latest = readManifest(user, current.runId) ?? current;
-  const have = new Set(latest.photos.map((p) => p.id));
-  latest.photos.push(...accepted.filter((p) => !have.has(p.id)));
-  writeManifest(user, latest);
+  const { accepted, rejected, stagedBytes } = await stageAndAppend(user, current, files);
   return ok({
     runId: current.runId,
     expiresAt: current.expiresAt,

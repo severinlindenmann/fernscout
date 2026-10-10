@@ -5203,5 +5203,14 @@
   "comments.push.body": "{name} hat {day} kommentiert",
   "studio.people.off.banner": "Dieses Tagebuch führt keine Personenliste. Kontakte sind ausgeschaltet.",
   "studio.people.off.body": "Alles andere im Studio funktioniert. Wer diesen Server betreibt, kann es einschalten — bist du das, ist es eine Einstellung in der Konfiguration.",
-  "map.placeHidden": "Ort nicht öffentlich"
+  "map.placeHidden": "Ort nicht öffentlich",
+  "toast.failed": "{action} hat nicht geklappt",
+  "toast.unknown": "Es kam kein Grund zurück. Versuch es gleich noch einmal.",
+  "toast.serverFault": "Auf dem Server ist ein Problem aufgetreten. Versuch es gleich noch einmal und schick die Referenz unten, falls es wieder passiert.",
+  "toast.ref": "Referenz: {ref}",
+  "toast.dismiss": "Schließen",
+  "toast.action.editDay": "Das Speichern des Tages",
+  "toast.action.editTrip": "Das Speichern der Reise",
+  "toast.action.visibility": "Das Ändern der Sichtbarkeit",
+  "toast.action.profile": "Das Speichern deiner Einstellungen"
 }

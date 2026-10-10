@@ -5207,5 +5207,14 @@
   "comments.push.body": "{name} ha commentato {day}",
   "studio.people.off.banner": "Questo diario non tiene un elenco di persone. I contatti sono disattivati.",
   "studio.people.off.body": "Tutto il resto dello studio funziona. Chi gestisce questo server può attivarla — se sei tu, è un’impostazione nella configurazione.",
-  "map.placeHidden": "Luogo non pubblico"
+  "map.placeHidden": "Luogo non pubblico",
+  "toast.failed": "{action} non è riuscito",
+  "toast.unknown": "Non è arrivato alcun motivo. Riprova tra un attimo.",
+  "toast.serverFault": "Il server ha avuto un problema. Riprova tra un attimo e invia il riferimento qui sotto se si ripete.",
+  "toast.ref": "Riferimento: {ref}",
+  "toast.dismiss": "Chiudi",
+  "toast.action.editDay": "Il salvataggio del giorno",
+  "toast.action.editTrip": "Il salvataggio del viaggio",
+  "toast.action.visibility": "La modifica della visibilità",
+  "toast.action.profile": "Il salvataggio delle impostazioni"
 }
