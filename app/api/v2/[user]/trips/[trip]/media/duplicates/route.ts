@@ -3,7 +3,7 @@
 // plumbing. Domain logic (`findDuplicateMedia`) is unchanged.
 import { mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { findDuplicateMedia } from "@/lib/api/media";
 import { getTrip, mediaWithOwner, tripRef } from "@/lib/trips";
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  * replaces for the full reasoning on why this is `mayWriteTrip` rather than
  * the trip's own read gate.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/media/duplicates">,
 ) {
@@ -53,4 +53,4 @@ export async function GET(
           "the other with DELETE .../media. A resemblance is a guess: two frames of one burst " +
           "are different photographs and can land here too.",
   });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/media/duplicates" });

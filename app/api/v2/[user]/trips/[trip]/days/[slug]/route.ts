@@ -5,7 +5,7 @@
 import type { ZodType } from "zod";
 import { dayWrite, dayMerged, dayPatch, dayPatchedDraft, dayPatchedPublished, dayDoc, daySlug, DAY_DECLINABLES } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
-import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson, withV2Log } from "@/lib/api/v2/route";
 import {
   DAY_IMMUTABLE_FIELDS,
   checkTranslations,
@@ -101,7 +101,7 @@ async function gateTrip(
   return { ok: true, trip: stored };
 }
 
-export async function GET(request: Request, { params }: RouteCtx) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteCtx) {
   const { user, trip: tripId, slug } = await params;
   const gate = await gateTrip(request, user, tripId);
   if (!gate.ok) return gate.response;
@@ -111,7 +111,7 @@ export async function GET(request: Request, { params }: RouteCtx) {
 
   const doc = dayDoc.parse(withResolvedTest(dayEchoInput(day, tripRef(user, tripId)), gate.trip, day));
   return ok(doc, { etag: etagFor(doc) });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]" });
 
 /**
  * Client-chosen slug (S2), and PUT is CREATE-ONLY (decision 7) — same shape
@@ -120,7 +120,7 @@ export async function GET(request: Request, { params }: RouteCtx) {
  * caller sent a matching `If-Match`, which turns it into a deliberate
  * replace (V11).
  */
-export async function PUT(request: Request, { params }: RouteCtx) {
+export const PUT = withV2Log(async function PUT(request: Request, { params }: RouteCtx) {
   const { user, trip: tripId, slug } = await params;
   if (!daySlug.test(slug)) {
     return fail("invalid_request", `${ERROR_CODES.invalid_request} "${slug}" is not YYYY-MM-DD-slug.`, undefined, 400);
@@ -278,7 +278,7 @@ export async function PUT(request: Request, { params }: RouteCtx) {
           `${serverSite().url}${skillDocPath("ingest-photos")} is what it takes.`,
       };
   return ok(echoBody, { etag: etagFor(echo), status: stored ? 200 : 201 });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]" });
 
 /**
  * Merge-patch (V2). Nothing is asked beyond what the patch raises; the
@@ -287,13 +287,13 @@ export async function PUT(request: Request, { params }: RouteCtx) {
  * and contradictions only (`dayPatchedDraft`) — completeness is asked at
  * publish (B2242).
  */
-export async function PATCH(request: Request, { params }: RouteCtx) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteCtx) {
   const { user, trip: tripId, slug } = await params;
   const gate = await gateTrip(request, user, tripId);
   if (!gate.ok) return gate.response;
 
   return applyDayPatch(user, tripId, slug, gate.trip, request);
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]" });
 
 /**
  * The write itself, factored out of `PATCH` above so
@@ -455,7 +455,7 @@ export async function applyDayPatch(
  * reversible; once it is a draft again, this deletes it outright — no
  * confirmation handshake, since nothing here has ever been on the site.
  */
-export async function DELETE(request: Request, { params }: RouteCtx) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteCtx) {
   const { user, trip: tripId, slug } = await params;
   const gate = await gateTrip(request, user, tripId);
   if (!gate.ok) return gate.response;
@@ -481,4 +481,4 @@ export async function DELETE(request: Request, { params }: RouteCtx) {
     mediaKept: true,
     note: "The day file is deleted. Its photographs are still on disk under the trip's media folder — removing those is a person's job.",
   });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days/[slug]" });

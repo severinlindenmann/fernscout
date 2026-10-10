@@ -5,7 +5,7 @@ import type { ZodType } from "zod";
 import { describe, expect, it } from "vitest";
 import { dayDoc, dayWrite, DAY_DECLINABLE_KEYS } from "../lib/api/v2/schemas";
 import { incompleteFrom, problemsFrom, splitIssues } from "../lib/api/v2/incomplete";
-import { etagFor, fail, ifMatchStale, logV2Request, ok, readDryRun, readJson, V2_ONLY_CODES, V2_STATUS } from "../lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson, V2_ONLY_CODES, V2_STATUS } from "../lib/api/v2/route";
 import { ERROR_CODES } from "../lib/api/errorCodes";
 
 const people = [{ name: "Example Owner", email: "owner@example.com" }];
@@ -348,57 +348,6 @@ describe("ok", () => {
     expect(ok({}).status).toBe(200);
     expect(ok({}, { status: 201 }).status).toBe(201);
     expect(await ok({ a: 1 }).json()).toEqual({ a: 1 });
-  });
-});
-
-describe("logV2Request", () => {
-  const fields = {
-    method: "POST",
-    path: "/api/v2/example/trips/alps-2026/days/2026-01-01-first",
-    status: 201,
-    ms: 42,
-    token: "sess_abc",
-    journal: "example",
-  };
-
-  it("says nothing at all when the logging feature is off", () => {
-    const lines: unknown[] = [];
-    const original = console.log;
-    console.log = (...args: unknown[]) => lines.push(args);
-    try {
-      logV2Request({ ...fields, enabled: false });
-    } finally {
-      console.log = original;
-    }
-    expect(lines).toEqual([]);
-  });
-
-  it("logs one metadata line when it is on, and never a body or a query string", () => {
-    const lines: string[] = [];
-    const original = console.log;
-    console.log = (...args: unknown[]) => lines.push(String(args[0]));
-    try {
-      logV2Request({ ...fields, enabled: true });
-    } finally {
-      console.log = original;
-    }
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain("POST");
-    expect(lines[0]).toContain(fields.path);
-    expect(lines[0]).toContain("example");
-    expect(lines[0]).not.toContain("?");
-  });
-
-  it("never throws — a lost log line is not worth a lost response", () => {
-    const original = console.log;
-    console.log = () => {
-      throw new Error("stdout is gone");
-    };
-    try {
-      expect(() => logV2Request({ ...fields, enabled: true })).not.toThrow();
-    } finally {
-      console.log = original;
-    }
   });
 });
 

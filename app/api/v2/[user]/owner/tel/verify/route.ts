@@ -10,7 +10,7 @@
 // that already does.
 import { ownerTelVerifyRequest, ownerTelVerifyStarted } from "@/lib/api/v2/schemas";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { getUser } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
@@ -27,7 +27,7 @@ const PER_NUMBER = { max: 3, windowMs: DAY };
 const PER_OWNER = { max: 5, windowMs: DAY };
 const PER_INSTANCE = { max: 50, windowMs: DAY };
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/owner/tel/verify">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/owner/tel/verify">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
@@ -92,7 +92,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     console.error(`[owner-tel] could not start a phone verification for ${user}:`, err);
     return fail("verification_failed", "The code could not be sent. Try again in a minute, or check the number.", undefined, 503);
   }
-}
+}, { route: "/api/v2/[user]/owner/tel/verify" });
 
 function tooMany(retryAfter: number, who: string) {
   const minutes = Math.max(1, Math.ceil(retryAfter / 60));

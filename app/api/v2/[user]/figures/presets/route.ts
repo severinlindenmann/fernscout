@@ -13,7 +13,7 @@ import {
 import { STARTING_POINTS } from "@/lib/travellers/presets";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +46,7 @@ export const dynamic = "force-dynamic";
  * anyway the moment they change the hair. `PUT .../figures/{id}` refuses a
  * `preset` key by name for the same reason.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   _request: Request,
   { params }: RouteContext<"/api/v2/[user]/figures/presets">,
 ) {
@@ -115,4 +115,4 @@ export async function GET(
       "answered are left out rather than guessed; say which ones you left at the default. " +
       `Once agreed, PUT /api/v2/${user}/figures/{id} with a client-chosen id to save it.`,
   });
-}
+}, { route: "/api/v2/[user]/figures/presets" });

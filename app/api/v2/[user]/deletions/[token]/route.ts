@@ -3,7 +3,7 @@
 // logic (`confirmDeletion`) is unchanged.
 import { confirmDeletion } from "@/lib/deletions";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
  * this endpoint fresh on every render, so a link already sitting in a mailbox
  * keeps working across this move.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/deletions/[token]">,
 ) {
@@ -65,4 +65,4 @@ export async function POST(
     ...(done.tripId ? { trip: done.tripId } : {}),
     title: done.title,
   });
-}
+}, { route: "/api/v2/[user]/deletions/[token]" });

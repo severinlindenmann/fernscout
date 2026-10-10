@@ -3,7 +3,7 @@
 // domain logic (what is in a manifest and why gps/ is never in it) is
 // unchanged and still lives in lib/sync/manifest.ts.
 import { requireHiddenOwner } from "@/lib/api/v2/auth";
-import { ok } from "@/lib/api/v2/route";
+import { ok, withV2Log } from "@/lib/api/v2/route";
 import { buildManifest } from "@/lib/sync/manifest";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  * token for a different one, and a trip-scoped token cannot be told apart
  * from outside.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/sync/manifest">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/sync/manifest">) {
   const { user } = await params;
   const auth = await requireHiddenOwner(request, user);
   if (!auth.ok) return auth.response;
@@ -36,4 +36,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
       "journal's position history and what this server derives for itself. Fetch a file " +
       `with GET /api/v2/${user}/sync/file/<path>.`,
   });
-}
+}, { route: "/api/v2/[user]/sync/manifest" });

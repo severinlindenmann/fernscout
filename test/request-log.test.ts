@@ -18,17 +18,17 @@ import { config as proxyConfig, default as proxy } from "@/proxy";
 
 describe("formatRequestLine", () => {
   test("carries method, path and user agent", () => {
-    expect(formatRequestLine("GET", "/agent.md", "AgentFetch/1.0")).toBe(
-      '[request] GET /agent.md ua="AgentFetch/1.0"',
+    expect(formatRequestLine("GET", "/agent.md", "AgentFetch/1.0", "ab12cd34")).toBe(
+      '[request] ab12cd34 GET /agent.md ua="AgentFetch/1.0"',
     );
   });
 
   test("a missing user agent reads as -, not blank", () => {
-    expect(formatRequestLine("GET", "/agent.md", null)).toBe('[request] GET /agent.md ua="-"');
+    expect(formatRequestLine("GET", "/agent.md", null, "ab12cd34")).toBe('[request] ab12cd34 GET /agent.md ua="-"');
   });
 
   test("a crafted user agent cannot forge a second log line", () => {
-    const line = formatRequestLine("GET", "/x", 'evil\n[request] GET /admin ua="nice"');
+    const line = formatRequestLine("GET", "/x", 'evil\n[request] GET /admin ua="nice"', "ab12cd34");
     expect(line.split("\n")).toHaveLength(1);
   });
 });
@@ -92,7 +92,9 @@ describe("proxy request logging", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     proxy(get("/agent.md", "AgentFetch/1.0"));
     expect(log).toHaveBeenCalledTimes(1);
-    expect(log).toHaveBeenCalledWith('[request] GET /agent.md ua="AgentFetch/1.0"');
+    expect(log).toHaveBeenCalledWith(
+      expect.stringMatching(/^\[request\] [a-z0-9]{8} GET \/agent\.md ua="AgentFetch\/1\.0"$/),
+    );
     log.mockRestore();
   });
 
@@ -113,6 +115,16 @@ describe("proxy request logging", () => {
     // `x-middleware-next` is Next's own signal for "let this one through" —
     // a 410 (the tombstone page) would not carry it.
     expect(response.headers.get("x-middleware-next")).toBe("1");
+    log.mockRestore();
+  });
+
+  test("logs nothing for the health ping, but still logs other paths", () => {
+    writeConfig(true);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    proxy(get("/api/health"));
+    expect(log).not.toHaveBeenCalled();
+    proxy(get("/api/healthz"));
+    expect(log).toHaveBeenCalledTimes(1);
     log.mockRestore();
   });
 
@@ -154,6 +166,25 @@ describe("proxy request logging", () => {
     expect(general).toContain("_next/static");
     expect(general).toContain("_next/image");
     expect(general).toContain("favicon.ico");
+  });
+});
+
+describe("request id (B-2951)", () => {
+  test("every path carries x-request-id; a client-sent one is replaced; the log line matches", () => {
+    writeConfig(true);
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    for (const p of ["/agent.md", "/api/v2/alice/trips", "/api/health", "/%40alice"]) {
+      expect(proxy(get(p)).headers.get("x-request-id")).toMatch(/^[a-z0-9]{8}$/);
+    }
+    const forged = new NextRequest(new URL("/api/v2/alice/trips", "https://example.test"), {
+      headers: { "x-request-id": "forged" },
+    });
+    const res = proxy(forged);
+    const id = res.headers.get("x-request-id");
+    expect(id).not.toBe("forged");
+    expect(res.headers.get("x-middleware-request-x-request-id")).toBe(id);
+    expect(String(log.mock.calls.at(-1)?.[0])).toContain(`[request] ${id} GET`);
+    log.mockRestore();
   });
 });
 

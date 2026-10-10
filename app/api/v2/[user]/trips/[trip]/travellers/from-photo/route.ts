@@ -17,7 +17,7 @@
 // instead of v1's now-gone `PATCH .../travellers`.
 import { mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { isEnabled } from "@/lib/capabilities";
 import { mayUseAi } from "@paid/billing/lib/aiDays";
@@ -59,7 +59,7 @@ function text(value: unknown): string {
  * no fourth door that fetches a URL, unlike `POST .../media` — this call
  * would otherwise point a model at an arbitrary stranger's photograph.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/travellers/from-photo">,
 ) {
@@ -197,4 +197,4 @@ export async function POST(
   } catch {
     return fail("model_failed", ERROR_CODES.model_failed, undefined, 502);
   }
-}
+}, { route: "/api/v2/[user]/trips/[trip]/travellers/from-photo" });

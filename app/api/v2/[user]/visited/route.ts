@@ -1,7 +1,7 @@
 import { applyVisitedCreate, applyVisitedList } from "@/lib/api/v2/visitedApply";
 import { mayActAsOwner, outOfScopeRefusal, ownsUser, requireJournalOwner, resolveBearer } from "@/lib/api/v2/auth";
 import { getUser } from "@/lib/users";
-import { fail } from "@/lib/api/v2/route";
+import { fail, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 
 export const dynamic = "force-dynamic";
@@ -13,18 +13,18 @@ export const dynamic = "force-dynamic";
  * never a guest — guests read in a browser). `POST` adds one country
  * (`{country, …}`) or many (`{entries: […]}`); owner only.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/visited">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/visited">) {
   const { user } = await params;
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
   if (!getUser(user)) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
   return applyVisitedList(user, { owner: mayActAsOwner(bearer.session, user), guest: false, close: false });
-}
+}, { route: "/api/v2/[user]/visited" });
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/visited">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/visited">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   return applyVisitedCreate(user, request);
-}
+}, { route: "/api/v2/[user]/visited" });

@@ -12,7 +12,7 @@
 import { isEnabled } from "@/lib/capabilities";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { ownerOnlyRefusal, mayActAsOwner, outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { extendOnTouch } from "@/lib/staging/expiry";
 import { listRuns, readManifest, writeManifest, type RunManifest } from "@/lib/staging/manifest";
 import { newRunId } from "@/lib/staging/paths";
@@ -41,7 +41,7 @@ async function gate(request: Request, user: string) {
   return null;
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ user: string }> }) {
+export const GET = withV2Log(async function GET(request: Request, { params }: { params: Promise<{ user: string }> }) {
   const { user } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
@@ -55,9 +55,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ user
       ...(r.via ? { via: r.via } : {}),
     })),
   });
-}
+}, { route: "/api/v2/[user]/import/photos" });
 
-export async function POST(request: Request, { params }: { params: Promise<{ user: string }> }) {
+export const POST = withV2Log(async function POST(request: Request, { params }: { params: Promise<{ user: string }> }) {
   const { user } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
@@ -125,4 +125,4 @@ export async function POST(request: Request, { params }: { params: Promise<{ use
     stagedBytes,
     ...LIMITS,
   });
-}
+}, { route: "/api/v2/[user]/import/photos" });

@@ -4,7 +4,7 @@
 import { geocodePlace, MAX_QUERY_LEN, MIN_QUERY_LEN } from "@/lib/addressLookup";
 import { isEnabled } from "@/lib/capabilities";
 import { rateLimitFor } from "@/lib/rateLimit";
-import { fail, ok, readJson } from "@/lib/api/v2/route";
+import { fail, ok, readJson, withV2Log } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { resolveBearer } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -12,7 +12,7 @@ import { geocodeRequest } from "@/lib/api/v2/schemas/geocode";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+export const POST = withV2Log(async function POST(request: Request) {
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
 
@@ -67,4 +67,4 @@ export async function POST(request: Request) {
   }
 
   return ok({ results }, { headers: { "cache-control": "no-store" } });
-}
+}, { route: "/api/v2/geocode" });

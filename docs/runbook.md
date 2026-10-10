@@ -502,7 +502,7 @@ sudo find /var/lib/fernscout/content -type f -print0 \
 > nothing wrong, because config resolution for the *server* still succeeds.
 > An uptime monitor watching `/api/health` will not catch this.
 >
-> Check `journalctl -u fernscout` for `config.json is unusable` after any
+> Check `journalctl --namespace=fernscout -u fernscout` for `config.json is unusable` after any
 > deploy that touched config parsing, and see
 > [`docs/config-upgrades.md`](config-upgrades.md) — most such changes ship a
 > `scripts/migrate-*.ts` to run against `/var/lib/fernscout/content` first. A
@@ -744,7 +744,7 @@ The redacted page still distinguishes "cannot read the content directory" from
 "there are no journals" — the thing B197 added the field for — because
 `content: { ok: false, code: "unreadable" }` carries that and is public. Only
 the path behind it is held back, and the full message is on stdout either way:
-`journalctl -u fernscout`.
+`journalctl --namespace=fernscout -u fernscout`.
 
 **`journals` is absent for an unentitled caller, not empty.** An empty object
 would read as "this instance has no journals", which is exactly the ambiguity
@@ -767,7 +767,7 @@ the same shape as every other capability here:
 ```
 
 Once it is on, every request `proxy.ts` lets through writes one line to
-stdout — `journalctl -u fernscout`, the same place every other problem here
+stdout — `journalctl --namespace=fernscout -u fernscout`, the same place every other problem here
 gets read:
 
 ```
@@ -780,13 +780,40 @@ string** (B257). This server holds private journals, so a log of
 reading history. If an operator needs client addresses for abuse work, that
 is a second, separately-named switch and a separate decision — not this one.
 
-**Not a response log, on purpose rather than by omission.** `proxy.ts` runs
-*before* a request completes — Next's own docs for `proxy` say exactly that —
-so there is no status code, no duration and no response size in existence yet
-at the point this line is written. Getting those three would mean a hook
-inside every route handler instead of the one choke point this ticket chose,
-which is the "a call per handler" it explicitly did not want. What is logged
-is everything proxy actually has the moment it lets a request through.
+**`[request]` is not a response log; `[req]` is.** `proxy.ts` runs *before* a
+request completes, so its line has no status or duration. Every `/api/v2`
+route handler is wrapped in `withV2Log` (B-2952; `test/v2-routes-logged.test.ts`
+fails for a route that is not), which adds, with the same `features.logging`
+switch, ONE line per call once the handler has answered:
+
+```
+[req] <id> <METHOD> <route template> <status> <ms>ms journal=<slug|-> err=<code|->
+[req] 3f9a1c2e GET /api/v2/[user]/figures 404 12ms journal=alice err=not_found
+```
+
+`<id>` is the same id as the `[request]` line, `x-request-id` and the digest
+the error screens show. The route is the template (`[user]` stays literal), so
+there is no slug and no query string in that field; `err` is the `error` code
+of the standard envelope on a 4xx or 5xx. A handler that **throws** also
+writes, whether logging is on or not, and then rethrows so Next answers as it
+always did:
+
+```
+[req-error] <id> <METHOD> <route template> <message>
+    <stack line, scrubbed of emails, tokens and query strings>
+```
+
+To follow one failure from an id (a digest or `x-request-id` from a screenshot
+or a bug report), on the server:
+
+```bash
+journalctl --namespace=fernscout -u fernscout | grep <id>
+```
+
+That prints the `[request]`, `[req]`, `[req-error]` and `[client-error]` lines
+for it. (The operator's `.claude/skills/vps/find-bug.sh` does this from a
+workstation; it is private to the operator and not part of this repository.)
+The app's logs have their own journald namespace (B2315), kept 14 days.
 
 **Retained for exactly as long as `journalctl` keeps it, and nowhere else** —
 no file, no rotation, nothing under `CONTENT_DIR` or any journal's own
@@ -806,6 +833,30 @@ now a redirect — B311).
 
 `scripts/deploy.sh` prints whether this is on, the same way it already prints
 backup and Caddy state.
+
+### Client errors (B-2953)
+
+A page that crashes in a browser or in the iOS shell reports itself to
+`POST /api/v2/client-error`: public (a crash can happen signed out), JSON,
+answered `204`. Accepted: `message` (500 characters), `stack` (4000), `route`
+(200), `appVersion` (40), `platform` (`web` or `ios`), optional `requestId`
+and `digest`. Anything else is refused; the caps are in `/api/v2/openapi.json`.
+It is limited to 30 per 15 minutes per client address (bucket `client-error`,
+the address is never logged).
+
+Each report is one stdout entry, not gated on `features.logging`, with no
+database and no file:
+
+```
+[client-error] <requestId|-> <platform> <appVersion> <route> "<message>"
+    <stack line, 4-space indented>
+```
+
+Emails, bearer and `fs_` tokens, long opaque runs and query strings are
+redacted (`lib/scrubLog.ts`). `appVersion` is the first 12 characters of
+`GIT_SHA`, or `unknown` where it is unset. Retention is the journald
+namespace's, 14 days. Find one with `.claude/skills/vps/find-bug.sh` in the
+harness, by the request id the error screen shows.
 
 ---
 
@@ -1128,12 +1179,12 @@ section is four lines.
 
 | Symptom | Look at |
 | --- | --- |
-| Service won't start | `journalctl -u fernscout -n 50`. A capability enabled without its credentials **fails the boot on purpose**, naming the flag and the variable. |
+| Service won't start | `journalctl --namespace=fernscout -u fernscout -n 50`. A capability enabled without its credentials **fails the boot on purpose**, naming the flag and the variable. |
 | TLS not issued | `journalctl -u caddy -n 50`. Almost always DNS not resolving to this host yet, or port 80 blocked. |
 | Site up, features missing | `curl -s localhost:3000/api/health` — each capability states why it is off. |
 | Reactions vanished after adding a database | `npm run db:import` moves the JSON state in. It is idempotent. |
 | Deploy failed mid-build | The old process is still serving from `.next`, which the build never touched (B2230). Fix, re-run `./scripts/deploy.sh`. The half-written `.next-build` is cleared by the next run. |
-| An agent reports "failed to fetch" and you cannot tell whether it arrived | Turn on [Request logging](#apihealth) and check `journalctl -u fernscout` for the path (B257). Off by default, so there is nothing to check until it is. |
+| An agent reports "failed to fetch" and you cannot tell whether it arrived | Turn on [Request logging](#apihealth) and check `journalctl --namespace=fernscout -u fernscout` for the path (B257). Off by default, so there is nothing to check until it is. |
 | A config-only change on the VPS (an edit under `$DATA_DIR`, a flag flipped in `/etc/fernscout/env`) | Still run `./scripts/deploy.sh`, never a bare `systemctl restart fernscout` (B1312). `next start` needs a `.next` that matches what is about to run, and a restart with no rebuild strands the service in a crash loop against whatever `.next` happened to be on disk. |
 | A build panics inside `turbo-persistence`, or with `chunk_path requires an asset with file content` | That is a corrupted Turbopack persistent cache, not a fault in whichever page it names (B1312/B1313) — `scripts/deploy.sh` now detects this and clears `.next-build` (where the cache lives since B2230), `node_modules/.cache` and `.turbo` itself, retrying once. The serving `.next` is not touched. If it still fails after that, the cache was not the problem; look at the page. |
 | Two deploys running against the same checkout at once | `scripts/deploy.sh` now refuses the second one outright, naming the PID of the one still running (B1313). A lock left by a deploy that crashed mid-run is detected and reclaimed automatically the next time the script runs — nothing to delete by hand. |

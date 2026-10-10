@@ -3,7 +3,7 @@
 // Client-chosen ids everywhere means creation is `PUT .../trips/{trip}`, not
 // a POST here (S2) — this route only lists.
 import type { TripFile } from "@/lib/api/v2/documents";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser, outOfScopeRefusal } from "@/lib/api/v2/auth";
 import { writableTrips } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -31,7 +31,7 @@ function readAll(user: string): { id: string; trip: TripFile }[] {
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/trips">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/trips">) {
   const { user } = await params;
   // Authenticate BEFORE resolving the journal — B1615. The other order lets
   // an anonymous caller tell `404 no_such_journal` from `401 missing_token`
@@ -75,4 +75,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
     }),
     next_cursor: next,
   });
-}
+}, { route: "/api/v2/[user]/trips" });

@@ -29,35 +29,32 @@ function sanitize(value: string): string {
 }
 
 /**
- * `method path ua="…"` — deliberately not JSON. This is read with
- * `journalctl -u fernscout`, which already timestamps every line; nothing
+ * `id method path ua="…"` — deliberately not JSON. This is read with
+ * `journalctl --namespace=fernscout -u fernscout`, which already timestamps every line; nothing
  * here repeats that. Never an IP address and never a query string — see
  * docs/runbook.md for why.
  */
-export function formatRequestLine(method: string, path: string, userAgent: string | null): string {
+export function formatRequestLine(method: string, path: string, userAgent: string | null, id: string): string {
   // B2961 — a trip link's code is a bearer for one trip; it never reaches a log.
   const shown = path.replace(/^\/t\/[^/]*/, "/t/•");
-  return `[request] ${sanitize(method)} ${sanitize(shown)} ua="${sanitize(userAgent ?? "-")}"`;
+  return `[request] ${sanitize(id)} ${sanitize(method)} ${sanitize(shown)} ua="${sanitize(userAgent ?? "-")}"`;
 }
 
 /**
- * The v2 line, one call handled rather than one request let through — so it
- * has a status and a duration, which proxy.ts can never have (see the module
- * comment above). Still per-token metadata only, never a body: `token` is
- * the opaque session id `resolveAccess` already carries, never the bearer
- * secret itself, and there is no query string here either — a v2 route's
- * `dryRun` flag is exactly the kind of thing this rule exists to keep out of
- * a log line.
+ * The line one v2 call leaves behind (B-2952): id, method, route TEMPLATE
+ * (never the concrete path, so no slug or query string), status, duration,
+ * journal and the error code of the standard envelope. Metadata only.
  */
-export function formatV2RequestLine(fields: {
+export function formatReqLine(f: {
+  id: string;
   method: string;
-  path: string;
+  route: string;
   status: number;
   ms: number;
-  token: string | null;
   journal: string | null;
+  err: string | null;
 }): string {
-  return `[v2] ${sanitize(fields.method)} ${sanitize(fields.path)} ${fields.status} ${Math.round(fields.ms)}ms token=${sanitize(
-    fields.token ?? "-",
-  )} journal=${sanitize(fields.journal ?? "-")}`;
+  return `[req] ${sanitize(f.id)} ${sanitize(f.method)} ${sanitize(f.route)} ${f.status} ${Math.round(f.ms)}ms journal=${sanitize(
+    f.journal ?? "-",
+  )} err=${sanitize(f.err ?? "-")}`;
 }

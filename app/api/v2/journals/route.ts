@@ -6,7 +6,7 @@
 // redesign. This route consumes whatever signup token that flow minted.
 import { journalCreate } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { signupAllowed } from "@/lib/inviteList";
 import { deletePendingSignup } from "@/lib/signup/pending";
@@ -49,7 +49,7 @@ const REFUSED = { max: 20, windowMs: HOUR };
  * hourly one can otherwise make 5, wait, and make 5 more, forever. */
 const CREATED_DAILY = { max: 15, windowMs: 24 * HOUR };
 
-export async function POST(request: Request) {
+export const POST = withV2Log(async function POST(request: Request) {
   if (!isEnabled("signup")) {
     return fail("signup_disabled", ERROR_CODES.signup_disabled, undefined, 404);
   }
@@ -274,7 +274,7 @@ export async function POST(request: Request) {
     },
     { status: 201 },
   );
-}
+}, { route: "/api/v2/journals" });
 
 function tooMany(
   reason: "journals_created" | "journals_created_daily" | "failed_attempts",

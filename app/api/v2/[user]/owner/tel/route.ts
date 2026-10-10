@@ -20,17 +20,17 @@
 // gets 405 and nothing can release a proven number.
 import { ownerTelDoc } from "@/lib/api/v2/schemas";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { getUser } from "@/lib/users";
 import { ownerTelDocFields } from "@/lib/ownerTel";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/owner/tel">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/owner/tel">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
   if (!getUser(user)) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
 
   return ok(ownerTelDoc.parse(await ownerTelDocFields(user)));
-}
+}, { route: "/api/v2/[user]/owner/tel" });

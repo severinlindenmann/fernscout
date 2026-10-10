@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { REQUEST_ID_HEADER } from "@/lib/requestId";
 import type { Metadata, Viewport } from "next";
 import { Fredoka, IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
@@ -10,6 +12,7 @@ import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 import { DARK_THEME_COLOR, LIGHT_THEME_COLOR } from "@/lib/theme";
 import ThemeScript from "@/components/ThemeScript";
+import ErrorReporter from "@/components/ErrorReporter";
 import "./globals.css";
 
 // B1726 — `preload: false` on the latin half too, and it is the opposite of
@@ -144,6 +147,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // needs the same answer for the browser tab, and used to have no answer at
   // all.
   const locale = await requestLocale();
+  const requestId = (await headers()).get(REQUEST_ID_HEADER);
 
   return (
     <html
@@ -152,6 +156,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${fredoka.variable} ${fredokaExt.variable} ${jakarta.variable} ${jakartaExt.variable} ${plexMono.variable} ${plexMonoMedium.variable} h-full antialiased`}
     >
       <head>
+        {requestId && <meta name="request-id" content={requestId} />}
+        {process.env.GIT_SHA && <meta name="app-version" content={process.env.GIT_SHA.slice(0, 12)} />}
         <ThemeScript />
       </head>
       {/*
@@ -171,6 +177,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       */}
       <body className="flex min-h-full min-w-0 flex-col bg-background text-foreground">
         <ServiceWorkerRegistrar />
+        <ErrorReporter />
         <NavProgress />
         {/* Site identity, the trip list and currency options are all per-user,
             so they are provided by app/at/[user]/layout.tsx rather than here. */}

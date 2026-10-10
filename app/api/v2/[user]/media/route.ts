@@ -7,7 +7,7 @@
 // the domain functions that actually place, list and remove them. This file
 // is only the request glue: parse, authenticate, gate, respond.
 import { mediaIntent, type MediaIntent } from "@/lib/api/v2/schemas";
-import { fail, ok, readDryRun, readJson } from "@/lib/api/v2/route";
+import { fail, ok, readDryRun, readJson, withV2Log } from "@/lib/api/v2/route";
 import { mayActAsOwner, outOfScopeRefusal, ownerOnlyRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { mayWriteTrip, type TripWriteGate } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -87,7 +87,7 @@ function previewOf(intent: MediaIntent, bytes: number) {
   };
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/media">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/media">) {
   const { user } = await params;
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
@@ -114,9 +114,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
 
   const { items, nextCursor } = listTripMediaV2(user, tripId, { limit, cursor });
   return ok({ items, ...(nextCursor ? { next_cursor: nextCursor } : {}) });
-}
+}, { route: "/api/v2/[user]/media" });
 
-export async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/media">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/v2/[user]/media">) {
   const { user } = await params;
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
@@ -234,9 +234,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
   });
   if (!result.ok) return refuseWriteResult(result);
   return ok(result.item, { status: 201 });
-}
+}, { route: "/api/v2/[user]/media" });
 
-export async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]/media">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]/media">) {
   const { user } = await params;
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
@@ -273,4 +273,4 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v2
   const result = deleteMediaV2(user, src);
   if (!result.ok) return fail("unknown_media", ERROR_CODES.unknown_media, undefined, 404);
   return ok({ ok: true, src });
-}
+}, { route: "/api/v2/[user]/media" });

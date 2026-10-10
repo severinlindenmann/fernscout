@@ -55,3 +55,12 @@ test("bad coordinates and unknown files are 404", async () => {
   expect((await call(tile as Handler, "http://x/t", ["other.pmtiles", "1", "1", "1"])).status).toBe(404);
   expect(getZxy).not.toHaveBeenCalled();
 });
+
+test("a tile outside the zoom level's bounds is a quiet 404, never looked up", async () => {
+  expect((await call(tile as Handler, "http://x/t", ["planet.pmtiles", "2", "4", "0"])).status).toBe(404);
+  expect((await call(tile as Handler, "http://x/t", ["planet.pmtiles", "0", "0", "1"])).status).toBe(404);
+  expect((await call(tile as Handler, "http://x/t", ["planet.pmtiles", "27", "0", "0"])).status).toBe(404);
+  expect(getZxy).not.toHaveBeenCalled();
+  getZxy.mockResolvedValue(undefined);
+  expect((await call(tile as Handler, "http://x/t", ["planet.pmtiles", "2", "3", "3"])).status).toBe(204);
+});

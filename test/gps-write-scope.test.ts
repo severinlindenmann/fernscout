@@ -662,7 +662,7 @@ describe("the claim, derived rather than hand-listed", () => {
    * follow that call. */
   function functionsIn(source: string): Map<string, string> {
     const map = new Map<string, string>();
-    const re = /^(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\(/gm;
+    const re = /^(?:export\s+const\s+\w+\s*=\s*withV2Log\(\s*|(?:export\s+)?)(?:async\s+)?function\s+(\w+)\s*\(/gm;
     let match: RegExpExecArray | null;
     while ((match = re.exec(source))) {
       // The parameter list is matched first, not just "the next `{`" —
@@ -673,7 +673,7 @@ describe("the claim, derived rather than hand-listed", () => {
       // "body" at its closing `}`, missing everything the handler actually
       // does — which is exactly how the first version of this scan read
       // every handler here as empty.
-      const parenStart = source.indexOf("(", match.index);
+      const parenStart = source.indexOf("(", source.indexOf("function", match.index));
       if (parenStart === -1) continue;
       let pdepth = 0;
       let parenEnd = -1;
@@ -760,7 +760,7 @@ describe("the claim, derived rather than hand-listed", () => {
         if (!fns.has(verb)) continue;
         // Only an EXPORTED `function VERB(` is a route handler Next.js will
         // actually call — a same-named local helper would be a different bug.
-        if (!new RegExp(`^export\\s+(?:async\\s+)?function\\s+${verb}\\s*\\(`, "m").test(source)) continue;
+        if (!new RegExp(`^export\\s+(?:async\\s+)?function\\s+${verb}\\s*\\(|^export\\s+const\\s+${verb}\\s*=\\s*withV2Log\\(\\s*async\\s+function`, "m").test(source)) continue;
         handlerCount += 1;
         const key = `${file}#${verb}`;
         if (EXEMPT[key]) continue;

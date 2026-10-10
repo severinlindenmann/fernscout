@@ -13,7 +13,7 @@
 // it, so this does not need the second, human-only step deletion does.
 import { tripRenameRequest, tripRenameResult } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { getUser } from "@/lib/users";
@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 
 type RouteCtx = RouteContext<"/api/v2/[user]/trips/[trip]/rename">;
 
-export async function POST(request: Request, { params }: RouteCtx) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteCtx) {
   const { user, trip } = await params;
 
   const auth = await requireJournalOwner(request, user);
@@ -62,4 +62,4 @@ export async function POST(request: Request, { params }: RouteCtx) {
   }
 
   return ok(tripRenameResult.parse({ ok: true, id: renamed.id }));
-}
+}, { route: "/api/v2/[user]/trips/[trip]/rename" });

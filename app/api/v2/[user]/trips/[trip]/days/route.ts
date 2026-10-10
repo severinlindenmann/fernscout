@@ -4,7 +4,7 @@
 // only lists.
 import { dayDoc } from "@/lib/api/v2/schemas";
 import { tripRef } from "@/lib/trips";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser, outOfScopeRefusal } from "@/lib/api/v2/auth";
 import { mayWriteTrip } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -14,7 +14,7 @@ import type { Trip } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days">,
 ) {
@@ -48,4 +48,4 @@ export async function GET(
     .map((d) => dayDoc.parse(withResolvedTest(dayEchoInput(d, tripRef(user, tripId)), stored, d)));
 
   return ok({ trip: tripId, days, next_cursor: next });
-}
+}, { route: "/api/v2/[user]/trips/[trip]/days" });

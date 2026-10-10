@@ -4,7 +4,7 @@
 // into the inbox is no longer its own verb: it is the media door with
 // trip/day declined (POST /api/v2/{user}/media).
 import { inboxList } from "@/lib/api/v2/schemas";
-import { fail, ok } from "@/lib/api/v2/route";
+import { fail, ok, withV2Log } from "@/lib/api/v2/route";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { listInbox, type InboxEntry } from "@/lib/inbox";
@@ -29,7 +29,7 @@ function itemOf(entry: InboxEntry) {
   };
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/inbox">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/inbox">) {
   const { user } = await params;
   if (!getUser(user)) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
 
@@ -56,4 +56,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
     tripWaiting,
   });
   return ok(doc);
-}
+}, { route: "/api/v2/[user]/inbox" });

@@ -975,6 +975,7 @@ export type TranslationKey =
   | "err.photobookUnavailableBody"
   | "err.photobookUnavailableTitle"
   | "err.reference"
+  | "err.requestId"
   | "err.retry"
   | "err.searchJournal"
   | "err.tripGoneBody"

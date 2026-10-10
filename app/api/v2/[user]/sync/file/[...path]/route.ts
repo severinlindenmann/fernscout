@@ -2,7 +2,7 @@
 // Ports app/api/v1/[user]/sync/file/[...path]/route.ts onto the v2 plumbing.
 import fs from "node:fs";
 import { requireHiddenOwner } from "@/lib/api/v2/auth";
-import { fail } from "@/lib/api/v2/route";
+import { fail, withV2Log } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { contentTypeFor } from "@/lib/media";
 import { resolveSyncPath } from "@/lib/sync/manifest";
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  * refused by one is refused by the other, and by the same `not_found`
  * `requireHiddenOwner` answers with everywhere on this surface.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/sync/file/[...path]">,
 ) {
@@ -51,4 +51,4 @@ export async function GET(
       "Cache-Control": "private, no-store",
     },
   });
-}
+}, { route: "/api/v2/[user]/sync/file/[...path]" });

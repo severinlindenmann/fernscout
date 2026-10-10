@@ -21,6 +21,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/maps/
   if (segments.length < 4 || ![z, x, y].every((s) => DIGITS.test(s))) {
     return new Response("Not found", { status: 404 });
   }
+  // pmtiles throws for x or y >= 2^z, and for z above 26.
+  if (Number(z) > 26 || Number(x) >= 2 ** Number(z) || Number(y) >= 2 ** Number(z)) return new Response("Not found", { status: 404 });
   const file = resolveMapsFile(segments.slice(0, -3));
   if (!file) return new Response("Not found", { status: 404 });
 

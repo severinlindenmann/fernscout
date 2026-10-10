@@ -273,11 +273,11 @@ describe("AC6 — the code never reaches the request log", () => {
     const { formatRequestLine } = await import("@/lib/requestLog");
     const code = "abcdefghjkmnpqrs";
     for (const p of [`/t/${code}`, `/t/${code}/open`]) {
-      const line = formatRequestLine("POST", p, "ua");
+      const line = formatRequestLine("POST", p, "ua", "ab12cd34");
       expect(line).not.toContain(code);
       expect(line).toContain("/t/•");
     }
-    expect(formatRequestLine("GET", "/j/abc", "ua")).toContain("/j/abc");
+    expect(formatRequestLine("GET", "/j/abc", "ua", "ab12cd34")).toContain("/j/abc");
   });
 });
 
