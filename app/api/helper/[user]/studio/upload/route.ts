@@ -3,7 +3,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { extendOnTouch } from "@/lib/staging/expiry";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
-import { MAX_FILES_PER_REQUEST, stageFiles } from "@/lib/staging/stageFiles";
+import { MAX_FILES_PER_REQUEST, stageAndAppend } from "@/lib/staging/stageFiles";
 import { readManifest, writeManifest } from "@/lib/staging/manifest";
 import { JOURNAL_STAGING_MAX_BYTES } from "@/lib/validate/media";
 
@@ -59,9 +59,7 @@ export async function POST(
     );
   }
 
-  const { accepted, rejected, stagedBytes } = await stageFiles(user, current, files);
-  current.photos.push(...accepted);
-  writeManifest(user, current);
+  const { accepted, rejected, stagedBytes } = await stageAndAppend(user, current, files);
   return Response.json({
     runId,
     accepted,
