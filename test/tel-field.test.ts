@@ -61,6 +61,14 @@ describe("splitTel / joinTel", () => {
     expect(DIAL_CODES.length).toBeGreaterThan(200);
   });
 
+  test("drops the national trunk 0 after the dialling code, except in Italy", () => {
+    expect(joinTel("41", "076 123 45 67")).toBe("+41 76 123 45 67");
+    expect(joinTel("49", "0151 234567")).toBe("+49 151 234567");
+    expect(joinTel("39", "06 1234 5678")).toBe("+39 06 1234 5678");
+    expect(joinTel("41", "76 123 45 67")).toBe("+41 76 123 45 67");
+    expect(joinTel("41", "0")).toBe("");
+  });
+
   test("no country picked, no digits typed: joinTel stores the empty string", () => {
     expect(joinTel("", "")).toBe("");
   });
