@@ -225,7 +225,7 @@ function MineStrip({ item }: { item: BandTrip }) {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-3xl border-2 border-yellow-400 bg-surface-raised px-4 py-3">
       <div className="flex min-w-0 flex-1 basis-48 flex-col">
         <Kicker>{kicker}</Kicker>
-        <Link href={trip.href} className="truncate font-display text-lg font-semibold text-ink-strong">
+        <Link href={trip.href} title={trip.title} className="truncate font-display text-lg font-semibold text-ink-strong">
           {trip.title}
         </Link>
         {trip.draft && <span className="truncate text-sm text-ink-body">{trip.draft.title}</span>}
@@ -366,7 +366,8 @@ export default function SignedInHome({
   const nothingAnywhere = journals.every((j) => j.role === "admin" || j.trips.length === 0);
   const items = owned.flatMap((journal) => journal.trips.map((trip) => ({ journal, trip })));
   const paper = photobookEnabled ? pickForPaper(items) : undefined;
-  const firstEmpty = owned.find((journal) => journal.trips.length === 0);
+  // An owner whose own journals hold no trip yet gets the one next step.
+  const firstEmpty = owned.every((journal) => journal.trips.length === 0) ? owned[0] : undefined;
   const cards = bands.running.filter((i) => i.trip.latest).slice(0, 2);
   const rows = bands.running.filter((i) => !cards.includes(i));
   const featured = onTheRoad ? undefined : newestDay(journals);
@@ -386,7 +387,7 @@ export default function SignedInHome({
           })}
         </p>
       )}
-      {owned.length > 0 && nothingAnywhere && firstEmpty && <FirstTrip journal={firstEmpty} />}
+      {firstEmpty && <FirstTrip journal={firstEmpty} />}
 
       {!nothingAnywhere && (
         <div className="grid gap-10 md:grid-cols-12 md:gap-12">
@@ -483,9 +484,16 @@ export default function SignedInHome({
             {owned.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {owned.map((journal) => (
-                  <Link key={journal.username} href={`${journalPath(journal.username)}/studio/trip/new`} className={GHOST}>
-                    {owned.length > 1 ? `${t("home.newTrip")} · ${journal.title}` : t("home.newTrip")}
-                  </Link>
+                  <span key={journal.username} className="contents">
+                    {!firstEmpty && (
+                      <Link href={`${journalPath(journal.username)}/studio/trip/new`} className={GHOST}>
+                        {owned.length > 1 ? `${t("home.newTrip")} · ${journal.title}` : t("home.newTrip")}
+                      </Link>
+                    )}
+                    <Link href={`${journalPath(journal.username)}/studio`} className={GHOST}>
+                      {owned.length > 1 ? `${t("home.openStudio")} · ${journal.title}` : t("home.openStudio")}
+                    </Link>
+                  </span>
                 ))}
               </div>
             )}

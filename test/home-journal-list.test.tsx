@@ -27,6 +27,8 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+const RUNNING = { status: "current" as const, start: "2026-10-04", end: "2026-10-14" };
+
 /** Three hundred characters, no space — a real trip in `/xydhd-quiet`. */
 const UNBROKEN = "x".repeat(300);
 
@@ -45,28 +47,47 @@ function journal(overrides: Partial<HomeJournal>): HomeJournal {
 function markup(journals: HomeJournal[], locale = "en"): string {
   return renderToStaticMarkup(
     <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
-      <SignedInHome journals={journals} />
+      <SignedInHome journals={journals} today="2026-10-10" />
     </LocaleProvider>,
   );
 }
 
 describe("a title nobody sane typed (B493)", () => {
-  // B2508 moved the trip links from a wrapping row into a grid of cards; the
-  // rule is the same — the card ends the title in an ellipsis inside a
-  // `min-w-0` cell, and the whole title stays in `title=`.
-  test("a trip card's title is capped and ellipsised rather than pushing the grid wide", () => {
+  // B2508 moved the trip links into cards; B-2975 into rows and a strip. The
+  // rule is the same — the title ends in an ellipsis inside a `min-w-0` cell,
+  // and the whole title stays in `title=`.
+  test("a trip row's title is capped and ellipsised rather than pushing the page wide", () => {
     const html = markup([
       journal({
-        trips: [{ id: "x", title: UNBROKEN, href: "/@ana/x", through: "owner" }],
+        role: "guest",
+        trips: [{ id: "x", title: UNBROKEN, href: "/@ana/x", through: "guest", ...RUNNING }],
       }),
     ]);
     expect(html).toMatch(/<li class="min-w-0">/);
     expect(html).toMatch(new RegExp(`title="${UNBROKEN}" class="[^"]*truncate`));
   });
 
-  test("the Continue title can break mid-word, a shared journal's name is cut short", () => {
-    const own = markup([journal({ trips: [{ id: "x", title: UNBROKEN, href: "/@ana/x", through: "owner" }] })]);
-    expect(own).toMatch(/<h1[^>]*class="[^"]*break-words/);
+  test("the own-trip strip is cut short, a friend's day title can break mid-word, a shared journal's name is cut short", () => {
+    const own = markup([
+      journal({ trips: [{ id: "x", title: UNBROKEN, href: "/@ana/x", through: "owner", ...RUNNING }] }),
+    ]);
+    expect(own).toMatch(new RegExp(`title="${UNBROKEN}" class="[^"]*truncate`));
+    const friend = markup([
+      journal({
+        role: "guest",
+        trips: [
+          {
+            id: "x",
+            title: "t",
+            href: "/@ana/x",
+            through: "guest",
+            ...RUNNING,
+            latest: { slug: "d", title: UNBROKEN, date: "2026-10-09", href: "/@ana/d" },
+          },
+        ],
+      }),
+    ]);
+    expect(friend).toMatch(/<h2[^>]*class="[^"]*break-words/);
     const shared = markup([
       journal({ role: "guest", title: UNBROKEN, trips: [{ id: "x", title: "t", href: "/@ana/x", through: "guest" }] }),
     ]);
@@ -90,10 +111,10 @@ describe("the operator's list (B494)", () => {
   test("their journals are rows under their own heading, not cards", () => {
     const html = markup([mine, ...theirs]);
     expect(html).toContain("Other journals on this server");
-    // The Continue card and the trip links belong to the one journal that
-    // is actually theirs: the operator's rows add no trip link of their own
-    // (the fixture's trips all point at /@ana/alps).
-    expect(html).toContain("Continue");
+    // The trip links belong to the one journal that is actually theirs: the
+    // operator's rows add no trip link of their own (the fixture's trips all
+    // point at /@ana/alps).
+    expect(html).toContain("Your trips");
     const links = (h: string) => h.split('href="/@ana/alps"').length - 1;
     expect(links(html)).toBe(links(markup([mine])));
   });
@@ -108,13 +129,13 @@ describe("the operator's list (B494)", () => {
   test("everybody else sees exactly what they saw before", () => {
     const html = markup([journal({ role: "guest" })]);
     expect(html).not.toContain("Other journals on this server");
-    expect(html).toContain("Shared with you");
+    expect(html).toContain("Two Backpacks");
   });
 });
 
 /**
  * B1948 — the owner's way into their own studio is a link, not prose. B2508
- * made it the Continue card's own button.
+ * made it the Continue card's own button; B-2975 keeps it beside New trip.
  */
 describe("the owner's card links into their own studio (B1948)", () => {
   test("Open the studio is a link to /[user]/studio", () => {
