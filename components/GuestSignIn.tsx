@@ -6,7 +6,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import CodeWaitPanel, { useSmsSignIn } from "@/components/CodeWaitPanel";
 import TelField, { joinTel } from "@/components/TelField";
 import { toE164 } from "@/lib/phone";
-import { regionDefaults } from "@/lib/regionDefaults";
+import { browserTimeZone, phoneCountry } from "@/lib/regionDefaults";
 
 const subscribeNothing = () => () => {};
 const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(navigator.languages ?? [navigator.language])].join(","));
@@ -59,9 +59,10 @@ export default function GuestSignIn({
   const smsOn = useSmsSignIn();
   const [channel, setChannel] = useState<"email" | "phone">("email");
   const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
-  const region = useMemo(() => regionDefaults(languages ? languages.split(",") : []), [languages]);
+  const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
+  const region = useMemo(() => phoneCountry(languages ? languages.split(",") : [], timeZone), [languages, timeZone]);
   const [telPick, setTelPick] = useState<{ cc: string; iso2?: string } | null>(null);
-  const cc = telPick?.cc ?? region.cc ?? "";
+  const cc = telPick?.cc ?? region.cc;
   const [national, setNational] = useState("");
   const [phoneProblem, setPhoneProblem] = useState<string | null>(null);
   const tel = joinTel(cc, national);
@@ -153,7 +154,7 @@ export default function GuestSignIn({
               <TelField
                 id="signin-tel"
                 cc={cc}
-                iso2={telPick ? telPick.iso2 : (region.region ?? undefined)}
+                iso2={telPick ? telPick.iso2 : region.iso2}
                 national={national}
                 onChange={(nextCc, nextNational, iso2) => {
                   setTelPick({ cc: nextCc, iso2 });

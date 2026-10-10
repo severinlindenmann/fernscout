@@ -101,8 +101,12 @@ export function splitTel(tel: string): { cc: string; national: string } {
  * `toE164` for exactly the reason it always was.
  */
 export function joinTel(cc: string, national: string): string {
-  const digits = national.trim();
+  let digits = national.trim();
   if (cc === "" || digits === "") return digits;
+  // A national trunk 0 is not part of the international number (+41 076… is
+  // unroutable). Italy keeps it: the 0 of its landlines is part of the number.
+  if (cc !== "39") digits = digits.replace(/^0\s*/, "");
+  if (digits === "") return "";
   return `+${cc} ${digits}`;
 }
 

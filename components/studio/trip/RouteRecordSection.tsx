@@ -69,7 +69,7 @@ export default function RouteRecordSection({
 }) {
   const native = useNativeShell();
   const [localToday] = useState(() => todayISO(Date.now()));
-  const { t, locale } = useI18n();
+  const { t, locale, formatShortDate } = useI18n();
   const [status, setStatus] = useState<RouteRecordStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [permission, setPermission] = useState<LocationPermission | null>(null);
@@ -248,7 +248,6 @@ export default function RouteRecordSection({
 
   const fmt = (iso: string) =>
     new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
-  const fmtDate = (iso: string) => new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(new Date(iso));
 
   return (
     <section id="section-route" className={bare ? undefined : "mt-8 border-t border-line-quiet pt-6"}>
@@ -279,7 +278,7 @@ export default function RouteRecordSection({
           <p className="text-sm text-ink-strong">
             {/* Armed ahead of its start: "since" would name a day the trip had not begun. */}
             {trip.start > localToday
-              ? t("studio.location.plan.recordsFrom", { date: fmtDate(trip.start) })
+              ? t("studio.location.plan.recordsFrom", { date: formatShortDate(trip.start) })
               : t("studio.record.recordingSince", { since: fmt(status.since) })}
             {status.lastUploadAt ? ` · ${t("studio.record.lastUpload", { at: fmt(status.lastUploadAt) })}` : ""}
           </p>
@@ -318,7 +317,7 @@ export default function RouteRecordSection({
 
       {status?.state === "stopped" && (
         <div className="mt-3">
-          <p className="text-sm text-ink-strong">{t("studio.record.stoppedOn", { date: fmtDate(status.stoppedOn) })}</p>
+          <p className="text-sm text-ink-strong">{t("studio.record.stoppedOn", { date: formatShortDate(status.stoppedOn) })}</p>
           <button type="button" disabled={busy} onClick={() => void keep()} className={BUTTON}>
             {t("studio.record.keepRecording")}
           </button>

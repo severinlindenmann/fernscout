@@ -34,6 +34,8 @@ export type CommentRepo = {
   remove(tripId: string, daySlug: string, id: string): Promise<boolean>;
   /** Every comment on one trip (`<user>/<trip>`) - the trip is being deleted. */
   removeForTrip(tripId: string): Promise<void>;
+  /** A trip was renamed: every comment moves from one `<user>/<trip>` ref to the other. */
+  moveForTrip(oldRef: string, newRef: string): Promise<void>;
   /** Every comment one address wrote in one journal - the contact is being deleted. */
   removeByAuthor(owner: string, authorEmail: string): Promise<void>;
   /** How many comments this address has written on this trip since `sinceIso`. */

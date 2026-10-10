@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { browserRegion, countryForTel, regionDefaults, resolveCurrency } from "@/lib/regionDefaults";
+import { browserRegion, countryForTel, phoneCountry, regionDefaults, resolveCurrency } from "@/lib/regionDefaults";
 
 describe("countryForTel (B-2845)", () => {
   test("longest dial code wins; a shared code with several currencies names nothing", () => {
@@ -44,5 +44,17 @@ describe("regionDefaults (B-2807)", () => {
   });
   test("a malformed tag is skipped", () => {
     expect(browserRegion(["not a tag!!", "fr-CH"])).toBe("CH");
+  });
+});
+
+describe("phoneCountry (B-2974)", () => {
+  test("time zone beats the language region", () => {
+    expect(phoneCountry(["en-GB"], "Europe/Zurich")).toEqual({ iso2: "CH", cc: "41" });
+    expect(phoneCountry(["en-GB"], "Europe/Berlin")).toEqual({ iso2: "DE", cc: "49" });
+  });
+  test("language region, then the configured code, then Switzerland", () => {
+    expect(phoneCountry(["de-AT"], "")).toEqual({ iso2: "AT", cc: "43" });
+    expect(phoneCountry(["en"], "UTC", "+44")).toMatchObject({ cc: "44" });
+    expect(phoneCountry([], null)).toEqual({ iso2: "CH", cc: "41" });
   });
 });
