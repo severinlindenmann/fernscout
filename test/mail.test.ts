@@ -814,7 +814,7 @@ describe("keeping a copy of mail that was really sent", () => {
     vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
 
     const withoutBoundary = (text: string) =>
-      text.replace(/fs-[a-z0-9]+-[a-z0-9]+/g, "BOUNDARY");
+      text.replace(/fs-[a-z0-9]+-[a-z0-9]+/g, "BOUNDARY").replace(/Message-ID: <[^@]+@/, "Message-ID: <ID@");
 
     writeConfig({ enabled: true, transport: "file" });
     const viaFile = await sendMail(mail);
