@@ -268,7 +268,11 @@ export async function keepsTrip(owner: string, tripId: string, email: string): P
 
 /** Every keep that has not been removed, across this owner's links. */
 export async function liveKeeps(owner: string) {
-  const { db } = await getDatabase();
+  // The Readers page renders without a database too (the file-backed test
+  // run); no database means no keeps rather than a crash.
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const { db } = handle;
   const rows = await db
     .selectFrom("trip_link_keeps")
     .select(["id", "invite_id", "trip_id", "contact_id"])
@@ -284,7 +288,9 @@ export async function liveKeeps(owner: string) {
 export async function readLinkExtras(
   owner: string,
 ): Promise<Map<string, { url: string | null; lastUsedAt: string | null; keeperIds: string[] }>> {
-  const { db } = await getDatabase();
+  const handle = await getDatabaseOrNull();
+  if (!handle) return new Map();
+  const { db } = handle;
   const rows = await db
     .selectFrom("contact_invites")
     .select(["id", "read_code_cipher", "last_used_at", "revoked_at", "expires_at"])
