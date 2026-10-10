@@ -35,4 +35,7 @@ describe("scrubLog", () => {
     expect(scrubLog("t Ab3-Cd4-Ef5-Gh6-Ij7-Kl8-Mn9-Op0 end", 200)).toBe("t [redacted] end");
     expect(scrubLog("2026-10-01-lisbon-to-porto-and-the-douro", 200)).toBe("2026-10-01-lisbon-to-porto-and-the-douro");
   });
+  it("redacts a coordinate pair", () => {
+    expect(scrubLog("at 46.8182, 8.2275 failed", 200)).toBe("at [coords] failed");
+  });
 });

@@ -37,9 +37,15 @@ describe("POST /api/v2/client-error", () => {
   });
 
   it("refuses an oversize body with 413", async () => {
-    const res = await call({ ...valid, stack: "x".repeat(5 * 1024 * 1024) });
+    const res = await call({ ...valid, stack: "x".repeat(20 * 1024) });
     expect(res.status).toBe(413);
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("keeps at most 12 stack lines, so one report cannot flood the log", async () => {
+    const res = await call({ ...valid, stack: Array.from({ length: 500 }, () => "a").join("\n") }, "192.0.2.201");
+    expect(res.status).toBe(204);
+    expect(String(spy.mock.calls[0][0]).split("\n")).toHaveLength(13);
   });
 
   it("refuses an invalid body with the error envelope", async () => {
