@@ -53,6 +53,16 @@ export function fileCommentRepo(): CommentRepo {
       return removed;
     },
 
+    async removeForTrip(tripId) {
+      await updateStore<StoredComment[]>(FILE, EMPTY, (all) => all.filter((c) => c.tripId !== tripId));
+    },
+
+    async removeByAuthor(owner, authorEmail) {
+      await updateStore<StoredComment[]>(FILE, EMPTY, (all) =>
+        all.filter((c) => !(c.tripId.split("/")[0] === owner && c.authorEmail === authorEmail)),
+      );
+    },
+
     async countByAuthorSince(tripId, authorEmail, sinceIso) {
       const all = await readStore<StoredComment[]>(FILE, EMPTY);
       return all.filter((c) => c.tripId === tripId && c.authorEmail === authorEmail && c.createdAt >= sinceIso).length;

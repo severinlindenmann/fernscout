@@ -2320,6 +2320,7 @@
   "comments.tooLong": "Ein Kommentar darf höchstens {max} Zeichen lang sein. Dein Text bleibt erhalten.",
   "comments.rateLimited": "Gerade zu viele Kommentare. Versuche es in {minutes} Min. noch einmal. Dein Text bleibt erhalten.",
   "comments.offline": "Du bist anscheinend offline. Dein Text bleibt erhalten; versuche es noch einmal, wenn du wieder online bist.",
+  "comments.anonymous": "Ein Leser",
   "comments.push.body": "{name} hat {day} kommentiert",
   "region.kanton": "Kanton",
   "region.bundesland": "Bundesland",

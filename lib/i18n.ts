@@ -596,6 +596,7 @@ export type TranslationKey =
   | "codeWait.valid"
   | "codeWait.wrongAddress"
   | "codeWait.wrongNumber"
+  | "comments.anonymous"
   | "comments.count"
   | "comments.count.one"
   | "comments.delete"

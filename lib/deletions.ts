@@ -24,6 +24,7 @@ import { getTrip, getTrips, parseTripRef, tripDir, tripRef } from "./trips";
 import { entitlementHistory } from "@paid/billing/lib/entitlements";
 import { cancelOwnerSubscription } from "@paid/billing/lib/plan-checkout";
 import { clearUserCache, getUser, userDir } from "./users";
+import { commentRepo } from "./repos";
 import { sql, type Kysely } from "kysely";
 
 import { journalPath } from "./journalPath";
@@ -987,7 +988,11 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
       await sql`delete from ${sql.table(table)} where owner_id = ${username}`.execute(db);
     }
     await stripMoneyTables(db, username);
-    for (const trip of getTrips(username)) forgetEntries(tripRef(username, trip.id));
+    for (const trip of getTrips(username)) {
+      forgetEntries(tripRef(username, trip.id));
+      // The file store has no owner_id sweep above; this is its only cleanup.
+      await (await commentRepo()).removeForTrip(tripRef(username, trip.id));
+    }
     fs.rmSync(dir, { recursive: true, force: true });
     await sql`delete from ${sql.table("deletion_requests")} where owner_id = ${username}`.execute(db);
   } catch (err) {
@@ -1073,6 +1078,9 @@ export async function deleteTrip(
         db,
       );
     }
+    // Comments key on the full ref (`<user>/<trip>`), which the bare-id sweep
+    // above never matches; a recreated trip must not inherit them.
+    await (await commentRepo()).removeForTrip(ref);
     forgetEntries(ref);
     fs.rmSync(tripDir(ref), { recursive: true, force: true });
     // B2259 — the trip's recently deleted days go with it.

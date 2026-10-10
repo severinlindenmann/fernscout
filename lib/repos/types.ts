@@ -32,6 +32,10 @@ export type CommentRepo = {
   add(comment: Omit<StoredComment, "id" | "editedAt">): Promise<StoredComment>;
   update(tripId: string, daySlug: string, id: string, body: string): Promise<StoredComment | null>;
   remove(tripId: string, daySlug: string, id: string): Promise<boolean>;
+  /** Every comment on one trip (`<user>/<trip>`) - the trip is being deleted. */
+  removeForTrip(tripId: string): Promise<void>;
+  /** Every comment one address wrote in one journal - the contact is being deleted. */
+  removeByAuthor(owner: string, authorEmail: string): Promise<void>;
   /** How many comments this address has written on this trip since `sinceIso`. */
   countByAuthorSince(tripId: string, authorEmail: string, sinceIso: string): Promise<number>;
 };

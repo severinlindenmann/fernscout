@@ -2320,6 +2320,7 @@
   "comments.tooLong": "Un commento può avere al massimo {max} caratteri. Il tuo testo è conservato.",
   "comments.rateLimited": "Troppi commenti in questo momento. Riprova tra {minutes} min. Il tuo testo è conservato.",
   "comments.offline": "Sembri essere offline. Il tuo testo è conservato; riprova quando torni online.",
+  "comments.anonymous": "Un lettore",
   "comments.push.body": "{name} ha commentato {day}",
   "region.kanton": "cantone",
   "region.bundesland": "land",

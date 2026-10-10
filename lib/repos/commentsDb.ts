@@ -108,6 +108,14 @@ export function dbCommentRepo(handle: DatabaseHandle): CommentRepo {
       return Number(result.numDeletedRows) > 0;
     },
 
+    async removeForTrip(tripId) {
+      await db.deleteFrom("comments").where("owner_id", "=", ownerOf(tripId)).where("trip_id", "=", tripId).execute();
+    },
+
+    async removeByAuthor(owner, authorEmail) {
+      await db.deleteFrom("comments").where("owner_id", "=", owner).where("author_email", "=", authorEmail).execute();
+    },
+
     async countByAuthorSince(tripId, authorEmail, sinceIso) {
       const row = await db
         .selectFrom("comments")

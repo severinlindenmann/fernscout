@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { afterResponse } from "@/lib/afterResponse";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isEnabled } from "@/lib/capabilities";
 import {
   COMMENT_MAX_LENGTH,
@@ -136,6 +137,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (foreignOrigin(request)) return json(FOREIGN_ORIGIN_REFUSAL, 403);
   const limit = rateLimitFor("comments", clientIp(request), { max: 10, windowMs: 60_000 });
   if (!limit.ok) return json({ error: "rate_limited", retryAfter: limit.retryAfter }, 429, { "retry-after": String(limit.retryAfter) });
 
@@ -182,7 +184,7 @@ export async function POST(request: Request) {
               template: "news.push",
               subscriptions: group,
               title: getUser(username)?.title ?? username,
-              body: translateIn(locale, "comments.push.body", { name: r.viewer.name, day: r.title }),
+              body: translateIn(locale, "comments.push.body", { name: r.viewer.name || translateIn(locale, "comments.anonymous"), day: r.title }),
               url,
               tag: `comment-${r.day}`,
               locale,
@@ -199,6 +201,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (foreignOrigin(request)) return json(FOREIGN_ORIGIN_REFUSAL, 403);
   const read = await readBody(request);
   if (read.refusal) return read.refusal;
   const r = await resolve(read.body.trip, read.body.day);
@@ -220,6 +223,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (foreignOrigin(request)) return json(FOREIGN_ORIGIN_REFUSAL, 403);
   const read = await readBody(request);
   if (read.refusal) return read.refusal;
   const r = await resolve(read.body.trip, read.body.day);
