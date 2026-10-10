@@ -5,6 +5,7 @@ import { patchTripParty, readTripParty } from "@/lib/api/tripParty";
 import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { addPerson } from "@/lib/samePerson";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,9 @@ export async function PATCH(
   }
 
   const existing = readTripParty(ref)?.people ?? [];
-  const merged = [...existing.filter((one) => one.email?.toLowerCase() !== email), { name, email }];
+  // `addPerson`, not an email filter: a name-only entry of the same name is
+  // this person without an address yet, and gets the address (B-2949).
+  const merged = addPerson(existing, { name, email });
 
   const result = patchTripParty(ref, "people", merged);
   if (!result.ok) {

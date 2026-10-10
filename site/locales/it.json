@@ -5010,7 +5010,6 @@
   "codeWait.sent": "Abbiamo inviato un codice di 6 cifre a {email}.",
   "codeWait.sentIf": "Se {email} può usarlo, un codice di 6 cifre è in arrivo.",
   "codeWait.valid": "Vale {minutes} minuti.",
-  "codeWait.digit": "Cifra {n} di 6",
   "codeWait.stepFrom": "Cerca un'email da {sender} con l'oggetto «123456 è il tuo codice per …».",
   "codeWait.stepSpam": "Dopo un minuto non c'è ancora? Controlla Spam o Posta indesiderata. In Gmail guarda anche in Promozioni.",
   "codeWait.stepNotSpam": "L'hai trovata nello spam? Segnala «Non è spam», così la prossima arriva.",
@@ -5131,5 +5130,16 @@
   "join.ready.digestHint": "Puoi disattivarlo in qualsiasi momento.",
   "join.ready.howTitle": "Come tornare",
   "join.ready.howBodyEmail": "Aggiungi il diario ai segnalibri dopo averlo aperto. Questo browser di solito ti riconosce. Su un altro dispositivo, o se ti viene chiesto di accedere di nuovo, conferma lo stesso indirizzo email.",
-  "join.ready.howBodyPhone": "Aggiungi il diario ai segnalibri dopo averlo aperto. Questo browser di solito ti riconosce. Su un altro dispositivo, o se ti viene chiesto di accedere di nuovo, conferma lo stesso numero di telefono."
+  "join.ready.howBodyPhone": "Aggiungi il diario ai segnalibri dopo averlo aperto. Questo browser di solito ti riconosce. Su un altro dispositivo, o se ti viene chiesto di accedere di nuovo, conferma lo stesso numero di telefono.",
+  "agent.tool.tripPeopleUpgrade": "{name} è già tra gli autori di {trip} senza indirizzo: l'indirizzo viene aggiunto a quella voce, non ne nasce una seconda.",
+  "me.signInBodyPhone": "Se sei entrato con il tuo numero di cellulare, inseriscilo qui e ti invieremo un codice a sei cifre via SMS.",
+  "me.signInPhone": "Il tuo numero di cellulare",
+  "me.signInPhoneBad": "Controlla il numero e la bandiera del paese.",
+  "me.signInPhoneUnavailable": "Da qui non possiamo inviare SMS a questo numero. Usa invece il tuo indirizzo email.",
+  "me.signInUsePhone": "Usa invece il mio numero di cellulare",
+  "me.signInUseEmail": "Usa invece il mio indirizzo email",
+  "codeWait.titlePhone": "Controlla i tuoi messaggi",
+  "codeWait.sentIfPhone": "Se {number} può usarlo, un codice a 6 cifre sta arrivando via SMS.",
+  "codeWait.iphonePhone": "Su iPhone, tocca il codice sopra la tastiera quando arriva l’SMS.",
+  "codeWait.wrongNumber": "Numero sbagliato?"
 }

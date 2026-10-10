@@ -18,6 +18,7 @@ import {
 import { MAX_TRIP_PEOPLE } from "../../../trips";
 import { costItem, costLines, dayDoc, dayWrite } from "./day";
 import { tripFigures } from "./figures";
+import { samePerson } from "../../../samePerson";
 import {
   checkPatchConflicts,
   checkRequiredOrDeclined,
@@ -327,11 +328,14 @@ const tripBase = z
       .min(1)
       .max(MAX_TRIP_PEOPLE)
       .refine(
-        (list) => {
-          const keys = list.map((p) => (p.email ? p.email.toLowerCase() : `name:${p.name}`));
-          return new Set(keys).size === keys.length;
+        // `samePerson` (B-2949): the same address, or — when one side has none —
+        // the same name. A name-only "Nicolas" beside an addressed one is one
+        // person twice.
+        (list) => list.every((p, i) => list.slice(i + 1).every((q) => !samePerson(p, q))),
+        {
+          message:
+            "each person appears once: a duplicate address, or a name with no address that another entry already has (give that entry the address instead)",
         },
-        { message: "each person appears once: a duplicate address, or a duplicate name among people without one" },
       ),
     /** Required on a closed trip (guest/private): may the trip's existence
      * show as a locked card? A boolean is its own answer, so there is no

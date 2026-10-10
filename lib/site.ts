@@ -3,6 +3,7 @@ import { isEnabled } from "./capabilities";
 import { analyticsAvailable } from "./analytics";
 import { loadServerConfig, type UserConfig } from "./config";
 import { getUser } from "./users";
+import { resolveJournalFigures } from "./trips";
 import type { Figure } from "./travellers/vocabulary";
 import type { Trip, TripPerson } from "./types";
 
@@ -358,7 +359,7 @@ export function siteSummaryFor(
     baseCurrency: user.baseCurrency,
     locales: user.locales,
     base: journalPath(user.username),
-    travellerFigures: user.travellers.map(withoutAddress),
+    travellerFigures: resolveJournalFigures(user).map(withoutAddress),
     signedIn,
     hasIdentity,
     isOwner,

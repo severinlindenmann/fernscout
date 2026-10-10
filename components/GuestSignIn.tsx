@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
-import CodeWaitPanel from "@/components/CodeWaitPanel";
+import CodeWaitPanel, { useSmsSignIn } from "@/components/CodeWaitPanel";
+import TelField, { joinTel } from "@/components/TelField";
+import { toE164 } from "@/lib/phone";
+import { regionDefaults } from "@/lib/regionDefaults";
+
+const subscribeNothing = () => () => {};
+const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(navigator.languages ?? [navigator.language])].join(","));
 
 /**
  * The way back in, for somebody who has been here before.
@@ -47,7 +53,18 @@ export default function GuestSignIn({
    */
   destination?: string;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  // B-2948: a returning guest who joined by mobile number confirms the number.
+  // Offered only where the instance texts codes; the server decides again.
+  const smsOn = useSmsSignIn();
+  const [channel, setChannel] = useState<"email" | "phone">("email");
+  const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
+  const region = useMemo(() => regionDefaults(languages ? languages.split(",") : []), [languages]);
+  const [telPick, setTelPick] = useState<{ cc: string; iso2?: string } | null>(null);
+  const cc = telPick?.cc ?? region.cc ?? "";
+  const [national, setNational] = useState("");
+  const [phoneProblem, setPhoneProblem] = useState<string | null>(null);
+  const tel = joinTel(cc, national);
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -61,20 +78,30 @@ export default function GuestSignIn({
       body: JSON.stringify({
         for: "read",
         user: username,
-        email: value,
-        destination,
+        ...(channel === "phone" ? { phone: value } : { email: value, destination }),
       }),
-    }).catch(() => {});
+    }).catch(() => null);
 
   async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // Read what the field actually holds rather than trusting `email` to
     // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
-    const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    const value = channel === "phone" ? tel.trim() : String(new FormData(event.currentTarget).get("email") ?? "");
+    if (channel === "phone" && toE164(value) === null) {
+      setPhoneProblem(t("me.signInPhoneBad"));
+      return;
+    }
+    setPhoneProblem(null);
     setEmail(value);
     setBusy(true);
-    await postCode(value);
+    const sent = await postCode(value);
     setBusy(false);
+    // A number the server cannot text (instance, country) is the one answer
+    // that does not depend on who the number belongs to, so it is said.
+    if (channel === "phone" && sent && !sent.ok) {
+      setPhoneProblem(t("me.signInPhoneUnavailable"));
+      return;
+    }
     // Always forward, whatever came back. Stopping here for an address we do
     // not know would answer the question the uniform 202 exists to refuse.
     setStep("code");
@@ -86,7 +113,7 @@ export default function GuestSignIn({
     const response = await fetch("/api/auth/codes/redeem", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "read", user: username, email, code: value }),
+      body: JSON.stringify({ for: "read", user: username, ...(channel === "phone" ? { phone: email } : { email }), code: value }),
     }).catch(() => null);
 
     if (response?.ok) {
@@ -110,30 +137,59 @@ export default function GuestSignIn({
   return (
     <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
       <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {t(step === "code" ? "codeWait.title" : "me.signInTitle")}
+        {t(step === "code" ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : "me.signInTitle")}
       </h2>
 
       {step === "email" ? (
         <form onSubmit={requestCode}>
           <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("me.signInBody")}
+            {t(channel === "phone" ? "me.signInBodyPhone" : "me.signInBody")}
           </p>
-          <label
-            htmlFor="signin-email"
-            className="mt-4 block text-base font-medium text-ink-body"
-          >
-            {t("me.signInEmail")}
-          </label>
-          <input
-            id="signin-email"
-            type="email"
-            name="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={field}
-          />
+          {channel === "phone" ? (
+            <div className="mt-4">
+              <label htmlFor="signin-tel" className="block text-base font-medium text-ink-body">
+                {t("me.signInPhone")}
+              </label>
+              <TelField
+                id="signin-tel"
+                cc={cc}
+                iso2={telPick ? telPick.iso2 : (region.region ?? undefined)}
+                national={national}
+                onChange={(nextCc, nextNational, iso2) => {
+                  setTelPick({ cc: nextCc, iso2 });
+                  setNational(nextNational);
+                }}
+                labelCountry={t("contact.telCountry")}
+                searchPlaceholder={t("contact.telSearchPlaceholder")}
+                noMatches={t("contact.telNoMatches")}
+                locale={locale}
+              />
+              {phoneProblem && (
+                <p role="alert" className="mt-2 text-base text-coral-600">
+                  {phoneProblem}
+                </p>
+              )}
+            </div>
+          ) : (
+            <>
+              <label
+                htmlFor="signin-email"
+                className="mt-4 block text-base font-medium text-ink-body"
+              >
+                {t("me.signInEmail")}
+              </label>
+              <input
+                id="signin-email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={field}
+              />
+            </>
+          )}
           {/* No `disabled={email === ""}` — B787. That React state can be
               stale when autofill sets the field without firing `onChange`,
               leaving the button dead with a real address already in it.
@@ -147,6 +203,21 @@ export default function GuestSignIn({
           >
             {t("me.signInSend")}
           </BusyButton>
+          {smsOn && (
+            <p className="mt-3">
+              <button
+                type="button"
+                className="min-h-11 text-base text-ink-secondary underline underline-offset-4"
+                onClick={() => {
+                  setChannel(channel === "phone" ? "email" : "phone");
+                  setPhoneProblem(null);
+                  setEmail("");
+                }}
+              >
+                {t(channel === "phone" ? "me.signInUseEmail" : "me.signInUsePhone")}
+              </button>
+            </p>
+          )}
         </form>
       ) : (
         <CodeWaitPanel
@@ -166,6 +237,7 @@ export default function GuestSignIn({
           busy={busy}
           errorText={wrong ? t("me.signInWrong") : null}
           buttonClassName={button}
+          channel={channel}
         />
       )}
     </section>
