@@ -372,6 +372,12 @@ describe("the message format", () => {
     expect(raw).toContain("text/html; charset=UTF-8");
   });
 
+  test("carries a Message-ID on the From domain", () => {
+    const mail = renderMail("r@example.test", "S", SAMPLE);
+    expect(buildMessage(mail, "Fernscout <hello@fernscout.ch>")).toMatch(/\r\nMessage-ID: <[0-9a-f-]+@fernscout\.ch>\r\n/);
+    expect(buildMessage(mail, "hello@fernscout.ch")).toContain("@fernscout.ch>");
+  });
+
   test("encodes a subject that is not plain ASCII", () => {
     const mail = renderMail("r@example.test", "Grüsse aus Hội An", SAMPLE);
     const raw = buildMessage(mail, "a@b.test");
