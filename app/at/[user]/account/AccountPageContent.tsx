@@ -778,7 +778,7 @@ function MeterRow({ label, value, percent }: { label: string; value: string; per
       {percent !== undefined && (
         <div className="h-2 w-full overflow-hidden rounded-full bg-surface-selected">
           <div
-            className="h-2 rounded-full bg-ink-strong"
+            className={`h-2 rounded-full ${percent >= 100 ? "bg-coral-400" : "bg-ink-strong"}`}
             style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
           />
         </div>
