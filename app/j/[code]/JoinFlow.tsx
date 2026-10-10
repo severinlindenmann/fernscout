@@ -22,7 +22,7 @@ import {
 } from "@/components/guide/GuideParts";
 import { translate, type TranslationKey } from "@/lib/i18n";
 import { toE164 } from "@/lib/phone";
-import { regionDefaults } from "@/lib/regionDefaults";
+import { browserTimeZone, phoneCountry } from "@/lib/regionDefaults";
 
 import { journalPath } from "@/lib/journalPath";
 const subscribeNothing = () => () => {};
@@ -118,9 +118,10 @@ export default function JoinFlow({
   // The flag and dialling code (`TelField`), guessed from the browser's
   // languages the way signup does until the visitor picks one.
   const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
-  const region = useMemo(() => regionDefaults(languages ? languages.split(",") : []), [languages]);
+  const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
+  const region = useMemo(() => phoneCountry(languages ? languages.split(",") : [], timeZone), [languages, timeZone]);
   const [telPick, setTelPick] = useState<{ cc: string; iso2?: string } | null>(null);
-  const cc = telPick?.cc ?? region.cc ?? "";
+  const cc = telPick?.cc ?? region.cc;
   const [national, setNational] = useState("");
   const tel = joinTel(cc, national);
 
@@ -354,7 +355,7 @@ export default function JoinFlow({
               <TelField
                 id="join-tel"
                 cc={cc}
-                iso2={telPick ? telPick.iso2 : (region.region ?? undefined)}
+                iso2={telPick ? telPick.iso2 : region.iso2}
                 national={national}
                 onChange={(nextCc, nextNational, iso2) => {
                   setTelPick({ cc: nextCc, iso2 });

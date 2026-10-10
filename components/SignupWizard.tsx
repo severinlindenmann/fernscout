@@ -13,7 +13,7 @@ import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
 import { journalPath, suggestionsFor, usernameFrom, USERNAME_RE } from "@/lib/journalPath";
 import { CURRENCY_FOR_COUNTRY } from "@/lib/countryCurrency";
-import { countryForTel, regionDefaults, resolveCurrency } from "@/lib/regionDefaults";
+import { browserTimeZone, countryForTel, phoneCountry, resolveCurrency } from "@/lib/regionDefaults";
 import { COUNTRIES } from "@/lib/countries";
 
 /** `window.location.host` never changes under a mounted page. */
@@ -110,7 +110,6 @@ const ALL_CURRENCIES = [...new Set(Object.values(CURRENCY_FOR_COUNTRY))].sort();
 const RESEND_SECONDS = 30;
 
 const subscribeNothing = () => () => {};
-const browserTimeZone = () => (typeof Intl === "undefined" ? "" : (Intl.DateTimeFormat().resolvedOptions().timeZone ?? ""));
 const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(navigator.languages ?? [navigator.language])].join(","));
 
 /** Asks the open availability route; `ok: null` means "could not tell" — the
@@ -237,7 +236,6 @@ export default function SignupWizard({
   const [email, setEmail] = useState(prefillEmail ?? "");
   const host = useSyncExternalStore(noSubscription, () => window.location.host, () => "");
   const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
-  const defaults = useMemo(() => regionDefaults(languages ? languages.split(",") : []), [languages]);
   const proven = Boolean(prefillEmail) && email.trim().toLowerCase() === prefillEmail!.toLowerCase();
   const [code, setCode] = useState("");
   const [signupToken, setSignupToken] = useState(initialSignupToken ?? "");
@@ -273,11 +271,14 @@ export default function SignupWizard({
   // B-2825: the country, not just its dial code, so a +44 region shows the
   // United Kingdom and a +1 one the country the person picked.
   const [telIso, setTelIso] = useState<string | undefined>(undefined);
-  const telCc = telPick ?? defaults.cc ?? phoneCountryCode ?? "";
   // B-2845: the currency's evidence, best first. The number is the one the
   // server proved (its redeem answer), never a region default in the field.
   const [provenTel, setProvenTel] = useState("");
   const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
+  const phone = useMemo(
+    () => phoneCountry(languages ? languages.split(",") : [], timeZone, phoneCountryCode),
+    [languages, timeZone, phoneCountryCode],
+  );
   const resolved = useMemo(
     () =>
       resolveCurrency({
@@ -287,6 +288,7 @@ export default function SignupWizard({
       }),
     [provenTel, telIso, timeZone, languages],
   );
+  const telCc = telPick ?? phone.cc;
   const numberCc = COUNTRIES.find((c) => c.iso2 === resolved.country)?.cc ?? "";
   const currency = currencyPick ?? resolved.currency ?? "";
   const [phoneId, setPhoneId] = useState("");
@@ -1076,7 +1078,7 @@ export default function SignupWizard({
             <TelField
               id="signup-tel"
               cc={telCc}
-              iso2={telPick === null ? (defaults.region ?? undefined) : telIso}
+              iso2={telPick === null ? phone.iso2 : telIso}
               national={telNational}
               onChange={(cc, national, iso) => {
                 setTelPick(cc);

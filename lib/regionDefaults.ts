@@ -76,3 +76,34 @@ export function regionDefaults(languages: readonly string[]): {
     cc: COUNTRIES.find((c) => c.iso2 === region)?.cc ?? null,
   };
 }
+
+/** The device's IANA time zone, "" where unreadable. Client-side only; read it
+ * through `useSyncExternalStore` with a "" server snapshot. */
+export const browserTimeZone = () =>
+  typeof Intl === "undefined" ? "" : (Intl.DateTimeFormat().resolvedOptions().timeZone ?? "");
+
+/**
+ * B-2974. Where a phone field opens, from the best evidence in order: the
+ * device time zone's country, an explicit language region (en-GB alone is the
+ * weakest: an iPhone in English (UK) sends it from Zurich), the instance's
+ * configured dialling code (digits, no `+`), then Switzerland. Only a starting
+ * value; the person can pick any country.
+ */
+export function phoneCountry(
+  languages: readonly string[],
+  timeZone?: string | null,
+  configuredCc?: string | null,
+): { iso2: string; cc: string } {
+  const pick = (iso2: string | null | undefined) => {
+    const cc = iso2 ? COUNTRIES.find((c) => c.iso2 === iso2)?.cc : undefined;
+    return cc ? { iso2: iso2!, cc } : null;
+  };
+  const configured = configuredCc?.replace(/^\+/, "");
+  const byCc = configured ? COUNTRIES.find((c) => c.cc === configured) : undefined;
+  return (
+    pick(timeZone ? COUNTRY_FOR_TIME_ZONE[timeZone] : null) ??
+    pick(browserRegion(languages)) ??
+    (byCc ? { iso2: byCc.iso2, cc: byCc.cc } : null) ??
+    { iso2: "CH", cc: "41" }
+  );
+}
