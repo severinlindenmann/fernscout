@@ -57,6 +57,12 @@ export function fileCommentRepo(): CommentRepo {
       await updateStore<StoredComment[]>(FILE, EMPTY, (all) => all.filter((c) => c.tripId !== tripId));
     },
 
+    async moveForTrip(oldRef, newRef) {
+      await updateStore<StoredComment[]>(FILE, EMPTY, (all) =>
+        all.map((c) => (c.tripId === oldRef ? { ...c, tripId: newRef } : c)),
+      );
+    },
+
     async removeByAuthor(owner, authorEmail) {
       await updateStore<StoredComment[]>(FILE, EMPTY, (all) =>
         all.filter((c) => !(c.tripId.split("/")[0] === owner && c.authorEmail === authorEmail)),

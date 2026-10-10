@@ -7,6 +7,7 @@ import { forgetEntries } from "./entries";
 import { getTrip, tripDir, tripRef } from "./trips";
 import { clearTripTombstone } from "./tombstones";
 import { getDatabase, TABLE_NAMES } from "./db";
+import { commentRepo } from "./repos";
 import { sql } from "kysely";
 
 /**
@@ -162,6 +163,9 @@ export async function renameTrip(
     fs.renameSync(toDir, fromDir);
     throw error;
   }
+
+  // Comments carry the full `<user>/<trip>` ref, which the bare-id sweep above misses.
+  await (await commentRepo()).moveForTrip(tripRef(username, oldId), tripRef(username, newId));
 
   const map = readRenamedMap(username);
   map[oldId] = newId;
