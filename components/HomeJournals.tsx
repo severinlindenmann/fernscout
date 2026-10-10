@@ -36,7 +36,7 @@ export type HomeTrip = {
   start?: string;
   cover?: string;
   days?: number;
-  latest?: HomeDay & { image?: string; excerpt?: string };
+  latest?: HomeDay & { image?: string; excerpt?: string; location?: string; country?: string };
   draft?: HomeDay;
   test?: true;
 };
@@ -45,6 +45,7 @@ export type HomeJournal = {
   username: string;
   title: string;
   tagline: string;
+  owner?: string;
   href: string;
   role: "admin" | "owner" | "traveller" | "guest";
   trips: HomeTrip[];

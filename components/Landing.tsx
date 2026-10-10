@@ -8,12 +8,12 @@ import SignedOut, { ReaderStrip, type InviteCta, type NavLink } from "@/componen
 import { Footer, Stripe, TAB_BAR_ROOM } from "@/components/landing/Frame";
 import { WIDE } from "@/components/landing/kit";
 import type { DemoDay } from "@/lib/demoDay";
-import SignedInHome from "@/components/home/SignedInHome";
+import SignedInHome, { HomeSkeleton } from "@/components/home/SignedInHome";
 import SignedInHeader from "@/components/home/SignedInHeader";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import ServerChoice from "@/components/ServerChoice";
 import { useI18n } from "@/components/LocaleProvider";
-import { SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
+import { SAVED_COPY_AFTER_MS, SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
 
 export type { PublicJournal };
 
@@ -134,6 +134,8 @@ export default function Landing({
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("unknown");
   const [home, setHome] = useState<HomePayload | null>(null);
+  // B-2975: set only when the answer is a saved copy from the offline worker.
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   /**
    * Read *after* the first render, not during it — B454.
    *
@@ -191,6 +193,7 @@ export default function Landing({
         }
         window.localStorage.setItem(SEEN_KEY, "1");
         setHome(data);
+        setSavedAt(data.checkedAt && Date.now() - data.checkedAt > SAVED_COPY_AFTER_MS ? data.checkedAt : null);
         setPhase("in");
       })
       .catch(() => {
@@ -244,6 +247,7 @@ export default function Landing({
         />
         <main id="main" className={`${WIDE} flex-1 py-6 sm:py-10`}>
           <SignedInHome
+            savedAt={savedAt}
             journals={home.journals}
             photobookEnabled={photobookEnabled}
             signupEnabled={signupEnabled}
@@ -297,6 +301,19 @@ export default function Landing({
     );
   }
 
+  if (phase === "unknown" && expected) {
+    // A browser that was signed in a moment ago: the shape of the home it is
+    // about to get, not the signed-out pitch, which would flash and vanish.
+    return (
+      <div className="flex min-h-full flex-col bg-surface-base">
+        <Stripe />
+        <main id="main" className={`${WIDE} flex-1 py-6 sm:py-10`}>
+          <HomeSkeleton />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <>
       <SignedOut
@@ -319,9 +336,6 @@ export default function Landing({
             offerSignIn && <ReaderStrip onSignIn={() => setSigningIn(true)} />
           )
         }
-        // A browser that was signed in a moment ago, waiting on the fetch:
-        // grey blocks rather than the pitch, which would flash and vanish.
-        skeleton={phase === "unknown" && expected}
         onSignIn={() => setSigningIn(true)}
         helperEnabled={helperEnabled}
         docUrl={docUrl}

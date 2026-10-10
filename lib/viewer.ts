@@ -68,7 +68,7 @@ export type ViewerTrip = {
   /** Distinct dates written about that this reader may read. */
   days?: number;
   /** The newest day this reader may read. */
-  latest?: HomeDay & { image?: string; excerpt?: string };
+  latest?: HomeDay & { image?: string; excerpt?: string; location?: string; country?: string };
   /** The owner's newest unpublished day — only on `through: "owner"`. */
   draft?: HomeDay;
   /** A `test: true` trip — nobody lived it, so `/` never offers it as a book. */
@@ -121,6 +121,10 @@ function detailFor(trip: Trip, through: ViewerTrip["through"], level: ReaderLeve
           latest: {
             ...day(latest),
             ...(image ? { image } : {}),
+            // B-2975 — the place the day itself names, published text only.
+            // Never `lat`/`lng`: this answer is kept in the offline cache.
+            ...(latest.location?.trim() ? { location: latest.location.trim() } : {}),
+            ...(latest.country?.trim() ? { country: latest.country.trim() } : {}),
             ...(text ? { excerpt: text.length > EXCERPT ? `${text.slice(0, EXCERPT).trimEnd()}…` : text } : {}),
           },
         }

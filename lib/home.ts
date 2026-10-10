@@ -6,6 +6,7 @@ import { getContactByEmail } from "./contacts";
 import { getAllEntries } from "./entries";
 import { grantScopeOf } from "./grants";
 import { getTrips } from "./trips";
+import { ownerShortName } from "./site";
 import { getUser, getUsernames, listedUsernames } from "./users";
 import { tripsVisibleTo, type ViewerTrip } from "./viewer";
 
@@ -39,6 +40,9 @@ export type HomeJournal = {
   username: string;
   title: string;
   tagline: string;
+  /** The owner's first name or nickname — B-2975, for a friend's card. Absent
+   *  when the config names nobody, and never the owner's address. */
+  owner?: string;
   href: string;
   /**
    * How this address gets in, at the journal level.
@@ -195,6 +199,7 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
       username,
       title: user.title,
       tagline: user.tagline,
+      ...(ownerShortName(user) ? { owner: ownerShortName(user) } : {}),
       href: journalPath(username),
       role,
       trips,

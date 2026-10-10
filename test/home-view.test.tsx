@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import LocaleProvider from "@/components/LocaleProvider";
 import { YourDevices, type HomeDevice, type HomeJournal, type HomeTrip } from "@/components/HomeJournals";
-import SignedInHome, { pickContinue } from "@/components/home/SignedInHome";
+import SignedInHome from "@/components/home/SignedInHome";
 import SignedInHeader from "@/components/home/SignedInHeader";
 import { PlanStatusCard } from "@/app/me/AccountPage";
 import { dictionaryFor } from "@/lib/locales";
@@ -49,55 +49,198 @@ function trip(over: Partial<HomeTrip> = {}): HomeTrip {
   return { id: "alps", title: "Four days round the Alps", href: "/@ana/trips/alps", through: "owner", ...over };
 }
 
-function home(journals: HomeJournal[], opts: { photobook?: boolean; signup?: boolean } = {}) {
-  return render(<SignedInHome journals={journals} photobookEnabled={opts.photobook} signupEnabled={opts.signup} />);
+const TODAY = "2026-10-10";
+
+function home(
+  journals: HomeJournal[],
+  opts: { photobook?: boolean; signup?: boolean; savedAt?: number | null } = {},
+) {
+  return render(
+    <SignedInHome
+      journals={journals}
+      photobookEnabled={opts.photobook}
+      signupEnabled={opts.signup}
+      today={TODAY}
+      savedAt={opts.savedAt}
+    />,
+  );
 }
 
+const running = { status: "current" as const, start: "2026-10-04", end: "2026-10-14" };
+const past = { status: "past" as const, start: "2026-05-01", end: "2026-05-09" };
+
 /**
- * B2508 — the signed-in home is a way back into the trip, not a directory.
- * What it must never do is say more than the payload does: a draft line with
- * no draft, a count nobody measured, or "yours" about somebody else's journal.
+ * B2508 — the signed-in home is a way back into the trip, not a directory — and
+ * B-2975 — it leads with who is on the road. What it must never do is say more
+ * than the payload does: a draft line with no draft, a count nobody measured,
+ * a "Day 6" nobody counted, or "yours" about somebody else's journal.
  */
 describe("the signed-in home", () => {
-  test("an owner gets Continue on their trip, with a link to it as readers see it", () => {
-    const html = home([journal()]);
-    expect(html).toContain("Continue");
-    expect(html).toContain("Four days round the Alps");
+  test("an owner's running trip is a strip with the next step", () => {
+    const html = home([journal({ trips: [trip(running)] })]);
+    expect(html).toContain("On the road");
+    expect(html).toContain("by trip dates");
+    expect(html).toContain("You&#x27;re travelling");
     expect(html).toContain('href="/@ana/trips/alps"');
     expect(html).toContain('href="/@ana/studio/day/new?trip=alps"');
-    expect(html).toContain('href="/@ana/studio"');
   });
 
   test("the draft line appears only when the payload names a draft", () => {
-    expect(home([journal()])).not.toContain("Draft");
+    expect(home([journal({ trips: [trip(running)] })])).not.toContain("A wrong turn");
     const html = home([
-      journal({ trips: [trip({ draft: { slug: "d3", title: "A wrong turn", date: "2026-09-14", href: "/x" } })] }),
+      journal({ trips: [trip({ ...running, draft: { slug: "d3", title: "A wrong turn", date: "2026-10-09", href: "/x" } })] }),
     ]);
-    expect(html).toContain("Draft · only you can see it");
     expect(html).toContain("A wrong turn");
+    expect(html).toContain("Finish this day");
     expect(html).toContain('href="/@ana/studio/day/edit?slug=d3"');
   });
 
-  test("no figure is drawn that the payload did not carry", () => {
-    const bare = home([journal()]);
-    expect(bare).not.toMatch(/\d+ days?\b/);
-    expect(bare).not.toContain("Latest day");
-    const counted = home([journal({ trips: [trip({ days: 4, start: "2024-09-12", end: "2024-09-15" })] })]);
-    expect(counted).toContain("4 days");
-    expect(counted).toContain("2024");
+  test("a draft on a trip that has ended stays reachable", () => {
+    const html = home([
+      journal({ trips: [trip({ ...past, draft: { slug: "d3", title: "A wrong turn", date: "2026-05-08", href: "/x" } })] }),
+    ]);
+    expect(html).toContain("Draft · only you can see it");
+    expect(html).toContain('href="/@ana/studio/day/edit?slug=d3"');
   });
 
-  test("the trip under way comes first, then the most recently written", () => {
-    const j = journal();
-    const old = { journal: j, trip: trip({ id: "old", start: "2024-01-01", status: "past" }) };
-    const fresh = { journal: j, trip: trip({ id: "fresh", start: "2023-01-01", status: "past", draft: { slug: "d", title: "d", date: "2025-05-01", href: "" } }) };
-    const now = { journal: j, trip: trip({ id: "now", start: "2020-01-01", status: "current" }) };
-    expect(pickContinue([old, fresh])?.trip.id).toBe("fresh");
-    expect(pickContinue([old, fresh, now])?.trip.id).toBe("now");
+  test("somebody who travelled on a friend's trip gets Read, and no studio", () => {
+    const html = home([
+      journal({
+        role: "traveller",
+        trips: [trip({ ...running, through: "traveller", latest: { slug: "x", title: "T", date: "2026-10-09", href: "/@ana/day/x" } })],
+      }),
+    ]);
+    expect(html).toContain("You&#x27;re on this trip");
+    expect(html).toContain('href="/@ana/day/x"');
+    expect(html).not.toContain("/studio");
+  });
+
+  test("a friend who is running leads, with their name, place and a day to read", () => {
+    const html = home([
+      journal({
+        role: "guest",
+        owner: "Anna",
+        trips: [
+          trip({ id: "old", title: "Lisbon", through: "guest", ...past }),
+          trip({
+            id: "alps",
+            title: "Alps loop",
+            through: "guest",
+            ...running,
+            days: 3,
+            latest: {
+              slug: "cable",
+              title: "Cable car in the rain",
+              date: "2026-10-09",
+              href: "/@ana/day/cable",
+              excerpt: "Up we went.",
+              location: "Grindelwald",
+              country: "Switzerland",
+            },
+          }),
+        ],
+      }),
+    ]);
+    expect(html.indexOf("Cable car in the rain")).toBeLessThan(html.indexOf("Earlier"));
+    expect(html).toContain("Anna · Alps loop");
+    expect(html).toContain("Latest from Grindelwald, Switzerland");
+    expect(html).toContain("Up we went.");
+    expect(html).toContain("3 days you can read");
+    expect(html).toContain('href="/@ana/day/cable"');
+    // Past trips are a count, not a list of cards.
+    expect(html).not.toContain("Lisbon");
+  });
+
+  test("a running trip with nothing readable says so rather than inventing a day", () => {
+    const html = home([journal({ role: "guest", owner: "Ben", trips: [trip({ ...running, through: "guest", title: "Vietnam" })] })]);
+    expect(html).toContain("Vietnam");
+    expect(html).toContain("No days you can read yet");
+    expect(html).not.toMatch(/Day \d/);
+  });
+
+  test("a running trip with nothing recent is quiet, not on the road", () => {
+    const html = home([
+      journal({
+        role: "guest",
+        trips: [
+          trip({
+            through: "guest",
+            title: "Patagonia",
+            start: "2026-08-01",
+            end: "2026-11-30",
+            status: "current",
+            latest: { slug: "e", title: "E", date: "2026-09-12", href: "/e" },
+          }),
+        ],
+      }),
+    ]);
+    expect(html).toContain("Quiet");
+    expect(html).toContain("Patagonia");
+    expect(html).not.toContain("On the road");
+  });
+
+  test("nobody running says so, names the next departure and offers the newest day", () => {
+    const html = home([
+      journal({
+        role: "guest",
+        owner: "Dana",
+        trips: [
+          trip({ id: "sic", title: "Sicily", through: "guest", status: "upcoming", start: "2026-10-21", end: "2026-10-30" }),
+          trip({
+            id: "lis",
+            title: "Lisbon",
+            through: "guest",
+            ...past,
+            latest: { slug: "a", title: "Last evening, Alfama", date: "2026-05-09", href: "/@ana/trips/lis/day/a" },
+          }),
+        ],
+      }),
+    ]);
+    expect(html).toContain("No trip is running right now.");
+    expect(html).toContain("Next: Sicily, starts");
+    expect(html).toContain("Last evening, Alfama");
+    expect(html).not.toContain("On the road");
+  });
+
+  test("history is a folded line with a count, linking to the trips page", () => {
+    const html = home([journal({ trips: [trip({ id: "a", ...past }), trip({ id: "b", ...past })] })]);
+    expect(html).toContain("Your trips");
+    expect(html).toContain("2 ›");
+    expect(html).toContain('href="/@ana/trips"');
+    expect(html).toContain('href="/@ana/studio/trip/new"');
+  });
+
+  test("a trip that has not happened yet is named, and a rehearsal never is", () => {
+    const html = home([
+      journal({
+        role: "guest",
+        trips: [
+          trip({ id: "u", title: "Sicily", through: "guest", status: "upcoming", start: "2026-10-21", end: "2026-10-30" }),
+          trip({ id: "t", title: "Rehearsal", through: "guest", ...running, test: true }),
+        ],
+      }),
+    ]);
+    expect(html).toContain("Coming up");
+    expect(html).toContain("Sicily");
+    expect(html).not.toContain("Rehearsal");
+  });
+
+  test("no figure is drawn that the payload did not carry", () => {
+    const html = home([
+      journal({ role: "guest", trips: [trip({ ...running, through: "guest", latest: { slug: "x", title: "T", date: "2026-10-09", href: "/x" } })] }),
+    ]);
+    expect(html).not.toMatch(/\d+ days?\b/);
+    expect(html).not.toContain("New since");
+    expect(html).not.toMatch(/Day \d/);
+  });
+
+  test("a saved copy says when it was checked, and a fresh answer says nothing", () => {
+    expect(home([journal()], { savedAt: null })).not.toContain("Saved copy");
+    expect(home([journal()], { savedAt: Date.UTC(2026, 9, 9, 18, 40) })).toContain("Saved copy");
   });
 
   test("Ready for paper only for an ended trip with days, and only where books print", () => {
-    const ended = journal({ trips: [trip({ status: "past", days: 5, end: "2023-06-01" })] });
+    const ended = journal({ trips: [trip({ status: "past", days: 5, end: "2023-06-01", start: "2023-05-01" })] });
     expect(home([ended])).not.toContain("Ready for paper");
     expect(home([ended], { photobook: true })).toContain("Ready for paper");
     expect(home([ended], { photobook: true })).toContain('href="/@ana/trips/alps/photobook"');
@@ -115,29 +258,10 @@ describe("the signed-in home", () => {
   /** Publishing and the studio are the owner's, and only the owner's — B28. */
   test("somebody else's journal never gets a studio link or the owner's words", () => {
     for (const role of ["guest", "traveller"] as const) {
-      const html = home([journal({ role, trips: [trip({ through: role })] })]);
+      const html = home([journal({ role, trips: [trip({ ...past, through: role })] })]);
       expect(html).not.toContain('href="/@ana/studio');
-      expect(html).not.toContain("Continue");
       expect(html).not.toContain(">Yours<");
-      expect(html).toContain("Shared with you");
     }
-  });
-
-  test("a reader gets the newest shared day first, large", () => {
-    const html = home([
-      journal({
-        role: "guest",
-        trips: [
-          trip({ id: "a", title: "Older trip", through: "guest", latest: { slug: "x", title: "Old day", date: "2024-01-01", href: "/@ana/trips/a/day/x" } }),
-          trip({ id: "b", title: "Newer trip", through: "guest", latest: { slug: "y", title: "Over the Susten", date: "2025-09-01", href: "/@ana/trips/b/day/y", excerpt: "We left late." } }),
-        ],
-      }),
-    ]);
-    expect(html.indexOf("Over the Susten")).toBeLessThan(html.indexOf("Older trip"));
-    expect(html).toContain("We left late.");
-    expect(html).toContain('href="/@ana/trips/b/day/y"');
-    // The board's badge needs a last-visit record nobody keeps.
-    expect(html).not.toContain("New since");
   });
 
   test("the start-your-own card is for a reader only, and only where signup is on", () => {
