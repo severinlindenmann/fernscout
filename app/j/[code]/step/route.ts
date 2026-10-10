@@ -2,12 +2,16 @@ import { isEmail, issueCode } from "@/lib/auth";
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { setGuestSessionCookies } from "@/lib/auth/identityCookie";
+import { cookies } from "next/headers";
 import { isEnabled } from "@/lib/capabilities";
 import {
+  addContactWithProvenPhone,
   approveContact,
+  getContact,
   confirmContactFromSession,
   getContactByEmail,
   manageTokenFor,
+  markContactPhoneProven,
   markOwnerNotified,
   normaliseEmail,
   requestContact,
@@ -16,6 +20,7 @@ import {
   type SelfUpdate,
 } from "@/lib/contacts";
 import { confirmEmailProof, sendEmailProof, verifyGuestCode } from "@/lib/contacts/guestCode";
+import { joinWhatsappAvailable, sendJoinSmsCode, typedDigits } from "@/lib/contacts/guestPhone";
 import { applyLinkGroup } from "@/lib/contacts/groups";
 import { countInviteUse } from "@/lib/contacts/invites";
 import { parseLocale, pickLocale } from "@/lib/contacts/locale";
@@ -26,16 +31,20 @@ import { resolveJoinCode, type JoinInvite } from "@/lib/contacts/welcome";
 import { mailDisabledReason } from "@/lib/mail";
 import { setNewsConsent } from "@/lib/newsConsent";
 import { whatsappCountryCode } from "@/lib/contactNumber";
-import { isMessageable, subjectPhone } from "@/lib/phone";
-import { clientIp, emailCodeAllowed, rateLimitFor, rateLimitStatus } from "@/lib/rateLimit";
+import { createJoinPhoneLink, pollJoinPhoneLink } from "@/lib/phoneVerify/inboundLink";
+import { isMessageable, phoneSubject, subjectPhone } from "@/lib/phone";
+import { clientIp, emailCodeAllowed, rateLimitFor, rateLimitStatus, waJoinAllowed } from "@/lib/rateLimit";
 import { claimTripPlace, isPersonOn } from "@/lib/tripPeople";
 import { getTrip, tripRef } from "@/lib/trips";
+import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
 const PER_IP = { max: 40, windowMs: 15 * 60 * 1000 };
 const PER_CODE = { max: 200, windowMs: 60 * 60 * 1000 };
+const WA_COOKIE = "fs_wa_join";
+const WA_COOKIE_MAX_AGE_S = 30 * 60;
 const NO = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } as const;
 const answer = (body: unknown, status = 200) => Response.json(body, { status, headers: NO });
 
@@ -43,12 +52,14 @@ const answer = (body: unknown, status = 200) => Response.json(body, { status, he
  * `POST /j/<code>/step` — the group link's join flow (B2293, B2291 "Share an
  * invite link").
  *
- * **Joining is asking.** Every path here ends at a `pending` contact whose
- * address is proved, and the owner's Let in (`approveContact`) is still the
- * only thing that opens anything. A mailed invite from before the rebuild
+ * **A reader link is the invitation** (B-2940). A new person who proves an
+ * address through it is let in at once and the owner is told; the owner can
+ * block them afterwards. A buddy link, or anybody the link merely found, still
+ * ends at a `pending` contact and the owner's Let in (`approveContact`). A mailed invite from before the rebuild
  * (B319) is the one exception it always was: proving *exactly* the address
- * the owner typed lets that person in. B2597: readers sign in by email only
- * — no phone channel, no SMS.
+ * the owner typed lets that person in. B2597: B-2942: a mobile number may be proved
+ * instead (`channel: "sms"` on send and verify, or `wa-start` and `wa-poll`
+ * for a WhatsApp message-in), for sign-in only.
  *
  * - `send` `{ name, value, locale }` — mails a code, within the usual code
  *   budgets; writes nothing about anybody.
@@ -88,6 +99,17 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       // **Writes nothing about anybody** (security review F1): a code goes to
       // the address typed, and only a proved address files a request.
       if (!name) return answer({ error: "invalid_name" }, 400);
+      if (body.channel === "sms") {
+        // B-2942. A text to the number as typed; nothing is written about
+        // anybody, and every limit fails closed (`sendJoinSmsCode`).
+        const digits = typedDigits(value);
+        if (!digits) return answer({ error: "invalid_phone" }, 400);
+        const sent = await sendJoinSmsCode(owner, invite.id, digits, { ip, locale, siteTitle: serverSite().name });
+        if (sent.ok) return answer({ ok: true, to: sent.to });
+        const status = sent.reason === "rate_limited" ? 429 : sent.reason === "unsupported_country" ? 400 : 503;
+        return answer({ error: sent.reason }, status);
+      }
+      if (body.channel !== undefined && body.channel !== "email") return answer({ error: "invalid_request" }, 400);
       const email = normaliseEmail(value);
       if (!isEmail(email)) return answer({ error: "invalid_email" }, 400);
       if (mailDisabledReason(owner)) return answer({ error: "unavailable" }, 503);
@@ -95,10 +117,20 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       // spends (F2): a group link is not a way to bomb somebody's inbox.
       if (!emailCodeAllowed(email)) return answer({ error: "rate_limited" }, 429);
       const { code: six, linkToken } = await issueCode(owner, email, "guest", { destination: `/j/${code}` });
-      await sendCodeMail(owner, user, email, locale, six, linkToken);
+      await sendCodeMail(owner, user, email, locale, six, linkToken, false, "join");
       return answer({ ok: true, to: email });
     }
     case "verify": {
+      if (body.channel === "sms") {
+        const digits = typedDigits(value);
+        if (!digits) return answer({ error: "invalid_phone" }, 400);
+        const subject = phoneSubject(digits);
+        if (await linkCappedFor(invite, subject)) return answer({ error: "rate_limited" }, 429);
+        const session = await verifyGuestCode(owner, subject, text("code"), request.headers.get("accept-language"));
+        if (!session) return answer({ error: "invalid_code" }, 401);
+        return signedInByPhone(request, invite, session, digits, { name, locale });
+      }
+      if (body.channel !== undefined && body.channel !== "email") return answer({ error: "invalid_request" }, 400);
       const email = normaliseEmail(value);
       // A link already at its daily cap answers before the code is spent, so
       // a capped newcomer can still use the same code once the window passes.
@@ -109,6 +141,40 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       const settled = await joinProved(invite, email, { name, locale });
       if ("capped" in settled) return answer({ error: "rate_limited" }, 429);
       return answer({ ok: true, ...settled });
+    }
+    case "wa-start": {
+      // B-2942. WhatsApp message-in: a wa.me link whose text carries a
+      // one-time token. The row is bound to this link and to a secret only
+      // this browser holds, so nobody else can collect the proof.
+      if (!joinWhatsappAvailable()) return answer({ error: "unavailable" }, 404);
+      if (!name) return answer({ error: "invalid_name" }, 400);
+      const digits = typedDigits(value);
+      if (!digits) return answer({ error: "invalid_phone" }, 400);
+      if (!waJoinAllowed(digits, ip, invite.id)) return answer({ error: "rate_limited" }, 429);
+      const jar = await cookies();
+      const created = await createJoinPhoneLink(invite.id, digits, locale, jar.get(WA_COOKIE)?.value ?? null);
+      if (!created) return answer({ error: "unavailable" }, 404);
+      jar.set(WA_COOKIE, created.secret, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: `/j/${code}`,
+        maxAge: WA_COOKIE_MAX_AGE_S,
+      });
+      return answer({ ok: true, id: created.id, link: created.link, text: created.text, expiresAt: created.expiresAt });
+    }
+    case "wa-poll": {
+      if (!joinWhatsappAvailable()) return answer({ error: "unavailable" }, 404);
+      const id = text("id");
+      const secret = (await cookies()).get(WA_COOKIE)?.value;
+      if (!id || !secret) return answer({ status: "expired" });
+      const polled = await pollJoinPhoneLink(id, invite.id, secret);
+      if (polled.status !== "ok") return answer({ status: polled.status });
+      const digits = polled.phone;
+      if (await linkCappedFor(invite, phoneSubject(digits))) return answer({ error: "rate_limited" }, 429);
+      const minted = await mintPhoneSession(owner, digits);
+      if (!minted) return answer({ status: "expired" });
+      return signedInByPhone(request, invite, minted, digits, { name, locale });
     }
     case "join": {
       // Signed in already with an email on this instance: the address is
@@ -219,6 +285,69 @@ async function linkCappedFor(invite: JoinInvite, email: string): Promise<boolean
   return !rateLimitStatus("join-new-request-link", invite.id, NEW_REQUEST_PER_LINK_LIMIT).ok;
 }
 
+/** The browser that proved `digits` is signed in as that number, and the
+ * person is let in exactly as an email proof would. */
+async function signedInByPhone(
+  request: Request,
+  invite: JoinInvite,
+  session: { token: string; subject: string },
+  digits: string,
+  form: { name: string; locale: Locale },
+): Promise<Response> {
+  await setGuestSessionCookies(session.token, session.subject, request.headers.get("user-agent"));
+  const settled = await joinProvedPhone(invite, digits, form);
+  if ("capped" in settled) return answer({ error: "rate_limited" }, 429);
+  return answer({ ok: true, ...settled });
+}
+
+/** A session for a number an inbound message proved: a guest code issued and
+ * redeemed in one step (the one `verifyCode` every sign-in goes through). */
+async function mintPhoneSession(owner: string, digits: string) {
+  const subject = phoneSubject(digits);
+  const { code } = await issueCode(owner, subject, "guest");
+  return verifyGuestCode(owner, subject, code);
+}
+
+/**
+ * A number this request just proved (a code, or an inbound message). Same
+ * shape as `joinProved`: a new person gets a `pending` row stamped proven and
+ * is let in by `settle`; somebody already here keeps every detail they have;
+ * blocked answers like anybody else.
+ */
+async function joinProvedPhone(
+  invite: JoinInvite,
+  digits: string,
+  form: { name: string; locale: Locale },
+): Promise<Settled | { capped: true }> {
+  const owner = invite.owner;
+  const subject = phoneSubject(digits);
+  const existing = await getContactByEmail(owner, subject);
+  if (existing?.status === "blocked") return { status: "waiting", known: true };
+  let contact = existing;
+  if (!contact) {
+    if (!rateLimitFor("join-new-request-link", invite.id, NEW_REQUEST_PER_LINK_LIMIT).ok) return { capped: true };
+    const created = await addContactWithProvenPhone(owner, {
+      name: form.name,
+      phone: subject,
+      locale: form.locale,
+      createdVia: `invite:${invite.id}`,
+    });
+    if (!created.ok) return { status: "waiting", known: true };
+    contact = created.contact;
+  } else {
+    // A number only a typed entry held is proved now (verifyGuestCode stamped
+    // it for a code; an inbound message stamps it here).
+    contact = (await markPhoneProvenFor(owner, digits)) ?? (await getContact(owner, contact.id)) ?? contact;
+  }
+  if (contact.status === "blocked") return { status: "waiting", known: true };
+  return settle(invite, contact, subject, existing ? false : true);
+}
+
+async function markPhoneProvenFor(owner: string, digits: string) {
+  await markContactPhoneProven(owner, digits);
+  return getContactByEmail(owner, phoneSubject(digits));
+}
+
 /**
  * An address this request just proved. A new person gets a `pending` row with
  * the form's name and language; **somebody already here keeps every detail
@@ -279,6 +408,22 @@ async function settle(
     return { status: "in", known };
   }
   await countInviteUse(owner, invite.id);
+  // B-2940: a reader link is the invitation. Somebody this very link filed
+  // and who proved their address is let in at once; the owner is told they
+  // joined and can block them. Buddy links (a trip place, write access) and
+  // anybody the link merely found keep the owner's Let in. A link mailed to one
+  // address (`emailKey`, B319) admits exactly that address and nobody else.
+  if (invite.kind === "guest" && !invite.emailKey && !trip && contact.status === "pending" && contact.createdVia === `invite:${invite.id}`) {
+    const approved = await approveContact(owner, contact.id, { onlyTrip: null });
+    if (approved?.contact.status === "active") {
+      if (needsOwnerNotice !== false) {
+        const notified = await notifyOwnerOfRequest(owner, user, approved.contact, { joined: true });
+        if (notified) await markOwnerNotified(owner, contact.id);
+      }
+      return { status: "in", known };
+    }
+    return { status: "waiting", known };
+  }
   if (contact.status === "pending" && invite.emailKey && contact.email && invite.emailKey === contact.email) {
     const approved = await approveContact(owner, contact.id);
     if (approved?.contact.status === "active") return { status: "in", known };

@@ -5,7 +5,8 @@ import { Fredoka, IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import NavProgress from "@/components/NavProgress";
 import LocaleProvider from "@/components/LocaleProvider";
-import { MailSenderProvider } from "@/components/CodeWaitPanel";
+import { MailSenderProvider, SmsSignInProvider } from "@/components/CodeWaitPanel";
+import { joinSmsConfigured } from "@/lib/contacts/guestPhone";
 import { mailSenderAddress } from "@/lib/mail";
 import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -185,7 +186,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             This one covers what sits outside a journal: the landing page, the
             notices, a 404 for an address that names nobody. */}
         <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "root")}>
-          <MailSenderProvider address={mailSenderAddress()}>{children}</MailSenderProvider>
+          <MailSenderProvider address={mailSenderAddress()}>
+            <SmsSignInProvider enabled={joinSmsConfigured()}>{children}</SmsSignInProvider>
+          </MailSenderProvider>
         </LocaleProvider>
       </body>
     </html>

@@ -64,6 +64,13 @@ describe("mergeTags — B2677 place + used-before + AI, deduped", () => {
     expect(toggleTag(selected, "museum")).toEqual(new Set(["paris", "museum"]));
     expect(toggleTag(new Set(["paris", "museum"]), "paris")).toEqual(new Set(["museum"]));
   });
+  it("B-2936: every tag comes out in the day schema's slug shape", () => {
+    const chips = mergeTags("Tōkyō, Japan", ["Street Food"], ["東京"], new Set());
+    expect(chips.map((c) => c.tag)).toEqual(["tokyo-japan", "street-food"]);
+    expect(toggleTag(new Set(), "Street Food")).toEqual(new Set(["street-food"]));
+    expect(toggleTag(new Set(["x"]), "東京")).toEqual(new Set(["x"]));
+    for (const c of chips) expect(c.tag).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+  });
 });
 
 describe("tagPhotoIds — B2685 the day's own photographs offered to mode: tags", () => {

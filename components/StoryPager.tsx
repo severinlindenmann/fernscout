@@ -7,6 +7,7 @@ import { useOptionalSite } from "@/components/SiteProvider";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import CutProse from "./CutProse";
 import DayReactions from "./DayReactions";
 import PushPrompt from "./PushPrompt";
 import DualTime from "./DualTime";
@@ -683,58 +684,6 @@ function weatherLabels(
  *  when it could not (see `lib/prose.ts`). */
 function EntryText({ prose, content }: { prose?: ProseNode; content: string }) {
   return prose !== undefined ? <Prose tree={prose} /> : <EntryContent markdown={content} />;
-}
-
-/**
- * A long day, cut — B2570. The owner asked for long text to be cut rather
- * than to push the map, the reactions and the next day a screen further
- * down. About eight lines show, faded at the bottom, and one button brings
- * the rest; text that fits, or nearly does, is left alone. Measured
- * rather than guessed from a character count, because a line's length is
- * the reader's screen, not the writer's words.
- */
-function CutProse({ children }: { children: React.ReactNode }) {
-  const { t } = useI18n();
-  const ref = useRef<HTMLDivElement>(null);
-  const [whole, setWhole] = useState(false);
-  const [overflows, setOverflows] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || whole) return;
-    // Cut only what is worth cutting: a text a line or two past the cap
-    // would lose three words behind a button, which is worse than showing
-    // them. Past half as much again, it is cut.
-    const measure = () => setOverflows(el.scrollHeight > el.clientHeight * 1.5);
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [whole]);
-
-  const cut = !whole && overflows;
-  const fade = "linear-gradient(to bottom, black 65%, transparent)";
-  return (
-    <div className="mt-5">
-      <div
-        ref={ref}
-        className={whole ? undefined : "max-h-[13.5rem] overflow-hidden"}
-        style={cut ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
-      >
-        {children}
-      </div>
-      {cut && (
-        <button
-          type="button"
-          onClick={() => setWhole(true)}
-          className="mt-1 min-h-11 text-sm font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-4 hover:decoration-coral-600"
-        >
-          {t("day.readWhole")}
-        </button>
-      )}
-    </div>
-  );
 }
 
 /**

@@ -504,16 +504,20 @@ export function EntryVisibility({
       question={t("visibility.confirmDay")}
       confirmLabel={t("me.tripWhoConfirm")}
       onSave={async (value) => {
+        // B-2937 — the owner's cookie door `EditDay` writes through; the old
+        // `/day/<slug>/edit` route is gone and answered 404. "Follows the
+        // trip" is a decline, exactly as `EditDay` sends it, which clears the
+        // stored value.
         const response = await fetch(
-          `${journalPath(encodeURIComponent(trip.trip.username))}/trips/${encodeURIComponent(
+          `/api/web/${encodeURIComponent(trip.trip.username)}/trips/${encodeURIComponent(
             trip.trip.id,
-          )}/day/${encodeURIComponent(entry.slug)}/edit`,
+          )}/days/${encodeURIComponent(entry.slug)}`,
           {
             method: "PATCH",
             headers: { "content-type": "application/json" },
-            // `null`, never "" — the writer reads it as "back to whatever the
-            // trip says", and an empty string would be a value there is none of.
-            body: JSON.stringify({ visibility: value || null }),
+            body: JSON.stringify(
+              value ? { visibility: value } : { declined: { visibility: "shown to everyone the trip lets in" } },
+            ),
           },
         ).catch(() => null);
         if (!response?.ok) return t("me.journalFailed");

@@ -2082,8 +2082,10 @@ function buildPaths(): Record<string, PathItem> {
           "which answers 403 rather than leaving you waiting for a code that never comes. On an " +
           'invite-only server `for: "signup"` answers 202 for an unlisted address too and sends ' +
           "nothing (B-2780). A new " +
-          "request invalidates the previous code. A reader signs in by email only — the mobile-number " +
-          "channel B2294 once offered here is retired (B2597).",
+          "request invalidates the previous code. A returning guest may give `phone` instead of " +
+          '`email` (`for: "read"` only, B-2942): the code is texted only to a number somebody of ' +
+          "this journal already holds, and the answer is the same 202 for any number; day notifications " +
+          "to readers never use it.",
       ),
       responses: {
         ...jsonResponse(202, codesRequestResponse, "accepted — always, whatever the address"),
@@ -2092,6 +2094,8 @@ function buildPaths(): Record<string, PathItem> {
           ref("invalid_email", 400),
           ref("signup_disabled", 404),
           ref("auth_disabled", 404),
+          ref("sms_disabled", 503, "phone: this server cannot send SMS; nothing issued"),
+          ref("sms_unreachable", 400, "phone: this server does not text that country; nothing sent"),
           ref("mail_disabled", 503, "nothing issued; any code already held is still live"),
           ref("mail_failed", 503),
           ref("not_authorised", 403, 'for: "write" to an address that owns nothing and is on no named trip'),

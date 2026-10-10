@@ -13,14 +13,12 @@ import {
   Heading,
   LABEL,
   PostcardArt,
-  PostcardIcon,
   PRIMARY,
   QUIET,
   Screen,
   Ticks,
   WaitingArt,
   type Address,
-  type Tick,
 } from "@/components/guide/GuideParts";
 import { translate, type TranslationKey } from "@/lib/i18n";
 import { toE164 } from "@/lib/phone";
@@ -29,6 +27,11 @@ import { regionDefaults } from "@/lib/regionDefaults";
 import { journalPath } from "@/lib/journalPath";
 const subscribeNothing = () => () => {};
 const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(navigator.languages ?? [navigator.language])].join(","));
+
+/** The server's own rule (`isEmail` in lib/auth), copied because that module
+ * is server-only. A mismatch can only make the browser stricter or looser
+ * than the server; the server always has the last word. */
+const looksLikeEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 
 /** B-2933: the name typed before the confirm mail went out, kept in this
  * browser so the mail's link (which reopens this page signed in) does not ask
@@ -51,7 +54,8 @@ function storeName(code: string, name: string | null) {
   }
 }
 
-type Step = "who" | "reach" | "code" | "address" | "notify" | "done";
+type Step = "who" | "pick" | "prove" | "address" | "done";
+type Way = "whatsapp" | "sms" | "email";
 
 const ERRORS: Record<string, TranslationKey> = {
   rate_limited: "guide.error.rateLimited",
@@ -63,11 +67,14 @@ const ERRORS: Record<string, TranslationKey> = {
   expired: "join.error.expired",
 };
 
+const POLL_MS = 2000;
+
 /**
  * `/j/<code>` — somebody opened a group link (B2293, B2291 "Group-link
- * visitor"): whose journal · name · email or mobile · the code · where
- * postcards go · how to hear · "You're on the list". Nobody is let in here;
- * the owner decides.
+ * visitor", B2941): whose journal · name, email and/or mobile on one page ·
+ * how to confirm (WhatsApp, SMS or email, only what can work) · the proof ·
+ * where postcards go · in. A reader link lets a confirmed person in at once
+ * (B-2940); a buddy link still waits for the owner.
  */
 export default function JoinFlow({
   code,
@@ -102,14 +109,36 @@ export default function JoinFlow({
 }) {
   const t = (key: TranslationKey, vars?: Record<string, string>) => translate(dictionary, key, vars);
   const vars = { owner: ownerName, title, trip: tripTitle ?? "" };
-  const [steps] = useState<Step[]>(() => [
-    "who",
-    ...(knownEmail ? [] : (["reach", "code"] as const)),
-    ...(caps.postcards ? (["address"] as const) : []),
-    "notify",
-    "done",
-  ]);
+
+  const remembered = useSyncExternalStore(subscribeNothing, () => storedName(code), () => "");
+  const [typedName, setName] = useState<string | null>(null);
+  const name = typedName ?? remembered;
+  const [email, setEmail] = useState("");
+  const [touched, setTouched] = useState({ email: false, tel: false });
+  // The flag and dialling code (`TelField`), guessed from the browser's
+  // languages the way signup does until the visitor picks one.
+  const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
+  const region = useMemo(() => regionDefaults(languages ? languages.split(",") : []), [languages]);
+  const [telPick, setTelPick] = useState<{ cc: string; iso2?: string } | null>(null);
+  const cc = telPick?.cc ?? region.cc ?? "";
+  const [national, setNational] = useState("");
+  const tel = joinTel(cc, national);
+
+  const emailTyped = email.trim() !== "";
+  const telTyped = national.trim() !== "";
+  const emailOk = emailTyped && looksLikeEmail(email);
+  // With a dialling code picked the number is international, so no configured
+  // default is needed here: the server's own rule (`toE164`).
+  const telOk = telTyped && toE164(tel) !== null;
+  const ways: Way[] = [
+    ...(telOk && caps.whatsapp ? (["whatsapp"] as const) : []),
+    ...(telOk && caps.sms ? (["sms"] as const) : []),
+    ...(emailOk && caps.mail ? (["email"] as const) : []),
+  ];
+
+  const [steps, setSteps] = useState<Step[]>(["who", "prove", "done"]);
   const [step, setStep] = useState<Step>("who");
+  const [way, setWay] = useState<Way>("email");
   const index = steps.indexOf(step);
   const dots = { total: steps.length - 1, current: index, label: t("guide.dots", { n: String(index + 1), total: String(steps.length - 1) }) };
   // B-2933: a step change never carries the last step's error along.
@@ -117,28 +146,25 @@ export default function JoinFlow({
     setError(null);
     setStep(to);
   };
-  const next = () => go(steps[index + 1] ?? step);
   const seen = useRef<Step>("who");
   useEffect(() => {
     if (seen.current !== step) document.getElementById(`join-${step}`)?.focus();
     seen.current = step;
   }, [step]);
 
-  const remembered = useSyncExternalStore(subscribeNothing, () => storedName(code), () => "");
-  const [typedName, setName] = useState<string | null>(null);
-  const name = typedName ?? remembered;
-  // B2597: readers sign in by email only — `caps.sms` is always false now,
-  // kept as a prop only so this component degrades the same way it always
-  // did when a channel is unavailable.
-  const [channel] = useState<"email" | "sms">("email");
-  const [value, setValue] = useState("");
   const [sentTo, setSentTo] = useState("");
   const [typed, setTyped] = useState("");
   const [address, setAddress] = useState<Address>(EMPTY);
   const [status, setStatus] = useState<"in" | "waiting">("waiting");
-  const [wants, setWants] = useState<Record<string, boolean>>({});
+  // Somebody already on the page (`known`) keeps what is stored.
+  const [known, setKnown] = useState(false);
+  // The day letter is a choice, never assumed; news from Fernscout starts
+  // ticked, the owner's decision of 27 Sep (B2504), and unticking records nothing.
+  const [digest, setDigest] = useState(false);
+  const [news, setNews] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [whatsapp, setWhatsapp] = useState<{ id: string; link: string } | null>(null);
 
   async function call(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
     setBusy(true);
@@ -147,7 +173,7 @@ export default function JoinFlow({
       const response = await fetch(`/j/${encodeURIComponent(code)}/step`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, locale, channel, value, ...body }),
+        body: JSON.stringify({ name, locale, ...body }),
       });
       const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       if (!response.ok) {
@@ -163,128 +189,130 @@ export default function JoinFlow({
     }
   }
 
+  const valueFor = (w: Way) => (w === "email" ? email.trim() : tel.trim());
+
   async function afterWho() {
     if (!name.trim()) {
       setError(t("join.error.name"));
       return;
     }
-    if (!knownEmail) return next();
-    const joined = await call({ action: "join" });
-    if (joined) proved(joined);
+    if (knownEmail) {
+      setSteps(["who", ...(caps.postcards ? (["address"] as const) : []), "done"]);
+      const joined = await call({ action: "join" });
+      if (joined) proved(joined, ["who", ...(caps.postcards ? (["address"] as const) : []), "done"]);
+      return;
+    }
+    if (!ways.length) {
+      setError(t("join.who.needOne"));
+      return;
+    }
+    const withPick = ways.length > 1;
+    setSteps(["who", ...(withPick ? (["pick"] as const) : []), "prove", ...(caps.postcards ? (["address"] as const) : []), "done"]);
+    if (withPick) go("pick");
+    else await start(ways[0]);
   }
-  async function send() {
-    const sent = await call({ action: "send" });
+
+  async function start(chosen: Way) {
+    setWay(chosen);
+    setTyped("");
+    if (chosen === "whatsapp") {
+      const started = await call({ action: "wa-start", value: valueFor("whatsapp") });
+      if (started && typeof started.id === "string" && typeof started.link === "string") {
+        setWhatsapp({ id: started.id, link: started.link });
+        storeName(code, name.trim());
+        go("prove");
+      }
+      return;
+    }
+    const sent = await call({ action: "send", channel: chosen, value: valueFor(chosen) });
     if (sent) {
       storeName(code, name.trim());
-      setSentTo(String(sent.to ?? value));
-      setTyped("");
-      go("code");
+      setSentTo(String(sent.to ?? valueFor(chosen)));
+      go("prove");
     }
   }
-  async function verify() {
-    const answer = await call({ action: "verify", code: typed });
+
+  async function verify(digits = typed) {
+    if (digits.length !== 6) return;
+    const answer = await call({ action: "verify", channel: way, value: valueFor(way), code: digits });
     if (answer) proved(answer);
   }
-  /** Somebody already on the page keeps what is stored: no address or
-   * channel screens for them, straight to where they stand. */
-  function proved(answer: Record<string, unknown>) {
+
+  /** Somebody already on the page keeps what is stored: no address screen for
+   * them, straight to where they stand. */
+  function proved(answer: Record<string, unknown>, order: Step[] = steps) {
+    // Clearing the remembered name must not blank the one this page still shows.
+    setName(name);
     storeName(code, null);
     setStatus(answer.status === "in" ? "in" : "waiting");
+    setKnown(Boolean(answer.known));
+    setWhatsapp(null);
     if (answer.known) go("done");
-    else next();
+    else go(order[order.indexOf(step) + 1] ?? "done");
   }
+
+  // The WhatsApp proof arrives by itself: the guest sends a message from their
+  // phone and the server sees it, so this page asks until it has.
+  const waId = whatsapp?.id ?? null;
+  useEffect(() => {
+    if (step !== "prove" || way !== "whatsapp" || !waId) return;
+    let stopped = false;
+    const timer = setInterval(async () => {
+      try {
+        const response = await fetch(`/j/${encodeURIComponent(code)}/step`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "wa-poll", id: waId, name, locale }),
+        });
+        const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+        if (stopped) return;
+        const state = String(json.status ?? "");
+        if (response.ok && json.ok === true && (state === "in" || state === "waiting")) {
+          clearInterval(timer);
+          proved(json);
+        } else if (state === "mismatch") {
+          clearInterval(timer);
+          setWhatsapp(null);
+          setError(t("join.wa.mismatch"));
+        } else if (state === "expired" || state === "tel_taken" || response.status === 404) {
+          clearInterval(timer);
+          setWhatsapp(null);
+          setError(t("join.wa.expired"));
+        }
+      } catch {
+        // A dropped request: the next tick asks again.
+      }
+    }, POLL_MS);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+    // `proved` and `t` close over state this effect must not restart on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, way, waId, code]);
+
   const hasAddress = Boolean(address.line1.trim() && address.city.trim() && address.country.trim());
   async function saveAddress() {
     if (!hasAddress) {
       setError(t("guide.address.incomplete"));
       return;
     }
-    if (await call({ action: "save", address })) next();
+    // Giving a postal address is asking for postcards.
+    if (await call({ action: "save", address, wantsPostcard: true })) go("done");
   }
 
-  // B2504: ticked from the start, the owner's decision (27 Sep); unticking
-  // records nothing, and "Stop news" on /me turns it off again.
-  const [news, setNews] = useState(true);
-  // B2505: a mobile for WhatsApp postcards, typed while the request waits.
-  // Kept unproved and never texted: nothing goes to it until the owner lets
-  // this person in, and it is never a sign-in number.
-  // B-2933: flag and dialling code (TelField), the code guessed from the
-  // browser's languages the way signup does until the visitor picks one.
-  const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
-  const region = useMemo(() => regionDefaults(languages ? languages.split(",") : []), [languages]);
-  const [waPick, setWaPick] = useState<{ cc: string; iso2?: string } | null>(null);
-  const waCc = waPick?.cc ?? region.cc ?? "";
-  const [waNational, setWaNational] = useState("");
-  const waMobile = joinTel(waCc, waNational);
-  // The server's own rule (`isMessageable`): with a dialling code picked the
-  // number is international, so no configured default is needed here.
-  const waValid = toE164(waMobile) !== null;
-  // B2454: an email added after a mobile-only sign-up, proved by its own code.
-  const [addedEmail, setAddedEmail] = useState<string | null>(null);
-  const [emailValue, setEmailValue] = useState("");
-  const [emailSent, setEmailSent] = useState<string | null>(null);
-  const [emailCode, setEmailCode] = useState("");
-  async function sendEmailProof() {
-    const sent = await call({ action: "proof", kind: "email", value: emailValue });
-    if (sent) setEmailSent(String(sent.to ?? emailValue));
-  }
-  async function confirmEmailProof() {
-    if (await call({ action: "proof", kind: "email", value: emailValue, code: emailCode })) {
-      setAddedEmail(emailValue.trim());
-      setEmailSent(null);
-    }
-  }
-  const provedEmail = knownEmail ?? (channel === "email" ? sentTo : null) ?? addedEmail;
-  // B2597: readers sign in by email only — the SMS proof that used to make a
-  // mobile number usable for sign-in or WhatsApp is gone. A reader can still
-  // leave an unproved number for a WhatsApp postcard while their request
-  // waits (`typesMobile` below); there is no path left to a *proved* one.
-  const provedMobile: string | null = null;
-  const ticks: Tick[] = ([
-    caps.mail && {
-      key: "wantsEmailDigest",
-      label: t("guide.notify.email"),
-      hint: provedEmail || t("guide.notify.needsEmail"),
-      checked: wants.wantsEmailDigest ?? Boolean(provedEmail),
-      disabled: !provedEmail,
-      // Email is free to send and carries the photos; SMS costs per message.
-      badge: t("join.notify.recommended"),
-    },
-    caps.whatsapp && {
-      key: "wantsWhatsapp",
-      label: t("guide.notify.whatsapp"),
-      hint: provedMobile || (status === "waiting" ? t("join.notify.whatsappHint", vars) : t("guide.notify.needsMobile")),
-      checked: wants.wantsWhatsapp ?? false,
-      disabled: !provedMobile && status !== "waiting",
-      icon: <PostcardIcon />,
-    },
-    caps.postcards && {
-      key: "wantsPostcard",
-      label: t("guide.notify.postcards"),
-      hint: hasAddress ? t("guide.notify.postcardsTo", { address: `${address.line1}, ${address.city}` }) : t("guide.notify.needsAddress"),
-      checked: wants.wantsPostcard ?? hasAddress,
-      disabled: !hasAddress,
-    },
-  ] as (Tick | false)[]).filter((tick): tick is Tick => Boolean(tick));
-
-  const typesMobile = caps.whatsapp && !provedMobile && status === "waiting" && Boolean(wants.wantsWhatsapp);
-  async function saveTicks() {
-    const choices = Object.fromEntries(ticks.map((tick) => [tick.key, tick.checked && !tick.disabled]));
-    if (typesMobile && !waValid) {
-      // A typed but invalid number already says so under the field.
-      if (!waNational.trim()) setError(t("guide.error.phone"));
-      return;
-    }
-    if (await call({ action: "save", ...choices, ...(typesMobile ? { tel: waMobile.trim() } : {}), wantsNews: news && Boolean(provedEmail) })) next();
-  }
+  const mailError = touched.email && emailTyped && !emailOk ? t("join.who.errEmail") : null;
+  const telError = touched.tel && telTyped && !telOk ? t("join.who.errPhone") : null;
+  const emailOnly = emailOk && !telOk;
 
   if (step === "who") {
+    const blocked = !knownEmail && (!ways.length || (emailTyped && !emailOk) || (telTyped && !telOk));
     return (
       <Screen
         labelledBy="join-who"
         dots={dots}
         footer={
-          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={afterWho}>
+          <BusyButton busy={busy} type="button" className={PRIMARY} disabled={blocked} onClick={afterWho}>
             {t("join.who.go")}
           </BusyButton>
         }
@@ -298,65 +326,165 @@ export default function JoinFlow({
           {t("join.who.name")}
           <input className={FIELD} autoComplete="name" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
-        {knownEmail && <p className="text-sm text-ink-secondary">{t("join.who.signedIn", { email: knownEmail })}</p>}
-        <Alert text={error} />
-      </Screen>
-    );
-  }
-
-  if (step === "reach") {
-    return (
-      <Screen
-        labelledBy="join-reach"
-        dots={dots}
-        footer={
-          <BusyButton busy={busy} type="button" className={PRIMARY} disabled={!value.trim() || !caps.mail} onClick={send}>
-            {t("join.reach.send")}
-          </BusyButton>
-        }
-      >
-        <Heading id="join-reach">{t("join.reach.title", vars)}</Heading>
-        {!caps.mail ? (
-          <p className="text-base text-ink-body">{t("guide.error.unavailable")}</p>
+        {knownEmail ? (
+          <p className="text-sm text-ink-secondary">{t("join.who.signedIn", { email: knownEmail })}</p>
         ) : (
-          <label className={LABEL}>
-            {t("join.reach.emailLabel")}
-            <input
-              className={FIELD}
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="name@example.com"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-            />
-          </label>
+          <>
+            <p className="text-sm text-ink-secondary">{t("join.who.contactHint")}</p>
+            <label className={LABEL}>
+              {t("join.reach.emailLabel")}
+              <input
+                className={FIELD}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="off"
+                placeholder="name@example.com"
+                aria-invalid={mailError ? true : undefined}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setTouched((x) => ({ ...x, email: true }))}
+              />
+            </label>
+            <Alert text={mailError} />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="join-tel" className={LABEL}>
+                {t("join.who.mobileLabel")}
+              </label>
+              <TelField
+                id="join-tel"
+                cc={cc}
+                iso2={telPick ? telPick.iso2 : (region.region ?? undefined)}
+                national={national}
+                onChange={(nextCc, nextNational, iso2) => {
+                  setTelPick({ cc: nextCc, iso2 });
+                  setNational(nextNational);
+                }}
+                labelCountry={t("contact.telCountry")}
+                searchPlaceholder={t("contact.telSearchPlaceholder")}
+                noMatches={t("contact.telNoMatches")}
+                locale={locale}
+              />
+              <Alert text={telError} />
+            </div>
+            {emailOnly && <p className="text-sm text-ink-secondary">{t("join.who.onlyEmail")}</p>}
+            {!ways.length && (emailTyped || telTyped) && !mailError && !telError && (
+              <p className="text-sm text-ink-secondary">{t("join.who.needOne")}</p>
+            )}
+          </>
         )}
-        <p className="text-sm text-ink-secondary">{t("join.reach.hintEmail")}</p>
         <Alert text={error} />
       </Screen>
     );
   }
 
-  if (step === "code") {
+  if (step === "pick") {
+    const labels: Record<Way, { name: TranslationKey; hint: TranslationKey }> = {
+      whatsapp: { name: "join.pick.whatsapp", hint: "join.pick.whatsappHint" },
+      sms: { name: "join.pick.sms", hint: "join.pick.smsHint" },
+      email: { name: "join.pick.email", hint: "join.pick.emailHint" },
+    };
+    return (
+      <Screen labelledBy="join-pick" dots={dots} footer={<button type="button" className={QUIET} onClick={() => go("who")}>{t("join.code.change")}</button>}>
+        <Heading id="join-pick">{t("join.pick.title")}</Heading>
+        <p className="text-base text-ink-body">{t("join.pick.body")}</p>
+        <div className="flex flex-col gap-3">
+          {ways.map((w, i) => (
+            <button
+              key={w}
+              type="button"
+              disabled={busy}
+              onClick={() => start(w)}
+              className={`flex min-h-16 flex-col items-start gap-0.5 rounded-2xl border-2 bg-surface-raised p-4 text-left ${i === 0 ? "border-blue-500" : "border-line-strong"}`}
+            >
+              <span className="flex w-full items-center gap-2 text-lg font-semibold text-ink-strong">
+                {t(labels[w].name)}
+                {i === 0 && <span className="ml-auto rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-bold text-yellow-950">{t("join.pick.quick")}</span>}
+              </span>
+              <span className="text-sm text-ink-secondary">{t(labels[w].hint, { to: w === "email" ? email.trim() : tel.trim() })}</span>
+              {w === "email" && <span className="text-sm font-semibold text-ink-strong">{t("join.pick.emailWarn")}</span>}
+            </button>
+          ))}
+        </div>
+        <Alert text={error} />
+      </Screen>
+    );
+  }
+
+  if (step === "prove") {
+    const other = ways.filter((w) => w !== way);
+    const another = other.length ? (
+      <button type="button" className={QUIET} onClick={() => go("pick")}>
+        {t("join.code.another")}
+      </button>
+    ) : null;
+    if (way === "whatsapp") {
+      return (
+        <Screen
+          labelledBy="join-prove"
+          dots={dots}
+          footer={
+            <>
+              {another}
+              <button type="button" className={QUIET} onClick={() => go("who")}>
+                {t("join.code.changeNumber")}
+              </button>
+            </>
+          }
+        >
+          <CodeArt />
+          <Heading id="join-prove">{t("join.wa.title")}</Heading>
+          <p className="text-base text-ink-body">{t("join.wa.body")}</p>
+          {whatsapp ? (
+            <>
+              <a href={whatsapp.link} target="_blank" rel="noopener noreferrer" className={`${PRIMARY} grid place-items-center text-center`}>
+                {t("join.wa.open")}
+              </a>
+              <p role="status" className="text-base font-semibold text-ink-strong">
+                {t("join.wa.waiting")}
+              </p>
+              <p className="text-sm text-ink-secondary">{t("join.wa.from", { number: tel.trim() })}</p>
+            </>
+          ) : (
+            <BusyButton busy={busy} type="button" className={PRIMARY} onClick={() => start("whatsapp")}>
+              {t("join.wa.open")}
+            </BusyButton>
+          )}
+          <Alert text={error} />
+        </Screen>
+      );
+    }
     return (
       <Screen
-        labelledBy="join-code"
+        labelledBy="join-prove"
         dots={dots}
         footer={
-          <BusyButton busy={busy} type="button" className={PRIMARY} disabled={typed.length !== 6} onClick={verify}>
-            {t("guide.code.confirm")}
-          </BusyButton>
+          <>
+            <BusyButton busy={busy} type="button" className={PRIMARY} disabled={typed.length !== 6} onClick={() => verify()}>
+              {t("guide.code.confirm")}
+            </BusyButton>
+            {another}
+            <button type="button" className={QUIET} onClick={() => go("who")}>
+              {way === "email" ? t("join.code.change") : t("join.code.changeNumber")}
+            </button>
+          </>
         }
       >
         <CodeArt />
-        <Heading id="join-code">{t("join.code.inbox")}</Heading>
-        <p className="text-base text-ink-body">{t("join.code.bodyEmail", { to: sentTo })}</p>
-        <CodeField id="join-code-input" label={t("guide.code.label")} value={typed} onChange={setTyped} />
+        <Heading id="join-prove">{way === "email" ? t("join.code.inbox") : t("join.code.textTitle")}</Heading>
+        <p className="text-base text-ink-body">{way === "email" ? t("join.code.bodyEmail", { to: sentTo }) : t("join.code.bodySms", { to: sentTo })}</p>
+        {way === "email" && (
+          <div className="flex flex-col gap-1 rounded-2xl border-2 border-yellow-400 bg-surface-subtle p-4 text-base text-ink-strong">
+            <span className="font-semibold">{t("join.code.spamTitle")}</span>
+            <ol className="list-decimal pl-5">
+              <li>{t("join.code.spam1")}</li>
+              <li>{t("join.code.spam2", vars)}</li>
+              <li>{t("join.code.spam3")}</li>
+            </ol>
+          </div>
+        )}
+        <CodeField id="join-code-input" label={t("guide.code.label")} value={typed} onChange={setTyped} onComplete={(digits) => verify(digits)} />
         <Alert text={error} />
-        <button type="button" className={QUIET} onClick={() => go("reach")}>
-          {t("join.code.change")}
-        </button>
       </Screen>
     );
   }
@@ -371,7 +499,7 @@ export default function JoinFlow({
             <BusyButton busy={busy} type="button" className={PRIMARY} onClick={saveAddress}>
               {t("guide.address.save")}
             </BusyButton>
-            <button type="button" className={QUIET} onClick={next}>
+            <button type="button" className={QUIET} onClick={() => go("done")}>
               {t("guide.address.skip")}
             </button>
           </>
@@ -383,6 +511,7 @@ export default function JoinFlow({
         <AddressFields
           value={address}
           onChange={setAddress}
+          hint={t("guide.address.lookupHint")}
           labels={{
             street: t("guide.address.street"),
             postcode: t("guide.address.postcode"),
@@ -404,111 +533,60 @@ export default function JoinFlow({
     );
   }
 
-  if (step === "notify") {
+  if (status === "in") {
+    // B2943: the owner is not asked and is not named as having approved:
+    // the link was the invitation. Only what was really confirmed is said.
+    const withEmail = Boolean(knownEmail) || way === "email";
+    const fullName = name.trim() || "—";
+    // Somebody already on the page keeps what is stored: no choices to save.
+    const askChoices = withEmail && caps.mail && !known;
+    async function open() {
+      if (askChoices && !(await call({ action: "save", wantsEmailDigest: digest, wantsNews: news }))) return;
+      window.location.assign(journalPath(owner));
+    }
     return (
       <Screen
-        labelledBy="join-notify"
-        dots={dots}
+        labelledBy="join-done"
         footer={
-          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={saveTicks}>
-            {t("join.notify.send")}
+          <BusyButton busy={busy} type="button" className={PRIMARY} onClick={open}>
+            {t("guide.notify.open")}
           </BusyButton>
         }
       >
-        <Heading id="join-notify">{t("guide.notify.title")}</Heading>
-        <p className="text-base text-ink-secondary">{t("join.notify.body", vars)}</p>
-        {ticks.length ? (
-          <Ticks ticks={ticks} onChange={(key, checked) => setWants({ ...wants, [key]: checked })} />
-        ) : (
-          <p className="text-sm text-ink-secondary">{t("guide.notify.none")}</p>
-        )}
-        {caps.mail && !provedEmail && (
-          <div className="flex flex-col gap-2 rounded-2xl border-2 border-yellow-400 bg-surface-raised p-4">
-            <span className="font-semibold text-ink-strong">{t("join.notify.addEmail")}</span>
-            <span className="text-sm text-ink-secondary">{t("join.notify.addEmailHint")}</span>
-            <label className={LABEL}>
-              {t("join.reach.emailLabel")}
-              <input
-                className={FIELD}
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={emailValue}
-                onChange={(e) => setEmailValue(e.target.value)}
-              />
-            </label>
-            {emailSent ? (
-              <>
-                <CodeField id="join-email-code" label={t("guide.code.label")} value={emailCode} onChange={setEmailCode} />
-                <BusyButton busy={busy} type="button" className={QUIET} disabled={emailCode.length !== 6} onClick={confirmEmailProof}>
-                  {t("guide.code.confirm")}
-                </BusyButton>
-              </>
-            ) : (
-              <BusyButton busy={busy} type="button" className={QUIET} disabled={!emailValue.trim()} onClick={sendEmailProof}>
-                {t("guide.check.sendProof")}
-              </BusyButton>
-            )}
-          </div>
-        )}
-        {typesMobile && (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="join-wa-tel" className={LABEL}>
-              {t("join.notify.whatsappMobile")}
-            </label>
-            <TelField
-              id="join-wa-tel"
-              cc={waCc}
-              iso2={waPick ? waPick.iso2 : (region.region ?? undefined)}
-              national={waNational}
-              onChange={(cc, national, iso2) => {
-                setWaPick({ cc, iso2 });
-                setWaNational(national);
-              }}
-              labelCountry={t("contact.telCountry")}
-              searchPlaceholder={t("contact.telSearchPlaceholder")}
-              noMatches={t("contact.telNoMatches")}
-              locale={locale}
-            />
-            {waNational.trim() && !waValid && <Alert text={t("join.notify.whatsappInvalid")} />}
-            <span className="text-sm text-ink-secondary">{t("join.notify.whatsappLater", vars)}</span>
-          </div>
-        )}
-        {provedEmail && (
+        <Heading id="join-done">
+          <span aria-hidden="true" className="mr-2">
+            ✓
+          </span>
+          {t("join.ready.title", vars)}
+        </Heading>
+        <p className="text-base font-semibold text-ink-secondary">{t("join.ready.by", vars)}</p>
+        <p className="text-base text-ink-body">
+          {t(withEmail ? "join.ready.bodyEmail" : "join.ready.bodyPhone", { name: fullName })}
+          {address.line1 && hasAddress && address.city ? ` ${t("join.ready.addressSaved")}` : ""}
+        </p>
+        {askChoices && (
           <Ticks
             ticks={[
-              {
-                key: "wantsNews",
-                label: t("join.notify.news"),
-                hint: t("join.notify.newsHint", vars),
-                checked: news,
-                disabled: false,
-              },
+              { key: "wantsEmailDigest", label: t("join.ready.digest", vars), hint: t("join.ready.digestHint"), checked: digest, disabled: false },
+              { key: "wantsNews", label: t("join.notify.news"), hint: t("join.notify.newsHint", vars), checked: news, disabled: false },
             ]}
-            onChange={(_, checked) => setNews(checked)}
+            onChange={(key, checked) => (key === "wantsNews" ? setNews(checked) : setDigest(checked))}
           />
         )}
         <Alert text={error} />
+        <details className="text-base text-ink-body">
+          <summary className="min-h-11 cursor-pointer py-2 font-semibold text-ink-strong">{t("join.ready.howTitle")}</summary>
+          <p className="pb-2">{t(withEmail ? "join.ready.howBodyEmail" : "join.ready.howBodyPhone")}</p>
+        </details>
       </Screen>
     );
   }
 
   return (
-    <Screen
-      labelledBy="join-done"
-      footer={
-        status === "in" ? (
-          <a href={journalPath(owner)} className={`${PRIMARY} grid place-items-center text-center`}>
-            {t("guide.notify.open")}
-          </a>
-        ) : null
-      }
-    >
+    <Screen labelledBy="join-done" footer={null}>
       <WaitingArt />
-      <Heading id="join-done">{status === "in" ? t("join.done.inTitle") : t("join.done.title")}</Heading>
-      <p className="text-base text-ink-body">
-        {status === "in" ? t("join.done.inBody", vars) : t("join.done.bodyEmail", vars)}
-      </p>
+      <Heading id="join-done">{t("join.done.title")}</Heading>
+      <p className="text-base text-ink-body">{t("join.done.bodyEmail", vars)}</p>
     </Screen>
   );
 }

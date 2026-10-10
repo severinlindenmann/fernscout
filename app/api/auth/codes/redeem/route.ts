@@ -6,7 +6,9 @@ import {
   verifyCode,
 } from "@/lib/auth";
 import { issueIdentityCookie, setGuestSessionCookies, setIdentityCookie } from "@/lib/auth/identityCookie";
-import { getContactByEmail, setContactLocaleIfEmpty } from "@/lib/contacts";
+import { getContactByEmail, markContactPhoneProven, setContactLocaleIfEmpty } from "@/lib/contacts";
+import { typedDigits } from "@/lib/contacts/guestPhone";
+import { phoneSubject, subjectPhone } from "@/lib/phone";
 import { isEnabled } from "@/lib/capabilities";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -54,10 +56,21 @@ export async function POST(request: Request) {
   if (req.scope && req.for !== "write") {
     return fail("invalid_request", 'scope is only meaningful when "for" is "write".');
   }
-  if (!isEmail(req.email) || !req.code) {
-    return fail("invalid_request", ERROR_CODES.invalid_request);
+  // B-2942: a guest's mobile number, `for: "read"` only. It becomes the code's
+  // subject, `+<digits>`, the same string the code was issued under.
+  let email: string;
+  if (req.phone !== undefined) {
+    const digits = typedDigits(req.phone);
+    if (req.email !== undefined || req.for !== "read" || !digits || !req.code) {
+      return fail("invalid_request", ERROR_CODES.invalid_request);
+    }
+    email = phoneSubject(digits);
+  } else {
+    if (req.email === undefined || !isEmail(req.email) || !req.code) {
+      return fail("invalid_request", ERROR_CODES.invalid_request);
+    }
+    email = req.email;
   }
-  const email = req.email;
 
   if (req.for === "signup") {
     if (!isEnabled("signup")) return fail("signup_disabled", ERROR_CODES.signup_disabled, undefined, 404);
@@ -125,6 +138,8 @@ export async function POST(request: Request) {
     // address — B410.
     // "Last used" (W44 D7) for the reader chain — only now the code proved
     // who this is, and only when the contact has no language yet.
+    const digits = subjectPhone(email);
+    if (digits) await markContactPhoneProven(owner, digits);
     const contact = await getContactByEmail(owner, email);
     if (contact) await setContactLocaleIfEmpty(owner, contact.id, locale);
     await setGuestSessionCookies(result.token, email, request.headers.get("user-agent"));

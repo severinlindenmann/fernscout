@@ -14,6 +14,9 @@ import { sendMail, sendTransactional } from "@/lib/mail";
 import { composeIdentityCodeMail, composeJournalCodeMail } from "@/lib/mail/accountCodeCompositions";
 import { renderMail } from "@/lib/mail/template";
 import { sendSignupCode, requestedAt } from "@/lib/signupCode";
+import { afterResponse } from "@/lib/afterResponse";
+import { joinCountryAllowed, joinSmsAvailable, sendReturnSmsCode, typedDigits } from "@/lib/contacts/guestPhone";
+import { smsUnreachable } from "@/lib/sms";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
@@ -66,6 +69,10 @@ export async function POST(request: Request) {
   }
   if (req.scope && req.for !== "write") {
     return fail("invalid_request", 'scope is only meaningful when "for" is "write".');
+  }
+  if (req.phone !== undefined) return handlePhone(request, req);
+  if (req.email === undefined) {
+    return fail("invalid_request", 'One of "email" or "phone" is required.');
   }
   if (!isEmail(req.email)) {
     return fail("invalid_email", ERROR_CODES.invalid_email, undefined, 400);
@@ -122,6 +129,49 @@ export async function POST(request: Request) {
 }
 
 type EmailCodesRequest = CodesRequest & { email: string };
+
+/**
+ * `phone` - a returning guest's sign-in code by SMS (B2294, reinstated by
+ * B-2942). `for: "read"` only: a number proves a reader or a buddy, never an
+ * owner or an agent. Sent only to a number a person of this journal already
+ * holds; every outcome that depends on the number answers the same 202.
+ */
+async function handlePhone(request: Request, req: CodesRequest) {
+  if (req.email !== undefined || req.for !== "read" || req.channel !== undefined) {
+    return fail("invalid_request", '"phone" is only for "for": "read", without "email" and without "channel".');
+  }
+  if (!isEnabled("auth")) return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
+  if (!(await joinSmsAvailable())) {
+    return fail("sms_disabled", "This server cannot send SMS. Ask for the code by email instead; nothing was issued.", undefined, 503);
+  }
+  const digits = typedDigits(req.phone ?? "");
+  if (!digits) {
+    return fail("invalid_request", "That is not a mobile number this server can text. Include the country code, e.g. +41 76 000 00 00.");
+  }
+  if (!joinCountryAllowed(digits) || smsUnreachable(digits)) {
+    return fail("sms_unreachable", "Nothing was sent: this server does not text numbers from that country.", undefined, 400);
+  }
+  const limit = rateLimitFor("codes-read", clientIp(request), RATE_LIMIT.read);
+  if (!limit.ok) {
+    const res = fail("too_many_requests", ERROR_CODES.too_many_requests, { retryAfter: limit.retryAfter }, 429);
+    res.headers.set("Retry-After", String(limit.retryAfter));
+    return res;
+  }
+  const accepted = () => ok({ status: "accepted" as const, next: 'POST /api/auth/codes/redeem with {"phone", "code", "for": "read"}' }, { status: 202 });
+  const username = req.user!;
+  const user = getUser(username);
+  if (!user) return accepted();
+  if (!isEnabled("auth", username)) return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
+  // After the response, known number or not: awaiting the text only for a
+  // number a contact holds would make the response time say which they are.
+  const ip = clientIp(request);
+  const locale = pickLocale(req.locale ?? null, fromAcceptLanguage(request.headers.get("accept-language")));
+  afterResponse("auth", async () => {
+    const sent = await sendReturnSmsCode(username, digits, { ip, locale, siteTitle: serverSite().name });
+    if (!sent.ok && sent.reason !== "no_contact") console.warn(`[auth] sms read code for ${username} not sent: ${sent.reason}`);
+  });
+  return accepted();
+}
 
 const RATE_LIMIT: Record<CredentialFor, { max: number; windowMs: number }> = {
   write: { max: 5, windowMs: 15 * 60 * 1000 },
