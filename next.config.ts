@@ -366,6 +366,18 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
+      // B2961. A trip link's code, on the same terms (and the press at
+      // /t/<code>/open sets a cookie, so nothing here may be kept either).
+      // `same-origin`, not `no-referrer`: with `no-referrer` Chrome sends
+      // `Origin: null` on the page's own form POST, which the strict Origin
+      // check rightly refuses. Cross-origin still gets no referrer at all.
+      {
+        source: "/t/:code*",
+        headers: [
+          { key: "Referrer-Policy", value: "same-origin" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
       // B1087: every /api/v1 route is authenticated and `force-dynamic`, and the
       // auth flows carry codes and session state — none of it belongs in any
       // cache. Pinned here (not just relied on from `force-dynamic`) so a shared

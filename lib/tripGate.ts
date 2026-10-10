@@ -5,7 +5,8 @@ import { resolveAccess } from "./auth/handshake";
 import { isEnabled } from "./capabilities";
 import { isAdminEmail } from "./admin";
 import { isOwner, journalReader, type JournalReader } from "./contacts/session";
-import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
+import { linkAccess } from "./tripLink";
+import { isPersonOn,isPersonOnWith, redeemedTripsFor } from "./tripPeople";
 import type { ReadOptions } from "./entries";
 import type { ReaderLevel } from "./photos";
 import type { Trip } from "./types";
@@ -72,7 +73,37 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
   // every address on earth. Put a `session !== null` test anywhere above this
   // line and every closed trip on the instance becomes readable by anyone with
   // an inbox. See `test/access-gate.test.ts`, "a signed-in stranger".
-  return guestMayRead(trip);
+  //
+  // **A trip link is the one other way in** (B2961): a `visibility: guest`
+  // trip, one cookie or one keep, public reader level. It is asked last and
+  // only here, so no other gate (`readerLevelFor`, drafts, the live line)
+  // ever learns about it.
+  return (await guestMayRead(trip)) || (await linkAccess(trip)) !== null;
+}
+
+/**
+ * Whether this request is let in by the trip link's cookie and by nothing else
+ * (B-2964): the gate's own order, so it is false for a public trip (the cookie
+ * is never read), the owner, a traveller, a journal guest and a keeper.
+ */
+export async function linkOnlyReader(trip: Trip): Promise<boolean> {
+  return (await linkReadWho(trip)) === "link";
+}
+
+/**
+ * Whether the trip is read through a trip link or a keep and by nothing else:
+ * the same order as `linkOnlyReader`, both states. For a surface built at a
+ * higher reader level than a link gives (the photobook reader copy), which
+ * must stay closed to such a reader.
+ */
+export async function readsOnlyThroughLink(trip: Trip): Promise<boolean> {
+  return (await linkReadWho(trip)) !== null;
+}
+
+async function linkReadWho(trip: Trip): Promise<"link" | "kept" | null> {
+  if (isOpenToLink(trip)) return null;
+  if ((await isOwner(trip.username)) || (await isTravellerOn(trip)) || (await guestMayRead(trip))) return null;
+  return linkAccess(trip);
 }
 
 /**

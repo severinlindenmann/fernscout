@@ -68,6 +68,8 @@ const ALWAYS_RESERVED = [
   // invite link /j/<code>.
   "w",
   "j",
+  // B2961 — the trip link /t/<code>.
+  "t",
   // The service worker's offline fallback. A journal that shadowed it would
   // make the offline page unreachable exactly when it is needed.
   "offline",

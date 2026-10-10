@@ -349,3 +349,42 @@ describe("telling the owner", () => {
     expect(JSON.parse((await get(guestA)).text).total).toBe(1);
   });
 });
+
+describe("B-2957 review fixes", () => {
+  test("a trip-link-only reader (a contact with no journal grant) is refused like a stranger", async () => {
+    await post(guestA, "for guests only");
+    const linkOnly: Who = { email: "eve@example.test", name: "Eve", guest: false, owner: false };
+    expect((await get(linkOnly)).status).toBe(400);
+    expect((await post(linkOnly, "hello")).status).toBe(400);
+  });
+
+  test("a foreign Origin is refused on POST, PATCH and DELETE", async () => {
+    who = guestA;
+    const { POST, PATCH, DELETE } = await route();
+    for (const [fn, method] of [[POST, "POST"], [PATCH, "PATCH"], [DELETE, "DELETE"]] as const) {
+      const req = send(method, { body: "x", id: "y" });
+      req.headers.set("origin", "https://evil.example");
+      const res = await fn(req);
+      expect(res.status).toBe(403);
+      expect((await res.json()).error).toBe("foreign_origin");
+    }
+  });
+
+  test("an unnamed author is called 'A reader' in the owner's push", async () => {
+    await saveSubscription({ username: OWNER, endpoint: "https://push.example/o", keys: { p256dh: "p", auth: "a" }, created: "2026-08-01", isOwner: true });
+    await post({ ...guestA, name: undefined }, "hi");
+    await flushAfterResponse();
+    expect(sendPush.mock.calls[0][0].body).toBe("A reader commented on Lanterns of Hoi An");
+  });
+
+  test("deleting a trip or a contact removes their comments", async () => {
+    await post(guestA, "from Bea");
+    const { commentRepo } = await import("@/lib/repos");
+    await (await commentRepo()).removeByAuthor(OWNER, guestA.email!);
+    expect(JSON.parse((await get(guestB)).text).total).toBe(0);
+    await post(guestA, "again");
+    const { deleteTrip } = await import("@/lib/deletions");
+    await deleteTrip(OWNER, TRIP, OWNER_EMAIL);
+    expect((await (await commentRepo()).list(REF, DAY)).total).toBe(0);
+  });
+});

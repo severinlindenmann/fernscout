@@ -871,14 +871,14 @@ export async function deleteContact(owner: string, id: string): Promise<boolean>
   const row = await db.selectFrom("contacts").select("email").where("owner_id", "=", owner).where("id", "=", id).executeTakeFirst();
   // The address would otherwise stay on their comments as a name and email.
   if (row?.email) await (await commentRepo()).removeByAuthor(owner, row.email);
-  const result = await db
-    .deleteFrom("contacts")
-    .where("owner_id", "=", owner)
-    .where("id", "=", id)
-    .executeTakeFirst();
-  // `numDeletedRows` is a bigint on both drivers; the build targets ES2017,
-  // where a `0n` literal is a syntax error.
-  return Number(result.numDeletedRows ?? 0) > 0;
+  return db.transaction().execute(async (trx) => {
+    // A person's saved trips go with them (B-2962).
+    await trx.deleteFrom("trip_link_keeps").where("owner_id", "=", owner).where("contact_id", "=", id).execute();
+    const result = await trx.deleteFrom("contacts").where("owner_id", "=", owner).where("id", "=", id).executeTakeFirst();
+    // `numDeletedRows` is a bigint on both drivers; the build targets ES2017,
+    // where a `0n` literal is a syntax error.
+    return Number(result.numDeletedRows ?? 0) > 0;
+  });
 }
 
 /** Everyone, for the owner's admin surface (C6). Never crosses an owner. */
@@ -1234,6 +1234,15 @@ export async function revokeContact(owner: string, id: string): Promise<ContactR
     .where("contact_id", "=", id)
     .execute();
   await revokeTripPlaces(owner, id);
+  // B-2962: Decline and Take access away end the trips this person kept
+  // through links; letting them in later does not clear this.
+  await db
+    .updateTable("trip_link_keeps")
+    .set({ revoked_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("contact_id", "=", id)
+    .where("revoked_at", "is", null)
+    .execute();
   return getContact(owner, id);
 }
 

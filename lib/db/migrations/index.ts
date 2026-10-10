@@ -66,7 +66,8 @@ import * as usageMonthlyTotals from "./064-usage-monthly-totals";
 import * as storageAddons from "./065-storage-addons";
 import * as vouchers from "./066-vouchers";
 import * as pendingSignups from "./067-pending-signups";
-import * as comments from "./068-comments";
+import * as tripLinks from "./068-trip-links";
+import * as comments from "./069-comments";
 
 /**
  * Every migration, listed by hand.
@@ -148,7 +149,8 @@ export const MIGRATIONS: Record<string, Migration> = {
   "065-storage-addons": storageAddons,
   "066-vouchers": vouchers,
   "067-pending-signups": pendingSignups,
-  "068-comments": comments,
+  "068-trip-links": tripLinks,
+  "069-comments": comments,
 };
 
 /**

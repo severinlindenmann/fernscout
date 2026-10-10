@@ -17,6 +17,8 @@ German uses **ß** rather than Swiss `ss`, „…" quotes, and **Reisetagebuch**
 | 20-minute one-shot credential | handover code | Übergabe-Code | átadási kód |
 | The person reading, approved into a trip or photo | reader | Leser:in | olvasó |
 | Trip or photo gate, and the invite kind | guest | Gast | vendég |
+| A link (`/t/<code>`, kind read) that opens one guest trip at public reader level, no account | trip link | Reise-Link | utazáslink |
+| Someone reading a trip through its trip link alone, not kept, not a guest | link reader | Link-Leser:in | linkes olvasó |
 | Journal visibility, advertised | listed | gelistet | listázott |
 | Journal visibility, not advertised | unlisted | ungelistet | nem listázott |
 | Whoever keeps the journal | owner | Besitzer:in | tulajdonos |

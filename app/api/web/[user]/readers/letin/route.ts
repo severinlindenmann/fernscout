@@ -35,7 +35,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   if (!contact) return Response.json({ error: "no_contact" }, { status: 404, headers: PRIVATE });
 
   const placesRaw = body?.places as { onlyTrip?: unknown } | null | undefined;
-  const places = placesRaw && placesRaw.onlyTrip === null ? { onlyTrip: null } : undefined;
+  // B-2963 — somebody filed by keeping a trip through a link (`read:<invite>`)
+  // is let into the journal to read, never into an old buddy request.
+  const keeper = contact.createdVia?.startsWith("read:") === true;
+  const places = keeper || (placesRaw && placesRaw.onlyTrip === null) ? { onlyTrip: null } : undefined;
 
   const approved = await approveContact(user, contact.id, places);
   if (!approved) return Response.json({ error: "not_proven" }, { status: 409, headers: PRIVATE });

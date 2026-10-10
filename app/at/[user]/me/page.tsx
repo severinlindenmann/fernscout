@@ -15,6 +15,7 @@ import pkg from "@/package.json";
 import { resolveViewer } from "@/lib/viewer";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/contactNumber";
+import { cookieLink, keepsTrip, openToken } from "@/lib/tripLink";
 
 // Reads a session on every request; there is nothing here to prerender.
 export const dynamic = "force-dynamic";
@@ -136,8 +137,23 @@ export default async function MePage({ params, searchParams }: PageProps<"/at/[u
     }
   }
 
+  // B-2962: a trip link held for this journal and not yet kept by this address.
+  const held = contactsEnabled && isEnabled("auth", user) ? await cookieLink() : null;
+  const keepLink =
+    held && held.link.owner === user && !(viewer.email && (await keepsTrip(user, held.link.trip.id, viewer.email)))
+      ? {
+          ownerName: ownerShortName(journal) ?? journal.title,
+          tripTitle: held.link.trip.title,
+          keepPath: `/t/${held.code}`,
+          token: openToken(held.code),
+          signupEnabled: isEnabled("signup"),
+          kept: false,
+        }
+      : null;
+
   return (
     <MePageContent
+      keepLink={keepLink}
       viewer={viewer}
       username={user}
       siteUrl={serverSite().url}

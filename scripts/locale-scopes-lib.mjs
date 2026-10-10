@@ -107,6 +107,8 @@ export const SCOPES = {
   // each needs its own provider, the same reason `contactPage` does.
   joinFrame: { layout: "app/j/[code]/layout.tsx" },
   welcomeLinkFrame: { layout: "app/w/[code]/layout.tsx" },
+  // B2961: /t trip links, the same frame on the same terms.
+  tripLinkFrame: { layout: "app/t/[code]/layout.tsx" },
   // Components that translate from a `dictionary`/`dictionaries` prop.
   contactManage: { files: ["components/ContactManage.tsx"], at: ["app/at/[user]/me/page.tsx"] },
   readersAdmin: { files: ["components/studio/readers/ReadersAdmin.tsx"], at: ["app/at/[user]/studio/readers/page.tsx"] },
