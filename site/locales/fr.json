@@ -1456,7 +1456,7 @@
   "mail.signinSubject": "Connexion à {title}",
   "mail.signupIgnore": "Si tu n’as rien demandé, ignore cet e-mail — rien n’a été créé.",
   "mail.signupTitle": "Commencer un journal",
-  "mail.signupWhat": "Tu as demandé à ouvrir un journal de voyage avec cette adresse. Saisis ce code là où tu l’as demandé et tu pourras créer un journal. Si un agent le fait pour toi, donne-lui plutôt le code.",
+  "mail.signupWhat": "Tu as demandé à ouvrir un journal de voyage avec cette adresse. Saisis ce code là où tu l’as demandé et tu pourras créer un journal.",
   "mail.storageAdvice": "Supprime ce dont tu n’as plus besoin, ou ajoute 5 Go depuis ta propre page — c’est un achat unique qui n’expire pas.",
   "mail.storageFooter": "Envoyé parce que tu es propriétaire de {user}.",
   "mail.storageFullBody": "{user} occupe {used} sur ses {limit} et refuse les nouvelles photos et les nouveaux livres photo. Rien de ce qui est déjà publié n’a été touché.",

@@ -1218,7 +1218,7 @@
   "mail.signinSubject": "Bejelentkezés ide: {title}",
   "mail.signupIgnore": "Ha nem te kérted, hagyd figyelmen kívül — semmi nem jött létre.",
   "mail.signupTitle": "Útinapló indítása",
-  "mail.signupWhat": "Útinaplót kezdeményeztél ezzel a címmel. Add meg ezt a kódot ott, ahol kérted, és létrehozhatsz egy útinaplót. Ha ezt egy ügynök intézi helyetted, inkább neki add oda a kódot.",
+  "mail.signupWhat": "Útinaplót kezdeményeztél ezzel a címmel. Add meg ezt a kódot ott, ahol kérted, és létrehozhatsz egy útinaplót.",
   "mail.storageAdvice": "Töröld, amire már nincs szükséged, vagy vegyél hozzá 5 GB-ot a saját oldaladon — egyszeri vásárlás, és nem jár le.",
   "mail.storageFooter": "Azért kapod, mert a(z) {user} napló tulajdonosa vagy.",
   "mail.storageFullBody": "A(z) {user} napló {used} helyet foglal a(z) {limit} keretből, és nem fogad több fényképet vagy fotókönyvet. A már közzétett tartalomhoz semmi nem nyúlt.",

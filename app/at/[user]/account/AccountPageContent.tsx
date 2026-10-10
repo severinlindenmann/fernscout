@@ -585,7 +585,7 @@ function PlanOptionTile({
       {coupon && <div className="mt-2">{coupon}</div>}
       {!native && (
         <p className="mt-1 flex items-baseline gap-1.5">
-          <span className="font-display text-xl font-semibold text-ink-strong">{price}</span>
+          <span className="whitespace-nowrap font-display text-xl font-semibold text-ink-strong">{price}</span>
           <span className="text-sm text-ink-secondary">{cadence}</span>
         </p>
       )}
@@ -778,7 +778,7 @@ function MeterRow({ label, value, percent }: { label: string; value: string; per
       {percent !== undefined && (
         <div className="h-2 w-full overflow-hidden rounded-full bg-surface-selected">
           <div
-            className="h-2 rounded-full bg-ink-strong"
+            className={`h-2 rounded-full ${percent >= 100 ? "bg-coral-400" : "bg-ink-strong"}`}
             style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
           />
         </div>

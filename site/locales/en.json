@@ -1456,7 +1456,7 @@
   "mail.signinSubject": "Sign in to {title}",
   "mail.signupIgnore": "If you did not ask for this, ignore it — nothing has been created.",
   "mail.signupTitle": "Start a journal",
-  "mail.signupWhat": "You asked to start a travel journal at this address. Enter this code where you asked for it and you can create one journal. If an agent is doing this for you, give it the code instead.",
+  "mail.signupWhat": "You asked to start a travel journal at this address. Enter this code where you asked for it and you can create one journal.",
   "mail.storageAdvice": "Delete what you no longer need, or add 5 GB from your own page — it is a one-off purchase and it does not expire.",
   "mail.storageFooter": "Sent because you are the owner of {user}.",
   "mail.storageFullBody": "{user} holds {used} of its {limit} and is refusing new photographs and photobooks. Nothing already published has been touched.",
