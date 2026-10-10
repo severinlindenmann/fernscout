@@ -6,7 +6,7 @@ import Link from "next/link";
 import { AdminJournals, type HomeJournal } from "@/components/HomeJournals";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader } from "@/components/mediaLoader";
-import { bandsFor, newestDay, type BandTrip } from "@/lib/homeBands";
+import { bandsFor, newestDay, phaseOf, type BandTrip } from "@/lib/homeBands";
 import { readerTodayISO } from "@/lib/tripTime";
 
 import { journalPath } from "@/lib/journalPath";
@@ -213,14 +213,18 @@ function whose(journal: HomeJournal): string {
 
 /** The reader's own trip: running, or holding a draft. A strip rather than a
  * hero — they know where they are; what they need is the next step. */
-function MineStrip({ item }: { item: BandTrip }) {
+function MineStrip({ item, isRunning }: { item: BandTrip; isRunning: boolean }) {
   const { t } = useI18n();
   const { journal, trip } = item;
   const studio = `${journalPath(journal.username)}/studio`;
   const writes = journal.role === "owner" || trip.through === "owner";
-  const kicker = trip.through === "traveller" && !writes ? t("home.road.onTrip") : trip.draft && trip.status === "past"
+  // "Travelling" is said only of a trip whose dates include today; a draft on
+  // a trip that has ended, or not begun, is named as the draft it is.
+  const kicker = !isRunning
     ? t("home.draftLabel")
-    : t("home.road.mine");
+    : trip.through === "traveller" && !writes
+      ? t("home.road.onTrip")
+      : t("home.road.mine");
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-3xl border-2 border-yellow-400 bg-surface-raised px-4 py-3">
       <div className="flex min-w-0 flex-1 basis-48 flex-col">
@@ -361,8 +365,10 @@ export default function SignedInHome({
   const { day } = useDates();
   const owned = journals.filter((j) => j.role === "owner");
   const admin = journals.filter((j) => j.role === "admin");
-  const bands = bandsFor(journals, today ?? readerTodayISO());
-  const onTheRoad = bands.mine.length > 0 || bands.running.length > 0;
+  const todayISO = today ?? readerTodayISO();
+  const bands = bandsFor(journals, todayISO);
+  const runningMine = bands.mine.filter((i) => phaseOf(i.trip, todayISO) === "running");
+  const onTheRoad = runningMine.length + bands.running.length > 0;
   const nothingAnywhere = journals.every((j) => j.role === "admin" || j.trips.length === 0);
   const items = owned.flatMap((journal) => journal.trips.map((trip) => ({ journal, trip })));
   const paper = photobookEnabled ? pickForPaper(items) : undefined;
@@ -392,17 +398,23 @@ export default function SignedInHome({
       {!nothingAnywhere && (
         <div className="grid gap-10 md:grid-cols-12 md:gap-12">
           <div className="flex min-w-0 flex-col gap-4 md:col-span-7">
+            {onTheRoad && (
+              <h1 className="flex items-baseline justify-between gap-3">
+                <Kicker className="font-semibold text-green-700">
+                  {t("home.road.title")} · {runningMine.length + bands.running.length}
+                </Kicker>
+                <Kicker>{t("home.road.byDates")}</Kicker>
+              </h1>
+            )}
+            {bands.mine.map((item) => (
+              <MineStrip
+                key={`${item.journal.username}/${item.trip.id}`}
+                item={item}
+                isRunning={phaseOf(item.trip, todayISO) === "running"}
+              />
+            ))}
             {onTheRoad ? (
               <>
-                <h1 className="flex items-baseline justify-between gap-3">
-                  <Kicker className="font-semibold text-green-700">
-                    {t("home.road.title")} · {bands.mine.length + bands.running.length}
-                  </Kicker>
-                  <Kicker>{t("home.road.byDates")}</Kicker>
-                </h1>
-                {bands.mine.map((item) => (
-                  <MineStrip key={`${item.journal.username}/${item.trip.id}`} item={item} />
-                ))}
                 {cards.map((item) => (
                   <RunningCard key={`${item.journal.username}/${item.trip.id}`} item={item} />
                 ))}

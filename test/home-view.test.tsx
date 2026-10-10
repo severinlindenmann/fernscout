@@ -103,6 +103,25 @@ describe("the signed-in home", () => {
     expect(html).toContain('href="/@ana/studio/day/edit?slug=d3"');
   });
 
+  test("a draft on a trip that has not begun is a draft, not travelling, and is not counted on the road", () => {
+    const html = home([
+      journal({
+        trips: [
+          trip({
+            status: "upcoming",
+            start: "2026-11-01",
+            end: "2026-11-09",
+            draft: { slug: "d3", title: "Before the flight", date: "2026-11-01", href: "/x" },
+          }),
+        ],
+      }),
+    ]);
+    expect(html).toContain("Draft · only you can see it");
+    expect(html).toContain("Before the flight");
+    expect(html).not.toContain("travelling");
+    expect(html).not.toContain("On the road");
+  });
+
   test("somebody who travelled on a friend's trip gets Read, and no studio", () => {
     const html = home([
       journal({
