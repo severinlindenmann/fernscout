@@ -217,9 +217,12 @@ async function readRow(reader: Reader, now: Date): Promise<ProviderRow> {
     return row("not_set_up", null, null, "No key on this instance.");
   }
   try {
-    const amount = await reader.read();
+    const read = await reader.read();
+    // Stannp's balance answer names no currency (B-2750): take the configured one, never guess.
+    const configured = reader.id === "stannp" ? loadServerConfig().providers.stannp?.currency : undefined;
+    const amount = { value: read.value, currency: read.currency ?? configured ?? null };
     lastGood.set(reader.id, { amount, at: now.toISOString() });
-    return row("ok", amount, now.toISOString(), "");
+    return row("ok", amount, now.toISOString(), reader.id === "stannp" && !amount.currency ? "Currency not configured (providers.stannp.currency)." : "");
   } catch (error) {
     const good = lastGood.get(reader.id);
     return row(

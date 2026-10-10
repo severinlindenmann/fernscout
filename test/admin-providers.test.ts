@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   admin: true,
-  lowBelow: {} as Record<string, { lowBelow: number }>,
+  lowBelow: {} as Record<string, { lowBelow?: number; currency?: string }>,
   features: {
     sms: { enabled: false },
     transcription: { enabled: false },
@@ -83,6 +83,15 @@ describe("readProviders", () => {
     const { rows } = await readProviders();
     expect(row(rows, "stannp").low).toBe(true);
     expect(row(rows, "twilio").low).toBe(false);
+  });
+
+  test("Stannp names no currency: the configured one is used, otherwise the row says so", async () => {
+    state.stannp.result = { value: 8.14, currency: null };
+    const bare = row((await readProviders()).rows, "stannp") as never as { amount: unknown; note: string };
+    expect(bare).toMatchObject({ amount: { value: 8.14, currency: null }, note: "Currency not configured (providers.stannp.currency)." });
+    resetProvidersCache();
+    state.lowBelow = { stannp: { currency: "GBP" } };
+    expect(row((await readProviders()).rows, "stannp")).toMatchObject({ amount: { value: 8.14, currency: "GBP" }, note: "" });
   });
 
   test("no key: simulated sample in a dry-run backend, otherwise not set up", async () => {

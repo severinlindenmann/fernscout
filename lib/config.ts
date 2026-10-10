@@ -518,7 +518,7 @@ export type ServerConfig = {
    * that API answers in (never converted). Absent means the figure is shown
    * with no Low/OK judgement.
    */
-  providers: Partial<Record<"stannp" | "twilio" | "deepgram", { lowBelow: number }>>;
+  providers: Partial<Record<"stannp" | "twilio" | "deepgram", { lowBelow?: number; currency?: string }>>;
 };
 
 /**
@@ -1158,7 +1158,7 @@ export function parseServerConfig(raw: unknown): ServerConfig {
   return config;
 }
 
-/** `providers.<name>.lowBelow` — B1646. A positive number in the provider's own currency. */
+/** `providers.<name>.lowBelow` (B1646, a positive number in the provider's own currency) and `.currency` (B-2750, for a balance API that names none). */
 function parseProviders(raw: unknown, problems: string[]): ServerConfig["providers"] {
   const found: ServerConfig["providers"] = {};
   if (raw === undefined || raw === null) return found;
@@ -1171,12 +1171,27 @@ function parseProviders(raw: unknown, problems: string[]): ServerConfig["provide
       problems.push(`providers.${name} is not a provider with a readable balance (stannp, twilio, deepgram)`);
       continue;
     }
-    const low = (entry as { lowBelow?: unknown } | null)?.lowBelow;
-    if (typeof low !== "number" || !Number.isFinite(low) || low <= 0) {
-      problems.push(`providers.${name}.lowBelow must be a number above zero, in the currency ${name}'s own API reports`);
+    const { lowBelow: low, currency } = (entry ?? {}) as { lowBelow?: unknown; currency?: unknown };
+    const parsed: { lowBelow?: number; currency?: string } = {};
+    if (low !== undefined) {
+      if (typeof low !== "number" || !Number.isFinite(low) || low <= 0) {
+        problems.push(`providers.${name}.lowBelow must be a number above zero, in the currency ${name}'s own API reports`);
+        continue;
+      }
+      parsed.lowBelow = low;
+    }
+    if (currency !== undefined) {
+      if (typeof currency !== "string" || !/^[A-Za-z]{3}$/.test(currency)) {
+        problems.push(`providers.${name}.currency must be a three-letter currency code such as GBP`);
+        continue;
+      }
+      parsed.currency = currency.toUpperCase();
+    }
+    if (parsed.lowBelow === undefined && parsed.currency === undefined) {
+      problems.push(`providers.${name} needs lowBelow, currency, or both`);
       continue;
     }
-    found[name] = { lowBelow: low };
+    found[name] = parsed;
   }
   return found;
 }
