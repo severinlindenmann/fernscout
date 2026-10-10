@@ -388,3 +388,23 @@ describe("B-2957 review fixes", () => {
     expect((await (await commentRepo()).list(REF, DAY)).total).toBe(0);
   });
 });
+
+describe("B-2973 trip rename moves comments", () => {
+  test("renameTrip moves comments to the new ref (database store)", async () => {
+    await post(guestA, "kept across a rename");
+    const { renameTrip } = await import("@/lib/tripRename");
+    const { commentRepo } = await import("@/lib/repos");
+    expect(await renameTrip(OWNER, TRIP, "renamed-trip")).toEqual({ ok: true, id: "renamed-trip" });
+    expect((await (await commentRepo()).list(`${OWNER}/renamed-trip`, DAY)).total).toBe(1);
+    expect((await (await commentRepo()).list(REF, DAY)).total).toBe(0);
+  });
+
+  test("moveForTrip on the file store", async () => {
+    const { fileCommentRepo } = await import("@/lib/repos/commentsFile");
+    const repo = fileCommentRepo();
+    await repo.add({ tripId: REF, daySlug: DAY, authorEmail: "a@example.test", authorName: "A", body: "hi", createdAt: "2026-01-01T00:00:00Z" } as never);
+    await repo.moveForTrip(REF, `${OWNER}/new`);
+    expect((await repo.list(`${OWNER}/new`, DAY)).total).toBe(1);
+    expect((await repo.list(REF, DAY)).total).toBe(0);
+  });
+});

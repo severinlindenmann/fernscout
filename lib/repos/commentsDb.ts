@@ -112,6 +112,10 @@ export function dbCommentRepo(handle: DatabaseHandle): CommentRepo {
       await db.deleteFrom("comments").where("owner_id", "=", ownerOf(tripId)).where("trip_id", "=", tripId).execute();
     },
 
+    async moveForTrip(oldRef, newRef) {
+      await db.updateTable("comments").set({ trip_id: newRef }).where("owner_id", "=", ownerOf(oldRef)).where("trip_id", "=", oldRef).execute();
+    },
+
     async removeByAuthor(owner, authorEmail) {
       await db.deleteFrom("comments").where("owner_id", "=", owner).where("author_email", "=", authorEmail).execute();
     },
