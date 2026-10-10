@@ -291,6 +291,8 @@ export type SiteSummary = {
    * owner, but so is a reader signed in as somebody else's guest.
    */
   isOwner: boolean;
+  /** `features.comments` for this journal (B-2957): off, the story never asks /api/comments. */
+  commentsEnabled?: boolean;
   /**
    * Whether `/@<user>/studio` — the studio — exists on this instance for this
    * journal — `features.extract`, resolved for this user by `isEnabled`.
@@ -370,6 +372,7 @@ export function siteSummaryFor(
     analyticsEnabled: analyticsAvailable(user.username),
     helperEnabled: isEnabled("helper", user.username),
     extractEnabled: isEnabled("extract", user.username),
+    commentsEnabled: isEnabled("comments", user.username),
     isShowcase: loadServerConfig().site.showcase.includes(user.username),
     operatorEmail: serverSite().operatorEmail,
   };

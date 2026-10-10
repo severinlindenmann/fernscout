@@ -697,7 +697,7 @@ export default function TripStory({
 
   return trip ? (
     <ReactionsProvider tripId={trip.trip.ref}>
-      <CommentsProvider tripId={trip.trip.ref}>{story}</CommentsProvider>
+      {site?.commentsEnabled ? <CommentsProvider tripId={trip.trip.ref}>{story}</CommentsProvider> : story}
     </ReactionsProvider>
   ) : (
     story
