@@ -20,7 +20,7 @@ export const MAX_FILES_PER_RUN = 500;
  * the share sheet uses (`POST /api/v2/<user>/import/photos`, B2195). Pushes
  * nothing onto the manifest: the caller appends `accepted` and writes it.
  */
-export async function stageFiles(user: string, current: RunManifest, files: File[]) {
+async function stageFiles(user: string, current: RunManifest, files: File[]) {
   const runId = current.runId;
   // Seeded from the manifest as it stands and grown as the loop accepts —
   // so a duplicate is caught whether it arrives against an earlier request
