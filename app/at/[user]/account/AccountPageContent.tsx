@@ -585,7 +585,7 @@ function PlanOptionTile({
       {coupon && <div className="mt-2">{coupon}</div>}
       {!native && (
         <p className="mt-1 flex items-baseline gap-1.5">
-          <span className="font-display text-xl font-semibold text-ink-strong">{price}</span>
+          <span className="whitespace-nowrap font-display text-xl font-semibold text-ink-strong">{price}</span>
           <span className="text-sm text-ink-secondary">{cadence}</span>
         </p>
       )}
