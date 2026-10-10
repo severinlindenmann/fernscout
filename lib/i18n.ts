@@ -1450,6 +1450,7 @@ export type TranslationKey =
   | "map.noPlaceGiven"
   | "map.osmCredit"
   | "map.osmCreditInfo"
+  | "map.placeHidden"
   | "map.places"
   | "map.planned"
   | "map.plannedFromDrafts"

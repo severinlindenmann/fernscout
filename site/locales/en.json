@@ -5183,5 +5183,6 @@
   "comments.rateLimited": "Too many comments just now. Try again in {minutes} min. Your text is kept.",
   "comments.offline": "You seem to be offline. Your text is kept; try again when you are back.",
   "comments.anonymous": "A reader",
-  "comments.push.body": "{name} commented on {day}"
+  "comments.push.body": "{name} commented on {day}",
+  "map.placeHidden": "Place kept private"
 }
