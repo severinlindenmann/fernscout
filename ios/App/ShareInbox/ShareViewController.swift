@@ -44,6 +44,8 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
     private var hasMore: Bool { !showAll && trips.count > Self.fewCount }
     private static let cream = UIColor(red: 1.0, green: 0.98, blue: 0.94, alpha: 1)
     private static let navy = UIColor(red: 0.118, green: 0.161, blue: 0.231, alpha: 1)
+    /// Fixed grey for text on the fixed cream/white surfaces; .secondaryLabel turns light in dark mode.
+    private static let muted = UIColor(red: 0.39, green: 0.42, blue: 0.47, alpha: 1)
 
     /// A half sheet that grows with its rows rather than a full page —
     /// iOS lets an extension size itself through `preferredContentSize`.
@@ -150,8 +152,8 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         name.text = "Fernscout"
         name.textAlignment = .center
         name.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
-        name.textColor = .secondaryLabel
-        if let text = name.text { name.attributedText = NSAttributedString(string: text.uppercased(), attributes: [.kern: 2.5, .font: name.font!, .foregroundColor: UIColor.secondaryLabel]) }
+        name.textColor = Self.muted
+        if let text = name.text { name.attributedText = NSAttributedString(string: text.uppercased(), attributes: [.kern: 2.5, .font: name.font!, .foregroundColor: Self.muted]) }
         let ask = UILabel(frame: CGRect(x: 24, y: 84, width: width - 48, height: 26))
         ask.text = String(localized: "shareInbox.whichTrip")
         ask.textAlignment = .center
@@ -168,7 +170,7 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         cell.textLabel?.textColor = Self.navy
         cell.textLabel?.font = .systemFont(ofSize: 17, weight: .medium)
         cell.detailTextLabel?.text = detail
-        cell.detailTextLabel?.textColor = .secondaryLabel
+        cell.detailTextLabel?.textColor = Self.muted
         let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
         let icon = UIImageView(image: UIImage(systemName: symbol, withConfiguration: config))
         icon.tintColor = tint
@@ -237,7 +239,7 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
                     ? iconCell("figure.walk", tint: Self.navy, fill: Self.yellow, title: trip.title, detail: String(localized: "shareInbox.underWay"))
                     : iconCell("suitcase.fill", tint: Self.navy, fill: Self.creamDeep, title: trip.title, detail: trip.from.map(Self.year) ?? nil)
             }
-            return iconCell("chevron.down", tint: .secondaryLabel, fill: Self.yellowSoft, title: String(format: String(localized: "shareInbox.allTrips"), trips.count), detail: nil)
+            return iconCell("chevron.down", tint: Self.muted, fill: Self.yellowSoft, title: String(format: String(localized: "shareInbox.allTrips"), trips.count), detail: nil)
         }
         if indexPath.row == 0 {
             let n = max(expected, files.count)
@@ -469,7 +471,7 @@ final class ShareViewController: UIViewController, UITableViewDataSource, UITabl
         sub.numberOfLines = 0
         sub.textAlignment = .center
         sub.font = .preferredFont(forTextStyle: .body)
-        sub.textColor = .secondaryLabel
+        sub.textColor = Self.muted
         sub.isHidden = line == nil
         let stack = UIStackView(arrangedSubviews: [mark, badge, title, sub])
         stack.axis = .vertical
