@@ -18,7 +18,6 @@ import type { MapDay } from "@/lib/map/mapDays";
 import { adjacentDate } from "@/lib/map/dayTransition";
 import DayReader, { useDaySwipe } from "@/components/map/DayReader";
 import DayFacts from "@/components/map/DayFacts";
-import { useViewerPreload } from "@/components/map/usePreload";
 
 /** B2572 — the two things to do with a selected day, as buttons rather than
  * underlined text: read it (primary), or find it in Google Maps. Shared with
@@ -254,7 +253,6 @@ export default function MobileMapSheet({
   // `setOpenPhotoIndex(null)` below), so a lightbox never outlives the day
   // it was opened from.
   const [openPhotoIndex, setOpenPhotoIndex] = useState<number | null>(null);
-  useViewerPreload(dayGallery, openPhotoIndex);
 
   // A new selection — a marker tapped on the map, or a day picked here —
   // opens the sheet to Half, so whichever surface drove it, the result is
@@ -621,6 +619,7 @@ export default function MobileMapSheet({
           <Lightbox
             index={openPhotoIndex}
             count={dayGallery.length}
+            items={dayGallery}
             onClose={() => setOpenPhotoIndex(null)}
             onPrev={() =>
               setOpenPhotoIndex((i) => (i === null ? null : (i - 1 + dayGallery.length) % dayGallery.length))

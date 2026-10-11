@@ -233,6 +233,7 @@ export default function GalleryGrid({
       <Lightbox
         index={openIndex}
         count={shown.length}
+        items={shown}
         onClose={close}
         onPrev={prev}
         onNext={next}

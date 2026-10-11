@@ -56,9 +56,11 @@ test("bad coordinates and unknown files are 404", async () => {
   expect(getZxy).not.toHaveBeenCalled();
 });
 
-test("a tile outside the zoom level's bounds is a quiet 404, never looked up", async () => {
-  expect((await call(tile as Handler, "http://x/t", ["planet.pmtiles", "2", "4", "0"])).status).toBe(404);
-  expect((await call(tile as Handler, "http://x/t", ["planet.pmtiles", "0", "0", "1"])).status).toBe(404);
+test("a tile outside the zoom level's bounds is an empty cacheable 204, never looked up; z above 26 stays 404", async () => {
+  const wrapped = await call(tile as Handler, "http://x/t", ["planet.pmtiles", "2", "4", "3"]);
+  expect(wrapped.status).toBe(204);
+  expect(wrapped.headers.get("Cache-Control")).toContain("max-age");
+  expect((await call(tile as Handler, "http://x/t", ["planet.pmtiles", "0", "0", "1"])).status).toBe(204);
   expect((await call(tile as Handler, "http://x/t", ["planet.pmtiles", "27", "0", "0"])).status).toBe(404);
   expect(getZxy).not.toHaveBeenCalled();
   getZxy.mockResolvedValue(undefined);

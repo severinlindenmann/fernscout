@@ -1,29 +1,29 @@
 import type { GalleryItem } from "./types";
-import { mediaLoader, posterSrc } from "../components/mediaLoader";
-import { POSTER_WIDTH } from "./mediaSizes";
+import { posterSrc } from "../components/mediaLoader";
+import { POSTER_WIDTH, VIEWER_SIZES, isResizable, viewerSrcSet } from "./mediaSizes";
 
 /**
  * B-2980 — what the full-screen viewer warms before a swipe, and the one rule
  * for playback. Pure, so both can be tested without a browser.
  */
 
-/** Width the viewer asks for on a phone: the same derivative family the grid and `FullPhoto` use. */
-const VIEWER_WIDTH = 1080;
+/** What to fetch ahead: a poster is one URL; a photograph is the viewer's own srcset, sizes and fallback. */
+export type WarmFrame = { src: string; srcSet?: string; sizes?: string };
 
-/** The image (or a video's poster) at `index`, as a derivative URL; null when there is nothing to draw. */
-function frameUrl(item: GalleryItem | undefined): string | null {
+function frame(item: GalleryItem | undefined): WarmFrame | null {
   if (!item) return null;
-  if (item.type === "video") return posterSrc(item.poster, POSTER_WIDTH.FULL) ?? null;
-  return mediaLoader({ src: item.src, width: VIEWER_WIDTH });
+  if (item.type === "video") {
+    const src = posterSrc(item.poster, POSTER_WIDTH.FULL);
+    return src ? { src } : null;
+  }
+  return isResizable(item.src) ? { src: item.src, srcSet: viewerSrcSet(item.src), sizes: VIEWER_SIZES } : { src: item.src };
 }
 
-/** URLs worth fetching ahead while `index` is open: the next, then the previous (wrapping like the viewer). */
-export function viewerWarmUrls(items: readonly GalleryItem[], index: number | null, saveData = false): string[] {
+/** Frames worth fetching ahead while `index` is open: the next, then the previous (wrapping like the viewer). */
+export function viewerWarmFrames(items: readonly GalleryItem[], index: number | null, saveData = false): WarmFrame[] {
   if (saveData || index === null || items.length < 2) return [];
   const n = items.length;
-  return [items[(index + 1) % n], items[(index - 1 + n) % n]]
-    .map(frameUrl)
-    .filter((u): u is string => u !== null);
+  return [items[(index + 1) % n], items[(index - 1 + n) % n]].map(frame).filter((f): f is WarmFrame => f !== null);
 }
 
 /** The next clip's source, whose metadata (duration, first frame) is worth having — not its bytes. */

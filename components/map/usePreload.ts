@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useTrip } from "@/components/TripProvider";
 import { useI18n } from "@/components/LocaleProvider";
-import { nextVideoSrc, viewerWarmUrls } from "@/lib/mediaPreload";
+import { nextVideoSrc, viewerWarmFrames, type WarmFrame } from "@/lib/mediaPreload";
 import { photoUrlsToWarm, prefetchAround, savesData, type StoryFetch } from "@/lib/map/storyCache";
 import type { GalleryItem } from "@/lib/types";
 
@@ -13,6 +13,17 @@ const saveData = () => (typeof navigator === "undefined" ? false : savesData(nav
 
 function warmImages(urls: string[]): void {
   for (const u of urls) new Image().src = u;
+}
+
+/** Same attribute order as the viewer's picture: sizes and srcset before src, so the browser picks the width the viewer will. */
+function warmFrames(frames: WarmFrame[]): void {
+  for (const f of frames) {
+    const img = new Image();
+    if (f.sizes) img.sizes = f.sizes;
+    if (f.srcSet) img.srcset = f.srcSet;
+    img.src = f.src;
+    img.decode?.().catch(() => {});
+  }
 }
 
 /**
@@ -43,7 +54,7 @@ export function usePrefetchDays(index: number, count: number, galleryOf: (i: num
 export function useViewerPreload(items: readonly GalleryItem[], index: number | null): void {
   useEffect(() => {
     const sd = saveData();
-    warmImages(viewerWarmUrls(items, index, sd));
+    warmFrames(viewerWarmFrames(items, index, sd));
     const src = nextVideoSrc(items, index, sd);
     if (!src) return;
     const v = document.createElement("video");

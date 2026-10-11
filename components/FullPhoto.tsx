@@ -1,6 +1,6 @@
 "use client";
 
-import { MEDIA_WIDTHS, POSTER_WIDTH } from "@/lib/mediaSizes";
+import { POSTER_WIDTH, VIEWER_SIZES, isResizable, viewerSrcSet } from "@/lib/mediaSizes";
 import { posterSrc } from "./mediaLoader";
 import type { GalleryItem } from "@/lib/types";
 import { usePhotoReveal } from "./PhotoFrame";
@@ -82,7 +82,7 @@ export default function FullPhoto({ item }: { item: GalleryItem }) {
   // fades in over it — `usePhotoReveal` in PhotoFrame.tsx says when. The
   // Lightbox remounts this per photograph (`key={index}`), so each one starts
   // its own wait.
-  if (!resizable(item.src)) {
+  if (!isResizable(item.src)) {
     return (
       <span className="fs-photo fs-photo-full relative block" {...frame}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -96,11 +96,11 @@ export default function FullPhoto({ item }: { item: GalleryItem }) {
       <picture>
         <source
           type="image/webp"
-          srcSet={MEDIA_WIDTHS.map((w) => `${item.src}?w=${w} ${w}w`).join(", ")}
+          srcSet={viewerSrcSet(item.src)}
           // The frame is `w-full max-w-4xl` inside a viewer padded by 4 — 896px
           // at the widest, the viewport below that. The browser multiplies by
           // its own pixel ratio before it picks.
-          sizes="(max-width: 896px) 100vw, 896px"
+          sizes={VIEWER_SIZES}
         />
         {/* The original, for a browser with no WebP — and the element every
             other attribute hangs off, since a `<source>` renders nothing. No
@@ -111,9 +111,4 @@ export default function FullPhoto({ item }: { item: GalleryItem }) {
       </picture>
     </span>
   );
-}
-
-/** Whether this source is one our own media route can resize. */
-function resizable(src: string): boolean {
-  return !/^https?:/.test(src) && !src.endsWith(".svg");
 }

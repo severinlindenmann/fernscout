@@ -6,7 +6,6 @@ import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowRight, ChevronLeft, ChevronRight, X } from "lucide-react";
 import DayFacts from "@/components/map/DayFacts";
-import { useViewerPreload } from "@/components/map/usePreload";
 import { cachedDay, loadWindow, type StoryFetch } from "@/lib/map/storyCache";
 import { pauseOthers } from "@/lib/mediaPreload";
 import { useI18n } from "@/components/LocaleProvider";
@@ -201,7 +200,6 @@ function ReaderBody({
   }, [mapDay.date]);
 
   const gallery = day?.entries.flatMap((e) => e.gallery) ?? [];
-  useViewerPreload(gallery, photo);
   const title = mapDay.hasPlace
     ? `${flagFor(mapDay.country, mapDay.countryCode)} ${mapDay.location}`
     : formatShortDate(mapDay.date);
@@ -340,6 +338,7 @@ function ReaderBody({
           <Lightbox
             index={photo}
             count={gallery.length}
+            items={gallery}
             onClose={() => setPhoto(null)}
             onPrev={() => setPhoto((i) => (i === null ? null : (i - 1 + gallery.length) % gallery.length))}
             onNext={() => setPhoto((i) => (i === null ? null : (i + 1) % gallery.length))}

@@ -21,15 +21,18 @@ export async function GET(request: Request, { params }: RouteContext<"/api/maps/
   if (segments.length < 4 || ![z, x, y].every((s) => DIGITS.test(s))) {
     return new Response("Not found", { status: 404 });
   }
-  // pmtiles throws for x or y >= 2^z, and for z above 26.
-  if (Number(z) > 26 || Number(x) >= 2 ** Number(z) || Number(y) >= 2 ** Number(z)) return new Response("Not found", { status: 404 });
+  // pmtiles throws for z above 26.
+  if (Number(z) > 26) return new Response("Not found", { status: 404 });
   const file = resolveMapsFile(segments.slice(0, -3));
   if (!file) return new Response("Not found", { status: 404 });
 
   const { mtimeMs, tiles } = tilesFor(file);
   const current = new URL(request.url).searchParams.get("v") === String(Math.floor(mtimeMs));
   const cacheControl = current ? "public, max-age=31536000, immutable" : "public, max-age=3600";
-  const tile = await tiles.getZxy(Number(z), Number(x), Number(y));
+  // MapLibre asks for wrapped world copies at low zoom (x or y >= 2^z), which
+  // pmtiles throws on: the same empty answer as a missing tile, not a 404.
+  const inRange = Number(x) < 2 ** Number(z) && Number(y) < 2 ** Number(z);
+  const tile = inRange ? await tiles.getZxy(Number(z), Number(x), Number(y)) : null;
   // No tile here (open sea, outside a region file): an empty answer MapLibre
   // draws as nothing, cached like any other.
   if (!tile) return new Response(null, { status: 204, headers: { "Cache-Control": cacheControl } });
