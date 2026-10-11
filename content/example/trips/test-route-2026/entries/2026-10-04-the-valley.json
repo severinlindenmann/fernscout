@@ -1,8 +1,14 @@
 {
   "title": "The valley",
   "date": "2026-10-04",
+  "location": "Spiez",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.686,
+    "lng": 7.68
+  },
   "content": "Invented sample day: two photos with a measured position on the route, one without.",
-  "test": true,
   "media": [
     {
       "src": "/media/test-route-2026/the-valley/01.jpg",
@@ -26,20 +32,16 @@
       "height": 1600
     }
   ],
+  "test": true,
   "declined": {
-    "rates": "no money moved",
     "costs": "no money moved",
     "weather": "invented sample",
-    "time": "not noted",
-    "timezone": "not noted",
-    "transportMode": "not noted",
-    "tags": "none",
+    "time": "not noted on this sample",
+    "timezone": "not noted on this sample",
+    "transportMode": "not noted on this sample",
+    "tags": "none on this sample",
     "translations": "not needed",
-    "visibility": "shown to everyone the trip lets in",
-    "coordinates": "invented sample, no place given",
-    "location": "invented sample, no place given",
-    "country": "invented sample, no place given",
-    "countryCode": "invented sample, no place given"
+    "visibility": "shown to everyone the trip lets in"
   },
   "status": "published"
 }
