@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { draftsVisibleTo, mayReadLiveTrack, mayReadTrip } from "@/lib/tripGate";
+import { mayReadLiveTrack, mayReadTrip, readFor } from "@/lib/tripGate";
 import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { isEnabled } from "@/lib/capabilities";
 import { primaryStreetMap, streetMapRegionFiles } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
-import { getDays, getPlaces, getTripStats } from "@/lib/entries";
+import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getMapDays } from "@/lib/map/mapDays";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
@@ -82,8 +82,7 @@ export async function generateMetadata({
   // permalink's metadata, which resolves the trip this way too.
   const ref = currentTripRef(user);
   const trip = ref ? getTrip(ref) : undefined;
-  const drafts = trip ? await draftsVisibleTo(trip) : { visible: false, canPublish: false };
-  const read = { includeDrafts: drafts.visible };
+  const read: ReadOptions = trip ? (await readFor(trip)).read : { includeDrafts: false };
   // `days.length > 0` guards `isOver` here — B118 is still the rule for a
   // trip with nothing written at all: "has been nowhere and is going
   // nowhere" stays true of a zero-day trip even once its dates are past, and
@@ -126,13 +125,13 @@ export default async function MapPage({ params }: PageProps<"/at/[user]/map">) {
   // to say "the owner", on the reasoning that a reader must not learn where
   // somebody is going next. Somebody on the trip is not that reader — they are
   // on the bus, and where it goes next is not a secret from them.
-  const drafts = await draftsVisibleTo(trip);
+  const { read, canPublish, owner } = await readFor(trip);
   return (
-    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
+    <TripProvider trip={trip} isCurrent canPublish={canPublish}>
       {/* The redirect for a journal with no trip is above this line; see
           components/RouteSkeleton.tsx. */}
       <RouteBoundary shape="map">
-        <MapBody trip={trip} includeDrafts={drafts.visible} />
+        <MapBody trip={trip} read={read} owner={owner} />
       </RouteBoundary>
     </TripProvider>
   );
@@ -144,16 +143,15 @@ export default async function MapPage({ params }: PageProps<"/at/[user]/map">) {
  * `includeDrafts` is the page's answer for this reader, not a question this
  * asks again.
  */
-async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boolean }) {
+async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; owner: boolean }) {
   const tripId = trip.ref;
-  const plan = getPlan(tripId, { includeDrafts });
+  const plan = getPlan(tripId, read);
   // B336: the solid "where we've been" markers asked this question one line
   // below `getPlan` and got a different answer, because this call carried no
   // options at all — always published-only, regardless of who was looking.
   // The dashed planned route already followed `drafts.visible`; the stats
   // block below has to agree with both, or its counts contradict the markers
   // on the same map.
-  const read = { includeDrafts };
   const stats = getTripStats(tripId, read);
   const places = getPlaces(tripId, read);
   // Whether there is a day written at all, as distinct from whether any of
