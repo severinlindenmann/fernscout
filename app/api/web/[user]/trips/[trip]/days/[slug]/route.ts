@@ -66,6 +66,10 @@ const EDITABLE = [
   "costs",
   "transportMode",
   "tags",
+  // B-2996 — the map's "Use this place on the map" writes ONLY this, after the
+  // owner tapped one result of the address lookup for the day's own typed name.
+  // The v2 patch behind this door retracts a stale `declined.coordinates`.
+  "coordinates",
 ] as const;
 
 const NOT_FOR_AGENTS = {
