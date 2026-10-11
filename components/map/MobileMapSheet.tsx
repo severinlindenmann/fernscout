@@ -18,6 +18,8 @@ import type { MapDay } from "@/lib/map/mapDays";
 import { adjacentDate } from "@/lib/map/dayTransition";
 import DayReader, { useDaySwipe } from "@/components/map/DayReader";
 import DayFacts from "@/components/map/DayFacts";
+import UseThisPlace from "@/components/map/UseThisPlace";
+import { canOfferPlace } from "@/lib/map/usePlace";
 
 /** B2572 — the two things to do with a selected day, as buttons rather than
  * underlined text: read it (primary), or find it in Google Maps. Shared with
@@ -85,6 +87,7 @@ export default function MobileMapSheet({
   transportLine,
   kmByDate,
   tripCost,
+  placeLookup,
 }: {
   /** Every published day, in order, including one with no place at all
    * (greyed — B2537). The strip at peek and the full list both read this
@@ -107,6 +110,8 @@ export default function MobileMapSheet({
    * with 0 wherever the sheet is not actually on screen — no days at all,
    * or `lg` and up, where the desktop layout puts nothing over the map. */
   onInsetChange?: (px: number) => void;
+  /** B-2996: set only for the owner when the address lookup is on; offers "Use this place on the map" on a day with a typed name and no place. */
+  placeLookup?: { username: string; tripId: string };
   /** How a day travelled, said with its source ("Train (from the day)"). */
   transportLine?: (date: string) => string | undefined;
   /** Kilometres actually recorded on each date, for the facts row. */
@@ -521,6 +526,11 @@ export default function MobileMapSheet({
                   {readCounts && <span className="font-semibold">· {readCounts}</span>}
                   <BookOpen className="h-4 w-4" aria-hidden />
                 </button>
+                {placeLookup && canOfferPlace(selectedDay, true) && (
+                  <div className="col-span-2 flex items-center gap-1">
+                    <UseThisPlace username={placeLookup.username} tripId={placeLookup.tripId} slug={selectedDay.slug} name={selectedDay.location} />
+                  </div>
+                )}
                 {(onPlay || selectedPlace) && (
                   // One row: Slideshow (starts at this day rather than the first) and a small Google Maps link,
                   // so the half snap never needs a third line for the secondary link.

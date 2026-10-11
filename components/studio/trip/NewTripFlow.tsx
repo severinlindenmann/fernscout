@@ -518,6 +518,11 @@ export default function NewTripFlow({
               {t(`studio.newTrip.who.line.${whoKey}` as TranslationKey)}
             </p>
           )}
+          {whoKey === "guest" && (
+            <p data-guests-live className="mt-1 text-sm text-ink-secondary">
+              {t("studio.newTrip.who.guestsLive")}
+            </p>
+          )}
 
 
           <div className="mt-4">
@@ -611,6 +616,17 @@ export default function NewTripFlow({
               photoAsk={peopleSheet.photoAsk}
             />}
           </ul>
+          {visibility === "guest" && (
+            <p data-guests-live className="mt-2 text-sm text-ink-secondary">
+              {t("studio.newTrip.who.guestsLive")}{" "}
+              <Link
+                href={`${journalPath(username)}/studio/trip/visibility?trip=${encodeURIComponent(createdId)}`}
+                className="font-semibold underline underline-offset-2"
+              >
+                {t("studio.newTrip.done.guestsLive.cta")}
+              </Link>
+            </p>
+          )}
           {routeFrom && (
             <p data-route-armed className="mt-2 text-sm text-ink-secondary">
               {t("studio.location.plan.recordsFrom", { date: formatShortDate(routeFrom) })}

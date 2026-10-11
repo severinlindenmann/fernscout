@@ -531,15 +531,31 @@ describe("PATCH /api/web/{user}/trips/{trip}/days/{slug} — a day's own correct
     const { PATCH } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/route");
     const before = fs.readFileSync(entryFile(), "utf8");
     const response = await PATCH(
-      // B2233 made tags editable here; coordinates are still not drawn.
+      // B2233 made tags editable here and B-2996 coordinates; the weather reading is still not drawn.
       req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${FULL_SLUG}`, "PATCH", {
-        coordinates: { lat: 1, lng: 2 },
+        weather: true,
       }),
       dayParams,
     );
     expect(response.status).toBe(400);
     expect((await response.json()).error).toBe("not_editable_here");
     expect(fs.readFileSync(entryFile(), "utf8")).toBe(before);
+  });
+
+  test("B-2996: the map's place button writes only coordinates and retracts the left-blank decline", async () => {
+    const { PATCH } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/route");
+    const before = JSON.parse(fs.readFileSync(entryFile(), "utf8"));
+    const response = await PATCH(
+      req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${SLUG}`, "PATCH", { coordinates: { lat: 46.73, lng: 7.67 } }),
+      { params: Promise.resolve({ user: OWNER, trip: TRIP, slug: SLUG }) },
+    );
+    expect(response.status, await response.clone().text()).toBe(200);
+    const written = JSON.parse(fs.readFileSync(entryFile(), "utf8"));
+    expect(written.coordinates).toEqual({ lat: 46.73, lng: 7.67 });
+    expect(written.declined?.coordinates).toBeUndefined();
+    expect(written.content).toBe(before.content);
+    expect(written.title).toBe(before.title);
+    expect(written.location).toBe(before.location);
   });
 
   test("B2233: costs, how you travelled and tags round-trip, and each clears its left-blank decline (T6)", async () => {

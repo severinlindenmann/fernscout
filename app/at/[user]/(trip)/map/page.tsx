@@ -14,6 +14,7 @@ import { getMapDays } from "@/lib/map/mapDays";
 import { dayAnchors, unwrittenRecordedDays } from "@/lib/map/routeAnchors";
 import { getPhotoPins } from "@/lib/map/photoPins";
 import { isTooRecent } from "@/lib/map/mapSafety";
+import { mapNoteFlags } from "@/lib/map/mapNote";
 import { getPlan } from "@/lib/plan";
 import { getCostSummary } from "@/lib/costs";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
@@ -231,10 +232,13 @@ async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; o
   // The same gate the day page uses for its spend line; off means no figure reaches the client.
   const showCosts = await mayViewCosts(trip);
   const tripCost = showCosts ? getCostSummary(tripId).total : 0;
+  const mapDays = getMapDays(tripId, read, anchors, showCosts);
   return (
     <MapPageContent
       places={places}
-      days={getMapDays(tripId, read, anchors, showCosts)}
+      days={mapDays}
+      noteFlags={mapNoteFlags(mapDays, new Set(pins.map((p) => p.date)), live, owner)}
+      placeLookup={owner && isEnabled("addressLookup", trip.username)}
       tripCost={tripCost > 0 ? tripCost : undefined}
       pins={pins}
       unwritten={unwritten}
