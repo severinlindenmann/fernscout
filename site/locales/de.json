@@ -3261,7 +3261,7 @@
   "map.usePlace.busy": "Einen Moment …",
   "map.usePlace.failed": "Das hat nicht geklappt. Es wurde nichts geändert.",
   "map.usePlace.none": "Zu diesem Namen wurde nichts gefunden. Es wurde nichts geändert.",
-  "map.usePlace.close": "Schliessen",
+  "map.usePlace.close": "Schließen",
   "studio.newTrip.who.guestsNone": "Noch keine Gäste",
   "studio.newTrip.who.guestsCount": "{count} Gäste",
   "studio.newTrip.who.guestsCount.one": "1 Gast",
