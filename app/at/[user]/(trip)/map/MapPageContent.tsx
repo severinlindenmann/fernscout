@@ -10,7 +10,7 @@ import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard, Globe, MapPin, ArrowUp, BookOpen, Layers, X } from "lucide-react";
+import { Clapperboard, MapPin, ArrowUp, BookOpen, Layers, X } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -26,7 +26,7 @@ import { boundsFor } from "@/lib/map/tripStill";
 import { legModeFromEntry, legendModes, withDeclaredLegs, type LegPattern } from "@/lib/map/legMode";
 import type { TransportMode } from "@/lib/types";
 import type { MapDay } from "@/lib/map/mapDays";
-import MobileMapSheet, { READ_DAY_BUTTON } from "@/components/map/MobileMapSheet";
+import MobileMapSheet, { READ_DAY_BUTTON, SECONDARY_LINK } from "@/components/map/MobileMapSheet";
 import DayReader from "@/components/map/DayReader";
 import { adjacentDate, escapeDeselects, withDayParam, zoomControlsVisible } from "@/lib/map/dayTransition";
 import { kmByDate as kmByDateOf } from "@/lib/map/dayFacts";
@@ -704,33 +704,6 @@ export default function MapPageContent({
                 {r.days ? ` · ${r.days} ${tn("map.days", r.days)}` : ""}
               </button>
             ))}
-          {!multiRegion && selectedDate !== null && (
-            // The way back out of a selected day: the whole trip in view again.
-            <button
-              type="button"
-              role="listitem"
-              onClick={() => selectDay(null)}
-              className="flex min-h-8 items-center gap-1 rounded-full border border-line-prominent bg-surface-raised px-3 py-1 text-xs font-semibold text-ink-body"
-            >
-              <Globe className="h-3 w-3 shrink-0" aria-hidden />
-              {t("map.wholeTrip")}
-            </button>
-          )}
-          {multiRegion && (
-            <button
-              type="button"
-              role="listitem"
-              aria-current={wholeTrip ? "true" : undefined}
-              onClick={() => {
-                selectDay(null);
-                setWholeTrip(true);
-              }}
-              className="flex items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-body aria-[current=true]:border-line-prominent aria-[current=true]:bg-surface-selected"
-            >
-              <Globe className="h-3 w-3 shrink-0" aria-hidden />
-              {t("map.wholeTrip")}
-            </button>
-          )}
         </div>
       )}
 
@@ -886,15 +859,23 @@ export default function MapPageContent({
                             <BookOpen className="h-4 w-4" aria-hidden />
                           </button>
                         </div>
-                        <a
-                          href={googleMapsHref(place)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex min-h-8 items-center gap-1 self-start text-xs font-semibold text-ink-secondary underline decoration-line-quiet underline-offset-2"
-                        >
-                          <MapPin className="h-3.5 w-3.5" aria-hidden />
-                          {t("map.googleMapsShort")}
-                        </a>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStartDate(day.date);
+                              setShowing(true);
+                            }}
+                            className={SECONDARY_LINK}
+                          >
+                            <Clapperboard className="h-4 w-4" aria-hidden />
+                            {t("show.start")}
+                          </button>
+                          <a href={googleMapsHref(place)} target="_blank" rel="noreferrer" className={SECONDARY_LINK}>
+                            <MapPin className="h-4 w-4" aria-hidden />
+                            {t("map.googleMapsShort")}
+                          </a>
+                        </div>
                       </div>
                     )}
                   </li>
@@ -1045,9 +1026,14 @@ export default function MapPageContent({
               <MapControls
                 onZoomIn={() => streetMapInstance.zoomIn()}
                 onZoomOut={() => streetMapInstance.zoomOut()}
+                fitLabel={t("map.wholeTrip")}
                 onFit={() => {
-                  if (selectedDate !== null) selectDay(null);
-                  else if (streetBounds) streetMapInstance.fitBounds(streetBounds, { padding: { top: 72, bottom: 24, left: 24, right: 24 }, duration: reducedMotion ? 0 : 500 });
+                  // Deselect the day, close the reader, and frame every region (the former Whole trip chip).
+                  const hadDay = selectedDate !== null;
+                  setReadingDesktop(false);
+                  selectDay(null);
+                  if (multiRegion && !wholeTrip) setWholeTrip(true);
+                  else if (!hadDay && streetBounds) streetMapInstance.fitBounds(streetBounds, { padding: { top: 72, bottom: 24, left: 24, right: 24 }, duration: reducedMotion ? 0 : 500 });
                 }}
               />
             </div>

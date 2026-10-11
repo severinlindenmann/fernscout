@@ -27,9 +27,10 @@ export const READ_DAY_BUTTON =
   "inline-flex min-h-11 flex-1 basis-36 items-center justify-center gap-1.5 rounded-full border-2 border-navy-900 " +
   "bg-yellow-400 px-4 text-sm font-bold text-navy-900 shadow-[0_2px_0_var(--color-navy-900)] transition-colors " +
   "hover:bg-yellow-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
-const MAPS_BUTTON =
-  "inline-flex min-h-11 flex-1 basis-36 items-center justify-center gap-1.5 rounded-full border-2 border-line-ink " +
-  "px-4 text-sm font-bold text-ink-strong transition-colors hover:bg-surface-subtle " +
+/** Slideshow and Google Maps: the same quiet secondary link, so "Read the day" stays the one loud action. */
+export const SECONDARY_LINK =
+  "inline-flex min-h-11 shrink-0 items-center gap-1.5 px-2 text-sm font-semibold text-ink-secondary " +
+  "underline decoration-line-quiet underline-offset-2 hover:text-ink-strong " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
 
 /** Peek, half, full — B2427 (docs/plans/map-redesign.md §3 Phase 2 item 2),
@@ -363,7 +364,7 @@ export default function MobileMapSheet({
                 <button
                   type="button"
                   onClick={() => onPlay()}
-                  className="flex shrink-0 flex-col items-start justify-center gap-1 rounded-lg border-2 border-navy-900 bg-yellow-400 px-2.5 py-1.5 text-left text-xs font-bold text-navy-900"
+                  className="flex shrink-0 flex-col items-start justify-center gap-1 px-2 text-left text-sm font-semibold text-ink-secondary underline decoration-line-quiet underline-offset-2"
                 >
                   <Clapperboard className="h-4 w-4" aria-hidden />
                   {t("show.start")}
@@ -525,12 +526,12 @@ export default function MobileMapSheet({
                 {(onPlay || selectedPlace) && (
                   // One row: Slideshow (starts at this day rather than the first) and a small Google Maps link,
                   // so the half snap never needs a third line for the secondary link.
-                  <div className="col-span-2 flex items-center gap-2">
+                  <div className="col-span-2 flex items-center gap-1">
                     {onPlay && (
                       <button
                         type="button"
                         onClick={() => onPlay(selectedDay.date)}
-                        className={MAPS_BUTTON + " whitespace-nowrap"}
+                        className={SECONDARY_LINK}
                       >
                         <Clapperboard className="h-4 w-4" aria-hidden />
                         {t("show.start")}
@@ -541,9 +542,9 @@ export default function MobileMapSheet({
                         href={googleMapsHref(selectedPlace)}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex min-h-11 shrink-0 items-center gap-1 px-1 text-xs font-semibold text-ink-secondary underline decoration-line-quiet underline-offset-2"
+                        className={SECONDARY_LINK}
                       >
-                        <MapPin className="h-3.5 w-3.5" aria-hidden />
+                        <MapPin className="h-4 w-4" aria-hidden />
                         {t("map.googleMapsShort")}
                       </a>
                     )}
