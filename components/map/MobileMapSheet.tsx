@@ -235,8 +235,10 @@ export default function MobileMapSheet({
         setSnap(HALF);
       } else setSnap(PEEK);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // Capture phase: this runs before the page's own Escape handler (also on
+    // `window`), so a closing reader can claim the key before the day deselects.
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [snap, reading]);
 
   // A tap cycles snaps the same as Enter/Space; a drag settles through
