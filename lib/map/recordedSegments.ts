@@ -16,9 +16,11 @@ export type DayTrack = {
  * `dayByDate` maps a date to the day number of the place it is drawn as, so
  * a stay merged over several days (`getPlaces`) draws every one of its days'
  * lines under the number the place carries. Two runs of one day are joined by
- * a short dashed "gap" bridge only when the hole is under 2 km and no hidden
- * spot was cut out between them: a cut is never bridged, because a straight
- * line across it would draw the very spot the owner hid.
+ * a short dashed "gap" bridge only when the hole is under 2 km and neither piece
+ * is flagged as cut next to the other (zone, hidden spot or hidden stretch,
+ * flagged at derivation and at serve time): a straight line across a cut
+ * would draw what the owner hid. Files derived before the flags existed carry
+ * none, so there only the 2 km rule applies.
  */
 export function recordedSegmentsFor(
   trackByDay: readonly DayTrack[],

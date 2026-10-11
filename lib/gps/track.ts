@@ -39,8 +39,9 @@ export type TrackSegment = {
    *  fix in it. A named stretch's own chosen mode (B2539) overrides this for
    *  the labelled point, but never rewrites the segment itself. */
   mode?: TransportMode;
-  /** B-2980: set by `readerTrack` only — a hidden spot was cut out right
-   *  before / after this piece, so a map must never bridge that end. */
+  /** B-2980: set at derivation (zone, spot or stretch) and again by
+   *  `readerTrack` (spot) — something was cut out right before / after this
+   *  piece, so a map must never bridge that end. Absent on older files. */
   cutBefore?: boolean;
   cutAfter?: boolean;
 };
@@ -112,6 +113,8 @@ function readTrackFile(file: string): Track | undefined {
       s !== null &&
       (s.day === undefined || typeof s.day === "string") &&
       (s.mode === undefined || isTransportMode(s.mode)) &&
+      (s.cutBefore === undefined || typeof s.cutBefore === "boolean") &&
+      (s.cutAfter === undefined || typeof s.cutAfter === "boolean") &&
       Array.isArray(s.points) &&
       s.points.length > 1 &&
       s.points.every(

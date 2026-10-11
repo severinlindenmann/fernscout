@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { dayAnchors } from "@/lib/map/routeAnchors";
 import { withDeclaredLegs } from "@/lib/map/legMode";
-import { isTooRecent, mayBridge, pinsInRegion, placeDayByDate, plausiblePin, recentCutoffDate } from "@/lib/map/mapSafety";
+import { isTooRecent, pinTooRecent, mayBridge, pinsInRegion, placeDayByDate, plausiblePin, recentCutoffDate } from "@/lib/map/mapSafety";
 import { recordedSegmentsFor } from "@/lib/map/recordedSegments";
 import { buildTripFrame, linesForRegion, type MapPlace } from "@/lib/map/tripFrame";
 import type { Day, Entry } from "@/lib/types";
@@ -82,9 +82,21 @@ describe("B-2980 messy data", () => {
 
   test("S14 a day from yesterday on is withheld from a non-live reader only", () => {
     const now = Date.parse("2026-10-11T12:00:00Z");
-    expect(recentCutoffDate(now)).toBe("2026-10-10");
-    expect(isTooRecent("2026-10-10", false, now)).toBe(true);
-    expect(isTooRecent("2026-10-09", false, now)).toBe(false);
+    expect(recentCutoffDate(now)).toBe("2026-10-09");
+    expect(isTooRecent("2026-10-09", false, now)).toBe(true);
+    expect(isTooRecent("2026-10-08", false, now)).toBe(false);
     expect(isTooRecent("2026-10-11", true, now)).toBe(false);
+  });
+
+  test("a pin under 24 h old is withheld whatever the day date says", () => {
+    const now = Date.parse("2026-10-11T12:00:00Z");
+    expect(pinTooRecent("2026-10-10T20:00:00Z", "2026-10-10", false, now)).toBe(true);
+    expect(pinTooRecent("2026-10-10T08:00:00Z", "2026-10-10", false, now)).toBe(false);
+    // zoneless wall-clock: up to 12 h of margin
+    expect(pinTooRecent("2026-10-10T05:00:00", "2026-10-10", false, now)).toBe(true);
+    expect(pinTooRecent("2026-10-09T23:00:00", "2026-10-09", false, now)).toBe(false);
+    // no stamp: the 48 h day rule
+    expect(pinTooRecent(undefined, "2026-10-09", false, now)).toBe(true);
+    expect(pinTooRecent(undefined, "2026-10-09", true, now)).toBe(false);
   });
 });

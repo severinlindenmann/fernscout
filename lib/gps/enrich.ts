@@ -400,9 +400,17 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
     isExcluded(fix, zones) || isInHiddenSpot(fix, hiddenSpots) || isInStretch(fix.t, hiddenStretches);
 
   const runs: TrackedFix[][] = [];
+  // Per run: a zone, spot or stretch cut sat right before / after it (B-2980),
+  // so a map never bridges that end with a straight line.
+  const runCuts: { before: boolean; after: boolean }[] = [];
   let current: TrackedFix[] = [];
+  let cutPending = false;
+  let currentCutBefore = false;
   const closeRun = () => {
-    if (current.length > 0) runs.push(current);
+    if (current.length > 0) {
+      runs.push(current);
+      runCuts.push({ before: currentCutBefore, after: false });
+    }
     current = [];
   };
   for (const fix of sorted) {
@@ -413,6 +421,11 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
     const date = dateOf(fix.t, windows);
     if (date === undefined || isHidden(fix)) {
       closeRun();
+      if (date !== undefined) {
+        // The hidden fix breaks the run: flag the run before it (if any) and the next one.
+        if (runCuts.length > 0) runCuts[runCuts.length - 1].after = true;
+        cutPending = true;
+      }
       continue;
     }
     const last = current[current.length - 1];
@@ -420,6 +433,8 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
     else {
       closeRun();
       current = [{ ...fix, date }];
+      currentCutBefore = cutPending;
+      cutPending = false;
     }
   }
   closeRun();
@@ -439,10 +454,16 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
   // pre-simplify fix is still something the drawn line actually passes
   // through).
   const drawable: TrackedFix[] = [];
-  for (const run of runs) {
+  let carryCut = false;
+  for (const [runIndex, run] of runs.entries()) {
+    const cuts = runCuts[runIndex];
+    const emittedBefore = segments.length;
     // A lone fix is a dot, and every dot on these maps is a day or a
     // photograph — something somebody wrote. One stray position is not that.
-    if (run.length < 2) continue;
+    if (run.length < 2) {
+      carryCut = carryCut || cuts.before || cuts.after;
+      continue;
+    }
     const clean = run.filter((f) => !isSpike(f));
     const pieces = options.trimMetres
       ? trimByDistance(run, options.trimMetres, clean.length ? [clean[0], clean[clean.length - 1]] : [])
@@ -460,6 +481,16 @@ export function deriveTrack(fixes: Fix[], options: DeriveOptions): Track {
         ...(mode ? { mode } : {}),
       });
     }
+    if (segments.length === emittedBefore) {
+      carryCut = carryCut || cuts.before || cuts.after;
+      continue;
+    }
+    if ((cuts.before || carryCut) && segments[emittedBefore]) {
+      segments[emittedBefore].cutBefore = true;
+      if (carryCut && emittedBefore > 0) segments[emittedBefore - 1].cutAfter = true;
+    }
+    if (cuts.after) segments[segments.length - 1].cutAfter = true;
+    carryCut = false;
   }
 
   // B2539 — a named stretch's own point on the line: the fix closest to the

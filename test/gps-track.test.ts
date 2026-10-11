@@ -300,3 +300,17 @@ describe("dropping a spike never moves the 500 m end trim off where somebody sle
     for (const [lat, lon] of drawn) expect(metresBetween(home, { lat, lon, t: 0 })).toBeGreaterThanOrEqual(500);
   });
 });
+
+describe("B-2980 cut flags at derivation", () => {
+  test("a hidden stretch marks both neighbouring pieces, so nothing bridges across it", () => {
+    const m = (min: number, lat: number): Fix => ({ t: Date.parse("2026-06-22T09:00:00Z") + min * 60_000, lat, lon: 8 });
+    const track = deriveTrack(
+      [m(0, 47), m(5, 47.001), m(10, 47.002), m(15, 47.003), m(20, 47.004), m(25, 47.005), m(30, 47.006), m(35, 47.007)],
+      { ...DATES, hiddenStretches: [{ from: "2026-06-22T09:14:00.000Z", to: "2026-06-22T09:21:00.000Z" }] },
+    );
+    expect(track.segments).toHaveLength(2);
+    expect(track.segments[0].cutAfter).toBe(true);
+    expect(track.segments[0].cutBefore).toBeUndefined();
+    expect(track.segments[1].cutBefore).toBe(true);
+  });
+});

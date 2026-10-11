@@ -21,13 +21,31 @@ export function pinsInRegion<P extends Point>(pins: readonly P[], places: readon
   return pins.filter((p) => places.some((q) => kmBetween(q, p) <= maxKm));
 }
 
-/** The same 24 h rule `readerTrack` keeps for recordings: from this date on, a day is "too recent" for a reader without live access. */
+/**
+ * A day is "too recent" for a reader without live access from this date on.
+ * The rule is the 24 h `readerTrack` keeps, widened to 48 h because the day
+ * date is local to the traveller and may lie a day behind UTC (west of it).
+ */
 export function recentCutoffDate(now = Date.now()): string {
-  return new Date(now - 24 * 3_600_000).toISOString().slice(0, 10);
+  return new Date(now - 48 * 3_600_000).toISOString().slice(0, 10);
 }
 
 export const isTooRecent = (date: string, live: boolean, now = Date.now()): boolean =>
   !live && date >= recentCutoffDate(now);
+
+/**
+ * Whether a photo pin is under 24 h old. `takenAt` is EXIF wall-clock with no
+ * zone, so read as UTC it can lie up to 12 h behind the real instant: that
+ * margin is added (cutoff 36 h). A stamp with an explicit zone is exact; no
+ * usable stamp falls back to the day-date rule.
+ */
+export function pinTooRecent(takenAt: string | undefined, date: string, live: boolean, now = Date.now()): boolean {
+  if (live) return false;
+  const t = takenAt ? Date.parse(/(Z|[+-]\d\d:?\d\d)$/.test(takenAt) ? takenAt : `${takenAt}Z`) : NaN;
+  if (!Number.isFinite(t)) return isTooRecent(date, live, now);
+  const zoned = !!takenAt && /(Z|[+-]\d\d:?\d\d)$/.test(takenAt);
+  return t > now - (zoned ? 24 : 36) * 3_600_000;
+}
 
 /**
  * Each calendar date mapped to the day number of the place that stay is drawn

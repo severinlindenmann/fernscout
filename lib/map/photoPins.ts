@@ -1,8 +1,8 @@
 import "server-only";
 import { getDays, placeEntry, type ReadOptions } from "@/lib/entries";
-import { isTooRecent, plausiblePin } from "./mapSafety";
+import { pinTooRecent, plausiblePin } from "./mapSafety";
 import { kmBetween } from "@/lib/mapFrame";
-import { isHiddenPlace } from "@/lib/gps/edits";
+import { isHiddenPlace, readTrackEdits } from "@/lib/gps/edits";
 import { isHomePlace } from "@/lib/gps/enrich";
 import { mediaKey } from "@/lib/photos";
 import { readTripSidecar } from "@/lib/sidecar";
@@ -20,12 +20,30 @@ export type PhotoPin = {
 };
 
 const TETHER_M = 150;
+const STRETCH_MARGIN_MIN = 30;
+
+const minutes = (hhmm: string): number => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+/**
+ * Whether a photo was taken during a stretch the owner cut from the route.
+ * `takenAt` is camera wall-clock, a stretch is local wall-clock on its date,
+ * so the two compare directly with no timezone and no GPS store, widened by a
+ * margin for camera clock drift. No usable `takenAt` fails closed.
+ */
+export function inHiddenStretch(takenAt: string | undefined, date: string, stretches: { date: string; from: string; to: string }[]): boolean {
+  const mine = stretches.filter((s) => s.date === date);
+  if (mine.length === 0) return false;
+  const m = takenAt?.match(/^(\d{4}-\d\d-\d\d)[T ](\d\d:\d\d)/);
+  if (!m) return true;
+  const at = minutes(m[2]);
+  return mine.some((s) => m[1] === s.date && at >= minutes(s.from) - STRETCH_MARGIN_MIN && at <= minutes(s.to) + STRETCH_MARGIN_MIN);
+}
 
 /**
  * Pins for the photographs this reader may see. The sidecar is read here, on
  * the server, and only lat/lon leaves it. `getDays` already applied the same
  * `visible()` filter the gallery uses, so a photo labelled above this reader's
- * level is not in `entries` at all. Home zone and hidden spots are skipped the
+ * level is not in `entries` at all. Home zone, hidden spots and hidden stretches (by the photo's own clock time) are skipped the
  * way `getPlaces` skips them (never for the owner's own read).
  */
 export function getPhotoPins(
@@ -38,9 +56,9 @@ export function getPhotoPins(
   const owner = parseTripRef(ref);
   if (!owner) return [];
   const checkHidden = options?.reader !== "person";
+  const stretches = checkHidden ? readTrackEdits(owner.username, owner.tripId).hiddenStretches : [];
   const pins: PhotoPin[] = [];
   for (const day of getDays(ref, options)) {
-    if (isTooRecent(day.date, live)) continue;
     const route = trackByDay.filter((s) => s.date === day.date).flatMap((s) => s.points);
     // What the day itself says about where it was: its recording, else its typed place.
     const lead = placeEntry(day);
@@ -55,6 +73,8 @@ export function getPhotoPins(
         if (!side || !Number.isFinite(side.lat) || !Number.isFinite(side.lon)) continue;
         const [lat, lng] = [side.lat as number, side.lon as number];
         // A (0,0) fix or a tag hundreds of km from its own day is a bad tag, not a place.
+        if (pinTooRecent(side.takenAt, day.date, live)) continue;
+        if (inHiddenStretch(side.takenAt, day.date, stretches)) continue;
         if (!plausiblePin({ lat, lng }, refs)) continue;
         if (checkHidden && (isHiddenPlace(owner.username, owner.tripId, { lat, lon: lng }) || isHomePlace(owner.username, { lat, lon: lng }))) continue;
         let tether: [number, number] | undefined;
