@@ -78,7 +78,7 @@ export function getPhotoPins(
         if (!side || !Number.isFinite(side.lat) || !Number.isFinite(side.lon)) continue;
         const [lat, lng] = [side.lat as number, side.lon as number];
         // A (0,0) fix or a tag hundreds of km from its own day is a bad tag, not a place.
-        if (pinTooRecent(side.takenAt, day.date, live)) continue;
+        if (pinTooRecent(side.takenAt, day.date, live, Date.now(), { lat, lng })) continue;
         if (inHiddenStretch(side.takenAt, day.date, stretches)) continue;
         if (!plausiblePin({ lat, lng }, refs)) continue;
         if (checkHidden && (isHiddenPlace(owner.username, owner.tripId, { lat, lon: lng }) || isHomePlace(owner.username, { lat, lon: lng }))) continue;

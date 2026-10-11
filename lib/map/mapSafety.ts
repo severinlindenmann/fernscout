@@ -1,3 +1,4 @@
+import { timezoneForCoordinates, zonedTimeToUtc } from "../timezone";
 import { kmBetween, type Point } from "../mapFrame";
 
 /**
@@ -34,17 +35,28 @@ export const isTooRecent = (date: string, live: boolean, now = Date.now()): bool
   !live && date >= recentCutoffDate(now);
 
 /**
- * Whether a photo pin is under 24 h old. `takenAt` is EXIF wall-clock with no
- * zone, so read as UTC it can lie up to 12 h behind the real instant: that
- * margin is added (cutoff 36 h). A stamp with an explicit zone is exact; no
- * usable stamp falls back to the day-date rule.
+ * Whether a photo pin is under 24 h old, with 2 h for camera clock drift. A
+ * stamp with an explicit zone is that exact instant. A zoneless one is camera
+ * wall-clock: read in the time zone of the photo's own position when it
+ * resolves, else with a 12 h margin (36 h cutoff). No usable stamp falls back
+ * to the day-date rule. Server only: neither stamp nor zone reaches a client.
  */
-export function pinTooRecent(takenAt: string | undefined, date: string, live: boolean, now = Date.now()): boolean {
+export function pinTooRecent(takenAt: string | undefined, date: string, live: boolean, now = Date.now(), at?: Point): boolean {
   if (live) return false;
-  const t = takenAt ? Date.parse(/(Z|[+-]\d\d:?\d\d)$/.test(takenAt) ? takenAt : `${takenAt}Z`) : NaN;
-  if (!Number.isFinite(t)) return isTooRecent(date, live, now);
-  const zoned = !!takenAt && /(Z|[+-]\d\d:?\d\d)$/.test(takenAt);
-  return t > now - (zoned ? 24 : 36) * 3_600_000;
+  const h = 3_600_000;
+  if (takenAt && /(Z|[+-]\d\d:?\d\d)$/.test(takenAt)) {
+    const t = Date.parse(takenAt);
+    if (Number.isFinite(t)) return t > now - 26 * h;
+  } else if (takenAt) {
+    const m = /^(\d{4}-\d\d-\d\d)T(\d\d:\d\d)(?::\d\d)?$/.exec(takenAt);
+    if (m) {
+      const zone = at && Number.isFinite(at.lat) && Number.isFinite(at.lng) ? timezoneForCoordinates(at.lat, at.lng) : undefined;
+      if (zone) return zonedTimeToUtc(m[1], m[2], zone).getTime() > now - 26 * h;
+      const t = Date.parse(`${takenAt}Z`);
+      if (Number.isFinite(t)) return t > now - 36 * h;
+    }
+  }
+  return isTooRecent(date, live, now);
 }
 
 /**

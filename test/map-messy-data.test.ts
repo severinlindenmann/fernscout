@@ -93,9 +93,29 @@ describe("B-2980 messy data", () => {
     const now = Date.parse("2026-10-11T12:00:00Z");
     expect(pinTooRecent("2026-10-10T20:00:00Z", "2026-10-10", false, now)).toBe(true);
     expect(pinTooRecent("2026-10-10T08:00:00Z", "2026-10-10", false, now)).toBe(false);
-    // zoneless wall-clock: up to 12 h of margin
+    // zoneless wall-clock, no position: 12 h margin
     expect(pinTooRecent("2026-10-10T05:00:00", "2026-10-10", false, now)).toBe(true);
     expect(pinTooRecent("2026-10-09T23:00:00", "2026-10-09", false, now)).toBe(false);
+    // explicit offset: exact instant plus 2 h drift (cutoff 26 h)
+    expect(pinTooRecent("2026-10-11T18:00:00+09:00", "2026-10-11", false, now)).toBe(true); // 3 h ago
+    expect(pinTooRecent("2026-10-09T20:00:00+02:00", "2026-10-09", false, now)).toBe(false); // 28 h ago
+    expect(pinTooRecent("2026-10-10T14:00:00+02:00", "2026-10-10", false, now)).toBe(true); // 24 h ago, inside drift
+    // zoneless, read in the photo's own zone (Tokyo UTC+9, Switzerland UTC+2)
+    const tokyo = { lat: 35.68, lng: 139.76 };
+    const bern = { lat: 46.95, lng: 7.45 };
+    // 20 h before now: 2026-10-11T12:00Z - 20h = 10-10T16:00Z = 10-11T01:00 JST
+    expect(pinTooRecent("2026-10-11T01:00:00", "2026-10-11", false, now, tokyo)).toBe(true);
+    // 27 h before now: 10-10T09:00Z = 18:00 JST; the 36 h rule would still hide it
+    expect(pinTooRecent("2026-10-10T18:00:00", "2026-10-10", false, now, tokyo)).toBe(false);
+    expect(pinTooRecent("2026-10-10T18:00:00", "2026-10-10", false, now)).toBe(true);
+    // Swiss: 20 h before = 10-10T16:00Z = 18:00 CEST; 27 h = 09:00Z = 11:00 CEST
+    expect(pinTooRecent("2026-10-10T18:00:00", "2026-10-10", false, now, bern)).toBe(true);
+    expect(pinTooRecent("2026-10-10T11:00:00", "2026-10-10", false, now, bern)).toBe(false);
+    // zone cannot be resolved: back to 36 h
+    expect(pinTooRecent("2026-10-10T05:00:00", "2026-10-10", false, now, { lat: NaN, lng: NaN })).toBe(true);
+    expect(pinTooRecent("2026-10-09T23:00:00", "2026-10-09", false, now, { lat: NaN, lng: NaN })).toBe(false);
+    // live reader is never held back
+    expect(pinTooRecent("2026-10-11T01:00:00", "2026-10-11", true, now, tokyo)).toBe(false);
     // no stamp: the 48 h day rule
     expect(pinTooRecent(undefined, "2026-10-09", false, now)).toBe(true);
     expect(pinTooRecent(undefined, "2026-10-09", true, now)).toBe(false);
