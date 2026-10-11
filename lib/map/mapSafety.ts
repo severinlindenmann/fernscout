@@ -50,6 +50,7 @@ export function pinTooRecent(takenAt: string | undefined, date: string, live: bo
   if (takenAt && /(Z|[+-]\d\d:?\d\d)$/.test(takenAt)) {
     const t = Date.parse(takenAt);
     if (Number.isFinite(t)) return t > now - 26 * h;
+    return date >= new Date(now - 7 * 24 * h).toISOString().slice(0, 10);
   } else if (takenAt) {
     // `YYYY-MM-DDTHH:MM[:SS[.fff]]` or the same with a space, as sidecars and EXIF exports write it.
     const m = /^(\d{4}-\d\d-\d\d)[T ](\d\d:\d\d)(?::\d\d(?:\.\d+)?)?$/.exec(takenAt);
@@ -63,6 +64,7 @@ export function pinTooRecent(takenAt: string | undefined, date: string, live: bo
       if (zone) return zonedTimeToUtc(m[1], m[2], zone).getTime() > now - 26 * h;
       const t = Date.parse(`${takenAt}Z`);
       if (Number.isFinite(t)) return t > now - 36 * h;
+      return date >= new Date(now - 7 * 24 * h).toISOString().slice(0, 10);
     }
   }
   return isTooRecent(date, live, now);

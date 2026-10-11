@@ -145,6 +145,7 @@ describe("B-2980 messy data", () => {
     const now = Date.parse("2026-10-11T12:00:00Z");
     expect(pinTooRecent("2026:10:11 11:50:00", "2026-10-06", false, now)).toBe(true);
     expect(pinTooRecent("garbage", "2026-10-06", false, now)).toBe(true);
+    expect(pinTooRecent("2026-13-45T11:50:00Z", "2026-10-06", false, now)).toBe(true);
     expect(pinTooRecent("garbage", "2026-10-03", false, now)).toBe(false);
     expect(pinTooRecent("2026-10-11 11:50:00", "2026-10-11", false, now, { lat: 35.68, lng: 139.69 })).toBe(true);
     expect(pinTooRecent("garbage", "2026-10-11", true, now)).toBe(false);
