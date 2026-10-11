@@ -53,7 +53,7 @@ describe("withV2Log", () => {
     await expect(h(req(), ctx)).rejects.toBe(boom);
     expect(logs).toEqual([]);
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("[req-error] abcd1234 GET /api/v2/[user]/figures");
+    expect(errors[0]).toContain("[req-error] abcd1234 GET /api/v2/[user]/figures journal=alice failed");
     expect(errors[0]).toContain("\n    ");
     expect(errors[0]).not.toContain("me@example.com");
     expect(errors[0]).not.toContain("abc.def.ghi");
