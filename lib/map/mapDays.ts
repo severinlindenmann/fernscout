@@ -1,5 +1,5 @@
 import "server-only";
-import { getDays, type ReadOptions } from "@/lib/entries";
+import { getDays, placeEntry, type ReadOptions } from "@/lib/entries";
 import { isPlottable } from "@/lib/mapFrame";
 import { isHiddenPlace } from "@/lib/gps/edits";
 import { isHomePlace } from "@/lib/gps/enrich";
@@ -54,7 +54,7 @@ export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
   // B2543 — resolved once per trip, not per day; see `getPlaces`'s own note.
   const homeLabel = checkHidden ? translateIn(defaultLocaleFor(owner.username), "map.homePlace") : "";
   return getDays(ref, options).map((day) => {
-    const lead = day.lead;
+    const lead = placeEntry(day);
     const hidden = checkHidden && isPlottable(lead) && isHiddenPlace(owner.username, owner.tripId, { lat: lead.lat, lon: lead.lng });
     const home =
       checkHidden && !hidden && isPlottable(lead) && isHomePlace(owner.username, { lat: lead.lat, lon: lead.lng });
@@ -68,7 +68,7 @@ export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
     const country = hidden ? lead.country : home ? homeLabel : lead.country;
     return {
       date: day.date,
-      slug: lead.slug,
+      slug: day.lead.slug,
       location,
       country,
       countryCode: home ? undefined : lead.countryCode,
@@ -79,7 +79,7 @@ export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
       hasPlace: !hidden && isPlottable(lead),
       mediaCount: day.entries.reduce((n, e) => n + e.gallery.length, 0),
       updates: day.entries.length,
-      draft: lead.draft,
+      draft: day.lead.draft,
       home: home || undefined,
       hidden: hidden || undefined,
     };

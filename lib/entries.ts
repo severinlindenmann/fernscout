@@ -553,6 +553,15 @@ export function getDays(ref: string, options?: ReadOptions): Day[] {
   return days;
 }
 
+/**
+ * The entry that gives a day its place on a map: the first entry of the day
+ * that has finite coordinates, else the lead. `lead` stays the day's identity
+ * (slug, title, draft); only map readers ask this.
+ */
+export function placeEntry(day: Day): Entry {
+  return day.entries.find((e) => Number.isFinite(e.lat) && Number.isFinite(e.lng)) ?? day.lead;
+}
+
 export function getEntryBySlug(
   ref: string,
   slug: string,
@@ -744,7 +753,7 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
   const homeLabel = checkHidden ? translateIn(defaultLocaleFor(owner.username), "map.homePlace") : "";
 
   for (const day of getDays(ref, options)) {
-    const lead = day.lead;
+    const lead = placeEntry(day);
     // A day with no coordinates at all cannot be drawn, so it is not a place
     // — the day somebody spends on a train with nothing to report (B381).
     // Distinct from B339 below: that is a day that *has* coordinates and an
