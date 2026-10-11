@@ -26,6 +26,9 @@ import { boundsFor } from "@/lib/map/tripStill";
 import { legModeFromEntry, legendModes, withDeclaredLegs, type LegPattern } from "@/lib/map/legMode";
 import type { TransportMode } from "@/lib/types";
 import type { MapDay } from "@/lib/map/mapDays";
+import { mapNoteToShow, type MapNoteFlags } from "@/lib/map/mapNote";
+import { canOfferPlace } from "@/lib/map/usePlace";
+import UseThisPlace from "@/components/map/UseThisPlace";
 import MobileMapSheet, { READ_DAY_BUTTON, SECONDARY_LINK } from "@/components/map/MobileMapSheet";
 import DayReader from "@/components/map/DayReader";
 import { adjacentDate, escapeDeselects, withDayParam, zoomControlsVisible } from "@/lib/map/dayTransition";
@@ -84,7 +87,13 @@ export default function MapPageContent({
   unwritten,
   owner = false,
   tripCost,
+  noteFlags,
+  placeLookup = false,
 }: {
+  /** B-2998 — counts only, resolved on the server: why the map may be empty. */
+  noteFlags?: MapNoteFlags;
+  /** B-2996 — owner only, and only when `features.addressLookup` is on. */
+  placeLookup?: boolean;
   /** B-2980 — the trip's total spend in the base currency; present only for a viewer who may see costs. */
   tripCost?: number;
   /** B-2980 — the owner's own request: only they are told a trip lacks a map extract. */
@@ -410,6 +419,20 @@ export default function MapPageContent({
       if (sessionStorage.getItem(`fs-unwritten-hidden-${tripId}`)) setUnwrittenHidden(true);
     } catch {}
   }, [tripId]);
+  const mapNote = mapNoteToShow(places.length, noteFlags);
+  const [noteHidden, setNoteHidden] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read after hydration so server and client markup match
+      if (sessionStorage.getItem(`fs-map-note-hidden-${tripId}`)) setNoteHidden(true);
+    } catch {}
+  }, [tripId]);
+  const dismissNote = () => {
+    setNoteHidden(true);
+    try {
+      sessionStorage.setItem(`fs-map-note-hidden-${tripId}`, "1");
+    } catch {}
+  };
   const dismissUnwritten = () => {
     setUnwrittenHidden(true);
     try {
@@ -794,7 +817,7 @@ export default function MapPageContent({
                       </button>
                     ) : (
                       <div
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-ink-secondary"
+                        className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left text-ink-secondary"
                         aria-disabled
                       >
                         <div className="min-w-0">
@@ -809,6 +832,9 @@ export default function MapPageContent({
                         >
                           {t("map.readDay")}
                         </a>
+                        {placeLookup && canOfferPlace(day, true) && (
+                          <UseThisPlace username={trip?.username ?? ""} tripId={tripId} slug={day.slug} name={day.location} />
+                        )}
                       </div>
                     )}
 
@@ -996,6 +1022,27 @@ export default function MapPageContent({
         </p>
       )}
 
+      {mapNote && !noteHidden && noteFlags && (
+        <aside
+          data-map-note={mapNote}
+          className="absolute bottom-3 left-3 z-10 flex max-w-[calc(100%-76px)] items-center gap-2 rounded-2xl border border-line-quiet bg-surface-raised/95 py-1 pl-3 pr-1 text-xs text-ink-body shadow-sm backdrop-blur"
+        >
+          <p className="min-w-0">
+            {mapNote === "delayed"
+              ? t("map.note.delayed")
+              : tn("map.note.unplaced", noteFlags.daysWithoutPosition, { n: String(noteFlags.daysWithoutPosition) })}
+          </p>
+          <button
+            type="button"
+            aria-label={t("map.unwritten.dismiss")}
+            onClick={dismissNote}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-surface-muted"
+          >
+            <X size={14} aria-hidden />
+          </button>
+        </aside>
+      )}
+
       {unwritten && unwritten.dates.length > 0 && !unwrittenHidden && (
         <aside className="absolute left-3 top-3 z-10 flex h-8 max-w-[calc(100%-76px)] items-center gap-2 rounded-full border border-line-quiet bg-surface-raised/95 pl-3 pr-1 text-xs text-ink-body shadow-sm backdrop-blur">
           <p className="min-w-0 truncate">
@@ -1104,6 +1151,7 @@ export default function MapPageContent({
         onInsetChange={setSheetInset}
         kmByDate={kmByDate}
         tripCost={tripCost}
+        placeLookup={placeLookup && trip ? { username: trip.username, tripId } : undefined}
         transportLine={transportLine}
         hrefForDay={(slug) => href(`/day/${slug}`)}
         onPlay={

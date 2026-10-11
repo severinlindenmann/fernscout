@@ -204,6 +204,24 @@ describe("NewTripFlow — one screen, B2846", () => {
     expect(sent(fetchMock).visibility).toBe("guest");
   });
 
+  test("B-2998: only Invited guests says guests see where you are right now; private and public do not", () => {
+    extra = { defaultVisibility: "guest" };
+    mount();
+    expect(container.querySelector("[data-guests-live]")?.textContent).toContain("Guests see where you are right now");
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>("[data-who-can-read] button")).find((b) => b.textContent?.startsWith("Public"))!.click());
+    expect(container.querySelector("[data-guests-live]")).toBeNull();
+  });
+
+  test("B-2998: done on a guest trip repeats it with a link to the trip's visibility settings", async () => {
+    vi.stubGlobal("fetch", created());
+    mount();
+    fillStepOne();
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>("[data-who-can-read] button")).find((b) => b.textContent?.startsWith("Invited guests"))!.click());
+    await create();
+    const link = container.querySelector("[data-guests-live] a");
+    expect(link?.getAttribute("href")).toBe("/@alex/studio/trip/visibility?trip=round-the-alps-2026");
+  });
+
   test("B2849: no guests yet reads so", () => {
     extra = { defaultVisibility: "guest", guestCount: 0 };
     mount();
