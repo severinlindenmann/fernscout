@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { mayReadLiveTrack, mayReadTrip, readFor } from "@/lib/tripGate";
+import { mayReadLiveTrack, mayReadTrip, mayViewCosts, readFor } from "@/lib/tripGate";
 import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
@@ -15,6 +15,7 @@ import { dayAnchors, unwrittenRecordedDays } from "@/lib/map/routeAnchors";
 import { getPhotoPins } from "@/lib/map/photoPins";
 import { isTooRecent } from "@/lib/map/mapSafety";
 import { getPlan } from "@/lib/plan";
+import { getCostSummary } from "@/lib/costs";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef, getTrip } from "@/lib/trips";
@@ -227,10 +228,14 @@ async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; o
   // old itself (`liveTailStatus`'s own `tailIsLive`) — never a stale "N min
   // ago" from a trip nobody has re-derived in days.
   const liveTail = live ? liveTailStatus(trip.username, trip.id, visibleDates) : undefined;
+  // The same gate the day page uses for its spend line; off means no figure reaches the client.
+  const showCosts = await mayViewCosts(trip);
+  const tripCost = showCosts ? getCostSummary(tripId).total : 0;
   return (
     <MapPageContent
       places={places}
-      days={getMapDays(tripId, read, anchors)}
+      days={getMapDays(tripId, read, anchors, showCosts)}
+      tripCost={tripCost > 0 ? tripCost : undefined}
       pins={pins}
       unwritten={unwritten}
       plan={plan.stops}

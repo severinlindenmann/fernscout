@@ -64,7 +64,7 @@ describe("viewTravels (B-2980)", () => {
 
 describe("whole-trip deselect (B-2980)", () => {
   it("removes or sets ?day and keeps other params", async () => {
-    const { withDayParam, nextSelection, escapeDeselects } = await import("@/lib/map/dayTransition");
+    const { withDayParam, nextSelection, escapeDeselects, zoomControlsVisible } = await import("@/lib/map/dayTransition");
     expect(withDayParam("?day=2026-08-02&show=1", null)).toBe("?show=1");
     expect(withDayParam("?day=2026-08-02", null)).toBe("");
     expect(withDayParam("", "2026-08-03")).toBe("?day=2026-08-03");
@@ -74,5 +74,8 @@ describe("whole-trip deselect (B-2980)", () => {
     expect(escapeDeselects(null, "Escape", false)).toBe(false);
     expect(escapeDeselects("a", "Escape", true)).toBe(false);
     expect(escapeDeselects("a", "Enter", false)).toBe(false);
+    expect(zoomControlsVisible(118, 844)).toBe(true);
+    expect(zoomControlsVisible(354, 844)).toBe(true);
+    expect(zoomControlsVisible(726, 844)).toBe(false);
   });
 });

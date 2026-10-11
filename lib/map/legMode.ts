@@ -57,8 +57,6 @@ export function legPattern(mode: TransportMode | null | undefined): LegPattern {
   }
 }
 
-export type LegSource = "recorded" | "day";
-
 /** Whether a leg's own line style already says its mode, so a chip adds nothing (the plain road). */
 export const chipRedundant = (mode: TransportMode): boolean => mode === "car";
 

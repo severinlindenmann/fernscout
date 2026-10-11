@@ -23,12 +23,16 @@ import { recordedSegmentsFor, type DayTrack } from "@/lib/map/recordedSegments";
 import { pinsInRegion, placeDayByDate } from "@/lib/map/mapSafety";
 import { applyStreetOverlay } from "@/lib/map/streetOverlay";
 import { boundsFor } from "@/lib/map/tripStill";
-import { legModeFromEntry, legPattern, withDeclaredLegs, type LegPattern } from "@/lib/map/legMode";
+import { legModeFromEntry, legendModes, withDeclaredLegs, type LegPattern } from "@/lib/map/legMode";
 import type { TransportMode } from "@/lib/types";
 import type { MapDay } from "@/lib/map/mapDays";
-import MobileMapSheet, { MAPS_BUTTON, READ_DAY_BUTTON } from "@/components/map/MobileMapSheet";
+import MobileMapSheet, { READ_DAY_BUTTON } from "@/components/map/MobileMapSheet";
 import DayReader from "@/components/map/DayReader";
-import { adjacentDate } from "@/lib/map/dayTransition";
+import { adjacentDate, escapeDeselects, withDayParam, zoomControlsVisible } from "@/lib/map/dayTransition";
+import { kmByDate as kmByDateOf } from "@/lib/map/dayFacts";
+import MapControls from "@/components/map/MapControls";
+import { useWeatherText } from "@/components/map/DayFacts";
+import { usePrefetchDays } from "@/components/map/usePreload";
 import { useReducedMotion } from "motion/react";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
 import { POSTER_WIDTH } from "@/lib/mediaSizes";
@@ -79,7 +83,10 @@ export default function MapPageContent({
   pins: allPins = [],
   unwritten,
   owner = false,
+  tripCost,
 }: {
+  /** B-2980 — the trip's total spend in the base currency; present only for a viewer who may see costs. */
+  tripCost?: number;
   /** B-2980 — the owner's own request: only they are told a trip lacks a map extract. */
   owner?: boolean;
   /** B-2980 — photographs at their own measured position (SVG map only). */
@@ -379,6 +386,19 @@ export default function MapPageContent({
 
   const plottableInRegion = useMemo(() => regionPlaces.filter(isPlottable), [regionPlaces]);
 
+  // Where the street map frames the trip: the places where days happened, not the region
+  // file's own padded box (15 km wider, which lets a day sit on the edge).
+  const streetBounds = useMemo(
+    () =>
+      plottableInRegion.length > 0
+        ? boundsFor([...plottableInRegion, ...pins, ...regionLines.filter((l) => l.kind === "recorded").flatMap((l) => l.coords)])
+        : routePoints.length > 0
+          ? boundsFor(routePoints)
+          : plan.length > 0 && activeStreetMap?.world
+            ? boundsFor(plan)
+            : (activeStreetMap?.bounds ?? null),
+    [plottableInRegion, pins, regionLines, routePoints, plan, activeStreetMap],
+  );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sheetInset, setSheetInset] = useState(0);
   const [layersOpen, setLayersOpen] = useState(false);
@@ -405,14 +425,10 @@ export default function MapPageContent({
   // stack or jumps the scroll position `pushState`/a hash link would.
   const selectDay = useCallback((date: string | null) => {
     setSelectedDate(date);
-    const params = new URLSearchParams(window.location.search);
-    if (date) params.set("day", date);
-    else params.delete("day");
-    const query = params.toString();
     window.history.replaceState(
       null,
       "",
-      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+      `${window.location.pathname}${withDayParam(window.location.search, date)}${window.location.hash}`,
     );
   }, []);
 
@@ -426,6 +442,25 @@ export default function MapPageContent({
   const toggleDay = useCallback((date: string | null) => {
     selectDay(date === selectedDate ? null : date);
   }, [selectDay, selectedDate]);
+
+  // Escape goes back to the whole trip (anything inside that used the key has already claimed it).
+  useEffect(() => {
+    if (selectedDate === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (escapeDeselects(selectedDate, e.key, e.defaultPrevented)) selectDay(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedDate, selectDay]);
+
+  // Warm the selected day's story, its neighbours' and the first photographs, so "Read the day" opens at once.
+  const galleryOf = (i: number) =>
+    days[i] ? places.flatMap((p) => p.entries).filter((e) => e.date === days[i].date).flatMap((e) => e.gallery ?? []) : [];
+  usePrefetchDays(readIndex, days.length, galleryOf);
+  const kmByDate = useMemo(() => kmByDateOf(trackByDay), [trackByDay]);
+  const selectedWeather = useWeatherText(readDay?.weather);
+  const weatherChip = selectedWeather?.chip;
+  const weatherLabel = selectedWeather?.label;
 
   const [dayParam] = useState<string | null>(() =>
     typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("day"),
@@ -492,25 +527,9 @@ export default function MapPageContent({
     );
   };
 
-  // Which line kinds are actually drawn on the *street map* right now —
-  // "Legend shows only what is drawn." Only the street map draws tripFrame's
-  // own line vocabulary (recorded/gap/photo-join/flight); `WorldMap`'s SVG
-  // path keeps its existing accent hop-lines with transport-mode chips
-  // (see the ceiling noted on `recordedSegmentsFor`'s own doc), which this
-  // legend would misdescribe, so it is street-map only. Flights are
-  // overview-only and only ever shown when nothing is selected.
-  const linesShown = useMemo(() => {
-    const inRegion = regionLines;
-    if (selectedDayNumber === null) return inRegion;
-    return inRegion.filter(
-      (l) => l.kind !== "flight" && (l.fromDay === selectedDayNumber || l.toDay === selectedDayNumber),
-    );
-  }, [regionLines, selectedDayNumber]);
-  const modesShown = useMemo(() => {
-    const seen = new Map<TransportMode, LegPattern>();
-    for (const l of linesShown) if (l.mode && l.kind !== "gap" && l.kind !== "flight") seen.set(l.mode, legPattern(l.mode));
-    return [...seen];
-  }, [linesShown]);
+  // The legend lists every mode the WHOLE trip travelled by (recorded and declared legs on
+  // every day) and marks the ones the selected day used — selecting a day never shrinks it.
+  const modesShown = useMemo(() => legendModes(frame.lines, selectedDayNumber), [frame.lines, selectedDayNumber]);
 
   const regionChips = onMainRegion && !wholeTrip ? frame.chips : [];
   // B-2980: with two or more real regions there is a way back out to all of
@@ -566,6 +585,10 @@ export default function MapPageContent({
         pinLabel,
         unwrittenLines: unwritten?.lines,
         legLabel: (m, src) => legLabelRef.current(m, src),
+        weather:
+          weatherChip && weatherLabel && selectedDayNumber !== null
+            ? { day: selectedDayNumber, chip: weatherChip, label: weatherLabel }
+            : undefined,
         onOpenPins: (group) => {
           setPinIndex(0);
           setOpenPins(group);
@@ -603,6 +626,8 @@ export default function MapPageContent({
     unwritten,
     pinLabel,
     declaredModes,
+    weatherChip,
+    weatherLabel,
   ]);
 
   return (
@@ -615,7 +640,7 @@ export default function MapPageContent({
           status (B2536), in one row right under the header. Visible at
           every width: on a phone this *is* "a small header chip row" over
           the full-bleed map below; on desktop it sits atop the day list. */}
-      {(regionChips.length > 0 || multiRegion || liveTail) && hasPlaces && (
+      {(regionChips.length > 0 || multiRegion || liveTail || selectedDate !== null) && hasPlaces && (
         <div
           role="list"
           aria-label={t("map.regions")}
@@ -676,6 +701,18 @@ export default function MapPageContent({
                 {r.days ? ` · ${r.days} ${tn("map.days", r.days)}` : ""}
               </button>
             ))}
+          {!multiRegion && selectedDate !== null && (
+            // The way back out of a selected day: the whole trip in view again.
+            <button
+              type="button"
+              role="listitem"
+              onClick={() => selectDay(null)}
+              className="flex min-h-8 items-center gap-1 rounded-full border border-line-prominent bg-surface-raised px-3 py-1 text-xs font-semibold text-ink-body"
+            >
+              <Globe className="h-3 w-3 shrink-0" aria-hidden />
+              {t("map.wholeTrip")}
+            </button>
+          )}
           {multiRegion && (
             <button
               type="button"
@@ -718,6 +755,8 @@ export default function MapPageContent({
               onPrev={readPrev ? () => selectDay(readPrev) : undefined}
               onNext={readNext ? () => selectDay(readNext) : undefined}
               onClose={() => setReadingDesktop(false)}
+              km={kmByDate.get(readDay.date)}
+              tripCost={tripCost}
               className="min-h-0 flex-1 px-4 pt-3"
             />
           ) : (
@@ -840,14 +879,19 @@ export default function MapPageContent({
                         )}
                         <div className="flex flex-wrap gap-2">
                           <button type="button" onClick={() => setReadingDesktop(true)} className={READ_DAY_BUTTON}>
-                            {t("map.readDay")}
+                            {t("map.readTheDay")}
                             <BookOpen className="h-4 w-4" aria-hidden />
                           </button>
-                          <a href={googleMapsHref(place)} target="_blank" rel="noreferrer" className={MAPS_BUTTON}>
-                            <MapPin className="h-4 w-4" aria-hidden />
-                            {t("map.googleMapsShort")}
-                          </a>
                         </div>
+                        <a
+                          href={googleMapsHref(place)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-h-8 items-center gap-1 self-start text-xs font-semibold text-ink-secondary underline decoration-line-quiet underline-offset-2"
+                        >
+                          <MapPin className="h-3.5 w-3.5" aria-hidden />
+                          {t("map.googleMapsShort")}
+                        </a>
                       </div>
                     )}
                   </li>
@@ -911,21 +955,11 @@ export default function MapPageContent({
         </section>
 
         {/* The map — full-bleed under the info row, on every width. */}
-        {/* Zoom buttons ride the right edge at mid-height, clear of the header, the layers button and the sheet. */}
-        <div className="relative h-full min-h-0 [&_.maplibregl-ctrl-top-right]:!top-1/2 [&_.maplibregl-ctrl-top-right]:-translate-y-1/2">
+        <div className="relative h-full min-h-0">
           {activeStreetMap && (!activeStreetMap.world || hasContent) ? (
             <StreetMap
-              // The places where days happened, not the region file's own padded
-              // box — that box is 15 km wider and lets a day sit on the edge.
-              bounds={
-                plottableInRegion.length > 0
-                  ? boundsFor([...plottableInRegion, ...pins, ...regionLines.filter((l) => l.kind === "recorded").flatMap((l) => l.coords)])
-                  : routePoints.length > 0
-                    ? boundsFor(routePoints)
-                    : plan.length > 0 && activeStreetMap.world
-                      ? boundsFor(plan)
-                      : activeStreetMap.bounds
-              }
+              bounds={streetBounds ?? activeStreetMap.bounds}
+              zoomControl={false}
               // Clear of the header chips above and the legend (and, on a
               // phone, the day sheet) below.
               padding={{ top: 72, bottom: sheetInset + 24, left: 24, right: 24 }}
@@ -1001,7 +1035,22 @@ export default function MapPageContent({
         </aside>
       )}
 
-          {/* "Legend shows only what is drawn": one small button, a popover of the modes on the map. */}
+          {/* Big round zoom buttons on the right edge, in the thumb zone, riding above the sheet at every
+              snap (the sheet's own inset); stepping aside when the reader fills the screen. */}
+          {streetMapInstance && activeStreetMap && zoomControlsVisible(sheetInset, typeof window === "undefined" ? 0 : window.innerHeight) && (
+            <div className="absolute right-3 z-10" style={{ bottom: sheetInset + 12 }}>
+              <MapControls
+                onZoomIn={() => streetMapInstance.zoomIn()}
+                onZoomOut={() => streetMapInstance.zoomOut()}
+                onFit={() => {
+                  if (selectedDate !== null) selectDay(null);
+                  else if (streetBounds) streetMapInstance.fitBounds(streetBounds, { padding: { top: 72, bottom: 24, left: 24, right: 24 }, duration: reducedMotion ? 0 : 500 });
+                }}
+              />
+            </div>
+          )}
+
+          {/* "Legend shows only what is drawn": one small button, a popover of every mode the trip travelled by. */}
           {streetMap && hasPlaces && modesShown.length > 0 && (
             <div className="absolute right-3 top-3 z-10">
               <button
@@ -1015,10 +1064,11 @@ export default function MapPageContent({
               </button>
               {layersOpen && (
                 <ul className="absolute right-0 mt-2 w-48 rounded-xl border border-line-quiet bg-surface-raised p-3 text-xs text-ink-body shadow-md">
-                  {modesShown.map(([mode, pattern]) => (
-                    <li key={mode} className="flex items-center gap-2 py-1">
+                  {modesShown.map(({ mode, pattern, selected }) => (
+                    <li key={mode} className={`flex items-center gap-2 py-1${selected ? " font-bold text-ink-strong" : ""}`}>
                       <LineSwatch pattern={pattern} />
                       {modeLabel(mode)}
+                      {selected && <span aria-hidden className="ml-auto h-1.5 w-1.5 rounded-full bg-ink-strong" />}
                     </li>
                   ))}
                 </ul>
@@ -1063,6 +1113,9 @@ export default function MapPageContent({
         selectedDate={selectedDate}
         onSelectDate={toggleDay}
         onInsetChange={setSheetInset}
+        onDeselect={() => selectDay(null)}
+        kmByDate={kmByDate}
+        tripCost={tripCost}
         transportLine={transportLine}
         hrefForDay={(slug) => href(`/day/${slug}`)}
         onPlay={

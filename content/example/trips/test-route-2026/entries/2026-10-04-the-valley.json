@@ -32,10 +32,30 @@
       "height": 1600
     }
   ],
+  "costs": [
+    {
+      "label": "Lunch on the road (sample)",
+      "amount": 19,
+      "category": "food",
+      "currency": "CHF"
+    },
+    {
+      "label": "Parking (sample)",
+      "amount": 6,
+      "category": "transport",
+      "currency": "CHF"
+    }
+  ],
+  "weather": {
+    "tempMin": 6.5,
+    "tempMax": 13,
+    "code": 61,
+    "precipitation": 4.2,
+    "source": "balcony thermometer (invented sample)",
+    "recordedAt": "2026-10-04T17:00:00Z"
+  },
   "test": true,
   "declined": {
-    "costs": "no money moved",
-    "weather": "invented sample",
     "time": "not noted on this sample",
     "timezone": "not noted on this sample",
     "transportMode": "not noted on this sample",

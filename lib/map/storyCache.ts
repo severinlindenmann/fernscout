@@ -10,7 +10,7 @@ import { POSTER_WIDTH } from "../mediaSizes";
  * when to do nothing at all.
  */
 
-export type StoryWindow = { from: number; days: StoryDay[] };
+type StoryWindow = { from: number; days: StoryDay[] };
 export type StoryFetch = (url: string) => Promise<StoryWindow>;
 
 /** The window the reader asks for around `index`: one behind, three wide. */
@@ -19,7 +19,7 @@ export function windowFor(index: number): { from: number; to: number } {
   return { from, to: from + 3 };
 }
 
-export function windowUrl(base: string, ref: string, locale: string, index: number): string {
+function windowUrl(base: string, ref: string, locale: string, index: number): string {
   const { from, to } = windowFor(index);
   return `${base}?trip=${encodeURIComponent(ref)}&from=${from}&to=${to}&lang=${encodeURIComponent(locale)}`;
 }

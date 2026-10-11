@@ -5,7 +5,7 @@
  */
 
 /** A leg this long is a flight whatever the day's own entry says. */
-export const FLIGHT_KM = 600;
+const FLIGHT_KM = 600;
 
 /** The adjacent date in `dates` (in order), or null at either end or for an unknown date. No wrap-around: the ends are ends. */
 export function adjacentDate(dates: readonly string[], date: string | null, step: 1 | -1): string | null {
@@ -75,4 +75,9 @@ export function nextSelection(current: string | null, tapped: string | null): st
 /** Escape deselects only while a day is selected and nothing inside has already used the key. */
 export function escapeDeselects(selected: string | null, key: string, defaultPrevented: boolean): boolean {
   return selected !== null && key === "Escape" && !defaultPrevented;
+}
+
+/** The zoom column rides above the sheet at peek and half and steps aside when the reader fills the screen. */
+export function zoomControlsVisible(sheetInset: number, viewportHeight: number): boolean {
+  return viewportHeight <= 0 || sheetInset < viewportHeight * 0.6;
 }

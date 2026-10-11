@@ -5,6 +5,10 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { ArrowRight, ChevronLeft, ChevronRight, X } from "lucide-react";
+import DayFacts from "@/components/map/DayFacts";
+import { useViewerPreload } from "@/components/map/usePreload";
+import { cachedDay, loadWindow, type StoryFetch } from "@/lib/map/storyCache";
+import { pauseOthers } from "@/lib/mediaPreload";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { useOptionalSite } from "@/components/SiteProvider";
@@ -19,7 +23,6 @@ import { mediaLoader, posterSrc } from "@/components/mediaLoader";
 import { swipeIntent } from "@/components/swipe";
 import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import { flagFor } from "@/lib/flags";
-import type { StoryDay } from "@/lib/prose";
 import type { MapDay } from "@/lib/map/mapDays";
 
 /** B-2980 — the day, read in place on the map: its text, photographs, reactions and comments. */
@@ -61,37 +64,36 @@ export function useDaySwipe(onPrev?: () => void, onNext?: () => void) {
  * reader's language), so the map's own payload carries none of it. Fetches the
  * day and its neighbours together, then the next one ahead of a step forward.
  */
+const fetchWindow: StoryFetch = (url) => fetch(url).then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))));
+
 function useStoryDay(index: number, date: string, count: number) {
   const trip = useTrip();
   const { locale } = useI18n();
-  const [loaded, setLoaded] = useState<Record<number, StoryDay>>({});
+  const [, bump] = useState(0);
   const [failed, setFailed] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
   const ref = trip?.trip.ref;
   const base = trip?.userHref("/story.json");
-  const day = loaded[index]?.date === date ? loaded[index] : undefined;
-  const missing = !day ? index : index + 1 < count && !loaded[index + 1] ? index + 1 : -1;
+  // Read straight from the shared cache, which `usePrefetchDays` may already have filled.
+  const day = ref && base ? cachedDay(base, ref, locale, index, date) : undefined;
+  const nextCached = !(ref && base) || index + 1 >= count || cachedDay(base, ref, locale, index + 1) !== undefined;
+  const missing = !day ? index : !nextCached ? index + 1 : -1;
 
   useEffect(() => {
     if (missing < 0 || !ref || !base) return;
-    const from = missing === index ? Math.max(0, index - 1) : missing;
-    const abort = new AbortController();
-    fetch(`${base}?trip=${encodeURIComponent(ref)}&from=${from}&to=${from + 3}&lang=${encodeURIComponent(locale)}`, {
-      signal: abort.signal,
-    })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
-      .then((data: { from: number; days: StoryDay[] }) => {
+    let live = true;
+    loadWindow(base, ref, locale, missing, fetchWindow)
+      .then(() => {
+        if (!live) return;
         setFailed(null);
-        setLoaded((prev) => {
-          const next = { ...prev };
-          data.days.forEach((d, i) => (next[data.from + i] = d));
-          return next;
-        });
+        bump((n) => n + 1);
       })
       .catch(() => {
-        if (!abort.signal.aborted && missing === index) setFailed(index);
+        if (live && missing === index) setFailed(index);
       });
-    return () => abort.abort();
+    return () => {
+      live = false;
+    };
   }, [missing, index, ref, base, locale, attempt]);
 
   return {
@@ -116,6 +118,8 @@ export default function DayReader({
   onNext,
   onClose,
   className = "",
+  km,
+  tripCost,
 }: {
   day: MapDay;
   /** Position among every published day — also the story window's index. */
@@ -131,6 +135,10 @@ export default function DayReader({
   onNext?: () => void;
   onClose: () => void;
   className?: string;
+  /** Kilometres recorded on this day, when any were. */
+  km?: number;
+  /** The trip's total spend in the base currency, when this viewer may see costs. */
+  tripCost?: number;
 }) {
   const trip = useTrip();
   const site = useOptionalSite();
@@ -148,6 +156,8 @@ export default function DayReader({
       onNext={onNext}
       onClose={onClose}
       className={className}
+      km={km}
+      tripCost={tripCost}
     />
   );
   // The same providers, and the same gate for comments, as the day page
@@ -172,6 +182,8 @@ function ReaderBody({
   onNext,
   onClose,
   className,
+  km,
+  tripCost,
 }: React.ComponentProps<typeof DayReader> & { className: string }) {
   const { t, localized, formatShortDate } = useI18n();
   const { day, failed, retry } = useStoryDay(index, mapDay.date, count);
@@ -189,6 +201,7 @@ function ReaderBody({
   }, [mapDay.date]);
 
   const gallery = day?.entries.flatMap((e) => e.gallery) ?? [];
+  useViewerPreload(gallery, photo);
   const title = mapDay.hasPlace
     ? `${flagFor(mapDay.country, mapDay.countryCode)} ${mapDay.location}`
     : formatShortDate(mapDay.date);
@@ -248,6 +261,7 @@ function ReaderBody({
           )}
           {day && (
             <>
+              <DayFacts day={mapDay} km={km} tripCost={tripCost} className="mb-3" />
               {gallery.length > 0 && (
                 <div className="mb-3 grid grid-cols-3 gap-1.5" data-no-swipe>
                   {gallery.map((m, i) => (
@@ -265,6 +279,8 @@ function ReaderBody({
                           preload={m.poster ? "none" : "metadata"}
                           className="h-full w-full object-cover"
                           muted
+                          playsInline
+                          onPlay={(e) => pauseOthers(e.currentTarget, document.querySelectorAll("video"))}
                         />
                       ) : (
                         <Image
@@ -303,8 +319,8 @@ function ReaderBody({
 
               {/* The same keys the day page uses: its first update's slug. */}
               <div className="mt-6 border-t border-line-faint pt-3">
-                <DayReactions daySlug={day.lead.slug} />
-                <DayComments daySlug={day.lead.slug} />
+                <DayReactions daySlug={day.lead.slug} compact />
+                <DayComments daySlug={day.lead.slug} limit={2} compact />
               </div>
 
               <a

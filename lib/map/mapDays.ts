@@ -6,6 +6,8 @@ import { isHomePlace } from "@/lib/gps/enrich";
 import { parseTripRef } from "@/lib/trips";
 import { defaultLocaleFor, translateIn } from "@/lib/locales";
 import { townNameFor } from "./townName";
+import { costForDay, costLocalForDay } from "../costs";
+import type { DayWeather } from "../weather";
 
 /**
  * One calendar day of the trip, for the map page's own day list/strip —
@@ -44,12 +46,19 @@ export type MapDay = {
   hidden?: boolean;
   /** B-2980: how the day's own entry says it got there, when it does. */
   transportMode?: string;
+  /** B-2980: the day's stored reading, exactly as written (never looked up here); absent for a hidden or home day. */
+  weather?: DayWeather;
+  /** B-2980: the day's spend in the base currency, and in the currency paid when it is one — only for a viewer who may see costs. */
+  cost?: number;
+  costLocal?: { amount: number; currency: string };
 };
 
 export function getMapDays(
   ref: string,
   options?: ReadOptions,
   anchors?: ReadonlyMap<string, { lat: number; lng: number; name: string }>,
+  /** `mayViewCosts(trip)`, resolved by the page: false (the default) leaves every figure out. */
+  showCosts = false,
 ): MapDay[] {
   // B2544 — same rule `getPlaces` (`lib/entries.ts`) applies: a day's own
   // typed `coordinates` is never a recorded fix, so it never went through
@@ -91,6 +100,13 @@ export function getMapDays(
       home: home || undefined,
       hidden: hidden || undefined,
       transportMode: day.lead.transport?.mode,
+      weather: hidden || home ? undefined : day.lead.weather,
+      ...(showCosts ? dayCost(ref, day.entries) : {}),
     };
   });
+}
+
+function dayCost(ref: string, entries: Parameters<typeof costForDay>[1]): { cost?: number; costLocal?: { amount: number; currency: string } } {
+  const cost = costForDay(ref, entries);
+  return cost > 0 ? { cost, costLocal: costLocalForDay(ref, entries) } : {};
 }

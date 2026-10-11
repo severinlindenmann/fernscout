@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { budgetFact, formatKm, recordedKm, weatherFact } from "@/lib/map/dayFacts";
+import { budgetFact, formatKm, kmByDate, recordedKm, weatherFact } from "@/lib/map/dayFacts";
 
 describe("day facts (B-2980)", () => {
   it("sums only recorded runs and says nothing for none", () => {
@@ -25,5 +25,15 @@ describe("day facts (B-2980)", () => {
     expect(budgetFact(0, 0, money)).toBeNull();
     expect(budgetFact(40, 900, money)).toEqual({ day: "CHF 40", trip: "CHF 900" });
     expect(budgetFact(undefined, 900, money)).toEqual({ day: undefined, trip: "CHF 900" });
+  });
+
+  it("attributes recorded runs to their date only", () => {
+    const m = kmByDate([
+      { date: "2026-08-01", points: [[47, 8], [47.1, 8]] },
+      { date: "2026-08-01", points: [[47.1, 8], [47.2, 8]] },
+      { points: [[1, 1], [2, 2]] },
+    ]);
+    expect([...m.keys()]).toEqual(["2026-08-01"]);
+    expect(m.get("2026-08-01")).toBeGreaterThan(20);
   });
 });

@@ -192,8 +192,8 @@ describe("the desktop map page's stop list", () => {
     const el = render([place()]);
     act(() => rows(el)[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
     const links = [...el.querySelectorAll("a")];
-    // B-2980: "Read this day" opens the day in place, so it is a button now.
-    expect([...el.querySelectorAll("button")].some((b) => b.textContent?.includes(dictionaryFor("en")["map.readDay"]))).toBe(true);
+    // B-2980: "Read the day" opens the day in place, so it is a button now.
+    expect([...el.querySelectorAll("button")].some((b) => b.textContent?.includes(dictionaryFor("en")["map.readTheDay"]))).toBe(true);
     const gmaps = links.find((a) => a.getAttribute("href")?.includes("google.com/maps"));
     expect(gmaps).toBeTruthy();
     expect(gmaps!.getAttribute("href")).toContain("35.0116");

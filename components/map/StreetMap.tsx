@@ -34,6 +34,8 @@ type StreetMapProps = {
   /** B-2980: a non-interactive still (the trip page's preview): no pan, zoom,
    * rotate or keyboard, no controls, and a plain credit instead of the button. */
   still?: boolean;
+  /** The stock +/- control; a page that draws its own larger buttons turns it off. */
+  zoomControl?: boolean;
 };
 
 /** How long the OpenStreetMap credit shows as a pill before folding into the
@@ -69,7 +71,7 @@ function withProjection<S extends object>(style: S, globe: boolean): S {
  * operator hasn't downloaded the full set for.
  */
 const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap(
-  { bounds, pmtilesUrl, padding = 32, className, onReady, globe = false, maxZoom, still = false },
+  { bounds, pmtilesUrl, padding = 32, className, onReady, globe = false, maxZoom, still = false, zoomControl = true },
   ref,
 ) {
   const { locale, t } = useI18n();
@@ -113,7 +115,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
         maxTileCacheSize: 512,
         cancelPendingTileRequestsWhileZooming: false,
       });
-      if (!still) created.addControl(new NavigationControl({ showCompass: false }), "top-right");
+      if (!still && zoomControl) created.addControl(new NavigationControl({ showCompass: false }), "top-right");
       map = created;
       mapRef.current = created;
       onReady?.(created);
@@ -139,7 +141,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
     // file appearing, a locale switch) that remounting the whole map is the
     // simplest correct behaviour — no diffing of an already-loaded style.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pmtilesUrl, locale, globe, still]);
+  }, [pmtilesUrl, locale, globe, still, zoomControl]);
 
   // The dark/light *scheme* can change without `locale` changing (the OS
   // theme flips, or the reader's own in-app choice does) — kept separate

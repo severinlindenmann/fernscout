@@ -6,7 +6,7 @@ import { kmBetween, type Point } from "../mapFrame";
  */
 
 /** A pin farther than this from everything the day says about itself is a bad tag. */
-export const PIN_MAX_KM = 300;
+const PIN_MAX_KM = 300;
 
 /** (0,0) is "no fix", not the Gulf of Guinea; and a pin must sit near its day's route/place when the day has one. */
 export function plausiblePin(pin: Point, refs: readonly Point[], maxKm = PIN_MAX_KM): boolean {
@@ -49,7 +49,7 @@ export function placeDayByDate(
 }
 
 /** Whether two recorded pieces may be bridged: one original segment and a short hole, never across a cut spot. */
-export const BRIDGE_MAX_KM = 2;
+const BRIDGE_MAX_KM = 2;
 export function mayBridge(a: Point, b: Point, sameSegment: boolean): boolean {
   return sameSegment && kmBetween(a, b) < BRIDGE_MAX_KM;
 }

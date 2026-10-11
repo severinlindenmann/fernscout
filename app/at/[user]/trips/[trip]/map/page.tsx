@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { mayReadLiveTrack, readFor, mayReadTrip } from "@/lib/tripGate";
+import { mayReadLiveTrack, mayViewCosts, readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
@@ -9,6 +9,7 @@ import { primaryStreetMap, streetMapRegionFiles } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getMapDays } from "@/lib/map/mapDays";
+import { getCostSummary } from "@/lib/costs";
 import { dayAnchors, unwrittenRecordedDays } from "@/lib/map/routeAnchors";
 import { getPhotoPins } from "@/lib/map/photoPins";
 import { isTooRecent } from "@/lib/map/mapSafety";
@@ -145,10 +146,14 @@ async function TripMapBody({ trip, read, owner }: { trip: Trip; read: ReadOption
   const streetMapRegions = isEnabled("streetMaps")
     ? (streetMapRegionFiles(trip.username, trip.id) ?? null)
     : null;
+  // The same gate the day page uses for its spend line; off means no figure reaches the client.
+  const showCosts = await mayViewCosts(trip);
+  const tripCost = showCosts ? getCostSummary(trip.ref).total : 0;
   return (
     <MapPageContent
       places={places}
-      days={getMapDays(trip.ref, read, anchors)}
+      days={getMapDays(trip.ref, read, anchors, showCosts)}
+      tripCost={tripCost > 0 ? tripCost : undefined}
       pins={pins}
       unwritten={unwritten}
       plan={plan.stops}

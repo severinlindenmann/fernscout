@@ -69,3 +69,10 @@ export function budgetFact(
   const t = trip !== undefined && trip > 0 ? money(trip) : undefined;
   return d || t ? { day: d, trip: t } : null;
 }
+
+/** Recorded kilometres per calendar date; a run with no date cannot be attributed and is left out. */
+export function kmByDate(tracks: readonly { date?: string; points: [number, number][] }[]): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const tr of tracks) if (tr.date) out.set(tr.date, (out.get(tr.date) ?? 0) + recordedKm([tr.points]));
+  return out;
+}

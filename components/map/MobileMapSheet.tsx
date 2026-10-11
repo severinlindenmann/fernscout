@@ -17,6 +17,8 @@ import type { PlaceView } from "@/components/WorldMap";
 import type { MapDay } from "@/lib/map/mapDays";
 import { adjacentDate } from "@/lib/map/dayTransition";
 import DayReader, { useDaySwipe } from "@/components/map/DayReader";
+import DayFacts from "@/components/map/DayFacts";
+import { useViewerPreload } from "@/components/map/usePreload";
 
 /** B2572 — the two things to do with a selected day, as buttons rather than
  * underlined text: read it (primary), or find it in Google Maps. Shared with
@@ -25,7 +27,7 @@ export const READ_DAY_BUTTON =
   "inline-flex min-h-11 flex-1 basis-36 items-center justify-center gap-1.5 rounded-full border-2 border-navy-900 " +
   "bg-yellow-400 px-4 text-sm font-bold text-navy-900 shadow-[0_2px_0_var(--color-navy-900)] transition-colors " +
   "hover:bg-yellow-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
-export const MAPS_BUTTON =
+const MAPS_BUTTON =
   "inline-flex min-h-11 flex-1 basis-36 items-center justify-center gap-1.5 rounded-full border-2 border-line-ink " +
   "px-4 text-sm font-bold text-ink-strong transition-colors hover:bg-surface-subtle " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
@@ -81,6 +83,9 @@ export default function MobileMapSheet({
   onInsetChange,
   onPlay,
   transportLine,
+  onDeselect,
+  kmByDate,
+  tripCost,
 }: {
   /** Every published day, in order, including one with no place at all
    * (greyed — B2537). The strip at peek and the full list both read this
@@ -105,8 +110,14 @@ export default function MobileMapSheet({
   onInsetChange?: (px: number) => void;
   /** How a day travelled, said with its source ("Train (from the day)"). */
   transportLine?: (date: string) => string | undefined;
+  /** Back to the whole trip: closing the reader goes here, not to the half card. */
+  onDeselect?: () => void;
+  /** Kilometres actually recorded on each date, for the facts row. */
+  kmByDate?: ReadonlyMap<string, number>;
+  /** The trip's total spend (base currency), for the reader, when costs may be seen. */
+  tripCost?: number;
 }) {
-  const { t, locale, formatShortDate } = useI18n();
+  const { t, tn, locale, formatShortDate } = useI18n();
   const reducedMotion = useReducedMotion();
   const vh = useViewportHeight();
   const isDesktop = useIsDesktop();
@@ -235,6 +246,7 @@ export default function MobileMapSheet({
   // `setOpenPhotoIndex(null)` below), so a lightbox never outlives the day
   // it was opened from.
   const [openPhotoIndex, setOpenPhotoIndex] = useState<number | null>(null);
+  useViewerPreload(dayGallery, openPhotoIndex);
 
   // A new selection — a marker tapped on the map, or a day picked here —
   // opens the sheet to Half, so whichever surface drove it, the result is
@@ -267,6 +279,12 @@ export default function MobileMapSheet({
     ? [t("show.dayNumber", { n: String(selectedIndex + 1) }), formatShortDate(selectedDay.date), transportLine?.(selectedDay.date)]
         .filter(Boolean)
         .join(" · ")
+    : "";
+
+  const readCounts = selectedDay
+    ? [selectedDay.updates > 0 ? tn("map.facts.posts", selectedDay.updates, { count: String(selectedDay.updates) }) : "", selectedDay.mediaCount > 0 ? tn("map.facts.photos", selectedDay.mediaCount, { count: String(selectedDay.mediaCount) }) : ""]
+        .filter(Boolean)
+        .join(", ")
     : "";
 
   const cycleLabel =
@@ -462,6 +480,7 @@ export default function MobileMapSheet({
                           preload={m.poster ? "none" : "metadata"}
                           className="h-full w-full object-cover"
                           muted
+                          playsInline
                         />
                       ) : (
                         <Image
@@ -478,9 +497,11 @@ export default function MobileMapSheet({
                 </div>
               )}
 
-              {/* Read on its own full-width row; Maps and Slideshow share the
-                  next as equal columns (a placeless day has no Maps link, so
-                  Slideshow takes the row alone). */}
+              <DayFacts day={selectedDay} km={kmByDate?.get(selectedDay.date)} />
+
+              {/* The invitation first: a primary "Read the day" with what is in
+                  it. Slideshow is a secondary button; Google Maps is a small
+                  link below, not a button competing with them. */}
               <div className="mt-1 grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -490,32 +511,33 @@ export default function MobileMapSheet({
                   }}
                   className={READ_DAY_BUTTON + " col-span-2 whitespace-nowrap"}
                 >
-                  {t("map.readDay")}
+                  {t("map.readTheDay")}
+                  {readCounts && <span className="font-semibold">· {readCounts}</span>}
                   <BookOpen className="h-4 w-4" aria-hidden />
                 </button>
-                {selectedPlace && (
-                  <a
-                    href={googleMapsHref(selectedPlace)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={MAPS_BUTTON + " whitespace-nowrap"}
-                  >
-                    <MapPin className="h-4 w-4" aria-hidden />
-                    {t("map.googleMapsShort")}
-                  </a>
-                )}
                 {onPlay && (
                   // Starts the show at this day rather than the first.
                   <button
                     type="button"
                     onClick={() => onPlay(selectedDay.date)}
-                    className={MAPS_BUTTON + " whitespace-nowrap" + (selectedPlace ? "" : " col-span-2")}
+                    className={MAPS_BUTTON + " col-span-2 whitespace-nowrap"}
                   >
                     <Clapperboard className="h-4 w-4" aria-hidden />
                     {t("show.start")}
                   </button>
                 )}
               </div>
+              {selectedPlace && (
+                <a
+                  href={googleMapsHref(selectedPlace)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-8 items-center gap-1 self-start text-xs font-semibold text-ink-secondary underline decoration-line-quiet underline-offset-2"
+                >
+                  <MapPin className="h-3.5 w-3.5" aria-hidden />
+                  {t("map.googleMapsShort")}
+                </a>
+              )}
             </motion.div>
           )}
 
@@ -530,7 +552,9 @@ export default function MobileMapSheet({
               reduced={Boolean(reducedMotion)}
               onPrev={prevDate ? () => onSelectDate(prevDate) : undefined}
               onNext={nextDate ? () => onSelectDate(nextDate) : undefined}
-              onClose={() => setSnap(HALF)}
+              onClose={() => (onDeselect ? onDeselect() : setSnap(HALF))}
+              km={kmByDate?.get(selectedDay.date)}
+              tripCost={tripCost}
               className="h-full"
             />
           )}

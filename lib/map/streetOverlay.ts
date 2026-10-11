@@ -176,6 +176,8 @@ export type StreetOverlayOptions = {
   pinLabel?: string;
   /** B-2980: a mode chip's accessible name, "<mode> (recorded)" or "<mode> (from the day)". */
   legLabel?: (mode: TransportMode, source: "recorded" | "day") => string;
+  /** The selected day's STORED weather as a tag beside its stop: chip text and a label that names the source. Never looked up here. */
+  weather?: { day: number; chip: string; label: string };
   /** B-2980 — owner only: recorded days with no entry, drawn muted dashed. */
   unwrittenLines?: readonly [number, number][][];
   /** Screen padding (CSS px) to keep clear when fitting a selection — the
@@ -381,7 +383,7 @@ export function drawRouteLines(map: MapLibreMap, activeLines: readonly MapLine[]
 }
 
 export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions, markers: Map<number, MapLibreMarker>) {
-  const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], whole = false, onOpenPins, pinLabel = "", unwrittenLines = [], legLabel } = opts;
+  const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], whole = false, onOpenPins, pinLabel = "", unwrittenLines = [], legLabel, weather } = opts;
 
   // The caller's own resolved list — see `StreetOverlayOptions.regionPlaces`'s
   // own doc for why this isn't re-derived from `regionDayNumbers` here.
@@ -487,7 +489,12 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         badge.className = "fs-daymarker-badge";
         badge.style.cssText =
           "position:absolute;top:4px;left:26px;min-width:16px;height:16px;padding:0 3px;box-sizing:border-box;border-radius:9999px;background:var(--map-pin-fill,#1b2a41);color:var(--map-pin-ring,#fff);border:1.5px solid var(--map-pin-ring,#fff);font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;";
-        el.append(disc, label, badge);
+        const tag = document.createElement("span");
+        tag.className = "fs-daymarker-weather";
+        tag.setAttribute("aria-hidden", "true");
+        tag.style.cssText =
+          "display:none;font-size:12px;font-weight:700;color:var(--map-label-stop,#16305c);white-space:nowrap;text-shadow:-1.5px 0 var(--map-label-stop-halo,#fff),1.5px 0 var(--map-label-stop-halo,#fff),0 -1.5px var(--map-label-stop-halo,#fff),0 1.5px var(--map-label-stop-halo,#fff),0 0 4px var(--map-label-stop-halo,#fff);";
+        el.append(disc, label, tag, badge);
         // On the globe's far side a stop hides rather than showing through.
         mk = new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([place.lng, place.lat]).addTo(map);
         markers.set(place.day, mk);
@@ -523,6 +530,14 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       const label = el.querySelector<HTMLElement>(".fs-daymarker-label");
       // Only the selected stop is named, and only once zoomed in enough to matter.
       if (label) label.style.display = place.day === selectedDay && map.getZoom() >= LABEL_MIN_ZOOM && !hiddenLabels.has(place.day) ? "" : "none";
+      // The stored reading of the selected day only, once the stop is named too; the button's own label carries the source.
+      const tagged = weather && weather.day === place.day && place.day === selectedDay;
+      const tag = el.querySelector<HTMLElement>(".fs-daymarker-weather");
+      if (tag) {
+        tag.textContent = tagged ? weather.chip : "";
+        tag.style.display = tagged && map.getZoom() >= LABEL_MIN_ZOOM ? "" : "none";
+      }
+      el.setAttribute("aria-label", tagged ? `${place.name}. ${weather.label}` : place.name);
       const disc = el.querySelector<HTMLElement>(".fs-daymarker-disc");
       if (disc) {
         const isSelected = place.day === selectedDay;
