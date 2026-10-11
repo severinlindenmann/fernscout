@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { scrubLog } from "./scrubLog";
 
 /**
@@ -125,14 +126,30 @@ const runJournalctl: Run = (args) =>
 const LINES_WE_SHOW = String.raw`^\[(req-error|client-error)\] |^\[req\] \S+ \S+ \S+ [45]\d\d `;
 
 /**
+ * The systemd unit this process runs as, from its own cgroup
+ * (`0::/system.slice/fernscout-dev.service`), so dev and prod each read their
+ * own log without a setting. Falls back to `fernscout`.
+ */
+function ownUnit(): string {
+  try {
+    const m = /\/([A-Za-z0-9_.@-]+)\.service\s*$/m.exec(readFileSync("/proc/self/cgroup", "utf8"));
+    if (m) return m[1];
+  } catch {
+    // not Linux, or no cgroup file
+  }
+  return "fernscout";
+}
+
+/**
  * Read the last `hours` of the `fernscout` namespace. Fixed arguments, no
  * shell, nothing the caller typed reaches the command: `hours` is one of
  * `LOG_WINDOWS`. Where journald is missing or the service user may not read
  * the namespace, say so instead of showing an empty list that reads as "no errors".
  */
-export async function readLogs(hours: number, run: Run = runJournalctl): Promise<LogResult> {
+export async function readLogs(hours: number, run: Run = runJournalctl, unit: string = ownUnit()): Promise<LogResult> {
   const h = (LOG_WINDOWS as readonly number[]).includes(hours) ? hours : 24;
-  const base = ["--namespace=fernscout", "-u", "fernscout", "--no-pager", "-o", "json", "-r", "-n", String(READ_LINES), `--since=-${h}h`];
+  // `--namespace=*`: prod logs to its own namespace (B2315), dev to the default journal; the unit tells them apart.
+  const base = ["--namespace=*", "-u", unit, "--no-pager", "-o", "json", "-r", "-n", String(READ_LINES), `--since=-${h}h`];
   let res = await run([...base, `--grep=${LINES_WE_SHOW}`]);
   // A journalctl built without PCRE2 refuses --grep: read unfiltered then.
   if ("error" in res && !res.missing && /grep|pattern|pcre/i.test(res.error)) res = await run(base);

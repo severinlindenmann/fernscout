@@ -66,9 +66,10 @@ describe("admin logs parser", () => {
 describe("readLogs", () => {
   it("passes fixed arguments only and clamps the window", async () => {
     let seen: string[] = [];
-    const r = await readLogs(99999, async (args) => ((seen = args), { stdout: OUTPUT }));
+    const r = await readLogs(99999, async (args) => ((seen = args), { stdout: OUTPUT }), "fernscout-dev");
     expect(seen).toContain("--since=-24h");
-    expect(seen).toContain("--namespace=fernscout");
+    expect(seen).toContain("--namespace=*");
+    expect(seen.slice(seen.indexOf("-u"), seen.indexOf("-u") + 2)).toEqual(["-u", "fernscout-dev"]);
     expect(r.state).toBe("ok");
     expect(LOG_WINDOWS).toContain(24);
   });
