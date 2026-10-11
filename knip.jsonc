@@ -131,6 +131,9 @@
     // Protomaps' extraction CLI, used only by the operator scripts
     // scripts/maps-world.mts and maps-trip.mts (B2535); the app never needs it.
     "pmtiles",
+    // systemd's log reader, run by lib/adminLogs.ts for the /admin Logs
+    // section (B-2995). Part of the OS on the server, absent in local dev.
+    "journalctl",
     // The multi-connection downloader scripts/maps-planet.mts prefers when
     // installed (B2566); it falls back to curl without it.
     "aria2c",

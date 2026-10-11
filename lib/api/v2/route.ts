@@ -224,6 +224,16 @@ async function errorCodeOf(response: Response): Promise<string | null> {
   }
 }
 
+/** The `[user]` of a route, when it has one (B-2995: the Logs section filters on it). */
+async function journalOf(ctx: unknown): Promise<string | null> {
+  try {
+    const params = await (ctx as { params?: Promise<Record<string, unknown>> } | undefined)?.params;
+    return typeof params?.user === "string" ? params.user : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Wrap a v2 route handler so every call leaves ONE `[req]` line (id, method,
  * route template, status, duration, journal, error code) when
@@ -249,8 +259,9 @@ export function withV2Log<H extends (request: Request, ctx: any) => Response | P
           .split("\n")
           .slice(1, 12)
           .map((l) => `    ${scrubLog(l.trim(), 300)}`);
+        const who = await journalOf(ctx);
         console.error(
-          [`[req-error] ${scrubLog(id, 40)} ${method} ${opts.route} ${scrubLog(e.message, 300)}`, ...stack].join("\n"),
+          [`[req-error] ${scrubLog(id, 40)} ${method} ${opts.route}${who ? ` journal=${scrubLog(who, 60).replace(/\s+/g, "_")}` : ""} ${scrubLog(e.message, 300)}`, ...stack].join("\n"),
         );
       } catch {
         // a lost log line is not worth changing what Next sees
@@ -259,13 +270,7 @@ export function withV2Log<H extends (request: Request, ctx: any) => Response | P
     }
     try {
       if (isEnabled("logging")) {
-        let journal: string | null = null;
-        try {
-          const params = await (ctx as { params?: Promise<Record<string, unknown>> } | undefined)?.params;
-          if (typeof params?.user === "string") journal = params.user;
-        } catch {
-          // no params to read
-        }
+        const journal = await journalOf(ctx);
         const err = response.status >= 400 ? await errorCodeOf(response) : null;
         console.log(
           formatReqLine({ id, method, route: opts.route, status: response.status, ms: Date.now() - started, journal, err }),

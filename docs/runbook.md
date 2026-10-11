@@ -799,9 +799,22 @@ writes, whether logging is on or not, and then rethrows so Next answers as it
 always did:
 
 ```
-[req-error] <id> <METHOD> <route template> <message>
+[req-error] <id> <METHOD> <route template> [journal=<slug>] <message>
     <stack line, scrubbed of emails, tokens and query strings>
 ```
+
+**Reading them in `/admin` (B-2995).** The Logs section runs
+`journalctl --namespace='*' -u <its own unit> -o json` on demand (the unit comes
+from the process's cgroup, so dev's `fernscout-dev` and prod's `fernscout` each
+read their own) (fixed
+arguments, no shell, 5 s, newest 5000 matching lines) and shows `[req-error]`,
+`[client-error]` and `[req]` lines with status 400 or more: 5xx and crashes as
+errors, other 4xx as warnings (401 and 404 hidden unless asked for). The
+journal comes from `journal=`, or from `/@<user>/` in a client-error route;
+a line with neither is "instance-wide". It needs the service user to be in the
+`systemd-journal` group (`usermod -aG systemd-journal <user>`, then restart the unit) and shows the reason when
+it cannot. `[req]` lines exist only with `features.logging` on; without it the
+section shows crashes only. Free-text `console.error` lines are not shown.
 
 To follow one failure from an id (a digest or `x-request-id` from a screenshot
 or a bug report), on the server:

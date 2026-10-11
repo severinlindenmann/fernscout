@@ -37,6 +37,7 @@
                             "/api/v2/*/trips/*/travellers/from-photo",
                             "/api/web/*/figures/from-photo",
                             "/api/helper/*/studio/upload",
+                            "/@*/trips/*/day/*/photos",
                             "/api/probe/upload"
                           ]
                         }
@@ -77,6 +78,7 @@
                                 "/api/v2/*/trips/*/travellers/from-photo",
                                 "/api/web/*/figures/from-photo",
                                 "/api/helper/*/studio/upload",
+                                "/@*/trips/*/day/*/photos",
                                 "/api/probe/upload",
                                 "/api/helper/*/transcribe"
                               ]
