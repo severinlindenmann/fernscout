@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
-import Image from "next/image";
+import { useId, useMemo, useState } from "react";
 import { place as placeIn, type Frame } from "@/lib/mapFrame";
 import { mediaLoader } from "./../mediaLoader";
+import { groupByScreen } from "@/lib/map/pinGroups";
 import { useI18n } from "../LocaleProvider";
 import type { PhotoPin } from "@/lib/map/photoPins";
 
@@ -26,16 +26,17 @@ export default function PhotoPins({
 }) {
   const label = useI18n().t("map.photoPin");
   const r = px(11);
-  const groups = useMemo(() => {
-    const out: { x: number; y: number; pins: PhotoPin[] }[] = [];
-    for (const pin of pins) {
-      const [x, y] = placeIn(base, pin);
-      const hit = out.find((g) => Math.hypot(g.x - x, g.y - y) < r * 2);
-      if (hit) hit.pins.push(pin);
-      else out.push({ x, y, pins: [pin] });
-    }
-    return out;
-  }, [pins, base, r]);
+  const groups = useMemo(
+    () =>
+      groupByScreen(
+        pins.map((pin) => {
+          const [x, y] = placeIn(base, pin);
+          return { x, y, pin };
+        }),
+        r * 2,
+      ).map((g) => ({ x: g[0].x, y: g[0].y, pins: g.map((m) => m.pin) })),
+    [pins, base, r],
+  );
 
   return (
     <g>
@@ -59,12 +60,8 @@ export default function PhotoPins({
               }
             }}
           >
-            <circle cx={g.x} cy={g.y} r={r} fill="#fff" stroke="#fff" strokeWidth={px(2)} />
-            <foreignObject x={g.x - r} y={g.y - r} width={r * 2} height={r * 2}>
-              <div style={{ position: "relative", width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden" }}>
-                <Image src={g.pins[0].item.src} loader={mediaLoader} alt="" fill sizes="48px" className="object-cover" />
-              </div>
-            </foreignObject>
+            <PinThumb x={g.x} y={g.y} r={r} ring={px(2)} src={g.pins[0].item.src} />
+            <circle cx={g.x} cy={g.y} r={px(22)} fill="transparent" />
             {g.pins.length > 1 && (
               <>
                 <circle cx={g.x + r * 0.8} cy={g.y - r * 0.8} r={px(7)} fill="#1b2a41" />
@@ -77,5 +74,37 @@ export default function PhotoPins({
         </g>
       ))}
     </g>
+  );
+}
+
+/** The photo as a round thumbnail with a white ring; a camera dot if it will not load.
+ * A plain SVG image: next/image inside foreignObject never loaded (lazy, no
+ * intersection in a foreignObject), which left the pins blank. */
+function PinThumb({ x, y, r, ring, src }: { x: number; y: number; r: number; ring: number; src: string }) {
+  const clip = useId();
+  const [failed, setFailed] = useState(false);
+  return (
+    <>
+      <circle cx={x} cy={y} r={r + ring / 2} fill="#fff" />
+      {failed ? (
+        <circle cx={x} cy={y} r={r * 0.45} fill="#1b2a41" />
+      ) : (
+        <>
+          <clipPath id={clip}>
+            <circle cx={x} cy={y} r={r} />
+          </clipPath>
+          <image
+            href={mediaLoader({ src, width: 96 })}
+            x={x - r}
+            y={y - r}
+            width={r * 2}
+            height={r * 2}
+            clipPath={`url(#${clip})`}
+            preserveAspectRatio="xMidYMid slice"
+            onError={() => setFailed(true)}
+          />
+        </>
+      )}
+    </>
   );
 }

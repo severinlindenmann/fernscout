@@ -1,5 +1,8 @@
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import type { MapLine, MapPlace, TripFrame } from "./tripFrame";
+import type { PhotoPin } from "./photoPins";
+import { groupByScreen } from "./pinGroups";
+import { mediaLoader } from "@/components/mediaLoader";
 
 /**
  * Draws a trip onto a live `StreetMap` (B2535) using B2534's own rules — the
@@ -22,6 +25,16 @@ import type { MapLine, MapPlace, TripFrame } from "./tripFrame";
 
 const MUTED_COLOUR = "#5a6a80";
 const CASING_COLOUR = "#ffffff";
+/** B-2980: the recorded route is the brand yellow on a navy casing. */
+const ROUTE_YELLOW = "#ffd23f";
+const ROUTE_CASING = "#16305c";
+/** Pins closer than this on screen become one badge; also the 44px tap target. */
+const PIN_CLUSTER_PX = 44;
+
+const reducedMotion = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/** Photo pin markers per map, rebuilt on each draw (they regroup with zoom). */
+const pinMarkers = new WeakMap<MapLibreMap, MapLibreMarker[]>();
 
 /** Cached across calls — `StreetMap` itself already dynamically imports
  * maplibre-gl (see its own doc comment on why: no other page's bundle should
@@ -60,6 +73,12 @@ export type StreetOverlayOptions = {
   selectedDay: number | null;
   accentHex: string;
   onSelectDay: (day: number) => void;
+  /** B-2980 — photographs at their own position, and what a tap opens. */
+  pins?: readonly PhotoPin[];
+  onOpenPins?: (group: PhotoPin[]) => void;
+  pinLabel?: string;
+  /** B-2980 — owner only: recorded days with no entry, drawn muted dashed. */
+  unwrittenLines?: readonly [number, number][][];
   /** Screen padding (CSS px) to keep clear when fitting a selection — the
    * sheet/header covering part of the box. */
   padding: { top: number; bottom: number; left: number; right: number };
@@ -89,6 +108,7 @@ function ensureLineLayer(
     dasharray?: number[];
     casing?: boolean;
     casingWidth?: number;
+    casingColor?: string;
   },
 ) {
   const source = map.getSource(id) as GeoJSONSource | undefined;
@@ -101,7 +121,7 @@ function ensureLineLayer(
       type: "line",
       source: id,
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": CASING_COLOUR, "line-width": paint.casingWidth ?? paint.width + 3 },
+      paint: { "line-color": paint.casingColor ?? CASING_COLOUR, "line-width": paint.casingWidth ?? paint.width + 3 },
     });
   }
   if (!map.getLayer(id)) {
@@ -181,7 +201,7 @@ function boundsOf(points: readonly { lat: number; lng: number }[]): [[number, nu
 }
 
 export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions, markers: Map<number, MapLibreMarker>) {
-  const { frame, regionDayNumbers, selectedDay, accentHex, onSelectDay, padding, regionPlaces } = opts;
+  const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], onOpenPins, pinLabel = "", unwrittenLines = [] } = opts;
 
   // The caller's own resolved list — see `StreetOverlayOptions.regionPlaces`'s
   // own doc for why this isn't re-derived from `regionDayNumbers` here.
@@ -201,6 +221,18 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
   const mutedLines = selectedDay ? linesInRegion.filter((l) => l.kind !== "flight" && !activeLines.includes(l)) : [];
 
   const draw = async () => {
+    ensureLineLayer(
+      map,
+      "fs-lines-unwritten",
+      { type: "FeatureCollection", features: unwrittenLines.map((l) => ({ type: "Feature" as const, properties: { kind: "unwritten" as MapLine["kind"] }, geometry: { type: "LineString" as const, coordinates: l.map(([lat, lng]) => [lng, lat]) } })) },
+      { color: "#8a95a5", width: 3, dasharray: [2, 1.5] },
+    );
+    ensureLineLayer(
+      map,
+      "fs-pin-tethers",
+      { type: "FeatureCollection", features: pins.filter((p) => p.tether).map((p) => ({ type: "Feature" as const, properties: { kind: "tether" as MapLine["kind"] }, geometry: { type: "LineString" as const, coordinates: [[p.lng, p.lat], [p.tether![1], p.tether![0]]] } })) },
+      { color: MUTED_COLOUR, width: 1 },
+    );
     ensureLineLayer(map, "fs-lines-muted", lineToGeoJSON(mutedLines), {
       color: MUTED_COLOUR,
       width: 2,
@@ -213,9 +245,11 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     // features of that kind.
     const byKind = (kind: MapLine["kind"]) => activeLines.filter((l) => l.kind === kind);
     ensureLineLayer(map, "fs-lines-recorded", lineToGeoJSON(byKind("recorded")), {
-      color: accentHex,
-      width: 3.5,
+      color: ROUTE_YELLOW,
+      width: 4,
       casing: true,
+      casingWidth: 7.5,
+      casingColor: ROUTE_CASING,
     });
     ensureLineLayer(map, "fs-lines-gap", lineToGeoJSON(byKind("gap")), {
       color: MUTED_COLOUR,
@@ -268,7 +302,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         el.type = "button";
         el.setAttribute("aria-label", place.name);
         el.style.cssText =
-          "display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:0;cursor:pointer;font:inherit;";
+          "display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:11px;min-height:44px;min-width:44px;cursor:pointer;font:inherit;";
         const disc = document.createElement("span");
         disc.className = "fs-daymarker-disc";
         disc.style.cssText =
@@ -295,7 +329,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         const box = nearby.length > 1 ? boundsOf(nearby) : null;
         const fitZoom = box ? map.cameraForBounds(box, { padding, maxZoom: 15 })?.zoom : undefined;
         if (box && fitZoom !== undefined && map.getZoom() < fitZoom - 1) {
-          map.fitBounds(box, { padding, maxZoom: 15, duration: 600 });
+          map.fitBounds(box, { padding, maxZoom: 15, duration: reducedMotion() ? 0 : 600 });
         } else {
           onSelectDay(place.day);
         }
@@ -314,6 +348,40 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       }
       mk.setLngLat([place.lng, place.lat]);
     }
+    for (const m of pinMarkers.get(map) ?? []) m.remove();
+    const made: MapLibreMarker[] = [];
+    const placed = pins.map((pin) => ({ ...map.project([pin.lng, pin.lat]), pin }));
+    for (const group of groupByScreen(placed, PIN_CLUSTER_PX)) {
+      const first = group[0].pin;
+      const el = document.createElement("button");
+      el.type = "button";
+      el.setAttribute("aria-label", first.item.caption ?? first.item.alt ?? pinLabel);
+      // 44px tap target around a 32px thumbnail; clear of the stop labels.
+      el.style.cssText = "position:relative;width:44px;height:44px;padding:0;border:none;background:transparent;cursor:pointer;";
+      const ring = document.createElement("span");
+      ring.style.cssText =
+        "position:absolute;inset:6px;border-radius:9999px;background:#1b2a41;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);overflow:hidden;display:flex;align-items:center;justify-content:center;";
+      const img = document.createElement("img");
+      img.alt = "";
+      img.loading = "eager";
+      img.src = mediaLoader({ src: first.item.src, width: 96 });
+      img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+      // Camera dot when the photo will not load.
+      img.onerror = () => img.remove();
+      ring.append(img);
+      el.append(ring);
+      if (group.length > 1) {
+        const badge = document.createElement("span");
+        badge.textContent = String(group.length);
+        badge.style.cssText =
+          "position:absolute;top:0;right:0;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9999px;background:#1b2a41;color:#fff;border:1.5px solid #fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;";
+        el.append(badge);
+      }
+      el.onclick = () => onOpenPins?.(group.map((g) => g.pin));
+      made.push(new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([first.lng, first.lat]).addTo(map));
+    }
+    pinMarkers.set(map, made);
+
     for (const [day, mk] of markers) {
       if (!seen.has(day)) {
         mk.remove();
@@ -329,7 +397,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     ? places
     : [...(selectedPlace ? [selectedPlace] : []), ...activeLines.flatMap((l) => l.coords)];
   const box = boundsOf(fitPoints);
-  if (box) map.fitBounds(box, { padding, maxZoom: 15, duration: 400 });
+  if (box) map.fitBounds(box, { padding, maxZoom: 15, duration: reducedMotion() ? 0 : 400 });
 
   if (map.isStyleLoaded()) void draw();
   else map.once("load", () => void draw());

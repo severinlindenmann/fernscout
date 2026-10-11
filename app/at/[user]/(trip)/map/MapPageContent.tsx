@@ -457,6 +457,7 @@ export default function MapPageContent({
   // instances bound to that now-removed map — `streetMarkersRef` is cleared
   // on every ready too, or a later redraw would reuse one whose `setLngLat`
   // on the new map silently does nothing.
+  const pinLabel = t("map.photoPin");
   const streetMarkersRef = useRef<Map<number, MapLibreMarker>>(new Map());
   const [streetMapInstance, setStreetMapInstance] = useState<MapLibreMap | null>(null);
   const onStreetMapReady = useCallback((map: MapLibreMap) => {
@@ -479,6 +480,13 @@ export default function MapPageContent({
         regionPlaces: frameRegionPlaces,
         selectedDay: selectedDayNumber,
         accentHex: ACCENT_HEX[accent],
+        pins,
+        pinLabel,
+        unwrittenLines: unwritten?.lines,
+        onOpenPins: (group) => {
+          setPinIndex(0);
+          setOpenPins(group);
+        },
         onSelectDay: (day) => {
           const date = dateByDayNumber.get(day);
           if (date) toggleDay(date);
@@ -508,6 +516,9 @@ export default function MapPageContent({
     dateByDayNumber,
     toggleDay,
     sheetInset,
+    pins,
+    unwritten,
+    pinLabel,
   ]);
 
   return (
@@ -808,6 +819,26 @@ export default function MapPageContent({
             </p>
           )}
 
+      {unwritten && unwritten.dates.length > 0 && (
+        <aside className="absolute inset-x-3 top-3 z-10 max-h-[40%] overflow-auto rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-md backdrop-blur lg:right-auto lg:max-w-sm text-sm text-ink-body">
+          <p className="font-display font-semibold text-ink-strong">
+            {tn("map.unwritten", unwritten.dates.length, { n: String(unwritten.dates.length) })}
+          </p>
+          <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+            {unwritten.dates.map((date) => (
+              <li key={date}>
+                <a
+                  href={`${userHref("/studio/day/new")}?trip=${encodeURIComponent(tripId)}&date=${date}`}
+                  className="underline decoration-line-quiet underline-offset-2"
+                >
+                  {formatShortDate(date)} · {t("map.unwritten.write")}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
+
           {/* "Legend shows only what is drawn" — the street map's own line
               vocabulary only; see `linesShown`'s own doc for why. */}
           {streetMap && hasPlaces && lineKindsShown.size > 0 && (
@@ -830,26 +861,6 @@ export default function MapPageContent({
           basemap={basemap}
           streetMapUrl={streetMap?.url ?? null}
         />
-      )}
-
-      {unwritten && unwritten.dates.length > 0 && (
-        <aside className="mx-4 my-3 rounded-xl border border-line-quiet bg-surface-raised p-3 text-sm text-ink-body">
-          <p className="font-display font-semibold text-ink-strong">
-            {tn("map.unwritten", unwritten.dates.length, { n: String(unwritten.dates.length) })}
-          </p>
-          <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-            {unwritten.dates.map((date) => (
-              <li key={date}>
-                <a
-                  href={`${userHref("/studio/day/new")}?trip=${encodeURIComponent(tripId)}&date=${date}`}
-                  className="underline decoration-line-quiet underline-offset-2"
-                >
-                  {formatShortDate(date)} · {t("map.unwritten.write")}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </aside>
       )}
 
       <Lightbox
