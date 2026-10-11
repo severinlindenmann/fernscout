@@ -67,3 +67,16 @@ export function parseWidth(value: string | null): number | null {
   if (!Number.isFinite(asked) || asked <= 0) return null;
   return nearestWidth(Math.round(asked));
 }
+
+/** The `sizes` of the full-screen photograph: the frame is 896px at the widest, the viewport below that. */
+export const VIEWER_SIZES = "(max-width: 896px) 100vw, 896px";
+
+/** Whether this source is one our own media route can resize. */
+export function isResizable(src: string): boolean {
+  return !/^https?:/.test(src) && !src.endsWith(".svg");
+}
+
+/** The `srcset` the full-screen photograph draws, and the preload warms: one source of truth so they cannot drift. */
+export function viewerSrcSet(src: string): string {
+  return MEDIA_WIDTHS.map((w) => `${src}?w=${w} ${w}w`).join(", ");
+}

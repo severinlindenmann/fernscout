@@ -151,6 +151,7 @@ export default function Gallery({
       <Lightbox
         index={openIndex}
         count={items.length}
+        items={items}
         onClose={close}
         onPrev={prev}
         onNext={next}

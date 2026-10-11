@@ -7,6 +7,10 @@ import { useI18n } from "./LocaleProvider";
 import { useLightbox } from "./useLightbox";
 import { useOverlayHistory } from "@/lib/useOverlayHistory";
 import { swipeIntent } from "./swipe";
+import { useViewerPreload } from "@/components/map/usePreload";
+import type { GalleryItem } from "@/lib/types";
+
+const NONE: readonly GalleryItem[] = [];
 
 /**
  * One photograph, full screen — the viewer behind both galleries.
@@ -44,6 +48,7 @@ export default function Lightbox({
   onNext,
   swipeable = true,
   extra,
+  items,
   children,
 }: {
   /** Which photograph is open, or `null` for closed. */
@@ -65,11 +70,14 @@ export default function Lightbox({
    * (`GalleryGrid`, and anybody reading rather than owning).
    */
   extra?: ReactNode;
+  /** The sequence, when the caller has one: the next and previous frame are fetched ahead of a swipe. */
+  items?: readonly GalleryItem[];
   /** The picture, and whatever is printed beneath it. */
   children: ReactNode;
 }) {
   const { t } = useI18n();
   const onClose = useOverlayHistory(index !== null, onCloseProp);
+  useViewerPreload(items ?? NONE, index);
   const dialog = useLightbox({ open: index !== null, onClose, onPrev, onNext });
 
   // One photograph is not a sequence: there is nowhere for an arrow to go and
