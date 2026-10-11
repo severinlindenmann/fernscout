@@ -408,6 +408,23 @@ describe("MobileMapSheet", () => {
       expect(readButton).toBeTruthy();
       act(() => readButton.click());
       expect(el.querySelector('section[aria-labelledby]')).not.toBeNull();
+
+      // Escape unwinds one level: the reader closes to the day card, the selection stays and the key is claimed.
+      const esc = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+      act(() => {
+        window.dispatchEvent(esc);
+      });
+      expect(esc.defaultPrevented).toBe(true);
+      expect(el.querySelector('section[aria-labelledby]')).toBeNull();
+      expect(el.textContent).toContain("Read the day");
+
+      // The reader's X does the same, and never deselects.
+      act(() =>
+        Array.from(el.querySelectorAll("button")).find((b) => b.textContent?.includes("Read the day"))!.click(),
+      );
+      act(() => el.querySelector<HTMLButtonElement>('section[aria-labelledby] button')!.click());
+      expect(el.querySelector('section[aria-labelledby]')).toBeNull();
+      expect(el.textContent).toContain("Read the day");
     });
   });
 

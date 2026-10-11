@@ -96,6 +96,9 @@ export default function DayComments({
       )}
 
       {canExpand && (
+        <p className="mt-1 text-sm text-ink-secondary">{t("comments.latest", { shown: String(win.shown), total: String(state.total) })}</p>
+      )}
+      {canExpand && (
         <button type="button" onClick={showAll} className={`mt-1 text-sm font-semibold text-ink-body ${LINK}`}>
           {t("comments.showAll", { count: String(state.total) })}
         </button>

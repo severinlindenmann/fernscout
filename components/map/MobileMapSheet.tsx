@@ -83,7 +83,6 @@ export default function MobileMapSheet({
   onInsetChange,
   onPlay,
   transportLine,
-  onDeselect,
   kmByDate,
   tripCost,
 }: {
@@ -110,8 +109,6 @@ export default function MobileMapSheet({
   onInsetChange?: (px: number) => void;
   /** How a day travelled, said with its source ("Train (from the day)"). */
   transportLine?: (date: string) => string | undefined;
-  /** Back to the whole trip: closing the reader goes here, not to the half card. */
-  onDeselect?: () => void;
   /** Kilometres actually recorded on each date, for the facts row. */
   kmByDate?: ReadonlyMap<string, number>;
   /** The trip's total spend (base currency), for the reader, when costs may be seen. */
@@ -225,14 +222,22 @@ export default function MobileMapSheet({
 
   // Escape always goes to peek, wherever focus is inside the sheet — the
   // same convention `MobileDaySheet` uses for its own Escape-to-close.
+  // One level at a time: an open reader closes back to the day card first
+  // (and claims the key so the page keeps the selection); the photo viewer
+  // has already claimed its own Escape.
   useEffect(() => {
     if (snap === PEEK) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSnap(PEEK);
+      if (e.key !== "Escape") return;
+      if (reading) {
+        e.preventDefault();
+        setReading(false);
+        setSnap(HALF);
+      } else setSnap(PEEK);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [snap]);
+  }, [snap, reading]);
 
   // A tap cycles snaps the same as Enter/Space; a drag settles through
   // `useSnapDrag` instead, and must not also fire this — a mouse drag (never
@@ -515,29 +520,34 @@ export default function MobileMapSheet({
                   {readCounts && <span className="font-semibold">· {readCounts}</span>}
                   <BookOpen className="h-4 w-4" aria-hidden />
                 </button>
-                {onPlay && (
-                  // Starts the show at this day rather than the first.
-                  <button
-                    type="button"
-                    onClick={() => onPlay(selectedDay.date)}
-                    className={MAPS_BUTTON + " col-span-2 whitespace-nowrap"}
-                  >
-                    <Clapperboard className="h-4 w-4" aria-hidden />
-                    {t("show.start")}
-                  </button>
+                {(onPlay || selectedPlace) && (
+                  // One row: Slideshow (starts at this day rather than the first) and a small Google Maps link,
+                  // so the half snap never needs a third line for the secondary link.
+                  <div className="col-span-2 flex items-center gap-2">
+                    {onPlay && (
+                      <button
+                        type="button"
+                        onClick={() => onPlay(selectedDay.date)}
+                        className={MAPS_BUTTON + " whitespace-nowrap"}
+                      >
+                        <Clapperboard className="h-4 w-4" aria-hidden />
+                        {t("show.start")}
+                      </button>
+                    )}
+                    {selectedPlace && (
+                      <a
+                        href={googleMapsHref(selectedPlace)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex min-h-11 shrink-0 items-center gap-1 px-1 text-xs font-semibold text-ink-secondary underline decoration-line-quiet underline-offset-2"
+                      >
+                        <MapPin className="h-3.5 w-3.5" aria-hidden />
+                        {t("map.googleMapsShort")}
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
-              {selectedPlace && (
-                <a
-                  href={googleMapsHref(selectedPlace)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-8 items-center gap-1 self-start text-xs font-semibold text-ink-secondary underline decoration-line-quiet underline-offset-2"
-                >
-                  <MapPin className="h-3.5 w-3.5" aria-hidden />
-                  {t("map.googleMapsShort")}
-                </a>
-              )}
             </motion.div>
           )}
 
@@ -552,7 +562,10 @@ export default function MobileMapSheet({
               reduced={Boolean(reducedMotion)}
               onPrev={prevDate ? () => onSelectDate(prevDate) : undefined}
               onNext={nextDate ? () => onSelectDate(nextDate) : undefined}
-              onClose={() => (onDeselect ? onDeselect() : setSnap(HALF))}
+              onClose={() => {
+                setReading(false);
+                setSnap(HALF);
+              }}
               km={kmByDate?.get(selectedDay.date)}
               tripCost={tripCost}
               className="h-full"

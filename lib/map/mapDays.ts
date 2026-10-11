@@ -6,7 +6,7 @@ import { isHomePlace } from "@/lib/gps/enrich";
 import { parseTripRef } from "@/lib/trips";
 import { defaultLocaleFor, translateIn } from "@/lib/locales";
 import { townNameFor } from "./townName";
-import { costForDay, costLocalForDay } from "../costs";
+import { costForDay, costLocalForDay, costMixForDay } from "../costs";
 import type { DayWeather } from "../weather";
 
 /**
@@ -51,6 +51,10 @@ export type MapDay = {
   /** B-2980: the day's spend in the base currency, and in the currency paid when it is one — only for a viewer who may see costs. */
   cost?: number;
   costLocal?: { amount: number; currency: string };
+  /** The day paid in more than one currency, so `cost` is a conversion. */
+  costMixed?: boolean;
+  /** Spend with no rate, as paid: left out of `cost`, never folded into it. */
+  costUnconverted?: { amount: number; currency: string }[];
 };
 
 export function getMapDays(
@@ -106,7 +110,12 @@ export function getMapDays(
   });
 }
 
-function dayCost(ref: string, entries: Parameters<typeof costForDay>[1]): { cost?: number; costLocal?: { amount: number; currency: string } } {
+function dayCost(ref: string, entries: Parameters<typeof costForDay>[1]) {
   const cost = costForDay(ref, entries);
-  return cost > 0 ? { cost, costLocal: costLocalForDay(ref, entries) } : {};
+  const mix = costMixForDay(ref, entries);
+  return {
+    ...(cost > 0 ? { cost, costLocal: costLocalForDay(ref, entries) } : {}),
+    ...(mix?.mixed ? { costMixed: true } : {}),
+    ...(mix?.unconverted.length ? { costUnconverted: mix.unconverted } : {}),
+  };
 }

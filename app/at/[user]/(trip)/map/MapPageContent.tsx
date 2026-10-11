@@ -443,15 +443,18 @@ export default function MapPageContent({
     selectDay(date === selectedDate ? null : date);
   }, [selectDay, selectedDate]);
 
-  // Escape goes back to the whole trip (anything inside that used the key has already claimed it).
+  // Escape unwinds one level: an open reader closes to the day card, and only then does the day deselect
+  // (anything inside that used the key — the photo viewer, the phone sheet's reader — has already claimed it).
   useEffect(() => {
     if (selectedDate === null) return;
     const onKey = (e: KeyboardEvent) => {
-      if (escapeDeselects(selectedDate, e.key, e.defaultPrevented)) selectDay(null);
+      if (!escapeDeselects(selectedDate, e.key, e.defaultPrevented)) return;
+      if (readingDesktop) setReadingDesktop(false);
+      else selectDay(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedDate, selectDay]);
+  }, [selectedDate, selectDay, readingDesktop]);
 
   // Warm the selected day's story, its neighbours' and the first photographs, so "Read the day" opens at once.
   const galleryOf = (i: number) =>
@@ -1113,7 +1116,6 @@ export default function MapPageContent({
         selectedDate={selectedDate}
         onSelectDate={toggleDay}
         onInsetChange={setSheetInset}
-        onDeselect={() => selectDay(null)}
         kmByDate={kmByDate}
         tripCost={tripCost}
         transportLine={transportLine}

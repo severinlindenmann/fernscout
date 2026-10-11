@@ -4,7 +4,7 @@ import { Camera, FileText, Route, Wallet } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { useOptionalMoney } from "@/components/CurrencyProvider";
-import { budgetFact, formatKm, weatherFact, type WeatherFact } from "@/lib/map/dayFacts";
+import { budgetFact, daySpend, formatKm, weatherFact, type WeatherFact } from "@/lib/map/dayFacts";
 import type { MapDay } from "@/lib/map/mapDays";
 import type { DayWeather } from "@/lib/weather";
 
@@ -57,7 +57,13 @@ export default function DayFacts({
   const money = useOptionalMoney();
   const weather = useWeatherText(day.weather);
   const budget = money ? budgetFact(day.cost, tripCost, (n) => money.money(n)) : null;
-  const dayPaid = money && day.cost ? money.spendParts(day.cost, day.costLocal).paid : undefined;
+  const spend =
+    money &&
+    daySpend(day, {
+      money: (n) => money.money(n),
+      original: money.original,
+      single: day.cost ? money.spendParts(day.cost, day.costLocal).paid : undefined,
+    });
   const distance = km !== undefined ? formatKm(km) : null;
 
   return (
@@ -85,13 +91,15 @@ export default function DayFacts({
           <span aria-hidden>{weather.chip}</span>
         </li>
       )}
-      {budget && (
+      {(budget || spend) && (
         <li className={CHIP} title={t("cost.today")}>
           <Wallet className="h-3 w-3" aria-hidden />
-          {dayPaid ?? budget.day}
-          {budget.trip && budget.day ? ` · ${t("cost.total")} ${budget.trip}` : budget.trip && !budget.day ? `${t("cost.total")} ${budget.trip}` : ""}
+          {spend?.text}
+          {spend?.converted && <span className="text-[10px] text-ink-secondary">{t("cost.convertedMark")}</span>}
+          {budget?.trip && (spend || budget.day) ? ` · ${t("cost.total")} ${budget.trip}` : budget?.trip ? `${t("cost.total")} ${budget.trip}` : ""}
         </li>
       )}
+
     </ul>
   );
 }

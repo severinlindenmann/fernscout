@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { budgetFact, formatKm, kmByDate, recordedKm, weatherFact } from "@/lib/map/dayFacts";
+import { budgetFact, daySpend, formatKm, kmByDate, recordedKm, weatherFact } from "@/lib/map/dayFacts";
 
 describe("day facts (B-2980)", () => {
   it("sums only recorded runs and says nothing for none", () => {
@@ -35,5 +35,28 @@ describe("day facts (B-2980)", () => {
     ]);
     expect([...m.keys()]).toEqual(["2026-08-01"]);
     expect(m.get("2026-08-01")).toBeGreaterThan(20);
+  });
+});
+
+describe("day spend with mixed currencies (B-2980)", () => {
+  const fmt = {
+    money: (n: number) => `CHF ${n}`,
+    original: (a: number, c: string) => `${c} ${a}`,
+    single: "THB 450",
+  };
+  it("shows a single-currency day as it was paid", () => {
+    expect(daySpend({ cost: 12 }, fmt)).toEqual({ text: "THB 450", converted: false });
+  });
+  it("marks a mixed-currency total as converted, never as one currency", () => {
+    expect(daySpend({ cost: 60, costMixed: true }, fmt)).toEqual({ text: "≈ CHF 60", converted: true });
+    expect(daySpend({ cost: 60, costMixed: true }, { ...fmt, money: (n) => `≈ CHF ${n}` })?.text).toBe("≈ CHF 60");
+  });
+  it("lists spend without a rate as paid, beside the total or alone", () => {
+    const u = [{ currency: "XYZ", amount: 80 }];
+    expect(daySpend({ cost: 60, costMixed: true, costUnconverted: u }, fmt)).toEqual({ text: "≈ CHF 60 + XYZ 80", converted: true });
+    expect(daySpend({ costUnconverted: u }, fmt)).toEqual({ text: "XYZ 80", converted: false });
+  });
+  it("is null with no figure", () => {
+    expect(daySpend({}, fmt)).toBeNull();
   });
 });

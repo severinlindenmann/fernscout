@@ -490,6 +490,22 @@ export function costForDay(tripId: string, entries: Entry[]): number {
 }
 
 /**
+ * How a day's spend is not one plain number: it mixes currencies (so the base total is a conversion),
+ * and/or some of it has no rate (so the total leaves it out). Undefined for a day in a single, convertible
+ * currency. B-2980: the map's budget chip must say so rather than show a mixed sum as one currency.
+ */
+export function costMixForDay(
+  tripId: string,
+  entries: Entry[],
+): { mixed: boolean; unconverted: { currency: string; amount: number }[] } | undefined {
+  const raw = entries.flatMap((e) => e.costs);
+  const { base, rates } = conversionFor(tripId);
+  const mixed = new Set(raw.map((c) => c.currency)).size > 1;
+  const unconverted = unconvertedIn(convertCosts(raw.map((i) => ({ ...i, category: i.category as CostCategory })), base, rates)).map(({ currency, amount }) => ({ currency, amount }));
+  return mixed || unconverted.length > 0 ? { mixed, unconverted } : undefined;
+}
+
+/**
  * What a day cost in the currency it was actually paid in — B544.
  *
  * Only when every cost logged that day shares one currency, and it is not

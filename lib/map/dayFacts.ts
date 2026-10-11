@@ -1,6 +1,7 @@
 import { haversineKm } from "./dayTransition";
 import { SOURCE_CREDIT, temperature, weatherGroup, type DayWeather, type WeatherGroup } from "../weather";
 import type { Units } from "../units";
+import type { MapDay } from "./mapDays";
 
 /**
  * B-2980 — the small facts a day card states before it is read: counts, the
@@ -75,4 +76,20 @@ export function kmByDate(tracks: readonly { date?: string; points: [number, numb
   const out = new Map<string, number>();
   for (const tr of tracks) if (tr.date) out.set(tr.date, (out.get(tr.date) ?? 0) + recordedKm([tr.points]));
   return out;
+}
+
+/**
+ * The day's spend as chip text. A day in one currency is `single` as it was; a day that mixed currencies
+ * is the converted total marked "≈" and `converted`, and spend with no rate is listed as paid beside it
+ * (or alone) — never added into a total. Null when there is no figure at all.
+ */
+export function daySpend(
+  day: Pick<MapDay, "cost" | "costMixed" | "costUnconverted">,
+  fmt: { money: (n: number) => string; original: (amount: number, currency: string) => string; single?: string },
+): { text: string; converted: boolean } | null {
+  const rest = (day.costUnconverted ?? []).map((u) => fmt.original(u.amount, u.currency));
+  const total = day.cost !== undefined && day.cost > 0 ? day.cost : undefined;
+  const base = total === undefined ? undefined : day.costMixed ? `≈ ${fmt.money(total).replace(/^≈\s*/, "")}` : (fmt.single ?? fmt.money(total));
+  const text = [base, ...rest].filter(Boolean).join(" + ");
+  return text ? { text, converted: Boolean(day.costMixed && base) } : null;
 }
