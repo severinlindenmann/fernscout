@@ -293,7 +293,9 @@ export default function MapPageContent({
     })[mode];
   // "Mode (recorded)" or "Mode (from the day)": never claim a recording that was not one.
   const legLabel = (mode: TransportMode, source: "recorded" | "day"): string =>
-    t(source === "recorded" ? "map.leg.recorded" : "map.leg.fromDay", { mode: modeLabel(mode) });
+    source === "recorded"
+      ? t("map.leg.recorded", { mode: modeLabel(mode) })
+      : t("map.leg.fromDay", { mode: modeLabel(mode) });
   const legLabelRef = useRef(legLabel);
   useEffect(() => {
     legLabelRef.current = legLabel;
