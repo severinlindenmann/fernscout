@@ -1,6 +1,9 @@
 "use client";
 
 import PageHeader from "@/components/PageHeader";
+import Lightbox from "@/components/Lightbox";
+import FullPhoto from "@/components/FullPhoto";
+import type { PhotoPin } from "@/lib/map/photoPins";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
 import StreetMap from "@/components/map/StreetMap";
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
@@ -110,7 +113,13 @@ export default function MapPageContent({
   hasDays = false,
   streetMap = null,
   streetMapRegions = null,
+  pins = [],
+  unwritten,
 }: {
+  /** B-2980 — photographs at their own measured position (SVG map only). */
+  pins?: PhotoPin[];
+  /** B-2980 — owner only: recorded days that have no day yet, and their lines. */
+  unwritten?: { dates: string[]; lines: [number, number][][] };
   places: PlaceView[];
   /** Every published day this reader may see, in order — B2537, including a
    * day with no place at all (greyed in the day list/strip). Defaults to
@@ -173,6 +182,8 @@ export default function MapPageContent({
   // current trip, `/example/trips/<id>/day/…` for any other.
   const trip = useTrip()?.trip;
   const href = useTrip()?.href ?? ((p: string) => p);
+  const userHref = useTrip()?.userHref ?? ((p: string) => p);
+  const tripId = trip?.id ?? "";
   // The trip's own colour on its own route (B2422) — undeclared reads as
   // no-preference (`tripAccent`, lib/trips.ts), so this map falls back to
   // navy the same way `WorldMap` itself does for a caller with no trip.
@@ -194,9 +205,12 @@ export default function MapPageContent({
   const track = useMemo(() => trackByDay.map((s) => s.points), [trackByDay]);
   // B-2980: no place to frame on, but a recorded route — frame on the route.
   const routePoints = useMemo(
-    () => (places.length === 0 ? track.flat().map(([lat, lng]) => ({ lat, lng })) : []),
-    [places.length, track],
+    () => (places.length === 0 ? [...track, ...(unwritten?.lines ?? [])].flat().map(([lat, lng]) => ({ lat, lng })) : []),
+    [places.length, track, unwritten],
   );
+  const [openPins, setOpenPins] = useState<PhotoPin[] | null>(null);
+  const [pinIndex, setPinIndex] = useState(0);
+  const openPin = openPins?.[pinIndex];
 
   // The trip's own calendar-day number for every place — B2534/B2537. A
   // place's own `key` is `${location}-${firstDate}` (`getPlaces`,
@@ -764,7 +778,7 @@ export default function MapPageContent({
               globe
               className="h-full w-full"
             />
-          ) : hasPlaces || plan.length > 0 || track.length > 0 ? (
+          ) : hasPlaces || plan.length > 0 || track.length > 0 || routePoints.length > 0 ? (
             <WorldMap
               places={regionPlaces}
               plan={plan}
@@ -781,6 +795,12 @@ export default function MapPageContent({
               showTimeScrubber={false}
               dayNumbers={dayNumbers}
               frameHint={routePoints}
+              pins={pins}
+              mutedTrack={unwritten?.lines}
+              onOpenPins={(group) => {
+                setPinIndex(0);
+                setOpenPins(group);
+              }}
             />
           ) : (
             <p className="flex h-full items-center justify-center p-6 text-center text-ink-secondary">
@@ -811,6 +831,43 @@ export default function MapPageContent({
           streetMapUrl={streetMap?.url ?? null}
         />
       )}
+
+      {unwritten && unwritten.dates.length > 0 && (
+        <aside className="mx-4 my-3 rounded-xl border border-line-quiet bg-surface-raised p-3 text-sm text-ink-body">
+          <p className="font-display font-semibold text-ink-strong">
+            {tn("map.unwritten", unwritten.dates.length, { n: String(unwritten.dates.length) })}
+          </p>
+          <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+            {unwritten.dates.map((date) => (
+              <li key={date}>
+                <a
+                  href={`${userHref("/studio/day/new")}?trip=${encodeURIComponent(tripId)}&date=${date}`}
+                  className="underline decoration-line-quiet underline-offset-2"
+                >
+                  {formatShortDate(date)} · {t("map.unwritten.write")}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
+
+      <Lightbox
+        index={openPins ? pinIndex : null}
+        count={openPins?.length ?? 0}
+        onClose={() => setOpenPins(null)}
+        onPrev={() => setPinIndex((i) => (i - 1 + (openPins?.length ?? 1)) % (openPins?.length ?? 1))}
+        onNext={() => setPinIndex((i) => (i + 1) % (openPins?.length ?? 1))}
+      >
+        {openPin && (
+          <>
+            <FullPhoto item={openPin.item} />
+            {openPin.item.caption && (
+              <p className="mt-3 text-center font-display text-sm italic text-overlay-ink/85">{openPin.item.caption}</p>
+            )}
+          </>
+        )}
+      </Lightbox>
 
       <MobileMapSheet
         days={days}

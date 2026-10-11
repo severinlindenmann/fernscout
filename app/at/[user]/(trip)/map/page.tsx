@@ -11,6 +11,8 @@ import { primaryStreetMap, streetMapRegionFiles } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getMapDays } from "@/lib/map/mapDays";
+import { dayAnchors, unwrittenRecordedDays } from "@/lib/map/routeAnchors";
+import { getPhotoPins } from "@/lib/map/photoPins";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
@@ -153,12 +155,23 @@ async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; o
   // block below has to agree with both, or its counts contradict the markers
   // on the same map.
   const stats = getTripStats(tripId, read);
-  const places = getPlaces(tripId, read);
   // Whether there is a day written at all, as distinct from whether any of
   // them carries coordinates — B1289. `places` answers neither question on
   // its own: a published day with no `location:` never appears in it, so
   // "no places" used to read as "no days written" even when one was there.
   const days = getDays(tripId, read);
+  const visibleDates = new Set(days.map((d) => d.date));
+  const live = await mayReadLiveTrack(trip);
+  const trackByDay =
+    readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
+      date: s.day,
+      points: s.points,
+    })) ?? [];
+  // B-2980: a day with no position of its own is placed from its recorded route.
+  const anchors = dayAnchors(days, trackByDay);
+  const places = getPlaces(tripId, read, anchors);
+  const pins = getPhotoPins(tripId, read, trackByDay);
+  const unwritten = owner ? unwrittenRecordedDays(trip.username, trip.id, visibleDates) : undefined;
   // The trip hero's own tense (`isOver`, lib/tripTime.ts) — B1289. A finished
   // trip whose only day has no coordinates used to stay in the planned tense
   // forever, because `places` was empty and nothing else was asked.
@@ -193,21 +206,14 @@ async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; o
   // covers every trip date regardless of publish state — `readerTrack` is what
   // actually keeps a draft day's or too-recent fix's segment off this page,
   // filtered to the exact dates `days` above already resolved for this reader.
-  const visibleDates = new Set(days.map((d) => d.date));
   // B2536 — whether this viewer's own request may see the last 24h at all.
   // The owner always does; a named guest does unless the trip's own
   // `guestsLive` says 24h late; a public reader never does. Computed once
   // and threaded through, never re-derived per marker.
-  const live = await mayReadLiveTrack(trip);
   // B2537: each run carries the calendar day its own local-midnight window
   // belongs to (`TrackSegment.day`), threaded through so the map page can
   // draw the real recorded/gap line grammar and fit a selected day's own
   // line — see `recordedSegmentsFor` in `MapPageContent`.
-  const trackByDay =
-    readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
-      date: s.day,
-      points: s.points,
-    })) ?? [];
   // B2536 — the badge/dot copy, from the same filtered answer `readerTrack`
   // just drew from: only when a tail segment actually survived for this
   // reader's own visible dates, and only when the tail is still under 24h
@@ -217,7 +223,9 @@ async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; o
   return (
     <MapPageContent
       places={places}
-      days={getMapDays(tripId, read)}
+      days={getMapDays(tripId, read, anchors)}
+      pins={pins}
+      unwritten={unwritten}
       plan={plan.stops}
       trackByDay={trackByDay}
       liveTail={liveTail}

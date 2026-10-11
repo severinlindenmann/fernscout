@@ -44,7 +44,11 @@ export type MapDay = {
   hidden?: boolean;
 };
 
-export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
+export function getMapDays(
+  ref: string,
+  options?: ReadOptions,
+  anchors?: ReadonlyMap<string, { lat: number; lng: number; name: string }>,
+): MapDay[] {
   // B2544 — same rule `getPlaces` (`lib/entries.ts`) applies: a day's own
   // typed `coordinates` is never a recorded fix, so it never went through
   // `deriveTrack`'s own hidden-spot cut. The owner's own studio
@@ -54,7 +58,9 @@ export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
   // B2543 — resolved once per trip, not per day; see `getPlaces`'s own note.
   const homeLabel = checkHidden ? translateIn(defaultLocaleFor(owner.username), "map.homePlace") : "";
   return getDays(ref, options).map((day) => {
-    const lead = placeEntry(day);
+    const placed = placeEntry(day);
+    const anchor = Number.isFinite(placed.lat) && Number.isFinite(placed.lng) ? undefined : anchors?.get(day.date);
+    const lead = anchor ? { ...placed, lat: anchor.lat, lng: anchor.lng, location: anchor.name || placed.location } : placed;
     const hidden = checkHidden && isPlottable(lead) && isHiddenPlace(owner.username, owner.tripId, { lat: lead.lat, lon: lead.lng });
     const home =
       checkHidden && !hidden && isPlottable(lead) && isHomePlace(owner.username, { lat: lead.lat, lon: lead.lng });
