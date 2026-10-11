@@ -1498,6 +1498,7 @@ export type TranslationKey =
   | "map.unwritten.one"
   | "map.unwritten.write"
   | "map.wholeTrip"
+  | "map.worldOnlyHint"
   | "map.zoomIn"
   | "map.zoomOut"
   | "mapCard.days"

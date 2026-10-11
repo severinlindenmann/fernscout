@@ -112,6 +112,13 @@ export function withDeclaredLegs(
   // leg that got there), never onto every run of a day of walks (B-2980).
   const given = new Set<number>();
   const out: MapLine[] = lines.map((l) => {
+    // A flight arc is geometry; it is said to be a flight only by a plane in
+    // the recording around it, or by the arrival day's own entry — else no chip.
+    if (l.kind === "flight" && !l.mode) {
+      if (lines.some((o) => o.kind === "recorded" && o.mode === "flight" && (o.toDay === l.fromDay || o.toDay === l.toDay)))
+        return { ...l, mode: "flight" as const, modeSource: "recorded" as const };
+      return declared.get(l.toDay) === "flight" ? { ...l, mode: "flight" as const, modeSource: "day" as const } : l;
+    }
     if (l.kind !== "recorded" || l.mode || !declared.has(l.toDay) || given.has(l.toDay)) return l;
     // A join or flight already carries the way into that day.
     if (lines.some((o) => (o.kind === "flight" || o.kind === "photo-join") && o.toDay === l.toDay)) return l;

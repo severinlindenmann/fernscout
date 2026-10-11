@@ -8,7 +8,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Bike, Bus, Car, Footprints, Plane, Ship, TrainFront, TramFront } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
-import { haversineKm, planCamera } from "./dayTransition";
+import { haversineKm, planCamera, REGION_FLIGHT_KM, viewTravels } from "./dayTransition";
+import type { Point } from "../mapFrame";
 
 /**
  * Draws a trip onto a live `StreetMap` (B2535) using B2534's own rules — the
@@ -91,7 +92,7 @@ function fit(map: MapLibreMap, box: Box, padding: Padding, extra: Record<string,
  * Reduced motion jumps. `fitBounds` adds the map's own bottom padding (the
  * phone sheet), so the settled frame clears the sheet exactly as before.
  */
-function travel(map: MapLibreMap, from: MapPlace, to: MapPlace, box: Box, padding: Padding, flight: boolean) {
+function travel(map: MapLibreMap, from: Point, to: Point, box: Box, padding: Padding, flight: boolean) {
   const plan = planCamera({ km: haversineKm(from, to), flight, reduced: reducedMotion() });
   if (plan.kind !== "jump") travelUntil.set(map, performance.now() + plan.duration);
   if (plan.kind === "jump") {
@@ -114,6 +115,17 @@ function travel(map: MapLibreMap, from: MapPlace, to: MapPlace, box: Box, paddin
     if (e.originalEvent || moveToken.get(map) !== token) return;
     fit(map, box, padding, { duration: plan.duration * 0.55, linear: true, easing: easeOut });
   });
+}
+
+/** Where the camera last rested, so a region's own file (a new map) can fly on from there. */
+let lastCamera: { center: [number, number]; zoom: number; at: number } | null = null;
+const initialised = new WeakSet<MapLibreMap>();
+const views = new WeakMap<MapLibreMap, string>();
+function rememberCamera(map: MapLibreMap) {
+  try {
+    const c = map.getCenter();
+    lastCamera = { center: [c.lng, c.lat], zoom: map.getZoom(), at: performance.now() };
+  } catch {}
 }
 
 /** Photo pin markers per map, rebuilt on each draw (they regroup with zoom). */
@@ -156,6 +168,8 @@ export type StreetOverlayOptions = {
   selectedDay: number | null;
   accentHex: string;
   onSelectDay: (day: number) => void;
+  /** B-2980: the whole trip is shown (the "Whole trip" chip), flights and all, like a tour. */
+  whole?: boolean;
   /** B-2980 — photographs at their own position, and what a tap opens. */
   pins?: readonly PhotoPin[];
   onOpenPins?: (group: PhotoPin[]) => void;
@@ -301,7 +315,7 @@ function boundsOf(points: readonly { lat: number; lng: number }[]): [[number, nu
 }
 
 export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions, markers: Map<number, MapLibreMarker>) {
-  const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], onOpenPins, pinLabel = "", unwrittenLines = [], legLabel } = opts;
+  const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], whole = false, onOpenPins, pinLabel = "", unwrittenLines = [], legLabel } = opts;
 
   // The caller's own resolved list — see `StreetOverlayOptions.regionPlaces`'s
   // own doc for why this isn't re-derived from `regionDayNumbers` here.
@@ -311,7 +325,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
   // other region, so the caller — which already knows which region is
   // showing — hands over that region's own places directly (B2560).
   const places = regionPlaces;
-  const linesInRegion = linesForRegion(frame.lines, regionDayNumbers, frame.isTour);
+  const linesInRegion = linesForRegion(frame.lines, regionDayNumbers, frame.isTour || whole);
   const activeLines = selectedDay
     ? linesInRegion.filter((l) => l.kind !== "flight" && (l.fromDay === selectedDay || l.toDay === selectedDay))
     : linesInRegion;
@@ -548,8 +562,9 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     // B-2980: one round chip per moded leg, midway along its longest piece.
     for (const m of chipMarkers.get(map) ?? []) m.remove();
     const candidates = activeLines.flatMap((line) => {
-      const mid = line.mode && !chipRedundant(line.mode) && (line.kind === "recorded" || line.kind === "photo-join") && screenLength(map, line.coords) > CHIP_MIN_LEG_PX
-        ? longestSegmentMid(line.coords)
+      const mid = line.mode && !chipRedundant(line.mode) && (line.kind === "recorded" || line.kind === "photo-join" || line.kind === "flight") && screenLength(map, line.coords) > CHIP_MIN_LEG_PX
+        // A flight's chip rides the middle of its arc, not its longest piece.
+        ? (line.kind === "flight" ? line.coords[line.coords.length >> 1] : longestSegmentMid(line.coords))
         : null;
       return mid ? [{ ...map.project([mid.lng, mid.lat]), data: { line, mid } }] : [];
     });
@@ -590,8 +605,26 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
   // other refit (first selection, deselecting, a padding change) frames in place.
   const previous = lastDay.get(map) ?? null;
   lastDay.set(map, selectedDay);
+  // B-2980: a region chip (a new file is a new map) or the whole-trip chip
+  // flies the camera from where it last rested instead of cutting.
+  const viewKey = `${whole ? "w" : "r"}|${places.map((p) => p.day).join(",")}`;
+  let prevView = views.get(map);
+  if (!initialised.has(map)) {
+    initialised.add(map);
+    map.on("moveend", () => rememberCamera(map));
+    map.on("remove", () => rememberCamera(map));
+    if (lastCamera && performance.now() - lastCamera.at < 3000) {
+      map.jumpTo({ center: lastCamera.center, zoom: lastCamera.zoom });
+      prevView = "remount";
+    }
+  }
+  views.set(map, viewKey);
   const fromPlace = previous !== null ? places.find((p) => p.day === previous) : undefined;
-  if (box && selectedPlace && fromPlace && selectedDay !== previous) {
+  if (box && viewTravels(prevView, viewKey, selectedDay)) {
+    const c = map.getCenter();
+    const to = { lat: (box[0][1] + box[1][1]) / 2, lng: (box[0][0] + box[1][0]) / 2 };
+    travel(map, { lat: c.lat, lng: c.lng }, to, box, padding, haversineKm({ lat: c.lat, lng: c.lng }, to) > REGION_FLIGHT_KM);
+  } else if (box && selectedPlace && fromPlace && selectedDay !== previous) {
     const flight = frame.lines.some(
       (l) =>
         (l.kind === "flight" || l.mode === "flight") &&

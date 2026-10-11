@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adjacentDate, haversineKm, planCamera } from "@/lib/map/dayTransition";
+import { adjacentDate, haversineKm, planCamera, viewTravels } from "@/lib/map/dayTransition";
 
 describe("adjacentDate", () => {
   const dates = ["2026-05-01", "2026-05-02", "2026-05-04"];
@@ -41,5 +41,23 @@ describe("haversineKm", () => {
     const km = haversineKm({ lat: 47.3769, lng: 8.5417 }, { lat: 46.948, lng: 7.4474 });
     expect(km).toBeGreaterThan(85);
     expect(km).toBeLessThan(105);
+  });
+});
+
+describe("viewTravels (B-2980)", () => {
+  it("travels when the overview changes on a map that already had one, and no day is selected", () => {
+    expect(viewTravels("r|3,4", "r|1", null)).toBe(true);
+    expect(viewTravels("r|3,4", "w|1,3,4", null)).toBe(true);
+    expect(viewTravels("remount", "r|1", null)).toBe(true);
+  });
+  it("frames in place on the first view, an unchanged view, or with a day selected", () => {
+    expect(viewTravels(undefined, "r|1", null)).toBe(false);
+    expect(viewTravels("r|1", "r|1", null)).toBe(false);
+    expect(viewTravels("r|3,4", "r|1", 3)).toBe(false);
+  });
+  it("Zurich to Bangkok flies the high slow arc", () => {
+    const km = haversineKm({ lat: 47.37, lng: 8.54 }, { lat: 13.75, lng: 100.5 });
+    expect(planCamera({ km, flight: true, reduced: false })).toMatchObject({ kind: "flight", curve: 1.9 });
+    expect(planCamera({ km, flight: true, reduced: true })).toEqual({ kind: "jump" });
   });
 });

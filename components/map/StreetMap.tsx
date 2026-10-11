@@ -27,6 +27,10 @@ type StreetMapProps = {
   /** Draw on MapLibre's globe: a sphere zoomed out, the flat street map from
    * z12 (B2604, B2618). */
   globe?: boolean;
+  /** The file's own deepest zoom (B-2980): the map allows one level of overzoom
+   * past it and no more, so a file without street detail never shows a blurry
+   * empty map at street zoom. */
+  maxZoom?: number;
 };
 
 /** How long the OpenStreetMap credit shows as a pill before folding into the
@@ -62,7 +66,7 @@ function withProjection<S extends object>(style: S, globe: boolean): S {
  * operator hasn't downloaded the full set for.
  */
 const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap(
-  { bounds, pmtilesUrl, padding = 32, className, onReady, globe = false },
+  { bounds, pmtilesUrl, padding = 32, className, onReady, globe = false, maxZoom },
   ref,
 ) {
   const { locale, t } = useI18n();
@@ -96,6 +100,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
         style: withProjection(paperStyle(pmtilesUrl, currentScheme(), locale), globe),
         bounds,
         fitBoundsOptions: { padding },
+        ...(maxZoom !== undefined ? { maxZoom: maxZoom + 1 } : {}),
         attributionControl: false,
         // B2602: no 300 ms fade on every new tile, a cache big enough to pan
         // back without reloading, and parent tiles kept while zooming so the

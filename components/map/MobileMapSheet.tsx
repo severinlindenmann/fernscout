@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
@@ -50,14 +50,15 @@ const FULL_MAX_VH = 0.86;
  * content never sits behind the sheet at rest — keep the two in sync. */
 const PEEK_PX = 118;
 
+/** Window size without a hydration mismatch: the server snapshot is what the
+ * server rendered, React swaps in the real value right after hydrating. */
+function subscribeResize(onChange: () => void): () => void {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+
 function useViewportHeight(): number {
-  const [vh, setVh] = useState(() => (typeof window === "undefined" ? 800 : window.innerHeight));
-  useEffect(() => {
-    const onResize = () => setVh(window.innerHeight);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return vh;
+  return useSyncExternalStore(subscribeResize, () => window.innerHeight, () => 800);
 }
 
 /** Whether this sheet is actually on screen — the wrapping div is
@@ -68,15 +69,7 @@ function useViewportHeight(): number {
  * the reported inset lands on the sheet's own settled snap height rather
  * than tracking every frame of its open/close spring. */
 function useIsDesktop(): boolean {
-  const [desktop, setDesktop] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= 1024,
-  );
-  useEffect(() => {
-    const onResize = () => setDesktop(window.innerWidth >= 1024);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return desktop;
+  return useSyncExternalStore(subscribeResize, () => window.innerWidth >= 1024, () => false);
 }
 
 export default function MobileMapSheet({

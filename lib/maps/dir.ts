@@ -85,6 +85,27 @@ export function resolveFontFile(stack: string, range: string): string | null {
 /** One region's file and the bbox it covers, in `[minLon, minLat, maxLon, maxLat]`. */
 export type MapRegion = { file: string; bbox: [number, number, number, number] };
 
+/**
+ * The deepest zoom a PMTiles file really has, from its fixed 127-byte header
+ * (spec v3: byte 101) — read here so a map never zooms into overzoomed blur
+ * past what the file holds. `undefined` for an unreadable file.
+ */
+function fileMaxZoom(file: string): number | undefined {
+  const dir = mapsDir();
+  if (!dir) return undefined;
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(path.join(dir, file), "r");
+    const header = Buffer.alloc(127);
+    if (fs.readSync(fd, header, 0, 127, 0) < 127 || header.toString("latin1", 0, 7) !== "PMTiles") return undefined;
+    return header[101];
+  } catch {
+    return undefined;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
 /** Whether a point falls inside a region's own bbox — the "does this file
  * cover that place" test both `primaryStreetMap` and `streetMapRegionFiles`
  * callers need. */
@@ -171,7 +192,7 @@ function planetRegion(): MapRegion | undefined {
  * draws: the world file at street level when there is one, else the z0–6
  * underlay every street-map instance has. */
 export function worldStreetMapUrl(): string {
-  return mapsFileUrl(planetRegion()?.file ?? "world.pmtiles");
+  return mapsFileUrl(planetRegion()?.file ?? WORLD_FILE);
 }
 
 /** The URL `components/map/StreetMap.tsx` fetches a region file from. */
@@ -179,17 +200,52 @@ function mapsFileUrl(relFile: string): string {
   return `/api/maps/${relFile}`;
 }
 
-export type StreetMapFile = { url: string; bounds: [[number, number], [number, number]] };
+export type StreetMapFile = {
+  url: string;
+  bounds: [[number, number], [number, number]];
+  /** The file's own deepest zoom — the map never zooms past it (+1 of overzoom). */
+  maxZoom?: number;
+  /** B-2980: this is the z0–6 world file standing in for a trip with no extract of its own. */
+  world?: true;
+};
 
 function toStreetMapFile(region: MapRegion): StreetMapFile {
   const [minLon, minLat, maxLon, maxLat] = region.bbox;
-  return { url: mapsFileUrl(region.file), bounds: [[minLon, minLat], [maxLon, maxLat]] };
+  const maxZoom = fileMaxZoom(region.file);
+  return {
+    url: mapsFileUrl(region.file),
+    bounds: [[minLon, minLat], [maxLon, maxLat]],
+    ...(maxZoom !== undefined ? { maxZoom } : {}),
+    ...(region.file === WORLD_FILE ? { world: true as const } : {}),
+  };
+}
+
+const WORLD_FILE = "world.pmtiles";
+
+/**
+ * B-2980: the regions a street-map PAGE may draw — a trip's own, the planet
+ * file, and last the z0–6 world file, so with the capability on a trip with
+ * no extract still gets a vector map framed on its places, never the drawn
+ * SVG. (`tripMapRegions` itself stays without it: the trip card reads those
+ * files for a still and a z6 card would be blurry.) `undefined` only when
+ * there is no world file at all.
+ */
+function pageRegions(user: string, tripId: string): MapRegion[] | undefined {
+  const own = tripMapRegions(user, tripId) ?? [];
+  const dir = mapsDir();
+  const world: MapRegion[] =
+    dir && fs.existsSync(path.join(dir, WORLD_FILE))
+      ? [{ file: WORLD_FILE, bbox: [-180, -85.0511, 180, 85.0511] }]
+      : [];
+  const all = [...own, ...world];
+  return all.length > 0 ? all : undefined;
 }
 
 /**
  * This trip's primary region file, as the `StreetMap` prop the map pages
- * want — `undefined` whenever the SVG map should keep rendering instead (the
- * capability is off, or nothing has been extracted for this trip yet).
+ * want — with the capability on it is the trip's own extract, the planet file
+ * or (B-2980) the z0–6 world file: never the drawn SVG. `undefined` only when
+ * there is no world file at all.
  *
  * `mainRegionPoints` is the trip's own main-region day places (the same
  * points `tripFrame`'s region rule already picked, e.g. via `framePoints`) —
@@ -202,7 +258,7 @@ export function primaryStreetMap(
   tripId: string,
   mainRegionPoints: readonly { lat: number; lng: number }[] = [],
 ): StreetMapFile | undefined {
-  const regions = tripMapRegions(user, tripId);
+  const regions = pageRegions(user, tripId);
   if (!regions) return undefined;
   return toStreetMapFile(pickCoveringRegion(regions, mainRegionPoints));
 }
@@ -230,6 +286,6 @@ export function coveringRegion(
  * conditions as `tripMapRegions`.
  */
 export function streetMapRegionFiles(user: string, tripId: string): StreetMapFile[] | undefined {
-  const regions = tripMapRegions(user, tripId);
+  const regions = pageRegions(user, tripId);
   return regions?.map(toStreetMapFile);
 }

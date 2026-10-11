@@ -1269,6 +1269,8 @@
   "map.read.retry": "Próbáld újra",
   "map.googleMapsShort": "Google Maps",
   "map.regions": "Régiók",
+  "map.wholeTrip": "Teljes út",
+  "map.worldOnlyHint": "Több részlethez térképkivágás kell ehhez az úthoz",
   "map.reset": "Nézet visszaállítása",
   "map.sheet.peek": "Áttekintés",
   "map.stillToCome": "Még hátravan",

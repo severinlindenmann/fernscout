@@ -48,6 +48,8 @@ const street = vi.hoisted(() => ({
   getSource: vi.fn(() => ({ setData: vi.fn() })),
   getLayer: vi.fn(() => ({})),
   getZoom: vi.fn(() => 10),
+  getCenter: vi.fn(() => ({ lat: 0, lng: 0 })),
+  jumpTo: vi.fn(),
   isStyleLoaded: () => true,
   // Label-collision placement (B2560) projects each marker to a screen
   // point; a fixed, spread-out stub is enough that this test's own markers

@@ -40,3 +40,16 @@ export function planCamera(input: { km: number; flight: boolean; reduced: boolea
   // 700ms for a hop next door, up to 900ms for the longest short leg.
   return { kind: "hop", duration: Math.round(700 + (Math.min(input.km, FLIGHT_KM) / FLIGHT_KM) * 200) };
 }
+
+/**
+ * B-2980: whether the camera should travel (rather than frame in place) when
+ * the overview changes — a region chip, or the whole-trip chip. Only between
+ * two views of one map, only with no day selected (a day has its own travel).
+ * `prev` is undefined on a map's first frame.
+ */
+export function viewTravels(prev: string | undefined, next: string, selectedDay: number | null): boolean {
+  return selectedDay === null && prev !== undefined && prev !== next;
+}
+
+/** A region switch spans more than a region apart (300 km+), so it flies. */
+export const REGION_FLIGHT_KM = 300;

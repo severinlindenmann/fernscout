@@ -10,7 +10,7 @@ import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard, MapPin, ArrowUp, BookOpen, Layers, X } from "lucide-react";
+import { Clapperboard, Globe, MapPin, ArrowUp, BookOpen, Layers, X } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -53,6 +53,15 @@ function LineSwatch({ pattern }: { pattern: LegPattern }) {
   );
 }
 
+/** A region file as the server hands it over (`StreetMapFile`, lib/maps/dir.ts). */
+type StreetFile = {
+  url: string;
+  bounds: [[number, number], [number, number]];
+  maxZoom?: number;
+  /** The z0–6 world file standing in for a trip with no extract of its own. */
+  world?: true;
+};
+
 function boundsFor(points: readonly { lat: number; lng: number }[]): [[number, number], [number, number]] {
   const lats = points.map((p) => p.lat);
   const lngs = points.map((p) => p.lng);
@@ -85,7 +94,10 @@ export default function MapPageContent({
   streetMapRegions = null,
   pins: allPins = [],
   unwritten,
+  owner = false,
 }: {
+  /** B-2980 — the owner's own request: only they are told a trip lacks a map extract. */
+  owner?: boolean;
   /** B-2980 — photographs at their own measured position (SVG map only). */
   pins?: PhotoPin[];
   /** B-2980 — owner only: recorded days that have no day yet, and their lines. */
@@ -135,7 +147,7 @@ export default function MapPageContent({
    * tiles even when a reader switches the frame to another one — the markers
    * and bounds still move, the tiles underneath do not.
    */
-  streetMap?: { url: string; bounds: [[number, number], [number, number]] } | null;
+  streetMap?: StreetFile | null;
   /**
    * Every region file this trip has (`streetMapRegionFiles`, lib/maps/dir.ts)
    * — B2560. A region switch (`regionIndex` below) picks whichever of these
@@ -145,7 +157,7 @@ export default function MapPageContent({
    * the map then keeps showing only `streetMap`'s single file, same as
    * before this ticket.
    */
-  streetMapRegions?: { url: string; bounds: [[number, number], [number, number]] }[] | null;
+  streetMapRegions?: StreetFile[] | null;
 }) {
   const { t, tn, locale, formatShortDate } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
@@ -302,9 +314,18 @@ export default function MapPageContent({
   // at it (two different regions can share a day *number*, however
   // unlikely, and that guess would draw the wrong region's place — see its
   // own doc on `regionPlaces`).
+  // B-2980: the "Whole trip" chip shows every region at once, like a tour,
+  // so the flight between two of them is drawn.
+  const [wholeTrip, setWholeTrip] = useState(false);
+  const whole = frame.isTour || wholeTrip;
   const frameRegionPlaces = useMemo(
-    () => (frame.isTour ? frame.framePlaces : (frame.regions[regionIndex]?.places ?? [])),
-    [frame.isTour, frame.framePlaces, frame.regions, regionIndex],
+    () =>
+      frame.isTour
+        ? frame.framePlaces
+        : wholeTrip
+          ? frame.regions.filter((r) => !r.home).flatMap((r) => r.places)
+          : (frame.regions[regionIndex]?.places ?? []),
+    [frame.isTour, frame.framePlaces, frame.regions, regionIndex, wholeTrip],
   );
   const regionDayNumbers = useMemo(
     () => new Set(frameRegionPlaces.map((p) => p.day)),
@@ -316,22 +337,22 @@ export default function MapPageContent({
   const regionPlaces = useMemo(
     () =>
       // A home-zone place is a day in the list but never a marker: its real position is the owner's.
-      (frame.isTour
+      (whole
         ? places
         : places.filter((p) => regionDayNumbers.has(dayNumberByDate.get(p.firstDate) ?? 1))
       ).filter((p) => !p.home),
-    [frame.isTour, places, regionDayNumbers, dayNumberByDate],
+    [whole, places, regionDayNumbers, dayNumberByDate],
   );
   const overlayPlaces = useMemo(() => frameRegionPlaces.filter((p) => !p.home), [frameRegionPlaces]);
   // Lines for the region on screen, chosen here so a region chip draws its own.
   const regionLines = useMemo(
-    () => linesForRegion(frame.lines, regionDayNumbers, frame.isTour),
-    [frame.lines, regionDayNumbers, frame.isTour],
+    () => linesForRegion(frame.lines, regionDayNumbers, whole),
+    [frame.lines, regionDayNumbers, whole],
   );
   // Pins far outside the region shown (a mis-tagged photo) never stretch its frame.
   const pins = useMemo(
-    () => (frame.isTour ? allPins : pinsInRegion(allPins, frameRegionPlaces)),
-    [frame.isTour, allPins, frameRegionPlaces],
+    () => (whole ? allPins : pinsInRegion(allPins, frameRegionPlaces)),
+    [whole, allPins, frameRegionPlaces],
   );
   const onMainRegion = frame.isTour || regionIndex === frame.mainRegionIndex;
 
@@ -347,7 +368,7 @@ export default function MapPageContent({
     // A tour is framed whole over the world underlay every street map
     // carries, its bounds clamped inside the poles (B2604, B2618).
     if (!streetMap) return null;
-    if (frame.isTour) return streetMap;
+    if (whole) return streetMap;
     if (!streetMapRegions || streetMapRegions.length === 0) return streetMap;
     const currentRegionPlaces = frame.regions[regionIndex]?.places ?? [];
     if (currentRegionPlaces.length === 0) return streetMap;
@@ -364,7 +385,7 @@ export default function MapPageContent({
       }
     }
     return best;
-  }, [streetMap, streetMapRegions, frame.isTour, frame.regions, regionIndex]);
+  }, [streetMap, streetMapRegions, whole, frame.regions, regionIndex]);
   // The server only ever clipped a basemap around the main region (see
   // `basemapForRoute(framePoints(places))` in the page above this
   // component) — switched onto another region, that bundle would draw the
@@ -450,7 +471,16 @@ export default function MapPageContent({
   );
   const selectedDayNumber = selectedPlace ? (dayNumberByDate.get(selectedPlace.firstDate) ?? null) : null;
 
+  // A day in another region brings that region's camera and lines with it.
+  useEffect(() => {
+    if (selectedDayNumber === null || whole || regionDayNumbers.has(selectedDayNumber)) return;
+    const i = frame.regions.findIndex((r) => !r.home && r.places.some((p) => p.day === selectedDayNumber));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (i >= 0) setRegionIndex(i);
+  }, [selectedDayNumber, whole, regionDayNumbers, frame.regions]);
+
   const pastTense = over && hasDays;
+  const hasContent = hasPlaces || plan.length > 0 || track.length > 0 || routePoints.length > 0 || pins.length > 0;
   // WorldMap draws from the last reached stop onward, and needs two
   // stops for a leg. StreetMap currently draws no planned legs.
   const lastReached = plan.findLastIndex((stop) => stop.reached);
@@ -498,7 +528,12 @@ export default function MapPageContent({
     return [...seen];
   }, [linesShown]);
 
-  const regionChips = onMainRegion ? frame.chips : [];
+  const regionChips = onMainRegion && !wholeTrip ? frame.chips : [];
+  // B-2980: with two or more real regions there is a way back out to all of
+  // them, and a way over to any one of them from wherever the camera is.
+  const switchRegions = frame.isTour ? [] : frame.regions.flatMap((r, i) => (r.home ? [] : [{ r, i }]));
+  const multiRegion = switchRegions.length > 1;
+  const showSwitchers = multiRegion && (wholeTrip || !onMainRegion);
 
   // The street map itself — a live `maplibregl.Map`, drawn onto imperatively
   // by `applyStreetOverlay` rather than through JSX. A day selected re-runs
@@ -538,6 +573,7 @@ export default function MapPageContent({
       map,
       {
         frame,
+        whole: wholeTrip,
         regionDayNumbers,
         regionPlaces: overlayPlaces,
         selectedDay: selectedDayNumber,
@@ -571,6 +607,7 @@ export default function MapPageContent({
   }, [
     streetMapInstance,
     frame,
+    wholeTrip,
     regionDayNumbers,
     overlayPlaces,
     selectedDayNumber,
@@ -594,7 +631,7 @@ export default function MapPageContent({
           status (B2536), in one row right under the header. Visible at
           every width: on a phone this *is* "a small header chip row" over
           the full-bleed map below; on desktop it sits atop the day list. */}
-      {(regionChips.length > 0 || liveTail) && hasPlaces && (
+      {(regionChips.length > 0 || multiRegion || liveTail) && hasPlaces && (
         <div
           role="list"
           aria-label={t("map.regions")}
@@ -617,7 +654,14 @@ export default function MapPageContent({
                 type="button"
                 role="listitem"
                 disabled={!clickable}
-                onClick={clickable ? () => setRegionIndex(targetRegionIndex) : undefined}
+                onClick={
+                  clickable
+                    ? () => {
+                        selectDay(null);
+                        setRegionIndex(targetRegionIndex);
+                      }
+                    : undefined
+                }
                 className="flex items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-body disabled:cursor-default"
               >
                 <ArrowUp
@@ -630,6 +674,39 @@ export default function MapPageContent({
               </button>
             );
           })}
+          {showSwitchers &&
+            switchRegions.map(({ r, i }) => (
+              <button
+                key={`switch-${i}`}
+                type="button"
+                role="listitem"
+                aria-current={!wholeTrip && i === regionIndex ? "true" : undefined}
+                onClick={() => {
+                  selectDay(null);
+                  setWholeTrip(false);
+                  setRegionIndex(i);
+                }}
+                className="flex items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-body aria-[current=true]:border-line-prominent aria-[current=true]:bg-surface-selected"
+              >
+                {r.places[0].name}
+                {r.days ? ` · ${r.days} ${tn("map.days", r.days)}` : ""}
+              </button>
+            ))}
+          {multiRegion && (
+            <button
+              type="button"
+              role="listitem"
+              aria-current={wholeTrip ? "true" : undefined}
+              onClick={() => {
+                selectDay(null);
+                setWholeTrip(true);
+              }}
+              className="flex items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-body aria-[current=true]:border-line-prominent aria-[current=true]:bg-surface-selected"
+            >
+              <Globe className="h-3 w-3 shrink-0" aria-hidden />
+              {t("map.wholeTrip")}
+            </button>
+          )}
         </div>
       )}
 
@@ -852,7 +929,7 @@ export default function MapPageContent({
         {/* The map — full-bleed under the info row, on every width. */}
         {/* Zoom buttons ride the right edge at mid-height, clear of the header, the layers button and the sheet. */}
         <div className="relative h-full min-h-0 [&_.maplibregl-ctrl-top-right]:!top-1/2 [&_.maplibregl-ctrl-top-right]:-translate-y-1/2">
-          {activeStreetMap ? (
+          {activeStreetMap && (!activeStreetMap.world || hasContent) ? (
             <StreetMap
               // The places where days happened, not the region file's own padded
               // box — that box is 15 km wider and lets a day sit on the edge.
@@ -861,17 +938,20 @@ export default function MapPageContent({
                   ? boundsFor([...plottableInRegion, ...pins, ...regionLines.filter((l) => l.kind === "recorded").flatMap((l) => l.coords)])
                   : routePoints.length > 0
                     ? boundsFor(routePoints)
-                    : activeStreetMap.bounds
+                    : plan.length > 0 && activeStreetMap.world
+                      ? boundsFor(plan)
+                      : activeStreetMap.bounds
               }
               // Clear of the header chips above and the legend (and, on a
               // phone, the day sheet) below.
               padding={{ top: 72, bottom: sheetInset + 24, left: 24, right: 24 }}
               pmtilesUrl={activeStreetMap.url}
+              maxZoom={activeStreetMap.maxZoom}
               onReady={onStreetMapReady}
               globe
               className="h-full w-full"
             />
-          ) : hasPlaces || plan.length > 0 || track.length > 0 || routePoints.length > 0 || pins.length > 0 ? (
+          ) : hasContent ? (
             <WorldMap
               places={regionPlaces}
               plan={plan}
@@ -900,6 +980,16 @@ export default function MapPageContent({
               {t(hasDays ? "map.emptyNoPlace" : "map.empty")}
             </p>
           )}
+
+      {owner && activeStreetMap?.world && hasContent && (
+        <p
+          className={`absolute left-3 z-10 max-w-[calc(100%-76px)] rounded-full border border-line-quiet bg-surface-raised/95 px-3 py-1.5 text-xs text-ink-secondary shadow-sm backdrop-blur ${
+            unwritten && unwritten.dates.length > 0 && !unwrittenHidden ? "top-14" : "top-3"
+          }`}
+        >
+          {t("map.worldOnlyHint")}
+        </p>
+      )}
 
       {unwritten && unwritten.dates.length > 0 && !unwrittenHidden && (
         <aside className="absolute left-3 top-3 z-10 flex h-8 max-w-[calc(100%-76px)] items-center gap-2 rounded-full border border-line-quiet bg-surface-raised/95 pl-3 pr-1 text-xs text-ink-body shadow-sm backdrop-blur">
@@ -958,7 +1048,8 @@ export default function MapPageContent({
           stats={stats}
           startDate={startDate}
           basemap={basemap}
-          streetMapUrl={streetMap?.url ?? null}
+          // The z0–6 world file has no street to fly through: the slideshow keeps its own cut.
+          streetMapUrl={streetMap && !streetMap.world ? streetMap.url : null}
         />
       )}
 

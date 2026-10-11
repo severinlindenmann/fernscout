@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chipRedundant, legModeFromEntry, legModeFromRecorded, legPattern, longestSegmentMid, placeChips, withDeclaredLegs } from "@/lib/map/legMode";
-import type { MapLine, MapPlace } from "@/lib/map/tripFrame";
+import { buildTripFrame, linesForRegion, type MapLine, type MapPlace } from "@/lib/map/tripFrame";
 
 const place = (day: number, lat: number, lng: number): MapPlace => ({ day, date: `2026-10-0${day}`, lat, lng, name: `P${day}`, home: false });
 
@@ -52,5 +52,36 @@ describe("leg modes (B-2980)", () => {
     const places = [place(1, 46.7, 7.6), place(2, 46.7, 7.8)];
     const recorded: MapLine = { kind: "recorded", fromDay: 2, toDay: 2, coords: [places[0], places[1]], mode: "car", modeSource: "recorded" };
     expect(withDeclaredLegs([recorded], places, new Map([[2, "train"]] as const))[0]).toMatchObject({ mode: "car", modeSource: "recorded" });
+  });
+});
+
+describe("flights between regions (B-2980)", () => {
+  // Shaped after the demo trip: Zurich on days 1-2, a declared flight on day 3 into Bangkok.
+  const zurich = place(1, 47.3769, 8.5417);
+  const bangkok = { ...place(3, 13.7563, 100.5018), name: "Bangkok" };
+  const bangkok2 = { ...place(4, 13.76, 100.51), name: "Bangkok" };
+  const frame = buildTripFrame([zurich, bangkok, bangkok2]);
+
+  it("draws one dotted great-circle arc between the regions, overview only", () => {
+    const flights = frame.allLines.filter((l) => l.kind === "flight");
+    expect(flights).toHaveLength(1);
+    expect(flights[0]).toMatchObject({ fromDay: 1, toDay: 3, overviewOnly: true });
+    expect(flights[0].coords.length).toBeGreaterThan(8);
+  });
+
+  it("names the flight by the day's own entry, or by the recording, never by distance alone", () => {
+    const [arc] = frame.allLines.filter((l) => l.kind === "flight");
+    expect(withDeclaredLegs([arc], [zurich, bangkok], new Map([[3, "flight"]] as const))[0]).toMatchObject({ mode: "flight", modeSource: "day" });
+    const plane: MapLine = { kind: "recorded", fromDay: 3, toDay: 3, coords: [zurich, bangkok], mode: "flight", modeSource: "recorded" };
+    expect(withDeclaredLegs([arc, plane], [zurich, bangkok], new Map())[0]).toMatchObject({ mode: "flight", modeSource: "recorded" });
+    // nobody said flight: the arc stays unlabelled, so no chip claims it
+    expect(withDeclaredLegs([arc], [zurich, bangkok], new Map())[0].mode).toBeUndefined();
+  });
+
+  it("the arc shows only on the whole trip; each region keeps its own lines", () => {
+    const [arc] = frame.allLines.filter((l) => l.kind === "flight");
+    const mainDays = new Set([3, 4]);
+    expect(linesForRegion([arc], mainDays, false)).toEqual([]);
+    expect(linesForRegion([arc], mainDays, true)).toEqual([arc]);
   });
 });

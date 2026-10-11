@@ -241,6 +241,7 @@ async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; o
       over={over}
       hasDays={days.length > 0}
       streetMap={streetMap}
+      owner={owner}
       streetMapRegions={streetMapRegions}
       stats={{
         tripDays: stats.tripDays,

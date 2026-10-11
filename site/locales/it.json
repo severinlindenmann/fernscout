@@ -1507,6 +1507,8 @@
   "map.read.retry": "Riprova",
   "map.googleMapsShort": "Google Maps",
   "map.regions": "Regioni",
+  "map.wholeTrip": "Tutto il viaggio",
+  "map.worldOnlyHint": "Per più dettagli serve un estratto di mappa per questo viaggio",
   "map.reset": "Reimposta vista",
   "map.sheet.peek": "Panoramica",
   "map.stillToCome": "Ancora da fare",

@@ -153,6 +153,7 @@ async function TripMapBody({ trip, read, owner }: { trip: Trip; read: ReadOption
       unwritten={unwritten}
       plan={plan.stops}
       streetMap={streetMap}
+      owner={owner}
       streetMapRegions={streetMapRegions}
       // B665, and behind `mayReadTrip` in the page above like everything
       // else here. B2537 — see the sibling route's own comment on why `day`

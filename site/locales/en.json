@@ -1507,6 +1507,8 @@
   "map.read.retry": "Try again",
   "map.googleMapsShort": "Google Maps",
   "map.regions": "Regions",
+  "map.wholeTrip": "Whole trip",
+  "map.worldOnlyHint": "More detail needs a map extract for this trip",
   "map.reset": "Reset view",
   "map.sheet.peek": "Overview",
   "map.stillToCome": "Still to come",
