@@ -140,4 +140,13 @@ describe("B-2980 messy data", () => {
     expect(inHiddenStretch(undefined, "2026-10-12", stretches)).toBe(false);
     expect(inHiddenStretch("2026-10-10T14:30:00", "2026-10-10", [])).toBe(false);
   });
+
+  test("a stamp that cannot be read fails closed for a week", () => {
+    const now = Date.parse("2026-10-11T12:00:00Z");
+    expect(pinTooRecent("2026:10:11 11:50:00", "2026-10-06", false, now)).toBe(true);
+    expect(pinTooRecent("garbage", "2026-10-06", false, now)).toBe(true);
+    expect(pinTooRecent("garbage", "2026-10-03", false, now)).toBe(false);
+    expect(pinTooRecent("2026-10-11 11:50:00", "2026-10-11", false, now, { lat: 35.68, lng: 139.69 })).toBe(true);
+    expect(pinTooRecent("garbage", "2026-10-11", true, now)).toBe(false);
+  });
 });
