@@ -3,6 +3,7 @@ import { dayAnchors } from "@/lib/map/routeAnchors";
 import { withDeclaredLegs } from "@/lib/map/legMode";
 import { isTooRecent, pinTooRecent, mayBridge, pinsInRegion, placeDayByDate, plausiblePin, recentCutoffDate } from "@/lib/map/mapSafety";
 import { recordedSegmentsFor } from "@/lib/map/recordedSegments";
+import { inHiddenStretch } from "@/lib/map/photoPins";
 import { buildTripFrame, linesForRegion, type MapPlace } from "@/lib/map/tripFrame";
 import type { Day, Entry } from "@/lib/types";
 
@@ -98,5 +99,25 @@ describe("B-2980 messy data", () => {
     // no stamp: the 48 h day rule
     expect(pinTooRecent(undefined, "2026-10-09", false, now)).toBe(true);
     expect(pinTooRecent(undefined, "2026-10-09", true, now)).toBe(false);
+  });
+  test("a photo taken in a hidden stretch is withheld, whichever day it is filed under", () => {
+    const stretches = [{ date: "2026-10-10", from: "14:00", to: "15:00" }];
+    // inside, by the day's own entry
+    expect(inHiddenStretch("2026-10-10T14:30:00", "2026-10-10", stretches)).toBe(true);
+    // margin for camera drift
+    expect(inHiddenStretch("2026-10-10T15:20:00", "2026-10-10", stretches)).toBe(true);
+    expect(inHiddenStretch("2026-10-10T16:00:00", "2026-10-10", stretches)).toBe(false);
+    // taken on the stretch's day but filed under another day's entry
+    expect(inHiddenStretch("2026-10-10T14:30:00", "2026-10-11", stretches)).toBe(true);
+    // a UTC stamp cannot be compared with a local wall clock: withheld on a day with a stretch
+    expect(inHiddenStretch("2026-10-10T19:00:00Z", "2026-10-10", stretches)).toBe(true);
+    // an offset stamp keeps its written wall clock
+    expect(inHiddenStretch("2026-10-10T14:30:00+02:00", "2026-10-10", stretches)).toBe(true);
+    expect(inHiddenStretch("2026-10-10T18:30:00+02:00", "2026-10-10", stretches)).toBe(false);
+    // no stamp, or unreadable: withheld when the day has a stretch, free otherwise
+    expect(inHiddenStretch(undefined, "2026-10-10", stretches)).toBe(true);
+    expect(inHiddenStretch("2026:10:10 14:30:00", "2026-10-10", stretches)).toBe(true);
+    expect(inHiddenStretch(undefined, "2026-10-12", stretches)).toBe(false);
+    expect(inHiddenStretch("2026-10-10T14:30:00", "2026-10-10", [])).toBe(false);
   });
 });

@@ -31,10 +31,15 @@ const minutes = (hhmm: string): number => Number(hhmm.slice(0, 2)) * 60 + Number
  * margin for camera clock drift. No usable `takenAt` fails closed.
  */
 export function inHiddenStretch(takenAt: string | undefined, date: string, stretches: { date: string; from: string; to: string }[]): boolean {
-  const mine = stretches.filter((s) => s.date === date);
+  if (stretches.length === 0) return false;
+  // Camera wall-clock as written: `YYYY-MM-DDTHH:MM[:SS[.fff]]`, optionally with an offset. A UTC `Z` time or
+  // anything else cannot be compared with a local wall clock, so it is not parsed.
+  const m = takenAt?.match(/^(\d{4}-\d\d-\d\d)[T ](\d\d:\d\d)(?::\d\d(?:\.\d+)?)?(Z|[+-]\d\d:?\d\d)?$/);
+  // Both the entry's day and the day the photo says it was taken on count: a photo from a stretch day
+  // filed under another day's entry must not slip past.
+  const mine = stretches.filter((s) => s.date === date || (m !== null && m !== undefined && s.date === m[1]));
   if (mine.length === 0) return false;
-  const m = takenAt?.match(/^(\d{4}-\d\d-\d\d)[T ](\d\d:\d\d)/);
-  if (!m) return true;
+  if (!m || m[3] === "Z") return true;
   const at = minutes(m[2]);
   return mine.some((s) => m[1] === s.date && at >= minutes(s.from) - STRETCH_MARGIN_MIN && at <= minutes(s.to) + STRETCH_MARGIN_MIN);
 }
@@ -50,8 +55,8 @@ export function getPhotoPins(
   ref: string,
   options: ReadOptions | undefined,
   trackByDay: readonly { date?: string; points: [number, number][] }[],
-  /** Whether this reader may see the last 24 h (owner, live guests); others get no pin from a day that recent. */
-  live = true,
+  /** Whether this reader may see the last 24 h (owner, live guests); others get no pin from a day that recent. Closed by default: a caller that forgets it gets the stricter rule. */
+  live = false,
 ): PhotoPin[] {
   const owner = parseTripRef(ref);
   if (!owner) return [];
