@@ -1,0 +1,29 @@
+{
+  "id": "test-route-2026",
+  "title": "Route test (sample)",
+  "tagline": "Invented, to try the map's route and photo pins",
+  "dates": {
+    "from": "2026-10-01",
+    "to": "2026-10-05"
+  },
+  "visibility": "guest",
+  "listed": false,
+  "test": true,
+  "accent": "green",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    }
+  ],
+  "intro": "Nobody drove this. Invented positions on public geography, so the route map can be tried.",
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "plan": "nothing planned",
+    "cover": "no cover",
+    "figures": "nobody to draw",
+    "translations": "a sample does not need translating"
+  }
+}

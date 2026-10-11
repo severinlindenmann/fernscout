@@ -1,0 +1,26 @@
+{
+  "title": "The castle",
+  "date": "2026-10-02",
+  "time": "16:00",
+  "content": "Invented sample post with coordinates, written second.",
+  "test": true,
+  "location": "Thun",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.758,
+    "lng": 7.628
+  },
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "weather": "invented sample",
+    "timezone": "not noted",
+    "transportMode": "not noted",
+    "tags": "none",
+    "translations": "not needed",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "no photographs on this sample day"
+  },
+  "status": "published"
+}

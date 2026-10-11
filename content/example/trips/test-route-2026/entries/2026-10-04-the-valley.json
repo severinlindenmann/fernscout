@@ -1,0 +1,45 @@
+{
+  "title": "The valley",
+  "date": "2026-10-04",
+  "content": "Invented sample day: two photos with a measured position on the route, one without.",
+  "test": true,
+  "media": [
+    {
+      "src": "/media/test-route-2026/the-valley/01.jpg",
+      "type": "image",
+      "caption": "On the road (sample)",
+      "width": 1600,
+      "height": 1067
+    },
+    {
+      "src": "/media/test-route-2026/the-valley/02.jpg",
+      "type": "image",
+      "caption": "A bit further on (sample)",
+      "width": 1600,
+      "height": 1067
+    },
+    {
+      "src": "/media/test-route-2026/the-valley/03.jpg",
+      "type": "image",
+      "caption": "No location (sample)",
+      "width": 1067,
+      "height": 1600
+    }
+  ],
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "weather": "invented sample",
+    "time": "not noted",
+    "timezone": "not noted",
+    "transportMode": "not noted",
+    "tags": "none",
+    "translations": "not needed",
+    "visibility": "shown to everyone the trip lets in",
+    "coordinates": "invented sample, no place given",
+    "location": "invented sample, no place given",
+    "country": "invented sample, no place given",
+    "countryCode": "invented sample, no place given"
+  },
+  "status": "published"
+}
