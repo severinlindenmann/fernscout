@@ -106,6 +106,7 @@ async function TripMapBody({ trip, read, owner }: { trip: Trip; read: ReadOption
     readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
       date: s.day,
       points: s.points,
+      mode: s.mode,
     })) ?? [];
   // B-2980 — see the sibling route.
   const anchors = dayAnchors(days, trackByDay);

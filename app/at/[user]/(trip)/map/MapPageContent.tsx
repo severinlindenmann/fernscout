@@ -10,7 +10,7 @@ import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard, MapPin, ArrowUp, ArrowRight, Layers, X } from "lucide-react";
+import { Clapperboard, MapPin, ArrowUp, BookOpen, Layers, X } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -24,6 +24,9 @@ import { legModeFromEntry, legModeFromRecorded, legPattern, withDeclaredLegs, ty
 import type { TransportMode } from "@/lib/types";
 import type { MapDay } from "@/lib/map/mapDays";
 import MobileMapSheet, { MAPS_BUTTON, READ_DAY_BUTTON } from "@/components/map/MobileMapSheet";
+import DayReader from "@/components/map/DayReader";
+import { adjacentDate } from "@/lib/map/dayTransition";
+import { useReducedMotion } from "motion/react";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
 import { POSTER_WIDTH } from "@/lib/mediaSizes";
 
@@ -309,6 +312,15 @@ export default function MapPageContent({
     source === "recorded"
       ? t("map.leg.recorded", { mode: modeLabel(mode) })
       : t("map.leg.fromDay", { mode: modeLabel(mode) });
+  // How a day travelled and who said so — the recording, or the day's own entry.
+  const transportLine = (date: string): string | undefined => {
+    const n = dayNumberByDate.get(date);
+    if (!n) return undefined;
+    const declared = declaredModes.get(n);
+    if (declared) return legLabel(declared, "day");
+    const recorded = recordedSegments.find((s) => s.day === n && !s.gap && s.mode)?.mode;
+    return recorded ? legLabel(recorded, "recorded") : undefined;
+  };
   const legLabelRef = useRef(legLabel);
   useEffect(() => {
     legLabelRef.current = legLabel;
@@ -423,6 +435,13 @@ export default function MapPageContent({
     );
   }, []);
 
+  // B-2980: the desktop list's own "Read this day" — the day opens in the left column, no navigation.
+  const [readingDesktop, setReadingDesktop] = useState(false);
+  const reducedMotion = Boolean(useReducedMotion());
+  const readIndex = days.findIndex((d) => d.date === selectedDate);
+  const readDay = days[readIndex];
+  const readPrev = adjacentDate(days.map((d) => d.date), selectedDate, -1);
+  const readNext = adjacentDate(days.map((d) => d.date), selectedDate, 1);
   const toggleDay = useCallback((date: string | null) => {
     selectDay(date === selectedDate ? null : date);
   }, [selectDay, selectedDate]);
@@ -652,6 +671,22 @@ export default function MapPageContent({
           aria-label={days.length > 0 ? t("map.everyDay") : undefined}
           className="hidden min-h-0 flex-col overflow-y-auto border-r border-line-quiet bg-surface-subtle lg:flex"
         >
+          {readingDesktop && readDay ? (
+            <DayReader
+              day={readDay}
+              index={readIndex}
+              count={days.length}
+              transportLine={transportLine(readDay.date)}
+              pageHref={href(`/day/${readDay.slug}`)}
+              dir={0}
+              reduced={reducedMotion}
+              onPrev={readPrev ? () => selectDay(readPrev) : undefined}
+              onNext={readNext ? () => selectDay(readNext) : undefined}
+              onClose={() => setReadingDesktop(false)}
+              className="min-h-0 flex-1 px-4 pt-3"
+            />
+          ) : (
+            <>
           <div className="shrink-0 border-b border-line-quiet px-4 py-3">
             <h1 className="font-display text-base font-semibold text-ink-strong">
               {t(pastTense ? "map.title" : "map.titlePlanned")}
@@ -769,10 +804,10 @@ export default function MapPageContent({
                           </div>
                         )}
                         <div className="flex flex-wrap gap-2">
-                          <a href={href(`/day/${place.entries[0].slug}`)} className={READ_DAY_BUTTON}>
+                          <button type="button" onClick={() => setReadingDesktop(true)} className={READ_DAY_BUTTON}>
                             {t("map.readDay")}
-                            <ArrowRight className="h-4 w-4" aria-hidden />
-                          </a>
+                            <BookOpen className="h-4 w-4" aria-hidden />
+                          </button>
                           <a href={googleMapsHref(place)} target="_blank" rel="noreferrer" className={MAPS_BUTTON}>
                             <MapPin className="h-4 w-4" aria-hidden />
                             {t("map.googleMapsShort")}
@@ -835,6 +870,8 @@ export default function MapPageContent({
                 </div>
               )}
             </div>
+          )}
+            </>
           )}
         </section>
 
@@ -974,6 +1011,7 @@ export default function MapPageContent({
         selectedDate={selectedDate}
         onSelectDate={toggleDay}
         onInsetChange={setSheetInset}
+        transportLine={transportLine}
         hrefForDay={(slug) => href(`/day/${slug}`)}
         onPlay={
           hasPlaces

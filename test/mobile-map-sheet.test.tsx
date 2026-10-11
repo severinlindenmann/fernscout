@@ -258,7 +258,7 @@ describe("MobileMapSheet", () => {
         place({ key: "beta", location: "Beta City", firstDate: "2024-05-03", lastDate: "2024-05-03" }),
       ]);
       act(() => handle(el).click()); // -> half, on alpha
-      const next = el.querySelector<HTMLButtonElement>('[aria-label="Next stop"]')!;
+      const next = el.querySelector<HTMLButtonElement>('[aria-label="Next day"]')!;
       act(() => next.click());
       expect(reportedKeys).toContain("2024-05-03");
     });
@@ -401,10 +401,13 @@ describe("MobileMapSheet", () => {
       const img = el.querySelector("img")!;
       expect(img.getAttribute("src")).toBe("/media/day2.jpg");
 
-      const readLink = Array.from(el.querySelectorAll("a")).find((a) =>
-        a.textContent?.includes("Read this day"),
+      // B-2980: reading happens in place — a button, not a link away.
+      const readButton = Array.from(el.querySelectorAll("button")).find((b) =>
+        b.textContent?.includes("Read this day"),
       )!;
-      expect(readLink.getAttribute("href")).toBe("/day/2024-05-02-alpha");
+      expect(readButton).toBeTruthy();
+      act(() => readButton.click());
+      expect(el.querySelector('section[aria-labelledby]')).not.toBeNull();
     });
   });
 

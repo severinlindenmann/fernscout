@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowRight, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, MapPin } from "lucide-react";
+import { BookOpen, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, MapPin } from "lucide-react";
 import { useSnapDrag } from "@/components/SnapSheet";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
@@ -15,6 +15,8 @@ import Lightbox from "@/components/Lightbox";
 import FullPhoto from "@/components/FullPhoto";
 import type { PlaceView } from "@/components/WorldMap";
 import type { MapDay } from "@/lib/map/mapDays";
+import { adjacentDate } from "@/lib/map/dayTransition";
+import DayReader, { useDaySwipe } from "@/components/map/DayReader";
 
 /** B2572 — the two things to do with a selected day, as buttons rather than
  * underlined text: read it (primary), or find it in Google Maps. Shared with
@@ -85,6 +87,7 @@ export default function MobileMapSheet({
   onSelectDate,
   onInsetChange,
   onPlay,
+  transportLine,
 }: {
   /** Every published day, in order, including one with no place at all
    * (greyed — B2537). The strip at peek and the full list both read this
@@ -107,6 +110,8 @@ export default function MobileMapSheet({
    * with 0 wherever the sheet is not actually on screen — no days at all,
    * or `lg` and up, where the desktop layout puts nothing over the map. */
   onInsetChange?: (px: number) => void;
+  /** How a day travelled, said with its source ("Train (from the day)"). */
+  transportLine?: (date: string) => string | undefined;
 }) {
   const { t, locale, formatShortDate } = useI18n();
   const reducedMotion = useReducedMotion();
@@ -114,6 +119,10 @@ export default function MobileMapSheet({
   const isDesktop = useIsDesktop();
 
   const [snap, setSnap] = useState(PEEK);
+  // B-2980: the selected day read in place (at the full snap) rather than as a link away.
+  const [reading, setReading] = useState(false);
+  // Which way the selection last moved, for the small slide between days.
+  const [dir, setDir] = useState<-1 | 0 | 1>(0);
 
   // Computed ahead of the hooks below (and the `days.length === 0` bail-out
   // further down) because `useSnapDrag` now needs to know whether a day is
@@ -121,6 +130,10 @@ export default function MobileMapSheet({
   // breaks no rule; `days.findIndex` on an empty array is just -1.
   const selectedIndex = days.findIndex((d) => d.date === selectedDate);
   const selectedDay = days[selectedIndex];
+  // B-2980: the adjacent days, no wrap-around — the ends are ends.
+  const dates = days.map((d) => d.date);
+  const prevDate = adjacentDate(dates, selectedDate, -1);
+  const nextDate = adjacentDate(dates, selectedDate, 1);
   const selectedPlace = places.find(
     (p) => selectedDay && selectedDay.date >= p.firstDate && selectedDay.date <= p.lastDate,
   );
@@ -240,13 +253,28 @@ export default function MobileMapSheet({
   const [lastDate, setLastDate] = useState(selectedDate);
   if (selectedDate !== lastDate) {
     setLastDate(selectedDate);
-    setSnap(selectedDate ? HALF : PEEK);
+    // Moving between days while reading keeps reading; the sheet stays put.
+    setSnap(selectedDate ? (reading ? FULL : HALF) : PEEK);
+    if (!selectedDate) setReading(false);
+    setDir(lastDate && selectedDate ? (selectedDate > lastDate ? 1 : -1) : 0);
     setOpenPhotoIndex(null);
   }
+  if (reading && snap !== FULL) setReading(false);
+  const showReader = reading && snap === FULL && Boolean(selectedDay);
+  const swipe = useDaySwipe(
+    prevDate ? () => onSelectDate(prevDate) : undefined,
+    nextDate ? () => onSelectDate(nextDate) : undefined,
+  );
 
   if (days.length === 0) return null;
 
   const goToDay = (day: MapDay) => onSelectDate(day.date);
+  // "Day 3 · 12 Jun · Train (from the day)" — which day, when, how it got there.
+  const meta = selectedDay
+    ? [t("show.dayNumber", { n: String(selectedIndex + 1) }), formatShortDate(selectedDay.date), transportLine?.(selectedDay.date)]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
 
   const cycleLabel =
     snap === PEEK ? t("map.thisStop") : snap === HALF ? t("map.everyDay") : t("map.sheet.peek");
@@ -255,6 +283,8 @@ export default function MobileMapSheet({
     <div ref={wrapperRef} className="fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom,0px)] lg:hidden">
       <motion.div
         style={{ height }}
+        role="region"
+        aria-label={selectedDay ? `${selectedDay.location} · ${formatShortDate(selectedDay.date)}` : t("map.everyDay")}
         className="flex flex-col overflow-hidden rounded-t-2xl border-t border-line-quiet bg-surface-subtle/95 shadow-[0_-6px_24px_rgba(30,41,59,0.16)] backdrop-blur"
       >
         {/* The drag handle is a real button — Enter/Space cycles snaps,
@@ -297,7 +327,9 @@ export default function MobileMapSheet({
           )}
         </button>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3">
+        <div
+          className={`min-h-0 flex-1 px-4 ${showReader ? "flex flex-col overflow-hidden" : "overflow-y-auto overscroll-contain pb-3"}`}
+        >
           {snap === PEEK && (
             <div className="flex flex-col gap-3 pt-2">
               {/* The day strip — B2537, replacing the old time scrubber and
@@ -362,15 +394,22 @@ export default function MobileMapSheet({
           )}
 
           {snap === HALF && selectedDay && (
-            <div ref={halfBodyRef} className="flex flex-col gap-2 pt-1">
-              <div className="flex items-start justify-between gap-2">
+            <motion.div
+              key={selectedDay.date}
+              ref={halfBodyRef}
+              initial={reducedMotion ? false : { opacity: 0, x: dir * 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="flex flex-col gap-2 pt-1"
+            >
+              <div className="flex touch-pan-y items-start justify-between gap-2" {...swipe}>
                 <div>
                   {selectedDay.hasPlace ? (
                     <>
                       <div className="font-display text-base font-semibold text-ink-strong">
                         {`${flagFor(selectedDay.country, selectedDay.countryCode)} ${selectedDay.location}`}
                       </div>
-                      <div className="text-xs text-ink-secondary">{formatShortDate(selectedDay.date)}</div>
+                      <div className="text-xs text-ink-secondary">{meta}</div>
                     </>
                   ) : (
                     // A day with no (public) place: the date is the title and
@@ -380,7 +419,7 @@ export default function MobileMapSheet({
                         {formatShortDate(selectedDay.date)}
                       </div>
                       <div className="text-xs text-ink-secondary">
-                        {selectedDay.hidden ? t("map.placeHidden") : t("map.noPlaceGiven")}
+                        {[selectedDay.hidden ? t("map.placeHidden") : t("map.noPlaceGiven"), meta].join(" · ")}
                       </div>
                     </>
                   )}
@@ -388,17 +427,19 @@ export default function MobileMapSheet({
                 <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
-                    onClick={() => goToDay(days[(selectedIndex - 1 + days.length) % days.length])}
-                    aria-label={t("tripMap.previousStop")}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet text-ink-body"
+                    onClick={() => prevDate && onSelectDate(prevDate)}
+                    disabled={!prevDate}
+                    aria-label={t("day.prev")}
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet text-ink-body disabled:opacity-40"
                   >
                     <ChevronLeft className="h-4 w-4" aria-hidden />
                   </button>
                   <button
                     type="button"
-                    onClick={() => goToDay(days[(selectedIndex + 1) % days.length])}
-                    aria-label={t("tripMap.nextStop")}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet text-ink-body"
+                    onClick={() => nextDate && onSelectDate(nextDate)}
+                    disabled={!nextDate}
+                    aria-label={t("day.next")}
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet text-ink-body disabled:opacity-40"
                   >
                     <ChevronRight className="h-4 w-4" aria-hidden />
                   </button>
@@ -448,10 +489,17 @@ export default function MobileMapSheet({
                   next as equal columns (a placeless day has no Maps link, so
                   Slideshow takes the row alone). */}
               <div className="mt-1 grid grid-cols-2 gap-2">
-                <a href={hrefForDay(selectedDay.slug)} className={READ_DAY_BUTTON + " col-span-2 whitespace-nowrap"}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReading(true);
+                    setSnap(FULL);
+                  }}
+                  className={READ_DAY_BUTTON + " col-span-2 whitespace-nowrap"}
+                >
                   {t("map.readDay")}
-                  <ArrowRight className="h-4 w-4" aria-hidden />
-                </a>
+                  <BookOpen className="h-4 w-4" aria-hidden />
+                </button>
                 {selectedPlace && (
                   <a
                     href={googleMapsHref(selectedPlace)}
@@ -475,10 +523,26 @@ export default function MobileMapSheet({
                   </button>
                 )}
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {snap === FULL && (
+          {showReader && selectedDay && (
+            <DayReader
+              day={selectedDay}
+              index={selectedIndex}
+              count={days.length}
+              transportLine={transportLine?.(selectedDay.date)}
+              pageHref={hrefForDay(selectedDay.slug)}
+              dir={dir}
+              reduced={Boolean(reducedMotion)}
+              onPrev={prevDate ? () => onSelectDate(prevDate) : undefined}
+              onNext={nextDate ? () => onSelectDate(nextDate) : undefined}
+              onClose={() => setSnap(HALF)}
+              className="h-full"
+            />
+          )}
+
+          {snap === FULL && !showReader && (
             <ol className="divide-y divide-line-quiet">
               {days.map((day) => (
                 <li key={day.date}>

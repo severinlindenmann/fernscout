@@ -8,6 +8,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Bike, Bus, Car, Footprints, Plane, Ship, TrainFront, TramFront } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
+import { haversineKm, planCamera } from "./dayTransition";
 
 /**
  * Draws a trip onto a live `StreetMap` (B2535) using B2534's own rules — the
@@ -50,6 +51,56 @@ const MODE_ICON = {
 const chipMarkers = new WeakMap<MapLibreMap, MapLibreMarker[]>();
 
 const reducedMotion = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+type Padding = { top: number; bottom: number; left: number; right: number };
+type Box = [[number, number], [number, number]];
+/** The day the camera last settled on per map, and a token so a newer move cancels an older one's second leg. */
+const lastDay = new WeakMap<MapLibreMap, number | null>();
+const moveToken = new WeakMap<MapLibreMap, number>();
+/** When the current day-to-day travel is due to land, so a re-frame of the same day (the sheet re-measuring) finishes it rather than cutting it short. */
+const travelUntil = new WeakMap<MapLibreMap, number>();
+const easeIn = (t: number) => t * t;
+const easeOut = (t: number) => 1 - (1 - t) * (1 - t);
+
+/** Every camera move goes through here, so a newer one cancels an older one's pending second leg. */
+function fit(map: MapLibreMap, box: Box, padding: Padding, extra: Record<string, unknown>): number {
+  const token = (moveToken.get(map) ?? 0) + 1;
+  moveToken.set(map, token);
+  map.fitBounds(box, { padding, maxZoom: 15, ...extra });
+  return token;
+}
+
+/**
+ * B-2980 — from day A's framing to day B's along the route. A flight, or a
+ * leg over 600 km, flies a high arc (zoom out, then in); a hop eases to a
+ * frame holding both ends when neither current view does, then settles on B.
+ * Reduced motion jumps. `fitBounds` adds the map's own bottom padding (the
+ * phone sheet), so the settled frame clears the sheet exactly as before.
+ */
+function travel(map: MapLibreMap, from: MapPlace, to: MapPlace, box: Box, padding: Padding, flight: boolean) {
+  const plan = planCamera({ km: haversineKm(from, to), flight, reduced: reducedMotion() });
+  if (plan.kind !== "jump") travelUntil.set(map, performance.now() + plan.duration);
+  if (plan.kind === "jump") {
+    fit(map, box, padding, { duration: 0 });
+    return;
+  }
+  if (plan.kind === "flight") {
+    fit(map, box, padding, { duration: plan.duration, curve: plan.curve });
+    return;
+  }
+  const both = boundsOf([from, to]);
+  const settled = map.cameraForBounds(box, { padding, maxZoom: 15 })?.zoom;
+  const together = both ? map.cameraForBounds(both, { padding, maxZoom: 15 })?.zoom : undefined;
+  if (!both || settled === undefined || together === undefined || together > settled - 0.3) {
+    fit(map, box, padding, { duration: plan.duration });
+    return;
+  }
+  const token = fit(map, both, padding, { duration: plan.duration * 0.45, linear: true, easing: easeIn });
+  map.once("moveend", (e: { originalEvent?: unknown }) => {
+    if (e.originalEvent || moveToken.get(map) !== token) return;
+    fit(map, box, padding, { duration: plan.duration * 0.55, linear: true, easing: easeOut });
+  });
+}
 
 /** Photo pin markers per map, rebuilt on each draw (they regroup with zoom). */
 const pinMarkers = new WeakMap<MapLibreMap, MapLibreMarker[]>();
@@ -372,11 +423,13 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         el.type = "button";
         el.setAttribute("aria-label", place.name);
         el.style.cssText =
-          "display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:11px;min-height:44px;min-width:44px;cursor:pointer;font:inherit;";
+          "display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:11px;min-height:44px;min-width:44px;cursor:pointer;font:inherit;" +
+          (reducedMotion() ? "" : "transition:opacity .35s ease;");
         const disc = document.createElement("span");
         disc.className = "fs-daymarker-disc";
         disc.style.cssText =
-          "display:flex;align-items:center;justify-content:center;flex:none;border-radius:9999px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.25);";
+          "display:flex;align-items:center;justify-content:center;flex:none;border-radius:9999px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.25);" +
+          (reducedMotion() ? "" : "transition:width .3s ease,height .3s ease,background .3s ease,border-color .3s ease,color .3s ease,font-size .3s ease;");
         const label = document.createElement("span");
         label.className = "fs-daymarker-label";
         label.style.cssText =
@@ -497,7 +550,22 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     ? [...places, ...linesInRegion.filter((l) => l.kind !== "flight").flatMap((l) => l.coords), ...pins]
     : [...(selectedPlace ? [selectedPlace] : []), ...activeLines.flatMap((l) => l.coords)];
   const box = boundsOf(fitPoints);
-  if (box) map.fitBounds(box, { padding, maxZoom: 15, duration: reducedMotion() ? 0 : 400 });
+  // Moving from one selected day to another travels along the route; any
+  // other refit (first selection, deselecting, a padding change) frames in place.
+  const previous = lastDay.get(map) ?? null;
+  lastDay.set(map, selectedDay);
+  const fromPlace = previous !== null ? places.find((p) => p.day === previous) : undefined;
+  if (box && selectedPlace && fromPlace && selectedDay !== previous) {
+    const flight = frame.lines.some(
+      (l) =>
+        (l.kind === "flight" || l.mode === "flight") &&
+        ((l.fromDay === previous && l.toDay === selectedDay) || (l.fromDay === selectedDay && l.toDay === previous)),
+    );
+    travel(map, fromPlace, selectedPlace, box, padding, flight);
+  } else if (box) {
+    const left = (travelUntil.get(map) ?? 0) - performance.now();
+    fit(map, box, padding, { duration: reducedMotion() ? 0 : left > 200 ? left : 400 });
+  }
 
   if (map.isStyleLoaded()) void draw();
   else map.once("load", () => void draw());
