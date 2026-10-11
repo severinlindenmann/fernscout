@@ -3,7 +3,7 @@ import { splitOutHiddenSpots } from "@/lib/gps/track";
 import { recordedSegmentsFor } from "@/lib/map/recordedSegments";
 
 // ~1.1 km between rows of 0.01 degrees latitude; the spot sits on the middle segment.
-const seg = (lat: number) => ({ day: "2026-10-01", points: [[lat, 7], [lat + 0.0005, 7.0005]] as [number, number][] });
+const seg = (lat: number) => ({ day: "2026-10-01", from: "2026-10-01T08:00:00.000Z", points: [[lat, 7], [lat + 0.0005, 7.0005]] as [number, number][] });
 const spot = { id: "s", lat: 46.01, lon: 7, radiusM: 300 };
 
 describe("hidden spots in served tracks", () => {
