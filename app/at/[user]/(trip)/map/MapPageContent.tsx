@@ -666,7 +666,7 @@ export default function MapPageContent({
               >
                 <ArrowUp
                   className="h-3 w-3 shrink-0"
-                  style={{ transform: `rotate(${chip.bearingDeg}deg)` }}
+                  style={{ transform: `rotate(${Math.round(chip.bearingDeg)}deg)` }}
                   aria-hidden
                 />
                 {chip.label}
