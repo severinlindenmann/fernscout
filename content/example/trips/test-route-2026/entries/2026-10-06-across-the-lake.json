@@ -1,0 +1,24 @@
+{
+  "title": "Across the lake",
+  "date": "2026-10-06",
+  "location": "Oberhofen",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.7316,
+    "lng": 7.6679
+  },
+  "content": "Invented sample day: a boat crossing the entry declares, with no recording behind it.",
+  "transportMode": "ferry",
+  "test": true,
+  "declined": {
+    "costs": "no money moved",
+    "weather": "invented sample",
+    "timezone": "not noted on this sample",
+    "tags": "none on this sample",
+    "translations": "not needed",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "no photographs on this sample day"
+  },
+  "status": "published"
+}

@@ -2,16 +2,20 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
-import { draftsVisibleTo, mayReadLiveTrack, mayReadTrip } from "@/lib/tripGate";
+import { mayReadLiveTrack, mayReadTrip, mayViewCosts, readFor } from "@/lib/tripGate";
 import { recordTripView } from "@/lib/analytics/record";
 import MapPageContent from "./MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
 import { isEnabled } from "@/lib/capabilities";
 import { primaryStreetMap, streetMapRegionFiles } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
-import { getDays, getPlaces, getTripStats } from "@/lib/entries";
+import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getMapDays } from "@/lib/map/mapDays";
+import { dayAnchors, unwrittenRecordedDays } from "@/lib/map/routeAnchors";
+import { getPhotoPins } from "@/lib/map/photoPins";
+import { isTooRecent } from "@/lib/map/mapSafety";
 import { getPlan } from "@/lib/plan";
+import { getCostSummary } from "@/lib/costs";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef, getTrip } from "@/lib/trips";
@@ -82,8 +86,7 @@ export async function generateMetadata({
   // permalink's metadata, which resolves the trip this way too.
   const ref = currentTripRef(user);
   const trip = ref ? getTrip(ref) : undefined;
-  const drafts = trip ? await draftsVisibleTo(trip) : { visible: false, canPublish: false };
-  const read = { includeDrafts: drafts.visible };
+  const read: ReadOptions = trip ? (await readFor(trip)).read : { includeDrafts: false };
   // `days.length > 0` guards `isOver` here — B118 is still the rule for a
   // trip with nothing written at all: "has been nowhere and is going
   // nowhere" stays true of a zero-day trip even once its dates are past, and
@@ -126,13 +129,13 @@ export default async function MapPage({ params }: PageProps<"/at/[user]/map">) {
   // to say "the owner", on the reasoning that a reader must not learn where
   // somebody is going next. Somebody on the trip is not that reader — they are
   // on the bus, and where it goes next is not a secret from them.
-  const drafts = await draftsVisibleTo(trip);
+  const { read, canPublish, owner } = await readFor(trip);
   return (
-    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
+    <TripProvider trip={trip} isCurrent canPublish={canPublish}>
       {/* The redirect for a journal with no trip is above this line; see
           components/RouteSkeleton.tsx. */}
       <RouteBoundary shape="map">
-        <MapBody trip={trip} includeDrafts={drafts.visible} />
+        <MapBody trip={trip} read={read} owner={owner} />
       </RouteBoundary>
     </TripProvider>
   );
@@ -144,23 +147,39 @@ export default async function MapPage({ params }: PageProps<"/at/[user]/map">) {
  * `includeDrafts` is the page's answer for this reader, not a question this
  * asks again.
  */
-async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boolean }) {
+async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; owner: boolean }) {
   const tripId = trip.ref;
-  const plan = getPlan(tripId, { includeDrafts });
+  const plan = getPlan(tripId, read);
   // B336: the solid "where we've been" markers asked this question one line
   // below `getPlan` and got a different answer, because this call carried no
   // options at all — always published-only, regardless of who was looking.
   // The dashed planned route already followed `drafts.visible`; the stats
   // block below has to agree with both, or its counts contradict the markers
   // on the same map.
-  const read = { includeDrafts };
   const stats = getTripStats(tripId, read);
-  const places = getPlaces(tripId, read);
   // Whether there is a day written at all, as distinct from whether any of
   // them carries coordinates — B1289. `places` answers neither question on
   // its own: a published day with no `location:` never appears in it, so
   // "no places" used to read as "no days written" even when one was there.
   const days = getDays(tripId, read);
+  const visibleDates = new Set(days.map((d) => d.date));
+  const live = await mayReadLiveTrack(trip);
+  const trackByDay =
+    readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
+      date: s.day,
+      points: s.points,
+      mode: s.mode,
+      cutBefore: s.cutBefore,
+      cutAfter: s.cutAfter,
+    })) ?? [];
+  // B-2980: a day with no position of its own is placed from its recorded route.
+  // A reader without live access gets nothing from a day inside the last 24 h
+  // (readerTrack's own rule): no pin, no typed place on the map.
+  const allPins = getPhotoPins(tripId, read, trackByDay, live);
+  const anchors = dayAnchors(days, trackByDay, allPins);
+  const places = getPlaces(tripId, read, anchors).filter((p) => !isTooRecent(p.firstDate, live));
+  const pins = allPins;
+  const unwritten = owner ? unwrittenRecordedDays(trip.username, trip.id, visibleDates) : undefined;
   // The trip hero's own tense (`isOver`, lib/tripTime.ts) — B1289. A finished
   // trip whose only day has no coordinates used to stay in the planned tense
   // forever, because `places` was empty and nothing else was asked.
@@ -195,31 +214,30 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
   // covers every trip date regardless of publish state — `readerTrack` is what
   // actually keeps a draft day's or too-recent fix's segment off this page,
   // filtered to the exact dates `days` above already resolved for this reader.
-  const visibleDates = new Set(days.map((d) => d.date));
   // B2536 — whether this viewer's own request may see the last 24h at all.
   // The owner always does; a named guest does unless the trip's own
   // `guestsLive` says 24h late; a public reader never does. Computed once
   // and threaded through, never re-derived per marker.
-  const live = await mayReadLiveTrack(trip);
   // B2537: each run carries the calendar day its own local-midnight window
   // belongs to (`TrackSegment.day`), threaded through so the map page can
   // draw the real recorded/gap line grammar and fit a selected day's own
   // line — see `recordedSegmentsFor` in `MapPageContent`.
-  const trackByDay =
-    readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
-      date: s.day,
-      points: s.points,
-    })) ?? [];
   // B2536 — the badge/dot copy, from the same filtered answer `readerTrack`
   // just drew from: only when a tail segment actually survived for this
   // reader's own visible dates, and only when the tail is still under 24h
   // old itself (`liveTailStatus`'s own `tailIsLive`) — never a stale "N min
   // ago" from a trip nobody has re-derived in days.
   const liveTail = live ? liveTailStatus(trip.username, trip.id, visibleDates) : undefined;
+  // The same gate the day page uses for its spend line; off means no figure reaches the client.
+  const showCosts = await mayViewCosts(trip);
+  const tripCost = showCosts ? getCostSummary(tripId).total : 0;
   return (
     <MapPageContent
       places={places}
-      days={getMapDays(tripId, read)}
+      days={getMapDays(tripId, read, anchors, showCosts)}
+      tripCost={tripCost > 0 ? tripCost : undefined}
+      pins={pins}
+      unwritten={unwritten}
       plan={plan.stops}
       trackByDay={trackByDay}
       liveTail={liveTail}
@@ -228,6 +246,7 @@ async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boo
       over={over}
       hasDays={days.length > 0}
       streetMap={streetMap}
+      owner={owner}
       streetMapRegions={streetMapRegions}
       stats={{
         tripDays: stats.tripDays,

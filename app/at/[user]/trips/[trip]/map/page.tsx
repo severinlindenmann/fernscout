@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { mayReadLiveTrack, readFor, mayReadTrip } from "@/lib/tripGate";
+import { mayReadLiveTrack, mayViewCosts, readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/at/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
@@ -9,6 +9,10 @@ import { primaryStreetMap, streetMapRegionFiles } from "@/lib/maps/dir";
 import { framePoints } from "@/lib/map/tripFrame";
 import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getMapDays } from "@/lib/map/mapDays";
+import { getCostSummary } from "@/lib/costs";
+import { dayAnchors, unwrittenRecordedDays } from "@/lib/map/routeAnchors";
+import { getPhotoPins } from "@/lib/map/photoPins";
+import { isTooRecent } from "@/lib/map/mapSafety";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -74,13 +78,13 @@ export default async function TripMapPage({ params }: PageProps<"/at/[user]/trip
   // B327 — see the sibling route for why this widened past the owner. B336:
   // the solid markers and the stats block below now ask the same question,
   // rather than the bare, always-published-only calls they used to be.
-  const { read, canPublish } = await readFor(trip);
+  const { read, canPublish, owner } = await readFor(trip);
   return (
     <TripProvider trip={trip} isCurrent={false} canPublish={canPublish}>
       {/* The 404 and the redirect are above this line; see
           components/RouteSkeleton.tsx. */}
       <RouteBoundary shape="map">
-        <TripMapBody trip={trip} read={read} />
+        <TripMapBody trip={trip} read={read} owner={owner} />
       </RouteBoundary>
     </TripProvider>
   );
@@ -91,14 +95,31 @@ export default async function TripMapPage({ params }: PageProps<"/at/[user]/trip
  * the basemap framed around them. Handed only the audience the page above
  * resolved for this reader.
  */
-async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
+async function TripMapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; owner: boolean }) {
   const plan = getPlan(trip.ref, read);
   const stats = getTripStats(trip.ref, read);
-  const places = getPlaces(trip.ref, read);
   // The dates this reader is actually shown an entry for — B2202. Derivation
   // now covers every trip date regardless of publish state, so this, not the
   // file on disk, is what keeps a draft day's route off this page.
   const days = getDays(trip.ref, read);
+  const visibleDates = new Set(days.map((d) => d.date));
+  const live = await mayReadLiveTrack(trip);
+  const trackByDay =
+    readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
+      date: s.day,
+      points: s.points,
+      mode: s.mode,
+      cutBefore: s.cutBefore,
+      cutAfter: s.cutAfter,
+    })) ?? [];
+  // B-2980 — see the sibling route.
+  // A reader without live access gets nothing from a day inside the last 24 h
+  // (readerTrack's own rule): no pin, no typed place on the map.
+  const allPins = getPhotoPins(trip.ref, read, trackByDay, live);
+  const anchors = dayAnchors(days, trackByDay, allPins);
+  const places = getPlaces(trip.ref, read, anchors).filter((p) => !isTooRecent(p.firstDate, live));
+  const pins = allPins;
+  const unwritten = owner ? unwrittenRecordedDays(trip.username, trip.id, visibleDates) : undefined;
   // B1289 — this route never asked either question before this fix, so a
   // finished trip's own map page (not the bare `/map` route, which already
   // asked both) said "Where we're going" about a trip that ended years ago.
@@ -115,8 +136,6 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   const mainRegionPoints = places.length > 0 ? framePoints(places) : [];
   const basemap = basemapForRoute(mainRegionPoints.length > 0 ? mainRegionPoints : plan.stops);
   // B2536 — same resolution the bare map page makes; see its own comment.
-  const live = await mayReadLiveTrack(trip);
-  const visibleDates = new Set(days.map((d) => d.date));
   // The same filtered, freshness-checked answer `readerTrack` draws the dot
   // from below — never a raw, unfiltered `readTail()`.
   const liveTail = live ? liveTailStatus(trip.username, trip.id, visibleDates) : undefined;
@@ -127,22 +146,24 @@ async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   const streetMapRegions = isEnabled("streetMaps")
     ? (streetMapRegionFiles(trip.username, trip.id) ?? null)
     : null;
+  // The same gate the day page uses for its spend line; off means no figure reaches the client.
+  const showCosts = await mayViewCosts(trip);
+  const tripCost = showCosts ? getCostSummary(trip.ref).total : 0;
   return (
     <MapPageContent
       places={places}
-      days={getMapDays(trip.ref, read)}
+      days={getMapDays(trip.ref, read, anchors, showCosts)}
+      tripCost={tripCost > 0 ? tripCost : undefined}
+      pins={pins}
+      unwritten={unwritten}
       plan={plan.stops}
       streetMap={streetMap}
+      owner={owner}
       streetMapRegions={streetMapRegions}
       // B665, and behind `mayReadTrip` in the page above like everything
       // else here. B2537 — see the sibling route's own comment on why `day`
       // is carried through rather than dropped.
-      trackByDay={
-        readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
-          date: s.day,
-          points: s.points,
-        })) ?? []
-      }
+      trackByDay={trackByDay}
       liveTail={liveTail}
       reachedCount={plan.reachedCount}
       basemap={basemap}

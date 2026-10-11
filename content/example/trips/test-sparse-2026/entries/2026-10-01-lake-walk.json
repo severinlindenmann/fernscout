@@ -1,0 +1,30 @@
+{
+  "title": "Lake walk",
+  "date": "2026-10-01",
+  "content": "Invented sample day: one located photo, no tagged place.",
+  "media": [
+    {
+      "src": "/media/test-sparse-2026/lake-walk/01.jpg",
+      "type": "image",
+      "caption": "By the lake (sample)",
+      "width": 320,
+      "height": 213
+    }
+  ],
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in",
+    "coordinates": "invented sample, none given",
+    "location": "invented sample, none given",
+    "country": "invented sample, none given",
+    "countryCode": "invented sample, none given"
+  },
+  "status": "published"
+}

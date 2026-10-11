@@ -13,6 +13,8 @@ export interface MapControlsProps {
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onFit?: () => void;
+  /** The fit button's accessible name; absent keeps "Reset view". */
+  fitLabel?: string;
   onLayers?: () => void;
   onFullscreen?: () => void;
   /** A class on the full-screen button's own wrapper only — a caller that
@@ -114,6 +116,7 @@ export default function MapControls({
   onZoomIn,
   onZoomOut,
   onFit,
+  fitLabel,
   onLayers,
   onFullscreen,
   fullscreenClassName,
@@ -133,7 +136,7 @@ export default function MapControls({
         </ControlButton>
       )}
       {onFit && (
-        <ControlButton label={t("map.reset")} onClick={onFit}>
+        <ControlButton label={fitLabel ?? t("map.reset")} onClick={onFit}>
           <FitIcon />
         </ControlButton>
       )}

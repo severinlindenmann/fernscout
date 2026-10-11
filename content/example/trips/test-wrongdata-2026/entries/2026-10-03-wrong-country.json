@@ -1,0 +1,25 @@
+{
+  "title": "Wrong country",
+  "date": "2026-10-03",
+  "location": "Paris",
+  "country": "France",
+  "countryCode": "FR",
+  "coordinates": {
+    "lat": 48.8566,
+    "lng": 2.3522
+  },
+  "content": "Invented sample day: tagged in France on purpose, recorded in Switzerland.",
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "invented sample, none given"
+  },
+  "status": "published"
+}

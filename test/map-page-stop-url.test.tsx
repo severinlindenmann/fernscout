@@ -48,6 +48,8 @@ const street = vi.hoisted(() => ({
   getSource: vi.fn(() => ({ setData: vi.fn() })),
   getLayer: vi.fn(() => ({})),
   getZoom: vi.fn(() => 10),
+  getCenter: vi.fn(() => ({ lat: 0, lng: 0 })),
+  jumpTo: vi.fn(),
   isStyleLoaded: () => true,
   // Label-collision placement (B2560) projects each marker to a screen
   // point; a fixed, spread-out stub is enough that this test's own markers
@@ -268,7 +270,8 @@ test.each(["", "?day=2024-09-01"])("street map fits overview and restores it aft
     { date: places[0].firstDate, points: [[46.57, 8.41], [46.58, 8.42]] },
   ] });
   await act(async () => {});
-  const overview = [[8.4113, 46.5713], [8.4456, 46.7264]];
+  // The whole-trip fit holds the stops and the drawn route (B-2980), so the box reaches the route's own corner.
+  const overview = [[8.41, 46.57], [8.4456, 46.7264]];
   const first = el.querySelector('[data-street-map] button[aria-label="Furka"]') as HTMLElement;
   const second = el.querySelector('[data-street-map] button[aria-label="Susten"]') as HTMLElement;
   expect(el.querySelector('[data-street-map] button[aria-label="Far away"]')).toBeNull();
@@ -287,7 +290,8 @@ test.each(["", "?day=2024-09-01"])("street map fits overview and restores it aft
   expect(window.location.search).toBe("");
   expect(street.fitBounds.mock.lastCall?.[0]).toEqual(overview);
   expect([first.style.opacity, second.style.opacity]).toEqual(["1", "1"]);
-  expect(el.textContent).toContain(dictionaryFor("en")["map.legend.recorded"]);
+  // The always-on legend is gone (the layers popover lists only modes drawn); nothing moded here, so no button.
+  expect(el.querySelector(`button[aria-label="${dictionaryFor("en")["map.layers"]}"]`)).toBeNull();
 });
 
 const plan = places.map((p) => ({ location: p.location, country: p.country,
@@ -328,7 +332,7 @@ test("mobile list repeat-click clears the day and returns to the collapsed strip
 
 // A tour (more than three regions) within one continent gets the street map
 // too, on the same globe every trip map uses (B2618).
-test("a tour on one continent opens the street map on the globe", async () => {
+test("a tour on one continent opens the street map flat, so markers stay on the route", async () => {
   const tour = [
     place("lis", "Lisbon", "2025-02-03", 38.72, -9.14),
     place("par", "Paris", "2025-02-08", 48.86, 2.35),
@@ -338,13 +342,13 @@ test("a tour on one continent opens the street map on the globe", async () => {
   ];
   const el = render("", { streetMap, places: tour });
   await act(async () => {});
-  expect(el.querySelector("[data-street-map]")!.hasAttribute("data-globe")).toBe(true);
+  expect(el.querySelector("[data-street-map]")!.hasAttribute("data-globe")).toBe(false);
 });
 
 // A tour across continents opens the street map on a globe (B2604). Framing
 // the whole world once padded its bounds past 90° latitude and MapLibre threw
 // (world-trip-2025, 29 Sep) — the bounds are clamped inside Web Mercator's.
-test("a tour across continents opens on a globe, its bounds inside the poles", async () => {
+test("a tour across continents opens flat, its bounds inside the poles", async () => {
   const tour = [
     place("rey", "Reykjavík", "2025-02-03", 64.15, -21.94),
     place("nyc", "New York", "2025-02-08", 40.71, -74.0),
@@ -355,7 +359,7 @@ test("a tour across continents opens on a globe, its bounds inside the poles", a
   const el = render("", { streetMap, places: tour });
   await act(async () => {});
   const map = el.querySelector("[data-street-map]") as HTMLElement;
-  expect(map.hasAttribute("data-globe")).toBe(true);
+  expect(map.hasAttribute("data-globe")).toBe(false);
   const [[west, south], [east, north]] = JSON.parse(map.dataset.bounds!);
   expect(south).toBeGreaterThanOrEqual(-85);
   expect(north).toBeLessThanOrEqual(85);

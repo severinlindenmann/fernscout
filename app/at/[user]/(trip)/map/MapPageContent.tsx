@@ -1,13 +1,16 @@
 "use client";
 
 import PageHeader from "@/components/PageHeader";
+import Lightbox from "@/components/Lightbox";
+import FullPhoto from "@/components/FullPhoto";
+import type { PhotoPin } from "@/lib/map/photoPins";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
 import StreetMap from "@/components/map/StreetMap";
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard, MapPin, ArrowUp, ArrowRight } from "lucide-react";
+import { Clapperboard, MapPin, ArrowUp, BookOpen, Layers, X } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -15,10 +18,22 @@ import { isPlottable } from "@/lib/mapFrame";
 import { googleMapsHref } from "@/lib/tripMap";
 import type { Basemap } from "@/lib/basemap";
 import { ACCENT_HEX, type PlannedStop } from "@/lib/types";
-import { buildTripFrame, type MapPlace, type MapLine, type RecordedSegment } from "@/lib/map/tripFrame";
+import { buildTripFrame, linesForRegion, type MapPlace } from "@/lib/map/tripFrame";
+import { recordedSegmentsFor, type DayTrack } from "@/lib/map/recordedSegments";
+import { pinsInRegion, placeDayByDate } from "@/lib/map/mapSafety";
 import { applyStreetOverlay } from "@/lib/map/streetOverlay";
+import { boundsFor } from "@/lib/map/tripStill";
+import { legModeFromEntry, legendModes, withDeclaredLegs, type LegPattern } from "@/lib/map/legMode";
+import type { TransportMode } from "@/lib/types";
 import type { MapDay } from "@/lib/map/mapDays";
-import MobileMapSheet, { MAPS_BUTTON, READ_DAY_BUTTON } from "@/components/map/MobileMapSheet";
+import MobileMapSheet, { READ_DAY_BUTTON, SECONDARY_LINK } from "@/components/map/MobileMapSheet";
+import DayReader from "@/components/map/DayReader";
+import { adjacentDate, escapeDeselects, withDayParam, zoomControlsVisible } from "@/lib/map/dayTransition";
+import { kmByDate as kmByDateOf } from "@/lib/map/dayFacts";
+import MapControls from "@/components/map/MapControls";
+import { useWeatherText } from "@/components/map/DayFacts";
+import { usePrefetchDays } from "@/components/map/usePreload";
+import { useReducedMotion } from "motion/react";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
 import { POSTER_WIDTH } from "@/lib/mediaSizes";
 
@@ -30,72 +45,27 @@ const SlideShow = dynamic(() => import("@/components/SlideShow"), { ssr: false }
  * plain-degrees equivalent of `lib/mapFrame.ts`'s `frameRoute` for a caller
  * (the street map's own region switch) that only needs a `fitBounds` box,
  * not a latitude-corrected SVG frame. */
-function boundsFor(points: readonly { lat: number; lng: number }[]): [[number, number], [number, number]] {
-  const lats = points.map((p) => p.lat);
-  const lngs = points.map((p) => p.lng);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const padLat = Math.max((maxLat - minLat) * 0.35, 0.03);
-  const padLng = Math.max((maxLng - minLng) * 0.35, 0.03);
-  // Clamped to what Web Mercator (and a globe's fit) can take — a padded
-  // tour across continents otherwise runs past the poles (B2604).
-  return [
-    [Math.max(minLng - padLng, -180), Math.max(minLat - padLat, -85)],
-    [Math.min(maxLng + padLng, 180), Math.min(maxLat + padLat, 85)],
-  ];
+/** A short sample of a leg's line, drawn the way the map draws it. */
+function LineSwatch({ pattern }: { pattern: LegPattern }) {
+  const dash = { solid: undefined, hatch: undefined, dotted: "0.1 5", dash: "10 5", dashed: "3 4" }[pattern];
+  const colour = pattern === "dashed" ? "var(--map-leg-water)" : "var(--map-route-line)";
+  return (
+    <svg width="32" height="12" viewBox="0 0 32 12" aria-hidden className="shrink-0">
+      <line x1="2" x2="30" y1="6" y2="6" style={{ stroke: "var(--map-route-edge)" }} strokeWidth="7" strokeLinecap="round" />
+      <line x1="2" x2="30" y1="6" y2="6" style={{ stroke: colour }} strokeWidth="4" strokeLinecap={pattern === "dash" || pattern === "dashed" ? "butt" : "round"} strokeDasharray={dash} />
+      {pattern === "hatch" && <line x1="2" x2="30" y1="6" y2="6" style={{ stroke: "var(--map-route-edge)" }} strokeWidth="9" strokeDasharray="1 6" />}
+    </svg>
+  );
 }
 
-/**
- * Recorded GPS, attributed to a calendar day — B2537's own carry-through of
- * `TrackSegment.day` (`lib/gps/track.ts`), which `readerTrack` already
- * resolves but which this page used to drop on the way in, flattening every
- * segment to bare points before it ever reached here. Two segments the same
- * day are joined by a short dashed "gap" bridge — a real hole in the
- * recording (a tunnel, a dead phone, the overnight stop) — the same "a break
- * between segments is drawn as a break, never joined" fact `TrackSegment`'s
- * own doc already states, just drawn rather than left invisible.
- *
- * ponytail: no >10 min/>600 m classification (`TrackSegment` carries no
- * timestamps this page reads) — every within-day break becomes a `gap`
- * bridge regardless of size, and a break *between* two different days is
- * never bridged at all (`buildTripFrame`'s own `RecordedSegment` is
- * single-day by construction). Upgrade path: carry `TrackSegment.from`
- * through too and apply the real thresholds once that matters more than "a
- * break exists".
- */
-function recordedSegmentsFor(
-  trackByDay: readonly { date?: string; points: [number, number][] }[],
-  dayNumberByDate: ReadonlyMap<string, number>,
-): RecordedSegment[] {
-  const byDate = new Map<string, [number, number][][]>();
-  for (const seg of trackByDay) {
-    if (!seg.date || seg.points.length === 0) continue;
-    const list = byDate.get(seg.date) ?? [];
-    list.push(seg.points);
-    byDate.set(seg.date, list);
-  }
-  const out: RecordedSegment[] = [];
-  for (const [date, segs] of byDate) {
-    const day = dayNumberByDate.get(date);
-    if (day === undefined) continue;
-    segs.forEach((points, i) => {
-      if (points.length >= 2) {
-        out.push({ day, points: points.map(([lat, lng]) => ({ lat, lng })) });
-      }
-      const next = segs[i + 1];
-      if (next && points.length > 0 && next.length > 0) {
-        out.push({
-          day,
-          points: [points[points.length - 1], next[0]].map(([lat, lng]) => ({ lat, lng })),
-          gap: true,
-        });
-      }
-    });
-  }
-  return out;
-}
+/** A region file as the server hands it over (`StreetMapFile`, lib/maps/dir.ts). */
+type StreetFile = {
+  url: string;
+  bounds: [[number, number], [number, number]];
+  maxZoom?: number;
+  /** The z0–6 world file standing in for a trip with no extract of its own. */
+  world?: true;
+};
 
 export default function MapPageContent({
   places,
@@ -110,7 +80,19 @@ export default function MapPageContent({
   hasDays = false,
   streetMap = null,
   streetMapRegions = null,
+  pins: allPins = [],
+  unwritten,
+  owner = false,
+  tripCost,
 }: {
+  /** B-2980 — the trip's total spend in the base currency; present only for a viewer who may see costs. */
+  tripCost?: number;
+  /** B-2980 — the owner's own request: only they are told a trip lacks a map extract. */
+  owner?: boolean;
+  /** B-2980 — photographs at their own measured position (SVG map only). */
+  pins?: PhotoPin[];
+  /** B-2980 — owner only: recorded days that have no day yet, and their lines. */
+  unwritten?: { dates: string[]; lines: [number, number][][] };
   places: PlaceView[];
   /** Every published day this reader may see, in order — B2537, including a
    * day with no place at all (greyed in the day list/strip). Defaults to
@@ -123,7 +105,7 @@ export default function MapPageContent({
    * case the run still draws on `WorldMap`'s SVG path (which never asked for
    * a day) but cannot be attributed to a day here and is left out of the
    * street map / region / legend picture. */
-  trackByDay?: { date?: string; points: [number, number][] }[];
+  trackByDay?: DayTrack[];
   /**
    * Whether *this viewer's own request* may see the live tail, and how long
    * ago it was last derived — B2536. Resolved server-side
@@ -156,7 +138,7 @@ export default function MapPageContent({
    * tiles even when a reader switches the frame to another one — the markers
    * and bounds still move, the tiles underneath do not.
    */
-  streetMap?: { url: string; bounds: [[number, number], [number, number]] } | null;
+  streetMap?: StreetFile | null;
   /**
    * Every region file this trip has (`streetMapRegionFiles`, lib/maps/dir.ts)
    * — B2560. A region switch (`regionIndex` below) picks whichever of these
@@ -166,13 +148,15 @@ export default function MapPageContent({
    * the map then keeps showing only `streetMap`'s single file, same as
    * before this ticket.
    */
-  streetMapRegions?: { url: string; bounds: [[number, number], [number, number]] }[] | null;
+  streetMapRegions?: StreetFile[] | null;
 }) {
   const { t, tn, locale, formatShortDate } = useI18n();
   // Day permalinks hang off the trip in view — `/example/day/…` for the
   // current trip, `/example/trips/<id>/day/…` for any other.
   const trip = useTrip()?.trip;
   const href = useTrip()?.href ?? ((p: string) => p);
+  const userHref = useTrip()?.userHref ?? ((p: string) => p);
+  const tripId = trip?.id ?? "";
   // The trip's own colour on its own route (B2422) — undeclared reads as
   // no-preference (`tripAccent`, lib/trips.ts), so this map falls back to
   // navy the same way `WorldMap` itself does for a caller with no trip.
@@ -192,6 +176,14 @@ export default function MapPageContent({
   const hasPlaces = places.length > 0;
   // `WorldMap`'s own flattened shape — it never asked for a day, only points.
   const track = useMemo(() => trackByDay.map((s) => s.points), [trackByDay]);
+  // B-2980: no place to frame on, but a recorded route — frame on the route.
+  const routePoints = useMemo(
+    () => (places.length === 0 ? [...track, ...(unwritten?.lines ?? [])].flat().map(([lat, lng]) => ({ lat, lng })).concat(allPins) : []),
+    [places.length, track, unwritten, allPins],
+  );
+  const [openPins, setOpenPins] = useState<PhotoPin[] | null>(null);
+  const [pinIndex, setPinIndex] = useState(0);
+  const openPin = openPins?.[pinIndex];
 
   // The trip's own calendar-day number for every place — B2534/B2537. A
   // place's own `key` is `${location}-${firstDate}` (`getPlaces`,
@@ -208,6 +200,8 @@ export default function MapPageContent({
     if (days.length > 0) return new Map(days.map((d, i) => [d.date, i + 1] as const));
     return new Map(places.map((p, i) => [p.firstDate, i + 1] as const));
   }, [days, places]);
+  // Each date -> the day number of the place it is drawn as (a merged stay is one place, numbered by its first day).
+  const placeDayMap = useMemo(() => placeDayByDate(days, places, dayNumberByDate), [days, places, dayNumberByDate]);
   const dateByDayNumber = useMemo(
     () => new Map(Array.from(dayNumberByDate, ([date, n]) => [n, date] as const)),
     [dayNumberByDate],
@@ -237,13 +231,63 @@ export default function MapPageContent({
     [places, dayNumberByDate],
   );
   const recordedSegments = useMemo(
-    () => recordedSegmentsFor(trackByDay, dayNumberByDate),
-    [trackByDay, dayNumberByDate],
+    () => recordedSegmentsFor(trackByDay, placeDayMap),
+    [trackByDay, placeDayMap],
   );
-  const frame = useMemo(
-    () => buildTripFrame(mapPlaces, recordedSegments),
-    [mapPlaces, recordedSegments],
-  );
+  // B-2980: how each day's own entry says it travelled, by day number.
+  const declaredModes = useMemo(() => {
+    const m = new Map<number, TransportMode>();
+    for (const d of days) {
+      const mode = legModeFromEntry(d.transportMode);
+      const n = dayNumberByDate.get(d.date);
+      // Only a day that starts its place: a later day of a merged stay has no leg of its own.
+      if (mode && n && placeDayMap.get(d.date) === n) m.set(n, mode);
+    }
+    return m;
+  }, [days, dayNumberByDate, placeDayMap]);
+  const frame = useMemo(() => {
+    const built = buildTripFrame(mapPlaces, recordedSegments);
+    // A reader never gets a line that ends at a home-zone place: its real coordinates stay off the map.
+    const homeDays = new Set(mapPlaces.filter((p) => p.home).map((p) => p.day));
+    const lines = withDeclaredLegs(built.allLines, mapPlaces, declaredModes).filter(
+      (l) => l.kind === "recorded" || l.kind === "gap" || !(homeDays.has(l.fromDay) || homeDays.has(l.toDay)),
+    );
+    return { ...built, lines };
+  }, [mapPlaces, recordedSegments, declaredModes]);
+  // Literal keys so the locale scope ships them to this page.
+  const modeLabel = (mode: TransportMode): string =>
+    ({
+      flight: t("studio.day.transport.flight"),
+      train: t("studio.day.transport.train"),
+      bus: t("studio.day.transport.bus"),
+      motorbike: t("studio.day.transport.motorbike"),
+      bicycle: t("studio.day.transport.bicycle"),
+      boat: t("studio.day.transport.boat"),
+      car: t("studio.day.transport.car"),
+      taxi: t("studio.day.transport.taxi"),
+      walk: t("studio.day.transport.walk"),
+      metro: t("studio.day.transport.metro"),
+      tram: t("studio.day.transport.tram"),
+      ferry: t("studio.day.transport.ferry"),
+    })[mode];
+  // "Mode (recorded)" or "Mode (from the day)": never claim a recording that was not one.
+  const legLabel = (mode: TransportMode, source: "recorded" | "day"): string =>
+    source === "recorded"
+      ? t("map.leg.recorded", { mode: modeLabel(mode) })
+      : t("map.leg.fromDay", { mode: modeLabel(mode) });
+  // How a day travelled and who said so — the recording, or the day's own entry.
+  const transportLine = (date: string): string | undefined => {
+    const n = placeDayMap.get(date);
+    if (!n) return undefined;
+    const declared = declaredModes.get(dayNumberByDate.get(date) ?? 0);
+    if (declared) return legLabel(declared, "day");
+    const recorded = recordedSegments.find((s) => s.day === n && !s.gap && s.mode)?.mode;
+    return recorded ? legLabel(recorded, "recorded") : undefined;
+  };
+  const legLabelRef = useRef(legLabel);
+  useEffect(() => {
+    legLabelRef.current = legLabel;
+  });
 
   // Which region the map is currently framed on — the main one until a
   // reader taps another region's chip. Seeded once from `frame` at mount;
@@ -261,7 +305,19 @@ export default function MapPageContent({
   // at it (two different regions can share a day *number*, however
   // unlikely, and that guess would draw the wrong region's place — see its
   // own doc on `regionPlaces`).
-  const frameRegionPlaces = frame.isTour ? frame.framePlaces : (frame.regions[regionIndex]?.places ?? []);
+  // B-2980: the "Whole trip" chip shows every region at once, like a tour,
+  // so the flight between two of them is drawn.
+  const [wholeTrip, setWholeTrip] = useState(false);
+  const whole = frame.isTour || wholeTrip;
+  const frameRegionPlaces = useMemo(
+    () =>
+      frame.isTour
+        ? frame.framePlaces
+        : wholeTrip
+          ? frame.regions.filter((r) => !r.home).flatMap((r) => r.places)
+          : (frame.regions[regionIndex]?.places ?? []),
+    [frame.isTour, frame.framePlaces, frame.regions, regionIndex, wholeTrip],
+  );
   const regionDayNumbers = useMemo(
     () => new Set(frameRegionPlaces.map((p) => p.day)),
     [frameRegionPlaces],
@@ -271,10 +327,23 @@ export default function MapPageContent({
   // frames on whichever region is selected.
   const regionPlaces = useMemo(
     () =>
-      frame.isTour
+      // A home-zone place is a day in the list but never a marker: its real position is the owner's.
+      (whole
         ? places
-        : places.filter((p) => regionDayNumbers.has(dayNumberByDate.get(p.firstDate) ?? 1)),
-    [frame.isTour, places, regionDayNumbers, dayNumberByDate],
+        : places.filter((p) => regionDayNumbers.has(dayNumberByDate.get(p.firstDate) ?? 1))
+      ).filter((p) => !p.home),
+    [whole, places, regionDayNumbers, dayNumberByDate],
+  );
+  const overlayPlaces = useMemo(() => frameRegionPlaces.filter((p) => !p.home), [frameRegionPlaces]);
+  // Lines for the region on screen, chosen here so a region chip draws its own.
+  const regionLines = useMemo(
+    () => linesForRegion(frame.lines, regionDayNumbers, whole),
+    [frame.lines, regionDayNumbers, whole],
+  );
+  // Pins far outside the region shown (a mis-tagged photo) never stretch its frame.
+  const pins = useMemo(
+    () => (whole ? allPins : pinsInRegion(allPins, frameRegionPlaces)),
+    [whole, allPins, frameRegionPlaces],
   );
   const onMainRegion = frame.isTour || regionIndex === frame.mainRegionIndex;
 
@@ -290,7 +359,7 @@ export default function MapPageContent({
     // A tour is framed whole over the world underlay every street map
     // carries, its bounds clamped inside the poles (B2604, B2618).
     if (!streetMap) return null;
-    if (frame.isTour) return streetMap;
+    if (whole) return streetMap;
     if (!streetMapRegions || streetMapRegions.length === 0) return streetMap;
     const currentRegionPlaces = frame.regions[regionIndex]?.places ?? [];
     if (currentRegionPlaces.length === 0) return streetMap;
@@ -307,7 +376,7 @@ export default function MapPageContent({
       }
     }
     return best;
-  }, [streetMap, streetMapRegions, frame.isTour, frame.regions, regionIndex]);
+  }, [streetMap, streetMapRegions, whole, frame.regions, regionIndex]);
   // The server only ever clipped a basemap around the main region (see
   // `basemapForRoute(framePoints(places))` in the page above this
   // component) — switched onto another region, that bundle would draw the
@@ -317,8 +386,36 @@ export default function MapPageContent({
 
   const plottableInRegion = useMemo(() => regionPlaces.filter(isPlottable), [regionPlaces]);
 
+  // Where the street map frames the trip: the places where days happened, not the region
+  // file's own padded box (15 km wider, which lets a day sit on the edge).
+  const streetBounds = useMemo(
+    () =>
+      plottableInRegion.length > 0
+        ? boundsFor([...plottableInRegion, ...pins, ...regionLines.filter((l) => l.kind === "recorded").flatMap((l) => l.coords)])
+        : routePoints.length > 0
+          ? boundsFor(routePoints)
+          : plan.length > 0 && activeStreetMap?.world
+            ? boundsFor(plan)
+            : (activeStreetMap?.bounds ?? null),
+    [plottableInRegion, pins, regionLines, routePoints, plan, activeStreetMap],
+  );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sheetInset, setSheetInset] = useState(0);
+  const [layersOpen, setLayersOpen] = useState(false);
+  // The owner note is dismissed for this browser session only.
+  const [unwrittenHidden, setUnwrittenHidden] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read after hydration so server and client markup match
+      if (sessionStorage.getItem(`fs-unwritten-hidden-${tripId}`)) setUnwrittenHidden(true);
+    } catch {}
+  }, [tripId]);
+  const dismissUnwritten = () => {
+    setUnwrittenHidden(true);
+    try {
+      sessionStorage.setItem(`fs-unwritten-hidden-${tripId}`, "1");
+    } catch {}
+  };
 
   // Selects a day and carries it in the URL as `?day=<date>` (B2537 — was
   // `?stop=<key>` before this ticket, since the page now navigates by
@@ -328,20 +425,45 @@ export default function MapPageContent({
   // stack or jumps the scroll position `pushState`/a hash link would.
   const selectDay = useCallback((date: string | null) => {
     setSelectedDate(date);
-    const params = new URLSearchParams(window.location.search);
-    if (date) params.set("day", date);
-    else params.delete("day");
-    const query = params.toString();
     window.history.replaceState(
       null,
       "",
-      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+      `${window.location.pathname}${withDayParam(window.location.search, date)}${window.location.hash}`,
     );
   }, []);
 
+  // B-2980: the desktop list's own "Read this day" — the day opens in the left column, no navigation.
+  const [readingDesktop, setReadingDesktop] = useState(false);
+  const reducedMotion = Boolean(useReducedMotion());
+  const readIndex = days.findIndex((d) => d.date === selectedDate);
+  const readDay = days[readIndex];
+  const readPrev = adjacentDate(days.map((d) => d.date), selectedDate, -1);
+  const readNext = adjacentDate(days.map((d) => d.date), selectedDate, 1);
   const toggleDay = useCallback((date: string | null) => {
     selectDay(date === selectedDate ? null : date);
   }, [selectDay, selectedDate]);
+
+  // Escape unwinds one level: an open reader closes to the day card, and only then does the day deselect
+  // (anything inside that used the key — the photo viewer, the phone sheet's reader — has already claimed it).
+  useEffect(() => {
+    if (selectedDate === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!escapeDeselects(selectedDate, e.key, e.defaultPrevented)) return;
+      if (readingDesktop) setReadingDesktop(false);
+      else selectDay(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedDate, selectDay, readingDesktop]);
+
+  // Warm the selected day's story, its neighbours' and the first photographs, so "Read the day" opens at once.
+  const galleryOf = (i: number) =>
+    days[i] ? places.flatMap((p) => p.entries).filter((e) => e.date === days[i].date).flatMap((e) => e.gallery ?? []) : [];
+  usePrefetchDays(readIndex, days.length, galleryOf);
+  const kmByDate = useMemo(() => kmByDateOf(trackByDay), [trackByDay]);
+  const selectedWeather = useWeatherText(readDay?.weather);
+  const weatherChip = selectedWeather?.chip;
+  const weatherLabel = selectedWeather?.label;
 
   const [dayParam] = useState<string | null>(() =>
     typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("day"),
@@ -371,7 +493,16 @@ export default function MapPageContent({
   );
   const selectedDayNumber = selectedPlace ? (dayNumberByDate.get(selectedPlace.firstDate) ?? null) : null;
 
+  // A day in another region brings that region's camera and lines with it.
+  useEffect(() => {
+    if (selectedDayNumber === null || whole || regionDayNumbers.has(selectedDayNumber)) return;
+    const i = frame.regions.findIndex((r) => !r.home && r.places.some((p) => p.day === selectedDayNumber));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (i >= 0) setRegionIndex(i);
+  }, [selectedDayNumber, whole, regionDayNumbers, frame.regions]);
+
   const pastTense = over && hasDays;
+  const hasContent = hasPlaces || plan.length > 0 || track.length > 0 || routePoints.length > 0 || pins.length > 0;
   // WorldMap draws from the last reached stop onward, and needs two
   // stops for a leg. StreetMap currently draws no planned legs.
   const lastReached = plan.findLastIndex((stop) => stop.reached);
@@ -399,25 +530,16 @@ export default function MapPageContent({
     );
   };
 
-  // Which line kinds are actually drawn on the *street map* right now —
-  // "Legend shows only what is drawn." Only the street map draws tripFrame's
-  // own line vocabulary (recorded/gap/photo-join/flight); `WorldMap`'s SVG
-  // path keeps its existing accent hop-lines with transport-mode chips
-  // (see the ceiling noted on `recordedSegmentsFor`'s own doc), which this
-  // legend would misdescribe, so it is street-map only. Flights are
-  // overview-only and only ever shown when nothing is selected.
-  const linesShown = useMemo(() => {
-    const inRegion = frame.isTour
-      ? frame.lines
-      : frame.lines.filter((l) => regionDayNumbers.has(l.fromDay) || regionDayNumbers.has(l.toDay));
-    if (selectedDayNumber === null) return inRegion;
-    return inRegion.filter(
-      (l) => l.kind !== "flight" && (l.fromDay === selectedDayNumber || l.toDay === selectedDayNumber),
-    );
-  }, [frame.isTour, frame.lines, regionDayNumbers, selectedDayNumber]);
-  const lineKindsShown = useMemo(() => new Set(linesShown.map((l: MapLine) => l.kind)), [linesShown]);
+  // The legend lists every mode the WHOLE trip travelled by (recorded and declared legs on
+  // every day) and marks the ones the selected day used — selecting a day never shrinks it.
+  const modesShown = useMemo(() => legendModes(frame.lines, selectedDayNumber), [frame.lines, selectedDayNumber]);
 
-  const regionChips = onMainRegion ? frame.chips : [];
+  const regionChips = onMainRegion && !wholeTrip ? frame.chips : [];
+  // B-2980: with two or more real regions there is a way back out to all of
+  // them, and a way over to any one of them from wherever the camera is.
+  const switchRegions = frame.isTour ? [] : frame.regions.flatMap((r, i) => (r.home ? [] : [{ r, i }]));
+  const multiRegion = switchRegions.length > 1;
+  const showSwitchers = multiRegion && (wholeTrip || !onMainRegion);
 
   // The street map itself — a live `maplibregl.Map`, drawn onto imperatively
   // by `applyStreetOverlay` rather than through JSX. A day selected re-runs
@@ -438,6 +560,7 @@ export default function MapPageContent({
   // instances bound to that now-removed map — `streetMarkersRef` is cleared
   // on every ready too, or a later redraw would reuse one whose `setLngLat`
   // on the new map silently does nothing.
+  const pinLabel = t("map.photoPin");
   const streetMarkersRef = useRef<Map<number, MapLibreMarker>>(new Map());
   const [streetMapInstance, setStreetMapInstance] = useState<MapLibreMap | null>(null);
   const onStreetMapReady = useCallback((map: MapLibreMap) => {
@@ -456,10 +579,23 @@ export default function MapPageContent({
       map,
       {
         frame,
+        whole: wholeTrip,
         regionDayNumbers,
-        regionPlaces: frameRegionPlaces,
+        regionPlaces: overlayPlaces,
         selectedDay: selectedDayNumber,
         accentHex: ACCENT_HEX[accent],
+        pins,
+        pinLabel,
+        unwrittenLines: unwritten?.lines,
+        legLabel: (m, src) => legLabelRef.current(m, src),
+        weather:
+          weatherChip && weatherLabel && selectedDayNumber !== null
+            ? { day: selectedDayNumber, chip: weatherChip, label: weatherLabel }
+            : undefined,
+        onOpenPins: (group) => {
+          setPinIndex(0);
+          setOpenPins(group);
+        },
         onSelectDay: (day) => {
           const date = dateByDayNumber.get(day);
           if (date) toggleDay(date);
@@ -468,10 +604,9 @@ export default function MapPageContent({
         // sheet's own peek height below — `sheetInset` is 0 on desktop and
         // wherever nothing covers the map, same value `WorldMap` already
         // frames around.
-        // The bottom also clears the legend row and the town label drawn
-        // under each marker, or the southernmost day sits under them.
-        // `sheetInset` itself is already the map's own padding (above).
-        padding: { top: 80, bottom: 96, left: 56, right: 56 },
+        // sheetInset is already the map's own bottom padding (setPadding above) and
+        // fitBounds adds to it, so only the 24px margin goes here.
+        padding: { top: 72, bottom: 24, left: 24, right: 24 },
       },
       streetMarkersRef.current,
     );
@@ -482,13 +617,20 @@ export default function MapPageContent({
   }, [
     streetMapInstance,
     frame,
+    wholeTrip,
     regionDayNumbers,
-    frameRegionPlaces,
+    overlayPlaces,
     selectedDayNumber,
     accent,
     dateByDayNumber,
     toggleDay,
     sheetInset,
+    pins,
+    unwritten,
+    pinLabel,
+    declaredModes,
+    weatherChip,
+    weatherLabel,
   ]);
 
   return (
@@ -501,7 +643,7 @@ export default function MapPageContent({
           status (B2536), in one row right under the header. Visible at
           every width: on a phone this *is* "a small header chip row" over
           the full-bleed map below; on desktop it sits atop the day list. */}
-      {(regionChips.length > 0 || liveTail) && hasPlaces && (
+      {(regionChips.length > 0 || multiRegion || liveTail || selectedDate !== null) && hasPlaces && (
         <div
           role="list"
           aria-label={t("map.regions")}
@@ -524,12 +666,19 @@ export default function MapPageContent({
                 type="button"
                 role="listitem"
                 disabled={!clickable}
-                onClick={clickable ? () => setRegionIndex(targetRegionIndex) : undefined}
+                onClick={
+                  clickable
+                    ? () => {
+                        selectDay(null);
+                        setRegionIndex(targetRegionIndex);
+                      }
+                    : undefined
+                }
                 className="flex items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-body disabled:cursor-default"
               >
                 <ArrowUp
                   className="h-3 w-3 shrink-0"
-                  style={{ transform: `rotate(${chip.bearingDeg}deg)` }}
+                  style={{ transform: `rotate(${Math.round(chip.bearingDeg)}deg)` }}
                   aria-hidden
                 />
                 {chip.label}
@@ -537,6 +686,24 @@ export default function MapPageContent({
               </button>
             );
           })}
+          {showSwitchers &&
+            switchRegions.map(({ r, i }) => (
+              <button
+                key={`switch-${i}`}
+                type="button"
+                role="listitem"
+                aria-current={!wholeTrip && i === regionIndex ? "true" : undefined}
+                onClick={() => {
+                  selectDay(null);
+                  setWholeTrip(false);
+                  setRegionIndex(i);
+                }}
+                className="flex items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-body aria-[current=true]:border-line-prominent aria-[current=true]:bg-surface-selected"
+              >
+                {r.places[0].name}
+                {r.days ? ` · ${r.days} ${tn("map.days", r.days)}` : ""}
+              </button>
+            ))}
         </div>
       )}
 
@@ -552,6 +719,24 @@ export default function MapPageContent({
           aria-label={days.length > 0 ? t("map.everyDay") : undefined}
           className="hidden min-h-0 flex-col overflow-y-auto border-r border-line-quiet bg-surface-subtle lg:flex"
         >
+          {readingDesktop && readDay ? (
+            <DayReader
+              day={readDay}
+              index={readIndex}
+              count={days.length}
+              transportLine={transportLine(readDay.date)}
+              pageHref={href(`/day/${readDay.slug}`)}
+              dir={0}
+              reduced={reducedMotion}
+              onPrev={readPrev ? () => selectDay(readPrev) : undefined}
+              onNext={readNext ? () => selectDay(readNext) : undefined}
+              onClose={() => setReadingDesktop(false)}
+              km={kmByDate.get(readDay.date)}
+              tripCost={tripCost}
+              className="min-h-0 flex-1 px-4 pt-3"
+            />
+          ) : (
+            <>
           <div className="shrink-0 border-b border-line-quiet px-4 py-3">
             <h1 className="font-display text-base font-semibold text-ink-strong">
               {t(pastTense ? "map.title" : "map.titlePlanned")}
@@ -669,11 +854,24 @@ export default function MapPageContent({
                           </div>
                         )}
                         <div className="flex flex-wrap gap-2">
-                          <a href={href(`/day/${place.entries[0].slug}`)} className={READ_DAY_BUTTON}>
-                            {t("map.readDay")}
-                            <ArrowRight className="h-4 w-4" aria-hidden />
-                          </a>
-                          <a href={googleMapsHref(place)} target="_blank" rel="noreferrer" className={MAPS_BUTTON}>
+                          <button type="button" onClick={() => setReadingDesktop(true)} className={READ_DAY_BUTTON}>
+                            {t("map.readTheDay")}
+                            <BookOpen className="h-4 w-4" aria-hidden />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStartDate(day.date);
+                              setShowing(true);
+                            }}
+                            className={SECONDARY_LINK}
+                          >
+                            <Clapperboard className="h-4 w-4" aria-hidden />
+                            {t("show.start")}
+                          </button>
+                          <a href={googleMapsHref(place)} target="_blank" rel="noreferrer" className={SECONDARY_LINK}>
                             <MapPin className="h-4 w-4" aria-hidden />
                             {t("map.googleMapsShort")}
                           </a>
@@ -697,7 +895,7 @@ export default function MapPageContent({
                         y1="3"
                         x2="20"
                         y2="3"
-                        stroke="#5a6a80"
+                        style={{ stroke: "var(--map-leg-muted)" }}
                         strokeWidth="1.6"
                         strokeDasharray="5 4"
                         opacity="0.6"
@@ -736,24 +934,29 @@ export default function MapPageContent({
               )}
             </div>
           )}
+            </>
+          )}
         </section>
 
         {/* The map — full-bleed under the info row, on every width. */}
         <div className="relative h-full min-h-0">
-          {activeStreetMap ? (
+          {activeStreetMap && (!activeStreetMap.world || hasContent) ? (
             <StreetMap
-              // The places where days happened, not the region file's own padded
-              // box — that box is 15 km wider and lets a day sit on the edge.
-              bounds={plottableInRegion.length > 0 ? boundsFor(plottableInRegion) : activeStreetMap.bounds}
+              bounds={streetBounds ?? activeStreetMap.bounds}
+              zoomControl={false}
               // Clear of the header chips above and the legend (and, on a
               // phone, the day sheet) below.
-              padding={{ top: 70, bottom: sheetInset + 56, left: 40, right: 40 }}
+              padding={{ top: 72, bottom: sheetInset + 24, left: 24, right: 24 }}
               pmtilesUrl={activeStreetMap.url}
+              maxZoom={activeStreetMap.maxZoom}
               onReady={onStreetMapReady}
-              globe
+              // Flat, not the globe: MapLibre places HTML markers (stops, photo pins,
+              // chips) with a different projection than the GPU-drawn lines when zoomed
+              // out on a globe, so they drift off the route until you zoom in (B-2980).
+              // The globe returns when those markers are drawn by the GPU as well.
               className="h-full w-full"
             />
-          ) : hasPlaces || plan.length > 0 || track.length > 0 ? (
+          ) : hasContent ? (
             <WorldMap
               places={regionPlaces}
               plan={plan}
@@ -769,6 +972,13 @@ export default function MapPageContent({
               showStopCard={false}
               showTimeScrubber={false}
               dayNumbers={dayNumbers}
+              frameHint={routePoints}
+              pins={pins}
+              mutedTrack={unwritten?.lines}
+              onOpenPins={(group) => {
+                setPinIndex(0);
+                setOpenPins(group);
+              }}
             />
           ) : (
             <p className="flex h-full items-center justify-center p-6 text-center text-ink-secondary">
@@ -776,14 +986,82 @@ export default function MapPageContent({
             </p>
           )}
 
-          {/* "Legend shows only what is drawn" — the street map's own line
-              vocabulary only; see `linesShown`'s own doc for why. */}
-          {streetMap && hasPlaces && lineKindsShown.size > 0 && (
-            <div className="absolute inset-x-3 bottom-[130px] z-10 flex flex-wrap gap-x-3 gap-y-1 rounded-full bg-surface-raised/90 px-3 py-1.5 text-xs text-ink-secondary shadow-sm backdrop-blur lg:bottom-3">
-              {lineKindsShown.has("recorded") && <span>— {t("map.legend.recorded")}</span>}
-              {lineKindsShown.has("gap") && <span>┄ {t("map.legend.gap")}</span>}
-              {lineKindsShown.has("photo-join") && <span>┄ {t("map.legend.photoJoin")}</span>}
-              {lineKindsShown.has("flight") && <span>⋯ {t("map.legend.flight")}</span>}
+      {owner && activeStreetMap?.world && hasContent && (
+        <p
+          className={`absolute left-3 z-10 max-w-[calc(100%-76px)] rounded-full border border-line-quiet bg-surface-raised/95 px-3 py-1.5 text-xs text-ink-secondary shadow-sm backdrop-blur ${
+            unwritten && unwritten.dates.length > 0 && !unwrittenHidden ? "top-14" : "top-3"
+          }`}
+        >
+          {t("map.worldOnlyHint")}
+        </p>
+      )}
+
+      {unwritten && unwritten.dates.length > 0 && !unwrittenHidden && (
+        <aside className="absolute left-3 top-3 z-10 flex h-8 max-w-[calc(100%-76px)] items-center gap-2 rounded-full border border-line-quiet bg-surface-raised/95 pl-3 pr-1 text-xs text-ink-body shadow-sm backdrop-blur">
+          <p className="min-w-0 truncate">
+            {tn("map.unwritten", unwritten.dates.length, { n: String(unwritten.dates.length) })}
+            {" · "}
+            <a
+              href={`${userHref("/studio/day/new")}?trip=${encodeURIComponent(tripId)}&date=${unwritten.dates[0]}`}
+              className="underline decoration-line-quiet underline-offset-2"
+            >
+              {formatShortDate(unwritten.dates[0])} · {t("map.unwritten.write")}
+            </a>
+          </p>
+          <button
+            type="button"
+            aria-label={t("map.unwritten.dismiss")}
+            onClick={dismissUnwritten}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-surface-muted"
+          >
+            <X size={14} aria-hidden />
+          </button>
+        </aside>
+      )}
+
+          {/* Big round zoom buttons on the right edge, in the thumb zone, riding above the sheet at every
+              snap (the sheet's own inset); stepping aside when the reader fills the screen. */}
+          {streetMapInstance && activeStreetMap && zoomControlsVisible(sheetInset, typeof window === "undefined" ? 0 : window.innerHeight) && (
+            <div className="absolute right-3 z-10" style={{ bottom: sheetInset + 12 }}>
+              <MapControls
+                onZoomIn={() => streetMapInstance.zoomIn()}
+                onZoomOut={() => streetMapInstance.zoomOut()}
+                fitLabel={t("map.wholeTrip")}
+                onFit={() => {
+                  // Deselect the day, close the reader, and frame every region (the former Whole trip chip).
+                  const hadDay = selectedDate !== null;
+                  setReadingDesktop(false);
+                  selectDay(null);
+                  if (multiRegion && !wholeTrip) setWholeTrip(true);
+                  else if (!hadDay && streetBounds) streetMapInstance.fitBounds(streetBounds, { padding: { top: 72, bottom: 24, left: 24, right: 24 }, duration: reducedMotion ? 0 : 500 });
+                }}
+              />
+            </div>
+          )}
+
+          {/* "Legend shows only what is drawn": one small button, a popover of every mode the trip travelled by. */}
+          {streetMap && hasPlaces && modesShown.length > 0 && (
+            <div className="absolute right-3 top-3 z-10">
+              <button
+                type="button"
+                aria-label={t("map.layers")}
+                aria-expanded={layersOpen}
+                onClick={() => setLayersOpen((o) => !o)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line-quiet bg-surface-raised text-ink-strong shadow-md"
+              >
+                <Layers size={18} aria-hidden />
+              </button>
+              {layersOpen && (
+                <ul className="absolute right-0 mt-2 w-48 rounded-xl border border-line-quiet bg-surface-raised p-3 text-xs text-ink-body shadow-md">
+                  {modesShown.map(({ mode, pattern, selected }) => (
+                    <li key={mode} className={`flex items-center gap-2 py-1${selected ? " font-bold text-ink-strong" : ""}`}>
+                      <LineSwatch pattern={pattern} />
+                      {modeLabel(mode)}
+                      {selected && <span aria-hidden className="ml-auto h-1.5 w-1.5 rounded-full bg-ink-strong" />}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </div>
@@ -796,9 +1074,27 @@ export default function MapPageContent({
           stats={stats}
           startDate={startDate}
           basemap={basemap}
-          streetMapUrl={streetMap?.url ?? null}
+          // The z0–6 world file has no street to fly through: the slideshow keeps its own cut.
+          streetMapUrl={streetMap && !streetMap.world ? streetMap.url : null}
         />
       )}
+
+      <Lightbox
+        index={openPins ? pinIndex : null}
+        count={openPins?.length ?? 0}
+        onClose={() => setOpenPins(null)}
+        onPrev={() => setPinIndex((i) => (i - 1 + (openPins?.length ?? 1)) % (openPins?.length ?? 1))}
+        onNext={() => setPinIndex((i) => (i + 1) % (openPins?.length ?? 1))}
+      >
+        {openPin && (
+          <>
+            <FullPhoto item={openPin.item} />
+            {openPin.item.caption && (
+              <p className="mt-3 text-center font-display text-sm italic text-overlay-ink/85">{openPin.item.caption}</p>
+            )}
+          </>
+        )}
+      </Lightbox>
 
       <MobileMapSheet
         days={days}
@@ -806,6 +1102,9 @@ export default function MapPageContent({
         selectedDate={selectedDate}
         onSelectDate={toggleDay}
         onInsetChange={setSheetInset}
+        kmByDate={kmByDate}
+        tripCost={tripCost}
+        transportLine={transportLine}
         hrefForDay={(slug) => href(`/day/${slug}`)}
         onPlay={
           hasPlaces

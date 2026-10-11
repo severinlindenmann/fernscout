@@ -1,3 +1,4 @@
+import type { TransportMode } from "../types";
 import { kmBetween, type Point } from "../mapFrame";
 
 /**
@@ -52,6 +53,8 @@ export type RecordedSegment = {
   day: number;
   points: Point[];
   gap?: boolean;
+  /** B-2980: how this run was recorded, when the recording says. */
+  mode?: TransportMode;
 };
 
 type Region = {
@@ -96,6 +99,10 @@ export type MapLine = {
    * "for overviews only". `linesForDay` already leaves these out; this is
    * for a caller building its own selection instead. */
   overviewOnly?: boolean;
+  /** B-2980: how the leg was travelled, and who said so: the recording, or
+   * the later day's own entry. Absent when nobody did. */
+  mode?: TransportMode;
+  modeSource?: "recorded" | "day";
 };
 
 export type TripFrame = {
@@ -109,7 +116,10 @@ export type TripFrame = {
    * module does not duplicate that geometry. */
   framePlaces: MapPlace[];
   chips: Chip[];
+  /** Lines for the main region (or the whole tour) — what the print card draws. */
   lines: MapLine[];
+  /** B-2980: every line, unfiltered, for a map that switches region at render time (`linesForRegion`). */
+  allLines: MapLine[];
 };
 
 /** Two places closer than this are the same region (single-linkage). */
@@ -142,7 +152,9 @@ export function buildTripFrame(
   // list, a chip row) reads an empty result the same way it already reads
   // "no places": nothing to draw.
   if (places.length === 0) {
-    return { regions: [], mainRegionIndex: 0, isTour: false, framePlaces: [], chips: [], lines: [] };
+    // The recording is still a route (B-2980): no places to frame, but the
+    // recorded lines stay so the map can be fit to them.
+    return { regions: [], mainRegionIndex: 0, isTour: false, framePlaces: [], chips: [], lines: recordedLines(recorded), allLines: recordedLines(recorded) };
   }
 
   // "Anything inside the home zone reads Home in every list, strip, chip and
@@ -184,20 +196,23 @@ export function buildTripFrame(
 
   const regionOf = regionFinder(regions);
   const tracked = opts.tracked ?? recorded.length > 0;
-  const rawLines = tracked ? recordedLines(recorded) : photoJoinLines(all);
-  const withFlights = rawLines.map((line) => toFlightIfFar(line, regionOf));
+  const joins = photoJoinLines(all).map((line) => toFlightIfFar(line, regionOf));
+  // Recorded coordinates are kept as recorded — never turned into an arc (B-2980).
+  const withFlights = tracked ? recordedLines(recorded) : joins;
   // A recording rarely spans the flight itself (B2618): on a tracked trip the
-  // joins between days still draw, but only the ones far enough to be flights.
+  // joins between days still draw where they are flights, and where neither
+  // day has a recording of its own (a day on photos only).
   if (tracked) {
+    const recordedDays = new Set(recorded.filter((s) => s.points.length >= 2).map((s) => s.day));
     withFlights.push(
-      ...photoJoinLines(all).map((line) => toFlightIfFar(line, regionOf)).filter((line) => line.kind === "flight"),
+      ...joins.filter((line) => line.kind === "flight" || (!recordedDays.has(line.fromDay) && !recordedDays.has(line.toDay))),
     );
   }
   // "Legs that leave the region shown are not drawn inside it; the chip
   // stands for them" — a single-region view only, never a tour.
   const lines = isTour ? withFlights : withFlights.filter((line) => bothEndsIn(line, regionOf, mainRegionIndex));
 
-  return { regions, mainRegionIndex, isTour, framePlaces, chips, lines };
+  return { regions, mainRegionIndex, isTour, framePlaces, chips, lines, allLines: withFlights };
 }
 
 /** A `MapPlace`'s identity for set membership — day number is unique per
@@ -288,6 +303,7 @@ function recordedLines(recorded: readonly RecordedSegment[]): MapLine[] {
       fromDay: s.day,
       toDay: s.day,
       coords: s.points,
+      ...(s.mode && !s.gap ? { mode: s.mode, modeSource: "recorded" as const } : {}),
     }));
 }
 
@@ -325,7 +341,10 @@ function photoJoinLines(places: readonly MapPlace[]): MapLine[] {
 function toFlightIfFar(line: MapLine, regionOf: (p: Point) => number): MapLine {
   const a = line.coords[0];
   const b = line.coords[line.coords.length - 1];
-  const far = kmBetween(a, b) > FLIGHT_KM || regionOf(a) !== regionOf(b);
+  // A point in no region (-1) is unknown, not "another region" — only two different known regions make a flight.
+  const ra = regionOf(a);
+  const rb = regionOf(b);
+  const far = kmBetween(a, b) > FLIGHT_KM || (ra !== rb && ra >= 0 && rb >= 0);
   if (!far) return line;
   return {
     kind: "flight",
@@ -399,4 +418,14 @@ export function framePoints<P extends Point>(points: readonly P[]): P[] {
  * still answers "is this day's place" correctly. */
 export function placesForDay(frame: TripFrame, day: number): MapPlace[] {
   return frame.framePlaces.filter((p) => p.day === day);
+}
+
+/**
+ * B-2980: the lines a map shows for the region it is framed on, chosen when it
+ * draws rather than once for the main region. A tour (or a trip with no
+ * places) keeps everything; otherwise both ends must be in the region's days.
+ */
+export function linesForRegion(lines: readonly MapLine[], regionDays: ReadonlySet<number>, whole: boolean): MapLine[] {
+  if (whole || regionDays.size === 0) return [...lines];
+  return lines.filter((l) => regionDays.has(l.fromDay) && regionDays.has(l.toDay));
 }

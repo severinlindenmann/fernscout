@@ -16,6 +16,8 @@ import { useMapViewport } from "./map/useMapViewport";
 import { mapAccent, mapStyle } from "@/lib/map/style";
 import StopMarker from "./map/StopMarker";
 import ClusterMarker from "./map/ClusterMarker";
+import PhotoPins from "./map/PhotoPins";
+import type { PhotoPin } from "@/lib/map/photoPins";
 import HereNow from "./map/HereNow";
 import RouteLine from "./map/RouteLine";
 import PlannedLine from "./map/PlannedLine";
@@ -110,6 +112,9 @@ export default function WorldMap({
   bottomInset = 0,
   showTimeScrubber = true,
   dayNumbers,
+  pins = [],
+  mutedTrack = [],
+  onOpenPins,
   frameHint,
 }: {
   places: PlaceView[];
@@ -200,6 +205,11 @@ export default function WorldMap({
    * to `frameRoute([])`, the whole world, for one dot's worth of a day
    * (D4). Draws no markers — only `base`/`focus` read it. */
   frameHint?: readonly { lat: number; lng: number }[];
+  /** B-2980 — photographs at their own measured position, and what a tap on one opens. */
+  pins?: PhotoPin[];
+  /** B-2980 — owner only: recorded days with no day yet, drawn muted under the route. */
+  mutedTrack?: [number, number][][];
+  onOpenPins?: (group: PhotoPin[]) => void;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -805,6 +815,19 @@ export default function WorldMap({
               nobody wrote up — must not be able to zoom the whole map out to
               fit itself. The viewBox clips whatever falls outside, which is
               the right answer for a line that is texture rather than record. */}
+          {mutedTrack.length > 0 && (
+            <g aria-hidden="true" pointerEvents="none" fill="none" strokeLinecap="round" strokeLinejoin="round" opacity={0.45}>
+              {mutedTrack.map((segment, i) => (
+                <path
+                  key={i}
+                  d={segment.map(([lat, lon], j) => `${j === 0 ? "M" : "L"}${placeIn(base, { lat, lng: lon }).join(",")}`).join(" ")}
+                  stroke="#8a95a5"
+                  strokeWidth={px(3)}
+                  strokeDasharray={`${px(6)} ${px(4)}`}
+                />
+              ))}
+            </g>
+          )}
           {track.length > 0 && (
             <g aria-hidden="true" pointerEvents="none" fill="none" strokeLinecap="round" strokeLinejoin="round">
               {track.map((segment, i) => (
@@ -942,6 +965,8 @@ export default function WorldMap({
               </g>
             );
           })}
+
+          {pins.length > 0 && onOpenPins && <PhotoPins pins={pins} base={base} px={px} onOpen={onOpenPins} />}
 
           {hereNow && (() => {
             const [x, y] = placeIn(base, hereNow);

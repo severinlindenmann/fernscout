@@ -193,6 +193,12 @@ describe("recorded segments — a tracked trip", () => {
     expect(frame.lines.filter((l) => l.kind !== "flight").map((l) => l.kind).sort()).toEqual(["gap", "recorded"]);
   });
 
+  test("no plottable places still returns the recorded lines (B-2980)", () => {
+    const frame = buildTripFrame([], recorded);
+    expect(frame.framePlaces).toEqual([]);
+    expect(frame.lines.map((l) => l.kind).sort()).toEqual(["gap", "recorded"]);
+  });
+
   test("recorded lines keep their own kind, gap included", () => {
     const frame = buildTripFrame(trip, recorded);
     expect(frame.lines.map((l) => l.kind).sort()).toEqual(["gap", "recorded"]);

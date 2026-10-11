@@ -4,6 +4,7 @@ import { MEDIA_WIDTHS, POSTER_WIDTH } from "@/lib/mediaSizes";
 import { posterSrc } from "./mediaLoader";
 import type { GalleryItem } from "@/lib/types";
 import { usePhotoReveal } from "./PhotoFrame";
+import { pauseOthers } from "@/lib/mediaPreload";
 
 /**
  * The picture inside an open viewer, at whatever size the browser wants.
@@ -47,7 +48,9 @@ export default function FullPhoto({ item }: { item: GalleryItem }) {
         preload="metadata"
         className="max-h-[78vh] w-full rounded-lg"
         controls
-        autoPlay
+        playsInline
+        // Poster first; the viewer plays on a tap, never by itself (and so never with sound unasked).
+        onPlay={(e) => pauseOthers(e.currentTarget, document.querySelectorAll("video"))}
       />
     );
   }

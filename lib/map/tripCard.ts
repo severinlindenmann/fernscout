@@ -1,9 +1,12 @@
 import "server-only";
 import { readerTrack } from "../gps/track";
-import { kmBetween } from "../mapFrame";
+import { frameRoute, kmBetween } from "../mapFrame";
 import type { DaySummary, Trip } from "../types";
 import { tripCardSvg, dayCardSvg, hasStreetRegion, type CardResult, type Scheme } from "./cardSvg";
-import type { MapPlace, RecordedSegment } from "./tripFrame";
+import type { StillData } from "./tripStill";
+import { isEnabled } from "../capabilities";
+import { primaryStreetMap } from "../maps/dir";
+import { buildTripFrame, framePoints, type MapPlace, type RecordedSegment } from "./tripFrame";
 
 export type { Scheme } from "./cardSvg";
 
@@ -36,6 +39,10 @@ export type CardMeta = {
    * trip-wide one, `"?day=<date>"` for a single day's. Append to
    * `<trip base>/card.svg`. */
   query: string;
+  /** B-2980: the same places and recorded line the SVG is drawn from, plus the
+   * map file the map page opens, for the non-interactive MapLibre still.
+   * `null` with streetMaps off or no file at all — the SVG card stays. */
+  still: StillData | null;
 };
 
 function totalKm(recorded: readonly RecordedSegment[]): number {
@@ -174,14 +181,24 @@ export async function dayCardFor(
   return { card, recordedKm: totalKm(recorded.filter((s) => s.day === day)) };
 }
 
+function aspectOf(places: MapPlace[], recorded: RecordedSegment[]): number {
+  const f = frameRoute(buildTripFrame(places, recorded).framePlaces);
+  return f.w / f.h;
+}
+
 /** `tripCardFor` without the render — a page's own use (the facts line, the
  * credit line, the `<img src>` to point at) never needs the SVG itself. */
 export function tripCardMeta(trip: Trip, index: readonly DaySummary[]): CardMeta | null {
-  if (placesFrom(index).length === 0) return null;
+  const places = placesFrom(index);
+  if (places.length === 0) return null;
+  const recorded = recordedFrom(trip, index);
+  const file = isEnabled("streetMaps") ? primaryStreetMap(trip.username, trip.id, framePoints(places)) : undefined;
   return {
-    recordedKm: totalKm(recordedFrom(trip, index)),
+    recordedKm: totalKm(recorded),
     usedStreet: hasStreetRegion(trip.username, trip.id),
     query: "",
+    // The SVG card's own box (`tripCardSvg`), so the swap changes no layout.
+    still: file ? { places, recorded, file, aspect: aspectOf(places, recorded) } : null,
   };
 }
 

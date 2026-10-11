@@ -1,0 +1,29 @@
+{
+  "id": "test-privacy-2026",
+  "title": "Hidden spot (sample)",
+  "tagline": "Invented, a stretch the owner hid",
+  "dates": {
+    "from": "2026-10-01",
+    "to": "2026-10-03"
+  },
+  "visibility": "guest",
+  "listed": false,
+  "test": true,
+  "accent": "yellow",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    }
+  ],
+  "intro": "Nobody hid anything here. A day on a spot the owner cut out, to see readers get a break in the line and no marker.",
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "plan": "nothing planned",
+    "cover": "no cover on this sample",
+    "figures": "nobody to draw",
+    "translations": "a sample does not need translating"
+  }
+}

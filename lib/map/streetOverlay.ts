@@ -1,5 +1,15 @@
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
-import type { MapLine, MapPlace, TripFrame } from "./tripFrame";
+import { linesForRegion, type MapLine, type MapPlace, type TripFrame } from "./tripFrame";
+import type { PhotoPin } from "./photoPins";
+import { groupByScreen } from "./pinGroups";
+import { chipRedundant, legPattern, longestSegmentMid, placeChips, type LegPattern } from "./legMode";
+import type { TransportMode } from "../types";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Bike, Bus, Car, Footprints, Plane, Ship, TrainFront, TramFront } from "lucide-react";
+import { mediaLoader } from "@/components/mediaLoader";
+import { haversineKm, planCamera, REGION_FLIGHT_KM, viewTravels } from "./dayTransition";
+import type { Point } from "../mapFrame";
 
 /**
  * Draws a trip onto a live `StreetMap` (B2535) using B2534's own rules — the
@@ -20,8 +30,106 @@ import type { MapLine, MapPlace, TripFrame } from "./tripFrame";
  * on top of the one street the selected day is about, hides them outright.
  */
 
-const MUTED_COLOUR = "#5a6a80";
 const CASING_COLOUR = "#ffffff";
+/**
+ * B-2980: the line colours, read from the map tokens in globals.css when the
+ * layers are made. MapLibre paint cannot take `var()`, so a scheme change
+ * (StreetMap's `setStyle`) drops the layers and `style.load` draws them again
+ * from the tokens of the scheme now showing. The recorded route is the brand
+ * yellow on a navy casing. The literals are only the fallback outside a page.
+ */
+function palette() {
+  const cs = typeof document !== "undefined" ? getComputedStyle(document.documentElement) : null;
+  const tok = (name: string, fallback: string) => cs?.getPropertyValue(name).trim() || fallback;
+  return {
+    yellow: tok("--map-route-line", "#ffd23f"),
+    edge: tok("--map-route-edge", "#16305c"),
+    muted: tok("--map-leg-muted", "#5a6a80"),
+    join: tok("--map-leg-join", "#8a95a5"),
+    water: tok("--map-leg-water", "#4aa3df"),
+  };
+}
+/** Pins closer than this on screen become one badge; also the 44px tap target. */
+const PIN_CLUSTER_PX = 44;
+
+/** A chip only sits on a leg longer than this on screen. */
+const CHIP_MIN_LEG_PX = 80;
+
+/** B-2980: a mode chip is 22px; two closer than this, or one this close to a stop or pin, is dropped. */
+const CHIP_CLEAR_PX = 34;
+/** Stops closer than this on screen share one disc with a count badge. */
+const STOP_CLUSTER_PX = 24;
+const MODE_ICON = {
+  walk: Footprints, bicycle: Bike, car: Car, taxi: Car, motorbike: Car, bus: Bus,
+  train: TrainFront, metro: TrainFront, tram: TramFront, boat: Ship, ferry: Ship, flight: Plane,
+} as const;
+const chipMarkers = new WeakMap<MapLibreMap, MapLibreMarker[]>();
+
+const reducedMotion = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+type Padding = { top: number; bottom: number; left: number; right: number };
+type Box = [[number, number], [number, number]];
+/** The day the camera last settled on per map, and a token so a newer move cancels an older one's second leg. */
+const lastDay = new WeakMap<MapLibreMap, number | null>();
+const moveToken = new WeakMap<MapLibreMap, number>();
+/** When the current day-to-day travel is due to land, so a re-frame of the same day (the sheet re-measuring) finishes it rather than cutting it short. */
+const travelUntil = new WeakMap<MapLibreMap, number>();
+const easeIn = (t: number) => t * t;
+const easeOut = (t: number) => 1 - (1 - t) * (1 - t);
+
+/** Every camera move goes through here, so a newer one cancels an older one's pending second leg. */
+function fit(map: MapLibreMap, box: Box, padding: Padding, extra: Record<string, unknown>): number {
+  const token = (moveToken.get(map) ?? 0) + 1;
+  moveToken.set(map, token);
+  map.fitBounds(box, { padding, maxZoom: 15, ...extra });
+  return token;
+}
+
+/**
+ * B-2980 — from day A's framing to day B's along the route. A flight, or a
+ * leg over 600 km, flies a high arc (zoom out, then in); a hop eases to a
+ * frame holding both ends when neither current view does, then settles on B.
+ * Reduced motion jumps. `fitBounds` adds the map's own bottom padding (the
+ * phone sheet), so the settled frame clears the sheet exactly as before.
+ */
+function travel(map: MapLibreMap, from: Point, to: Point, box: Box, padding: Padding, flight: boolean) {
+  const plan = planCamera({ km: haversineKm(from, to), flight, reduced: reducedMotion() });
+  if (plan.kind !== "jump") travelUntil.set(map, performance.now() + plan.duration);
+  if (plan.kind === "jump") {
+    fit(map, box, padding, { duration: 0 });
+    return;
+  }
+  if (plan.kind === "flight") {
+    fit(map, box, padding, { duration: plan.duration, curve: plan.curve });
+    return;
+  }
+  const both = boundsOf([from, to]);
+  const settled = map.cameraForBounds(box, { padding, maxZoom: 15 })?.zoom;
+  const together = both ? map.cameraForBounds(both, { padding, maxZoom: 15 })?.zoom : undefined;
+  if (!both || settled === undefined || together === undefined || together > settled - 0.3) {
+    fit(map, box, padding, { duration: plan.duration });
+    return;
+  }
+  const token = fit(map, both, padding, { duration: plan.duration * 0.45, linear: true, easing: easeIn });
+  map.once("moveend", (e: { originalEvent?: unknown }) => {
+    if (e.originalEvent || moveToken.get(map) !== token) return;
+    fit(map, box, padding, { duration: plan.duration * 0.55, linear: true, easing: easeOut });
+  });
+}
+
+/** Where the camera last rested, so a region's own file (a new map) can fly on from there. */
+let lastCamera: { center: [number, number]; zoom: number; at: number } | null = null;
+const initialised = new WeakSet<MapLibreMap>();
+const views = new WeakMap<MapLibreMap, string>();
+function rememberCamera(map: MapLibreMap) {
+  try {
+    const c = map.getCenter();
+    lastCamera = { center: [c.lng, c.lat], zoom: map.getZoom(), at: performance.now() };
+  } catch {}
+}
+
+/** Photo pin markers per map, rebuilt on each draw (they regroup with zoom). */
+const pinMarkers = new WeakMap<MapLibreMap, MapLibreMarker[]>();
 
 /** Cached across calls — `StreetMap` itself already dynamically imports
  * maplibre-gl (see its own doc comment on why: no other page's bundle should
@@ -60,17 +168,29 @@ export type StreetOverlayOptions = {
   selectedDay: number | null;
   accentHex: string;
   onSelectDay: (day: number) => void;
+  /** B-2980: the whole trip is shown (the "Whole trip" chip), flights and all, like a tour. */
+  whole?: boolean;
+  /** B-2980 — photographs at their own position, and what a tap opens. */
+  pins?: readonly PhotoPin[];
+  onOpenPins?: (group: PhotoPin[]) => void;
+  pinLabel?: string;
+  /** B-2980: a mode chip's accessible name, "<mode> (recorded)" or "<mode> (from the day)". */
+  legLabel?: (mode: TransportMode, source: "recorded" | "day") => string;
+  /** The selected day's STORED weather as a tag beside its stop: chip text and a label that names the source. Never looked up here. */
+  weather?: { day: number; chip: string; label: string };
+  /** B-2980 — owner only: recorded days with no entry, drawn muted dashed. */
+  unwrittenLines?: readonly [number, number][][];
   /** Screen padding (CSS px) to keep clear when fitting a selection — the
    * sheet/header covering part of the box. */
   padding: { top: number; bottom: number; left: number; right: number };
 };
 
-function lineToGeoJSON(lines: readonly MapLine[]) {
+function lineToGeoJSON(lines: readonly MapLine[], dimmed?: ReadonlySet<MapLine>) {
   return {
     type: "FeatureCollection" as const,
     features: lines.map((line) => ({
       type: "Feature" as const,
-      properties: { kind: line.kind },
+      properties: { kind: line.kind, ...(dimmed ? { dim: dimmed.has(line) } : {}) } as { kind: MapLine["kind"]; dim?: boolean },
       geometry: {
         type: "LineString" as const,
         coordinates: line.coords.map((p) => [p.lng, p.lat]),
@@ -89,6 +209,8 @@ function ensureLineLayer(
     dasharray?: number[];
     casing?: boolean;
     casingWidth?: number;
+    casingColor?: string;
+    cap?: "butt" | "round";
   },
 ) {
   const source = map.getSource(id) as GeoJSONSource | undefined;
@@ -101,7 +223,7 @@ function ensureLineLayer(
       type: "line",
       source: id,
       layout: { "line-cap": "round", "line-join": "round" },
-      paint: { "line-color": CASING_COLOUR, "line-width": paint.casingWidth ?? paint.width + 3 },
+      paint: { "line-color": paint.casingColor ?? CASING_COLOUR, "line-width": paint.casingWidth ?? paint.width + 3 },
     });
   }
   if (!map.getLayer(id)) {
@@ -109,7 +231,7 @@ function ensureLineLayer(
       id,
       type: "line",
       source: id,
-      layout: { "line-cap": "round", "line-join": "round" },
+      layout: { "line-cap": paint.cap ?? "round", "line-join": "round" },
       paint: {
         "line-color": paint.color,
         "line-width": paint.width,
@@ -144,6 +266,8 @@ function estimateLabelWidth(name: string): number {
 /** The label height every marker draws at — the disc's own 22px is the
  * taller of the two, so it also bounds the label's own box. */
 const LABEL_HEIGHT = 22;
+/** Stop names only show from here in. */
+const LABEL_MIN_ZOOM = 10;
 
 /**
  * Which day numbers' labels to hide because an earlier-placed label already
@@ -168,6 +292,18 @@ function boxesOverlap(a: LabelBox, b: LabelBox): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
+/** Length of a polyline on screen, in CSS px. */
+function screenLength(map: MapLibreMap, coords: readonly { lat: number; lng: number }[]): number {
+  let n = 0;
+  let prev = coords[0] && map.project([coords[0].lng, coords[0].lat]);
+  for (const c of coords.slice(1)) {
+    const p = map.project([c.lng, c.lat]);
+    n += Math.hypot(p.x - prev.x, p.y - prev.y);
+    prev = p;
+  }
+  return n;
+}
+
 /** Bounding box, in `[[minLng,minLat],[maxLng,maxLat]]`, of a set of lng/lat
  * points — no projection needed, `fitBounds` does its own. */
 function boundsOf(points: readonly { lat: number; lng: number }[]): [[number, number], [number, number]] | null {
@@ -180,8 +316,74 @@ function boundsOf(points: readonly { lat: number; lng: number }[]): [[number, nu
   ];
 }
 
+/**
+ * B-2980: the route lines of one map, the same grammar everywhere: the recorded
+ * route in yellow on a navy casing (its shape by mode), a recorded gap, a
+ * photo-only join and a flight. Shared by the map page and the trip page's still.
+ */
+export function drawRouteLines(map: MapLibreMap, activeLines: readonly MapLine[], recorded: readonly MapLine[], dimmed: ReadonlySet<MapLine>, P = palette()) {
+  const byKind = (kind: MapLine["kind"]) => activeLines.filter((l) => l.kind === kind);
+  // B-2980: the recorded route keeps its yellow on navy; the mode changes
+  // the line's shape (and water its hue), so it reads without colour. One
+  // casing under every line of the class, so two days over the same road
+  // do not look doubled. Other days stay drawn at 35% when one is selected.
+  const patternOf = (l: MapLine) => legPattern(l.mode);
+  const recordedOf = (...p: LegPattern[]) => lineToGeoJSON(recorded.filter((l) => p.includes(patternOf(l))), dimmed);
+  const fade = ["case", ["get", "dim"], 0.35, 1] as unknown as number;
+  const recordedLayers: [string, ReturnType<typeof lineToGeoJSON>, Record<string, unknown>, Record<string, unknown>][] = [
+    ["fs-lines-recorded", recordedOf("solid", "hatch"), { "line-color": P.yellow }, {}],
+    ["fs-lines-recorded-dotted", recordedOf("dotted"), { "line-color": P.yellow, "line-dasharray": [0.1, 2] }, {}],
+    ["fs-lines-recorded-dash", recordedOf("dash"), { "line-color": P.yellow, "line-dasharray": [4, 2.2] }, { "line-cap": "butt" }],
+    ["fs-lines-recorded-dashed", recordedOf("dashed"), { "line-color": P.water, "line-dasharray": [1.2, 1.8] }, { "line-cap": "butt" }],
+    // Rail: the solid line above plus navy ticks across it.
+    ["fs-lines-recorded-ticks", recordedOf("hatch"), { "line-color": P.edge, "line-width": 9, "line-dasharray": [0.25, 1.1] }, { "line-cap": "butt" }],
+  ];
+  const casingSource = "fs-lines-recorded-casing";
+  const all = lineToGeoJSON(recorded, dimmed);
+  const existing = map.getSource(casingSource) as GeoJSONSource | undefined;
+  if (existing) existing.setData(all);
+  else map.addSource(casingSource, { type: "geojson", data: all });
+  if (!map.getLayer(casingSource)) {
+    map.addLayer({
+      id: casingSource, type: "line", source: casingSource,
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": P.edge, "line-width": 7.5, "line-opacity": fade },
+    });
+  }
+  for (const [id, data, paint, layout] of recordedLayers) {
+    const src = map.getSource(id) as GeoJSONSource | undefined;
+    if (src) src.setData(data);
+    else map.addSource(id, { type: "geojson", data });
+    if (!map.getLayer(id)) {
+      map.addLayer({
+        id, type: "line", source: id,
+        layout: { "line-cap": "round", "line-join": "round", ...layout },
+        paint: { "line-width": 4, "line-opacity": fade, ...paint },
+      } as Parameters<MapLibreMap["addLayer"]>[0]);
+    }
+  }
+  ensureLineLayer(map, "fs-lines-gap", lineToGeoJSON(byKind("gap")), {
+    color: P.muted,
+    width: 2,
+    dasharray: [1, 1.6],
+  });
+  // Declared-only joins (no recording) stay a thin grey straight dash.
+  ensureLineLayer(map, "fs-lines-photo-join", lineToGeoJSON(byKind("photo-join")), {
+    color: P.join,
+    width: 1.5,
+    dasharray: [3, 2.4],
+  });
+  // Flights: overview only — `activeLines` already excludes them whenever
+  // a day is selected (see above), so this is naturally empty then.
+  ensureLineLayer(map, "fs-lines-flight", lineToGeoJSON(byKind("flight")), {
+    color: P.muted,
+    width: 1.5,
+    dasharray: [1, 2.6],
+  });
+}
+
 export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions, markers: Map<number, MapLibreMarker>) {
-  const { frame, regionDayNumbers, selectedDay, accentHex, onSelectDay, padding, regionPlaces } = opts;
+  const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], whole = false, onOpenPins, pinLabel = "", unwrittenLines = [], legLabel, weather } = opts;
 
   // The caller's own resolved list — see `StreetOverlayOptions.regionPlaces`'s
   // own doc for why this isn't re-derived from `regionDayNumbers` here.
@@ -191,18 +393,29 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
   // other region, so the caller — which already knows which region is
   // showing — hands over that region's own places directly (B2560).
   const places = regionPlaces;
-  const linesInRegion = frame.lines.filter(
-    (l) => regionDayNumbers.has(l.fromDay) || regionDayNumbers.has(l.toDay),
-  );
+  const linesInRegion = linesForRegion(frame.lines, regionDayNumbers, frame.isTour || whole);
   const activeLines = selectedDay
     ? linesInRegion.filter((l) => l.kind !== "flight" && (l.fromDay === selectedDay || l.toDay === selectedDay))
     : linesInRegion;
   // A flight is overview-only, never even muted on a day's own view.
-  const mutedLines = selectedDay ? linesInRegion.filter((l) => l.kind !== "flight" && !activeLines.includes(l)) : [];
+  const mutedLines = selectedDay ? linesInRegion.filter((l) => l.kind !== "flight" && l.kind !== "recorded" && !activeLines.includes(l)) : [];
 
   const draw = async () => {
+    const P = palette();
+    ensureLineLayer(
+      map,
+      "fs-lines-unwritten",
+      { type: "FeatureCollection", features: unwrittenLines.map((l) => ({ type: "Feature" as const, properties: { kind: "unwritten" as MapLine["kind"] }, geometry: { type: "LineString" as const, coordinates: l.map(([lat, lng]) => [lng, lat]) } })) },
+      { color: P.join, width: 3, dasharray: [2, 1.5] },
+    );
+    ensureLineLayer(
+      map,
+      "fs-pin-tethers",
+      { type: "FeatureCollection", features: pins.filter((p) => p.tether).map((p) => ({ type: "Feature" as const, properties: { kind: "tether" as MapLine["kind"] }, geometry: { type: "LineString" as const, coordinates: [[p.lng, p.lat], [p.tether![1], p.tether![0]]] } })) },
+      { color: P.muted, width: 1 },
+    );
     ensureLineLayer(map, "fs-lines-muted", lineToGeoJSON(mutedLines), {
-      color: MUTED_COLOUR,
+      color: P.muted,
       width: 2,
       dasharray: [1, 2],
     });
@@ -211,29 +424,9 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     // (solid vs. two dash rhythms vs. a dotted arc), so each kind gets its
     // own tiny source/layer pair, only ever holding the (usually one or two)
     // features of that kind.
-    const byKind = (kind: MapLine["kind"]) => activeLines.filter((l) => l.kind === kind);
-    ensureLineLayer(map, "fs-lines-recorded", lineToGeoJSON(byKind("recorded")), {
-      color: accentHex,
-      width: 3.5,
-      casing: true,
-    });
-    ensureLineLayer(map, "fs-lines-gap", lineToGeoJSON(byKind("gap")), {
-      color: MUTED_COLOUR,
-      width: 2,
-      dasharray: [1, 1.6],
-    });
-    ensureLineLayer(map, "fs-lines-photo-join", lineToGeoJSON(byKind("photo-join")), {
-      color: MUTED_COLOUR,
-      width: 2,
-      dasharray: [3, 2.4],
-    });
-    // Flights: overview only — `activeLines` already excludes them whenever
-    // a day is selected (see above), so this is naturally empty then.
-    ensureLineLayer(map, "fs-lines-flight", lineToGeoJSON(byKind("flight")), {
-      color: MUTED_COLOUR,
-      width: 1.5,
-      dasharray: [1, 2.6],
-    });
+    const recorded = selectedDay ? linesInRegion.filter((l) => l.kind === "recorded") : activeLines.filter((l) => l.kind === "recorded");
+    const dimmed = new Set(recorded.filter((l) => !activeLines.includes(l)));
+    drawRouteLines(map, activeLines, recorded, dimmed, P);
 
     // Markers: one per place, reused across calls rather than torn down and
     // rebuilt, so a click mid-drag never targets a stale element.
@@ -257,45 +450,77 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       return { day: place.day, x: point.x + 26, y: point.y - LABEL_HEIGHT / 2, width, height: LABEL_HEIGHT };
     });
     const hiddenLabels = hiddenLabelDays(labelBoxes);
+    // Stops whose discs overlap on screen share the first one (the selected day
+    // wins the order above) and a count badge, so the rest do not pile up.
+    const stopGroups = groupByScreen(placementOrder.map((place) => ({ ...map.project([place.lng, place.lat]), place })), STOP_CLUSTER_PX);
+    const groupOf = new Map<number, MapPlace[]>();
+    for (const g of stopGroups) for (const m of g) groupOf.set(m.place.day, g.map((x) => x.place));
 
     for (const place of places) {
       seen.add(place.day);
+      const group = groupOf.get(place.day) ?? [place];
+      const absorbed = group[0].day !== place.day;
       const muted = selectedDay !== null && place.day !== selectedDay;
-      const hide = muted && map.getZoom() > STREET_ZOOM_HIDE;
+      const hide = absorbed || (muted && map.getZoom() > STREET_ZOOM_HIDE);
       let mk = markers.get(place.day);
       if (!mk) {
+        // No `position` on a marker root: MapLibre makes it absolute, and an inline
+        // `relative` here pushed every marker along by the width of those before it.
         const el = document.createElement("button");
         el.type = "button";
         el.setAttribute("aria-label", place.name);
         el.style.cssText =
-          "display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:0;cursor:pointer;font:inherit;";
+          "display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:11px;min-height:44px;min-width:44px;cursor:pointer;font:inherit;" +
+          (reducedMotion() ? "" : "transition:opacity .35s ease;");
         const disc = document.createElement("span");
         disc.className = "fs-daymarker-disc";
         disc.style.cssText =
-          "display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:9999px;font-weight:700;font-size:11px;box-shadow:0 1px 3px rgba(0,0,0,.25);";
+          "display:flex;align-items:center;justify-content:center;flex:none;border-radius:9999px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.25);" +
+          (reducedMotion() ? "" : "transition:width .3s ease,height .3s ease,background .3s ease,border-color .3s ease,color .3s ease,font-size .3s ease;");
         const label = document.createElement("span");
         label.className = "fs-daymarker-label";
         label.style.cssText =
-          "font-size:11px;font-weight:600;background:var(--surface-raised,#fff);padding:1px 5px;border-radius:9999px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.2);";
+          "font-size:12px;font-weight:600;color:var(--map-label-stop,#16305c);white-space:nowrap;text-shadow:-1.5px 0 var(--map-label-stop-halo,#fff),1.5px 0 var(--map-label-stop-halo,#fff),0 -1.5px var(--map-label-stop-halo,#fff),0 1.5px var(--map-label-stop-halo,#fff),0 0 4px var(--map-label-stop-halo,#fff);";
         // `textContent`, never `innerHTML` — a place name is the owner's own
         // written text, reaching every reader's browser; nothing here trusts
         // it to be markup.
         label.textContent = place.name;
-        el.append(disc, label);
+        const badge = document.createElement("span");
+        badge.className = "fs-daymarker-badge";
+        badge.style.cssText =
+          "position:absolute;top:4px;left:26px;min-width:16px;height:16px;padding:0 3px;box-sizing:border-box;border-radius:9999px;background:var(--map-pin-fill,#1b2a41);color:var(--map-pin-ring,#fff);border:1.5px solid var(--map-pin-ring,#fff);font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;";
+        const tag = document.createElement("span");
+        tag.className = "fs-daymarker-weather";
+        tag.setAttribute("aria-hidden", "true");
+        tag.style.cssText =
+          "display:none;font-size:12px;font-weight:700;color:var(--map-label-stop,#16305c);white-space:nowrap;text-shadow:-1.5px 0 var(--map-label-stop-halo,#fff),1.5px 0 var(--map-label-stop-halo,#fff),0 -1.5px var(--map-label-stop-halo,#fff),0 1.5px var(--map-label-stop-halo,#fff),0 0 4px var(--map-label-stop-halo,#fff);";
+        el.append(disc, label, tag, badge);
         // On the globe's far side a stop hides rather than showing through.
         mk = new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([place.lng, place.lat]).addTo(map);
         markers.set(place.day, mk);
       }
       const el = mk.getElement();
+      const badge = el.querySelector<HTMLElement>(".fs-daymarker-badge");
+      if (badge) {
+        badge.textContent = String(group.length);
+        badge.style.display = group.length > 1 && !hide ? "flex" : "none";
+      }
       el.onclick = () => {
+        // Overlapping stops: a tap zooms in to pull them apart before opening one.
+        const gbox = group.length > 1 ? boundsOf(group) : null;
+        const gzoom = gbox ? map.cameraForBounds(gbox, { padding, maxZoom: 15 })?.zoom : undefined;
+        if (gbox && gzoom !== undefined && gzoom > map.getZoom() + 0.5) {
+          map.fitBounds(gbox, { padding, maxZoom: 15, duration: reducedMotion() ? 0 : 600 });
+          return;
+        }
         // Zoomed out past a place's own stops, a tap frames them all first
         // (Reykjavík's two days, say); a tap once they're framed, or on a
         // lone stop, opens the day — B2643.
-        const nearby = frame.regions.find((r) => r.places.some((p) => p.day === place.day))?.places ?? [];
+        const nearby = frame.regions.find((r) => r.places.some((p) => p.day === place.day))?.places.filter((p) => !p.home) ?? [];
         const box = nearby.length > 1 ? boundsOf(nearby) : null;
         const fitZoom = box ? map.cameraForBounds(box, { padding, maxZoom: 15 })?.zoom : undefined;
         if (box && fitZoom !== undefined && map.getZoom() < fitZoom - 1) {
-          map.fitBounds(box, { padding, maxZoom: 15, duration: 600 });
+          map.fitBounds(box, { padding, maxZoom: 15, duration: reducedMotion() ? 0 : 600 });
         } else {
           onSelectDay(place.day);
         }
@@ -303,17 +528,89 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       el.style.display = hide ? "none" : "";
       el.style.opacity = muted ? "0.4" : "1";
       const label = el.querySelector<HTMLElement>(".fs-daymarker-label");
-      if (label) label.style.display = hiddenLabels.has(place.day) ? "none" : "";
+      // Only the selected stop is named, and only once zoomed in enough to matter.
+      if (label) label.style.display = place.day === selectedDay && map.getZoom() >= LABEL_MIN_ZOOM && !hiddenLabels.has(place.day) ? "" : "none";
+      // The stored reading of the selected day only, once the stop is named too; the button's own label carries the source.
+      const tagged = weather && weather.day === place.day && place.day === selectedDay;
+      const tag = el.querySelector<HTMLElement>(".fs-daymarker-weather");
+      if (tag) {
+        tag.textContent = tagged ? weather.chip : "";
+        tag.style.display = tagged && map.getZoom() >= LABEL_MIN_ZOOM ? "" : "none";
+      }
+      el.setAttribute("aria-label", tagged ? `${place.name}. ${weather.label}` : place.name);
       const disc = el.querySelector<HTMLElement>(".fs-daymarker-disc");
       if (disc) {
         const isSelected = place.day === selectedDay;
-        disc.style.background = isSelected ? "var(--map-selected-fill, #16305c)" : "var(--map-stop-fill, #fff)";
-        disc.style.border = `2.5px solid ${isSelected ? "var(--map-selected-fill, #16305c)" : "var(--map-stop-ring, #16305c)"}`;
-        disc.style.color = isSelected ? "var(--map-selected-number, #fff)" : "var(--map-stop-number, #16305c)";
+        const size = isSelected ? 36 : 24;
+        disc.style.width = disc.style.height = `${size}px`;
+        disc.style.fontSize = isSelected ? "15px" : "11px";
+        disc.style.background = isSelected ? "var(--map-route-line, #ffd23f)" : "var(--map-stop-fill, #fff)";
+        disc.style.border = `${isSelected ? 2 : 2.5}px solid ${isSelected ? "var(--map-route-edge, #16305c)" : "var(--map-stop-ring, #16305c)"}`;
+        disc.style.color = isSelected ? "var(--map-route-edge, #16305c)" : "var(--map-stop-number, #16305c)";
         disc.textContent = String(place.day);
       }
       mk.setLngLat([place.lng, place.lat]);
     }
+    for (const m of pinMarkers.get(map) ?? []) m.remove();
+    const made: MapLibreMarker[] = [];
+    const placed = pins.map((pin) => ({ ...map.project([pin.lng, pin.lat]), pin }));
+    for (const group of groupByScreen(placed, PIN_CLUSTER_PX)) {
+      const first = group[0].pin;
+      const el = document.createElement("button");
+      el.type = "button";
+      el.setAttribute("aria-label", first.item.caption ?? first.item.alt ?? pinLabel);
+      // 44px tap target around a 32px thumbnail; clear of the stop labels.
+      el.style.cssText = "width:44px;height:44px;padding:0;border:none;background:transparent;cursor:pointer;";
+      const ring = document.createElement("span");
+      ring.style.cssText =
+        "position:absolute;inset:6px;border-radius:9999px;background:var(--map-pin-fill,#1b2a41);border:2.5px solid var(--map-pin-ring,#fff);box-shadow:0 1px 4px rgba(0,0,0,.35);overflow:hidden;display:flex;align-items:center;justify-content:center;";
+      const img = document.createElement("img");
+      img.alt = "";
+      img.loading = "eager";
+      img.src = mediaLoader({ src: first.item.src, width: 96 });
+      img.style.cssText = "width:100%;height:100%;object-fit:cover;display:block;";
+      // Camera dot when the photo will not load.
+      img.onerror = () => img.remove();
+      ring.append(img);
+      el.append(ring);
+      if (group.length > 1) {
+        const badge = document.createElement("span");
+        badge.textContent = String(group.length);
+        badge.style.cssText =
+          "position:absolute;top:0;right:0;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9999px;background:var(--map-pin-fill,#1b2a41);color:var(--map-pin-ring,#fff);border:1.5px solid var(--map-pin-ring,#fff);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;";
+        el.append(badge);
+      }
+      el.onclick = () => onOpenPins?.(group.map((g) => g.pin));
+      made.push(new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([first.lng, first.lat]).addTo(map));
+    }
+    pinMarkers.set(map, made);
+
+    // B-2980: one round chip per moded leg, midway along its longest piece.
+    for (const m of chipMarkers.get(map) ?? []) m.remove();
+    const candidates = activeLines.flatMap((line) => {
+      const mid = line.mode && !chipRedundant(line.mode) && (line.kind === "recorded" || line.kind === "photo-join" || line.kind === "flight") && screenLength(map, line.coords) > CHIP_MIN_LEG_PX
+        // A flight's chip rides the middle of its arc, not its longest piece.
+        ? (line.kind === "flight" ? line.coords[line.coords.length >> 1] : longestSegmentMid(line.coords))
+        : null;
+      return mid ? [{ ...map.project([mid.lng, mid.lat]), data: { line, mid } }] : [];
+    });
+    const blockers = [...places.map((p) => map.project([p.lng, p.lat])), ...placed];
+    const chips: MapLibreMarker[] = [];
+    for (const { data } of placeChips(candidates, blockers, CHIP_CLEAR_PX)) {
+      const { line, mid } = data;
+      const mode = line.mode as TransportMode;
+      // Recorded legs get a filled chip; a leg only the day declares gets a hollow outline.
+      const fromDay = line.modeSource === "day";
+      const el = document.createElement("button");
+      el.type = "button";
+      el.setAttribute("aria-label", legLabel?.(mode, line.modeSource ?? "recorded") ?? mode);
+      el.style.cssText = `display:flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border-radius:9999px;background:${fromDay ? "transparent" : "var(--map-leg-chip-fill,#fff)"};color:var(--map-leg-chip-icon,#16305c);border:2px solid var(--map-leg-chip-icon,#16305c);box-shadow:${fromDay ? "none" : "0 1px 3px rgba(0,0,0,.3)"};cursor:pointer;`;
+      el.innerHTML = renderToStaticMarkup(createElement(MODE_ICON[mode], { size: 12, strokeWidth: 2.5, "aria-hidden": true }));
+      el.onclick = () => onSelectDay(line.toDay);
+      chips.push(new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([mid.lng, mid.lat]).addTo(map));
+    }
+    chipMarkers.set(map, chips);
+
     for (const [day, mk] of markers) {
       if (!seen.has(day)) {
         mk.remove();
@@ -325,11 +622,48 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
   // Fit only when selection/region changes, never on zoom redraws (which
   // would fight the reader's camera and trigger another zoom event).
   const selectedPlace = places.find((p) => p.day === selectedDay);
+  // Whole trip: stops, the drawn route and the photo pins, so none is cut off.
   const fitPoints = selectedDay === null
-    ? places
+    ? [...places, ...linesInRegion.filter((l) => l.kind !== "flight").flatMap((l) => l.coords), ...pins]
     : [...(selectedPlace ? [selectedPlace] : []), ...activeLines.flatMap((l) => l.coords)];
   const box = boundsOf(fitPoints);
-  if (box) map.fitBounds(box, { padding, maxZoom: 15, duration: 400 });
+  // Moving from one selected day to another travels along the route; any
+  // other refit (first selection, deselecting, a padding change) frames in place.
+  const previous = lastDay.get(map) ?? null;
+  lastDay.set(map, selectedDay);
+  // B-2980: a region chip (a new file is a new map) or the whole-trip chip
+  // flies the camera from where it last rested instead of cutting.
+  const viewKey = `${whole ? "w" : "r"}|${places.map((p) => p.day).join(",")}`;
+  let prevView = views.get(map);
+  if (!initialised.has(map)) {
+    initialised.add(map);
+    map.on("moveend", () => rememberCamera(map));
+    map.on("remove", () => rememberCamera(map));
+    if (lastCamera && performance.now() - lastCamera.at < 3000) {
+      map.jumpTo({ center: lastCamera.center, zoom: lastCamera.zoom });
+      prevView = "remount";
+    }
+  }
+  views.set(map, viewKey);
+  const fromPlace = previous !== null ? places.find((p) => p.day === previous) : undefined;
+  if (box && viewTravels(prevView, viewKey, selectedDay)) {
+    const c = map.getCenter();
+    const to = { lat: (box[0][1] + box[1][1]) / 2, lng: (box[0][0] + box[1][0]) / 2 };
+    travel(map, { lat: c.lat, lng: c.lng }, to, box, padding, haversineKm({ lat: c.lat, lng: c.lng }, to) > REGION_FLIGHT_KM);
+  } else if (box && selectedPlace && fromPlace && selectedDay !== previous) {
+    const flight = frame.lines.some(
+      (l) =>
+        (l.kind === "flight" || l.mode === "flight") &&
+        ((l.fromDay === previous && l.toDay === selectedDay) || (l.fromDay === selectedDay && l.toDay === previous)),
+    );
+    travel(map, fromPlace, selectedPlace, box, padding, flight);
+  } else if (box) {
+    const left = (travelUntil.get(map) ?? 0) - performance.now();
+    // A single place (a degenerate box) frames at town zoom, not a street.
+    const span = Math.max(box[1][0] - box[0][0], box[1][1] - box[0][1]);
+    const degenerate = selectedDay === null && span < 0.02 ? { maxZoom: 11 } : {};
+    fit(map, box, padding, { duration: reducedMotion() ? 0 : left > 200 ? left : 400, ...degenerate });
+  }
 
   if (map.isStyleLoaded()) void draw();
   else map.once("load", () => void draw());

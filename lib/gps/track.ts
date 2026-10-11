@@ -39,6 +39,11 @@ export type TrackSegment = {
    *  fix in it. A named stretch's own chosen mode (B2539) overrides this for
    *  the labelled point, but never rewrites the segment itself. */
   mode?: TransportMode;
+  /** B-2980: set at derivation (zone, spot or stretch) and again by
+   *  `readerTrack` (spot) — something was cut out right before / after this
+   *  piece, so a map must never bridge that end. Absent on older files. */
+  cutBefore?: boolean;
+  cutAfter?: boolean;
 };
 
 /** One named stretch's own point on the line — B2539, D8 C. Computed at
@@ -108,6 +113,8 @@ function readTrackFile(file: string): Track | undefined {
       s !== null &&
       (s.day === undefined || typeof s.day === "string") &&
       (s.mode === undefined || isTransportMode(s.mode)) &&
+      (s.cutBefore === undefined || typeof s.cutBefore === "boolean") &&
+      (s.cutAfter === undefined || typeof s.cutAfter === "boolean") &&
       Array.isArray(s.points) &&
       s.points.length > 1 &&
       s.points.every(
@@ -265,22 +272,39 @@ export function readerTrack(
  * points with no per-point time to re-derive from. A resulting piece under
  * two points is dropped, the same "one stray position is not a line" rule
  * `deriveTrack` itself uses. */
-function splitOutHiddenSpots(segments: TrackSegment[], spots: HiddenSpot[]): TrackSegment[] {
+export function splitOutHiddenSpots(segments: TrackSegment[], spots: HiddenSpot[]): TrackSegment[] {
   const out: TrackSegment[] = [];
+  // A segment cut away entirely leaves no piece to carry a flag, so its
+  // neighbours would look adjacent and a bridge could run straight through
+  // the hidden spot — the cut is handed on to the next piece that survives.
+  let carriedCut = false;
   for (const segment of segments) {
+    const emittedBefore = out.length;
     let piece: [number, number][] = [];
-    const flush = () => {
-      if (piece.length >= 2) out.push({ ...segment, points: piece });
+    let cutBefore = carriedCut;
+    const flush = (cutAfter: boolean) => {
+      if (piece.length >= 2) {
+        out.push({ ...segment, points: piece, ...(cutBefore ? { cutBefore } : {}), ...(cutAfter ? { cutAfter } : {}) });
+        carriedCut = false;
+      }
       piece = [];
     };
+    let cutSomething = false;
     for (const point of segment.points) {
       if (isInHiddenSpot({ lat: point[0], lon: point[1] }, spots)) {
-        flush();
+        cutSomething = true;
+        if (piece.length > 0 || !cutBefore) flush(true);
+        cutBefore = true;
         continue;
       }
       piece.push(point);
     }
-    flush();
+    flush(false);
+    if (cutSomething && out.length === emittedBefore) {
+      const last = out.at(-1);
+      if (last) out[out.length - 1] = { ...last, cutAfter: true };
+      carriedCut = true;
+    }
   }
   return out;
 }

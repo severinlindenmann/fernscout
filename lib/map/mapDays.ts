@@ -1,11 +1,13 @@
 import "server-only";
-import { getDays, type ReadOptions } from "@/lib/entries";
+import { getDays, placeEntry, type ReadOptions } from "@/lib/entries";
 import { isPlottable } from "@/lib/mapFrame";
 import { isHiddenPlace } from "@/lib/gps/edits";
 import { isHomePlace } from "@/lib/gps/enrich";
 import { parseTripRef } from "@/lib/trips";
 import { defaultLocaleFor, translateIn } from "@/lib/locales";
 import { townNameFor } from "./townName";
+import { costForDay, costLocalForDay, costMixForDay } from "../costs";
+import type { DayWeather } from "../weather";
 
 /**
  * One calendar day of the trip, for the map page's own day list/strip —
@@ -42,9 +44,26 @@ export type MapDay = {
    * leave `hasPlace: false`, but a reader-facing "no place given" is wrong
    * for this one — it has a place, just not a public one. */
   hidden?: boolean;
+  /** B-2980: how the day's own entry says it got there, when it does. */
+  transportMode?: string;
+  /** B-2980: the day's stored reading, exactly as written (never looked up here); absent for a hidden or home day. */
+  weather?: DayWeather;
+  /** B-2980: the day's spend in the base currency, and in the currency paid when it is one — only for a viewer who may see costs. */
+  cost?: number;
+  costLocal?: { amount: number; currency: string };
+  /** The day paid in more than one currency, so `cost` is a conversion. */
+  costMixed?: boolean;
+  /** Spend with no rate, as paid: left out of `cost`, never folded into it. */
+  costUnconverted?: { amount: number; currency: string }[];
 };
 
-export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
+export function getMapDays(
+  ref: string,
+  options?: ReadOptions,
+  anchors?: ReadonlyMap<string, { lat: number; lng: number; name: string }>,
+  /** `mayViewCosts(trip)`, resolved by the page: false (the default) leaves every figure out. */
+  showCosts = false,
+): MapDay[] {
   // B2544 — same rule `getPlaces` (`lib/entries.ts`) applies: a day's own
   // typed `coordinates` is never a recorded fix, so it never went through
   // `deriveTrack`'s own hidden-spot cut. The owner's own studio
@@ -54,7 +73,9 @@ export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
   // B2543 — resolved once per trip, not per day; see `getPlaces`'s own note.
   const homeLabel = checkHidden ? translateIn(defaultLocaleFor(owner.username), "map.homePlace") : "";
   return getDays(ref, options).map((day) => {
-    const lead = day.lead;
+    const placed = placeEntry(day);
+    const anchor = Number.isFinite(placed.lat) && Number.isFinite(placed.lng) ? undefined : anchors?.get(day.date);
+    const lead = anchor ? { ...placed, lat: anchor.lat, lng: anchor.lng, location: anchor.name || placed.location } : placed;
     const hidden = checkHidden && isPlottable(lead) && isHiddenPlace(owner.username, owner.tripId, { lat: lead.lat, lon: lead.lng });
     const home =
       checkHidden && !hidden && isPlottable(lead) && isHomePlace(owner.username, { lat: lead.lat, lon: lead.lng });
@@ -68,7 +89,7 @@ export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
     const country = hidden ? lead.country : home ? homeLabel : lead.country;
     return {
       date: day.date,
-      slug: lead.slug,
+      slug: day.lead.slug,
       location,
       country,
       countryCode: home ? undefined : lead.countryCode,
@@ -79,9 +100,22 @@ export function getMapDays(ref: string, options?: ReadOptions): MapDay[] {
       hasPlace: !hidden && isPlottable(lead),
       mediaCount: day.entries.reduce((n, e) => n + e.gallery.length, 0),
       updates: day.entries.length,
-      draft: lead.draft,
+      draft: day.lead.draft,
       home: home || undefined,
       hidden: hidden || undefined,
+      transportMode: day.lead.transport?.mode,
+      weather: hidden || home ? undefined : day.lead.weather,
+      ...(showCosts ? dayCost(ref, day.entries) : {}),
     };
   });
+}
+
+function dayCost(ref: string, entries: Parameters<typeof costForDay>[1]) {
+  const cost = costForDay(ref, entries);
+  const mix = costMixForDay(ref, entries);
+  return {
+    ...(cost > 0 ? { cost, costLocal: costLocalForDay(ref, entries) } : {}),
+    ...(mix?.mixed ? { costMixed: true } : {}),
+    ...(mix?.unconverted.length ? { costUnconverted: mix.unconverted } : {}),
+  };
 }

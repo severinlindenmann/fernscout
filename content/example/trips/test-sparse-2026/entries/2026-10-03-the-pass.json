@@ -1,0 +1,51 @@
+{
+  "title": "The pass",
+  "date": "2026-10-03",
+  "content": "Invented sample day: two photos with a position, two without.",
+  "media": [
+    {
+      "src": "/media/test-sparse-2026/the-pass/01.jpg",
+      "type": "image",
+      "caption": "Up the path (sample)",
+      "width": 320,
+      "height": 213
+    },
+    {
+      "src": "/media/test-sparse-2026/the-pass/02.jpg",
+      "type": "image",
+      "caption": "Near the top (sample)",
+      "width": 320,
+      "height": 213
+    },
+    {
+      "src": "/media/test-sparse-2026/the-pass/03.jpg",
+      "type": "image",
+      "caption": "No position (sample)",
+      "width": 213,
+      "height": 320
+    },
+    {
+      "src": "/media/test-sparse-2026/the-pass/04.jpg",
+      "type": "image",
+      "caption": "Also none (sample)",
+      "width": 320,
+      "height": 213
+    }
+  ],
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in",
+    "coordinates": "invented sample, none given",
+    "location": "invented sample, none given",
+    "country": "invented sample, none given",
+    "countryCode": "invented sample, none given"
+  },
+  "status": "published"
+}

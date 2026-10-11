@@ -17,7 +17,7 @@ import { useReactions } from "./ReactionsProvider";
  * the server covers the scripted case; a determined person voting twice is not
  * a threat worth engineering against on a family travel blog.
  */
-export default function DayReactions({ daySlug }: { daySlug: string }) {
+export default function DayReactions({ daySlug, compact = false }: { daySlug: string; compact?: boolean }) {
   const { t, tn } = useI18n();
   const reactions = useReactions();
   if (!reactions) return null;
@@ -35,8 +35,8 @@ export default function DayReactions({ daySlug }: { daySlug: string }) {
       {/* The prompt on its own line rather than inline with the choices: at
           390px a question plus three of them wraps, and what wraps is the last
           choice — which then reads as a stray control under the other two. */}
-      <span className="block text-xs text-ink-secondary">{t("react.prompt")}</span>
-      <div className="mt-1 flex flex-wrap items-center gap-1">
+      <span className={compact ? "sr-only" : "block text-xs text-ink-secondary"}>{t("react.prompt")}</span>
+      <div className={`${compact ? "" : "mt-1 "}flex flex-wrap items-center gap-1`}>
         {REACTIONS.map((emoji) => (
           <ReactionButton
             key={emoji}

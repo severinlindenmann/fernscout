@@ -165,7 +165,7 @@ describe("MobileMapSheet", () => {
   test("starts at peek, showing the day strip and no stat tiles or day detail", () => {
     const { el } = render([place()]);
     expect(el.textContent).toContain("Alpha Town"); // the day strip's own row
-    expect(el.textContent).not.toContain("Read this day"); // map.readDay — half only
+    expect(el.textContent).not.toContain("Read the day"); // map.readDay — half only
   });
 
   test("clicking the handle cycles peek → half → full → peek", () => {
@@ -174,17 +174,17 @@ describe("MobileMapSheet", () => {
       place({ key: "beta", location: "Beta City", firstDate: "2024-05-03", lastDate: "2024-05-03" }),
     ]);
     const h = handle(el);
-    expect(el.textContent).not.toContain("Read this day");
+    expect(el.textContent).not.toContain("Read the day");
     expect(el.querySelector("ol")).toBeNull();
 
     act(() => h.click());
-    expect(el.textContent).toContain("Read this day"); // half: the selected day's own detail
+    expect(el.textContent).toContain("Read the day"); // half: the selected day's own detail
 
     act(() => h.click());
     expect(el.querySelector("ol")).not.toBeNull(); // full: every day, as a list
 
     act(() => h.click());
-    expect(el.textContent).not.toContain("Read this day");
+    expect(el.textContent).not.toContain("Read the day");
     expect(el.querySelector("ol")).toBeNull();
   });
 
@@ -192,11 +192,11 @@ describe("MobileMapSheet", () => {
     const { el } = render([place()]);
     const h = handle(el);
     act(() => h.click()); // -> half
-    expect(el.textContent).toContain("Read this day");
+    expect(el.textContent).toContain("Read the day");
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     });
-    expect(el.textContent).not.toContain("Read this day");
+    expect(el.textContent).not.toContain("Read the day");
   });
 
   test("half shows only the fields the page actually gave it — no invented text", () => {
@@ -206,7 +206,7 @@ describe("MobileMapSheet", () => {
     act(() => handle(el).click());
     const html = el.innerHTML;
     expect(html).toContain("Alpha Town");
-    expect(html).toContain("Read this day"); // map.readDay
+    expect(html).toContain("Read the day"); // map.readDay
     expect(html).toContain(">Google Maps</a>"); // map.googleMapsShort, B2572
     expect(el.querySelectorAll("img, video").length).toBe(0);
     expect(el.querySelector("p")).toBeNull(); // the headline paragraph
@@ -258,7 +258,7 @@ describe("MobileMapSheet", () => {
         place({ key: "beta", location: "Beta City", firstDate: "2024-05-03", lastDate: "2024-05-03" }),
       ]);
       act(() => handle(el).click()); // -> half, on alpha
-      const next = el.querySelector<HTMLButtonElement>('[aria-label="Next stop"]')!;
+      const next = el.querySelector<HTMLButtonElement>('[aria-label="Next day"]')!;
       act(() => next.click());
       expect(reportedKeys).toContain("2024-05-03");
     });
@@ -268,15 +268,15 @@ describe("MobileMapSheet", () => {
         place(),
         place({ key: "beta", location: "Beta City", firstDate: "2024-05-03", lastDate: "2024-05-03" }),
       ]);
-      expect(el.textContent).not.toContain("Read this day"); // still at peek
+      expect(el.textContent).not.toContain("Read the day"); // still at peek
       setKeyFromOutside("2024-05-03");
-      expect(el.textContent).toContain("Read this day"); // Half opened by itself
+      expect(el.textContent).toContain("Read the day"); // Half opened by itself
     });
 
     test("the initial default selection does not itself pop the sheet open", () => {
       const { el } = render([place()], "2024-05-01");
       // Same date the sheet started with — no external tap has happened.
-      expect(el.textContent).not.toContain("Read this day");
+      expect(el.textContent).not.toContain("Read the day");
     });
   });
 
@@ -284,10 +284,10 @@ describe("MobileMapSheet", () => {
     test("the handle skips Half entirely — Peek goes straight to Full", () => {
       const { el } = render([place()], null);
       const h = handle(el);
-      expect(el.textContent).not.toContain("Read this day"); // Peek
+      expect(el.textContent).not.toContain("Read the day"); // Peek
       act(() => h.click());
       expect(el.querySelector("ol")).not.toBeNull(); // Full, not Half
-      expect(el.textContent).not.toContain("Read this day");
+      expect(el.textContent).not.toContain("Read the day");
     });
 
     test("Full cycles straight back to Peek, never through an empty Half", () => {
@@ -296,7 +296,7 @@ describe("MobileMapSheet", () => {
       act(() => h.click()); // -> Full
       act(() => h.click()); // -> Peek
       expect(el.querySelector("ol")).toBeNull();
-      expect(el.textContent).not.toContain("Read this day");
+      expect(el.textContent).not.toContain("Read the day");
     });
 
     test("a placeless day with no gallery and no headline still has a title and a read button, not a blank panel", () => {
@@ -316,7 +316,7 @@ describe("MobileMapSheet", () => {
       const { el } = render([], "2024-05-01", days);
       act(() => handle(el).click()); // -> Half (reachable: a day IS selected)
       expect(el.textContent).toContain("No place given"); // map.noPlaceGiven
-      expect(el.textContent).toContain("Read this day");
+      expect(el.textContent).toContain("Read the day");
     });
 
     test("a hidden place reads as withheld, not as no place given", () => {
@@ -401,10 +401,30 @@ describe("MobileMapSheet", () => {
       const img = el.querySelector("img")!;
       expect(img.getAttribute("src")).toBe("/media/day2.jpg");
 
-      const readLink = Array.from(el.querySelectorAll("a")).find((a) =>
-        a.textContent?.includes("Read this day"),
+      // B-2980: reading happens in place — a button, not a link away.
+      const readButton = Array.from(el.querySelectorAll("button")).find((b) =>
+        b.textContent?.includes("Read the day"),
       )!;
-      expect(readLink.getAttribute("href")).toBe("/day/2024-05-02-alpha");
+      expect(readButton).toBeTruthy();
+      act(() => readButton.click());
+      expect(el.querySelector('section[aria-labelledby]')).not.toBeNull();
+
+      // Escape unwinds one level: the reader closes to the day card, the selection stays and the key is claimed.
+      const esc = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+      act(() => {
+        window.dispatchEvent(esc);
+      });
+      expect(esc.defaultPrevented).toBe(true);
+      expect(el.querySelector('section[aria-labelledby]')).toBeNull();
+      expect(el.textContent).toContain("Read the day");
+
+      // The reader's X does the same, and never deselects.
+      act(() =>
+        Array.from(el.querySelectorAll("button")).find((b) => b.textContent?.includes("Read the day"))!.click(),
+      );
+      act(() => el.querySelector<HTMLButtonElement>('section[aria-labelledby] button')!.click());
+      expect(el.querySelector('section[aria-labelledby]')).toBeNull();
+      expect(el.textContent).toContain("Read the day");
     });
   });
 
@@ -446,7 +466,7 @@ describe("MobileMapSheet", () => {
       });
       expect(document.body.querySelector('[role="dialog"]')).toBeNull();
       // Closing the viewer leaves the sheet itself exactly where it was.
-      expect(el.textContent).toContain("Read this day");
+      expect(el.textContent).toContain("Read the day");
     });
   });
 

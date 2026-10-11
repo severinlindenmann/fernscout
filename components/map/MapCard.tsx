@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useI18n } from "../LocaleProvider";
+import { previewKind, type StillData } from "@/lib/map/tripStill";
+import dynamic from "next/dynamic";
+
+// A client-only chunk: the still draws a MapLibre map, which the trip page must not carry in its static bundle.
+const TripStill = dynamic(() => import("./TripStill"), { ssr: false });
 
 /**
  * The still preview card — B2538. One presentational component for both the
@@ -46,13 +51,32 @@ function useScheme(): "light" | "dark" {
   return scheme;
 }
 
+let webglSupport: boolean | undefined;
+const noSubscribe = () => () => {};
+/** Asked once per page: a probe context is one of the browser's few. */
+function hasWebgl(): boolean {
+  if (webglSupport === undefined) {
+    try {
+      const canvas = document.createElement("canvas");
+      webglSupport = !!(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+    } catch {
+      webglSupport = false;
+    }
+  }
+  return webglSupport;
+}
+
 export default function MapCard({
   src,
   query = "",
   mapHref,
   factsLine,
   usedStreet,
+  still = null,
 }: {
+  /** B-2980 — when set, and the browser has WebGL, the preview is a
+   * non-interactive MapLibre still instead of the SVG (see `previewKind`). */
+  still?: StillData | null;
   /** `<trip base>/card.svg`, e.g. `active.href("/card.svg")` — no query. */
   src: string;
   /** `""` for the trip-wide card, `"?day=<date>"` for one day's own —
@@ -74,16 +98,32 @@ export default function MapCard({
   const join = query ? "&" : "?";
   const imgSrc = `${src}${query}${join}theme=${scheme}`;
 
+  // The server and the first client render are always the SVG; WebGL is asked
+  // for after mount, so there is no hydration mismatch.
+  const webgl = useSyncExternalStore(noSubscribe, hasWebgl, () => null);
+  const [failed, setFailed] = useState(false);
+  const showStill = still && previewKind(still, webgl, failed) === "still";
+
   return (
     <div className="mt-4">
       <Link href={mapHref} className="relative block overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
+        {showStill ? (
+          // Same box as the SVG would be, so the swap shifts nothing. The map
+          // draws its own credit.
+          <div className="w-full cursor-pointer" style={{ aspectRatio: still.aspect }}>
+            <TripStill still={still} onFail={() => setFailed(true)} />
+          </div>
+        ) : (
+          <>
         {/* eslint-disable-next-line @next/next/no-img-element -- a same-origin,
             reader-gated SVG route, not an optimisable photograph; Next's own
             image optimiser cannot pass a request with no cookies through the
             gate anyway (the same reasoning lib/media.ts's own doc gives). */}
         <img src={imgSrc} alt="" loading="lazy" className="block h-auto w-full" />
+          </>
+        )}
         {/* B2573 — the credit sits on the map it credits, bottom-left. */}
-        {usedStreet && (
+        {usedStreet && !showStill && (
           <span className="absolute bottom-1.5 left-1.5 rounded bg-surface-raised/80 px-1.5 py-0.5 text-[10px] leading-none text-ink-secondary">
             {t("mapCard.osmCredit")}
           </span>

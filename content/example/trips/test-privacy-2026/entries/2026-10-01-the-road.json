@@ -1,0 +1,25 @@
+{
+  "title": "The road",
+  "date": "2026-10-01",
+  "location": "Interlaken",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.6863,
+    "lng": 7.8632
+  },
+  "content": "Invented sample day, an ordinary one.",
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "invented sample, none given"
+  },
+  "status": "published"
+}

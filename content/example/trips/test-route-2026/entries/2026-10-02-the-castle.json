@@ -1,0 +1,38 @@
+{
+  "title": "The castle",
+  "date": "2026-10-02",
+  "time": "16:00",
+  "location": "Thun",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.758,
+    "lng": 7.628
+  },
+  "content": "Invented sample post with coordinates, written second.",
+  "costs": [
+    {
+      "label": "Castle entry (sample)",
+      "amount": 14,
+      "category": "activities",
+      "currency": "CHF"
+    }
+  ],
+  "weather": {
+    "tempMin": 8,
+    "tempMax": 17,
+    "code": 0,
+    "source": "balcony thermometer (invented sample)",
+    "recordedAt": "2026-10-02T17:00:00Z"
+  },
+  "test": true,
+  "declined": {
+    "timezone": "not noted on this sample",
+    "transportMode": "not noted on this sample",
+    "tags": "none on this sample",
+    "translations": "not needed",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "no photographs on this sample day"
+  },
+  "status": "published"
+}

@@ -1,0 +1,25 @@
+{
+  "title": "Brienz",
+  "date": "2026-10-02",
+  "location": "Brienz",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.754,
+    "lng": 8.038
+  },
+  "content": "Invented sample day, tagged correctly.",
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "invented sample, none given"
+  },
+  "status": "published"
+}

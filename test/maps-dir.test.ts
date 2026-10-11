@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { coveringRegion, primaryStreetMap, resolveFontFile, resolveMapsFile, tripMapRegions, worldStreetMapUrl } from "@/lib/maps/dir";
+import { coveringRegion, primaryStreetMap, resolveFontFile, resolveMapsFile, streetMapRegionFiles, tripMapRegions, worldStreetMapUrl } from "@/lib/maps/dir";
 
 /** B2535 — the route's path safety and the index lookup `StreetMap` picks
  * a file from. */
@@ -164,5 +164,42 @@ describe("with a world file", () => {
     fs.rmSync(path.join(mapsDir, "planet.pmtiles"));
     expect(worldStreetMapUrl()).toBe("/api/maps/world.pmtiles");
     expect(tripMapRegions("alex", "portugal")).toBeUndefined();
+  });
+});
+
+// B-2980 — with the capability on a trip is never left to the drawn SVG map.
+describe("a trip with no extract and no planet file", () => {
+  function pmtiles(name: string, maxZoom: number) {
+    const header = Buffer.alloc(127);
+    header.write("PMTiles", 0, "latin1");
+    header[101] = maxZoom;
+    fs.writeFileSync(path.join(mapsDir, name), header);
+  }
+
+  test("draws on the z0-6 world file, flagged and clamped to its real zoom", () => {
+    pmtiles("world.pmtiles", 6);
+    const rome = { lat: 41.9, lng: 12.5 };
+    expect(primaryStreetMap("alex", "rome", [rome])).toEqual({
+      url: "/api/maps/world.pmtiles",
+      bounds: [[-180, -85.0511], [180, 85.0511]],
+      maxZoom: 6,
+      world: true,
+    });
+    expect(streetMapRegionFiles("alex", "rome")?.map((f) => f.url)).toEqual(["/api/maps/world.pmtiles"]);
+    // the trip card still reads only real extracts, never a z6 file
+    expect(tripMapRegions("alex", "rome")).toBeUndefined();
+    expect(coveringRegion("alex", "rome", [rome])).toBeUndefined();
+  });
+
+  test("its own extract still wins where it covers the places, with its own max zoom", () => {
+    pmtiles("world.pmtiles", 6);
+    pmtiles("zrh.pmtiles", 14);
+    fs.writeFileSync(path.join(mapsDir, "index.json"), JSON.stringify({ trips: { "alex/swiss": [{ file: "zrh.pmtiles", bbox: [8.3, 47.2, 8.8, 47.6] }] } }));
+    expect(primaryStreetMap("alex", "swiss", [{ lat: 47.37, lng: 8.54 }])).toMatchObject({ url: "/api/maps/zrh.pmtiles", maxZoom: 14 });
+    expect(primaryStreetMap("alex", "swiss", [{ lat: 13.75, lng: 100.5 }])).toMatchObject({ url: "/api/maps/world.pmtiles", world: true });
+  });
+
+  test("is undefined only when there is no world file either (capability off never reaches here)", () => {
+    expect(primaryStreetMap("alex", "rome")).toBeUndefined();
   });
 });

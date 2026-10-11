@@ -117,3 +117,8 @@ export function useMoney(): Ctx {
   if (!ctx) throw new Error("useMoney must be used inside CurrencyProvider");
   return ctx;
 }
+
+/** Like `useMoney`, but null outside a provider — for a surface that shows spend only when it can. */
+export function useOptionalMoney(): Ctx | null {
+  return useContext(CurrencyContext);
+}

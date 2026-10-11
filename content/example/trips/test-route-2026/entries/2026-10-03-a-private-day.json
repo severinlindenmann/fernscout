@@ -1,0 +1,22 @@
+{
+  "title": "A private day",
+  "date": "2026-10-03",
+  "content": "Invented sample day, private, no coordinates, but recorded.",
+  "visibility": "private",
+  "test": true,
+  "declined": {
+    "costs": "no money moved",
+    "weather": "invented sample",
+    "time": "not noted on this sample",
+    "timezone": "not noted on this sample",
+    "transportMode": "not noted on this sample",
+    "tags": "none on this sample",
+    "translations": "not needed",
+    "coordinates": "invented sample, no place given",
+    "location": "invented sample, no place given",
+    "country": "invented sample, no place given",
+    "countryCode": "invented sample, no place given",
+    "media": "no photographs on this sample day"
+  },
+  "status": "published"
+}

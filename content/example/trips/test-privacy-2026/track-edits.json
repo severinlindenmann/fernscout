@@ -1,0 +1,12 @@
+{
+  "hiddenSpots": [
+    {
+      "id": "spot-1",
+      "lat": 46.686,
+      "lon": 7.68,
+      "radiusM": 400
+    }
+  ],
+  "hiddenStretches": [],
+  "namedStretches": []
+}

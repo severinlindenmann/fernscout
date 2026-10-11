@@ -553,6 +553,15 @@ export function getDays(ref: string, options?: ReadOptions): Day[] {
   return days;
 }
 
+/**
+ * The entry that gives a day its place on a map: the first entry of the day
+ * that has finite coordinates, else the lead. `lead` stays the day's identity
+ * (slug, title, draft); only map readers ask this.
+ */
+export function placeEntry(day: Day): Entry {
+  return day.entries.find((e) => Number.isFinite(e.lat) && Number.isFinite(e.lng)) ?? day.lead;
+}
+
 export function getEntryBySlug(
   ref: string,
   slug: string,
@@ -726,7 +735,12 @@ function toPlaceEntry(entry: Entry, languages: { writtenLocale: string; locales:
  */
 const SAME_PLACE_KM = 5;
 
-export function getPlaces(ref: string, options?: ReadOptions): Place[] {
+export function getPlaces(
+  ref: string,
+  options?: ReadOptions,
+  /** B-2980 — per-date positions derived from the recorded route (`lib/map/routeAnchors.ts`) for days that gave none. */
+  anchors?: ReadonlyMap<string, { lat: number; lng: number; name: string }>,
+): Place[] {
   const places: Place[] = [];
   const languages = localesOf(ref);
   // B2544 — a day's own typed `coordinates`, unlike a recorded GPS fix,
@@ -744,7 +758,9 @@ export function getPlaces(ref: string, options?: ReadOptions): Place[] {
   const homeLabel = checkHidden ? translateIn(defaultLocaleFor(owner.username), "map.homePlace") : "";
 
   for (const day of getDays(ref, options)) {
-    const lead = day.lead;
+    const placed = placeEntry(day);
+    const anchor = Number.isFinite(placed.lat) && Number.isFinite(placed.lng) ? undefined : anchors?.get(day.date);
+    const lead = anchor ? { ...placed, lat: anchor.lat, lng: anchor.lng, location: anchor.name || placed.location } : placed;
     // A day with no coordinates at all cannot be drawn, so it is not a place
     // — the day somebody spends on a train with nothing to report (B381).
     // Distinct from B339 below: that is a day that *has* coordinates and an

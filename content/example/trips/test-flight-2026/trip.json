@@ -1,0 +1,29 @@
+{
+  "id": "test-flight-2026",
+  "title": "Flight test (sample)",
+  "tagline": "Invented, a flight between two continents",
+  "dates": {
+    "from": "2026-10-01",
+    "to": "2026-10-05"
+  },
+  "visibility": "guest",
+  "listed": false,
+  "test": true,
+  "accent": "sky",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    }
+  ],
+  "intro": "Nobody flew this. Public geography only, to try a flight on the route map.",
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "plan": "nothing planned",
+    "cover": "no cover on this sample",
+    "figures": "nobody to draw",
+    "translations": "a sample does not need translating"
+  }
+}
