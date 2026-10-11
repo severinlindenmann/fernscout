@@ -166,6 +166,7 @@ async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; o
     readerTrack(trip.username, trip.id, visibleDates, live)?.segments.map((s) => ({
       date: s.day,
       points: s.points,
+      mode: s.mode,
     })) ?? [];
   // B-2980: a day with no position of its own is placed from its recorded route.
   const anchors = dayAnchors(days, trackByDay);

@@ -42,6 +42,8 @@ export type MapDay = {
    * leave `hasPlace: false`, but a reader-facing "no place given" is wrong
    * for this one — it has a place, just not a public one. */
   hidden?: boolean;
+  /** B-2980: how the day's own entry says it got there, when it does. */
+  transportMode?: string;
 };
 
 export function getMapDays(
@@ -88,6 +90,7 @@ export function getMapDays(
       draft: day.lead.draft,
       home: home || undefined,
       hidden: hidden || undefined,
+      transportMode: day.lead.transport?.mode,
     };
   });
 }

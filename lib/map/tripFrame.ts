@@ -1,3 +1,4 @@
+import type { TransportMode } from "../types";
 import { kmBetween, type Point } from "../mapFrame";
 
 /**
@@ -52,6 +53,8 @@ export type RecordedSegment = {
   day: number;
   points: Point[];
   gap?: boolean;
+  /** B-2980: how this run was recorded, when the recording says. */
+  mode?: TransportMode;
 };
 
 type Region = {
@@ -96,6 +99,10 @@ export type MapLine = {
    * "for overviews only". `linesForDay` already leaves these out; this is
    * for a caller building its own selection instead. */
   overviewOnly?: boolean;
+  /** B-2980: how the leg was travelled, and who said so: the recording, or
+   * the later day's own entry. Absent when nobody did. */
+  mode?: TransportMode;
+  modeSource?: "recorded" | "day";
 };
 
 export type TripFrame = {
@@ -290,6 +297,7 @@ function recordedLines(recorded: readonly RecordedSegment[]): MapLine[] {
       fromDay: s.day,
       toDay: s.day,
       coords: s.points,
+      ...(s.mode && !s.gap ? { mode: s.mode, modeSource: "recorded" as const } : {}),
     }));
 }
 

@@ -1452,6 +1452,8 @@ export type TranslationKey =
   | "map.hereNow"
   | "map.homePlace"
   | "map.layers"
+  | "map.leg.fromDay"
+  | "map.leg.recorded"
   | "map.legend.flight"
   | "map.legend.gap"
   | "map.legend.photoJoin"

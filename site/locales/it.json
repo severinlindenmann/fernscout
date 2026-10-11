@@ -1478,6 +1478,8 @@
   "map.hereNow": "Qui ora",
   "map.homePlace": "Casa",
   "map.layers": "Livelli",
+  "map.leg.fromDay": "{mode} (dal giorno)",
+  "map.leg.recorded": "{mode} (registrato)",
   "map.legend.flight": "Volo",
   "map.legend.gap": "Interruzione nella registrazione",
   "map.legend.photoJoin": "Collegato dalle foto",

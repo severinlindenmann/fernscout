@@ -1,0 +1,25 @@
+{
+  "title": "Across the lake",
+  "date": "2026-10-06",
+  "content": "Invented sample day: a boat crossing the entry declares, with no recording behind it.",
+  "test": true,
+  "location": "Neuhaus",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.679,
+    "lng": 7.812
+  },
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "weather": "invented sample",
+    "timezone": "not noted",
+    "tags": "none",
+    "translations": "not needed",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "no photographs on this sample day"
+  },
+  "status": "published",
+  "transportMode": "ferry"
+}

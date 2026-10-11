@@ -1478,6 +1478,8 @@
   "map.hereNow": "Ici maintenant",
   "map.homePlace": "Chez soi",
   "map.layers": "Calques",
+  "map.leg.fromDay": "{mode} (selon la journée)",
+  "map.leg.recorded": "{mode} (enregistré)",
   "map.legend.flight": "Vol",
   "map.legend.gap": "Interruption de l’enregistrement",
   "map.legend.photoJoin": "Relié par des photos",

@@ -2,6 +2,11 @@ import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from
 import type { MapLine, MapPlace, TripFrame } from "./tripFrame";
 import type { PhotoPin } from "./photoPins";
 import { groupByScreen } from "./pinGroups";
+import { legPattern, longestSegmentMid, placeChips } from "./legMode";
+import type { TransportMode } from "../types";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Bike, Bus, Car, Footprints, Plane, Ship, TrainFront, TramFront } from "lucide-react";
 import { mediaLoader } from "@/components/mediaLoader";
 
 /**
@@ -30,6 +35,16 @@ const ROUTE_YELLOW = "#ffd23f";
 const ROUTE_CASING = "#16305c";
 /** Pins closer than this on screen become one badge; also the 44px tap target. */
 const PIN_CLUSTER_PX = 44;
+
+/** B-2980: a mode chip is 28px; two closer than this, or one this close to a stop or pin, is dropped. */
+const CHIP_CLEAR_PX = 34;
+/** Water is the one blue-ish line; every other pattern stays brand yellow. */
+const WATER_BLUE = "#4aa3df";
+const MODE_ICON = {
+  walk: Footprints, bicycle: Bike, car: Car, taxi: Car, motorbike: Car, bus: Bus,
+  train: TrainFront, metro: TrainFront, tram: TramFront, boat: Ship, ferry: Ship, flight: Plane,
+} as const;
+const chipMarkers = new WeakMap<MapLibreMap, MapLibreMarker[]>();
 
 const reducedMotion = () => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -77,6 +92,8 @@ export type StreetOverlayOptions = {
   pins?: readonly PhotoPin[];
   onOpenPins?: (group: PhotoPin[]) => void;
   pinLabel?: string;
+  /** B-2980: a mode chip's accessible name, "<mode> (recorded)" or "<mode> (from the day)". */
+  legLabel?: (mode: TransportMode, source: "recorded" | "day") => string;
   /** B-2980 — owner only: recorded days with no entry, drawn muted dashed. */
   unwrittenLines?: readonly [number, number][][];
   /** Screen padding (CSS px) to keep clear when fitting a selection — the
@@ -109,6 +126,7 @@ function ensureLineLayer(
     casing?: boolean;
     casingWidth?: number;
     casingColor?: string;
+    cap?: "butt" | "round";
   },
 ) {
   const source = map.getSource(id) as GeoJSONSource | undefined;
@@ -129,7 +147,7 @@ function ensureLineLayer(
       id,
       type: "line",
       source: id,
-      layout: { "line-cap": "round", "line-join": "round" },
+      layout: { "line-cap": paint.cap ?? "round", "line-join": "round" },
       paint: {
         "line-color": paint.color,
         "line-width": paint.width,
@@ -201,7 +219,7 @@ function boundsOf(points: readonly { lat: number; lng: number }[]): [[number, nu
 }
 
 export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions, markers: Map<number, MapLibreMarker>) {
-  const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], onOpenPins, pinLabel = "", unwrittenLines = [] } = opts;
+  const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], onOpenPins, pinLabel = "", unwrittenLines = [], legLabel } = opts;
 
   // The caller's own resolved list — see `StreetOverlayOptions.regionPlaces`'s
   // own doc for why this isn't re-derived from `regionDayNumbers` here.
@@ -244,13 +262,15 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     // own tiny source/layer pair, only ever holding the (usually one or two)
     // features of that kind.
     const byKind = (kind: MapLine["kind"]) => activeLines.filter((l) => l.kind === kind);
-    ensureLineLayer(map, "fs-lines-recorded", lineToGeoJSON(byKind("recorded")), {
-      color: ROUTE_YELLOW,
-      width: 4,
-      casing: true,
-      casingWidth: 7.5,
-      casingColor: ROUTE_CASING,
-    });
+    // B-2980: the recorded route keeps its yellow on navy; the mode changes
+    // the line's pattern (and water its hue), so it reads without colour.
+    const recorded = byKind("recorded");
+    const recordedBase = { width: 4, casing: true, casingWidth: 7.5, casingColor: ROUTE_CASING };
+    const patternOf = (l: MapLine) => legPattern(l.mode);
+    ensureLineLayer(map, "fs-lines-recorded", lineToGeoJSON(recorded.filter((l) => patternOf(l) === "solid")), { ...recordedBase, color: ROUTE_YELLOW });
+    ensureLineLayer(map, "fs-lines-recorded-dotted", lineToGeoJSON(recorded.filter((l) => patternOf(l) === "dotted")), { ...recordedBase, color: ROUTE_YELLOW, dasharray: [0.1, 2] });
+    ensureLineLayer(map, "fs-lines-recorded-hatch", lineToGeoJSON(recorded.filter((l) => patternOf(l) === "hatch")), { ...recordedBase, color: ROUTE_YELLOW, dasharray: [1, 1], cap: "butt" });
+    ensureLineLayer(map, "fs-lines-recorded-dashed", lineToGeoJSON(recorded.filter((l) => patternOf(l) === "dashed")), { ...recordedBase, color: WATER_BLUE, dasharray: [2.5, 1.5], cap: "butt" });
     ensureLineLayer(map, "fs-lines-gap", lineToGeoJSON(byKind("gap")), {
       color: MUTED_COLOUR,
       width: 2,
@@ -381,6 +401,28 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       made.push(new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([first.lng, first.lat]).addTo(map));
     }
     pinMarkers.set(map, made);
+
+    // B-2980: one round chip per moded leg, midway along its longest piece.
+    for (const m of chipMarkers.get(map) ?? []) m.remove();
+    const candidates = activeLines.flatMap((line) => {
+      const mid = line.mode && (line.kind === "recorded" || line.kind === "photo-join") ? longestSegmentMid(line.coords) : null;
+      return mid ? [{ ...map.project([mid.lng, mid.lat]), data: { line, mid } }] : [];
+    });
+    const blockers = [...places.map((p) => map.project([p.lng, p.lat])), ...placed];
+    const chips: MapLibreMarker[] = [];
+    for (const { data } of placeChips(candidates, blockers, CHIP_CLEAR_PX)) {
+      const { line, mid } = data;
+      const mode = line.mode as TransportMode;
+      const el = document.createElement("button");
+      el.type = "button";
+      el.setAttribute("aria-label", legLabel?.(mode, line.modeSource ?? "recorded") ?? mode);
+      el.style.cssText =
+        "display:flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border-radius:9999px;background:#fff;color:#16305c;border:2px solid #16305c;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer;";
+      el.innerHTML = renderToStaticMarkup(createElement(MODE_ICON[mode], { size: 14, strokeWidth: 2.5, "aria-hidden": true }));
+      el.onclick = () => onSelectDay(line.toDay);
+      chips.push(new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([mid.lng, mid.lat]).addTo(map));
+    }
+    chipMarkers.set(map, chips);
 
     for (const [day, mk] of markers) {
       if (!seen.has(day)) {

@@ -1240,6 +1240,8 @@
   "map.hereNow": "Éppen itt",
   "map.homePlace": "Otthon",
   "map.layers": "Rétegek",
+  "map.leg.fromDay": "{mode} (a napból)",
+  "map.leg.recorded": "{mode} (rögzítve)",
   "map.legend.flight": "Repülés",
   "map.legend.gap": "Hiányzó szakasz a rögzítésben",
   "map.legend.photoJoin": "Fotókkal összekötve",

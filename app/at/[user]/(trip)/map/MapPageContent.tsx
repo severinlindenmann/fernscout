@@ -20,6 +20,8 @@ import type { Basemap } from "@/lib/basemap";
 import { ACCENT_HEX, type PlannedStop } from "@/lib/types";
 import { buildTripFrame, type MapPlace, type MapLine, type RecordedSegment } from "@/lib/map/tripFrame";
 import { applyStreetOverlay } from "@/lib/map/streetOverlay";
+import { legModeFromEntry, legModeFromRecorded, legPattern, withDeclaredLegs, type LegPattern } from "@/lib/map/legMode";
+import type { TransportMode } from "@/lib/types";
 import type { MapDay } from "@/lib/map/mapDays";
 import MobileMapSheet, { MAPS_BUTTON, READ_DAY_BUTTON } from "@/components/map/MobileMapSheet";
 import { mediaLoader, posterSrc } from "@/components/mediaLoader";
@@ -69,25 +71,25 @@ function boundsFor(points: readonly { lat: number; lng: number }[]): [[number, n
  * break exists".
  */
 function recordedSegmentsFor(
-  trackByDay: readonly { date?: string; points: [number, number][] }[],
+  trackByDay: readonly { date?: string; points: [number, number][]; mode?: string }[],
   dayNumberByDate: ReadonlyMap<string, number>,
 ): RecordedSegment[] {
-  const byDate = new Map<string, [number, number][][]>();
+  const byDate = new Map<string, { points: [number, number][]; mode?: string }[]>();
   for (const seg of trackByDay) {
     if (!seg.date || seg.points.length === 0) continue;
     const list = byDate.get(seg.date) ?? [];
-    list.push(seg.points);
+    list.push({ points: seg.points, mode: seg.mode });
     byDate.set(seg.date, list);
   }
   const out: RecordedSegment[] = [];
   for (const [date, segs] of byDate) {
     const day = dayNumberByDate.get(date);
     if (day === undefined) continue;
-    segs.forEach((points, i) => {
+    segs.forEach(({ points, mode }, i) => {
       if (points.length >= 2) {
-        out.push({ day, points: points.map(([lat, lng]) => ({ lat, lng })) });
+        out.push({ day, points: points.map(([lat, lng]) => ({ lat, lng })), mode: legModeFromRecorded(mode) ?? undefined });
       }
-      const next = segs[i + 1];
+      const next = segs[i + 1]?.points;
       if (next && points.length > 0 && next.length > 0) {
         out.push({
           day,
@@ -132,7 +134,7 @@ export default function MapPageContent({
    * case the run still draws on `WorldMap`'s SVG path (which never asked for
    * a day) but cannot be attributed to a day here and is left out of the
    * street map / region / legend picture. */
-  trackByDay?: { date?: string; points: [number, number][] }[];
+  trackByDay?: { date?: string; points: [number, number][]; mode?: string }[];
   /**
    * Whether *this viewer's own request* may see the live tail, and how long
    * ago it was last derived — B2536. Resolved server-side
@@ -259,10 +261,43 @@ export default function MapPageContent({
     () => recordedSegmentsFor(trackByDay, dayNumberByDate),
     [trackByDay, dayNumberByDate],
   );
-  const frame = useMemo(
-    () => buildTripFrame(mapPlaces, recordedSegments),
-    [mapPlaces, recordedSegments],
-  );
+  // B-2980: how each day's own entry says it travelled, by day number.
+  const declaredModes = useMemo(() => {
+    const m = new Map<number, TransportMode>();
+    for (const d of days) {
+      const mode = legModeFromEntry(d.transportMode);
+      const n = dayNumberByDate.get(d.date);
+      if (mode && n) m.set(n, mode);
+    }
+    return m;
+  }, [days, dayNumberByDate]);
+  const frame = useMemo(() => {
+    const built = buildTripFrame(mapPlaces, recordedSegments);
+    return { ...built, lines: withDeclaredLegs(built.lines, mapPlaces, declaredModes) };
+  }, [mapPlaces, recordedSegments, declaredModes]);
+  // Literal keys so the locale scope ships them to this page.
+  const modeLabel = (mode: TransportMode): string =>
+    ({
+      flight: t("studio.day.transport.flight"),
+      train: t("studio.day.transport.train"),
+      bus: t("studio.day.transport.bus"),
+      motorbike: t("studio.day.transport.motorbike"),
+      bicycle: t("studio.day.transport.bicycle"),
+      boat: t("studio.day.transport.boat"),
+      car: t("studio.day.transport.car"),
+      taxi: t("studio.day.transport.taxi"),
+      walk: t("studio.day.transport.walk"),
+      metro: t("studio.day.transport.metro"),
+      tram: t("studio.day.transport.tram"),
+      ferry: t("studio.day.transport.ferry"),
+    })[mode];
+  // "Mode (recorded)" or "Mode (from the day)": never claim a recording that was not one.
+  const legLabel = (mode: TransportMode, source: "recorded" | "day"): string =>
+    t(source === "recorded" ? "map.leg.recorded" : "map.leg.fromDay", { mode: modeLabel(mode) });
+  const legLabelRef = useRef(legLabel);
+  useEffect(() => {
+    legLabelRef.current = legLabel;
+  });
 
   // Which region the map is currently framed on — the main one until a
   // reader taps another region's chip. Seeded once from `frame` at mount;
@@ -434,6 +469,11 @@ export default function MapPageContent({
       (l) => l.kind !== "flight" && (l.fromDay === selectedDayNumber || l.toDay === selectedDayNumber),
     );
   }, [frame.isTour, frame.lines, regionDayNumbers, selectedDayNumber]);
+  const modesShown = useMemo(() => {
+    const seen = new Map<TransportMode, LegPattern>();
+    for (const l of linesShown) if (l.mode && l.kind !== "gap" && l.kind !== "flight") seen.set(l.mode, legPattern(l.mode));
+    return [...seen];
+  }, [linesShown]);
   const lineKindsShown = useMemo(() => new Set(linesShown.map((l: MapLine) => l.kind)), [linesShown]);
 
   const regionChips = onMainRegion ? frame.chips : [];
@@ -483,6 +523,7 @@ export default function MapPageContent({
         pins,
         pinLabel,
         unwrittenLines: unwritten?.lines,
+        legLabel: (m, src) => legLabelRef.current(m, src),
         onOpenPins: (group) => {
           setPinIndex(0);
           setOpenPins(group);
@@ -519,6 +560,7 @@ export default function MapPageContent({
     pins,
     unwritten,
     pinLabel,
+    declaredModes,
   ]);
 
   return (
@@ -847,6 +889,11 @@ export default function MapPageContent({
               {lineKindsShown.has("gap") && <span>┄ {t("map.legend.gap")}</span>}
               {lineKindsShown.has("photo-join") && <span>┄ {t("map.legend.photoJoin")}</span>}
               {lineKindsShown.has("flight") && <span>⋯ {t("map.legend.flight")}</span>}
+              {modesShown.map(([mode, pattern]) => (
+                <span key={mode}>
+                  {{ solid: "—", dotted: "⋯", hatch: "╪", dashed: "┄" }[pattern]} {modeLabel(mode)}
+                </span>
+              ))}
             </div>
           )}
         </div>
