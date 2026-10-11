@@ -95,8 +95,8 @@ export function placeChips<T>(
 }
 
 /**
- * B-2980: lines plus the legs a day's own `transportMode` declares. A recorded
- * run without a mode of its own takes the day's, tagged "day". Between two
+ * B-2980: lines plus the legs a day's own `transportMode` declares. The first
+ * recorded run into a day, without a mode of its own, takes the day's, tagged "day". Between two
  * consecutive placed days with no recording into the later one, the later
  * day's mode draws a straight join tagged "day" (an existing photo join just
  * gains the mode). Legs over 600 km stay the overview's flights.
@@ -108,11 +108,16 @@ export function withDeclaredLegs(
   places: readonly MapPlace[],
   declared: ReadonlyMap<number, TransportMode>,
 ): MapLine[] {
-  const out: MapLine[] = lines.map((l) =>
-    l.kind === "recorded" && !l.mode && declared.has(l.toDay)
-      ? { ...l, mode: declared.get(l.toDay), modeSource: "day" as const }
-      : l,
-  );
+  // The day's mode goes onto the first recorded line into that day only (the
+  // leg that got there), never onto every run of a day of walks (B-2980).
+  const given = new Set<number>();
+  const out: MapLine[] = lines.map((l) => {
+    if (l.kind !== "recorded" || l.mode || !declared.has(l.toDay) || given.has(l.toDay)) return l;
+    // A join or flight already carries the way into that day.
+    if (lines.some((o) => (o.kind === "flight" || o.kind === "photo-join") && o.toDay === l.toDay)) return l;
+    given.add(l.toDay);
+    return { ...l, mode: declared.get(l.toDay), modeSource: "day" as const };
+  });
   const sorted = [...places].sort((a, b) => a.day - b.day);
   for (let i = 1; i < sorted.length; i++) {
     const a = sorted[i - 1];

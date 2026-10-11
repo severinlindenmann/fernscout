@@ -39,6 +39,10 @@ export type TrackSegment = {
    *  fix in it. A named stretch's own chosen mode (B2539) overrides this for
    *  the labelled point, but never rewrites the segment itself. */
   mode?: TransportMode;
+  /** B-2980: set by `readerTrack` only — a hidden spot was cut out right
+   *  before / after this piece, so a map must never bridge that end. */
+  cutBefore?: boolean;
+  cutAfter?: boolean;
 };
 
 /** One named stretch's own point on the line — B2539, D8 C. Computed at
@@ -269,18 +273,22 @@ function splitOutHiddenSpots(segments: TrackSegment[], spots: HiddenSpot[]): Tra
   const out: TrackSegment[] = [];
   for (const segment of segments) {
     let piece: [number, number][] = [];
-    const flush = () => {
-      if (piece.length >= 2) out.push({ ...segment, points: piece });
+    let cutBefore = false;
+    const flush = (cutAfter: boolean) => {
+      if (piece.length >= 2) {
+        out.push({ ...segment, points: piece, ...(cutBefore ? { cutBefore } : {}), ...(cutAfter ? { cutAfter } : {}) });
+      }
       piece = [];
     };
     for (const point of segment.points) {
       if (isInHiddenSpot({ lat: point[0], lon: point[1] }, spots)) {
-        flush();
+        if (piece.length > 0 || !cutBefore) flush(true);
+        cutBefore = true;
         continue;
       }
       piece.push(point);
     }
-    flush();
+    flush(false);
   }
   return out;
 }

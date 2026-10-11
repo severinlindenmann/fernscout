@@ -268,7 +268,8 @@ test.each(["", "?day=2024-09-01"])("street map fits overview and restores it aft
     { date: places[0].firstDate, points: [[46.57, 8.41], [46.58, 8.42]] },
   ] });
   await act(async () => {});
-  const overview = [[8.4113, 46.5713], [8.4456, 46.7264]];
+  // The whole-trip fit holds the stops and the drawn route (B-2980), so the box reaches the route's own corner.
+  const overview = [[8.41, 46.57], [8.4456, 46.7264]];
   const first = el.querySelector('[data-street-map] button[aria-label="Furka"]') as HTMLElement;
   const second = el.querySelector('[data-street-map] button[aria-label="Susten"]') as HTMLElement;
   expect(el.querySelector('[data-street-map] button[aria-label="Far away"]')).toBeNull();
@@ -287,7 +288,8 @@ test.each(["", "?day=2024-09-01"])("street map fits overview and restores it aft
   expect(window.location.search).toBe("");
   expect(street.fitBounds.mock.lastCall?.[0]).toEqual(overview);
   expect([first.style.opacity, second.style.opacity]).toEqual(["1", "1"]);
-  expect(el.textContent).toContain(dictionaryFor("en")["map.legend.recorded"]);
+  // The always-on legend is gone (the layers popover lists only modes drawn); nothing moded here, so no button.
+  expect(el.querySelector(`button[aria-label="${dictionaryFor("en")["map.layers"]}"]`)).toBeNull();
 });
 
 const plan = places.map((p) => ({ location: p.location, country: p.country,

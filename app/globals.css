@@ -247,6 +247,13 @@
   --map-leg-chip-fill: #ffffff;
   --map-leg-chip-border: #d8dee8;
   --map-leg-chip-icon: #1e293b;
+  --map-route-line: #ffd23f;
+  --map-route-edge: #16305c;
+  --map-leg-muted: #5a6a80;
+  --map-leg-join: #8a95a5;
+  --map-leg-water: #4aa3df;
+  --map-pin-fill: #1b2a41;
+  --map-pin-ring: #ffffff;
   --map-label-stop: #1e293b;
   /* A paper-coloured halo behind stop labels, not a text-shadow grey. */
   --map-label-stop-halo: #f7f0de;
@@ -489,6 +496,13 @@ html {
   --map-leg-chip-fill: #1f2736;
   --map-leg-chip-border: #33405a;
   --map-leg-chip-icon: #f2ecdd;
+  --map-route-line: #ffd23f;
+  --map-route-edge: #0b1220;
+  --map-leg-muted: #a7b2c4;
+  --map-leg-join: #94a0b4;
+  --map-leg-water: #6cc0f2;
+  --map-pin-fill: #1f2736;
+  --map-pin-ring: #f2ecdd;
   --map-label-stop: #f2ecdd;
   --map-label-stop-halo: #1b2635;
   --map-label-town: #c9c8c0;
@@ -577,6 +591,13 @@ html {
     --map-leg-chip-fill: #1f2736;
     --map-leg-chip-border: #33405a;
     --map-leg-chip-icon: #f2ecdd;
+    --map-route-line: #ffd23f;
+    --map-route-edge: #0b1220;
+    --map-leg-muted: #a7b2c4;
+    --map-leg-join: #94a0b4;
+    --map-leg-water: #6cc0f2;
+    --map-pin-fill: #1f2736;
+    --map-pin-ring: #f2ecdd;
     --map-label-stop: #f2ecdd;
     --map-label-stop-halo: #1b2635;
     --map-label-town: #c9c8c0;
@@ -630,6 +651,13 @@ body {
   --map-leg-chip-fill: #1f2736;
   --map-leg-chip-border: #33405a;
   --map-leg-chip-icon: #f2ecdd;
+  --map-route-line: #ffd23f;
+  --map-route-edge: #0b1220;
+  --map-leg-muted: #a7b2c4;
+  --map-leg-join: #94a0b4;
+  --map-leg-water: #6cc0f2;
+  --map-pin-fill: #1f2736;
+  --map-pin-ring: #f2ecdd;
   --map-label-stop: #f2ecdd;
   --map-label-stop-halo: #1b2635;
   --map-label-town: #c9c8c0;

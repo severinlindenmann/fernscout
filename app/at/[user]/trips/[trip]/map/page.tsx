@@ -11,6 +11,7 @@ import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entrie
 import { getMapDays } from "@/lib/map/mapDays";
 import { dayAnchors, unwrittenRecordedDays } from "@/lib/map/routeAnchors";
 import { getPhotoPins } from "@/lib/map/photoPins";
+import { isTooRecent } from "@/lib/map/mapSafety";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -107,11 +108,16 @@ async function TripMapBody({ trip, read, owner }: { trip: Trip; read: ReadOption
       date: s.day,
       points: s.points,
       mode: s.mode,
+      cutBefore: s.cutBefore,
+      cutAfter: s.cutAfter,
     })) ?? [];
   // B-2980 — see the sibling route.
-  const anchors = dayAnchors(days, trackByDay);
-  const places = getPlaces(trip.ref, read, anchors);
-  const pins = getPhotoPins(trip.ref, read, trackByDay);
+  // A reader without live access gets nothing from a day inside the last 24 h
+  // (readerTrack's own rule): no pin, no typed place on the map.
+  const allPins = getPhotoPins(trip.ref, read, trackByDay, live);
+  const anchors = dayAnchors(days, trackByDay, allPins);
+  const places = getPlaces(trip.ref, read, anchors).filter((p) => !isTooRecent(p.firstDate, live));
+  const pins = allPins;
   const unwritten = owner ? unwrittenRecordedDays(trip.username, trip.id, visibleDates) : undefined;
   // B1289 — this route never asked either question before this fix, so a
   // finished trip's own map page (not the bare `/map` route, which already

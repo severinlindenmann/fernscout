@@ -13,6 +13,7 @@ import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entrie
 import { getMapDays } from "@/lib/map/mapDays";
 import { dayAnchors, unwrittenRecordedDays } from "@/lib/map/routeAnchors";
 import { getPhotoPins } from "@/lib/map/photoPins";
+import { isTooRecent } from "@/lib/map/mapSafety";
 import { getPlan } from "@/lib/plan";
 import { liveTailStatus, readerTrack } from "@/lib/gps/track";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
@@ -167,11 +168,16 @@ async function MapBody({ trip, read, owner }: { trip: Trip; read: ReadOptions; o
       date: s.day,
       points: s.points,
       mode: s.mode,
+      cutBefore: s.cutBefore,
+      cutAfter: s.cutAfter,
     })) ?? [];
   // B-2980: a day with no position of its own is placed from its recorded route.
-  const anchors = dayAnchors(days, trackByDay);
-  const places = getPlaces(tripId, read, anchors);
-  const pins = getPhotoPins(tripId, read, trackByDay);
+  // A reader without live access gets nothing from a day inside the last 24 h
+  // (readerTrack's own rule): no pin, no typed place on the map.
+  const allPins = getPhotoPins(tripId, read, trackByDay, live);
+  const anchors = dayAnchors(days, trackByDay, allPins);
+  const places = getPlaces(tripId, read, anchors).filter((p) => !isTooRecent(p.firstDate, live));
+  const pins = allPins;
   const unwritten = owner ? unwrittenRecordedDays(trip.username, trip.id, visibleDates) : undefined;
   // The trip hero's own tense (`isOver`, lib/tripTime.ts) — B1289. A finished
   // trip whose only day has no coordinates used to stay in the planned tense

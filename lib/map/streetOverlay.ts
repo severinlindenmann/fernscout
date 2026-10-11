@@ -1,5 +1,5 @@
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
-import type { MapLine, MapPlace, TripFrame } from "./tripFrame";
+import { linesForRegion, type MapLine, type MapPlace, type TripFrame } from "./tripFrame";
 import type { PhotoPin } from "./photoPins";
 import { groupByScreen } from "./pinGroups";
 import { chipRedundant, legPattern, longestSegmentMid, placeChips, type LegPattern } from "./legMode";
@@ -29,11 +29,25 @@ import { haversineKm, planCamera } from "./dayTransition";
  * on top of the one street the selected day is about, hides them outright.
  */
 
-const MUTED_COLOUR = "#5a6a80";
 const CASING_COLOUR = "#ffffff";
-/** B-2980: the recorded route is the brand yellow on a navy casing. */
-const ROUTE_YELLOW = "#ffd23f";
-const ROUTE_CASING = "#16305c";
+/**
+ * B-2980: the line colours, read from the map tokens in globals.css when the
+ * layers are made. MapLibre paint cannot take `var()`, so a scheme change
+ * (StreetMap's `setStyle`) drops the layers and `style.load` draws them again
+ * from the tokens of the scheme now showing. The recorded route is the brand
+ * yellow on a navy casing. The literals are only the fallback outside a page.
+ */
+function palette() {
+  const cs = typeof document !== "undefined" ? getComputedStyle(document.documentElement) : null;
+  const tok = (name: string, fallback: string) => cs?.getPropertyValue(name).trim() || fallback;
+  return {
+    yellow: tok("--map-route-line", "#ffd23f"),
+    edge: tok("--map-route-edge", "#16305c"),
+    muted: tok("--map-leg-muted", "#5a6a80"),
+    join: tok("--map-leg-join", "#8a95a5"),
+    water: tok("--map-leg-water", "#4aa3df"),
+  };
+}
 /** Pins closer than this on screen become one badge; also the 44px tap target. */
 const PIN_CLUSTER_PX = 44;
 
@@ -42,8 +56,8 @@ const CHIP_MIN_LEG_PX = 80;
 
 /** B-2980: a mode chip is 22px; two closer than this, or one this close to a stop or pin, is dropped. */
 const CHIP_CLEAR_PX = 34;
-/** Water is the one blue-ish line; every other pattern stays brand yellow. */
-const WATER_BLUE = "#4aa3df";
+/** Stops closer than this on screen share one disc with a count badge. */
+const STOP_CLUSTER_PX = 24;
 const MODE_ICON = {
   walk: Footprints, bicycle: Bike, car: Car, taxi: Car, motorbike: Car, bus: Bus,
   train: TrainFront, metro: TrainFront, tram: TramFront, boat: Ship, ferry: Ship, flight: Plane,
@@ -297,9 +311,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
   // other region, so the caller — which already knows which region is
   // showing — hands over that region's own places directly (B2560).
   const places = regionPlaces;
-  const linesInRegion = frame.lines.filter(
-    (l) => regionDayNumbers.has(l.fromDay) || regionDayNumbers.has(l.toDay),
-  );
+  const linesInRegion = linesForRegion(frame.lines, regionDayNumbers, frame.isTour);
   const activeLines = selectedDay
     ? linesInRegion.filter((l) => l.kind !== "flight" && (l.fromDay === selectedDay || l.toDay === selectedDay))
     : linesInRegion;
@@ -307,20 +319,21 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
   const mutedLines = selectedDay ? linesInRegion.filter((l) => l.kind !== "flight" && l.kind !== "recorded" && !activeLines.includes(l)) : [];
 
   const draw = async () => {
+    const P = palette();
     ensureLineLayer(
       map,
       "fs-lines-unwritten",
       { type: "FeatureCollection", features: unwrittenLines.map((l) => ({ type: "Feature" as const, properties: { kind: "unwritten" as MapLine["kind"] }, geometry: { type: "LineString" as const, coordinates: l.map(([lat, lng]) => [lng, lat]) } })) },
-      { color: "#8a95a5", width: 3, dasharray: [2, 1.5] },
+      { color: P.join, width: 3, dasharray: [2, 1.5] },
     );
     ensureLineLayer(
       map,
       "fs-pin-tethers",
       { type: "FeatureCollection", features: pins.filter((p) => p.tether).map((p) => ({ type: "Feature" as const, properties: { kind: "tether" as MapLine["kind"] }, geometry: { type: "LineString" as const, coordinates: [[p.lng, p.lat], [p.tether![1], p.tether![0]]] } })) },
-      { color: MUTED_COLOUR, width: 1 },
+      { color: P.muted, width: 1 },
     );
     ensureLineLayer(map, "fs-lines-muted", lineToGeoJSON(mutedLines), {
-      color: MUTED_COLOUR,
+      color: P.muted,
       width: 2,
       dasharray: [1, 2],
     });
@@ -340,12 +353,12 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     const recordedOf = (...p: LegPattern[]) => lineToGeoJSON(recorded.filter((l) => p.includes(patternOf(l))), dimmed);
     const fade = ["case", ["get", "dim"], 0.35, 1] as unknown as number;
     const recordedLayers: [string, ReturnType<typeof lineToGeoJSON>, Record<string, unknown>, Record<string, unknown>][] = [
-      ["fs-lines-recorded", recordedOf("solid", "hatch"), { "line-color": ROUTE_YELLOW }, {}],
-      ["fs-lines-recorded-dotted", recordedOf("dotted"), { "line-color": ROUTE_YELLOW, "line-dasharray": [0.1, 2] }, {}],
-      ["fs-lines-recorded-dash", recordedOf("dash"), { "line-color": ROUTE_YELLOW, "line-dasharray": [4, 2.2] }, { "line-cap": "butt" }],
-      ["fs-lines-recorded-dashed", recordedOf("dashed"), { "line-color": WATER_BLUE, "line-dasharray": [1.2, 1.8] }, { "line-cap": "butt" }],
+      ["fs-lines-recorded", recordedOf("solid", "hatch"), { "line-color": P.yellow }, {}],
+      ["fs-lines-recorded-dotted", recordedOf("dotted"), { "line-color": P.yellow, "line-dasharray": [0.1, 2] }, {}],
+      ["fs-lines-recorded-dash", recordedOf("dash"), { "line-color": P.yellow, "line-dasharray": [4, 2.2] }, { "line-cap": "butt" }],
+      ["fs-lines-recorded-dashed", recordedOf("dashed"), { "line-color": P.water, "line-dasharray": [1.2, 1.8] }, { "line-cap": "butt" }],
       // Rail: the solid line above plus navy ticks across it.
-      ["fs-lines-recorded-ticks", recordedOf("hatch"), { "line-color": ROUTE_CASING, "line-width": 9, "line-dasharray": [0.25, 1.1] }, { "line-cap": "butt" }],
+      ["fs-lines-recorded-ticks", recordedOf("hatch"), { "line-color": P.edge, "line-width": 9, "line-dasharray": [0.25, 1.1] }, { "line-cap": "butt" }],
     ];
     const casingSource = "fs-lines-recorded-casing";
     const all = lineToGeoJSON(recorded, dimmed);
@@ -356,7 +369,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       map.addLayer({
         id: casingSource, type: "line", source: casingSource,
         layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": ROUTE_CASING, "line-width": 7.5, "line-opacity": fade },
+        paint: { "line-color": P.edge, "line-width": 7.5, "line-opacity": fade },
       });
     }
     for (const [id, data, paint, layout] of recordedLayers) {
@@ -372,20 +385,20 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       }
     }
     ensureLineLayer(map, "fs-lines-gap", lineToGeoJSON(byKind("gap")), {
-      color: MUTED_COLOUR,
+      color: P.muted,
       width: 2,
       dasharray: [1, 1.6],
     });
     // Declared-only joins (no recording) stay a thin grey straight dash.
     ensureLineLayer(map, "fs-lines-photo-join", lineToGeoJSON(byKind("photo-join")), {
-      color: "#8a95a5",
+      color: P.join,
       width: 1.5,
       dasharray: [3, 2.4],
     });
     // Flights: overview only — `activeLines` already excludes them whenever
     // a day is selected (see above), so this is naturally empty then.
     ensureLineLayer(map, "fs-lines-flight", lineToGeoJSON(byKind("flight")), {
-      color: MUTED_COLOUR,
+      color: P.muted,
       width: 1.5,
       dasharray: [1, 2.6],
     });
@@ -412,18 +425,25 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       return { day: place.day, x: point.x + 26, y: point.y - LABEL_HEIGHT / 2, width, height: LABEL_HEIGHT };
     });
     const hiddenLabels = hiddenLabelDays(labelBoxes);
+    // Stops whose discs overlap on screen share the first one (the selected day
+    // wins the order above) and a count badge, so the rest do not pile up.
+    const stopGroups = groupByScreen(placementOrder.map((place) => ({ ...map.project([place.lng, place.lat]), place })), STOP_CLUSTER_PX);
+    const groupOf = new Map<number, MapPlace[]>();
+    for (const g of stopGroups) for (const m of g) groupOf.set(m.place.day, g.map((x) => x.place));
 
     for (const place of places) {
       seen.add(place.day);
+      const group = groupOf.get(place.day) ?? [place];
+      const absorbed = group[0].day !== place.day;
       const muted = selectedDay !== null && place.day !== selectedDay;
-      const hide = muted && map.getZoom() > STREET_ZOOM_HIDE;
+      const hide = absorbed || (muted && map.getZoom() > STREET_ZOOM_HIDE);
       let mk = markers.get(place.day);
       if (!mk) {
         const el = document.createElement("button");
         el.type = "button";
         el.setAttribute("aria-label", place.name);
         el.style.cssText =
-          "display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:11px;min-height:44px;min-width:44px;cursor:pointer;font:inherit;" +
+          "position:relative;display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:11px;min-height:44px;min-width:44px;cursor:pointer;font:inherit;" +
           (reducedMotion() ? "" : "transition:opacity .35s ease;");
         const disc = document.createElement("span");
         disc.className = "fs-daymarker-disc";
@@ -433,22 +453,38 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         const label = document.createElement("span");
         label.className = "fs-daymarker-label";
         label.style.cssText =
-          "font-size:12px;font-weight:600;color:#16305c;white-space:nowrap;text-shadow:-1.5px 0 #fff,1.5px 0 #fff,0 -1.5px #fff,0 1.5px #fff,0 0 4px #fff;";
+          "font-size:12px;font-weight:600;color:var(--map-label-stop,#16305c);white-space:nowrap;text-shadow:-1.5px 0 var(--map-label-stop-halo,#fff),1.5px 0 var(--map-label-stop-halo,#fff),0 -1.5px var(--map-label-stop-halo,#fff),0 1.5px var(--map-label-stop-halo,#fff),0 0 4px var(--map-label-stop-halo,#fff);";
         // `textContent`, never `innerHTML` — a place name is the owner's own
         // written text, reaching every reader's browser; nothing here trusts
         // it to be markup.
         label.textContent = place.name;
-        el.append(disc, label);
+        const badge = document.createElement("span");
+        badge.className = "fs-daymarker-badge";
+        badge.style.cssText =
+          "position:absolute;top:4px;left:26px;min-width:16px;height:16px;padding:0 3px;box-sizing:border-box;border-radius:9999px;background:var(--map-pin-fill,#1b2a41);color:var(--map-pin-ring,#fff);border:1.5px solid var(--map-pin-ring,#fff);font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;";
+        el.append(disc, label, badge);
         // On the globe's far side a stop hides rather than showing through.
         mk = new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([place.lng, place.lat]).addTo(map);
         markers.set(place.day, mk);
       }
       const el = mk.getElement();
+      const badge = el.querySelector<HTMLElement>(".fs-daymarker-badge");
+      if (badge) {
+        badge.textContent = String(group.length);
+        badge.style.display = group.length > 1 && !hide ? "flex" : "none";
+      }
       el.onclick = () => {
+        // Overlapping stops: a tap zooms in to pull them apart before opening one.
+        const gbox = group.length > 1 ? boundsOf(group) : null;
+        const gzoom = gbox ? map.cameraForBounds(gbox, { padding, maxZoom: 15 })?.zoom : undefined;
+        if (gbox && gzoom !== undefined && gzoom > map.getZoom() + 0.5) {
+          map.fitBounds(gbox, { padding, maxZoom: 15, duration: reducedMotion() ? 0 : 600 });
+          return;
+        }
         // Zoomed out past a place's own stops, a tap frames them all first
         // (Reykjavík's two days, say); a tap once they're framed, or on a
         // lone stop, opens the day — B2643.
-        const nearby = frame.regions.find((r) => r.places.some((p) => p.day === place.day))?.places ?? [];
+        const nearby = frame.regions.find((r) => r.places.some((p) => p.day === place.day))?.places.filter((p) => !p.home) ?? [];
         const box = nearby.length > 1 ? boundsOf(nearby) : null;
         const fitZoom = box ? map.cameraForBounds(box, { padding, maxZoom: 15 })?.zoom : undefined;
         if (box && fitZoom !== undefined && map.getZoom() < fitZoom - 1) {
@@ -468,9 +504,9 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         const size = isSelected ? 36 : 24;
         disc.style.width = disc.style.height = `${size}px`;
         disc.style.fontSize = isSelected ? "15px" : "11px";
-        disc.style.background = isSelected ? ROUTE_YELLOW : "var(--map-stop-fill, #fff)";
-        disc.style.border = `${isSelected ? 2 : 2.5}px solid ${isSelected ? ROUTE_CASING : "var(--map-stop-ring, #16305c)"}`;
-        disc.style.color = isSelected ? ROUTE_CASING : "var(--map-stop-number, #16305c)";
+        disc.style.background = isSelected ? "var(--map-route-line, #ffd23f)" : "var(--map-stop-fill, #fff)";
+        disc.style.border = `${isSelected ? 2 : 2.5}px solid ${isSelected ? "var(--map-route-edge, #16305c)" : "var(--map-stop-ring, #16305c)"}`;
+        disc.style.color = isSelected ? "var(--map-route-edge, #16305c)" : "var(--map-stop-number, #16305c)";
         disc.textContent = String(place.day);
       }
       mk.setLngLat([place.lng, place.lat]);
@@ -487,7 +523,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       el.style.cssText = "position:relative;width:44px;height:44px;padding:0;border:none;background:transparent;cursor:pointer;";
       const ring = document.createElement("span");
       ring.style.cssText =
-        "position:absolute;inset:6px;border-radius:9999px;background:#1b2a41;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);overflow:hidden;display:flex;align-items:center;justify-content:center;";
+        "position:absolute;inset:6px;border-radius:9999px;background:var(--map-pin-fill,#1b2a41);border:2.5px solid var(--map-pin-ring,#fff);box-shadow:0 1px 4px rgba(0,0,0,.35);overflow:hidden;display:flex;align-items:center;justify-content:center;";
       const img = document.createElement("img");
       img.alt = "";
       img.loading = "eager";
@@ -501,7 +537,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
         const badge = document.createElement("span");
         badge.textContent = String(group.length);
         badge.style.cssText =
-          "position:absolute;top:0;right:0;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9999px;background:#1b2a41;color:#fff;border:1.5px solid #fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;";
+          "position:absolute;top:0;right:0;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9999px;background:var(--map-pin-fill,#1b2a41);color:var(--map-pin-ring,#fff);border:1.5px solid var(--map-pin-ring,#fff);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;";
         el.append(badge);
       }
       el.onclick = () => onOpenPins?.(group.map((g) => g.pin));
@@ -527,7 +563,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       const el = document.createElement("button");
       el.type = "button";
       el.setAttribute("aria-label", legLabel?.(mode, line.modeSource ?? "recorded") ?? mode);
-      el.style.cssText = `display:flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border-radius:9999px;background:${fromDay ? "transparent" : "#fff"};color:#16305c;border:2px solid #16305c;box-shadow:${fromDay ? "none" : "0 1px 3px rgba(0,0,0,.3)"};cursor:pointer;`;
+      el.style.cssText = `display:flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border-radius:9999px;background:${fromDay ? "transparent" : "var(--map-leg-chip-fill,#fff)"};color:var(--map-leg-chip-icon,#16305c);border:2px solid var(--map-leg-chip-icon,#16305c);box-shadow:${fromDay ? "none" : "0 1px 3px rgba(0,0,0,.3)"};cursor:pointer;`;
       el.innerHTML = renderToStaticMarkup(createElement(MODE_ICON[mode], { size: 12, strokeWidth: 2.5, "aria-hidden": true }));
       el.onclick = () => onSelectDay(line.toDay);
       chips.push(new Marker({ element: el, opacityWhenCovered: "0" }).setLngLat([mid.lng, mid.lat]).addTo(map));
@@ -564,7 +600,10 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     travel(map, fromPlace, selectedPlace, box, padding, flight);
   } else if (box) {
     const left = (travelUntil.get(map) ?? 0) - performance.now();
-    fit(map, box, padding, { duration: reducedMotion() ? 0 : left > 200 ? left : 400 });
+    // A single place (a degenerate box) frames at town zoom, not a street.
+    const span = Math.max(box[1][0] - box[0][0], box[1][1] - box[0][1]);
+    const degenerate = selectedDay === null && span < 0.02 ? { maxZoom: 11 } : {};
+    fit(map, box, padding, { duration: reducedMotion() ? 0 : left > 200 ? left : 400, ...degenerate });
   }
 
   if (map.isStyleLoaded()) void draw();

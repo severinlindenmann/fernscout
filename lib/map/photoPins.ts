@@ -1,5 +1,6 @@
 import "server-only";
-import { getDays, type ReadOptions } from "@/lib/entries";
+import { getDays, placeEntry, type ReadOptions } from "@/lib/entries";
+import { isTooRecent, plausiblePin } from "./mapSafety";
 import { kmBetween } from "@/lib/mapFrame";
 import { isHiddenPlace } from "@/lib/gps/edits";
 import { isHomePlace } from "@/lib/gps/enrich";
@@ -31,13 +32,21 @@ export function getPhotoPins(
   ref: string,
   options: ReadOptions | undefined,
   trackByDay: readonly { date?: string; points: [number, number][] }[],
+  /** Whether this reader may see the last 24 h (owner, live guests); others get no pin from a day that recent. */
+  live = true,
 ): PhotoPin[] {
   const owner = parseTripRef(ref);
   if (!owner) return [];
   const checkHidden = options?.reader !== "person";
   const pins: PhotoPin[] = [];
   for (const day of getDays(ref, options)) {
+    if (isTooRecent(day.date, live)) continue;
     const route = trackByDay.filter((s) => s.date === day.date).flatMap((s) => s.points);
+    // What the day itself says about where it was: its recording, else its typed place.
+    const lead = placeEntry(day);
+    const refs = route.length > 0
+      ? route.map(([lat, lng]) => ({ lat, lng }))
+      : Number.isFinite(lead.lat) && Number.isFinite(lead.lng) ? [{ lat: lead.lat as number, lng: lead.lng as number }] : [];
     for (const entry of day.entries) {
       for (const item of entry.gallery) {
         if (item.type !== "image") continue;
@@ -45,6 +54,8 @@ export function getPhotoPins(
         const side = rel ? readTripSidecar(ref, rel) : null;
         if (!side || !Number.isFinite(side.lat) || !Number.isFinite(side.lon)) continue;
         const [lat, lng] = [side.lat as number, side.lon as number];
+        // A (0,0) fix or a tag hundreds of km from its own day is a bad tag, not a place.
+        if (!plausiblePin({ lat, lng }, refs)) continue;
         if (checkHidden && (isHiddenPlace(owner.username, owner.tripId, { lat, lon: lng }) || isHomePlace(owner.username, { lat, lon: lng }))) continue;
         let tether: [number, number] | undefined;
         let best = TETHER_M / 1000;
