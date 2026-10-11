@@ -1,0 +1,82 @@
+{
+  "title": "Arrival in Thun",
+  "date": "2026-10-01",
+  "location": "Thun",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.758,
+    "lng": 7.628
+  },
+  "content": "Invented sample day: eight photographs from one spot.",
+  "media": [
+    {
+      "src": "/media/test-sametown-2026/arrival-in-thun/01.jpg",
+      "type": "image",
+      "caption": "At the spot 1 (sample)",
+      "width": 320,
+      "height": 213
+    },
+    {
+      "src": "/media/test-sametown-2026/arrival-in-thun/02.jpg",
+      "type": "image",
+      "caption": "At the spot 2 (sample)",
+      "width": 320,
+      "height": 213
+    },
+    {
+      "src": "/media/test-sametown-2026/arrival-in-thun/03.jpg",
+      "type": "image",
+      "caption": "At the spot 3 (sample)",
+      "width": 213,
+      "height": 320
+    },
+    {
+      "src": "/media/test-sametown-2026/arrival-in-thun/04.jpg",
+      "type": "image",
+      "caption": "At the spot 4 (sample)",
+      "width": 320,
+      "height": 213
+    },
+    {
+      "src": "/media/test-sametown-2026/arrival-in-thun/05.jpg",
+      "type": "image",
+      "caption": "At the spot 5 (sample)",
+      "width": 320,
+      "height": 213
+    },
+    {
+      "src": "/media/test-sametown-2026/arrival-in-thun/06.jpg",
+      "type": "image",
+      "caption": "At the spot 6 (sample)",
+      "width": 213,
+      "height": 320
+    },
+    {
+      "src": "/media/test-sametown-2026/arrival-in-thun/07.jpg",
+      "type": "image",
+      "caption": "At the spot 7 (sample)",
+      "width": 320,
+      "height": 213
+    },
+    {
+      "src": "/media/test-sametown-2026/arrival-in-thun/08.jpg",
+      "type": "image",
+      "caption": "At the spot 8 (sample)",
+      "width": 320,
+      "height": 213
+    }
+  ],
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in"
+  },
+  "status": "published"
+}

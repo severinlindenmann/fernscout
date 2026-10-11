@@ -1,0 +1,25 @@
+{
+  "title": "Around the castle",
+  "date": "2026-10-02",
+  "location": "Thun",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.758,
+    "lng": 7.628
+  },
+  "content": "Invented sample day: the one recorded day of this stay.",
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "invented sample, none given"
+  },
+  "status": "published"
+}

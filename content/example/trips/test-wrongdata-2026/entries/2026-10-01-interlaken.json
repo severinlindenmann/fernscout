@@ -1,0 +1,40 @@
+{
+  "title": "Interlaken",
+  "date": "2026-10-01",
+  "location": "Interlaken",
+  "country": "Switzerland",
+  "countryCode": "CH",
+  "coordinates": {
+    "lat": 46.6863,
+    "lng": 7.8632
+  },
+  "content": "Invented sample day: one photo carries a position of 0,0.",
+  "media": [
+    {
+      "src": "/media/test-wrongdata-2026/interlaken/01.jpg",
+      "type": "image",
+      "caption": "Position 0,0 (sample)",
+      "width": 320,
+      "height": 213
+    },
+    {
+      "src": "/media/test-wrongdata-2026/interlaken/02.jpg",
+      "type": "image",
+      "caption": "A good position (sample)",
+      "width": 320,
+      "height": 213
+    }
+  ],
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in"
+  },
+  "status": "published"
+}

@@ -1,0 +1,29 @@
+{
+  "id": "test-wrongdata-2026",
+  "title": "Wrong data (sample)",
+  "tagline": "Invented, tags that do not fit the route",
+  "dates": {
+    "from": "2026-10-01",
+    "to": "2026-10-04"
+  },
+  "visibility": "guest",
+  "listed": false,
+  "test": true,
+  "accent": "coral",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    }
+  ],
+  "intro": "Nobody tagged this carefully. A photo at 0,0, a day tagged in the wrong country and a hotel far off the route, to see what the map refuses to trust.",
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "plan": "nothing planned",
+    "cover": "no cover on this sample",
+    "figures": "nobody to draw",
+    "translations": "a sample does not need translating"
+  }
+}

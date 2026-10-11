@@ -1,0 +1,29 @@
+{
+  "id": "test-trackonly-2026",
+  "title": "Track only (sample)",
+  "tagline": "Invented, days known only from the recording",
+  "dates": {
+    "from": "2026-10-01",
+    "to": "2026-10-04"
+  },
+  "visibility": "guest",
+  "listed": false,
+  "test": true,
+  "accent": "navy",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    }
+  ],
+  "intro": "Nobody drove this. The days carry words and no place; the route says where.",
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "plan": "nothing planned",
+    "cover": "no cover on this sample",
+    "figures": "nobody to draw",
+    "translations": "a sample does not need translating"
+  }
+}

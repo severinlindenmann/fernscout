@@ -1,0 +1,25 @@
+{
+  "title": "To Bangkok",
+  "date": "2026-10-03",
+  "location": "Bangkok",
+  "country": "Thailand",
+  "countryCode": "TH",
+  "coordinates": {
+    "lat": 13.7563,
+    "lng": 100.5018
+  },
+  "content": "Invented sample day: declared a flight, the recording resumes in Bangkok.",
+  "transportMode": "flight",
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "invented sample, none given"
+  },
+  "status": "published"
+}

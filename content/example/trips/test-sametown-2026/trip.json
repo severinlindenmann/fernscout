@@ -1,0 +1,29 @@
+{
+  "id": "test-sametown-2026",
+  "title": "Same town (sample)",
+  "tagline": "Invented, one town, two visits",
+  "dates": {
+    "from": "2026-10-01",
+    "to": "2026-10-07"
+  },
+  "visibility": "guest",
+  "listed": false,
+  "test": true,
+  "accent": "green",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    }
+  ],
+  "intro": "Nobody stayed here. Four days in one town, split by a four-day gap, to try how a stay is drawn.",
+  "declined": {
+    "rates": "no money moved",
+    "costs": "no money moved",
+    "plan": "nothing planned",
+    "cover": "no cover on this sample",
+    "figures": "nobody to draw",
+    "translations": "a sample does not need translating"
+  }
+}

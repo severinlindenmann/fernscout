@@ -1,0 +1,22 @@
+{
+  "title": "The train",
+  "date": "2026-10-03",
+  "content": "Invented sample day: no place written.",
+  "test": true,
+  "declined": {
+    "costs": "invented sample, none given",
+    "weather": "invented sample, none given",
+    "time": "invented sample, none given",
+    "timezone": "invented sample, none given",
+    "transportMode": "invented sample, none given",
+    "tags": "invented sample, none given",
+    "translations": "not needed on a sample",
+    "visibility": "shown to everyone the trip lets in",
+    "media": "invented sample, none given",
+    "coordinates": "invented sample, none given",
+    "location": "invented sample, none given",
+    "country": "invented sample, none given",
+    "countryCode": "invented sample, none given"
+  },
+  "status": "published"
+}
