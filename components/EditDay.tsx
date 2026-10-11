@@ -1040,7 +1040,7 @@ export default function EditDay({
               />
               <label
                 htmlFor={`edit-add-${at}`}
-                className="flex h-[84px] w-[84px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line-strong text-xs font-semibold text-ink-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500"
+                className="flex h-[84px] w-[84px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line-strong text-center text-xs font-semibold text-ink-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500"
               >
                 <span aria-hidden className="text-lg leading-none">＋</span>
                 {t("studio.day.photos.add")}

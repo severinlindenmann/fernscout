@@ -399,6 +399,11 @@ describe("every formData() route is covered by both Caddy body-size matchers", (
     const apiRoot = path.join(process.cwd(), "app", "api");
     const routes = findFormDataRoutes(apiRoot).map((f) => toCaddyPath(f, apiRoot));
 
+    // B-2981 — journal pages under app/at/[user] are served as /@<user>/…,
+    // and the studio's day photos upload lives there, outside app/api.
+    const atRoot = path.join(process.cwd(), "app", "at");
+    routes.push(...findFormDataRoutes(atRoot).map((f) => toCaddyPath(f, atRoot).replace(/^\/api\/\*/, "/@*")));
+
     // The private features tree, when present, ships its own routes the same
     // way — best effort, since it does not exist in an open-edition checkout.
     const paidRoot = path.join(process.cwd(), "paid");
