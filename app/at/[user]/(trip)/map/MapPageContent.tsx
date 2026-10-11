@@ -948,7 +948,10 @@ export default function MapPageContent({
               pmtilesUrl={activeStreetMap.url}
               maxZoom={activeStreetMap.maxZoom}
               onReady={onStreetMapReady}
-              globe
+              // Flat, not the globe: MapLibre places HTML markers (stops, photo pins,
+              // chips) with a different projection than the GPU-drawn lines when zoomed
+              // out on a globe, so they drift off the route until you zoom in (B-2980).
+              // The globe returns when those markers are drawn by the GPU as well.
               className="h-full w-full"
             />
           ) : hasContent ? (
