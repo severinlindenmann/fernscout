@@ -462,11 +462,13 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       const hide = absorbed || (muted && map.getZoom() > STREET_ZOOM_HIDE);
       let mk = markers.get(place.day);
       if (!mk) {
+        // No `position` on a marker root: MapLibre makes it absolute, and an inline
+        // `relative` here pushed every marker along by the width of those before it.
         const el = document.createElement("button");
         el.type = "button";
         el.setAttribute("aria-label", place.name);
         el.style.cssText =
-          "position:relative;display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:11px;min-height:44px;min-width:44px;cursor:pointer;font:inherit;" +
+          "display:flex;align-items:center;gap:4px;border:none;background:transparent;padding:11px;min-height:44px;min-width:44px;cursor:pointer;font:inherit;" +
           (reducedMotion() ? "" : "transition:opacity .35s ease;");
         const disc = document.createElement("span");
         disc.className = "fs-daymarker-disc";
@@ -543,7 +545,7 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
       el.type = "button";
       el.setAttribute("aria-label", first.item.caption ?? first.item.alt ?? pinLabel);
       // 44px tap target around a 32px thumbnail; clear of the stop labels.
-      el.style.cssText = "position:relative;width:44px;height:44px;padding:0;border:none;background:transparent;cursor:pointer;";
+      el.style.cssText = "width:44px;height:44px;padding:0;border:none;background:transparent;cursor:pointer;";
       const ring = document.createElement("span");
       ring.style.cssText =
         "position:absolute;inset:6px;border-radius:9999px;background:var(--map-pin-fill,#1b2a41);border:2.5px solid var(--map-pin-ring,#fff);box-shadow:0 1px 4px rgba(0,0,0,.35);overflow:hidden;display:flex;align-items:center;justify-content:center;";
