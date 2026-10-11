@@ -994,7 +994,7 @@ export default function MapPageContent({
             type="button"
             aria-label={t("map.unwritten.dismiss")}
             onClick={dismissUnwritten}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-surface-sunken"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-surface-muted"
           >
             <X size={14} aria-hidden />
           </button>

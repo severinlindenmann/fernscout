@@ -4,7 +4,10 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useI18n } from "../LocaleProvider";
 import { previewKind, type StillData } from "@/lib/map/tripStill";
-import TripStill from "./TripStill";
+import dynamic from "next/dynamic";
+
+// A client-only chunk: the still draws a MapLibre map, which the trip page must not carry in its static bundle.
+const TripStill = dynamic(() => import("./TripStill"), { ssr: false });
 
 /**
  * The still preview card — B2538. One presentational component for both the

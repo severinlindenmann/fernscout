@@ -61,3 +61,18 @@ describe("viewTravels (B-2980)", () => {
     expect(planCamera({ km, flight: true, reduced: true })).toEqual({ kind: "jump" });
   });
 });
+
+describe("whole-trip deselect (B-2980)", () => {
+  it("removes or sets ?day and keeps other params", async () => {
+    const { withDayParam, nextSelection, escapeDeselects } = await import("@/lib/map/dayTransition");
+    expect(withDayParam("?day=2026-08-02&show=1", null)).toBe("?show=1");
+    expect(withDayParam("?day=2026-08-02", null)).toBe("");
+    expect(withDayParam("", "2026-08-03")).toBe("?day=2026-08-03");
+    expect(nextSelection("a", "a")).toBeNull();
+    expect(nextSelection("a", "b")).toBe("b");
+    expect(escapeDeselects("a", "Escape", false)).toBe(true);
+    expect(escapeDeselects(null, "Escape", false)).toBe(false);
+    expect(escapeDeselects("a", "Escape", true)).toBe(false);
+    expect(escapeDeselects("a", "Enter", false)).toBe(false);
+  });
+});

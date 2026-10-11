@@ -139,3 +139,21 @@ export function withDeclaredLegs(
   }
   return out;
 }
+
+/**
+ * B-2980: the modes the legend lists — those of the WHOLE trip (recorded and
+ * declared legs on every day, on every day), never just the selected
+ * day's. `selected` marks the modes the selected day itself travelled by.
+ */
+export function legendModes(
+  lines: readonly { kind: string; mode?: TransportMode | null; fromDay: number; toDay: number }[],
+  selectedDay: number | null,
+): { mode: TransportMode; pattern: LegPattern; selected: boolean }[] {
+  const seen = new Map<TransportMode, boolean>();
+  for (const l of lines) {
+    if (!l.mode || l.kind === "gap") continue;
+    const mine = selectedDay !== null && (l.fromDay === selectedDay || l.toDay === selectedDay);
+    seen.set(l.mode, (seen.get(l.mode) ?? false) || mine);
+  }
+  return [...seen].map(([mode, selected]) => ({ mode, pattern: legPattern(mode), selected }));
+}

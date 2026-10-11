@@ -1,3 +1,5 @@
+import { celsiusToFahrenheit, type Units } from "./units";
+
 /**
  * What the weather actually was — B325.
  *
@@ -225,4 +227,24 @@ export function weatherLine(w: DayWeather): string {
   parts.push(`source: ${JSON.stringify(w.source)}`);
   parts.push(`recordedAt: ${JSON.stringify(w.recordedAt)}`);
   return `weatherData: { ${parts.join(", ")} }`;
+}
+
+/**
+ * `12 – 19°C`, or whichever half of it there is.
+ *
+ * The minus is U+2212 and not a hyphen. It matters here more than it usually
+ * does: the range separator is an en dash, so a cold day rendered with hyphens
+ * reads `-4° – -2°C` — three near-identical dashes doing two different jobs,
+ * at 12px.
+ */
+export function temperature(reading: DayWeather, units: Units): string | undefined {
+  const { tempMin, tempMax } = reading;
+  const unit = units === "imperial" ? "F" : "C";
+  const convert = (n: number) => (units === "imperial" ? celsiusToFahrenheit(n) : n);
+  const deg = (n: number) => `${String(Math.round(convert(n))).replace("-", "−")}°`;
+  if (tempMin !== undefined && tempMax !== undefined) {
+    return tempMin === tempMax ? `${deg(tempMax)}${unit}` : `${deg(tempMin)} – ${deg(tempMax)}${unit}`;
+  }
+  const one = tempMax ?? tempMin;
+  return one === undefined ? undefined : `${deg(one)}${unit}`;
 }

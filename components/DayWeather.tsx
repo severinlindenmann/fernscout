@@ -1,6 +1,6 @@
 import type { DayWeather as Reading } from "@/lib/weather";
-import { SOURCE_CREDIT, weatherGroup, type WeatherGroup } from "@/lib/weather";
-import { celsiusToFahrenheit, mmToInches, type Units } from "@/lib/units";
+import { SOURCE_CREDIT, temperature, weatherGroup, type WeatherGroup } from "@/lib/weather";
+import { mmToInches, type Units } from "@/lib/units";
 
 /**
  * What the weather actually was, in the day's own furniture — B325.
@@ -159,26 +159,6 @@ function Glyph({ group }: { group: WeatherGroup }) {
         </>
       );
   }
-}
-
-/**
- * `12 – 19°C`, or whichever half of it there is.
- *
- * The minus is U+2212 and not a hyphen. It matters here more than it usually
- * does: the range separator is an en dash, so a cold day rendered with hyphens
- * reads `-4° – -2°C` — three near-identical dashes doing two different jobs,
- * at 12px.
- */
-function temperature(reading: Reading, units: Units): string | undefined {
-  const { tempMin, tempMax } = reading;
-  const unit = units === "imperial" ? "F" : "C";
-  const convert = (n: number) => (units === "imperial" ? celsiusToFahrenheit(n) : n);
-  const deg = (n: number) => `${String(Math.round(convert(n))).replace("-", "−")}°`;
-  if (tempMin !== undefined && tempMax !== undefined) {
-    return tempMin === tempMax ? `${deg(tempMax)}${unit}` : `${deg(tempMin)} – ${deg(tempMax)}${unit}`;
-  }
-  const one = tempMax ?? tempMin;
-  return one === undefined ? undefined : `${deg(one)}${unit}`;
 }
 
 /** `18 mm`, or `0.7 in` for an imperial journal — one decimal, since an inch

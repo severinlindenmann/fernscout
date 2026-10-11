@@ -53,3 +53,26 @@ export function viewTravels(prev: string | undefined, next: string, selectedDay:
 
 /** A region switch spans more than a region apart (300 km+), so it flies. */
 export const REGION_FLIGHT_KM = 300;
+
+/**
+ * The map page's query string with the selected day set (`?day=<date>`) or,
+ * for `null`, removed — the one rule behind selecting, tapping the selected
+ * stop again, closing the sheet and Escape (all of which deselect).
+ */
+export function withDayParam(search: string, date: string | null): string {
+  const params = new URLSearchParams(search);
+  if (date) params.set("day", date);
+  else params.delete("day");
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+/** What a tap on `tapped` selects: the same day again goes back to the whole trip. */
+export function nextSelection(current: string | null, tapped: string | null): string | null {
+  return tapped === current ? null : tapped;
+}
+
+/** Escape deselects only while a day is selected and nothing inside has already used the key. */
+export function escapeDeselects(selected: string | null, key: string, defaultPrevented: boolean): boolean {
+  return selected !== null && key === "Escape" && !defaultPrevented;
+}

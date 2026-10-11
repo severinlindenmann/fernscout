@@ -85,3 +85,22 @@ describe("flights between regions (B-2980)", () => {
     expect(linesForRegion([arc], mainDays, true)).toEqual([arc]);
   });
 });
+
+describe("legend lists the whole trip (B-2980)", () => {
+  it("never filters by the selected day, only marks it", async () => {
+    const { legendModes } = await import("@/lib/map/legMode");
+    const lines = [
+      { kind: "recorded", mode: "train" as const, fromDay: 1, toDay: 2 },
+      { kind: "recorded", mode: "walk" as const, fromDay: 2, toDay: 3 },
+      { kind: "photo-join", mode: "boat" as const, fromDay: 3, toDay: 4 },
+      { kind: "flight", mode: "flight" as const, fromDay: 4, toDay: 5 },
+      { kind: "gap", mode: "car" as const, fromDay: 5, toDay: 6 },
+    ];
+    const none = legendModes(lines, null);
+    expect(none.map((m) => m.mode)).toEqual(["train", "walk", "boat", "flight"]);
+    expect(none.every((m) => !m.selected)).toBe(true);
+    const three = legendModes(lines, 3);
+    expect(three.map((m) => m.mode)).toEqual(["train", "walk", "boat", "flight"]);
+    expect(three.filter((m) => m.selected).map((m) => m.mode)).toEqual(["walk", "boat"]);
+  });
+});

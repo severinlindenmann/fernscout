@@ -5,9 +5,7 @@ import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { CommentsError, useComments } from "./CommentsProvider";
 import { useI18n } from "./LocaleProvider";
-
-/** Latest comments shown before "Show all". Matches the server's default page. */
-const SHOWN = 3;
+import { COMMENTS_SHOWN, commentWindow } from "@/lib/commentWindow";
 
 const FIELD =
   "w-full rounded-xl border border-line-strong bg-surface-raised p-3 text-base text-ink-body focus-visible:outline-2 focus-visible:outline-offset-2";
@@ -23,7 +21,17 @@ const LINK = "min-h-11 underline underline-offset-4 focus-visible:outline-2 focu
  * viewer comments: flag off, not invited, or an identity-only cookie all leave
  * the day `hidden`, with no count and no text.
  */
-export default function DayComments({ daySlug }: { daySlug: string }) {
+export default function DayComments({
+  daySlug,
+  limit = COMMENTS_SHOWN,
+  compact = false,
+}: {
+  daySlug: string;
+  /** Most recent comments shown before "Show all N". The day page keeps the default. */
+  limit?: number;
+  /** The composer is one line ("Write a comment") until it is focused. */
+  compact?: boolean;
+}) {
   const { t, tn } = useI18n();
   const comments = useComments();
   const [expanded, setExpanded] = useState(false);
@@ -33,6 +41,7 @@ export default function DayComments({ daySlug }: { daySlug: string }) {
   const [editDraft, setEditDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [composing, setComposing] = useState(false);
 
   const load = comments?.load;
   useEffect(() => {
@@ -43,9 +52,9 @@ export default function DayComments({ daySlug }: { daySlug: string }) {
   const state = comments.stateFor(daySlug);
   if (state.status === "hidden") return null;
 
-  const shownCount = expanded ? state.comments.length : Math.min(SHOWN, state.comments.length);
-  const visible = state.comments.slice(state.comments.length - shownCount);
-  const canExpand = !expanded && state.total > SHOWN;
+  const win = commentWindow(state.comments.length, state.total, limit, expanded);
+  const visible = state.comments.slice(state.comments.length - win.shown);
+  const canExpand = win.canExpand;
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -91,7 +100,7 @@ export default function DayComments({ daySlug }: { daySlug: string }) {
           {t("comments.showAll", { count: String(state.total) })}
         </button>
       )}
-      {expanded && state.total > SHOWN && (
+      {win.canCollapse && (
         <button type="button" onClick={() => setExpanded(false)} className={`mt-1 text-sm font-semibold text-ink-body ${LINK}`}>
           {t("comments.showFewer")}
         </button>
@@ -213,20 +222,33 @@ export default function DayComments({ daySlug }: { daySlug: string }) {
               setDraft("");
             });
           }}
-          className="mt-4"
+          className={compact ? "mt-2" : "mt-4"}
         >
           <label htmlFor={`day-comment-${daySlug}`} className="sr-only">
             {t("comments.write")}
           </label>
-          <textarea
-            id={`day-comment-${daySlug}`}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={2}
-            placeholder={t("comments.write")}
-            className={FIELD}
-          />
-          <div className="mt-2 flex items-center justify-between gap-3">
+          {compact && !composing && !draft ? (
+            <button
+              type="button"
+              id={`day-comment-${daySlug}`}
+              onClick={() => setComposing(true)}
+              onFocus={() => setComposing(true)}
+              className="flex min-h-11 w-full items-center rounded-full border border-line-strong bg-surface-raised px-4 text-left text-sm text-ink-secondary"
+            >
+              {t("comments.write")}
+            </button>
+          ) : (
+            <textarea
+              id={`day-comment-${daySlug}`}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={2}
+              autoFocus={compact}
+              placeholder={t("comments.write")}
+              className={FIELD}
+            />
+          )}
+          <div className={`mt-2 flex items-center justify-between gap-3${compact && !composing && !draft ? " hidden" : ""}`}>
             <span className={`text-xs tabular-nums ${draft.length > state.maxLength ? "text-coral-600" : "text-ink-secondary"}`}>
               {draft.length} / {state.maxLength}
             </span>
