@@ -192,6 +192,11 @@ export default function MapPageContent({
   const hasPlaces = places.length > 0;
   // `WorldMap`'s own flattened shape — it never asked for a day, only points.
   const track = useMemo(() => trackByDay.map((s) => s.points), [trackByDay]);
+  // B-2980: no place to frame on, but a recorded route — frame on the route.
+  const routePoints = useMemo(
+    () => (places.length === 0 ? track.flat().map(([lat, lng]) => ({ lat, lng })) : []),
+    [places.length, track],
+  );
 
   // The trip's own calendar-day number for every place — B2534/B2537. A
   // place's own `key` is `${location}-${firstDate}` (`getPlaces`,
@@ -744,7 +749,13 @@ export default function MapPageContent({
             <StreetMap
               // The places where days happened, not the region file's own padded
               // box — that box is 15 km wider and lets a day sit on the edge.
-              bounds={plottableInRegion.length > 0 ? boundsFor(plottableInRegion) : activeStreetMap.bounds}
+              bounds={
+                plottableInRegion.length > 0
+                  ? boundsFor(plottableInRegion)
+                  : routePoints.length > 0
+                    ? boundsFor(routePoints)
+                    : activeStreetMap.bounds
+              }
               // Clear of the header chips above and the legend (and, on a
               // phone, the day sheet) below.
               padding={{ top: 70, bottom: sheetInset + 56, left: 40, right: 40 }}
@@ -769,6 +780,7 @@ export default function MapPageContent({
               showStopCard={false}
               showTimeScrubber={false}
               dayNumbers={dayNumbers}
+              frameHint={routePoints}
             />
           ) : (
             <p className="flex h-full items-center justify-center p-6 text-center text-ink-secondary">

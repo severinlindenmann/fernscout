@@ -142,7 +142,9 @@ export function buildTripFrame(
   // list, a chip row) reads an empty result the same way it already reads
   // "no places": nothing to draw.
   if (places.length === 0) {
-    return { regions: [], mainRegionIndex: 0, isTour: false, framePlaces: [], chips: [], lines: [] };
+    // The recording is still a route (B-2980): no places to frame, but the
+    // recorded lines stay so the map can be fit to them.
+    return { regions: [], mainRegionIndex: 0, isTour: false, framePlaces: [], chips: [], lines: recordedLines(recorded) };
   }
 
   // "Anything inside the home zone reads Home in every list, strip, chip and
