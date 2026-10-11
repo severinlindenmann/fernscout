@@ -15,7 +15,7 @@ import { scrubLog } from "./scrubLog";
  * fixture lines; `readLogs` is the one place that touches journalctl.
  */
 
-export type LogLevel = "error" | "warn";
+type LogLevel = "error" | "warn";
 export type LogKind = "req" | "req-error" | "client-error";
 
 export type LogEntry = {
@@ -48,7 +48,7 @@ function slug(value: string | null | undefined): string | null {
 }
 
 /** One journald entry's text and time to a `LogEntry`, or null when it is not one of ours to show. */
-export function parseLogEntry(message: string, at: string): LogEntry | null {
+function parseLogEntry(message: string, at: string): LogEntry | null {
   // scrubLog turns a line break into a space, so scrub line by line to keep a stack readable.
   const text = message.split("\n").slice(0, 30).map((l) => scrubLog(l.replace(/\r/g, ""), 600)).join("\n");
   const first = text.split("\n", 1)[0];
