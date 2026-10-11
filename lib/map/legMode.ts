@@ -27,22 +27,24 @@ const ENTRY_MODES: readonly string[] = [
 ];
 
 export function legModeFromRecorded(mode: unknown): TransportMode | null {
-  return typeof mode === "string" ? (RECORDED_TO_LEG[mode] ?? null) : null;
+  // A track file stores entry names (walk, car, train); importers say on_foot.
+  return typeof mode === "string" ? (RECORDED_TO_LEG[mode] ?? legModeFromEntry(mode)) : null;
 }
 
 export function legModeFromEntry(mode: unknown): TransportMode | null {
   return typeof mode === "string" && ENTRY_MODES.includes(mode) ? (mode as TransportMode) : null;
 }
 
-export type LegPattern = "solid" | "dotted" | "hatch" | "dashed";
+export type LegPattern = "solid" | "dotted" | "dash" | "hatch" | "dashed";
 
-/** Solid road, dotted for feet/bike/air, alternating hatch for rail, dashed blue for water. */
+/** Solid road, round dots for feet/air, long dash for bike, cross-ticks on a solid line for rail, blue dots for water. */
 export function legPattern(mode: TransportMode | null | undefined): LegPattern {
   switch (mode) {
     case "walk":
-    case "bicycle":
     case "flight":
       return "dotted";
+    case "bicycle":
+      return "dash";
     case "train":
     case "metro":
     case "tram":
@@ -56,6 +58,9 @@ export function legPattern(mode: TransportMode | null | undefined): LegPattern {
 }
 
 export type LegSource = "recorded" | "day";
+
+/** Whether a leg's own line style already says its mode, so a chip adds nothing (the plain road). */
+export const chipRedundant = (mode: TransportMode): boolean => mode === "car";
 
 /** Midpoint of a leg's longest straight piece: where its chip sits. */
 export function longestSegmentMid(coords: readonly Point[]): Point | null {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { legModeFromEntry, legModeFromRecorded, legPattern, longestSegmentMid, placeChips, withDeclaredLegs } from "@/lib/map/legMode";
+import { chipRedundant, legModeFromEntry, legModeFromRecorded, legPattern, longestSegmentMid, placeChips, withDeclaredLegs } from "@/lib/map/legMode";
 import type { MapLine, MapPlace } from "@/lib/map/tripFrame";
 
 const place = (day: number, lat: number, lng: number): MapPlace => ({ day, date: `2026-10-0${day}`, lat, lng, name: `P${day}`, home: false });
@@ -10,6 +10,9 @@ describe("leg modes (B-2980)", () => {
     expect(legModeFromRecorded("plane")).toBe("flight");
     expect(legModeFromRecorded("unknown")).toBeNull();
     expect(legModeFromRecorded("skiing")).toBeNull();
+    // a track file stores the entry names
+    expect(legModeFromRecorded("walk")).toBe("walk");
+    expect(legModeFromRecorded("train")).toBe("train");
     expect(legModeFromEntry("ferry")).toBe("ferry");
     expect(legModeFromEntry("hovercraft")).toBeNull();
   });
@@ -18,6 +21,9 @@ describe("leg modes (B-2980)", () => {
     expect(legPattern("car")).toBe("solid");
     expect(legPattern(null)).toBe("solid");
     expect(legPattern("walk")).toBe("dotted");
+    expect(legPattern("bicycle")).toBe("dash");
+    expect(chipRedundant("car")).toBe(true);
+    expect(chipRedundant("train")).toBe(false);
     expect(legPattern("train")).toBe("hatch");
     expect(legPattern("ferry")).toBe("dashed");
   });

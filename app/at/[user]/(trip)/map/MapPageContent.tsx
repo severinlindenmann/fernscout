@@ -10,7 +10,7 @@ import type { Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { Clapperboard, MapPin, ArrowUp, ArrowRight } from "lucide-react";
+import { Clapperboard, MapPin, ArrowUp, ArrowRight, Layers, X } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
 import { flagFor } from "@/lib/flags";
@@ -18,7 +18,7 @@ import { isPlottable } from "@/lib/mapFrame";
 import { googleMapsHref } from "@/lib/tripMap";
 import type { Basemap } from "@/lib/basemap";
 import { ACCENT_HEX, type PlannedStop } from "@/lib/types";
-import { buildTripFrame, type MapPlace, type MapLine, type RecordedSegment } from "@/lib/map/tripFrame";
+import { buildTripFrame, type MapPlace, type RecordedSegment } from "@/lib/map/tripFrame";
 import { applyStreetOverlay } from "@/lib/map/streetOverlay";
 import { legModeFromEntry, legModeFromRecorded, legPattern, withDeclaredLegs, type LegPattern } from "@/lib/map/legMode";
 import type { TransportMode } from "@/lib/types";
@@ -35,6 +35,19 @@ const SlideShow = dynamic(() => import("@/components/SlideShow"), { ssr: false }
  * plain-degrees equivalent of `lib/mapFrame.ts`'s `frameRoute` for a caller
  * (the street map's own region switch) that only needs a `fitBounds` box,
  * not a latitude-corrected SVG frame. */
+/** A short sample of a leg's line, drawn the way the map draws it. */
+function LineSwatch({ pattern }: { pattern: LegPattern }) {
+  const dash = { solid: undefined, hatch: undefined, dotted: "0.1 5", dash: "10 5", dashed: "3 4" }[pattern];
+  const colour = pattern === "dashed" ? "#4aa3df" : "#ffd23f";
+  return (
+    <svg width="32" height="12" viewBox="0 0 32 12" aria-hidden className="shrink-0">
+      <line x1="2" x2="30" y1="6" y2="6" stroke="#16305c" strokeWidth="7" strokeLinecap="round" />
+      <line x1="2" x2="30" y1="6" y2="6" stroke={colour} strokeWidth="4" strokeLinecap={pattern === "dash" || pattern === "dashed" ? "butt" : "round"} strokeDasharray={dash} />
+      {pattern === "hatch" && <line x1="2" x2="30" y1="6" y2="6" stroke="#16305c" strokeWidth="9" strokeDasharray="1 6" />}
+    </svg>
+  );
+}
+
 function boundsFor(points: readonly { lat: number; lng: number }[]): [[number, number], [number, number]] {
   const lats = points.map((p) => p.lat);
   const lngs = points.map((p) => p.lng);
@@ -375,6 +388,21 @@ export default function MapPageContent({
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sheetInset, setSheetInset] = useState(0);
+  const [layersOpen, setLayersOpen] = useState(false);
+  // The owner note is dismissed for this browser session only.
+  const [unwrittenHidden, setUnwrittenHidden] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read after hydration so server and client markup match
+      if (sessionStorage.getItem("fs-unwritten-hidden")) setUnwrittenHidden(true);
+    } catch {}
+  }, []);
+  const dismissUnwritten = () => {
+    setUnwrittenHidden(true);
+    try {
+      sessionStorage.setItem("fs-unwritten-hidden", "1");
+    } catch {}
+  };
 
   // Selects a day and carries it in the URL as `?day=<date>` (B2537 — was
   // `?stop=<key>` before this ticket, since the page now navigates by
@@ -476,7 +504,6 @@ export default function MapPageContent({
     for (const l of linesShown) if (l.mode && l.kind !== "gap" && l.kind !== "flight") seen.set(l.mode, legPattern(l.mode));
     return [...seen];
   }, [linesShown]);
-  const lineKindsShown = useMemo(() => new Set(linesShown.map((l: MapLine) => l.kind)), [linesShown]);
 
   const regionChips = onMainRegion ? frame.chips : [];
 
@@ -538,10 +565,9 @@ export default function MapPageContent({
         // sheet's own peek height below — `sheetInset` is 0 on desktop and
         // wherever nothing covers the map, same value `WorldMap` already
         // frames around.
-        // The bottom also clears the legend row and the town label drawn
-        // under each marker, or the southernmost day sits under them.
-        // `sheetInset` itself is already the map's own padding (above).
-        padding: { top: 80, bottom: 96, left: 56, right: 56 },
+        // sheetInset is already the map's own bottom padding (setPadding above) and
+        // fitBounds adds to it, so only the 24px margin goes here.
+        padding: { top: 72, bottom: 24, left: 24, right: 24 },
       },
       streetMarkersRef.current,
     );
@@ -813,21 +839,22 @@ export default function MapPageContent({
         </section>
 
         {/* The map — full-bleed under the info row, on every width. */}
-        <div className="relative h-full min-h-0">
+        {/* Zoom buttons ride the right edge at mid-height, clear of the header, the layers button and the sheet. */}
+        <div className="relative h-full min-h-0 [&_.maplibregl-ctrl-top-right]:!top-1/2 [&_.maplibregl-ctrl-top-right]:-translate-y-1/2">
           {activeStreetMap ? (
             <StreetMap
               // The places where days happened, not the region file's own padded
               // box — that box is 15 km wider and lets a day sit on the edge.
               bounds={
                 plottableInRegion.length > 0
-                  ? boundsFor(plottableInRegion)
+                  ? boundsFor([...plottableInRegion, ...pins, ...frame.lines.filter((l) => l.kind === "recorded").flatMap((l) => l.coords)])
                   : routePoints.length > 0
                     ? boundsFor(routePoints)
                     : activeStreetMap.bounds
               }
               // Clear of the header chips above and the legend (and, on a
               // phone, the day sheet) below.
-              padding={{ top: 70, bottom: sheetInset + 56, left: 40, right: 40 }}
+              padding={{ top: 72, bottom: sheetInset + 24, left: 24, right: 24 }}
               pmtilesUrl={activeStreetMap.url}
               onReady={onStreetMapReady}
               globe
@@ -863,39 +890,51 @@ export default function MapPageContent({
             </p>
           )}
 
-      {unwritten && unwritten.dates.length > 0 && (
-        <aside className="absolute inset-x-3 top-3 z-10 max-h-[40%] overflow-auto rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-md backdrop-blur lg:right-auto lg:max-w-sm text-sm text-ink-body">
-          <p className="font-display font-semibold text-ink-strong">
+      {unwritten && unwritten.dates.length > 0 && !unwrittenHidden && (
+        <aside className="absolute left-3 top-3 z-10 flex h-8 max-w-[calc(100%-76px)] items-center gap-2 rounded-full border border-line-quiet bg-surface-raised/95 pl-3 pr-1 text-xs text-ink-body shadow-sm backdrop-blur">
+          <p className="min-w-0 truncate">
             {tn("map.unwritten", unwritten.dates.length, { n: String(unwritten.dates.length) })}
+            {" · "}
+            <a
+              href={`${userHref("/studio/day/new")}?trip=${encodeURIComponent(tripId)}&date=${unwritten.dates[0]}`}
+              className="underline decoration-line-quiet underline-offset-2"
+            >
+              {formatShortDate(unwritten.dates[0])} · {t("map.unwritten.write")}
+            </a>
           </p>
-          <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-            {unwritten.dates.map((date) => (
-              <li key={date}>
-                <a
-                  href={`${userHref("/studio/day/new")}?trip=${encodeURIComponent(tripId)}&date=${date}`}
-                  className="underline decoration-line-quiet underline-offset-2"
-                >
-                  {formatShortDate(date)} · {t("map.unwritten.write")}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <button
+            type="button"
+            aria-label={t("map.unwritten.dismiss")}
+            onClick={dismissUnwritten}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-ink-secondary hover:bg-surface-sunken"
+          >
+            <X size={14} aria-hidden />
+          </button>
         </aside>
       )}
 
-          {/* "Legend shows only what is drawn" — the street map's own line
-              vocabulary only; see `linesShown`'s own doc for why. */}
-          {streetMap && hasPlaces && lineKindsShown.size > 0 && (
-            <div className="absolute inset-x-3 bottom-[130px] z-10 flex flex-wrap gap-x-3 gap-y-1 rounded-full bg-surface-raised/90 px-3 py-1.5 text-xs text-ink-secondary shadow-sm backdrop-blur lg:bottom-3">
-              {lineKindsShown.has("recorded") && <span>— {t("map.legend.recorded")}</span>}
-              {lineKindsShown.has("gap") && <span>┄ {t("map.legend.gap")}</span>}
-              {lineKindsShown.has("photo-join") && <span>┄ {t("map.legend.photoJoin")}</span>}
-              {lineKindsShown.has("flight") && <span>⋯ {t("map.legend.flight")}</span>}
-              {modesShown.map(([mode, pattern]) => (
-                <span key={mode}>
-                  {{ solid: "—", dotted: "⋯", hatch: "╪", dashed: "┄" }[pattern]} {modeLabel(mode)}
-                </span>
-              ))}
+          {/* "Legend shows only what is drawn": one small button, a popover of the modes on the map. */}
+          {streetMap && hasPlaces && modesShown.length > 0 && (
+            <div className="absolute right-3 top-3 z-10">
+              <button
+                type="button"
+                aria-label={t("map.layers")}
+                aria-expanded={layersOpen}
+                onClick={() => setLayersOpen((o) => !o)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-line-quiet bg-surface-raised text-ink-strong shadow-md"
+              >
+                <Layers size={18} aria-hidden />
+              </button>
+              {layersOpen && (
+                <ul className="absolute right-0 mt-2 w-48 rounded-xl border border-line-quiet bg-surface-raised p-3 text-xs text-ink-body shadow-md">
+                  {modesShown.map(([mode, pattern]) => (
+                    <li key={mode} className="flex items-center gap-2 py-1">
+                      <LineSwatch pattern={pattern} />
+                      {modeLabel(mode)}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </div>

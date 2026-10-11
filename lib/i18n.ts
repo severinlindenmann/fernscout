@@ -1490,6 +1490,7 @@ export type TranslationKey =
   | "map.title"
   | "map.titlePlanned"
   | "map.unwritten"
+  | "map.unwritten.dismiss"
   | "map.unwritten.one"
   | "map.unwritten.write"
   | "map.wholeTrip"

@@ -1490,6 +1490,7 @@
   "map.unwritten": "{n} jours enregistrés n'ont pas encore de journée",
   "map.unwritten.one": "1 jour enregistré n'a pas encore de journée",
   "map.unwritten.write": "Écrire cette journée",
+  "map.unwritten.dismiss": "Masquer cette note",
   "map.photoPin": "Photo sur la carte",
   "map.noPlaceGiven": "Aucun lieu indiqué",
   "map.osmCredit": "© contributeurs d'OpenStreetMap",

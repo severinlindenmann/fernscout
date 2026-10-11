@@ -45,7 +45,7 @@ export default function PhotoPins({
           {g.pins.map((p, j) => {
             if (!p.tether) return null;
             const [tx, ty] = placeIn(base, { lat: p.tether[0], lng: p.tether[1] });
-            return <line key={j} x1={g.x} y1={g.y} x2={tx} y2={ty} stroke="#5a6a80" strokeWidth={px(1)} pointerEvents="none" />;
+            return <line key={j} x1={g.x} y1={g.y} x2={tx} y2={ty} stroke="var(--map-label-town)" strokeWidth={px(1)} pointerEvents="none" />;
           })}
           <g
             role="button"
@@ -64,8 +64,8 @@ export default function PhotoPins({
             <circle cx={g.x} cy={g.y} r={px(22)} fill="transparent" />
             {g.pins.length > 1 && (
               <>
-                <circle cx={g.x + r * 0.8} cy={g.y - r * 0.8} r={px(7)} fill="#1b2a41" />
-                <text x={g.x + r * 0.8} y={g.y - r * 0.8} fontSize={px(9)} fill="#fff" textAnchor="middle" dominantBaseline="central">
+                <circle cx={g.x + r * 0.8} cy={g.y - r * 0.8} r={px(7)} fill="var(--map-cluster-fill)" />
+                <text x={g.x + r * 0.8} y={g.y - r * 0.8} fontSize={px(9)} fill="var(--map-stop-fill)" textAnchor="middle" dominantBaseline="central">
                   {g.pins.length}
                 </text>
               </>
@@ -85,9 +85,9 @@ function PinThumb({ x, y, r, ring, src }: { x: number; y: number; r: number; rin
   const [failed, setFailed] = useState(false);
   return (
     <>
-      <circle cx={x} cy={y} r={r + ring / 2} fill="#fff" />
+      <circle cx={x} cy={y} r={r + ring / 2} fill="var(--map-stop-fill)" />
       {failed ? (
-        <circle cx={x} cy={y} r={r * 0.45} fill="#1b2a41" />
+        <circle cx={x} cy={y} r={r * 0.45} fill="var(--map-cluster-fill)" />
       ) : (
         <>
           <clipPath id={clip}>

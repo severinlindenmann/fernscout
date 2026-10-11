@@ -1252,6 +1252,7 @@
   "map.unwritten": "{n} rögzített napnak még nincs bejegyzése",
   "map.unwritten.one": "1 rögzített napnak még nincs bejegyzése",
   "map.unwritten.write": "Nap megírása",
+  "map.unwritten.dismiss": "Megjegyzés elrejtése",
   "map.photoPin": "Fotó a térképen",
   "map.noPlaceGiven": "Nincs megadva helyszín",
   "map.osmCredit": "© OpenStreetMap közreműködői",

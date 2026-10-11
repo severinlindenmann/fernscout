@@ -1490,6 +1490,7 @@
   "map.unwritten": "{n} aufgezeichnete Tage haben noch keinen Tag",
   "map.unwritten.one": "1 aufgezeichneter Tag hat noch keinen Tag",
   "map.unwritten.write": "Diesen Tag schreiben",
+  "map.unwritten.dismiss": "Hinweis ausblenden",
   "map.photoPin": "Foto auf der Karte",
   "map.noPlaceGiven": "Kein Ort angegeben",
   "map.osmCredit": "© OpenStreetMap-Mitwirkende",
