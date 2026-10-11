@@ -7,6 +7,7 @@ import Invites from "./Invites";
 import AdminPlanGrant from "@paid/billing/routes/admin/AdminPlanGrant";
 import AdminVouchers from "@paid/billing/routes/admin/AdminVouchers";
 import Journals from "./Journals";
+import Logs from "./Logs";
 import MessageOwner from "./MessageOwner";
 import MessagesPanel from "./messages/MessagesPanel";
 import ProvidersOrders from "./ProvidersOrders";
@@ -143,7 +144,8 @@ function ago(days: number): string {
 export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   if (!(await isInstanceAdmin())) notFound();
 
-  const asked = Number((await searchParams).days);
+  const query = await searchParams;
+  const asked = Number(query.days);
   const days = PERIODS.includes(asked) ? asked : DEFAULT_DAYS;
   // The chart holds twice the period (at least a quarter), so the tiles can
   // compare this period with the one before it without a second query.
@@ -541,6 +543,13 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           <Feed entries={feed} full />
         </div>
       ),
+    },
+    {
+      id: "logs",
+      label: "Logs",
+      icon: "logs",
+      lede: "Errors and warnings from the server log, for one journal or all of them.",
+      panel: <Logs query={query} days={days} />,
     },
   ];
 

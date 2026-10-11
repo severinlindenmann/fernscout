@@ -11,6 +11,7 @@ import {
   MessageSquare,
   MoreHorizontal,
   Plug,
+  ScrollText,
   Search,
   Server,
   Sprout,
@@ -43,7 +44,7 @@ import Palette, { type PaletteItem } from "./Palette";
  * count is the badge on Overview — a person waiting is never behind a tap.
  */
 
-type SectionIcon = "overview" | "money" | "journals" | "people" | "messages" | "instance" | "activity" | "providers" | "vouchers";
+type SectionIcon = "overview" | "money" | "journals" | "people" | "messages" | "instance" | "activity" | "logs" | "providers" | "vouchers";
 
 const ICONS: Record<SectionIcon, LucideIcon> = {
   overview: LayoutDashboard,
@@ -53,6 +54,7 @@ const ICONS: Record<SectionIcon, LucideIcon> = {
   messages: MessageSquare,
   instance: Server,
   activity: Activity,
+  logs: ScrollText,
   providers: Plug,
   vouchers: Ticket,
 };
