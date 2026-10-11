@@ -91,6 +91,9 @@
 		path /api/v2/*/trips/*/travellers/from-photo
 		path /api/web/*/figures/from-photo
 		path /api/helper/*/studio/upload
+		# B-2981 — the studio's Change a day adds photographs here; at 10MB
+		# three iPhone originals were refused with a 413 before the app saw them.
+		path /@*/trips/*/day/*/photos
 		# B1750's throwaway phone-upload probe, and the reason this list is
 		# worth keeping in step: the probe fell into @smallbody's 10MB, Caddy
 		# truncated a batch of twenty photographs, and both Safari and Brave
@@ -103,7 +106,7 @@
 		path /api/helper/*/transcribe
 	}
 	@smallbody {
-		not path /api/v2/*/media /api/helper/*/inbox /api/helper/*/day/media /api/v2/*/import /api/v2/*/import/photos /api/v2/*/trips/*/travellers/from-photo /api/web/*/figures/from-photo /api/helper/*/studio/upload /api/probe/upload /api/helper/*/transcribe
+		not path /api/v2/*/media /api/helper/*/inbox /api/helper/*/day/media /api/v2/*/import /api/v2/*/import/photos /api/v2/*/trips/*/travellers/from-photo /api/web/*/figures/from-photo /api/helper/*/studio/upload /@*/trips/*/day/*/photos /api/probe/upload /api/helper/*/transcribe
 	}
 	request_body @bigbody {
 		max_size 520MiB
