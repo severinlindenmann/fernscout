@@ -31,6 +31,9 @@ type StreetMapProps = {
    * past it and no more, so a file without street detail never shows a blurry
    * empty map at street zoom. */
   maxZoom?: number;
+  /** B-2980: a non-interactive still (the trip page's preview): no pan, zoom,
+   * rotate or keyboard, no controls, and a plain credit instead of the button. */
+  still?: boolean;
 };
 
 /** How long the OpenStreetMap credit shows as a pill before folding into the
@@ -66,7 +69,7 @@ function withProjection<S extends object>(style: S, globe: boolean): S {
  * operator hasn't downloaded the full set for.
  */
 const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap(
-  { bounds, pmtilesUrl, padding = 32, className, onReady, globe = false, maxZoom },
+  { bounds, pmtilesUrl, padding = 32, className, onReady, globe = false, maxZoom, still = false },
   ref,
 ) {
   const { locale, t } = useI18n();
@@ -102,6 +105,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
         fitBoundsOptions: { padding },
         ...(maxZoom !== undefined ? { maxZoom: maxZoom + 1 } : {}),
         attributionControl: false,
+        ...(still ? { interactive: false } : {}),
         // B2602: no 300 ms fade on every new tile, a cache big enough to pan
         // back without reloading, and parent tiles kept while zooming so the
         // map never flashes blank.
@@ -109,7 +113,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
         maxTileCacheSize: 512,
         cancelPendingTileRequestsWhileZooming: false,
       });
-      created.addControl(new NavigationControl({ showCompass: false }), "top-right");
+      if (!still) created.addControl(new NavigationControl({ showCompass: false }), "top-right");
       map = created;
       mapRef.current = created;
       onReady?.(created);
@@ -135,7 +139,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
     // file appearing, a locale switch) that remounting the whole map is the
     // simplest correct behaviour — no diffing of an already-loaded style.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pmtilesUrl, locale, globe]);
+  }, [pmtilesUrl, locale, globe, still]);
 
   // The dark/light *scheme* can change without `locale` changing (the OS
   // theme flips, or the reader's own in-app choice does) — kept separate
@@ -162,6 +166,17 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
     const timer = window.setTimeout(() => setCreditFolded(true), CREDIT_PILL_MS);
     return () => window.clearTimeout(timer);
   }, []);
+
+  if (still) {
+    return (
+      <div className={`relative ${className ?? ""}`}>
+        <div ref={containerRef} className="h-full w-full" />
+        <span className="absolute bottom-1.5 left-1.5 rounded bg-surface-raised/80 px-1.5 py-0.5 text-[10px] leading-none text-ink-secondary">
+          {t("mapCard.osmCredit")}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative ${className ?? ""}`}>

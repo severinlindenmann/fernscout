@@ -3491,6 +3491,7 @@
       "map.wholeTrip",
       "map.zoomIn",
       "map.zoomOut",
+      "mapCard.osmCredit",
       "me.accountCardBody",
       "me.agentBody",
       "me.agentTitle",

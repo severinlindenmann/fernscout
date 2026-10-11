@@ -22,6 +22,7 @@ import { buildTripFrame, linesForRegion, type MapPlace } from "@/lib/map/tripFra
 import { recordedSegmentsFor, type DayTrack } from "@/lib/map/recordedSegments";
 import { pinsInRegion, placeDayByDate } from "@/lib/map/mapSafety";
 import { applyStreetOverlay } from "@/lib/map/streetOverlay";
+import { boundsFor } from "@/lib/map/tripStill";
 import { legModeFromEntry, legPattern, withDeclaredLegs, type LegPattern } from "@/lib/map/legMode";
 import type { TransportMode } from "@/lib/types";
 import type { MapDay } from "@/lib/map/mapDays";
@@ -61,23 +62,6 @@ type StreetFile = {
   /** The z0–6 world file standing in for a trip with no extract of its own. */
   world?: true;
 };
-
-function boundsFor(points: readonly { lat: number; lng: number }[]): [[number, number], [number, number]] {
-  const lats = points.map((p) => p.lat);
-  const lngs = points.map((p) => p.lng);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const padLat = Math.max((maxLat - minLat) * 0.35, 0.03);
-  const padLng = Math.max((maxLng - minLng) * 0.35, 0.03);
-  // Clamped to what Web Mercator (and a globe's fit) can take — a padded
-  // tour across continents otherwise runs past the poles (B2604).
-  return [
-    [Math.max(minLng - padLng, -180), Math.max(minLat - padLat, -85)],
-    [Math.min(maxLng + padLng, 180), Math.min(maxLat + padLat, 85)],
-  ];
-}
 
 export default function MapPageContent({
   places,

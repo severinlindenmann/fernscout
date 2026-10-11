@@ -447,6 +447,7 @@ export default function TripHero({
           src={active.href("/card.svg")}
           query={card.query}
           usedStreet={card.usedStreet}
+          still={card.still}
           mapHref={active.href("/map")}
           factsLine={[
             tn("mapCard.days", stats.tripDays, { count: String(stats.tripDays) }),

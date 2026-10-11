@@ -314,6 +314,72 @@ function boundsOf(points: readonly { lat: number; lng: number }[]): [[number, nu
   ];
 }
 
+/**
+ * B-2980: the route lines of one map, the same grammar everywhere: the recorded
+ * route in yellow on a navy casing (its shape by mode), a recorded gap, a
+ * photo-only join and a flight. Shared by the map page and the trip page's still.
+ */
+export function drawRouteLines(map: MapLibreMap, activeLines: readonly MapLine[], recorded: readonly MapLine[], dimmed: ReadonlySet<MapLine>, P = palette()) {
+  const byKind = (kind: MapLine["kind"]) => activeLines.filter((l) => l.kind === kind);
+  // B-2980: the recorded route keeps its yellow on navy; the mode changes
+  // the line's shape (and water its hue), so it reads without colour. One
+  // casing under every line of the class, so two days over the same road
+  // do not look doubled. Other days stay drawn at 35% when one is selected.
+  const patternOf = (l: MapLine) => legPattern(l.mode);
+  const recordedOf = (...p: LegPattern[]) => lineToGeoJSON(recorded.filter((l) => p.includes(patternOf(l))), dimmed);
+  const fade = ["case", ["get", "dim"], 0.35, 1] as unknown as number;
+  const recordedLayers: [string, ReturnType<typeof lineToGeoJSON>, Record<string, unknown>, Record<string, unknown>][] = [
+    ["fs-lines-recorded", recordedOf("solid", "hatch"), { "line-color": P.yellow }, {}],
+    ["fs-lines-recorded-dotted", recordedOf("dotted"), { "line-color": P.yellow, "line-dasharray": [0.1, 2] }, {}],
+    ["fs-lines-recorded-dash", recordedOf("dash"), { "line-color": P.yellow, "line-dasharray": [4, 2.2] }, { "line-cap": "butt" }],
+    ["fs-lines-recorded-dashed", recordedOf("dashed"), { "line-color": P.water, "line-dasharray": [1.2, 1.8] }, { "line-cap": "butt" }],
+    // Rail: the solid line above plus navy ticks across it.
+    ["fs-lines-recorded-ticks", recordedOf("hatch"), { "line-color": P.edge, "line-width": 9, "line-dasharray": [0.25, 1.1] }, { "line-cap": "butt" }],
+  ];
+  const casingSource = "fs-lines-recorded-casing";
+  const all = lineToGeoJSON(recorded, dimmed);
+  const existing = map.getSource(casingSource) as GeoJSONSource | undefined;
+  if (existing) existing.setData(all);
+  else map.addSource(casingSource, { type: "geojson", data: all });
+  if (!map.getLayer(casingSource)) {
+    map.addLayer({
+      id: casingSource, type: "line", source: casingSource,
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": P.edge, "line-width": 7.5, "line-opacity": fade },
+    });
+  }
+  for (const [id, data, paint, layout] of recordedLayers) {
+    const src = map.getSource(id) as GeoJSONSource | undefined;
+    if (src) src.setData(data);
+    else map.addSource(id, { type: "geojson", data });
+    if (!map.getLayer(id)) {
+      map.addLayer({
+        id, type: "line", source: id,
+        layout: { "line-cap": "round", "line-join": "round", ...layout },
+        paint: { "line-width": 4, "line-opacity": fade, ...paint },
+      } as Parameters<MapLibreMap["addLayer"]>[0]);
+    }
+  }
+  ensureLineLayer(map, "fs-lines-gap", lineToGeoJSON(byKind("gap")), {
+    color: P.muted,
+    width: 2,
+    dasharray: [1, 1.6],
+  });
+  // Declared-only joins (no recording) stay a thin grey straight dash.
+  ensureLineLayer(map, "fs-lines-photo-join", lineToGeoJSON(byKind("photo-join")), {
+    color: P.join,
+    width: 1.5,
+    dasharray: [3, 2.4],
+  });
+  // Flights: overview only — `activeLines` already excludes them whenever
+  // a day is selected (see above), so this is naturally empty then.
+  ensureLineLayer(map, "fs-lines-flight", lineToGeoJSON(byKind("flight")), {
+    color: P.muted,
+    width: 1.5,
+    dasharray: [1, 2.6],
+  });
+}
+
 export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions, markers: Map<number, MapLibreMarker>) {
   const { frame, regionDayNumbers, selectedDay, onSelectDay, padding, regionPlaces, pins = [], whole = false, onOpenPins, pinLabel = "", unwrittenLines = [], legLabel } = opts;
 
@@ -356,66 +422,9 @@ export function applyStreetOverlay(map: MapLibreMap, opts: StreetOverlayOptions,
     // (solid vs. two dash rhythms vs. a dotted arc), so each kind gets its
     // own tiny source/layer pair, only ever holding the (usually one or two)
     // features of that kind.
-    const byKind = (kind: MapLine["kind"]) => activeLines.filter((l) => l.kind === kind);
-    // B-2980: the recorded route keeps its yellow on navy; the mode changes
-    // the line's shape (and water its hue), so it reads without colour. One
-    // casing under every line of the class, so two days over the same road
-    // do not look doubled. Other days stay drawn at 35% when one is selected.
-    const recorded = selectedDay ? linesInRegion.filter((l) => l.kind === "recorded") : byKind("recorded");
+    const recorded = selectedDay ? linesInRegion.filter((l) => l.kind === "recorded") : activeLines.filter((l) => l.kind === "recorded");
     const dimmed = new Set(recorded.filter((l) => !activeLines.includes(l)));
-    const patternOf = (l: MapLine) => legPattern(l.mode);
-    const recordedOf = (...p: LegPattern[]) => lineToGeoJSON(recorded.filter((l) => p.includes(patternOf(l))), dimmed);
-    const fade = ["case", ["get", "dim"], 0.35, 1] as unknown as number;
-    const recordedLayers: [string, ReturnType<typeof lineToGeoJSON>, Record<string, unknown>, Record<string, unknown>][] = [
-      ["fs-lines-recorded", recordedOf("solid", "hatch"), { "line-color": P.yellow }, {}],
-      ["fs-lines-recorded-dotted", recordedOf("dotted"), { "line-color": P.yellow, "line-dasharray": [0.1, 2] }, {}],
-      ["fs-lines-recorded-dash", recordedOf("dash"), { "line-color": P.yellow, "line-dasharray": [4, 2.2] }, { "line-cap": "butt" }],
-      ["fs-lines-recorded-dashed", recordedOf("dashed"), { "line-color": P.water, "line-dasharray": [1.2, 1.8] }, { "line-cap": "butt" }],
-      // Rail: the solid line above plus navy ticks across it.
-      ["fs-lines-recorded-ticks", recordedOf("hatch"), { "line-color": P.edge, "line-width": 9, "line-dasharray": [0.25, 1.1] }, { "line-cap": "butt" }],
-    ];
-    const casingSource = "fs-lines-recorded-casing";
-    const all = lineToGeoJSON(recorded, dimmed);
-    const existing = map.getSource(casingSource) as GeoJSONSource | undefined;
-    if (existing) existing.setData(all);
-    else map.addSource(casingSource, { type: "geojson", data: all });
-    if (!map.getLayer(casingSource)) {
-      map.addLayer({
-        id: casingSource, type: "line", source: casingSource,
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": P.edge, "line-width": 7.5, "line-opacity": fade },
-      });
-    }
-    for (const [id, data, paint, layout] of recordedLayers) {
-      const src = map.getSource(id) as GeoJSONSource | undefined;
-      if (src) src.setData(data);
-      else map.addSource(id, { type: "geojson", data });
-      if (!map.getLayer(id)) {
-        map.addLayer({
-          id, type: "line", source: id,
-          layout: { "line-cap": "round", "line-join": "round", ...layout },
-          paint: { "line-width": 4, "line-opacity": fade, ...paint },
-        } as Parameters<MapLibreMap["addLayer"]>[0]);
-      }
-    }
-    ensureLineLayer(map, "fs-lines-gap", lineToGeoJSON(byKind("gap")), {
-      color: P.muted,
-      width: 2,
-      dasharray: [1, 1.6],
-    });
-    // Declared-only joins (no recording) stay a thin grey straight dash.
-    ensureLineLayer(map, "fs-lines-photo-join", lineToGeoJSON(byKind("photo-join")), {
-      color: P.join,
-      width: 1.5,
-      dasharray: [3, 2.4],
-    });
-    // Flights: overview only — `activeLines` already excludes them whenever
-    // a day is selected (see above), so this is naturally empty then.
-    ensureLineLayer(map, "fs-lines-flight", lineToGeoJSON(byKind("flight")), {
-      color: P.muted,
-      width: 1.5,
-      dasharray: [1, 2.6],
-    });
+    drawRouteLines(map, activeLines, recorded, dimmed, P);
 
     // Markers: one per place, reused across calls rather than torn down and
     // rebuilt, so a click mid-drag never targets a stale element.
