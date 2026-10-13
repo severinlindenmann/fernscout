@@ -5237,5 +5237,6 @@
   "toast.action.editDay": "Saving the day",
   "toast.action.editTrip": "Saving the trip",
   "toast.action.visibility": "Changing who can see this",
-  "toast.action.profile": "Saving your settings"
+  "toast.action.profile": "Saving your settings",
+  "guide.code.toMobile": "Six numbers, by text to {to}."
 }

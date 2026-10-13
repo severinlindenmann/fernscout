@@ -5243,5 +5243,6 @@
   "toast.action.editDay": "A nap mentése",
   "toast.action.editTrip": "Az utazás mentése",
   "toast.action.visibility": "A láthatóság módosítása",
-  "toast.action.profile": "A beállítások mentése"
+  "toast.action.profile": "A beállítások mentése",
+  "guide.code.toMobile": "Hat számjegy, SMS-ben ide: {to}."
 }

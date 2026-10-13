@@ -1046,6 +1046,7 @@ export type TranslationKey =
   | "guide.code.sentTitle"
   | "guide.code.title"
   | "guide.code.toEmail"
+  | "guide.code.toMobile"
   | "guide.code.why"
   | "guide.code.whyBuddy"
   | "guide.dots"

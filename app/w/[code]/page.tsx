@@ -8,6 +8,7 @@ import { guestLanding, isOpenToApprovedGuest } from "@/lib/access";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
+import { joinSmsAvailable, signInDigits } from "@/lib/contacts/guestPhone";
 import { buddyTripOf, maskEmail, maskMobile, ownerShortName } from "@/lib/contacts/welcome";
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
@@ -81,12 +82,11 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const locale = pickLocale(fromAcceptLanguage((await headers()).get("accept-language")), contact.locale, user.defaultLocale);
   const trip = await buddyTripOf(owner, contact.id);
   const hasEmail = contact.email.includes("@");
+  const smsDigits = (await joinSmsAvailable()) ? await signInDigits(owner, contact) : null;
   const caps = {
     mail: !mailDisabledReason(owner),
-    // B2597: readers sign in by email only — no SMS channel here, whatever
-    // this instance's own SMS transport (`isEnabled("sms")`) is set up for
-    // elsewhere (the owner's own phone check).
-    sms: false,
+    // B-2999: a contact whose number signs in (keyed) may be texted the code.
+    sms: Boolean(smsDigits),
     whatsapp: isEnabled("whatsapp") && !hasSwitchedOff("whatsapp", owner),
     postcards: isEnabled("postcards", owner),
   };
@@ -149,7 +149,7 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
           joined={(contact.createdVia ?? "").startsWith("invite:")}
           prove={{
             email: hasEmail && caps.mail ? maskEmail(contact.email) : null,
-            mobile: contact.phone && caps.sms ? maskMobile(contact.phone) : null,
+            mobile: smsDigits ? maskMobile(smsDigits) : null,
             preferred: contact.invitedVia === "sms" || contact.invitedVia === "whatsapp" || !hasEmail ? "sms" : "email",
           }}
           details={details}

@@ -5246,5 +5246,6 @@
   "toast.action.editDay": "Il salvataggio del giorno",
   "toast.action.editTrip": "Il salvataggio del viaggio",
   "toast.action.visibility": "La modifica della visibilità",
-  "toast.action.profile": "Il salvataggio delle impostazioni"
+  "toast.action.profile": "Il salvataggio delle impostazioni",
+  "guide.code.toMobile": "Sei numeri, via SMS a {to}."
 }

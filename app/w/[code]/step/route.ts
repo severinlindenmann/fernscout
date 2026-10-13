@@ -4,6 +4,10 @@ import { setGuestSessionCookies } from "@/lib/auth/identityCookie";
 import { isEnabled } from "@/lib/capabilities";
 import { approveContact, manageTokenFor, updateContactSelf, type SelfUpdate } from "@/lib/contacts";
 import { confirmEmailProof, sendEmailProof, sendGuestCode, verifyGuestCode } from "@/lib/contacts/guestCode";
+import { sendJoinSmsCode, signInDigits } from "@/lib/contacts/guestPhone";
+import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
+import { phoneSubject } from "@/lib/phone";
+import { serverSite } from "@/lib/site";
 import { preapprovedEmailFor } from "@/lib/contacts/invites";
 import { journalReader } from "@/lib/contacts/session";
 import { markOnboarded, markWelcomeOpened, resolveWelcomeCode } from "@/lib/contacts/welcome";
@@ -29,7 +33,8 @@ const answer = (body: unknown, status = 200) => Response.json(body, { status, he
  * reaches exactly as far as screen 2. Everything after (`save`, `proof`) asks
  * the session: the contact behind `journalReader` must be the one this code
  * names, and its id comes from that session, never the body (B2294's rule).
- * B2597: readers sign in by email only now — no phone channel, no SMS.
+ * B-2999: `channel: "sms"` texts the code to the number on the contact's own
+ * record (never one from the request), and only if it holds a phone key.
  */
 export async function POST(request: Request, { params }: RouteContext<"/w/[code]/step">) {
   if (foreignOrigin(request)) return answer(FOREIGN_ORIGIN_REFUSAL, 403);
@@ -49,6 +54,16 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
 
   switch (body.action) {
     case "send": {
+      if (body.channel === "sms") {
+        const digits = await signInDigits(owner, contact);
+        if (!digits) return answer({ error: "no_channel" }, 409);
+        const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")), contact.locale);
+        const texted = await sendJoinSmsCode(owner, `welcome:${code}`, digits, { ip, locale, siteTitle: serverSite().name });
+        if (!texted.ok) return answer({ error: texted.reason }, texted.reason === "rate_limited" ? 429 : 409);
+        await markWelcomeOpened(owner, contact.id);
+        return answer({ ok: true, to: texted.to });
+      }
+      if (body.channel !== undefined && body.channel !== "email") return answer({ error: "invalid_request" }, 400);
       const sent = await sendGuestCode(owner, contact.id, { ip, destination: `/w/${code}` });
       // Asking for the code is the first thing only a person does here, so it
       // is what counts as opening the link (B2368).
@@ -56,7 +71,9 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
       return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, sent.reason === "rate_limited" ? 429 : 409);
     }
     case "verify": {
-      const subject = contact.email.includes("@") ? contact.email : null;
+      if (body.channel !== undefined && body.channel !== "email" && body.channel !== "sms") return answer({ error: "invalid_request" }, 400);
+      const digits = body.channel === "sms" ? await signInDigits(owner, contact) : null;
+      const subject = body.channel === "sms" ? (digits ? phoneSubject(digits) : null) : contact.email.includes("@") ? contact.email : null;
       const session = subject ? await verifyGuestCode(owner, subject, text("code"), request.headers.get("accept-language")) : null;
       // The code must have been for *this* contact: a session for anybody
       // else (another contact's number, say) is not this guide's to open.
