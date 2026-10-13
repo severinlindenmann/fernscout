@@ -41,8 +41,8 @@ describe("splitTel / joinTel", () => {
   });
 
   test("B-2997: a proved number stored as bare E.164 is placed under its country", () => {
-    expect(splitTel("+41765613150")).toEqual({ cc: "41", national: "765613150" });
-    expect(splitTel("+15555550100")).toEqual({ cc: "1", national: "5555550100" });
+    expect(splitTel("+41760000000")).toEqual({ cc: "41", national: "760000000" });
+    expect(splitTel("+12025550100")).toEqual({ cc: "1", national: "2025550100" });
   });
 
   test("a legacy national number has no country to find, and is shown as typed", () => {

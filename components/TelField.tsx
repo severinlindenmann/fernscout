@@ -92,7 +92,7 @@ export function splitTel(tel: string): { cc: string; national: string } {
   if (match && DIAL_CODES.some((d) => d.cc === match[1])) {
     return { cc: match[1], national: match[2] };
   }
-  // B-2997: E.164 as stored for a proved number (`+41765613150`) has no space
+  // B-2997: E.164 as stored for a proved number (all digits) has no space
   // to end the code at; dial codes are prefix-free, so the digits decide.
   const guessed = trimmed.startsWith("+") ? guessMisplacedNumber(trimmed) : null;
   if (guessed) return guessed;
