@@ -1,13 +1,20 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+
+const subscribeNothing = () => () => {};
+const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(navigator.languages ?? [navigator.language])].join(","));
 import BusyButton from "@/components/BusyButton";
 import { useReducedMotion } from "motion/react";
 // B2531: the kit's yellow pill; the square button is retired.
 import { PILL_PRIMARY } from "@/components/landing/styles";
 import { useI18n } from "@/components/LocaleProvider";
 import EnvelopeFly from "@/components/EnvelopeFly";
-import CodeWaitPanel from "@/components/CodeWaitPanel";
+import CodeWaitPanel, { useSmsSignIn } from "@/components/CodeWaitPanel";
+import SignInTabs from "@/components/SignInTabs";
+import TelField, { joinTel } from "@/components/TelField";
+import { toE164 } from "@/lib/phone";
+import { browserTimeZone, phoneCountry } from "@/lib/regionDefaults";
 
 /**
  * The way in, from the front door — B426.
@@ -45,7 +52,18 @@ export default function IdentitySignIn({
   /** Called once the cookie is set, so the page can show what it opened. */
   onDone: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  // B-3001: "Email | Mobile" where the instance texts codes. The server decides again.
+  const smsOn = useSmsSignIn();
+  const [channel, setChannel] = useState<"email" | "phone">("email");
+  const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
+  const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
+  const region = useMemo(() => phoneCountry(languages ? languages.split(",") : [], timeZone), [languages, timeZone]);
+  const [telPick, setTelPick] = useState<{ cc: string; iso2?: string } | null>(null);
+  const cc = telPick?.cc ?? region.cc;
+  const [national, setNational] = useState("");
+  const [phoneProblem, setPhoneProblem] = useState<string | null>(null);
+  const tel = joinTel(cc, national);
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -82,7 +100,12 @@ export default function IdentitySignIn({
     // `email` at its initial "" forever and the button dead with a real
     // address already typed in (B787). `required` below is what stops a
     // truly empty submit, natively and with the browser's own message.
-    const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    const value = channel === "phone" ? tel.trim() : String(new FormData(event.currentTarget).get("email") ?? "");
+    if (channel === "phone" && toE164(value) === null) {
+      setPhoneProblem(t("me.signInPhoneBad"));
+      return;
+    }
+    setPhoneProblem(null);
     setEmail(value);
     setBusy(true);
     setUnavailable(false);
@@ -105,9 +128,16 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "identity", email: value }),
+      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: value } : { email: value }) }),
     }).catch(() => null);
     setBusy(false);
+
+    // A number the server cannot text (country, instance) is the one answer
+    // that does not depend on who holds it, so it is said.
+    if (channel === "phone" && response && (response.status === 400 || response.status === 503)) {
+      setPhoneProblem(t("me.signInPhoneUnavailable"));
+      return;
+    }
 
     /**
      * The two refusals that are about the *server* rather than the address,
@@ -132,7 +162,7 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "identity", email }),
+      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }) }),
     }).catch(() => null);
     if (response && (response.status === 404 || response.status === 503)) {
       setUnavailable(true);
@@ -145,7 +175,7 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/codes/redeem", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "identity", email, code: value }),
+      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }), code: value }),
     }).catch(() => null);
 
     if (response?.ok) {
@@ -170,7 +200,7 @@ export default function IdentitySignIn({
         />
       )}
       <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {t(step === "code" && !unavailable ? "codeWait.title" : "home.signInTitle")}
+        {t(step === "code" && !unavailable ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : "home.signInTitle")}
       </h2>
 
       {unavailable ? (
@@ -179,6 +209,16 @@ export default function IdentitySignIn({
         </p>
       ) : step === "email" ? (
         <form onSubmit={requestCode}>
+          {smsOn && (
+            <SignInTabs
+              value={channel}
+              onChange={(next) => {
+                setChannel(next);
+                setPhoneProblem(null);
+                setEmail("");
+              }}
+            />
+          )}
           <p className="mt-2 text-base leading-7 text-ink-body">
             {t("home.signInBody")}
           </p>
@@ -190,6 +230,32 @@ export default function IdentitySignIn({
           {/* One focus indicator, on the wrapper — B752. The ring alone is
               enough; a border colour change stacked on top of it read as a
               second, thicker edge with nothing between them. */}
+          {channel === "phone" ? (
+            <div className="mt-4">
+              <label htmlFor="identity-tel" className="block text-base font-medium text-ink-body">
+                {t("me.signInPhone")}
+              </label>
+              <TelField
+                id="identity-tel"
+                cc={cc}
+                iso2={telPick ? telPick.iso2 : region.iso2}
+                national={national}
+                onChange={(nextCc, nextNational, iso2) => {
+                  setTelPick({ cc: nextCc, iso2 });
+                  setNational(nextNational);
+                }}
+                labelCountry={t("contact.telCountry")}
+                searchPlaceholder={t("contact.telSearchPlaceholder")}
+                noMatches={t("contact.telNoMatches")}
+                locale={locale}
+              />
+              {phoneProblem && (
+                <p role="alert" className="mt-2 text-base text-coral-600">
+                  {phoneProblem}
+                </p>
+              )}
+            </div>
+          ) : (
           <div className="mt-4 min-h-11 rounded-xl border border-line-strong bg-surface-base px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500">
             <label
               htmlFor="identity-email"
@@ -218,6 +284,7 @@ export default function IdentitySignIn({
               className="block w-full border-0 bg-transparent p-0 text-base text-ink-strong focus:outline-none focus:ring-0 quiet-inner-focus"
             />
           </div>
+          )}
           {/* `sendRef` is what the flight is measured from — B762. The
               envelope itself is mounted up at the panel, because a fast
               response swaps this form out and would unmount it mid-flight. */}
@@ -250,6 +317,7 @@ export default function IdentitySignIn({
           id="identity-code"
           email={email}
           minutes={codeMinutes}
+          channel={channel}
           code={code}
           onCodeChange={setCode}
           onSubmit={(digits) => void submitCode(digits)}

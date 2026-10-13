@@ -1,5 +1,5 @@
 import "server-only";
-import { issueCode, revokeCodes } from "../auth";
+import { NO_JOURNAL, issueCode, revokeCodes } from "../auth";
 import { isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
 import { whatsappCountryCode, whatsappNumberForUrl } from "../contactNumber";
@@ -10,6 +10,7 @@ import { smsJoinAllowed } from "../rateLimit";
 import { serverSite } from "../site";
 import { sendSms, smsUnreachable } from "../sms";
 import { hasContactsKey } from "./crypto";
+import { getUsernames } from "../users";
 import { getContactByEmail, type ContactRecord } from "./index";
 
 /**
@@ -101,6 +102,18 @@ export async function sendJoinSmsCode(
   digits: string,
   options: { ip: string; locale: string; siteTitle: string },
 ): Promise<JoinSmsResult> {
+  return sendSignInSms(owner, linkId, digits, "guest", options);
+}
+
+/** Shared by the reader-link code (`owner` is a journal, kind "guest") and the
+ * server-wide one (`owner` is NO_JOURNAL, kind "identity"). */
+async function sendSignInSms(
+  owner: string,
+  linkId: string,
+  digits: string,
+  kind: "guest" | "identity",
+  options: { ip: string; locale: string; siteTitle: string },
+): Promise<JoinSmsResult> {
   if (!(await joinSmsAvailable()) || smsUnreachable(digits)) return { ok: false, reason: "unavailable" };
   if (!joinCountryAllowed(digits)) return { ok: false, reason: "unsupported_country" };
   let host = "";
@@ -113,13 +126,13 @@ export async function sendJoinSmsCode(
   if (!smsJoinAllowed(digits, options.ip, linkId)) return { ok: false, reason: "rate_limited" };
 
   const subject = phoneSubject(digits);
-  const { code } = await issueCode(owner, subject, "guest");
+  const { code } = await issueCode(owner, subject, kind);
   const body = translateIn(options.locale, "code.phoneVerify", { code, site: options.siteTitle, host });
   try {
     await sendSms({ to: digits, body, template: "code.sms", owner });
   } catch (err) {
     console.error(`[contacts] join sms code for ${owner} could not be sent (${maskNumber(digits)}):`, (err as Error).message);
-    await revokeCodes(owner, subject, "guest").catch(() => {});
+    await revokeCodes(owner, subject, kind).catch(() => {});
     return { ok: false, reason: "send_failed" };
   }
   return { ok: true, to: maskNumber(digits) };
@@ -139,4 +152,25 @@ export async function sendReturnSmsCode(
   const contact = await getContactByEmail(owner, phoneSubject(digits));
   if (!contact || contact.status !== "active") return { ok: false, reason: "no_contact" };
   return sendJoinSmsCode(owner, `return:${owner}`, digits, options);
+}
+
+/**
+ * B-3001. A server-wide sign-in code by SMS (`for: "identity"`). Texted only
+ * when an active contact of ANY journal holds that number with a phone key;
+ * one code and one text however many journals hold it. Every other case does
+ * nothing, so the caller answers the same 202 for any number. Proves nothing
+ * to a particular journal.
+ */
+export async function sendIdentitySmsCode(
+  digits: string,
+  options: { ip: string; locale: string; siteTitle: string },
+): Promise<JoinSmsResult | { ok: false; reason: "no_contact" }> {
+  const subject = phoneSubject(digits);
+  let found = false;
+  for (const username of getUsernames()) {
+    const contact = await getContactByEmail(username, subject).catch(() => null);
+    if (contact?.status === "active") found = true;
+  }
+  if (!found) return { ok: false, reason: "no_contact" };
+  return sendSignInSms(NO_JOURNAL, "identity", digits, "identity", options);
 }

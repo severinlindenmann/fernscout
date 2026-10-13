@@ -4,6 +4,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import CodeWaitPanel, { useSmsSignIn } from "@/components/CodeWaitPanel";
+import SignInTabs from "@/components/SignInTabs";
 import TelField, { joinTel } from "@/components/TelField";
 import { toE164 } from "@/lib/phone";
 import { browserTimeZone, phoneCountry } from "@/lib/regionDefaults";
@@ -143,6 +144,16 @@ export default function GuestSignIn({
 
       {step === "email" ? (
         <form onSubmit={requestCode}>
+          {smsOn && (
+            <SignInTabs
+              value={channel}
+              onChange={(next) => {
+                setChannel(next);
+                setPhoneProblem(null);
+                setEmail("");
+              }}
+            />
+          )}
           <p className="mt-2 text-base leading-7 text-ink-body">
             {t(channel === "phone" ? "me.signInBodyPhone" : "me.signInBody")}
           </p>
@@ -204,21 +215,6 @@ export default function GuestSignIn({
           >
             {t("me.signInSend")}
           </BusyButton>
-          {smsOn && (
-            <p className="mt-3">
-              <button
-                type="button"
-                className="min-h-11 text-base text-ink-secondary underline underline-offset-4"
-                onClick={() => {
-                  setChannel(channel === "phone" ? "email" : "phone");
-                  setPhoneProblem(null);
-                  setEmail("");
-                }}
-              >
-                {t(channel === "phone" ? "me.signInUseEmail" : "me.signInUsePhone")}
-              </button>
-            </p>
-          )}
         </form>
       ) : (
         <CodeWaitPanel

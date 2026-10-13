@@ -61,13 +61,13 @@ describe("GuestSignIn by mobile number", () => {
 
   test("with SMS off there is no mobile option at all", () => {
     mount(false);
-    expect(link(dict["me.signInUsePhone"])).toBeUndefined();
+    expect(container.querySelector('[role="tablist"]')).toBeNull();
     expect(container.querySelector('input[type="email"]')).not.toBeNull();
   });
 
   test("with SMS on the number can be chosen, is checked, and asks for a text, not a mail", async () => {
     mount(true);
-    act(() => link(dict["me.signInUsePhone"])!.click());
+    act(() => link(dict["signIn.tabMobile"])!.click());
     expect(container.querySelector('input[type="email"]')).toBeNull();
     const tel = container.querySelector<HTMLInputElement>('input[type="tel"]')!;
     expect(tel).not.toBeNull();
@@ -94,7 +94,7 @@ describe("GuestSignIn by mobile number", () => {
 
   test("the six digits redeem with the number, never with an email", async () => {
     mount(true);
-    act(() => link(dict["me.signInUsePhone"])!.click());
+    act(() => link(dict["signIn.tabMobile"])!.click());
     type(container.querySelector<HTMLInputElement>('input[type="tel"]')!, "+41 79 555 88 11");
     await act(async () => container.querySelector("form")!.requestSubmit());
     bodies.length = 0;
@@ -112,7 +112,7 @@ describe("GuestSignIn by mobile number", () => {
 
   test("a server that cannot text the number says so in words", async () => {
     mount(true);
-    act(() => link(dict["me.signInUsePhone"])!.click());
+    act(() => link(dict["signIn.tabMobile"])!.click());
     vi.mocked(global.fetch).mockImplementation(async () => ({ ok: false, status: 503, json: async () => ({}) }) as Response);
     type(container.querySelector<HTMLInputElement>('input[type="tel"]')!, "+41 79 555 88 11");
     await act(async () => container.querySelector("form")!.requestSubmit());
