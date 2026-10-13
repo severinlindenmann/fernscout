@@ -202,6 +202,63 @@ describe("AC1 — a proved address keeps the trip and nothing more", () => {
   });
 });
 
+describe("B-3002 — a reader signed in by phone keeps the trip", () => {
+  async function phoneSession(digits: string) {
+    const { issueCode } = await import("@/lib/auth");
+    const { verifyGuestCode } = await import("@/lib/contacts/guestCode");
+    const { setGuestSessionCookies } = await import("@/lib/auth/identityCookie");
+    const subject = `+${digits}`;
+    const { code } = await issueCode(OWNER, subject, "guest");
+    const session = (await verifyGuestCode(OWNER, subject, code))!;
+    await setGuestSessionCookies(session.token, session.subject, null);
+    return subject;
+  }
+
+  test("files a pending person keyed by the number with that one trip saved, nothing more", async () => {
+    const link = await mint();
+    const subject = await phoneSession("41760000001");
+    const res = await keepPost(link.code, { action: "join", name: "Pia" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, kept: true, to: "+41 76 000 00 01" });
+    const contact = await contactOf(subject);
+    expect(contact).toMatchObject({ status: "pending", name: "Pia", email: "", createdVia: `read:${link.id}` });
+    expect(contact?.phoneProvenAt).toBeTruthy();
+    const rows = await keepRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ trip_id: TRIP, invite_id: link.id, contact_id: contact!.id, revoked_at: null });
+    const d = await db();
+    expect(await d.selectFrom("access_grants").selectAll().execute()).toEqual([]);
+    expect(await d.selectFrom("trip_people").selectAll().execute()).toEqual([]);
+    // The owner is told about the new person waiting, as on the email path.
+    const told = await d.selectFrom("contacts").select("notified_at").where("id", "=", contact!.id).executeTakeFirstOrThrow();
+    expect(told.notified_at).toBeTruthy();
+    await keepPost(link.code, { action: "join", name: "Pia" });
+    expect(await keepRows()).toHaveLength(1);
+  });
+
+  test("a name is required for a new person", async () => {
+    const link = await mint();
+    await phoneSession("41760000001");
+    const res = await keepPost(link.code, { action: "join" });
+    expect(res.status).toBe(400);
+    expect(await keepRows()).toEqual([]);
+  });
+
+  test("a blocked number gets the neutral answer and no keep row", async () => {
+    const link = await mint();
+    const { addContact } = await import("@/lib/contacts");
+    const subject = await phoneSession("41760000001");
+    const added = await addContact(OWNER, { name: "Bo", phone: subject, locale: "en", createdVia: "owner" });
+    if (!added.ok) throw new Error("add failed");
+    await (await db()).updateTable("contacts").set({ status: "blocked" }).where("id", "=", added.contact.id).execute();
+    const res = await keepPost(link.code, { action: "join", name: "Bo" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, kept: true });
+    expect(await keepRows()).toEqual([]);
+    expect((await contactOf(subject))?.status).toBe("blocked");
+  });
+});
+
 describe("AC2 — a blocked person gets the neutral answer and no keep", () => {
   test("same body shape, no row, contact stays blocked", async () => {
     const { requestContact, revokeContact } = await import("@/lib/contacts");

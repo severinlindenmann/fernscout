@@ -273,6 +273,57 @@ describe("SMS proof on a reader link", () => {
     expect((await holder("+41798000001"))?.status).toBe("blocked");
   });
 
+  test("B-3002: a reader already signed in by phone joins another link with no second code", async () => {
+    const first = await newLink({ kind: "guest", name: "Group" });
+    await proveBySms(first, "+41 76 000 00 01");
+    const second = await newLink({ kind: "guest", name: "Other" });
+    const before = await contactCount();
+    // newLink signs the owner in and out; sign the reader back in.
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code: six } = await issueCode(OWNER, "+41760000001", "guest");
+    const session = await verifyCode(OWNER, "+41760000001", six, "guest");
+    if (!session.ok) throw new Error("phone sign-in failed");
+    jar.cookies = { fs_session: session.token };
+    const done = await joinStep(second, { action: "join", name: "Mira", locale: "en" });
+    expect(done.json).toMatchObject({ ok: true, status: "in" });
+    expect(await contactCount()).toBe(before);
+    expect(await holder("+41760000001")).toMatchObject({ email: "" });
+  });
+
+  test("B-3002: a phone session on a link with no contact yet is keyed by the number, never an email row", async () => {
+    const code = await newLink({ kind: "guest", name: "Group" });
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code: six } = await issueCode(OWNER, "+41760000002", "guest");
+    const session = await verifyCode(OWNER, "+41760000002", six, "guest");
+    if (!session.ok) throw new Error("phone sign-in failed");
+    jar.cookies = { fs_session: session.token };
+    const none = await joinStep(code, { action: "join", locale: "en" });
+    expect(none).toMatchObject({ status: 400, json: { error: "invalid_name" } });
+    const done = await joinStep(code, { action: "join", name: "Nia", locale: "en" });
+    expect(done.json).toMatchObject({ ok: true, status: "in", known: false });
+    const person = await holder("+41760000002");
+    expect(person).toMatchObject({ name: "Nia", email: "", status: "active" });
+    expect(person?.phoneProvenAt).toBeTruthy();
+  });
+
+  test("B-3002: a blocked phone session is answered like anybody else", async () => {
+    const code = await newLink({ kind: "guest", name: "Group" });
+    const { addContact } = await import("@/lib/contacts");
+    const added = await addContact(OWNER, { name: "Blocked", phone: "+41 76 000 00 03", locale: "en", createdVia: "owner" });
+    if (!added.ok) throw new Error("add failed");
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code: six } = await issueCode(OWNER, "+41760000003", "guest");
+    const session = await verifyCode(OWNER, "+41760000003", six, "guest");
+    if (!session.ok) throw new Error("phone sign-in failed");
+    const { getDatabase } = await import("@/lib/db");
+    const { db } = await getDatabase();
+    await db.updateTable("contacts").set({ status: "blocked" }).where("id", "=", added.contact.id).execute();
+    jar.cookies = { fs_session: session.token };
+    const done = await joinStep(code, { action: "join", name: "Blocked", locale: "en" });
+    expect(done.json).toMatchObject({ ok: true, status: "waiting", known: true });
+    expect((await holder("+41760000003"))?.status).toBe("blocked");
+  });
+
   test("a buddy link never auto-admits a phone proof", async () => {
     const code = await newLink({ kind: "buddy", name: "Crew", trip: TRIP });
     const done = await proveBySms(code, "+41 79 900 00 01");

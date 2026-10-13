@@ -84,6 +84,7 @@ export default function JoinFlow({
   kind,
   tripTitle,
   knownEmail,
+  knownPhone,
   caps,
   dictionary,
   locale,
@@ -98,6 +99,7 @@ export default function JoinFlow({
   tripTitle: string | null;
   /** Signed in already with this address — masked; no second code. */
   knownEmail: string | null;
+  knownPhone?: boolean;
   caps: { mail: boolean; sms: boolean; whatsapp: boolean; postcards: boolean };
   dictionary: Record<string, string>;
   locale: string;
@@ -588,7 +590,7 @@ export default function JoinFlow({
   if (status === "in") {
     // B2943: the owner is not asked and is not named as having approved:
     // the link was the invitation. Only what was really confirmed is said.
-    const withEmail = Boolean(knownEmail) || way === "email" || mailProved;
+    const withEmail = (Boolean(knownEmail) && !knownPhone) || way === "email" || mailProved;
     const fullName = name.trim() || "—";
     // Somebody already on the page keeps what is stored: no choices to save.
     const askChoices = withEmail && caps.mail && !known;
