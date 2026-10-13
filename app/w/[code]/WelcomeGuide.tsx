@@ -89,6 +89,8 @@ const ERRORS: Record<string, TranslationKey> = {
   rate_limited: "guide.error.rateLimited",
   invalid_code: "guide.error.code",
   unavailable: "guide.error.unavailable",
+  unsupported_country: "guide.error.unavailable",
+  send_failed: "guide.error.unavailable",
   no_channel: "guide.error.unavailable",
   invalid_phone: "guide.error.phone",
   invalid_email: "guide.error.email",
@@ -159,20 +161,22 @@ export default function WelcomeGuide(props: GuideProps) {
   }
 
   // ── 2 · the code ─────────────────────────────────────────────────────────
-  // B2597: readers sign in by email only — the SMS channel this used to
-  // offer as an alternative is gone.
+  // B-2999: email by default; a keyed mobile number is the other way, and the
+  // only one for somebody added by number. The number itself stays on the server.
+  const { email: emailTo, mobile: mobileTo } = props.prove;
+  const [channel, setChannel] = useState<"email" | "sms">(mobileTo && (props.prove.preferred === "sms" || !emailTo) ? "sms" : "email");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
 
   async function sendCode() {
-    const sent = await call({ action: "send" });
+    const sent = await call({ action: "send", channel });
     if (sent) {
       setSentTo(String(sent.to ?? ""));
       setTyped("");
     }
   }
   async function verify() {
-    if (!(await call({ action: "verify", code: typed }))) return;
+    if (!(await call({ action: "verify", channel, code: typed }))) return;
     if (onboarded || steps.indexOf("code") === steps.length - 1) {
       finish(props.landing);
       return;
@@ -306,7 +310,7 @@ export default function WelcomeGuide(props: GuideProps) {
   }
 
   if (step === "code") {
-    const to = props.prove.email;
+    const to = channel === "sms" ? mobileTo : emailTo;
     return (
       <Screen
         labelledBy="guide-code"
@@ -326,7 +330,7 @@ export default function WelcomeGuide(props: GuideProps) {
         <CodeArt />
         <Heading id="guide-code">{sentTo ? t("guide.code.sentTitle") : t("guide.code.title")}</Heading>
         <p className="text-base text-ink-body">
-          {to ? t("guide.code.toEmail", { to: sentTo || to }) : t("guide.error.unavailable")}{" "}
+          {to ? t(channel === "sms" ? "guide.code.toMobile" : "guide.code.toEmail", { to: sentTo || to }) : t("guide.error.unavailable")}{" "}
           {kind === "buddy" ? t("guide.code.whyBuddy") : t("guide.code.why")}
         </p>
         {sentTo && <CodeField id="guide-code-input" label={t("guide.code.label")} value={typed} onChange={setTyped} />}
@@ -334,6 +338,21 @@ export default function WelcomeGuide(props: GuideProps) {
         {sentTo && (
           <button type="button" className={QUIET} disabled={busy} onClick={() => sendCode()}>
             {t("guide.code.again")}
+          </button>
+        )}
+        {emailTo && mobileTo && (
+          <button
+            type="button"
+            className={QUIET}
+            disabled={busy}
+            onClick={() => {
+              setChannel(channel === "sms" ? "email" : "sms");
+              setSentTo(null);
+              setTyped("");
+              setError(null);
+            }}
+          >
+            {t("join.code.another")}
           </button>
         )}
       </Screen>

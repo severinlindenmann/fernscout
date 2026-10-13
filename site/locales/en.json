@@ -4304,6 +4304,7 @@
   "guide.code.title": "Is it really you?",
   "guide.code.sentTitle": "We just sent you a code",
   "guide.code.toEmail": "Six numbers, by email to {to}.",
+  "guide.code.toMobile": "Six numbers, by text to {to}.",
   "guide.code.why": "This keeps the journal private even if the link is forwarded.",
   "guide.code.whyBuddy": "This keeps the trip yours even if the link gets forwarded.",
   "guide.code.send": "Send me the code",

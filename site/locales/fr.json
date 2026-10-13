@@ -4273,6 +4273,7 @@
   "guide.code.title": "Est-ce vraiment toi ?",
   "guide.code.sentTitle": "On vient de t’envoyer un code",
   "guide.code.toEmail": "Six chiffres, par e-mail à {to}.",
+  "guide.code.toMobile": "Six chiffres, par SMS au {to}.",
   "guide.code.why": "Cela garde le journal privé même si le lien est transféré.",
   "guide.code.whyBuddy": "Cela garde le voyage à toi même si le lien est transféré.",
   "guide.code.send": "Envoie-moi le code",
