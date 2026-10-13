@@ -5156,8 +5156,6 @@
   "me.signInPhone": "Il tuo numero di cellulare",
   "me.signInPhoneBad": "Controlla il numero e la bandiera del paese.",
   "me.signInPhoneUnavailable": "Da qui non possiamo inviare SMS a questo numero. Usa invece il tuo indirizzo email.",
-  "me.signInUsePhone": "Usa invece il mio numero di cellulare",
-  "me.signInUseEmail": "Usa invece il mio indirizzo email",
   "signIn.tabEmail": "Email",
   "signIn.tabMobile": "Cellulare",
   "codeWait.titlePhone": "Controlla i tuoi messaggi",

@@ -5152,8 +5152,6 @@
   "me.signInPhone": "Deine Handynummer",
   "me.signInPhoneBad": "Prüfe die Nummer und die Landesflagge.",
   "me.signInPhoneUnavailable": "An diese Nummer können wir von hier aus keine SMS schicken. Nutze stattdessen deine E-Mail-Adresse.",
-  "me.signInUsePhone": "Stattdessen meine Handynummer nutzen",
-  "me.signInUseEmail": "Stattdessen meine E-Mail-Adresse nutzen",
   "signIn.tabEmail": "E-Mail",
   "signIn.tabMobile": "Handy",
   "codeWait.titlePhone": "Schau in deine Nachrichten",

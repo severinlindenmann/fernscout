@@ -5153,8 +5153,6 @@
   "me.signInPhone": "A mobilszámod",
   "me.signInPhoneBad": "Ellenőrizd a számot és az ország zászlaját.",
   "me.signInPhoneUnavailable": "Erre a számra innen nem tudunk SMS-t küldeni. Használd inkább az e-mail-címedet.",
-  "me.signInUsePhone": "Inkább a mobilszámomat használom",
-  "me.signInUseEmail": "Inkább az e-mail-címemet használom",
   "signIn.tabEmail": "E-mail",
   "signIn.tabMobile": "Mobil",
   "codeWait.titlePhone": "Nézd meg az üzeneteidet",

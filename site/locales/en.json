@@ -5147,8 +5147,6 @@
   "me.signInPhone": "Your mobile number",
   "me.signInPhoneBad": "Check the number and the country flag.",
   "me.signInPhoneUnavailable": "We cannot text that number from here. Use your email address instead.",
-  "me.signInUsePhone": "Use my mobile number instead",
-  "me.signInUseEmail": "Use my email address instead",
   "signIn.tabEmail": "Email",
   "signIn.tabMobile": "Mobile",
   "codeWait.titlePhone": "Check your messages",

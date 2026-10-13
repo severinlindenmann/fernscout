@@ -1686,8 +1686,6 @@ export type TranslationKey =
   | "me.signInSending"
   | "me.signInSubmit"
   | "me.signInTitle"
-  | "me.signInUseEmail"
-  | "me.signInUsePhone"
   | "me.signInWrong"
   | "me.signOut"
   | "me.signOutBody"

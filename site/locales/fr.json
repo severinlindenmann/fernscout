@@ -5156,8 +5156,6 @@
   "me.signInPhone": "Votre numéro mobile",
   "me.signInPhoneBad": "Vérifiez le numéro et le drapeau du pays.",
   "me.signInPhoneUnavailable": "Nous ne pouvons pas envoyer de SMS à ce numéro d’ici. Utilisez plutôt votre adresse e-mail.",
-  "me.signInUsePhone": "Utiliser plutôt mon numéro mobile",
-  "me.signInUseEmail": "Utiliser plutôt mon adresse e-mail",
   "signIn.tabEmail": "E-mail",
   "signIn.tabMobile": "Mobile",
   "codeWait.titlePhone": "Regardez vos messages",
