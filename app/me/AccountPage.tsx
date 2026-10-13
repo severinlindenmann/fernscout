@@ -225,7 +225,9 @@ export default function AccountPage({
   }, []);
 
   const mine = home ? home.journals.filter(isMine) : [];
-  const owned = mine.find((journal) => journal.role === "owner");
+  // B-3001: a number proves a reader, never an owner - no plan, no operator door.
+  const phoneIdentity = home ? subjectPhone(home.email) !== null : false;
+  const owned = phoneIdentity ? undefined : mine.find((journal) => journal.role === "owner");
 
   return (
     // B2531: header B, the footer and the reading width are the page's
@@ -279,7 +281,7 @@ export default function AccountPage({
                   ))}
                 </ul>
               )}
-              {home.admin && (
+              {home.admin && !phoneIdentity && (
                 <p className="mt-4 text-sm leading-6 text-ink-body">
                   {t("meAccount.operatorBody")}{" "}
                   <Link href="/admin" className={`font-semibold text-ink-strong ${LINK}`}>

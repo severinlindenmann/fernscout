@@ -56,12 +56,12 @@ export async function POST(request: Request) {
   if (req.scope && req.for !== "write") {
     return fail("invalid_request", 'scope is only meaningful when "for" is "write".');
   }
-  // B-2942: a guest's mobile number, `for: "read"` only. It becomes the code's
+  // B-2942: a guest's mobile number, `for: "read"` or `"identity"`. It becomes the code's
   // subject, `+<digits>`, the same string the code was issued under.
   let email: string;
   if (req.phone !== undefined) {
     const digits = typedDigits(req.phone);
-    if (req.email !== undefined || req.for !== "read" || !digits || !req.code) {
+    if (req.email !== undefined || (req.for !== "read" && req.for !== "identity") || !digits || !req.code) {
       return fail("invalid_request", ERROR_CODES.invalid_request);
     }
     email = phoneSubject(digits);

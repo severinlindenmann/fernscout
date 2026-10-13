@@ -2902,6 +2902,8 @@ export type TranslationKey =
   | "showcase.cta"
   | "showcase.how"
   | "showcase.title"
+  | "signIn.tabEmail"
+  | "signIn.tabMobile"
   | "signin.action"
   | "signin.body"
   | "signin.failed"
