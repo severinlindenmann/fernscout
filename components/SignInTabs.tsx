@@ -37,8 +37,8 @@ export default function SignInTabs({
           aria-selected={value === tab.id}
           tabIndex={value === tab.id ? 0 : -1}
           onClick={() => onChange(tab.id)}
-          className={`min-h-11 flex-1 rounded-lg px-3 text-base font-medium ${
-            value === tab.id ? "bg-surface-raised text-ink-strong shadow-sm" : "text-ink-secondary"
+          className={`min-h-11 flex-1 rounded-lg px-3 text-base ${
+            value === tab.id ? "bg-surface-raised font-semibold text-ink-strong shadow-sm ring-1 ring-line-strong" : "font-medium text-ink-secondary"
           }`}
         >
           {tab.label}
