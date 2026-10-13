@@ -229,6 +229,9 @@ describe("B-3002 — a reader signed in by phone keeps the trip", () => {
     const d = await db();
     expect(await d.selectFrom("access_grants").selectAll().execute()).toEqual([]);
     expect(await d.selectFrom("trip_people").selectAll().execute()).toEqual([]);
+    // The owner is told about the new person waiting, as on the email path.
+    const told = await d.selectFrom("contacts").select("notified_at").where("id", "=", contact!.id).executeTakeFirstOrThrow();
+    expect(told.notified_at).toBeTruthy();
     await keepPost(link.code, { action: "join", name: "Pia" });
     expect(await keepRows()).toHaveLength(1);
   });

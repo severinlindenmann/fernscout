@@ -160,8 +160,8 @@ async function keep(
 /**
  * A number a code or an inbound message proved keeps the trip: the same
  * pending person with that one trip saved, nothing more. Blocked: the
- * neutral answer, nothing written. No owner email notice (it has no address
- * to be about); the owner sees the pending person on their People page.
+ * neutral answer, nothing written. The owner is told about a new person
+ * waiting, once, as on the email path (the notice goes to the owner).
  */
 async function keepPhone(link: ReadLink, digits: string, form: { name: string; locale: Locale }): Promise<Response> {
   const { owner } = link;
@@ -169,6 +169,7 @@ async function keepPhone(link: ReadLink, digits: string, form: { name: string; l
   const done = { ok: true, kept: true, to: displaySubject(subject) };
   let contact = await getContactByEmail(owner, subject);
   if (contact?.status === "blocked") return answer(done);
+  const isNew = !contact;
   if (!contact) {
     if (!rateLimitFor("trip-keep-new", link.inviteId, NEW_PER_LINK).ok) return answer({ error: "rate_limited" }, 429);
     const created = await addContactWithProvenPhone(owner, {
@@ -185,5 +186,9 @@ async function keepPhone(link: ReadLink, digits: string, form: { name: string; l
   const kept = await recordKeep(link, contact.id);
   if (kept === "expired") return answer({ error: "expired" }, 404);
   if (kept === "removed") return answer({ ok: true, kept: false, removed: true });
+  if (isNew) {
+    const user = getUser(owner);
+    if (user && (await notifyOwnerOfRequest(owner, user, contact))) await markOwnerNotified(owner, contact.id);
+  }
   return answer(done);
 }
