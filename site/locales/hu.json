@@ -4274,6 +4274,7 @@
   "guide.code.title": "Tényleg te vagy az?",
   "guide.code.sentTitle": "Most küldtünk neked egy kódot",
   "guide.code.toEmail": "Hat számjegy, e-mailben ide: {to}.",
+  "guide.code.toMobile": "Hat számjegy, SMS-ben ide: {to}.",
   "guide.code.why": "Így a napló akkor is privát marad, ha a linket továbbküldik.",
   "guide.code.whyBuddy": "Így az utazás a tiétek marad, akkor is, ha a linket továbbküldik.",
   "guide.code.send": "Küldd el a kódot",

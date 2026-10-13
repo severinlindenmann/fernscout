@@ -7023,6 +7023,7 @@
       "guide.code.sentTitle",
       "guide.code.title",
       "guide.code.toEmail",
+      "guide.code.toMobile",
       "guide.code.why",
       "guide.code.whyBuddy",
       "guide.dots",
@@ -7416,6 +7417,7 @@
   "welcomeLinkFrame": {
     "paid": [],
     "keys": [
+      "code.phoneVerify",
       "contact.addrCountry",
       "contact.addrCountryNoMatches",
       "contact.addrCountrySearchPlaceholder",
@@ -7503,6 +7505,7 @@
       "guide.code.sentTitle",
       "guide.code.title",
       "guide.code.toEmail",
+      "guide.code.toMobile",
       "guide.code.why",
       "guide.code.whyBuddy",
       "guide.dots",
@@ -7566,6 +7569,7 @@
       "inviteRequest.mailBody",
       "inviteRequest.mailFooter",
       "inviteRequest.mailSubject",
+      "join.code.another",
       "landing.faqAppA",
       "landing.faqAppQ",
       "landing.faqInviteA",

@@ -20,10 +20,8 @@ import { maskEmail } from "./welcome";
 
 /**
  * A guest proves who they are with a code to their email — B2294 (B2291,
- * "Proving a person"). B2597: readers sign in by email only; the mobile
- * channel (a guest code texted to a proven number, and the join link's own
- * first-phone path) is gone, along with SMS day announcements and invites —
- * no plan sends a reader an SMS any more.
+ * "Proving a person"). A code to a keyed mobile number is the other way
+ * (`./guestPhone`, B-2942, B-2999); no plan sends a reader an SMS announcement.
  *
  * A `guest` code row (`issueCode`) whose subject is the address. Redeeming
  * it opens the same `fs_session` and `fs_identity` an emailed code always
@@ -51,8 +49,8 @@ export type SendGuestCodeResult =
     };
 
 /**
- * Send this contact a guest sign-in code by email — the only channel left
- * (B2597).
+ * Send this contact a guest sign-in code by email (the mobile way is
+ * `sendJoinSmsCode`).
  *
  * Issuing supersedes whatever code the subject held (`issueCode`), so every
  * refusal is decided **before** anything is written.

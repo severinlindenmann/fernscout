@@ -10,7 +10,7 @@ import { smsJoinAllowed } from "../rateLimit";
 import { serverSite } from "../site";
 import { sendSms, smsUnreachable } from "../sms";
 import { hasContactsKey } from "./crypto";
-import { getContactByEmail } from "./index";
+import { getContactByEmail, type ContactRecord } from "./index";
 
 /**
  * A guest proves a mobile number through a reader link - B-2942, reversing
@@ -55,6 +55,18 @@ export function joinSmsConfigured(): boolean {
 export async function joinSmsAvailable(): Promise<boolean> {
   if (!joinSmsConfigured()) return false;
   return !(await isSwitchedOff("code.sms"));
+}
+
+/**
+ * B-2999. The number a contact may be texted a sign-in code at, or null.
+ * Only one that holds a `phone_key` (owner-typed or proven) signs in: a
+ * self-typed, display-only number resolves to nobody, so it is never texted.
+ */
+export async function signInDigits(owner: string, contact: Pick<ContactRecord, "id" | "phone">): Promise<string | null> {
+  const digits = contact.phone ? typedDigits(contact.phone) : null;
+  if (!digits) return null;
+  const holder = await getContactByEmail(owner, phoneSubject(digits));
+  return holder?.id === contact.id ? digits : null;
 }
 
 /** Whether the WhatsApp message-in option exists: sender, inbound webhook and
