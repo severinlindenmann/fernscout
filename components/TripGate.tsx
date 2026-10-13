@@ -7,6 +7,7 @@ import BackToJournal from "@/components/BackToJournal";
 import { useI18n } from "@/components/LocaleProvider";
 
 import { journalPath } from "@/lib/journalPath";
+import { displaySubject, subjectPhone } from "@/lib/phone";
 /**
  * What a reader meets in front of a trip they may not read.
  *
@@ -164,8 +165,8 @@ export default function TripGate({
             {refusedForPrivacy
               ? t("gate.privateBody")
               : stillWaiting
-                ? t("gate.waitingBody", { email: signedInAs })
-                : t("gate.refusedBody", { email: signedInAs })}
+                ? t(subjectPhone(signedInAs) ? "gate.waitingBodyPhone" : "gate.waitingBody", { email: displaySubject(signedInAs) })
+                : t("gate.refusedBody", { email: displaySubject(signedInAs) })}
           </p>
           {/* Not a dead end. `/@<user>/me` is the page that lists what this
               address *can* open, and carries the control for signing out and

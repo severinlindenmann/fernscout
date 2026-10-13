@@ -35,7 +35,7 @@ import { hasOutbox, openOutboxStore } from "@/lib/outbox";
  * is who the outbox is checked for: only an owner's own studio ever queues a
  * write, so a shared or guest reader (no `owner` passed) skips the check.
  */
-export default function SignOut({ owner }: { owner?: string }) {
+export default function SignOut({ owner, phone }: { owner?: string; phone?: boolean }) {
   const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -118,7 +118,7 @@ export default function SignOut({ owner }: { owner?: string }) {
         {t("me.signOutTitle")}
       </h2>
       <p className="mt-2 text-base leading-7 text-ink-body">
-        {t("me.signOutBody")}
+        {t(phone ? "me.signOutBodyPhone" : "me.signOutBody")}
       </p>
       <BusyButton
         busy={busy}

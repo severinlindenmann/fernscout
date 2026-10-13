@@ -1257,8 +1257,9 @@
   "gate.refusedBody": "You are signed in as {email}, and this trip has not been shared with that address. Ask whoever writes this journal to let you in — or sign in again with the address they used.",
   "gate.refusedSeeAccess": "See what you can read",
   "gate.refusedTitle": "This trip is not shared with you",
-  "gate.signInBody": "This trip is not public. If it was shared with you, sign in with that email address and we will send you the way in.",
+  "gate.signInBody": "This trip is not public. If it was shared with you, sign in with the email address or mobile number you were invited with and we will send you the way in.",
   "gate.waitingBody": "You asked to be let in as {email}, and whoever keeps this journal has been told. Most people are let in within a day or two. You will get an email the moment they wave you in — there is nothing more to do here.",
+  "gate.waitingBodyPhone": "You asked to be let in as {email}, and whoever keeps this journal has been told. Come back to this page; it opens once you are let in.",
   "gate.waitingTitle": "You are in the queue",
   "guides.gps.lede": "Where your location goes: what is recorded, what is published, what never leaves your own folder, and how to export or delete it.",
   "guides.gps.title": "Where your GPS goes",
@@ -1661,6 +1662,7 @@
   "me.signInWrong": "That code did not work. Check it, or ask for a new one.",
   "me.signOut": "Sign out",
   "me.signOutBody": "This ends your session on this device. To come back you will need a new code by email, so only sign out if you are on somebody else's computer.",
+  "me.signOutBodyPhone": "This ends your session on this device. To come back you will need a new code by text, so only sign out if you are on somebody else's phone or computer.",
   "me.signOutFailed": "That did not work, and you are still signed in. Try again.",
   "me.signOutTitle": "Signing out",
   "me.signedInAs": "Signed in as",
@@ -4304,7 +4306,6 @@
   "guide.code.title": "Is it really you?",
   "guide.code.sentTitle": "We just sent you a code",
   "guide.code.toEmail": "Six numbers, by email to {to}.",
-  "guide.code.toMobile": "Six numbers, by text to {to}.",
   "guide.code.why": "This keeps the journal private even if the link is forwarded.",
   "guide.code.whyBuddy": "This keeps the trip yours even if the link gets forwarded.",
   "guide.code.send": "Send me the code",
@@ -5236,5 +5237,6 @@
   "toast.action.editDay": "Saving the day",
   "toast.action.editTrip": "Saving the trip",
   "toast.action.visibility": "Changing who can see this",
-  "toast.action.profile": "Saving your settings"
+  "toast.action.profile": "Saving your settings",
+  "guide.code.toMobile": "Six numbers, by text to {to}."
 }

@@ -6,6 +6,7 @@ import BusyButton from "@/components/BusyButton";
 import { PILL_PRIMARY } from "@/components/landing/styles";
 import { useI18n } from "@/components/LocaleProvider";
 import type { HomeLink } from "@/lib/homeProbe";
+import { displaySubject } from "@/lib/phone";
 
 const FIELD = "mt-3 min-h-11 rounded-xl border border-line-strong bg-surface-base px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500";
 const LABEL = "block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary";
@@ -103,7 +104,7 @@ export default function KeepCard({ link, email }: { link: HomeLink; email: strin
                 <input id="keep-name" name="name" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} className={INPUT} />
               </div>
               {email ? (
-                <p className="mt-3 text-sm text-ink-secondary">{t("tripKeep.signedInAs", { email })}</p>
+                <p className="mt-3 text-sm text-ink-secondary">{t("tripKeep.signedInAs", { email: displaySubject(email) })}</p>
               ) : (
                 <div className={FIELD}>
                   <label htmlFor="keep-email" className={LABEL}>{t("tripKeep.email")}</label>

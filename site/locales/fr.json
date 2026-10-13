@@ -1257,8 +1257,9 @@
   "gate.refusedBody": "Tu es connecté en tant que {email}, et ce voyage n’a pas été partagé avec cette adresse. Demande à la personne qui écrit ce journal de t’admettre — ou reconnecte-toi avec l’adresse qu’elle a utilisée.",
   "gate.refusedSeeAccess": "Voir ce que tu peux lire",
   "gate.refusedTitle": "Ce voyage n’est pas partagé avec toi",
-  "gate.signInBody": "Ce voyage n’est pas public. S’il a été partagé avec toi, connecte-toi avec cette adresse e-mail et on t’enverra de quoi entrer.",
+  "gate.signInBody": "Ce voyage n’est pas public. S’il a été partagé avec toi, connecte-toi avec l’adresse e-mail ou le numéro de mobile avec lequel on t’a invité et on t’enverra de quoi entrer.",
   "gate.waitingBody": "Tu as demandé l’accès en tant que {email}, et la personne qui tient ce journal a été prévenue. La plupart des gens sont admis en un jour ou deux. Tu recevras un e-mail dès qu’elle t’aura fait entrer — il n’y a rien d’autre à faire ici.",
+  "gate.waitingBodyPhone": "Tu as demandé l’accès en tant que {email}, et la personne qui tient ce journal a été prévenue. Reviens sur cette page : elle s’ouvrira dès que tu seras admis.",
   "gate.waitingTitle": "Tu es dans la file d’attente",
   "guides.gps.lede": "Où va ta position : ce qui est enregistré, ce qui est publié, ce qui ne quitte jamais ton propre dossier, et comment l’exporter ou le supprimer.",
   "guides.gps.title": "Où va ton GPS",
@@ -1661,6 +1662,7 @@
   "me.signInWrong": "Ce code n’a pas fonctionné. Vérifie-le, ou demandes-en un nouveau.",
   "me.signOut": "Se déconnecter",
   "me.signOutBody": "Cela met fin à ta session sur cet appareil. Pour revenir, il te faudra un nouveau code par e-mail, alors ne te déconnecte que si tu es sur l’ordinateur de quelqu’un d’autre.",
+  "me.signOutBodyPhone": "Cela met fin à ta session sur cet appareil. Pour revenir, il te faudra un nouveau code par SMS, alors ne te déconnecte que si tu es sur l’appareil de quelqu’un d’autre.",
   "me.signOutFailed": "Ça n’a pas marché, et tu es toujours connecté·e. Réessaie.",
   "me.signOutTitle": "Déconnexion",
   "me.signedInAs": "Connecté·e en tant que",
@@ -4273,7 +4275,6 @@
   "guide.code.title": "Est-ce vraiment toi ?",
   "guide.code.sentTitle": "On vient de t’envoyer un code",
   "guide.code.toEmail": "Six chiffres, par e-mail à {to}.",
-  "guide.code.toMobile": "Six chiffres, par SMS au {to}.",
   "guide.code.why": "Cela garde le journal privé même si le lien est transféré.",
   "guide.code.whyBuddy": "Cela garde le voyage à toi même si le lien est transféré.",
   "guide.code.send": "Envoie-moi le code",
@@ -5245,5 +5246,6 @@
   "toast.action.editDay": "L'enregistrement du jour",
   "toast.action.editTrip": "L'enregistrement du voyage",
   "toast.action.visibility": "Le changement de visibilité",
-  "toast.action.profile": "L'enregistrement de tes réglages"
+  "toast.action.profile": "L'enregistrement de tes réglages",
+  "guide.code.toMobile": "Six chiffres, par SMS au {to}."
 }

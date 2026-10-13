@@ -1257,8 +1257,9 @@
   "gate.refusedBody": "Hai effettuato l’accesso come {email}, e questo viaggio non è stato condiviso con questo indirizzo. Chiedi a chi scrive questo diario di farti entrare, oppure accedi di nuovo con l’indirizzo che ha usato.",
   "gate.refusedSeeAccess": "Guarda cosa puoi leggere",
   "gate.refusedTitle": "Questo viaggio non è condiviso con te",
-  "gate.signInBody": "Questo viaggio non è pubblico. Se è stato condiviso con te, accedi con quell’indirizzo email e ti manderemo il modo per entrare.",
+  "gate.signInBody": "Questo viaggio non è pubblico. Se è stato condiviso con te, accedi con l’indirizzo email o il numero di cellulare con cui sei stato invitato e ti manderemo il modo per entrare.",
   "gate.waitingBody": "Hai chiesto di entrare come {email}, e chi tiene questo diario è stato avvisato. Di solito si viene ammessi entro un giorno o due. Riceverai un’email non appena ti fa entrare: qui non c’è altro da fare.",
+  "gate.waitingBodyPhone": "Hai chiesto di entrare come {email}, e chi tiene questo diario è stato avvisato. Torna su questa pagina: si aprirà non appena sarai ammesso.",
   "gate.waitingTitle": "Sei in coda",
   "guides.gps.lede": "Dove va la tua posizione: cosa viene registrato, cosa viene pubblicato, cosa non lascia mai la tua cartella, e come esportarla o cancellarla.",
   "guides.gps.title": "Dove va il tuo GPS",
@@ -1661,6 +1662,7 @@
   "me.signInWrong": "Quel codice non ha funzionato. Controllalo o chiedine uno nuovo.",
   "me.signOut": "Esci",
   "me.signOutBody": "Termina la tua sessione su questo dispositivo. Per tornare ti servirà un nuovo codice via email, quindi esci solo se stai usando il computer di qualcun altro.",
+  "me.signOutBodyPhone": "Termina la tua sessione su questo dispositivo. Per tornare ti servirà un nuovo codice via SMS, quindi esci solo se stai usando il dispositivo di qualcun altro.",
   "me.signOutFailed": "Non ha funzionato, e hai ancora eseguito l’accesso. Riprova.",
   "me.signOutTitle": "Uscita",
   "me.signedInAs": "Accesso eseguito come",
@@ -4273,7 +4275,6 @@
   "guide.code.title": "Sei davvero tu?",
   "guide.code.sentTitle": "Ti abbiamo appena inviato un codice",
   "guide.code.toEmail": "Sei numeri, via email a {to}.",
-  "guide.code.toMobile": "Sei numeri, via SMS a {to}.",
   "guide.code.why": "Questo mantiene il diario privato anche se il link viene inoltrato.",
   "guide.code.whyBuddy": "Questo mantiene il viaggio tuo anche se il link viene inoltrato.",
   "guide.code.send": "Inviami il codice",
@@ -5245,5 +5246,6 @@
   "toast.action.editDay": "Il salvataggio del giorno",
   "toast.action.editTrip": "Il salvataggio del viaggio",
   "toast.action.visibility": "La modifica della visibilità",
-  "toast.action.profile": "Il salvataggio delle impostazioni"
+  "toast.action.profile": "Il salvataggio delle impostazioni",
+  "guide.code.toMobile": "Sei numeri, via SMS a {to}."
 }
