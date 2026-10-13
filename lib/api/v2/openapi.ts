@@ -2100,8 +2100,8 @@ function buildPaths(): Record<string, PathItem> {
           'invite-only server `for: "signup"` answers 202 for an unlisted address too and sends ' +
           "nothing (B-2780). A new " +
           "request invalidates the previous code. A returning guest may give `phone` instead of " +
-          '`email` (`for: "read"` only, B-2942): the code is texted only to a number somebody of ' +
-          "this journal already holds, and the answer is the same 202 for any number; day notifications " +
+          '`email` (`for: "read"` B-2942, or `for: "identity"` B-3001; refused for write and signup): the ' +
+          "code is texted only to a number somebody of this journal (any journal, for identity) already holds, and the answer is the same 202 for any number; day notifications " +
           "to readers never use it.",
       ),
       responses: {
