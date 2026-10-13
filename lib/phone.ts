@@ -113,7 +113,7 @@ export function subjectPhone(subject: string | null | undefined): string | null 
 
 /**
  * B-3000: a sign-in subject as a person reads it. A phone subject
- * (`+41760000000`) becomes `+41 76 000 00 00`; an email is returned as is.
+ * (a plus sign and digits) becomes `+41 76 000 00 00`; an email is returned as is.
  * Grouping is cosmetic (2, 3, then pairs after the dial code) — it never
  * leaves a page, so a wrong guess for an unusual numbering plan costs
  * nothing.
