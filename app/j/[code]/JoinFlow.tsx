@@ -54,7 +54,7 @@ function storeName(code: string, name: string | null) {
   }
 }
 
-type Step = "who" | "pick" | "prove" | "address" | "done";
+type Step = "who" | "pick" | "prove" | "mail" | "address" | "done";
 type Way = "whatsapp" | "sms" | "email";
 
 const ERRORS: Record<string, TranslationKey> = {
@@ -166,6 +166,7 @@ export default function JoinFlow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [whatsapp, setWhatsapp] = useState<{ id: string; link: string } | null>(null);
+  const [mailProved, setMailProved] = useState(false);
 
   async function call(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
     setBusy(true);
@@ -248,8 +249,33 @@ export default function JoinFlow({
     setStatus(answer.status === "in" ? "in" : "waiting");
     setKnown(Boolean(answer.known));
     setWhatsapp(null);
-    if (answer.known) go("done");
-    else go(order[order.indexOf(step) + 1] ?? "done");
+    if (answer.known) return go("done");
+    // B-2997: the channel that was not proved is kept too. A typed mobile is
+    // stored as typed, never a sign-in number; an email signs in, so it gets
+    // its own code first and is only asked, never assumed.
+    if (way === "email" && telOk) void call({ action: "save", tel: tel.trim() });
+    if (way !== "email" && emailOk && caps.mail) {
+      const at = order.indexOf(step) + 1;
+      setSteps([...order.slice(0, at), "mail", ...order.slice(at)]);
+      void sendMailProof();
+      return;
+    }
+    go(order[order.indexOf(step) + 1] ?? "done");
+  }
+
+  async function sendMailProof() {
+    setTyped("");
+    setSentTo(email.trim());
+    go("mail");
+    const sent = await call({ action: "proof", value: email.trim() });
+    if (sent) setSentTo(String(sent.to ?? email.trim()));
+  }
+
+  async function confirmMail(digits = typed) {
+    if (digits.length !== 6) return;
+    if (!(await call({ action: "proof", value: email.trim(), code: digits }))) return;
+    setMailProved(true);
+    go(steps[steps.indexOf("mail") + 1] ?? "done");
   }
 
   // The WhatsApp proof arrives by itself: the guest sends a message from their
@@ -490,6 +516,31 @@ export default function JoinFlow({
     );
   }
 
+  if (step === "mail") {
+    return (
+      <Screen
+        labelledBy="join-mail"
+        dots={dots}
+        footer={
+          <>
+            <BusyButton busy={busy} type="button" className={PRIMARY} disabled={typed.length !== 6} onClick={() => confirmMail()}>
+              {t("guide.code.confirm")}
+            </BusyButton>
+            <button type="button" className={QUIET} onClick={() => go(steps[steps.indexOf("mail") + 1] ?? "done")}>
+              {t("join.mail.skip")}
+            </button>
+          </>
+        }
+      >
+        <CodeArt />
+        <Heading id="join-mail">{t("join.mail.title")}</Heading>
+        <p className="text-base text-ink-body">{t("join.mail.body", { to: sentTo })}</p>
+        <CodeField id="join-mail-input" label={t("guide.code.label")} value={typed} onChange={setTyped} onComplete={(digits) => confirmMail(digits)} />
+        <Alert text={error} />
+      </Screen>
+    );
+  }
+
   if (step === "address") {
     return (
       <Screen
@@ -537,7 +588,7 @@ export default function JoinFlow({
   if (status === "in") {
     // B2943: the owner is not asked and is not named as having approved:
     // the link was the invitation. Only what was really confirmed is said.
-    const withEmail = Boolean(knownEmail) || way === "email";
+    const withEmail = Boolean(knownEmail) || way === "email" || mailProved;
     const fullName = name.trim() || "—";
     // Somebody already on the page keeps what is stored: no choices to save.
     const askChoices = withEmail && caps.mail && !known;
