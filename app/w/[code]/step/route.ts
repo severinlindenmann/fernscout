@@ -1,17 +1,20 @@
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
+import { cookies } from "next/headers";
 import { setGuestSessionCookies } from "@/lib/auth/identityCookie";
 import { isEnabled } from "@/lib/capabilities";
 import { approveContact, manageTokenFor, updateContactSelf, type SelfUpdate } from "@/lib/contacts";
+import { issueCode } from "@/lib/auth";
 import { confirmEmailProof, sendEmailProof, sendGuestCode, verifyGuestCode } from "@/lib/contacts/guestCode";
-import { sendJoinSmsCode, signInDigits } from "@/lib/contacts/guestPhone";
+import { joinWhatsappAvailable, sendJoinSmsCode, signInDigits } from "@/lib/contacts/guestPhone";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { phoneSubject } from "@/lib/phone";
 import { serverSite } from "@/lib/site";
 import { preapprovedEmailFor } from "@/lib/contacts/invites";
 import { journalReader } from "@/lib/contacts/session";
 import { markOnboarded, markWelcomeOpened, resolveWelcomeCode } from "@/lib/contacts/welcome";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { createJoinPhoneLink, pollJoinPhoneLink } from "@/lib/phoneVerify/inboundLink";
+import { clientIp, rateLimitFor, waJoinAllowed } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +22,8 @@ export const dynamic = "force-dynamic";
  * code or two; a list of guesses is something else. */
 const PER_IP = { max: 60, windowMs: 15 * 60 * 1000 };
 const PER_CODE = { max: 40, windowMs: 15 * 60 * 1000 };
+
+const WA_COOKIE = "fs_wa_welcome";
 
 const NO = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } as const;
 const answer = (body: unknown, status = 200) => Response.json(body, { status, headers: NO });
@@ -35,6 +40,8 @@ const answer = (body: unknown, status = 200) => Response.json(body, { status, he
  * names, and its id comes from that session, never the body (B2294's rule).
  * B-2999: `channel: "sms"` texts the code to the number on the contact's own
  * record (never one from the request), and only if it holds a phone key.
+ * B-3003: `wa-start` / `wa-poll` are the same number's WhatsApp message-in: the
+ * link is for the number on the record, and the message must come from it.
  */
 export async function POST(request: Request, { params }: RouteContext<"/w/[code]/step">) {
   if (foreignOrigin(request)) return answer(FOREIGN_ORIGIN_REFUSAL, 403);
@@ -69,6 +76,43 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
       // is what counts as opening the link (B2368).
       if (sent.ok) await markWelcomeOpened(owner, contact.id);
       return sent.ok ? answer({ ok: true, to: sent.to }) : answer({ error: sent.reason }, sent.reason === "rate_limited" ? 429 : 409);
+    }
+    case "wa-start": {
+      if (!joinWhatsappAvailable()) return answer({ error: "unavailable" }, 404);
+      const digits = await signInDigits(owner, contact);
+      if (!digits) return answer({ error: "no_channel" }, 409);
+      if (!waJoinAllowed(digits, ip, `welcome:${code}`)) return answer({ error: "rate_limited" }, 429);
+      const locale = pickLocale(fromAcceptLanguage(request.headers.get("accept-language")), contact.locale);
+      const jar = await cookies();
+      const created = await createJoinPhoneLink(`welcome:${code}`, digits, locale, jar.get(WA_COOKIE)?.value ?? null);
+      if (!created) return answer({ error: "unavailable" }, 404);
+      jar.set(WA_COOKIE, created.secret, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: `/w/${code}`,
+        maxAge: 30 * 60,
+      });
+      await markWelcomeOpened(owner, contact.id);
+      return answer({ ok: true, id: created.id, link: created.link, expiresAt: created.expiresAt });
+    }
+    case "wa-poll": {
+      if (!joinWhatsappAvailable()) return answer({ error: "unavailable" }, 404);
+      const id = text("id");
+      const secret = (await cookies()).get(WA_COOKIE)?.value;
+      if (!id || !secret) return answer({ status: "expired" });
+      const polled = await pollJoinPhoneLink(id, `welcome:${code}`, secret);
+      if (polled.status !== "ok") return answer({ status: polled.status });
+      // The link was made for this contact's own number; the proved number
+      // must still be it (the record may have changed since).
+      const digits = await signInDigits(owner, contact);
+      if (!digits || digits !== polled.phone) return answer({ status: "expired" });
+      const subject = phoneSubject(digits);
+      const { code: once } = await issueCode(owner, subject, "guest");
+      const session = await verifyGuestCode(owner, subject, once, request.headers.get("accept-language"));
+      if (!session || session.contact?.id !== contact.id) return answer({ status: "expired" });
+      await setGuestSessionCookies(session.token, session.subject, request.headers.get("user-agent"));
+      return answer({ ok: true, status: "in" });
     }
     case "verify": {
       if (body.channel !== undefined && body.channel !== "email" && body.channel !== "sms") return answer({ error: "invalid_request" }, 400);

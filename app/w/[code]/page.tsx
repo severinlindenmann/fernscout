@@ -8,7 +8,7 @@ import { guestLanding, isOpenToApprovedGuest } from "@/lib/access";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
-import { joinSmsAvailable, signInDigits } from "@/lib/contacts/guestPhone";
+import { joinSmsAvailable, joinWhatsappAvailable, signInDigits } from "@/lib/contacts/guestPhone";
 import { buddyTripOf, maskEmail, maskMobile, ownerShortName } from "@/lib/contacts/welcome";
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
@@ -83,6 +83,8 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const trip = await buddyTripOf(owner, contact.id);
   const hasEmail = contact.email.includes("@");
   const smsDigits = (await joinSmsAvailable()) ? await signInDigits(owner, contact) : null;
+  // B-3003: the same number may also sign in by a WhatsApp message.
+  const waDigits = joinWhatsappAvailable() ? await signInDigits(owner, contact) : null;
   const caps = {
     mail: !mailDisabledReason(owner),
     // B-2999: a contact whose number signs in (keyed) may be texted the code.
@@ -149,7 +151,9 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
           joined={(contact.createdVia ?? "").startsWith("invite:")}
           prove={{
             email: hasEmail && caps.mail ? maskEmail(contact.email) : null,
-            mobile: smsDigits ? maskMobile(smsDigits) : null,
+            mobile: smsDigits || waDigits ? maskMobile((smsDigits ?? waDigits)!) : null,
+            sms: Boolean(smsDigits),
+            whatsapp: Boolean(waDigits),
             preferred: contact.invitedVia === "sms" || contact.invitedVia === "whatsapp" || !hasEmail ? "sms" : "email",
           }}
           details={details}

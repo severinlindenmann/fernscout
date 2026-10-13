@@ -25,6 +25,15 @@ export function SmsSignInProvider({ enabled, children }: { enabled: boolean; chi
 }
 export const useSmsSignIn = () => useContext(SmsContext);
 
+const WhatsappContext = createContext(false);
+
+/** Whether this instance can take a sign-in by WhatsApp message (B-3003),
+ * seeded once by the root layout like the SMS one. */
+export function WhatsappSignInProvider({ enabled, children }: { enabled: boolean; children: React.ReactNode }) {
+  return <WhatsappContext.Provider value={enabled}>{children}</WhatsappContext.Provider>;
+}
+export const useWhatsappSignIn = () => useContext(WhatsappContext);
+
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /**
