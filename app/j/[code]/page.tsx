@@ -10,7 +10,7 @@ import { isJournalGuest, isOwner, journalReader } from "@/lib/contacts/session";
 import { maskEmail, ownerShortName } from "@/lib/contacts/welcome";
 import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
-import { subjectPhone } from "@/lib/phone";
+import { displaySubject, subjectPhone } from "@/lib/phone";
 import { isPersonOn } from "@/lib/tripPeople";
 import { lookup } from "./lookup";
 import JoinFlow from "./JoinFlow";
@@ -90,7 +90,8 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
     );
   }
 
-  const knownEmail = reader.email && !subjectPhone(reader.email) ? maskEmail(reader.email) : null;
+  const knownPhone = Boolean(subjectPhone(reader.email));
+  const knownEmail = reader.email ? (knownPhone ? displaySubject(reader.email) : maskEmail(reader.email)) : null;
   return (
     <PageShell slim>
       <div lang={locale} className="mx-auto w-full max-w-md px-4 py-8">
@@ -102,6 +103,7 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
           kind={invite.kind === "buddy" ? "buddy" : "guest"}
           tripTitle={trip?.title ?? null}
           knownEmail={knownEmail}
+          knownPhone={knownPhone}
           caps={{
             mail: !mailDisabledReason(owner),
             // B-2942: a number proves itself by a texted code or a WhatsApp

@@ -180,9 +180,14 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       // Signed in already with an email on this instance: the address is
       // proved, so no second code (B2291 "An existing identity skips the code").
       const reader = await journalReader(owner);
-      if (!reader.email || subjectPhone(reader.email)) return answer({ error: "not_signed_in" }, 401);
+      if (!reader.email) return answer({ error: "not_signed_in" }, 401);
       if (!name && !reader.contact?.name) return answer({ error: "invalid_name" }, 400);
-      const settled = await joinProved(invite, reader.email, { name, locale });
+      // A phone session is a number a code or an inbound message proved: it
+      // settles through the phone path, never as an address.
+      const sessionDigits = subjectPhone(reader.email);
+      const settled = sessionDigits
+        ? await joinProvedPhone(invite, sessionDigits, { name, locale })
+        : await joinProved(invite, reader.email, { name, locale });
       if ("capped" in settled) return answer({ error: "rate_limited" }, 429);
       return answer({ ok: true, ...settled });
     }

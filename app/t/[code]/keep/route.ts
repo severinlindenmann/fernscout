@@ -3,9 +3,11 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { setGuestSessionCookies } from "@/lib/auth/identityCookie";
 import {
+  addContactWithProvenPhone,
   confirmContactFromSession,
   getContactByEmail,
   manageTokenFor,
+  markContactPhoneProven,
   markOwnerNotified,
   normaliseEmail,
   requestContact,
@@ -15,6 +17,7 @@ import { verifyGuestCode } from "@/lib/contacts/guestCode";
 import { parseLocale, pickLocale } from "@/lib/contacts/locale";
 import { notifyOwnerOfRequest, sendCodeMail } from "@/lib/contacts/mail";
 import { journalReader } from "@/lib/contacts/session";
+import { displaySubject, phoneSubject, subjectPhone } from "@/lib/phone";
 import { maskEmail } from "@/lib/contacts/welcome";
 import { mailDisabledReason } from "@/lib/mail";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
@@ -100,8 +103,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
     }
     case "join": {
       const reader = await journalReader(owner);
-      if (!reader.email || !isEmail(reader.email)) return answer({ error: "not_signed_in" }, 401);
+      const digits = subjectPhone(reader.email);
+      if (!reader.email || (!digits && !isEmail(reader.email))) return answer({ error: "not_signed_in" }, 401);
       if (!name && !reader.contact?.name) return answer({ error: "invalid_name" }, 400);
+      if (digits) return keepPhone(link, digits, { name, locale });
       return keep(link, reader.email, { name, locale, wantsDayMail });
     }
     default:
@@ -149,5 +154,36 @@ async function keep(
     const user = getUser(owner);
     if (user && (await notifyOwnerOfRequest(owner, user, contact))) await markOwnerNotified(owner, contact.id);
   }
+  return answer(done);
+}
+
+/**
+ * A number a code or an inbound message proved keeps the trip: the same
+ * pending person with that one trip saved, nothing more. Blocked: the
+ * neutral answer, nothing written. No owner email notice (it has no address
+ * to be about); the owner sees the pending person on their People page.
+ */
+async function keepPhone(link: ReadLink, digits: string, form: { name: string; locale: Locale }): Promise<Response> {
+  const { owner } = link;
+  const subject = phoneSubject(digits);
+  const done = { ok: true, kept: true, to: displaySubject(subject) };
+  let contact = await getContactByEmail(owner, subject);
+  if (contact?.status === "blocked") return answer(done);
+  if (!contact) {
+    if (!rateLimitFor("trip-keep-new", link.inviteId, NEW_PER_LINK).ok) return answer({ error: "rate_limited" }, 429);
+    const created = await addContactWithProvenPhone(owner, {
+      name: form.name,
+      phone: subject,
+      locale: form.locale,
+      createdVia: `read:${link.inviteId}`,
+    });
+    if (!created.ok) return answer(done);
+    contact = created.contact;
+  } else {
+    await markContactPhoneProven(owner, digits);
+  }
+  const kept = await recordKeep(link, contact.id);
+  if (kept === "expired") return answer({ error: "expired" }, 404);
+  if (kept === "removed") return answer({ ok: true, kept: false, removed: true });
   return answer(done);
 }
