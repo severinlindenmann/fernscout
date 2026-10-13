@@ -172,5 +172,7 @@ export async function sendIdentitySmsCode(
     if (contact?.status === "active") found = true;
   }
   if (!found) return { ok: false, reason: "no_contact" };
-  return sendSignInSms(NO_JOURNAL, "identity", digits, "identity", options);
+  // Per-number "link" bucket: one shared bucket would let anybody use up
+  // server-wide SMS sign-in for everyone (the instance bucket still caps cost).
+  return sendSignInSms(NO_JOURNAL, `identity:${digits}`, digits, "identity", options);
 }

@@ -56,7 +56,10 @@ export type PhoneLink = { id: string; token: string; link: string; text: string 
  * no human is the audience of.
  */
 function prefillText(token: string): string {
-  return `Fernscout ${token} - sending this message confirms my number.`;
+  // Read by the person before they press send: says it is their own number,
+  // and to send it only if they started this themselves (someone who typed
+  // their number elsewhere could otherwise ask them to "just send this").
+  return `Fernscout ${token} - I am confirming my own number. Only send this if you started it yourself on Fernscout.`;
 }
 
 /** Refused (null) when the instance has no WhatsApp number configured —

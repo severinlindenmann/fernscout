@@ -45,7 +45,9 @@ export async function POST(request: Request) {
   if (body.action === "start") {
     const digits = typedDigits(text("phone"));
     if (!digits) return answer({ error: "invalid_phone" }, 400);
-    if (!waJoinAllowed(digits, clientIp(request), SIGNIN_SCOPE)) return answer({ error: "rate_limited" }, 429);
+    // The "link" bucket is per number here: one server-wide bucket would let
+    // anybody with a few IPs use up WhatsApp sign-in for everyone.
+    if (!waJoinAllowed(digits, clientIp(request), `${SIGNIN_SCOPE}:${digits}`)) return answer({ error: "rate_limited" }, 429);
     const locale = parseLocale(text("locale")) ?? "en";
     const created = await createJoinPhoneLink(SIGNIN_SCOPE, digits, locale, jar.get(WA_COOKIE)?.value ?? null);
     if (!created) return answer({ error: "unavailable" }, 404);
