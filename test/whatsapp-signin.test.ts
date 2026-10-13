@@ -195,7 +195,7 @@ describe.skipIf(!hasPaid())("sign in by WhatsApp message (B-3003)", () => {
     await claim(decodeURIComponent(String(again.json.link).split("text=")[1]), "41760000021");
     expect((await welcome(codeA, { action: "wa-poll", id: String(again.json.id) })).json).toEqual({ ok: true, status: "in" });
     const { resolveSession } = await import("@/lib/auth");
-    const session = await resolveSession(jar.cookies.fs_session, "guest", OWNER);
+    const session = await resolveSession(jar.cookies.fs_session, "guest");
     expect(session?.email).toBe("+41760000021");
 
     // Aria's cookie secret is path-scoped to her code; Boris's link is another scope entirely.

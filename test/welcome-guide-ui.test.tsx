@@ -53,7 +53,7 @@ const base: GuideProps = {
   signedIn: true,
   onboarded: false,
   joined: false,
-  prove: { email: "le•••@example.test", mobile: null, preferred: "email" },
+  prove: { email: "le•••@example.test", mobile: null, sms: false, whatsapp: false, preferred: "email" },
   details: {
     name: "Lena Brunner",
     email: "lena@example.test",
