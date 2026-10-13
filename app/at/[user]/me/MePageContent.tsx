@@ -25,6 +25,7 @@ import type { TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
 
 import { journalPath } from "@/lib/journalPath";
+import { displaySubject, subjectPhone } from "@/lib/phone";
 /**
  * One trip in "what you can read" — B621, its pencil removed by B2018.
  *
@@ -499,7 +500,7 @@ export default function MePageContent({
           <p className="mt-2 text-base text-ink-secondary">
             {t("me.signedInAs")}{" "}
             <strong className="font-semibold text-ink-strong">
-              {viewer.name ?? viewer.email}
+              {viewer.name ?? displaySubject(viewer.email)}
             </strong>
           </p>
         )}
@@ -559,7 +560,7 @@ export default function MePageContent({
           Gated on `viewer.email` only through `writableTrips`, which is empty
           for anybody not signed in, so this needs no separate check.
         */}
-        {writableTrips.length > 0 && viewer.email && (
+        {writableTrips.length > 0 && viewer.email && !subjectPhone(viewer.email) && (
           <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-subtle p-5 sm:p-6">
             <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("me.buddyTitle")}
@@ -687,7 +688,7 @@ export default function MePageContent({
         */}
         {/* Owner, on a phone only — B2208. */}
         {viewer.owner && <ThisPhone username={username} routeRecording={routeRecording} />}
-        {viewer.email && <SignOut owner={viewer.owner ? username : undefined} />}
+        {viewer.email && <SignOut owner={viewer.owner ? username : undefined} phone={subjectPhone(viewer.email) !== null} />}
         <ConnectionInfo build={build} hosting={hosting} />
       </main>
     </div>

@@ -1,3 +1,5 @@
+import { COUNTRIES } from "@/lib/countries";
+
 /**
  * A telephone number as WhatsApp wants it: E.164 digits, no `+`, no spaces.
  *
@@ -107,4 +109,22 @@ export function phoneSubject(digits: string): string {
 /** The E.164 digits a phone subject names, or null for an email subject. */
 export function subjectPhone(subject: string | null | undefined): string | null {
   return typeof subject === "string" && /^\+\d{8,15}$/.test(subject) ? subject.slice(1) : null;
+}
+
+/**
+ * B-3000: a sign-in subject as a person reads it. A phone subject
+ * (`+41760000000`) becomes `+41 76 000 00 00`; an email is returned as is.
+ * Grouping is cosmetic (2, 3, then pairs after the dial code) — it never
+ * leaves a page, so a wrong guess for an unusual numbering plan costs
+ * nothing.
+ */
+export function displaySubject(subject: string): string {
+  const digits = subjectPhone(subject);
+  if (!digits) return subject;
+  // Dial codes are prefix-free, so the first match is the only match.
+  const code = [1, 2, 3].map((n) => digits.slice(0, n)).find((p) => COUNTRIES.some((c) => c.cc === p));
+  if (!code) return subject;
+  const national = digits.slice(code.length);
+  const groups = [national.slice(0, 2), national.slice(2, 5), ...(national.slice(5).match(/.{1,2}/g) ?? [])];
+  return `+${code} ${groups.filter(Boolean).join(" ")}`;
 }

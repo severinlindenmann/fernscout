@@ -20,6 +20,7 @@ import { stopRouteRecording, useRecordingRoute } from "@/components/nativeShell"
 import { tellWorkerSignedOut } from "@/lib/signedOut";
 
 import { journalPath } from "@/lib/journalPath";
+import { displaySubject, subjectPhone } from "@/lib/phone";
 type Phase = "loading" | "out" | "in" | "offline";
 
 const LINK =
@@ -259,7 +260,7 @@ export default function AccountPage({
         {phase === "in" && home && (
           <>
             <p className="mt-2 font-mono text-xs text-ink-secondary">
-              {t("home.signedInAs", { email: home.email })}
+              {t("home.signedInAs", { email: displaySubject(home.email) })}
             </p>
 
             {link && !link.kept && <KeepCard link={link} email={home.email} />}
@@ -299,7 +300,7 @@ export default function AccountPage({
               }
             />
 
-            <SignOut owner={owned?.username} />
+            <SignOut owner={owned?.username} phone={subjectPhone(home.email) !== null} />
             <SignOutEverywhere devices={home.devices.length} />
           </>
         )}
