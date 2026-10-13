@@ -40,6 +40,11 @@ describe("splitTel / joinTel", () => {
     expect(splitTel("+41 76 000 00 00")).toEqual({ cc: "41", national: "76 000 00 00" });
   });
 
+  test("B-2997: a proved number stored as bare E.164 is placed under its country", () => {
+    expect(splitTel("+41765613150")).toEqual({ cc: "41", national: "765613150" });
+    expect(splitTel("+15555550100")).toEqual({ cc: "1", national: "5555550100" });
+  });
+
   test("a legacy national number has no country to find, and is shown as typed", () => {
     // No leading `+`, so there is nothing for this picker to have written —
     // exactly the row B385 exists to stop from being created going forward,

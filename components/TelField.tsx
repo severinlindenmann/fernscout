@@ -92,6 +92,10 @@ export function splitTel(tel: string): { cc: string; national: string } {
   if (match && DIAL_CODES.some((d) => d.cc === match[1])) {
     return { cc: match[1], national: match[2] };
   }
+  // B-2997: E.164 as stored for a proved number (`+41765613150`) has no space
+  // to end the code at; dial codes are prefix-free, so the digits decide.
+  const guessed = trimmed.startsWith("+") ? guessMisplacedNumber(trimmed) : null;
+  if (guessed) return guessed;
   return { cc: "", national: trimmed };
 }
 
@@ -263,7 +267,7 @@ export default function TelField({
 
   return (
     <div className="mt-2 flex gap-2">
-      <div className="relative w-36 shrink-0 sm:w-64" ref={rootRef}>
+      <div className="relative w-36 shrink-0" ref={rootRef}>
         <input
           id={`${id}-cc`}
           role="combobox"
@@ -303,7 +307,7 @@ export default function TelField({
             id={listId}
             role="listbox"
             aria-label={labelCountry}
-            className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-line-quiet bg-surface-raised shadow-lg"
+            className="absolute z-10 mt-1 max-h-64 w-72 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-line-quiet bg-surface-raised shadow-lg"
           >
             {filtered.length === 0 && (
               <li className="px-4 py-2 text-base text-ink-secondary">{noMatches}</li>
