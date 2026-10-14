@@ -5,8 +5,8 @@ import { Fredoka, IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import NavProgress from "@/components/NavProgress";
 import LocaleProvider from "@/components/LocaleProvider";
-import { MailSenderProvider, SmsSignInProvider } from "@/components/CodeWaitPanel";
-import { joinSmsConfigured } from "@/lib/contacts/guestPhone";
+import { MailSenderProvider, SmsSignInProvider, WhatsappSignInProvider } from "@/components/CodeWaitPanel";
+import { joinSmsConfigured, joinWhatsappAvailable } from "@/lib/contacts/guestPhone";
 import { mailSenderAddress } from "@/lib/mail";
 import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
@@ -188,7 +188,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             notices, a 404 for an address that names nobody. */}
         <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "root")}>
           <MailSenderProvider address={mailSenderAddress()}>
-            <SmsSignInProvider enabled={joinSmsConfigured()}>{children}</SmsSignInProvider>
+            <SmsSignInProvider enabled={joinSmsConfigured()}>
+              <WhatsappSignInProvider enabled={joinWhatsappAvailable()}>{children}</WhatsappSignInProvider>
+            </SmsSignInProvider>
           </MailSenderProvider>
           <Toasts />
         </LocaleProvider>

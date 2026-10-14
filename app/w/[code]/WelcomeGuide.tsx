@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BookOpen, Camera, Heart, Mail, PenLine, Stamp, Users } from "lucide-react";
 import Image from "next/image";
 import BusyButton from "@/components/BusyButton";
+import WhatsappSignIn from "@/components/WhatsappSignIn";
 import { mediaLoader } from "@/components/mediaLoader";
 import Travelers from "@/components/Travelers";
 import type { Figure } from "@/lib/travellers/vocabulary";
@@ -65,7 +66,7 @@ export type GuideProps = {
   /** Came through a group link and already gave their details there. */
   joined: boolean;
   /** Masked, for "to le•••@gmail.com" — never the address itself. */
-  prove: { email: string | null; mobile: string | null; preferred: "email" | "sms" };
+  prove: { email: string | null; mobile: string | null; sms: boolean; whatsapp: boolean; preferred: "email" | "sms" };
   details: GuideDetails | null;
   /** The journal's own traveller figures, drawn on the first screen (B2457). */
   figures: Figure[];
@@ -167,6 +168,10 @@ export default function WelcomeGuide(props: GuideProps) {
   const [channel, setChannel] = useState<"email" | "sms">(mobileTo && (props.prove.preferred === "sms" || !emailTo) ? "sms" : "email");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
+  // B-3003: the number may also be proved by sending a WhatsApp message.
+  const [messaging, setMessaging] = useState(false);
+  const textOn = props.prove.sms;
+  const waOn = props.prove.whatsapp;
 
   async function sendCode() {
     const sent = await call({ action: "send", channel });
@@ -309,8 +314,35 @@ export default function WelcomeGuide(props: GuideProps) {
     );
   }
 
+  if (step === "code" && messaging) {
+    return (
+      <Screen labelledBy="guide-code" dots={dots} footer={null}>
+        <CodeArt />
+        <Heading id="guide-code">{t("join.wa.title")}</Heading>
+        <WhatsappSignIn
+          endpoint={`/w/${encodeURIComponent(code)}/step`}
+          startBody={{ action: "wa-start" }}
+          pollAction="wa-poll"
+          number={mobileTo ?? ""}
+          onIn={() => {
+            if (onboarded || steps.indexOf("code") === steps.length - 1) {
+              finish(props.landing);
+              return;
+            }
+            router.refresh();
+            next();
+          }}
+          onBack={() => setMessaging(false)}
+          linkClassName={PRIMARY}
+          backClassName={QUIET}
+        />
+      </Screen>
+    );
+  }
+
   if (step === "code") {
     const to = channel === "sms" ? mobileTo : emailTo;
+    const waOnly = channel === "sms" && !textOn;
     return (
       <Screen
         labelledBy="guide-code"
@@ -320,10 +352,21 @@ export default function WelcomeGuide(props: GuideProps) {
             <BusyButton busy={busy} type="button" className={PRIMARY} disabled={typed.length !== 6} onClick={verify}>
               {t("guide.code.confirm")}
             </BusyButton>
+          ) : waOnly ? (
+            <button type="button" className={PRIMARY} onClick={() => setMessaging(true)}>
+              {t("join.pick.whatsapp")}
+            </button>
           ) : (
-            <BusyButton busy={busy} type="button" className={PRIMARY} disabled={!to} onClick={() => sendCode()}>
-              {t("guide.code.send")}
-            </BusyButton>
+            <>
+              <BusyButton busy={busy} type="button" className={PRIMARY} disabled={!to} onClick={() => sendCode()}>
+                {t("guide.code.send")}
+              </BusyButton>
+              {channel === "sms" && waOn && (
+                <button type="button" className={QUIET} onClick={() => setMessaging(true)}>
+                  {t("join.pick.whatsapp")}
+                </button>
+              )}
+            </>
           )
         }
       >

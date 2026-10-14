@@ -3,7 +3,8 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
-import CodeWaitPanel, { useSmsSignIn } from "@/components/CodeWaitPanel";
+import CodeWaitPanel, { useSmsSignIn, useWhatsappSignIn } from "@/components/CodeWaitPanel";
+import WhatsappSignIn from "@/components/WhatsappSignIn";
 import SignInTabs from "@/components/SignInTabs";
 import TelField, { joinTel } from "@/components/TelField";
 import { toE164 } from "@/lib/phone";
@@ -58,6 +59,8 @@ export default function GuestSignIn({
   // B-2948: a returning guest who joined by mobile number confirms the number.
   // Offered only where the instance texts codes; the server decides again.
   const smsOn = useSmsSignIn();
+  // B-3003: or a WhatsApp message, which signs in the same way (an identity).
+  const waOn = useWhatsappSignIn();
   const [channel, setChannel] = useState<"email" | "phone">("email");
   const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
   const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
@@ -67,7 +70,7 @@ export default function GuestSignIn({
   const [national, setNational] = useState("");
   const [phoneProblem, setPhoneProblem] = useState<string | null>(null);
   const tel = joinTel(cc, national);
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [step, setStep] = useState<"email" | "code" | "wa">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -86,6 +89,7 @@ export default function GuestSignIn({
 
   async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (channel === "phone" && !smsOn) return startWhatsapp();
     // Read what the field actually holds rather than trusting `email` to
     // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
     const value = channel === "phone" ? tel.trim() : String(new FormData(event.currentTarget).get("email") ?? "");
@@ -107,6 +111,15 @@ export default function GuestSignIn({
     // Always forward, whatever came back. Stopping here for an address we do
     // not know would answer the question the uniform 202 exists to refuse.
     setStep("code");
+  }
+
+  function startWhatsapp() {
+    if (toE164(tel.trim()) === null) {
+      setPhoneProblem(t("me.signInPhoneBad"));
+      return;
+    }
+    setPhoneProblem(null);
+    setStep("wa");
   }
 
   async function submitCode(value: string) {
@@ -139,12 +152,23 @@ export default function GuestSignIn({
   return (
     <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
       <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {t(step === "code" ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : "me.signInTitle")}
+        {t(step === "wa" ? "join.wa.title" : step === "code" ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : "me.signInTitle")}
       </h2>
 
-      {step === "email" ? (
+      {step === "wa" ? (
+        <WhatsappSignIn
+          endpoint="/me/wa"
+          startBody={{ action: "start", phone: tel.trim(), locale }}
+          pollAction="poll"
+          number={tel.trim()}
+          onIn={() => window.location.reload()}
+          onBack={() => setStep("email")}
+          linkClassName={`${button} grid place-items-center`}
+          backClassName="mt-4 min-h-11 w-full text-base font-medium text-ink-secondary underline"
+        />
+      ) : step === "email" ? (
         <form onSubmit={requestCode}>
-          {smsOn && (
+          {(smsOn || waOn) && (
             <SignInTabs
               value={channel}
               onChange={(next) => {
@@ -207,6 +231,7 @@ export default function GuestSignIn({
               leaving the button dead with a real address already in it.
               `required` on the field below is what refuses a genuinely
               empty submit, natively and with the browser's own message. */}
+          {(channel === "email" || smsOn) && (
           <BusyButton
             busy={busy}
             type="submit"
@@ -215,6 +240,12 @@ export default function GuestSignIn({
           >
             {t("me.signInSend")}
           </BusyButton>
+          )}
+          {channel === "phone" && waOn && (
+            <button type="button" className={smsOn ? "mt-3 min-h-12 w-full rounded-xl border border-line-strong px-4 py-3 text-lg font-medium text-ink-strong" : button} onClick={startWhatsapp}>
+              {t("join.pick.whatsapp")}
+            </button>
+          )}
         </form>
       ) : (
         <CodeWaitPanel

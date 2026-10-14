@@ -7,10 +7,11 @@ const browserLanguages = () => (typeof navigator === "undefined" ? "" : [...(nav
 import BusyButton from "@/components/BusyButton";
 import { useReducedMotion } from "motion/react";
 // B2531: the kit's yellow pill; the square button is retired.
-import { PILL_PRIMARY } from "@/components/landing/styles";
+import { PILL_GHOST, PILL_PRIMARY } from "@/components/landing/styles";
 import { useI18n } from "@/components/LocaleProvider";
 import EnvelopeFly from "@/components/EnvelopeFly";
-import CodeWaitPanel, { useSmsSignIn } from "@/components/CodeWaitPanel";
+import CodeWaitPanel, { useSmsSignIn, useWhatsappSignIn } from "@/components/CodeWaitPanel";
+import WhatsappSignIn from "@/components/WhatsappSignIn";
 import SignInTabs from "@/components/SignInTabs";
 import TelField, { joinTel } from "@/components/TelField";
 import { toE164 } from "@/lib/phone";
@@ -55,6 +56,8 @@ export default function IdentitySignIn({
   const { t, locale } = useI18n();
   // B-3001: "Email | Mobile" where the instance texts codes. The server decides again.
   const smsOn = useSmsSignIn();
+  // B-3003: or by a WhatsApp message, with no code to type.
+  const waOn = useWhatsappSignIn();
   const [channel, setChannel] = useState<"email" | "phone">("email");
   const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
   const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
@@ -64,7 +67,7 @@ export default function IdentitySignIn({
   const [national, setNational] = useState("");
   const [phoneProblem, setPhoneProblem] = useState<string | null>(null);
   const tel = joinTel(cc, national);
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [step, setStep] = useState<"email" | "code" | "wa">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -94,6 +97,7 @@ export default function IdentitySignIn({
 
   async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (channel === "phone" && !smsOn) return startWhatsapp();
     // Read the field the way the browser sees it, not the way React's
     // `onChange` last heard it — autofill (and some password managers) sets
     // `.value` without dispatching the event React listens for, which left
@@ -157,6 +161,15 @@ export default function IdentitySignIn({
     setStep("code");
   }
 
+  function startWhatsapp() {
+    if (toE164(tel.trim()) === null) {
+      setPhoneProblem(t("me.signInPhoneBad"));
+      return;
+    }
+    setPhoneProblem(null);
+    setStep("wa");
+  }
+
   /** "Send a new code" (B2844): the same request, the same two refusals. */
   async function resendCode() {
     const response = await fetch("/api/auth/codes", {
@@ -200,16 +213,27 @@ export default function IdentitySignIn({
         />
       )}
       <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {t(step === "code" && !unavailable ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : "home.signInTitle")}
+        {t(step === "wa" ? "join.wa.title" : step === "code" && !unavailable ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : "home.signInTitle")}
       </h2>
 
       {unavailable ? (
         <p role="alert" className="mt-2 text-base leading-7 text-ink-body">
           {t("home.signInUnavailable")}
         </p>
+      ) : step === "wa" ? (
+        <WhatsappSignIn
+          endpoint="/me/wa"
+          startBody={{ action: "start", phone: tel.trim(), locale }}
+          pollAction="poll"
+          number={tel.trim()}
+          onIn={onDone}
+          onBack={() => setStep("email")}
+          linkClassName={`mt-4 w-full ${PILL_PRIMARY}`}
+          backClassName="mt-4 min-h-11 w-full text-base font-medium text-ink-secondary underline"
+        />
       ) : step === "email" ? (
         <form onSubmit={requestCode}>
-          {smsOn && (
+          {(smsOn || waOn) && (
             <SignInTabs
               value={channel}
               onChange={(next) => {
@@ -296,6 +320,7 @@ export default function IdentitySignIn({
               field's own `required` is what refuses an actually-empty
               submit, natively, with the browser's own message pointing at
               it — which a disabled button cannot do at all. */}
+          {(channel === "email" || smsOn) && (
           <BusyButton
             busy={busy}
             ref={sendRef}
@@ -305,6 +330,12 @@ export default function IdentitySignIn({
           >
             {t("me.signInSend")}
           </BusyButton>
+          )}
+          {channel === "phone" && waOn && (
+            <button type="button" className={`mt-3 w-full ${smsOn ? PILL_GHOST : PILL_PRIMARY}`} onClick={startWhatsapp}>
+              {t("join.pick.whatsapp")}
+            </button>
+          )}
           {/* Quiet reassurance under the control — the real TTL, not a
               written-in "ten", so the sentence cannot outlive a change to
               CODE_TTL_MINUTES (B426). */}

@@ -56,7 +56,10 @@ export type PhoneLink = { id: string; token: string; link: string; text: string 
  * no human is the audience of.
  */
 function prefillText(token: string): string {
-  return `Fernscout signup ${token} - sending this message confirms my number.`;
+  // Read by the person before they press send: says it is their own number,
+  // and to send it only if they started this themselves (someone who typed
+  // their number elsewhere could otherwise ask them to "just send this").
+  return `Fernscout ${token} - I am confirming my own number. Only send this if you started it yourself on Fernscout.`;
 }
 
 /** Refused (null) when the instance has no WhatsApp number configured —
@@ -205,14 +208,18 @@ export async function pollPhoneLink(id: string, boundTo: string): Promise<PollRe
 const JOIN_PREFIX = "join:";
 const JOIN_TTL_MS = 10 * 60 * 1000;
 
-function joinBinding(inviteId: string, secret: string, typedDigits: string): string {
-  return `${JOIN_PREFIX}${inviteId}:${hashSecret(secret)}:${typedDigits}`;
+/** Reserved scope for the server-wide sign-in (B-3003); no invite id starts with "@". */
+export const SIGNIN_SCOPE = "@signin";
+
+function joinBinding(scope: string, secret: string, typedDigits: string): string {
+  return `${JOIN_PREFIX}${scope}:${hashSecret(secret)}:${typedDigits}`;
 }
 
 type JoinPhoneLink = PhoneLink & { secret: string; expiresAt: string };
 
+/** `scope`: an invite id, or a reserved scope such as `SIGNIN_SCOPE`. */
 export async function createJoinPhoneLink(
-  inviteId: string,
+  scope: string,
   typedDigits: string,
   locale: string,
   previousSecret?: string | null,
@@ -228,7 +235,7 @@ export async function createJoinPhoneLink(
       .set({ consumed_at: now.toISOString() })
       .where("owner_id", "=", NO_JOURNAL)
       .where("kind", "=", KIND)
-      .where("trip_id", "like", `${JOIN_PREFIX}${inviteId}:${hashSecret(previousSecret)}:%`)
+      .where("trip_id", "like", `${JOIN_PREFIX}${scope}:${hashSecret(previousSecret)}:%`)
       .where("consumed_at", "is", null)
       .execute();
   }
@@ -246,7 +253,7 @@ export async function createJoinPhoneLink(
       link_hash: null,
       link_consumed_at: null,
       link_dest: locale,
-      trip_id: joinBinding(inviteId, secret, typedDigits),
+      trip_id: joinBinding(scope, secret, typedDigits),
       kind: KIND,
       created_at: now.toISOString(),
       expires_at: expiresAt,
@@ -271,10 +278,10 @@ type JoinPollResult =
  * but the typed one consumes the row and answers `mismatch`. `ok` is single
  * use: the row is claimed in one conditional update.
  */
-export async function pollJoinPhoneLink(id: string, inviteId: string, secret: string): Promise<JoinPollResult> {
+export async function pollJoinPhoneLink(id: string, scope: string, secret: string): Promise<JoinPollResult> {
   const { db } = await getDatabase();
   const row = await db.selectFrom("login_codes").selectAll().where("id", "=", id).where("kind", "=", KIND).executeTakeFirst();
-  const prefix = `${JOIN_PREFIX}${inviteId}:${hashSecret(secret)}:`;
+  const prefix = `${JOIN_PREFIX}${scope}:${hashSecret(secret)}:`;
   if (!row || !row.trip_id?.startsWith(prefix) || row.consumed_at) return { status: "expired" };
   if (new Date(row.expires_at).getTime() < Date.now()) return { status: "expired" };
   if (!row.link_consumed_at || !row.email) return { status: "pending" };
