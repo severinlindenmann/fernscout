@@ -308,6 +308,37 @@ async function phoneColumns(
   };
 }
 
+/**
+ * The person's proven number changed — B-3010. Every row where the person
+ * proved the old number (`phone_proven_at`) takes the new one, proven now;
+ * a number the owner only typed is not theirs to move. A journal that
+ * already has the new number on a row keeps both as they are.
+ */
+export async function movePersonPhone(oldDigits: string, newDigits: string): Promise<void> {
+  if (!hasContactsKey()) return;
+  const { db } = await getDatabase();
+  const newKey = phoneKey(newDigits);
+  const rows = await db
+    .selectFrom("contacts")
+    .select(["id", "owner_id"])
+    .where("phone_key", "=", phoneKey(oldDigits))
+    .where("phone_proven_at", "is not", null)
+    .execute();
+  for (const row of rows) {
+    if (await phoneKeyHolder(row.owner_id, newKey)) continue;
+    await db
+      .updateTable("contacts")
+      .set({
+        phone_cipher: encryptString(`+${newDigits}`, phoneAad(row.owner_id, row.id)),
+        phone_key: newKey,
+        phone_proven_at: nowIso(),
+        updated_at: nowIso(),
+      })
+      .where("id", "=", row.id)
+      .execute();
+  }
+}
+
 async function phoneKeyHolder(owner: string, key: string) {
   const { db } = await getDatabase();
   return db

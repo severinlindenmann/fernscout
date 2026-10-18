@@ -47,6 +47,7 @@ export default function IdentitySignIn({
   codeMinutes,
   onDone,
   link,
+  replace,
 }: {
   /** How long the code lasts, from `CODE_TTL_MINUTES`. Passed rather than
    * imported: this is a client component and `lib/auth` is server-only. */
@@ -57,6 +58,8 @@ export default function IdentitySignIn({
    * a code to it, redeemed with `link: true`. No tabs and no WhatsApp: the
    * channel is the one being added, and a WhatsApp sign-in proves no code. */
   link?: "email" | "phone";
+  /** B-3010: with `link="phone"`, the new number replaces the person's one. */
+  replace?: boolean;
 }) {
   const { t, locale } = useI18n();
   // B-3001: "Email | Mobile" where the instance texts codes. The server decides again.
@@ -66,6 +69,8 @@ export default function IdentitySignIn({
   const [channel, setChannel] = useState<"email" | "phone">(link ?? "email");
   const [taken, setTaken] = useState(false);
   const linkFlag = link ? { link: true } : {};
+  // `replace` belongs to the redeem only; asking for the code is the same.
+  const redeemFlag = link ? { link: true, ...(replace ? { replace: true } : {}) } : {};
   const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
   const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
   const region = useMemo(() => phoneCountry(languages ? languages.split(",") : [], timeZone), [languages, timeZone]);
@@ -198,7 +203,7 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/codes/redeem", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }), code: value, ...linkFlag }),
+      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }), code: value, ...redeemFlag }),
     }).catch(() => null);
 
     if (response?.ok) {
@@ -229,7 +234,7 @@ export default function IdentitySignIn({
         />
       )}
       <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {t(step === "wa" ? "join.wa.title" : step === "code" && !unavailable ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : link === "phone" ? "meAccount.addPhoneTitle" : link === "email" ? "meAccount.addEmailTitle" : "home.signInTitle")}
+        {t(step === "wa" ? "join.wa.title" : step === "code" && !unavailable ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : replace ? "meAccount.changePhoneTitle" : link === "phone" ? "meAccount.addPhoneTitle" : link === "email" ? "meAccount.addEmailTitle" : "home.signInTitle")}
       </h2>
 
       {unavailable ? (
@@ -260,7 +265,7 @@ export default function IdentitySignIn({
             />
           )}
           <p className="mt-2 text-base leading-7 text-ink-body">
-            {t(link ? "meAccount.addBody" : "home.signInBody")}
+            {t(replace ? "meAccount.changePhoneBody" : link ? "meAccount.addBody" : "home.signInBody")}
           </p>
           {taken && (
             <p role="alert" className="mt-2 text-base text-coral-600">

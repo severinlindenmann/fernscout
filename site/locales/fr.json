@@ -5269,5 +5269,9 @@
   "meAccount.addressSaved.one": "Enregistrée. Un journal a ta nouvelle adresse.",
   "meAccount.addressFailed": "L’adresse n’a pas pu être enregistrée. Réessaie dans un instant.",
   "meAccount.addressSavedNone": "Enregistrée. Tu pourras la partager en rejoignant un journal.",
-  "meAccount.addressRemoved": "Supprimée. Les journaux gardent l’adresse que tu leur as donnée ; change-la dans chacun."
+  "meAccount.addressRemoved": "Supprimée. Les journaux gardent l’adresse que tu leur as donnée ; change-la dans chacun.",
+  "meAccount.changePhone": "Changer de numéro de mobile",
+  "meAccount.changePhoneTitle": "Changer ton numéro de mobile",
+  "meAccount.changePhoneBody": "On envoie un code au nouveau numéro. Une fois saisi, il remplace l’ancien dans tous les journaux, et les connexions avec l’ancien numéro prennent fin.",
+  "meAccount.changePhoneByEmail": "Pour changer ton numéro, connecte-toi avec ton e-mail."
 }

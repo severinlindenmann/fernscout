@@ -1,6 +1,9 @@
 import {
   NO_JOURNAL,
   isEmail,
+  resolveSession,
+  revokeBrowserSessionsOfSubject,
+  revokeSession,
   pendingCodeTrip,
   tripWriteScope,
   verifyCode,
@@ -10,6 +13,7 @@ import { getContactByEmail, markContactPhoneProven, setContactLocaleIfEmpty } fr
 import { typedDigits } from "@/lib/contacts/guestPhone";
 import { phoneSubject, subjectPhone } from "@/lib/phone";
 import { linkPerson } from "@/lib/people";
+import { changePersonPhone } from "@/lib/changePhone";
 import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { signupAllowed } from "@/lib/inviteList";
@@ -76,6 +80,7 @@ export async function POST(request: Request) {
 
   // B-3007: adding a second channel to the person signed in on this browser.
   let linkTo: string | null = null;
+  let linkFromSession: string | null = null;
   if (req.link) {
     if (req.for !== "identity") return fail("invalid_request", 'link is only meaningful when "for" is "identity".');
     const current = await resolveIdentity();
@@ -83,7 +88,16 @@ export async function POST(request: Request) {
     if ((subjectPhone(current.email) === null) === (subjectPhone(email) === null)) {
       return fail("invalid_request", "link pairs an address with a number: sign in with one, prove the other.");
     }
+    // B-3010: changing the number needs the address itself, never a sign-in
+    // that came in by a number — whoever holds a recycled number could
+    // otherwise lock the person out of their own.
+    if (req.replace && (subjectPhone(email) === null || subjectPhone(current.signedInAs ?? current.email) !== null)) {
+      return fail("invalid_request", "replace changes the number from a sign-in by address: sign in with your email.");
+    }
     linkTo = current.email;
+    linkFromSession = current.id;
+  } else if (req.replace) {
+    return fail("invalid_request", "replace is only meaningful with link.");
   }
 
   if (req.for === "signup") {
@@ -164,8 +178,20 @@ export async function POST(request: Request) {
     if (linkTo) {
       const digits = subjectPhone(email) ?? subjectPhone(linkTo)!;
       const address = subjectPhone(email) ? linkTo : email;
-      const linked = await linkPerson(address, digits);
+      const linked = req.replace ? await changePersonPhone(address, digits) : await linkPerson(address, digits);
       if (!linked.ok) return fail("link_taken", ERROR_CODES.link_taken, undefined, 409);
+      // Only proofs made now count for the number from here on: an older
+      // sign-in by it (a previous holder's) would otherwise act as the address.
+      const opened = await resolveSession(result.token, "identity");
+      const proving = [opened?.id, linkFromSession].filter((id): id is string => Boolean(id));
+      await revokeBrowserSessionsOfSubject(phoneSubject(digits), proving);
+      // B-3010: a change keeps this browser signed in by the address, so it
+      // can change the number again; the sign-in the code just opened for the
+      // new number is not a device anybody uses.
+      if (req.replace) {
+        if (opened) await revokeSession(opened.id);
+        return ok({ ok: true, expires: result.expiresAt, scope: "identity" as const });
+      }
     }
     await setIdentityCookie(result.token);
     return ok({ ok: true, expires: result.expiresAt, scope: "identity" as const });

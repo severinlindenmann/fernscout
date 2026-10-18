@@ -5265,5 +5265,9 @@
   "meAccount.addressSaved.one": "Gespeichert. Ein Reisetagebuch hat deine neue Adresse.",
   "meAccount.addressFailed": "Die Adresse konnte nicht gespeichert werden. Versuch es gleich nochmal.",
   "meAccount.addressSavedNone": "Gespeichert. Du kannst sie teilen, wenn du einem Reisetagebuch beitrittst.",
-  "meAccount.addressRemoved": "Entfernt. Die Reisetagebücher behalten die Adresse, die du ihnen gegeben hast; ändere sie dort."
+  "meAccount.addressRemoved": "Entfernt. Die Reisetagebücher behalten die Adresse, die du ihnen gegeben hast; ändere sie dort.",
+  "meAccount.changePhone": "Handynummer ändern",
+  "meAccount.changePhoneTitle": "Deine Handynummer ändern",
+  "meAccount.changePhoneBody": "Wir schicken einen Code an die neue Nummer. Sobald du ihn eingibst, ersetzt sie die alte in allen Reisetagebüchern, und Anmeldungen mit der alten Nummer enden.",
+  "meAccount.changePhoneByEmail": "Um deine Nummer zu ändern, melde dich mit deiner E-Mail an."
 }
