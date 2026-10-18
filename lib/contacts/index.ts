@@ -335,11 +335,19 @@ async function addressColumns(
 ) {
   return {
     postal_cipher: address ? postalCipherFor(owner, id, address) : null,
-    // B-3007: whose address this is. Only the person's own follows their
-    // later update from another journal or `/me`.
-    address_self: address && trust !== "owner" ? 1 : 0,
+    // B-3007: any address not written by the person in a session proven as
+    // this contact (`updateContactSelf` with `spreadAs`) is not theirs to
+    // follow — an owner-filed, imported or public-form row included.
+    address_self: 0,
     ...(await phoneColumns(owner, id, address?.tel ?? "", trust, exists)),
   };
+}
+
+/** The address columns without the B-3007 mark, for a write that must leave it. */
+function withoutMark<T extends { address_self: number }>(columns: T): Omit<T, "address_self"> {
+  const copy: Partial<T> = { ...columns };
+  delete copy.address_self;
+  return copy as Omit<T, "address_self">;
 }
 
 export type ContactRequestInput = {
@@ -803,11 +811,10 @@ export async function updateContactSelf(
         : null;
 
   const columns = await addressColumns(owner, current.id, keepAddress, "self");
-  // B-3007: a save that sent no address (a language, a consent) re-writes the
-  // stored one unchanged and must not claim an owner-typed address as the
-  // person's own.
-  const { address_self: addressSelf, ...rest } = columns;
-  const stored = address === undefined ? rest : { ...rest, address_self: addressSelf };
+  // B-3007: the row's address is the person's own only when they wrote it
+  // signed in as this contact (`spreadAs`). A manage link alone, or a save
+  // that sent no address, leaves the mark as it was.
+  const stored = spreadAs && address !== undefined ? { ...columns, address_self: keepAddress ? 1 : 0 } : withoutMark(columns);
   await db
     .updateTable("contacts")
     .set({
@@ -843,7 +850,9 @@ export async function updateContactSelf(
  * The person's own address, saved once for the instance and written into
  * every journal that holds their address as given by them — B-3007.
  *
- * A row the owner typed the address into (`address_self = 0`) keeps the
+ * Only rows whose address the person wrote signed in as that contact
+ * (`address_self = 1`, set by `updateContactSelf` with `spreadAs`) follow. A
+ * row the owner typed, imported or confirmed (`address_self = 0`) keeps the
  * owner's; a blocked row keeps nothing new; a journal that never had the
  * person's address gets it only when the person shares it there (the join
  * and welcome steps). Matched on each of the person's proven subjects

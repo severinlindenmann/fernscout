@@ -1,4 +1,3 @@
-import { sql } from "kysely";
 import type { MigrationDb } from "./types";
 
 /**
@@ -22,8 +21,10 @@ import type { MigrationDb } from "./types";
  *
  * `contacts.address_self` says whether the address on a contact row was
  * written by the person (1) or typed by the owner (0). Only the former is
- * replaced when the person updates their address elsewhere. Backfilled from
- * `created_via`: a row the owner filed is the owner's until the person writes.
+ * replaced when the person updates their address elsewhere. No backfill:
+ * nothing on an existing row proves who typed its address (an owner can file,
+ * import and confirm a row alone), so every row starts as 0 and becomes the
+ * person's the first time they save it signed in as that contact.
  */
 export async function up(db: MigrationDb): Promise<void> {
   await db.schema
@@ -46,12 +47,6 @@ export async function up(db: MigrationDb): Promise<void> {
   await db.schema
     .alterTable("contacts")
     .addColumn("address_self", "integer", (c) => c.notNull().defaultTo(0))
-    .execute();
-  await db
-    .updateTable("contacts")
-    .set({ address_self: 1 })
-    .where("postal_cipher", "is not", null)
-    .where((eb) => eb.or([eb("created_via", "is", null), eb("created_via", "not like", sql<string>`'owner%'`)]))
     .execute();
 }
 

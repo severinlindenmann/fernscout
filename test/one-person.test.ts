@@ -238,7 +238,7 @@ describe("one person across email and phone", () => {
     const { getContactByEmail, manageTokenFor, updateContactSelf } = await import("@/lib/contacts");
     // Vik gave ana an address once, themselves.
     const anaContact = (await getContactByEmail("ana", VIK))!;
-    await updateContactSelf("ana", manageTokenFor("ana", anaContact.id), { address: { ...ADDRESS, line1: "Old 1" } });
+    await updateContactSelf("ana", manageTokenFor("ana", anaContact.id), { address: { ...ADDRESS, line1: "Old 1" } }, VIK);
 
     await signInAs(`+${DIGITS}`); // the number, linked above: the same person
     const { GET, PUT } = await import("@/app/api/v2/me/person/route");
@@ -286,7 +286,7 @@ describe("review findings", () => {
     const { getContactByEmail, manageTokenFor, spreadPersonAddress, updateContactSelf } = await import("@/lib/contacts");
     const ben = (await getContactByEmail("ben", `+${DIGITS}`))!;
     expect(ben.phoneProvenAt).toBeNull();
-    await updateContactSelf("ben", manageTokenFor("ben", ben.id), { address: { ...ADDRESS, line1: "Ben-held 3" } });
+    await updateContactSelf("ben", manageTokenFor("ben", ben.id), { address: { ...ADDRESS, line1: "Ben-held 3" } }, `+${DIGITS}`);
     await spreadPersonAddress(VIK, { ...ADDRESS, line1: "New 7" });
     expect((await getContactByEmail("ben", `+${DIGITS}`))?.postalAddress?.line1).toBe("Ben-held 3");
     expect((await getContactByEmail("ana", VIK))?.postalAddress?.line1).toBe("New 7");
@@ -302,4 +302,23 @@ test("an empty save forgets the saved address and changes no journal", async () 
   expect(await getPersonAddress(VIK)).toBeNull();
   const { getContactByEmail } = await import("@/lib/contacts");
   expect((await getContactByEmail("ana", VIK))?.postalAddress?.line1).toBe("New 7");
+});
+
+test("an owner-filed, owner-confirmed row is never reached by the spread (security review)", async () => {
+  const { confirmContactByOwner, getContactByEmail, requestContact, spreadPersonAddress } = await import("@/lib/contacts");
+  // The owner's own "create" goes through requestContact with an address the owner typed.
+  const filed = await requestContact("ben", {
+    name: "Vik?",
+    email: VIK,
+    locale: "en",
+    address: { ...ADDRESS, line1: "Placeholder 1" },
+    wantsEmailDigest: false,
+    wantsPostcard: false,
+    createdVia: "invite:x",
+  });
+  expect(filed.outcome).not.toBe("ignored");
+  const row = (await getContactByEmail("ben", VIK))!;
+  await confirmContactByOwner("ben", row.id);
+  await spreadPersonAddress(VIK, { ...ADDRESS, line1: "Secret 8" });
+  expect((await getContactByEmail("ben", VIK))?.postalAddress?.line1).toBe("Placeholder 1");
 });
