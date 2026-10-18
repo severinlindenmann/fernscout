@@ -68,7 +68,9 @@ export default function IdentitySignIn({
   const waOn = useWhatsappSignIn();
   const [channel, setChannel] = useState<"email" | "phone">(link ?? "email");
   const [taken, setTaken] = useState(false);
-  const linkFlag = link ? { link: true, ...(replace ? { replace: true } : {}) } : {};
+  const linkFlag = link ? { link: true } : {};
+  // `replace` belongs to the redeem only; asking for the code is the same.
+  const redeemFlag = link ? { link: true, ...(replace ? { replace: true } : {}) } : {};
   const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
   const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
   const region = useMemo(() => phoneCountry(languages ? languages.split(",") : [], timeZone), [languages, timeZone]);
@@ -201,7 +203,7 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/codes/redeem", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }), code: value, ...linkFlag }),
+      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }), code: value, ...redeemFlag }),
     }).catch(() => null);
 
     if (response?.ok) {
