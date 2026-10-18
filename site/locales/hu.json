@@ -1089,6 +1089,7 @@
   "landing.ledeBookApp": "Útinapló, amit a családod a böngészőben olvas: nincs jelszó, nincs hírfolyam. Írj pár sort, tedd hozzá a fotóidat, és őrizd meg az utat könyvként.",
   "landing.readerStrip": "Valaki megosztott veled egy naplót?",
   "landing.readerStripAction": "Jelentkezz be, hogy elolvashasd",
+  "landing.app.signInNote": "Akkor is, ha valaki megosztott veled egy naplót.",
   "landing.navLabel": "Ezen az oldalon",
   "landing.navHow": "Hogyan működik",
   "landing.navPrints": "Nyomtatás",

@@ -1327,6 +1327,7 @@
   "landing.ledeBookApp": "Un journal de voyage que ta famille lit dans le navigateur : pas de mot de passe, pas de fil d’actualité. Écris quelques lignes, ajoute tes photos, et garde le voyage comme un livre.",
   "landing.readerStrip": "Quelqu’un a partagé un journal avec toi ?",
   "landing.readerStripAction": "Connecte-toi pour le lire",
+  "landing.app.signInNote": "Aussi si quelqu’un a partagé un journal avec toi.",
   "landing.navLabel": "Sur cette page",
   "landing.navHow": "Comment ça marche",
   "landing.navPrints": "Imprimer",
