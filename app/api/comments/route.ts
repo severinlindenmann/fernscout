@@ -136,6 +136,19 @@ export async function GET(request: Request) {
   });
 }
 
+/**
+ * B-3005: a comment's time, strictly later than the last one this process
+ * stamped. Two posts in one millisecond otherwise tie, and the database
+ * breaks the tie by a random id, so they came back in either order.
+ */
+let lastPosted = 0;
+function postedAt(): string {
+  // ponytail: per process; several app processes writing one database would
+  // need a sequence column instead.
+  lastPosted = Math.max(Date.now(), lastPosted + 1);
+  return new Date(lastPosted).toISOString();
+}
+
 export async function POST(request: Request) {
   if (foreignOrigin(request)) return json(FOREIGN_ORIGIN_REFUSAL, 403);
   const limit = rateLimitFor("comments", clientIp(request), { max: 10, windowMs: 60_000 });
@@ -162,7 +175,7 @@ export async function POST(request: Request) {
     authorEmail: r.viewer.email,
     authorName: r.viewer.name,
     body: text,
-    createdAt: new Date().toISOString(),
+    createdAt: postedAt(),
   });
 
   // The owner's devices hear about a guest's comment — not their own, not the
