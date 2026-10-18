@@ -175,7 +175,9 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
       for (const key of ["wantsEmailDigest", "wantsWhatsapp", "wantsSms", "wantsPostcard"] as const) {
         if (typeof body[key] === "boolean") patch[key] = body[key] as boolean;
       }
-      const saved = await updateContactSelf(owner, manageTokenFor(owner, self.id), patch);
+      // B-3007: signed in as this contact, so the address is the person's own
+      // and reaches their other journals.
+      const saved = await updateContactSelf(owner, manageTokenFor(owner, self.id), patch, reader.email ?? undefined);
       if (!saved) return answer({ error: "not_saved" }, 409);
       if (body.done === true) await markOnboarded(owner, self.id);
       return answer({

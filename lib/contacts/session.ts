@@ -5,7 +5,7 @@ import { isJournalWideScope, resolveSession } from "../auth";
 import { resolveAccess } from "../auth/handshake";
 import { grantScopeOf } from "../grants";
 import { getUser } from "../users";
-import { getContactByEmail, type ContactRecord } from "./index";
+import { getContactForPerson, type ContactRecord } from "./index";
 
 /**
  * "Is this the person whose journal it is?"
@@ -172,7 +172,7 @@ async function lookUpJournalReader(username: string): Promise<JournalReader> {
   const { email } = await resolveAccess(username);
   if (!email) return { email: null, contact: null, guest: false, close: false };
 
-  const contact = await getContactByEmail(username, email);
+  const contact = await getContactForPerson(username, email);
   if (!contact || contact.status !== "active") return { email, contact, guest: false, close: false };
   const scope = await grantScopeOf(username, contact.id);
   return { email, contact, guest: scope !== null, close: scope === "close" };

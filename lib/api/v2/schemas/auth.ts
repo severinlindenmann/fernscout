@@ -62,6 +62,11 @@ export const codesRequest = z.strictObject({
   channel: z.enum(["mail"]).optional(),
   destination: z.string().optional(),
   locale: z.string().optional(),
+  /** B-3007. `for: "identity"` only: this code will be redeemed with
+   * `link: true` to add a second channel to the person signed in on this
+   * browser. With `phone`, it needs a live identity cookie for an address,
+   * and the code is texted to the number even when no journal knows it. */
+  link: z.boolean().optional(),
 });
 export type CodesRequest = z.infer<typeof codesRequest>;
 
@@ -81,6 +86,14 @@ export const codesRedeemRequest = z.strictObject({
   for: z.enum(CREDENTIAL_FOR),
   user: z.string().optional(),
   scope: tripScope.optional(),
+  /**
+   * B-3007. `for: "identity"` only, and only with a live identity cookie for
+   * the other kind of subject: an address when this code is for a number, a
+   * number when it is for an address. The two become one person — a sign-in
+   * by either is the same `/me`, the same journals. Refused with `link_taken`
+   * when either side already belongs to somebody else.
+   */
+  link: z.boolean().optional(),
 });
 export type CodesRedeemRequest = z.infer<typeof codesRedeemRequest>;
 

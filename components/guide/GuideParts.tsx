@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import AddressLookupField from "@/components/AddressLookupField";
 import CountryField from "@/components/CountryField";
 
@@ -105,6 +105,43 @@ export function CodeField({
 
 export type Address = { line1: string; postcode: string; city: string; country: string };
 export const EMPTY: Address = { line1: "", postcode: "", city: "", country: "" };
+
+/**
+ * B-3007: the address this person already saved on the instance, offered in
+ * one press instead of typed again. Asked of `/api/v2/me/person` when the
+ * address screen opens — by then the step before has signed this browser in.
+ * Nothing is filled in until it is pressed: sharing it with a new journal is
+ * the person's choice. Absent when there is nothing saved.
+ */
+export function SavedAddress({ label, onUse }: { label: (summary: string) => string; onUse: (address: Address) => void }) {
+  const [saved, setSaved] = useState<Address | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/v2/me/person")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { address?: Address | null } | null) => {
+        if (live && body?.address?.line1) setSaved(body.address);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!saved) return null;
+  const summary = [saved.line1, [saved.postcode, saved.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const address = { line1: saved.line1, postcode: saved.postcode, city: saved.city, country: saved.country };
+  return (
+    <button
+      type="button"
+      onClick={() => onUse(address)}
+      className="min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-4 py-2 text-left text-base
+                 font-medium text-ink-strong hover:border-line-ink focus-visible:outline-2 focus-visible:outline-offset-2
+                 focus-visible:outline-blue-500"
+    >
+      {label(summary)}
+    </button>
+  );
+}
 
 /** B2452: street suggestions and a flag-and-name country picker, the same
  * `AddressLookupField`/`CountryField` pair `ContactManage` already runs —

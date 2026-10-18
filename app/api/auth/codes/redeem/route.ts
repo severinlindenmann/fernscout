@@ -9,6 +9,8 @@ import { issueIdentityCookie, setGuestSessionCookies, setIdentityCookie } from "
 import { getContactByEmail, markContactPhoneProven, setContactLocaleIfEmpty } from "@/lib/contacts";
 import { typedDigits } from "@/lib/contacts/guestPhone";
 import { phoneSubject, subjectPhone } from "@/lib/phone";
+import { linkPerson } from "@/lib/people";
+import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -70,6 +72,18 @@ export async function POST(request: Request) {
       return fail("invalid_request", ERROR_CODES.invalid_request);
     }
     email = req.email;
+  }
+
+  // B-3007: adding a second channel to the person signed in on this browser.
+  let linkTo: string | null = null;
+  if (req.link) {
+    if (req.for !== "identity") return fail("invalid_request", 'link is only meaningful when "for" is "identity".');
+    const current = await resolveIdentity();
+    if (!current) return fail("not_authorised", ERROR_CODES.not_authorised, undefined, 401);
+    if ((subjectPhone(current.email) === null) === (subjectPhone(email) === null)) {
+      return fail("invalid_request", "link pairs an address with a number: sign in with one, prove the other.");
+    }
+    linkTo = current.email;
   }
 
   if (req.for === "signup") {
@@ -147,6 +161,12 @@ export async function POST(request: Request) {
   }
 
   if (req.for === "identity") {
+    if (linkTo) {
+      const digits = subjectPhone(email) ?? subjectPhone(linkTo)!;
+      const address = subjectPhone(email) ? linkTo : email;
+      const linked = await linkPerson(address, digits);
+      if (!linked.ok) return fail("link_taken", ERROR_CODES.link_taken, undefined, 409);
+    }
     await setIdentityCookie(result.token);
     return ok({ ok: true, expires: result.expiresAt, scope: "identity" as const });
   }

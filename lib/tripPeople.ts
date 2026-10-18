@@ -6,6 +6,7 @@ import { grantIsLive } from "./grants";
 import type { Trip } from "./types";
 import { getUser } from "./users";
 import { subjectLookup } from "./contacts/crypto";
+import { subjectsOf } from "./people";
 
 /**
  * Two different questions, and this file answers them from two different
@@ -213,23 +214,26 @@ async function lookUpRedeemedTrips(
   if (!email) return new Set();
   const handle = await getDatabaseOrNull();
   if (!handle) return new Set();
-  // An address or a proved mobile number (B2294) — `subjectLookup` decides.
-  const lookup = subjectLookup(email);
-  if (!lookup) return new Set();
+  // An address or a proved mobile number (B2294) — `subjectLookup` decides —
+  // for each subject of the person (B-3007), so a place filed under their
+  // number counts when they signed in by address.
   const now = new Date();
-  const rows = await handle.db
-    .selectFrom("trip_people")
-    .innerJoin("contacts", "contacts.id", "trip_people.contact_id")
-    .select(["trip_people.trip_id as trip_id", "trip_people.expires_at as expires_at"])
-    .where("trip_people.owner_id", "=", username)
-    .where(`contacts.${lookup[0]}`, "=", lookup[1])
-    .where("trip_people.granted_at", "is not", null)
-    .where("trip_people.revoked_at", "is", null)
-    .where("contacts.status", "=", "active")
-    .execute();
-
   const out = new Set<string>();
-  for (const row of rows) if (grantIsLive(row.expires_at, now)) out.add(row.trip_id);
+  for (const subject of await subjectsOf(email)) {
+    const lookup = subjectLookup(subject);
+    if (!lookup) continue;
+    const rows = await handle.db
+      .selectFrom("trip_people")
+      .innerJoin("contacts", "contacts.id", "trip_people.contact_id")
+      .select(["trip_people.trip_id as trip_id", "trip_people.expires_at as expires_at"])
+      .where("trip_people.owner_id", "=", username)
+      .where(`contacts.${lookup[0]}`, "=", lookup[1])
+      .where("trip_people.granted_at", "is not", null)
+      .where("trip_people.revoked_at", "is", null)
+      .where("contacts.status", "=", "active")
+      .execute();
+    for (const row of rows) if (grantIsLive(row.expires_at, now)) out.add(row.trip_id);
+  }
   return out;
 }
 

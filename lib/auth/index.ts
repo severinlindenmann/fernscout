@@ -6,6 +6,7 @@ import { reviewLoginCodeFor } from "./reviewLogin";
 import { getPendingSignup, livePhoneProof, recordPendingEmail, recordPendingPhone } from "../signup/pending";
 
 import { journalPath } from "../journalPath";
+import { canonicalSubject, subjectsOf } from "../people";
 /**
  * Email one-time codes, and the two classes of session they produce.
  *
@@ -1280,7 +1281,8 @@ export async function listIdentities(email: string) {
     .where("sessions.kind", "=", "identity")
     .where("sessions.owner_id", "=", NO_JOURNAL)
     .where("sessions.revoked_at", "is", null)
-    .where("users.email", "=", normaliseEmail(email))
+    // B-3007: the devices signed in by the person's number too.
+    .where("users.email", "in", await subjectsOf(normaliseEmail(email)))
     .orderBy("sessions.created_at", "desc")
     .execute();
 }
@@ -1410,7 +1412,10 @@ async function lookUpSession(
     kind: row.kind as SessionKind,
     scope: row.scope ?? SESSION_SCOPE[expected],
     expiresAt: row.expiresAt,
-    email: row.email,
+    // B-3007: a reader's or an identity's linked number acts as the person's
+    // address, so a phone sign-in is the same person as the email one. Never
+    // for a key, a signup or a handover: those are about the subject issued.
+    email: row.kind === "guest" || row.kind === "identity" ? await canonicalSubject(row.email) : row.email,
     publicId: row.publicId,
     phone: row.phone,
     phoneProvenAt: row.phoneProvenAt,
@@ -1561,7 +1566,8 @@ export async function revokeBrowserSessions(email: string): Promise<number> {
     .set({ revoked_at: nowIso() })
     .where("revoked_at", "is", null)
     .where("kind", "in", ["guest", "identity"])
-    .where("user_id", "in", db.selectFrom("users").select("id").where("email", "=", address))
+    // B-3007: "everywhere" includes sign-ins by the person's linked number.
+    .where("user_id", "in", db.selectFrom("users").select("id").where("email", "in", await subjectsOf(address)))
     .executeTakeFirst();
   return Number(result.numUpdatedRows ?? 0);
 }

@@ -10,6 +10,7 @@ import { EMPTY_ADDRESS, hasAnyDetail, isPostable, normaliseAddress } from "@/lib
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { journalReader } from "@/lib/contacts/session";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +131,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_address" }, { status: 400 });
   }
 
+  // B-3007: a manage link can be forwarded, so an edit through it stays in
+  // this journal — unless this browser is signed in as this very contact,
+  // when the address is the person's own and reaches their other journals.
+  const reader = await journalReader(username);
+  const spreadAs = reader.email && reader.contact?.id === current.id ? reader.email : undefined;
+
   const contact = await updateContactSelf(username, token, {
     name: typeof body.name === "string" ? body.name : undefined,
     locale: typeof body.locale === "string" ? body.locale : undefined,
@@ -151,7 +158,7 @@ export async function POST(request: Request) {
     wantsPostcard: typeof body.wantsPostcard === "boolean" ? body.wantsPostcard : undefined,
     wantsWhatsapp: typeof body.wantsWhatsapp === "boolean" ? body.wantsWhatsapp : undefined,
     wantsSms: typeof body.wantsSms === "boolean" ? body.wantsSms : undefined,
-  });
+  }, spreadAs);
 
   if (!contact) return Response.json({ error: "unknown_token" }, { status: 404 });
   return Response.json({ ok: true, contact: selfView(contact) });

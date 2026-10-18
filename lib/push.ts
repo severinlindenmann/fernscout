@@ -2,6 +2,7 @@ import "server-only";
 import { isOpenToLink, isTestContent } from "./access";
 import { getDatabaseOrNull } from "./db";
 import { subjectLookup } from "./contacts/crypto";
+import { subjectsOf } from "./people";
 import { contactsWithReadGrant } from "./grants";
 import { pushRepo } from "./repos";
 import type { StoredSubscription } from "./repos/types";
@@ -79,17 +80,21 @@ export async function findActiveContactId(
 ): Promise<string | null> {
   const handle = await getDatabaseOrNull();
   if (!handle) return null;
-  // An address or a proved mobile number (B2294).
-  const lookup = subjectLookup(email);
-  if (!lookup) return null;
-  const row = await handle.db
-    .selectFrom("contacts")
-    .select(["id"])
-    .where("owner_id", "=", username)
-    .where(lookup[0], "=", lookup[1])
-    .where("status", "=", "active")
-    .executeTakeFirst();
-  return row?.id ?? null;
+  // An address or a proved mobile number (B2294), for each subject of the
+  // person (B-3007).
+  for (const subject of await subjectsOf(email)) {
+    const lookup = subjectLookup(subject);
+    if (!lookup) continue;
+    const row = await handle.db
+      .selectFrom("contacts")
+      .select(["id"])
+      .where("owner_id", "=", username)
+      .where(lookup[0], "=", lookup[1])
+      .where("status", "=", "active")
+      .executeTakeFirst();
+    if (row) return row.id;
+  }
+  return null;
 }
 
 /**
