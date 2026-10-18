@@ -7,7 +7,7 @@ import { accessSecret } from "./access";
 import { hashSecret } from "./auth";
 import { resolveAccess } from "./auth/handshake";
 import { isEnabled } from "./capabilities";
-import { getContactByEmail } from "./contacts";
+import { getContactForPerson } from "./contacts";
 import { decryptString, hasContactsKey } from "./contacts/crypto";
 import { READ_CODE_RE, readAad } from "./contacts/invites";
 import { getDatabase, getDatabaseOrNull, newId, nowIso } from "./db";
@@ -137,7 +137,7 @@ async function cookieOpens(trip: Trip): Promise<boolean> {
 async function keptBy(trip: Trip): Promise<boolean> {
   const { email } = await resolveAccess(trip.username);
   if (!email) return false;
-  const contact = await getContactByEmail(trip.username, email);
+  const contact = await getContactForPerson(trip.username, email);
   if (!contact || contact.status === "blocked") return false;
   const { db } = await getDatabase();
   const row = await db
@@ -252,7 +252,7 @@ export async function cookieLink(): Promise<{ code: string; link: ReadLink } | n
 
 /** Whether this address already has a live keep on the trip. */
 export async function keepsTrip(owner: string, tripId: string, email: string): Promise<boolean> {
-  const contact = await getContactByEmail(owner, email);
+  const contact = await getContactForPerson(owner, email);
   if (!contact || contact.status === "blocked") return false;
   const { db } = await getDatabase();
   const row = await db

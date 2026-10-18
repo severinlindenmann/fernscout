@@ -87,6 +87,7 @@ import { BOOK_SIZES, COVER_TYPES } from "@paid/photobook/lib/photobook/spec";
 import { HELPER_PROVIDER } from "../../helper/model";
 import { IMPORT_KINDS } from "../../gps/api";
 import { importPhotosDoc, importPhotosResult } from "./schemas/importPhotos";
+import { personDoc, personPut, personSaved } from "./schemas/person";
 import { PAID_AREAS } from "@paid/manifest";
 import { CODE_TTL_MINUTES, GPS_TOKEN_TTL_DAYS, HANDOVER_TTL_MINUTES } from "../../auth";
 import {
@@ -973,6 +974,33 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(200, homeDoc, "always 200 — `id: null` is a stranger, not a refusal"),
         ...noBodyResponse(405, "a verb this route does not answer"),
+      },
+    },
+  };
+  paths["/api/v2/me/person"] = {
+    get: {
+      summary:
+        "The person signed in on this browser across the instance (B-3007): their address and proved number, " +
+        "paired, and their saved postal address. fs_identity cookie only.",
+      responses: {
+        ...jsonResponse(200, personDoc, "the person"),
+        ...refusalResponses([ref("auth_disabled", 404), ref("not_signed_in", 401)]),
+      },
+    },
+    put: {
+      summary:
+        "Save the person's postal address once for the instance. It replaces the address in every journal that " +
+        "holds the person's own (never one the owner typed) and is offered when they join another. Cookie only.",
+      requestBody: jsonBody(personPut, "the address"),
+      responses: {
+        ...jsonResponse(200, personSaved, "saved; how many journals carry it"),
+        ...refusalResponses([
+          ref("auth_disabled", 404),
+          ref("foreign_origin", 403),
+          ref("not_signed_in", 401),
+          ref("contacts_disabled", 404, "no encryption key, so no postal address can be kept"),
+          ref("invalid_request", 400),
+        ]),
       },
     },
   };

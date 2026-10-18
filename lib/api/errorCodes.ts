@@ -177,6 +177,7 @@ export const ERROR_CODES = {
 
   // ── v2 only ─────────────────────────────────────────────────────────────
   already_exists: "A day already lives at the destination date and trip. Pick a different date, or move the other day out of the way first. Nothing was written.",
+  link_taken: "That number or address already belongs to somebody else on this server, or this address already has another number. Nothing was linked; the code is spent.",
   trip_id_taken: "This journal already has a trip at that id. Pick a different one. Nothing was written.",
   title_required: "The second half of a split needs a real title — it becomes that half's own slug. Nothing was written.",
   slug_taken: "The title given to the second half of a split makes a slug this trip already uses on that date. Pick a different title. Nothing was written.",

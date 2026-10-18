@@ -28,6 +28,7 @@ import { approveTripPlaces, claimTripPlace, revokeTripPlaces } from "../tripPeop
 import { parseLocale, pickLocale } from "./locale";
 import { isMessageable, phoneSubject, subjectPhone, toE164 } from "../phone";
 import { getUser } from "../users";
+import { setPersonAddress, subjectsOf } from "../people";
 import { whatsappCountryCode } from "../contactNumber";
 
 import { journalPath } from "../journalPath";
@@ -334,6 +335,9 @@ async function addressColumns(
 ) {
   return {
     postal_cipher: address ? postalCipherFor(owner, id, address) : null,
+    // B-3007: whose address this is. Only the person's own follows their
+    // later update from another journal or `/me`.
+    address_self: address && trust !== "owner" ? 1 : 0,
     ...(await phoneColumns(owner, id, address?.tel ?? "", trust, exists)),
   };
 }
@@ -736,11 +740,20 @@ export type SelfUpdate = {
   wantsSms?: boolean;
 };
 
-/** Change language, change address, change your mind. */
+/**
+ * Change language, change address, change your mind.
+ *
+ * `spreadAs` (B-3007): the proven subject of the person making the change,
+ * from their session — never from a manage link alone, which can be
+ * forwarded. When given, a changed address becomes the person's own,
+ * instance-wide, and reaches every other journal that holds the person's
+ * own address (`spreadPersonAddress`).
+ */
 export async function updateContactSelf(
   owner: string,
   token: string,
   patch: SelfUpdate,
+  spreadAs?: string,
 ): Promise<ContactRecord | null> {
   const current = await resolveManageToken(owner, token);
   if (!current) return null;
@@ -815,7 +828,52 @@ export async function updateContactSelf(
     .where("id", "=", current.id)
     .execute();
 
+  if (spreadAs && address !== undefined && keepAddress && isPostable(keepAddress)) {
+    await spreadPersonAddress(spreadAs, keepAddress, owner);
+  }
   return resolveManageToken(owner, token);
+}
+
+/**
+ * The person's own address, saved once for the instance and written into
+ * every journal that holds their address as given by them — B-3007.
+ *
+ * A row the owner typed the address into (`address_self = 0`) keeps the
+ * owner's; a blocked row keeps nothing new; a journal that never had the
+ * person's address gets it only when the person shares it there (the join
+ * and welcome steps). Matched on each of the person's proven subjects
+ * (`subjectsOf`), never on a number the owner typed. The phone number on each
+ * row stays as it is: a number is its own channel and consent.
+ *
+ * Returns how many journals now carry it, `except` included when it is one.
+ */
+export async function spreadPersonAddress(
+  subject: string,
+  input: Partial<PostalAddress>,
+  except?: string,
+): Promise<number> {
+  if (!(await setPersonAddress(subject, input))) return 0;
+  const { tel: _tel, ...address } = normaliseAddress(input);
+  const { db } = await getDatabase();
+  const journals = new Set<string>(except ? [except] : []);
+  for (const each of await subjectsOf(subject)) {
+    const lookup = subjectLookup(each);
+    if (!lookup) continue;
+    const rows = await db
+      .selectFrom("contacts")
+      .select(["id", "owner_id"])
+      .where(lookup[0], "=", lookup[1])
+      .where("address_self", "=", 1)
+      .where("postal_cipher", "is not", null)
+      .where("status", "!=", "blocked")
+      .execute();
+    for (const row of rows) {
+      if (row.owner_id === except || !getUser(row.owner_id)) continue;
+      await updateContactSelf(row.owner_id, manageTokenFor(row.owner_id, row.id), { address });
+      journals.add(row.owner_id);
+    }
+  }
+  return journals.size;
 }
 
 /** The three streams a one-click unsubscribe can be scoped to — B2442. */
@@ -918,6 +976,27 @@ export async function getContactByEmail(
   return row ? toRecord(owner, row) : null;
 }
 
+
+/**
+ * The contact behind a signed-in person — B-3007: the first of the person's
+ * subjects (`subjectsOf`) this journal knows, so a journal that has them only
+ * by number finds them signed in by address, and the other way round. For
+ * session-derived lookups only; a form somebody typed an address into asks
+ * `getContactByEmail`, which never widens.
+ */
+export async function getContactForPerson(owner: string, subject: string): Promise<ContactRecord | null> {
+  return getContactForSubjects(owner, await subjectsOf(subject));
+}
+
+/** The same, with the subjects already looked up — the home view asks once
+ * for every journal on the instance. */
+export async function getContactForSubjects(owner: string, subjects: readonly string[]): Promise<ContactRecord | null> {
+  for (const subject of subjects) {
+    const contact = await getContactByEmail(owner, subject);
+    if (contact) return contact;
+  }
+  return null;
+}
 
 export async function getContact(owner: string, id: string): Promise<ContactRecord | null> {
   const { db } = await getDatabase();

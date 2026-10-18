@@ -68,6 +68,7 @@ import * as vouchers from "./066-vouchers";
 import * as pendingSignups from "./067-pending-signups";
 import * as tripLinks from "./068-trip-links";
 import * as comments from "./069-comments";
+import * as people from "./070-people";
 
 /**
  * Every migration, listed by hand.
@@ -151,6 +152,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "067-pending-signups": pendingSignups,
   "068-trip-links": tripLinks,
   "069-comments": comments,
+  "070-people": people,
 };
 
 /**

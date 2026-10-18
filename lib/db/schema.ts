@@ -186,6 +186,9 @@ type ContactsTable = {
   phone_key: string | null;
   /** When an SMS code proved the number. Null until then. */
   phone_proven_at: string | null;
+  /** B-3007. 1 when the person wrote this address themselves, 0 when the
+   * owner typed it. Only a 1 follows the person's own later update. */
+  address_self: Generated<number>;
   /** B2292. 0/1 — new days by SMS, its own consent. See `040-welcome-links`. */
   wants_sms: Generated<number>;
   /** sha-256 of the `/w/<code>` welcome code, unique across the instance. */
@@ -370,6 +373,25 @@ type ReactionsTable = {
   voter_id: string;
   emoji: string;
   created_at: string;
+  updated_at: string;
+};
+
+/** B-3007 — one proved address paired with one proved number. */
+type PersonLinksTable = {
+  email: string;
+  /** E.164 digits, no `+`. */
+  phone: string;
+  /** How the second channel was proved: `code`. */
+  method: string;
+  linked_at: string;
+};
+
+/** B-3007 — a person's own postal address, once per instance. */
+type PersonAddressesTable = {
+  /** The canonical subject (`canonicalSubject`). */
+  subject: string;
+  /** AES-256-GCM, AAD `person:<subject>`. */
+  cipher: string;
   updated_at: string;
 };
 
@@ -1140,6 +1162,8 @@ export type Database = {
   vouchers: VouchersTable;
   pending_signups: PendingSignupsTable;
   trip_link_keeps: TripLinkKeepsTable;
+  person_links: PersonLinksTable;
+  person_addresses: PersonAddressesTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -1188,4 +1212,6 @@ export const TABLE_NAMES = [
   "vouchers",
   "pending_signups",
   "trip_link_keeps",
+  "person_links",
+  "person_addresses",
 ] as const satisfies readonly (keyof Database)[];

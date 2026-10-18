@@ -257,7 +257,9 @@ export async function POST(request: Request, { params }: RouteContext<"/j/[code]
       // records it; an unticked box writes nothing (an earlier consent given
       // elsewhere is not withdrawn by a join form, only on /me).
       if (body.wantsNews === true && self.email.includes("@")) await setNewsConsent(self.email, locale);
-      const saved = await updateContactSelf(owner, manageTokenFor(owner, self.id), patch);
+      // B-3007: signed in as this contact, so the address is the person's own
+      // and reaches their other journals.
+      const saved = await updateContactSelf(owner, manageTokenFor(owner, self.id), patch, reader.email ?? undefined);
       return saved ? answer({ ok: true }) : answer({ error: "not_saved" }, 409);
     }
     default:

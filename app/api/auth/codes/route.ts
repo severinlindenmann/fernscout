@@ -24,6 +24,8 @@ import { getUser } from "@/lib/users";
 import { getTrip, tripRef } from "@/lib/trips";
 import { isPersonOn } from "@/lib/tripPeople";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { resolveIdentity } from "@/lib/auth/handshake";
+import { subjectPhone } from "@/lib/phone";
 import { fail, ok, readJson } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { codesRequest, type CodesRequest, type CredentialFor } from "@/lib/api/v2/schemas/auth";
@@ -69,6 +71,9 @@ export async function POST(request: Request) {
   }
   if (req.scope && req.for !== "write") {
     return fail("invalid_request", 'scope is only meaningful when "for" is "write".');
+  }
+  if (req.link && req.for !== "identity") {
+    return fail("invalid_request", 'link is only meaningful when "for" is "identity".');
   }
   if (req.phone !== undefined) return handlePhone(request, req);
   if (req.email === undefined) {
@@ -159,10 +164,22 @@ async function handlePhone(request: Request, req: CodesRequest) {
   }
   const accepted = () => ok({ status: "accepted" as const, next: `POST /api/auth/codes/redeem with {"phone", "code", "for": "${req.for}"}` }, { status: 202 });
   if (req.for === "identity") {
+    // B-3007: a person signed in by address adding their number. The code
+    // goes to the number they typed even if no journal knows it yet — that
+    // is the point — under the same per-number and per-instance buckets.
+    let toAnyNumber = false;
+    if (req.link) {
+      const identity = await resolveIdentity();
+      if (!identity) return fail("not_signed_in", ERROR_CODES.not_signed_in, undefined, 401);
+      if (subjectPhone(identity.email)) {
+        return fail("invalid_request", "link adds a number to a sign-in by address; this browser is signed in by number.");
+      }
+      toAnyNumber = true;
+    }
     const ip = clientIp(request);
     const locale = pickLocale(req.locale ?? null, fromAcceptLanguage(request.headers.get("accept-language")));
     afterResponse("auth", async () => {
-      const sent = await sendIdentitySmsCode(digits, { ip, locale, siteTitle: serverSite().name });
+      const sent = await sendIdentitySmsCode(digits, { ip, locale, siteTitle: serverSite().name }, toAnyNumber);
       if (!sent.ok && sent.reason !== "no_contact") console.warn(`[auth] sms identity code not sent: ${sent.reason}`);
     });
     return accepted();

@@ -2,7 +2,8 @@ import "server-only";
 import { isIndexable } from "./access";
 import { isAdminEmail } from "./admin";
 import { planSummaryFor, type PlanSummary } from "./billingSummary";
-import { getContactByEmail } from "./contacts";
+import { getContactForSubjects } from "./contacts";
+import { subjectsOf } from "./people";
 import { getAllEntries } from "./entries";
 import { grantScopeOf } from "./grants";
 import { getTrips } from "./trips";
@@ -125,8 +126,12 @@ export function publicJournals(): PublicJournalSummary[] {
  * where the address turns out to see nothing but public trips is dropped: it
  * belongs in the public list, not in "yours".
  */
-export async function journalsFor(email: string): Promise<HomeJournal[]> {
+export async function journalsFor(subject: string): Promise<HomeJournal[]> {
   const out: HomeJournal[] = [];
+  // B-3007: every subject of the person, asked once for the whole loop; the
+  // first is the canonical one, the address for a linked number.
+  const subjects = await subjectsOf(subject);
+  const email = subjects[0];
 
   for (const username of getUsernames()) {
     const user = getUser(username);
@@ -146,7 +151,7 @@ export async function journalsFor(email: string): Promise<HomeJournal[]> {
     let guest = false;
     let close = false;
     if (!owner) {
-      const contact = await getContactByEmail(username, email);
+      const contact = await getContactForSubjects(username, subjects);
       const scope = contact && contact.status === "active" ? await grantScopeOf(username, contact.id) : null;
       guest = scope !== null;
       close = scope === "close";

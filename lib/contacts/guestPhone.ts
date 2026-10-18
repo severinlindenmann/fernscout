@@ -11,6 +11,7 @@ import { serverSite } from "../site";
 import { sendSms, smsUnreachable } from "../sms";
 import { hasContactsKey } from "./crypto";
 import { getUsernames } from "../users";
+import { linkedEmail } from "../people";
 import { getContactByEmail, type ContactRecord } from "./index";
 
 /**
@@ -164,9 +165,13 @@ export async function sendReturnSmsCode(
 export async function sendIdentitySmsCode(
   digits: string,
   options: { ip: string; locale: string; siteTitle: string },
+  /** B-3007: the person signed in by address is adding this number. */
+  toAnyNumber = false,
 ): Promise<JoinSmsResult | { ok: false; reason: "no_contact" }> {
   const subject = phoneSubject(digits);
-  let found = false;
+  // B-3007: a number linked to an address, or an owner's own proven number,
+  // is a person on this instance even where no journal holds it.
+  let found = toAnyNumber || (await linkedEmail(digits)) !== null;
   for (const username of getUsernames()) {
     const contact = await getContactByEmail(username, subject).catch(() => null);
     if (contact?.status === "active") found = true;
