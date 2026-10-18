@@ -8,6 +8,10 @@ import type { MigrationDb } from "./types";
  * this nothing said that two of them were the same person: Viktoria by phone
  * and Viktoria by email were two people with two home views.
  *
+ * Both tables belong to no journal: `owner_id` is always `NO_JOURNAL` ("*"),
+ * as in 045–048, so every table still carries one (ROADMAP §0.5) and a
+ * journal's deletion leaves the person's own records alone.
+ *
  * `person_links` pairs one proved address with one proved number. A row is
  * written only when one browser proved both (`linkPerson`); an owner's own
  * proven number counts as a link without a row (`lib/people.ts`).
@@ -24,6 +28,7 @@ import type { MigrationDb } from "./types";
 export async function up(db: MigrationDb): Promise<void> {
   await db.schema
     .createTable("person_links")
+    .addColumn("owner_id", "text", (c) => c.notNull().defaultTo("*"))
     .addColumn("email", "text", (c) => c.primaryKey().notNull())
     .addColumn("phone", "text", (c) => c.notNull().unique())
     .addColumn("method", "text", (c) => c.notNull())
@@ -32,6 +37,7 @@ export async function up(db: MigrationDb): Promise<void> {
 
   await db.schema
     .createTable("person_addresses")
+    .addColumn("owner_id", "text", (c) => c.notNull().defaultTo("*"))
     .addColumn("subject", "text", (c) => c.primaryKey().notNull())
     .addColumn("cipher", "text", (c) => c.notNull())
     .addColumn("updated_at", "text", (c) => c.notNull())

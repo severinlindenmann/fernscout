@@ -378,6 +378,8 @@ type ReactionsTable = {
 
 /** B-3007 — one proved address paired with one proved number. */
 type PersonLinksTable = {
+  /** Always NO_JOURNAL ("*"): a person belongs to no journal. */
+  owner_id: Generated<string>;
   email: string;
   /** E.164 digits, no `+`. */
   phone: string;
@@ -388,6 +390,8 @@ type PersonLinksTable = {
 
 /** B-3007 — a person's own postal address, once per instance. */
 type PersonAddressesTable = {
+  /** Always NO_JOURNAL ("*"). */
+  owner_id: Generated<string>;
   /** The canonical subject (`canonicalSubject`). */
   subject: string;
   /** AES-256-GCM, AAD `person:<subject>`. */

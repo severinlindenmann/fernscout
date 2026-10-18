@@ -5,12 +5,12 @@ import { resolveIdentity } from "@/lib/auth/handshake";
 import { foreignOrigin } from "@/lib/auth/originCheck";
 import { isEnabled } from "@/lib/capabilities";
 import { spreadPersonAddress } from "@/lib/contacts";
-import { hasContactsKey, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
+import { hasAnyDetail, hasContactsKey, isPostable, normaliseAddress } from "@/lib/contacts/crypto";
 import { fail, ok, readJson, withV2Log } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { personPut } from "@/lib/api/v2/schemas/person";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
-import { getPersonAddress, subjectsOf } from "@/lib/people";
+import { clearPersonAddress, getPersonAddress, subjectsOf } from "@/lib/people";
 import { subjectPhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +43,11 @@ export const PUT = withV2Log(async function PUT(request: Request) {
   const parsed = personPut.safeParse(body.value);
   if (!parsed.success) return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(parsed.error));
   const address = normaliseAddress(parsed.data.address);
+  // Every field empty: forget the saved address, and leave the journals be.
+  if (!hasAnyDetail(address)) {
+    await clearPersonAddress(identity.email);
+    return ok({ ok: true, journals: 0 }, { headers: NO_STORE });
+  }
   if (!isPostable(address)) {
     return fail("invalid_request", "An address needs a street (line1), a city and a country.");
   }

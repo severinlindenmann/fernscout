@@ -192,7 +192,8 @@ function YourAddress({ person }: { person: Person }) {
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (!address.line1.trim() || !address.city.trim() || !address.country.trim()) {
+    const empty = Object.values(address).every((v) => v.trim() === "");
+    if (!empty && (!address.line1.trim() || !address.city.trim() || !address.country.trim())) {
       setNote({ ok: false, text: t("guide.address.incomplete") });
       return;
     }
@@ -209,7 +210,13 @@ function YourAddress({ person }: { person: Person }) {
       return;
     }
     const { journals } = (await response.json()) as { journals: number };
-    setNote({ ok: true, text: tn("meAccount.addressSaved", journals, { count: String(journals) }) });
+    setNote({
+      ok: true,
+      text: empty
+        ? t("meAccount.addressRemoved")
+        : journals === 0
+          ? t("meAccount.addressSavedNone") : tn("meAccount.addressSaved", journals, { count: String(journals) }),
+    });
   }
 
   return (
@@ -235,7 +242,7 @@ function YourAddress({ person }: { person: Person }) {
           {t("meAccount.addressSave")}
         </BusyButton>
         {note && (
-          <p role={note.ok ? "status" : "alert"} className={`mt-3 text-sm ${note.ok ? "text-ink-body" : "text-coral-600"}`}>
+          <p role={note.ok ? "status" : "alert"} className={`mt-3 text-sm ${note.ok ? "text-ink-body" : "font-semibold text-ink-strong"}`}>
             {note.text}
           </p>
         )}

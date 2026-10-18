@@ -167,6 +167,15 @@ export async function getPersonAddress(subject: string): Promise<PostalAddress |
   return row ? decryptAddress(row.cipher, personAad(key)) : null;
 }
 
+/** Forget the person's saved address. The journals keep what they were
+ * given; each is changed or removed there. */
+export async function clearPersonAddress(subject: string): Promise<void> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return;
+  const key = await canonicalSubject(subject);
+  await handle.db.deleteFrom("person_addresses").where("subject", "=", key).execute();
+}
+
 /**
  * Store the person's address, once for the instance. The caller spreads it
  * into the journals (`spreadPersonAddress` in `lib/contacts`). Returns false

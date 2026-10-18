@@ -5263,6 +5263,7 @@
   "meAccount.addressSave": "Adresse speichern",
   "meAccount.addressSaved": "Gespeichert. {count} Reisetagebücher haben deine neue Adresse.",
   "meAccount.addressSaved.one": "Gespeichert. Ein Reisetagebuch hat deine neue Adresse.",
-  "meAccount.addressSaved.zero": "Gespeichert. Du kannst sie teilen, wenn du einem Reisetagebuch beitrittst.",
-  "meAccount.addressFailed": "Die Adresse konnte nicht gespeichert werden. Versuch es gleich nochmal."
+  "meAccount.addressFailed": "Die Adresse konnte nicht gespeichert werden. Versuch es gleich nochmal.",
+  "meAccount.addressSavedNone": "Gespeichert. Du kannst sie teilen, wenn du einem Reisetagebuch beitrittst.",
+  "meAccount.addressRemoved": "Entfernt. Die Reisetagebücher behalten die Adresse, die du ihnen gegeben hast; ändere sie dort."
 }

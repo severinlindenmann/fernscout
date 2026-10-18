@@ -5267,6 +5267,7 @@
   "meAccount.addressSave": "Salva l’indirizzo",
   "meAccount.addressSaved": "Salvato. {count} diari hanno il tuo nuovo indirizzo.",
   "meAccount.addressSaved.one": "Salvato. Un diario ha il tuo nuovo indirizzo.",
-  "meAccount.addressSaved.zero": "Salvato. Potrai condividerlo quando entri in un diario.",
-  "meAccount.addressFailed": "Non è stato possibile salvare l’indirizzo. Riprova tra un attimo."
+  "meAccount.addressFailed": "Non è stato possibile salvare l’indirizzo. Riprova tra un attimo.",
+  "meAccount.addressSavedNone": "Salvato. Potrai condividerlo quando entri in un diario.",
+  "meAccount.addressRemoved": "Rimosso. I diari tengono l’indirizzo che hai dato loro; cambialo in ciascuno."
 }

@@ -292,3 +292,14 @@ describe("review findings", () => {
     expect((await getContactByEmail("ana", VIK))?.postalAddress?.line1).toBe("New 7");
   });
 });
+
+test("an empty save forgets the saved address and changes no journal", async () => {
+  await signInAs(VIK);
+  const { PUT } = await import("@/app/api/v2/me/person/route");
+  const res = await PUT(req("/api/v2/me/person", { address: { name: "", line1: "", line2: "", postcode: "", city: "", country: "" } }, "PUT"));
+  expect(res.status).toBe(200);
+  const { getPersonAddress } = await import("@/lib/people");
+  expect(await getPersonAddress(VIK)).toBeNull();
+  const { getContactByEmail } = await import("@/lib/contacts");
+  expect((await getContactByEmail("ana", VIK))?.postalAddress?.line1).toBe("New 7");
+});

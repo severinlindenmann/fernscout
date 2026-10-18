@@ -5264,6 +5264,7 @@
   "meAccount.addressSave": "Cím mentése",
   "meAccount.addressSaved": "Mentve. {count} útinaplóban van meg az új címed.",
   "meAccount.addressSaved.one": "Mentve. Egy útinaplóban van meg az új címed.",
-  "meAccount.addressSaved.zero": "Mentve. Megoszthatod, amikor csatlakozol egy útinaplóhoz.",
-  "meAccount.addressFailed": "A címet nem sikerült menteni. Próbáld újra egy kicsit később."
+  "meAccount.addressFailed": "A címet nem sikerült menteni. Próbáld újra egy kicsit később.",
+  "meAccount.addressSavedNone": "Mentve. Megoszthatod, amikor csatlakozol egy útinaplóhoz.",
+  "meAccount.addressRemoved": "Eltávolítva. Az útinaplók megtartják a nekik megadott címet; ott módosíthatod."
 }

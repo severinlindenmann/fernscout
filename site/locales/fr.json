@@ -5267,6 +5267,7 @@
   "meAccount.addressSave": "Enregistrer l’adresse",
   "meAccount.addressSaved": "Enregistrée. {count} journaux ont ta nouvelle adresse.",
   "meAccount.addressSaved.one": "Enregistrée. Un journal a ta nouvelle adresse.",
-  "meAccount.addressSaved.zero": "Enregistrée. Tu pourras la partager en rejoignant un journal.",
-  "meAccount.addressFailed": "L’adresse n’a pas pu être enregistrée. Réessaie dans un instant."
+  "meAccount.addressFailed": "L’adresse n’a pas pu être enregistrée. Réessaie dans un instant.",
+  "meAccount.addressSavedNone": "Enregistrée. Tu pourras la partager en rejoignant un journal.",
+  "meAccount.addressRemoved": "Supprimée. Les journaux gardent l’adresse que tu leur as donnée ; change-la dans chacun."
 }

@@ -26,7 +26,10 @@ export const personDoc = z.strictObject({
 export const personPut = z.strictObject({
   address: personAddress
     .partial()
-    .describe("a street (line1), city and country are required; it replaces the address in every journal holding the person's own"),
+    .describe(
+      "a street (line1), city and country are required; it replaces the address in every journal holding the " +
+        "person's own. Every field empty forgets the saved address and changes no journal.",
+    ),
 });
 
 export const personSaved = z.strictObject({

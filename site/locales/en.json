@@ -5258,6 +5258,7 @@
   "meAccount.addressSave": "Save address",
   "meAccount.addressSaved": "Saved. {count} journals have your new address.",
   "meAccount.addressSaved.one": "Saved. One journal has your new address.",
-  "meAccount.addressSaved.zero": "Saved. You can share it when you join a journal.",
-  "meAccount.addressFailed": "The address could not be saved. Try again in a moment."
+  "meAccount.addressFailed": "The address could not be saved. Try again in a moment.",
+  "meAccount.addressSavedNone": "Saved. You can share it when you join a journal.",
+  "meAccount.addressRemoved": "Removed. Journals keep the address you gave them; change it in each one."
 }
