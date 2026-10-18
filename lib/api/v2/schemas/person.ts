@@ -7,7 +7,7 @@ import { z } from "zod";
  */
 const field = z.string().max(120).describe("trimmed; longer is cut at 120 characters");
 
-export const personAddress = z.strictObject({
+const personAddress = z.strictObject({
   name: field.describe("who the envelope is addressed to"),
   line1: field,
   line2: field,

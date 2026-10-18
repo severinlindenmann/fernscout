@@ -82,7 +82,7 @@ export async function linkedEmail(digits: string): Promise<string | null> {
 
 /** Every proved number of an address: its link, and the numbers of the
  * journals it owns. */
-export async function linkedPhones(email: string): Promise<string[]> {
+async function linkedPhones(email: string): Promise<string[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const address = normalise(email);
