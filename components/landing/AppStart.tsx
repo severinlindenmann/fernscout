@@ -51,7 +51,7 @@ export default function AppStart({
 
   if (signIn) {
     return (
-      <div className="flex min-h-full flex-col bg-surface-base text-ink-body">
+      <div className="flex min-h-dvh flex-col bg-surface-base text-ink-body">
         <div aria-hidden className="h-1.5 bg-tint" />
         <div className="px-4 pt-3">
           <button
@@ -72,7 +72,7 @@ export default function AppStart({
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-surface-base text-ink-body">
+    <div className="flex min-h-dvh flex-col bg-surface-base text-ink-body">
       <div aria-hidden className="h-1.5 bg-tint" />
       <main id="main" className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-4 pb-6 pt-4">
         <Logo siteName={siteName} />
