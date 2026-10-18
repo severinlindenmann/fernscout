@@ -2,6 +2,7 @@ import {
   NO_JOURNAL,
   isEmail,
   resolveSession,
+  revokeBrowserSessionsOfSubject,
   revokeSession,
   pendingCodeTrip,
   tripWriteScope,
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
 
   // B-3007: adding a second channel to the person signed in on this browser.
   let linkTo: string | null = null;
+  let linkFromSession: string | null = null;
   if (req.link) {
     if (req.for !== "identity") return fail("invalid_request", 'link is only meaningful when "for" is "identity".');
     const current = await resolveIdentity();
@@ -93,6 +95,7 @@ export async function POST(request: Request) {
       return fail("invalid_request", "replace changes the number from a sign-in by address: sign in with your email.");
     }
     linkTo = current.email;
+    linkFromSession = current.id;
   } else if (req.replace) {
     return fail("invalid_request", "replace is only meaningful with link.");
   }
@@ -177,11 +180,15 @@ export async function POST(request: Request) {
       const address = subjectPhone(email) ? linkTo : email;
       const linked = req.replace ? await changePersonPhone(address, digits) : await linkPerson(address, digits);
       if (!linked.ok) return fail("link_taken", ERROR_CODES.link_taken, undefined, 409);
+      // Only proofs made now count for the number from here on: an older
+      // sign-in by it (a previous holder's) would otherwise act as the address.
+      const opened = await resolveSession(result.token, "identity");
+      const proving = [opened?.id, linkFromSession].filter((id): id is string => Boolean(id));
+      await revokeBrowserSessionsOfSubject(phoneSubject(digits), proving);
       // B-3010: a change keeps this browser signed in by the address, so it
       // can change the number again; the sign-in the code just opened for the
       // new number is not a device anybody uses.
       if (req.replace) {
-        const opened = await resolveSession(result.token, "identity");
         if (opened) await revokeSession(opened.id);
         return ok({ ok: true, expires: result.expiresAt, scope: "identity" as const });
       }

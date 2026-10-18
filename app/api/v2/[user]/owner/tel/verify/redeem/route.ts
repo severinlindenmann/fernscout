@@ -12,6 +12,8 @@ import { getUser } from "@/lib/users";
 import { journalForNumber, lockTel } from "@/lib/registry";
 import { checkVerification } from "@/lib/phoneVerify";
 import { ownerTelDocFields, setOwnerTel } from "@/lib/ownerTel";
+import { revokeBrowserSessionsOfSubject } from "@/lib/auth";
+import { phoneSubject } from "@/lib/phone";
 import { rateLimitFor, clientIp } from "@/lib/rateLimit";
 import { ownerTelDoc, ownerTelVerifyRedeem } from "@/lib/api/v2/schemas";
 import { readJsonBody } from "@/lib/api/jsonBody";
@@ -62,5 +64,8 @@ export const POST = withV2Log(async function POST(
     return fail("tel_taken", "That number already belongs to another journal.", undefined, 409);
   }
   await setOwnerTel(user, checked.phone, "sms");
+  // B-3010: the owner's proven number is the owner (lib/people.ts), so a
+  // sign-in somebody made with it before now would act as the owner.
+  if (digits) await revokeBrowserSessionsOfSubject(phoneSubject(digits));
   return ok(ownerTelDoc.parse(await ownerTelDocFields(user)));
 }, { route: "/api/v2/[user]/owner/tel/verify/redeem" });

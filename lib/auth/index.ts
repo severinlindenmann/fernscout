@@ -1579,17 +1579,22 @@ export async function revokeBrowserSessions(email: string): Promise<number> {
 
 /**
  * End every browser sign-in held under exactly this subject — B-3010, for a
- * number that just stopped being the person's. Exact on purpose:
+ * number that just stopped being the person's, and for a number that just
+ * became somebody's: a sign-in made with it before (its previous holder's)
+ * would otherwise start acting as the address it is now linked to. `keep`
+ * names the sessions that proved it just now. Exact on purpose:
  * `revokeBrowserSessions` widens to the person's other subjects, which here
  * would sign the person out of their address too.
  */
-export async function revokeBrowserSessionsOfSubject(subject: string): Promise<number> {
+export async function revokeBrowserSessionsOfSubject(subject: string, keep: readonly string[] = []): Promise<number> {
   const { db } = await getDatabase();
-  const result = await db
+  let query = db
     .updateTable("sessions")
     .set({ revoked_at: nowIso() })
     .where("revoked_at", "is", null)
-    .where("kind", "in", ["guest", "identity"])
+    .where("kind", "in", ["guest", "identity"]);
+  if (keep.length > 0) query = query.where("id", "not in", [...keep]);
+  const result = await query
     .where("user_id", "in", db.selectFrom("users").select("id").where("email", "=", subject))
     .executeTakeFirst();
   return Number(result.numUpdatedRows ?? 0);

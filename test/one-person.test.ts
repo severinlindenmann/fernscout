@@ -381,3 +381,17 @@ describe("changing the number (B-3010)", () => {
     expect((await getOwnerTel("ana"))?.tel).toBe("41760000060");
   });
 });
+
+test("a sign-in a number's previous holder made does not become the person who links it (review)", async () => {
+  // Somebody signed in with this number before Vik's partner owned it.
+  await signInAs("+41760000080");
+  const stale = jar.cookies.fs_identity;
+  await signInAs("partner@example.test");
+  expect((await ask({ for: "identity", phone: "+41 76 000 00 80", link: true })).status).toBe(202);
+  expect((await redeem({ for: "identity", phone: "+41 76 000 00 80", code: await lastCodeTo("41760000080"), link: true })).status).toBe(200);
+  const { resolveSession } = await import("@/lib/auth");
+  expect(await resolveSession(stale, "identity")).toBeNull();
+  // The browser that just proved it is signed in, as the partner.
+  const { resolveIdentity } = await import("@/lib/auth/handshake");
+  expect((await resolveIdentity())?.email).toBe("partner@example.test");
+});
