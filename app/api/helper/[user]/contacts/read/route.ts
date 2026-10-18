@@ -4,6 +4,7 @@ import { readContactsFile } from "@/lib/contacts/readImport";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { findInboxFile } from "@/lib/inbox";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
  * Cookie only, owner only, outside `/api/v1` — the same door as every other
  * helper write.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/contacts/read">,
 ) {
@@ -55,4 +56,4 @@ export async function POST(
   }
 
   return Response.json({ ok: true, ...read });
-}
+}, { route: "/api/helper/[user]/contacts/read" });

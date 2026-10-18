@@ -10,6 +10,7 @@ import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempoten
 import { findInboxFile } from "@/lib/inbox";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ const LIMIT = { max: 10, windowMs: 15 * 60 * 1000 };
  *  the model saw, so the screen shows exactly what the answer was based on. */
 const PREVIEW_ROWS = 5;
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/statement">,
 ) {
@@ -148,7 +149,7 @@ export async function POST(
   };
   await remember(key, fingerprint, answer);
   return Response.json(answer);
-}
+}, { route: "/api/helper/[user]/statement" });
 
 /** The sample back as a little CSV, so the preview runs through the same
  * `applyMapping` the whole file will — a preview built by a second code path

@@ -11,6 +11,7 @@ import type { UserConfig } from "@/lib/config";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
 import { journalPath } from "@/lib/journalPath";
+import { withV2Log } from "@/lib/api/v2/route";
 export const dynamic = "force-dynamic";
 
 /**
@@ -88,7 +89,7 @@ function retriedTrip(username: string, title: string, start: string, end: string
  * for the same reason: reading a trip the owner already has costs nothing
  * and asks no model.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -97,9 +98,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
   const trip = id ? getTrip(tripRef(user, id)) : null;
   if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
   return Response.json({ title: trip.title, start: trip.start, end: trip.end });
-}
+}, { route: "/api/helper/[user]/trip" });
 
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -358,7 +359,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     { ok: true, id: created.id, href: `${journalPath(encodeURIComponent(user))}/trips/${created.id}` },
     { status: 201 },
   );
-}
+}, { route: "/api/helper/[user]/trip" });
 
 const PATCH_LIMIT = { max: 20, windowMs: 15 * 60 * 1000 };
 
@@ -377,7 +378,7 @@ const PATCH_LIMIT = { max: 20, windowMs: 15 * 60 * 1000 };
  * ever asked this conversation to change one, and a field on the card that is
  * never the answer is a field somebody reads past every time.
  */
-export async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -421,4 +422,4 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
 
   wrote(user, "edit_trip", { trip: ref, title: result.title, start: result.start, end: result.end });
   return Response.json({ ok: true, trip: ref, title: result.title, start: result.start, end: result.end });
-}
+}, { route: "/api/helper/[user]/trip" });

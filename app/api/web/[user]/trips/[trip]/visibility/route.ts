@@ -18,6 +18,7 @@ import { applyTripPatch } from "@/app/api/v2/[user]/trips/[trip]/route";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ const NOT_FOR_AGENTS = {
 
 const ALLOWED = ["visibility", "listed", "teaser", "guestsLive"];
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/visibility">,
 ) {
@@ -67,4 +68,4 @@ export async function PATCH(
   // `reconcileVisibility` still drops a stale listed/teaser across the
   // public line, and the fields sent are still validated by their schema.
   return applyTripPatch(user, trip, journal, clone, "sections");
-}
+}, { route: "/api/web/[user]/trips/[trip]/visibility" });

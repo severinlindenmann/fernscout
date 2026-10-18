@@ -6,6 +6,7 @@ import { extendOnTouch } from "@/lib/staging/expiry";
 import { DATE_RE, readManifest, writeManifest } from "@/lib/staging/manifest";
 import { POST as assembleDay } from "@/app/api/helper/[user]/assemble-day/route";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export const dynamic = "force-dynamic";
  * already did — nothing is forwarded or re-checked, because nothing needs to
  * be.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/commit">,
 ) {
@@ -142,4 +143,4 @@ export async function POST(
     { ok: true, moved, entry: slug, ...(mediaError ? { mediaError } : {}) },
     { status: 200 },
   );
-}
+}, { route: "/api/helper/[user]/studio/commit" });

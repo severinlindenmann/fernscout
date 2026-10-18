@@ -9,6 +9,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export const dynamic = "force-dynamic";
  * Cookie only, owner only, outside `/api/v1` — the same door as every other
  * helper write.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/contacts/import">,
 ) {
@@ -87,4 +88,4 @@ export async function POST(
     invalid: results.filter((r) => r.outcome === "invalid").length,
     results,
   });
-}
+}, { route: "/api/helper/[user]/contacts/import" });

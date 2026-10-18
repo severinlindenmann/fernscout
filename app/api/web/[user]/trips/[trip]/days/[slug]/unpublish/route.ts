@@ -15,6 +15,7 @@ import { applyUnpublish } from "@/app/api/v2/[user]/trips/[trip]/days/[slug]/unp
 import { readDayFile, readTripFile, resolveDayStem } from "@/lib/api/v2/store";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ const NOT_FOR_AGENTS = {
     "POST /api/v2/{user}/trips/{trip}/days/{slug}/unpublish.",
 };
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/days/[slug]/unpublish">,
 ) {
@@ -50,4 +51,4 @@ export async function POST(
   }
 
   return applyUnpublish(user, tripId, stem);
-}
+}, { route: "/api/web/[user]/trips/[trip]/days/[slug]/unpublish" });

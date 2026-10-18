@@ -13,10 +13,11 @@ import { dayOfTrip } from "@/lib/studio/monthGrid";
 import { storyCardFacts, storyPhotos, storyShareLink } from "@/lib/storyCard";
 import { storyPhotoFile } from "@/lib/storyMedia";
 import { renderStoryVideo, storyVideoCacheKey, videoToolsAvailable } from "@/lib/storyVideo";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/days/[slug]/story/video">,
 ) {
@@ -84,7 +85,7 @@ export async function GET(
   if (!bytes) return Response.json({ error: "render_failed" }, { status: 500 });
 
   return videoRangeResponse(request, bytes);
-}
+}, { route: "/api/web/[user]/trips/[trip]/days/[slug]/story/video" });
 
 /**
  * Answers the byte range Safari asks for before it will even start playing

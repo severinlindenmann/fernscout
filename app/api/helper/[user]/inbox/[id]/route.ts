@@ -1,5 +1,6 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { DAY_RE, removeDayInboxFile, removeInboxFile } from "@/lib/inbox";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
  * carried were read and thinned into `gps/`. The API route says so in its
  * `next` text; a person reading a screen needs a button.
  */
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/inbox/[id]">,
 ) {
@@ -37,4 +38,4 @@ export async function DELETE(
     return Response.json({ error: "unknown_inbox_file" }, { status: 404 });
   }
   return Response.json({ ok: true });
-}
+}, { route: "/api/helper/[user]/inbox/[id]" });

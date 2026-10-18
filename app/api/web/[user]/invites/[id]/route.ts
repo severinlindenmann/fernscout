@@ -14,6 +14,7 @@ import { contactsReady } from "@/lib/api/v2/social";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ const NOT_FOR_AGENTS = {
     "Studio › Readers, in the owner's own browser — there is no agent bearer equivalent.",
 };
 
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/invites/[id]">,
 ) {
@@ -40,4 +41,4 @@ export async function DELETE(
   const ready = await contactsReady(user);
   if (!ready.ok) return ready.response;
   return inviteDeleteResponse(user, id, request);
-}
+}, { route: "/api/web/[user]/invites/[id]" });

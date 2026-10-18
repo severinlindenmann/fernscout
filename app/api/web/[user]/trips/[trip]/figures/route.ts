@@ -17,6 +17,7 @@ import { applyTripPatch } from "@/app/api/v2/[user]/trips/[trip]/route";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ const NOT_FOR_AGENTS = {
 
 const ALLOWED = ["figures", "declined"];
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/figures">,
 ) {
@@ -56,4 +57,4 @@ export async function PATCH(
   }
 
   return applyTripPatch(user, trip, journal, clone, "sections");
-}
+}, { route: "/api/web/[user]/trips/[trip]/figures" });

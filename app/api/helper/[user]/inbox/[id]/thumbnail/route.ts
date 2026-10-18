@@ -2,6 +2,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { extractThumbnail } from "@/lib/extract/thumbnail";
 import { parseWidth } from "@/lib/mediaSizes";
 import { DAY_RE, findDayInboxFile, findInboxFile } from "@/lib/inbox";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ export const dynamic = "force-dynamic";
  *   cache: the same URL answers differently for every journal, and a shared
  *   cache cannot tell that apart.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/inbox/[id]/thumbnail">,
 ) {
@@ -93,4 +94,4 @@ export async function GET(
       "X-Content-Type-Options": "nosniff",
     },
   });
-}
+}, { route: "/api/helper/[user]/inbox/[id]/thumbnail" });

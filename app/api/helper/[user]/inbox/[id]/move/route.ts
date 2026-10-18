@@ -1,6 +1,7 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { DAY_RE, findInboxFile, moveInboxFileFromDay, moveInboxFileToDay } from "@/lib/inbox";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export const dynamic = "force-dynamic";
  * `path.basename`, the same traversal guard `findInboxFile`'s own doc
  * comment explains — never joined into a path directly here.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/inbox/[id]/move">,
 ) {
@@ -127,4 +128,4 @@ export async function POST(
     return Response.json({ error: "unknown_inbox_file" }, { status: 404 });
   }
   return Response.json({ ok: true, id: found.entry.id, day: null });
-}
+}, { route: "/api/helper/[user]/inbox/[id]/move" });

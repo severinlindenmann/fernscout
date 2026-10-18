@@ -3,6 +3,7 @@ import { isJournalOwnerCookie } from "@/lib/contacts/session";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isEnabled } from "@/lib/capabilities";
 import { deleteTripRecording, isRealDate } from "@/lib/gps/api";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ async function isOwnerOnly(username: string): Promise<boolean> {
   return (await isHelperOwner(username)) && (await isJournalOwnerCookie(username));
 }
 
-export async function DELETE(request: Request, { params }: RouteContext<"/api/helper/[user]/gps/trip">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/helper/[user]/gps/trip">) {
   const { user } = await params;
   if (!(await isOwnerOnly(user))) return notYourJournal(request, user);
   if (foreignOrigin(request)) {
@@ -48,4 +49,4 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/he
   if (!result) return Response.json({ error: "unknown_trip" }, { status: 404, headers: NO_STORE });
 
   return Response.json({ ok: true, ...result }, { headers: NO_STORE });
-}
+}, { route: "/api/helper/[user]/gps/trip" });

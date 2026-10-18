@@ -4,6 +4,7 @@ import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/he
 import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export const dynamic = "force-dynamic";
  * Nothing here uploads bytes: `../media/route.ts` is that door and stays it.
  * This one only ever moves a file the journal already has.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/attach">,
 ) {
@@ -107,4 +108,4 @@ export async function POST(
     },
     { status: 201 },
   );
-}
+}, { route: "/api/helper/[user]/day/attach" });

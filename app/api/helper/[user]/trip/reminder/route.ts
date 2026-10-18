@@ -5,6 +5,7 @@ import { patchTripReminder } from "@/lib/api/tripReminder";
 import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/trip/reminder">,
 ) {
@@ -82,4 +83,4 @@ export async function PATCH(
 
   wrote(user, "set_reminder", { trip: ref, enabled: result.enabled, channel: result.channel });
   return Response.json({ ok: true, trip: ref, enabled: result.enabled, channel: result.channel });
-}
+}, { route: "/api/helper/[user]/trip/reminder" });

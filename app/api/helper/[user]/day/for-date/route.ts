@@ -1,6 +1,7 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
 import { findDayForDate } from "@/lib/studio/day";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
  * (never trust a client's earlier answer for something this can change
  * under it), so this route is a UX convenience, not the actual guard.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day/for-date">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day/for-date">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -30,4 +31,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
 
   const existing = findDayForDate(user, tripId, date);
   return Response.json({ ok: true, existing });
-}
+}, { route: "/api/helper/[user]/day/for-date" });

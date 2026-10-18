@@ -1,6 +1,7 @@
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { deleteGroup, GROUP_ERROR_STATUS, updateGroup } from "@/lib/contacts/groups";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
  * the answer lists who they were so the page can offer Undo (POST
  * `…/groups` with `members`).
  */
-export async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/groups/[id]">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/groups/[id]">) {
   const { user, id } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -24,9 +25,9 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
     return Response.json({ error: updated.error }, { status: GROUP_ERROR_STATUS[updated.error], headers: PRIVATE });
   }
   return Response.json({ ok: true, group: updated.value }, { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/groups/[id]" });
 
-export async function DELETE(request: Request, { params }: RouteContext<"/api/web/[user]/groups/[id]">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/web/[user]/groups/[id]">) {
   const { user, id } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -35,4 +36,4 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/we
     return Response.json({ error: deleted.error }, { status: GROUP_ERROR_STATUS[deleted.error], headers: PRIVATE });
   }
   return Response.json({ ok: true, members: deleted.value }, { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/groups/[id]" });

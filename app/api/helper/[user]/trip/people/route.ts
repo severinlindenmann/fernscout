@@ -6,6 +6,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { addPerson } from "@/lib/samePerson";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/trip/people">,
 ) {
@@ -98,4 +99,4 @@ export async function PATCH(
       `${email} may now write to every day of this trip and may ask for a token scoped to ` +
       "it, using that address.",
   });
-}
+}, { route: "/api/helper/[user]/trip/people" });

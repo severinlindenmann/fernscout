@@ -4,6 +4,7 @@ import { placeForDay } from "@/lib/gps/api";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 /** Never kept by a browser or a shared cache — it is derived from `gps/`. */
 const PRIVATE = { "Cache-Control": "private, no-store" };
@@ -27,7 +28,7 @@ export const dynamic = "force-dynamic";
  * nothing, so the flow can tell "no capability" from "no fixes that day"
  * apart.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day/place">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day/place">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -53,4 +54,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
 
   const place = placeForDay(user, tripId, date);
   return Response.json({ ok: true, place }, { headers: PRIVATE });
-}
+}, { route: "/api/helper/[user]/day/place" });

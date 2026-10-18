@@ -4,6 +4,7 @@ import { fillDays } from "@/lib/gps/nameDays";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { getTrip, tripRef } from "@/lib/trips";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  * place — nothing else — and recomputes each place here rather than
  * trusting what the page showed.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/gps/name-days">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/gps/name-days">) {
   const { user } = await params;
   if (!(await isHelperOwner(user)) || !(await isJournalOwnerCookie(user))) return notYourJournal(request, user);
   if (!isEnabled("routeRecording", user)) return Response.json({ error: "capability_off" }, { status: 404 });
@@ -30,4 +31,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     return Response.json({ error: "invalid_dates" }, { status: 400 });
   }
   return Response.json({ ok: true, ...fillDays(user, trip, dates as string[]) }, { headers: { "Cache-Control": "private, no-store" } });
-}
+}, { route: "/api/helper/[user]/gps/name-days" });

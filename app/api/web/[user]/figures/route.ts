@@ -8,6 +8,7 @@
 import { listFiguresPage, DEFAULT_FIGURES_LIMIT } from "@/lib/figures";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ const NOT_FOR_AGENTS = {
     "GET /api/v2/{user}/figures.",
 };
 
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/figures">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/figures">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
@@ -31,4 +32,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
 
   const { items } = listFiguresPage(user, { limit: DEFAULT_FIGURES_LIMIT });
   return Response.json({ figures: items });
-}
+}, { route: "/api/web/[user]/figures" });

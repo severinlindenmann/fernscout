@@ -10,6 +10,7 @@ import { runDir } from "@/lib/staging/paths";
 import { readManifest, writeManifest } from "@/lib/staging/manifest";
 import { extendOnTouch } from "@/lib/staging/expiry";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/sample">,
 ) {
@@ -99,4 +100,4 @@ export async function POST(
   writeManifest(user, current);
 
   return Response.json({ caption, provider: HELPER_PROVIDER });
-}
+}, { route: "/api/helper/[user]/studio/sample" });

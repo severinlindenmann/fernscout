@@ -5,6 +5,7 @@ import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/he
 import { refused, wrote } from "@/lib/helper/thread";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/weather">,
 ) {
@@ -72,4 +73,4 @@ export async function POST(
     draft: dayForWizard(user, tripId, slug),
     preview: previewOf(user, tripId, slug),
   });
-}
+}, { route: "/api/helper/[user]/day/weather" });

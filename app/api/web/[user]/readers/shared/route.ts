@@ -2,6 +2,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 import { getContact } from "@/lib/contacts";
 import { logMessage } from "@/lib/messages/log";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * card's "self" channel in `NotifyStep`. A group link shared from
  * `InviteLinkDoor` names nobody, since it is not for one person.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers/shared">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers/shared">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -41,4 +42,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   });
 
   return new Response(null, { status: 204, headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/readers/shared" });

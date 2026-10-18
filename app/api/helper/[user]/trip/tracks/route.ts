@@ -6,6 +6,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { TRACKS } from "@/lib/tracks";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/trip/tracks">,
 ) {
@@ -76,4 +77,4 @@ export async function PATCH(
 
   wrote(user, "trip_tracks", { trip: ref, tracks: result.tracks });
   return Response.json({ ok: true, trip: ref, tracks: result.tracks });
-}
+}, { route: "/api/helper/[user]/trip/tracks" });

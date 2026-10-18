@@ -1,11 +1,12 @@
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
 import { removeKeep } from "@/lib/tripLink";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
 /** `DELETE /api/web/<user>/trip-links/keeps/<keepId>` — Remove one trip a person saved (B-2963). */
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trip-links/keeps/[keepId]">,
 ) {
@@ -17,4 +18,4 @@ export async function DELETE(
     return Response.json({ error: "not_found" }, { status: 404, headers: PRIVATE });
   }
   return Response.json({ id: keepId, removed: true }, { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/trip-links/keeps/[keepId]" });

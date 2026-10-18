@@ -18,6 +18,7 @@
 import { applyTripPatch } from "@/app/api/v2/[user]/trips/[trip]/route";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ const NOT_FOR_AGENTS = {
   message: "This is the owner's own door, from a browser. An agent edits a trip with PATCH /api/v2/{user}/trips/{trip}.",
 };
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]">,
 ) {
@@ -46,4 +47,4 @@ export async function PATCH(
   // and more open. Demanding those first answered 422 on every trip made in
   // the studio. What the patch sends is still validated by its own schema.
   return applyTripPatch(user, trip, journal, request, "sections");
-}
+}, { route: "/api/web/[user]/trips/[trip]" });

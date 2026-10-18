@@ -9,6 +9,7 @@ import {
 } from "@/lib/helper/consent";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ function explicitScopeOf(raw: unknown): HelperScope | null {
   return (HELPER_SCOPES as readonly string[]).includes(raw as string) ? (raw as HelperScope) : null;
 }
 
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/consent">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/consent">) {
   const { user } = await params;
   const jsonBody = await readJsonBody(request);
   if (!jsonBody.ok) return jsonBody.response;
@@ -87,9 +88,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    */
   const provider = currentHelperProvider(scope);
   return Response.json({ ok: true, consent: recordHelperConsent(user, provider, scope) });
-}
+}, { route: "/api/helper/[user]/consent" });
 
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/consent">,
 ) {
@@ -120,4 +121,4 @@ export async function DELETE(
   }
   revokeHelperConsent(user, scope);
   return Response.json({ ok: true, consent: helperConsent(user) });
-}
+}, { route: "/api/helper/[user]/consent" });

@@ -4,6 +4,7 @@ import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
 import { readLinkUrl } from "@/lib/tripLink";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
  * the link reads the trip, so only a trip shared with guests can be named:
  * the check is here, not in the form.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/trip-links">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/trip-links">) {
   const { user } = await params;
   if (!getUser(user)) return Response.json({ error: "unknown_user" }, { status: 404 });
   const denied = await ownerOnly(request, user);
@@ -43,4 +44,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
     { id: made.id, url: made.readCode ? readLinkUrl(made.readCode) : null, expiresAt: made.expiresAt },
     { status: 201, headers: PRIVATE },
   );
-}
+}, { route: "/api/web/[user]/trip-links" });

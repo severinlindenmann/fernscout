@@ -1,6 +1,7 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { attachTripWaitingMedia } from "@/lib/studio/inbox";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
  * (the same string the studio inbox page's own listing gave back), and the
  * day's slug within that trip.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/trip/waiting/attach">,
 ) {
@@ -58,4 +59,4 @@ export async function POST(
     return Response.json({ error: "not_attached", message: result.error }, { status: 400 });
   }
   return Response.json({ ok: true, attached: result.attached });
-}
+}, { route: "/api/helper/[user]/trip/waiting/attach" });

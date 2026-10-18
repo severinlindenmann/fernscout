@@ -6,6 +6,7 @@ import { parsePastedText } from "@/lib/plan/readPasted";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { findMapsLink, resolveMapsLink } from "@/lib/mapsLink";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ const LIMIT = { max: 30, windowMs: 60 * 1000 };
  * endpoint. */
 const MAX_TEXT_LEN = 500;
 
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/plan/read">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/plan/read">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -135,4 +136,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   return Response.json({ kind: "place-query", q: parsed.q });
-}
+}, { route: "/api/helper/[user]/plan/read" });

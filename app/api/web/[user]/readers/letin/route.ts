@@ -2,6 +2,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 import { approveContact, getContact } from "@/lib/contacts";
 import { tellLetIn } from "@/lib/contacts/welcome";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
  * trip place. Anything else in the body is ignored, so a caller cannot name
  * a trip the person never asked for.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers/letin">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers/letin">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -44,4 +45,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   if (!approved) return Response.json({ error: "not_proven" }, { status: 409, headers: PRIVATE });
   const told = await tellLetIn(user, approved.contact);
   return Response.json({ ok: true, tripsOpened: approved.tripsOpened, told }, { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/readers/letin" });

@@ -1,6 +1,7 @@
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { createGroup, GROUP_ERROR_STATUS, listGroups, restoreGroupMembers } from "@/lib/contacts/groups";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +16,14 @@ export const dynamic = "force-dynamic";
  * `{ contactIds, inviteIds }` exactly as the DELETE answered them, put back
  * into the new group — only rows of this owner's, so a guessed id is a no-op.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/groups">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/groups">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
   return Response.json({ groups: await listGroups(user) }, { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/groups" });
 
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/groups">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/groups">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -42,7 +43,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
     });
   }
   return Response.json({ ok: true, group: created.value }, { status: 201, headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/groups" });
 
 function stringList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string").slice(0, 5000) : [];

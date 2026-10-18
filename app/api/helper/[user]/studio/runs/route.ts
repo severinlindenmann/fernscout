@@ -6,6 +6,7 @@ import { unusedPhotoCount } from "@/lib/staging/expiry";
 import { listRuns, type RunManifest } from "@/lib/staging/manifest";
 import { journalStagingBytes } from "@/lib/staging/store";
 import { JOURNAL_STAGING_MAX_BYTES } from "@/lib/validate/media";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export type RunSummary = RunManifest & { daysLeftToTell: number };
  * empty run past its warn age is still warned; only the resume *screen* has
  * no reason to offer it).
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/runs">,
 ) {
@@ -97,4 +98,4 @@ export async function GET(
     stagedBytes: journalStagingBytes(user),
     stagedLimitBytes: JOURNAL_STAGING_MAX_BYTES,
   });
-}
+}, { route: "/api/helper/[user]/studio/runs" });

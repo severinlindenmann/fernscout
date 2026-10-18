@@ -1,6 +1,7 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { wrote } from "@/lib/helper/thread";
 import { runCleanup } from "@/lib/storageCleanup";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * contract, for the reason `app/api/helper/[user]/day/route.ts` sets out at
  * length.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/storage/cleanup">,
 ) {
@@ -28,4 +29,4 @@ export async function POST(
   const result = await runCleanup(user);
   wrote(user, "cleanup", { bytes: result.bytes, files: result.files });
   return Response.json({ ok: true, ...result });
-}
+}, { route: "/api/helper/[user]/storage/cleanup" });

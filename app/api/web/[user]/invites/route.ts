@@ -19,6 +19,7 @@ import { contactsReady } from "@/lib/api/v2/social";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ async function guard(user: string): Promise<Response | null> {
   return null;
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/invites">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/invites">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
@@ -46,14 +47,14 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
   const denied = await guard(user);
   if (denied) return denied;
   return invitesListResponse(user, request);
-}
+}, { route: "/api/web/[user]/invites" });
 
 /**
  * B2291/B2293 — the answer also carries `joinUrl`, the short `/j/<code>` the
  * Readers page shows (the long `url` keeps working, by redirect). Null where
  * the code cannot be shown again (no contacts key).
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/invites">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/invites">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
@@ -71,4 +72,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
     { ...(await response.json()), joinUrl: code ? joinUrl(code) : null },
     { status: 201, headers: { "Cache-Control": "private, no-store" } },
   );
-}
+}, { route: "/api/web/[user]/invites" });

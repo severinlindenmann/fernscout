@@ -24,6 +24,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,7 @@ function state(user: string, trip: string, slug: string): Response {
   return Response.json({ ok: true, draft, preview: previewOf(user, trip, slug) });
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
   const gated = await gate(request, user);
   if (gated) return gated;
@@ -118,7 +119,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
     return Response.json({ error: "unknown_trip" }, { status: 404 });
   }
   return state(user, trip, slug);
-}
+}, { route: "/api/helper/[user]/day" });
 
 /**
  * Create the day, as soon as the trip and the date are known.
@@ -139,7 +140,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
  * everywhere as though it were real words instead of visibly nothing, which
  * is the opposite of the point of a placeholder.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
   const gated = await gate(request, user);
   if (gated) return gated;
@@ -261,7 +262,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   wrote(user, "start_day", { trip: tripId, slug: written.slug, date });
   return Response.json({ ok: true, trip: tripId, slug: written.slug }, { status: 201 });
-}
+}, { route: "/api/helper/[user]/day" });
 
 /**
  * The words, and the answers to the trip's questions.
@@ -282,7 +283,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
  * comment on `renameEntrySlug` for the whole of it. Forward only: a day
  * already published never has its address changed here.
  */
-export async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
   const gated = await gate(request, user);
   if (gated) return gated;
@@ -408,4 +409,4 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/hel
 
   wrote(user, "set_day_words", { trip: tripId, slug: finalSlug, changed: Object.keys(input) });
   return state(user, tripId, finalSlug);
-}
+}, { route: "/api/helper/[user]/day" });

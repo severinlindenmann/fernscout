@@ -1,5 +1,6 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { storageFor } from "@/lib/storageQuota";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
  * with the credit system in B2592; billing is a plan now
  * (`@paid/billing/lib/entitlements.ts`), not a per-journal balance.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/account">,
 ) {
@@ -25,4 +26,4 @@ export async function GET(
     ok: true,
     storage: { usedBytes: storage.usedBytes, ceilingBytes: storage.limitBytes },
   });
-}
+}, { route: "/api/helper/[user]/account" });

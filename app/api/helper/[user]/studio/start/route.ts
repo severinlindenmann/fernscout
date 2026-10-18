@@ -6,6 +6,7 @@ import { writeManifest } from "@/lib/staging/manifest";
 import { newRunId } from "@/lib/staging/paths";
 import { RUN_TTL_MS, sweepStaging } from "@/lib/staging/sweep";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
  * cleared by the next person who starts one, and on a one-owner instance that
  * is the same person — which is the whole of what this needs.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/start">,
 ) {
@@ -70,4 +71,4 @@ export async function POST(
     days: [],
   });
   return Response.json({ runId, expiresAt });
-}
+}, { route: "/api/helper/[user]/studio/start" });

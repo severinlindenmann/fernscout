@@ -1,4 +1,5 @@
 import { isHelperOwner, notYourJournal, tripFilesForRoom } from "@/lib/helper/server";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
  * `../day/route.ts` gives at length: a browser page, not a second bearer-
  * accepting write surface `/openapi.json` would then be lying about.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/trip-files">,
 ) {
@@ -27,4 +28,4 @@ export async function GET(
   if (!found) return Response.json({ error: "unknown_trip" }, { status: 404 });
 
   return Response.json({ ok: true, title: found.title, files: found.files });
-}
+}, { route: "/api/helper/[user]/trip-files" });

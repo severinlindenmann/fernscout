@@ -240,7 +240,9 @@ async function journalOf(ctx: unknown): Promise<string | null> {
  * `features.logging` is on, and a throw leaves a `[req-error]` line with a
  * scrubbed stack (always) before it is rethrown unchanged (B-2952).
  * `route` is the template, never the concrete path. The logging itself never
- * throws and never reads a body or a query string.
+ * throws and never reads a body or a query string. The studio's own routes
+ * (`/api/helper/**`, `/api/web/**`, a day's photos) wear it too (B-3008), so a
+ * failed save reaches /admin Logs.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withV2Log<H extends (request: Request, ctx: any) => Response | Promise<Response>>(handler: H, opts: { route: string }): H {

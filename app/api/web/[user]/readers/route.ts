@@ -6,6 +6,7 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ const LIMIT = { max: 30, windowMs: 15 * 60 * 1000 };
  * at least one of email and phone. The person is pre-approved
  * (`addPersonByOwner`); nothing is sent. Step 2 is `…/readers/notify`.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -77,4 +78,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
     },
     { headers: PRIVATE },
   );
-}
+}, { route: "/api/web/[user]/readers" });

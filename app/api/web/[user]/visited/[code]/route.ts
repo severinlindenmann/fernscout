@@ -2,6 +2,7 @@ import { applyVisitedDelete, applyVisitedPatch } from "@/lib/api/v2/visitedApply
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,12 @@ async function gate(request: Request, user: string): Promise<Response | null> {
   return null;
 }
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/visited/[code]">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/visited/[code]">) {
   const { user, code } = await params;
   return (await gate(request, user)) ?? applyVisitedPatch(user, code, request);
-}
+}, { route: "/api/web/[user]/visited/[code]" });
 
-export async function DELETE(request: Request, { params }: RouteContext<"/api/web/[user]/visited/[code]">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/web/[user]/visited/[code]">) {
   const { user, code } = await params;
   return (await gate(request, user)) ?? applyVisitedDelete(user, code);
-}
+}, { route: "/api/web/[user]/visited/[code]" });

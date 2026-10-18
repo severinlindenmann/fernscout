@@ -11,6 +11,7 @@ import { getUser } from "@/lib/users";
 import { dayForEdit } from "@/lib/studio/editDay";
 import { moveDayTransactional, splitDayTransactional, mergeDaysTransactional, referenceSweep } from "@/lib/studio/reshapeDay";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ async function gate(request: Request, user: string): Promise<Response | null> {
  * split's paragraph fields (real content, never composed). GET
  * ?sweep=1&tripId=…&slug=… — M4's reference sweep instead.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/studio/reshape">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/studio/reshape">) {
   const { user } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
@@ -64,9 +65,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
     // down" has anything left to do.
     published: found.day.entries.some((entry) => !entry.draft),
   });
-}
+}, { route: "/api/web/[user]/studio/reshape" });
 
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/studio/reshape">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/studio/reshape">) {
   const { user } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
@@ -109,4 +110,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   }
 
   return Response.json({ error: "invalid_request", message: `Unknown op "${String(body.op)}".` }, { status: 400 });
-}
+}, { route: "/api/web/[user]/studio/reshape" });

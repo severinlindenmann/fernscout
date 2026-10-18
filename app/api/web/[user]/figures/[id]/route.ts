@@ -7,6 +7,7 @@
 import { applyFigureDelete, applyFigurePut } from "@/app/api/v2/[user]/figures/[id]/route";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ const NOT_FOR_AGENTS_DELETE = {
     "DELETE /api/v2/{user}/figures/{id}.",
 };
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/web/[user]/figures/[id]">) {
+export const PUT = withV2Log(async function PUT(request: Request, { params }: RouteContext<"/api/web/[user]/figures/[id]">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
@@ -36,13 +37,13 @@ export async function PUT(request: Request, { params }: RouteContext<"/api/web/[
   }
 
   return applyFigurePut(user, id, request);
-}
+}, { route: "/api/web/[user]/figures/[id]" });
 
 // DELETE /api/web/{user}/figures/{id} — B2022. Same shape as PUT above:
 // `applyFigureDelete` is the one place that checks references and writes,
 // so a delete pressed in the studio and one issued by an agent answer the
 // same refusal.
-export async function DELETE(request: Request, { params }: RouteContext<"/api/web/[user]/figures/[id]">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/web/[user]/figures/[id]">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS_DELETE, { status: 403 });
   }
@@ -54,4 +55,4 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/we
   }
 
   return applyFigureDelete(user, id, request);
-}
+}, { route: "/api/web/[user]/figures/[id]" });

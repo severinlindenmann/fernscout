@@ -10,6 +10,7 @@ import { DATE_RE, readManifest, writeManifest, type DayRow, type RunManifest } f
 import { removeRun } from "@/lib/staging/store";
 import { captionProblem } from "@/lib/validate/media";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,7 @@ function groupsAndQuestions(
   return { groups: withPlace, questions };
 }
 
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/run">,
 ) {
@@ -83,9 +84,9 @@ export async function GET(
 
   const { groups, questions } = groupsAndQuestions(current);
   return Response.json({ manifest: current, groups, questions });
-}
+}, { route: "/api/helper/[user]/studio/run" });
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/run">,
 ) {
@@ -155,7 +156,7 @@ export async function PATCH(
 
   writeManifest(user, current);
   return Response.json({ photo });
-}
+}, { route: "/api/helper/[user]/studio/run" });
 
 /**
  * Destroy a run now, staged photographs and all — B1805. The resume screen's
@@ -169,7 +170,7 @@ export async function PATCH(
  * so this checks the run exists first only to answer 404 rather than a
  * silent no-op for an id nobody has.
  */
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/run">,
 ) {
@@ -187,4 +188,4 @@ export async function DELETE(
 
   removeRun(user, runId);
   return Response.json({ ok: true });
-}
+}, { route: "/api/helper/[user]/studio/run" });
