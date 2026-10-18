@@ -96,7 +96,8 @@ jobs:
         # not a typo for unset: `lib/db/url.ts`'s `parseDatabaseUrl` treats an
         # empty string exactly like an absent variable, returning `null`
         # (B2495) — so the file leg needs no separate conditional-env step.
-        # The postgres leg gets a real service container.
+        # The postgres leg gets a real Postgres 17, installed on the runner
+        # (B-3009: no container registry, see .github/scripts/start-postgres.sh).
         include:
           - dialect: file
             database_url: ""
@@ -107,23 +108,6 @@ jobs:
           - dialect: postgres
             database_url: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
             postgres_test_url: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:17-alpine
-        # Only actually used by the postgres leg, but starting it
-        # unconditionally per-matrix-entry is simpler than conditional
-        # services, and idle Postgres in CI is cheap.
-        env:
-          POSTGRES_USER: fernscout
-          POSTGRES_PASSWORD: fernscout
-          POSTGRES_DB: fernscout_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U fernscout"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
       DATABASE_URL: ${{ matrix.database_url }}
       # The suite opts into Postgres on POSTGRES_TEST_URL, not DATABASE_URL.
@@ -168,6 +152,9 @@ jobs:
           tar -xzf caddy.tar.gz caddy
           sudo install -m 0755 caddy /usr/local/bin/caddy
           rm -f caddy.tar.gz caddy
+      - name: Start Postgres 17 (postgres leg only)
+        if: matrix.dialect == 'postgres'
+        run: .github/scripts/start-postgres.sh
       - run: npm ci
       - run: npx vitest run
 
@@ -181,22 +168,8 @@ jobs:
   # that test runs at all; on a laptop it skips and says what to start.
   backup-drill:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:17-alpine
-        env:
-          POSTGRES_USER: fernscout
-          POSTGRES_PASSWORD: fernscout
-          POSTGRES_DB: fernscout_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U fernscout"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
-      # Same image, credentials and database name as the recipe the skip
+      # Same server major, credentials and database name as the recipe the skip
       # message prints (test/support/dialects.ts), so a developer reproducing a
       # failure here is talking to the same Postgres this job was.
       POSTGRES_TEST_URL: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
@@ -226,24 +199,11 @@ jobs:
           bunzip2 restic.bz2
           sudo install -m 0755 restic /usr/local/bin/restic
           rm -f restic
-      - name: Install a pg_dump that can dump this server
-        # The runner image ships PostgreSQL 16 and the service container above
-        # is 17. pg_dump refuses to dump a server newer than itself — "aborting
-        # because of server version mismatch" — so the drill would fail on the
-        # tooling rather than on the backup. Take the matching client from
-        # PGDG and put its bin directory first on PATH: /usr/bin/pg_dump is
-        # postgresql-common's version-dispatching wrapper, and this leaves it
-        # nothing to guess. The repo may already be configured on the runner,
-        # which is why adding it is allowed to fail; the install that follows
-        # is the step that has to succeed.
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends postgresql-common
-          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y || true
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends postgresql-client-17
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: Start Postgres 17, with the pg_dump that can dump it
+        # B-3009: server and client from PGDG on the runner, no container.
+        # The image's own PostgreSQL is 16, and pg_dump refuses a newer
+        # server; the script puts 17's bin directory first on PATH.
+        run: .github/scripts/start-postgres.sh
       - name: The drill is only worth running with the right binaries
         # A skip here is silent by construction, so assert the preconditions
         # instead of hoping. Without this the job could go green having run
