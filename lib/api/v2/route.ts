@@ -218,7 +218,8 @@ async function errorCodeOf(response: Response): Promise<string | null> {
   try {
     const text = (await response.clone().text()).slice(0, 8192);
     const code = (JSON.parse(text) as { error?: unknown }).error;
-    return typeof code === "string" ? code.slice(0, 60) : null;
+    // Only a code: a sentence (a studio "this is a bug" refusal) would put free text in the log and break the Logs parser.
+    return typeof code === "string" && /^[a-z0-9_.:-]{1,60}$/i.test(code) ? code : null;
   } catch {
     return null;
   }
