@@ -28,7 +28,8 @@ export const GET = withV2Log(async function GET() {
   const address = saved
     ? { name: saved.name, line1: saved.line1, line2: saved.line2, postcode: saved.postcode, city: saved.city, country: saved.country }
     : null;
-  return ok({ email, phone, address, addresses: hasContactsKey() }, { headers: NO_STORE });
+  const signedInBy = subjectPhone(identity.signedInAs ?? identity.email) ? "phone" : "email";
+  return ok({ email, phone, address, addresses: hasContactsKey(), signedInBy }, { headers: NO_STORE });
 }, { route: "/api/v2/me/person" });
 
 export const PUT = withV2Log(async function PUT(request: Request) {

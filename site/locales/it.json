@@ -5269,5 +5269,9 @@
   "meAccount.addressSaved.one": "Salvato. Un diario ha il tuo nuovo indirizzo.",
   "meAccount.addressFailed": "Non è stato possibile salvare l’indirizzo. Riprova tra un attimo.",
   "meAccount.addressSavedNone": "Salvato. Potrai condividerlo quando entri in un diario.",
-  "meAccount.addressRemoved": "Rimosso. I diari tengono l’indirizzo che hai dato loro; cambialo in ciascuno."
+  "meAccount.addressRemoved": "Rimosso. I diari tengono l’indirizzo che hai dato loro; cambialo in ciascuno.",
+  "meAccount.changePhone": "Cambia numero di cellulare",
+  "meAccount.changePhoneTitle": "Cambia il tuo numero di cellulare",
+  "meAccount.changePhoneBody": "Mandiamo un codice al nuovo numero. Una volta inserito, sostituisce il vecchio in ogni diario, e gli accessi con il vecchio numero terminano.",
+  "meAccount.changePhoneByEmail": "Per cambiare il numero, accedi con la tua e-mail."
 }

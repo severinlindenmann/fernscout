@@ -21,6 +21,9 @@ export const personDoc = z.strictObject({
   phone: z.string().nullable().describe("the proved number as +<digits>, or null"),
   address: personAddress.nullable().describe("the saved postal address, or null"),
   addresses: z.boolean().describe("whether this server can keep a postal address at all (an encryption key is set)"),
+  signedInBy: z
+    .enum(["email", "phone"])
+    .describe("how this browser signed in; changing the number (B-3010) needs a sign-in by email"),
 });
 
 export const personPut = z.strictObject({

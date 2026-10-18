@@ -1354,6 +1354,10 @@ export type Session = {
    * Null on pre-B1316 rows, meaning the mode the server was configured to
    * at the time. */
   phoneProvenMethod: string | null;
+  /** B-3010: the subject this session was signed in with, before a linked
+   * number became the address (`email` above). Says whether a sign-in came
+   * in by address or by number. */
+  signedInAs?: string;
 };
 
 /**
@@ -1420,6 +1424,7 @@ async function lookUpSession(
     phone: row.phone,
     phoneProvenAt: row.phoneProvenAt,
     phoneProvenMethod: row.phoneProvenMethod,
+    signedInAs: row.email,
   };
 }
 
@@ -1568,6 +1573,24 @@ export async function revokeBrowserSessions(email: string): Promise<number> {
     .where("kind", "in", ["guest", "identity"])
     // B-3007: "everywhere" includes sign-ins by the person's linked number.
     .where("user_id", "in", db.selectFrom("users").select("id").where("email", "in", await subjectsOf(address)))
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0);
+}
+
+/**
+ * End every browser sign-in held under exactly this subject — B-3010, for a
+ * number that just stopped being the person's. Exact on purpose:
+ * `revokeBrowserSessions` widens to the person's other subjects, which here
+ * would sign the person out of their address too.
+ */
+export async function revokeBrowserSessionsOfSubject(subject: string): Promise<number> {
+  const { db } = await getDatabase();
+  const result = await db
+    .updateTable("sessions")
+    .set({ revoked_at: nowIso() })
+    .where("revoked_at", "is", null)
+    .where("kind", "in", ["guest", "identity"])
+    .where("user_id", "in", db.selectFrom("users").select("id").where("email", "=", subject))
     .executeTakeFirst();
   return Number(result.numUpdatedRows ?? 0);
 }

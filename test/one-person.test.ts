@@ -322,3 +322,62 @@ test("an owner-filed, owner-confirmed row is never reached by the spread (securi
   await spreadPersonAddress(VIK, { ...ADDRESS, line1: "Secret 8" });
   expect((await getContactByEmail("ben", VIK))?.postalAddress?.line1).toBe("Placeholder 1");
 });
+
+describe("changing the number (B-3010)", () => {
+  const NEW = "+41 76 000 00 50";
+  const NEW_DIGITS = "41760000050";
+
+  test("from a sign-in by address, the new number replaces the old one everywhere it was proven", async () => {
+    const { markContactPhoneProven, getContactByEmail } = await import("@/lib/contacts");
+    await markContactPhoneProven("ben", DIGITS); // Vik proved the old number in ben's journal
+    // A device signed in by the old number, to be ended.
+    await signInAs(`+${DIGITS}`);
+    const oldCookie = jar.cookies.fs_identity;
+
+    await signInAs(VIK);
+    expect((await ask({ for: "identity", phone: NEW, link: true })).status).toBe(202);
+    const out = await redeem({ for: "identity", phone: NEW, code: await lastCodeTo(NEW_DIGITS), link: true, replace: true });
+    expect(out.status).toBe(200);
+
+    const { linkedEmail, canonicalSubject } = await import("@/lib/people");
+    expect(await linkedEmail(NEW_DIGITS)).toBe(VIK);
+    expect(await canonicalSubject(`+${DIGITS}`)).toBe(`+${DIGITS}`);
+    expect((await getContactByEmail("ben", `+${NEW_DIGITS}`))?.phoneProvenAt).toBeTruthy();
+    expect(await getContactByEmail("ben", `+${DIGITS}`)).toBeNull();
+
+    const { resolveSession } = await import("@/lib/auth");
+    expect(await resolveSession(oldCookie, "identity")).toBeNull();
+    // The address itself is still signed in.
+    const { resolveIdentity } = await import("@/lib/auth/handshake");
+    expect((await resolveIdentity())?.email).toBe(VIK);
+  });
+
+  test("a sign-in by number cannot change it", async () => {
+    await signInAs(`+${NEW_DIGITS}`);
+    expect((await redeem({ for: "identity", phone: "+41 76 000 00 51", code: "000000", link: true, replace: true })).status).toBe(400);
+    expect((await redeem({ for: "identity", phone: NEW, code: "000000", replace: true })).status).toBe(400);
+  });
+
+  test("an owner's own number changes with it, under the one-journal lock", async () => {
+    const { getDatabase, nowIso } = await import("@/lib/db");
+    const { db } = await getDatabase();
+    await db.updateTable("owner_tel").set({ tel: ANA_DIGITS, proven_at: nowIso() }).where("owner_id", "=", "ana").execute();
+    await signInAs("ana@example.test");
+    expect((await ask({ for: "identity", phone: "+41 76 000 00 60", link: true })).status).toBe(202);
+    const out = await redeem({ for: "identity", phone: "+41 76 000 00 60", code: await lastCodeTo("41760000060"), link: true, replace: true });
+    expect(out.status).toBe(200);
+    const { getOwnerTel } = await import("@/lib/ownerTel");
+    expect((await getOwnerTel("ana"))?.tel).toBe("41760000060");
+    const { canonicalSubject } = await import("@/lib/people");
+    expect(await canonicalSubject("+41760000060")).toBe("ana@example.test");
+    expect(await canonicalSubject(`+${ANA_DIGITS}`)).toBe(`+${ANA_DIGITS}`);
+
+    // A number another journal's lock holds is refused, and nothing moves.
+    const { lockTel } = await import("@/lib/registry");
+    expect(lockTel("cleo", "41760000070")).toBe(true);
+    expect((await ask({ for: "identity", phone: "+41 76 000 00 70", link: true })).status).toBe(202);
+    const refused = await redeem({ for: "identity", phone: "+41 76 000 00 70", code: await lastCodeTo("41760000070"), link: true, replace: true });
+    expect(refused.status).toBe(409);
+    expect((await getOwnerTel("ana"))?.tel).toBe("41760000060");
+  });
+});

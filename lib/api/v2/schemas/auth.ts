@@ -94,6 +94,14 @@ export const codesRedeemRequest = z.strictObject({
    * when either side already belongs to somebody else.
    */
   link: z.boolean().optional(),
+  /**
+   * B-3010. With `link` and `phone`: this number replaces the person's one —
+   * the link, the owner's own number, and every journal where they proved the
+   * old one — and sign-ins by the old number end. Only from a browser signed
+   * in by the address (`invalid_request` otherwise); `link_taken` when the new
+   * number is somebody else's or another journal's.
+   */
+  replace: z.boolean().optional(),
 });
 export type CodesRedeemRequest = z.infer<typeof codesRedeemRequest>;
 

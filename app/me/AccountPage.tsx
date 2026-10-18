@@ -118,6 +118,7 @@ type Person = {
   phone: string | null;
   address: { name: string; line1: string; line2: string; postcode: string; city: string; country: string } | null;
   addresses: boolean;
+  signedInBy: "email" | "phone";
 };
 
 const FIELD_BOX =
@@ -131,7 +132,9 @@ const FIELD_BOX =
 function YourWaysIn({ person, codeMinutes }: { person: Person; codeMinutes: string }) {
   const { t } = useI18n();
   const [adding, setAdding] = useState(false);
+  const [changing, setChanging] = useState(false);
   const missing = person.email === null ? "email" : person.phone === null ? "phone" : null;
+  const canChange = !missing && person.signedInBy === "email";
   return (
     <section aria-labelledby="account-person" className="mt-10">
       <h2 id="account-person" className="font-display text-xl font-semibold text-ink-strong">
@@ -161,6 +164,24 @@ function YourWaysIn({ person, codeMinutes }: { person: Person; codeMinutes: stri
       )}
       {missing && adding && (
         <IdentitySignIn codeMinutes={codeMinutes} link={missing} onDone={() => window.location.reload()} />
+      )}
+      {/* B-3010: a new number replaces the old one everywhere it was proven. */}
+      {canChange && !changing && (
+        <button
+          type="button"
+          onClick={() => setChanging(true)}
+          className="mt-3 inline-flex min-h-11 items-center rounded-full border border-line-quiet px-5 text-base font-semibold
+                     text-ink-strong hover:border-line-ink hover:bg-surface-subtle focus-visible:outline-2
+                     focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          {t("meAccount.changePhone")}
+        </button>
+      )}
+      {canChange && changing && (
+        <IdentitySignIn codeMinutes={codeMinutes} link="phone" replace onDone={() => window.location.reload()} />
+      )}
+      {!missing && person.signedInBy === "phone" && (
+        <p className="mt-3 text-sm leading-6 text-ink-secondary">{t("meAccount.changePhoneByEmail")}</p>
       )}
     </section>
   );

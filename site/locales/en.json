@@ -5260,5 +5260,9 @@
   "meAccount.addressSaved.one": "Saved. One journal has your new address.",
   "meAccount.addressFailed": "The address could not be saved. Try again in a moment.",
   "meAccount.addressSavedNone": "Saved. You can share it when you join a journal.",
-  "meAccount.addressRemoved": "Removed. Journals keep the address you gave them; change it in each one."
+  "meAccount.addressRemoved": "Removed. Journals keep the address you gave them; change it in each one.",
+  "meAccount.changePhone": "Change mobile number",
+  "meAccount.changePhoneTitle": "Change your mobile number",
+  "meAccount.changePhoneBody": "We send a code to the new number. Once you type it in, it replaces the old one in every journal, and sign-ins with the old number end.",
+  "meAccount.changePhoneByEmail": "To change your number, sign in with your email."
 }

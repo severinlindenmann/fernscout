@@ -82,7 +82,7 @@ export async function linkedEmail(digits: string): Promise<string | null> {
 
 /** Every proved number of an address: its link, and the numbers of the
  * journals it owns. */
-async function linkedPhones(email: string): Promise<string[]> {
+export async function linkedPhones(email: string): Promise<string[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const address = normalise(email);
@@ -147,6 +147,21 @@ export async function linkPerson(email: string, digits: string): Promise<LinkRes
     .values({ email: address, phone: digits, method: "code", linked_at: nowIso() })
     .execute();
   return { ok: true };
+}
+
+/**
+ * Make `digits` the address's one linked number — B-3010. The caller
+ * (`changePersonPhone`) has already checked the number is nobody else's.
+ */
+export async function replaceLink(email: string, digits: string): Promise<void> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return;
+  const address = normalise(email);
+  await handle.db.deleteFrom("person_links").where("email", "=", address).execute();
+  await handle.db
+    .insertInto("person_links")
+    .values({ email: address, phone: digits, method: "code", linked_at: nowIso() })
+    .execute();
 }
 
 function personAad(subject: string): string {

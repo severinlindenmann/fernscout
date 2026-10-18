@@ -5266,5 +5266,9 @@
   "meAccount.addressSaved.one": "Mentve. Egy útinaplóban van meg az új címed.",
   "meAccount.addressFailed": "A címet nem sikerült menteni. Próbáld újra egy kicsit később.",
   "meAccount.addressSavedNone": "Mentve. Megoszthatod, amikor csatlakozol egy útinaplóhoz.",
-  "meAccount.addressRemoved": "Eltávolítva. Az útinaplók megtartják a nekik megadott címet; ott módosíthatod."
+  "meAccount.addressRemoved": "Eltávolítva. Az útinaplók megtartják a nekik megadott címet; ott módosíthatod.",
+  "meAccount.changePhone": "Mobilszám módosítása",
+  "meAccount.changePhoneTitle": "A mobilszámod módosítása",
+  "meAccount.changePhoneBody": "Kódot küldünk az új számra. Ha beírod, minden útinaplóban felváltja a régit, és a régi számmal történt bejelentkezések megszűnnek.",
+  "meAccount.changePhoneByEmail": "A számod módosításához jelentkezz be az e-mail-címeddel."
 }
