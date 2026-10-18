@@ -15,6 +15,7 @@ import {
   PostcardArt,
   PRIMARY,
   QUIET,
+  SavedAddress,
   Screen,
   Ticks,
   WaitingArt,
@@ -562,6 +563,7 @@ export default function JoinFlow({
         <PostcardArt />
         <Heading id="join-address">{t("guide.address.title")}</Heading>
         <p className="text-base text-ink-body">{t("guide.address.body", vars)}</p>
+        <SavedAddress label={(summary) => t("guide.address.useSaved", { address: summary })} onUse={setAddress} />
         <AddressFields
           value={address}
           onChange={setAddress}

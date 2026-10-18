@@ -21,6 +21,7 @@ import {
   PostcardArt,
   PRIMARY,
   QUIET,
+  SavedAddress,
   Screen,
   SECONDARY,
   Ticks,
@@ -579,6 +580,7 @@ export default function WelcomeGuide(props: GuideProps) {
         <p className="text-base text-ink-body">
           {kind === "buddy" ? t("guide.address.buddyBody", vars) : t("guide.address.body", vars)}
         </p>
+        <SavedAddress label={(summary) => t("guide.address.useSaved", { address: summary })} onUse={setAddress} />
         <AddressFields
           value={shownAddress}
           onChange={setAddress}

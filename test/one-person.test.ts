@@ -270,3 +270,25 @@ describe("one person across email and phone", () => {
     expect((await getPersonAddress(VIK))?.line1).toBe("Seestrasse 1");
   });
 });
+
+describe("review findings", () => {
+  test("a save without an address does not claim an owner-typed one as the person's", async () => {
+    const { getContactByEmail, manageTokenFor, updateContactSelf } = await import("@/lib/contacts");
+    const cleo = (await getContactByEmail("cleo", VIK))!;
+    await updateContactSelf("cleo", manageTokenFor("cleo", cleo.id), { locale: "de" });
+    const { getDatabase } = await import("@/lib/db");
+    const { db } = await getDatabase();
+    const row = await db.selectFrom("contacts").select("address_self").where("id", "=", cleo.id).executeTakeFirstOrThrow();
+    expect(row.address_self).toBe(0);
+  });
+
+  test("a row whose number was only typed by the owner is not reached by the spread", async () => {
+    const { getContactByEmail, manageTokenFor, spreadPersonAddress, updateContactSelf } = await import("@/lib/contacts");
+    const ben = (await getContactByEmail("ben", `+${DIGITS}`))!;
+    expect(ben.phoneProvenAt).toBeNull();
+    await updateContactSelf("ben", manageTokenFor("ben", ben.id), { address: { ...ADDRESS, line1: "Ben-held 3" } });
+    await spreadPersonAddress(VIK, { ...ADDRESS, line1: "New 7" });
+    expect((await getContactByEmail("ben", `+${DIGITS}`))?.postalAddress?.line1).toBe("Ben-held 3");
+    expect((await getContactByEmail("ana", VIK))?.postalAddress?.line1).toBe("New 7");
+  });
+});

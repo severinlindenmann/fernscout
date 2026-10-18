@@ -46,19 +46,26 @@ import { browserTimeZone, phoneCountry } from "@/lib/regionDefaults";
 export default function IdentitySignIn({
   codeMinutes,
   onDone,
+  link,
 }: {
   /** How long the code lasts, from `CODE_TTL_MINUTES`. Passed rather than
    * imported: this is a client component and `lib/auth` is server-only. */
   codeMinutes: string;
   /** Called once the cookie is set, so the page can show what it opened. */
   onDone: () => void;
+  /** B-3007: on `/me`, add this channel to the person already signed in —
+   * a code to it, redeemed with `link: true`. No tabs and no WhatsApp: the
+   * channel is the one being added, and a WhatsApp sign-in proves no code. */
+  link?: "email" | "phone";
 }) {
   const { t, locale } = useI18n();
   // B-3001: "Email | Mobile" where the instance texts codes. The server decides again.
   const smsOn = useSmsSignIn();
   // B-3003: or by a WhatsApp message, with no code to type.
   const waOn = useWhatsappSignIn();
-  const [channel, setChannel] = useState<"email" | "phone">("email");
+  const [channel, setChannel] = useState<"email" | "phone">(link ?? "email");
+  const [taken, setTaken] = useState(false);
+  const linkFlag = link ? { link: true } : {};
   const languages = useSyncExternalStore(subscribeNothing, browserLanguages, () => "");
   const timeZone = useSyncExternalStore(subscribeNothing, browserTimeZone, () => "");
   const region = useMemo(() => phoneCountry(languages ? languages.split(",") : [], timeZone), [languages, timeZone]);
@@ -97,7 +104,10 @@ export default function IdentitySignIn({
 
   async function requestCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (channel === "phone" && !smsOn) return startWhatsapp();
+    if (channel === "phone" && !smsOn) {
+      if (link) return setUnavailable(true);
+      return startWhatsapp();
+    }
     // Read the field the way the browser sees it, not the way React's
     // `onChange` last heard it — autofill (and some password managers) sets
     // `.value` without dispatching the event React listens for, which left
@@ -132,7 +142,7 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: value } : { email: value }) }),
+      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: value } : { email: value }), ...linkFlag }),
     }).catch(() => null);
     setBusy(false);
 
@@ -175,7 +185,7 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }) }),
+      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }), ...linkFlag }),
     }).catch(() => null);
     if (response && (response.status === 404 || response.status === 503)) {
       setUnavailable(true);
@@ -188,7 +198,7 @@ export default function IdentitySignIn({
     const response = await fetch("/api/auth/codes/redeem", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }), code: value }),
+      body: JSON.stringify({ for: "identity", ...(channel === "phone" ? { phone: email } : { email }), code: value, ...linkFlag }),
     }).catch(() => null);
 
     if (response?.ok) {
@@ -196,6 +206,12 @@ export default function IdentitySignIn({
       return;
     }
     setBusy(false);
+    if (link && response?.status === 409) {
+      setTaken(true);
+      setStep("email");
+      setCode("");
+      return;
+    }
     setWrong(true);
     setCode("");
   }
@@ -213,7 +229,7 @@ export default function IdentitySignIn({
         />
       )}
       <h2 className="font-display text-xl font-semibold text-ink-strong">
-        {t(step === "wa" ? "join.wa.title" : step === "code" && !unavailable ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : "home.signInTitle")}
+        {t(step === "wa" ? "join.wa.title" : step === "code" && !unavailable ? (channel === "phone" ? "codeWait.titlePhone" : "codeWait.title") : link === "phone" ? "meAccount.addPhoneTitle" : link === "email" ? "meAccount.addEmailTitle" : "home.signInTitle")}
       </h2>
 
       {unavailable ? (
@@ -233,7 +249,7 @@ export default function IdentitySignIn({
         />
       ) : step === "email" ? (
         <form onSubmit={requestCode}>
-          {(smsOn || waOn) && (
+          {!link && (smsOn || waOn) && (
             <SignInTabs
               value={channel}
               onChange={(next) => {
@@ -244,8 +260,13 @@ export default function IdentitySignIn({
             />
           )}
           <p className="mt-2 text-base leading-7 text-ink-body">
-            {t("home.signInBody")}
+            {t(link ? "meAccount.addBody" : "home.signInBody")}
           </p>
+          {taken && (
+            <p role="alert" className="mt-2 text-base text-coral-600">
+              {t(link === "phone" ? "meAccount.addPhoneTaken" : "meAccount.addEmailTaken")}
+            </p>
+          )}
           {/* The inset label — B733's addendum. The label lives *inside* the
               bordered field rather than floating above it, which is most of
               why the mockup's version reads as one control rather than a
@@ -331,7 +352,7 @@ export default function IdentitySignIn({
             {t("me.signInSend")}
           </BusyButton>
           )}
-          {channel === "phone" && waOn && (
+          {!link && channel === "phone" && waOn && (
             <button type="button" className={`mt-3 w-full ${smsOn ? PILL_GHOST : PILL_PRIMARY}`} onClick={startWhatsapp}>
               {t("join.pick.whatsapp")}
             </button>

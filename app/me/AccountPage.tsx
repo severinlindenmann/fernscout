@@ -8,6 +8,7 @@ import IdentitySignIn from "@/components/IdentitySignIn";
 import KeepCard from "@/components/KeepCard";
 import SignOut from "@/components/SignOut";
 import { TITLE_H1 } from "@/components/landing/kit";
+import { PILL_PRIMARY } from "@/components/landing/styles";
 import {
   RoleBadge,
   YourDevices,
@@ -112,6 +113,137 @@ export function PlanStatusCard({ journal }: { journal: MineJournal & { plan: Non
   );
 }
 
+type Person = {
+  email: string | null;
+  phone: string | null;
+  address: { name: string; line1: string; line2: string; postcode: string; city: string; country: string } | null;
+  addresses: boolean;
+};
+
+const FIELD_BOX =
+  "mt-1 block min-h-11 w-full rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-base text-ink-strong " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
+
+/**
+ * B-3007: the person's two ways in, paired — sign in with either and it is
+ * the same `/me`. A missing one is added with a code to it.
+ */
+function YourWaysIn({ person, codeMinutes }: { person: Person; codeMinutes: string }) {
+  const { t } = useI18n();
+  const [adding, setAdding] = useState(false);
+  const missing = person.email === null ? "email" : person.phone === null ? "phone" : null;
+  return (
+    <section aria-labelledby="account-person" className="mt-10">
+      <h2 id="account-person" className="font-display text-xl font-semibold text-ink-strong">
+        {t("meAccount.personTitle")}
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-ink-body">{t("meAccount.personBody")}</p>
+      <dl className="mt-4 divide-y divide-line-quiet overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-3">
+          <dt className="text-sm text-ink-secondary">{t("meAccount.personEmail")}</dt>
+          <dd className="min-w-0 break-words font-mono text-sm text-ink-strong">{person.email ?? "—"}</dd>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-3">
+          <dt className="text-sm text-ink-secondary">{t("meAccount.personPhone")}</dt>
+          <dd className="font-mono text-sm text-ink-strong">{person.phone ? displaySubject(person.phone) : "—"}</dd>
+        </div>
+      </dl>
+      {missing && !adding && (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="mt-3 inline-flex min-h-11 items-center rounded-full border border-line-quiet px-5 text-base font-semibold
+                     text-ink-strong hover:border-line-ink hover:bg-surface-subtle focus-visible:outline-2
+                     focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          {t(missing === "phone" ? "meAccount.addPhone" : "meAccount.addEmail")}
+        </button>
+      )}
+      {missing && adding && (
+        <IdentitySignIn codeMinutes={codeMinutes} link={missing} onDone={() => window.location.reload()} />
+      )}
+    </section>
+  );
+}
+
+/**
+ * B-3007: one postal address for the whole instance. Saving it reaches every
+ * journal the person gave their address to themselves; a new journal gets it
+ * only when they press "use my saved address" there.
+ */
+function YourAddress({ person }: { person: Person }) {
+  const { t, tn } = useI18n();
+  const [address, setAddress] = useState(
+    person.address ?? { name: "", line1: "", line2: "", postcode: "", city: "", country: "" },
+  );
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const field = (key: keyof typeof address, label: string, autoComplete: string) => (
+    <label className="mt-3 block text-sm font-medium text-ink-body">
+      {label}
+      <input
+        value={address[key]}
+        autoComplete={autoComplete}
+        onChange={(e) => setAddress({ ...address, [key]: e.target.value })}
+        className={FIELD_BOX}
+      />
+    </label>
+  );
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (!address.line1.trim() || !address.city.trim() || !address.country.trim()) {
+      setNote({ ok: false, text: t("guide.address.incomplete") });
+      return;
+    }
+    setBusy(true);
+    setNote(null);
+    const response = await fetch("/api/v2/me/person", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ address }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!response?.ok) {
+      setNote({ ok: false, text: t("meAccount.addressFailed") });
+      return;
+    }
+    const { journals } = (await response.json()) as { journals: number };
+    setNote({ ok: true, text: tn("meAccount.addressSaved", journals, { count: String(journals) }) });
+  }
+
+  return (
+    <section aria-labelledby="account-address" className="mt-10">
+      <h2 id="account-address" className="font-display text-xl font-semibold text-ink-strong">
+        {t("meAccount.addressTitle")}
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-ink-body">{t("meAccount.addressBody")}</p>
+      <form onSubmit={save} className="mt-2">
+        {field("name", t("meAccount.addressName"), "name")}
+        {field("line1", t("guide.address.street"), "address-line1")}
+        {field("line2", t("meAccount.addressLine2"), "address-line2")}
+        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3">
+          {field("postcode", t("guide.address.postcode"), "postal-code")}
+          {field("city", t("guide.address.city"), "address-level2")}
+        </div>
+        {field("country", t("guide.address.country"), "country-name")}
+        <BusyButton
+          busy={busy}
+          type="submit"
+          className={`mt-4 ${PILL_PRIMARY} disabled:opacity-50`}
+        >
+          {t("meAccount.addressSave")}
+        </BusyButton>
+        {note && (
+          <p role={note.ok ? "status" : "alert"} className={`mt-3 text-sm ${note.ok ? "text-ink-body" : "text-coral-600"}`}>
+            {note.text}
+          </p>
+        )}
+      </form>
+    </section>
+  );
+}
+
 /**
  * Sign out everywhere — `DELETE /api/v2/me/devices`.
  *
@@ -198,6 +330,7 @@ export default function AccountPage({
   const [home, setHome] = useState<HomePayload | null>(null);
   // B-2962: the trip link this browser holds, signed in or not.
   const [link, setLink] = useState<HomeLink | null>(null);
+  const [person, setPerson] = useState<Person | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -213,6 +346,13 @@ export default function AccountPage({
         window.localStorage.setItem(SEEN_KEY, "1");
         setHome(data);
         setPhase("in");
+        // B-3007: the person's ways in and address, asked once signed in.
+        fetch("/api/v2/me/person")
+          .then((r) => (r.ok ? r.json() : null))
+          .then((body: Person | null) => {
+            if (live && body) setPerson(body);
+          })
+          .catch(() => {});
       })
       .catch(() => {
         // Offline with nothing cached. Not "you are signed out" — that would
@@ -292,6 +432,9 @@ export default function AccountPage({
             </section>
 
             {owned?.plan && <PlanStatusCard journal={{ ...owned, plan: owned.plan }} />}
+
+            {person && <YourWaysIn person={person} codeMinutes={codeMinutes} />}
+            {person?.addresses && <YourAddress person={person} />}
 
             <YourDevices
               devices={home.devices}

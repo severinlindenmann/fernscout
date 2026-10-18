@@ -802,7 +802,12 @@ export async function updateContactSelf(
         ? address
         : null;
 
-  const stored = await addressColumns(owner, current.id, keepAddress, "self");
+  const columns = await addressColumns(owner, current.id, keepAddress, "self");
+  // B-3007: a save that sent no address (a language, a consent) re-writes the
+  // stored one unchanged and must not claim an owner-typed address as the
+  // person's own.
+  const { address_self: addressSelf, ...rest } = columns;
+  const stored = address === undefined ? rest : { ...rest, address_self: addressSelf };
   await db
     .updateTable("contacts")
     .set({
@@ -853,16 +858,23 @@ export async function spreadPersonAddress(
   except?: string,
 ): Promise<number> {
   if (!(await setPersonAddress(subject, input))) return 0;
-  const { tel: _tel, ...address } = normaliseAddress(input);
+  // No `tel`: each row keeps its own number (`updateContactSelf` reads a
+  // missing key as "unchanged").
+  const { name, line1, line2, postcode, city, country } = normaliseAddress(input);
+  const address = { name, line1, line2, postcode, city, country };
   const { db } = await getDatabase();
   const journals = new Set<string>(except ? [except] : []);
   for (const each of await subjectsOf(subject)) {
     const lookup = subjectLookup(each);
     if (!lookup) continue;
+    // Only where that subject was proved on the row too — an address
+    // confirmed, a number proved by a code — never one the owner typed.
+    const proof = lookup[0] === "phone_key" ? "phone_proven_at" : "confirmed_at";
     const rows = await db
       .selectFrom("contacts")
       .select(["id", "owner_id"])
       .where(lookup[0], "=", lookup[1])
+      .where(proof, "is not", null)
       .where("address_self", "=", 1)
       .where("postal_cipher", "is not", null)
       .where("status", "!=", "blocked")
